@@ -1714,15 +1714,6 @@ checksum = "388a1df253eca08550bef6c72392cfe7c30914bf41df5269b68cbd6ff8f570a3"
 
 [[package]]
 name = "sentry"
-version = "0.1.0"
-dependencies = [
- "env_logger 0.7.1",
- "log",
- "sentry 0.18.1",
-]
-
-[[package]]
-name = "sentry"
 version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b01b723fc1b0a0f9394ca1a8451daec6e20206d47f96c3dceea7fd11ec9eec0"
@@ -1743,6 +1734,15 @@ dependencies = [
  "sentry-types",
  "uname",
  "url",
+]
+
+[[package]]
+name = "sentry-integration"
+version = "0.1.0"
+dependencies = [
+ "env_logger 0.7.1",
+ "log",
+ "sentry",
 ]
 
 [[package]]
