@@ -1,0 +1,675 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+CAUTION: Do not modify this file unless you know what you are doing.
+         Unexpected results may occur if the code is changed deliberately.
+-->
+<dbmodel pgmodeler-ver="0.9.3-beta1" use-changelog="false" last-position="0,8" last-zoom="1" max-obj-count="25"
+	 default-schema="public" default-owner="postgres">
+<role name="_aiven"
+      superuser="true"
+      replication="true"
+      inherit="true"
+      login="true"
+      encrypted="true"
+      password="********">
+</role>
+
+<role name="tsdbadmin"
+      createdb="true"
+      replication="true"
+      createrole="true"
+      inherit="true"
+      login="true"
+      bypassrls="true"
+      encrypted="true"
+      password="********">
+</role>
+
+<database name="defaultdb" encoding="UTF8" lc-collate="en_US.UTF-8" lc-ctype="en_US.UTF-8" is-template="false" allow-conns="true">
+	<role name="tsdbadmin"/>
+	<tablespace name="pg_default"/>
+</database>
+
+<schema name="public" layer="0" rect-visible="true" fill-color="#e1e1e1" sql-disabled="true">
+</schema>
+
+<extension name="timescaledb" cur-version="1.7.4">
+	<schema name="public"/>
+	<comment><![CDATA[Enables scalable inserts and complex queries for time-series data]]></comment>
+</extension>
+
+<schema name="hdb_views" layer="0" rect-visible="true" fill-color="#fc64c5">
+	<role name="tsdbadmin"/>
+</schema>
+
+<extension name="pgcrypto" cur-version="1.3">
+	<schema name="public"/>
+	<comment><![CDATA[cryptographic functions]]></comment>
+</extension>
+
+<schema name="event" layer="0" rect-visible="true" fill-color="#daa067">
+	<role name="tsdbadmin"/>
+</schema>
+
+<schema name="webhook" layer="0" rect-visible="true" fill-color="#ae35d9">
+	<role name="tsdbadmin"/>
+</schema>
+
+<table name="application" layer="0" collapse-mode="2" max-obj-count="4" z-value="0">
+	<schema name="event"/>
+	<role name="tsdbadmin"/>
+	<position x="60" y="60"/>
+	<column name="application__id" not-null="true" default-value="gen_random_uuid()">
+		<type name="uuid" length="0"/>
+	</column>
+	<column name="name" not-null="true">
+		<type name="text" length="0"/>
+	</column>
+	<column name="icon">
+		<type name="text" length="0"/>
+	</column>
+	<column name="url">
+		<type name="text" length="0"/>
+	</column>
+	<constraint name="application_pkey" type="pk-constr" table="event.application">
+		<columns names="application__id" ref-type="src-columns"/>
+	</constraint>
+</table>
+
+<schema name="iam" layer="0" rect-visible="true" fill-color="#c41cbd">
+	<role name="tsdbadmin"/>
+</schema>
+
+<table name="event_type" layer="0" collapse-mode="2" max-obj-count="7" z-value="0">
+	<schema name="event"/>
+	<role name="tsdbadmin"/>
+	<comment><![CDATA[Store event types (e.g. iam.user.created, iam.user.updated, ...) for each registered applications]]></comment>
+	<position x="300" y="60"/>
+	<column name="application__id" not-null="true">
+		<type name="uuid" length="0"/>
+	</column>
+	<column name="service__name" not-null="true">
+		<type name="text" length="0"/>
+	</column>
+	<column name="resource_type__name" not-null="true">
+		<type name="text" length="0"/>
+	</column>
+	<column name="verb__name" not-null="true">
+		<type name="text" length="0"/>
+	</column>
+	<column name="status">
+		<type name="uuid" length="0"/>
+	</column>
+	<column name="event_type__name" not-null="true" default-value="(((service__name || '.'::text) || resource_type__name) || '.'::text) || verb__name" generated="true">
+		<type name="text" length="0"/>
+	</column>
+	<constraint name="event_type_pkey" type="pk-constr" table="event.event_type">
+		<columns names="event_type__name" ref-type="src-columns"/>
+	</constraint>
+</table>
+
+<table name="service" layer="0" collapse-mode="2" max-obj-count="3" z-value="0">
+	<schema name="event"/>
+	<role name="tsdbadmin"/>
+	<comment><![CDATA[Service e.g. "iam" or "billing"]]></comment>
+	<position x="740" y="60"/>
+	<column name="service__name" not-null="true">
+		<type name="text" length="0"/>
+	</column>
+	<column name="application__id" not-null="true">
+		<type name="uuid" length="0"/>
+	</column>
+	<column name="comment">
+		<type name="text" length="0"/>
+	</column>
+	<constraint name="service_pkey" type="pk-constr" table="event.service">
+		<columns names="service__name,application__id" ref-type="src-columns"/>
+	</constraint>
+</table>
+
+<table name="resource_type" layer="0" collapse-mode="2" max-obj-count="3" z-value="0">
+	<schema name="event"/>
+	<role name="tsdbadmin"/>
+	<comment><![CDATA[Ressource type (e.g. "user", "invoice", "payment")]]></comment>
+	<position x="1020" y="60"/>
+	<column name="resource_type__name" not-null="true">
+		<type name="text" length="0"/>
+	</column>
+	<column name="application__id" not-null="true">
+		<type name="uuid" length="0"/>
+	</column>
+	<column name="service__name" not-null="true">
+		<type name="text" length="0"/>
+	</column>
+	<constraint name="resource_type_pkey" type="pk-constr" table="event.resource_type">
+		<columns names="application__id,service__name,resource_type__name" ref-type="src-columns"/>
+	</constraint>
+</table>
+
+<table name="verb" layer="0" collapse-mode="2" max-obj-count="2" z-value="0">
+	<schema name="event"/>
+	<role name="tsdbadmin"/>
+	<comment><![CDATA[Event type Verb (e.g. "created", "updated", "deleted")]]></comment>
+	<position x="1400" y="60"/>
+	<column name="verb__name" not-null="true">
+		<type name="text" length="0"/>
+	</column>
+	<column name="application__id" not-null="true">
+		<type name="uuid" length="0"/>
+	</column>
+	<constraint name="verb_pkey" type="pk-constr" table="event.verb">
+		<columns names="verb__name,application__id" ref-type="src-columns"/>
+	</constraint>
+</table>
+
+<table name="application_secret" layer="0" collapse-mode="2" max-obj-count="6" z-value="0">
+	<schema name="event"/>
+	<role name="tsdbadmin"/>
+	<comment><![CDATA[An application can have one or more secret]]></comment>
+	<position x="60" y="300"/>
+	<column name="application__id" not-null="true">
+		<type name="uuid" length="0"/>
+	</column>
+	<column name="token" not-null="true" default-value="gen_random_uuid()">
+		<type name="uuid" length="0"/>
+	</column>
+	<column name="created_at" not-null="true" default-value="now()">
+		<type name="timestamp with time zone" length="0" with-timezone="true"/>
+	</column>
+	<column name="deleted_at">
+		<type name="timestamp with time zone" length="0" with-timezone="true"/>
+	</column>
+	<column name="name">
+		<type name="text" length="0"/>
+	</column>
+	<constraint name="application_secret_pkey" type="pk-constr" table="event.application_secret">
+		<columns names="token" ref-type="src-columns"/>
+	</constraint>
+</table>
+
+<table name="event" layer="0" collapse-mode="2" max-obj-count="13" z-value="0">
+	<schema name="event"/>
+	<role name="tsdbadmin"/>
+	<comment><![CDATA[Event triggered by hook0 customers]]></comment>
+	<position x="400" y="300"/>
+	<column name="event__id" not-null="true" default-value="gen_random_uuid()">
+		<type name="uuid" length="0"/>
+	</column>
+	<column name="application__id" not-null="true">
+		<type name="uuid" length="0"/>
+	</column>
+	<column name="event_type__name" not-null="true">
+		<type name="text" length="0"/>
+	</column>
+	<column name="payload" not-null="true">
+		<type name="bytea" length="0"/>
+	</column>
+	<column name="payload_content_type__name" not-null="true">
+		<type name="text" length="0"/>
+	</column>
+	<column name="ip" not-null="true">
+		<type name="inet" length="0"/>
+	</column>
+	<column name="metadata">
+		<type name="jsonb" length="0"/>
+	</column>
+	<column name="occurred_at" not-null="true">
+		<type name="timestamp" length="0"/>
+	</column>
+	<column name="received_at" not-null="true" default-value="now()">
+		<type name="timestamp with time zone" length="0" with-timezone="true"/>
+	</column>
+	<column name="application_secret__token" not-null="true">
+		<type name="uuid" length="0"/>
+		<comment><![CDATA[what application token is responsible for this event creation]]></comment>
+	</column>
+	<column name="labels" not-null="true" default-value="jsonb_build_object()">
+		<type name="jsonb" length="0"/>
+	</column>
+	<constraint name="event_pkey" type="pk-constr" table="event.event">
+		<columns names="event__id" ref-type="src-columns"/>
+	</constraint>
+</table>
+
+<table name="payload_content_type" layer="0" collapse-mode="2" max-obj-count="3" z-value="0">
+	<schema name="event"/>
+	<role name="tsdbadmin"/>
+	<comment><![CDATA[Types of event payload supported by hook0 (e.g. "application/json", "application/xml", ...)]]></comment>
+	<position x="760" y="300"/>
+	<column name="payload_content_type__name" not-null="true">
+		<type name="text" length="0"/>
+	</column>
+	<column name="description" not-null="true">
+		<type name="text" length="0"/>
+	</column>
+	<column name="created_at" not-null="true" default-value="now()">
+		<type name="timestamp with time zone" length="0" with-timezone="true"/>
+	</column>
+	<constraint name="payload_content_type_pkey" type="pk-constr" table="event.payload_content_type">
+		<columns names="payload_content_type__name" ref-type="src-columns"/>
+	</constraint>
+</table>
+
+<table name="subscription" layer="0" collapse-mode="2" max-obj-count="9" z-value="0">
+	<schema name="webhook"/>
+	<role name="tsdbadmin"/>
+	<position x="1680" y="60"/>
+	<column name="subscription__id" not-null="true" default-value="gen_random_uuid()">
+		<type name="uuid" length="0"/>
+	</column>
+	<column name="is_enabled" not-null="true" default-value="true">
+		<type name="boolean" length="0"/>
+	</column>
+	<column name="description">
+		<type name="text" length="0"/>
+	</column>
+	<column name="secret" not-null="true" default-value="gen_random_uuid()">
+		<type name="uuid" length="0"/>
+	</column>
+	<column name="metatadata" not-null="true" default-value="jsonb_build_object()">
+		<type name="jsonb" length="0"/>
+	</column>
+	<column name="label_key" not-null="true">
+		<type name="text" length="0"/>
+	</column>
+	<column name="label_value" not-null="true">
+		<type name="text" length="0"/>
+	</column>
+	<column name="target__id" not-null="true">
+		<type name="uuid" length="0"/>
+	</column>
+	<constraint name="subscription_pkey" type="pk-constr" table="webhook.subscription">
+		<columns names="subscription__id" ref-type="src-columns"/>
+	</constraint>
+	<constraint name="subscription_target__id_key" type="uq-constr" table="webhook.subscription">
+		<columns names="target__id" ref-type="src-columns"/>
+	</constraint>
+</table>
+
+<table name="subscription__event_type" layer="0" collapse-mode="2" max-obj-count="3" z-value="0">
+	<schema name="webhook"/>
+	<role name="tsdbadmin"/>
+	<comment><![CDATA[A webhook can subscribe to ONE or MORE event_type]]></comment>
+	<position x="1960" y="60"/>
+	<column name="subscription__id" not-null="true">
+		<type name="uuid" length="0"/>
+	</column>
+	<column name="event_type__name" not-null="true">
+		<type name="text" length="0"/>
+	</column>
+	<constraint name="subscription__event_type_pkey" type="pk-constr" table="webhook.subscription__event_type">
+		<columns names="subscription__id,event_type__name" ref-type="src-columns"/>
+	</constraint>
+</table>
+
+<table name="request_attempt" layer="0" collapse-mode="2" max-obj-count="12" z-value="0">
+	<schema name="webhook"/>
+	<role name="tsdbadmin"/>
+	<position x="2340" y="60"/>
+	<column name="request_attempt__id" not-null="true" default-value="gen_random_uuid()">
+		<type name="uuid" length="0"/>
+	</column>
+	<column name="event__id" not-null="true">
+		<type name="uuid" length="0"/>
+	</column>
+	<column name="subscription__id" not-null="true">
+		<type name="uuid" length="0"/>
+	</column>
+	<column name="created_at" not-null="true" default-value="now()">
+		<type name="timestamp with time zone" length="0" with-timezone="true"/>
+	</column>
+	<column name="picked_at">
+		<type name="timestamp with time zone" length="0" with-timezone="true"/>
+	</column>
+	<column name="failed_at">
+		<type name="timestamp with time zone" length="0" with-timezone="true"/>
+	</column>
+	<column name="succeeded_at">
+		<type name="timestamp with time zone" length="0" with-timezone="true"/>
+	</column>
+	<column name="delay_until">
+		<type name="timestamp with time zone" length="0" with-timezone="true"/>
+	</column>
+	<column name="response__id">
+		<type name="uuid" length="0"/>
+	</column>
+	<column name="retry_count" not-null="true" default-value="0">
+		<type name="smallint" length="0"/>
+	</column>
+	<constraint name="request_attempt_pkey" type="pk-constr" table="webhook.request_attempt">
+		<columns names="request_attempt__id" ref-type="src-columns"/>
+	</constraint>
+	<constraint name="request_attempt_response__id_key" type="uq-constr" table="webhook.request_attempt">
+		<columns names="response__id" ref-type="src-columns"/>
+	</constraint>
+</table>
+
+<table name="response_error" layer="0" collapse-mode="2" max-obj-count="1" z-value="0">
+	<schema name="webhook"/>
+	<role name="tsdbadmin"/>
+	<position x="2680" y="60"/>
+	<column name="response_error__name" not-null="true">
+		<type name="text" length="0"/>
+	</column>
+	<constraint name="response_error_pkey" type="pk-constr" table="webhook.response_error">
+		<columns names="response_error__name" ref-type="src-columns"/>
+	</constraint>
+</table>
+
+<table name="response" layer="0" collapse-mode="2" max-obj-count="7" z-value="0">
+	<schema name="webhook"/>
+	<role name="tsdbadmin"/>
+	<position x="2940" y="60"/>
+	<column name="response__id" not-null="true" default-value="gen_random_uuid()">
+		<type name="uuid" length="0"/>
+	</column>
+	<column name="response_error__name">
+		<type name="text" length="0"/>
+	</column>
+	<column name="http_code">
+		<type name="smallint" length="0"/>
+	</column>
+	<column name="headers">
+		<type name="jsonb" length="0"/>
+	</column>
+	<column name="body">
+		<type name="text" length="0"/>
+	</column>
+	<column name="elapsed_time_ms">
+		<type name="integer" length="0"/>
+	</column>
+	<constraint name="response_pkey" type="pk-constr" table="webhook.response">
+		<columns names="response__id" ref-type="src-columns"/>
+	</constraint>
+</table>
+
+<table name="target" layer="0" collapse-mode="2" max-obj-count="2" z-value="0">
+	<schema name="webhook"/>
+	<role name="tsdbadmin"/>
+	<comment><![CDATA[A target describes how to execute the request attempt]]></comment>
+	<position x="1680" y="340"/>
+	<column name="target__id" not-null="true" default-value="gen_random_uuid()">
+		<type name="uuid" length="0"/>
+	</column>
+	<constraint name="target_pkey" type="pk-constr" table="webhook.target">
+		<columns names="target__id" ref-type="src-columns"/>
+	</constraint>
+</table>
+
+<table name="target_http" layer="0" collapse-mode="2" max-obj-count="4" z-value="0">
+	<schema name="webhook"/>
+	<role name="tsdbadmin"/>
+	<position x="1940" y="340"/>
+	<column name="target__id" not-null="true" default-value="gen_random_uuid()">
+		<type name="uuid" length="0"/>
+	</column>
+	<column name="method" not-null="true">
+		<type name="text" length="0"/>
+	</column>
+	<column name="url" not-null="true">
+		<type name="text" length="0"/>
+	</column>
+	<column name="headers" not-null="true" default-value="'{}'">
+		<type name="jsonb" length="0"/>
+	</column>
+</table>
+
+<relationship name="target_http_inherits_target" type="relgen" layer="0"
+	 pk-pattern="{dt}_pk"
+	 custom-color="#d4c8fe"
+	 src-table="webhook.target_http"
+	 dst-table="webhook.target"/>
+
+<constraint name="event_type_application__id_service__name_fkey" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="RESTRICT" del-action="RESTRICT" ref-table="event.service" table="event.event_type">
+	<columns names="application__id,service__name" ref-type="src-columns"/>
+	<columns names="application__id,service__name" ref-type="dst-columns"/>
+</constraint>
+
+<constraint name="event_type_application__id_verb__name_fkey" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="RESTRICT" del-action="RESTRICT" ref-table="event.verb" table="event.event_type">
+	<columns names="application__id,verb__name" ref-type="src-columns"/>
+	<columns names="application__id,verb__name" ref-type="dst-columns"/>
+</constraint>
+
+<constraint name="event_type_application__id_fkey" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="CASCADE" del-action="CASCADE" ref-table="event.application" table="event.event_type">
+	<columns names="application__id" ref-type="src-columns"/>
+	<columns names="application__id" ref-type="dst-columns"/>
+</constraint>
+
+<constraint name="event_type_service__name_application__id_resource_type__name" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="RESTRICT" del-action="RESTRICT" ref-table="event.resource_type" table="event.event_type">
+	<columns names="service__name,application__id,resource_type__name" ref-type="src-columns"/>
+	<columns names="service__name,application__id,resource_type__name" ref-type="dst-columns"/>
+</constraint>
+
+<constraint name="service_application__id_fkey" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="CASCADE" del-action="CASCADE" ref-table="event.application" table="event.service">
+	<columns names="application__id" ref-type="src-columns"/>
+	<columns names="application__id" ref-type="dst-columns"/>
+</constraint>
+
+<constraint name="resource_type_application__id_fkey" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="CASCADE" del-action="CASCADE" ref-table="event.application" table="event.resource_type">
+	<columns names="application__id" ref-type="src-columns"/>
+	<columns names="application__id" ref-type="dst-columns"/>
+</constraint>
+
+<constraint name="resource_type_application__id_service__name_fkey" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="RESTRICT" del-action="RESTRICT" ref-table="event.service" table="event.resource_type">
+	<columns names="application__id,service__name" ref-type="src-columns"/>
+	<columns names="application__id,service__name" ref-type="dst-columns"/>
+</constraint>
+
+<constraint name="verb_application__id_fkey" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="CASCADE" del-action="CASCADE" ref-table="event.application" table="event.verb">
+	<columns names="application__id" ref-type="src-columns"/>
+	<columns names="application__id" ref-type="dst-columns"/>
+</constraint>
+
+<constraint name="application_secret_application__id_fkey" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="CASCADE" del-action="CASCADE" ref-table="event.application" table="event.application_secret">
+	<columns names="application__id" ref-type="src-columns"/>
+	<columns names="application__id" ref-type="dst-columns"/>
+</constraint>
+
+<constraint name="event_application__id_fkey" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="CASCADE" del-action="CASCADE" ref-table="event.application" table="event.event">
+	<columns names="application__id" ref-type="src-columns"/>
+	<columns names="application__id" ref-type="dst-columns"/>
+</constraint>
+
+<constraint name="event_application_secret__token_fkey" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="RESTRICT" del-action="RESTRICT" ref-table="event.application_secret" table="event.event">
+	<columns names="application_secret__token" ref-type="src-columns"/>
+	<columns names="token" ref-type="dst-columns"/>
+</constraint>
+
+<constraint name="event_payload_content_type__name_fkey" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="RESTRICT" del-action="RESTRICT" ref-table="event.payload_content_type" table="event.event">
+	<columns names="payload_content_type__name" ref-type="src-columns"/>
+	<columns names="payload_content_type__name" ref-type="dst-columns"/>
+</constraint>
+
+<constraint name="event_event_type__name_fkey" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="RESTRICT" del-action="RESTRICT" ref-table="event.event_type" table="event.event">
+	<columns names="event_type__name" ref-type="src-columns"/>
+	<columns names="event_type__name" ref-type="dst-columns"/>
+</constraint>
+
+<constraint name="subscription__event_type_subscription__id_fkey" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="CASCADE" del-action="CASCADE" ref-table="webhook.subscription" table="webhook.subscription__event_type">
+	<columns names="subscription__id" ref-type="src-columns"/>
+	<columns names="subscription__id" ref-type="dst-columns"/>
+</constraint>
+
+<constraint name="subscription__event_type_event_type__name_fkey" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="CASCADE" del-action="CASCADE" ref-table="event.event_type" table="webhook.subscription__event_type">
+	<columns names="event_type__name" ref-type="src-columns"/>
+	<columns names="event_type__name" ref-type="dst-columns"/>
+</constraint>
+
+<constraint name="request_attempt_subscription__id_fkey" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="RESTRICT" del-action="RESTRICT" ref-table="webhook.subscription" table="webhook.request_attempt">
+	<columns names="subscription__id" ref-type="src-columns"/>
+	<columns names="subscription__id" ref-type="dst-columns"/>
+</constraint>
+
+<constraint name="request_attempt_event__id_fkey" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="CASCADE" del-action="CASCADE" ref-table="event.event" table="webhook.request_attempt">
+	<columns names="event__id" ref-type="src-columns"/>
+	<columns names="event__id" ref-type="dst-columns"/>
+</constraint>
+
+<constraint name="request_attempt_response__id_fkey" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="CASCADE" del-action="SET NULL" ref-table="webhook.response" table="webhook.request_attempt">
+	<columns names="response__id" ref-type="src-columns"/>
+	<columns names="response__id" ref-type="dst-columns"/>
+</constraint>
+
+<constraint name="response_response_error__name_fkey" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="CASCADE" del-action="RESTRICT" ref-table="webhook.response_error" table="webhook.response">
+	<columns names="response_error__name" ref-type="src-columns"/>
+	<columns names="response_error__name" ref-type="dst-columns"/>
+</constraint>
+
+<constraint name="target_target__id_fkey" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="CASCADE" del-action="CASCADE" ref-table="webhook.subscription" table="webhook.target">
+	<columns names="target__id" ref-type="src-columns"/>
+	<columns names="target__id" ref-type="dst-columns"/>
+</constraint>
+
+<constraint name="target_http_target__id_fkey" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="CASCADE" del-action="CASCADE" ref-table="webhook.subscription" table="webhook.target_http">
+	<columns names="target__id" ref-type="src-columns"/>
+	<columns names="target__id" ref-type="dst-columns"/>
+</constraint>
+
+<relationship name="rel_event_type_service" type="relfk" layer="0"
+	 custom-color="#8c8728"
+	 src-table="event.event_type"
+	 dst-table="event.service" reference-fk="event_type_application__id_service__name_fkey"
+	 src-required="false" dst-required="true"/>
+
+<relationship name="rel_event_type_verb" type="relfk" layer="0"
+	 custom-color="#43bfac"
+	 src-table="event.event_type"
+	 dst-table="event.verb" reference-fk="event_type_application__id_verb__name_fkey"
+	 src-required="false" dst-required="true"/>
+
+<relationship name="rel_event_type_application" type="relfk" layer="0"
+	 custom-color="#d291d2"
+	 src-table="event.event_type"
+	 dst-table="event.application" reference-fk="event_type_application__id_fkey"
+	 src-required="false" dst-required="true"/>
+
+<relationship name="rel_event_type_resource_type" type="relfk" layer="0"
+	 custom-color="#873255"
+	 src-table="event.event_type"
+	 dst-table="event.resource_type" reference-fk="event_type_service__name_application__id_resource_type__name"
+	 src-required="false" dst-required="true"/>
+
+<relationship name="rel_service_application" type="relfk" layer="0"
+	 custom-color="#48edd9"
+	 src-table="event.service"
+	 dst-table="event.application" reference-fk="service_application__id_fkey"
+	 src-required="false" dst-required="true"/>
+
+<relationship name="rel_resource_type_application" type="relfk" layer="0"
+	 custom-color="#0867d7"
+	 src-table="event.resource_type"
+	 dst-table="event.application" reference-fk="resource_type_application__id_fkey"
+	 src-required="false" dst-required="true"/>
+
+<relationship name="rel_resource_type_service" type="relfk" layer="0"
+	 custom-color="#27ffd1"
+	 src-table="event.resource_type"
+	 dst-table="event.service" reference-fk="resource_type_application__id_service__name_fkey"
+	 src-required="false" dst-required="true"/>
+
+<relationship name="rel_verb_application" type="relfk" layer="0"
+	 custom-color="#26bee0"
+	 src-table="event.verb"
+	 dst-table="event.application" reference-fk="verb_application__id_fkey"
+	 src-required="false" dst-required="true"/>
+
+<relationship name="rel_application_secret_application" type="relfk" layer="0"
+	 custom-color="#dc1028"
+	 src-table="event.application_secret"
+	 dst-table="event.application" reference-fk="application_secret_application__id_fkey"
+	 src-required="false" dst-required="true"/>
+
+<relationship name="rel_event_application" type="relfk" layer="0"
+	 custom-color="#e86e4f"
+	 src-table="event.event"
+	 dst-table="event.application" reference-fk="event_application__id_fkey"
+	 src-required="false" dst-required="true"/>
+
+<relationship name="rel_event_application_secret" type="relfk" layer="0"
+	 custom-color="#37985b"
+	 src-table="event.event"
+	 dst-table="event.application_secret" reference-fk="event_application_secret__token_fkey"
+	 src-required="false" dst-required="true"/>
+
+<relationship name="rel_event_payload_content_type" type="relfk" layer="0"
+	 custom-color="#a5edae"
+	 src-table="event.event"
+	 dst-table="event.payload_content_type" reference-fk="event_payload_content_type__name_fkey"
+	 src-required="false" dst-required="true"/>
+
+<relationship name="rel_event_event_type" type="relfk" layer="0"
+	 custom-color="#161437"
+	 src-table="event.event"
+	 dst-table="event.event_type" reference-fk="event_event_type__name_fkey"
+	 src-required="false" dst-required="true"/>
+
+<relationship name="rel_subscription__event_type_subscription" type="relfk" layer="0"
+	 custom-color="#5f7d4c"
+	 src-table="webhook.subscription__event_type"
+	 dst-table="webhook.subscription" reference-fk="subscription__event_type_subscription__id_fkey"
+	 src-required="false" dst-required="true"/>
+
+<relationship name="rel_subscription__event_type_event_type" type="relfk" layer="0"
+	 custom-color="#cd5629"
+	 src-table="webhook.subscription__event_type"
+	 dst-table="event.event_type" reference-fk="subscription__event_type_event_type__name_fkey"
+	 src-required="false" dst-required="true"/>
+
+<relationship name="rel_request_attempt_subscription" type="relfk" layer="0"
+	 custom-color="#03f5b8"
+	 src-table="webhook.request_attempt"
+	 dst-table="webhook.subscription" reference-fk="request_attempt_subscription__id_fkey"
+	 src-required="false" dst-required="true"/>
+
+<relationship name="rel_request_attempt_event" type="relfk" layer="0"
+	 custom-color="#6f8727"
+	 src-table="webhook.request_attempt"
+	 dst-table="event.event" reference-fk="request_attempt_event__id_fkey"
+	 src-required="false" dst-required="true"/>
+
+<relationship name="rel_request_attempt_response" type="relfk" layer="0"
+	 custom-color="#09488f"
+	 src-table="webhook.request_attempt"
+	 dst-table="webhook.response" reference-fk="request_attempt_response__id_fkey"
+	 src-required="false" dst-required="false"/>
+
+<relationship name="rel_response_response_error" type="relfk" layer="0"
+	 custom-color="#b8e222"
+	 src-table="webhook.response"
+	 dst-table="webhook.response_error" reference-fk="response_response_error__name_fkey"
+	 src-required="false" dst-required="false"/>
+
+<relationship name="rel_target_subscription" type="relfk" layer="0"
+	 custom-color="#9b3ff1"
+	 src-table="webhook.target"
+	 dst-table="webhook.subscription" reference-fk="target_target__id_fkey"
+	 src-required="false" dst-required="true"/>
+
+<relationship name="rel_target_http_subscription" type="relfk" layer="0"
+	 custom-color="#cd0c4e"
+	 src-table="webhook.target_http"
+	 dst-table="webhook.subscription" reference-fk="target_http_target__id_fkey"
+	 src-required="false" dst-required="true"/>
+
+</dbmodel>
