@@ -1,0 +1,24 @@
+[package]
+name = "output-worker"
+version = "0.1.0"
+authors = ["David Sferruzza <david.sferruzza@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[profile.release]
+lto = true
+codegen-units = 1
+
+[dependencies]
+anyhow = "1.0.34"
+async-std = { version = "1.7.0", features = ["attributes"] }
+chrono = "0.4.19"
+clap = "3.0.0-beta.2"
+env_logger = "0.8.1"
+log = "0.4.11"
+reqwest = { version = "0.10.8", default-features = false, features = ["rustls-tls"] }
+serde = "1.0.117"
+serde_json = "1.0.59"
+sqlx = { version = "0.3.5", default-features = false, features = ["runtime-async-std", "postgres", "macros", "uuid", "chrono", "json"] }
+uuid = "0.8.1"
