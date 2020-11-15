@@ -1,0 +1,23 @@
+version: '3.5'
+
+services:
+  postgres:
+    container_name: hook0-pg
+    # We use our own image in order to have the right locals, see postgresql-image/Dockerfile
+    image: bitnami/postgresql:13
+    environment:
+      POSTGRESQL_PASSWORD: postgres
+      POSTGRESQL_POSTGRES_PASSWORD: postgres
+      PGDATA: /bitnami/postgresql
+    volumes:
+      - ./postgres:/bitnami/postgresql
+      - ./preinit:/docker-entrypoint-preinitdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - hook0
+    restart: unless-stopped
+
+networks:
+  hook0:
+    driver: bridge
