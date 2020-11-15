@@ -1,10 +1,11 @@
+create extension if not exists pgcrypto with schema public;
 
-drop schema iam cascade;
-drop schema event cascade;
-drop schema webhook cascade;
+drop schema if exists iam cascade;
+drop schema if exists event cascade;
+drop schema if exists webhook cascade;
 
 -- region current configuration
-set search_path to pg_catalog;
+set search_path to pg_catalog,public,event,webhook;
 set plpgsql.extra_warnings to 'all';
 -- endregion
 
@@ -399,4 +400,3 @@ alter table webhook.target_http
 -- endregion
 
 \ir fixtures.sql
-
