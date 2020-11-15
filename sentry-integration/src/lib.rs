@@ -1,4 +1,3 @@
-// Real init is done by "sentry::integrations::env_logger" below
 use log::{info, warn};
 
 // Initialize Sentry integration
