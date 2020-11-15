@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "output-worker",
-    "sentry"
+    "sentry-integration"
 ]
 
 [profile.release]

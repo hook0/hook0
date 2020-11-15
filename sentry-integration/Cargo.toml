@@ -1,5 +1,5 @@
 [package]
-name = "sentry"
+name = "sentry-integration"
 version = "0.1.0"
 authors = ["François-Guillaume Ribreau <github@fgribreau.com>"]
 edition = "2018"
