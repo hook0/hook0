@@ -1,7 +1,8 @@
+create extension if not exists pgcrypto with schema public;
 
-drop schema iam cascade;
-drop schema event cascade;
-drop schema webhook cascade;
+drop schema if exists iam cascade;
+drop schema if exists event cascade;
+drop schema if exists webhook cascade;
 
 -- region current configuration
 set search_path to pg_catalog;
@@ -20,7 +21,7 @@ create schema event;
 -- region tables
 create table event.application
 (
-    application__id uuid not null default gen_random_uuid(),
+    application__id uuid not null default public.gen_random_uuid(),
     name            text not null,
     icon            text,
     url             text,
@@ -86,7 +87,7 @@ comment on table event.verb is e'event type verb (e.g. "created", "updated", "de
 create table event.application_secret
 (
     application__id uuid                     not null,
-    token           uuid                     not null default gen_random_uuid(),
+    token           uuid                     not null default public.gen_random_uuid(),
     created_at      timestamptz not null default now(),
     deleted_at      timestamptz,
     name            text,
@@ -111,7 +112,7 @@ comment on table event.payload_content_type is e'types of event payload supporte
 
 create table event.event
 (
-    event__id                  uuid                     not null default gen_random_uuid() primary key,
+    event__id                  uuid                     not null default public.gen_random_uuid() primary key,
     application__id            uuid                     not null,
     event_type__name           text                     not null,
     payload                    bytea                    not null,
@@ -256,10 +257,10 @@ create schema webhook;
 
 create table webhook.subscription
 (
-    subscription__id uuid    not null default gen_random_uuid(),
+    subscription__id uuid    not null default public.gen_random_uuid(),
     is_enabled       boolean not null default true,
     description      text,
-    secret           uuid    not null default gen_random_uuid(),
+    secret           uuid    not null default public.gen_random_uuid(),
     metatadata       jsonb   not null default jsonb_build_object(),
     label_key        text    not null,
     label_value      text    not null,
@@ -307,7 +308,7 @@ create table webhook.response_error
 
 create table webhook.response
 (
-    response__id         uuid not null default gen_random_uuid(),
+    response__id         uuid not null default public.gen_random_uuid(),
     response_error__name text,
     http_code            smallint,
     headers              jsonb,
@@ -326,7 +327,7 @@ alter table webhook.response
 
 create table webhook.request_attempt
 (
-    request_attempt__id uuid                     not null default gen_random_uuid(),
+    request_attempt__id uuid                     not null default public.gen_random_uuid(),
     event__id           uuid                     not null,
     subscription__id    uuid                     not null,
     created_at          timestamptz not null default now(),
@@ -369,7 +370,7 @@ alter table webhook.request_attempt
 
 create table webhook.target
 (
-    target__id uuid not null default gen_random_uuid(),
+    target__id uuid not null default public.gen_random_uuid(),
     constraint target_pkey primary key (target__id)
 
 );
@@ -384,7 +385,7 @@ alter table webhook.target
 
 create table webhook.target_http
 (
-    target__id uuid  not null default gen_random_uuid(),
+    target__id uuid  not null default public.gen_random_uuid(),
     method     text  not null,
     url        text  not null,
     headers    jsonb not null default '{}'
@@ -399,4 +400,3 @@ alter table webhook.target_http
 -- endregion
 
 \ir fixtures.sql
-

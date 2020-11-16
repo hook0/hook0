@@ -1,0 +1,26 @@
+variables:
+  PG_VERSION: "12"
+  RUST_VERSION: "1.47.0"
+  POSTGRES_DB: hook0-ci
+  POSTGRES_USER: runner
+  POSTGRES_PASSWORD: ""
+  POSTGRES_HOST_AUTH_METHOD: trust
+
+output-worker.check:
+  image: rust:$RUST_VERSION
+  services:
+    - postgres:$PG_VERSION
+  before_script:
+    - apt-get update -y && apt-get install -y --no-install-recommends curl
+    - sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt buster-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+    - curl -LSs https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+    - apt-get update -y && apt-get install -y --no-install-recommends postgresql-client-12
+    - rustc --version && cargo --version && psql --version
+    - rustup component add clippy
+    - rustup component add rustfmt
+  script:
+    - cargo fmt --all -- --check
+    - psql -h "postgres" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -f "./database/preinit/init.sql"
+    - echo "DATABASE_URL=\"postgresql://$POSTGRES_USER@postgres/$POSTGRES_DB\"" > .env
+    - cargo clippy --all-targets --all-features -- -D warnings
+    - cargo test
