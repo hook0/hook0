@@ -1,5 +1,9 @@
 [workspace]
 members = [
     "output-worker",
-    "sentry"
+    "sentry-integration"
 ]
+
+[profile.release]
+lto = true
+codegen-units = 1
