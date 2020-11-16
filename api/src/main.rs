@@ -1,16 +1,19 @@
+mod errors;
+mod handlers;
+
 use actix_web::{middleware::Logger, App, HttpResponse, HttpServer, Responder};
-use clap::{ArgSettings::HideEnvValues, Clap};
+use clap::{crate_description, crate_version, ArgSettings::HideEnvValues, Clap};
 use log::{info, trace};
-use paperclip::actix::{
-    api_v2_operation,
-    web::{self, Json},
-    Apiv2Schema, OpenApiExt,
+use paperclip::{
+    actix::{api_v2_operation, web, OpenApiExt},
+    v2::models::{DefaultApiRaw, Info},
 };
-use serde::{Deserialize, Serialize};
 use sqlx::postgres::{PgPool, PgPoolOptions};
 
+const APP_TITLE: &str = "Hook0 API";
+
 #[derive(Debug, Clone, Clap)]
-#[clap(author, about, version)]
+#[clap(author, about, version, name = APP_TITLE)]
 struct Config {
     /// IP address on which to start the HTTP server
     #[clap(long, env, default_value = "127.0.0.1")]
@@ -39,7 +42,7 @@ pub struct State {
 async fn main() -> anyhow::Result<()> {
     env_logger::init();
     let config = Config::parse();
-    trace!("Starting Hook0 API");
+    trace!("Starting {}", APP_TITLE);
 
     // Create a DB connection pool
     let pool = PgPoolOptions::new()
@@ -56,25 +59,40 @@ async fn main() -> anyhow::Result<()> {
 
     // Run web server
     HttpServer::new(move || {
+        // Compute default OpenAPI spec
+        let spec = DefaultApiRaw {
+            info: Info {
+                title: APP_TITLE.to_owned(),
+                description: match crate_description!() {
+                    "" => None,
+                    d => Some(d.to_owned()),
+                },
+                version: crate_version!().to_owned(),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
         App::new()
             .data(initial_state.clone())
             .wrap(Logger::default())
-            .wrap_api()
-            .service(web::resource("/").route(web::get().to(index)))
-            .service(web::resource("/test").route(web::post().to(test)))
+            .wrap_api_with_spec(spec)
+            .service(web::resource("/").route(web::get().to(hello_world)))
             .service(
                 web::scope("/v1").service(
                     web::scope("/applications")
                         .service(
                             web::resource("")
-                                .route(web::get().to(index))
-                                .route(web::post().to(index)),
+                                .route(web::get().to(handlers::applications::list))
+                                .route(web::post().to(handlers::applications::add)),
                         )
                         .service(
                             web::resource("/{application_id}")
-                                .route(web::put().to(index))
-                                .route(web::delete().to(index)),
+                                .route(web::get().to(handlers::applications::show))
+                                .route(web::put().to(handlers::applications::edit))
+                                .route(web::delete().to(handlers::applications::destroy)),
                         ),
+                    // TODO:
                     // event_types
                     // application_secrets
                     // events
@@ -93,21 +111,6 @@ async fn main() -> anyhow::Result<()> {
 }
 
 #[api_v2_operation]
-async fn index() -> impl Responder {
+async fn hello_world() -> impl Responder {
     HttpResponse::Ok().body("Hello world!")
-}
-
-#[derive(Debug, Deserialize, Serialize, Apiv2Schema)]
-struct Test {
-    pub str: String,
-    pub str_option: Option<String>,
-    pub date: chrono::DateTime<chrono::Utc>,
-    pub uuid: uuid::Uuid,
-    pub num: u16,
-    pub bool: bool,
-}
-
-#[api_v2_operation]
-async fn test(test: Json<Test>) -> Result<Json<Test>, ()> {
-    Ok(test)
 }
