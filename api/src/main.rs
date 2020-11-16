@@ -1,6 +1,12 @@
-use actix_web::{middleware::Logger, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{middleware::Logger, App, HttpResponse, HttpServer, Responder};
 use clap::{ArgSettings::HideEnvValues, Clap};
 use log::{info, trace};
+use paperclip::actix::{
+    api_v2_operation,
+    web::{self, Json},
+    Apiv2Schema, OpenApiExt,
+};
+use serde::{Deserialize, Serialize};
 use sqlx::postgres::{PgPool, PgPoolOptions};
 
 #[derive(Debug, Clone, Clap)]
@@ -18,7 +24,7 @@ struct Config {
     #[clap(long, env, setting = HideEnvValues)]
     database_url: String,
 
-    /// Maximum number of connection to database
+    /// Maximum number of connections to database
     #[clap(long, env, default_value = "5")]
     max_db_connections: u32,
 }
@@ -53,7 +59,11 @@ async fn main() -> anyhow::Result<()> {
         App::new()
             .data(initial_state.clone())
             .wrap(Logger::default())
-            .route("/", web::get().to(index))
+            .wrap_api()
+            .service(web::resource("/").route(web::get().to(index)))
+            .service(web::resource("/test").route(web::post().to(test)))
+            .with_json_spec_at("/api/spec")
+            .build()
     })
     .bind(&format!("{}:{}", config.ip, config.port))?
     .run()
@@ -61,6 +71,22 @@ async fn main() -> anyhow::Result<()> {
     .map_err(|e| e.into())
 }
 
+#[api_v2_operation]
 async fn index() -> impl Responder {
     HttpResponse::Ok().body("Hello world!")
+}
+
+#[derive(Debug, Deserialize, Serialize, Apiv2Schema)]
+struct Test {
+    pub str: String,
+    pub str_option: Option<String>,
+    pub date: chrono::DateTime<chrono::Utc>,
+    pub uuid: uuid::Uuid,
+    pub num: u16,
+    pub bool: bool,
+}
+
+#[api_v2_operation]
+async fn test(test: Json<Test>) -> Result<Json<Test>, ()> {
+    Ok(test)
 }
