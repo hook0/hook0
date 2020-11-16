@@ -70,7 +70,7 @@ dependencies = [
  "lazy_static",
  "log",
  "mime",
- "percent-encoding",
+ "percent-encoding 2.1.0",
  "pin-project 1.0.1",
  "rand",
  "regex",
@@ -247,7 +247,7 @@ dependencies = [
  "socket2",
  "time 0.2.22",
  "tinyvec",
- "url",
+ "url 2.2.0",
 ]
 
 [[package]]
@@ -311,6 +311,7 @@ dependencies = [
  "clap",
  "env_logger 0.8.1",
  "log",
+ "paperclip",
  "serde",
  "serde_json",
  "sqlx 0.4.1",
@@ -409,7 +410,7 @@ dependencies = [
  "async-std",
  "native-tls",
  "thiserror",
- "url",
+ "url 2.2.0",
 ]
 
 [[package]]
@@ -527,7 +528,7 @@ dependencies = [
  "futures-core",
  "log",
  "mime",
- "percent-encoding",
+ "percent-encoding 2.1.0",
  "rand",
  "serde",
  "serde_json",
@@ -790,7 +791,7 @@ version = "0.14.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "784ad0fbab4f3e9cef09f20e0aea6000ae08d2cb98ac4c0abc53df18803d702f"
 dependencies = [
- "percent-encoding",
+ "percent-encoding 2.1.0",
  "time 0.2.22",
  "version_check",
 ]
@@ -1089,7 +1090,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ece68d15c92e84fa4f19d3780f1294e5ca82a78a6d515f1efaabcc144688be00"
 dependencies = [
  "matches",
- "percent-encoding",
+ "percent-encoding 2.1.0",
 ]
 
 [[package]]
@@ -1477,6 +1478,17 @@ dependencies = [
 
 [[package]]
 name = "idna"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "38f09e0f0b1fb55fdee1f17470ad800da77af5186a1a76c026b679358b7e844e"
+dependencies = [
+ "matches",
+ "unicode-bidi",
+ "unicode-normalization",
+]
+
+[[package]]
+name = "idna"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "02e2673c30ee86b5b96a9cb52ad15718aa1f966f5ab9ad54a8b95d5ca33120a9"
@@ -1545,6 +1557,15 @@ name = "ipnet"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "47be2f14c678be2fdcab04ab1171db51b2762ce6f0a8ee87c8dd4a04ed216135"
+
+[[package]]
+name = "itertools"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "284f18f85651fe11e8a991b2adb42cb078325c996ed026d994719efcfca1d54b"
+dependencies = [
+ "either",
+]
 
 [[package]]
 name = "itoa"
@@ -1624,6 +1645,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28247cc5a5be2f05fbcd76dd0cf2c7d3b5400cb978a28042abcd4fa0b3f8261c"
 dependencies = [
  "scopeguard",
+ "serde",
 ]
 
 [[package]]
@@ -1925,6 +1947,79 @@ dependencies = [
 ]
 
 [[package]]
+name = "paperclip"
+version = "0.5.0"
+source = "git+https://github.com/wafflespeanut/paperclip?rev=074813efdf7634867aa60219a1924665ec7c30db#074813efdf7634867aa60219a1924665ec7c30db"
+dependencies = [
+ "anyhow",
+ "itertools",
+ "once_cell",
+ "paperclip-actix",
+ "paperclip-core",
+ "paperclip-macros",
+ "parking_lot",
+ "semver",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "serde_yaml",
+ "thiserror",
+ "url 1.7.2",
+]
+
+[[package]]
+name = "paperclip-actix"
+version = "0.3.0"
+source = "git+https://github.com/wafflespeanut/paperclip?rev=074813efdf7634867aa60219a1924665ec7c30db#074813efdf7634867aa60219a1924665ec7c30db"
+dependencies = [
+ "actix-service",
+ "actix-web",
+ "futures",
+ "once_cell",
+ "paperclip-core",
+ "paperclip-macros",
+ "parking_lot",
+ "serde_json",
+]
+
+[[package]]
+name = "paperclip-core"
+version = "0.3.0"
+source = "git+https://github.com/wafflespeanut/paperclip?rev=074813efdf7634867aa60219a1924665ec7c30db#074813efdf7634867aa60219a1924665ec7c30db"
+dependencies = [
+ "actix-web",
+ "chrono",
+ "mime",
+ "once_cell",
+ "paperclip-macros",
+ "parking_lot",
+ "pin-project 1.0.1",
+ "regex",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "thiserror",
+ "uuid",
+]
+
+[[package]]
+name = "paperclip-macros"
+version = "0.4.0"
+source = "git+https://github.com/wafflespeanut/paperclip?rev=074813efdf7634867aa60219a1924665ec7c30db#074813efdf7634867aa60219a1924665ec7c30db"
+dependencies = [
+ "heck",
+ "http",
+ "lazy_static",
+ "mime",
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "strum",
+ "strum_macros",
+ "syn",
+]
+
+[[package]]
 name = "parking"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1955,6 +2050,12 @@ dependencies = [
  "smallvec",
  "winapi 0.3.9",
 ]
+
+[[package]]
+name = "percent-encoding"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "31010dd2e1ac33d5b46a5b413495239882813e0369f8ed8a5e266f173602f831"
 
 [[package]]
 name = "percent-encoding"
@@ -2211,7 +2312,7 @@ dependencies = [
  "mime",
  "mime_guess",
  "native-tls",
- "percent-encoding",
+ "percent-encoding 2.1.0",
  "pin-project-lite",
  "rustls",
  "serde",
@@ -2220,7 +2321,7 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "tokio-tls",
- "url",
+ "url 2.2.0",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -2372,7 +2473,7 @@ dependencies = [
  "rustc_version",
  "sentry-types",
  "uname",
- "url",
+ "url 2.2.0",
 ]
 
 [[package]]
@@ -2395,7 +2496,7 @@ dependencies = [
  "failure",
  "serde",
  "serde_json",
- "url",
+ "url 2.2.0",
  "uuid",
 ]
 
@@ -2440,7 +2541,19 @@ dependencies = [
  "dtoa",
  "itoa",
  "serde",
- "url",
+ "url 2.2.0",
+]
+
+[[package]]
+name = "serde_yaml"
+version = "0.8.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f7baae0a99f1a324984bcdc5f0718384c1f69775f1c7eec8b859b71b443e3fd7"
+dependencies = [
+ "dtoa",
+ "linked-hash-map",
+ "serde",
+ "yaml-rust",
 ]
 
 [[package]]
@@ -2605,7 +2718,7 @@ dependencies = [
  "log",
  "md-5 0.8.0",
  "memchr",
- "percent-encoding",
+ "percent-encoding 2.1.0",
  "rand",
  "serde",
  "serde_json",
@@ -2613,7 +2726,7 @@ dependencies = [
  "sha2 0.8.2",
  "sqlformat",
  "tokio",
- "url",
+ "url 2.2.0",
  "uuid",
 ]
 
@@ -2647,7 +2760,7 @@ dependencies = [
  "memchr",
  "once_cell",
  "parking_lot",
- "percent-encoding",
+ "percent-encoding 2.1.0",
  "rand",
  "rustls",
  "serde",
@@ -2659,7 +2772,7 @@ dependencies = [
  "sqlx-rt",
  "stringprep",
  "thiserror",
- "url",
+ "url 2.2.0",
  "uuid",
  "webpki",
  "webpki-roots 0.20.0",
@@ -2681,7 +2794,7 @@ dependencies = [
  "serde_json",
  "sqlx-core 0.3.5",
  "syn",
- "url",
+ "url 2.2.0",
 ]
 
 [[package]]
@@ -2700,7 +2813,7 @@ dependencies = [
  "sqlx-core 0.4.0",
  "sqlx-rt",
  "syn",
- "url",
+ "url 2.2.0",
 ]
 
 [[package]]
@@ -2795,6 +2908,24 @@ name = "strsim"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
+
+[[package]]
+name = "strum"
+version = "0.19.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b89a286a7e3b5720b9a477b23253bc50debac207c8d21505f8e70b36792f11b5"
+
+[[package]]
+name = "strum_macros"
+version = "0.19.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e61bb0be289045cb80bfce000512e32d09f8337e54c186725da381377ad1f8d5"
+dependencies = [
+ "heck",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "subtle"
@@ -3088,14 +3219,14 @@ dependencies = [
  "backtrace",
  "enum-as-inner",
  "futures",
- "idna",
+ "idna 0.2.0",
  "lazy_static",
  "log",
  "rand",
  "smallvec",
  "thiserror",
  "tokio",
- "url",
+ "url 2.2.0",
 ]
 
 [[package]]
@@ -3198,14 +3329,25 @@ checksum = "a156c684c91ea7d62626509bce3cb4e1d9ed5c4d978f7b4352658f96a4c26b4a"
 
 [[package]]
 name = "url"
+version = "1.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd4e7c0d531266369519a4aa4f399d748bd37043b00bde1e4ff1f60a120b355a"
+dependencies = [
+ "idna 0.1.5",
+ "matches",
+ "percent-encoding 1.0.1",
+]
+
+[[package]]
+name = "url"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5909f2b0817350449ed73e8bcd81c8c3c8d9a7a5d8acba4b27db277f1868976e"
 dependencies = [
  "form_urlencoded",
- "idna",
+ "idna 0.2.0",
  "matches",
- "percent-encoding",
+ "percent-encoding 2.1.0",
  "serde",
 ]
 
@@ -3474,3 +3616,12 @@ name = "wyz"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "85e60b0d1b5f99db2556934e21937020776a5d31520bf169e851ac44e6420214"
+
+[[package]]
+name = "yaml-rust"
+version = "0.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "39f0c922f1a334134dc2f7a8b67dc5d25f0735263feec974345ff706bcf20b0d"
+dependencies = [
+ "linked-hash-map",
+]
