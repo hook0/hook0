@@ -62,6 +62,27 @@ async fn main() -> anyhow::Result<()> {
             .wrap_api()
             .service(web::resource("/").route(web::get().to(index)))
             .service(web::resource("/test").route(web::post().to(test)))
+            .service(
+                web::scope("/v1").service(
+                    web::scope("/applications")
+                        .service(
+                            web::resource("")
+                                .route(web::get().to(index))
+                                .route(web::post().to(index)),
+                        )
+                        .service(
+                            web::resource("/{application_id}")
+                                .route(web::put().to(index))
+                                .route(web::delete().to(index)),
+                        ),
+                    // event_types
+                    // application_secrets
+                    // events
+                    // -----
+                    // subscriptions
+                    // request_attempts
+                ),
+            )
             .with_json_spec_at("/api/spec")
             .build()
     })
