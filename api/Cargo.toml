@@ -9,11 +9,12 @@ edition = "2018"
 [dependencies]
 actix-web = "3.2.0"
 anyhow = "1.0.34"
-chrono = "0.4.19"
+chrono = { version = "0.4.19", features = ["serde"] }
 clap = "3.0.0-beta.2"
 env_logger = "0.8.1"
 log = "0.4.11"
+paperclip = { git = "https://github.com/wafflespeanut/paperclip", rev = "074813efdf7634867aa60219a1924665ec7c30db", features = ["actix", "chrono", "uuid"] }
 serde = "1.0.117"
 serde_json = "1.0.59"
 sqlx = { version = "0.4.1", default-features = false, features = ["runtime-actix-rustls", "postgres", "macros", "uuid", "chrono", "json"] }
-uuid = "0.8.1"
+uuid = { version = "0.8.1", features = ["serde"] }
