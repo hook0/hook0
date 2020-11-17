@@ -16,5 +16,5 @@ log = "0.4.11"
 reqwest = { version = "0.10.8", default-features = false, features = ["rustls-tls"] }
 serde = "1.0.117"
 serde_json = "1.0.59"
-sqlx = { version = "0.4.1", default-features = false, features = ["runtime-async-std-rustls", "postgres", "macros", "uuid", "chrono", "json"] }
+sqlx = { version = "0.4.1", default-features = false, features = ["runtime-async-std-rustls", "postgres", "macros", "uuid", "chrono", "time", "json"] }
 uuid = "0.8.1"
