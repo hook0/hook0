@@ -3,9 +3,10 @@ use chrono::{DateTime, Utc};
 use clap::{ArgSettings::HideEnvValues, Clap};
 use log::{debug, info, trace};
 use reqwest::header::{HeaderMap, HeaderValue};
+use sqlx::postgres::types::PgInterval;
 use sqlx::{Connection, PgConnection};
 use std::collections::HashMap;
-use std::ops::Add;
+use std::convert::TryFrom;
 use std::time::{Duration, Instant};
 use uuid::Uuid;
 
@@ -33,8 +34,6 @@ struct RequestAttempt {
 impl RequestAttempt {
     /// Parse headers of HTTP target from JSON and prepare them to be fed to reqwest
     fn headers(&self) -> anyhow::Result<HeaderMap> {
-        use std::convert::TryFrom;
-
         let hashmap = serde_json::from_value::<HashMap<String, String>>(self.http_headers.clone())?;
         let headermap = HeaderMap::try_from(&hashmap)?;
         Ok(headermap)
@@ -163,12 +162,12 @@ async fn main() -> anyhow::Result<()> {
                 let retry_id = sqlx::query!(
                     "
                     INSERT INTO webhook.request_attempt (event__id, subscription__id, delay_until, retry_count)
-                    VALUES ($1, $2, $3, $4)
+                    VALUES ($1, $2, statement_timestamp() + $3, $4)
                     RETURNING request_attempt__id
                 ",
                     attempt.event__id,
                     attempt.subscription__id,
-                    Utc::now().add(chrono::Duration::from_std(RETRY_TIMEOUT).unwrap()), // TODO: try SQLx latest beta version which seems to support interval values
+                    PgInterval::try_from(RETRY_TIMEOUT).unwrap(),
                     next_retry_count,
                 )
                 .fetch_one(&mut tx)
