@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use clap::{ArgSettings::HideEnvValues, Clap};
 use log::{debug, info, trace};
 use reqwest::header::{HeaderMap, HeaderValue};
-use sqlx::{Connect, Connection, PgConnection};
+use sqlx::{Connection, PgConnection};
 use std::collections::HashMap;
 use std::ops::Add;
 use std::time::{Duration, Instant};
@@ -122,6 +122,7 @@ async fn main() -> anyhow::Result<()> {
                 "Associating response {} with request attempt {}",
                 &response_id, &attempt.request_attempt__id
             );
+            #[allow(clippy::suspicious_else_formatting)] // Clippy false positive
             sqlx::query!(
                 "UPDATE webhook.request_attempt SET response__id = $1 WHERE request_attempt__id = $2",
                 response_id, attempt.request_attempt__id
@@ -185,7 +186,7 @@ async fn main() -> anyhow::Result<()> {
         }
 
         // Commit transaction
-        conn = tx.commit().await?;
+        tx.commit().await?;
     }
 }
 
