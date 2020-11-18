@@ -2,13 +2,14 @@ mod errors;
 mod handlers;
 
 use actix_web::{middleware::Logger, App, HttpResponse, HttpServer, Responder};
-use clap::{crate_description, crate_version, ArgSettings::HideEnvValues, Clap};
+use clap::{crate_description, crate_name, crate_version, ArgSettings::HideEnvValues, Clap};
 use log::{info, trace};
 use paperclip::{
     actix::{api_v2_operation, web, OpenApiExt},
     v2::models::{DefaultApiRaw, Info},
 };
-use sqlx::postgres::{PgPool, PgPoolOptions};
+use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
+use std::str::FromStr;
 
 const APP_TITLE: &str = "Hook0 API";
 
@@ -47,7 +48,9 @@ async fn main() -> anyhow::Result<()> {
     // Create a DB connection pool
     let pool = PgPoolOptions::new()
         .max_connections(config.max_db_connections)
-        .connect(&config.database_url)
+        .connect_with(
+            PgConnectOptions::from_str(&config.database_url)?.application_name(crate_name!()),
+        )
         .await?;
     info!(
         "Started a pool of maximum {} DB connections",

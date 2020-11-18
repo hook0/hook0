@@ -1,12 +1,14 @@
 use async_std::task::sleep;
 use chrono::{DateTime, Utc};
-use clap::{ArgSettings::HideEnvValues, Clap};
+use clap::{crate_name, ArgSettings::HideEnvValues, Clap};
 use log::{debug, info, trace};
 use reqwest::header::{HeaderMap, HeaderValue};
 use sqlx::postgres::types::PgInterval;
+use sqlx::postgres::PgConnectOptions;
 use sqlx::{Connection, PgConnection};
 use std::collections::HashMap;
 use std::convert::TryFrom;
+use std::str::FromStr;
 use std::time::{Duration, Instant};
 use uuid::Uuid;
 
@@ -52,7 +54,10 @@ async fn main() -> anyhow::Result<()> {
     env_logger::init();
 
     debug!("Connecting to database...");
-    let mut conn = PgConnection::connect(&config.database_url).await?;
+    let mut conn = PgConnection::connect_with(
+        &PgConnectOptions::from_str(&config.database_url)?.application_name(crate_name!()),
+    )
+    .await?;
     info!("Connected to database");
 
     info!("Begin looking for work");
