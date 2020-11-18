@@ -21,7 +21,7 @@ output-worker.check:
   script:
     - pushd output-worker
     - cargo fmt --all -- --check
-    - psql -h "postgres" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -f "../database/preinit/init.sql"
+    - psql -h "postgres" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -f "../database/preinit/schema.sql"
     - echo "DATABASE_URL=\"postgresql://$POSTGRES_USER@postgres/$POSTGRES_DB\"" > .env
     - cargo clippy --all-targets --all-features -- -D warnings
     - cargo test
