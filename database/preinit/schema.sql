@@ -119,7 +119,7 @@ create table event.event
     payload_content_type__name text                     not null,
     ip                         inet                     not null,
     metadata                   jsonb,
-    occurred_at                timestamp                not null,
+    occurred_at                timestamptz              not null,
     received_at                timestamptz not null default now(),
     dispatched_at              timestamptz              null,
     application_secret__token  uuid                     not null,
