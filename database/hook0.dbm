@@ -214,7 +214,7 @@ CAUTION: Do not modify this file unless you know what you are doing.
 		<type name="jsonb" length="0"/>
 	</column>
 	<column name="occurred_at" not-null="true">
-		<type name="timestamp" length="0"/>
+		<type name="timestamp with time zone" length="0"/>
 	</column>
 	<column name="received_at" not-null="true" default-value="now()">
 		<type name="timestamp with time zone" length="0" with-timezone="true"/>
