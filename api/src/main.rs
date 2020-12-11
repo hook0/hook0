@@ -135,6 +135,14 @@ async fn main() -> anyhow::Result<()> {
                                         web::delete().to(handlers::application_secrets::destroy),
                                     ),
                             ),
+                    )
+                    .service(
+                        web::scope("/events")
+                            .service(web::resource("").route(web::get().to(handlers::events::list)))
+                            .service(
+                                web::resource("/{event_id}")
+                                    .route(web::get().to(handlers::events::show)),
+                            ),
                     ),
                 // TODO:
                 // events
