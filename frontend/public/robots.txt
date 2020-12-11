@@ -1,0 +1,247 @@
+#
+# robots.txt
+#
+# This file is to prevent the crawling and indexing of certain parts
+# of your site by web crawlers and spiders run by sites like Yahoo!
+# and Google. By telling these "robots" where not to go on your site,
+# you save bandwidth and server resources.
+#
+# This file will be ignored unless it is at the root of your host:
+# Used:    http://example.com/robots.txt
+# Ignored: http://example.com/site/robots.txt
+#
+# For more information about the robots.txt standard, see:
+# http://www.robotstxt.org/wc/robots.html
+#
+# For syntax checking, see:
+# http://www.sxw.org.uk/computing/robots/check.html
+
+User-agent: Mediapartners-Google
+User-agent: Googlebot
+User-agent: Googlebot-Image
+User-agent: Googlebot-Mobile
+User-agent: Googlebot-Desktop
+User-agent: Googlebot-News
+User-agent: Googlebot-Video
+User-agent: Adsbot-Google
+User-Agent: Googlebot_Nauxeo
+User-Agent: SEMrushBot-Desktop
+User-Agent: SEMrushBot-Mobile
+User-agent: Twitterbot
+User-agent: Applebot
+User-agent: Ouestfrancebot
+User-agent: Taboolabot
+User-agent: Proximic
+User-agent: upday
+User-agent: Bingbot
+# Sitemap
+# Sitemap: https://www.hook0.com/sitemap.xml
+Disallow: /cdn-cgi
+
+# Crawling limitation fixed for low priority bots
+User-agent: VoilaBot
+User-agent: exabot
+User-agent: msnbot
+User-agent: Slurp
+User-agent: ia_archiver
+Crawl-Delay: 20
+
+User-agent: 5emeRue
+Disallow: /
+User-agent: 5erue
+Disallow: /
+User-agent: adequat
+Disallow: /
+User-agent: adequat-systems
+Disallow: /
+User-agent: AmiSoftware
+Disallow: /
+User-agent: Argus
+Disallow: /
+User-agent: Ask n read
+Disallow: /
+User-agent: asknread.com
+Disallow: /
+User-agent: Augure
+Disallow: /
+User-agent: augure
+Disallow: /
+User-agent: auramundi
+Disallow: /
+User-agent: Bloodhound
+Disallow: /
+User-agent: Cision
+Disallow: /
+User-agent: coexel
+Disallow: /
+User-agent: ConveraCrawler
+Disallow: /
+User-agent: Corporama
+Disallow: /
+User-agent: cydralspider
+Disallow: /
+User-agent: Digimind
+Disallow: /
+User-agent: Download Ninja
+Disallow: /
+User-agent: downloadexpress
+Disallow: /
+User-agent: EDD
+Disallow: /
+User-agent: ellisphere
+Disallow: /
+User-agent: eureka
+Disallow: /
+User-agent: Europresse
+Disallow: /
+User-agent: Explore
+Disallow: /
+User-agent: Factiva
+Disallow: /
+User-agent: Fasterfox
+Disallow: /
+User-agent: Fetch
+Disallow: /
+User-agent: gammaSpider
+Disallow: /
+User-agent: grub-client
+Disallow: /
+User-agent: HTTrack
+Disallow: /
+User-agent: ia_archiver
+Disallow: /
+User-agent: ia_archiver-web.archive.org
+Disallow: /
+User-agent: indexer
+Disallow: /
+User-agent: infoseek
+Disallow: /
+User-agent: Jetbot
+Disallow: /
+User-agent: k2spider
+Disallow: /
+User-agent: Kantar
+Disallow: /
+User-agent: kbcrawl
+Disallow: /
+User-agent: Knowings
+Disallow: /
+User-agent: larbin
+Disallow: /
+User-agent: leadbox
+Disallow: /
+User-agent: libwww
+Disallow: /
+User-agent: linkfluence
+Disallow: /
+User-agent: linko
+Disallow: /
+User-agent: manageo
+Disallow: /
+User-agent: mediacompil
+Disallow: /
+User-agent: Meltwater
+Disallow: /
+User-agent: mention
+Disallow: /
+User-agent: Moreover
+Disallow: /
+User-agent: MSIECrawler
+Disallow: /
+User-agent: mytwip
+Disallow: /
+User-agent: newscan-online
+Disallow: /
+User-agent: NewsNow
+Disallow: /
+User-agent: Newzbin
+Disallow: /
+User-agent: NPBot
+Disallow: /
+User-agent: ObjectsSearch
+Disallow: /
+User-agent: Offline Explorer
+Disallow: /
+User-agent: opinion-tracker
+Disallow: /
+User-agent: Pimptrain
+Disallow: /
+User-agent: proxem
+Disallow: /
+User-agent: QuepasaCreep
+Disallow: /
+User-agent: Qwam content intelligence
+Disallow: /
+User-agent: Raven
+Disallow: /
+User-agent: readability.com
+Disallow: /
+User-agent: scoop.it
+Disallow: /
+User-agent: score3
+Disallow: /
+User-agent: Sindup
+Disallow: /
+User-agent: sindup
+Disallow: /
+User-agent: sitecheck.internetseer.com
+Disallow: /
+User-agent: SiteSnagger
+Disallow: /
+User-agent: spotter
+Disallow: /
+User-agent: Synthesio
+Disallow: /
+User-agent: Talkwater
+Disallow: /
+User-agent: Teleport
+Disallow: /
+User-agent: TeleportPro
+Disallow: /
+User-agent: trendeo
+Disallow: /
+User-agent: trendybuzz
+Disallow: /
+User-agent: TunitinBot
+Disallow: /
+User-agent: TurnitinBot
+Disallow: /
+User-agent: up2news
+Disallow: /
+User-agent: vecteurplus
+Disallow: /
+User-agent: Verif
+Disallow: /
+User-agent: verticalsearch
+Disallow: /
+User-agent: vsw
+Disallow: /
+User-agent: wapspider
+Disallow: /
+User-agent: WebCopier
+Disallow: /
+User-agent: WebReaper
+Disallow: /
+User-agent: WebStripper
+Disallow: /
+User-agent: WebZinger
+Disallow: /
+User-agent: WebZIP
+Disallow: /
+User-agent: Wget
+Disallow: /
+User-agent: winello
+Disallow: /
+User-agent: Youmag
+Disallow: /
+User-agent: Zealbot
+Disallow: /
+User-agent: Zite
+Disallow: /
+User-agent: ZyBORG
+Disallow: /
+User-agent: grapeshot
+Disallow:
+
+User-agent: *
+Disallow: /
