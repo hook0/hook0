@@ -13,7 +13,6 @@ use crate::errors::*;
 #[derive(Debug, Serialize, Apiv2Schema)]
 #[allow(non_snake_case)]
 pub struct ApplicationSecret {
-    application__id: Uuid,
     name: Option<String>,
     token: Uuid,
     created_at: DateTime<Utc>,
@@ -35,9 +34,10 @@ pub async fn list(
     let application_secrets = query_as!(
         ApplicationSecret,
         "
-            SELECT application__id, name, token, created_at, deleted_at
+            SELECT name, token, created_at, deleted_at
             FROM event.application_secret
             WHERE application__id = $1
+            ORDER BY created_at ASC
         ",
         &qs.application_id,
     )
@@ -65,7 +65,7 @@ pub async fn add(
         "
             INSERT INTO event.application_secret (application__id, name)
             VALUES ($1, $2)
-            RETURNING application__id, name, token, created_at, deleted_at
+            RETURNING name, token, created_at, deleted_at
         ",
         &body.application_id,
         body.name,
@@ -77,28 +77,24 @@ pub async fn add(
     Ok(CreatedJson(application_secret))
 }
 
-#[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
-pub struct ApplicationSecretPut {
-    name: Option<String>,
-}
-
 /// Edit an application secret
 #[api_v2_operation]
 pub async fn edit(
     state: Data<crate::State>,
     application_secret_token: Path<Uuid>,
-    body: Json<ApplicationSecretPut>,
+    body: Json<ApplicationSecretPost>,
 ) -> Result<Json<ApplicationSecret>, EditError> {
     let application_secret = query_as!(
         ApplicationSecret,
         "
             UPDATE event.application_secret
             SET name = $1
-            WHERE token = $2
-            RETURNING application__id, name, token, created_at, deleted_at
+            WHERE application__id = $2 AND token = $3
+            RETURNING name, token, created_at, deleted_at
         ",
         body.name,
-        application_secret_token.into_inner()
+        &body.application_id,
+        &application_secret_token.into_inner()
     )
     .fetch_optional(&state.db)
     .await
@@ -117,14 +113,15 @@ pub async fn destroy(
     application_secret_token: Path<Uuid>,
     qs: Query<QS>,
 ) -> Result<NoContent, ShowError> {
+    let application_id = qs.application_id;
     let application_secret = query_as!(
         ApplicationSecret,
         "
-            SELECT application__id, name, token, created_at, deleted_at
+            SELECT name, token, created_at, deleted_at
             FROM event.application_secret
             WHERE application__id = $1 AND token = $2
         ",
-        &qs.application_id,
+        &application_id,
         &application_secret_token.into_inner()
     )
     .fetch_optional(&state.db)
@@ -139,7 +136,7 @@ pub async fn destroy(
                     SET deleted_at = statement_timestamp()
                     WHERE application__id = $1 AND token = $2
                 ",
-                &a.application__id,
+                &application_id,
                 &a.token
             )
             .execute(&state.db)
