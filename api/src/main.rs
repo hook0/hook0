@@ -36,7 +36,7 @@ struct Config {
     max_db_connections: u32,
 
     /// Path to the directory containing the web app to serve
-    #[clap(long, env, default_value = "frontend/dist/")]
+    #[clap(long, env, default_value = "../frontend/dist/")]
     webapp_path: String,
 }
 
