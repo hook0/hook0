@@ -82,7 +82,7 @@ async fn main() -> anyhow::Result<()> {
             .wrap_api_with_spec(spec)
             .service(web::resource("/").route(web::get().to(hello_world)))
             .service(
-                web::scope("/v1")
+                web::scope("/api/v1")
                     .service(
                         web::scope("/applications")
                             .service(
@@ -117,7 +117,7 @@ async fn main() -> anyhow::Result<()> {
                 // subscriptions
                 // request_attempts
             )
-            .with_json_spec_at("/api/spec")
+            .with_json_spec_at("/api/spec/v1")
             .build()
     })
     .bind(&format!("{}:{}", config.ip, config.port))?
