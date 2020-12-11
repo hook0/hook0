@@ -13,7 +13,6 @@ use crate::errors::*;
 #[derive(Debug, Serialize, Apiv2Schema)]
 #[allow(non_snake_case)]
 pub struct EventType {
-    application__id: Uuid,
     service__name: String,
     resource_type__name: String,
     verb__name: String,
@@ -36,9 +35,10 @@ pub async fn list(
     let event_types = query_as!(
         EventType,
         "
-            SELECT application__id, service__name, resource_type__name, verb__name, event_type__name
+            SELECT service__name, resource_type__name, verb__name, event_type__name
             FROM event.event_type
             WHERE application__id = $1
+            ORDER BY event_type__name ASC
         ",
         &qs.application_id
     )
@@ -123,7 +123,7 @@ pub async fn add(
             INSERT INTO event.event_type (application__id, service__name, resource_type__name, verb__name, status)
             VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT (event_type__name) DO UPDATE SET status = EXCLUDED.status
-            RETURNING application__id, service__name, resource_type__name, verb__name, event_type__name
+            RETURNING service__name, resource_type__name, verb__name, event_type__name
         ",
         &body.application_id,
         &body.service,
@@ -156,7 +156,7 @@ pub async fn show(
     let event_type = query_as!(
         EventType,
         "
-            SELECT application__id, service__name, resource_type__name, verb__name, event_type__name
+            SELECT service__name, resource_type__name, verb__name, event_type__name
             FROM event.event_type
             WHERE application__id = $1 AND event_type__name = $2
         ",
@@ -180,14 +180,15 @@ pub async fn destroy(
     event_type_name: Path<String>,
     qs: Query<QS>,
 ) -> Result<NoContent, ShowError> {
+    let application_id = qs.application_id;
     let event_type = query_as!(
         EventType,
         "
-            SELECT application__id, service__name, resource_type__name, verb__name, event_type__name
+            SELECT service__name, resource_type__name, verb__name, event_type__name
             FROM event.event_type
             WHERE application__id = $1 AND event_type__name = $2
         ",
-        &qs.application_id,
+        &application_id,
         &event_type_name.into_inner(),
     )
     .fetch_optional(&state.db)
@@ -201,7 +202,7 @@ pub async fn destroy(
                     DELETE FROM event.event_type
                     WHERE application__id = $1 AND event_type__name = $2
                 ",
-                a.application__id,
+                &application_id,
                 a.event_type__name,
             )
             .execute(&state.db)
