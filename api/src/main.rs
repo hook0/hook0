@@ -120,9 +120,23 @@ async fn main() -> anyhow::Result<()> {
                                     .route(web::get().to(handlers::event_types::show))
                                     .route(web::delete().to(handlers::event_types::destroy)),
                             ),
+                    )
+                    .service(
+                        web::scope("/application_secrets")
+                            .service(
+                                web::resource("")
+                                    .route(web::get().to(handlers::application_secrets::list))
+                                    .route(web::post().to(handlers::application_secrets::add)),
+                            )
+                            .service(
+                                web::resource("/{application_secret_token}")
+                                    .route(web::put().to(handlers::application_secrets::edit))
+                                    .route(
+                                        web::delete().to(handlers::application_secrets::destroy),
+                                    ),
+                            ),
                     ),
                 // TODO:
-                // application_secrets
                 // events
                 // -----
                 // subscriptions
