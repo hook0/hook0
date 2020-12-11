@@ -1,0 +1,23 @@
+{
+  "short_name": "Hook0 app",
+  "name": "Webhook API as a service",
+  "description": "Webhook API as a service",
+  "icons": [
+    {
+      "src": "./logo/rgb-rect-transparent@256.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "./logo/rgb-rect-transparent@512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/?source=pwa",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "orientation": "landscape",
+  "scope": "/",
+  "theme_color": "#2C3477"
+}
