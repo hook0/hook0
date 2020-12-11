@@ -1,13 +1,20 @@
+mod work;
+
 use async_std::task::sleep;
 use chrono::{DateTime, Utc};
-use clap::{ArgSettings::HideEnvValues, Clap};
+use clap::{crate_name, ArgSettings::HideEnvValues, Clap};
 use log::{debug, info, trace};
-use reqwest::header::{HeaderMap, HeaderValue};
-use sqlx::{Connect, Connection, PgConnection};
+use reqwest::header::HeaderMap;
+use sqlx::postgres::types::PgInterval;
+use sqlx::postgres::PgConnectOptions;
+use sqlx::{Connection, PgConnection};
 use std::collections::HashMap;
-use std::ops::Add;
-use std::time::{Duration, Instant};
+use std::convert::TryFrom;
+use std::str::FromStr;
+use std::time::Duration;
 use uuid::Uuid;
+
+use work::*;
 
 #[derive(Debug, Clone, Clap)]
 #[clap(author, about, version)]
@@ -19,7 +26,7 @@ struct Config {
 
 #[derive(Debug, Clone)]
 #[allow(non_snake_case)]
-struct RequestAttempt {
+pub struct RequestAttempt {
     pub request_attempt__id: Uuid,
     pub event__id: Uuid,
     pub subscription__id: Uuid,
@@ -33,8 +40,6 @@ struct RequestAttempt {
 impl RequestAttempt {
     /// Parse headers of HTTP target from JSON and prepare them to be fed to reqwest
     fn headers(&self) -> anyhow::Result<HeaderMap> {
-        use std::convert::TryFrom;
-
         let hashmap = serde_json::from_value::<HashMap<String, String>>(self.http_headers.clone())?;
         let headermap = HeaderMap::try_from(&hashmap)?;
         Ok(headermap)
@@ -53,7 +58,10 @@ async fn main() -> anyhow::Result<()> {
     env_logger::init();
 
     debug!("Connecting to database...");
-    let mut conn = PgConnection::connect(&config.database_url).await?;
+    let mut conn = PgConnection::connect_with(
+        &PgConnectOptions::from_str(&config.database_url)?.application_name(crate_name!()),
+    )
+    .await?;
     info!("Connected to database");
 
     info!("Begin looking for work");
@@ -122,6 +130,7 @@ async fn main() -> anyhow::Result<()> {
                 "Associating response {} with request attempt {}",
                 &response_id, &attempt.request_attempt__id
             );
+            #[allow(clippy::suspicious_else_formatting)] // Clippy false positive
             sqlx::query!(
                 "UPDATE webhook.request_attempt SET response__id = $1 WHERE request_attempt__id = $2",
                 response_id, attempt.request_attempt__id
@@ -162,12 +171,12 @@ async fn main() -> anyhow::Result<()> {
                 let retry_id = sqlx::query!(
                     "
                     INSERT INTO webhook.request_attempt (event__id, subscription__id, delay_until, retry_count)
-                    VALUES ($1, $2, $3, $4)
+                    VALUES ($1, $2, statement_timestamp() + $3, $4)
                     RETURNING request_attempt__id
                 ",
                     attempt.event__id,
                     attempt.subscription__id,
-                    Utc::now().add(chrono::Duration::from_std(RETRY_TIMEOUT).unwrap()), // TODO: try SQLx latest beta version which seems to support interval values
+                    PgInterval::try_from(RETRY_TIMEOUT).unwrap(),
                     next_retry_count,
                 )
                 .fetch_one(&mut tx)
@@ -185,108 +194,6 @@ async fn main() -> anyhow::Result<()> {
         }
 
         // Commit transaction
-        conn = tx.commit().await?;
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-enum ResponseError {
-    Dns,
-    Timeout,
-    Http,
-}
-
-impl std::fmt::Display for ResponseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Dns => write!(f, "E_DNS"),
-            Self::Timeout => write!(f, "E_TIMEOUT"),
-            Self::Http => write!(f, "E_HTTP"),
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-struct Response {
-    pub response_error: Option<ResponseError>,
-    pub http_code: Option<u8>,
-    pub headers: Option<HeaderMap>,
-    pub body: Option<String>,
-    pub elapsed_time: Duration,
-}
-
-impl Response {
-    fn is_success(&self) -> bool {
-        self.response_error.is_none()
-    }
-
-    #[allow(non_snake_case)]
-    fn response_error__name(&self) -> Option<String> {
-        self.response_error.map(|re| re.to_string())
-    }
-
-    fn http_code(&self) -> Option<i16> {
-        self.http_code.map(|c| c.into())
-    }
-
-    fn headers(&self) -> Option<serde_json::Value> {
-        use std::iter::FromIterator;
-
-        self.headers.as_ref().and_then(|hm| {
-            let iter = hm
-                .iter()
-                .map(|(k, v)| {
-                    let key = k.to_string();
-                    let value = v
-                        .to_str()
-                        .expect("Failed to extract a HTTP header value (there might be invisible characters)")
-                        .to_owned();
-                    (key, value)
-                });
-            let hashmap: HashMap<String, String> = HashMap::from_iter(iter);
-            serde_json::to_value(&hashmap).ok()
-        })
-    }
-
-    fn elapsed_time_ms(&self) -> i32 {
-        use std::convert::TryInto;
-
-        self.elapsed_time.as_millis().try_into().unwrap_or(0)
-    }
-}
-
-async fn work(attempt: &RequestAttempt) -> Response {
-    debug!(
-        "Processing request attempt {}",
-        &attempt.request_attempt__id
-    );
-    let start = Instant::now();
-
-    // TODO: implement actual work here
-
-    // Actually for now we simulate working
-    sleep(Duration::from_secs(5)).await;
-
-    // Let's simulate failing for one of my test items
-    let cursed_item = Uuid::parse_str("8536a6a6-e7ec-4cea-b984-d7f377f394e4").unwrap();
-    if attempt.request_attempt__id == cursed_item {
-        Response {
-            response_error: Some(ResponseError::Dns),
-            http_code: None,
-            headers: None,
-            body: None,
-            elapsed_time: start.elapsed(),
-        }
-    } else {
-        let mut fake_headers = HeaderMap::new();
-        fake_headers.insert("X-Test", HeaderValue::from_static("Test"));
-
-        Response {
-            response_error: None,
-            http_code: Some(200),
-            headers: Some(fake_headers),
-            body: Some("TEST".to_owned()),
-            elapsed_time: start.elapsed(),
-        }
+        tx.commit().await?;
     }
 }
