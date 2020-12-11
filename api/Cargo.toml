@@ -8,6 +8,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+actix-files = "0.4.1"
 actix-web = "3.3.2"
 anyhow = "1.0.35"
 chrono = { version = "0.4.19", features = ["serde"] }

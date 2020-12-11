@@ -1,7 +1,9 @@
 mod errors;
 mod handlers;
 
-use actix_web::{middleware::Logger, App, HttpResponse, HttpServer, Responder};
+use actix_files::{Files, NamedFile};
+use actix_web::web::Data;
+use actix_web::{middleware::Logger, App, HttpRequest, HttpResponse, HttpServer};
 use clap::{crate_description, crate_name, crate_version, ArgSettings::HideEnvValues, Clap};
 use log::{info, trace};
 use paperclip::{
@@ -12,6 +14,7 @@ use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 use std::str::FromStr;
 
 const APP_TITLE: &str = "Hook0 API";
+const WEBAPP_INDEX_FILE: &str = "index.html";
 
 #[derive(Debug, Clone, Clap)]
 #[clap(author, about, version, name = APP_TITLE)]
@@ -31,12 +34,17 @@ struct Config {
     /// Maximum number of connections to database
     #[clap(long, env, default_value = "5")]
     max_db_connections: u32,
+
+    /// Path to the directory containing the web app to serve
+    #[clap(long, env, default_value = "frontend/dist/")]
+    webapp_path: String,
 }
 
 /// The app state
 #[derive(Debug, Clone)]
 pub struct State {
     db: PgPool,
+    webapp_path: String,
 }
 
 #[actix_web::main]
@@ -58,9 +66,13 @@ async fn main() -> anyhow::Result<()> {
     );
 
     // Initialize state
-    let initial_state = State { db: pool };
+    let initial_state = State {
+        db: pool,
+        webapp_path: config.webapp_path.clone(),
+    };
 
     // Run web server
+    let webapp_path = config.webapp_path.clone();
     HttpServer::new(move || {
         // Compute default OpenAPI spec
         let spec = DefaultApiRaw {
@@ -80,7 +92,6 @@ async fn main() -> anyhow::Result<()> {
             .data(initial_state.clone())
             .wrap(Logger::default())
             .wrap_api_with_spec(spec)
-            .service(web::resource("/").route(web::get().to(hello_world)))
             .service(
                 web::scope("/api/v1")
                     .service(
@@ -118,6 +129,13 @@ async fn main() -> anyhow::Result<()> {
                 // request_attempts
             )
             .with_json_spec_at("/api/spec/v1")
+            .default_service(
+                Files::new("/", webapp_path.as_str())
+                    .index_file(WEBAPP_INDEX_FILE)
+                    .default_handler(
+                        web::resource("{path:.+}").route(web::get().to(default_handler)),
+                    ),
+            )
             .build()
     })
     .bind(&format!("{}:{}", config.ip, config.port))?
@@ -127,6 +145,9 @@ async fn main() -> anyhow::Result<()> {
 }
 
 #[api_v2_operation]
-async fn hello_world() -> impl Responder {
-    HttpResponse::Ok().body("Hello world!")
+async fn default_handler(
+    req: HttpRequest,
+    state: Data<crate::State>,
+) -> actix_web::Result<HttpResponse> {
+    NamedFile::open(format!("{}/{}", &state.webapp_path, WEBAPP_INDEX_FILE))?.into_response(&req)
 }
