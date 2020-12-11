@@ -6,30 +6,23 @@ const http = axios.create({
   timeout: 1000,
   headers: {
     /*'X-Custom-Header': 'foobar'*/
-  }
+  },
 });
 
 module.exports = {
   applications: {
     list() {
-      return http.request({
-        method: 'get',
-        url: '/applications',
-        data: {}
-      })
+      return http
+        .request({
+          method: 'get',
+          url: '/applications',
+          data: {},
+        })
+        .then(res => res.data);
     },
-    add(application) {
-
-    },
-    get(application_id){
-
-    },
-    edit(application_id, body){
-
-    },
-    delete(application_id){
-
-    }
-  }
-
+    add(application) {},
+    get(application_id) {},
+    edit(application_id, body) {},
+    delete(application_id) {},
+  },
 };

@@ -130,7 +130,24 @@
           <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
             <!-- Replace with your content -->
             <div class="py-4">
-              <div class="border-4 border-dashed border-gray-200 rounded-lg h-96"></div>
+              <div class="border-4 border-dashed border-gray-200 rounded-lg h-96">
+                <Promised :promise="applications$">
+                  <!-- Use the "pending" slot to display a loading message -->
+                  <template #pending>
+                    <p>Loading...</p>
+                  </template>
+                  <!-- The default scoped slot will be used as the result -->
+                  <template v-slot="applications">
+                    <ul>
+                      <li v-for="application in applications" :key="application.application__id">{{ application.application__id }} - {{ application.name }}</li>
+                    </ul>
+                  </template>
+                  <!-- The "rejected" scoped slot will be used if there is an error -->
+                  <template #rejected="error">
+                    <p>Error: {{ error.message }}</p>
+                  </template>
+                </Promised>
+              </div>
             </div>
             <!-- /End replace -->
           </div>
@@ -142,12 +159,18 @@
 
 <script>
 import Icon from "@/components/Icon";
+import APIClient from '../APIClient';
+
 export default {
   name: "HelloWorld",
   components: {Icon},
+  data: () => ({ applications$: new Promise(() => {}) }),
   props: {
     msg: String
-  }
+  },
+  created() {
+    this.applications$ = APIClient.applications.list();
+  },
 };
 </script>
 
