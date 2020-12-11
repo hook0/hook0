@@ -82,27 +82,40 @@ async fn main() -> anyhow::Result<()> {
             .wrap_api_with_spec(spec)
             .service(web::resource("/").route(web::get().to(hello_world)))
             .service(
-                web::scope("/v1").service(
-                    web::scope("/applications")
-                        .service(
-                            web::resource("")
-                                .route(web::get().to(handlers::applications::list))
-                                .route(web::post().to(handlers::applications::add)),
-                        )
-                        .service(
-                            web::resource("/{application_id}")
-                                .route(web::get().to(handlers::applications::show))
-                                .route(web::put().to(handlers::applications::edit))
-                                .route(web::delete().to(handlers::applications::destroy)),
-                        ),
-                    // TODO:
-                    // event_types
-                    // application_secrets
-                    // events
-                    // -----
-                    // subscriptions
-                    // request_attempts
-                ),
+                web::scope("/v1")
+                    .service(
+                        web::scope("/applications")
+                            .service(
+                                web::resource("")
+                                    .route(web::get().to(handlers::applications::list))
+                                    .route(web::post().to(handlers::applications::add)),
+                            )
+                            .service(
+                                web::resource("/{application_id}")
+                                    .route(web::get().to(handlers::applications::show))
+                                    .route(web::put().to(handlers::applications::edit))
+                                    .route(web::delete().to(handlers::applications::destroy)),
+                            ),
+                    )
+                    .service(
+                        web::scope("/event_types")
+                            .service(
+                                web::resource("")
+                                    .route(web::get().to(handlers::event_types::list))
+                                    .route(web::post().to(handlers::event_types::add)),
+                            )
+                            .service(
+                                web::resource("/{event_type_name}")
+                                    .route(web::get().to(handlers::event_types::show))
+                                    .route(web::delete().to(handlers::event_types::destroy)),
+                            ),
+                    ),
+                // TODO:
+                // application_secrets
+                // events
+                // -----
+                // subscriptions
+                // request_attempts
             )
             .with_json_spec_at("/api/spec")
             .build()
