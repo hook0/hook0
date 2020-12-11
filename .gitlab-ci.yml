@@ -1,12 +1,12 @@
 variables:
   PG_VERSION: "12"
-  RUST_VERSION: "1.47.0"
+  RUST_VERSION: "1.48.0"
   POSTGRES_DB: hook0-ci
   POSTGRES_USER: runner
   POSTGRES_PASSWORD: ""
   POSTGRES_HOST_AUTH_METHOD: trust
 
-output-worker.check:
+rust.check:
   image: rust:$RUST_VERSION
   services:
     - postgres:$PG_VERSION
@@ -19,8 +19,21 @@ output-worker.check:
     - rustup component add clippy
     - rustup component add rustfmt
   script:
+    # Global
     - cargo fmt --all -- --check
-    - psql -h "postgres" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -f "./database/preinit/init.sql"
+    - pushd sentry-integration
+    - cargo clippy --all-targets --all-features -- -D warnings
+    - cargo test
+    - popd
+    - psql -h "postgres" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -f "./database/preinit/schema.sql"
+    # API
+    - pushd api
+    - echo "DATABASE_URL=\"postgresql://$POSTGRES_USER@postgres/$POSTGRES_DB\"" > .env
+    - cargo clippy --all-targets --all-features -- -D warnings
+    - cargo test
+    - popd
+    # Output Worker
+    - pushd output-worker
     - echo "DATABASE_URL=\"postgresql://$POSTGRES_USER@postgres/$POSTGRES_DB\"" > .env
     - cargo clippy --all-targets --all-features -- -D warnings
     - cargo test
