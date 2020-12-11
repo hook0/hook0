@@ -398,5 +398,3 @@ alter table webhook.target_http
         on delete cascade on update cascade;
 
 -- endregion
-
-\ir fixtures.sql
