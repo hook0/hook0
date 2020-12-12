@@ -13,10 +13,10 @@ use crate::errors::*;
 #[derive(Debug, Serialize, Apiv2Schema)]
 #[allow(non_snake_case)]
 pub struct ApplicationSecret {
-    name: Option<String>,
-    token: Uuid,
-    created_at: DateTime<Utc>,
-    deleted_at: Option<DateTime<Utc>>,
+    pub name: Option<String>,
+    pub token: Uuid,
+    pub created_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
