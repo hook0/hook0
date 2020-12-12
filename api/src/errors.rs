@@ -104,3 +104,66 @@ impl std::fmt::Display for EditError {
         f.write_str(self.status_code().as_str())
     }
 }
+
+/// Error type for events ingestion
+#[api_v2_errors(
+    code = 500,
+    code = 400,
+    code = 403,
+    code = 400,
+    code = 400,
+    code = 400,
+    code = 400,
+    code = 409
+)]
+#[derive(Debug)]
+#[allow(dead_code)]
+pub enum IngestError {
+    InternalServerError,
+    BadRequest,
+    Forbidden,
+    InvalidPayload,
+    InvalidPayloadContentType,
+    InvalidMetadata,
+    InvalidLabels,
+    Conflict,
+}
+
+impl ResponseError for IngestError {
+    fn status_code(&self) -> StatusCode {
+        match self {
+            Self::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::BadRequest
+            | Self::InvalidPayload
+            | Self::InvalidPayloadContentType
+            | Self::InvalidMetadata
+            | Self::InvalidLabels => StatusCode::BAD_REQUEST,
+            Self::Forbidden => StatusCode::FORBIDDEN,
+            Self::Conflict => StatusCode::CONFLICT,
+        }
+    }
+    fn error_response(&self) -> HttpResponse {
+        match self {
+            Self::InvalidPayload => {
+                HttpResponse::build(self.status_code()).body("Payload must be base64 encoded")
+            }
+            Self::InvalidPayloadContentType => {
+                HttpResponse::build(self.status_code()).body("This content type is not allowed")
+            }
+            Self::InvalidMetadata => HttpResponse::build(self.status_code())
+                .body("Metadata must be provided as an object"),
+            Self::InvalidLabels => {
+                HttpResponse::build(self.status_code()).body("Labels must be provided as an object")
+            }
+            Self::Conflict => HttpResponse::build(self.status_code())
+                .body("There is already an event with this ID"),
+            _ => HttpResponse::build(self.status_code()).finish(),
+        }
+    }
+}
+
+impl std::fmt::Display for IngestError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.status_code().as_str())
+    }
+}
