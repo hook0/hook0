@@ -143,6 +143,9 @@ async fn main() -> anyhow::Result<()> {
                                 web::resource("/{event_id}")
                                     .route(web::get().to(handlers::events::show)),
                             ),
+                    )
+                    .service(
+                        web::resource("/event").route(web::post().to(handlers::events::ingest)),
                     ),
                 // TODO:
                 // events
