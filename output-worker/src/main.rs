@@ -1,6 +1,5 @@
 mod work;
 
-use async_std::task::sleep;
 use chrono::{DateTime, Utc};
 use clap::{crate_name, ArgSettings::HideEnvValues, Clap};
 use log::{debug, info, trace};
@@ -12,6 +11,7 @@ use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::str::FromStr;
 use std::time::Duration;
+use tokio::time::delay_for;
 use uuid::Uuid;
 
 use work::*;
@@ -35,6 +35,8 @@ pub struct RequestAttempt {
     pub http_method: String,
     pub http_url: String,
     pub http_headers: serde_json::Value,
+    pub payload: Vec<u8>,
+    pub payload_content_type: String,
 }
 
 impl RequestAttempt {
@@ -52,7 +54,7 @@ const POLLING_SLEEP: Duration = Duration::from_secs(1);
 /// How long to wait between retries
 const RETRY_TIMEOUT: Duration = Duration::from_secs(5);
 
-#[async_std::main]
+#[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let config = Config::parse();
     env_logger::init();
@@ -69,10 +71,11 @@ async fn main() -> anyhow::Result<()> {
         trace!("Fetching next unprocessed request attempt...");
         let mut tx = conn.begin().await?;
         let next_attempt = sqlx::query_as!(RequestAttempt, "
-            SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.retry_count, t_http.method AS http_method, t_http.url AS http_url, t_http.headers AS http_headers
+            SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.retry_count, t_http.method AS http_method, t_http.url AS http_url, t_http.headers AS http_headers, e.payload AS payload, e.payload_content_type__name AS payload_content_type
             FROM webhook.request_attempt AS ra
             NATURAL INNER JOIN webhook.subscription AS s
             NATURAL INNER JOIN webhook.target_http AS t_http
+            NATURAL INNER JOIN event.event AS e
             WHERE succeeded_at IS NULL AND failed_at IS NULL AND (delay_until IS NULL OR delay_until <= statement_timestamp())
             ORDER BY created_at ASC
             LIMIT 1
@@ -92,10 +95,6 @@ async fn main() -> anyhow::Result<()> {
             .execute(&mut tx)
             .await?;
             info!("Picked request attempt {}", &attempt.request_attempt__id);
-
-            // TODO: remove debug output
-            dbg!(&attempt);
-            dbg!(&attempt.headers());
 
             // Work
             let response = work(&attempt).await;
@@ -190,7 +189,7 @@ async fn main() -> anyhow::Result<()> {
             }
         } else {
             trace!("No unprocessed attempt found");
-            sleep(POLLING_SLEEP).await;
+            delay_for(POLLING_SLEEP).await;
         }
 
         // Commit transaction
