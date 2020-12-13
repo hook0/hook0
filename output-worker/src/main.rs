@@ -7,6 +7,7 @@ use reqwest::header::HeaderMap;
 use sqlx::postgres::types::PgInterval;
 use sqlx::postgres::PgConnectOptions;
 use sqlx::{Connection, PgConnection};
+use std::cmp::min;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::str::FromStr;
@@ -51,8 +52,11 @@ impl RequestAttempt {
 /// How long to wait when there are no unprocessed items to pick
 const POLLING_SLEEP: Duration = Duration::from_secs(1);
 
-/// How long to wait between retries
-const RETRY_TIMEOUT: Duration = Duration::from_secs(5);
+/// How long to wait before first retry
+const MINIMUM_RETRY_DELAY: Duration = Duration::from_secs(5);
+
+/// How long to wait between retries at maximum
+const MAXIMUM_RETRY_DELAY: Duration = Duration::from_secs(5 * 60);
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -165,7 +169,9 @@ async fn main() -> anyhow::Result<()> {
                 .await?;
 
                 // Creating a retry request
-                // TODO: implement smarter retry using a "retry_count" column and a function that generates a time-based sequence
+                let retry_count = u32::try_from(attempt.retry_count).unwrap_or(1);
+                let retry_in: Duration =
+                    min(MINIMUM_RETRY_DELAY * retry_count, MAXIMUM_RETRY_DELAY);
                 let next_retry_count = attempt.retry_count + 1;
                 let retry_id = sqlx::query!(
                     "
@@ -175,7 +181,7 @@ async fn main() -> anyhow::Result<()> {
                 ",
                     attempt.event__id,
                     attempt.subscription__id,
-                    PgInterval::try_from(RETRY_TIMEOUT).unwrap(),
+                    PgInterval::try_from(retry_in).unwrap(),
                     next_retry_count,
                 )
                 .fetch_one(&mut tx)
@@ -183,8 +189,11 @@ async fn main() -> anyhow::Result<()> {
                 .request_attempt__id;
 
                 info!(
-                    "Request attempt {} failed; retry #{} created as {}",
-                    &attempt.request_attempt__id, &next_retry_count, &retry_id
+                    "Request attempt {} failed; retry #{} created as {} to be picked in {}s",
+                    &attempt.request_attempt__id,
+                    &next_retry_count,
+                    &retry_id,
+                    &retry_in.as_secs()
                 );
             }
         } else {
