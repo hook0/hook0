@@ -8,9 +8,9 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-actix-files = "0.4.1"
+actix-files = "0.5.0"
 actix-web = "3.3.2"
-anyhow = "1.0.35"
+anyhow = "1.0.36"
 base64 = "0.13.0"
 chrono = { version = "0.4.19", features = ["serde"] }
 clap = "3.0.0-beta.2"
@@ -20,5 +20,5 @@ log = "0.4.11"
 paperclip = { version = "0.5.0", features = ["actix", "chrono", "uuid"] }
 serde = "1.0.118"
 serde_json = "1.0.60"
-sqlx = { version = "0.4.1", default-features = false, features = ["runtime-actix-rustls", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork"] }
+sqlx = { version = "0.4.2", default-features = false, features = ["runtime-actix-rustls", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork"] }
 uuid = { version = "0.8.1", features = ["serde"] }
