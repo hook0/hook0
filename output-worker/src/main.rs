@@ -20,6 +20,10 @@ use work::*;
 #[derive(Debug, Clone, Clap)]
 #[clap(author, about, version)]
 struct Config {
+    /// Optional Sentry DSN for error reporting
+    #[clap(long, env)]
+    sentry_dsn: Option<String>,
+
     /// Database URL (with credentials)
     #[clap(long, env, setting = HideEnvValues)]
     database_url: String,
@@ -61,7 +65,10 @@ const MAXIMUM_RETRY_DELAY: Duration = Duration::from_secs(5 * 60);
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let config = Config::parse();
-    env_logger::init();
+
+    // Initialize app logger as well as Sentry integration
+    // Return value *must* be kept in a variable or else it will be droppped and Sentry integration won't work
+    let _sentry = sentry_integration::init(crate_name!(), &config.sentry_dsn);
 
     debug!("Connecting to database...");
     let mut conn = PgConnection::connect_with(
