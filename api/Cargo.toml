@@ -20,5 +20,5 @@ paperclip = { version = "0.5.0", features = ["actix", "chrono", "uuid"] }
 sentry-integration = { path = "../sentry-integration" }
 serde = "1.0.118"
 serde_json = "1.0.60"
-sqlx = { version = "0.4.2", default-features = false, features = ["runtime-actix-rustls", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork"] }
+sqlx = { version = "0.4.2", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork"] } # runtime-tokio-rustls because https://github.com/launchbadge/sqlx/issues/894#issuecomment-747821912
 uuid = { version = "0.8.1", features = ["serde"] }
