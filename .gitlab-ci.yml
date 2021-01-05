@@ -21,10 +21,12 @@ rust.check:
   script:
     # Global
     - cargo fmt --all -- --check
+    # Sentry integration
     - pushd sentry-integration
     - cargo clippy --all-targets --all-features -- -D warnings
     - cargo test
     - popd
+    # Init DB schema
     - psql -h "postgres" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -f "./database/preinit/schema.sql"
     # API
     - pushd api
