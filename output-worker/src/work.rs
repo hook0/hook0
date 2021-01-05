@@ -58,8 +58,6 @@ impl Response {
     }
 
     pub fn headers(&self) -> Option<serde_json::Value> {
-        use std::iter::FromIterator;
-
         self.headers.as_ref().and_then(|hm| {
             let iter = hm
                 .iter()
@@ -71,7 +69,7 @@ impl Response {
                         .to_owned();
                     (key, value)
                 });
-            let hashmap: HashMap<String, String> = HashMap::from_iter(iter);
+            let hashmap: HashMap<String, String> = iter.collect();
             serde_json::to_value(&hashmap).ok()
         })
     }
