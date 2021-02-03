@@ -329,26 +329,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ee67c11feeac938fae061b232e38e0b6d94f97a9df10e6271319325ac4c56a86"
 
 [[package]]
-name = "api"
-version = "0.1.0"
-dependencies = [
- "actix-files",
- "actix-web",
- "anyhow",
- "base64 0.13.0",
- "chrono",
- "clap",
- "ipnetwork",
- "log",
- "paperclip",
- "sentry-integration",
- "serde",
- "serde_json",
- "sqlx",
- "uuid",
-]
-
-[[package]]
 name = "arrayvec"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1098,6 +1078,43 @@ dependencies = [
 ]
 
 [[package]]
+name = "hook0-api"
+version = "0.1.0"
+dependencies = [
+ "actix-files",
+ "actix-web",
+ "anyhow",
+ "base64 0.13.0",
+ "chrono",
+ "clap",
+ "ipnetwork",
+ "log",
+ "paperclip",
+ "sentry-integration",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "uuid",
+]
+
+[[package]]
+name = "hook0-output-worker"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "clap",
+ "log",
+ "reqwest",
+ "sentry-integration",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "hostname"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1560,23 +1577,6 @@ name = "os_str_bytes"
 version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "afb2e1c3ee07430c2cf76151675e583e0f19985fa6efae47d6848a3e2c824f85"
-
-[[package]]
-name = "output-worker"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "clap",
- "log",
- "reqwest",
- "sentry-integration",
- "serde",
- "serde_json",
- "sqlx",
- "tokio",
- "uuid",
-]
 
 [[package]]
 name = "paperclip"

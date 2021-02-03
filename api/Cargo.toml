@@ -1,5 +1,5 @@
 [package]
-name = "api"
+name = "hook0-api"
 version = "0.1.0"
 description = "Core API of Hook0"
 authors = ["David Sferruzza <david.sferruzza@gmail.com>"]
