@@ -1,0 +1,171 @@
+{
+  "db": "PostgreSQL",
+  "1fa8888a1c285d6ddfe4e5bf3cc90d38f006aec1099d41860ff8343d6927d335": {
+    "query": "UPDATE webhook.request_attempt SET failed_at = statement_timestamp() WHERE request_attempt__id = $1",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "2caf5d798dd62a41fee2364a02d6299380a338b96fa9a090ec51755e3d3f627b": {
+    "query": "UPDATE webhook.request_attempt SET succeeded_at = statement_timestamp() WHERE request_attempt__id = $1",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "3a8414eea7c620d35cbca2553685f73a6253c01b1373433f10cfb8fbd1cb5b29": {
+    "query": "UPDATE webhook.request_attempt SET response__id = $1 WHERE request_attempt__id = $2",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "542467650ab9d28a65afe2e1de6f2fd11c404efe36f7cd12ceb4cf163c09c93a": {
+    "query": "UPDATE webhook.request_attempt SET picked_at = statement_timestamp() WHERE request_attempt__id = $1",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "c7e7facb0db615231f4ac212fa4fd88d111c34591165d3d8ff388a77e1e43f96": {
+    "query": "\n                    INSERT INTO webhook.request_attempt (event__id, subscription__id, delay_until, retry_count)\n                    VALUES ($1, $2, statement_timestamp() + $3, $4)\n                    RETURNING request_attempt__id\n                ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "request_attempt__id",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "Interval",
+          "Int2"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "d1cc245b3406fdb35fb6ec9119a70d422e2cfd93edd8d52cbf4719ac0eb87dd0": {
+    "query": "\n            SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.retry_count, t_http.method AS http_method, t_http.url AS http_url, t_http.headers AS http_headers, e.payload AS payload, e.payload_content_type__name AS payload_content_type\n            FROM webhook.request_attempt AS ra\n            NATURAL INNER JOIN webhook.subscription AS s\n            NATURAL INNER JOIN webhook.target_http AS t_http\n            NATURAL INNER JOIN event.event AS e\n            WHERE succeeded_at IS NULL AND failed_at IS NULL AND (delay_until IS NULL OR delay_until <= statement_timestamp())\n            ORDER BY created_at ASC\n            LIMIT 1\n            FOR UPDATE OF ra\n            SKIP LOCKED\n        ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "request_attempt__id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "event__id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 2,
+          "name": "subscription__id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 4,
+          "name": "retry_count",
+          "type_info": "Int2"
+        },
+        {
+          "ordinal": 5,
+          "name": "http_method",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 6,
+          "name": "http_url",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 7,
+          "name": "http_headers",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 8,
+          "name": "payload",
+          "type_info": "Bytea"
+        },
+        {
+          "ordinal": 9,
+          "name": "payload_content_type",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "ed5658c68733556e55039248523573e5d21c93f449b0e7c5b938a64f5db3eb0b": {
+    "query": "\n                INSERT INTO webhook.response (response_error__name, http_code, headers, body, elapsed_time_ms)\n                VALUES ($1, $2, $3, $4, $5)\n                RETURNING response__id\n            ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "response__id",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Int2",
+          "Jsonb",
+          "Text",
+          "Int4"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  }
+}
