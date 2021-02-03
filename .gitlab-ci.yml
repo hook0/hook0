@@ -1,6 +1,6 @@
 variables:
   PG_VERSION: "12"
-  RUST_VERSION: "1.48.0"
+  RUST_VERSION: "1.49.0"
   POSTGRES_DB: hook0-ci
   POSTGRES_USER: runner
   POSTGRES_PASSWORD: ""
@@ -21,15 +21,17 @@ rust.check:
   script:
     # Global
     - cargo fmt --all -- --check
+    # Sentry integration
     - pushd sentry-integration
     - cargo clippy --all-targets --all-features -- -D warnings
     - cargo test
     - popd
+    # Init DB schema
     - psql -h "postgres" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -f "./database/preinit/schema.sql"
     # API
     - pushd api
     - echo "DATABASE_URL=\"postgresql://$POSTGRES_USER@postgres/$POSTGRES_DB\"" > .env
-    - cargo clippy --all-targets --all-features -- -D warnings
+    - cargo clippy --all-targets --all-features -- -D warnings -A clippy::field-reassign-with-default # paperclip macros trigger clippy...
     - cargo test
     - popd
     # Output Worker

@@ -1,5 +1,5 @@
 [package]
-name = "output-worker"
+name = "hook0-worker"
 version = "0.1.0"
 authors = ["David Sferruzza <david.sferruzza@gmail.com>"]
 edition = "2018"
@@ -7,14 +7,14 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.35"
-async-std = { version = "1.8.0", features = ["attributes"] }
+anyhow = "1.0.37"
 chrono = "0.4.19"
 clap = "3.0.0-beta.2"
-env_logger = "0.8.1"
 log = "0.4.11"
-reqwest = { version = "0.10.9", default-features = false, features = ["rustls-tls"] }
+reqwest = { version = "0.10.10", default-features = false, features = ["rustls-tls"] }
+sentry-integration = { path = "../sentry-integration" }
 serde = "1.0.118"
-serde_json = "1.0.60"
-sqlx = { version = "0.4.1", default-features = false, features = ["runtime-async-std-rustls", "postgres", "macros", "uuid", "chrono", "time", "json"] }
+serde_json = "1.0.61"
+sqlx = { version = "0.4.2", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono", "time", "json"] }
+tokio = { version = "0.2.24", features = ["rt-threaded", "macros", "time"] }
 uuid = "0.8.1"

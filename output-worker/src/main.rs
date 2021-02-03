@@ -1,6 +1,5 @@
 mod work;
 
-use async_std::task::sleep;
 use chrono::{DateTime, Utc};
 use clap::{crate_name, ArgSettings::HideEnvValues, Clap};
 use log::{debug, info, trace};
@@ -8,10 +7,12 @@ use reqwest::header::HeaderMap;
 use sqlx::postgres::types::PgInterval;
 use sqlx::postgres::PgConnectOptions;
 use sqlx::{Connection, PgConnection};
+use std::cmp::min;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::str::FromStr;
 use std::time::Duration;
+use tokio::time::delay_for;
 use uuid::Uuid;
 
 use work::*;
@@ -19,6 +20,10 @@ use work::*;
 #[derive(Debug, Clone, Clap)]
 #[clap(author, about, version)]
 struct Config {
+    /// Optional Sentry DSN for error reporting
+    #[clap(long, env)]
+    sentry_dsn: Option<String>,
+
     /// Database URL (with credentials)
     #[clap(long, env, setting = HideEnvValues)]
     database_url: String,
@@ -35,6 +40,8 @@ pub struct RequestAttempt {
     pub http_method: String,
     pub http_url: String,
     pub http_headers: serde_json::Value,
+    pub payload: Vec<u8>,
+    pub payload_content_type: String,
 }
 
 impl RequestAttempt {
@@ -49,13 +56,19 @@ impl RequestAttempt {
 /// How long to wait when there are no unprocessed items to pick
 const POLLING_SLEEP: Duration = Duration::from_secs(1);
 
-/// How long to wait between retries
-const RETRY_TIMEOUT: Duration = Duration::from_secs(5);
+/// How long to wait before first retry
+const MINIMUM_RETRY_DELAY: Duration = Duration::from_secs(5);
 
-#[async_std::main]
+/// How long to wait between retries at maximum
+const MAXIMUM_RETRY_DELAY: Duration = Duration::from_secs(5 * 60);
+
+#[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let config = Config::parse();
-    env_logger::init();
+
+    // Initialize app logger as well as Sentry integration
+    // Return value *must* be kept in a variable or else it will be dropped and Sentry integration won't work
+    let _sentry = sentry_integration::init(crate_name!(), &config.sentry_dsn);
 
     debug!("Connecting to database...");
     let mut conn = PgConnection::connect_with(
@@ -69,10 +82,11 @@ async fn main() -> anyhow::Result<()> {
         trace!("Fetching next unprocessed request attempt...");
         let mut tx = conn.begin().await?;
         let next_attempt = sqlx::query_as!(RequestAttempt, "
-            SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.retry_count, t_http.method AS http_method, t_http.url AS http_url, t_http.headers AS http_headers
+            SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.retry_count, t_http.method AS http_method, t_http.url AS http_url, t_http.headers AS http_headers, e.payload AS payload, e.payload_content_type__name AS payload_content_type
             FROM webhook.request_attempt AS ra
             NATURAL INNER JOIN webhook.subscription AS s
             NATURAL INNER JOIN webhook.target_http AS t_http
+            NATURAL INNER JOIN event.event AS e
             WHERE succeeded_at IS NULL AND failed_at IS NULL AND (delay_until IS NULL OR delay_until <= statement_timestamp())
             ORDER BY created_at ASC
             LIMIT 1
@@ -92,10 +106,6 @@ async fn main() -> anyhow::Result<()> {
             .execute(&mut tx)
             .await?;
             info!("Picked request attempt {}", &attempt.request_attempt__id);
-
-            // TODO: remove debug output
-            dbg!(&attempt);
-            dbg!(&attempt.headers());
 
             // Work
             let response = work(&attempt).await;
@@ -166,7 +176,9 @@ async fn main() -> anyhow::Result<()> {
                 .await?;
 
                 // Creating a retry request
-                // TODO: implement smarter retry using a "retry_count" column and a function that generates a time-based sequence
+                let retry_count = u32::try_from(attempt.retry_count).unwrap_or(1);
+                let retry_in: Duration =
+                    min(MINIMUM_RETRY_DELAY * retry_count, MAXIMUM_RETRY_DELAY);
                 let next_retry_count = attempt.retry_count + 1;
                 let retry_id = sqlx::query!(
                     "
@@ -176,7 +188,7 @@ async fn main() -> anyhow::Result<()> {
                 ",
                     attempt.event__id,
                     attempt.subscription__id,
-                    PgInterval::try_from(RETRY_TIMEOUT).unwrap(),
+                    PgInterval::try_from(retry_in).unwrap(),
                     next_retry_count,
                 )
                 .fetch_one(&mut tx)
@@ -184,13 +196,16 @@ async fn main() -> anyhow::Result<()> {
                 .request_attempt__id;
 
                 info!(
-                    "Request attempt {} failed; retry #{} created as {}",
-                    &attempt.request_attempt__id, &next_retry_count, &retry_id
+                    "Request attempt {} failed; retry #{} created as {} to be picked in {}s",
+                    &attempt.request_attempt__id,
+                    &next_retry_count,
+                    &retry_id,
+                    &retry_in.as_secs()
                 );
             }
         } else {
             trace!("No unprocessed attempt found");
-            sleep(POLLING_SLEEP).await;
+            delay_for(POLLING_SLEEP).await;
         }
 
         // Commit transaction

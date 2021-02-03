@@ -27,6 +27,10 @@ struct Config {
     #[clap(long, env, default_value = "8080")]
     port: String,
 
+    /// Optional Sentry DSN for error reporting
+    #[clap(long, env)]
+    sentry_dsn: Option<String>,
+
     /// Database URL (with credentials)
     #[clap(long, env, setting = HideEnvValues)]
     database_url: String,
@@ -49,8 +53,12 @@ pub struct State {
 
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
-    env_logger::init();
     let config = Config::parse();
+
+    // Initialize app logger as well as Sentry integration
+    // Return value *must* be kept in a variable or else it will be dropped and Sentry integration won't work
+    let _sentry = sentry_integration::init(crate_name!(), &config.sentry_dsn);
+
     trace!("Starting {}", APP_TITLE);
 
     // Create a DB connection pool
