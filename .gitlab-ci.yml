@@ -18,6 +18,7 @@ rust.check:
     - rustc --version && cargo --version && psql --version
     - rustup component add clippy
     - rustup component add rustfmt
+    - cargo install sqlx-cli
   script:
     # Global
     - cargo fmt --all -- --check
@@ -32,10 +33,12 @@ rust.check:
     - pushd api
     - echo "DATABASE_URL=\"postgresql://$POSTGRES_USER@postgres/$POSTGRES_DB\"" > .env
     - cargo clippy --all-targets --all-features -- -D warnings -A clippy::field-reassign-with-default # paperclip macros trigger clippy...
+    - cargo sqlx prepare --check
     - cargo test
     - popd
     # Output Worker
     - pushd output-worker
     - echo "DATABASE_URL=\"postgresql://$POSTGRES_USER@postgres/$POSTGRES_DB\"" > .env
     - cargo clippy --all-targets --all-features -- -D warnings
+    - cargo sqlx prepare --check
     - cargo test
