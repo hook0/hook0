@@ -9,5 +9,5 @@ edition = "2018"
 
 [dependencies]
 env_logger = "0.8.2"
-log = "0.4.11"
-sentry = { version = "0.21.0", default-features = false, features = ["backtrace", "contexts", "panic", "reqwest", "rustls", "log", "debug-logs"] }
+log = "0.4.14"
+sentry = { version = "0.22.0", default-features = false, features = ["backtrace", "contexts", "panic", "reqwest", "rustls", "log", "debug-logs"] }
