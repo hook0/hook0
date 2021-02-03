@@ -13,11 +13,11 @@ INSERT INTO webhook.subscription(subscription__id, label_key, label_value, targe
 INSERT INTO webhook.subscription(subscription__id, label_key, label_value, target__id) VALUES ('3d8588e9-92c9-43b2-85a3-ab698e3e66de', 'test', '0', '0793594d-37f0-49dc-b87c-131428cf7eda');
 INSERT INTO webhook.subscription(subscription__id, label_key, label_value, target__id) VALUES ('4bdbe960-5da7-4c6d-997f-1f9711f1b77b', 'test2', '8', '7bcc3ac1-5c6b-4cd1-86b4-6c554c4677eb');
 INSERT INTO webhook.subscription(subscription__id, label_key, label_value, target__id) VALUES ('61cfe8b1-2089-4065-a8aa-6a2ba58b25f1', 'test2', '1', '3fee5405-7089-404a-bc3c-f3eeeeceff16');
-INSERT INTO webhook.target_http(target__id, method, url, headers) VALUES ('a6c1604c-6a59-4c8d-83c1-df472233ebd9', 'POST', 'http://localhost:8080/path', '{"headerName":"headerValue","headerName2":"headerValue2"}');
-INSERT INTO webhook.target_http(target__id, method, url, headers) VALUES ('0793594d-37f0-49dc-b87c-131428cf7eda', 'POST', 'http://localhost:8080/path', '{"headerName":"headerValue","headerName2":"headerValue2"}');
-INSERT INTO webhook.target_http(target__id, method, url, headers) VALUES ('7bcc3ac1-5c6b-4cd1-86b4-6c554c4677eb', 'POST', 'http://localhost:8080/path', '{"headerName":"headerValue","headerName2":"headerValue2"}');
-INSERT INTO webhook.target_http(target__id, method, url, headers) VALUES ('3fee5405-7089-404a-bc3c-f3eeeeceff16', 'POST', 'http://localhost:8080/path', '{"headerName":"headerValue","headerName2":"headerValue2"}');
-INSERT INTO webhook.response_error(response_error__name) VALUES ('E_DNS'), ('E_TIMEOUT'), ('E_HTTP');
+INSERT INTO webhook.target_http(target__id, method, url, headers) VALUES ('a6c1604c-6a59-4c8d-83c1-df472233ebd9', 'POST', 'http://localhost:7777/path', '{"headerName":"headerValue","headerName2":"headerValue2"}');
+INSERT INTO webhook.target_http(target__id, method, url, headers) VALUES ('0793594d-37f0-49dc-b87c-131428cf7eda', 'POST', 'http://localhost:7777/path', '{"headerName":"headerValue","headerName2":"headerValue2"}');
+INSERT INTO webhook.target_http(target__id, method, url, headers) VALUES ('7bcc3ac1-5c6b-4cd1-86b4-6c554c4677eb', 'POST', 'http://localhost:7777/path', '{"headerName":"headerValue","headerName2":"headerValue2"}');
+INSERT INTO webhook.target_http(target__id, method, url, headers) VALUES ('3fee5405-7089-404a-bc3c-f3eeeeceff16', 'POST', 'http://localhost:7777/path', '{"headerName":"headerValue","headerName2":"headerValue2"}');
+INSERT INTO webhook.response_error(response_error__name) VALUES ('E_UNKNOWN'), ('E_INVALID_TARGET'), ('E_CONNECTION'), ('E_TIMEOUT'), ('E_HTTP');
 INSERT INTO webhook.request_attempt(event__id, subscription__id, request_attempt__id) VALUES ('073e238f-13d7-4040-97dd-7d348dd6555b', '91797663-e486-4f87-b427-1b4ab4849315', '8536a6a6-e7ec-4cea-b984-d7f377f394e4');
 INSERT INTO webhook.request_attempt(event__id, subscription__id) VALUES ('073e238f-13d7-4040-97dd-7d348dd6555b', '91797663-e486-4f87-b427-1b4ab4849315');
 INSERT INTO webhook.request_attempt(event__id, subscription__id) VALUES ('073e238f-13d7-4040-97dd-7d348dd6555b', '91797663-e486-4f87-b427-1b4ab4849315');
