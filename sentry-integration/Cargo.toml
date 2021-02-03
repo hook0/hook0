@@ -1,12 +1,13 @@
 [package]
 name = "sentry-integration"
 version = "0.1.0"
-authors = ["François-Guillaume Ribreau <github@fgribreau.com>"]
+description = "Sentry-related methods"
+authors = ["David Sferruzza <david.sferruzza@gmail.com>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-sentry = { version = "0.18.0", features = ["with_log", "with_env_logger"] }
-env_logger = "0.7.1"
-log = "0.4.8"
+env_logger = "0.8.2"
+log = "0.4.11"
+sentry = { version = "0.21.0", default-features = false, features = ["backtrace", "contexts", "panic", "reqwest", "rustls", "log", "debug-logs"] }
