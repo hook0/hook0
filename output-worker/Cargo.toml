@@ -1,5 +1,5 @@
 [package]
-name = "output-worker"
+name = "hook0-worker"
 version = "0.1.0"
 authors = ["David Sferruzza <david.sferruzza@gmail.com>"]
 edition = "2018"
