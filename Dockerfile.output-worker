@@ -1,7 +1,8 @@
 FROM rust:1.49 as builder
 
-RUN USER=root cargo new --bin output-worker
-WORKDIR ./output-worker
+ENV SQLX_OFFLINE=true
+RUN USER=root cargo new --bin app
+WORKDIR ./app
 COPY ./Cargo.toml ./Cargo.toml
 ADD . ./
 
@@ -24,7 +25,7 @@ RUN groupadd $APP_USER \
     && useradd -g $APP_USER $APP_USER \
     && mkdir -p ${APP}
 
-COPY --from=builder /output-worker/target/release/output-worker ${APP}/output-worker
+COPY --from=builder /app/target/release/hook0-output-worker ${APP}/output-worker
 
 RUN chown -R $APP_USER:$APP_USER ${APP}
 
