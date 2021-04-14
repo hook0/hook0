@@ -19,7 +19,7 @@ use crate::errors::*;
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
 #[allow(non_snake_case)]
-pub struct QS {
+pub struct Qs {
     application_id: Uuid,
 }
 
@@ -71,7 +71,7 @@ pub struct Event {
 #[api_v2_operation]
 pub async fn list(
     state: Data<crate::State>,
-    qs: Query<QS>,
+    qs: Query<Qs>,
 ) -> Result<Json<Vec<Event>>, UnexpectedError> {
     let raw_events = query_as!(
         EventRaw,
@@ -144,7 +144,7 @@ pub struct EventWithPayload {
 pub async fn show(
     state: Data<crate::State>,
     event_id: Path<Uuid>,
-    qs: Query<QS>,
+    qs: Query<Qs>,
 ) -> Result<Json<EventWithPayload>, ShowError> {
     let raw_event = query_as!(
         EventWithPayloadRaw,
