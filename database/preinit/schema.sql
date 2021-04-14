@@ -22,6 +22,7 @@ create schema event;
 create table event.application
 (
     application__id uuid not null default public.gen_random_uuid(),
+    organization__id uuid not null,
     name            text not null,
     icon            text,
     url             text,

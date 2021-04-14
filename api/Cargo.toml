@@ -10,15 +10,18 @@ edition = "2018"
 [dependencies]
 actix-files = "0.5.0"
 actix-web = "3.3.2"
-anyhow = "1.0.38"
+actix-web-middleware-keycloak-auth = { git = "https://github.com/dsferruzza/actix-web-middleware-keycloak-auth", rev = "c9f53fe9ea110782256512d8595ba971cc964e66" }
+anyhow = "1.0.40"
 base64 = "0.13.0"
 chrono = { version = "0.4.19", features = ["serde"] }
 clap = "3.0.0-beta.2"
 ipnetwork = "0.17.0"
+lazy_static = "1.4.0"
 log = "0.4.14"
-paperclip = { version = "0.5.0", features = ["actix", "chrono", "uuid"] }
+paperclip = { git = "https://github.com/dsferruzza/paperclip", branch = "support-actix-web-reqdata", features = ["actix", "chrono", "uuid"] }
+regex = "1.4.5"
 sentry-integration = { path = "../sentry-integration" }
-serde = "1.0.123"
-serde_json = "1.0.62"
+serde = "1.0.125"
+serde_json = "1.0.64"
 sqlx = { version = "0.4.2", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "offline"] } # runtime-tokio-rustls because https://github.com/launchbadge/sqlx/issues/894#issuecomment-747821912
 uuid = { version = "0.8.2", features = ["serde"] }
