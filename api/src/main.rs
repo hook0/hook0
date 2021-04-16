@@ -121,6 +121,9 @@ async fn main() -> anyhow::Result<()> {
             .with_json_spec_at("/api/v1/swagger.json")
             .service(
                 web::scope("/api/v1")
+                    .service(web::scope("/organizations").wrap(auth.clone()).service(
+                        web::resource("").route(web::get().to(handlers::organizations::list)),
+                    ))
                     .service(
                         web::scope("/applications")
                             .wrap(auth.clone())
