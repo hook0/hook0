@@ -176,8 +176,6 @@ async fn main() -> anyhow::Result<()> {
                         web::resource("/event").route(web::post().to(handlers::events::ingest)),
                     ),
                 // TODO:
-                // events
-                // -----
                 // subscriptions
                 // request_attempts
             )
