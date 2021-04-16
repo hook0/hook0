@@ -1,6 +1,6 @@
 BEGIN;
 
-INSERT INTO event.application(application__id, name) VALUES ('dc8965e2-7fe4-4298-927c-e253e9c6f40d', 'Test');
+INSERT INTO event.application(application__id, organization__id, name) VALUES ('dc8965e2-7fe4-4298-927c-e253e9c6f40d', '8cf9a904-52c2-4ad9-a21a-4c12a7791334', 'Test');
 INSERT INTO event.application_secret(application__id, name, token) VALUES ('dc8965e2-7fe4-4298-927c-e253e9c6f40d', 'Test token', 'd426c1e1-7310-4b04-8698-0ea9068f898f');
 INSERT INTO event.service(application__id, service__name) VALUES ('dc8965e2-7fe4-4298-927c-e253e9c6f40d', 'github');
 INSERT INTO event.resource_type(application__id, service__name, resource_type__name) VALUES ('dc8965e2-7fe4-4298-927c-e253e9c6f40d', 'github', 'repo');
