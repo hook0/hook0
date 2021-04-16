@@ -1,11 +1,12 @@
 use actix_web::HttpRequest;
+use actix_web_middleware_keycloak_auth::UnstructuredClaims;
 use base64::{decode, encode};
 use chrono::{DateTime, Utc};
 use ipnetwork::IpNetwork;
 use log::error;
 use paperclip::actix::{
     api_v2_operation,
-    web::{Data, Json, Path, Query},
+    web::{Data, Json, Path, Query, ReqData},
     Apiv2Schema, CreatedJson,
 };
 use serde::{Deserialize, Serialize};
@@ -16,6 +17,7 @@ use uuid::Uuid;
 
 use super::application_secrets::ApplicationSecret;
 use crate::errors::*;
+use crate::iam::{can_access_application, Role};
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
 #[allow(non_snake_case)]
@@ -71,25 +73,37 @@ pub struct Event {
 #[api_v2_operation]
 pub async fn list(
     state: Data<crate::State>,
+    unstructured_claims: ReqData<UnstructuredClaims>,
     qs: Query<Qs>,
 ) -> Result<Json<Vec<Event>>, UnexpectedError> {
-    let raw_events = query_as!(
-        EventRaw,
-        "
-            SELECT event__id, event_type__name, payload_content_type__name, ip, metadata, occurred_at, received_at, application_secret__token, labels
-            FROM event.event
-            WHERE application__id = $1
-            ORDER BY received_at DESC
-            LIMIT 100
-        ",
+    if can_access_application(
+        &state.db,
+        &unstructured_claims,
         &qs.application_id,
+        &Role::Viewer,
     )
-    .fetch_all(&state.db)
     .await
-    .map_err(|_| UnexpectedError::InternalServerError)?;
+    {
+        let raw_events = query_as!(
+            EventRaw,
+            "
+                SELECT event__id, event_type__name, payload_content_type__name, ip, metadata, occurred_at, received_at, application_secret__token, labels
+                FROM event.event
+                WHERE application__id = $1
+                ORDER BY received_at DESC
+                LIMIT 100
+            ",
+            &qs.application_id,
+        )
+        .fetch_all(&state.db)
+        .await
+        .map_err(|_| UnexpectedError::InternalServerError)?;
 
-    let events = raw_events.iter().map(|re| re.to_event()).collect();
-    Ok(Json(events))
+        let events = raw_events.iter().map(|re| re.to_event()).collect();
+        Ok(Json(events))
+    } else {
+        Err(UnexpectedError::Forbidden)
+    }
 }
 
 #[derive(Debug)]
@@ -143,26 +157,38 @@ pub struct EventWithPayload {
 #[api_v2_operation]
 pub async fn show(
     state: Data<crate::State>,
+    unstructured_claims: ReqData<UnstructuredClaims>,
     event_id: Path<Uuid>,
     qs: Query<Qs>,
 ) -> Result<Json<EventWithPayload>, ShowError> {
-    let raw_event = query_as!(
-        EventWithPayloadRaw,
-        "
-            SELECT event__id, event_type__name, payload, payload_content_type__name, ip, metadata, occurred_at, received_at, application_secret__token, labels
-            FROM event.event
-            WHERE application__id = $1 AND event__id = $2
-        ",
+    if can_access_application(
+        &state.db,
+        &unstructured_claims,
         &qs.application_id,
-        &event_id.into_inner(),
+        &Role::Viewer,
     )
-    .fetch_optional(&state.db)
     .await
-    .map_err(|_| ShowError::InternalServerError)?;
+    {
+        let raw_event = query_as!(
+            EventWithPayloadRaw,
+            "
+                SELECT event__id, event_type__name, payload, payload_content_type__name, ip, metadata, occurred_at, received_at, application_secret__token, labels
+                FROM event.event
+                WHERE application__id = $1 AND event__id = $2
+            ",
+            &qs.application_id,
+            &event_id.into_inner(),
+        )
+        .fetch_optional(&state.db)
+        .await
+        .map_err(|_| ShowError::InternalServerError)?;
 
-    match raw_event {
-        Some(re) => Ok(Json(re.to_event())),
-        None => Err(ShowError::NotFound),
+        match raw_event {
+            Some(re) => Ok(Json(re.to_event())),
+            None => Err(ShowError::NotFound),
+        }
+    } else {
+        Err(ShowError::Forbidden)
     }
 }
 
