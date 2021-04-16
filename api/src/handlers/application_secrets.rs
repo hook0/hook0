@@ -20,8 +20,7 @@ pub struct ApplicationSecret {
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
-#[allow(non_snake_case)]
-pub struct QS {
+pub struct Qs {
     application_id: Uuid,
 }
 
@@ -29,7 +28,7 @@ pub struct QS {
 #[api_v2_operation]
 pub async fn list(
     state: Data<crate::State>,
-    qs: Query<QS>,
+    qs: Query<Qs>,
 ) -> Result<Json<Vec<ApplicationSecret>>, UnexpectedError> {
     let application_secrets = query_as!(
         ApplicationSecret,
@@ -111,7 +110,7 @@ pub async fn edit(
 pub async fn destroy(
     state: Data<crate::State>,
     application_secret_token: Path<Uuid>,
-    qs: Query<QS>,
+    qs: Query<Qs>,
 ) -> Result<NoContent, ShowError> {
     let application_id = qs.application_id;
     let application_secret = query_as!(
