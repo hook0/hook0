@@ -1,9 +1,11 @@
 mod errors;
 mod handlers;
+mod iam;
 
 use actix_files::{Files, NamedFile};
 use actix_web::web::Data;
 use actix_web::{middleware::Logger, App, HttpRequest, HttpResponse, HttpServer};
+use actix_web_middleware_keycloak_auth::{DecodingKey, KeycloakAuth};
 use clap::{crate_description, crate_name, crate_version, ArgSettings::HideEnvValues, Clap};
 use log::{info, trace};
 use paperclip::{
@@ -42,6 +44,10 @@ struct Config {
     /// Path to the directory containing the web app to serve
     #[clap(long, env, default_value = "../frontend/dist/")]
     webapp_path: String,
+
+    /// Keycloak RS256 public key (with GPG delimiters)
+    #[clap(long, env)]
+    keycloak_oidc_public_key: String,
 }
 
 /// The app state
@@ -78,6 +84,7 @@ async fn main() -> anyhow::Result<()> {
         db: pool,
         webapp_path: config.webapp_path.clone(),
     };
+    let keycloak_oidc_public_key = config.keycloak_oidc_public_key;
 
     // Run web server
     let webapp_path = config.webapp_path.clone();
@@ -96,6 +103,17 @@ async fn main() -> anyhow::Result<()> {
             ..Default::default()
         };
 
+        // Prepare auth middleware
+        let pk = Box::new(keycloak_oidc_public_key.clone());
+        let pk: &'static String = Box::leak(pk);
+        let pk = DecodingKey::from_rsa_pem(pk.as_bytes()).unwrap();
+
+        let auth = KeycloakAuth {
+            detailed_responses: false,
+            keycloak_oid_public_key: pk.clone(),
+            required_roles: vec![],
+        };
+
         App::new()
             .data(initial_state.clone())
             .wrap(Logger::default())
@@ -105,6 +123,7 @@ async fn main() -> anyhow::Result<()> {
                 web::scope("/api/v1")
                     .service(
                         web::scope("/applications")
+                            .wrap(auth)
                             .service(
                                 web::resource("")
                                     .route(web::get().to(handlers::applications::list))
