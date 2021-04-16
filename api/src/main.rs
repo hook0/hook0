@@ -100,6 +100,7 @@ async fn main() -> anyhow::Result<()> {
             .data(initial_state.clone())
             .wrap(Logger::default())
             .wrap_api_with_spec(spec)
+            .with_json_spec_at("/api/v1/swagger.json")
             .service(
                 web::scope("/api/v1")
                     .service(
@@ -161,7 +162,6 @@ async fn main() -> anyhow::Result<()> {
                 // subscriptions
                 // request_attempts
             )
-            .with_json_spec_at("/api/spec/v1")
             .default_service(
                 Files::new("/", webapp_path.as_str())
                     .index_file(WEBAPP_INDEX_FILE)
