@@ -2,15 +2,17 @@ use actix_web::{http::StatusCode, HttpResponse, ResponseError};
 use paperclip::actix::api_v2_errors;
 
 /// Error type for when only unexpected failures can happen
-#[api_v2_errors(code = 500)]
+#[api_v2_errors(code = 403, code = 500)]
 #[derive(Debug)]
 pub enum UnexpectedError {
+    Forbidden,
     InternalServerError,
 }
 
 impl ResponseError for UnexpectedError {
     fn status_code(&self) -> StatusCode {
         match self {
+            Self::Forbidden => StatusCode::FORBIDDEN,
             Self::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
@@ -26,9 +28,10 @@ impl std::fmt::Display for UnexpectedError {
 }
 
 /// Error type for single item operations
-#[api_v2_errors(code = 500, code = 404)]
+#[api_v2_errors(code = 403, code = 500, code = 404)]
 #[derive(Debug)]
 pub enum ShowError {
+    Forbidden,
     InternalServerError,
     NotFound,
 }
@@ -36,6 +39,7 @@ pub enum ShowError {
 impl ResponseError for ShowError {
     fn status_code(&self) -> StatusCode {
         match self {
+            Self::Forbidden => StatusCode::FORBIDDEN,
             Self::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR,
             Self::NotFound => StatusCode::NOT_FOUND,
         }
@@ -52,16 +56,19 @@ impl std::fmt::Display for ShowError {
 }
 
 /// Error type for creation operations
-#[api_v2_errors(code = 500, code = 400)]
+#[api_v2_errors(code = 403, code = 500, code = 400)]
 #[derive(Debug)]
 pub enum CreateError {
+    Forbidden,
     InternalServerError,
+    #[allow(dead_code)]
     BadRequest,
 }
 
 impl ResponseError for CreateError {
     fn status_code(&self) -> StatusCode {
         match self {
+            Self::Forbidden => StatusCode::FORBIDDEN,
             Self::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR,
             Self::BadRequest => StatusCode::BAD_REQUEST,
         }
@@ -78,10 +85,12 @@ impl std::fmt::Display for CreateError {
 }
 
 /// Error type for modification operations
-#[api_v2_errors(code = 500, code = 400, code = 404)]
+#[api_v2_errors(code = 403, code = 500, code = 400, code = 404)]
 #[derive(Debug)]
 pub enum EditError {
+    Forbidden,
     InternalServerError,
+    #[allow(dead_code)]
     BadRequest,
     NotFound,
 }
@@ -89,6 +98,7 @@ pub enum EditError {
 impl ResponseError for EditError {
     fn status_code(&self) -> StatusCode {
         match self {
+            Self::Forbidden => StatusCode::FORBIDDEN,
             Self::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR,
             Self::BadRequest => StatusCode::BAD_REQUEST,
             Self::NotFound => StatusCode::NOT_FOUND,

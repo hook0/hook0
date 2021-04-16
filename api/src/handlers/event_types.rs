@@ -22,7 +22,7 @@ pub struct EventType {
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
 #[allow(non_snake_case)]
-pub struct QS {
+pub struct Qs {
     application_id: Uuid,
 }
 
@@ -30,7 +30,7 @@ pub struct QS {
 #[api_v2_operation]
 pub async fn list(
     state: Data<crate::State>,
-    qs: Query<QS>,
+    qs: Query<Qs>,
 ) -> Result<Json<Vec<EventType>>, UnexpectedError> {
     let event_types = query_as!(
         EventType,
@@ -151,7 +151,7 @@ pub async fn add(
 pub async fn show(
     state: Data<crate::State>,
     event_type_name: Path<String>,
-    qs: Query<QS>,
+    qs: Query<Qs>,
 ) -> Result<Json<EventType>, ShowError> {
     let event_type = query_as!(
         EventType,
@@ -178,7 +178,7 @@ pub async fn show(
 pub async fn destroy(
     state: Data<crate::State>,
     event_type_name: Path<String>,
-    qs: Query<QS>,
+    qs: Query<Qs>,
 ) -> Result<NoContent, ShowError> {
     let application_id = qs.application_id;
     let event_type = query_as!(
