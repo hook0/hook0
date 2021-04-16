@@ -123,7 +123,7 @@ async fn main() -> anyhow::Result<()> {
                 web::scope("/api/v1")
                     .service(
                         web::scope("/applications")
-                            .wrap(auth)
+                            .wrap(auth.clone())
                             .service(
                                 web::resource("")
                                     .route(web::get().to(handlers::applications::list))
@@ -138,6 +138,7 @@ async fn main() -> anyhow::Result<()> {
                     )
                     .service(
                         web::scope("/event_types")
+                            .wrap(auth.clone())
                             .service(
                                 web::resource("")
                                     .route(web::get().to(handlers::event_types::list))
@@ -151,6 +152,7 @@ async fn main() -> anyhow::Result<()> {
                     )
                     .service(
                         web::scope("/application_secrets")
+                            .wrap(auth.clone())
                             .service(
                                 web::resource("")
                                     .route(web::get().to(handlers::application_secrets::list))
@@ -166,6 +168,7 @@ async fn main() -> anyhow::Result<()> {
                     )
                     .service(
                         web::scope("/events")
+                            .wrap(auth)
                             .service(web::resource("").route(web::get().to(handlers::events::list)))
                             .service(
                                 web::resource("/{event_id}")
