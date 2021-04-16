@@ -31,11 +31,11 @@
 </template>
 
 <script>
+import { Vue, Options } from 'vue-class-component'
+
 const _kind = ['home', 'team', 'folder', 'calendar', 'document'];
 
-export default {
-  name: "Icon",
-  components: {},
+@Options({
   props: {
     kind: {
       type: String,
@@ -46,7 +46,8 @@ export default {
       }
     }
   }
-};
+})
+export default class Icon extends Vue {}
 </script>
 
 <style scoped>
