@@ -181,9 +181,9 @@ async fn main() -> anyhow::Result<()> {
                     .service(
                         web::resource("/event").route(web::post().to(handlers::events::ingest)),
                     ),
-                // TODO:
-                // subscriptions
-                // request_attempts
+                // TODO: subscriptions
+                // TODO: request_attempts
+                // TODO: responses
             )
             .default_service(
                 Files::new("/", webapp_path.as_str())
