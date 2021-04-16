@@ -1,14 +1,14 @@
 <template>
-  <a href="#" class="default" :class="{ active: active, inactive: !active }">
+  <a class="default" :class="{ active: active, inactive: !active }">
     <slot></slot>
     {{name}}
   </a>
 </template>
 
-<script>
-export default {
-  name: "Logo",
-  components: {},
+<script lang="ts">
+import { Vue, Options } from 'vue-class-component'
+
+@Options({
   props:{
     name: {
       type: String,
@@ -19,6 +19,8 @@ export default {
       required: true
     },
   }
+})
+export default class MenuItem extends Vue {
 };
 </script>
 
