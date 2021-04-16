@@ -2,11 +2,11 @@
   <div>Hook0</div>
 </template>
 
-<script>
-export default {
-  name: "Logo",
-  components: {}
-};
+<script lang="ts">
+import { Vue, Options } from 'vue-class-component'
+
+@Options({})
+export default class Logo extends Vue {};
 </script>
 
 <style scoped>
