@@ -1668,7 +1668,7 @@ checksum = "afb2e1c3ee07430c2cf76151675e583e0f19985fa6efae47d6848a3e2c824f85"
 [[package]]
 name = "paperclip"
 version = "0.5.0"
-source = "git+https://github.com/dsferruzza/paperclip?branch=support-actix-web-reqdata#f42ca32b6f28bec6aa1402ba84553edc0fdbe456"
+source = "git+https://github.com/wafflespeanut/paperclip?rev=20ec2e954dfb15613807130105a41e8f4b91066e#20ec2e954dfb15613807130105a41e8f4b91066e"
 dependencies = [
  "anyhow",
  "itertools",
@@ -1689,7 +1689,7 @@ dependencies = [
 [[package]]
 name = "paperclip-actix"
 version = "0.3.0"
-source = "git+https://github.com/dsferruzza/paperclip?branch=support-actix-web-reqdata#f42ca32b6f28bec6aa1402ba84553edc0fdbe456"
+source = "git+https://github.com/wafflespeanut/paperclip?rev=20ec2e954dfb15613807130105a41e8f4b91066e#20ec2e954dfb15613807130105a41e8f4b91066e"
 dependencies = [
  "actix-service",
  "actix-web",
@@ -1704,7 +1704,7 @@ dependencies = [
 [[package]]
 name = "paperclip-core"
 version = "0.3.0"
-source = "git+https://github.com/dsferruzza/paperclip?branch=support-actix-web-reqdata#f42ca32b6f28bec6aa1402ba84553edc0fdbe456"
+source = "git+https://github.com/wafflespeanut/paperclip?rev=20ec2e954dfb15613807130105a41e8f4b91066e#20ec2e954dfb15613807130105a41e8f4b91066e"
 dependencies = [
  "actix-web",
  "chrono",
@@ -1724,7 +1724,7 @@ dependencies = [
 [[package]]
 name = "paperclip-macros"
 version = "0.4.0"
-source = "git+https://github.com/dsferruzza/paperclip?branch=support-actix-web-reqdata#f42ca32b6f28bec6aa1402ba84553edc0fdbe456"
+source = "git+https://github.com/wafflespeanut/paperclip?rev=20ec2e954dfb15613807130105a41e8f4b91066e#20ec2e954dfb15613807130105a41e8f4b91066e"
 dependencies = [
  "heck",
  "http",
