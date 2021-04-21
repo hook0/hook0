@@ -1,1 +1,0 @@
-<template>Organizations Page</template>;

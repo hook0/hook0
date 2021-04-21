@@ -20,7 +20,7 @@
 </template>
 
 <script>
-import APIClient from '../../APIClient';
+import ApplicationService from './ApplicationService';
 
 export default {
   name: "HelloWorld",
@@ -35,7 +35,7 @@ export default {
     }
   },
   created() {
-    this.applications$ = APIClient.applications.list();
+    this.applications$ = ApplicationService.list();
   },
 };
 </script>
