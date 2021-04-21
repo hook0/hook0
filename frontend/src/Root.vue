@@ -9,29 +9,32 @@
           <div class="flex items-center h-16 flex-shrink-0 px-4 bg-gray-900">
             <logo></logo>
           </div>
+          <div  class="flex h-16 flex-shrink-0 bg-gray-900">
+            <organization-selector></organization-selector>
+          </div>
           <div class="flex-1 flex flex-col overflow-y-auto">
             <nav class="flex-1 px-2 py-4 bg-gray-800 space-y-1">
               <menu-item :active="true" name="Dashboard">
                 <icon kind="home"></icon>
               </menu-item>
 
-              <menu-item :active="false" name="Organizations">
+              <menu-item :active="false" name="Organization" @click="$router.push({ name: routes.OrganizationDetail, params: {id: OrganizationService.current_organization.organization__id} })">
                 <icon kind="team"></icon>
               </menu-item>
 
-              <menu-item :active="false" name="Applications" @click="$router.push({ path: '/applications' })">
+              <menu-item :active="false" name="Applications" @click="$router.push({ name: routes.ApplicationsList })">
                 <icon kind="document"></icon>
               </menu-item>
 
-              <menu-item :active="false" name="Event Types" @click="$router.push({ path: '/event_types' })">
+              <menu-item :active="false" name="Event Types" @click="$router.push({ name: routes.EventTypesList })">
                 <icon kind="document"></icon>
               </menu-item>
 
-              <menu-item :active="false" name="Webhooks" @click="$router.push({ path: '/webhooks' })">
+              <menu-item :active="false" name="Webhooks" @click="$router.push({ name: routes.WebhooksList })">
                 <icon kind="folder"></icon>
               </menu-item>
 
-              <menu-item :active="false" name="Logs"  @click="$router.push({ path: '/logs' })">
+              <menu-item :active="false" name="Logs"  @click="$router.push({ name: routes.LogsList })">
                 <icon kind="calendar"></icon>
               </menu-item>
 
@@ -136,47 +139,37 @@
             <h1 class="text-2xl font-semibold text-gray-900">Dashboard</h1>
           </div>
           <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-            <!-- Replace with your content -->
             <div class="py-4">
               <div class="border-4 border-dashed border-gray-200 rounded-lg h-96">
-                <!--                  <UIView></UIView>-->
                 <router-view></router-view>
               </div>
             </div>
-            <!-- /End replace -->
           </div>
         </div>
       </main>
     </div>
   </div>
-  <!--  </UIRouter>-->
 </template>
 
 <script lang="ts">
-import {Logo} from './components';
-//import {UIRouter, UIView} from "./ui-router-vue";
-//import {Visualizer} from '@uirouter/visualizer';
+import {Icon, Logo, MenuItem} from './components';
 import {Vue, Options} from 'vue-class-component';
+import OrganizationSelector from "@/pages/organizations/OrganizationSelector.vue";
+import OrganizationService from "@/pages/organizations/OrganizationService";
+import {routes} from "@/routes";
 
-// router (ui-router <3)
-//import router from './router'; // hook0 own router
-//import states from './states';
-//import {pushStateLocationPlugin} from "@uirouter/core";
+console.log(OrganizationSelector);
+@Options({
+  components: {Logo, OrganizationSelector, Icon, MenuItem},
 
-/*@Options<App>({
-  components: {UIRouter, UIView, Logo},
-  data() {
+  data:() => {
     return {
-      router,
-      states,
-      plugins: ([pushStateLocationPlugin] as any[]).concat(process.env.NODE_ENV !== 'production' ? [Visualizer] : [])
-    }
-  },
-  mounted() {
-    debugger;
+      OrganizationService,
+      routes
+    };
   }
-})*/
-export default {
+})
+export default class Root extends Vue {
 
 };
 </script>
