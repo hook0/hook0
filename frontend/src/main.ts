@@ -10,19 +10,16 @@ import components from './components';
 import Root from './Root.vue';
 
 // Create and mount the root instance.
-const app = createApp(Root).use(router);
+const app = createApp(Root);
 
 // Vue - UIRouter
-
 app.use(router);
 
 // Vue - promised
-
 app.component('Promised', Promised);
 
 // Vue - Hook0 own components
-
-app.use(components);
+//app.use(components);
 
 // Mount the app
 app.mount('#app');
