@@ -12,10 +12,9 @@ use crate::errors::*;
 use crate::iam::{can_access_application, can_access_organization, Role};
 
 #[derive(Debug, Serialize, Apiv2Schema)]
-#[allow(non_snake_case)]
 pub struct Application {
-    application__id: Uuid,
-    organization__id: Uuid,
+    application_id: Uuid,
+    organization_id: Uuid,
     name: String,
 }
 
@@ -34,7 +33,7 @@ pub async fn list(
     if can_access_organization(&unstructured_claims, &qs.organization_id, &Role::Viewer).await {
         let applications = query_as!(
             Application,
-            "SELECT application__id, organization__id, name FROM event.application WHERE organization__id = $1",
+            "SELECT application__id AS application_id, organization__id AS organization_id, name FROM event.application WHERE organization__id = $1",
             &qs.organization_id
         )
         .fetch_all(&state.db)
@@ -63,7 +62,10 @@ pub async fn add(
     if can_access_organization(&unstructured_claims, &body.organization_id, &Role::Editor).await {
         let application = query_as!(
             Application,
-            "INSERT INTO event.application (organization__id, name) VALUES ($1, $2) RETURNING application__id, organization__id, name",
+            "
+                INSERT INTO event.application (organization__id, name) VALUES ($1, $2)
+                RETURNING application__id AS application_id, organization__id AS organization_id, name
+            ",
             body.organization_id, body.name,
         )
         .fetch_one(&state.db)
@@ -93,7 +95,11 @@ pub async fn show(
     {
         let application = query_as!(
             Application,
-            "SELECT application__id, organization__id, name FROM event.application WHERE application__id = $1",
+            "
+                SELECT application__id AS application_id, organization__id AS organization_id, name
+                FROM event.application
+                WHERE application__id = $1
+            ",
             application_id.into_inner()
         )
         .fetch_optional(&state.db)
@@ -128,7 +134,11 @@ pub async fn edit(
     {
         let application = query_as!(
             Application,
-            "UPDATE event.application SET name = $1 WHERE application__id = $2 RETURNING application__id, organization__id, name",
+            "
+                UPDATE event.application
+                SET name = $1 WHERE application__id = $2
+                RETURNING application__id AS application_id, organization__id AS organization_id, name
+            ",
             body.name,
             application_id.into_inner()
         )
@@ -162,7 +172,11 @@ pub async fn destroy(
     {
         let application = query_as!(
             Application,
-            "SELECT application__id, organization__id, name FROM event.application WHERE application__id = $1",
+            "
+                SELECT application__id AS application_id, organization__id AS organization_id, name
+                FROM event.application
+                WHERE application__id = $1
+            ",
             application_id.into_inner()
         )
         .fetch_optional(&state.db)
@@ -173,7 +187,7 @@ pub async fn destroy(
             Some(a) => {
                 query!(
                     "DELETE FROM event.application WHERE application__id = $1",
-                    a.application__id
+                    a.application_id
                 )
                 .execute(&state.db)
                 .await

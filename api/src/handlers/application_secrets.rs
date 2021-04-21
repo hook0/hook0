@@ -13,7 +13,6 @@ use crate::errors::*;
 use crate::iam::{can_access_application, Role};
 
 #[derive(Debug, Serialize, Apiv2Schema)]
-#[allow(non_snake_case)]
 pub struct ApplicationSecret {
     pub name: Option<String>,
     pub token: Uuid,
