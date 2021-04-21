@@ -20,7 +20,6 @@ use crate::errors::*;
 use crate::iam::{can_access_application, Role};
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
-#[allow(non_snake_case)]
 pub struct Qs {
     application_id: Uuid,
 }
@@ -42,30 +41,29 @@ struct EventRaw {
 impl EventRaw {
     pub fn to_event(&self) -> Event {
         Event {
-            event__id: self.event__id,
-            event_type__name: self.event_type__name.clone(),
-            payload_content_type__name: self.payload_content_type__name.clone(),
+            event_id: self.event__id,
+            event_type_name: self.event_type__name.clone(),
+            payload_content_type_name: self.payload_content_type__name.clone(),
             ip: self.ip.ip().to_string(),
             metadata: self.metadata.clone(),
             occurred_at: self.occurred_at,
             received_at: self.received_at,
-            application_secret__token: self.application_secret__token,
+            application_secret_token: self.application_secret__token,
             labels: self.labels.clone(),
         }
     }
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
-#[allow(non_snake_case)]
 pub struct Event {
-    event__id: Uuid,
-    event_type__name: String,
-    payload_content_type__name: String,
+    event_id: Uuid,
+    event_type_name: String,
+    payload_content_type_name: String,
     ip: String,
     metadata: Option<Value>,
     occurred_at: DateTime<Utc>,
     received_at: DateTime<Utc>,
-    application_secret__token: Uuid,
+    application_secret_token: Uuid,
     labels: Value,
 }
 
@@ -124,32 +122,31 @@ struct EventWithPayloadRaw {
 impl EventWithPayloadRaw {
     pub fn to_event(&self) -> EventWithPayload {
         EventWithPayload {
-            event__id: self.event__id,
-            event_type__name: self.event_type__name.clone(),
+            event_id: self.event__id,
+            event_type_name: self.event_type__name.clone(),
             payload: encode(self.payload.as_slice()),
-            payload_content_type__name: self.payload_content_type__name.clone(),
+            payload_content_type_name: self.payload_content_type__name.clone(),
             ip: self.ip.ip().to_string(),
             metadata: self.metadata.clone(),
             occurred_at: self.occurred_at,
             received_at: self.received_at,
-            application_secret__token: self.application_secret__token,
+            application_secret_token: self.application_secret__token,
             labels: self.labels.clone(),
         }
     }
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
-#[allow(non_snake_case)]
 pub struct EventWithPayload {
-    event__id: Uuid,
-    event_type__name: String,
+    event_id: Uuid,
+    event_type_name: String,
     payload: String,
-    payload_content_type__name: String,
+    payload_content_type_name: String,
     ip: String,
     metadata: Option<Value>,
     occurred_at: DateTime<Utc>,
     received_at: DateTime<Utc>,
-    application_secret__token: Uuid,
+    application_secret_token: Uuid,
     labels: Value,
 }
 
@@ -211,10 +208,9 @@ struct ContentTypeLookup {
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
-#[allow(non_snake_case)]
 pub struct IngestedEvent {
-    application__id: Uuid,
-    event__id: Uuid,
+    application_id: Uuid,
+    event_id: Uuid,
     received_at: DateTime<Utc>,
 }
 
@@ -288,7 +284,7 @@ pub async fn ingest(
                 "
                     INSERT INTO event.event (application__id, event__id, event_type__name, payload, payload_content_type__name, ip, metadata, occurred_at, received_at, application_secret__token, labels)
                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, statement_timestamp(), $9, $10)
-                    RETURNING application__id, event__id, received_at",
+                    RETURNING application__id AS application_id, event__id AS event_id, received_at",
                 &body.application_id,
                 &body.event_id,
                 &body.event_type,

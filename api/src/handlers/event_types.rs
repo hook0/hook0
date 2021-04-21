@@ -13,17 +13,15 @@ use crate::errors::*;
 use crate::iam::{can_access_application, Role};
 
 #[derive(Debug, Serialize, Apiv2Schema)]
-#[allow(non_snake_case)]
 pub struct EventType {
-    service__name: String,
-    resource_type__name: String,
-    verb__name: String,
+    service_name: String,
+    resource_type_name: String,
+    verb_name: String,
     // status
-    event_type__name: String,
+    event_type_name: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
-#[allow(non_snake_case)]
 pub struct Qs {
     application_id: Uuid,
 }
@@ -46,7 +44,7 @@ pub async fn list(
         let event_types = query_as!(
             EventType,
             "
-                SELECT service__name, resource_type__name, verb__name, event_type__name
+                SELECT service__name AS service_name, resource_type__name AS resource_type_name, verb__name AS verb_name, event_type__name AS event_type_name
                 FROM event.event_type
                 WHERE application__id = $1
                 ORDER BY event_type__name ASC
@@ -146,7 +144,7 @@ pub async fn add(
                 INSERT INTO event.event_type (application__id, service__name, resource_type__name, verb__name, status)
                 VALUES ($1, $2, $3, $4, $5)
                 ON CONFLICT (event_type__name) DO UPDATE SET status = EXCLUDED.status
-                RETURNING service__name, resource_type__name, verb__name, event_type__name
+                RETURNING service__name AS service_name, resource_type__name AS resource_type_name, verb__name AS verb_name, event_type__name AS event_type_name
             ",
             &body.application_id,
             &body.service,
@@ -191,7 +189,7 @@ pub async fn show(
         let event_type = query_as!(
             EventType,
             "
-                SELECT service__name, resource_type__name, verb__name, event_type__name
+                SELECT service__name AS service_name, resource_type__name AS resource_type_name, verb__name AS verb_name, event_type__name AS event_type_name
                 FROM event.event_type
                 WHERE application__id = $1 AND event_type__name = $2
             ",
@@ -231,7 +229,7 @@ pub async fn destroy(
         let event_type = query_as!(
             EventType,
             "
-                SELECT service__name, resource_type__name, verb__name, event_type__name
+                SELECT service__name AS service_name, resource_type__name AS resource_type_name, verb__name AS verb_name, event_type__name AS event_type_name
                 FROM event.event_type
                 WHERE application__id = $1 AND event_type__name = $2
             ",
@@ -250,7 +248,7 @@ pub async fn destroy(
                         WHERE application__id = $1 AND event_type__name = $2
                     ",
                     &application_id,
-                    a.event_type__name,
+                    a.event_type_name,
                 )
                 .execute(&state.db)
                 .await
