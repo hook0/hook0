@@ -18,7 +18,7 @@ clap = "3.0.0-beta.2"
 ipnetwork = "0.17.0"
 lazy_static = "1.4.0"
 log = "0.4.14"
-paperclip = { git = "https://github.com/dsferruzza/paperclip", branch = "support-actix-web-reqdata", features = ["actix", "chrono", "uuid"] }
+paperclip = { git = "https://github.com/wafflespeanut/paperclip", rev = "20ec2e954dfb15613807130105a41e8f4b91066e", features = ["actix", "chrono", "uuid"] }
 regex = "1.4.5"
 sentry-integration = { path = "../sentry-integration" }
 serde = "1.0.125"
