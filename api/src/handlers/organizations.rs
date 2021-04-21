@@ -11,9 +11,8 @@ use crate::errors::*;
 use crate::iam::extract_organizations;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
-#[allow(non_snake_case)]
 pub struct Organization {
-    pub organization__id: Uuid,
+    pub organization_id: Uuid,
     pub role: String,
 }
 
@@ -25,7 +24,7 @@ pub async fn list(
     let organizations = extract_organizations(&unstructured_claims)
         .iter()
         .map(|(id, role)| Organization {
-            organization__id: *id,
+            organization_id: *id,
             role: role.to_string(),
         })
         .collect();
