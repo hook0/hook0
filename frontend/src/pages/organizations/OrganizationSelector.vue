@@ -7,11 +7,11 @@
 
     <!-- The default scoped slot will be used as the result -->
     <template #default="organizations">
-      <select id="organizations_select" :value="current_organization.organization__id" @change="set_current_organization_by_id($event.target.value)">
+      <select id="organizations_select" :value="$route.params.organization_id" @change="set_current_organization_by_id($event.target.value)">
         <option v-for="organization in organizations"
                 :key="organization.organization_id"
-                :value="organization.organization__id"
-        >{{ organization.organization__id }}
+                :value="organization.organization_id"
+        >{{ organization.organization_id }}
         </option>
       </select>
     </template>
@@ -24,27 +24,35 @@
 </template>
 
 <script lang="ts">
-import OrganizationService, {Organization} from './OrganizationService';
+import {Organization, list} from './OrganizationService';
 import {Options, Vue} from "vue-class-component";
 import {UUID} from "@/http";
 
 export default class OrganizationSelector extends Vue {
 
   private organizations$!: Promise<Array<Organization>>;
-  private current_organization = OrganizationService.current_organization;
 
   set_current_organization_by_id(organization_id: UUID): void {
     this.organizations$.then(organizations => {
-      const new_organization = organizations.find(org => org.organization__id === organization_id);
-      // if no organization where found fallback on current value
-      OrganizationService.current_organization.value = new_organization || OrganizationService.current_organization;
+      const new_organization = organizations.find(org => org.organization_id === organization_id);
+      if (!new_organization){
+        // if no organization where found fallback do nothing
+        return;
+      }
+
+      this.$router.replace({
+        ...this.$route,
+        params:{
+          ...this.$route.params,
+          organization_id: new_organization.organization_id
+        }
+      })
     });
   }
 
 
   created(): void {
-    this.organizations$ = OrganizationService.list();
-    this.organizations$.then((organizations) => OrganizationService.current_organization.value = organizations[0]);
+    this.organizations$ = list();
   }
 
 };

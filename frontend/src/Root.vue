@@ -9,7 +9,7 @@
           <div class="flex items-center h-16 flex-shrink-0 px-4 bg-gray-900">
             <logo></logo>
           </div>
-          <div  class="flex h-16 flex-shrink-0 bg-gray-900">
+          <div class="flex h-16 flex-shrink-0 bg-gray-900">
             <organization-selector></organization-selector>
           </div>
           <div class="flex-1 flex flex-col overflow-y-auto">
@@ -18,7 +18,8 @@
                 <icon kind="home"></icon>
               </menu-item>
 
-              <menu-item :active="false" name="Organization" @click="$router.push({ name: routes.OrganizationDetail, params: {id: OrganizationService.current_organization.organization__id} })">
+              <menu-item :active="false" name="Organization"
+                         @click="$router.push({ name: routes.OrganizationsDetail })">
                 <icon kind="team"></icon>
               </menu-item>
 
@@ -34,15 +35,15 @@
                 <icon kind="folder"></icon>
               </menu-item>
 
-              <menu-item :active="false" name="Logs"  @click="$router.push({ name: routes.LogsList })">
+              <menu-item :active="false" name="Logs" @click="$router.push({ name: routes.LogsList })">
                 <icon kind="calendar"></icon>
               </menu-item>
 
-              <menu-item :active="false" name="Settings"  @click="$router.push({ path: '/settings' })">
+              <menu-item :active="false" name="Settings" @click="$router.push({ name: routes.Settings })">
                 <icon kind="document"></icon>
               </menu-item>
 
-              <menu-item :active="false" name="API Documentation" @click="$router.push({ path: '/api/documentation' })">
+              <menu-item :active="false" name="API Documentation" @click="$router.push({ name: routes.APIDocumentation })">
                 <icon kind="document"></icon>
               </menu-item>
             </nav>
@@ -99,7 +100,8 @@
               <div>
                 <button
                   id="user-menu"
-                  class="max-w-xs bg-white flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" aria-haspopup="true">
+                  class="max-w-xs bg-white flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  aria-haspopup="true">
                   <span class="sr-only">Open user menu</span>
                   <img class="h-8 w-8 rounded-full"
                        src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
@@ -155,18 +157,28 @@
 import {Icon, Logo, MenuItem} from './components';
 import {Vue, Options} from 'vue-class-component';
 import OrganizationSelector from "@/pages/organizations/OrganizationSelector.vue";
-import OrganizationService from "@/pages/organizations/OrganizationService";
+import {list} from "@/pages/organizations/OrganizationService";
 import {routes} from "@/routes";
 
-console.log(OrganizationSelector);
 @Options({
   components: {Logo, OrganizationSelector, Icon, MenuItem},
 
-  data:() => {
+  data: () => {
     return {
-      OrganizationService,
       routes
     };
+  },
+  mounted(){
+    if (!this.$route.params.organization_id){
+      list().then(organizations => {
+        this.$router.push({
+          name: routes.OrganizationsDetail,
+          params:{
+            organization_id: organizations[0].organization_id
+          }
+        })
+      });
+    }
   }
 })
 export default class Root extends Vue {

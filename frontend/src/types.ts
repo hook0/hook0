@@ -354,9 +354,9 @@ export interface paths {
 
 export interface definitions {
   Application: {
-    application__id: string;
+    application_id: string;
     name: string;
-    organization__id: string;
+    organization_id: string;
   };
   ApplicationPost: {
     name: string;
@@ -373,14 +373,14 @@ export interface definitions {
     name?: string;
   };
   Event: {
-    application_secret__token: string;
-    event__id: string;
-    event_type__name: string;
+    application_secret_token: string;
+    event_id: string;
+    event_type_name: string;
     ip: string;
     labels: { [key: string]: any };
     metadata?: { [key: string]: any };
     occurred_at: string;
-    payload_content_type__name: string;
+    payload_content_type_name: string;
     received_at: string;
   };
   EventPost: {
@@ -395,10 +395,10 @@ export interface definitions {
     payload_content_type: string;
   };
   EventType: {
-    event_type__name: string;
-    resource_type__name: string;
-    service__name: string;
-    verb__name: string;
+    event_type_name: string;
+    resource_type_name: string;
+    service_name: string;
+    verb_name: string;
   };
   EventTypePost: {
     application_id: string;
@@ -407,24 +407,24 @@ export interface definitions {
     verb: string;
   };
   EventWithPayload: {
-    application_secret__token: string;
-    event__id: string;
-    event_type__name: string;
+    application_secret_token: string;
+    event_id: string;
+    event_type_name: string;
     ip: string;
     labels: { [key: string]: any };
     metadata?: { [key: string]: any };
     occurred_at: string;
     payload: string;
-    payload_content_type__name: string;
+    payload_content_type_name: string;
     received_at: string;
   };
   IngestedEvent: {
-    application__id: string;
-    event__id: string;
+    application_id: string;
+    event_id: string;
     received_at: string;
   };
   Organization: {
-    organization__id: string;
+    organization_id: string;
     role: string;
   };
 }

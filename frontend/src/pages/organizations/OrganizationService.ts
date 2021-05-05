@@ -4,10 +4,7 @@ import {definitions} from '@/types';
 
 export type Organization = definitions['Organization'];
 
-import { ref } from 'vue'
-
 export default {
-  current_organization:  ref({}),
   /*export function create(application: OrganizationPost) {
     return http.post('/organizations', application).then((res: AxiosResponse<any>) => res.data);
   }*/
@@ -21,8 +18,8 @@ export default {
 
   export function remove(application_id: UUID) {}
   */
+}
 
-  list(): Promise<Array<Organization>> {
-    return http.get('/organizations').then((res: AxiosResponse<any>) => res.data);
-  }
+export function list(): Promise<Array<Organization>> {
+  return http.get('/organizations').then((res: AxiosResponse<any>) => res.data);
 }
