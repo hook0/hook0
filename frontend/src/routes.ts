@@ -1,9 +1,10 @@
-import ApplicationsList from './pages/applications/ApplicationsList.vue';
-import OrganizationList from './pages/organizations/OrganizationsList.vue';
-import Default from './pages/Home.vue';
+import ApplicationsList from '@/pages/applications/ApplicationsList.vue';
+import OrganizationList from '@/pages/organizations/OrganizationsList.vue';
+import Error404 from '@/pages/Error404.vue';
+import Default from '@/Default.vue';
 
 export const routes = {
-  Default: 'Default',
+  Home: 'Home',
   OrganizationsDetail: 'OrganizationsDetail',
   ApplicationsList: 'ApplicationsList',
   EventTypesList: 'EventTypesList',
@@ -11,21 +12,48 @@ export const routes = {
   LogsList: 'LogsList',
   Settings: 'Settings',
   APIDocumentation: 'APIDocumentation',
+  Error404: '404',
 };
 
 export default [
-  { name: routes.Default, path: '/', component: Default },
   {
     name: routes.OrganizationsDetail,
-    path: '/organizations/:organization_id',
+    path: '/organizations',
     component: OrganizationList,
-    children: [
-      { name: routes.ApplicationsList, path: 'applications', component: ApplicationsList },
-      { name: routes.EventTypesList, path: 'event_types', component: Default },
-      { name: routes.WebhooksList, path: 'webhooks', component: Default },
-      { name: routes.LogsList, path: 'logs', component: Default },
-      { name: routes.Settings, path: 'settings', component: Default },
-      { name: routes.APIDocumentation, path: 'api', component: Default },
-    ],
+  },
+  {
+    name: routes.ApplicationsList,
+    path: '/applications',
+    component: ApplicationsList,
+  },
+  {
+    name: routes.EventTypesList,
+    path: '/event_types',
+    component: { template: `<div>event_types</div>` },
+  },
+  {
+    name: routes.WebhooksList,
+    path: '/webhooks',
+    component: { template: `<div>webhooks</div>` },
+  },
+  {
+    name: routes.LogsList,
+    path: '/logs',
+    component: { template: `<div>logs</div>` },
+  },
+  {
+    name: routes.Settings,
+    path: '/settings',
+    component: { template: `<div>settings</div>` },
+  },
+  {
+    name: routes.APIDocumentation,
+    path: '/api',
+    component: { template: `<div>api</div>` },
+  },
+  {
+    name: routes.Error404,
+    path: '/(.*)',
+    component: Error404,
   },
 ];
