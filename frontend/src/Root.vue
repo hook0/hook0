@@ -1,5 +1,4 @@
 <template>
-  <!--  <UIRouter :router="router" :states="states" :plugins="plugins">-->
   <div class="h-screen flex overflow-hidden bg-gray-100">
     <!-- Static sidebar for desktop -->
     <div class="hidden md:flex md:flex-shrink-0">
@@ -17,9 +16,16 @@
               <menu-item v-for="(item, index) in items" :key="index"
                          :active="item.route.name === $route.name"
                          :name="item.name"
-                         @click="$router.push(item.route)">
+                         @click="$router.push({
+                         ...item.route,
+                         params:{
+                           ...item.route.params,
+                           organization_id: $route.params.organization_id,
+                         }
+                         })">
                 <icon :kind="item.icon"></icon>
               </menu-item>
+
             </nav>
           </div>
         </div>
@@ -111,16 +117,7 @@
 
       <main class="flex-1 relative overflow-y-auto focus:outline-none" tabindex="0">
         <div class="py-6">
-          <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-            <h1 class="text-2xl font-semibold text-gray-900">Dashboard</h1>
-          </div>
-          <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-            <div class="py-4">
-              <div class="border-4 border-dashed border-gray-200 rounded-lg h-96">
-                <router-view></router-view>
-              </div>
-            </div>
-          </div>
+          <router-view></router-view>
         </div>
       </main>
     </div>
@@ -131,15 +128,13 @@
 import {Icon, Logo, MenuItem} from './components';
 import {Vue, Options} from 'vue-class-component';
 import OrganizationSelector from "@/pages/organizations/OrganizationSelector.vue";
-import {list} from "@/pages/organizations/OrganizationService";
 import {routes} from "@/routes";
 
 @Options({
   components: {Logo, OrganizationSelector, Icon, MenuItem},
 
-  data: () => {
+  data() {
     return {
-
       items: [
         {
           name: "Dashboard",
@@ -200,18 +195,6 @@ import {routes} from "@/routes";
       ]
     };
   },
-  mounted() {
-    if (!this.$route.params.organization_id) {
-      list().then(organizations => {
-        this.$router.push({
-          name: routes.OrganizationsDetail,
-          params: {
-            organization_id: organizations[0].organization_id
-          }
-        })
-      });
-    }
-  }
 })
 export default class Root extends Vue {
 
