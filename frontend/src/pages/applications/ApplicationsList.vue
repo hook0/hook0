@@ -23,7 +23,7 @@
 import ApplicationService from './ApplicationService';
 
 export default {
-  name: "HelloWorld",
+  name: "ApplicationsList",
   components: {},
   props: {
     msg: String
