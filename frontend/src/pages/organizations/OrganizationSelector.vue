@@ -7,7 +7,7 @@
 
     <!-- The default scoped slot will be used as the result -->
     <template #default="organizations">
-      <select id="organizations_select" :value="$route.params.organization_id" @change="set_current_organization_by_id($event.target.value)">
+      <select id="organizations_select" :value="$route.query.organization_id" @change="set_current_organization_by_id($event.target.value)">
         <option v-for="organization in organizations"
                 :key="organization.organization_id"
                 :value="organization.organization_id"
@@ -40,10 +40,10 @@ export default class OrganizationSelector extends Vue {
         return;
       }
 
-      this.$router.replace({
+      this.$router.push({
         ...this.$route,
-        params:{
-          ...this.$route.params,
+        query:{
+          ...this.$route.query,
           organization_id: new_organization.organization_id
         }
       })
