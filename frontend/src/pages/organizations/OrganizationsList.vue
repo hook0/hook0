@@ -7,8 +7,8 @@
     <!-- The default scoped slot will be used as the result -->
     <template #default="organizations">
       <ul>
-        <li v-for="organization in organizations" :key="organization.organization__id">
-          {{ organization.organization__id }} - {{ organization.role }}
+        <li v-for="organization in organizations" :key="organization.organization_id">
+          {{ organization.organization_id }} - {{ organization.role }}
         </li>
       </ul>
     </template>
@@ -20,12 +20,12 @@
 </template>
 
 <script lang="ts">
-import OrganizationService, {Organization} from './OrganizationService';
+import OrganizationService, {Organization, list} from './OrganizationService';
 import {Options, Vue} from 'vue-class-component';
 
 
 export default class OrganizationList extends Vue {
-  private organizations$: Promise<Array<Organization>> = OrganizationService.list();
+  private organizations$: Promise<Array<Organization>> = list();
 
 
   created(): void {
