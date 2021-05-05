@@ -14,37 +14,11 @@
           </div>
           <div class="flex-1 flex flex-col overflow-y-auto">
             <nav class="flex-1 px-2 py-4 bg-gray-800 space-y-1">
-              <menu-item :active="true" name="Dashboard">
-                <icon kind="home"></icon>
-              </menu-item>
-
-              <menu-item :active="false" name="Organization"
-                         @click="$router.push({ name: routes.OrganizationsDetail })">
-                <icon kind="team"></icon>
-              </menu-item>
-
-              <menu-item :active="false" name="Applications" @click="$router.push({ name: routes.ApplicationsList })">
-                <icon kind="document"></icon>
-              </menu-item>
-
-              <menu-item :active="false" name="Event Types" @click="$router.push({ name: routes.EventTypesList })">
-                <icon kind="document"></icon>
-              </menu-item>
-
-              <menu-item :active="false" name="Webhooks" @click="$router.push({ name: routes.WebhooksList })">
-                <icon kind="folder"></icon>
-              </menu-item>
-
-              <menu-item :active="false" name="Logs" @click="$router.push({ name: routes.LogsList })">
-                <icon kind="calendar"></icon>
-              </menu-item>
-
-              <menu-item :active="false" name="Settings" @click="$router.push({ name: routes.Settings })">
-                <icon kind="document"></icon>
-              </menu-item>
-
-              <menu-item :active="false" name="API Documentation" @click="$router.push({ name: routes.APIDocumentation })">
-                <icon kind="document"></icon>
+              <menu-item v-for="(item, index) in items" :key="index"
+                         :active="item.route.name === $route.name"
+                         :name="item.name"
+                         @click="$router.push(item.route)">
+                <icon :kind="item.icon"></icon>
               </menu-item>
             </nav>
           </div>
@@ -165,15 +139,73 @@ import {routes} from "@/routes";
 
   data: () => {
     return {
-      routes
+
+      items: [
+        {
+          name: "Dashboard",
+          icon: 'home',
+          route: {
+            name: routes.ApplicationsList
+          }
+        },
+        {
+          name: "Organization",
+          icon: 'team',
+          route: {
+            name: routes.OrganizationsDetail
+          }
+        },
+        {
+          name: "Applications",
+          icon: 'document',
+          route: {
+            name: routes.ApplicationsList
+          }
+        },
+        {
+          name: "Event Types",
+          icon: 'document',
+          route: {
+            name: routes.EventTypesList
+          }
+        },
+        {
+          name: "Webhooks",
+          icon: 'folder',
+          route: {
+            name: routes.WebhooksList
+          }
+        },
+        {
+          name: "Logs",
+          icon: 'calendar',
+          route: {
+            name: routes.LogsList
+          }
+        },
+        {
+          name: "Settings",
+          icon: 'document',
+          route: {
+            name: routes.Settings
+          }
+        },
+        {
+          name: "API Documentation",
+          icon: 'document',
+          route: {
+            name: routes.APIDocumentation
+          }
+        },
+      ]
     };
   },
-  mounted(){
-    if (!this.$route.params.organization_id){
+  mounted() {
+    if (!this.$route.params.organization_id) {
       list().then(organizations => {
         this.$router.push({
           name: routes.OrganizationsDetail,
-          params:{
+          params: {
             organization_id: organizations[0].organization_id
           }
         })

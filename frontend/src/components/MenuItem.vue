@@ -26,11 +26,11 @@ export default class MenuItem extends Vue {
 
 <style scoped>
 .default{
-  @apply text-gray-300 text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md;
+  @apply text-gray-300 text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md cursor-pointer;
 }
 
 .active{
-  @apply bg-gray-900;
+  @apply bg-gray-900 ;
 }
 
 .inactive{
