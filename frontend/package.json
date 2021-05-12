@@ -12,6 +12,7 @@
     "generate:types": "openapi-typescript http://localhost:8080/api/v1/swagger.json --output src/types.ts"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^1.2.35",
     "@tailwindcss/forms": "^0.2.1",
     "@uirouter/visualizer": "^7.2.1",
     "axios": "^0.21.0",
@@ -44,9 +45,11 @@
     "eslint": "^6.7.2",
     "eslint-plugin-prettier": "^3.1.3",
     "eslint-plugin-vue": "^7.0.0-0",
+    "sass": "^1.32.6",
     "openapi-typescript": "^3.2.3",
     "postcss": "^7.0.35",
     "prettier": "^1.19.1",
+    "sass-loader": "7.3.1",
     "tailwindcss": "npm:@tailwindcss/postcss7-compat@^2.1.0",
     "typescript": "~3.9.3",
     "vite": "^2.1.5",

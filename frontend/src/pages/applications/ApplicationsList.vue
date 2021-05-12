@@ -8,17 +8,20 @@
     <template #default="applications">
       <div>
         <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-          <h1 class="text-2xl font-semibold text-gray-900">Dashboard</h1>
+          <h1 class="text-2xl font-semibold text-gray-900">Applications</h1>
         </div>
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 h-96">
           <div class="py-4">
-            <div class="border-4 border-dashed border-gray-200 rounded-lg h-96">
+            <template v-if="applications.length > 0">
               <ul>
                 <li v-for="application in applications" :key="application.application_id">
                   {{ application.application_id }} - {{ application.name }}
                 </li>
               </ul>
-            </div>
+            </template>
+            <template v-if="applications.length === 0">
+              <hook0-button class="primary" @click="$router.push({name:routes.ApplicationsNew})">PLop</hook0-button>
+            </template>
           </div>
         </div>
       </div>
@@ -33,9 +36,11 @@
 <script lang="ts">
 import {Application, list} from './ApplicationService';
 import {Options, Vue} from 'vue-class-component';
+import Hook0Button from "@/components/Hook0Button.vue";
+import {routes} from "@/routes";
 
 @Options({
-  components: {},
+  components: {Hook0Button},
   props: {
     msg: String
   },
@@ -45,6 +50,7 @@ export default class ApplicationList extends Vue {
 
   data() {
     return {
+      routes: routes,
       applications$: new Promise(() => {
       }),
     }
