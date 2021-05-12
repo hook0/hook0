@@ -16,13 +16,7 @@
               <menu-item v-for="(item, index) in items" :key="index"
                          :active="item.route.name === $route.name"
                          :name="item.name"
-                         @click="$router.push({
-                         ...item.route,
-                         params:{
-                           ...item.route.params,
-                           organization_id: $route.params.organization_id,
-                         }
-                         })">
+                         @click="$router.push(item.route)">
                 <icon :kind="item.icon"></icon>
               </menu-item>
 
