@@ -2,13 +2,13 @@
   <div class="hook0-pagination-container">
     <div>
       <i18n path="pagination.info" tag="p" class="hook0-pagination-info">
-        <template v-slot:page>
+        <template #page>
           <hook0-text class="medium">{{ pageCurrent }}</hook0-text>
         </template>
-        <template v-slot:pages>
+        <template #pages>
           <hook0-text class="medium">{{ pageCount }}</hook0-text>
         </template>
-        <template v-slot:results>
+        <template #results>
           <hook0-text class="medium">{{ resultCount }}</hook0-text>
         </template>
       </i18n>
