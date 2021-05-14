@@ -4,7 +4,7 @@ services:
   postgres:
     container_name: hook0-pg
     # We use our own image in order to have the right locals, see postgresql-image/Dockerfile
-    image: bitnami/postgresql:13
+    image: bitnami/postgresql:12
     environment:
       POSTGRESQL_PASSWORD: postgres
       POSTGRESQL_POSTGRES_PASSWORD: postgres
