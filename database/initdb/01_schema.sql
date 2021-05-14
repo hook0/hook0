@@ -21,13 +21,16 @@ create schema event;
 -- region tables
 create table event.application
 (
-    application__id uuid not null default public.gen_random_uuid(),
+    application__id  uuid not null default public.gen_random_uuid(),
     organization__id uuid not null,
-    name            text not null,
-    icon            text,
-    url             text,
-    constraint application_pkey primary key (application__id)
+    name             text not null,
+    icon             text,
+    url              text,
+    constraint application_pkey primary key (application__id),
+    constraint application_name_chk check (length(name) > 1)
 );
+
+comment on constraint application_name_chk on event.application is 'Application name must not be empty';
 
 
 
@@ -87,8 +90,8 @@ comment on table event.verb is e'event type verb (e.g. "created", "updated", "de
 
 create table event.application_secret
 (
-    application__id uuid                     not null,
-    token           uuid                     not null default public.gen_random_uuid(),
+    application__id uuid        not null,
+    token           uuid        not null default public.gen_random_uuid(),
     created_at      timestamptz not null default now(),
     deleted_at      timestamptz,
     name            text,
@@ -101,8 +104,8 @@ comment on table event.application_secret is e'an application can have one or mo
 
 create table event.payload_content_type
 (
-    payload_content_type__name text                     not null,
-    description                text                     not null,
+    payload_content_type__name text        not null,
+    description                text        not null,
     created_at                 timestamptz not null default now(),
     constraint payload_content_type_pkey primary key (payload_content_type__name)
 
@@ -113,18 +116,18 @@ comment on table event.payload_content_type is e'types of event payload supporte
 
 create table event.event
 (
-    event__id                  uuid                     not null default public.gen_random_uuid() primary key,
-    application__id            uuid                     not null,
-    event_type__name           text                     not null,
-    payload                    bytea                    not null,
-    payload_content_type__name text                     not null,
-    ip                         inet                     not null,
+    event__id                  uuid        not null default public.gen_random_uuid() primary key,
+    application__id            uuid        not null,
+    event_type__name           text        not null,
+    payload                    bytea       not null,
+    payload_content_type__name text        not null,
+    ip                         inet        not null,
     metadata                   jsonb,
-    occurred_at                timestamptz              not null,
+    occurred_at                timestamptz not null,
     received_at                timestamptz not null default now(),
-    dispatched_at              timestamptz              null,
-    application_secret__token  uuid                     not null,
-    labels                     jsonb                    not null default jsonb_build_object()
+    dispatched_at              timestamptz null,
+    application_secret__token  uuid        not null,
+    labels                     jsonb       not null default jsonb_build_object()
 );
 
 alter table event.event
@@ -154,7 +157,6 @@ alter table event.event
 
 comment on table event.event is e'event triggered by hook0 customers';
 comment on column event.event.application_secret__token is e'what application token is responsible for this event creation';
-
 
 
 
@@ -224,10 +226,11 @@ alter table event.application_secret
 create or replace function event.dispatch()
     returns trigger
     language plpgsql
-as $$
+as
+$$
 declare
-    key text;
-    value text;
+    key             text;
+    value           text;
     subscription_id uuid;
 begin
     for key, value in select * from jsonb_each_text(new.labels) limit 50
@@ -236,17 +239,24 @@ begin
             for subscription_id in
                 select subscription__id
                 from webhook.subscription
-                where is_enabled and label_key = key and label_value = value
+                where is_enabled
+                  and label_key = key
+                  and label_value = value
                 loop
                     raise notice 'matching subscription: %', subscription_id;
-                    insert into webhook.request_attempt (event__id, subscription__id) values (new.event__id, subscription_id);
+                    insert into webhook.request_attempt (event__id, subscription__id)
+                    values (new.event__id, subscription_id);
                 end loop;
         end loop;
     update event.event set dispatched_at = statement_timestamp() where event__id = new.event__id;
     return new;
 end;
 $$;
-create trigger event_dispatch after insert on event.event for each row execute function event.dispatch();
+create trigger event_dispatch
+    after insert
+    on event.event
+    for each row
+execute function event.dispatch();
 -- endregion
 
 
@@ -328,16 +338,16 @@ alter table webhook.response
 
 create table webhook.request_attempt
 (
-    request_attempt__id uuid                     not null default public.gen_random_uuid(),
-    event__id           uuid                     not null,
-    subscription__id    uuid                     not null,
+    request_attempt__id uuid        not null default public.gen_random_uuid(),
+    event__id           uuid        not null,
+    subscription__id    uuid        not null,
     created_at          timestamptz not null default now(),
     picked_at           timestamptz,
     failed_at           timestamptz,
     succeeded_at        timestamptz,
     delay_until         timestamptz,
     response__id        uuid,
-    retry_count         smallint                 not null default 0,
+    retry_count         smallint    not null default 0,
     constraint request_attempt_pkey primary key (request_attempt__id),
     constraint request_attempt_response__id_key unique (response__id)
 );
@@ -361,11 +371,6 @@ alter table webhook.request_attempt
     add constraint request_attempt_response__id_fkey foreign key (response__id)
         references webhook.response (response__id) match simple
         on delete set null on update cascade;
-
-
-
-
-
 
 
 
