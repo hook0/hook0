@@ -171,7 +171,7 @@ async fn main() -> anyhow::Result<()> {
                     )
                     .service(
                         web::scope("/events")
-                            .wrap(auth)
+                            .wrap(auth.clone())
                             .service(web::resource("").route(web::get().to(handlers::events::list)))
                             .service(
                                 web::resource("/{event_id}")
@@ -180,8 +180,21 @@ async fn main() -> anyhow::Result<()> {
                     )
                     .service(
                         web::resource("/event").route(web::post().to(handlers::events::ingest)),
+                    )
+                    .service(
+                        web::scope("/subscriptions")
+                            .wrap(auth)
+                            .service(
+                                web::resource("")
+                                    .route(web::get().to(handlers::subscriptions::list))
+                                    .route(web::post().to(handlers::subscriptions::add)),
+                            )
+                            .service(
+                                web::resource("/{subscription_id}")
+                                    .route(web::put().to(handlers::subscriptions::edit))
+                                    .route(web::delete().to(handlers::subscriptions::destroy)),
+                            ),
                     ),
-                // TODO: subscriptions
                 // TODO: request_attempts
                 // TODO: responses
             )
