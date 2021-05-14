@@ -2,26 +2,28 @@
   <form @submit="submit">
     <hook0-card>
       <hook0-card-header>
-        <template v-slot:header>
+        <template #header>
           Create new application
         </template>
-        <template v-slot:subtitle>
+        <template #subtitle>
           An application emit events that are consumed by customers through webhooks
         </template>
 
       </hook0-card-header>
       <hook0-card-content>
         <hook0-card-content-line>
-          <template v-slot:label>
+          <template #label>
             Application Name
           </template>
-          <template v-slot:content>
+          <template #content>
+            {{application}}
             <hook0-input
               type="text"
-              v-model.lazy.trim="application.name"
+              v-model="application.name"
               placeholder="my awesome api - production"
+              required
             >
-              <template v-slot:helpText></template>
+              <template #helpText></template>
             </hook0-input>
           </template>
         </hook0-card-content-line>
@@ -62,8 +64,8 @@ export default class ApplicationNew extends Vue {
   data() {
     return {
       routes: routes,
-      application: {
-        name: ''
+      application:{
+        name: '',
       },
       applications$: new Promise(() => {
       }),
@@ -74,7 +76,9 @@ export default class ApplicationNew extends Vue {
     this.applications$ = list(this.$route.query.organization_id as string);
   }
 
-  submit() {
+  submit(e) {
+    e.preventDefault();
+
     create({
       name: this.application.name,
       organization_id: this.$route.query.organization_id
