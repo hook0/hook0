@@ -93,7 +93,7 @@
                   To: "transform opacity-0 scale-95"
               -->
               <div
-                class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5"
+                class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 hidden"
                 role="menu" aria-orientation="vertical" aria-labelledby="user-menu">
                 <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Your
                   Profile</a>
@@ -110,7 +110,7 @@
       </div>
 
       <main class="flex-1 relative overflow-y-auto focus:outline-none" tabindex="0">
-        <div class="py-6">
+        <div class="py-6 max-w-7xl mx-auto px-4 sm:px-6 md:px-8 h-96">
           <router-view></router-view>
         </div>
       </main>
