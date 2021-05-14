@@ -11,7 +11,7 @@ services:
       PGDATA: /bitnami/postgresql
     volumes:
       - ./postgres:/bitnami/postgresql
-      - ./preinit:/docker-entrypoint-preinitdb.d
+      - ./initdb:/docker-entrypoint-initdb.d
     ports:
       - "5432:5432"
     networks:
