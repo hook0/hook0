@@ -8,20 +8,20 @@
     <template #default="applications">
       <hook0-card>
         <hook0-card-header>
-          <template v-slot:header>
+          <template #header>
             Applications
           </template>
-          <template v-slot:subtitle>
+          <template #subtitle>
             Each application send events to Hook0 API and Hook0 dispatch these extends to customers through webhooks
           </template>
         </hook0-card-header>
 
         <hook0-card-content v-if="applications.length > 0">
           <hook0-card-content-line v-for="application in applications" :key="application.application_id">
-            <template v-slot:label>
+            <template #label>
               {{ application.name }}
             </template>
-            <template v-slot:content>
+            <template #content>
               id: {{ application.application_id }}
             </template>
           </hook0-card-content-line>
@@ -52,7 +52,7 @@ import Hook0Card from "@/components/Hook0Card.vue";
 import Hook0Input from "@/components/Hook0Input.vue";
 
 @Options({
-  components: {Hook0Button, Hook0CardContentLine, Hook0CardContent, Hook0CardFooter, Hook0CardHeader, Hook0Card, Hook0Input, Hook0Button},
+  components: {Hook0CardContentLine, Hook0CardContent, Hook0CardFooter, Hook0CardHeader, Hook0Card, Hook0Input, Hook0Button},
   props: {
     msg: String
   },
