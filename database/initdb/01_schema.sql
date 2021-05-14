@@ -268,18 +268,25 @@ create schema webhook;
 
 create table webhook.subscription
 (
-    subscription__id uuid    not null default public.gen_random_uuid(),
-    is_enabled       boolean not null default true,
+    subscription__id uuid        not null default public.gen_random_uuid(),
+    application__id  uuid        not null,
+    is_enabled       boolean     not null default true,
     description      text,
-    secret           uuid    not null default public.gen_random_uuid(),
-    metatadata       jsonb   not null default jsonb_build_object(),
-    label_key        text    not null,
-    label_value      text    not null,
-    target__id       uuid    not null,
+    secret           uuid        not null default public.gen_random_uuid(),
+    metadata         jsonb       not null default jsonb_build_object(),
+    label_key        text        not null,
+    label_value      text        not null,
+    target__id       uuid        not null,
+    created_at       timestamptz not null default now(),
     constraint subscription_pkey primary key (subscription__id),
     constraint subscription_target__id_key unique (target__id)
 
 );
+
+alter table webhook.subscription
+    add constraint subscription_application__id_fkey foreign key (application__id)
+        references event.application (application__id) match simple
+        on delete cascade on update cascade;
 
 
 
