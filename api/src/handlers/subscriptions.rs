@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use actix_web_middleware_keycloak_auth::UnstructuredClaims;
 use chrono::{DateTime, Utc};
 use log::error;
@@ -9,11 +11,10 @@ use paperclip::actix::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::{query, query_as};
-use std::collections::HashMap;
 use uuid::Uuid;
 
-use crate::errors::*;
 use crate::iam::{can_access_application, Role};
+use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct Subscription {
@@ -45,12 +46,19 @@ pub struct Qs {
 }
 
 /// List subscriptions
-#[api_v2_operation]
+#[api_v2_operation(
+    summary = "",
+    description = "",
+    operation_id = "subscriptions.[get|list|update|delete]",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Subscriptions Management")
+)]
 pub async fn list(
     state: Data<crate::State>,
     unstructured_claims: ReqData<UnstructuredClaims>,
     qs: Query<Qs>,
-) -> Result<Json<Vec<Subscription>>, UnexpectedError> {
+) -> Result<Json<Vec<Subscription>>, Hook0Problem> {
     if can_access_application(
         &state.db,
         &unstructured_claims,
@@ -102,9 +110,12 @@ pub async fn list(
             ",
             &qs.application_id,
         )
-        .fetch_all(&state.db)
-        .await
-        .map_err(|e| {error!("{}", &e); UnexpectedError::InternalServerError})?;
+            .fetch_all(&state.db)
+            .await
+            .map_err(|e| {
+                error!("{}", &e);
+                Hook0Problem::InternalServerError
+            })?;
 
         let subscriptions = raw_subscriptions
             .iter()
@@ -126,9 +137,10 @@ pub async fn list(
 
         Ok(Json(subscriptions))
     } else {
-        Err(UnexpectedError::Forbidden)
+        Err(Hook0Problem::Forbidden)
     }
 }
+
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
 pub struct SubscriptionPost {
     application_id: Uuid,
@@ -141,14 +153,20 @@ pub struct SubscriptionPost {
     target: Target,
 }
 
-/// Create a new subscription
-#[api_v2_operation]
+#[api_v2_operation(
+    summary = "Create a new subscription",
+    description = "A subscription let your customers subscribe to events. Events will be sent through the defined medium inside the subscription (e.g. HTTP POST request) as a webhook.",
+    operation_id = "subscriptions.create",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Subscriptions Management")
+)]
 pub async fn add(
     state: Data<crate::State>,
     unstructured_claims: ReqData<UnstructuredClaims>,
     body: Json<SubscriptionPost>,
-) -> Result<CreatedJson<Subscription>, CreateError> {
-    if can_access_application(
+) -> Result<CreatedJson<Subscription>, Hook0Problem> {
+    if !can_access_application(
         &state.db,
         &unstructured_claims,
         &body.application_id,
@@ -156,25 +174,24 @@ pub async fn add(
     )
     .await
     {
-        let mut tx = state
-            .db
-            .begin()
-            .await
-            .map_err(|_| CreateError::InternalServerError)?;
+        return Err(Hook0Problem::Forbidden);
+    }
 
-        #[allow(non_snake_case)]
-        struct RawSubscription {
-            subscription__id: Uuid,
-            is_enabled: bool,
-            description: Option<String>,
-            secret: Uuid,
-            metadata: Value,
-            label_key: String,
-            label_value: String,
-            target__id: Uuid,
-            created_at: DateTime<Utc>,
-        }
-        let subscription = query_as!(
+    let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
+
+    #[allow(non_snake_case)]
+    struct RawSubscription {
+        subscription__id: Uuid,
+        is_enabled: bool,
+        description: Option<String>,
+        secret: Uuid,
+        metadata: Value,
+        label_key: String,
+        label_value: String,
+        target__id: Uuid,
+        created_at: DateTime<Utc>,
+    }
+    let subscription = query_as!(
             RawSubscription,
             "
                 INSERT INTO webhook.subscription (subscription__id, application__id, is_enabled, description, secret, metadata, label_key, label_value, target__id, created_at)
@@ -188,33 +205,32 @@ pub async fn add(
             &body.label_key,
             &body.label_value,
         )
-        .fetch_one(&mut tx)
-        .await
-        .map_err(|_| CreateError::InternalServerError)?;
+            .fetch_one(&mut tx)
+            .await
+            .map_err(Hook0Problem::from)?;
 
-        match &body.target {
-            Target::Http {
-                method,
-                url,
-                headers,
-            } => query!(
-                "
+    match &body.target {
+        Target::Http {
+            method,
+            url,
+            headers,
+        } => query!(
+            "
                     INSERT INTO webhook.target_http (target__id, method, url, headers)
                     VALUES ($1, $2, $3, $4)
                 ",
-                &subscription.target__id,
-                method,
-                url,
-                serde_json::to_value(headers)
-                    .expect("could not serialize target headers into JSON"),
-            )
-            .execute(&mut tx)
-            .await
-            .map_err(|_| CreateError::InternalServerError)?,
-        };
+            &subscription.target__id,
+            method,
+            url,
+            serde_json::to_value(headers).expect("could not serialize target headers into JSON"),
+        )
+        .execute(&mut tx)
+        .await
+        .map_err(Hook0Problem::from)?,
+    };
 
-        for event_type in &body.event_types {
-            query!(
+    for event_type in &body.event_types {
+        query!(
                 "
                     INSERT INTO webhook.subscription__event_type (subscription__id, event_type__name)
                     VALUES ($1, $2)
@@ -222,41 +238,42 @@ pub async fn add(
                 &subscription.subscription__id,
                 &event_type,
             )
-            .execute(&mut tx).await
-            .map_err(|_| CreateError::InternalServerError)?;
-        }
-
-        tx.commit()
-            .await
-            .map_err(|_| CreateError::InternalServerError)?;
-
-        Ok(CreatedJson(Subscription {
-            subscription_id: subscription.subscription__id,
-            is_enabled: subscription.is_enabled,
-            event_types: body.event_types.clone(),
-            description: subscription.description,
-            secret: subscription.secret,
-            metadata: serde_json::from_value(subscription.metadata.clone())
-                .unwrap_or_else(|_| HashMap::new()),
-            label_key: subscription.label_key,
-            label_value: subscription.label_value,
-            target: body.target.clone(),
-            created_at: subscription.created_at,
-        }))
-    } else {
-        Err(CreateError::Forbidden)
+                .execute(&mut tx).await
+                .map_err(|ex| Hook0Problem::from(ex))?;
     }
+
+    tx.commit().await.map_err(Hook0Problem::from)?;
+
+    Ok(CreatedJson(Subscription {
+        subscription_id: subscription.subscription__id,
+        is_enabled: subscription.is_enabled,
+        event_types: body.event_types.clone(),
+        description: subscription.description,
+        secret: subscription.secret,
+        metadata: serde_json::from_value(subscription.metadata.clone())
+            .unwrap_or_else(|_| HashMap::new()),
+        label_key: subscription.label_key,
+        label_value: subscription.label_value,
+        target: body.target.clone(),
+        created_at: subscription.created_at,
+    }))
 }
 
-/// Edit an application secret
-#[api_v2_operation]
-pub async fn edit(
+#[api_v2_operation(
+    summary = "Update a subscription",
+    description = "",
+    operation_id = "subscriptions.update",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Subscriptions Management")
+)]
+pub async fn update(
     state: Data<crate::State>,
     unstructured_claims: ReqData<UnstructuredClaims>,
     subscription_id: Path<Uuid>,
     body: Json<SubscriptionPost>,
-) -> Result<Json<Subscription>, EditError> {
-    if can_access_application(
+) -> Result<Json<Subscription>, Hook0Problem> {
+    if !can_access_application(
         &state.db,
         &unstructured_claims,
         &body.application_id,
@@ -264,25 +281,24 @@ pub async fn edit(
     )
     .await
     {
-        let mut tx = state
-            .db
-            .begin()
-            .await
-            .map_err(|_| EditError::InternalServerError)?;
+        return Err(Hook0Problem::Forbidden);
+    }
 
-        #[allow(non_snake_case)]
-        struct RawSubscription {
-            subscription__id: Uuid,
-            is_enabled: bool,
-            description: Option<String>,
-            secret: Uuid,
-            metadata: Value,
-            label_key: String,
-            label_value: String,
-            target__id: Uuid,
-            created_at: DateTime<Utc>,
-        }
-        let subscription = query_as!(
+    let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
+
+    #[allow(non_snake_case)]
+    struct RawSubscription {
+        subscription__id: Uuid,
+        is_enabled: bool,
+        description: Option<String>,
+        secret: Uuid,
+        metadata: Value,
+        label_key: String,
+        label_value: String,
+        target__id: Uuid,
+        created_at: DateTime<Utc>,
+    }
+    let subscription = query_as!(
                 RawSubscription,
                 "
                     UPDATE webhook.subscription
@@ -298,47 +314,47 @@ pub async fn edit(
                 &subscription_id.into_inner(),
                 &body.application_id
             )
-            .fetch_optional(&mut tx)
-            .await
-            .map_err(|_| EditError::InternalServerError)?;
+        .fetch_optional(&mut tx)
+        .await
+        .map_err(Hook0Problem::from)?;
 
-        match subscription {
-            Some(s) => {
-                match &body.target {
-                    Target::Http {
-                        method,
-                        url,
-                        headers,
-                    } => query!(
-                        "
+    match subscription {
+        Some(s) => {
+            match &body.target {
+                Target::Http {
+                    method,
+                    url,
+                    headers,
+                } => query!(
+                    "
                                 UPDATE webhook.target_http
                                 SET method = $1, url = $2, headers = $3
                                 WHERE target__id = $4
-                            ",
-                        method,
-                        url,
-                        serde_json::to_value(headers)
-                            .expect("could not serialize target headers into JSON"),
-                        &s.target__id
-                    )
-                    .execute(&mut tx)
-                    .await
-                    .map_err(|_| EditError::InternalServerError)?,
-                };
-
-                query!(
-                    "
-                        DELETE FROM webhook.subscription__event_type
-                        WHERE subscription__id = $1
-                    ",
-                    &s.subscription__id,
+",
+                    method,
+                    url,
+                    serde_json::to_value(headers)
+                        .expect("could not serialize target headers into JSON"),
+                    &s.target__id
                 )
                 .execute(&mut tx)
                 .await
-                .map_err(|_| EditError::InternalServerError)?;
+                .map_err(Hook0Problem::from)?,
+            };
 
-                for event_type in &body.event_types {
-                    query!(
+            query!(
+                "
+                        DELETE FROM webhook.subscription__event_type
+                        WHERE subscription__id = $1
+                    ",
+                &s.subscription__id,
+            )
+            .execute(&mut tx)
+            .await
+            .map_err(Hook0Problem::from)?;
+
+            for event_type in &body.event_types {
+                query!(
                         "
                             INSERT INTO webhook.subscription__event_type (subscription__id, event_type__name)
                             VALUES ($1, $2)
@@ -347,43 +363,44 @@ pub async fn edit(
                         &event_type,
                     )
                     .execute(&mut tx).await
-                    .map_err(|_| EditError::InternalServerError)?;
-                }
-
-                tx.commit()
-                    .await
-                    .map_err(|_| EditError::InternalServerError)?;
-
-                Ok(Json(Subscription {
-                    subscription_id: s.subscription__id,
-                    is_enabled: s.is_enabled,
-                    event_types: body.event_types.clone(),
-                    description: s.description,
-                    secret: s.secret,
-                    metadata: serde_json::from_value(s.metadata.clone())
-                        .unwrap_or_else(|_| HashMap::new()),
-                    label_key: s.label_key,
-                    label_value: s.label_value,
-                    target: body.target.clone(),
-                    created_at: s.created_at,
-                }))
+                    .map_err(Hook0Problem::from)?;
             }
-            None => Err(EditError::NotFound),
+
+            tx.commit().await.map_err(Hook0Problem::from)?;
+
+            Ok(Json(Subscription {
+                subscription_id: s.subscription__id,
+                is_enabled: s.is_enabled,
+                event_types: body.event_types.clone(),
+                description: s.description,
+                secret: s.secret,
+                metadata: serde_json::from_value(s.metadata.clone())
+                    .unwrap_or_else(|_| HashMap::new()),
+                label_key: s.label_key,
+                label_value: s.label_value,
+                target: body.target.clone(),
+                created_at: s.created_at,
+            }))
         }
-    } else {
-        Err(EditError::Forbidden)
+        None => Err(Hook0Problem::NotFound),
     }
 }
 
-/// Destroy a subscription
-#[api_v2_operation]
-pub async fn destroy(
+#[api_v2_operation(
+    summary = "Delete a subscription",
+    description = "",
+    operation_id = "subscriptions.delete",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Subscriptions Management")
+)]
+pub async fn delete(
     state: Data<crate::State>,
     unstructured_claims: ReqData<UnstructuredClaims>,
     subscription_id: Path<Uuid>,
     qs: Query<Qs>,
-) -> Result<NoContent, ShowError> {
-    if can_access_application(
+) -> Result<NoContent, Hook0Problem> {
+    if !can_access_application(
         &state.db,
         &unstructured_claims,
         &qs.application_id,
@@ -391,44 +408,44 @@ pub async fn destroy(
     )
     .await
     {
-        let application_id = qs.application_id;
+        return Err(Hook0Problem::Forbidden);
+    }
 
-        #[allow(non_snake_case)]
-        struct SubscriptionId {
-            subscription__id: Uuid,
-        }
-        let subscription = query_as!(
-            SubscriptionId,
-            "
+    let application_id = qs.application_id;
+
+    #[allow(non_snake_case)]
+    struct SubscriptionId {
+        subscription__id: Uuid,
+    }
+    let subscription = query_as!(
+        SubscriptionId,
+        "
                 SELECT subscription__id
                 FROM webhook.subscription
                 WHERE application__id = $1 AND subscription__id = $2
             ",
-            &application_id,
-            &subscription_id.into_inner()
-        )
-        .fetch_optional(&state.db)
-        .await
-        .map_err(|_| ShowError::InternalServerError)?;
+        &application_id,
+        &subscription_id.into_inner()
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(Hook0Problem::from)?;
 
-        match subscription {
-            Some(s) => {
-                query!(
-                    "
+    match subscription {
+        Some(s) => {
+            query!(
+                "
                         DELETE FROM webhook.subscription
                         WHERE application__id = $1 AND subscription__id = $2
                     ",
-                    &application_id,
-                    &s.subscription__id
-                )
-                .execute(&state.db)
-                .await
-                .map_err(|_| ShowError::InternalServerError)?;
-                Ok(NoContent)
-            }
-            None => Err(ShowError::NotFound),
+                &application_id,
+                &s.subscription__id
+            )
+            .execute(&state.db)
+            .await
+            .map_err(Hook0Problem::from)?;
+            Ok(NoContent)
         }
-    } else {
-        Err(ShowError::Forbidden)
+        None => Err(Hook0Problem::NotFound),
     }
 }

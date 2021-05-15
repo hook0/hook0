@@ -53,9 +53,6 @@ import Hook0Input from "@/components/Hook0Input.vue";
 
 @Options({
   components: {Hook0CardContentLine, Hook0CardContent, Hook0CardFooter, Hook0CardHeader, Hook0Card, Hook0Input, Hook0Button},
-  props: {
-    msg: String
-  },
 })
 export default class ApplicationList extends Vue {
   private applications$ !: Promise<Array<Application>>;
