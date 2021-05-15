@@ -1,12 +1,9 @@
 use std::fmt;
 use std::fmt::Display;
-use std::ops::Deref;
 
 use actix_web::{HttpResponse, ResponseError};
 use http_api_problem::*;
 use paperclip::actix::api_v2_errors;
-use serde::__private::Formatter;
-use sqlx::error::DatabaseError;
 use sqlx::postgres::PgDatabaseError;
 use sqlx::Error;
 
