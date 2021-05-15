@@ -28,6 +28,14 @@ struct Config {
     /// Database URL (with credentials)
     #[clap(long, env, setting = HideEnvValues)]
     database_url: String,
+
+    /// Worker ID or name (if empty, will generate a random UUID)
+    #[clap(long, env)]
+    worker_id: Option<String>,
+
+    /// Worker version (if empty, will use version from Cargo.toml)
+    #[clap(long, env)]
+    worker_version: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -67,13 +75,32 @@ const MAXIMUM_RETRY_DELAY: Duration = Duration::from_secs(5 * 60);
 async fn main() -> anyhow::Result<()> {
     let config = Config::parse();
 
+    let worker_id = config
+        .worker_id
+        .unwrap_or_else(|| Uuid::new_v4().to_string());
+    let worker_version = config
+        .worker_version
+        .unwrap_or_else(|| crate_version!().to_owned());
+
     // Initialize app logger as well as Sentry integration
     // Return value *must* be kept in a variable or else it will be dropped and Sentry integration won't work
     let _sentry = sentry_integration::init(crate_name!(), &config.sentry_dsn);
 
+    info!(
+        "Starting {} {} [{}]",
+        crate_name!(),
+        &worker_version,
+        &worker_id
+    );
+
     debug!("Connecting to database...");
     let mut conn = PgConnection::connect_with(
-        &PgConnectOptions::from_str(&config.database_url)?.application_name(crate_name!()),
+        &PgConnectOptions::from_str(&config.database_url)?.application_name(&format!(
+            "{}-{}-{}",
+            crate_name!(),
+            &worker_version,
+            &worker_id
+        )),
     )
     .await?;
     info!("Connected to database");
@@ -101,7 +128,13 @@ async fn main() -> anyhow::Result<()> {
             // Set picked_at
             debug!("Picking request attempt {}", &attempt.request_attempt__id);
             sqlx::query!(
-                "UPDATE webhook.request_attempt SET picked_at = statement_timestamp() WHERE request_attempt__id = $1",
+                "
+                UPDATE webhook.request_attempt
+                SET picked_at = statement_timestamp(), worker_id = $1, worker_version = $2
+                WHERE request_attempt__id = $3
+                ",
+                &worker_id,
+                &worker_version,
                 attempt.request_attempt__id
             )
             .execute(&mut tx)
