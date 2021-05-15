@@ -45,11 +45,10 @@ pub struct Qs {
     application_id: Uuid,
 }
 
-/// List subscriptions
 #[api_v2_operation(
-    summary = "",
-    description = "",
-    operation_id = "subscriptions.[get|list|update|delete]",
+    summary = "List subscriptions",
+    description = "List all subscriptions created by customers against the application events",
+    operation_id = "subscriptions.list",
     consumes = "application/json",
     produces = "application/json",
     tags("Subscriptions Management")

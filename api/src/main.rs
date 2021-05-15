@@ -122,6 +122,13 @@ async fn main() -> anyhow::Result<()> {
             .with_json_spec_at("/api/v1/swagger.json")
             .service(
                 web::scope("/api/v1")
+                    // no auth
+                    .service(
+                        web::scope("/errors").service(
+                            web::resource("").route(web::get().to(handlers::errors::list)),
+                        ),
+                    )
+                    // with authentication
                     .service(web::scope("/organizations").wrap(auth.clone()).service(
                         web::resource("").route(web::get().to(handlers::organizations::list)),
                     ))

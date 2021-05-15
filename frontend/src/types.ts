@@ -5,350 +5,59 @@
 
 export interface paths {
   "/api/v1/application_secrets": {
-    get: {
-      parameters: {
-        query: {
-          application_id: string;
-        };
-      };
-      responses: {
-        /** OK */
-        200: {
-          schema: definitions["ApplicationSecret"][];
-        };
-        /** Forbidden */
-        403: unknown;
-        /** Internal Server Error */
-        500: unknown;
-      };
-    };
-    post: {
-      parameters: {
-        body: {
-          body: definitions["ApplicationSecretPost"];
-        };
-      };
-      responses: {
-        /** Created */
-        201: {
-          schema: definitions["ApplicationSecret"];
-        };
-        /** Bad Request */
-        400: unknown;
-        /** Forbidden */
-        403: unknown;
-        /** Internal Server Error */
-        500: unknown;
-      };
-    };
+    get: operations["applicationSecrets.read"];
+    post: operations["applicationSecrets.create"];
   };
   "/api/v1/application_secrets/{application_secret_token}": {
-    put: {
-      parameters: {
-        path: {
-          application_secret_token: string;
-        };
-        body: {
-          body: definitions["ApplicationSecretPost"];
-        };
-      };
-      responses: {
-        /** OK */
-        200: {
-          schema: definitions["ApplicationSecret"];
-        };
-        /** Bad Request */
-        400: unknown;
-        /** Forbidden */
-        403: unknown;
-        /** Not Found */
-        404: unknown;
-        /** Internal Server Error */
-        500: unknown;
-      };
-    };
-    delete: {
-      parameters: {
-        path: {
-          application_secret_token: string;
-        };
-        query: {
-          application_id: string;
-        };
-      };
-      responses: {
-        /** No Content */
-        204: never;
-        /** Forbidden */
-        403: unknown;
-        /** Not Found */
-        404: unknown;
-        /** Internal Server Error */
-        500: unknown;
-      };
-    };
+    put: operations["applicationSecrets.update"];
+    delete: operations["applicationSecrets.delete"];
   };
   "/api/v1/applications": {
-    get: {
-      parameters: {
-        query: {
-          organization_id: string;
-        };
-      };
-      responses: {
-        /** OK */
-        200: {
-          schema: definitions["Application"][];
-        };
-        /** Forbidden */
-        403: unknown;
-        /** Internal Server Error */
-        500: unknown;
-      };
-    };
-    post: {
-      parameters: {
-        body: {
-          body: definitions["ApplicationPost"];
-        };
-      };
-      responses: {
-        /** Created */
-        201: {
-          schema: definitions["Application"];
-        };
-        /** Bad Request */
-        400: unknown;
-        /** Forbidden */
-        403: unknown;
-        /** Internal Server Error */
-        500: unknown;
-      };
-    };
+    get: operations["applications.list"];
+    /** An application emit events that are consumed by customers through webhooks */
+    post: operations["applications.create"];
   };
   "/api/v1/applications/{application_id}": {
-    get: {
-      parameters: {
-        path: {
-          application_id: string;
-        };
-      };
-      responses: {
-        /** OK */
-        200: {
-          schema: definitions["Application"];
-        };
-        /** Forbidden */
-        403: unknown;
-        /** Not Found */
-        404: unknown;
-        /** Internal Server Error */
-        500: unknown;
-      };
-    };
-    put: {
-      parameters: {
-        path: {
-          application_id: string;
-        };
-        body: {
-          body: definitions["ApplicationPost"];
-        };
-      };
-      responses: {
-        /** OK */
-        200: {
-          schema: definitions["Application"];
-        };
-        /** Bad Request */
-        400: unknown;
-        /** Forbidden */
-        403: unknown;
-        /** Not Found */
-        404: unknown;
-        /** Internal Server Error */
-        500: unknown;
-      };
-    };
-    delete: {
-      parameters: {
-        path: {
-          application_id: string;
-        };
-      };
-      responses: {
-        /** No Content */
-        204: never;
-        /** Forbidden */
-        403: unknown;
-        /** Not Found */
-        404: unknown;
-        /** Internal Server Error */
-        500: unknown;
-      };
-    };
+    /** An application emit events that are consumed by customers through webhooks */
+    get: operations["applications.get"];
+    /** Change the name of an application */
+    put: operations["applications.update"];
+    /** Delete an application, further events won't be sent, active webhook subscriptions will also be deleted. */
+    delete: operations["applications.delete"];
+  };
+  "/api/v1/errors": {
+    /** List of every possible errors that Hook0 can return. Each error is in RFC7807 problem format. */
+    get: operations["errors.list"];
   };
   "/api/v1/event": {
-    post: {
-      parameters: {
-        body: {
-          body: definitions["EventPost"];
-        };
-      };
-      responses: {
-        /** Created */
-        201: {
-          schema: definitions["IngestedEvent"];
-        };
-        /** Bad Request */
-        400: unknown;
-        /** Forbidden */
-        403: unknown;
-        /** Conflict */
-        409: unknown;
-        /** Internal Server Error */
-        500: unknown;
-      };
-    };
+    post: operations["events.ingest"];
   };
   "/api/v1/event_types": {
-    get: {
-      parameters: {
-        query: {
-          application_id: string;
-        };
-      };
-      responses: {
-        /** OK */
-        200: {
-          schema: definitions["EventType"][];
-        };
-        /** Forbidden */
-        403: unknown;
-        /** Internal Server Error */
-        500: unknown;
-      };
-    };
-    post: {
-      parameters: {
-        body: {
-          body: definitions["EventTypePost"];
-        };
-      };
-      responses: {
-        /** Created */
-        201: {
-          schema: definitions["EventType"];
-        };
-        /** Bad Request */
-        400: unknown;
-        /** Forbidden */
-        403: unknown;
-        /** Internal Server Error */
-        500: unknown;
-      };
-    };
+    get: operations["eventTypes.list"];
+    post: operations["eventTypes.create"];
   };
   "/api/v1/event_types/{event_type_name}": {
-    get: {
-      parameters: {
-        path: {
-          event_type_name: string;
-        };
-        query: {
-          application_id: string;
-        };
-      };
-      responses: {
-        /** OK */
-        200: {
-          schema: definitions["EventType"];
-        };
-        /** Forbidden */
-        403: unknown;
-        /** Not Found */
-        404: unknown;
-        /** Internal Server Error */
-        500: unknown;
-      };
-    };
-    delete: {
-      parameters: {
-        path: {
-          event_type_name: string;
-        };
-        query: {
-          application_id: string;
-        };
-      };
-      responses: {
-        /** No Content */
-        204: never;
-        /** Forbidden */
-        403: unknown;
-        /** Not Found */
-        404: unknown;
-        /** Internal Server Error */
-        500: unknown;
-      };
-    };
+    get: operations["eventTypes.get"];
+    delete: operations["eventTypes.delete"];
   };
   "/api/v1/events": {
-    get: {
-      parameters: {
-        query: {
-          application_id: string;
-        };
-      };
-      responses: {
-        /** OK */
-        200: {
-          schema: definitions["Event"][];
-        };
-        /** Forbidden */
-        403: unknown;
-        /** Internal Server Error */
-        500: unknown;
-      };
-    };
+    get: operations["events.list"];
   };
   "/api/v1/events/{event_id}": {
-    get: {
-      parameters: {
-        path: {
-          event_id: string;
-        };
-        query: {
-          application_id: string;
-        };
-      };
-      responses: {
-        /** OK */
-        200: {
-          schema: definitions["EventWithPayload"];
-        };
-        /** Forbidden */
-        403: unknown;
-        /** Not Found */
-        404: unknown;
-        /** Internal Server Error */
-        500: unknown;
-      };
-    };
+    get: operations["events.get"];
   };
   "/api/v1/organizations": {
-    get: {
-      responses: {
-        /** OK */
-        200: {
-          schema: definitions["Organization"][];
-        };
-        /** Forbidden */
-        403: unknown;
-        /** Internal Server Error */
-        500: unknown;
-      };
-    };
+    get: operations["organizations.list"];
+  };
+  "/api/v1/subscriptions": {
+    /** List all subscriptions created by customers against the application events */
+    get: operations["subscriptions.list"];
+    /** A subscription let your customers subscribe to events. Events will be sent through the defined medium inside the subscription (e.g. HTTP POST request) as a webhook. */
+    post: operations["subscriptions.create"];
+  };
+  "/api/v1/subscriptions/{subscription_id}": {
+    put: operations["subscriptions.update"];
+    delete: operations["subscriptions.delete"];
   };
 }
 
@@ -427,6 +136,554 @@ export interface definitions {
     organization_id: string;
     role: string;
   };
+  Problem: {
+    detail: string;
+    id: string;
+    status: number;
+    title: string;
+  };
+  Subscription: {
+    created_at: string;
+    description?: string;
+    event_types: string[];
+    is_enabled: boolean;
+    label_key: string;
+    label_value: string;
+    metadata: { [key: string]: any };
+    secret: string;
+    subscription_id: string;
+    target: string;
+  };
+  SubscriptionPost: {
+    application_id: string;
+    description?: string;
+    event_types: string[];
+    is_enabled: boolean;
+    label_key: string;
+    label_value: string;
+    metadata: { [key: string]: any };
+    target: string;
+  };
 }
 
-export interface operations {}
+export interface operations {
+  "applicationSecrets.read": {
+    parameters: {
+      query: {
+        application_id: string;
+      };
+    };
+    responses: {
+      /** OK */
+      200: {
+        schema: definitions["ApplicationSecret"][];
+      };
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+  };
+  "applicationSecrets.create": {
+    parameters: {
+      body: {
+        body: definitions["ApplicationSecretPost"];
+      };
+    };
+    responses: {
+      /** Created */
+      201: {
+        schema: definitions["ApplicationSecret"];
+      };
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+  };
+  "applicationSecrets.update": {
+    parameters: {
+      path: {
+        application_secret_token: string;
+      };
+      body: {
+        body: definitions["ApplicationSecretPost"];
+      };
+    };
+    responses: {
+      /** OK */
+      200: {
+        schema: definitions["ApplicationSecret"];
+      };
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+  };
+  "applicationSecrets.delete": {
+    parameters: {
+      path: {
+        application_secret_token: string;
+      };
+      query: {
+        application_id: string;
+      };
+    };
+    responses: {
+      /** No Content */
+      204: never;
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+  };
+  "applications.list": {
+    parameters: {
+      query: {
+        organization_id: string;
+      };
+    };
+    responses: {
+      /** OK */
+      200: {
+        schema: definitions["Application"][];
+      };
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+  };
+  /** An application emit events that are consumed by customers through webhooks */
+  "applications.create": {
+    parameters: {
+      body: {
+        body: definitions["ApplicationPost"];
+      };
+    };
+    responses: {
+      /** Created */
+      201: {
+        schema: definitions["Application"];
+      };
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+  };
+  /** An application emit events that are consumed by customers through webhooks */
+  "applications.get": {
+    parameters: {
+      path: {
+        application_id: string;
+      };
+    };
+    responses: {
+      /** OK */
+      200: {
+        schema: definitions["Application"];
+      };
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+  };
+  /** Change the name of an application */
+  "applications.update": {
+    parameters: {
+      path: {
+        application_id: string;
+      };
+      body: {
+        body: definitions["ApplicationPost"];
+      };
+    };
+    responses: {
+      /** OK */
+      200: {
+        schema: definitions["Application"];
+      };
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+  };
+  /** Delete an application, further events won't be sent, active webhook subscriptions will also be deleted. */
+  "applications.delete": {
+    parameters: {
+      path: {
+        application_id: string;
+      };
+    };
+    responses: {
+      /** No Content */
+      204: never;
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+  };
+  /** List of every possible errors that Hook0 can return. Each error is in RFC7807 problem format. */
+  "errors.list": {
+    responses: {
+      /** OK */
+      200: {
+        schema: definitions["Problem"][];
+      };
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+  };
+  "events.ingest": {
+    parameters: {
+      body: {
+        body: definitions["EventPost"];
+      };
+    };
+    responses: {
+      /** Created */
+      201: {
+        schema: definitions["IngestedEvent"];
+      };
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+  };
+  "eventTypes.list": {
+    parameters: {
+      query: {
+        application_id: string;
+      };
+    };
+    responses: {
+      /** OK */
+      200: {
+        schema: definitions["EventType"][];
+      };
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+  };
+  "eventTypes.create": {
+    parameters: {
+      body: {
+        body: definitions["EventTypePost"];
+      };
+    };
+    responses: {
+      /** Created */
+      201: {
+        schema: definitions["EventType"];
+      };
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+  };
+  "eventTypes.get": {
+    parameters: {
+      path: {
+        event_type_name: string;
+      };
+      query: {
+        application_id: string;
+      };
+    };
+    responses: {
+      /** OK */
+      200: {
+        schema: definitions["EventType"];
+      };
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+  };
+  "eventTypes.delete": {
+    parameters: {
+      path: {
+        event_type_name: string;
+      };
+      query: {
+        application_id: string;
+      };
+    };
+    responses: {
+      /** No Content */
+      204: never;
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+  };
+  "events.list": {
+    parameters: {
+      query: {
+        application_id: string;
+      };
+    };
+    responses: {
+      /** OK */
+      200: {
+        schema: definitions["Event"][];
+      };
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+  };
+  "events.get": {
+    parameters: {
+      path: {
+        event_id: string;
+      };
+      query: {
+        application_id: string;
+      };
+    };
+    responses: {
+      /** OK */
+      200: {
+        schema: definitions["EventWithPayload"];
+      };
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+  };
+  "organizations.list": {
+    responses: {
+      /** OK */
+      200: {
+        schema: definitions["Organization"][];
+      };
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+  };
+  /** List all subscriptions created by customers against the application events */
+  "subscriptions.list": {
+    parameters: {
+      query: {
+        application_id: string;
+      };
+    };
+    responses: {
+      /** OK */
+      200: {
+        schema: definitions["Subscription"][];
+      };
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+  };
+  /** A subscription let your customers subscribe to events. Events will be sent through the defined medium inside the subscription (e.g. HTTP POST request) as a webhook. */
+  "subscriptions.create": {
+    parameters: {
+      body: {
+        body: definitions["SubscriptionPost"];
+      };
+    };
+    responses: {
+      /** Created */
+      201: {
+        schema: definitions["Subscription"];
+      };
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+  };
+  "subscriptions.update": {
+    parameters: {
+      path: {
+        subscription_id: string;
+      };
+      body: {
+        body: definitions["SubscriptionPost"];
+      };
+    };
+    responses: {
+      /** OK */
+      200: {
+        schema: definitions["Subscription"];
+      };
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+  };
+  "subscriptions.delete": {
+    parameters: {
+      path: {
+        subscription_id: string;
+      };
+      query: {
+        application_id: string;
+      };
+    };
+    responses: {
+      /** No Content */
+      204: never;
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+  };
+}
