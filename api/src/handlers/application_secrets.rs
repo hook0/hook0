@@ -9,8 +9,8 @@ use serde::{Deserialize, Serialize};
 use sqlx::{query, query_as};
 use uuid::Uuid;
 
-use crate::errors::*;
 use crate::iam::{can_access_application, Role};
+use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct ApplicationSecret {
@@ -25,14 +25,67 @@ pub struct Qs {
     application_id: Uuid,
 }
 
-/// List application secrets
-#[api_v2_operation]
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
+pub struct ApplicationSecretPost {
+    application_id: Uuid,
+    name: Option<String>,
+}
+
+#[api_v2_operation(
+    summary = "Create a new application secret",
+    description = "",
+    operation_id = "applicationSecrets.create",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Applications Management")
+)]
+pub async fn create(
+    state: Data<crate::State>,
+    unstructured_claims: ReqData<UnstructuredClaims>,
+    body: Json<ApplicationSecretPost>,
+) -> Result<CreatedJson<ApplicationSecret>, Hook0Problem> {
+    if !can_access_application(
+        &state.db,
+        &unstructured_claims,
+        &body.application_id,
+        &Role::Editor,
+    )
+    .await
+    {
+        return Err(Hook0Problem::Forbidden);
+    }
+
+    let application_secret = query_as!(
+        ApplicationSecret,
+        "
+                INSERT INTO event.application_secret (application__id, name)
+                VALUES ($1, $2)
+                RETURNING name, token, created_at, deleted_at
+            ",
+        &body.application_id,
+        body.name,
+    )
+    .fetch_one(&state.db)
+    .await
+    .map_err(Hook0Problem::from)?;
+
+    Ok(CreatedJson(application_secret))
+}
+
+#[api_v2_operation(
+    summary = "List application secrets",
+    description = "",
+    operation_id = "applicationSecrets.read",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Applications Management")
+)]
 pub async fn list(
     state: Data<crate::State>,
     unstructured_claims: ReqData<UnstructuredClaims>,
     qs: Query<Qs>,
-) -> Result<Json<Vec<ApplicationSecret>>, UnexpectedError> {
-    if can_access_application(
+) -> Result<Json<Vec<ApplicationSecret>>, Hook0Problem> {
+    if !can_access_application(
         &state.db,
         &unstructured_claims,
         &qs.application_id,
@@ -40,76 +93,41 @@ pub async fn list(
     )
     .await
     {
-        let application_secrets = query_as!(
-            ApplicationSecret,
-            "
+        return Err(Hook0Problem::Forbidden);
+    }
+
+    let application_secrets = query_as!(
+        ApplicationSecret,
+        "
                 SELECT name, token, created_at, deleted_at
                 FROM event.application_secret
                 WHERE application__id = $1
                 ORDER BY created_at ASC
             ",
-            &qs.application_id,
-        )
-        .fetch_all(&state.db)
-        .await
-        .map_err(|_| UnexpectedError::InternalServerError)?;
-
-        Ok(Json(application_secrets))
-    } else {
-        Err(UnexpectedError::Forbidden)
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
-pub struct ApplicationSecretPost {
-    application_id: Uuid,
-    name: Option<String>,
-}
-
-/// Create a new application secret
-#[api_v2_operation]
-pub async fn add(
-    state: Data<crate::State>,
-    unstructured_claims: ReqData<UnstructuredClaims>,
-    body: Json<ApplicationSecretPost>,
-) -> Result<CreatedJson<ApplicationSecret>, CreateError> {
-    if can_access_application(
-        &state.db,
-        &unstructured_claims,
-        &body.application_id,
-        &Role::Editor,
+        &qs.application_id,
     )
+    .fetch_all(&state.db)
     .await
-    {
-        let application_secret = query_as!(
-            ApplicationSecret,
-            "
-                INSERT INTO event.application_secret (application__id, name)
-                VALUES ($1, $2)
-                RETURNING name, token, created_at, deleted_at
-            ",
-            &body.application_id,
-            body.name,
-        )
-        .fetch_one(&state.db)
-        .await
-        .map_err(|_| CreateError::InternalServerError)?;
+    .map_err(Hook0Problem::from)?;
 
-        Ok(CreatedJson(application_secret))
-    } else {
-        Err(CreateError::Forbidden)
-    }
+    Ok(Json(application_secrets))
 }
 
-/// Edit an application secret
-#[api_v2_operation]
-pub async fn edit(
+#[api_v2_operation(
+    summary = "Update an application secret",
+    description = "",
+    operation_id = "applicationSecrets.update",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Applications Management")
+)]
+pub async fn update(
     state: Data<crate::State>,
     unstructured_claims: ReqData<UnstructuredClaims>,
     application_secret_token: Path<Uuid>,
     body: Json<ApplicationSecretPost>,
-) -> Result<Json<ApplicationSecret>, EditError> {
-    if can_access_application(
+) -> Result<Json<ApplicationSecret>, Hook0Problem> {
+    if !can_access_application(
         &state.db,
         &unstructured_claims,
         &body.application_id,
@@ -117,40 +135,46 @@ pub async fn edit(
     )
     .await
     {
-        let application_secret = query_as!(
-            ApplicationSecret,
-            "
+        return Err(Hook0Problem::Forbidden);
+    }
+
+    let application_secret = query_as!(
+        ApplicationSecret,
+        "
                 UPDATE event.application_secret
                 SET name = $1
                 WHERE application__id = $2 AND token = $3
                 RETURNING name, token, created_at, deleted_at
             ",
-            body.name,
-            &body.application_id,
-            &application_secret_token.into_inner()
-        )
-        .fetch_optional(&state.db)
-        .await
-        .map_err(|_| EditError::InternalServerError)?;
+        body.name,
+        &body.application_id,
+        &application_secret_token.into_inner()
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(Hook0Problem::from)?;
 
-        match application_secret {
-            Some(a) => Ok(Json(a)),
-            None => Err(EditError::NotFound),
-        }
-    } else {
-        Err(EditError::Forbidden)
+    match application_secret {
+        Some(a) => Ok(Json(a)),
+        None => Err(Hook0Problem::NotFound),
     }
 }
 
-/// Destroy an application secret
-#[api_v2_operation]
-pub async fn destroy(
+#[api_v2_operation(
+    summary = "Delete an application secret",
+    description = "",
+    operation_id = "applicationSecrets.delete",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Applications Management")
+)]
+pub async fn delete(
     state: Data<crate::State>,
     unstructured_claims: ReqData<UnstructuredClaims>,
     application_secret_token: Path<Uuid>,
     qs: Query<Qs>,
-) -> Result<NoContent, ShowError> {
-    if can_access_application(
+) -> Result<NoContent, Hook0Problem> {
+    if !can_access_application(
         &state.db,
         &unstructured_claims,
         &qs.application_id,
@@ -158,40 +182,40 @@ pub async fn destroy(
     )
     .await
     {
-        let application_id = qs.application_id;
-        let application_secret = query_as!(
-            ApplicationSecret,
-            "
+        return Err(Hook0Problem::Forbidden);
+    }
+
+    let application_id = qs.application_id;
+    let application_secret = query_as!(
+        ApplicationSecret,
+        "
                 SELECT name, token, created_at, deleted_at
                 FROM event.application_secret
                 WHERE application__id = $1 AND token = $2
             ",
-            &application_id,
-            &application_secret_token.into_inner()
-        )
-        .fetch_optional(&state.db)
-        .await
-        .map_err(|_| ShowError::InternalServerError)?;
+        &application_id,
+        &application_secret_token.into_inner()
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(Hook0Problem::from)?;
 
-        match application_secret {
-            Some(a) => {
-                query!(
-                    "
+    match application_secret {
+        Some(a) => {
+            query!(
+                "
                         UPDATE event.application_secret
                         SET deleted_at = statement_timestamp()
                         WHERE application__id = $1 AND token = $2
                     ",
-                    &application_id,
-                    &a.token
-                )
-                .execute(&state.db)
-                .await
-                .map_err(|_| ShowError::InternalServerError)?;
-                Ok(NoContent)
-            }
-            None => Err(ShowError::NotFound),
+                &application_id,
+                &a.token
+            )
+            .execute(&state.db)
+            .await
+            .map_err(Hook0Problem::from)?;
+            Ok(NoContent)
         }
-    } else {
-        Err(ShowError::Forbidden)
+        None => Err(Hook0Problem::NotFound),
     }
 }

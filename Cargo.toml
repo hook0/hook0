@@ -8,3 +8,8 @@ members = [
 [profile.release]
 lto = true
 codegen-units = 1
+
+[profile.dev]
+# Rust 1.51 added an interesting flag for faster incremental debug builds on macOS.
+# It can make debug builds up to seconds faster (depending on your use-case).
+split-debuginfo = "unpacked"

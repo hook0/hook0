@@ -1,15 +1,18 @@
+use actix_web::ResponseError;
 use actix_web_middleware_keycloak_auth::UnstructuredClaims;
+use http_api_problem::HttpApiProblem;
 use paperclip::actix::{
     api_v2_operation,
     web::{Data, Json, Path, Query, ReqData},
     Apiv2Schema, CreatedJson, NoContent,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::{query, query_as};
+use sqlx::{query, query_as, Error};
 use uuid::Uuid;
 
-use crate::errors::*;
 use crate::iam::{can_access_application, can_access_organization, Role};
+use crate::problems;
+use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct Application {
@@ -23,44 +26,30 @@ pub struct Qs {
     organization_id: Uuid,
 }
 
-/// List applications
-#[api_v2_operation]
-pub async fn list(
-    state: Data<crate::State>,
-    unstructured_claims: ReqData<UnstructuredClaims>,
-    qs: Query<Qs>,
-) -> Result<Json<Vec<Application>>, UnexpectedError> {
-    if can_access_organization(&unstructured_claims, &qs.organization_id, &Role::Viewer).await {
-        let applications = query_as!(
-            Application,
-            "SELECT application__id AS application_id, organization__id AS organization_id, name FROM event.application WHERE organization__id = $1",
-            &qs.organization_id
-        )
-        .fetch_all(&state.db)
-        .await
-        .map_err(|_| UnexpectedError::InternalServerError)?;
-
-        Ok(Json(applications))
-    } else {
-        Err(UnexpectedError::Forbidden)
-    }
-}
-
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
 pub struct ApplicationPost {
     organization_id: Uuid,
     name: String,
 }
 
-/// Create a new application
-#[api_v2_operation]
-pub async fn add(
+#[api_v2_operation(
+    summary = "Create a new application",
+    description = "An application emit events that are consumed by customers through webhooks",
+    operation_id = "applications.create",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Applications Management")
+)]
+pub async fn create(
     state: Data<crate::State>,
     unstructured_claims: ReqData<UnstructuredClaims>,
     body: Json<ApplicationPost>,
-) -> Result<CreatedJson<Application>, CreateError> {
-    if can_access_organization(&unstructured_claims, &body.organization_id, &Role::Editor).await {
-        let application = query_as!(
+) -> Result<CreatedJson<Application>, Hook0Problem> {
+    if !can_access_organization(&unstructured_claims, &body.organization_id, &Role::Editor).await {
+        return Err(Hook0Problem::Forbidden);
+    }
+
+    let application = query_as!(
             Application,
             "
                 INSERT INTO event.application (organization__id, name) VALUES ($1, $2)
@@ -70,22 +59,25 @@ pub async fn add(
         )
         .fetch_one(&state.db)
         .await
-        .map_err(|_| CreateError::InternalServerError)?;
+        .map_err(Hook0Problem::from)?;
 
-        Ok(CreatedJson(application))
-    } else {
-        Err(CreateError::Forbidden)
-    }
+    Ok(CreatedJson(application))
 }
 
-/// Get an application
-#[api_v2_operation]
-pub async fn show(
+#[api_v2_operation(
+    summary = "Get an application by its id",
+    description = "An application emit events that are consumed by customers through webhooks",
+    operation_id = "applications.get",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Applications Management")
+)]
+pub async fn get(
     state: Data<crate::State>,
     unstructured_claims: ReqData<UnstructuredClaims>,
     application_id: Path<Uuid>,
-) -> Result<Json<Application>, ShowError> {
-    if can_access_application(
+) -> Result<Json<Application>, Hook0Problem> {
+    if !can_access_application(
         &state.db,
         &unstructured_claims,
         &application_id,
@@ -93,37 +85,72 @@ pub async fn show(
     )
     .await
     {
-        let application = query_as!(
-            Application,
-            "
+        return Err(Hook0Problem::Forbidden);
+    }
+
+    let application = query_as!(
+        Application,
+        "
                 SELECT application__id AS application_id, organization__id AS organization_id, name
                 FROM event.application
                 WHERE application__id = $1
             ",
-            application_id.into_inner()
-        )
-        .fetch_optional(&state.db)
-        .await
-        .map_err(|_| ShowError::InternalServerError)?;
+        application_id.into_inner()
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(Hook0Problem::from)?;
 
-        match application {
-            Some(a) => Ok(Json(a)),
-            None => Err(ShowError::NotFound),
-        }
-    } else {
-        Err(ShowError::Forbidden)
+    match application {
+        Some(a) => Ok(Json(a)),
+        None => Err(Hook0Problem::NotFound),
     }
 }
 
-/// Edit an application
-#[api_v2_operation]
+#[api_v2_operation(
+    summary = "List applications",
+    description = "",
+    operation_id = "applications.list",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Applications Management")
+)]
+pub async fn list(
+    state: Data<crate::State>,
+    unstructured_claims: ReqData<UnstructuredClaims>,
+    qs: Query<Qs>,
+) -> Result<Json<Vec<Application>>, Hook0Problem> {
+    if !can_access_organization(&unstructured_claims, &qs.organization_id, &Role::Viewer).await {
+        return Err(Hook0Problem::Forbidden);
+    }
+
+    let applications = query_as!(
+            Application,
+            "SELECT application__id AS application_id, organization__id AS organization_id, name FROM event.application WHERE organization__id = $1",
+            &qs.organization_id
+        )
+        .fetch_all(&state.db)
+        .await
+        .map_err(Hook0Problem::from)?;
+
+    Ok(Json(applications))
+}
+
+#[api_v2_operation(
+    summary = "Edit an application",
+    description = "Change the name of an application",
+    operation_id = "applications.update",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Applications Management")
+)]
 pub async fn edit(
     state: Data<crate::State>,
     unstructured_claims: ReqData<UnstructuredClaims>,
     application_id: Path<Uuid>,
     body: Json<ApplicationPost>,
-) -> Result<Json<Application>, EditError> {
-    if can_access_application(
+) -> Result<Json<Application>, Hook0Problem> {
+    if !can_access_application(
         &state.db,
         &unstructured_claims,
         &application_id,
@@ -132,7 +159,10 @@ pub async fn edit(
     .await
         && can_access_organization(&unstructured_claims, &body.organization_id, &Role::Editor).await
     {
-        let application = query_as!(
+        return Err(Hook0Problem::Forbidden);
+    }
+
+    let application = query_as!(
             Application,
             "
                 UPDATE event.application
@@ -144,24 +174,27 @@ pub async fn edit(
         )
         .fetch_optional(&state.db)
         .await
-        .map_err(|_| EditError::InternalServerError)?;
+        .map_err(Hook0Problem::from)?;
 
-        match application {
-            Some(a) => Ok(Json(a)),
-            None => Err(EditError::NotFound),
-        }
-    } else {
-        Err(EditError::Forbidden)
+    match application {
+        Some(a) => Ok(Json(a)),
+        None => Err(Hook0Problem::NotFound),
     }
 }
 
-/// Destroy an application
-#[api_v2_operation]
-pub async fn destroy(
+#[api_v2_operation(
+    summary = "Delete an application",
+    description = "Delete an application, further events won't be sent, active webhook subscriptions will also be deleted.",
+    operation_id = "applications.delete",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Applications Management")
+)]
+pub async fn delete(
     state: Data<crate::State>,
     unstructured_claims: ReqData<UnstructuredClaims>,
     application_id: Path<Uuid>,
-) -> Result<NoContent, ShowError> {
+) -> Result<NoContent, Hook0Problem> {
     if can_access_application(
         &state.db,
         &unstructured_claims,
@@ -170,33 +203,33 @@ pub async fn destroy(
     )
     .await
     {
-        let application = query_as!(
-            Application,
-            "
+        return Err(Hook0Problem::Forbidden);
+    }
+
+    let application = query_as!(
+        Application,
+        "
                 SELECT application__id AS application_id, organization__id AS organization_id, name
                 FROM event.application
                 WHERE application__id = $1
             ",
-            application_id.into_inner()
-        )
-        .fetch_optional(&state.db)
-        .await
-        .map_err(|_| ShowError::InternalServerError)?;
+        application_id.into_inner()
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(Hook0Problem::from)?;
 
-        match application {
-            Some(a) => {
-                query!(
-                    "DELETE FROM event.application WHERE application__id = $1",
-                    a.application_id
-                )
-                .execute(&state.db)
-                .await
-                .map_err(|_| ShowError::InternalServerError)?;
-                Ok(NoContent)
-            }
-            None => Err(ShowError::NotFound),
+    match application {
+        Some(a) => {
+            query!(
+                "DELETE FROM event.application WHERE application__id = $1",
+                a.application_id
+            )
+            .execute(&state.db)
+            .await
+            .map_err(Hook0Problem::from)?;
+            Ok(NoContent)
         }
-    } else {
-        Err(ShowError::Forbidden)
+        None => Err(Hook0Problem::NotFound),
     }
 }
