@@ -93,31 +93,6 @@ pub struct Problem {
     status: StatusCode,
 }
 
-#[cfg(test)]
-mod tests {
-    use sqlx::postgres::PgDatabaseError;
-
-    use super::*;
-
-    #[test]
-    fn test_database_error() {
-        //sqlx::Error::Database(Box::new(PgDatabaseError))
-        //assert_eq!(divide_non_zero_result(10, 2), 5);
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_any_panic() {
-        divide_non_zero_result(1, 0);
-    }
-
-    #[test]
-    #[should_panic(expected = "Divide result is zero")]
-    fn test_specific_panic() {
-        divide_non_zero_result(1, 10);
-    }
-}
-
 impl Into<Problem> for Hook0Problem {
     fn into(self) -> Problem {
         match self {
