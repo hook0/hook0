@@ -1,17 +1,14 @@
-use actix_web::ResponseError;
 use actix_web_middleware_keycloak_auth::UnstructuredClaims;
-use http_api_problem::HttpApiProblem;
 use paperclip::actix::{
     api_v2_operation,
     web::{Data, Json, Path, Query, ReqData},
     Apiv2Schema, CreatedJson, NoContent,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::{query, query_as, Error};
+use sqlx::{query, query_as};
 use uuid::Uuid;
 
 use crate::iam::{can_access_application, can_access_organization, Role};
-use crate::problems;
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
