@@ -90,7 +90,6 @@ export default class ApiDocumentation extends Vue {
 
       syntaxHighlight: {
         activate: true,
-        theme: "aaa"
       },
 
       onComplete: () => {

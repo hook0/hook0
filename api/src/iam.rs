@@ -1,9 +1,10 @@
+use std::collections::HashMap;
+use std::str::FromStr;
+
 use actix_web_middleware_keycloak_auth::UnstructuredClaims;
 use lazy_static::lazy_static;
 use regex::{escape, Regex};
 use sqlx::{query_as, PgPool};
-use std::collections::HashMap;
-use std::str::FromStr;
 use uuid::Uuid;
 
 const GROUPS_CLAIM_NAME: &str = "groups";
@@ -121,11 +122,12 @@ pub async fn can_access_application(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
-    use serde_json::Value;
     use std::collections::HashMap;
     use std::iter::FromIterator;
+
+    use serde_json::Value;
+
+    use super::*;
 
     #[test]
     fn extract_all_organizations() {
