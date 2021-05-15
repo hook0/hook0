@@ -58,13 +58,6 @@ export default class ApiDocumentation extends Vue {
       url: "/api/v1/swagger.json",
       domNode: this.$refs.container,
 
-      presets: [
-        SwaggerUI.presets.apis,
-      ],
-      plugins: [
-        SwaggerUI.plugins.DownloadUrl
-      ],
-
       docExpansion: "list",
 
       showExtensions: true,
@@ -78,7 +71,6 @@ export default class ApiDocumentation extends Vue {
         return order.indexOf(tag);
       },
 
-      apisSorter: "alpha",
       operationsSorter: "alpha",
 
       displayOperationId: false,
