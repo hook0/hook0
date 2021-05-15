@@ -1,6 +1,6 @@
-FROM rust:1.49 as builder
+FROM rust:1.52.1 as builder
 
-ENV SQLX_OFFLINE=true
+ENV SQLX_OFFLINE=false
 RUN USER=root cargo new --bin app
 WORKDIR ./app
 COPY ./Cargo.toml ./Cargo.toml
