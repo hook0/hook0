@@ -2,7 +2,7 @@
 name = "hook0-api"
 version = "0.1.0"
 description = "Core API of Hook0"
-authors = ["David Sferruzza <david.sferruzza@gmail.com>"]
+authors = ["David Sferruzza <david.sferruzza@gmail.com>", "François-Guillaume Ribreau <hook0@fgribreau.com>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
