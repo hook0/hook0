@@ -2,16 +2,26 @@
   <p>Hello</p>
 </template>
 
-<script>
-export default {
-  name: 'NAME',
-  components: {},
-  data() {
-    return {};
+<script lang="ts">
+import {Options, Vue} from "vue-class-component";
+
+@Options({
+  components: {
+
   },
-  methods: {},
-  mounted() {},
-  computed: {},
+})
+export default class Hook0Template extends Vue {
+  // private data_attribute !: any;
+
+  data() {
+    return {
+
+    }
+  }
+
+  mounted() {
+
+  }
 };
 </script>
 
