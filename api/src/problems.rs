@@ -6,6 +6,7 @@ use http_api_problem::*;
 use paperclip::actix::api_v2_errors;
 use sqlx::postgres::PgDatabaseError;
 use sqlx::Error;
+use strum::EnumIter;
 
 /**
  * How to implement a new type error for Hook0:
@@ -14,7 +15,7 @@ use sqlx::Error;
  * 3/ Done! Enjoy!
  */
 #[api_v2_errors(code = 403, code = 500, code = 400, code = 404, code = 409)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, EnumIter)]
 pub enum Hook0Problem {
     // Functional errors
     ApplicationNameMissing,
@@ -87,10 +88,10 @@ impl ResponseError for Hook0Problem {
 
 #[derive(Debug, Copy, Clone)]
 pub struct Problem {
-    id: Hook0Problem,
-    title: &'static str,
-    detail: &'static str,
-    status: StatusCode,
+    pub id: Hook0Problem,
+    pub title: &'static str,
+    pub detail: &'static str,
+    pub status: StatusCode,
 }
 
 impl From<Hook0Problem> for Problem {
