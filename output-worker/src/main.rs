@@ -1,7 +1,8 @@
 mod work;
 
 use chrono::{DateTime, Utc};
-use clap::{crate_name, ArgSettings::HideEnvValues, Clap};
+use clap::{crate_name, crate_version, Clap};
+use clap::ArgSettings::HideEnvValues;
 use log::{debug, info, trace};
 use reqwest::header::HeaderMap;
 use sqlx::postgres::types::PgInterval;
