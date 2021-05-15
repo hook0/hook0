@@ -16,7 +16,6 @@
             Application Name
           </template>
           <template #content>
-            {{application}}
             <hook0-input
               type="text"
               v-model="application.name"
@@ -38,12 +37,11 @@
 </template>
 
 <script lang="ts">
-import {Application, list} from './ApplicationService';
+import {Application, create, list} from './ApplicationService';
 import {Options, Vue} from 'vue-class-component';
 import Hook0Button from "@/components/Hook0Button.vue";
 import {routes} from "@/routes";
 import Hook0Input from "@/components/Hook0Input.vue";
-import {create} from './ApplicationService';
 import Hook0Card from "@/components/Hook0Card.vue";
 import Hook0CardHeader from "@/components/Hook0CardHeader.vue";
 import Hook0CardFooter from "@/components/Hook0CardFooter.vue";
@@ -54,17 +52,15 @@ import Hook0CardContentLine from "@/components/Hook0CardContentLine.vue";
   components: {
     Hook0CardContentLine, Hook0CardContent, Hook0CardFooter, Hook0CardHeader, Hook0Card, Hook0Input, Hook0Button
   },
-  props: {
-    msg: String
-  },
 })
 export default class ApplicationNew extends Vue {
   private applications$ !: Promise<Array<Application>>;
+  private application!: { name: string };
 
   data() {
     return {
       routes: routes,
-      application:{
+      application: {
         name: '',
       },
       applications$: new Promise(() => {
@@ -76,12 +72,12 @@ export default class ApplicationNew extends Vue {
     this.applications$ = list(this.$route.query.organization_id as string);
   }
 
-  submit(e) {
+  submit(e: Event) {
     e.preventDefault();
 
     create({
       name: this.application.name,
-      organization_id: this.$route.query.organization_id
+      organization_id: (this.$route.query.organization_id as string)
     }).then((resp) => {
       // move back to /applications
       console.log(resp);

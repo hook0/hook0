@@ -1,6 +1,4 @@
-mod errors;
-mod handlers;
-mod iam;
+use std::str::FromStr;
 
 use actix_files::{Files, NamedFile};
 use actix_web::web::Data;
@@ -13,7 +11,10 @@ use paperclip::{
     v2::models::{DefaultApiRaw, Info},
 };
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
-use std::str::FromStr;
+
+mod handlers;
+mod iam;
+mod problems;
 
 const APP_TITLE: &str = "Hook0 API";
 const WEBAPP_INDEX_FILE: &str = "index.html";
@@ -130,13 +131,13 @@ async fn main() -> anyhow::Result<()> {
                             .service(
                                 web::resource("")
                                     .route(web::get().to(handlers::applications::list))
-                                    .route(web::post().to(handlers::applications::add)),
+                                    .route(web::post().to(handlers::applications::create)),
                             )
                             .service(
                                 web::resource("/{application_id}")
-                                    .route(web::get().to(handlers::applications::show))
+                                    .route(web::get().to(handlers::applications::get))
                                     .route(web::put().to(handlers::applications::edit))
-                                    .route(web::delete().to(handlers::applications::destroy)),
+                                    .route(web::delete().to(handlers::applications::delete)),
                             ),
                     )
                     .service(
@@ -145,12 +146,12 @@ async fn main() -> anyhow::Result<()> {
                             .service(
                                 web::resource("")
                                     .route(web::get().to(handlers::event_types::list))
-                                    .route(web::post().to(handlers::event_types::add)),
+                                    .route(web::post().to(handlers::event_types::create)),
                             )
                             .service(
                                 web::resource("/{event_type_name}")
-                                    .route(web::get().to(handlers::event_types::show))
-                                    .route(web::delete().to(handlers::event_types::destroy)),
+                                    .route(web::get().to(handlers::event_types::get))
+                                    .route(web::delete().to(handlers::event_types::delete)),
                             ),
                     )
                     .service(
@@ -159,14 +160,12 @@ async fn main() -> anyhow::Result<()> {
                             .service(
                                 web::resource("")
                                     .route(web::get().to(handlers::application_secrets::list))
-                                    .route(web::post().to(handlers::application_secrets::add)),
+                                    .route(web::post().to(handlers::application_secrets::create)),
                             )
                             .service(
                                 web::resource("/{application_secret_token}")
-                                    .route(web::put().to(handlers::application_secrets::edit))
-                                    .route(
-                                        web::delete().to(handlers::application_secrets::destroy),
-                                    ),
+                                    .route(web::put().to(handlers::application_secrets::update))
+                                    .route(web::delete().to(handlers::application_secrets::delete)),
                             ),
                     )
                     .service(
@@ -175,7 +174,7 @@ async fn main() -> anyhow::Result<()> {
                             .service(web::resource("").route(web::get().to(handlers::events::list)))
                             .service(
                                 web::resource("/{event_id}")
-                                    .route(web::get().to(handlers::events::show)),
+                                    .route(web::get().to(handlers::events::get)),
                             ),
                     )
                     .service(
@@ -191,8 +190,8 @@ async fn main() -> anyhow::Result<()> {
                             )
                             .service(
                                 web::resource("/{subscription_id}")
-                                    .route(web::put().to(handlers::subscriptions::edit))
-                                    .route(web::delete().to(handlers::subscriptions::destroy)),
+                                    .route(web::put().to(handlers::subscriptions::update))
+                                    .route(web::delete().to(handlers::subscriptions::delete)),
                             ),
                     ),
                 // TODO: request_attempts
@@ -213,7 +212,14 @@ async fn main() -> anyhow::Result<()> {
     .map_err(|e| e.into())
 }
 
-#[api_v2_operation]
+#[api_v2_operation(
+    summary = "",
+    description = "",
+    operation_id = "items.[get|list|update|delete]",
+    consumes = "application/json",
+    produces = "application/json",
+    tags(Default)
+)]
 async fn default_handler(
     req: HttpRequest,
     state: Data<crate::State>,

@@ -7,8 +7,8 @@ use paperclip::actix::{
 use serde::Serialize;
 use uuid::Uuid;
 
-use crate::errors::*;
 use crate::iam::extract_organizations;
+use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct Organization {
@@ -16,11 +16,17 @@ pub struct Organization {
     pub role: String,
 }
 
-/// List organizations
-#[api_v2_operation]
+#[api_v2_operation(
+    summary = "List organizations",
+    description = "",
+    operation_id = "organizations.list",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Identity and Access Management")
+)]
 pub async fn list(
     unstructured_claims: ReqData<UnstructuredClaims>,
-) -> Result<Json<Vec<Organization>>, UnexpectedError> {
+) -> Result<Json<Vec<Organization>>, Hook0Problem> {
     let organizations = extract_organizations(&unstructured_claims)
         .iter()
         .map(|(id, role)| Organization {

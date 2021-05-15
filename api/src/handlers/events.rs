@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use actix_web::HttpRequest;
 use actix_web_middleware_keycloak_auth::UnstructuredClaims;
 use base64::{decode, encode};
@@ -12,12 +14,12 @@ use paperclip::actix::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::query_as;
-use std::str::FromStr;
 use uuid::Uuid;
 
-use super::application_secrets::ApplicationSecret;
-use crate::errors::*;
 use crate::iam::{can_access_application, Role};
+use crate::problems::Hook0Problem;
+
+use super::application_secrets::ApplicationSecret;
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
 pub struct Qs {
@@ -67,14 +69,20 @@ pub struct Event {
     labels: Value,
 }
 
-/// List latest events
-#[api_v2_operation]
+#[api_v2_operation(
+    summary = "List latest events",
+    description = "",
+    operation_id = "events.list",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Events Management")
+)]
 pub async fn list(
     state: Data<crate::State>,
     unstructured_claims: ReqData<UnstructuredClaims>,
     qs: Query<Qs>,
-) -> Result<Json<Vec<Event>>, UnexpectedError> {
-    if can_access_application(
+) -> Result<Json<Vec<Event>>, Hook0Problem> {
+    if !can_access_application(
         &state.db,
         &unstructured_claims,
         &qs.application_id,
@@ -82,7 +90,10 @@ pub async fn list(
     )
     .await
     {
-        let raw_events = query_as!(
+        return Err(Hook0Problem::Forbidden);
+    }
+
+    let raw_events = query_as!(
             EventRaw,
             "
                 SELECT event__id, event_type__name, payload_content_type__name, ip, metadata, occurred_at, received_at, application_secret__token, labels
@@ -95,13 +106,10 @@ pub async fn list(
         )
         .fetch_all(&state.db)
         .await
-        .map_err(|_| UnexpectedError::InternalServerError)?;
+        .map_err(Hook0Problem::from)?;
 
-        let events = raw_events.iter().map(|re| re.to_event()).collect();
-        Ok(Json(events))
-    } else {
-        Err(UnexpectedError::Forbidden)
-    }
+    let events = raw_events.iter().map(|re| re.to_event()).collect();
+    Ok(Json(events))
 }
 
 #[derive(Debug)]
@@ -150,15 +158,21 @@ pub struct EventWithPayload {
     labels: Value,
 }
 
-/// Show an event
-#[api_v2_operation]
-pub async fn show(
+#[api_v2_operation(
+    summary = "Get an event",
+    description = "",
+    operation_id = "events.get",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Events Management")
+)]
+pub async fn get(
     state: Data<crate::State>,
     unstructured_claims: ReqData<UnstructuredClaims>,
     event_id: Path<Uuid>,
     qs: Query<Qs>,
-) -> Result<Json<EventWithPayload>, ShowError> {
-    if can_access_application(
+) -> Result<Json<EventWithPayload>, Hook0Problem> {
+    if !can_access_application(
         &state.db,
         &unstructured_claims,
         &qs.application_id,
@@ -166,7 +180,10 @@ pub async fn show(
     )
     .await
     {
-        let raw_event = query_as!(
+        return Err(Hook0Problem::Forbidden);
+    }
+
+    let raw_event = query_as!(
             EventWithPayloadRaw,
             "
                 SELECT event__id, event_type__name, payload, payload_content_type__name, ip, metadata, occurred_at, received_at, application_secret__token, labels
@@ -178,14 +195,11 @@ pub async fn show(
         )
         .fetch_optional(&state.db)
         .await
-        .map_err(|_| ShowError::InternalServerError)?;
+        .map_err(Hook0Problem::from)?;
 
-        match raw_event {
-            Some(re) => Ok(Json(re.to_event())),
-            None => Err(ShowError::NotFound),
-        }
-    } else {
-        Err(ShowError::Forbidden)
+    match raw_event {
+        Some(re) => Ok(Json(re.to_event())),
+        None => Err(Hook0Problem::NotFound),
     }
 }
 
@@ -214,17 +228,20 @@ pub struct IngestedEvent {
     received_at: DateTime<Utc>,
 }
 
-/// Ingest an event
-#[api_v2_operation]
+#[api_v2_operation(
+    summary = "Ingest an event",
+    description = "",
+    operation_id = "events.ingest",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Events Management")
+)]
 pub async fn ingest(
     state: Data<crate::State>,
     body: Json<EventPost>,
     req: HttpRequest,
-) -> Result<CreatedJson<IngestedEvent>, IngestError> {
-    let mut tx = state.db.begin().await.map_err(|e| {
-        error!("{}", &e);
-        IngestError::InternalServerError
-    })?;
+) -> Result<CreatedJson<IngestedEvent>, Hook0Problem> {
+    let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
 
     let application_secret = query_as!(
         ApplicationSecret,
@@ -238,7 +255,7 @@ pub async fn ingest(
     )
     .fetch_one(&mut tx)
     .await
-    .map_err(|_| IngestError::Forbidden)?;
+    .map_err(Hook0Problem::from)?;
 
     let content_type_lookup = query_as!(
         ContentTypeLookup,
@@ -251,18 +268,18 @@ pub async fn ingest(
     )
     .fetch_one(&mut tx)
     .await
-    .map_err(|e| {
-        error!("{}", &e);
-        IngestError::InternalServerError
-    })?;
+    .map_err(Hook0Problem::from)?;
 
     let content_type_ok = matches!(content_type_lookup, ContentTypeLookup { nb: Some(1) });
-    let payload = decode(body.payload.as_str());
+
+    let payload = base64::decode(body.payload.as_str());
+
     let metadata_ok = body
         .metadata
         .as_ref()
         .map(|val| val.is_object())
         .unwrap_or(true);
+
     let labels_ok = body.labels.is_object();
 
     match (content_type_ok, payload, metadata_ok, labels_ok) {
@@ -271,11 +288,11 @@ pub async fn ingest(
                 .connection_info()
                 .realip_remote_addr()
                 .and_then(|str| str.split(':').next())
-                .ok_or(IngestError::InternalServerError)
+                .ok_or(Hook0Problem::InternalServerError)
                 .and_then(|str| {
                     IpNetwork::from_str(str).map_err(|e| {
                         error!("{}", &e);
-                        IngestError::InternalServerError
+                        Hook0Problem::InternalServerError
                     })
                 })?;
 
@@ -296,29 +313,17 @@ pub async fn ingest(
                 &application_secret.token,
                 body.labels,
             )
-            .fetch_one(&state.db)
-            .await
-            .map_err(|e| {
-                use sqlx::postgres::PgDatabaseError;
-                match e.as_database_error() {
-                    Some(e) if e.try_downcast_ref::<PgDatabaseError>().is_some() && e.try_downcast_ref::<PgDatabaseError>().unwrap().constraint() == Some("event_pkey") => IngestError::Conflict,
-                    _ => {
-                        error!("{}", &e);
-                        IngestError::InternalServerError
-                    }
-                }
-            })?;
+                .fetch_one(&state.db)
+                .await
+                .map_err(Hook0Problem::from)?;
 
-            tx.commit().await.map_err(|e| {
-                error!("{}", &e);
-                IngestError::InternalServerError
-            })?;
+            tx.commit().await.map_err(Hook0Problem::from)?;
 
             Ok(CreatedJson(event))
         }
-        (false, _, _, _) => Err(IngestError::InvalidPayloadContentType),
-        (_, Err(_), _, _) => Err(IngestError::InvalidPayload),
-        (_, _, false, _) => Err(IngestError::InvalidMetadata),
-        (_, _, _, false) => Err(IngestError::InvalidLabels),
+        (false, _, _, _) => Err(Hook0Problem::EventInvalidPayloadContentType),
+        (_, Err(_), _, _) => Err(Hook0Problem::EventInvalidBase64Payload),
+        (_, _, false, _) => Err(Hook0Problem::EventInvalidMetadata),
+        (_, _, _, false) => Err(Hook0Problem::EventInvalidLabels),
     }
 }
