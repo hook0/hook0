@@ -1,5 +1,4 @@
 use actix_web_middleware_keycloak_auth::UnstructuredClaims;
-use log::error;
 use paperclip::actix::{
     api_v2_operation,
     web::{Data, Json, Path, Query, ReqData},
