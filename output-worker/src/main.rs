@@ -85,9 +85,9 @@ async fn main() -> anyhow::Result<()> {
         let next_attempt = sqlx::query_as!(RequestAttempt, "
             SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.retry_count, t_http.method AS http_method, t_http.url AS http_url, t_http.headers AS http_headers, e.payload AS payload, e.payload_content_type__name AS payload_content_type
             FROM webhook.request_attempt AS ra
-            NATURAL INNER JOIN webhook.subscription AS s
-            NATURAL INNER JOIN webhook.target_http AS t_http
-            NATURAL INNER JOIN event.event AS e
+            INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
+            INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
+            INNER JOIN event.event AS e ON e.event__id = ra.event__id
             WHERE succeeded_at IS NULL AND failed_at IS NULL AND (delay_until IS NULL OR delay_until <= statement_timestamp())
             ORDER BY created_at ASC
             LIMIT 1
