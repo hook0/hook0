@@ -37,12 +37,14 @@
       "nullable": []
     }
   },
-  "542467650ab9d28a65afe2e1de6f2fd11c404efe36f7cd12ceb4cf163c09c93a": {
-    "query": "UPDATE webhook.request_attempt SET picked_at = statement_timestamp() WHERE request_attempt__id = $1",
+  "78260e141e2c10330305efcbdb513020291e16640260fccb98abf6b65e891949": {
+    "query": "\n                UPDATE webhook.request_attempt\n                SET picked_at = statement_timestamp(), worker_id = $1, worker_version = $2\n                WHERE request_attempt__id = $3\n                ",
     "describe": {
       "columns": [],
       "parameters": {
         "Left": [
+          "Text",
+          "Text",
           "Uuid"
         ]
       },

@@ -350,6 +350,8 @@ create table webhook.request_attempt
     subscription__id    uuid        not null,
     created_at          timestamptz not null default now(),
     picked_at           timestamptz,
+    worker_id           text,
+    worker_version      text,
     failed_at           timestamptz,
     succeeded_at        timestamptz,
     delay_until         timestamptz,
