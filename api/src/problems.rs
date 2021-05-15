@@ -59,12 +59,15 @@ impl From<sqlx::Error> for Hook0Problem {
     }
 }
 
-impl Into<HttpApiProblem> for Hook0Problem {
-    fn into(self) -> HttpApiProblem {
-        let problem: Problem = self.into();
+impl From<Hook0Problem> for HttpApiProblem {
+    fn from(hook0_problem: Hook0Problem) -> Self {
+        let problem: Problem = hook0_problem.into();
         HttpApiProblem::new(problem.status)
-            .type_url(format!("https://hook0.com/documentation/errors/{}", self)) // rely on Display trait of Hook0Problem
-            .value("id".to_string(), &format!("{}", self)) // also rely on Display trait of Hook0Problem
+            .type_url(format!(
+                "https://hook0.com/documentation/errors/{}",
+                hook0_problem
+            )) // rely on Display trait of Hook0Problem
+            .value("id".to_string(), &format!("{}", hook0_problem)) // also rely on Display trait of Hook0Problem
             .title(problem.title)
             .detail(problem.detail)
     }
@@ -90,9 +93,9 @@ pub struct Problem {
     status: StatusCode,
 }
 
-impl Into<Problem> for Hook0Problem {
-    fn into(self) -> Problem {
-        match self {
+impl From<Hook0Problem> for Problem {
+    fn from(hook0_problem: Hook0Problem) -> Self {
+        match hook0_problem {
             // Functional errors
             Hook0Problem::ApplicationNameMissing => Problem {
                 id: Hook0Problem::ApplicationNameMissing,
