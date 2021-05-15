@@ -25,3 +25,4 @@ serde = "1.0.125"
 serde_json = "1.0.64"
 sqlx = { version = "0.4.2", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "offline"] } # runtime-tokio-rustls because https://github.com/launchbadge/sqlx/issues/894#issuecomment-747821912
 uuid = { version = "0.8.2", features = ["serde"] }
+http-api-problem = { version = "0.50.1", features = ["actix-web"] }
