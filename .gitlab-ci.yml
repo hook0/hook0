@@ -1,6 +1,7 @@
 variables:
   PG_VERSION: "12"
   RUST_VERSION: "1.52.1"
+  NODE_VERSION: "14"
   POSTGRES_DB: hook0-ci
   POSTGRES_USER: runner
   POSTGRES_PASSWORD: ""
@@ -39,3 +40,14 @@ rust.check:
     - echo "DATABASE_URL=\"postgresql://$POSTGRES_USER@postgres/$POSTGRES_DB\"" > .env
     - cargo clippy --all-targets --all-features -- -D warnings
     - cargo test
+
+frontend:
+  image: node:$NODE_VERSION
+  script:
+    - pushd frontend
+    - npm ci
+    - npm run build
+  artifacts:
+    name: "$CI_BUILD_NAME"
+    paths:
+      - frontend/dist/
