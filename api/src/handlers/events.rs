@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use actix_web::HttpRequest;
 use actix_web_middleware_keycloak_auth::UnstructuredClaims;
-use base64::{decode, encode};
+use base64::encode;
 use chrono::{DateTime, Utc};
 use ipnetwork::IpNetwork;
 use log::error;

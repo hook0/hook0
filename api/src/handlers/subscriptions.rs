@@ -239,7 +239,7 @@ pub async fn add(
                 &event_type,
             )
                 .execute(&mut tx).await
-                .map_err(|ex| Hook0Problem::from(ex))?;
+                .map_err(Hook0Problem::from)?;
     }
 
     tx.commit().await.map_err(Hook0Problem::from)?;
