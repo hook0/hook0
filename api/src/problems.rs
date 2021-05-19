@@ -1,11 +1,10 @@
-use std::fmt;
-use std::fmt::Display;
-
 use actix_web::{HttpResponse, ResponseError};
 use http_api_problem::*;
 use paperclip::actix::api_v2_errors;
 use sqlx::postgres::PgDatabaseError;
 use sqlx::Error;
+use std::fmt;
+use std::fmt::Display;
 use strum::EnumIter;
 
 /**
