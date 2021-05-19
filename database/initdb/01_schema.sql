@@ -19,6 +19,15 @@ create schema event;
 
 
 -- region tables
+create table event.organization
+(
+    organization__id uuid not null,
+    name             text not null,
+    icon             text,
+    constraint organization_pkey primary key (organization__id),
+    constraint organization_name_chk check (length(name) > 1)
+);
+
 create table event.application
 (
     application__id  uuid not null default public.gen_random_uuid(),

@@ -1,10 +1,12 @@
 use actix_web_middleware_keycloak_auth::UnstructuredClaims;
+use log::error;
 use paperclip::actix::{
     api_v2_operation,
-    web::{Json, ReqData},
+    web::{Data, Json, ReqData},
     Apiv2Schema,
 };
 use serde::Serialize;
+use sqlx::query_as;
 use uuid::Uuid;
 
 use crate::iam::extract_organizations;
@@ -14,6 +16,7 @@ use crate::problems::Hook0Problem;
 pub struct Organization {
     pub organization_id: Uuid,
     pub role: String,
+    pub name: String,
 }
 
 #[api_v2_operation(
@@ -25,14 +28,44 @@ pub struct Organization {
     tags("Identity and Access Management")
 )]
 pub async fn list(
+    state: Data<crate::State>,
     unstructured_claims: ReqData<UnstructuredClaims>,
 ) -> Result<Json<Vec<Organization>>, Hook0Problem> {
-    let organizations = extract_organizations(&unstructured_claims)
-        .iter()
-        .map(|(id, role)| Organization {
-            organization_id: *id,
+    struct OrganizationMetadata {
+        name: String,
+    }
+    let mut organizations = vec![];
+
+    for (organization_id, role) in extract_organizations(&unstructured_claims) {
+        let metadata = query_as!(
+            OrganizationMetadata,
+            "
+                SELECT name
+                FROM event.organization
+                WHERE organization__id = $1
+            ",
+            &organization_id
+        )
+        .fetch_optional(&state.db)
+        .await
+        .map_err(Hook0Problem::from)?;
+
+        let name = metadata.map(|om| om.name).unwrap_or_else(|| {
+            error!(
+                "Could not find organization {} in database",
+                &organization_id
+            );
+            organization_id.to_string()
+        });
+
+        let org = Organization {
+            organization_id,
             role: role.to_string(),
-        })
-        .collect();
+            name,
+        };
+
+        organizations.push(org);
+    }
+
     Ok(Json(organizations))
 }
