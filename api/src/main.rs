@@ -201,10 +201,15 @@ async fn main() -> anyhow::Result<()> {
                                     .route(web::delete().to(handlers::subscriptions::delete)),
                             ),
                     )
-                    .service(web::scope("/request_attempts").wrap(auth).service(
+                    .service(web::scope("/request_attempts").wrap(auth.clone()).service(
                         web::resource("").route(web::get().to(handlers::request_attempts::list)),
-                    )),
-                // TODO: responses
+                    ))
+                    .service(
+                        web::scope("/responses").wrap(auth).service(
+                            web::resource("/{response_id}")
+                                .route(web::get().to(handlers::responses::get)),
+                        ),
+                    ),
             )
             .default_service(
                 Files::new("/", webapp_path.as_str())
