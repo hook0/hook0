@@ -189,7 +189,7 @@ async fn main() -> anyhow::Result<()> {
                     )
                     .service(
                         web::scope("/subscriptions")
-                            .wrap(auth)
+                            .wrap(auth.clone())
                             .service(
                                 web::resource("")
                                     .route(web::get().to(handlers::subscriptions::list))
@@ -200,8 +200,10 @@ async fn main() -> anyhow::Result<()> {
                                     .route(web::put().to(handlers::subscriptions::update))
                                     .route(web::delete().to(handlers::subscriptions::delete)),
                             ),
-                    ),
-                // TODO: request_attempts
+                    )
+                    .service(web::scope("/request_attempts").wrap(auth).service(
+                        web::resource("").route(web::get().to(handlers::request_attempts::list)),
+                    )),
                 // TODO: responses
             )
             .default_service(
