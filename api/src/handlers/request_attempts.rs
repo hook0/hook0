@@ -103,7 +103,7 @@ pub struct Qs {
     operation_id = "requestAttempts.read",
     consumes = "application/json",
     produces = "application/json",
-    tags("???")
+    tags("Subscriptions Management")
 )]
 pub async fn list(
     state: Data<crate::State>,
