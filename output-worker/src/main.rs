@@ -36,6 +36,14 @@ struct Config {
     /// Worker version (if empty, will use version from Cargo.toml)
     #[clap(long, env)]
     worker_version: Option<String>,
+
+    /// Maximum number of fast retries (before doing slow retries)
+    #[clap(long, env, default_value = "30")]
+    max_fast_retries: u32,
+
+    /// Maximum number of slow retries (before giving up)
+    #[clap(long, env, default_value = "30")]
+    max_slow_retries: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -65,11 +73,14 @@ impl RequestAttempt {
 /// How long to wait when there are no unprocessed items to pick
 const POLLING_SLEEP: Duration = Duration::from_secs(1);
 
-/// How long to wait before first retry
-const MINIMUM_RETRY_DELAY: Duration = Duration::from_secs(5);
+/// How long to wait before first fast retry
+const MINIMUM_FAST_RETRY_DELAY: Duration = Duration::from_secs(5);
 
-/// How long to wait between retries at maximum
-const MAXIMUM_RETRY_DELAY: Duration = Duration::from_secs(5 * 60);
+/// How long to wait between fast retries at maximum
+const MAXIMUM_FAST_RETRY_DELAY: Duration = Duration::from_secs(5 * 60);
+
+/// How long to wait between slow retries
+const SLOW_RETRY_DELAY: Duration = Duration::from_secs(60 * 60);
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -209,33 +220,41 @@ async fn main() -> anyhow::Result<()> {
                 .execute(&mut tx)
                 .await?;
 
-                // Creating a retry request
-                let retry_count = u32::try_from(attempt.retry_count).unwrap_or(1);
-                let retry_in: Duration =
-                    min(MINIMUM_RETRY_DELAY * retry_count, MAXIMUM_RETRY_DELAY);
-                let next_retry_count = attempt.retry_count + 1;
-                let retry_id = sqlx::query!(
-                    "
-                    INSERT INTO webhook.request_attempt (event__id, subscription__id, delay_until, retry_count)
-                    VALUES ($1, $2, statement_timestamp() + $3, $4)
-                    RETURNING request_attempt__id
-                ",
-                    attempt.event__id,
-                    attempt.subscription__id,
-                    PgInterval::try_from(retry_in).unwrap(),
-                    next_retry_count,
-                )
-                .fetch_one(&mut tx)
-                .await?
-                .request_attempt__id;
+                // Creating a retry request or giving up
+                if let Some(retry_in) = compute_next_retry(
+                    config.max_fast_retries,
+                    config.max_slow_retries,
+                    attempt.retry_count,
+                ) {
+                    let next_retry_count = attempt.retry_count + 1;
+                    let retry_id = sqlx::query!(
+                        "
+                        INSERT INTO webhook.request_attempt (event__id, subscription__id, delay_until, retry_count)
+                        VALUES ($1, $2, statement_timestamp() + $3, $4)
+                        RETURNING request_attempt__id
+                    ",
+                        attempt.event__id,
+                        attempt.subscription__id,
+                        PgInterval::try_from(retry_in).unwrap(),
+                        next_retry_count,
+                    )
+                    .fetch_one(&mut tx)
+                    .await?
+                    .request_attempt__id;
 
-                info!(
-                    "Request attempt {} failed; retry #{} created as {} to be picked in {}s",
-                    &attempt.request_attempt__id,
-                    &next_retry_count,
-                    &retry_id,
-                    &retry_in.as_secs()
-                );
+                    info!(
+                        "Request attempt {} failed; retry #{} created as {} to be picked in {}s",
+                        &attempt.request_attempt__id,
+                        &next_retry_count,
+                        &retry_id,
+                        &retry_in.as_secs()
+                    );
+                } else {
+                    info!(
+                        "Request attempt {} failed after {} attempts; giving up",
+                        &attempt.request_attempt__id, &attempt.retry_count,
+                    );
+                }
             }
         } else {
             trace!("No unprocessed attempt found");
@@ -245,4 +264,23 @@ async fn main() -> anyhow::Result<()> {
         // Commit transaction
         tx.commit().await?;
     }
+}
+
+fn compute_next_retry(
+    max_fast_retries: u32,
+    max_slow_retries: u32,
+    retry_count: i16,
+) -> Option<Duration> {
+    u32::try_from(retry_count).ok().and_then(|count| {
+        if count <= max_fast_retries {
+            Some(min(
+                MINIMUM_FAST_RETRY_DELAY * count,
+                MAXIMUM_FAST_RETRY_DELAY,
+            ))
+        } else if count <= max_fast_retries + max_slow_retries {
+            Some(SLOW_RETRY_DELAY)
+        } else {
+            None
+        }
+    })
 }
