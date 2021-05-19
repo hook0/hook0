@@ -485,6 +485,86 @@
       ]
     }
   },
+  "79e6ce89fbb3c62864393608b57d5b899598bbd241fd782d9c32dc36a604000c": {
+    "query": "\n                SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.picked_at, ra.failed_at, ra.succeeded_at, ra.delay_until, ra.response__id, ra.retry_count, s.description AS subscription__description\n                FROM webhook.request_attempt AS ra\n                INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id\n                WHERE s.application__id = $1\n                ORDER BY ra.created_at DESC\n                LIMIT 50\n            ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "request_attempt__id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "event__id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 2,
+          "name": "subscription__id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 4,
+          "name": "picked_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 5,
+          "name": "failed_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "succeeded_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 7,
+          "name": "delay_until",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "response__id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 9,
+          "name": "retry_count",
+          "type_info": "Int2"
+        },
+        {
+          "ordinal": 10,
+          "name": "subscription__description",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        true
+      ]
+    }
+  },
   "79f38a0f71a9c49eb6eeac1a52eafde28309a080982df32872f39cb3417bbad1": {
     "query": "\n                SELECT name, token, created_at, deleted_at\n                FROM event.application_secret\n                WHERE application__id = $1\n                ORDER BY created_at ASC\n            ",
     "describe": {
