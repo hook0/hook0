@@ -49,6 +49,13 @@ export interface paths {
   "/api/v1/organizations": {
     get: operations["organizations.list"];
   };
+  "/api/v1/request_attempts": {
+    get: operations["requestAttempts.read"];
+  };
+  "/api/v1/responses/{response_id}": {
+    /** A response is produced when a request attempt is processed */
+    get: operations["response.get"];
+  };
   "/api/v1/subscriptions": {
     /** List all subscriptions created by customers against the application events */
     get: operations["subscriptions.list"];
@@ -133,6 +140,7 @@ export interface definitions {
     received_at: string;
   };
   Organization: {
+    name: string;
     organization_id: string;
     role: string;
   };
@@ -141,6 +149,30 @@ export interface definitions {
     id: string;
     status: number;
     title: string;
+  };
+  RequestAttempt: {
+    created_at: string;
+    delay_until?: string;
+    event_id: string;
+    failed_at?: string;
+    picked_at?: string;
+    request_attempt_id: string;
+    response_id?: string;
+    retry_count: number;
+    status: string;
+    subscription: {
+      description?: string;
+      subscription_id: string;
+    };
+    succeeded_at?: string;
+  };
+  Response: {
+    body?: string;
+    elapsed_time_ms?: number;
+    headers?: { [key: string]: string };
+    http_code?: number;
+    response_error_name?: string;
+    response_id: string;
   };
   Subscription: {
     created_at: string;
@@ -575,6 +607,58 @@ export interface operations {
       /** OK */
       200: {
         schema: definitions["Organization"][];
+      };
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+  };
+  "requestAttempts.read": {
+    parameters: {
+      query: {
+        application_id: string;
+        event_id?: string;
+        subscription_id?: string;
+      };
+    };
+    responses: {
+      /** OK */
+      200: {
+        schema: definitions["RequestAttempt"][];
+      };
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+  };
+  /** A response is produced when a request attempt is processed */
+  "response.get": {
+    parameters: {
+      query: {
+        application_id: string;
+      };
+      path: {
+        response_id: string;
+      };
+    };
+    responses: {
+      /** OK */
+      200: {
+        schema: definitions["Response"];
       };
       /** Bad Request */
       400: unknown;
