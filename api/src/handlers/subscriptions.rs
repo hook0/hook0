@@ -326,10 +326,10 @@ pub async fn update(
                     headers,
                 } => query!(
                     "
-                                UPDATE webhook.target_http
-                                SET method = $1, url = $2, headers = $3
-                                WHERE target__id = $4
-",
+                        UPDATE webhook.target_http
+                        SET method = $1, url = $2, headers = $3
+                        WHERE target__id = $4
+                    ",
                     method,
                     url,
                     serde_json::to_value(headers)
@@ -343,9 +343,9 @@ pub async fn update(
 
             query!(
                 "
-                        DELETE FROM webhook.subscription__event_type
-                        WHERE subscription__id = $1
-                    ",
+                    DELETE FROM webhook.subscription__event_type
+                    WHERE subscription__id = $1
+                ",
                 &s.subscription__id,
             )
             .execute(&mut tx)
@@ -354,15 +354,15 @@ pub async fn update(
 
             for event_type in &body.event_types {
                 query!(
-                        "
-                            INSERT INTO webhook.subscription__event_type (subscription__id, event_type__name)
-                            VALUES ($1, $2)
-                        ",
-                        &s.subscription__id,
-                        &event_type,
-                    )
-                    .execute(&mut tx).await
-                    .map_err(Hook0Problem::from)?;
+                    "
+                        INSERT INTO webhook.subscription__event_type (subscription__id, event_type__name)
+                        VALUES ($1, $2)
+                    ",
+                    &s.subscription__id,
+                    &event_type,
+                )
+                .execute(&mut tx).await
+                .map_err(Hook0Problem::from)?;
             }
 
             tx.commit().await.map_err(Hook0Problem::from)?;
@@ -419,10 +419,10 @@ pub async fn delete(
     let subscription = query_as!(
         SubscriptionId,
         "
-                SELECT subscription__id
-                FROM webhook.subscription
-                WHERE application__id = $1 AND subscription__id = $2
-            ",
+            SELECT subscription__id
+            FROM webhook.subscription
+            WHERE application__id = $1 AND subscription__id = $2
+        ",
         &application_id,
         &subscription_id.into_inner()
     )
@@ -434,9 +434,9 @@ pub async fn delete(
         Some(s) => {
             query!(
                 "
-                        DELETE FROM webhook.subscription
-                        WHERE application__id = $1 AND subscription__id = $2
-                    ",
+                    DELETE FROM webhook.subscription
+                    WHERE application__id = $1 AND subscription__id = $2
+                ",
                 &application_id,
                 &s.subscription__id
             )
