@@ -93,6 +93,8 @@ impl RequestAttemptStatus {
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
 pub struct Qs {
     application_id: Uuid,
+    event_id: Option<Uuid>,
+    subscription_id: Option<Uuid>,
 }
 
 #[api_v2_operation(
@@ -133,21 +135,80 @@ pub async fn list(
         response__id: Option<Uuid>,
         retry_count: i16,
     }
-    let raw_request_attempts = query_as!(
-        RawRequestAttempt,
-        "
-                SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.picked_at, ra.failed_at, ra.succeeded_at, ra.delay_until, ra.response__id, ra.retry_count, s.description AS subscription__description
-                FROM webhook.request_attempt AS ra
-                INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
-                WHERE s.application__id = $1
-                ORDER BY ra.created_at DESC
-                LIMIT 50
-            ",
-        &qs.application_id,
-    )
-    .fetch_all(&state.db)
-    .await
-    .map_err(Hook0Problem::from)?;
+    let raw_request_attempts = match (&qs.event_id, &qs.subscription_id) {
+        (None, None) => {
+            query_as!(
+                RawRequestAttempt,
+                "
+                    SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.picked_at, ra.failed_at, ra.succeeded_at, ra.delay_until, ra.response__id, ra.retry_count, s.description AS subscription__description
+                    FROM webhook.request_attempt AS ra
+                    INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
+                    WHERE s.application__id = $1
+                    ORDER BY ra.created_at DESC
+                    LIMIT 50
+                ",
+                &qs.application_id,
+            )
+            .fetch_all(&state.db)
+            .await
+            .map_err(Hook0Problem::from)?
+        }
+        (Some(eid), None) => {
+            query_as!(
+                RawRequestAttempt,
+                "
+                    SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.picked_at, ra.failed_at, ra.succeeded_at, ra.delay_until, ra.response__id, ra.retry_count, s.description AS subscription__description
+                    FROM webhook.request_attempt AS ra
+                    INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
+                    WHERE s.application__id = $1 AND ra.event__id = $2
+                    ORDER BY ra.created_at DESC
+                    LIMIT 50
+                ",
+                &qs.application_id,
+                eid,
+            )
+            .fetch_all(&state.db)
+            .await
+            .map_err(Hook0Problem::from)?
+        }
+        (None, Some(sid)) => {
+            query_as!(
+                RawRequestAttempt,
+                "
+                    SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.picked_at, ra.failed_at, ra.succeeded_at, ra.delay_until, ra.response__id, ra.retry_count, s.description AS subscription__description
+                    FROM webhook.request_attempt AS ra
+                    INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
+                    WHERE s.application__id = $1 AND s.subscription__id = $2
+                    ORDER BY ra.created_at DESC
+                    LIMIT 50
+                ",
+                &qs.application_id,
+                sid,
+            )
+            .fetch_all(&state.db)
+            .await
+            .map_err(Hook0Problem::from)?
+        }
+        (Some(eid), Some(sid)) => {
+            query_as!(
+                RawRequestAttempt,
+                "
+                    SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.picked_at, ra.failed_at, ra.succeeded_at, ra.delay_until, ra.response__id, ra.retry_count, s.description AS subscription__description
+                    FROM webhook.request_attempt AS ra
+                    INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
+                    WHERE s.application__id = $1 AND ra.event__id = $2 AND s.subscription__id = $3
+                    ORDER BY ra.created_at DESC
+                    LIMIT 50
+                ",
+                &qs.application_id,
+                eid,
+                sid,
+            )
+            .fetch_all(&state.db)
+            .await
+            .map_err(Hook0Problem::from)?
+        }
+    };
 
     let request_attempts = raw_request_attempts
         .iter()
