@@ -11,7 +11,7 @@
         <option v-for="organization in organizations"
                 :key="organization.organization_id"
                 :value="organization.organization_id"
-        >{{ organization.organization_id }}
+        >{{ organization.name }}
         </option>
       </select>
     </template>

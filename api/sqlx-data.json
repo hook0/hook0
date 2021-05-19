@@ -1044,6 +1044,26 @@
       ]
     }
   },
+  "9b0b663cc66c5f27ed8783913afc126dc7861219df428fdc1f5336fa8448c5fe": {
+    "query": "\n                SELECT name\n                FROM event.organization\n                WHERE organization__id = $1\n            ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "name",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
   "9b73b99c5921539e4a8377ca54fc15437d15be1013ae443ea426cceaa885675f": {
     "query": "\n            SELECT COUNT(*) AS nb\n            FROM event.payload_content_type\n            WHERE payload_content_type__name = $1\n        ",
     "describe": {
