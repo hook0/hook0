@@ -5,6 +5,7 @@ node_modules
 
 
 # local env files
+.envrc
 .env.local
 .env.*.local
 
