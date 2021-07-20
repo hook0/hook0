@@ -1,9 +1,9 @@
 {
   "name": "hook0",
   "version": "1.0.0",
-  "private": true,
   "description": "Hook0 Frontend - Webhook As a Service",
   "author": "Francois-Guillaume Ribreau <npm@fgribreau.com> (http://fgribreau.com/)",
+  "license": "SSPL-1.0",
   "scripts": {
     "//start:dev": "don't forget to first start the Rust API in order to then access to this frontend through the API http server",
     "serve": "vue-cli-service build --mode dev --watch",
@@ -60,6 +60,7 @@
   },
   "keywords": [
     "webhook",
+    "webhooks",
     "web-hook",
     "connectors",
     "api",
