@@ -11,11 +11,11 @@ edition = "2018"
 actix-files = "0.5.0"
 actix-web = "3.3.2"
 actix-web-middleware-keycloak-auth = { git = "https://github.com/dsferruzza/actix-web-middleware-keycloak-auth", rev = "c9f53fe9ea110782256512d8595ba971cc964e66" }
-anyhow = "1.0.40"
+anyhow = "1.0.42"
 base64 = "0.13.0"
 chrono = { version = "0.4.19", features = ["serde"] }
 clap = "3.0.0-beta.2"
-http-api-problem = { version = "0.50.1", features = ["actix-web"] }
+http-api-problem = { version = "0.50.2", features = ["actix-web"] }
 ipnetwork = "0.17.0"
 lazy_static = "1.4.0"
 log = "0.4.14"
@@ -24,6 +24,6 @@ regex = "1.4.5"
 sentry-integration = { path = "../sentry-integration" }
 serde = "1.0.125"
 serde_json = "1.0.64"
-strum = { version = "0.20", features = ["derive"] }
+strum = { version = "0.21.0", features = ["derive"] }
 sqlx = { version = "0.4.2", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "offline"] } # runtime-tokio-rustls because https://github.com/launchbadge/sqlx/issues/894#issuecomment-747821912
 uuid = { version = "0.8.2", features = ["serde"] }
