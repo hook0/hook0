@@ -1,17 +1,4 @@
-Hook0 API
-=========
-
-# Setup dev-env
-
-- Spawn a local postgresql server checkout [database](../database)
-- Setup database url in `.env`
-- Start API
-
-```
-cargo run --bin api
-```
-
-### LICENSE
+## LICENSE
 Hook0 is free and the source is available. Versions are published under the [Server Side Public License (SSPL) v1](./LICENSE.txt).
 
 The license allows the free right to use, modify, create derivative works, and redistribute, with three simple limitations:
