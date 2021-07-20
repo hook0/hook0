@@ -4,6 +4,20 @@
   "description": "Hook0 Frontend - Webhook As a Service",
   "author": "Francois-Guillaume Ribreau <npm@fgribreau.com> (http://fgribreau.com/)",
   "license": "SSPL-1.0",
+  "files": [
+    "src/**",
+    "public/**",
+    "README.md",
+    "LICENSE.txt",
+    ".browserslistrc",
+    ".eslintrc.js",
+    "tsconfig.json",
+    "vue.config.js",
+    "tailwind.config.js",
+    "postcss.config.js",
+    "babel.config.js",
+    ".prettierrc.js"
+  ],
   "scripts": {
     "//start:dev": "don't forget to first start the Rust API in order to then access to this frontend through the API http server",
     "serve": "vue-cli-service build --mode dev --watch",
