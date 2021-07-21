@@ -28,7 +28,11 @@ rust.check:
     - cargo test
     - popd
     # Init DB schema
-    - psql -h "postgres" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -f "./database/initdb/01_schema.sql"
+    - cargo install sqlx-cli --no-default-features --features postgres
+    - pushd api
+    - echo "DATABASE_URL=\"postgresql://$POSTGRES_USER@postgres/$POSTGRES_DB\"" > .env
+    - sqlx migrate run
+    - popd
     # API
     - pushd api
     - echo "DATABASE_URL=\"postgresql://$POSTGRES_USER@postgres/$POSTGRES_DB\"" > .env
