@@ -5,7 +5,6 @@ description = "Sentry-related methods"
 authors = ["David Sferruzza <david.sferruzza@gmail.com>"]
 edition = "2018"
 license = "SSPL-1.0"
-license-file = "LICENSE.txt"
 
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
