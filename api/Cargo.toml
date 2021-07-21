@@ -5,7 +5,6 @@ description = "Core API of Hook0"
 authors = ["David Sferruzza <david.sferruzza@gmail.com>", "François-Guillaume Ribreau <hook0@fgribreau.com>"]
 edition = "2018"
 license = "SSPL-1.0"
-license-file = "LICENSE.txt"
 keywords = ["webhooks", "webhook", "webhook server", "events"]
 
 
