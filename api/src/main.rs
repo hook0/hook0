@@ -80,6 +80,10 @@ async fn main() -> anyhow::Result<()> {
         &config.max_db_connections
     );
 
+    // Run migrations
+    //sqlx::migrate!("./migrations").run(&pool).await?;
+    // TODO: upgrade sqlx and enable this (sqlx 0.4.2 does not seem to support up/down migrations)
+
     // Initialize state
     let initial_state = State {
         db: pool,

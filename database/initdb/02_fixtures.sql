@@ -6,7 +6,7 @@ INSERT INTO event.application_secret(application__id, name, token) VALUES ('dc89
 INSERT INTO event.service(application__id, service__name) VALUES ('dc8965e2-7fe4-4298-927c-e253e9c6f40d', 'github');
 INSERT INTO event.resource_type(application__id, service__name, resource_type__name) VALUES ('dc8965e2-7fe4-4298-927c-e253e9c6f40d', 'github', 'repo');
 INSERT INTO event.verb(application__id, verb__name) VALUES ('dc8965e2-7fe4-4298-927c-e253e9c6f40d', 'starred');
-INSERT INTO event.event_type(application__id, service__name, resource_type__name, verb__name, status) VALUES ('dc8965e2-7fe4-4298-927c-e253e9c6f40d', 'github', 'repo', 'starred', public.gen_random_uuid());
+INSERT INTO event.event_type(application__id, service__name, resource_type__name, verb__name) VALUES ('dc8965e2-7fe4-4298-927c-e253e9c6f40d', 'github', 'repo', 'starred');
 INSERT INTO event.payload_content_type(payload_content_type__name, description) VALUES ('text/plain', 'Text');
 INSERT INTO event.event(event__id, application__id, event_type__name, payload, payload_content_type__name, ip, occurred_at, application_secret__token, labels) VALUES ('073e238f-13d7-4040-97dd-7d348dd6555b', 'dc8965e2-7fe4-4298-927c-e253e9c6f40d', 'github.repo.starred', 'test', 'text/plain', '127.0.0.1', now() - interval '1 hour', 'd426c1e1-7310-4b04-8698-0ea9068f898f', '{"test": 0, "test2": 8}');
 
