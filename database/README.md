@@ -1,5 +1,7 @@
 # Start database for local development
 
+_TODO: Update this (we use sqlx migrations now)_
+
 Since we edit directly `schema.sql`, use the following command to always recreate the db from scratch:
 
 ```
