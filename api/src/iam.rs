@@ -85,7 +85,7 @@ pub async fn can_access_organization(
     minimum_required_role: &Role,
 ) -> bool {
     let available_organizations = extract_organizations(unstructured_claims);
-    match available_organizations.get(&organization_id) {
+    match available_organizations.get(organization_id) {
         Some(role) => role >= minimum_required_role,
         None => false,
     }
