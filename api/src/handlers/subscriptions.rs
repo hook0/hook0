@@ -82,7 +82,7 @@ pub async fn list(
 
         let raw_subscriptions = query_as!(
             RawSubscription,
-            "
+            r#"
                 WITH subs AS (
                     SELECT
                         s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.label_key, s.label_value, s.target__id, s.created_at,
@@ -103,10 +103,10 @@ pub async fn list(
                     ) AS target_json FROM webhook.target_http
                     WHERE target__id IN (SELECT target__id FROM subs)
                 )
-                SELECT subs.subscription__id, subs.is_enabled, subs.description, subs.secret, subs.metadata, subs.label_key, subs.label_value, subs.created_at, subs.event_types, targets.target_json
+                SELECT subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.label_key AS "label_key!", subs.label_value AS "label_value!", subs.created_at AS "created_at!", subs.event_types, targets.target_json
                 FROM subs
                 INNER JOIN targets ON subs.target__id = targets.target__id
-            ",
+            "#, // Column aliases ending with "!" are there because sqlx does not seem to infer correctly that these columns' types are not options
             &qs.application_id,
         )
             .fetch_all(&state.db)
