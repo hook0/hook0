@@ -47,6 +47,10 @@ struct Config {
     /// Keycloak RS256 public key (with GPG delimiters)
     #[clap(long, env)]
     keycloak_oidc_public_key: String,
+
+    /// Disable automatic database migration
+    #[clap(long = "no-auto-db-migration", env = "NO_AUTO_DB_MIGRATION", parse(from_flag = std::ops::Not::not))]
+    auto_db_migration: bool,
 }
 
 /// The app state
@@ -78,8 +82,10 @@ async fn main() -> anyhow::Result<()> {
     );
 
     // Run migrations
-    //sqlx::migrate!("./migrations").run(&pool).await?;
-    // TODO: upgrade sqlx and enable this (sqlx 0.4.2 does not seem to support up/down migrations)
+    if config.auto_db_migration {
+        info!("Checking/running DB migrations");
+        sqlx::migrate!("./migrations").run(&pool).await?;
+    }
 
     // Initialize state
     let initial_state = State { db: pool };
