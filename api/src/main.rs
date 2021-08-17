@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use actix_files::{Files, NamedFile};
 use actix_web::{middleware::Logger, App, HttpServer};
 use actix_web_middleware_keycloak_auth::{DecodingKey, KeycloakAuth};
@@ -10,6 +8,7 @@ use paperclip::{
     v2::models::{DefaultApiRaw, Info},
 };
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
+use std::str::FromStr;
 
 mod handlers;
 mod iam;
