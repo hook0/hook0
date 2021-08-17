@@ -90,7 +90,7 @@ pub async fn list(
                             THEN array_agg(set.event_type__name)
                             ELSE ARRAY[]::text[] END AS event_types
                     FROM webhook.subscription AS s
-                    NATURAL LEFT JOIN webhook.subscription__event_type AS set
+                    LEFT JOIN webhook.subscription__event_type AS set ON set.subscription__id = s.subscription__id
                     WHERE s.application__id = $1
                     GROUP BY s.subscription__id
                     ORDER BY s.created_at ASC
