@@ -102,16 +102,14 @@ pub async fn create(
     let event_type = query_as!(
             EventType,
             "
-                INSERT INTO event.event_type (application__id, service__name, resource_type__name, verb__name, status)
-                VALUES ($1, $2, $3, $4, $5)
-                ON CONFLICT (event_type__name) DO UPDATE SET status = EXCLUDED.status
+                INSERT INTO event.event_type (application__id, service__name, resource_type__name, verb__name)
+                VALUES ($1, $2, $3, $4)
                 RETURNING service__name AS service_name, resource_type__name AS resource_type_name, verb__name AS verb_name, event_type__name AS event_type_name
             ",
             &body.application_id,
             &body.service,
             &body.resource_type,
-            &body.verb,
-            Uuid::parse_str("00000000-0000-0000-0000-000000000000").unwrap(), // TODO: handle properly when lib_fsm is setup
+            &body.verb
         )
         .fetch_one(&mut tx)
         .await

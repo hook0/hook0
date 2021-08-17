@@ -28,5 +28,5 @@ sentry-integration = { path = "../sentry-integration" }
 serde = "1.0.125"
 serde_json = "1.0.64"
 strum = { version = "0.21.0", features = ["derive"] }
-sqlx = { version = "0.4.2", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "offline"] } # runtime-tokio-rustls because https://github.com/launchbadge/sqlx/issues/894#issuecomment-747821912
+sqlx = { version = "0.4.2", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "offline", "migrate"] } # runtime-tokio-rustls because https://github.com/launchbadge/sqlx/issues/894#issuecomment-747821912
 uuid = { version = "0.8.2", features = ["serde"] }
