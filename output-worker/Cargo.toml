@@ -16,8 +16,8 @@ clap = "3.0.0-beta.4"
 log = "0.4.14"
 reqwest = { version = "0.11.4", default-features = false, features = ["rustls-tls"] }
 sentry-integration = { path = "../sentry-integration" }
-serde = "1.0.129"
-serde_json = "1.0.66"
+serde = "1.0.130"
+serde_json = "1.0.67"
 sqlx = { version = "0.5.7", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono", "time", "json", "offline"] }
-tokio = { version = "1.10.1", features = ["rt-multi-thread", "macros", "time"] }
+tokio = { version = "1.11.0", features = ["rt-multi-thread", "macros", "time"] }
 uuid = "0.8.2"
