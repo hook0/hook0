@@ -1,14 +1,14 @@
-use actix_web_middleware_keycloak_auth::UnstructuredClaims;
+use actix_web_middleware_keycloak_auth::KeycloakClaims;
 use paperclip::actix::{
     api_v2_operation,
-    web::{Data, Json, Path, Query, ReqData},
+    web::{Data, Json, Path, Query},
     Apiv2Schema, CreatedJson, NoContent,
 };
 use serde::{Deserialize, Serialize};
 use sqlx::{query, query_as};
 use uuid::Uuid;
 
-use crate::iam::{can_access_application, can_access_organization, Role};
+use crate::iam::{Hook0Claims, Role};
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -39,10 +39,13 @@ pub struct ApplicationPost {
 )]
 pub async fn create(
     state: Data<crate::State>,
-    unstructured_claims: ReqData<UnstructuredClaims>,
+    claims: KeycloakClaims<Hook0Claims>,
     body: Json<ApplicationPost>,
 ) -> Result<CreatedJson<Application>, Hook0Problem> {
-    if !can_access_organization(&unstructured_claims, &body.organization_id, &Role::Editor).await {
+    if !claims
+        .can_access_organization(&body.organization_id, &Role::Editor)
+        .await
+    {
         return Err(Hook0Problem::Forbidden);
     }
 
@@ -71,16 +74,12 @@ pub async fn create(
 )]
 pub async fn get(
     state: Data<crate::State>,
-    unstructured_claims: ReqData<UnstructuredClaims>,
+    claims: KeycloakClaims<Hook0Claims>,
     application_id: Path<Uuid>,
 ) -> Result<Json<Application>, Hook0Problem> {
-    if !can_access_application(
-        &state.db,
-        &unstructured_claims,
-        &application_id,
-        &Role::Viewer,
-    )
-    .await
+    if !claims
+        .can_access_application(&state.db, &application_id, &Role::Viewer)
+        .await
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -88,10 +87,10 @@ pub async fn get(
     let application = query_as!(
         Application,
         "
-                SELECT application__id AS application_id, organization__id AS organization_id, name
-                FROM event.application
-                WHERE application__id = $1
-            ",
+            SELECT application__id AS application_id, organization__id AS organization_id, name
+            FROM event.application
+            WHERE application__id = $1
+        ",
         application_id.into_inner()
     )
     .fetch_optional(&state.db)
@@ -114,10 +113,13 @@ pub async fn get(
 )]
 pub async fn list(
     state: Data<crate::State>,
-    unstructured_claims: ReqData<UnstructuredClaims>,
+    claims: KeycloakClaims<Hook0Claims>,
     qs: Query<Qs>,
 ) -> Result<Json<Vec<Application>>, Hook0Problem> {
-    if !can_access_organization(&unstructured_claims, &qs.organization_id, &Role::Viewer).await {
+    if !claims
+        .can_access_organization(&qs.organization_id, &Role::Viewer)
+        .await
+    {
         return Err(Hook0Problem::Forbidden);
     }
 
@@ -143,18 +145,16 @@ pub async fn list(
 )]
 pub async fn edit(
     state: Data<crate::State>,
-    unstructured_claims: ReqData<UnstructuredClaims>,
+    claims: KeycloakClaims<Hook0Claims>,
     application_id: Path<Uuid>,
     body: Json<ApplicationPost>,
 ) -> Result<Json<Application>, Hook0Problem> {
-    if !can_access_application(
-        &state.db,
-        &unstructured_claims,
-        &application_id,
-        &Role::Editor,
-    )
-    .await
-        && can_access_organization(&unstructured_claims, &body.organization_id, &Role::Editor).await
+    if !claims
+        .can_access_application(&state.db, &application_id, &Role::Editor)
+        .await
+        && claims
+            .can_access_organization(&body.organization_id, &Role::Editor)
+            .await
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -189,16 +189,12 @@ pub async fn edit(
 )]
 pub async fn delete(
     state: Data<crate::State>,
-    unstructured_claims: ReqData<UnstructuredClaims>,
+    claims: KeycloakClaims<Hook0Claims>,
     application_id: Path<Uuid>,
 ) -> Result<NoContent, Hook0Problem> {
-    if can_access_application(
-        &state.db,
-        &unstructured_claims,
-        &application_id,
-        &Role::Editor,
-    )
-    .await
+    if !claims
+        .can_access_application(&state.db, &application_id, &Role::Editor)
+        .await
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -206,10 +202,10 @@ pub async fn delete(
     let application = query_as!(
         Application,
         "
-                SELECT application__id AS application_id, organization__id AS organization_id, name
-                FROM event.application
-                WHERE application__id = $1
-            ",
+            SELECT application__id AS application_id, organization__id AS organization_id, name
+            FROM event.application
+            WHERE application__id = $1
+        ",
         application_id.into_inner()
     )
     .fetch_optional(&state.db)
