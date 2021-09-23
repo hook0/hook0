@@ -12,7 +12,7 @@ rust.check:
   services:
     - postgres:$PG_VERSION
   before_script:
-    - rustc --version && cargo --version && psql --version
+    - rustc --version && cargo --version
     - rustup component add clippy
     - rustup component add rustfmt
   script:
