@@ -1,14 +1,14 @@
-use actix_web_middleware_keycloak_auth::UnstructuredClaims;
+use actix_web_middleware_keycloak_auth::KeycloakClaims;
 use paperclip::actix::{
     api_v2_operation,
-    web::{Data, Json, Path, Query, ReqData},
+    web::{Data, Json, Path, Query},
     Apiv2Schema, CreatedJson, NoContent,
 };
 use serde::{Deserialize, Serialize};
 use sqlx::{query, query_as};
 use uuid::Uuid;
 
-use crate::iam::{can_access_application, Role};
+use crate::iam::{Hook0Claims, Role};
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -43,16 +43,12 @@ pub struct EventTypePost {
 )]
 pub async fn create(
     state: Data<crate::State>,
-    unstructured_claims: ReqData<UnstructuredClaims>,
+    claims: KeycloakClaims<Hook0Claims>,
     body: Json<EventTypePost>,
 ) -> Result<CreatedJson<EventType>, Hook0Problem> {
-    if !can_access_application(
-        &state.db,
-        &unstructured_claims,
-        &body.application_id,
-        &Role::Editor,
-    )
-    .await
+    if !claims
+        .can_access_application(&state.db, &body.application_id, &Role::Editor)
+        .await
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -130,16 +126,12 @@ pub async fn create(
 )]
 pub async fn list(
     state: Data<crate::State>,
-    unstructured_claims: ReqData<UnstructuredClaims>,
+    claims: KeycloakClaims<Hook0Claims>,
     qs: Query<Qs>,
 ) -> Result<Json<Vec<EventType>>, Hook0Problem> {
-    if !can_access_application(
-        &state.db,
-        &unstructured_claims,
-        &qs.application_id,
-        &Role::Viewer,
-    )
-    .await
+    if !claims
+        .can_access_application(&state.db, &qs.application_id, &Role::Viewer)
+        .await
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -171,17 +163,13 @@ pub async fn list(
 )]
 pub async fn get(
     state: Data<crate::State>,
-    unstructured_claims: ReqData<UnstructuredClaims>,
+    claims: KeycloakClaims<Hook0Claims>,
     event_type_name: Path<String>,
     qs: Query<Qs>,
 ) -> Result<Json<EventType>, Hook0Problem> {
-    if !can_access_application(
-        &state.db,
-        &unstructured_claims,
-        &qs.application_id,
-        &Role::Viewer,
-    )
-    .await
+    if !claims
+        .can_access_application(&state.db, &qs.application_id, &Role::Viewer)
+        .await
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -216,17 +204,13 @@ pub async fn get(
 )]
 pub async fn delete(
     state: Data<crate::State>,
-    unstructured_claims: ReqData<UnstructuredClaims>,
+    claims: KeycloakClaims<Hook0Claims>,
     event_type_name: Path<String>,
     qs: Query<Qs>,
 ) -> Result<NoContent, Hook0Problem> {
-    if !can_access_application(
-        &state.db,
-        &unstructured_claims,
-        &qs.application_id,
-        &Role::Editor,
-    )
-    .await
+    if !claims
+        .can_access_application(&state.db, &qs.application_id, &Role::Editor)
+        .await
     {
         return Err(Hook0Problem::Forbidden);
     }
