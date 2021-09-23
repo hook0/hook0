@@ -12,10 +12,6 @@ rust.check:
   services:
     - postgres:$PG_VERSION
   before_script:
-    - apt-get update -y && apt-get install -y --no-install-recommends curl
-    - sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt buster-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-    - curl -LSs https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
-    - apt-get update -y && apt-get install -y --no-install-recommends postgresql-client-$PG_VERSION
     - rustc --version && cargo --version && psql --version
     - rustup component add clippy
     - rustup component add rustfmt
