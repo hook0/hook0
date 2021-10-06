@@ -13,7 +13,7 @@ use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::str::FromStr;
 use std::time::Duration;
-use tokio::time::delay_for;
+use tokio::time::sleep;
 use uuid::Uuid;
 
 use work::*;
@@ -258,7 +258,7 @@ async fn main() -> anyhow::Result<()> {
             }
         } else {
             trace!("No unprocessed attempt found");
-            delay_for(POLLING_SLEEP).await;
+            sleep(POLLING_SLEEP).await;
         }
 
         // Commit transaction

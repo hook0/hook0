@@ -81,7 +81,21 @@ impl ResponseError for Hook0Problem {
 
     fn error_response(&self) -> HttpResponse {
         let problem: HttpApiProblem = (*self).into();
-        problem.to_actix_response()
+
+        let effective_status = problem
+            .status
+            .unwrap_or(actix_web::http::StatusCode::INTERNAL_SERVER_ERROR);
+        let actix_status = actix_web::http::StatusCode::from_u16(effective_status.as_u16())
+            .unwrap_or(actix_web::http::StatusCode::INTERNAL_SERVER_ERROR);
+
+        let json = problem.json_bytes();
+
+        actix_web::HttpResponse::build(actix_status)
+            .append_header((
+                actix_web::http::header::CONTENT_TYPE,
+                PROBLEM_JSON_MEDIA_TYPE,
+            ))
+            .body(json)
     }
 }
 

@@ -1,8 +1,8 @@
-use actix_web_middleware_keycloak_auth::UnstructuredClaims;
+use actix_web_middleware_keycloak_auth::KeycloakClaims;
 use log::warn;
 use paperclip::actix::{
     api_v2_operation,
-    web::{Data, Json, Path, Query, ReqData},
+    web::{Data, Json, Path, Query},
     Apiv2Schema,
 };
 use serde::{Deserialize, Serialize};
@@ -11,7 +11,7 @@ use sqlx::query_as;
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use crate::iam::{can_access_application, Role};
+use crate::iam::{Hook0Claims, Role};
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -39,17 +39,13 @@ pub struct Qs {
 )]
 pub async fn get(
     state: Data<crate::State>,
-    unstructured_claims: ReqData<UnstructuredClaims>,
+    claims: KeycloakClaims<Hook0Claims>,
     qs: Query<Qs>,
     response_id: Path<Uuid>,
 ) -> Result<Json<Response>, Hook0Problem> {
-    if !can_access_application(
-        &state.db,
-        &unstructured_claims,
-        &qs.application_id,
-        &Role::Viewer,
-    )
-    .await
+    if !claims
+        .can_access_application(&state.db, &qs.application_id, &Role::Viewer)
+        .await
     {
         return Err(Hook0Problem::Forbidden);
     }
