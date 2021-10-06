@@ -1,16 +1,14 @@
-use std::str::FromStr;
-
 use actix_files::{Files, NamedFile};
-use actix_web::web::Data;
-use actix_web::{middleware::Logger, App, HttpRequest, HttpResponse, HttpServer};
+use actix_web::{middleware::Logger, App, HttpServer};
 use actix_web_middleware_keycloak_auth::{DecodingKey, KeycloakAuth};
 use clap::{crate_description, crate_name, crate_version, ArgSettings::HideEnvValues, Clap};
 use log::{info, trace};
 use paperclip::{
-    actix::{api_v2_operation, web, OpenApiExt},
+    actix::{web, OpenApiExt},
     v2::models::{DefaultApiRaw, Info},
 };
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
+use std::str::FromStr;
 
 mod handlers;
 mod iam;
@@ -49,13 +47,16 @@ struct Config {
     /// Keycloak RS256 public key (with GPG delimiters)
     #[clap(long, env)]
     keycloak_oidc_public_key: String,
+
+    /// Disable automatic database migration
+    #[clap(long = "no-auto-db-migration", env = "NO_AUTO_DB_MIGRATION", parse(from_flag = std::ops::Not::not))]
+    auto_db_migration: bool,
 }
 
 /// The app state
 #[derive(Debug, Clone)]
 pub struct State {
     db: PgPool,
-    webapp_path: String,
 }
 
 #[actix_web::main]
@@ -81,14 +82,13 @@ async fn main() -> anyhow::Result<()> {
     );
 
     // Run migrations
-    //sqlx::migrate!("./migrations").run(&pool).await?;
-    // TODO: upgrade sqlx and enable this (sqlx 0.4.2 does not seem to support up/down migrations)
+    if config.auto_db_migration {
+        info!("Checking/running DB migrations");
+        sqlx::migrate!("./migrations").run(&pool).await?;
+    }
 
     // Initialize state
-    let initial_state = State {
-        db: pool,
-        webapp_path: config.webapp_path.clone(),
-    };
+    let initial_state = State { db: pool };
     let keycloak_oidc_public_key = config.keycloak_oidc_public_key;
 
     // Run web server
@@ -120,7 +120,7 @@ async fn main() -> anyhow::Result<()> {
         };
 
         App::new()
-            .data(initial_state.clone())
+            .app_data(web::Data::new(initial_state.clone()))
             .wrap(Logger::default())
             .wrap_api_with_spec(spec)
             .with_json_spec_at("/api/v1/swagger.json")
@@ -219,7 +219,8 @@ async fn main() -> anyhow::Result<()> {
                 Files::new("/", webapp_path.as_str())
                     .index_file(WEBAPP_INDEX_FILE)
                     .default_handler(
-                        web::resource("{path:.+}").route(web::get().to(default_handler)),
+                        NamedFile::open(format!("{}/{}", &webapp_path, WEBAPP_INDEX_FILE))
+                            .expect("Cannot open PWA page"),
                     ),
             )
             .build()
@@ -228,19 +229,4 @@ async fn main() -> anyhow::Result<()> {
     .run()
     .await
     .map_err(|e| e.into())
-}
-
-#[api_v2_operation(
-    summary = "",
-    description = "",
-    operation_id = "items.[get|list|update|delete]",
-    consumes = "application/json",
-    produces = "application/json",
-    tags(Default)
-)]
-async fn default_handler(
-    req: HttpRequest,
-    state: Data<crate::State>,
-) -> actix_web::Result<HttpResponse> {
-    NamedFile::open(format!("{}/{}", &state.webapp_path, WEBAPP_INDEX_FILE))?.into_response(&req)
 }
