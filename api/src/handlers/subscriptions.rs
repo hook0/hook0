@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
-use actix_web_middleware_keycloak_auth::UnstructuredClaims;
+use actix_web_middleware_keycloak_auth::KeycloakClaims;
 use chrono::{DateTime, Utc};
 use log::error;
 use paperclip::actix::{
     api_v2_operation,
-    web::{Data, Json, Path, Query, ReqData},
+    web::{Data, Json, Path, Query},
     Apiv2Schema, CreatedJson, NoContent,
 };
 use serde::{Deserialize, Serialize};
@@ -13,7 +13,7 @@ use serde_json::Value;
 use sqlx::{query, query_as};
 use uuid::Uuid;
 
-use crate::iam::{can_access_application, Role};
+use crate::iam::{Hook0Claims, Role};
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -55,89 +55,84 @@ pub struct Qs {
 )]
 pub async fn list(
     state: Data<crate::State>,
-    unstructured_claims: ReqData<UnstructuredClaims>,
+    claims: KeycloakClaims<Hook0Claims>,
     qs: Query<Qs>,
 ) -> Result<Json<Vec<Subscription>>, Hook0Problem> {
-    if can_access_application(
-        &state.db,
-        &unstructured_claims,
-        &qs.application_id,
-        &Role::Viewer,
-    )
-    .await
+    if !claims
+        .can_access_application(&state.db, &qs.application_id, &Role::Viewer)
+        .await
     {
-        #[allow(non_snake_case)]
-        struct RawSubscription {
-            subscription__id: Uuid,
-            is_enabled: bool,
-            event_types: Option<Vec<String>>,
-            description: Option<String>,
-            secret: Uuid,
-            metadata: Value,
-            label_key: String,
-            label_value: String,
-            target_json: Option<Value>,
-            created_at: DateTime<Utc>,
-        }
-
-        let raw_subscriptions = query_as!(
-            RawSubscription,
-            "
-                WITH subs AS (
-                    SELECT
-                        s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.label_key, s.label_value, s.target__id, s.created_at,
-                        CASE WHEN length((array_agg(set.event_type__name))[1]) > 0
-                            THEN array_agg(set.event_type__name)
-                            ELSE ARRAY[]::text[] END AS event_types
-                    FROM webhook.subscription AS s
-                    NATURAL LEFT JOIN webhook.subscription__event_type AS set
-                    WHERE s.application__id = $1
-                    GROUP BY s.subscription__id
-                    ORDER BY s.created_at ASC
-                ), targets AS (
-                    SELECT target__id, jsonb_build_object(
-                        'type', replace(tableoid::regclass::text, 'webhook.target_', ''),
-                        'method', method,
-                        'url', url,
-                        'headers', headers
-                    ) AS target_json FROM webhook.target_http
-                    WHERE target__id IN (SELECT target__id FROM subs)
-                )
-                SELECT subs.subscription__id, subs.is_enabled, subs.description, subs.secret, subs.metadata, subs.label_key, subs.label_value, subs.created_at, subs.event_types, targets.target_json
-                FROM subs
-                INNER JOIN targets ON subs.target__id = targets.target__id
-            ",
-            &qs.application_id,
-        )
-            .fetch_all(&state.db)
-            .await
-            .map_err(|e| {
-                error!("{}", &e);
-                Hook0Problem::InternalServerError
-            })?;
-
-        let subscriptions = raw_subscriptions
-            .iter()
-            .map(|s| Subscription {
-                subscription_id: s.subscription__id,
-                is_enabled: s.is_enabled,
-                event_types: s.event_types.clone().unwrap_or_else(Vec::new),
-                description: s.description.to_owned(),
-                secret: s.secret,
-                metadata: serde_json::from_value(s.metadata.clone())
-                    .unwrap_or_else(|_| HashMap::new()),
-                label_key: s.label_key.to_owned(),
-                label_value: s.label_value.to_owned(),
-                target: serde_json::from_value(s.target_json.clone().unwrap())
-                    .expect("Could not parse subscription target"),
-                created_at: s.created_at,
-            })
-            .collect::<Vec<_>>();
-
-        Ok(Json(subscriptions))
-    } else {
-        Err(Hook0Problem::Forbidden)
+        return Err(Hook0Problem::Forbidden);
     }
+
+    #[allow(non_snake_case)]
+    struct RawSubscription {
+        subscription__id: Uuid,
+        is_enabled: bool,
+        event_types: Option<Vec<String>>,
+        description: Option<String>,
+        secret: Uuid,
+        metadata: Value,
+        label_key: String,
+        label_value: String,
+        target_json: Option<Value>,
+        created_at: DateTime<Utc>,
+    }
+
+    let raw_subscriptions = query_as!(
+        RawSubscription,
+        r#"
+            WITH subs AS (
+                SELECT
+                    s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.label_key, s.label_value, s.target__id, s.created_at,
+                    CASE WHEN length((array_agg(set.event_type__name))[1]) > 0
+                        THEN array_agg(set.event_type__name)
+                        ELSE ARRAY[]::text[] END AS event_types
+                FROM webhook.subscription AS s
+                LEFT JOIN webhook.subscription__event_type AS set ON set.subscription__id = s.subscription__id
+                WHERE s.application__id = $1
+                GROUP BY s.subscription__id
+                ORDER BY s.created_at ASC
+            ), targets AS (
+                SELECT target__id, jsonb_build_object(
+                    'type', replace(tableoid::regclass::text, 'webhook.target_', ''),
+                    'method', method,
+                    'url', url,
+                    'headers', headers
+                ) AS target_json FROM webhook.target_http
+                WHERE target__id IN (SELECT target__id FROM subs)
+            )
+            SELECT subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.label_key AS "label_key!", subs.label_value AS "label_value!", subs.created_at AS "created_at!", subs.event_types, targets.target_json
+            FROM subs
+            INNER JOIN targets ON subs.target__id = targets.target__id
+        "#, // Column aliases ending with "!" are there because sqlx does not seem to infer correctly that these columns' types are not options
+        &qs.application_id,
+    )
+        .fetch_all(&state.db)
+        .await
+        .map_err(|e| {
+            error!("{}", &e);
+            Hook0Problem::InternalServerError
+        })?;
+
+    let subscriptions = raw_subscriptions
+        .iter()
+        .map(|s| Subscription {
+            subscription_id: s.subscription__id,
+            is_enabled: s.is_enabled,
+            event_types: s.event_types.clone().unwrap_or_else(Vec::new),
+            description: s.description.to_owned(),
+            secret: s.secret,
+            metadata: serde_json::from_value(s.metadata.clone()).unwrap_or_else(|_| HashMap::new()),
+            label_key: s.label_key.to_owned(),
+            label_value: s.label_value.to_owned(),
+            target: serde_json::from_value(s.target_json.clone().unwrap())
+                .expect("Could not parse subscription target"),
+            created_at: s.created_at,
+        })
+        .collect::<Vec<_>>();
+
+    Ok(Json(subscriptions))
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
@@ -162,16 +157,12 @@ pub struct SubscriptionPost {
 )]
 pub async fn add(
     state: Data<crate::State>,
-    unstructured_claims: ReqData<UnstructuredClaims>,
+    claims: KeycloakClaims<Hook0Claims>,
     body: Json<SubscriptionPost>,
 ) -> Result<CreatedJson<Subscription>, Hook0Problem> {
-    if !can_access_application(
-        &state.db,
-        &unstructured_claims,
-        &body.application_id,
-        &Role::Editor,
-    )
-    .await
+    if !claims
+        .can_access_application(&state.db, &body.application_id, &Role::Editor)
+        .await
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -268,17 +259,13 @@ pub async fn add(
 )]
 pub async fn update(
     state: Data<crate::State>,
-    unstructured_claims: ReqData<UnstructuredClaims>,
+    claims: KeycloakClaims<Hook0Claims>,
     subscription_id: Path<Uuid>,
     body: Json<SubscriptionPost>,
 ) -> Result<Json<Subscription>, Hook0Problem> {
-    if !can_access_application(
-        &state.db,
-        &unstructured_claims,
-        &body.application_id,
-        &Role::Editor,
-    )
-    .await
+    if !claims
+        .can_access_application(&state.db, &body.application_id, &Role::Editor)
+        .await
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -395,17 +382,13 @@ pub async fn update(
 )]
 pub async fn delete(
     state: Data<crate::State>,
-    unstructured_claims: ReqData<UnstructuredClaims>,
+    claims: KeycloakClaims<Hook0Claims>,
     subscription_id: Path<Uuid>,
     qs: Query<Qs>,
 ) -> Result<NoContent, Hook0Problem> {
-    if !can_access_application(
-        &state.db,
-        &unstructured_claims,
-        &qs.application_id,
-        &Role::Editor,
-    )
-    .await
+    if !claims
+        .can_access_application(&state.db, &qs.application_id, &Role::Editor)
+        .await
     {
         return Err(Hook0Problem::Forbidden);
     }
