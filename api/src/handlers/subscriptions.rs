@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use actix_web_middleware_keycloak_auth::KeycloakClaims;
 use chrono::{DateTime, Utc};
 use log::error;
@@ -11,6 +9,7 @@ use paperclip::actix::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::{query, query_as};
+use std::collections::HashMap;
 use uuid::Uuid;
 
 use crate::iam::{Hook0Claims, Role};

@@ -1,10 +1,9 @@
-use std::collections::HashMap;
-use std::str::FromStr;
-
 use lazy_static::lazy_static;
 use regex::{escape, Regex};
 use serde::Deserialize;
 use sqlx::{query_as, PgPool};
+use std::collections::HashMap;
+use std::str::FromStr;
 use uuid::Uuid;
 
 const GROUP_SEP: &str = "/";
