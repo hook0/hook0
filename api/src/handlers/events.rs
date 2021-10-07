@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use actix_web::HttpRequest;
 use actix_web_middleware_keycloak_auth::KeycloakClaims;
 use base64::encode;
@@ -14,6 +12,7 @@ use paperclip::actix::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::query_as;
+use std::str::FromStr;
 use uuid::Uuid;
 
 use crate::iam::{Hook0Claims, Role};

@@ -1,8 +1,8 @@
 use paperclip::actix::{api_v2_operation, web::Json, Apiv2Schema};
 use serde::Serialize;
+use strum::IntoEnumIterator;
 
 use crate::problems::{Hook0Problem, Problem as InternalProblem};
-use strum::IntoEnumIterator;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct Problem {
