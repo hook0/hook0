@@ -9,6 +9,11 @@ variables:
 
 rust.check:
   image: rust:$RUST_VERSION
+  only:
+    changes:
+      - api/**/*
+      - output-worker/**/*
+      - sentry-integration/**/*
   services:
     - postgres:$PG_VERSION
   before_script:
@@ -43,6 +48,10 @@ rust.check:
 
 frontend:
   image: node:$NODE_VERSION
+  only:
+    changes:
+      - frontend/**/*
+      - mediakit/**/*
   script:
     - pushd frontend
     - npm ci

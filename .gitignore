@@ -1,3 +1,15 @@
-/target/
+# PaaS
 /.clever.json
+
+# secrets
 .envrc
+.env
+
+# js/nodejs
+node_modules
+
+# rust
+/target/
+
+# ide
+.idea
