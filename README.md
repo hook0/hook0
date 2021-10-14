@@ -230,17 +230,15 @@ Hook0 API replies with a 201 CREATED HTTP status code and the following body:
 
 There are three components to Hook0:
 
-- Frontend SDK: Responsible for rendering the login UI widgets and managing session tokens automatically.
-- Backend SDK: Provides APIs for sign-up, sign-in, signout, session refreshing.. which the frontend widgets talk to.
-- Hook0 API: This is a Rust HTTP service that contains the core logic for auth. It's responsible for interfacing with the database and is used by the SuperTokens backend SDK for operations that require the db.
-
+- API: This is a Rust HTTP service that contains the core logic for webhooks persistence management.
+- Frontend: Responsible for rendering the UI, rely entirely on Hook0 REST API.
+- Output-worker: Each time Hook0 receive an [event](#events) the output-worker will call the corresponding [subscription targets](#subscriptions-targets).
 
 # Concepts
 
 ## Overview
 
 Get a high-level outline of Hook0 and the components it is built from.
-{: .note}
 
 The core of Hook0 control plane is the API server. The API server exposes an HTTP REST API that lets end [users](#user-accounts) and [applications](#applications) manage webhooks.
 
@@ -251,43 +249,37 @@ Most operations can be performed through the kubectl command-line interface or o
 ## Architecture
 The architectural concepts behind Hook0.
 
-<!-- -->
+<!-- @todo -->
 
 ## Organizations
-{: #organizations}
 
 ## User Accounts
-{: #user-accounts}
 
 ## Access Tokens
-{: #access-tokens}
 
 ## Applications
-{: #applications}
 
 ## Application Secrets
-{: #application-secrets}
 
 ## Events
-{: #events}
 
 ## Event Types
-{: #event-types}
 
 ## Subscriptions
-{: #subscriptions}
 
 ## Subscription Secrets
-{: #subscription-secrets}
+
+## Subscriptions Targets
+
+Define where to send the [events](#events) to, it can be an HTTP endpoint or something else.
 
 ## Webhook
-{: #webhook}
 
 # Reference
 
 ## API Reference
 
-API Reference is available from Hook0 dashboard: https://app.hook0.com/api/documentation
+Complete API Reference is available from Hook0 dashboard: https://app.hook0.com/api/documentation
 
 ## CLI
 
