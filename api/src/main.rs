@@ -1,7 +1,7 @@
 use actix_files::{Files, NamedFile};
 use actix_web::{middleware::Logger, App, HttpServer};
 use actix_web_middleware_keycloak_auth::{DecodingKey, KeycloakAuth};
-use clap::{crate_description, crate_name, crate_version, ArgSettings::HideEnvValues, Clap};
+use clap::{crate_description, crate_name, crate_version, ArgSettings::HideEnvValues, Parser};
 use log::{info, trace};
 use paperclip::{
     actix::{web, OpenApiExt},
@@ -17,7 +17,7 @@ mod problems;
 const APP_TITLE: &str = "Hook0 API";
 const WEBAPP_INDEX_FILE: &str = "index.html";
 
-#[derive(Debug, Clone, Clap)]
+#[derive(Debug, Clone, Parser)]
 #[clap(author, about, version, name = APP_TITLE)]
 struct Config {
     /// IP address on which to start the HTTP server
