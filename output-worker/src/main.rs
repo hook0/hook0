@@ -2,7 +2,7 @@ mod work;
 
 use chrono::{DateTime, Utc};
 use clap::ArgSettings::HideEnvValues;
-use clap::{crate_name, crate_version, Clap};
+use clap::{crate_name, crate_version, Parser};
 use log::{debug, info, trace};
 use reqwest::header::HeaderMap;
 use sqlx::postgres::types::PgInterval;
@@ -18,7 +18,7 @@ use uuid::Uuid;
 
 use work::*;
 
-#[derive(Debug, Clone, Clap)]
+#[derive(Debug, Clone, Parser)]
 #[clap(author, about, version)]
 struct Config {
     /// Optional Sentry DSN for error reporting
