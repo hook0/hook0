@@ -1,6 +1,6 @@
 variables:
-  PG_VERSION: "13"
-  RUST_VERSION: "1.55.0"
+  PG_VERSION: "14"
+  RUST_VERSION: "1.56.0"
   NODE_VERSION: "14"
   POSTGRES_DB: hook0-ci
   POSTGRES_USER: runner
