@@ -53,10 +53,10 @@ pub async fn create(
     let application_secret = query_as!(
         ApplicationSecret,
         "
-                INSERT INTO event.application_secret (application__id, name)
-                VALUES ($1, $2)
-                RETURNING name, token, created_at, deleted_at
-            ",
+            INSERT INTO event.application_secret (application__id, name)
+            VALUES ($1, $2)
+            RETURNING name, token, created_at, deleted_at
+        ",
         &body.application_id,
         body.name,
     )
@@ -90,11 +90,11 @@ pub async fn list(
     let application_secrets = query_as!(
         ApplicationSecret,
         "
-                SELECT name, token, created_at, deleted_at
-                FROM event.application_secret
-                WHERE application__id = $1
-                ORDER BY created_at ASC
-            ",
+            SELECT name, token, created_at, deleted_at
+            FROM event.application_secret
+            WHERE application__id = $1
+            ORDER BY created_at ASC
+        ",
         &qs.application_id,
     )
     .fetch_all(&state.db)
@@ -128,11 +128,11 @@ pub async fn update(
     let application_secret = query_as!(
         ApplicationSecret,
         "
-                UPDATE event.application_secret
-                SET name = $1
-                WHERE application__id = $2 AND token = $3
-                RETURNING name, token, created_at, deleted_at
-            ",
+            UPDATE event.application_secret
+            SET name = $1
+            WHERE application__id = $2 AND token = $3
+            RETURNING name, token, created_at, deleted_at
+        ",
         body.name,
         &body.application_id,
         &application_secret_token.into_inner()
@@ -172,10 +172,10 @@ pub async fn delete(
     let application_secret = query_as!(
         ApplicationSecret,
         "
-                SELECT name, token, created_at, deleted_at
-                FROM event.application_secret
-                WHERE application__id = $1 AND token = $2
-            ",
+            SELECT name, token, created_at, deleted_at
+            FROM event.application_secret
+            WHERE application__id = $1 AND token = $2
+        ",
         &application_id,
         &application_secret_token.into_inner()
     )
@@ -187,10 +187,10 @@ pub async fn delete(
         Some(a) => {
             query!(
                 "
-                        UPDATE event.application_secret
-                        SET deleted_at = statement_timestamp()
-                        WHERE application__id = $1 AND token = $2
-                    ",
+                    UPDATE event.application_secret
+                    SET deleted_at = statement_timestamp()
+                    WHERE application__id = $1 AND token = $2
+                ",
                 &application_id,
                 &a.token
             )
