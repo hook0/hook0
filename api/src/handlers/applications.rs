@@ -41,9 +41,10 @@ pub async fn create(
     auth: AuthProof,
     body: Json<ApplicationPost>,
 ) -> Result<CreatedJson<Application>, Hook0Problem> {
-    if !auth
+    if auth
         .can_access_organization(&body.organization_id, &Role::Editor)
         .await
+        .is_none()
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -76,9 +77,10 @@ pub async fn get(
     auth: AuthProof,
     application_id: Path<Uuid>,
 ) -> Result<Json<Application>, Hook0Problem> {
-    if !auth
+    if auth
         .can_access_application(&state.db, &application_id, &Role::Viewer)
         .await
+        .is_none()
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -115,9 +117,10 @@ pub async fn list(
     auth: AuthProof,
     qs: Query<Qs>,
 ) -> Result<Json<Vec<Application>>, Hook0Problem> {
-    if !auth
+    if auth
         .can_access_organization(&qs.organization_id, &Role::Viewer)
         .await
+        .is_none()
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -148,12 +151,14 @@ pub async fn edit(
     application_id: Path<Uuid>,
     body: Json<ApplicationPost>,
 ) -> Result<Json<Application>, Hook0Problem> {
-    if !auth
+    if auth
         .can_access_application(&state.db, &application_id, &Role::Editor)
         .await
-        && !auth
+        .is_none()
+        && auth
             .can_access_organization(&body.organization_id, &Role::Editor)
             .await
+            .is_none()
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -191,9 +196,10 @@ pub async fn delete(
     auth: AuthProof,
     application_id: Path<Uuid>,
 ) -> Result<NoContent, Hook0Problem> {
-    if !auth
+    if auth
         .can_access_application(&state.db, &application_id, &Role::Editor)
         .await
+        .is_none()
     {
         return Err(Hook0Problem::Forbidden);
     }
