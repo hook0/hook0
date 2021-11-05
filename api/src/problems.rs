@@ -3,9 +3,7 @@ use http_api_problem::*;
 use paperclip::actix::api_v2_errors;
 use sqlx::postgres::PgDatabaseError;
 use sqlx::Error;
-use std::fmt;
-use std::fmt::Display;
-use strum::EnumIter;
+use strum::{EnumIter};
 
 /**
  * How to implement a new type error for Hook0:
@@ -14,7 +12,7 @@ use strum::EnumIter;
  * 3/ Done! Enjoy!
  */
 #[api_v2_errors(code = 403, code = 500, code = 400, code = 404, code = 409)]
-#[derive(Debug, Copy, Clone, EnumIter)]
+#[derive(Debug, Copy, Clone, EnumIter, strum::Display)]
 pub enum Hook0Problem {
     // Functional errors
     ApplicationNameMissing,
@@ -35,13 +33,6 @@ pub enum Hook0Problem {
     NotFound,
     InternalServerError,
     Forbidden,
-}
-
-// In order to print Problem.id
-impl Display for Hook0Problem {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
 }
 
 impl From<sqlx::Error> for Hook0Problem {
