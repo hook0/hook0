@@ -1,6 +1,6 @@
 use actix_files::{Files, NamedFile};
 use actix_web::{middleware::Logger, App, HttpServer};
-use actix_web_middleware_keycloak_auth::{DecodingKey, KeycloakAuth};
+use actix_web_middleware_keycloak_auth::{AlwaysPassPolicy, DecodingKey, KeycloakAuth};
 use clap::{crate_description, crate_name, crate_version, ArgSettings::HideEnvValues, Parser};
 use log::{info, trace};
 use paperclip::{
@@ -12,6 +12,7 @@ use std::str::FromStr;
 
 mod handlers;
 mod iam;
+mod middleware_application_secret;
 mod problems;
 
 const APP_TITLE: &str = "Hook0 API";
@@ -113,10 +114,15 @@ async fn main() -> anyhow::Result<()> {
         let pk: &'static String = Box::leak(pk);
         let pk = DecodingKey::from_rsa_pem(pk.as_bytes()).unwrap();
 
-        let auth = KeycloakAuth {
+        let jwt_auth = KeycloakAuth {
             detailed_responses: false,
             keycloak_oid_public_key: pk.clone(),
             required_roles: vec![],
+            passthrough_policy: AlwaysPassPolicy,
+        };
+
+        let secret_auth = middleware_application_secret::ApplicationSecretAuth {
+            db: initial_state.db.clone(),
         };
 
         App::new()
@@ -133,12 +139,19 @@ async fn main() -> anyhow::Result<()> {
                         ),
                     )
                     // with authentication
-                    .service(web::scope("/organizations").wrap(auth.clone()).service(
-                        web::resource("").route(web::get().to(handlers::organizations::list)),
-                    ))
+                    .service(
+                        web::scope("/organizations")
+                            .wrap(secret_auth.clone()) // Middleware order is counter intuitive: this is executed second
+                            .wrap(jwt_auth.clone())
+                            .service(
+                                web::resource("")
+                                    .route(web::get().to(handlers::organizations::list)),
+                            ),
+                    )
                     .service(
                         web::scope("/applications")
-                            .wrap(auth.clone())
+                            .wrap(secret_auth.clone()) // Middleware order is counter intuitive: this is executed second
+                            .wrap(jwt_auth.clone())
                             .service(
                                 web::resource("")
                                     .route(web::get().to(handlers::applications::list))
@@ -153,7 +166,8 @@ async fn main() -> anyhow::Result<()> {
                     )
                     .service(
                         web::scope("/event_types")
-                            .wrap(auth.clone())
+                            .wrap(secret_auth.clone()) // Middleware order is counter intuitive: this is executed second
+                            .wrap(jwt_auth.clone())
                             .service(
                                 web::resource("")
                                     .route(web::get().to(handlers::event_types::list))
@@ -167,7 +181,8 @@ async fn main() -> anyhow::Result<()> {
                     )
                     .service(
                         web::scope("/application_secrets")
-                            .wrap(auth.clone())
+                            .wrap(secret_auth.clone()) // Middleware order is counter intuitive: this is executed second
+                            .wrap(jwt_auth.clone())
                             .service(
                                 web::resource("")
                                     .route(web::get().to(handlers::application_secrets::list))
@@ -181,7 +196,8 @@ async fn main() -> anyhow::Result<()> {
                     )
                     .service(
                         web::scope("/events")
-                            .wrap(auth.clone())
+                            .wrap(secret_auth.clone()) // Middleware order is counter intuitive: this is executed second
+                            .wrap(jwt_auth.clone()) // Middleware order is counter intuitive: this is executed first
                             .service(web::resource("").route(web::get().to(handlers::events::list)))
                             .service(
                                 web::resource("/{event_id}")
@@ -189,11 +205,14 @@ async fn main() -> anyhow::Result<()> {
                             ),
                     )
                     .service(
+                        // specific auth
+                        // TODO: make it standard
                         web::resource("/event").route(web::post().to(handlers::events::ingest)),
                     )
                     .service(
                         web::scope("/subscriptions")
-                            .wrap(auth.clone())
+                            .wrap(secret_auth.clone()) // Middleware order is counter intuitive: this is executed second
+                            .wrap(jwt_auth.clone())
                             .service(
                                 web::resource("")
                                     .route(web::get().to(handlers::subscriptions::list))
@@ -205,14 +224,23 @@ async fn main() -> anyhow::Result<()> {
                                     .route(web::delete().to(handlers::subscriptions::delete)),
                             ),
                     )
-                    .service(web::scope("/request_attempts").wrap(auth.clone()).service(
-                        web::resource("").route(web::get().to(handlers::request_attempts::list)),
-                    ))
                     .service(
-                        web::scope("/responses").wrap(auth).service(
-                            web::resource("/{response_id}")
-                                .route(web::get().to(handlers::responses::get)),
-                        ),
+                        web::scope("/request_attempts")
+                            .wrap(secret_auth.clone()) // Middleware order is counter intuitive: this is executed second
+                            .wrap(jwt_auth.clone())
+                            .service(
+                                web::resource("")
+                                    .route(web::get().to(handlers::request_attempts::list)),
+                            ),
+                    )
+                    .service(
+                        web::scope("/responses")
+                            .wrap(secret_auth) // Middleware order is counter intuitive: this is executed second
+                            .wrap(jwt_auth.clone())
+                            .service(
+                                web::resource("/{response_id}")
+                                    .route(web::get().to(handlers::responses::get)),
+                            ),
                     ),
             )
             .default_service(

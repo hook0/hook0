@@ -1,4 +1,3 @@
-use actix_web_middleware_keycloak_auth::KeycloakClaims;
 use chrono::{DateTime, Utc};
 use paperclip::actix::{
     api_v2_operation,
@@ -9,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{query, query_as};
 use uuid::Uuid;
 
-use crate::iam::{Hook0Claims, Role};
+use crate::iam::{AuthProof, Role};
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -41,10 +40,10 @@ pub struct ApplicationSecretPost {
 )]
 pub async fn create(
     state: Data<crate::State>,
-    claims: KeycloakClaims<Hook0Claims>,
+    auth: AuthProof,
     body: Json<ApplicationSecretPost>,
 ) -> Result<CreatedJson<ApplicationSecret>, Hook0Problem> {
-    if !claims
+    if !auth
         .can_access_application(&state.db, &body.application_id, &Role::Editor)
         .await
     {
@@ -78,10 +77,10 @@ pub async fn create(
 )]
 pub async fn list(
     state: Data<crate::State>,
-    claims: KeycloakClaims<Hook0Claims>,
+    auth: AuthProof,
     qs: Query<Qs>,
 ) -> Result<Json<Vec<ApplicationSecret>>, Hook0Problem> {
-    if !claims
+    if !auth
         .can_access_application(&state.db, &qs.application_id, &Role::Viewer)
         .await
     {
@@ -115,11 +114,11 @@ pub async fn list(
 )]
 pub async fn update(
     state: Data<crate::State>,
-    claims: KeycloakClaims<Hook0Claims>,
+    auth: AuthProof,
     application_secret_token: Path<Uuid>,
     body: Json<ApplicationSecretPost>,
 ) -> Result<Json<ApplicationSecret>, Hook0Problem> {
-    if !claims
+    if !auth
         .can_access_application(&state.db, &body.application_id, &Role::Editor)
         .await
     {
@@ -158,11 +157,11 @@ pub async fn update(
 )]
 pub async fn delete(
     state: Data<crate::State>,
-    claims: KeycloakClaims<Hook0Claims>,
+    auth: AuthProof,
     application_secret_token: Path<Uuid>,
     qs: Query<Qs>,
 ) -> Result<NoContent, Hook0Problem> {
-    if !claims
+    if !auth
         .can_access_application(&state.db, &qs.application_id, &Role::Editor)
         .await
     {

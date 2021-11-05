@@ -1,4 +1,3 @@
-use actix_web_middleware_keycloak_auth::KeycloakClaims;
 use chrono::{DateTime, Utc};
 use log::error;
 use paperclip::actix::{
@@ -12,7 +11,7 @@ use sqlx::{query, query_as};
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use crate::iam::{Hook0Claims, Role};
+use crate::iam::{AuthProof, Role};
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -54,10 +53,10 @@ pub struct Qs {
 )]
 pub async fn list(
     state: Data<crate::State>,
-    claims: KeycloakClaims<Hook0Claims>,
+    auth: AuthProof,
     qs: Query<Qs>,
 ) -> Result<Json<Vec<Subscription>>, Hook0Problem> {
-    if !claims
+    if !auth
         .can_access_application(&state.db, &qs.application_id, &Role::Viewer)
         .await
     {
@@ -156,10 +155,10 @@ pub struct SubscriptionPost {
 )]
 pub async fn add(
     state: Data<crate::State>,
-    claims: KeycloakClaims<Hook0Claims>,
+    auth: AuthProof,
     body: Json<SubscriptionPost>,
 ) -> Result<CreatedJson<Subscription>, Hook0Problem> {
-    if !claims
+    if !auth
         .can_access_application(&state.db, &body.application_id, &Role::Editor)
         .await
     {
@@ -258,11 +257,11 @@ pub async fn add(
 )]
 pub async fn update(
     state: Data<crate::State>,
-    claims: KeycloakClaims<Hook0Claims>,
+    auth: AuthProof,
     subscription_id: Path<Uuid>,
     body: Json<SubscriptionPost>,
 ) -> Result<Json<Subscription>, Hook0Problem> {
-    if !claims
+    if !auth
         .can_access_application(&state.db, &body.application_id, &Role::Editor)
         .await
     {
@@ -381,11 +380,11 @@ pub async fn update(
 )]
 pub async fn delete(
     state: Data<crate::State>,
-    claims: KeycloakClaims<Hook0Claims>,
+    auth: AuthProof,
     subscription_id: Path<Uuid>,
     qs: Query<Qs>,
 ) -> Result<NoContent, Hook0Problem> {
-    if !claims
+    if !auth
         .can_access_application(&state.db, &qs.application_id, &Role::Editor)
         .await
     {
