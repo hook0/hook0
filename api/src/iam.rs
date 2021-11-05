@@ -109,11 +109,11 @@ impl AuthProof {
         &self,
         organization_id: &Uuid,
         minimum_required_role: &Role,
-    ) -> bool {
+    ) -> Option<&Self> {
         let available_organizations = self.organizations();
         match available_organizations.get(organization_id) {
-            Some(role) => role >= minimum_required_role,
-            None => false,
+            Some(role) if role >= minimum_required_role => Some(self),
+            _ => None,
         }
     }
 
@@ -122,7 +122,7 @@ impl AuthProof {
         db: &PgPool,
         application_id: &Uuid,
         minimum_required_role: &Role,
-    ) -> bool {
+    ) -> Option<&Self> {
         match self {
             Self::ApplicationSecret {
                 application_id: provided_application_id,
@@ -130,7 +130,11 @@ impl AuthProof {
                 secret: _,
             } => {
                 // Providing an application secret implies having the Editor role on the application
-                provided_application_id == application_id
+                if provided_application_id == application_id {
+                    Some(self)
+                } else {
+                    None
+                }
             }
             Self::Jwt { claims: _ } => {
                 struct Organization {
@@ -148,11 +152,11 @@ impl AuthProof {
                 if let Ok(Organization { id }) = org {
                     let available_organizations = self.organizations();
                     match available_organizations.get(&id) {
-                        Some(role) => role >= minimum_required_role,
-                        None => false,
+                        Some(role) if role >= minimum_required_role => Some(self),
+                        _ => None,
                     }
                 } else {
-                    false
+                    None
                 }
             }
         }

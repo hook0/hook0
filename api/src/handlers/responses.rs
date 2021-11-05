@@ -42,9 +42,10 @@ pub async fn get(
     qs: Query<Qs>,
     response_id: Path<Uuid>,
 ) -> Result<Json<Response>, Hook0Problem> {
-    if !auth
+    if auth
         .can_access_application(&state.db, &qs.application_id, &Role::Viewer)
         .await
+        .is_none()
     {
         return Err(Hook0Problem::Forbidden);
     }
