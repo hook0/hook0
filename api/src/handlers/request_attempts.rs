@@ -109,9 +109,10 @@ pub async fn list(
     auth: AuthProof,
     qs: Query<Qs>,
 ) -> Result<Json<Vec<RequestAttempt>>, Hook0Problem> {
-    if !auth
+    if auth
         .can_access_application(&state.db, &qs.application_id, &Role::Viewer)
         .await
+        .is_none()
     {
         return Err(Hook0Problem::Forbidden);
     }

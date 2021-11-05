@@ -43,9 +43,10 @@ pub async fn create(
     auth: AuthProof,
     body: Json<ApplicationSecretPost>,
 ) -> Result<CreatedJson<ApplicationSecret>, Hook0Problem> {
-    if !auth
+    if auth
         .can_access_application(&state.db, &body.application_id, &Role::Editor)
         .await
+        .is_none()
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -80,9 +81,10 @@ pub async fn list(
     auth: AuthProof,
     qs: Query<Qs>,
 ) -> Result<Json<Vec<ApplicationSecret>>, Hook0Problem> {
-    if !auth
+    if auth
         .can_access_application(&state.db, &qs.application_id, &Role::Viewer)
         .await
+        .is_none()
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -118,9 +120,10 @@ pub async fn update(
     application_secret_token: Path<Uuid>,
     body: Json<ApplicationSecretPost>,
 ) -> Result<Json<ApplicationSecret>, Hook0Problem> {
-    if !auth
+    if auth
         .can_access_application(&state.db, &body.application_id, &Role::Editor)
         .await
+        .is_none()
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -161,9 +164,10 @@ pub async fn delete(
     application_secret_token: Path<Uuid>,
     qs: Query<Qs>,
 ) -> Result<NoContent, Hook0Problem> {
-    if !auth
+    if auth
         .can_access_application(&state.db, &qs.application_id, &Role::Editor)
         .await
+        .is_none()
     {
         return Err(Hook0Problem::Forbidden);
     }

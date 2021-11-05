@@ -56,9 +56,10 @@ pub async fn list(
     auth: AuthProof,
     qs: Query<Qs>,
 ) -> Result<Json<Vec<Subscription>>, Hook0Problem> {
-    if !auth
+    if auth
         .can_access_application(&state.db, &qs.application_id, &Role::Viewer)
         .await
+        .is_none()
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -158,9 +159,10 @@ pub async fn add(
     auth: AuthProof,
     body: Json<SubscriptionPost>,
 ) -> Result<CreatedJson<Subscription>, Hook0Problem> {
-    if !auth
+    if auth
         .can_access_application(&state.db, &body.application_id, &Role::Editor)
         .await
+        .is_none()
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -261,9 +263,10 @@ pub async fn update(
     subscription_id: Path<Uuid>,
     body: Json<SubscriptionPost>,
 ) -> Result<Json<Subscription>, Hook0Problem> {
-    if !auth
+    if auth
         .can_access_application(&state.db, &body.application_id, &Role::Editor)
         .await
+        .is_none()
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -384,9 +387,10 @@ pub async fn delete(
     subscription_id: Path<Uuid>,
     qs: Query<Qs>,
 ) -> Result<NoContent, Hook0Problem> {
-    if !auth
+    if auth
         .can_access_application(&state.db, &qs.application_id, &Role::Editor)
         .await
+        .is_none()
     {
         return Err(Hook0Problem::Forbidden);
     }
