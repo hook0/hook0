@@ -1,7 +1,6 @@
 use actix_web::body::AnyBody;
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
-use actix_web::http::StatusCode;
-use actix_web::{Error, HttpMessage, HttpResponse, ResponseError};
+use actix_web::{Error, HttpMessage, HttpResponse};
 use actix_web_middleware_keycloak_auth::{extract_jwt_claims, KeycloakAuthStatus};
 use anyhow::anyhow;
 use futures_util::future::{ok, ready, Ready};
@@ -14,8 +13,7 @@ use std::task::{Context, Poll};
 use uuid::Uuid;
 
 use crate::iam::AuthProof;
-
-const DETAILED_RESPONSES: bool = true;
+use crate::problems::Hook0Problem;
 
 #[derive(Debug, Clone)]
 pub struct ApplicationSecretAuth {
@@ -39,56 +37,6 @@ where
             service: Rc::new(service),
             db: self.db.clone(),
         })
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum AuthError {
-    NoJwtAuthStatus,
-    NoAuthorizationHeader,
-    InvalidAuthorizationHeader,
-    ApplicationSecretLookupError,
-    InvalidApplicationSecret,
-}
-
-impl ResponseError for AuthError {
-    fn status_code(&self) -> StatusCode {
-        match self {
-            Self::NoJwtAuthStatus | Self::ApplicationSecretLookupError => {
-                StatusCode::INTERNAL_SERVER_ERROR
-            }
-            Self::InvalidAuthorizationHeader => StatusCode::BAD_REQUEST,
-            Self::InvalidApplicationSecret => StatusCode::FORBIDDEN,
-            _ => StatusCode::UNAUTHORIZED,
-        }
-    }
-
-    fn error_response(&self) -> HttpResponse {
-        HttpResponse::new(self.status_code()).set_body(self.to_string().into())
-    }
-}
-
-impl std::fmt::Display for AuthError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::NoJwtAuthStatus => f.write_str(""),
-            Self::NoAuthorizationHeader => f.write_str("No bearer token was provided"),
-            Self::InvalidAuthorizationHeader => {
-                f.write_str("Authorization header value is invalid")
-            }
-            Self::ApplicationSecretLookupError => f.write_str("Application secret lookup failed"),
-            Self::InvalidApplicationSecret => f.write_str("Application secret is not valid"),
-        }
-    }
-}
-
-impl AuthError {
-    pub fn to_response(&self, detailed_responses: bool) -> HttpResponse {
-        if detailed_responses {
-            self.error_response()
-        } else {
-            HttpResponse::build(self.status_code()).body(self.status_code().to_string())
-        }
     }
 }
 
@@ -204,49 +152,42 @@ where
                                                     srv.call(req).await
                                                 }
                                                 Ok(None) => {
-                                                    let e = AuthError::InvalidApplicationSecret;
+                                                    let e =
+                                                        Hook0Problem::AuthInvalidApplicationSecret;
                                                     debug!("{}", &e);
-                                                    Ok(req.into_response::<AnyBody, HttpResponse>(
-                                                        e.to_response(DETAILED_RESPONSES),
-                                                    ))
+                                                    Ok(req.error_response(e))
                                                 }
                                                 Err(err) => {
-                                                    let e = AuthError::ApplicationSecretLookupError;
-                                                    debug!("{}: {}", &e, &err);
-                                                    Ok(req.into_response::<AnyBody, HttpResponse>(
-                                                        e.to_response(DETAILED_RESPONSES),
-                                                    ))
+                                                    let e = Hook0Problem::AuthApplicationSecretLookupError;
+                                                    error!("{}: {}", &e, &err);
+                                                    Ok(req.error_response(e))
                                                 }
                                             }
                                         })
                                     }
                                     Err(_) => {
-                                        let e = AuthError::InvalidAuthorizationHeader;
+                                        let e = Hook0Problem::AuthInvalidAuthorizationHeader;
                                         debug!("{}", &e);
-                                        Box::pin(ready(Ok(req
-                                            .into_response::<AnyBody, HttpResponse>(
-                                                e.to_response(DETAILED_RESPONSES),
-                                            ))))
+                                        Box::pin(ready(Ok(req.error_response(e))))
                                     }
                                 }
                             }
                             None => {
-                                let e = AuthError::NoAuthorizationHeader;
+                                let e = Hook0Problem::AuthNoAuthorizationHeader;
                                 debug!("{}", &e);
-                                Box::pin(ready(Ok(req.into_response::<AnyBody, HttpResponse>(
-                                    e.to_response(DETAILED_RESPONSES),
-                                ))))
+                                Box::pin(ready(Ok(req.error_response(e))))
                             }
                         }
                     }
                 }
             }
             None => {
-                error!("ApplicationSecretAuthMiddleware cannot find the KeycloakAuthStatus left in ReqData by KeycloakAuthMiddleware");
+                let e = "ApplicationSecretAuthMiddleware cannot find the KeycloakAuthStatus left in ReqData by KeycloakAuthMiddleware";
+                error!("{}", &e);
                 drop(extensions);
-                Box::pin(ready(Ok(req.into_response(
-                    AuthError::NoJwtAuthStatus.to_response(DETAILED_RESPONSES),
-                ))))
+                Box::pin(ready(Ok(
+                    req.into_response(HttpResponse::InternalServerError().body(e))
+                )))
             }
         }
     }
