@@ -3,7 +3,7 @@ use http_api_problem::*;
 use paperclip::actix::api_v2_errors;
 use sqlx::postgres::PgDatabaseError;
 use sqlx::Error;
-use strum::{EnumIter};
+use strum::EnumIter;
 
 /**
  * How to implement a new type error for Hook0:
