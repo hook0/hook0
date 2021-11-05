@@ -1,5 +1,4 @@
 use actix_web::HttpRequest;
-use actix_web_middleware_keycloak_auth::KeycloakClaims;
 use base64::encode;
 use chrono::{DateTime, Utc};
 use ipnetwork::IpNetwork;
@@ -15,7 +14,7 @@ use sqlx::query_as;
 use std::str::FromStr;
 use uuid::Uuid;
 
-use crate::iam::{Hook0Claims, Role};
+use crate::iam::{AuthProof, Role};
 use crate::problems::Hook0Problem;
 
 use super::application_secrets::ApplicationSecret;
@@ -78,10 +77,10 @@ pub struct Event {
 )]
 pub async fn list(
     state: Data<crate::State>,
-    claims: KeycloakClaims<Hook0Claims>,
+    auth: AuthProof,
     qs: Query<Qs>,
 ) -> Result<Json<Vec<Event>>, Hook0Problem> {
-    if !claims
+    if !auth
         .can_access_application(&state.db, &qs.application_id, &Role::Viewer)
         .await
     {
@@ -163,11 +162,11 @@ pub struct EventWithPayload {
 )]
 pub async fn get(
     state: Data<crate::State>,
-    claims: KeycloakClaims<Hook0Claims>,
+    auth: AuthProof,
     event_id: Path<Uuid>,
     qs: Query<Qs>,
 ) -> Result<Json<EventWithPayload>, Hook0Problem> {
-    if !claims
+    if !auth
         .can_access_application(&state.db, &qs.application_id, &Role::Viewer)
         .await
     {
