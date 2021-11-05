@@ -204,9 +204,9 @@ pub async fn add(
             headers,
         } => query!(
             "
-                    INSERT INTO webhook.target_http (target__id, method, url, headers)
-                    VALUES ($1, $2, $3, $4)
-                ",
+                INSERT INTO webhook.target_http (target__id, method, url, headers)
+                VALUES ($1, $2, $3, $4)
+            ",
             &subscription.target__id,
             method,
             url,
