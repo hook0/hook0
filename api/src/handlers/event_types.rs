@@ -233,9 +233,9 @@ pub async fn delete(
         Some(a) => {
             query!(
                 "
-                        DELETE FROM event.event_type
-                        WHERE application__id = $1 AND event_type__name = $2
-                    ",
+                    DELETE FROM event.event_type
+                    WHERE application__id = $1 AND event_type__name = $2
+                ",
                 &application_id,
                 a.event_type_name,
             )
