@@ -1,4 +1,3 @@
-use actix_web_middleware_keycloak_auth::KeycloakClaims;
 use chrono::{DateTime, Utc};
 use paperclip::actix::{
     api_v2_operation,
@@ -9,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{query, query_as};
 use uuid::Uuid;
 
-use crate::iam::{Hook0Claims, Role};
+use crate::iam::{AuthProof, Role};
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -41,12 +40,13 @@ pub struct ApplicationSecretPost {
 )]
 pub async fn create(
     state: Data<crate::State>,
-    claims: KeycloakClaims<Hook0Claims>,
+    auth: AuthProof,
     body: Json<ApplicationSecretPost>,
 ) -> Result<CreatedJson<ApplicationSecret>, Hook0Problem> {
-    if !claims
+    if auth
         .can_access_application(&state.db, &body.application_id, &Role::Editor)
         .await
+        .is_none()
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -54,10 +54,10 @@ pub async fn create(
     let application_secret = query_as!(
         ApplicationSecret,
         "
-                INSERT INTO event.application_secret (application__id, name)
-                VALUES ($1, $2)
-                RETURNING name, token, created_at, deleted_at
-            ",
+            INSERT INTO event.application_secret (application__id, name)
+            VALUES ($1, $2)
+            RETURNING name, token, created_at, deleted_at
+        ",
         &body.application_id,
         body.name,
     )
@@ -78,12 +78,13 @@ pub async fn create(
 )]
 pub async fn list(
     state: Data<crate::State>,
-    claims: KeycloakClaims<Hook0Claims>,
+    auth: AuthProof,
     qs: Query<Qs>,
 ) -> Result<Json<Vec<ApplicationSecret>>, Hook0Problem> {
-    if !claims
+    if auth
         .can_access_application(&state.db, &qs.application_id, &Role::Viewer)
         .await
+        .is_none()
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -91,11 +92,11 @@ pub async fn list(
     let application_secrets = query_as!(
         ApplicationSecret,
         "
-                SELECT name, token, created_at, deleted_at
-                FROM event.application_secret
-                WHERE application__id = $1
-                ORDER BY created_at ASC
-            ",
+            SELECT name, token, created_at, deleted_at
+            FROM event.application_secret
+            WHERE application__id = $1
+            ORDER BY created_at ASC
+        ",
         &qs.application_id,
     )
     .fetch_all(&state.db)
@@ -115,13 +116,14 @@ pub async fn list(
 )]
 pub async fn update(
     state: Data<crate::State>,
-    claims: KeycloakClaims<Hook0Claims>,
+    auth: AuthProof,
     application_secret_token: Path<Uuid>,
     body: Json<ApplicationSecretPost>,
 ) -> Result<Json<ApplicationSecret>, Hook0Problem> {
-    if !claims
+    if auth
         .can_access_application(&state.db, &body.application_id, &Role::Editor)
         .await
+        .is_none()
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -129,11 +131,11 @@ pub async fn update(
     let application_secret = query_as!(
         ApplicationSecret,
         "
-                UPDATE event.application_secret
-                SET name = $1
-                WHERE application__id = $2 AND token = $3
-                RETURNING name, token, created_at, deleted_at
-            ",
+            UPDATE event.application_secret
+            SET name = $1
+            WHERE application__id = $2 AND token = $3
+            RETURNING name, token, created_at, deleted_at
+        ",
         body.name,
         &body.application_id,
         &application_secret_token.into_inner()
@@ -158,13 +160,14 @@ pub async fn update(
 )]
 pub async fn delete(
     state: Data<crate::State>,
-    claims: KeycloakClaims<Hook0Claims>,
+    auth: AuthProof,
     application_secret_token: Path<Uuid>,
     qs: Query<Qs>,
 ) -> Result<NoContent, Hook0Problem> {
-    if !claims
+    if auth
         .can_access_application(&state.db, &qs.application_id, &Role::Editor)
         .await
+        .is_none()
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -173,10 +176,10 @@ pub async fn delete(
     let application_secret = query_as!(
         ApplicationSecret,
         "
-                SELECT name, token, created_at, deleted_at
-                FROM event.application_secret
-                WHERE application__id = $1 AND token = $2
-            ",
+            SELECT name, token, created_at, deleted_at
+            FROM event.application_secret
+            WHERE application__id = $1 AND token = $2
+        ",
         &application_id,
         &application_secret_token.into_inner()
     )
@@ -188,10 +191,10 @@ pub async fn delete(
         Some(a) => {
             query!(
                 "
-                        UPDATE event.application_secret
-                        SET deleted_at = statement_timestamp()
-                        WHERE application__id = $1 AND token = $2
-                    ",
+                    UPDATE event.application_secret
+                    SET deleted_at = statement_timestamp()
+                    WHERE application__id = $1 AND token = $2
+                ",
                 &application_id,
                 &a.token
             )
