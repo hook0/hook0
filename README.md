@@ -212,7 +212,8 @@ PAYLOAD_CONTENT_TYPE="application/json"
 OCCURRED_AT="2021-09-10T16:24:52+02:00"
 
 curl -v -H 'Content-type: application/json' \
--d '{"application_id": "'${APPLICATION_ID}'", "event_id": "'${EVENT_ID}'", "event_type": "'${EVENT_TYPE}'", "payload": '${PAYLOAD}', "payload_content_type": "'${PAYLOAD_CONTENT_TYPE}'", "occurred_at": "'${OCCURRED_AT}'", "application_secret": "'${APPLICATION_SECRET}'", "labels": {"": ""}}' https://app.hook0.com/api/v1/event
+-H "Authorization: Bearer ${APPLICATION_SECRET}" \
+-d '{"application_id": "'${APPLICATION_ID}'", "event_id": "'${EVENT_ID}'", "event_type": "'${EVENT_TYPE}'", "payload": '${PAYLOAD}', "payload_content_type": "'${PAYLOAD_CONTENT_TYPE}'", "occurred_at": "'${OCCURRED_AT}'", "labels": {"": ""}}' https://app.hook0.com/api/v1/event
 ```
 
 Hook0 API replies with a 201 CREATED HTTP status code and the following body:
