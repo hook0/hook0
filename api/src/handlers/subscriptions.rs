@@ -210,7 +210,7 @@ pub async fn add(
                 VALUES ($1, $2, $3, $4)
             ",
             &subscription.target__id,
-            method,
+            method.to_uppercase(),
             url,
             serde_json::to_value(headers).expect("could not serialize target headers into JSON"),
         )
@@ -318,7 +318,7 @@ pub async fn update(
                         SET method = $1, url = $2, headers = $3
                         WHERE target__id = $4
                     ",
-                    method,
+                    method.to_uppercase(),
                     url,
                     serde_json::to_value(headers)
                         .expect("could not serialize target headers into JSON"),
