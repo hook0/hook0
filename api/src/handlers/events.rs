@@ -1,5 +1,4 @@
 use actix_web::HttpRequest;
-use actix_web_middleware_keycloak_auth::KeycloakClaims;
 use base64::encode;
 use chrono::{DateTime, Utc};
 use ipnetwork::IpNetwork;
@@ -15,10 +14,8 @@ use sqlx::query_as;
 use std::str::FromStr;
 use uuid::Uuid;
 
-use crate::iam::{Hook0Claims, Role};
+use crate::iam::{AuthProof, Role};
 use crate::problems::Hook0Problem;
-
-use super::application_secrets::ApplicationSecret;
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
 pub struct Qs {
@@ -78,12 +75,13 @@ pub struct Event {
 )]
 pub async fn list(
     state: Data<crate::State>,
-    claims: KeycloakClaims<Hook0Claims>,
+    auth: AuthProof,
     qs: Query<Qs>,
 ) -> Result<Json<Vec<Event>>, Hook0Problem> {
-    if !claims
+    if auth
         .can_access_application(&state.db, &qs.application_id, &Role::Viewer)
         .await
+        .is_none()
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -163,13 +161,14 @@ pub struct EventWithPayload {
 )]
 pub async fn get(
     state: Data<crate::State>,
-    claims: KeycloakClaims<Hook0Claims>,
+    auth: AuthProof,
     event_id: Path<Uuid>,
     qs: Query<Qs>,
 ) -> Result<Json<EventWithPayload>, Hook0Problem> {
-    if !claims
+    if auth
         .can_access_application(&state.db, &qs.application_id, &Role::Viewer)
         .await
+        .is_none()
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -203,7 +202,6 @@ pub struct EventPost {
     payload_content_type: String,
     metadata: Option<Value>,
     occurred_at: DateTime<Utc>,
-    application_secret: Uuid,
     labels: Value,
 }
 
@@ -229,92 +227,91 @@ pub struct IngestedEvent {
 )]
 pub async fn ingest(
     state: Data<crate::State>,
-    body: Json<EventPost>,
+    auth: AuthProof,
     req: HttpRequest,
+    body: Json<EventPost>,
 ) -> Result<CreatedJson<IngestedEvent>, Hook0Problem> {
     let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
 
-    let application_secret = query_as!(
-        ApplicationSecret,
-        "
-            SELECT name, token, created_at, deleted_at
-            FROM event.application_secret
-            WHERE application__id = $1 AND token = $2 AND deleted_at IS NULL
-        ",
-        &body.application_id,
-        &body.application_secret,
-    )
-    .fetch_one(&mut tx)
-    .await
-    .map_err(Hook0Problem::from)?;
+    if let Some(AuthProof::ApplicationSecret {
+        application_id: _,
+        name: _,
+        secret,
+    }) = auth
+        .can_access_application(&state.db, &body.application_id, &Role::Editor)
+        .await
+    {
+        let content_type_lookup = query_as!(
+            ContentTypeLookup,
+            "
+                SELECT COUNT(*) AS nb
+                FROM event.payload_content_type
+                WHERE payload_content_type__name = $1
+            ",
+            &body.payload_content_type,
+        )
+        .fetch_one(&mut tx)
+        .await
+        .map_err(Hook0Problem::from)?;
 
-    let content_type_lookup = query_as!(
-        ContentTypeLookup,
-        "
-            SELECT COUNT(*) AS nb
-            FROM event.payload_content_type
-            WHERE payload_content_type__name = $1
-        ",
-        &body.payload_content_type,
-    )
-    .fetch_one(&mut tx)
-    .await
-    .map_err(Hook0Problem::from)?;
+        let content_type_ok = matches!(content_type_lookup, ContentTypeLookup { nb: Some(1) });
 
-    let content_type_ok = matches!(content_type_lookup, ContentTypeLookup { nb: Some(1) });
+        let payload = base64::decode(body.payload.as_str());
 
-    let payload = base64::decode(body.payload.as_str());
+        let metadata_ok = body
+            .metadata
+            .as_ref()
+            .map(|val| val.is_object())
+            .unwrap_or(true);
 
-    let metadata_ok = body
-        .metadata
-        .as_ref()
-        .map(|val| val.is_object())
-        .unwrap_or(true);
+        let labels_ok = body.labels.is_object();
 
-    let labels_ok = body.labels.is_object();
+        match (content_type_ok, payload, metadata_ok, labels_ok) {
+            (true, Ok(p), true, true) => {
+                let ip = req
+                    .connection_info()
+                    .realip_remote_addr()
+                    .and_then(|str| str.split(':').next())
+                    .ok_or(Hook0Problem::InternalServerError)
+                    .and_then(|str| {
+                        IpNetwork::from_str(str).map_err(|e| {
+                            error!("{}", &e);
+                            Hook0Problem::InternalServerError
+                        })
+                    })?;
 
-    match (content_type_ok, payload, metadata_ok, labels_ok) {
-        (true, Ok(p), true, true) => {
-            let ip = req
-                .connection_info()
-                .realip_remote_addr()
-                .and_then(|str| str.split(':').next())
-                .ok_or(Hook0Problem::InternalServerError)
-                .and_then(|str| {
-                    IpNetwork::from_str(str).map_err(|e| {
-                        error!("{}", &e);
-                        Hook0Problem::InternalServerError
-                    })
-                })?;
+                let event = query_as!(
+                    IngestedEvent,
+                    "
+                        INSERT INTO event.event (application__id, event__id, event_type__name, payload, payload_content_type__name, ip, metadata, occurred_at, received_at, application_secret__token, labels)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, statement_timestamp(), $9, $10)
+                        RETURNING application__id AS application_id, event__id AS event_id, received_at
+                    ",
+                    &body.application_id,
+                    &body.event_id,
+                    &body.event_type,
+                    &p,
+                    &body.payload_content_type,
+                    &ip,
+                    body.metadata,
+                    &body.occurred_at,
+                    secret,
+                    body.labels,
+                )
+                    .fetch_one(&state.db)
+                    .await
+                    .map_err(Hook0Problem::from)?;
 
-            let event = query_as!(
-                IngestedEvent,
-                "
-                    INSERT INTO event.event (application__id, event__id, event_type__name, payload, payload_content_type__name, ip, metadata, occurred_at, received_at, application_secret__token, labels)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, statement_timestamp(), $9, $10)
-                    RETURNING application__id AS application_id, event__id AS event_id, received_at",
-                &body.application_id,
-                &body.event_id,
-                &body.event_type,
-                &p,
-                &body.payload_content_type,
-                &ip,
-                body.metadata,
-                &body.occurred_at,
-                &application_secret.token,
-                body.labels,
-            )
-                .fetch_one(&state.db)
-                .await
-                .map_err(Hook0Problem::from)?;
+                tx.commit().await.map_err(Hook0Problem::from)?;
 
-            tx.commit().await.map_err(Hook0Problem::from)?;
-
-            Ok(CreatedJson(event))
+                Ok(CreatedJson(event))
+            }
+            (false, _, _, _) => Err(Hook0Problem::EventInvalidPayloadContentType),
+            (_, Err(_), _, _) => Err(Hook0Problem::EventInvalidBase64Payload),
+            (_, _, false, _) => Err(Hook0Problem::EventInvalidMetadata),
+            (_, _, _, false) => Err(Hook0Problem::EventInvalidLabels),
         }
-        (false, _, _, _) => Err(Hook0Problem::EventInvalidPayloadContentType),
-        (_, Err(_), _, _) => Err(Hook0Problem::EventInvalidBase64Payload),
-        (_, _, false, _) => Err(Hook0Problem::EventInvalidMetadata),
-        (_, _, _, false) => Err(Hook0Problem::EventInvalidLabels),
+    } else {
+        Err(Hook0Problem::Forbidden)
     }
 }

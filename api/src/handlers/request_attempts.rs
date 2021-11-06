@@ -1,4 +1,3 @@
-use actix_web_middleware_keycloak_auth::KeycloakClaims;
 use chrono::{DateTime, Utc};
 use paperclip::actix::{
     api_v2_operation,
@@ -10,7 +9,7 @@ use sqlx::query_as;
 use std::cmp::max;
 use uuid::Uuid;
 
-use crate::iam::{Hook0Claims, Role};
+use crate::iam::{AuthProof, Role};
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -107,12 +106,13 @@ pub struct Qs {
 )]
 pub async fn list(
     state: Data<crate::State>,
-    claims: KeycloakClaims<Hook0Claims>,
+    auth: AuthProof,
     qs: Query<Qs>,
 ) -> Result<Json<Vec<RequestAttempt>>, Hook0Problem> {
-    if !claims
+    if auth
         .can_access_application(&state.db, &qs.application_id, &Role::Viewer)
         .await
+        .is_none()
     {
         return Err(Hook0Problem::Forbidden);
     }

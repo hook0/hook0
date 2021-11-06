@@ -1,4 +1,3 @@
-use actix_web_middleware_keycloak_auth::KeycloakClaims;
 use paperclip::actix::{
     api_v2_operation,
     web::{Data, Json, Path, Query},
@@ -8,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{query, query_as};
 use uuid::Uuid;
 
-use crate::iam::{Hook0Claims, Role};
+use crate::iam::{AuthProof, Role};
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -39,12 +38,13 @@ pub struct ApplicationPost {
 )]
 pub async fn create(
     state: Data<crate::State>,
-    claims: KeycloakClaims<Hook0Claims>,
+    auth: AuthProof,
     body: Json<ApplicationPost>,
 ) -> Result<CreatedJson<Application>, Hook0Problem> {
-    if !claims
+    if auth
         .can_access_organization(&body.organization_id, &Role::Editor)
         .await
+        .is_none()
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -74,12 +74,13 @@ pub async fn create(
 )]
 pub async fn get(
     state: Data<crate::State>,
-    claims: KeycloakClaims<Hook0Claims>,
+    auth: AuthProof,
     application_id: Path<Uuid>,
 ) -> Result<Json<Application>, Hook0Problem> {
-    if !claims
+    if auth
         .can_access_application(&state.db, &application_id, &Role::Viewer)
         .await
+        .is_none()
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -113,12 +114,13 @@ pub async fn get(
 )]
 pub async fn list(
     state: Data<crate::State>,
-    claims: KeycloakClaims<Hook0Claims>,
+    auth: AuthProof,
     qs: Query<Qs>,
 ) -> Result<Json<Vec<Application>>, Hook0Problem> {
-    if !claims
+    if auth
         .can_access_organization(&qs.organization_id, &Role::Viewer)
         .await
+        .is_none()
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -145,16 +147,18 @@ pub async fn list(
 )]
 pub async fn edit(
     state: Data<crate::State>,
-    claims: KeycloakClaims<Hook0Claims>,
+    auth: AuthProof,
     application_id: Path<Uuid>,
     body: Json<ApplicationPost>,
 ) -> Result<Json<Application>, Hook0Problem> {
-    if !claims
+    if auth
         .can_access_application(&state.db, &application_id, &Role::Editor)
         .await
-        && claims
+        .is_none()
+        && auth
             .can_access_organization(&body.organization_id, &Role::Editor)
             .await
+            .is_none()
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -189,12 +193,13 @@ pub async fn edit(
 )]
 pub async fn delete(
     state: Data<crate::State>,
-    claims: KeycloakClaims<Hook0Claims>,
+    auth: AuthProof,
     application_id: Path<Uuid>,
 ) -> Result<NoContent, Hook0Problem> {
-    if !claims
+    if auth
         .can_access_application(&state.db, &application_id, &Role::Editor)
         .await
+        .is_none()
     {
         return Err(Hook0Problem::Forbidden);
     }
