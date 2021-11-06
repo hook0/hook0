@@ -14,6 +14,21 @@
       "nullable": []
     }
   },
+  "00edd0c361d4c802cc73bec82854d29bf94addc83884ab0cd11179b91ba3c590": {
+    "query": "\n                INSERT INTO webhook.target_http (target__id, method, url, headers)\n                VALUES ($1, $2, $3, $4)\n            ",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text",
+          "Text",
+          "Jsonb"
+        ]
+      },
+      "nullable": []
+    }
+  },
   "074f47957f3b68849aa83568b51e267ff68d05039b45fe2b72b90eb54fc728e2": {
     "query": "\n            WITH subs AS (\n                SELECT\n                    s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.label_key, s.label_value, s.target__id, s.created_at,\n                    CASE WHEN length((array_agg(set.event_type__name))[1]) > 0\n                        THEN array_agg(set.event_type__name)\n                        ELSE ARRAY[]::text[] END AS event_types\n                FROM webhook.subscription AS s\n                LEFT JOIN webhook.subscription__event_type AS set ON set.subscription__id = s.subscription__id\n                WHERE s.application__id = $1\n                GROUP BY s.subscription__id\n                ORDER BY s.created_at ASC\n            ), targets AS (\n                SELECT target__id, jsonb_build_object(\n                    'type', replace(tableoid::regclass::text, 'webhook.target_', ''),\n                    'method', method,\n                    'url', url,\n                    'headers', headers\n                ) AS target_json FROM webhook.target_http\n                WHERE target__id IN (SELECT target__id FROM subs)\n            )\n            SELECT subs.subscription__id AS \"subscription__id!\", subs.is_enabled AS \"is_enabled!\", subs.description, subs.secret AS \"secret!\", subs.metadata AS \"metadata!\", subs.label_key AS \"label_key!\", subs.label_value AS \"label_value!\", subs.created_at AS \"created_at!\", subs.event_types, targets.target_json\n            FROM subs\n            INNER JOIN targets ON subs.target__id = targets.target__id\n        ",
     "describe": {
@@ -420,19 +435,63 @@
       "nullable": []
     }
   },
-  "39ecc73ca54b2cd1a2709bb85c515264ad95465be2fa733a19fb9bb688d4ba5a": {
-    "query": "\n                    INSERT INTO webhook.target_http (target__id, method, url, headers)\n                    VALUES ($1, $2, $3, $4)\n                ",
+  "3c80dc303c2b9edef6646c3fc526acd63ea830f5b62f8007fe371ffbe3c14876": {
+    "query": "\n            INSERT INTO event.application_secret (application__id, name)\n            VALUES ($1, $2)\n            RETURNING name, token, created_at, deleted_at\n        ",
     "describe": {
-      "columns": [],
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 1,
+          "name": "token",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 2,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 3,
+          "name": "deleted_at",
+          "type_info": "Timestamptz"
+        }
+      ],
       "parameters": {
         "Left": [
           "Uuid",
-          "Text",
-          "Text",
-          "Jsonb"
+          "Text"
         ]
       },
-      "nullable": []
+      "nullable": [
+        true,
+        false,
+        false,
+        true
+      ]
+    }
+  },
+  "3f75b912a2a559696fd5db26690e06d81b8bc92f5c7b895e113f3f3cea95a090": {
+    "query": "\n                SELECT COUNT(*) AS nb\n                FROM event.payload_content_type\n                WHERE payload_content_type__name = $1\n            ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "nb",
+          "type_info": "Int8"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        null
+      ]
     }
   },
   "412545c2c852481f4cd920b70a4216666b3f0713a7c2cbd026b293e912f0b87e": {
@@ -752,6 +811,19 @@
       ]
     }
   },
+  "6dd786f89b2566e0915a9a883476147789481bcb5947f476c21f5f87dd0f5f05": {
+    "query": "\n                    UPDATE event.application_secret\n                    SET deleted_at = statement_timestamp()\n                    WHERE application__id = $1 AND token = $2\n                ",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid"
+        ]
+      },
+      "nullable": []
+    }
+  },
   "7347b4a450bca6914ae53c28e9dafcb9d379eb499e1c19cffced854f70304b89": {
     "query": "\n                SELECT service__name AS service_name, resource_type__name AS resource_type_name, verb__name AS verb_name, event_type__name AS event_type_name\n                FROM event.event_type\n                WHERE application__id = $1\n                ORDER BY event_type__name ASC\n            ",
     "describe": {
@@ -874,29 +946,19 @@
       ]
     }
   },
-  "79f38a0f71a9c49eb6eeac1a52eafde28309a080982df32872f39cb3417bbad1": {
-    "query": "\n                SELECT name, token, created_at, deleted_at\n                FROM event.application_secret\n                WHERE application__id = $1\n                ORDER BY created_at ASC\n            ",
+  "7ac9165b2c5cf8ada992d560877f31aa9cfe58128beff62b103ea62336c33424": {
+    "query": "\n                                                    SELECT application__id, name\n                                                    FROM event.application_secret\n                                                    WHERE token = $1\n                                                    LIMIT 1\n                                                ",
     "describe": {
       "columns": [
         {
           "ordinal": 0,
-          "name": "name",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 1,
-          "name": "token",
+          "name": "application__id",
           "type_info": "Uuid"
         },
         {
-          "ordinal": 2,
-          "name": "created_at",
-          "type_info": "Timestamptz"
-        },
-        {
-          "ordinal": 3,
-          "name": "deleted_at",
-          "type_info": "Timestamptz"
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
         }
       ],
       "parameters": {
@@ -905,11 +967,22 @@
         ]
       },
       "nullable": [
-        true,
-        false,
         false,
         true
       ]
+    }
+  },
+  "7c8b6ac1bf146fb0c3b01a662d1fe80ff99d09403289967509a7fc3e4ab372d1": {
+    "query": "\n                    DELETE FROM event.event_type\n                    WHERE application__id = $1 AND event_type__name = $2\n                ",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text"
+        ]
+      },
+      "nullable": []
     }
   },
   "879962177ab9ec4c4adb42cfee5f353538004303fc0f56d2ecebd37a671ed562": {
@@ -925,47 +998,60 @@
       "nullable": []
     }
   },
-  "8d96e88c2e6f7450a5a4c26397442d44c2bdb9fdbf27ae04a9e052d6f365a24e": {
-    "query": "\n            SELECT name, token, created_at, deleted_at\n            FROM event.application_secret\n            WHERE application__id = $1 AND token = $2 AND deleted_at IS NULL\n        ",
+  "9b0b663cc66c5f27ed8783913afc126dc7861219df428fdc1f5336fa8448c5fe": {
+    "query": "\n                SELECT name\n                FROM event.organization\n                WHERE organization__id = $1\n            ",
     "describe": {
       "columns": [
         {
           "ordinal": 0,
           "name": "name",
           "type_info": "Text"
-        },
-        {
-          "ordinal": 1,
-          "name": "token",
-          "type_info": "Uuid"
-        },
-        {
-          "ordinal": 2,
-          "name": "created_at",
-          "type_info": "Timestamptz"
-        },
-        {
-          "ordinal": 3,
-          "name": "deleted_at",
-          "type_info": "Timestamptz"
         }
       ],
       "parameters": {
         "Left": [
-          "Uuid",
           "Uuid"
         ]
       },
       "nullable": [
-        true,
-        false,
-        false,
-        true
+        false
       ]
     }
   },
-  "91b6edc31f34677b8dda9a5296a64ea91f5d6163169319281241b45f0697950d": {
-    "query": "\n                    INSERT INTO event.event (application__id, event__id, event_type__name, payload, payload_content_type__name, ip, metadata, occurred_at, received_at, application_secret__token, labels)\n                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, statement_timestamp(), $9, $10)\n                    RETURNING application__id AS application_id, event__id AS event_id, received_at",
+  "9ff1f54dc2b8e90b5b42e1578aa58aaba13d41a41821ba4961064142b53bc74a": {
+    "query": "\n            SELECT application__id AS application_id, organization__id AS organization_id, name\n            FROM event.application\n            WHERE application__id = $1\n        ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "application_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "organization_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "a73cc6a7b828f03c954ebc10d7a62651e1cb3604ef9114801f588514a63eab80": {
+    "query": "\n                        INSERT INTO event.event (application__id, event__id, event_type__name, payload, payload_content_type__name, ip, metadata, occurred_at, received_at, application_secret__token, labels)\n                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, statement_timestamp(), $9, $10)\n                        RETURNING application__id AS application_id, event__id AS event_id, received_at\n                    ",
     "describe": {
       "columns": [
         {
@@ -996,117 +1082,6 @@
           "Timestamptz",
           "Uuid",
           "Jsonb"
-        ]
-      },
-      "nullable": [
-        false,
-        false,
-        false
-      ]
-    }
-  },
-  "93171a933ab52ca6cacf024e28f49f7956633ffaaf233baa6f3e388cd82bae15": {
-    "query": "\n                INSERT INTO event.application_secret (application__id, name)\n                VALUES ($1, $2)\n                RETURNING name, token, created_at, deleted_at\n            ",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "name",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 1,
-          "name": "token",
-          "type_info": "Uuid"
-        },
-        {
-          "ordinal": 2,
-          "name": "created_at",
-          "type_info": "Timestamptz"
-        },
-        {
-          "ordinal": 3,
-          "name": "deleted_at",
-          "type_info": "Timestamptz"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Text"
-        ]
-      },
-      "nullable": [
-        true,
-        false,
-        false,
-        true
-      ]
-    }
-  },
-  "9b0b663cc66c5f27ed8783913afc126dc7861219df428fdc1f5336fa8448c5fe": {
-    "query": "\n                SELECT name\n                FROM event.organization\n                WHERE organization__id = $1\n            ",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "name",
-          "type_info": "Text"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid"
-        ]
-      },
-      "nullable": [
-        false
-      ]
-    }
-  },
-  "9b73b99c5921539e4a8377ca54fc15437d15be1013ae443ea426cceaa885675f": {
-    "query": "\n            SELECT COUNT(*) AS nb\n            FROM event.payload_content_type\n            WHERE payload_content_type__name = $1\n        ",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "nb",
-          "type_info": "Int8"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      },
-      "nullable": [
-        null
-      ]
-    }
-  },
-  "9ff1f54dc2b8e90b5b42e1578aa58aaba13d41a41821ba4961064142b53bc74a": {
-    "query": "\n            SELECT application__id AS application_id, organization__id AS organization_id, name\n            FROM event.application\n            WHERE application__id = $1\n        ",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "application_id",
-          "type_info": "Uuid"
-        },
-        {
-          "ordinal": 1,
-          "name": "organization_id",
-          "type_info": "Uuid"
-        },
-        {
-          "ordinal": 2,
-          "name": "name",
-          "type_info": "Text"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid"
         ]
       },
       "nullable": [
@@ -1162,34 +1137,47 @@
       "nullable": []
     }
   },
-  "d966c3a73f06049d5279bfe6d78b34fbe2981303c22052b4c12d82eb6a73b02c": {
-    "query": "\n                        DELETE FROM event.event_type\n                        WHERE application__id = $1 AND event_type__name = $2\n                    ",
+  "e381dee2ce7ea6b771536e80b5e239f360f76e7172dc3a368da140a73cdec9be": {
+    "query": "\n            SELECT name, token, created_at, deleted_at\n            FROM event.application_secret\n            WHERE application__id = $1 AND token = $2\n        ",
     "describe": {
-      "columns": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Text"
-        ]
-      },
-      "nullable": []
-    }
-  },
-  "e5743f2672adb76a57dbd20be9efa2360562a8b30cc0817a9815b7a8973b5509": {
-    "query": "\n                        UPDATE event.application_secret\n                        SET deleted_at = statement_timestamp()\n                        WHERE application__id = $1 AND token = $2\n                    ",
-    "describe": {
-      "columns": [],
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 1,
+          "name": "token",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 2,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 3,
+          "name": "deleted_at",
+          "type_info": "Timestamptz"
+        }
+      ],
       "parameters": {
         "Left": [
           "Uuid",
           "Uuid"
         ]
       },
-      "nullable": []
+      "nullable": [
+        true,
+        false,
+        false,
+        true
+      ]
     }
   },
-  "f32e44512ddb8843f7ee6931c3c6e7f3c8a2942fe08051bd8514196c60281917": {
-    "query": "\n                UPDATE event.application_secret\n                SET name = $1\n                WHERE application__id = $2 AND token = $3\n                RETURNING name, token, created_at, deleted_at\n            ",
+  "e5fb21c429f81bfd746d494e1bec9cfc47bc480463be722ce6ed6c7eaef08fb5": {
+    "query": "\n            UPDATE event.application_secret\n            SET name = $1\n            WHERE application__id = $2 AND token = $3\n            RETURNING name, token, created_at, deleted_at\n        ",
     "describe": {
       "columns": [
         {
@@ -1217,6 +1205,44 @@
         "Left": [
           "Text",
           "Uuid",
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        true,
+        false,
+        false,
+        true
+      ]
+    }
+  },
+  "f645a1aa41aa3fc4864ac946be3687ca5102a634c108c60ad13ffbd637879542": {
+    "query": "\n            SELECT name, token, created_at, deleted_at\n            FROM event.application_secret\n            WHERE application__id = $1\n            ORDER BY created_at ASC\n        ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 1,
+          "name": "token",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 2,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 3,
+          "name": "deleted_at",
+          "type_info": "Timestamptz"
+        }
+      ],
+      "parameters": {
+        "Left": [
           "Uuid"
         ]
       },
@@ -1419,45 +1445,6 @@
         true,
         true,
         true,
-        false,
-        true
-      ]
-    }
-  },
-  "ff7fc42d1eb309ab8d75f2ff392a110710893c9e6b15d2467bf6bb985f0b42d0": {
-    "query": "\n                SELECT name, token, created_at, deleted_at\n                FROM event.application_secret\n                WHERE application__id = $1 AND token = $2\n            ",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "name",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 1,
-          "name": "token",
-          "type_info": "Uuid"
-        },
-        {
-          "ordinal": 2,
-          "name": "created_at",
-          "type_info": "Timestamptz"
-        },
-        {
-          "ordinal": 3,
-          "name": "deleted_at",
-          "type_info": "Timestamptz"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Uuid"
-        ]
-      },
-      "nullable": [
-        true,
-        false,
         false,
         true
       ]
