@@ -74,8 +74,8 @@ dependencies = [
  "futures-util",
  "http",
  "log",
- "trust-dns-proto",
- "trust-dns-resolver",
+ "trust-dns-proto 0.19.7",
+ "trust-dns-resolver 0.19.7",
 ]
 
 [[package]]
@@ -925,6 +925,12 @@ dependencies = [
  "generic-array",
  "subtle",
 ]
+
+[[package]]
+name = "data-encoding"
+version = "2.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3ee2393c4a91429dffb4bedf19f4d6abf27d8a732c8ce4980305d782e5426d57"
 
 [[package]]
 name = "debugid"
@@ -2393,6 +2399,7 @@ dependencies = [
  "serde_urlencoded",
  "tokio 1.13.0",
  "tokio-rustls",
+ "trust-dns-resolver 0.20.3",
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
@@ -2542,12 +2549,24 @@ dependencies = [
  "httpdate",
  "log",
  "reqwest",
+ "sentry-anyhow",
  "sentry-backtrace",
  "sentry-contexts",
  "sentry-core",
  "sentry-log",
  "sentry-panic",
  "tokio 1.13.0",
+]
+
+[[package]]
+name = "sentry-anyhow"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "338ef04f73ca2fb1130ebab3853dca36041aa219a442ae873627373887660c36"
+dependencies = [
+ "anyhow",
+ "sentry-backtrace",
+ "sentry-core",
 ]
 
 [[package]]
@@ -3303,6 +3322,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "trust-dns-proto"
+version = "0.20.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ad0d7f5db438199a6e2609debe3f69f808d074e0a2888ee0bccb45fe234d03f4"
+dependencies = [
+ "async-trait",
+ "cfg-if 1.0.0",
+ "data-encoding",
+ "enum-as-inner",
+ "futures-channel",
+ "futures-io",
+ "futures-util",
+ "idna",
+ "ipnet",
+ "lazy_static",
+ "log",
+ "rand 0.8.4",
+ "smallvec",
+ "thiserror",
+ "tinyvec",
+ "tokio 1.13.0",
+ "url",
+]
+
+[[package]]
 name = "trust-dns-resolver"
 version = "0.19.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3318,7 +3362,27 @@ dependencies = [
  "smallvec",
  "thiserror",
  "tokio 0.2.25",
- "trust-dns-proto",
+ "trust-dns-proto 0.19.7",
+]
+
+[[package]]
+name = "trust-dns-resolver"
+version = "0.20.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f6ad17b608a64bd0735e67bde16b0636f8aa8591f831a25d18443ed00a699770"
+dependencies = [
+ "cfg-if 1.0.0",
+ "futures-util",
+ "ipconfig",
+ "lazy_static",
+ "log",
+ "lru-cache",
+ "parking_lot",
+ "resolv-conf",
+ "smallvec",
+ "thiserror",
+ "tokio 1.13.0",
+ "trust-dns-proto 0.20.3",
 ]
 
 [[package]]
