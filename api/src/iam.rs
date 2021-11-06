@@ -1,8 +1,13 @@
+use actix_web::{FromRequest, ResponseError};
+use futures_util::future::{ready, Ready};
 use lazy_static::lazy_static;
+use paperclip::actix::OperationModifier;
+use paperclip::v2::schema::Apiv2Schema;
 use regex::{escape, Regex};
 use serde::Deserialize;
 use sqlx::{query_as, PgPool};
 use std::collections::HashMap;
+use std::fmt::Display;
 use std::str::FromStr;
 use uuid::Uuid;
 
@@ -48,50 +53,67 @@ pub struct Hook0Claims {
     pub groups: Option<Vec<String>>,
 }
 
-impl Hook0Claims {
-    pub fn organizations(&self) -> HashMap<Uuid, Role> {
-        lazy_static! {
-            static ref RE: Regex = Regex::new(&format!(
-                "^{}{}([0-9a-f-]+)(?:{}([0-9a-zA-Z_]+))?$",
-                escape(GROUP_SEP),
-                escape(ORGA_GROUP_PREFIX),
-                escape(GROUP_SEP)
-            ))
-            .unwrap();
-        }
+#[derive(Debug, Clone)]
+pub enum AuthProof {
+    Jwt {
+        claims: Hook0Claims,
+    },
+    ApplicationSecret {
+        secret: Uuid,
+        name: Option<String>,
+        application_id: Uuid,
+    },
+}
 
-        self.groups
-            .as_ref()
-            .map(|strings| {
-                let mut organizations = HashMap::new();
-                for str in strings {
-                    let matches = RE.captures(str.as_str());
-                    if let Some(m) = matches {
-                        let org_id_str = m.get(1).unwrap().as_str();
-                        let role = m
-                            .get(2)
-                            .map(|regex_match| regex_match.as_str())
-                            .and_then(|role_str| Role::from_str(role_str).ok())
-                            .unwrap_or_default();
-                        if let Ok(org_id) = Uuid::from_str(org_id_str) {
-                            organizations.insert(org_id, role);
+impl AuthProof {
+    pub fn organizations(&self) -> HashMap<Uuid, Role> {
+        if let Self::Jwt { claims } = self {
+            lazy_static! {
+                static ref RE: Regex = Regex::new(&format!(
+                    "^{}{}([0-9a-f-]+)(?:{}([0-9a-zA-Z_]+))?$",
+                    escape(GROUP_SEP),
+                    escape(ORGA_GROUP_PREFIX),
+                    escape(GROUP_SEP)
+                ))
+                .unwrap();
+            }
+
+            claims
+                .groups
+                .as_ref()
+                .map(|strings| {
+                    let mut organizations = HashMap::new();
+                    for str in strings {
+                        let matches = RE.captures(str.as_str());
+                        if let Some(m) = matches {
+                            let org_id_str = m.get(1).unwrap().as_str();
+                            let role = m
+                                .get(2)
+                                .map(|regex_match| regex_match.as_str())
+                                .and_then(|role_str| Role::from_str(role_str).ok())
+                                .unwrap_or_default();
+                            if let Ok(org_id) = Uuid::from_str(org_id_str) {
+                                organizations.insert(org_id, role);
+                            }
                         }
                     }
-                }
-                organizations
-            })
-            .unwrap_or_else(HashMap::new)
+                    organizations
+                })
+                .unwrap_or_else(HashMap::new)
+        } else {
+            HashMap::new()
+        }
     }
 
     pub async fn can_access_organization(
         &self,
         organization_id: &Uuid,
         minimum_required_role: &Role,
-    ) -> bool {
+    ) -> Option<&Self> {
         let available_organizations = self.organizations();
         match available_organizations.get(organization_id) {
-            Some(role) => role >= minimum_required_role,
-            None => false,
+            Some(role) if role >= minimum_required_role => Some(self),
+            _ => None,
         }
     }
 
@@ -100,28 +122,80 @@ impl Hook0Claims {
         db: &PgPool,
         application_id: &Uuid,
         minimum_required_role: &Role,
-    ) -> bool {
-        struct Organization {
-            pub id: Uuid,
-        }
-
-        let org = query_as!(
-            Organization,
-            "SELECT organization__id AS id FROM event.application WHERE application__id = $1",
-            application_id
-        )
-        .fetch_one(db)
-        .await;
-
-        if let Ok(Organization { id }) = org {
-            let available_organizations = self.organizations();
-            match available_organizations.get(&id) {
-                Some(role) => role >= minimum_required_role,
-                None => false,
+    ) -> Option<&Self> {
+        match self {
+            Self::ApplicationSecret {
+                application_id: provided_application_id,
+                name: _,
+                secret: _,
+            } => {
+                // Providing an application secret implies having the Editor role on the application
+                if provided_application_id == application_id {
+                    Some(self)
+                } else {
+                    None
+                }
             }
-        } else {
-            false
+            Self::Jwt { claims: _ } => {
+                struct Organization {
+                    pub id: Uuid,
+                }
+
+                let org = query_as!(
+                    Organization,
+                    "SELECT organization__id AS id FROM event.application WHERE application__id = $1",
+                    application_id
+                )
+                .fetch_one(db)
+                .await;
+
+                if let Ok(Organization { id }) = org {
+                    let available_organizations = self.organizations();
+                    match available_organizations.get(&id) {
+                        Some(role) if role >= minimum_required_role => Some(self),
+                        _ => None,
+                    }
+                } else {
+                    None
+                }
+            }
         }
+    }
+}
+
+impl Apiv2Schema for AuthProof {}
+impl OperationModifier for AuthProof {}
+
+impl FromRequest for AuthProof {
+    type Error = AuthProofExtractorError;
+    type Future = Ready<Result<Self, Self::Error>>;
+
+    fn from_request(
+        req: &actix_web::HttpRequest,
+        _payload: &mut actix_web::dev::Payload,
+    ) -> Self::Future {
+        let extensions = req.extensions();
+        ready(
+            extensions
+                .get::<Self>()
+                .map(|auth_proof| auth_proof.to_owned())
+                .ok_or(AuthProofExtractorError),
+        )
+    }
+}
+
+#[derive(Debug)]
+pub struct AuthProofExtractorError;
+
+impl Display for AuthProofExtractorError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "AuthProof cannot be extracted from ReqData")
+    }
+}
+
+impl ResponseError for AuthProofExtractorError {
+    fn status_code(&self) -> actix_web::http::StatusCode {
+        actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
     }
 }
 
@@ -133,7 +207,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn all_organizations() {
+    fn jwt_all_organizations() {
         let groups = vec![
             format!(
                 "{}{}{}{}{}{}",
@@ -154,8 +228,10 @@ mod tests {
                 "editor"
             ),
         ];
-        let claims = Hook0Claims {
-            groups: Some(groups),
+        let auth = AuthProof::Jwt {
+            claims: Hook0Claims {
+                groups: Some(groups),
+            },
         };
 
         let expected: HashMap<Uuid, Role> = HashMap::from_iter(vec![
@@ -168,12 +244,12 @@ mod tests {
                 Role::Editor,
             ),
         ]);
-        let found = claims.organizations();
+        let found = auth.organizations();
         assert_eq!(found, expected);
     }
 
     #[test]
-    fn only_valid_organizations() {
+    fn jwt_only_valid_organizations() {
         let groups = vec![
             format!(
                 "{}{}{}{}{}{}",
@@ -202,8 +278,10 @@ mod tests {
                 "cc8066dc-9f12-49cc-95d1-1e0723355162", GROUP_SEP, "role2"
             ),
         ];
-        let claims = Hook0Claims {
-            groups: Some(groups),
+        let auth = AuthProof::Jwt {
+            claims: Hook0Claims {
+                groups: Some(groups),
+            },
         };
 
         let expected: HashMap<Uuid, Role> = HashMap::from_iter(vec![
@@ -220,15 +298,17 @@ mod tests {
                 Role::Viewer,
             ),
         ]);
-        let found = claims.organizations();
+        let found = auth.organizations();
         assert_eq!(found, expected);
     }
 
     #[test]
-    fn no_organization() {
-        let claims = Hook0Claims { groups: None };
+    fn jwt_no_organization() {
+        let auth = AuthProof::Jwt {
+            claims: Hook0Claims { groups: None },
+        };
         let expected = HashMap::new();
-        let found = claims.organizations();
+        let found = auth.organizations();
 
         assert_eq!(found, expected);
     }

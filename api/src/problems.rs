@@ -3,8 +3,6 @@ use http_api_problem::*;
 use paperclip::actix::api_v2_errors;
 use sqlx::postgres::PgDatabaseError;
 use sqlx::Error;
-use std::fmt;
-use std::fmt::Display;
 use strum::EnumIter;
 
 /**
@@ -14,7 +12,7 @@ use strum::EnumIter;
  * 3/ Done! Enjoy!
  */
 #[api_v2_errors(code = 403, code = 500, code = 400, code = 404, code = 409)]
-#[derive(Debug, Copy, Clone, EnumIter)]
+#[derive(Debug, Copy, Clone, EnumIter, strum::Display)]
 pub enum Hook0Problem {
     // Functional errors
     ApplicationNameMissing,
@@ -25,17 +23,16 @@ pub enum Hook0Problem {
     EventInvalidMetadata,
     EventInvalidLabels,
 
+    // Auth errors
+    AuthNoAuthorizationHeader,
+    AuthInvalidAuthorizationHeader,
+    AuthApplicationSecretLookupError,
+    AuthInvalidApplicationSecret,
+
     // Generic errors
     NotFound,
     InternalServerError,
     Forbidden,
-}
-
-// In order to print Problem.id
-impl Display for Hook0Problem {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
 }
 
 impl From<sqlx::Error> for Hook0Problem {
@@ -147,6 +144,32 @@ impl From<Hook0Problem> for Problem {
                 title: "Invalid event labels",
                 detail: "When specified, event labels must be a key-value map in JSON object format.",
                 status: StatusCode::BAD_REQUEST,
+            },
+
+            // Auth error
+            Hook0Problem::AuthNoAuthorizationHeader => Problem {
+                id: Hook0Problem::AuthNoAuthorizationHeader,
+                title: "No `Authorization` header was found in the HTTP request.",
+                detail: "`Authorization` header must be provided and must contain a bearer token.",
+                status: StatusCode::UNAUTHORIZED,
+            },
+            Hook0Problem::AuthInvalidAuthorizationHeader => Problem {
+                id: Hook0Problem::AuthInvalidAuthorizationHeader,
+                title: "`Authorization` header is invalid",
+                detail: "`Authorization` header value could not be decoded as a valid UTF-8 string containing `Bearer {UUID}`.",
+                status: StatusCode::BAD_REQUEST,
+            },
+            Hook0Problem::AuthApplicationSecretLookupError => Problem {
+                id: Hook0Problem::AuthApplicationSecretLookupError,
+                title: "Could not check database to verify the provided application secret",
+                detail: "This is likely to be caused by database unavailability.",
+                status: StatusCode::INTERNAL_SERVER_ERROR,
+            },
+            Hook0Problem::AuthInvalidApplicationSecret => Problem {
+                id: Hook0Problem::AuthInvalidApplicationSecret,
+                title: "Invalid application secret",
+                detail: "The provided application secret does not exist.",
+                status: StatusCode::FORBIDDEN,
             },
 
             // Generic errors
