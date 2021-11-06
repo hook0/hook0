@@ -511,15 +511,16 @@ dependencies = [
 
 [[package]]
 name = "actix-web-middleware-keycloak-auth"
-version = "0.4.0-beta.1"
-source = "git+https://github.com/dsferruzza/actix-web-middleware-keycloak-auth?rev=4c93fd3373832cdcc7f7730a8e0ee9b1aafd0151#4c93fd3373832cdcc7f7730a8e0ee9b1aafd0151"
+version = "0.4.0-beta.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ac0b61a06dd682e4fbc715953c0a99395f2349c2544f1b440948a5fcee81382"
 dependencies = [
  "actix-web 4.0.0-beta.10",
  "chrono",
  "futures-util",
  "jsonwebtoken",
  "log",
- "paperclip",
+ "paperclip 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde",
  "serde_json",
  "uuid",
@@ -1341,11 +1342,12 @@ dependencies = [
  "base64 0.13.0",
  "chrono",
  "clap",
+ "futures-util",
  "http-api-problem",
  "ipnetwork",
  "lazy_static",
  "log",
- "paperclip",
+ "paperclip 0.5.0 (git+https://github.com/sfisol/paperclip?rev=41eea14e1d9c0a25107353a8eedcb26c09c7224e)",
  "regex",
  "sentry-integration",
  "serde",
@@ -1545,6 +1547,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "02c3eaab3ac0ede60ffa41add21970a7df7d91772c03383aac6c2c3d53cc716b"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "itertools"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "284f18f85651fe11e8a991b2adb42cb078325c996ed026d994719efcfca1d54b"
+dependencies = [
+ "either",
 ]
 
 [[package]]
@@ -1909,14 +1920,36 @@ dependencies = [
 [[package]]
 name = "paperclip"
 version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7cc445ec12c9ce0ba673cfda392c4aaea27bc5e26fa3e7bd2689386208f00f7b"
+dependencies = [
+ "anyhow",
+ "itertools 0.9.0",
+ "once_cell",
+ "paperclip-actix 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "paperclip-core 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "paperclip-macros 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "parking_lot",
+ "semver 0.11.0",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "serde_yaml",
+ "thiserror",
+ "url",
+]
+
+[[package]]
+name = "paperclip"
+version = "0.5.0"
 source = "git+https://github.com/sfisol/paperclip?rev=41eea14e1d9c0a25107353a8eedcb26c09c7224e#41eea14e1d9c0a25107353a8eedcb26c09c7224e"
 dependencies = [
  "anyhow",
- "itertools",
+ "itertools 0.10.1",
  "once_cell",
- "paperclip-actix",
- "paperclip-core",
- "paperclip-macros",
+ "paperclip-actix 0.3.0 (git+https://github.com/sfisol/paperclip?rev=41eea14e1d9c0a25107353a8eedcb26c09c7224e)",
+ "paperclip-core 0.3.0 (git+https://github.com/sfisol/paperclip?rev=41eea14e1d9c0a25107353a8eedcb26c09c7224e)",
+ "paperclip-macros 0.4.0 (git+https://github.com/sfisol/paperclip?rev=41eea14e1d9c0a25107353a8eedcb26c09c7224e)",
  "parking_lot",
  "semver 0.11.0",
  "serde",
@@ -1930,6 +1963,22 @@ dependencies = [
 [[package]]
 name = "paperclip-actix"
 version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f3d2788500bb13c5b0d453e2225e38ed7369f630a14adade8840fee12ee41e5"
+dependencies = [
+ "actix-service 1.0.6",
+ "actix-web 3.3.2",
+ "futures",
+ "once_cell",
+ "paperclip-core 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "paperclip-macros 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "parking_lot",
+ "serde_json",
+]
+
+[[package]]
+name = "paperclip-actix"
+version = "0.3.0"
 source = "git+https://github.com/sfisol/paperclip?rev=41eea14e1d9c0a25107353a8eedcb26c09c7224e#41eea14e1d9c0a25107353a8eedcb26c09c7224e"
 dependencies = [
  "actix-service 1.0.6",
@@ -1937,10 +1986,29 @@ dependencies = [
  "actix-web 4.0.0-beta.10",
  "futures",
  "once_cell",
- "paperclip-core",
- "paperclip-macros",
+ "paperclip-core 0.3.0 (git+https://github.com/sfisol/paperclip?rev=41eea14e1d9c0a25107353a8eedcb26c09c7224e)",
+ "paperclip-macros 0.4.0 (git+https://github.com/sfisol/paperclip?rev=41eea14e1d9c0a25107353a8eedcb26c09c7224e)",
  "parking_lot",
  "serde_json",
+]
+
+[[package]]
+name = "paperclip-core"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b82c73e73209604585f3c8e3eb3c1f386ddc521d5311047d2de25a88a91f3613"
+dependencies = [
+ "actix-web 3.3.2",
+ "mime",
+ "once_cell",
+ "paperclip-macros 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "parking_lot",
+ "pin-project 1.0.8",
+ "regex",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "thiserror",
 ]
 
 [[package]]
@@ -1952,7 +2020,7 @@ dependencies = [
  "chrono",
  "mime",
  "once_cell",
- "paperclip-macros",
+ "paperclip-macros 0.4.0 (git+https://github.com/sfisol/paperclip?rev=41eea14e1d9c0a25107353a8eedcb26c09c7224e)",
  "parking_lot",
  "pin-project 1.0.8",
  "regex",
@@ -1961,6 +2029,24 @@ dependencies = [
  "serde_yaml",
  "thiserror",
  "uuid",
+]
+
+[[package]]
+name = "paperclip-macros"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c526435a3b0cbc5145d3aa6d66fd32adf987b9f588ace873c01ed2bc6e23f451"
+dependencies = [
+ "heck",
+ "http",
+ "lazy_static",
+ "mime",
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "strum 0.19.5",
+ "strum_macros 0.19.4",
+ "syn",
 ]
 
 [[package]]
@@ -2702,7 +2788,7 @@ version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b4b7922be017ee70900be125523f38bdd644f4f06a1b16e8fa5a8ee8c34bffd4"
 dependencies = [
- "itertools",
+ "itertools 0.10.1",
  "nom",
  "unicode_categories",
 ]

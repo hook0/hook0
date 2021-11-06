@@ -1,4 +1,3 @@
-use actix_web_middleware_keycloak_auth::KeycloakClaims;
 use log::error;
 use paperclip::actix::{
     api_v2_operation,
@@ -9,7 +8,7 @@ use serde::Serialize;
 use sqlx::query_as;
 use uuid::Uuid;
 
-use crate::iam::Hook0Claims;
+use crate::iam::AuthProof;
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -29,14 +28,14 @@ pub struct Organization {
 )]
 pub async fn list(
     state: Data<crate::State>,
-    claims: KeycloakClaims<Hook0Claims>,
+    auth: AuthProof,
 ) -> Result<Json<Vec<Organization>>, Hook0Problem> {
     struct OrganizationMetadata {
         name: String,
     }
     let mut organizations = vec![];
 
-    for (organization_id, role) in claims.organizations() {
+    for (organization_id, role) in auth.organizations() {
         let metadata = query_as!(
             OrganizationMetadata,
             "
