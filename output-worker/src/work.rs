@@ -1,5 +1,5 @@
 use clap::{crate_name, crate_version};
-use log::{debug, error, warn};
+use log::{debug, error, trace, warn};
 use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::{Client, Method, Url};
 use std::collections::HashMap;
@@ -103,6 +103,12 @@ pub async fn work(attempt: &RequestAttempt) -> Response {
             headers.insert("Content-Type", content_type);
 
             debug!("Calling webhook...");
+            trace!(
+                "HTTP {} {} {:?}",
+                &method.to_string().to_uppercase(),
+                &url,
+                &headers
+            );
             let response = client
                 .request(method, url)
                 .headers(headers)
