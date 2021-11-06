@@ -159,6 +159,7 @@ async fn main() -> anyhow::Result<()> {
                 &attempt.request_attempt__id,
                 &response.elapsed_time_ms()
             );
+            trace!("{:?}", &response);
 
             // Store response
             debug!(
