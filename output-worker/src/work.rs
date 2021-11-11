@@ -53,7 +53,6 @@ impl Response {
     }
 
     pub fn http_code(&self) -> Option<i16> {
-        use std::convert::TryInto;
         self.http_code.and_then(|c| c.try_into().ok())
     }
 
@@ -75,8 +74,6 @@ impl Response {
     }
 
     pub fn elapsed_time_ms(&self) -> i32 {
-        use std::convert::TryInto;
-
         self.elapsed_time.as_millis().try_into().unwrap_or(0)
     }
 }
