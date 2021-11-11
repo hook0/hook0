@@ -1,6 +1,6 @@
 variables:
   PG_VERSION: "14"
-  RUST_VERSION: "1.56.0"
+  RUST_VERSION: "1.56"
   NODE_VERSION: "14"
   POSTGRES_DB: hook0-ci
   POSTGRES_USER: runner
@@ -14,6 +14,7 @@ rust.check:
       - api/**/*
       - output-worker/**/*
       - sentry-integration/**/*
+      - Cargo.*
   services:
     - postgres:$PG_VERSION
   before_script:
