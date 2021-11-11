@@ -3,7 +3,7 @@ name = "sentry-integration"
 version = "0.1.0"
 description = "Sentry-related methods"
 authors = ["David Sferruzza <david.sferruzza@gmail.com>"]
-edition = "2018"
+edition = "2021"
 license = "SSPL-1.0"
 
 
