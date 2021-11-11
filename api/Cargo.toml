@@ -3,7 +3,7 @@ name = "hook0-api"
 version = "0.1.0"
 description = "Core API of Hook0"
 authors = ["David Sferruzza <david.sferruzza@gmail.com>", "François-Guillaume Ribreau <hook0@fgribreau.com>"]
-edition = "2018"
+edition = "2021"
 license = "SSPL-1.0"
 keywords = ["webhooks", "webhook", "webhook server", "events"]
 
