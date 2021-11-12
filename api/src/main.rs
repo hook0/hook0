@@ -7,6 +7,7 @@ use paperclip::{
     actix::{web, OpenApiExt},
     v2::models::{DefaultApiRaw, Info},
 };
+use reqwest::Url;
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 use std::str::FromStr;
 
@@ -52,12 +53,32 @@ struct Config {
     /// Disable automatic database migration
     #[clap(long = "no-auto-db-migration", env = "NO_AUTO_DB_MIGRATION", parse(from_flag = std::ops::Not::not))]
     auto_db_migration: bool,
+
+    /// URL of a Keycloak instance (example: https://my.keycloak.net/auth)
+    #[clap(long, env)]
+    keycloak_url: Url,
+
+    /// Keycloak realm
+    #[clap(long, env)]
+    keycloak_realm: String,
+
+    /// OIDC client ID (the confidential client for Hook0 API)
+    #[clap(long, env)]
+    keycloak_client_id: String,
+
+    /// OIDC client secret (the confidential client for Hook0 API)
+    #[clap(long, env, setting = HideEnvValues)]
+    keycloak_client_secret: String,
 }
 
 /// The app state
 #[derive(Debug, Clone)]
 pub struct State {
     db: PgPool,
+    keycloak_url: Url,
+    keycloak_realm: String,
+    keycloak_client_id: String,
+    keycloak_client_secret: String,
 }
 
 #[actix_web::main]
@@ -89,7 +110,13 @@ async fn main() -> anyhow::Result<()> {
     }
 
     // Initialize state
-    let initial_state = State { db: pool };
+    let initial_state = State {
+        db: pool,
+        keycloak_url: config.keycloak_url,
+        keycloak_realm: config.keycloak_realm,
+        keycloak_client_id: config.keycloak_client_id,
+        keycloak_client_secret: config.keycloak_client_secret,
+    };
     let keycloak_oidc_public_key = config.keycloak_oidc_public_key;
 
     // Run web server
@@ -138,6 +165,9 @@ async fn main() -> anyhow::Result<()> {
                             web::resource("").route(web::get().to(handlers::errors::list)),
                         ),
                     )
+                    .service(web::scope("/register").service(
+                        web::resource("").route(web::post().to(handlers::registrations::register)),
+                    ))
                     // with authentication
                     .service(
                         web::scope("/organizations")
