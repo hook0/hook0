@@ -9,13 +9,14 @@ use sqlx::{query_as, PgPool};
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::str::FromStr;
+use strum::EnumIter;
 use uuid::Uuid;
 
-const GROUP_SEP: &str = "/";
-const ORGA_GROUP_PREFIX: &str = "orga_";
-const ROLE_GROUP_PREFIX: &str = "role_";
+pub const GROUP_SEP: &str = "/";
+pub const ORGA_GROUP_PREFIX: &str = "orga_";
+pub const ROLE_GROUP_PREFIX: &str = "role_";
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, EnumIter)]
 pub enum Role {
     Viewer,
     Editor,
