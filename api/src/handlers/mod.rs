@@ -4,6 +4,7 @@ pub mod errors;
 pub mod event_types;
 pub mod events;
 pub mod organizations;
+pub mod registrations;
 pub mod request_attempts;
 pub mod responses;
 pub mod subscriptions;
