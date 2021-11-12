@@ -1355,7 +1355,9 @@ dependencies = [
  "lazy_static",
  "log",
  "paperclip 0.5.0 (git+https://github.com/sfisol/paperclip?rev=41eea14e1d9c0a25107353a8eedcb26c09c7224e)",
+ "rand 0.8.4",
  "regex",
+ "reqwest",
  "sentry-integration",
  "serde",
  "serde_json",
@@ -2274,6 +2276,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2e7573632e6454cf6b99d7aac4ccca54be06da05aca2ef7423d22d27d4d4bcd8"
 dependencies = [
  "libc",
+ "log",
  "rand_chacha 0.3.1",
  "rand_core 0.6.3",
  "rand_hc 0.3.1",

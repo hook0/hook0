@@ -15,6 +15,9 @@ use strum::EnumIter;
 #[derive(Debug, Copy, Clone, EnumIter, strum::Display)]
 pub enum Hook0Problem {
     // Functional errors
+    OrganizationNameMissing,
+    UserAlreadyExist,
+
     ApplicationNameMissing,
 
     EventAlreadyIngested,
@@ -108,6 +111,19 @@ impl From<Hook0Problem> for Problem {
     fn from(hook0_problem: Hook0Problem) -> Self {
         match hook0_problem {
             // Functional errors
+            Hook0Problem::OrganizationNameMissing => Problem {
+                id: Hook0Problem::OrganizationNameMissing,
+                title: "Organization name cannot be empty",
+                detail: "Organization name length must have more than 1 character.",
+                status: StatusCode::BAD_REQUEST,
+            },
+            Hook0Problem::UserAlreadyExist => Problem {
+                id: Hook0Problem::UserAlreadyExist,
+                title: "This user already exist",
+                detail: "This email is already registered.",
+                status: StatusCode::CONFLICT,
+            },
+
             Hook0Problem::ApplicationNameMissing => Problem {
                 id: Hook0Problem::ApplicationNameMissing,
                 title: "Application name cannot be empty",
