@@ -111,7 +111,7 @@ impl From<Hook0Problem> for Problem {
             Hook0Problem::ApplicationNameMissing => Problem {
                 id: Hook0Problem::ApplicationNameMissing,
                 title: "Application name cannot be empty",
-                detail: "Application name length must have more than 1 character",
+                detail: "Application name length must have more than 1 character.",
                 status: StatusCode::BAD_REQUEST,
             },
 
@@ -124,7 +124,7 @@ impl From<Hook0Problem> for Problem {
             Hook0Problem::EventInvalidPayloadContentType => Problem {
                 id: Hook0Problem::EventInvalidPayloadContentType,
                 title: "Invalid event payload content type",
-                detail: "The specified event payload content type is not registered. If this is not a mistake, please create it with /event_types",
+                detail: "The specified event payload content type is not registered. If this is not a mistake, please create it with /event_types.",
                 status: StatusCode::BAD_REQUEST,
             },
             Hook0Problem::EventInvalidBase64Payload => Problem {
