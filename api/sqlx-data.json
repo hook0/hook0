@@ -1124,6 +1124,19 @@
       ]
     }
   },
+  "c86793d802d41da8affdc118d960017efb9d80bf58357e066b31322d872d34f3": {
+    "query": "\n            INSERT INTO event.organization (organization__id, name)\n            VALUES ($1, $2)\n        ",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text"
+        ]
+      },
+      "nullable": []
+    }
+  },
   "ced571dc5144ee7ddcb20ef555dd86c2957d296ff36be2ae13c008b0472556e5": {
     "query": "\n            INSERT INTO event.verb (application__id, verb__name)\n            VALUES ($1, $2)\n            ON CONFLICT DO NOTHING\n        ",
     "describe": {

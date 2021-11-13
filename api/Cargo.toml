@@ -33,3 +33,4 @@ strum = { version = "0.22.0", features = ["derive"] }
 sqlx = { version = "0.5.9", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "offline", "migrate"] } # runtime-tokio-rustls because https://github.com/launchbadge/sqlx/issues/894#issuecomment-747821912
 uuid = { version = "0.8.2", features = ["serde"] }
 rand = { version = "0.8.4", features = ["log"] }
+url = "2.2.2"
