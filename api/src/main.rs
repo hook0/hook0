@@ -13,6 +13,7 @@ use std::str::FromStr;
 
 mod handlers;
 mod iam;
+mod keycloak_api;
 mod middleware_application_secret;
 mod problems;
 
