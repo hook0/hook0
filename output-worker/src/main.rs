@@ -120,18 +120,21 @@ async fn main() -> anyhow::Result<()> {
     loop {
         trace!("Fetching next unprocessed request attempt...");
         let mut tx = conn.begin().await?;
-        let next_attempt = sqlx::query_as!(RequestAttempt, "
-            SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.retry_count, t_http.method AS http_method, t_http.url AS http_url, t_http.headers AS http_headers, e.payload AS payload, e.payload_content_type__name AS payload_content_type
-            FROM webhook.request_attempt AS ra
-            INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
-            INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
-            INNER JOIN event.event AS e ON e.event__id = ra.event__id
-            WHERE succeeded_at IS NULL AND failed_at IS NULL AND (delay_until IS NULL OR delay_until <= statement_timestamp())
-            ORDER BY created_at ASC
-            LIMIT 1
-            FOR UPDATE OF ra
-            SKIP LOCKED
-        ")
+        let next_attempt = sqlx::query_as!(
+            RequestAttempt,
+            "
+                SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.retry_count, t_http.method AS http_method, t_http.url AS http_url, t_http.headers AS http_headers, e.payload AS payload, e.payload_content_type__name AS payload_content_type
+                FROM webhook.request_attempt AS ra
+                INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
+                INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
+                INNER JOIN event.event AS e ON e.event__id = ra.event__id
+                WHERE succeeded_at IS NULL AND failed_at IS NULL AND (delay_until IS NULL OR delay_until <= statement_timestamp())
+                ORDER BY created_at ASC
+                LIMIT 1
+                FOR UPDATE OF ra
+                SKIP LOCKED
+            "
+        )
         .fetch_optional(&mut tx)
         .await?;
 
@@ -140,9 +143,9 @@ async fn main() -> anyhow::Result<()> {
             debug!("Picking request attempt {}", &attempt.request_attempt__id);
             sqlx::query!(
                 "
-                UPDATE webhook.request_attempt
-                SET picked_at = statement_timestamp(), worker_id = $1, worker_version = $2
-                WHERE request_attempt__id = $3
+                    UPDATE webhook.request_attempt
+                    SET picked_at = statement_timestamp(), worker_id = $1, worker_version = $2
+                    WHERE request_attempt__id = $3
                 ",
                 &worker_id,
                 &worker_version,
@@ -166,11 +169,12 @@ async fn main() -> anyhow::Result<()> {
                 "Storing response for request attempt {}",
                 &attempt.request_attempt__id
             );
-            let response_id = sqlx::query!("
-                INSERT INTO webhook.response (response_error__name, http_code, headers, body, elapsed_time_ms)
-                VALUES ($1, $2, $3, $4, $5)
-                RETURNING response__id
-            ",
+            let response_id = sqlx::query!(
+                "
+                    INSERT INTO webhook.response (response_error__name, http_code, headers, body, elapsed_time_ms)
+                    VALUES ($1, $2, $3, $4, $5)
+                    RETURNING response__id
+                ",
                 response.response_error__name(),
                 response.http_code(),
                 response.headers(),
@@ -230,10 +234,10 @@ async fn main() -> anyhow::Result<()> {
                     let next_retry_count = attempt.retry_count + 1;
                     let retry_id = sqlx::query!(
                         "
-                        INSERT INTO webhook.request_attempt (event__id, subscription__id, delay_until, retry_count)
-                        VALUES ($1, $2, statement_timestamp() + $3, $4)
-                        RETURNING request_attempt__id
-                    ",
+                            INSERT INTO webhook.request_attempt (event__id, subscription__id, delay_until, retry_count)
+                            VALUES ($1, $2, statement_timestamp() + $3, $4)
+                            RETURNING request_attempt__id
+                        ",
                         attempt.event__id,
                         attempt.subscription__id,
                         PgInterval::try_from(retry_in).unwrap(),
