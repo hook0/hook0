@@ -39,6 +39,10 @@ pub async fn register(
     state: Data<crate::State>,
     body: Json<RegistrationPost>,
 ) -> Result<CreatedJson<Registration>, Hook0Problem> {
+    if state.disable_registration {
+        return Err(Hook0Problem::RegistrationDisabled);
+    }
+
     do_register(
         body.into_inner(),
         &state.db,

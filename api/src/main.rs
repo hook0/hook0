@@ -70,6 +70,10 @@ struct Config {
     /// OIDC client secret (the confidential client for Hook0 API)
     #[clap(long, env, setting = HideEnvValues)]
     keycloak_client_secret: String,
+
+    /// Set to true to disable registration endpoint
+    #[clap(long, env)]
+    disable_registration: bool,
 }
 
 /// The app state
@@ -80,6 +84,7 @@ pub struct State {
     keycloak_realm: String,
     keycloak_client_id: String,
     keycloak_client_secret: String,
+    disable_registration: bool,
 }
 
 #[actix_web::main]
@@ -117,6 +122,7 @@ async fn main() -> anyhow::Result<()> {
         keycloak_realm: config.keycloak_realm,
         keycloak_client_id: config.keycloak_client_id,
         keycloak_client_secret: config.keycloak_client_secret,
+        disable_registration: config.disable_registration,
     };
     let keycloak_oidc_public_key = config.keycloak_oidc_public_key;
 
