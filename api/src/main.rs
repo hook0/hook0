@@ -99,6 +99,7 @@ pub struct State {
     keycloak_client_id: String,
     keycloak_client_secret: String,
     disable_registration: bool,
+    auto_db_migration: bool,
 }
 
 #[actix_web::main]
@@ -144,6 +145,7 @@ async fn main() -> anyhow::Result<()> {
         keycloak_client_id: config.keycloak_client_id,
         keycloak_client_secret: config.keycloak_client_secret,
         disable_registration: config.disable_registration,
+        auto_db_migration: config.auto_db_migration,
     };
     let keycloak_oidc_public_key = config.keycloak_oidc_public_key;
 
@@ -192,6 +194,11 @@ async fn main() -> anyhow::Result<()> {
                         Governor::new(&governor_conf),
                     ))
                     // no auth
+                    .service(
+                        web::scope("/instance").service(
+                            web::resource("").route(web::get().to(handlers::instance::get)),
+                        ),
+                    )
                     .service(
                         web::scope("/errors").service(
                             web::resource("").route(web::get().to(handlers::errors::list)),
