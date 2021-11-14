@@ -17,6 +17,7 @@ pub enum Hook0Problem {
     // Functional errors
     OrganizationNameMissing,
     UserAlreadyExist,
+    RegistrationDisabled,
 
     ApplicationNameMissing,
 
@@ -122,6 +123,12 @@ impl From<Hook0Problem> for Problem {
                 title: "This user already exist",
                 detail: "This email is already registered.",
                 status: StatusCode::CONFLICT,
+            },
+            Hook0Problem::RegistrationDisabled => Problem {
+                id: Hook0Problem::RegistrationDisabled,
+                title: "Registrations are disabled",
+                detail: "Registration was disabled by an administrator.",
+                status: StatusCode::GONE,
             },
 
             Hook0Problem::ApplicationNameMissing => Problem {
