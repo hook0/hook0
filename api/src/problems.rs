@@ -2,8 +2,10 @@ use actix_web::{HttpResponse, ResponseError};
 use http_api_problem::*;
 use log::error;
 use paperclip::actix::api_v2_errors;
+use serde_json::{to_value, Value};
 use sqlx::postgres::PgDatabaseError;
 use sqlx::Error;
+use std::borrow::Cow;
 use strum::EnumIter;
 
 /**
@@ -13,7 +15,7 @@ use strum::EnumIter;
  * 3/ Done! Enjoy!
  */
 #[api_v2_errors(code = 403, code = 500, code = 400, code = 404, code = 409)]
-#[derive(Debug, Copy, Clone, EnumIter, strum::Display)]
+#[derive(Debug, Clone, EnumIter, strum::Display)]
 pub enum Hook0Problem {
     // Functional errors
     OrganizationNameMissing,
@@ -35,6 +37,7 @@ pub enum Hook0Problem {
     AuthInvalidApplicationSecret,
 
     // Generic errors
+    Validation(validator::ValidationErrors),
     NotFound,
     InternalServerError,
     Forbidden,
@@ -69,13 +72,14 @@ impl From<sqlx::Error> for Hook0Problem {
 
 impl From<Hook0Problem> for HttpApiProblem {
     fn from(hook0_problem: Hook0Problem) -> Self {
-        let problem: Problem = hook0_problem.into();
+        let problem: Problem = hook0_problem.to_owned().into();
         HttpApiProblem::new(problem.status)
             .type_url(format!(
                 "https://hook0.com/documentation/errors/{}",
                 hook0_problem
             )) // rely on Display trait of Hook0Problem
-            .value("id".to_string(), &format!("{}", hook0_problem)) // also rely on Display trait of Hook0Problem
+            .value("id".to_owned(), &format!("{}", hook0_problem)) // also rely on Display trait of Hook0Problem
+            .value("structured_detail".to_owned(), &problem.structured_detail)
             .title(problem.title)
             .detail(problem.detail)
     }
@@ -83,12 +87,12 @@ impl From<Hook0Problem> for HttpApiProblem {
 
 impl ResponseError for Hook0Problem {
     fn status_code(&self) -> StatusCode {
-        let problem: Problem = (*self).into();
+        let problem: Problem = self.to_owned().into();
         problem.status
     }
 
     fn error_response(&self) -> HttpResponse {
-        let problem: HttpApiProblem = (*self).into();
+        let problem: HttpApiProblem = self.to_owned().into();
 
         let effective_status = problem
             .status
@@ -107,11 +111,12 @@ impl ResponseError for Hook0Problem {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct Problem {
     pub id: Hook0Problem,
     pub title: &'static str,
-    pub detail: &'static str,
+    pub detail: Cow<'static, str>,
+    pub structured_detail: Option<Value>,
     pub status: StatusCode,
 }
 
@@ -122,103 +127,129 @@ impl From<Hook0Problem> for Problem {
             Hook0Problem::OrganizationNameMissing => Problem {
                 id: Hook0Problem::OrganizationNameMissing,
                 title: "Organization name cannot be empty",
-                detail: "Organization name length must have more than 1 character.",
+                detail: "Organization name length must have more than 1 character.".into(),
+                structured_detail: None,
                 status: StatusCode::BAD_REQUEST,
             },
             Hook0Problem::UserAlreadyExist => Problem {
                 id: Hook0Problem::UserAlreadyExist,
                 title: "This user already exist",
-                detail: "This email is already registered.",
+                detail: "This email is already registered.".into(),
+                structured_detail: None,
                 status: StatusCode::CONFLICT,
             },
             Hook0Problem::RegistrationDisabled => Problem {
                 id: Hook0Problem::RegistrationDisabled,
                 title: "Registrations are disabled",
-                detail: "Registration was disabled by an administrator.",
+                detail: "Registration was disabled by an administrator.".into(),
+                structured_detail: None,
                 status: StatusCode::GONE,
             },
 
             Hook0Problem::ApplicationNameMissing => Problem {
                 id: Hook0Problem::ApplicationNameMissing,
                 title: "Application name cannot be empty",
-                detail: "Application name length must have more than 1 character.",
+                detail: "Application name length must have more than 1 character.".into(),
+                structured_detail: None,
                 status: StatusCode::BAD_REQUEST,
             },
 
             Hook0Problem::EventAlreadyIngested => Problem {
                 id: Hook0Problem::EventAlreadyIngested,
                 title: "Event already Ingested",
-                detail: "This event was previously ingested and recorded inside Hook0 service.",
+                detail: "This event was previously ingested and recorded inside Hook0 service.".into(),
+                structured_detail: None,
                 status: StatusCode::CONFLICT,
             },
             Hook0Problem::EventInvalidPayloadContentType => Problem {
                 id: Hook0Problem::EventInvalidPayloadContentType,
                 title: "Invalid event payload content type",
-                detail: "The specified event payload content type is not registered. If this is not a mistake, please create it with /event_types.",
+                detail: "The specified event payload content type is not registered. If this is not a mistake, please create it with /event_types.".into(),
+                structured_detail: None,
                 status: StatusCode::BAD_REQUEST,
             },
             Hook0Problem::EventInvalidBase64Payload => Problem {
                 id: Hook0Problem::EventInvalidBase64Payload,
                 title: "Invalid event payload",
-                detail: "Event payload is not encoded in valid base64 format.",
+                detail: "Event payload is not encoded in valid base64 format.".into(),
+                structured_detail: None,
                 status: StatusCode::BAD_REQUEST,
             },
             Hook0Problem::EventInvalidMetadata => Problem {
                 id: Hook0Problem::EventInvalidMetadata,
                 title: "Invalid event metadata content",
-                detail: "When specified, event metadata must be a key-value map in JSON object format.",
+                detail: "When specified, event metadata must be a key-value map in JSON object format.".into(),
+                structured_detail: None,
                 status: StatusCode::BAD_REQUEST,
             },
             Hook0Problem::EventInvalidLabels => Problem {
                 id: Hook0Problem::EventInvalidLabels,
                 title: "Invalid event labels",
-                detail: "When specified, event labels must be a key-value map in JSON object format.",
+                detail: "When specified, event labels must be a key-value map in JSON object format.".into(),
+                structured_detail: None,
                 status: StatusCode::BAD_REQUEST,
             },
 
             // Auth error
             Hook0Problem::AuthNoAuthorizationHeader => Problem {
                 id: Hook0Problem::AuthNoAuthorizationHeader,
-                title: "No `Authorization` header was found in the HTTP request.",
-                detail: "`Authorization` header must be provided and must contain a bearer token.",
+                title: "No `Authorization` header was found in the HTTP request",
+                detail: "`Authorization` header must be provided and must contain a bearer token.".into(),
+                structured_detail: None,
                 status: StatusCode::UNAUTHORIZED,
             },
             Hook0Problem::AuthInvalidAuthorizationHeader => Problem {
                 id: Hook0Problem::AuthInvalidAuthorizationHeader,
                 title: "`Authorization` header is invalid",
-                detail: "`Authorization` header value could not be decoded as a valid UTF-8 string containing `Bearer {UUID}`.",
+                detail: "`Authorization` header value could not be decoded as a valid UTF-8 string containing `Bearer {UUID}`.".into(),
+                structured_detail: None,
                 status: StatusCode::BAD_REQUEST,
             },
             Hook0Problem::AuthApplicationSecretLookupError => Problem {
                 id: Hook0Problem::AuthApplicationSecretLookupError,
                 title: "Could not check database to verify the provided application secret",
-                detail: "This is likely to be caused by database unavailability.",
+                detail: "This is likely to be caused by database unavailability.".into(),
+                structured_detail: None,
                 status: StatusCode::INTERNAL_SERVER_ERROR,
             },
             Hook0Problem::AuthInvalidApplicationSecret => Problem {
                 id: Hook0Problem::AuthInvalidApplicationSecret,
                 title: "Invalid application secret",
-                detail: "The provided application secret does not exist.",
+                detail: "The provided application secret does not exist.".into(),
+                structured_detail: None,
                 status: StatusCode::FORBIDDEN,
             },
 
             // Generic errors
+            Hook0Problem::Validation(e) => {
+                let errors_str = e.to_string();
+                Problem {
+                    id: Hook0Problem::Validation(e.to_owned()),
+                    title: "Provided input is malformed",
+                    detail: errors_str.into(),
+                    structured_detail: to_value(e).ok(),
+                    status: StatusCode::UNPROCESSABLE_ENTITY,
+                }
+            },
             Hook0Problem::InternalServerError => Problem {
                 id: Hook0Problem::InternalServerError,
                 title: "Something wrong happened",
-                detail: "Hook0 server had issue handling your request. Our team was notified.",
+                detail: "Hook0 server had issue handling your request. Our team was notified.".into(),
+                structured_detail: None,
                 status: StatusCode::INTERNAL_SERVER_ERROR,
             },
             Hook0Problem::NotFound => Problem {
                 id: Hook0Problem::NotFound,
                 title: "Item not found",
-                detail: "Could not find the item. Check the identifier or that you have the right to access it.",
+                detail: "Could not find the item. Check the identifier or that you have the right to access it.".into(),
+                structured_detail: None,
                 status: StatusCode::NOT_FOUND,
             },
             Hook0Problem::Forbidden => Problem {
                 id: Hook0Problem::Forbidden,
                 title: "Insufficient rights",
-                detail: "You don't have the right to access or edit this resource.",
+                detail: "You don't have the right to access or edit this resource.".into(),
+                structured_detail: None,
                 status: StatusCode::FORBIDDEN,
             },
         }
