@@ -1,5 +1,6 @@
 use actix_web::{HttpResponse, ResponseError};
 use http_api_problem::*;
+use log::error;
 use paperclip::actix::api_v2_errors;
 use sqlx::postgres::PgDatabaseError;
 use sqlx::Error;
@@ -48,10 +49,16 @@ impl From<sqlx::Error> for Hook0Problem {
                 match pg_error.constraint() {
                     Some("application_name_chk") => Hook0Problem::ApplicationNameMissing,
                     Some("event_pkey") => Hook0Problem::EventAlreadyIngested,
-                    _ => Hook0Problem::InternalServerError,
+                    _ => {
+                        error!("Database error: {}", &pg_error);
+                        Hook0Problem::InternalServerError
+                    }
                 }
             }
-            _ => Hook0Problem::InternalServerError,
+            err => {
+                error!("{}", &err);
+                Hook0Problem::InternalServerError
+            }
         }
     }
 }
