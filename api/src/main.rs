@@ -1,5 +1,7 @@
 use actix_files::{Files, NamedFile};
-use actix_web::{middleware::Logger, App, HttpServer};
+use actix_governor::{Governor, GovernorConfigBuilder};
+use actix_web::middleware::{Condition, Logger};
+use actix_web::{App, HttpServer};
 use actix_web_middleware_keycloak_auth::{AlwaysPassPolicy, DecodingKey, KeycloakAuth};
 use clap::{crate_description, crate_name, crate_version, ArgSettings::HideEnvValues, Parser};
 use log::{info, trace};
@@ -74,6 +76,18 @@ struct Config {
     /// Set to true to disable registration endpoint
     #[clap(long, env)]
     disable_registration: bool,
+
+    /// Set to true to disable API rate limiting
+    #[clap(long, env)]
+    disable_api_rate_limiting: bool,
+
+    /// Quota of API calls before rate limiting blocks incomming requests (must be ≥ 1)
+    #[clap(long, env, default_value = "40")]
+    api_rate_limiting_burst_size: u32,
+
+    /// Duration (in millisecond) after which one API call is restored in the quota (must be ≥ 1)
+    #[clap(long, env, default_value = "50")]
+    api_rate_limiting_replenish_period_in_ms: u64,
 }
 
 /// The app state
@@ -96,6 +110,13 @@ async fn main() -> anyhow::Result<()> {
     let _sentry = sentry_integration::init(crate_name!(), &config.sentry_dsn);
 
     trace!("Starting {}", APP_TITLE);
+
+    // Prepare rate limiting configuration
+    let governor_conf = GovernorConfigBuilder::default()
+        .burst_size(config.api_rate_limiting_burst_size)
+        .per_millisecond(config.api_rate_limiting_replenish_period_in_ms)
+        .finish()
+        .unwrap();
 
     // Create a DB connection pool
     let pool = PgPoolOptions::new()
@@ -166,6 +187,10 @@ async fn main() -> anyhow::Result<()> {
             .with_json_spec_at("/api/v1/swagger.json")
             .service(
                 web::scope("/api/v1")
+                    .wrap(Condition::new(
+                        !config.disable_api_rate_limiting,
+                        Governor::new(&governor_conf),
+                    ))
                     // no auth
                     .service(
                         web::scope("/errors").service(
