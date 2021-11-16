@@ -1,7 +1,11 @@
+use chrono::{DateTime, Utc};
 use clap::{crate_name, crate_version};
+use hex::ToHex;
+use hmac::{Hmac, Mac, NewMac};
 use log::{debug, error, trace, warn};
-use reqwest::header::{HeaderMap, HeaderValue};
+use reqwest::header::{HeaderMap, HeaderValue, InvalidHeaderValue};
 use reqwest::{Client, Method, Url};
+use sha2::Sha256;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::time::{Duration, Instant};
@@ -93,11 +97,15 @@ pub async fn work(attempt: &RequestAttempt) -> Response {
         .expect("Could not create a header value from the event ID UUID");
     let content_type = HeaderValue::from_str(attempt.payload_content_type.as_str())
         .expect("Could not create a header value from the event content type");
+    let sig = Signature::new(&attempt.secret.to_string(), &attempt.payload, Utc::now())
+        .to_header_value()
+        .expect("Could not create a header value from the event ID UUID");
 
     match (m, u, c, hs) {
         (Ok(method), Ok(url), Ok(client), Ok(mut headers)) => {
             headers.insert("X-Event-Id", event_id);
             headers.insert("Content-Type", content_type);
+            headers.insert("X-Hook0-Signature", sig);
 
             debug!("Calling webhook...");
             trace!(
@@ -222,4 +230,67 @@ fn mk_http_client() -> reqwest::Result<Client> {
         .user_agent(USER_AGENT)
         .tcp_keepalive(None)
         .build()
+}
+
+struct Signature {
+    pub timestamp: i64,
+    pub v0: String,
+}
+
+impl Signature {
+    const PAYLOAD_SEPARATOR: &'static [u8] = b".";
+    const SIGNATURE_PART_ASSIGNATOR: &'static str = "=";
+    const SIGNATURE_PART_SEPARATOR: &'static str = ",";
+
+    pub fn new(secret: &str, payload: &[u8], signed_at: DateTime<Utc>) -> Self {
+        let timestamp = signed_at.timestamp();
+        let timestamp_str = timestamp.to_string();
+        let timestamp_str_bytes = timestamp_str.as_bytes();
+
+        type HmacSha256 = Hmac<Sha256>;
+        let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).unwrap(); // MAC can take key of any size; this should never fail
+        mac.update(timestamp_str_bytes);
+        mac.update(Self::PAYLOAD_SEPARATOR);
+        mac.update(payload);
+        let v0 = mac.finalize().into_bytes().encode_hex::<String>();
+
+        Self { timestamp, v0 }
+    }
+
+    pub fn value(&self) -> String {
+        let timestamp_str = self.timestamp.to_string();
+        let parts = &[("t", timestamp_str.as_str()), ("v0", self.v0.as_str())];
+
+        itertools::Itertools::intersperse(
+            parts
+                .iter()
+                .map(|p| format!("{}{}{}", p.0, Self::SIGNATURE_PART_ASSIGNATOR, p.1)),
+            Self::SIGNATURE_PART_SEPARATOR.to_owned(),
+        )
+        .collect::<String>()
+    }
+
+    pub fn to_header_value(&self) -> Result<HeaderValue, InvalidHeaderValue> {
+        HeaderValue::from_str(&self.value())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use chrono::prelude::*;
+
+    #[test]
+    fn create_signature() {
+        let signed_at = Utc.ymd(2021, 11, 15).and_hms(0, 30, 0);
+        let payload = "hello !";
+        let secret = "secret";
+
+        let sig = Signature::new(secret, payload.as_bytes(), signed_at);
+        assert_eq!(
+            sig.value(),
+            "t=1636936200,v0=1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98"
+        );
+    }
 }
