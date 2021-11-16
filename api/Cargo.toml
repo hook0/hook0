@@ -25,9 +25,12 @@ lazy_static = "1.4.0"
 log = "0.4.14"
 paperclip = { git = "https://github.com/sfisol/paperclip", rev = "41eea14e1d9c0a25107353a8eedcb26c09c7224e", features = ["actix", "chrono", "uuid"] }
 regex = "1.5.4"
+reqwest = { version = "0.11.6", default-features = false, features = ["rustls-tls", "trust-dns"] }
 sentry-integration = { path = "../sentry-integration" }
 serde = "1.0.130"
 serde_json = "1.0.69"
 strum = { version = "0.22.0", features = ["derive"] }
 sqlx = { version = "0.5.9", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "offline", "migrate"] } # runtime-tokio-rustls because https://github.com/launchbadge/sqlx/issues/894#issuecomment-747821912
 uuid = { version = "0.8.2", features = ["serde"] }
+rand = { version = "0.8.4", features = ["log"] }
+url = "2.2.2"
