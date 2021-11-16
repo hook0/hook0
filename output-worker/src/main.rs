@@ -59,6 +59,7 @@ pub struct RequestAttempt {
     pub http_headers: serde_json::Value,
     pub payload: Vec<u8>,
     pub payload_content_type: String,
+    pub secret: Uuid,
 }
 
 impl RequestAttempt {
@@ -123,7 +124,7 @@ async fn main() -> anyhow::Result<()> {
         let next_attempt = sqlx::query_as!(
             RequestAttempt,
             "
-                SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.retry_count, t_http.method AS http_method, t_http.url AS http_url, t_http.headers AS http_headers, e.payload AS payload, e.payload_content_type__name AS payload_content_type
+                SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.retry_count, t_http.method AS http_method, t_http.url AS http_url, t_http.headers AS http_headers, e.payload AS payload, e.payload_content_type__name AS payload_content_type, s.secret
                 FROM webhook.request_attempt AS ra
                 INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
                 INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
