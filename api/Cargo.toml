@@ -12,6 +12,7 @@ keywords = ["webhooks", "webhook", "webhook server", "events"]
 
 [dependencies]
 actix-files = "0.6.0-beta.8"
+actix-governor = { git = "https://github.com/AaronErhardt/actix-governor", rev = "d5e7110d79bc0cb21f999a863cd6b536cb0646b2" }
 actix-web = "4.0.0-beta.10"
 actix-web-middleware-keycloak-auth = { version = "0.4.0-beta.2", features = ["paperclip_compat"] }
 anyhow = "1.0.45"
