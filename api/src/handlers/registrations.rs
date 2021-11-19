@@ -22,13 +22,13 @@ pub struct Registration {
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct RegistrationPost {
-    #[validate(non_control_character, length(min = 1))]
+    #[validate(non_control_character, length(min = 1, max = 50))]
     organization_name: String,
-    #[validate(non_control_character, length(min = 1))]
+    #[validate(non_control_character, length(min = 1, max = 50))]
     first_name: String,
-    #[validate(non_control_character, length(min = 1))]
+    #[validate(non_control_character, length(min = 1, max = 50))]
     last_name: String,
-    #[validate(non_control_character, email)]
+    #[validate(non_control_character, email, length(max = 100))]
     email: String,
 }
 

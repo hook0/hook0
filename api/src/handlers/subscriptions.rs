@@ -140,7 +140,7 @@ pub struct SubscriptionPost {
     application_id: Uuid,
     is_enabled: bool,
     event_types: Vec<String>,
-    #[validate(length(min = 1))]
+    #[validate(length(min = 1, max = 100))]
     description: Option<String>,
     #[validate(custom = "crate::validators::metadata")]
     metadata: Option<HashMap<String, Value>>,
