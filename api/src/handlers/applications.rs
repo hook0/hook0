@@ -26,7 +26,7 @@ pub struct Qs {
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct ApplicationPost {
     organization_id: Uuid,
-    #[validate(non_control_character, length(min = 1))]
+    #[validate(non_control_character, length(min = 1, max = 50))]
     name: String,
 }
 
