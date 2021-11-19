@@ -18,6 +18,7 @@ mod iam;
 mod keycloak_api;
 mod middleware_application_secret;
 mod problems;
+mod validators;
 
 const APP_TITLE: &str = "Hook0 API";
 const WEBAPP_INDEX_FILE: &str = "index.html";
