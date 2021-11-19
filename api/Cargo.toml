@@ -15,7 +15,7 @@ actix-files = "0.6.0-beta.8"
 actix-governor = { git = "https://github.com/AaronErhardt/actix-governor", rev = "d5e7110d79bc0cb21f999a863cd6b536cb0646b2" }
 actix-web = "4.0.0-beta.11"
 actix-web-middleware-keycloak-auth = { version = "0.4.0-beta.2", features = ["paperclip_compat"] }
-anyhow = "1.0.45"
+anyhow = "1.0.47"
 base64 = "0.13.0"
 chrono = { version = "0.4.19", features = ["serde"] }
 clap = "3.0.0-beta.5"
@@ -29,8 +29,8 @@ regex = "1.5.4"
 reqwest = { version = "0.11.6", default-features = false, features = ["rustls-tls", "trust-dns"] }
 sentry-integration = { path = "../sentry-integration" }
 serde = "1.0.130"
-serde_json = "1.0.70"
-strum = { version = "0.22.0", features = ["derive"] }
+serde_json = "1.0.71"
+strum = { version = "0.23.0", features = ["derive"] }
 sqlx = { version = "0.5.9", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "offline", "migrate"] } # runtime-tokio-rustls because https://github.com/launchbadge/sqlx/issues/894#issuecomment-747821912
 uuid = { version = "0.8.2", features = ["serde"] }
 rand = { version = "0.8.4", features = ["log"] }
