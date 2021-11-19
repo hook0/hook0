@@ -8,6 +8,7 @@ use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use sqlx::{query, PgPool, Postgres, Transaction};
 use uuid::Uuid;
+use validator::Validate;
 
 use crate::keycloak_api::KeycloakApi;
 use crate::problems::Hook0Problem;
@@ -19,11 +20,15 @@ pub struct Registration {
     temporary_password: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct RegistrationPost {
+    #[validate(non_control_character, length(min = 1))]
     organization_name: String,
+    #[validate(non_control_character, length(min = 1))]
     first_name: String,
+    #[validate(non_control_character, length(min = 1))]
     last_name: String,
+    #[validate(non_control_character, email)]
     email: String,
 }
 
@@ -41,6 +46,10 @@ pub async fn register(
 ) -> Result<CreatedJson<Registration>, Hook0Problem> {
     if state.disable_registration {
         return Err(Hook0Problem::RegistrationDisabled);
+    }
+
+    if let Err(e) = body.validate() {
+        return Err(Hook0Problem::Validation(e));
     }
 
     do_register(

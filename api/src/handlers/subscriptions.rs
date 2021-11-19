@@ -6,10 +6,11 @@ use paperclip::actix::{
     Apiv2Schema, CreatedJson, NoContent,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{json, Value};
 use sqlx::{query, query_as};
 use std::collections::HashMap;
 use uuid::Uuid;
+use validator::Validate;
 
 use crate::iam::{AuthProof, Role};
 use crate::problems::Hook0Problem;
@@ -134,13 +135,15 @@ pub async fn list(
     Ok(Json(subscriptions))
 }
 
-#[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct SubscriptionPost {
     application_id: Uuid,
     is_enabled: bool,
     event_types: Vec<String>,
+    #[validate(length(min = 1))]
     description: Option<String>,
-    metadata: HashMap<String, Value>,
+    #[validate(custom = "crate::validators::metadata")]
+    metadata: Option<HashMap<String, Value>>,
     label_key: String,
     label_value: String,
     target: Target,
@@ -167,6 +170,16 @@ pub async fn add(
         return Err(Hook0Problem::Forbidden);
     }
 
+    if let Err(e) = body.validate() {
+        return Err(Hook0Problem::Validation(e));
+    }
+
+    let metadata = match body.metadata.as_ref() {
+        Some(m) => serde_json::to_value(m.clone())
+            .expect("could not serialize subscription metadata into JSON"),
+        None => json!({}),
+    };
+
     let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
 
     #[allow(non_snake_case)]
@@ -191,7 +204,7 @@ pub async fn add(
             &body.application_id,
             &body.is_enabled,
             body.description,
-            serde_json::to_value(body.metadata.clone()).expect("could not serialize subscription metadata into JSON"),
+            metadata,
             &body.label_key,
             &body.label_value,
         )
@@ -269,6 +282,10 @@ pub async fn update(
         .is_none()
     {
         return Err(Hook0Problem::Forbidden);
+    }
+
+    if let Err(e) = body.validate() {
+        return Err(Hook0Problem::Validation(e));
     }
 
     let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
