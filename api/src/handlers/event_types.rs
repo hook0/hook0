@@ -28,11 +28,11 @@ pub struct Qs {
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct EventTypePost {
     application_id: Uuid,
-    #[validate(non_control_character, length(min = 1))]
+    #[validate(non_control_character, length(min = 1, max = 50))]
     service: String,
-    #[validate(non_control_character, length(min = 1))]
+    #[validate(non_control_character, length(min = 1, max = 50))]
     resource_type: String,
-    #[validate(non_control_character, length(min = 1))]
+    #[validate(non_control_character, length(min = 1, max = 50))]
     verb: String,
 }
 
