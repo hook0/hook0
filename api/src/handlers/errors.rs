@@ -23,7 +23,7 @@ impl From<InternalProblem> for Problem {
     }
 }
 
-/// List subscriptions
+/// List errors
 #[api_v2_operation(
     summary = "List errors",
     description = "List of every possible errors that Hook0 can return. Each error is in RFC7807 problem format.",
