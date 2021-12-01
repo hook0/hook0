@@ -15,7 +15,7 @@ pub struct InstanceConfig {
 /// Get instance configuration
 #[api_v2_operation(
     summary = "Get instance configuration",
-    description = "Get an object that shows how this instance was configured.",
+    description = "Get an object that shows how this instance is configured.",
     operation_id = "instance.get",
     consumes = "application/json",
     produces = "application/json",
