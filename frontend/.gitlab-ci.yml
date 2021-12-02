@@ -1,4 +1,4 @@
-frontend:
+frontend.build:
   stage: build
   only:
       changes:
