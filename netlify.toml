@@ -1,0 +1,5 @@
+# Hook0 use Netlify for its website
+
+[build]
+command = "cd website && npm i && npm run build"
+publish = "website/dist"
