@@ -1,0 +1,79 @@
+<div class="relative bg-white py-16 sm:py-12 lg:py-16" id="features">
+    <div class="mx-auto max-w-md px-4 text-center sm:max-w-3xl sm:px-6 lg:px-8 lg:max-w-7xl">
+        <div class="text-center">
+            <p class="mt-1 text-3xl font-extrabold text-gray-900 sm:text-5xl sm:tracking-tight lg:text-5xl">
+                Out-Of-The-Box Webhooks</p>
+        </div>
+        <div class="mt-12">
+            <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+
+                <% locals.features.filter(f => f.primary).filter(f => f.primary).forEach(({
+                                                                                              description,
+                                                                                              title
+                                                                                          }, i, arr) => { %>
+                    <div class="pt-6">
+                        <div class="flow-root bg-gray-50 rounded-lg px-6 pb-8">
+                            <div class="-mt-6">
+                                <div>
+                  <span class="inline-flex items-center justify-center p-3 bg-indigo-500 rounded-md shadow-lg">
+                    <svg class="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                         stroke="currentColor" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                  </span>
+                                </div>
+                                <h3 class="mt-8 text-lg font-medium text-gray-900 tracking-tight"><%= title %></h3>
+                                <p class="mt-5 text-base text-gray-500"><%- description %></p>
+                            </div>
+                        </div>
+                    </div>
+                <% }) %>
+
+            </div>
+        </div>
+    </div>
+
+    <a name="features" id="features"></a>
+    <div class="bg-white">
+        <div class="max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:py-24 lg:px-8 lg:grid lg:grid-cols-3 lg:gap-x-8">
+            <div>
+                <h2 class="text-base font-semibold text-green-600 uppercase tracking-wide">Everything you need</h2>
+                <p class="mt-2 text-3xl font-extrabold text-gray-900">All-in-one platform</p>
+                <p class="mt-4 text-lg text-gray-500">Build a state of the art webhooks solution in minutes using the
+                    Hook0
+                    webhooks service.</p>
+            </div>
+            <div class="mt-12 lg:mt-0 lg:col-span-2">
+                <dl class="space-y-10 sm:space-y-0 sm:grid sm:grid-cols-2 sm:grid-rows-<%= Math.floor(locals.features.filter(f => !f.primary).length / 2) + 1 %> sm:grid-flow-col sm:gap-x-6 sm:gap-y-10 lg:gap-x-8">
+                    <% locals.features.filter(f => !f.primary).forEach(({description, title, wip}, i, arr) => { %>
+                        <div class="relative">
+                            <dt>
+                                <% if (wip) { %>
+                                    <!-- Heroicon name: outline/clock -->
+                                    <svg class="absolute h-6 w-6 text-yellow-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                <% } else { %>
+                                    <!-- Heroicon name: outline/check -->
+                                    <svg class="absolute h-6 w-6 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                <% } %>
+
+                                <p class="ml-9 text-lg leading-6 font-medium text-gray-900"><%= title %></p>
+                            </dt>
+                            <dd class="mt-2 ml-9 text-base text-gray-500">
+                                <%= description %>
+                            </dd>
+                        </div>
+                    <% }) %>
+                </dl>
+            </div>
+        </div>
+    </div>

@@ -1,0 +1,45 @@
+<a name="footer" id="footer"></a>
+<footer class="bg-white">
+    <div class="max-w-7xl mx-auto py-12 px-4 overflow-hidden sm:px-6 lg:px-8">
+        <nav class="-mx-5 -my-2 flex flex-wrap justify-center" aria-label="Footer">
+            <div class="px-5 py-2">
+
+                <a href="./index.ejs#how-it-works" class="text-base text-gray-500 hover:text-gray-900"
+                   title="RoamResearch on Zapier">
+                    How it works
+                </a>
+            </div>
+
+            <div class="px-5 py-2">
+                <a href="privacy-policy.ejs" class="text-base text-gray-500 hover:text-gray-900">
+                    Privacy Policy
+                </a>
+            </div>
+
+            <div class="px-5 py-2">
+                <a href="terms.ejs" class="text-base text-gray-500 hover:text-gray-900">
+                    Terms of Service
+                </a>
+            </div>
+
+            <div class="px-5 py-2">
+                <a href="mailto:support@hook0.com" class="text-base text-gray-500 hover:text-gray-900">
+                    Contact Us
+                </a>
+            </div>
+        </nav>
+        <div class="mt-8 flex justify-center space-x-6">
+            <% Object.values(locals.social).forEach((social) => { %>
+                <a href="<%= social.href %>" class="text-gray-400 hover:text-gray-500">
+                    <span class="sr-only"><%= social.name %></span>
+                    <%- social.logo %>
+                </a>
+            <% }) %>
+        </div>
+        <p class="mt-8 text-center text-base text-gray-400">
+            &copy; Hook0. All rights reserved.</br>
+            Hook0 is made by an European French Tech company from Nantes, France.<br/>
+            100% bootstraped, no VCs, we are here to stay.
+        </p>
+    </div>
+</footer>

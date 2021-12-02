@@ -1,0 +1,31 @@
+{
+  "name": "website",
+  "version": "1.0.0",
+  "description": "",
+  "private": true,
+  "scripts": {
+    "preinstall": "rm -rf ./src/mediakit; cp -R -v $(pwd)/../mediakit ./src/mediakit",
+    "watch": "parcel watch src/*.ejs",
+    "serve": "npx nodemon -w ./data -w . -i dist/ -i src/ --ext .js,.json --exec npm run serve:basic",
+    "serve:basic": "parcel serve src/*.ejs",
+    "build": "parcel build src/*.ejs"
+  },
+  "author": "Francois-Guillaume Ribreau <npm@fgribreau.com> (http://fgribreau.com/)",
+  "license": "MIT",
+  "devDependencies": {
+    "@parcel/transformer-sass": "^2.0.1",
+    "@tailwindcss/typography": "^0.4.1",
+    "autoprefixer": "^10.4.0",
+    "parcel": "^2.0.1",
+    "parcel-transformer-ejs": "^0.2.0",
+    "postcss": "^8.3.11",
+    "postcss-100vh-fix": "^1.0.2",
+    "postcss-import": "^14.0.2",
+    "prettier": "^2.4.1",
+    "sharp": "^0.29.3",
+    "tailwindcss": "^2.2.19"
+  },
+  "dependencies": {
+    "nodemon": "^2.0.15"
+  }
+}
