@@ -21,7 +21,9 @@ website.build:
 
 website.release:
   stage: release
+  image: node:$NODE_VERSION
   before_script:
+    - pushd website/
     # https://github.com/netlify/cli/issues/1870
     - npm i -g --unsafe-perm netlify-cli
   script:
