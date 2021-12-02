@@ -36,5 +36,3 @@ website.release:
     - master
   except:
     - schedules
-  tags:
-    - deploy
