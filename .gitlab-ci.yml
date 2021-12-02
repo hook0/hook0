@@ -7,7 +7,13 @@ variables:
   POSTGRES_PASSWORD: ""
   POSTGRES_HOST_AUTH_METHOD: trust
 
+stages:
+  - build
+  - test
+  - release
+
 rust.check:
+  stage: test
   image: rust:$RUST_VERSION
   only:
     changes:
@@ -47,17 +53,6 @@ rust.check:
     - cargo clippy --all-targets --all-features -- -D warnings
     - cargo test
 
-frontend:
-  image: node:$NODE_VERSION
-  only:
-    changes:
-      - frontend/**/*
-      - mediakit/**/*
-  script:
-    - pushd frontend
-    - npm ci
-    - npm run build
-  artifacts:
-    name: "$CI_BUILD_NAME"
-    paths:
-      - frontend/dist/
+include:
+  - local: 'frontend/.gitlab-ci.yml'
+  - local: 'website/.gitlab-ci.yml'
