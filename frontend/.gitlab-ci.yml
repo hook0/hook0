@@ -1,0 +1,15 @@
+frontend:
+  stage: build
+  only:
+      changes:
+        - frontend/**
+  image: node:$NODE_VERSION
+  script:
+    - pushd frontend/
+    - npm ci
+    - npm run build
+    - npm run lint
+  artifacts:
+    name: "$CI_BUILD_NAME"
+    paths:
+      - frontend/dist/
