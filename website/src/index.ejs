@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Hook0 — Open-Source Webhooks-as-a-service (WaaS)</title>
+    <%- include ('./_head.ejs') %>
+</head>
+<body>
+
+<%- include ('./_header.ejs') %>
+
+<div class="relative overflow-hidden">
+    <main>
+        <div class="pt-10 bg-gray-900 sm:pt-16 lg:pt-8 lg:pb-0">
+            <div class="mx-auto max-w-7xl lg:px-8">
+                <div class="lg:grid lg:grid-cols-2 lg:gap-8">
+                    <div class="mx-auto max-w-md px-4 sm:max-w-2xl sm:px-6 sm:text-center lg:px-0 lg:text-left lg:flex lg:items-center">
+                        <div class="lg:py-24">
+                            <a href="<%= locals.social.gitlab.href %>"
+                               class="inline-flex items-center text-white bg-black rounded-full p-1 pr-2 sm:text-base lg:text-sm xl:text-base hover:text-gray-200">
+                                <span class="px-3 py-0.5 text-white text-xs font-semibold leading-5 tracking-wide bg-green-500 rounded-full">No investors thus future-proof</span>
+                                <span class="ml-4 text-sm">Hook0 is open-Source</span>
+                                <!-- Heroicon name: solid/chevron-right -->
+                                <svg class="ml-2 w-5 h-5 text-gray-500" xmlns="http://www.w3.org/2000/svg"
+                                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <path fill-rule="evenodd"
+                                          d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                          clip-rule="evenodd"/>
+                                </svg>
+                            </a>
+                            <h1 class="mt-4 text-2xl tracking-tight font-extrabold text-white sm:mt-5 sm:text-5xl lg:mt-6 xl:text-4xl">
+                                <div class="block">Make your SaaS a <span class="text-green-400">platform</span>,<br/>
+                                    offer <span class="text-green-400">webhooks</span> in minutes.
+                                </div>
+                            </h1>
+                            <p class="mt-3 text-base text-gray-300 sm:mt-5 sm:text-xl lg:text-lg xl:text-xl">
+                                Imagine if every SaaS could talk to every SaaS without any effort. You’d get an
+                                Open-Source Webhooks-as-a-service (WaaS) provider like Hook0, the easiest way to build a
+                                platform. Connecting your SaaS with others is just one API call away.
+                            </p>
+                            <div class="mt-10 sm:mt-12">
+                                <form method="post"
+                                      class="sm:max-w-xl sm:mx-auto lg:mx-0"
+                                      action="https://0b5ac64c.sibforms.com/serve/MUIEACRzhPzQV2qmSuKG4ceSLTPtcBgPph8M3QJqcA_tjw9DQ-skDrygibUSupRTQTqmw5c5M1TL61WrFg3cA5nazfbr5gsCU0eQlgCmUkO_NXHsJiWn5wHmiHAUw1oH5mLmgtMYkjU6DWh1wNaMzZdRRuM61-gjc-_d6xj08ESwM8n9DYYlJn2j--K6gjb2-yqIaCksKWaTjfjL">
+
+                                    <div class="sm:flex">
+                                        <div class="min-w-0 flex-1">
+                                            <label for="EMAIL" class="sr-only">Email address</label>
+                                            <input id="EMAIL" name="EMAIL" type="email" placeholder="Enter your email"
+                                                   class="block w-full px-4 py-3 rounded-md border-0 text-base text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-300 focus:ring-offset-gray-900">
+                                        </div>
+                                        <div class="mt-3 sm:mt-0 sm:ml-3">
+                                            <input type="hidden" name="locale" value="fr">
+                                            <input type="hidden" name="html_type" value="simple">
+
+                                            <button type="submit"
+                                                    class="block w-full py-3 px-4 rounded-md shadow bg-green-500 text-white font-medium hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-300 focus:ring-offset-gray-900">
+                                                Let me know when it's ready
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="sm:flex">
+                                        <div class="mt-3 sm:mt-0 text-sm text-gray-300 sm:mt-4">
+                                            <label>
+                                                <input type="checkbox"
+                                                       class="input_replaced focus:ring-green-500 h-4 w-4 text-green-600 border-gray-300 align-middle"
+                                                       value="1" id="OPT_IN"
+                                                       name="OPT_IN" required="">
+                                                <span class="mt-3 text-sm text-gray-300 sm:mt-4 align-middle">I accept Hook0 <a
+                                                            href="./terms.ejs"
+                                                            class="font-medium text-white">terms of service</a>.</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                </form>
+
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-12 -mb-16 sm:-mb-48 lg:m-0 lg:relative">
+                        <div class="mx-auto max-w-md px-4 sm:max-w-2xl sm:px-6 lg:max-w-none lg:px-0">
+                            <img class="w-full lg:absolute lg:inset-y-0 lg:left-0 lg:h-full lg:w-auto lg:max-w-none"
+                                 src="https://tailwindui.com/img/component-images/cloud-illustration-indigo-400.svg"
+                                 alt="">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <section class="mt-40 lg:px-8 max-w-7xl mx-auto pb-32 px-4 relative sm:px-6 z-10"
+                     aria-labelledby="contact-heading">
+                <h2 class="sr-only" id="contact-heading">Setup and forget</h2>
+                <div class="gap-y-20 grid grid-cols-1 lg:gap-x-8 lg:gap-y-0 lg:grid-cols-4">
+                    <div class="bg-white flex flex-col rounded-2xl shadow-xl">
+                        <div class="primary-feature">
+                            <div class="primary-feature-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                                     stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+                                </svg>
+                            </div>
+                            <h3 class="font-medium text-gray-900 text-xl">1 - Create an app</h3>
+                            <p class="mt-4 text-base text-gray-500">Create a Hook0 account and declare which event types
+                                your application can send.</p></div>
+                    </div>
+                    <div class="bg-white flex flex-col rounded-2xl shadow-xl">
+                        <div class="primary-feature">
+                            <div class="primary-feature-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                                     stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                                </svg>
+                            </div>
+                            <h3 class="font-medium text-gray-900 text-xl">2 - Send events</h3>
+                            <p class="mt-4 text-base text-gray-500">Use Hook0's HTTP API to send events from you
+                                backend.
+                                Events must have a type name, a scope (one or several user IDs, none or broadcast) and a
+                                JSON payload.</p></div>
+                    </div>
+                    <div class="bg-white flex flex-col rounded-2xl shadow-xl">
+                        <div class="primary-feature">
+                            <div class="primary-feature-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                                     stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                                </svg>
+                            </div>
+                            <h3 class="font-medium text-gray-900 text-xl">3 - Provide your own UI</h3>
+                            <p class="mt-4 text-base text-gray-500">Build widgets that fit in your app to allow users to
+                                register webhooks. Use Hook0's HTTP API to store and retrieve subscriptions.</p></div>
+                    </div>
+
+                    <div class="bg-white flex flex-col rounded-2xl shadow-xl">
+                        <div class="primary-feature">
+                            <div class="primary-feature-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                                     stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
+                            </div>
+                            <h3 class="font-medium text-gray-900 text-xl">4 - Users subscribe</h3>
+                            <p class="mt-4 text-base text-gray-500">Your users can now register any number of webhooks
+                                to
+                                receive your app's events. Hook0 takes care of the rest!</p></div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+    </main>
+</div>
+
+
+<a name="how-it-works"></a>
+
+
+<%- include('./_features') %>
+
+<%- include('./_testimonials') %>
+
+
+<a name="pricing" id="pricing"></a>
+<%- include('./_pricing') %>
+
+<%- include ('./_faq.ejs') %>
+
+<%- include ('./_footer.ejs') %>
+
+</body>
+</html>
