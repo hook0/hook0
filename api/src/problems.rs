@@ -6,12 +6,13 @@ use serde_json::{to_value, Value};
 use sqlx::postgres::PgDatabaseError;
 use sqlx::Error;
 use std::borrow::Cow;
+use std::fmt::Display;
 use strum::EnumIter;
 
 /**
  * How to implement a new type error for Hook0:
  * 1/ Add the type error variant inside Hook0Problem enum
- * 2/ Implement the Problem inside Into<Problem> for Hook0Problem
+ * 2/ Implement the Problem inside From<Hook0Problem> for Problem
  * 3/ Done! Enjoy!
  */
 #[api_v2_errors(code = 403, code = 500, code = 400, code = 404, code = 409)]
