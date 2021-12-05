@@ -185,6 +185,11 @@ async fn main() -> anyhow::Result<()> {
 
         App::new()
             .app_data(web::Data::new(initial_state.clone()))
+            .app_data(web::JsonConfig::default().error_handler(|e, _req| {
+                let problem =
+                    problems::Hook0Problem::JsonPayload(problems::JsonPayloadProblem::from(e));
+                actix_web::error::Error::from(problem)
+            }))
             .wrap(Logger::default())
             .wrap_api_with_spec(spec)
             .with_json_spec_at("/api/v1/swagger.json")
