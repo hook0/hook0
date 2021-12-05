@@ -1,3 +1,4 @@
+use actix_web::error::JsonPayloadError;
 use actix_web::{HttpResponse, ResponseError};
 use http_api_problem::*;
 use log::error;
@@ -38,6 +39,7 @@ pub enum Hook0Problem {
     AuthInvalidApplicationSecret,
 
     // Generic errors
+    JsonPayload(JsonPayloadProblem),
     Validation(validator::ValidationErrors),
     NotFound,
     InternalServerError,
@@ -222,6 +224,16 @@ impl From<Hook0Problem> for Problem {
             },
 
             // Generic errors
+            Hook0Problem::JsonPayload(e) => {
+                let error_str = e.to_string();
+                Problem {
+                    id: Hook0Problem::JsonPayload(e),
+                    title: "Provided body could not be decoded as JSON",
+                    detail: error_str.into(),
+                    validation: None,
+                    status: StatusCode::BAD_REQUEST,
+                }
+            },
             Hook0Problem::Validation(e) => {
                 let errors_str = e.to_string();
                 Problem {
@@ -253,6 +265,52 @@ impl From<Hook0Problem> for Problem {
                 validation: None,
                 status: StatusCode::FORBIDDEN,
             },
+        }
+    }
+}
+
+/// Simplified error type for the JSON body parser
+#[derive(Debug, Clone)]
+pub enum JsonPayloadProblem {
+    Overflow { limit: usize },
+    ContentType,
+    Deserialize(String),
+    Serialize(String),
+    Payload(String),
+    Other(String),
+}
+
+impl Default for JsonPayloadProblem {
+    fn default() -> Self {
+        Self::Other("".to_owned())
+    }
+}
+
+impl Display for JsonPayloadProblem {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Overflow { limit } => write!(f, "Body is too big (maximum is {} bytes)", limit),
+            Self::ContentType => {
+                write!(f, "Content-Type header should be set to 'application/json'")
+            }
+            Self::Deserialize(e) => write!(f, "JSON deserialization error: {}", e),
+            Self::Serialize(e) => write!(f, "JSON serialization error: {}", e),
+            Self::Payload(e) => write!(f, "Payload error: {}", e),
+            Self::Other(e) => write!(f, "{}", e),
+        }
+    }
+}
+
+impl From<JsonPayloadError> for JsonPayloadProblem {
+    fn from(e: JsonPayloadError) -> Self {
+        match e {
+            JsonPayloadError::OverflowKnownLength { length: _, limit } => Self::Overflow { limit },
+            JsonPayloadError::Overflow { limit } => Self::Overflow { limit },
+            JsonPayloadError::ContentType => Self::ContentType,
+            JsonPayloadError::Deserialize(e) => Self::Deserialize(e.to_string()),
+            JsonPayloadError::Serialize(e) => Self::Serialize(e.to_string()),
+            JsonPayloadError::Payload(e) => Self::Payload(e.to_string()),
+            e => Self::Other(e.to_string()),
         }
     }
 }
