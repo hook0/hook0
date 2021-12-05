@@ -9,10 +9,12 @@ use paperclip::actix::{
     Apiv2Schema, CreatedJson,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{json, Value};
 use sqlx::query_as;
+use std::collections::HashMap;
 use std::str::FromStr;
 use uuid::Uuid;
+use validator::Validate;
 
 use crate::iam::{AuthProof, Role};
 use crate::problems::Hook0Problem;
@@ -193,16 +195,18 @@ pub async fn get(
     }
 }
 
-#[derive(Debug, Deserialize, Apiv2Schema)]
+#[derive(Debug, Deserialize, Apiv2Schema, Validate)]
 pub struct EventPost {
     application_id: Uuid,
     event_id: Uuid,
     event_type: String,
     payload: String,
     payload_content_type: String,
-    metadata: Option<Value>,
+    #[validate(custom = "crate::validators::metadata")]
+    metadata: Option<HashMap<String, Value>>,
     occurred_at: DateTime<Utc>,
-    labels: Value,
+    #[validate(custom = "crate::validators::labels")]
+    labels: HashMap<String, Value>,
 }
 
 #[derive(Debug)]
@@ -231,7 +235,17 @@ pub async fn ingest(
     req: HttpRequest,
     body: Json<EventPost>,
 ) -> Result<CreatedJson<IngestedEvent>, Hook0Problem> {
-    let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
+    if let Err(e) = body.validate() {
+        return Err(Hook0Problem::Validation(e));
+    }
+
+    let metadata = match body.metadata.as_ref() {
+        Some(m) => serde_json::to_value(m.clone())
+            .expect("could not serialize subscription metadata into JSON"),
+        None => json!({}),
+    };
+    let labels = serde_json::to_value(body.labels.clone())
+        .expect("could not serialize event labels into JSON");
 
     if let Some(AuthProof::ApplicationSecret {
         application_id: _,
@@ -241,6 +255,8 @@ pub async fn ingest(
         .can_access_application(&state.db, &body.application_id, &Role::Editor)
         .await
     {
+        let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
+
         let content_type_lookup = query_as!(
             ContentTypeLookup,
             "
@@ -258,16 +274,8 @@ pub async fn ingest(
 
         let payload = base64::decode(body.payload.as_str());
 
-        let metadata_ok = body
-            .metadata
-            .as_ref()
-            .map(|val| val.is_object())
-            .unwrap_or(true);
-
-        let labels_ok = body.labels.is_object();
-
-        match (content_type_ok, payload, metadata_ok, labels_ok) {
-            (true, Ok(p), true, true) => {
+        match (content_type_ok, payload) {
+            (true, Ok(p)) => {
                 let ip = req
                     .connection_info()
                     .realip_remote_addr()
@@ -293,10 +301,10 @@ pub async fn ingest(
                     &p,
                     &body.payload_content_type,
                     &ip,
-                    body.metadata,
+                    metadata,
                     &body.occurred_at,
                     secret,
-                    body.labels,
+                    labels,
                 )
                     .fetch_one(&state.db)
                     .await
@@ -306,10 +314,8 @@ pub async fn ingest(
 
                 Ok(CreatedJson(event))
             }
-            (false, _, _, _) => Err(Hook0Problem::EventInvalidPayloadContentType),
-            (_, Err(_), _, _) => Err(Hook0Problem::EventInvalidBase64Payload),
-            (_, _, false, _) => Err(Hook0Problem::EventInvalidMetadata),
-            (_, _, _, false) => Err(Hook0Problem::EventInvalidLabels),
+            (false, _) => Err(Hook0Problem::EventInvalidPayloadContentType),
+            (_, Err(_)) => Err(Hook0Problem::EventInvalidBase64Payload),
         }
     } else {
         Err(Hook0Problem::Forbidden)

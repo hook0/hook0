@@ -29,8 +29,6 @@ pub enum Hook0Problem {
     EventAlreadyIngested,
     EventInvalidPayloadContentType,
     EventInvalidBase64Payload,
-    EventInvalidMetadata,
-    EventInvalidLabels,
 
     // Auth errors
     AuthNoAuthorizationHeader,
@@ -175,20 +173,6 @@ impl From<Hook0Problem> for Problem {
                 id: Hook0Problem::EventInvalidBase64Payload,
                 title: "Invalid event payload",
                 detail: "Event payload is not encoded in valid base64 format.".into(),
-                validation: None,
-                status: StatusCode::BAD_REQUEST,
-            },
-            Hook0Problem::EventInvalidMetadata => Problem {
-                id: Hook0Problem::EventInvalidMetadata,
-                title: "Invalid event metadata content",
-                detail: "When specified, event metadata must be a key-value map in JSON object format.".into(),
-                validation: None,
-                status: StatusCode::BAD_REQUEST,
-            },
-            Hook0Problem::EventInvalidLabels => Problem {
-                id: Hook0Problem::EventInvalidLabels,
-                title: "Invalid event labels",
-                detail: "When specified, event labels must be a key-value map in JSON object format.".into(),
                 validation: None,
                 status: StatusCode::BAD_REQUEST,
             },
