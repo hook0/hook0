@@ -1,8 +1,8 @@
 website.build:
   stage: build
   only:
-      changes:
-        - website/**
+    changes:
+      - website/**
   image: node:$NODE_VERSION
   script:
     - pushd website/
@@ -35,6 +35,9 @@ website.release:
     - job: website.build
       artifacts: true
   only:
+    changes:
+      - website/**
+    refs:
     - master
   except:
     - schedules
