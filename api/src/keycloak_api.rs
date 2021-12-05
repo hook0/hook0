@@ -12,6 +12,7 @@ use crate::problems::Hook0Problem;
 pub struct KeycloakApi {
     client: Client,
     api_url: Url,
+    #[allow(dead_code)]
     access_token: String,
 }
 
