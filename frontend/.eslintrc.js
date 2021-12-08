@@ -10,9 +10,9 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 2021,
     parser: '@typescript-eslint/parser',
-    // tsconfigRootDir: __dirname,
-    // project: ['./tsconfig.json'],
-    // sourceType: 'module',
+    tsconfigRootDir: __dirname,
+    project: ['./tsconfig.json'],
+    sourceType: 'module',
     extraFileExtensions: ['.vue'],
   },
 
@@ -30,6 +30,14 @@ module.exports = {
         ignores: ['Promised', 'Error404'],
       },
     ],
+    'no-unused-vars': 'off', // Disabled because overseeded by the @typescript-eslint/no-unused-vars rule
+    '@typescript-eslint/no-unused-vars': [
+      'warn',
+      {
+        varsIgnorePattern: '^[_].*',
+        argsIgnorePattern: '^[_].*',
+      }
+    ],
   },
 
   extends: [
@@ -39,4 +47,13 @@ module.exports = {
     // 'plugin:prettier-vue/recommended', // TODO: find a way to make it work
     'prettier',
   ],
+
+  overrides: [
+    { // As types.ts is generated, we have to disable rules that it violates
+      files: ['src/types.ts'],
+      rules: {
+        '@typescript-eslint/no-empty-interface': 'off',
+      },
+    },
+  ]
 };

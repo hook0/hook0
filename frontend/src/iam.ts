@@ -8,7 +8,7 @@ const keycloak = Keycloak({
 });
 
 keycloak.onTokenExpired = () => {
-  keycloak.updateToken(3600).catch((err) => {
+  keycloak.updateToken(3600).catch((_err) => {
     keycloak.login();
   });
 };
@@ -21,7 +21,7 @@ const auth$ = keycloak.init({
 });
 
 export const KeycloakPlugin: Plugin = {
-  install: (app, options) => {
+  install: (app, _options) => {
     app.config.globalProperties.$keycloak = keycloak;
   }
 };

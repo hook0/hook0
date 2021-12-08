@@ -3,7 +3,6 @@ import ApplicationsNew from '@/pages/applications/ApplicationsNew.vue';
 import OrganizationList from '@/pages/organizations/OrganizationsList.vue';
 import ApiDocumentation from '@/pages/api/documentation/ApiDocumentation.vue';
 import Error404 from '@/pages/Error404.vue';
-import Default from '@/Default.vue';
 
 export const routes = {
   Home: 'Home',

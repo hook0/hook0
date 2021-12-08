@@ -95,7 +95,7 @@ export default class ApplicationNew extends Vue {
     create({
       name: this.application.name,
       organization_id: (this.$route.query.organization_id as string)
-    }).then((resp) => {
+    }).then((_resp) => {
       this.$router.push({
         name: routes.ApplicationsList,
       });
