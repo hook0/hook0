@@ -17,10 +17,11 @@
   </button>
 </template>
 
-<script>
-import Hook0Icon from '@/components/Hook0Icon';
+<script lang="ts">
+import { Vue, Options } from 'vue-class-component';
+import Hook0Icon from '@/components/Hook0Icon.vue';
 
-export default {
+@Options({
   name: 'hook0-button',
   props: {
     loading: {
@@ -35,19 +36,18 @@ export default {
     return {};
   },
   methods: {
-    hasSlot(name = 'default') {
-      return !!this.$slots[name] || !!this.$slots[name];
+    hasSlot(name = 'default'): boolean {
+      return !!this.$slots[name];
     },
-    onClick(e) {
+    onClick(e: MouseEvent) {
       if (this.loading) {
         return;
       }
       this.$emit('click', e);
     },
   },
-  mounted() {},
-  computed: {},
-};
+})
+export default class Hook0Button extends Vue {};
 </script>
 
 <style lang="scss" scoped>

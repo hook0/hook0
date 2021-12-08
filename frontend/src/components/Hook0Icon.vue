@@ -2,8 +2,8 @@
   <div v-html="svg" />
 </template>
 
-<script>
-import { icon } from '@fortawesome/fontawesome-svg-core';
+<script lang="ts">
+import { icon, IconName } from '@fortawesome/fontawesome-svg-core';
 
 export default {
   props: {
@@ -13,15 +13,11 @@ export default {
     },
   },
   name: 'hook0-icon',
-  components: {},
   data() {
     return {
-      svg: icon({ prefix: 'fas', iconName: this.name }).html[0],
+      svg: icon({ prefix: 'fas', iconName: this.name as IconName }).html[0],
     };
   },
-  methods: {},
-  mounted() {},
-  computed: {},
 };
 </script>
 

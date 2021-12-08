@@ -22,8 +22,8 @@ export function get(application_id: UUID): Promise<Application> {
   return http.get(`/applications/${application_id}`).then((res: AxiosResponse<any>) => res.data);
 }
 
-export function edit(application_id: UUID, body: ApplicationPost) {
-}
+// export function edit(application_id: UUID, body: ApplicationPost) {
+// }
 
-export function remove(application_id: UUID) {
-}
+// export function remove(application_id: UUID) {
+// }
