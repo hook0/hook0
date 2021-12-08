@@ -35,11 +35,11 @@
   </div>
 </template>
 
-<script>
-import Vue from 'vue';
+<script lang="ts">
+import { Vue, Options } from 'vue-class-component';
 import router from '@/router';
 
-export default {
+@Options({
   name: 'hook0-login-menu',
   data() {
     return {
@@ -48,14 +48,14 @@ export default {
     };
   },
   async mounted() {
-    this.currentUser = await Vue.prototype.$keycloak.loadUserProfile();
+    this.currentUser = await this.$keycloak.loadUserProfile();
   },
   methods: {
     isAuthenticated() {
       return !!this.currentUser;
     },
     logout() {
-      Vue.prototype.$keycloak.logout();
+      this.$keycloak.logout();
       router.push('/');
     },
   },
@@ -84,7 +84,8 @@ export default {
       return process.env.VUE_APP_FEATURES_KEYCLOAK === 'true';
     },
   },
-};
+})
+export default class Hook0LoginMenu extends Vue {};
 </script>
 
 <style scoped lang="scss">

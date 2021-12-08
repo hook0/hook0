@@ -6,6 +6,7 @@ import { createApp } from 'vue';
 import router from './router';
 import { Promised } from 'vue-promised';
 import components from './components';
+import { KeycloakPlugin } from './iam';
 
 import Root from './Root.vue';
 import { RouteLocation } from 'vue-router';
@@ -15,6 +16,9 @@ const app = createApp(Root);
 
 // Vue - UIRouter
 app.use(router);
+
+// Expose Keyloack JS
+app.use(KeycloakPlugin);
 
 // wrap router in order to keep our organization_id when present
 app.config.globalProperties.$router.push = (function(push) {
