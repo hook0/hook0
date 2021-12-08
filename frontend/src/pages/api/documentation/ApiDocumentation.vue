@@ -40,7 +40,7 @@ import Hook0CardContentLine from "@/components/Hook0CardContentLine.vue";
   },
 })
 export default class ApiDocumentation extends Vue {
-  private swaggerUI!: any;
+  private swaggerUI!: SwaggerUI;
 
   declare $refs: {
     container: HTMLDivElement

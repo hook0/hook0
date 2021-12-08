@@ -25,7 +25,7 @@
 
 <script lang="ts">
 import {Organization, list} from './OrganizationService';
-import {Options, Vue} from "vue-class-component";
+import {Vue} from "vue-class-component";
 import {UUID} from "@/http";
 
 export default class OrganizationSelector extends Vue {

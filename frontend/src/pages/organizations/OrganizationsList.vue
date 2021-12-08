@@ -20,8 +20,8 @@
 </template>
 
 <script lang="ts">
-import OrganizationService, {Organization, list} from './OrganizationService';
-import {Options, Vue} from 'vue-class-component';
+import {Organization, list} from './OrganizationService';
+import {Vue} from 'vue-class-component';
 
 
 export default class OrganizationList extends Vue {
