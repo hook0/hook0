@@ -26,9 +26,5 @@ import {Options, Vue} from 'vue-class-component';
 
 export default class OrganizationList extends Vue {
   private organizations$: Promise<Array<Organization>> = list();
-
-
-  created(): void {
-  }
 };
 </script>

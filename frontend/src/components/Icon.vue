@@ -30,7 +30,7 @@
   </svg>
 </template>
 
-<script>
+<script lang="ts">
 import { Vue, Options } from 'vue-class-component'
 
 const _kind = ['home', 'team', 'folder', 'calendar', 'document'];
@@ -40,7 +40,7 @@ const _kind = ['home', 'team', 'folder', 'calendar', 'document'];
     kind: {
       type: String,
       required: true,
-      validator: function (value) {
+      validator: function (value: string): boolean {
         // The value must match one of these strings
         return _kind.includes(value);
       }

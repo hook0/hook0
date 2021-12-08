@@ -38,9 +38,8 @@
   </footer>
 </template>
 
-<script>
-import SupportService from '@/services/SupportService';
-import Hook0Link from '@/components/Hook0Link';
+<script lang="ts">
+import Hook0Link from '@/components/Hook0Link.vue';
 
 export default {
   name: 'hook0-footer',
@@ -49,11 +48,9 @@ export default {
   },
   data() {
     return {
-      supportURL: SupportService.getURL(),
+      supportURL: 'mailto:support@hook0.com',
     };
   },
-  mounted() {},
-  computed: {},
 };
 </script>
 
