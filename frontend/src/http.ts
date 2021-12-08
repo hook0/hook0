@@ -19,35 +19,42 @@ function getAxios() {
 }
 
 export default {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   get<T = any, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
     return getAxios().then((axios) => axios.get(url, config));
   },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   delete<T = any, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
     return getAxios().then((axios) => axios.delete(url, config));
   },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   head<T = any, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
     return getAxios().then((axios) => axios.head(url, config));
   },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   options<T = any, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
     return getAxios().then((axios) => axios.options(url, config));
   },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   post<T = any, R = AxiosResponse<T>>(
     url: string,
-    data?: any,
+    data?: any, // eslint-disable-line @typescript-eslint/no-explicit-any
     config?: AxiosRequestConfig
   ): Promise<R> {
     return getAxios().then((axios) => axios.post(url, data, config));
   },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   put<T = any, R = AxiosResponse<T>>(
     url: string,
-    data?: any,
+    data?: any, // eslint-disable-line @typescript-eslint/no-explicit-any
     config?: AxiosRequestConfig
   ): Promise<R> {
     return getAxios().then((axios) => axios.put(url, data, config));
   },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   patch<T = any, R = AxiosResponse<T>>(
     url: string,
-    data?: any,
+    data?: any, // eslint-disable-line @typescript-eslint/no-explicit-any
     config?: AxiosRequestConfig
   ): Promise<R> {
     return getAxios().then((axios) => axios.patch(url, data, config));
