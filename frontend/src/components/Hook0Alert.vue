@@ -70,10 +70,6 @@ export default class Hook0Alert extends Vue {
 
     }
   }
-
-  mounted() {
-
-  }
 };
 </script>
 

@@ -60,8 +60,7 @@ export default class ApplicationList extends Vue {
   data() {
     return {
       routes: routes,
-      applications$: new Promise(() => {
-      }),
+      applications$: Promise.resolve(),
     }
   }
 
