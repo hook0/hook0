@@ -5,7 +5,7 @@ import './tailwind.css';
 import { createApp } from 'vue';
 import router from './router';
 import { Promised } from 'vue-promised';
-import components from './components';
+// import components from './components';
 import { KeycloakPlugin } from './iam';
 
 import Root from './Root.vue';
@@ -37,7 +37,7 @@ app.config.globalProperties.$router.push = (function(push) {
 app.component('Promised', Promised);
 
 // Vue - Hook0 own components
-//app.use(components);
+//app.use(components); // TODO: finish or clean up
 
 // Mount the app
 app.mount('#app');
