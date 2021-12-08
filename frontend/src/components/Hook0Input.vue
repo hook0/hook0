@@ -7,8 +7,10 @@
   </div>
 </template>
 
-<script>
-export default {
+<script lang="ts">
+import { Vue, Options } from 'vue-class-component';
+
+@Options({
   name: 'hook0-input',
   inheritAttrs: false,
   props: {
@@ -17,18 +19,16 @@ export default {
       required: false,
     },
   },
-  components: {},
   data() {
     return {};
   },
   methods: {
-    hasSlot(name = 'default') {
+    hasSlot(name = 'default'): boolean {
       return !!this.$slots[name];
     },
   },
-  mounted() {},
-  computed: {},
-};
+})
+export default class Hook0Input extends Vue {};
 </script>
 
 <style lang="scss" scoped>
