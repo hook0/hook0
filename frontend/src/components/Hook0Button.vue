@@ -1,8 +1,6 @@
 <template>
   <button
-    v-bind="{ ...$props, ...$attrs }"
-    class="hook0-button"
-    :class="{ loading: loading }"
+    :class="{ 'hook0-button': true, loading: loading }"
     @click="onClick($event)"
     :disabled="loading"
   >
@@ -32,22 +30,21 @@ import Hook0Icon from '@/components/Hook0Icon.vue';
   components: {
     Hook0Icon,
   },
-  data() {
-    return {};
-  },
-  methods: {
-    hasSlot(name = 'default'): boolean {
-      return !!this.$slots[name];
-    },
-    onClick(e: MouseEvent) {
-      if (this.loading) {
-        return;
-      }
-      this.$emit('click', e);
-    },
-  },
 })
-export default class Hook0Button extends Vue {};
+export default class Hook0Button extends Vue {
+  loading = false;
+
+  onClick(e: MouseEvent) {
+    if (this.loading) {
+      return;
+    }
+    this.$emit('click', e);
+  }
+
+  hasSlot(name = 'default'): boolean {
+    return !!this.$slots[name];
+  }
+};
 </script>
 
 <style lang="scss" scoped>

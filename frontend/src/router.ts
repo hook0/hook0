@@ -11,7 +11,7 @@ const router = createRouter({
 
 export default router;
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   function addOrganizationId(base: RouteLocationNormalized, organization_id: UUID) {
     next({
       ...base,
@@ -35,7 +35,7 @@ router.beforeEach((to, from, next) => {
     return;
   }
 
-  list().then(organizations => {
+  await list().then(organizations => {
     if (!Array.isArray(organizations) || organizations.length === 0) {
       return next({ name: routeNames.Error404 });
     }

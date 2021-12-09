@@ -19,16 +19,14 @@ import { Vue, Options } from 'vue-class-component';
       required: false,
     },
   },
-  data() {
-    return {};
-  },
-  methods: {
-    hasSlot(name = 'default'): boolean {
-      return !!this.$slots[name];
-    },
-  },
 })
-export default class Hook0Input extends Vue {};
+export default class Hook0Input extends Vue {
+  helpText?: string = undefined;
+
+  hasSlot(name = 'default'): boolean {
+    return !!this.$slots[name];
+  }
+};
 </script>
 
 <style lang="scss" scoped>
