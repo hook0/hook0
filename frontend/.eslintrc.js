@@ -43,7 +43,7 @@ module.exports = {
   extends: [
     'plugin:vue/vue3-essential',
     'plugin:@typescript-eslint/recommended',
-    // 'plugin:@typescript-eslint/recommended-requiring-type-checking',
+    'plugin:@typescript-eslint/recommended-requiring-type-checking',
     // 'plugin:prettier-vue/recommended', // TODO: find a way to make it work
     'prettier',
   ],
@@ -53,6 +53,12 @@ module.exports = {
       files: ['src/types.ts'],
       rules: {
         '@typescript-eslint/no-empty-interface': 'off',
+      },
+    },
+    {
+      files: ['.eslintrc.js'],
+      rules: {
+        '@typescript-eslint/no-unsafe-assignment': 'off',
       },
     },
   ]

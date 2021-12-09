@@ -41,6 +41,7 @@
 </template>
 
 <script lang="ts">
+import { AxiosError } from 'axios';
 import {Application, create, list} from './ApplicationService';
 import {Options, Vue} from 'vue-class-component';
 import Hook0Button from "@/components/Hook0Button.vue";
@@ -57,6 +58,14 @@ import {definitions} from '@/types';
 
 export type Problem = definitions['Problem'];
 
+// For some reason typescript-eslint considers that Alert is of type any if it is imported from components/Hook0Alert.vue
+interface Alert {
+  title: string,
+  description: string,
+  type: AlertStatus,
+  visible: boolean,
+}
+
 @Options({
   components: {
     Hook0Alert,
@@ -65,23 +74,17 @@ export type Problem = definitions['Problem'];
 })
 export default class ApplicationNew extends Vue {
   private applications$ !: Promise<Array<Application>>;
-  private application = {
+  routes = routes;
+  application = {
     name: '',
   };
 
-  private alert = {
+  alert: Alert = {
     visible: false,
-    type: AlertStatus.ALERT,
+    type: 'alert',
     title: '',
     description: '',
   };
-
-  data() {
-    return {
-      routes: routes,
-      applications$: Promise.resolve(),
-    }
-  }
 
   mounted() {
     this.applications$ = list(this.$route.query.organization_id as string);
@@ -95,27 +98,32 @@ export default class ApplicationNew extends Vue {
     create({
       name: this.application.name,
       organization_id: (this.$route.query.organization_id as string)
-    }).then((_resp) => {
-      this.$router.push({
+    }).then(async (_resp) => {
+      await this.$router.push({
         name: routes.ApplicationsList,
       });
-    }, (err) => {
+    }, (err: AxiosError | unknown) => {
       console.error(err);
       this.alert.visible = true;
 
-      if (err.isAxiosError && err.response && err.response.data) {
-        const problem: Problem = err.response.data;
-        this.alert.type = problem.status >= 500 ? AlertStatus.ALERT : AlertStatus.WARNING;
+      if (isAxiosError(err) && err.response) {
+        const problem: Problem = err.response.data as Problem;
+        this.alert.type = problem.status >= 500 ? 'alert' : 'warning';
         this.alert.title = problem.title;
         this.alert.description = problem.detail;
       } else {
-        this.alert.type = AlertStatus.ALERT;
+        this.alert.type = 'alert';
         this.alert.title = "An error occurred";
         this.alert.description = String(err);
       }
     })
   }
 };
+
+function isAxiosError(err: AxiosError | unknown): err is AxiosError {
+  const e = err as AxiosError;
+  return e !== null && typeof e.isAxiosError === 'boolean' && e.isAxiosError
+}
 </script>
 
 <style scoped>

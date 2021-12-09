@@ -9,16 +9,12 @@ import { Vue, Options } from 'vue-class-component';
 
 @Options({
   name: 'hook0-link',
-  data() {
-    return {};
-  },
-  methods: {
-    onClick(e: MouseEvent) {
-      this.$emit('click', e);
-    },
-  },
 })
-export default class Hook0Link extends Vue {};
+export default class Hook0Link extends Vue {
+  onClick(e: MouseEvent) {
+    this.$emit('click', e);
+  }
+};
 </script>
 
 <style lang="scss" scoped>
