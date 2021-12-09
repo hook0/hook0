@@ -36,56 +36,62 @@
 </template>
 
 <script lang="ts">
-import { Vue, Options } from 'vue-class-component';
+import { defineComponent } from 'vue';
 import router from '@/router';
+import { KeycloakProfile } from 'keycloak-js';
 
-@Options({
+interface AccessToken {
+  given_name?: string,
+  preferred_username: string,
+}
+
+export default defineComponent({
   name: 'hook0-login-menu',
-  data() {
-    return {
-      currentUser: null,
-      open: false,
-    };
-  },
   async mounted() {
     this.currentUser = await this.$keycloak.loadUserProfile();
   },
-  methods: {
-    isAuthenticated() {
-      return !!this.currentUser;
-    },
-    logout() {
-      this.$keycloak.logout();
-      router.push('/');
-    },
+  data() {
+    return {
+      currentUser: null as KeycloakProfile | null,
+      open: false,
+    };
   },
   computed: {
-    kcGivenName() {
+    kcGivenName(): string {
       if (this.isKeycloakFeatureEnabled && this.$keycloak.tokenParsed) {
-        const tokenParsed = this.$keycloak.tokenParsed;
+        const tokenParsed = this.$keycloak.tokenParsed as AccessToken;
         return tokenParsed.given_name ? tokenParsed.given_name : tokenParsed.preferred_username;
       }
       return '';
     },
-    kcUserName() {
+    kcUserName(): string {
       if (this.isKeycloakFeatureEnabled && this.$keycloak.tokenParsed) {
-        const tokenParsed = this.$keycloak.tokenParsed;
+        const tokenParsed = this.$keycloak.tokenParsed as AccessToken;
         return tokenParsed.preferred_username;
       }
       return '';
     },
-    kcFullName() {
-      const { firstName, lastName } = this.currentUser;
-      if (!firstName && !lastName) return;
+    kcFullName(): string | undefined {
+      const firstName = this.currentUser?.firstName;
+      const lastName = this.currentUser?.lastName;
+      if (!firstName || !lastName) return;
 
       return `${firstName} ${lastName}`;
     },
-    isKeycloakFeatureEnabled() {
-      return process.env.VUE_APP_FEATURES_KEYCLOAK === 'true';
+    isKeycloakFeatureEnabled(): boolean {
+      return process.env.VUE_APP_FEATURES_KEYCLOAK  === 'true';
     },
   },
-})
-export default class Hook0LoginMenu extends Vue {};
+  methods: {
+    isAuthenticated(): boolean {
+      return !!this.currentUser;
+    },
+    async logout() {
+      await this.$keycloak.logout();
+      await router.push('/');
+    },
+  },
+});
 </script>
 
 <style scoped lang="scss">

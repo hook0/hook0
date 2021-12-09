@@ -8,8 +8,8 @@ const keycloak = Keycloak({
 });
 
 keycloak.onTokenExpired = () => {
-  keycloak.updateToken(3600).catch((_err) => {
-    keycloak.login();
+  keycloak.updateToken(3600).catch(async (_err) => {
+    await keycloak.login();
   });
 };
 
@@ -25,6 +25,12 @@ export const KeycloakPlugin: Plugin = {
     app.config.globalProperties.$keycloak = keycloak;
   }
 };
+
+declare module '@vue/runtime-core' {
+  export interface ComponentCustomProperties {
+    $keycloak: Keycloak.KeycloakInstance;
+  }
+}
 
 export default {
   getToken(): Promise<string> {

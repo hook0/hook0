@@ -32,15 +32,15 @@ export default class OrganizationSelector extends Vue {
 
   private organizations$!: Promise<Array<Organization>>;
 
-  set_current_organization_by_id(organization_id: UUID): void {
-    this.organizations$.then(organizations => {
+  async set_current_organization_by_id(organization_id: UUID) {
+    await this.organizations$.then(async organizations => {
       const new_organization = organizations.find(org => org.organization_id === organization_id);
       if (!new_organization){
         // if no organization where found fallback do nothing
         return;
       }
 
-      this.$router.push({
+      await this.$router.push({
         ...this.$route,
         query:{
           ...this.$route.query,
