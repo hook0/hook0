@@ -17,6 +17,7 @@ module.exports = {
     'no-debugger': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
     'comma-style': ['error', 'last'],
     'vue/no-multiple-template-root': 'off',
+    '@typescript-eslint/ban-ts-comment': 'off',
   },
 
   extends: [
