@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use clap::{crate_name, crate_version};
 use hex::ToHex;
-use hmac::{Hmac, Mac, NewMac};
+use hmac::{Hmac, Mac};
 use log::{debug, error, trace, warn};
 use reqwest::header::{HeaderMap, HeaderValue, InvalidHeaderValue};
 use reqwest::{Client, Method, Url};
