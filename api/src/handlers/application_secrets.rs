@@ -7,6 +7,7 @@ use paperclip::actix::{
 use serde::{Deserialize, Serialize};
 use sqlx::{query, query_as};
 use uuid::Uuid;
+use validator::Validate;
 
 use crate::iam::{AuthProof, Role};
 use crate::problems::Hook0Problem;
@@ -24,9 +25,10 @@ pub struct Qs {
     application_id: Uuid,
 }
 
-#[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct ApplicationSecretPost {
     application_id: Uuid,
+    #[validate(non_control_character, length(max = 50))]
     name: Option<String>,
 }
 
@@ -49,6 +51,10 @@ pub async fn create(
         .is_none()
     {
         return Err(Hook0Problem::Forbidden);
+    }
+
+    if let Err(e) = body.validate() {
+        return Err(Hook0Problem::Validation(e));
     }
 
     let application_secret = query_as!(
@@ -126,6 +132,10 @@ pub async fn update(
         .is_none()
     {
         return Err(Hook0Problem::Forbidden);
+    }
+
+    if let Err(e) = body.validate() {
+        return Err(Hook0Problem::Validation(e));
     }
 
     let application_secret = query_as!(
