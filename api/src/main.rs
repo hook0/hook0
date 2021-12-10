@@ -1,7 +1,8 @@
+use actix_cors::Cors;
 use actix_files::{Files, NamedFile};
 use actix_governor::{Governor, GovernorConfigBuilder};
 use actix_web::middleware::{Condition, Logger};
-use actix_web::{App, HttpServer};
+use actix_web::{http, App, HttpServer};
 use actix_web_middleware_keycloak_auth::{AlwaysPassPolicy, DecodingKey, KeycloakAuth};
 use clap::{crate_description, crate_name, crate_version, ArgSettings::HideEnvValues, Parser};
 use log::{info, trace};
@@ -171,6 +172,14 @@ async fn main() -> anyhow::Result<()> {
         let pk: &'static String = Box::leak(pk);
         let pk = DecodingKey::from_rsa_pem(pk.as_bytes()).unwrap();
 
+        // Prepare cors configuration
+        let cors = Cors::default()
+            .allowed_origin("https://app.hook0.com/")
+            .allowed_origin("http://localhost:8080/")
+            .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
+            .allowed_header(http::header::CONTENT_TYPE)
+            .max_age(3600);
+
         let jwt_auth = KeycloakAuth {
             detailed_responses: false,
             keycloak_oid_public_key: pk.clone(),
@@ -185,6 +194,7 @@ async fn main() -> anyhow::Result<()> {
         App::new()
             .app_data(web::Data::new(initial_state.clone()))
             .wrap(Logger::default())
+            .wrap(cors)
             .wrap_api_with_spec(spec)
             .with_json_spec_at("/api/v1/swagger.json")
             .service(

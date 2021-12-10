@@ -79,6 +79,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "actix-cors"
+version = "0.6.0-beta.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "10924f24839e08540bc12e404150646c7d5c83789b6d4e2f90f1046dd058d3fd"
+dependencies = [
+ "actix-service 2.0.1",
+ "actix-web 4.0.0-beta.13",
+ "derive_more",
+ "futures-util",
+ "log",
+ "once_cell",
+ "smallvec",
+]
+
+[[package]]
 name = "actix-files"
 version = "0.6.0-beta.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1417,6 +1432,7 @@ dependencies = [
 name = "hook0-api"
 version = "0.1.0"
 dependencies = [
+ "actix-cors",
  "actix-files",
  "actix-governor",
  "actix-web 4.0.0-beta.13",
