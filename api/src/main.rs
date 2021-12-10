@@ -174,8 +174,8 @@ async fn main() -> anyhow::Result<()> {
 
         // Prepare cors configuration
         let cors = Cors::default()
-            .allowed_origin("https://app.hook0.com/")
-            .allowed_origin("http://localhost:8080/")
+            .allowed_origin("https://www.hook0.com")
+            .allowed_origin("http://localhost:8080")
             .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
             .allowed_header(http::header::CONTENT_TYPE)
             .max_age(3600);
