@@ -19,6 +19,7 @@ mod iam;
 mod keycloak_api;
 mod middleware_application_secret;
 mod problems;
+mod validators;
 
 const APP_TITLE: &str = "Hook0 API";
 const WEBAPP_INDEX_FILE: &str = "index.html";
@@ -193,6 +194,11 @@ async fn main() -> anyhow::Result<()> {
 
         App::new()
             .app_data(web::Data::new(initial_state.clone()))
+            .app_data(web::JsonConfig::default().error_handler(|e, _req| {
+                let problem =
+                    problems::Hook0Problem::JsonPayload(problems::JsonPayloadProblem::from(e));
+                actix_web::error::Error::from(problem)
+            }))
             .wrap(Logger::default())
             .wrap(cors)
             .wrap_api_with_spec(spec)
