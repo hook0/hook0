@@ -18,7 +18,7 @@ actix-web-middleware-keycloak-auth = { version = "0.4.0-beta.2", features = ["pa
 anyhow = "1.0.51"
 base64 = "0.13.0"
 chrono = { version = "0.4.19", features = ["serde"] }
-clap = "3.0.0-beta.5"
+clap = { version = "3.0.0-rc.3", features = ["derive", "env", "cargo", "wrap_help"] }
 futures-util = "0.3.18"
 http-api-problem = { version = "0.51.0", features = ["actix-web"] }
 ipnetwork = "0.17.0"
@@ -28,7 +28,7 @@ paperclip = { git = "https://github.com/sfisol/paperclip", rev = "41eea14e1d9c0a
 regex = "1.5.4"
 reqwest = { version = "0.11.6", default-features = false, features = ["rustls-tls", "trust-dns"] }
 sentry-integration = { path = "../sentry-integration" }
-serde = "1.0.130"
+serde = "1.0.131"
 serde_json = "1.0.72"
 strum = { version = "0.23.0", features = ["derive"] }
 sqlx = { version = "0.5.9", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "offline", "migrate"] } # runtime-tokio-rustls because https://github.com/launchbadge/sqlx/issues/894#issuecomment-747821912
