@@ -139,12 +139,15 @@ pub async fn list(
 pub struct SubscriptionPost {
     application_id: Uuid,
     is_enabled: bool,
+    #[validate(custom = "crate::validators::event_types")]
     event_types: Vec<String>,
     #[validate(length(min = 1, max = 100))]
     description: Option<String>,
     #[validate(custom = "crate::validators::metadata")]
     metadata: Option<HashMap<String, Value>>,
+    #[validate(non_control_character, length(min = 1, max = 100))]
     label_key: String,
+    #[validate(non_control_character, length(min = 1, max = 100))]
     label_value: String,
     target: Target,
 }

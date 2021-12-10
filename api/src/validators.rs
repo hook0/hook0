@@ -8,6 +8,10 @@ const METADATA_PROPERTY_MAX_LENGTH: usize = 50;
 const LABELS_MAX_SIZE: usize = 10;
 const LABELS_PROPERTY_MIN_LENGTH: usize = 1;
 const LABELS_PROPERTY_MAX_LENGTH: usize = 50;
+const EVENT_TYPES_MIN_SIZE: usize = 1;
+const EVENT_TYPES_MAX_SIZE: usize = 100;
+const EVENT_TYPES_NAME_MIN_LENGTH: usize = 1;
+const EVENT_TYPES_NAME_MAX_LENGTH: usize = 200;
 
 const CODE_METADATA_SIZE: &str = "metadata-size";
 const CODE_METADATA_PROPERTY_TYPE: &str = "metadata-property-type";
@@ -15,6 +19,8 @@ const CODE_METADATA_PROPERTY_LENGTH: &str = "metadata-property-length";
 const CODE_LABELS_SIZE: &str = "labels-size";
 const CODE_LABELS_PROPERTY_TYPE: &str = "labels-property-type";
 const CODE_LABELS_PROPERTY_LENGTH: &str = "labels-property-length";
+const CODE_EVENT_TYPES_SIZE: &str = "event-types-size";
+const CODE_EVENT_TYPES_NAME_LENGTH: &str = "event-types-name-length";
 
 fn json_type(val: &Value) -> &'static str {
     match val {
@@ -132,6 +138,46 @@ pub fn labels(val: &HashMap<String, Value>) -> Result<(), ValidationError> {
             message: Some(format!("Labels properties and values must have a length between {} and {} (the following properties are out of range: {})", LABELS_PROPERTY_MIN_LENGTH, LABELS_PROPERTY_MAX_LENGTH, &invalid).into()),
             params: HashMap::new(),
         })
+    } else {
+        Ok(())
+    }
+}
+
+pub fn event_types(val: &[String]) -> Result<(), ValidationError> {
+    let size = val.len();
+    if !(EVENT_TYPES_MIN_SIZE..=EVENT_TYPES_MAX_SIZE).contains(&size) {
+        return Err(ValidationError {
+            code: CODE_EVENT_TYPES_SIZE.into(),
+            message: Some(
+                format!(
+                    "There must be between {} and {} event types (found {})",
+                    EVENT_TYPES_MIN_SIZE, EVENT_TYPES_MAX_SIZE, size
+                )
+                .into(),
+            ),
+            params: HashMap::new(),
+        });
+    }
+
+    let mut invalid_names = vec![];
+
+    for (index, name) in val.iter().enumerate() {
+        if !(EVENT_TYPES_NAME_MIN_LENGTH..=EVENT_TYPES_NAME_MAX_LENGTH).contains(&name.len()) {
+            invalid_names.push(index);
+        }
+    }
+
+    if !invalid_names.is_empty() {
+        let invalid = invalid_names
+            .iter()
+            .map(|i| i.to_string())
+            .collect::<Vec<_>>()
+            .join(", ");
+        Err(ValidationError {
+                code: CODE_EVENT_TYPES_NAME_LENGTH.into(),
+                message: Some(format!("Event types must have a length between {} and {} (invalid event types were spotted at the following indexes: {})", EVENT_TYPES_NAME_MIN_LENGTH, EVENT_TYPES_NAME_MAX_LENGTH, &invalid).into()),
+                params: HashMap::new(),
+            })
     } else {
         Ok(())
     }
@@ -335,6 +381,64 @@ mod tests {
         assert_eq!(
             output.err().map(|e| e.code).unwrap_or_else(|| "".into()),
             CODE_LABELS_PROPERTY_LENGTH
+        );
+    }
+
+    #[test]
+    fn event_types_valid() {
+        let val = vec!["type1".to_owned(), "type2".to_owned(), "type3".to_owned()];
+        assert!(event_types(&val).is_ok())
+    }
+
+    #[test]
+    fn event_types_empty() {
+        let val = vec![];
+        let output = event_types(&val);
+        assert!(output.is_err());
+        assert_eq!(
+            output.err().map(|e| e.code).unwrap_or_else(|| "".into()),
+            CODE_EVENT_TYPES_SIZE
+        );
+    }
+
+    #[test]
+    fn event_types_invalid_size() {
+        let length = EVENT_TYPES_MAX_SIZE + 1;
+        let mut val = Vec::with_capacity(length);
+        for i in 0..length {
+            val.push(format!("test-{}", i));
+        }
+        let output = event_types(&val);
+        assert!(output.is_err());
+        assert_eq!(
+            output.err().map(|e| e.code).unwrap_or_else(|| "".into()),
+            CODE_EVENT_TYPES_SIZE
+        );
+    }
+
+    #[test]
+    fn event_types_invalid_name_length1() {
+        let val = vec!["".to_owned()];
+        let output = event_types(&val);
+        assert!(output.is_err());
+        assert_eq!(
+            output.err().map(|e| e.code).unwrap_or_else(|| "".into()),
+            CODE_EVENT_TYPES_NAME_LENGTH
+        );
+    }
+
+    #[test]
+    fn event_types_invalid_name_length2() {
+        let mut str = String::new();
+        for _ in 0..=EVENT_TYPES_NAME_MAX_LENGTH {
+            str.push('_');
+        }
+        let val = vec![str];
+        let output = event_types(&val);
+        assert!(output.is_err());
+        assert_eq!(
+            output.err().map(|e| e.code).unwrap_or_else(|| "".into()),
+            CODE_EVENT_TYPES_NAME_LENGTH
         );
     }
 }
