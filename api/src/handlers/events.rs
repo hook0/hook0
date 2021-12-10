@@ -199,8 +199,11 @@ pub async fn get(
 pub struct EventPost {
     application_id: Uuid,
     event_id: Uuid,
+    #[validate(non_control_character, length(min = 1, max = 200))]
     event_type: String,
+    #[validate(length(max = 699_050))] // 512 kio of payload * 4/3 (base64) in bytes
     payload: String,
+    #[validate(non_control_character, length(min = 1, max = 100))]
     payload_content_type: String,
     #[validate(custom = "crate::validators::metadata")]
     metadata: Option<HashMap<String, Value>>,
