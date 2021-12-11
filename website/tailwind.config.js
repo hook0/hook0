@@ -1,14 +1,17 @@
 const colors = require('tailwindcss/colors');
 
+// Remove Tailwind CSS warnings
+delete colors.lightBlue;
+delete colors.warmGray;
+delete colors.trueGray;
+delete colors.coolGray;
+delete colors.blueGray;
+
 module.exports = {
-  purge: ["./**.html"],
-  darkMode: false, // or 'media' or 'class'
+  content: ["./**.html"],
   theme: {
     extend: {},
     colors: colors
-  },
-  variants: {
-    extend: {},
   },
   plugins: [
     require("postcss-import"),
