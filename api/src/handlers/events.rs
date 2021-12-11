@@ -1,8 +1,6 @@
-use actix_web::HttpRequest;
 use base64::encode;
 use chrono::{DateTime, Utc};
 use ipnetwork::IpNetwork;
-use log::error;
 use paperclip::actix::{
     api_v2_operation,
     web::{Data, Json, Path, Query},
@@ -12,10 +10,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sqlx::query_as;
 use std::collections::HashMap;
-use std::str::FromStr;
 use uuid::Uuid;
 use validator::Validate;
 
+use crate::extractor_ip::Ip;
 use crate::iam::{AuthProof, Role};
 use crate::problems::Hook0Problem;
 
@@ -235,7 +233,7 @@ pub struct IngestedEvent {
 pub async fn ingest(
     state: Data<crate::State>,
     auth: AuthProof,
-    req: HttpRequest,
+    ip: Ip,
     body: Json<EventPost>,
 ) -> Result<CreatedJson<IngestedEvent>, Hook0Problem> {
     if let Err(e) = body.validate() {
@@ -279,18 +277,6 @@ pub async fn ingest(
 
         match (content_type_ok, payload) {
             (true, Ok(p)) => {
-                let ip = req
-                    .connection_info()
-                    .realip_remote_addr()
-                    .and_then(|str| str.split(':').next())
-                    .ok_or(Hook0Problem::InternalServerError)
-                    .and_then(|str| {
-                        IpNetwork::from_str(str).map_err(|e| {
-                            error!("{}", &e);
-                            Hook0Problem::InternalServerError
-                        })
-                    })?;
-
                 let event = query_as!(
                     IngestedEvent,
                     "
@@ -303,7 +289,7 @@ pub async fn ingest(
                     &body.event_type,
                     &p,
                     &body.payload_content_type,
-                    &ip,
+                    ip.into_inner(),
                     metadata,
                     &body.occurred_at,
                     secret,

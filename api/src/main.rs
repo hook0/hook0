@@ -4,8 +4,9 @@ use actix_governor::{Governor, GovernorConfigBuilder};
 use actix_web::middleware::{Condition, Logger};
 use actix_web::{http, App, HttpServer};
 use actix_web_middleware_keycloak_auth::{AlwaysPassPolicy, DecodingKey, KeycloakAuth};
-use clap::{crate_description, crate_name, crate_version, ArgSettings::HideEnvValues, Parser};
-use log::{info, trace};
+use clap::ArgSettings::{HideEnvValues, UseValueDelimiter};
+use clap::{crate_description, crate_name, crate_version, Parser};
+use log::{debug, info, trace, warn};
 use paperclip::{
     actix::{web, OpenApiExt},
     v2::models::{DefaultApiRaw, Info},
@@ -14,6 +15,7 @@ use reqwest::Url;
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 use std::str::FromStr;
 
+mod extractor_ip;
 mod handlers;
 mod iam;
 mod keycloak_api;
@@ -34,6 +36,10 @@ struct Config {
     /// Port on which to start the HTTP server
     #[clap(long, env, default_value = "8080")]
     port: String,
+
+    /// A comma-separated list of trusted IP addresses that are allowed to set "X-Forwarded-For" and "Forwarded" headers
+    #[clap(long, env = "CC_REVERSE_PROXY_IPS", setting = UseValueDelimiter)]
+    reverse_proxy_ips: Vec<String>,
 
     /// Optional Sentry DSN for error reporting
     #[clap(long, env)]
@@ -102,6 +108,7 @@ pub struct State {
     keycloak_client_secret: String,
     disable_registration: bool,
     auto_db_migration: bool,
+    reverse_proxy_ips: Vec<String>,
 }
 
 #[actix_web::main]
@@ -113,6 +120,21 @@ async fn main() -> anyhow::Result<()> {
     let _sentry = sentry_integration::init(crate_name!(), &config.sentry_dsn);
 
     trace!("Starting {}", APP_TITLE);
+
+    // Prepare trusted reverse proxies IPs
+    let reverse_proxy_ips = config
+        .reverse_proxy_ips
+        .iter()
+        .map(|str| str.trim().to_owned())
+        .collect::<Vec<_>>();
+    if reverse_proxy_ips.is_empty() {
+        warn!("No trusted reverse proxy IPs were set; if this is a production instance this is a problem");
+    } else {
+        debug!(
+            "The following IPs will be considered as trusted reverve proxies: {}",
+            &reverse_proxy_ips.join(", ")
+        );
+    }
 
     // Prepare rate limiting configuration
     let governor_conf = GovernorConfigBuilder::default()
@@ -148,6 +170,7 @@ async fn main() -> anyhow::Result<()> {
         keycloak_client_secret: config.keycloak_client_secret,
         disable_registration: config.disable_registration,
         auto_db_migration: config.auto_db_migration,
+        reverse_proxy_ips,
     };
     let keycloak_oidc_public_key = config.keycloak_oidc_public_key;
 
