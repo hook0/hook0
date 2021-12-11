@@ -103,7 +103,7 @@ struct Config {
     api_rate_limiting_replenish_period_in_ms: u64,
 
     /// Comma-separated allowed origins for CORS
-    #[clap(long, env, setting = UseValueDelimiter, default_value = "")]
+    #[clap(long, env, setting = UseValueDelimiter)]
     cors_allowed_origins: Vec<String>,
 }
 
