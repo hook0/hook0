@@ -8,22 +8,26 @@
     "watch": "parcel watch src/*.ejs",
     "serve": "npx nodemon -w ./data -w . -i dist/ -i src/ --ext .js,.json --exec npm run serve:basic",
     "serve:basic": "parcel serve src/*.ejs",
-    "build": "parcel build src/*.ejs"
+    "build": "parcel build src/*.ejs",
+    "dev": "parcel build --no-optimize src/*.ejs"
   },
-  "author": "Francois-Guillaume Ribreau <npm@fgribreau.com> (http://fgribreau.com/)",
+  "contributors": [
+    "Francois-Guillaume Ribreau <npm@fgribreau.com> (http://fgribreau.com/)",
+    "David Sferruzza <david.sferruzza@gmail.com> (https://david.sferruzza.fr)"
+  ],
   "license": "MIT",
   "devDependencies": {
     "@parcel/transformer-sass": "^2.0.1",
-    "@tailwindcss/typography": "^0.4.1",
+    "@tailwindcss/typography": "^0.5.0",
     "autoprefixer": "^10.4.0",
     "parcel": "^2.0.1",
     "parcel-transformer-ejs": "^0.2.0",
     "postcss": "^8.3.11",
     "postcss-100vh-fix": "^1.0.2",
     "postcss-import": "^14.0.2",
-    "prettier": "^2.4.1",
+    "prettier": "^2.5.1",
     "sharp": "^0.29.3",
-    "tailwindcss": "^2.2.19"
+    "tailwindcss": "^3.0.1"
   },
   "dependencies": {
     "nodemon": "^2.0.15"
