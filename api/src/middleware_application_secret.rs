@@ -1,4 +1,4 @@
-use actix_web::body::AnyBody;
+use actix_web::body::BoxBody;
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
 use actix_web::{Error, HttpMessage, HttpResponse};
 use actix_web_middleware_keycloak_auth::{extract_jwt_claims, KeycloakAuthStatus};
@@ -22,10 +22,10 @@ pub struct ApplicationSecretAuth {
 
 impl<S> Transform<S, ServiceRequest> for ApplicationSecretAuth
 where
-    S: Service<ServiceRequest, Response = ServiceResponse<AnyBody>, Error = Error> + 'static,
+    S: Service<ServiceRequest, Response = ServiceResponse<BoxBody>, Error = Error> + 'static,
     S::Future: 'static,
 {
-    type Response = ServiceResponse<AnyBody>;
+    type Response = ServiceResponse<BoxBody>;
     type Error = Error;
     type InitError = ();
     type Transform = ApplicationSecretAuthMiddleware<S>;
@@ -48,10 +48,10 @@ pub struct ApplicationSecretAuthMiddleware<S> {
 
 impl<S> Service<ServiceRequest> for ApplicationSecretAuthMiddleware<S>
 where
-    S: Service<ServiceRequest, Response = ServiceResponse<AnyBody>, Error = Error> + 'static,
+    S: Service<ServiceRequest, Response = ServiceResponse<BoxBody>, Error = Error> + 'static,
     S::Future: 'static,
 {
-    type Response = ServiceResponse<AnyBody>;
+    type Response = ServiceResponse<BoxBody>;
     type Error = Error;
     #[allow(clippy::type_complexity)]
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
