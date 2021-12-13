@@ -4,20 +4,16 @@
   </a>
 </template>
 
-<script>
-export default {
+<script lang="ts">
+import { Vue, Options } from 'vue-class-component';
+
+@Options({
   name: 'hook0-link',
-  components: {},
-  data() {
-    return {};
-  },
-  methods: {
-    onClick(e) {
-      this.$emit('click', e);
-    },
-  },
-  mounted() {},
-  computed: {},
+})
+export default class Hook0Link extends Vue {
+  onClick(e: MouseEvent) {
+    this.$emit('click', e);
+  }
 };
 </script>
 

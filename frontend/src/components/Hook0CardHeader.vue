@@ -16,16 +16,12 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 export default {
   name: 'hook0-card-header',
-  components: {},
   data() {
     return {};
   },
-  methods: {},
-  mounted() {},
-  computed: {},
 };
 </script>
 

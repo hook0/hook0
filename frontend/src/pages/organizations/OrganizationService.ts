@@ -1,5 +1,5 @@
 import {AxiosResponse} from 'axios';
-import http, {UUID} from '../../http';
+import http from '../../http';
 import {definitions} from '@/types';
 
 export type Organization = definitions['Organization'];
@@ -21,5 +21,5 @@ export default {
 }
 
 export function list(): Promise<Array<Organization>> {
-  return http.get('/organizations').then((res: AxiosResponse<any>) => res.data);
+  return http.get('/organizations').then((res: AxiosResponse<Array<Organization>>) => res.data);
 }
