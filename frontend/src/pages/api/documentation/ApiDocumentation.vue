@@ -40,12 +40,9 @@ import Hook0CardContentLine from "@/components/Hook0CardContentLine.vue";
   },
 })
 export default class ApiDocumentation extends Vue {
-  private swaggerUI!: any;
+  private swaggerUI!: SwaggerUI;
 
-  // annotate refs type.
-  // The symbol `!` (definite assignment assertion) is needed to get rid of compilation error.
-  // noinspection JSUnusedGlobalSymbols
-  $refs!: {
+  declare $refs: {
     container: HTMLDivElement
   }
 
