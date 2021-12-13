@@ -529,7 +529,7 @@ dependencies = [
  "futures-util",
  "jsonwebtoken",
  "log",
- "paperclip 0.6.1 (git+https://github.com/sfisol/paperclip?rev=3432112a21a6a2bf45086f2ec2669906efa03efc)",
+ "paperclip",
  "serde",
  "serde_json",
  "uuid",
@@ -1441,7 +1441,7 @@ dependencies = [
  "ipnetwork",
  "lazy_static",
  "log",
- "paperclip 0.6.1 (git+https://github.com/sfisol/paperclip?rev=418832f042adcd6939f6eb19115edcdd5543d47a)",
+ "paperclip",
  "rand 0.8.4",
  "regex",
  "reqwest",
@@ -2050,30 +2050,9 @@ dependencies = [
  "anyhow",
  "itertools",
  "once_cell",
- "paperclip-actix 0.4.2 (git+https://github.com/sfisol/paperclip?rev=3432112a21a6a2bf45086f2ec2669906efa03efc)",
- "paperclip-core 0.4.1 (git+https://github.com/sfisol/paperclip?rev=3432112a21a6a2bf45086f2ec2669906efa03efc)",
- "paperclip-macros 0.5.1 (git+https://github.com/sfisol/paperclip?rev=3432112a21a6a2bf45086f2ec2669906efa03efc)",
- "parking_lot",
- "semver 0.11.0",
- "serde",
- "serde_derive",
- "serde_json",
- "serde_yaml",
- "thiserror",
- "url",
-]
-
-[[package]]
-name = "paperclip"
-version = "0.6.1"
-source = "git+https://github.com/sfisol/paperclip?rev=418832f042adcd6939f6eb19115edcdd5543d47a#418832f042adcd6939f6eb19115edcdd5543d47a"
-dependencies = [
- "anyhow",
- "itertools",
- "once_cell",
- "paperclip-actix 0.4.2 (git+https://github.com/sfisol/paperclip?rev=418832f042adcd6939f6eb19115edcdd5543d47a)",
- "paperclip-core 0.4.1 (git+https://github.com/sfisol/paperclip?rev=418832f042adcd6939f6eb19115edcdd5543d47a)",
- "paperclip-macros 0.5.1 (git+https://github.com/sfisol/paperclip?rev=418832f042adcd6939f6eb19115edcdd5543d47a)",
+ "paperclip-actix",
+ "paperclip-core",
+ "paperclip-macros",
  "parking_lot",
  "semver 0.11.0",
  "serde",
@@ -2094,24 +2073,8 @@ dependencies = [
  "actix-web 4.0.0-beta.14",
  "futures",
  "once_cell",
- "paperclip-core 0.4.1 (git+https://github.com/sfisol/paperclip?rev=3432112a21a6a2bf45086f2ec2669906efa03efc)",
- "paperclip-macros 0.5.1 (git+https://github.com/sfisol/paperclip?rev=3432112a21a6a2bf45086f2ec2669906efa03efc)",
- "parking_lot",
- "serde_json",
-]
-
-[[package]]
-name = "paperclip-actix"
-version = "0.4.2"
-source = "git+https://github.com/sfisol/paperclip?rev=418832f042adcd6939f6eb19115edcdd5543d47a#418832f042adcd6939f6eb19115edcdd5543d47a"
-dependencies = [
- "actix-service 1.0.6",
- "actix-service 2.0.1",
- "actix-web 4.0.0-beta.14",
- "futures",
- "once_cell",
- "paperclip-core 0.4.1 (git+https://github.com/sfisol/paperclip?rev=418832f042adcd6939f6eb19115edcdd5543d47a)",
- "paperclip-macros 0.5.1 (git+https://github.com/sfisol/paperclip?rev=418832f042adcd6939f6eb19115edcdd5543d47a)",
+ "paperclip-core",
+ "paperclip-macros",
  "parking_lot",
  "serde_json",
 ]
@@ -2120,30 +2083,12 @@ dependencies = [
 name = "paperclip-core"
 version = "0.4.1"
 source = "git+https://github.com/sfisol/paperclip?rev=3432112a21a6a2bf45086f2ec2669906efa03efc#3432112a21a6a2bf45086f2ec2669906efa03efc"
-dependencies = [
- "actix-web 4.0.0-beta.14",
- "mime",
- "once_cell",
- "paperclip-macros 0.5.1 (git+https://github.com/sfisol/paperclip?rev=3432112a21a6a2bf45086f2ec2669906efa03efc)",
- "parking_lot",
- "pin-project 1.0.8",
- "regex",
- "serde",
- "serde_json",
- "serde_yaml",
- "thiserror",
-]
-
-[[package]]
-name = "paperclip-core"
-version = "0.4.1"
-source = "git+https://github.com/sfisol/paperclip?rev=418832f042adcd6939f6eb19115edcdd5543d47a#418832f042adcd6939f6eb19115edcdd5543d47a"
 dependencies = [
  "actix-web 4.0.0-beta.14",
  "chrono",
  "mime",
  "once_cell",
- "paperclip-macros 0.5.1 (git+https://github.com/sfisol/paperclip?rev=418832f042adcd6939f6eb19115edcdd5543d47a)",
+ "paperclip-macros",
  "parking_lot",
  "pin-project 1.0.8",
  "regex",
@@ -2158,23 +2103,6 @@ dependencies = [
 name = "paperclip-macros"
 version = "0.5.1"
 source = "git+https://github.com/sfisol/paperclip?rev=3432112a21a6a2bf45086f2ec2669906efa03efc#3432112a21a6a2bf45086f2ec2669906efa03efc"
-dependencies = [
- "heck",
- "http",
- "lazy_static",
- "mime",
- "proc-macro-error",
- "proc-macro2",
- "quote",
- "strum 0.22.0",
- "strum_macros 0.22.0",
- "syn",
-]
-
-[[package]]
-name = "paperclip-macros"
-version = "0.5.1"
-source = "git+https://github.com/sfisol/paperclip?rev=418832f042adcd6939f6eb19115edcdd5543d47a#418832f042adcd6939f6eb19115edcdd5543d47a"
 dependencies = [
  "heck",
  "http",
