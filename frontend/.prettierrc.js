@@ -4,7 +4,7 @@ module.exports = {
   tabWidth: 2,
   singleQuote: true,
   trailingComma: 'es5',
-  jsxBracketSameLine: false,
+  bracketSameLine: false,
   semi: true,
   parser: 'babel',
 };
