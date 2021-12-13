@@ -9,16 +9,12 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 export default {
   name: 'hook0-card-content-line',
-  components: {},
   data() {
     return {};
   },
-  methods: {},
-  mounted() {},
-  computed: {},
 };
 </script>
 

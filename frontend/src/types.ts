@@ -46,8 +46,15 @@ export interface paths {
   "/api/v1/events/{event_id}": {
     get: operations["events.get"];
   };
+  "/api/v1/instance": {
+    /** Get an object that shows how this instance is configured. */
+    get: operations["instance.get"];
+  };
   "/api/v1/organizations": {
     get: operations["organizations.list"];
+  };
+  "/api/v1/register": {
+    post: operations["register"];
   };
   "/api/v1/request_attempts": {
     get: operations["requestAttempts.read"];
@@ -93,19 +100,18 @@ export interface definitions {
     event_id: string;
     event_type_name: string;
     ip: string;
-    labels: { [key: string]: any };
-    metadata?: { [key: string]: any };
+    labels: unknown;
+    metadata?: unknown;
     occurred_at: string;
     payload_content_type_name: string;
     received_at: string;
   };
   EventPost: {
     application_id: string;
-    application_secret: string;
     event_id: string;
     event_type: string;
-    labels: { [key: string]: any };
-    metadata?: { [key: string]: any };
+    labels: unknown;
+    metadata?: unknown;
     occurred_at: string;
     payload: string;
     payload_content_type: string;
@@ -127,8 +133,8 @@ export interface definitions {
     event_id: string;
     event_type_name: string;
     ip: string;
-    labels: { [key: string]: any };
-    metadata?: { [key: string]: any };
+    labels: unknown;
+    metadata?: unknown;
     occurred_at: string;
     payload: string;
     payload_content_type_name: string;
@@ -138,6 +144,13 @@ export interface definitions {
     application_id: string;
     event_id: string;
     received_at: string;
+  };
+  InstanceConfig: {
+    auto_db_migration: boolean;
+    disable_registration: boolean;
+    keycloak_client_id: string;
+    keycloak_realm: string;
+    keycloak_url: string;
   };
   Organization: {
     name: string;
@@ -149,6 +162,17 @@ export interface definitions {
     id: string;
     status: number;
     title: string;
+  };
+  Registration: {
+    organization_id: string;
+    temporary_password: string;
+    user_id: string;
+  };
+  RegistrationPost: {
+    email: string;
+    first_name: string;
+    last_name: string;
+    organization_name: string;
   };
   RequestAttempt: {
     created_at: string;
@@ -181,7 +205,7 @@ export interface definitions {
     is_enabled: boolean;
     label_key: string;
     label_value: string;
-    metadata: { [key: string]: any };
+    metadata: { [key: string]: unknown };
     secret: string;
     subscription_id: string;
     target: string;
@@ -193,7 +217,7 @@ export interface definitions {
     is_enabled: boolean;
     label_key: string;
     label_value: string;
-    metadata: { [key: string]: any };
+    metadata: { [key: string]: unknown };
     target: string;
   };
 }
@@ -602,11 +626,53 @@ export interface operations {
       500: unknown;
     };
   };
+  /** Get an object that shows how this instance is configured. */
+  "instance.get": {
+    responses: {
+      /** OK */
+      200: {
+        schema: definitions["InstanceConfig"];
+      };
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+  };
   "organizations.list": {
     responses: {
       /** OK */
       200: {
         schema: definitions["Organization"][];
+      };
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+  };
+  register: {
+    parameters: {
+      body: {
+        body: definitions["RegistrationPost"];
+      };
+    };
+    responses: {
+      /** Created */
+      201: {
+        schema: definitions["Registration"];
       };
       /** Bad Request */
       400: unknown;
@@ -771,3 +837,5 @@ export interface operations {
     };
   };
 }
+
+export interface external {}

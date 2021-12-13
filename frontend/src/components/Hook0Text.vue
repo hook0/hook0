@@ -4,16 +4,12 @@
   </span>
 </template>
 
-<script>
+<script lang="ts">
 export default {
   name: 'hook0-text',
-  components: {},
   data() {
     return {};
   },
-  methods: {},
-  mounted() {},
-  computed: {},
 };
 </script>
 

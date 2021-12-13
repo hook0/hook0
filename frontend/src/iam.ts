@@ -1,3 +1,4 @@
+import { Plugin } from 'vue';
 import Keycloak from 'keycloak-js';
 
 const keycloak = Keycloak({
@@ -7,8 +8,8 @@ const keycloak = Keycloak({
 });
 
 keycloak.onTokenExpired = () => {
-  keycloak.updateToken(3600).catch((err) => {
-    keycloak.login();
+  keycloak.updateToken(3600).catch(async (_err) => {
+    await keycloak.login();
   });
 };
 
@@ -19,6 +20,17 @@ const auth$ = keycloak.init({
   checkLoginIframe: false
 });
 
+export const KeycloakPlugin: Plugin = {
+  install: (app, _options) => {
+    app.config.globalProperties.$keycloak = keycloak;
+  }
+};
+
+declare module '@vue/runtime-core' {
+  export interface ComponentCustomProperties {
+    $keycloak: Keycloak.KeycloakInstance;
+  }
+}
 
 export default {
   getToken(): Promise<string> {

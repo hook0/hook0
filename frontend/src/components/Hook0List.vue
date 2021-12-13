@@ -4,16 +4,12 @@
   </ul>
 </template>
 
-<script>
+<script lang="ts">
 export default {
   name: 'hook0-list',
-  components: {},
   data() {
     return {};
   },
-  methods: {},
-  mounted() {},
-  computed: {},
 };
 </script>
 

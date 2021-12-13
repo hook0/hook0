@@ -7,9 +7,9 @@ import {routes} from "@/routes";
 import {Vue} from "vue-class-component";
 
 export default class Root extends Vue{
-  mounted() {
-    list().then(organizations => {
-      this.$router.push({
+  async mounted() {
+    await list().then(async organizations => {
+      await this.$router.push({
         name: routes.Home,
         query: {
           organization_id: organizations[0].organization_id

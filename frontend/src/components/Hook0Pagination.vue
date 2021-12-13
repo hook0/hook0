@@ -32,10 +32,10 @@
   </div>
 </template>
 
-<script>
-import Hook0Text from '@/components/Hook0Text';
-import Hook0Icon from '@/components/Hook0Icon';
-import Hook0Button from '@/components/Hook0Button';
+<script lang="ts">
+import Hook0Text from '@/components/Hook0Text.vue';
+import Hook0Icon from '@/components/Hook0Icon.vue';
+import Hook0Button from '@/components/Hook0Button.vue';
 
 export default {
   name: 'hook0-pagination',
@@ -65,9 +65,6 @@ export default {
       required: true,
     },
   },
-  methods: {},
-  mounted() {},
-  computed: {},
 };
 </script>
 

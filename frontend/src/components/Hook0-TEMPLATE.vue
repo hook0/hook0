@@ -19,9 +19,9 @@ export default class Hook0Template extends Vue {
     }
   }
 
-  mounted() {
+  // mounted() {
 
-  }
+  // }
 };
 </script>
 
