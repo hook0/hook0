@@ -25,7 +25,7 @@ http-api-problem = { version = "0.51.0", features = ["actix-web"] }
 ipnetwork = "0.17.0"
 lazy_static = "1.4.0"
 log = "0.4.14"
-paperclip = { git = "https://github.com/sfisol/paperclip", rev = "418832f042adcd6939f6eb19115edcdd5543d47a", features = ["actix", "chrono", "uuid"] }
+paperclip = { git = "https://github.com/sfisol/paperclip", rev = "3432112a21a6a2bf45086f2ec2669906efa03efc", features = ["actix", "chrono", "uuid"] }
 regex = "1.5.4"
 reqwest = { version = "0.11.7", default-features = false, features = ["rustls-tls", "trust-dns"] }
 sentry-integration = { path = "../sentry-integration" }
