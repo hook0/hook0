@@ -14,7 +14,7 @@ keywords = ["webhooks", "webhook", "webhook server", "events"]
 actix-files = "0.6.0-beta.10"
 actix-governor = { git = "https://github.com/AaronErhardt/actix-governor", rev = "5dec6a4d8837d1f30dfb2d209b76d0c463cac6e1" }
 actix-web = "4.0.0-beta.14"
-actix-web-middleware-keycloak-auth = { git = "https://github.com/dsferruzza/actix-web-middleware-keycloak-auth", rev = "bf6f43cf677ef42b7878e7fc48d7cfbafff4c471", features = ["paperclip_compat"] }
+actix-web-middleware-keycloak-auth = { git = "https://github.com/dsferruzza/actix-web-middleware-keycloak-auth", rev = "a19991c17579e2bef268ac5ffedb8abff863eb22", features = ["paperclip_compat"] }
 actix-cors = "0.6.0-beta.6"
 anyhow = "1.0.51"
 base64 = "0.13.0"
