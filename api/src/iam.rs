@@ -175,9 +175,9 @@ impl FromRequest for AuthProof {
         req: &actix_web::HttpRequest,
         _payload: &mut actix_web::dev::Payload,
     ) -> Self::Future {
-        let extensions = req.extensions();
+        let req_data = req.req_data();
         ready(
-            extensions
+            req_data
                 .get::<Self>()
                 .map(|auth_proof| auth_proof.to_owned())
                 .ok_or(AuthProofExtractorError),
