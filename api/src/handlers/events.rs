@@ -13,7 +13,7 @@ use std::collections::HashMap;
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::extractor_ip::Ip;
+use crate::extractor_user_ip::UserIp;
 use crate::iam::{AuthProof, Role};
 use crate::problems::Hook0Problem;
 
@@ -233,7 +233,7 @@ pub struct IngestedEvent {
 pub async fn ingest(
     state: Data<crate::State>,
     auth: AuthProof,
-    ip: Ip,
+    ip: UserIp,
     body: Json<EventPost>,
 ) -> Result<CreatedJson<IngestedEvent>, Hook0Problem> {
     if let Err(e) = body.validate() {
