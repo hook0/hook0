@@ -15,11 +15,12 @@ use reqwest::Url;
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 use std::str::FromStr;
 
-mod extractor_ip;
+mod extractor_user_ip;
 mod handlers;
 mod iam;
 mod keycloak_api;
 mod middleware_application_secret;
+mod middleware_user_ip;
 mod problems;
 mod validators;
 
@@ -108,7 +109,6 @@ pub struct State {
     keycloak_client_secret: String,
     disable_registration: bool,
     auto_db_migration: bool,
-    reverse_proxy_ips: Vec<String>,
 }
 
 #[actix_web::main]
@@ -170,7 +170,6 @@ async fn main() -> anyhow::Result<()> {
         keycloak_client_secret: config.keycloak_client_secret,
         disable_registration: config.disable_registration,
         auto_db_migration: config.auto_db_migration,
-        reverse_proxy_ips,
     };
     let keycloak_oidc_public_key = config.keycloak_oidc_public_key;
 
@@ -189,6 +188,11 @@ async fn main() -> anyhow::Result<()> {
                 ..Default::default()
             },
             ..Default::default()
+        };
+
+        // Prepare user IP extraction middleware
+        let user_ip = middleware_user_ip::UserIp {
+            reverse_proxy_ips: reverse_proxy_ips.clone(),
         };
 
         // Prepare auth middleware
@@ -222,6 +226,7 @@ async fn main() -> anyhow::Result<()> {
                     problems::Hook0Problem::JsonPayload(problems::JsonPayloadProblem::from(e));
                 actix_web::error::Error::from(problem)
             }))
+            .wrap(user_ip)
             .wrap(Logger::default())
             .wrap(cors)
             .wrap_api_with_spec(spec)
