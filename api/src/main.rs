@@ -71,6 +71,10 @@ struct Config {
     #[clap(long, env)]
     keycloak_client_id: String,
 
+    /// OIDC client ID (the public client for Hook0 frontend)
+    #[clap(long, env)]
+    keycloak_front_client_id: String,
+
     /// OIDC client secret (the confidential client for Hook0 API)
     #[clap(long, env, setting = HideEnvValues)]
     keycloak_client_secret: String,
@@ -100,6 +104,7 @@ pub struct State {
     keycloak_realm: String,
     keycloak_client_id: String,
     keycloak_client_secret: String,
+    keycloak_front_client_id: String,
     disable_registration: bool,
     auto_db_migration: bool,
 }
@@ -146,6 +151,7 @@ async fn main() -> anyhow::Result<()> {
         keycloak_realm: config.keycloak_realm,
         keycloak_client_id: config.keycloak_client_id,
         keycloak_client_secret: config.keycloak_client_secret,
+        keycloak_front_client_id: config.keycloak_front_client_id,
         disable_registration: config.disable_registration,
         auto_db_migration: config.auto_db_migration,
     };
