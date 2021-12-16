@@ -13,11 +13,11 @@ use std::str::FromStr;
 use std::task::{Context, Poll};
 
 #[derive(Debug, Clone)]
-pub struct UserIp {
+pub struct GetUserIp {
     pub reverse_proxy_ips: Vec<String>,
 }
 
-impl<S> Transform<S, ServiceRequest> for UserIp
+impl<S> Transform<S, ServiceRequest> for GetUserIp
 where
     S: Service<ServiceRequest, Response = ServiceResponse<BoxBody>, Error = Error> + 'static,
     S::Future: 'static,
@@ -25,12 +25,12 @@ where
     type Response = ServiceResponse<BoxBody>;
     type Error = Error;
     type InitError = ();
-    type Transform = UserIpMiddleware<S>;
+    type Transform = GetUserIpMiddleware<S>;
     type Future = Ready<Result<Self::Transform, Self::InitError>>;
 
     fn new_transform(&self, service: S) -> Self::Future {
-        trace!("Initialize UserIpMiddleware");
-        ok(UserIpMiddleware {
+        trace!("Initialize GetUserIpMiddleware");
+        ok(GetUserIpMiddleware {
             service: Rc::new(service),
             reverse_proxy_ips: self.reverse_proxy_ips.to_owned(),
         })
@@ -38,12 +38,12 @@ where
 }
 
 #[derive(Debug, Clone)]
-pub struct UserIpMiddleware<S> {
+pub struct GetUserIpMiddleware<S> {
     service: Rc<S>,
     reverse_proxy_ips: Vec<String>,
 }
 
-impl<S> Service<ServiceRequest> for UserIpMiddleware<S>
+impl<S> Service<ServiceRequest> for GetUserIpMiddleware<S>
 where
     S: Service<ServiceRequest, Response = ServiceResponse<BoxBody>, Error = Error> + 'static,
     S::Future: 'static,
@@ -68,7 +68,7 @@ where
                 Box::pin(self.service.call(req))
             }
             Err(err) => {
-                let e = format!("UserIpMiddleware cannot find the user IP: {}", &err);
+                let e = format!("GetUserIpMiddleware cannot find the user IP: {}", &err);
                 error!("{}", &e);
                 Box::pin(ready(Ok(
                     req.into_response(HttpResponse::InternalServerError().body(e))
@@ -79,7 +79,7 @@ where
 }
 
 #[derive(Debug, Clone, thiserror::Error, PartialEq, Eq)]
-pub enum UserIpError {
+pub enum GetUserIpError {
     #[error("cannot extract IP address from request")]
     NoIpInRequest,
     #[error("cannot separate IP address from port: {0}")]
@@ -91,11 +91,11 @@ pub enum UserIpError {
 fn extract_ip(
     req: &ServiceRequest,
     reverse_proxy_ips: &[String],
-) -> Result<IpNetwork, UserIpError> {
+) -> Result<IpNetwork, GetUserIpError> {
     let connection_info = req.connection_info();
     let peer_ip_str = req
         .peer_addr()
-        .ok_or(UserIpError::NoIpInRequest)?
+        .ok_or(GetUserIpError::NoIpInRequest)?
         .ip()
         .to_string();
 
@@ -104,18 +104,18 @@ fn extract_ip(
         // If yes, we can get user's IP from "X-Forwarded-For" or "Forwarded" headers
         connection_info
             .realip_remote_addr()
-            .ok_or(UserIpError::NoIpInRequest)?
+            .ok_or(GetUserIpError::NoIpInRequest)?
     } else {
         // If no, we take the peer's IP as the user's IP
         connection_info
             .remote_addr()
-            .ok_or(UserIpError::NoIpInRequest)?
+            .ok_or(GetUserIpError::NoIpInRequest)?
     };
 
     parse_ip(ip_port_str)
 }
 
-fn parse_ip(ip_port_str: &str) -> Result<IpNetwork, UserIpError> {
+fn parse_ip(ip_port_str: &str) -> Result<IpNetwork, GetUserIpError> {
     use nom::branch::alt;
     use nom::combinator::map_res;
     use nom::IResult;
@@ -139,7 +139,7 @@ fn parse_ip(ip_port_str: &str) -> Result<IpNetwork, UserIpError> {
     }
 
     let ip_str = parser(ip_port_str)
-        .map_err(|e| UserIpError::IpPortSeparation(e.to_string()))?
+        .map_err(|e| GetUserIpError::IpPortSeparation(e.to_string()))?
         .1;
     let ip = IpNetwork::from_str(ip_str)?;
     Ok(ip)
@@ -161,14 +161,14 @@ mod tests {
         let input = "127.0.0.1:1234:5678";
         assert!(matches!(
             parse_ip(input),
-            Err(UserIpError::IpPortSeparation(_))
+            Err(GetUserIpError::IpPortSeparation(_))
         ))
     }
 
     #[test]
     fn parse_ip_v4_invalid_ip() {
         let input = "127.0.0.1234:5678";
-        assert!(matches!(parse_ip(input), Err(UserIpError::Ip(_))))
+        assert!(matches!(parse_ip(input), Err(GetUserIpError::Ip(_))))
     }
 
     #[test]
@@ -182,13 +182,13 @@ mod tests {
         let input = "[::1]:1234:5678";
         assert!(matches!(
             parse_ip(input),
-            Err(UserIpError::IpPortSeparation(_))
+            Err(GetUserIpError::IpPortSeparation(_))
         ))
     }
 
     #[test]
     fn parse_ip_v6_invalid_ip() {
         let input = "[::lol]:5678";
-        assert!(matches!(parse_ip(input), Err(UserIpError::Ip(_))))
+        assert!(matches!(parse_ip(input), Err(GetUserIpError::Ip(_))))
     }
 }
