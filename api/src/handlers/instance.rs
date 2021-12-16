@@ -7,7 +7,7 @@ use crate::problems::Hook0Problem;
 pub struct InstanceConfig {
     keycloak_url: String,
     keycloak_realm: String,
-    keycloak_client_id: String,
+    keycloak_front_client_id: String,
     disable_registration: bool,
     auto_db_migration: bool,
 }
@@ -25,7 +25,7 @@ pub async fn get(state: Data<crate::State>) -> Result<Json<InstanceConfig>, Hook
     Ok(Json(InstanceConfig {
         keycloak_url: state.keycloak_url.to_string(),
         keycloak_realm: state.keycloak_realm.to_owned(),
-        keycloak_client_id: state.keycloak_client_id.to_owned(),
+        keycloak_front_client_id: state.keycloak_front_client_id.to_owned(),
         disable_registration: state.disable_registration,
         auto_db_migration: state.auto_db_migration,
     }))
