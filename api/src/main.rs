@@ -20,7 +20,7 @@ mod handlers;
 mod iam;
 mod keycloak_api;
 mod middleware_application_secret;
-mod middleware_user_ip;
+mod middleware_get_user_ip;
 mod problems;
 mod validators;
 
@@ -191,7 +191,7 @@ async fn main() -> anyhow::Result<()> {
         };
 
         // Prepare user IP extraction middleware
-        let user_ip = middleware_user_ip::UserIp {
+        let get_user_ip = middleware_get_user_ip::GetUserIp {
             reverse_proxy_ips: reverse_proxy_ips.clone(),
         };
 
@@ -226,7 +226,7 @@ async fn main() -> anyhow::Result<()> {
                     problems::Hook0Problem::JsonPayload(problems::JsonPayloadProblem::from(e));
                 actix_web::error::Error::from(problem)
             }))
-            .wrap(user_ip)
+            .wrap(get_user_ip)
             .wrap(Logger::default())
             .wrap(cors)
             .wrap_api_with_spec(spec)
