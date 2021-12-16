@@ -101,6 +101,10 @@ struct Config {
     /// Duration (in millisecond) after which one API call is restored in the quota (must be ≥ 1)
     #[clap(long, env, default_value = "50")]
     api_rate_limiting_replenish_period_in_ms: u64,
+
+    /// Comma-separated allowed origins for CORS
+    #[clap(long, env, setting = UseValueDelimiter)]
+    cors_allowed_origins: Vec<String>,
 }
 
 /// The app state
@@ -206,13 +210,19 @@ async fn main() -> anyhow::Result<()> {
         let pk: &'static String = Box::leak(pk);
         let pk = DecodingKey::from_rsa_pem(pk.as_bytes()).unwrap();
 
-        // Prepare cors configuration
-        let cors = Cors::default()
-            .allowed_origin("https://www.hook0.com")
-            .allowed_origin("http://localhost:8080")
-            .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
-            .allowed_header(http::header::CONTENT_TYPE)
-            .max_age(3600);
+        // Prepare CORS configuration
+        let cors = {
+            let mut c = Cors::default()
+                .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
+                .allowed_header(http::header::CONTENT_TYPE)
+                .max_age(3600);
+
+            for origin in &config.cors_allowed_origins {
+                c = c.allowed_origin(origin);
+            }
+
+            c
+        };
 
         let jwt_auth = KeycloakAuth {
             detailed_responses: false,
