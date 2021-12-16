@@ -4,8 +4,9 @@ use actix_governor::{Governor, GovernorConfigBuilder};
 use actix_web::middleware::{Condition, Logger};
 use actix_web::{http, App, HttpServer};
 use actix_web_middleware_keycloak_auth::{AlwaysPassPolicy, DecodingKey, KeycloakAuth};
-use clap::{crate_description, crate_name, crate_version, ArgSettings::HideEnvValues, Parser};
-use log::{info, trace};
+use clap::ArgSettings::{HideEnvValues, UseValueDelimiter};
+use clap::{crate_description, crate_name, crate_version, Parser};
+use log::{debug, info, trace, warn};
 use paperclip::{
     actix::{web, OpenApiExt},
     v2::models::{DefaultApiRaw, Info},
@@ -14,10 +15,12 @@ use reqwest::Url;
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 use std::str::FromStr;
 
+mod extractor_user_ip;
 mod handlers;
 mod iam;
 mod keycloak_api;
 mod middleware_application_secret;
+mod middleware_get_user_ip;
 mod problems;
 mod validators;
 
@@ -34,6 +37,10 @@ struct Config {
     /// Port on which to start the HTTP server
     #[clap(long, env, default_value = "8080")]
     port: String,
+
+    /// A comma-separated list of trusted IP addresses that are allowed to set "X-Forwarded-For" and "Forwarded" headers
+    #[clap(long, env = "CC_REVERSE_PROXY_IPS", setting = UseValueDelimiter)]
+    reverse_proxy_ips: Vec<String>,
 
     /// Optional Sentry DSN for error reporting
     #[clap(long, env)]
@@ -119,6 +126,21 @@ async fn main() -> anyhow::Result<()> {
 
     trace!("Starting {}", APP_TITLE);
 
+    // Prepare trusted reverse proxies IPs
+    let reverse_proxy_ips = config
+        .reverse_proxy_ips
+        .iter()
+        .map(|str| str.trim().to_owned())
+        .collect::<Vec<_>>();
+    if reverse_proxy_ips.is_empty() {
+        warn!("No trusted reverse proxy IPs were set; if this is a production instance this is a problem");
+    } else {
+        debug!(
+            "The following IPs will be considered as trusted reverve proxies: {}",
+            &reverse_proxy_ips.join(", ")
+        );
+    }
+
     // Prepare rate limiting configuration
     let governor_conf = GovernorConfigBuilder::default()
         .burst_size(config.api_rate_limiting_burst_size)
@@ -174,6 +196,11 @@ async fn main() -> anyhow::Result<()> {
             ..Default::default()
         };
 
+        // Prepare user IP extraction middleware
+        let get_user_ip = middleware_get_user_ip::GetUserIp {
+            reverse_proxy_ips: reverse_proxy_ips.clone(),
+        };
+
         // Prepare auth middleware
         let pk = Box::new(keycloak_oidc_public_key.clone());
         let pk: &'static String = Box::leak(pk);
@@ -205,6 +232,7 @@ async fn main() -> anyhow::Result<()> {
                     problems::Hook0Problem::JsonPayload(problems::JsonPayloadProblem::from(e));
                 actix_web::error::Error::from(problem)
             }))
+            .wrap(get_user_ip)
             .wrap(Logger::default())
             .wrap(cors)
             .wrap_api_with_spec(spec)
