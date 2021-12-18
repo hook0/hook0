@@ -71,7 +71,7 @@ pub async fn create(
 }
 
 #[api_v2_operation(
-    summary = "Get an application by its id",
+    summary = "Get an application by its ID",
     description = "An application emit events that are consumed by customers through webhooks",
     operation_id = "applications.get",
     consumes = "application/json",
