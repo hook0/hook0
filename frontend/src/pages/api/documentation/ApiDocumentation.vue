@@ -63,9 +63,15 @@ export default class ApiDocumentation extends Vue {
       // if set to true, it triggers infinite redirect loop with keycloak
       deepLinking: false,
 
-      tagsSorter: (tag) => {
-        const order = ['Applications Management', 'Events Management', 'Subscriptions Management', 'Identity and Access Management'];
-        return order.indexOf(tag);
+      tagsSorter: (tag1, tag2) => {
+        const order = [
+          'Hook0',
+          'Organizations Management',
+          'Applications Management',
+          'Events Management',
+          'Subscriptions Management',
+        ];
+        return order.indexOf(tag1) - order.indexOf(tag2);
       },
 
       operationsSorter: "alpha",

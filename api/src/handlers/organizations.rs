@@ -24,7 +24,7 @@ pub struct Organization {
     operation_id = "organizations.list",
     consumes = "application/json",
     produces = "application/json",
-    tags("Identity and Access Management")
+    tags("Organizations Management")
 )]
 pub async fn list(
     state: Data<crate::State>,
