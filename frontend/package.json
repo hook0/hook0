@@ -38,7 +38,7 @@
     "axios": "^0.24.0",
     "bluebird": "^3.7.2",
     "core-js": "^3.6.5",
-    "keycloak-js": "^15.0.2",
+    "keycloak-js": "^16.0.0",
     "swagger-ui": "^3.48.0",
     "uuidv4": "^6.2.7",
     "vue": "^3.0.0",
