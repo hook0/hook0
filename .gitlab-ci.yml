@@ -21,6 +21,8 @@ rust.check:
       - output-worker/**/*
       - sentry-integration/**/*
       - Cargo.*
+  variables:
+    SQLX_OFFLINE: "true"
   services:
     - postgres:$PG_VERSION
   before_script:
@@ -35,23 +37,16 @@ rust.check:
     - cargo clippy --all-targets --all-features -- -D warnings
     - cargo test
     - popd
-    # Init DB schema
-    - cargo install sqlx-cli --no-default-features --features postgres --locked
-    - pushd api
-    - echo "DATABASE_URL=\"postgresql://$POSTGRES_USER@postgres/$POSTGRES_DB\"" > .env
-    - sqlx migrate run
-    - popd
     # API
     - pushd api
-    - echo "DATABASE_URL=\"postgresql://$POSTGRES_USER@postgres/$POSTGRES_DB\"" > .env
-    - cargo clippy --all-targets --all-features -- -D warnings -A clippy::field-reassign-with-default # paperclip macros trigger clippy...
+    - cargo clippy --all-targets --all-features -- -D warnings
     - cargo test
     - popd
     # Output Worker
     - pushd output-worker
-    - echo "DATABASE_URL=\"postgresql://$POSTGRES_USER@postgres/$POSTGRES_DB\"" > .env
     - cargo clippy --all-targets --all-features -- -D warnings
     - cargo test
+    - popd
 
 include:
   - local: 'frontend/.gitlab-ci.yml'
