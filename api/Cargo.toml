@@ -11,31 +11,29 @@ keywords = ["webhooks", "webhook", "webhook server", "events"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-actix-cors = "0.6.0-beta.7"
-actix-files = "0.6.0-beta.10"
+actix-cors = "0.6.0-beta.8"
+actix-files = "0.6.0-beta.13"
 actix-governor = { git = "https://github.com/AaronErhardt/actix-governor", rev = "5dec6a4d8837d1f30dfb2d209b76d0c463cac6e1" }
-actix-web = "4.0.0-beta.15"
-actix-web-middleware-keycloak-auth = { git = "https://github.com/dsferruzza/actix-web-middleware-keycloak-auth", rev = "16f224f5198922893c5c1602d54cb8b172f97106", features = ["paperclip_compat"] }
-anyhow = "1.0.51"
+actix-web = "4.0.0-beta.19"
+actix-web-middleware-keycloak-auth = { git = "https://github.com/dsferruzza/actix-web-middleware-keycloak-auth", rev = "be40c52e66c8aba2b2a5a70d0dbb251089222011", features = ["paperclip_compat"] }
+anyhow = "1.0.52"
 base64 = "0.13.0"
 chrono = { version = "0.4.19", features = ["serde"] }
-clap = { version = "3.0.0-rc.7", features = ["derive", "env", "cargo", "wrap_help"] }
+clap = { version = "3.0.2", features = ["derive", "env", "cargo", "wrap_help"] }
 futures-util = "0.3.17"
 http-api-problem = { version = "0.51.0", features = ["actix-web"] }
 ipnetwork = "0.17.0"
 lazy_static = "1.4.0"
 log = "0.4.14"
-nom = "7.1.0"
-nom-regex = "0.2.0"
-paperclip = { git = "https://github.com/sfisol/paperclip", rev = "3432112a21a6a2bf45086f2ec2669906efa03efc", features = ["actix", "chrono", "uuid"] }
+paperclip = { git = "https://github.com/sfisol/paperclip", rev = "b6ffea6913d63f31eb5c273f653638f8dbd295ad", features = ["actix", "chrono", "uuid"] }
 rand = { version = "0.8.4", features = ["log"] }
 regex = "1.5.4"
-reqwest = { version = "0.11.7", default-features = false, features = ["rustls-tls", "trust-dns"] }
+reqwest = { version = "0.11.8", default-features = false, features = ["rustls-tls", "trust-dns"] }
 sentry-integration = { path = "../sentry-integration" }
 serde = "1.0.132"
 serde_json = "1.0.73"
 strum = { version = "0.23.0", features = ["derive"] }
-sqlx = { version = "0.5.9", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "offline", "migrate"] } # runtime-tokio-rustls because https://github.com/launchbadge/sqlx/issues/894#issuecomment-747821912
+sqlx = { version = "0.5.10", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "offline", "migrate"] } # runtime-tokio-rustls because https://github.com/launchbadge/sqlx/issues/894#issuecomment-747821912
 thiserror = "1.0.30"
 url = "2.2.2"
 uuid = { version = "0.8.2", features = ["serde"] }
