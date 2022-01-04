@@ -3,9 +3,7 @@ use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
 use actix_web::{Error, HttpMessage, HttpResponse};
 use futures_util::future::{ok, ready, Ready};
 use ipnetwork::{IpNetwork, IpNetworkError};
-use lazy_static::lazy_static;
 use log::{debug, error, trace};
-use regex::Regex;
 use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
@@ -82,8 +80,6 @@ where
 pub enum GetUserIpError {
     #[error("cannot extract IP address from request")]
     NoIpInRequest,
-    #[error("cannot separate IP address from port: {0}")]
-    IpPortSeparation(String),
     #[error("cannot parse IP address: {0}")]
     Ip(#[from] IpNetworkError),
 }
@@ -100,7 +96,7 @@ fn extract_ip(
         .to_string();
 
     // Check if the IP of the direct peer is trusted
-    let ip_port_str = if reverse_proxy_ips.contains(&peer_ip_str) {
+    let ip_str = if reverse_proxy_ips.contains(&peer_ip_str) {
         // If yes, we can get user's IP from "X-Forwarded-For" or "Forwarded" headers
         connection_info
             .realip_remote_addr()
@@ -108,87 +104,9 @@ fn extract_ip(
     } else {
         // If no, we take the peer's IP as the user's IP
         connection_info
-            .remote_addr()
+            .peer_addr()
             .ok_or(GetUserIpError::NoIpInRequest)?
     };
 
-    parse_ip(ip_port_str)
-}
-
-fn parse_ip(ip_port_str: &str) -> Result<IpNetwork, GetUserIpError> {
-    use nom::branch::alt;
-    use nom::combinator::map_res;
-    use nom::IResult;
-    use nom_regex::str::re_capture;
-
-    fn parser(input: &str) -> IResult<&str, &str> {
-        lazy_static! {
-            static ref RE_V4: Regex = Regex::new(r"^([^:]+):\d+$").unwrap();
-            static ref RE_V6: Regex = Regex::new(r"^\[(.+)\]:\d+$").unwrap();
-        }
-
-        let v4 = map_res(re_capture(RE_V4.to_owned()), |captures| {
-            captures.get(1).copied().ok_or_else(|| "".to_owned())
-        });
-        let v6 = map_res(re_capture(RE_V6.to_owned()), |captures| {
-            captures.get(1).copied().ok_or_else(|| "".to_owned())
-        });
-        let mut p = alt((v6, v4));
-
-        p(input)
-    }
-
-    let ip_str = parser(ip_port_str)
-        .map_err(|e| GetUserIpError::IpPortSeparation(e.to_string()))?
-        .1;
-    let ip = IpNetwork::from_str(ip_str)?;
-    Ok(ip)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
-
-    #[test]
-    fn parse_ip_v4_valid() {
-        let expected = IpNetwork::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 32).unwrap();
-        assert_eq!(parse_ip("127.0.0.1:1234"), Ok(expected))
-    }
-
-    #[test]
-    fn parse_ip_v4_invalid_separation() {
-        let input = "127.0.0.1:1234:5678";
-        assert!(matches!(
-            parse_ip(input),
-            Err(GetUserIpError::IpPortSeparation(_))
-        ))
-    }
-
-    #[test]
-    fn parse_ip_v4_invalid_ip() {
-        let input = "127.0.0.1234:5678";
-        assert!(matches!(parse_ip(input), Err(GetUserIpError::Ip(_))))
-    }
-
-    #[test]
-    fn parse_ip_v6_valid() {
-        let expected = IpNetwork::new(IpAddr::V6(Ipv6Addr::LOCALHOST), 128).unwrap();
-        assert_eq!(parse_ip("[0:0:0:0:0:0:0:1]:1234"), Ok(expected))
-    }
-
-    #[test]
-    fn parse_ip_v6_invalid_separation() {
-        let input = "[::1]:1234:5678";
-        assert!(matches!(
-            parse_ip(input),
-            Err(GetUserIpError::IpPortSeparation(_))
-        ))
-    }
-
-    #[test]
-    fn parse_ip_v6_invalid_ip() {
-        let input = "[::lol]:5678";
-        assert!(matches!(parse_ip(input), Err(GetUserIpError::Ip(_))))
-    }
+    IpNetwork::from_str(ip_str).map_err(|e| e.into())
 }
