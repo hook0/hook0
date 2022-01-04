@@ -10,18 +10,18 @@ keywords = ["webhooks", "webhook", "webhook server", "events"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.51"
+anyhow = "1.0.52"
 chrono = "0.4.19"
-clap = { version = "3.0.0-rc.7", features = ["derive", "env", "cargo", "wrap_help"] }
+clap = { version = "3.0.2", features = ["derive", "env", "cargo", "wrap_help"] }
 hex = "0.4.3"
 hmac = "0.12.0"
 itertools = "0.10.3"
 log = "0.4.14"
-reqwest = { version = "0.11.7", default-features = false, features = ["rustls-tls", "trust-dns"] }
+reqwest = { version = "0.11.8", default-features = false, features = ["rustls-tls", "trust-dns"] }
 sentry-integration = { path = "../sentry-integration" }
 serde = "1.0.132"
 serde_json = "1.0.73"
 sha2 = "0.10.0"
-sqlx = { version = "0.5.9", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono", "time", "json", "offline"] }
+sqlx = { version = "0.5.10", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono", "time", "json", "offline"] }
 tokio = { version = "1.15.0", features = ["rt-multi-thread", "macros", "time"] }
 uuid = "0.8.2"
