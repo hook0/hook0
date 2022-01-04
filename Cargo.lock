@@ -119,12 +119,14 @@ dependencies = [
 
 [[package]]
 name = "actix-governor"
-version = "0.3.0"
-source = "git+https://github.com/AaronErhardt/actix-governor?rev=5dec6a4d8837d1f30dfb2d209b76d0c463cac6e1#5dec6a4d8837d1f30dfb2d209b76d0c463cac6e1"
+version = "0.3.0-beta.1"
+source = "git+https://github.com/AaronErhardt/actix-governor?rev=df75c6dd88b1f4642ea7128f747bef52c465a28f#df75c6dd88b1f4642ea7128f747bef52c465a28f"
 dependencies = [
+ "actix-http 3.0.0-beta.18",
  "actix-web 4.0.0-beta.19",
  "futures",
  "governor",
+ "log",
 ]
 
 [[package]]
@@ -184,7 +186,7 @@ dependencies = [
  "actix-rt 2.5.1",
  "actix-service 2.0.2",
  "actix-utils 3.0.0",
- "ahash 0.7.6",
+ "ahash",
  "base64 0.13.0",
  "bitflags",
  "brotli2",
@@ -468,7 +470,7 @@ dependencies = [
  "actix-service 2.0.2",
  "actix-utils 3.0.0",
  "actix-web-codegen 0.5.0-rc.1",
- "ahash 0.7.6",
+ "ahash",
  "bytes 1.1.0",
  "cfg-if 1.0.0",
  "cookie 0.16.0",
@@ -556,12 +558,6 @@ name = "adler"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f26201604c87b1e01bd3d98f8d5d9a8fcbb815e8cedb41ffccbeb4bf593a35fe"
-
-[[package]]
-name = "ahash"
-version = "0.3.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e8fd72866655d1904d6b0997d0b07ba561047d070fbe29de039031c641b61217"
 
 [[package]]
 name = "ahash"
@@ -803,9 +799,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "3.0.2"
+version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf99067eed62f7ede7267fed6ced21f61b60667651d4e1fe637859af0cafa065"
+checksum = "17a98d95cbe8abdf3bfe1a2bd4aa7215700403b79a0eb03cbddb017a5824e186"
 dependencies = [
  "atty",
  "bitflags",
@@ -956,12 +952,13 @@ dependencies = [
 
 [[package]]
 name = "dashmap"
-version = "4.0.2"
+version = "5.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e77a43b28d0668df09411cb0bc9a8c2adc40f9a048afe863e05fd43251e8e39c"
+checksum = "b799062aaf67eb976af3bdca031ee6f846d2f0a5710ddbb0d2efee33f3cc4760"
 dependencies = [
  "cfg-if 1.0.0",
  "num_cpus",
+ "parking_lot",
 ]
 
 [[package]]
@@ -1294,9 +1291,9 @@ checksum = "78cc372d058dcf6d5ecd98510e7fbc9e5aec4d21de70f65fea8fecebcd881bd4"
 
 [[package]]
 name = "governor"
-version = "0.3.2"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06c5d2f987ee8f6dff3fa1a352058dc59b990e447e4c7846aa7d804971314f7b"
+checksum = "ac3de427a64787873c3b196285e6684cddbf0ae7d1d8d56eaafbb4120c4cb641"
 dependencies = [
  "dashmap",
  "futures",
@@ -1350,21 +1347,11 @@ dependencies = [
 
 [[package]]
 name = "hashbrown"
-version = "0.8.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e91b62f79061a0bc2e046024cb7ba44b08419ed238ecbd9adbd787434b9e8c25"
-dependencies = [
- "ahash 0.3.8",
- "autocfg",
-]
-
-[[package]]
-name = "hashbrown"
 version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ab5ef0d4909ef3724cc8cce6ccc8572c5c817592e9285f5464f8e86f8bd3726e"
 dependencies = [
- "ahash 0.7.6",
+ "ahash",
 ]
 
 [[package]]
@@ -1373,7 +1360,7 @@ version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7249a3129cbc1ffccd74857f81464a323a152173cdb134e0fd81bc803b29facf"
 dependencies = [
- "hashbrown 0.11.2",
+ "hashbrown",
 ]
 
 [[package]]
@@ -1610,7 +1597,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bc633605454125dec4b66843673f01c7df2b89479b32e0ed634e43a91cff62a5"
 dependencies = [
  "autocfg",
- "hashbrown 0.11.2",
+ "hashbrown",
 ]
 
 [[package]]
@@ -1798,6 +1785,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "mach"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b823e83b2affd8f40a9ee8c29dbc56404c1e34cd2710921f2801e2cf29527afa"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "match_cfg"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1951,9 +1947,6 @@ name = "no-std-compat"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b93853da6d84c2e3c7d730d6473e8817692dd89be387eb01b94d7f108ecb5b8c"
-dependencies = [
- "hashbrown 0.8.2",
-]
 
 [[package]]
 name = "nom"
@@ -1968,9 +1961,9 @@ dependencies = [
 
 [[package]]
 name = "nonzero_ext"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44a1290799eababa63ea60af0cbc3f03363e328e58f32fb0294798ed3e85f444"
+checksum = "38bf9645c8b145698bb0b18a4637dcacbc421ea49bef2317e4fd8065a387cf21"
 
 [[package]]
 name = "ntapi"
@@ -2287,11 +2280,17 @@ dependencies = [
 
 [[package]]
 name = "quanta"
-version = "0.4.1"
+version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d98dc777a7a39b76b1a26ae9d3f691f4c1bc0455090aa0b64dfa8cb7fc34c135"
+checksum = "20afe714292d5e879d8b12740aa223c6a88f118af41870e8b6196e39a02238a8"
 dependencies = [
+ "crossbeam-utils",
  "libc",
+ "mach",
+ "once_cell",
+ "raw-cpuid",
+ "wasi 0.10.0+wasi-snapshot-preview1",
+ "web-sys",
  "winapi 0.3.9",
 ]
 
@@ -2390,6 +2389,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d51e9f596de227fda2ea6c84607f5558e196eeaf43c986b724ba4fb8fdf497e7"
 dependencies = [
  "rand_core 0.6.3",
+]
+
+[[package]]
+name = "raw-cpuid"
+version = "10.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "929f54e29691d4e6a9cc558479de70db7aa3d98cd6fe7ab86d7507aa2886b9d2"
+dependencies = [
+ "bitflags",
 ]
 
 [[package]]
@@ -2937,7 +2945,7 @@ version = "0.5.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "518be6f6fff5ca76f985d434f9c37f3662af279642acf730388f271dff7b9016"
 dependencies = [
- "ahash 0.7.6",
+ "ahash",
  "atoi",
  "base64 0.13.0",
  "bitflags",
