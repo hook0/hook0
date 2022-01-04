@@ -1,7 +1,6 @@
 use actix_cors::Cors;
 use actix_files::{Files, NamedFile};
-use actix_governor::{Governor, GovernorConfigBuilder};
-use actix_web::middleware::{Condition, Logger};
+use actix_web::middleware::Logger;
 use actix_web::{http, App, HttpServer};
 use actix_web_middleware_keycloak_auth::{AlwaysPassPolicy, DecodingKey, KeycloakAuth};
 use clap::ArgSettings::{HideEnvValues, UseValueDelimiter};
@@ -22,6 +21,7 @@ mod keycloak_api;
 mod middleware_application_secret;
 mod middleware_get_user_ip;
 mod problems;
+mod rate_limiting;
 mod validators;
 
 const APP_TITLE: &str = "Hook0 API";
@@ -90,17 +90,45 @@ struct Config {
     #[clap(long, env)]
     disable_registration: bool,
 
-    /// Set to true to disable API rate limiting
+    /// Set to true to disable every API rate limiting
     #[clap(long, env)]
     disable_api_rate_limiting: bool,
 
-    /// Quota of API calls before rate limiting blocks incomming requests (must be ≥ 1)
-    #[clap(long, env, default_value = "40")]
-    api_rate_limiting_burst_size: u32,
+    /// Set to true to disable global API rate limiting
+    #[clap(long, env)]
+    disable_api_rate_limiting_global: bool,
 
-    /// Duration (in millisecond) after which one API call is restored in the quota (must be ≥ 1)
-    #[clap(long, env, default_value = "50")]
-    api_rate_limiting_replenish_period_in_ms: u64,
+    /// Global quota of API calls before rate limiting blocks incomming requests (must be ≥ 1)
+    #[clap(long, env, default_value = "2000")]
+    api_rate_limiting_global_burst_size: u32,
+
+    /// Duration (in millisecond) after which one global API call is restored in the quota (must be ≥ 1)
+    #[clap(long, env, default_value = "1")]
+    api_rate_limiting_global_replenish_period_in_ms: u64,
+
+    /// Set to true to disable per-IP API rate limiting
+    #[clap(long, env)]
+    disable_api_rate_limiting_ip: bool,
+
+    /// Quota of API calls per IP before rate limiting blocks incomming requests (must be ≥ 1)
+    #[clap(long, env, default_value = "200")]
+    api_rate_limiting_ip_burst_size: u32,
+
+    /// Duration (in millisecond) after which one API call per IP is restored in the quota (must be ≥ 1)
+    #[clap(long, env, default_value = "10")]
+    api_rate_limiting_ip_replenish_period_in_ms: u64,
+
+    /// Set to true to disable per-token API rate limiting
+    #[clap(long, env)]
+    disable_api_rate_limiting_token: bool,
+
+    /// Quota of API calls per token before rate limiting blocks incomming requests (must be ≥ 1)
+    #[clap(long, env, default_value = "20")]
+    api_rate_limiting_token_burst_size: u32,
+
+    /// Duration (in millisecond) after which one API call per token is restored in the quota (must be ≥ 1)
+    #[clap(long, env, default_value = "100")]
+    api_rate_limiting_token_replenish_period_in_ms: u64,
 
     /// Comma-separated allowed origins for CORS
     #[clap(long, env, setting = UseValueDelimiter)]
@@ -146,11 +174,18 @@ async fn main() -> anyhow::Result<()> {
     }
 
     // Prepare rate limiting configuration
-    let governor_conf = GovernorConfigBuilder::default()
-        .burst_size(config.api_rate_limiting_burst_size)
-        .per_millisecond(config.api_rate_limiting_replenish_period_in_ms)
-        .finish()
-        .unwrap();
+    let rate_limiters = rate_limiting::Hook0RateLimiters::new(
+        config.disable_api_rate_limiting,
+        config.disable_api_rate_limiting_global,
+        config.api_rate_limiting_global_burst_size,
+        config.api_rate_limiting_global_replenish_period_in_ms,
+        config.disable_api_rate_limiting_ip,
+        config.api_rate_limiting_ip_burst_size,
+        config.api_rate_limiting_ip_replenish_period_in_ms,
+        config.disable_api_rate_limiting_token,
+        config.api_rate_limiting_token_burst_size,
+        config.api_rate_limiting_token_replenish_period_in_ms,
+    );
 
     // Create a DB connection pool
     let pool = PgPoolOptions::new()
@@ -249,10 +284,8 @@ async fn main() -> anyhow::Result<()> {
             .with_json_spec_at("/api/v1/swagger.json")
             .service(
                 web::scope("/api/v1")
-                    .wrap(Condition::new(
-                        !config.disable_api_rate_limiting,
-                        Governor::new(&governor_conf),
-                    ))
+                    .wrap(rate_limiters.ip())
+                    .wrap(rate_limiters.global())
                     // no auth
                     .service(
                         web::scope("/instance").service(
@@ -270,6 +303,7 @@ async fn main() -> anyhow::Result<()> {
                     // with authentication
                     .service(
                         web::scope("/organizations")
+                            .wrap(rate_limiters.token())
                             .wrap(secret_auth.clone()) // Middleware order is counter intuitive: this is executed second
                             .wrap(jwt_auth.clone()) // Middleware order is counter intuitive: this is executed first
                             .service(
@@ -279,6 +313,7 @@ async fn main() -> anyhow::Result<()> {
                     )
                     .service(
                         web::scope("/applications")
+                            .wrap(rate_limiters.token())
                             .wrap(secret_auth.clone()) // Middleware order is counter intuitive: this is executed second
                             .wrap(jwt_auth.clone()) // Middleware order is counter intuitive: this is executed first
                             .service(
@@ -295,6 +330,7 @@ async fn main() -> anyhow::Result<()> {
                     )
                     .service(
                         web::scope("/event_types")
+                            .wrap(rate_limiters.token())
                             .wrap(secret_auth.clone()) // Middleware order is counter intuitive: this is executed second
                             .wrap(jwt_auth.clone()) // Middleware order is counter intuitive: this is executed first
                             .service(
@@ -310,6 +346,7 @@ async fn main() -> anyhow::Result<()> {
                     )
                     .service(
                         web::scope("/application_secrets")
+                            .wrap(rate_limiters.token())
                             .wrap(secret_auth.clone()) // Middleware order is counter intuitive: this is executed second
                             .wrap(jwt_auth.clone()) // Middleware order is counter intuitive: this is executed first
                             .service(
@@ -325,6 +362,7 @@ async fn main() -> anyhow::Result<()> {
                     )
                     .service(
                         web::scope("/events")
+                            .wrap(rate_limiters.token())
                             .wrap(secret_auth.clone()) // Middleware order is counter intuitive: this is executed second
                             .wrap(jwt_auth.clone()) // Middleware order is counter intuitive: this is executed first
                             .service(web::resource("").route(web::get().to(handlers::events::list)))
@@ -335,6 +373,7 @@ async fn main() -> anyhow::Result<()> {
                     )
                     .service(
                         web::scope("/event")
+                            .wrap(rate_limiters.token())
                             .wrap(secret_auth.clone()) // Middleware order is counter intuitive: this is executed second
                             .wrap(jwt_auth.clone()) // Middleware order is counter intuitive: this is executed first
                             .service(
@@ -343,6 +382,7 @@ async fn main() -> anyhow::Result<()> {
                     )
                     .service(
                         web::scope("/subscriptions")
+                            .wrap(rate_limiters.token())
                             .wrap(secret_auth.clone()) // Middleware order is counter intuitive: this is executed second
                             .wrap(jwt_auth.clone()) // Middleware order is counter intuitive: this is executed first
                             .service(
@@ -358,6 +398,7 @@ async fn main() -> anyhow::Result<()> {
                     )
                     .service(
                         web::scope("/request_attempts")
+                            .wrap(rate_limiters.token())
                             .wrap(secret_auth.clone()) // Middleware order is counter intuitive: this is executed second
                             .wrap(jwt_auth.clone()) // Middleware order is counter intuitive: this is executed first
                             .service(
@@ -367,6 +408,7 @@ async fn main() -> anyhow::Result<()> {
                     )
                     .service(
                         web::scope("/responses")
+                            .wrap(rate_limiters.token())
                             .wrap(secret_auth) // Middleware order is counter intuitive: this is executed second
                             .wrap(jwt_auth.clone()) // Middleware order is counter intuitive: this is executed first
                             .service(

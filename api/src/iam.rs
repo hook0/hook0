@@ -49,12 +49,13 @@ impl FromStr for Role {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
 pub struct Hook0Claims {
+    pub sub: Uuid,
     pub groups: Option<Vec<String>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum AuthProof {
     Jwt {
         claims: Hook0Claims,
@@ -231,6 +232,7 @@ mod tests {
         ];
         let auth = AuthProof::Jwt {
             claims: Hook0Claims {
+                sub: Uuid::new_v4(),
                 groups: Some(groups),
             },
         };
@@ -281,6 +283,7 @@ mod tests {
         ];
         let auth = AuthProof::Jwt {
             claims: Hook0Claims {
+                sub: Uuid::new_v4(),
                 groups: Some(groups),
             },
         };
@@ -306,7 +309,10 @@ mod tests {
     #[test]
     fn jwt_no_organization() {
         let auth = AuthProof::Jwt {
-            claims: Hook0Claims { groups: None },
+            claims: Hook0Claims {
+                sub: Uuid::new_v4(),
+                groups: None,
+            },
         };
         let expected = HashMap::new();
         let found = auth.organizations();
