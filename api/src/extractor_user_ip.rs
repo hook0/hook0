@@ -1,4 +1,4 @@
-use actix_web::{FromRequest, ResponseError};
+use actix_web::{FromRequest, HttpMessage, ResponseError};
 use futures_util::future::{ready, Ready};
 use ipnetwork::IpNetwork;
 use paperclip::actix::OperationModifier;
@@ -34,7 +34,7 @@ impl FromRequest for UserIp {
         _payload: &mut actix_web::dev::Payload,
     ) -> Self::Future {
         ready(
-            req.req_data()
+            req.extensions()
                 .get::<IpNetwork>()
                 .ok_or(UserIpExtractorError)
                 .map(|ip| Self(*ip)),
