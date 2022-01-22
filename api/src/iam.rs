@@ -1,4 +1,4 @@
-use actix_web::{FromRequest, ResponseError};
+use actix_web::{FromRequest, HttpMessage, ResponseError};
 use futures_util::future::{ready, Ready};
 use lazy_static::lazy_static;
 use paperclip::actix::OperationModifier;
@@ -176,7 +176,7 @@ impl FromRequest for AuthProof {
         req: &actix_web::HttpRequest,
         _payload: &mut actix_web::dev::Payload,
     ) -> Self::Future {
-        let req_data = req.req_data();
+        let req_data = req.extensions();
         ready(
             req_data
                 .get::<Self>()
