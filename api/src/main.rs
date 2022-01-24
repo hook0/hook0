@@ -1,6 +1,6 @@
 use actix_cors::Cors;
 use actix_files::{Files, NamedFile};
-use actix_web::middleware::Logger;
+use actix_web::middleware::{Compat, Logger};
 use actix_web::{http, App, HttpServer};
 use actix_web_middleware_keycloak_auth::{AlwaysPassPolicy, DecodingKey, KeycloakAuth};
 use clap::ArgSettings::{HideEnvValues, UseValueDelimiter};
@@ -305,7 +305,7 @@ async fn main() -> anyhow::Result<()> {
                         web::scope("/organizations")
                             .wrap(rate_limiters.token())
                             .wrap(secret_auth.clone()) // Middleware order is counter intuitive: this is executed second
-                            .wrap(jwt_auth.clone()) // Middleware order is counter intuitive: this is executed first
+                            .wrap(Compat::new(jwt_auth.clone())) // Middleware order is counter intuitive: this is executed first
                             .service(
                                 web::resource("")
                                     .route(web::get().to(handlers::organizations::list)),
@@ -315,7 +315,7 @@ async fn main() -> anyhow::Result<()> {
                         web::scope("/applications")
                             .wrap(rate_limiters.token())
                             .wrap(secret_auth.clone()) // Middleware order is counter intuitive: this is executed second
-                            .wrap(jwt_auth.clone()) // Middleware order is counter intuitive: this is executed first
+                            .wrap(Compat::new(jwt_auth.clone())) // Middleware order is counter intuitive: this is executed first
                             .service(
                                 web::resource("")
                                     .route(web::get().to(handlers::applications::list))
@@ -332,7 +332,7 @@ async fn main() -> anyhow::Result<()> {
                         web::scope("/event_types")
                             .wrap(rate_limiters.token())
                             .wrap(secret_auth.clone()) // Middleware order is counter intuitive: this is executed second
-                            .wrap(jwt_auth.clone()) // Middleware order is counter intuitive: this is executed first
+                            .wrap(Compat::new(jwt_auth.clone())) // Middleware order is counter intuitive: this is executed first
                             .service(
                                 web::resource("")
                                     .route(web::get().to(handlers::event_types::list))
@@ -348,7 +348,7 @@ async fn main() -> anyhow::Result<()> {
                         web::scope("/application_secrets")
                             .wrap(rate_limiters.token())
                             .wrap(secret_auth.clone()) // Middleware order is counter intuitive: this is executed second
-                            .wrap(jwt_auth.clone()) // Middleware order is counter intuitive: this is executed first
+                            .wrap(Compat::new(jwt_auth.clone())) // Middleware order is counter intuitive: this is executed first
                             .service(
                                 web::resource("")
                                     .route(web::get().to(handlers::application_secrets::list))
@@ -364,7 +364,7 @@ async fn main() -> anyhow::Result<()> {
                         web::scope("/events")
                             .wrap(rate_limiters.token())
                             .wrap(secret_auth.clone()) // Middleware order is counter intuitive: this is executed second
-                            .wrap(jwt_auth.clone()) // Middleware order is counter intuitive: this is executed first
+                            .wrap(Compat::new(jwt_auth.clone())) // Middleware order is counter intuitive: this is executed first
                             .service(web::resource("").route(web::get().to(handlers::events::list)))
                             .service(
                                 web::resource("/{event_id}")
@@ -375,7 +375,7 @@ async fn main() -> anyhow::Result<()> {
                         web::scope("/event")
                             .wrap(rate_limiters.token())
                             .wrap(secret_auth.clone()) // Middleware order is counter intuitive: this is executed second
-                            .wrap(jwt_auth.clone()) // Middleware order is counter intuitive: this is executed first
+                            .wrap(Compat::new(jwt_auth.clone())) // Middleware order is counter intuitive: this is executed first
                             .service(
                                 web::resource("").route(web::post().to(handlers::events::ingest)),
                             ),
@@ -384,7 +384,7 @@ async fn main() -> anyhow::Result<()> {
                         web::scope("/subscriptions")
                             .wrap(rate_limiters.token())
                             .wrap(secret_auth.clone()) // Middleware order is counter intuitive: this is executed second
-                            .wrap(jwt_auth.clone()) // Middleware order is counter intuitive: this is executed first
+                            .wrap(Compat::new(jwt_auth.clone())) // Middleware order is counter intuitive: this is executed first
                             .service(
                                 web::resource("")
                                     .route(web::get().to(handlers::subscriptions::list))
@@ -400,7 +400,7 @@ async fn main() -> anyhow::Result<()> {
                         web::scope("/request_attempts")
                             .wrap(rate_limiters.token())
                             .wrap(secret_auth.clone()) // Middleware order is counter intuitive: this is executed second
-                            .wrap(jwt_auth.clone()) // Middleware order is counter intuitive: this is executed first
+                            .wrap(Compat::new(jwt_auth.clone())) // Middleware order is counter intuitive: this is executed first
                             .service(
                                 web::resource("")
                                     .route(web::get().to(handlers::request_attempts::list)),
@@ -410,7 +410,7 @@ async fn main() -> anyhow::Result<()> {
                         web::scope("/responses")
                             .wrap(rate_limiters.token())
                             .wrap(secret_auth) // Middleware order is counter intuitive: this is executed second
-                            .wrap(jwt_auth.clone()) // Middleware order is counter intuitive: this is executed first
+                            .wrap(Compat::new(jwt_auth.clone())) // Middleware order is counter intuitive: this is executed first
                             .service(
                                 web::resource("/{response_id}")
                                     .route(web::get().to(handlers::responses::get)),
