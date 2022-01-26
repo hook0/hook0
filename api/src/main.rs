@@ -248,8 +248,11 @@ async fn main() -> anyhow::Result<()> {
         // Prepare CORS configuration
         let cors = {
             let mut c = Cors::default()
-                .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
-                .allowed_header(http::header::CONTENT_TYPE)
+                .allowed_headers([
+                    http::header::ACCEPT,
+                    http::header::AUTHORIZATION,
+                    http::header::CONTENT_TYPE,
+                ])
                 .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
                 .max_age(3600);
 
