@@ -250,6 +250,7 @@ async fn main() -> anyhow::Result<()> {
             let mut c = Cors::default()
                 .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
                 .allowed_header(http::header::CONTENT_TYPE)
+                .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
                 .max_age(3600);
 
             for origin in &config.cors_allowed_origins {
