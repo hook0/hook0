@@ -14,3 +14,4 @@ node_modules
 # ide
 .idea
 api/.clever.json
+api/swagger.json

@@ -1,0 +1,11 @@
+api.lint:
+  stage: test
+  only:
+      changes:
+        - api/**
+  image: node:14
+  script:
+    - npm install @stoplight/spectral-cli
+    - echo "@TODO - start the api and then download its swagger.json"
+    - curl -L https://app.hook0.com/api/v1/swagger.json -o swagger.json
+    - npx spectral lint --ruleset api/.spectral.yaml swagger.json
