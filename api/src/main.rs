@@ -168,7 +168,7 @@ async fn main() -> anyhow::Result<()> {
         warn!("No trusted reverse proxy IPs were set; if this is a production instance this is a problem");
     } else {
         debug!(
-            "The following IPs will be considered as trusted reverve proxies: {}",
+            "The following IPs will be considered as trusted reverse proxies: {}",
             &reverse_proxy_ips.join(", ")
         );
     }
@@ -278,8 +278,8 @@ async fn main() -> anyhow::Result<()> {
                 actix_web::error::Error::from(problem)
             }))
             .wrap(get_user_ip)
-            .wrap(Logger::default())
             .wrap(cors)
+            .wrap(Logger::default())
             .wrap_api_with_spec(spec)
             .with_json_spec_at("/api/v1/swagger.json")
             .service(
