@@ -25,6 +25,8 @@ http-api-problem = { version = "0.51.0", features = ["actix-web"] }
 ipnetwork = "0.17.0"
 lazy_static = "1.4.0"
 log = "0.4.14"
+nom = "7.1.0"
+nom-regex = "0.2.0"
 paperclip = { git = "https://github.com/sfisol/paperclip", rev = "99db92949e95287fbeb8f3ea844291f1810cccee", features = ["actix", "chrono", "uuid"] }
 rand = { version = "0.8.4", features = ["log"] }
 regex = "1.5.4"
