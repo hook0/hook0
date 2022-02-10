@@ -241,9 +241,7 @@ async fn main() -> anyhow::Result<()> {
         };
 
         // Prepare auth middleware
-        let pk = Box::new(keycloak_oidc_public_key.clone());
-        let pk: &'static String = Box::leak(pk);
-        let pk = DecodingKey::from_rsa_pem(pk.as_bytes()).unwrap();
+        let pk = DecodingKey::from_rsa_pem(keycloak_oidc_public_key.as_bytes()).unwrap();
 
         // Prepare CORS configuration
         let cors = {
@@ -265,7 +263,7 @@ async fn main() -> anyhow::Result<()> {
 
         let jwt_auth = KeycloakAuth {
             detailed_responses: false,
-            keycloak_oid_public_key: pk.clone(),
+            keycloak_oid_public_key: pk,
             required_roles: vec![],
             passthrough_policy: AlwaysPassPolicy,
         };
@@ -414,7 +412,7 @@ async fn main() -> anyhow::Result<()> {
                         web::scope("/responses")
                             .wrap(Compat::new(rate_limiters.token()))
                             .wrap(secret_auth) // Middleware order is counter intuitive: this is executed second
-                            .wrap(Compat::new(jwt_auth.clone())) // Middleware order is counter intuitive: this is executed first
+                            .wrap(Compat::new(jwt_auth)) // Middleware order is counter intuitive: this is executed first
                             .service(
                                 web::resource("/{response_id}")
                                     .route(web::get().to(handlers::responses::get)),
