@@ -9,14 +9,27 @@ use sqlx::{query_as, PgPool};
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::str::FromStr;
-use strum::EnumIter;
+use strum::{EnumIter, EnumString, EnumVariantNames};
 use uuid::Uuid;
 
 pub const GROUP_SEP: &str = "/";
 pub const ORGA_GROUP_PREFIX: &str = "orga_";
 const ROLE_GROUP_PREFIX: &str = "role_";
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, EnumIter)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    strum::Display,
+    EnumString,
+    EnumIter,
+    EnumVariantNames,
+)]
+#[strum(serialize_all = "snake_case")]
 pub enum Role {
     Viewer,
     Editor,
@@ -28,28 +41,12 @@ impl Default for Role {
     }
 }
 
-impl std::fmt::Display for Role {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Editor => f.write_str("editor"),
-            Self::Viewer => f.write_str("viewer"),
-        }
-    }
-}
-
-impl FromStr for Role {
-    type Err = ();
-
-    fn from_str(str: &str) -> Result<Self, Self::Err> {
-        match str.to_lowercase().as_str() {
-            s if s == format!("{}{}", ROLE_GROUP_PREFIX, "editor") => Ok(Self::Editor),
-            s if s == format!("{}{}", ROLE_GROUP_PREFIX, "viewer") => Ok(Self::Viewer),
-            _ => Err(()),
-        }
-    }
-}
-
 impl Role {
+    pub fn from_string_with_prefix(str: &str) -> Option<Self> {
+        str.strip_prefix(ROLE_GROUP_PREFIX)
+            .and_then(|s| Self::from_str(s).ok())
+    }
+
     pub fn string_with_prefix(&self) -> String {
         format!("{ROLE_GROUP_PREFIX}{self}")
     }
@@ -98,7 +95,7 @@ impl AuthProof {
                             let role = m
                                 .get(2)
                                 .map(|regex_match| regex_match.as_str())
-                                .and_then(|role_str| Role::from_str(role_str).ok())
+                                .and_then(Role::from_string_with_prefix)
                                 .unwrap_or_default();
                             if let Ok(org_id) = Uuid::from_str(org_id_str) {
                                 organizations.insert(org_id, role);
