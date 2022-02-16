@@ -312,8 +312,18 @@ async fn main() -> anyhow::Result<()> {
                                     .route(web::get().to(handlers::organizations::list)),
                             )
                             .service(
-                                web::resource("/{organization_id}")
-                                    .route(web::get().to(handlers::organizations::get)),
+                                web::scope("/{organization_id}")
+                                    .service(
+                                        web::resource("")
+                                            .route(web::get().to(handlers::organizations::get)),
+                                    )
+                                    .service(
+                                        web::resource("/grant")
+                                            .route(web::put().to(handlers::organizations::grant))
+                                            .route(
+                                                web::delete().to(handlers::organizations::revoke),
+                                            ),
+                                    ),
                             ),
                     )
                     .service(
