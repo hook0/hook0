@@ -583,6 +583,26 @@
       "nullable": []
     }
   },
+  "43916a73d87e1b33a968003b35340c555c52960f0597dd9dcb9afff25e0cb846": {
+    "query": "\n            SELECT name\n            FROM event.organization\n            WHERE organization__id = $1\n        ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "name",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
   "5540fa0559499aed6d7e585309a22362d97cbc8023f0d037aaecbef1f8de4202": {
     "query": "\n                        INSERT INTO webhook.subscription__event_type (subscription__id, event_type__name)\n                        VALUES ($1, $2)\n                    ",
     "describe": {
