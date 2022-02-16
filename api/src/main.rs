@@ -310,6 +310,10 @@ async fn main() -> anyhow::Result<()> {
                             .service(
                                 web::resource("")
                                     .route(web::get().to(handlers::organizations::list)),
+                            )
+                            .service(
+                                web::resource("/{organization_id}")
+                                    .route(web::get().to(handlers::organizations::get)),
                             ),
                     )
                     .service(

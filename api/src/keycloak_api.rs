@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use uuid::Uuid;
 
-use crate::iam::{Role, GROUP_SEP, ORGA_GROUP_PREFIX, ROLE_GROUP_PREFIX};
+use crate::iam::{Role, GROUP_SEP, ORGA_GROUP_PREFIX};
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Clone)]
@@ -14,6 +14,32 @@ pub struct KeycloakApi {
     api_url: Url,
     #[allow(dead_code)]
     access_token: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct GroupLookup {
+    pub id: Uuid,
+    pub name: String,
+    pub path: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Group {
+    pub id: Uuid,
+    pub name: String,
+    pub path: String,
+    pub sub_groups: Vec<Group>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GroupMember {
+    pub id: Uuid,
+    pub email: String,
+    pub first_name: String,
+    pub last_name: String,
+    pub enabled: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -161,15 +187,14 @@ impl KeycloakApi {
         let mut editor_group_id = None;
         for role in Role::iter() {
             let group = KcGroup {
-                name: &format!("{}{}", ROLE_GROUP_PREFIX, &role),
+                name: &role.string_with_prefix(),
                 path: &format!(
-                    "{}{}{}{}{}{}",
+                    "{}{}{}{}{}",
                     GROUP_SEP,
                     ORGA_GROUP_PREFIX,
                     &organization_id,
                     GROUP_SEP,
-                    ROLE_GROUP_PREFIX,
-                    &role
+                    &role.string_with_prefix(),
                 ),
                 parent: Some(&main_group_id),
             };
@@ -335,6 +360,99 @@ impl KeycloakApi {
         }
     }
 
+    pub async fn lookup_group_by_name(
+        &self,
+        group_name: &str,
+    ) -> Result<Option<GroupLookup>, Hook0Problem> {
+        let operation = format!("looking up group '{}' from Keycloak", group_name);
+        let group_url = self.mk_url(&["groups"])?;
+
+        let res = self
+            .client
+            .get(group_url.as_str())
+            .query(&[("search", group_name)])
+            .send()
+            .await
+            .map_err(|e| {
+                error!("Error while {}: {}", operation, &e);
+                Hook0Problem::InternalServerError
+            })?
+            .error_for_status()
+            .map_err(|e| {
+                error!("Error while {}: {}", operation, &e);
+                Hook0Problem::InternalServerError
+            })?
+            .json::<Vec<GroupLookup>>()
+            .await
+            .map_err(|e| {
+                error!("Error while {}: {}", operation, &e);
+                Hook0Problem::InternalServerError
+            })?;
+
+        let group = res.iter().find(|g| g.name == group_name).cloned();
+        Ok(group)
+    }
+
+    pub async fn get_group(&self, group_id: &Uuid) -> Result<Group, Hook0Problem> {
+        let operation = format!("getting group '{}' from Keycloak", group_id);
+        let group_url = self.mk_url(&["groups", group_id.to_string().as_str()])?;
+
+        let res = self
+            .client
+            .get(group_url.as_str())
+            .send()
+            .await
+            .map_err(|e| {
+                error!("Error while {}: {}", operation, &e);
+                Hook0Problem::InternalServerError
+            })?
+            .error_for_status()
+            .map_err(|e| {
+                error!("Error while {}: {}", operation, &e);
+                Hook0Problem::InternalServerError
+            })?
+            .json::<Group>()
+            .await
+            .map_err(|e| {
+                error!("Error while {}: {}", operation, &e);
+                Hook0Problem::InternalServerError
+            })?;
+
+        Ok(res)
+    }
+
+    pub async fn get_group_members(
+        &self,
+        group_id: &Uuid,
+    ) -> Result<Vec<GroupMember>, Hook0Problem> {
+        let operation = format!("getting members of group '{}' from Keycloak", group_id);
+        let group_url = self.mk_url(&["groups", group_id.to_string().as_str(), "members"])?;
+
+        let res = self
+            .client
+            .get(group_url.as_str())
+            .query(&[("briefRepresentation", "true")])
+            .send()
+            .await
+            .map_err(|e| {
+                error!("Error while {}: {}", operation, &e);
+                Hook0Problem::InternalServerError
+            })?
+            .error_for_status()
+            .map_err(|e| {
+                error!("Error while {}: {}", operation, &e);
+                Hook0Problem::InternalServerError
+            })?
+            .json::<Vec<GroupMember>>()
+            .await
+            .map_err(|e| {
+                error!("Error while {}: {}", operation, &e);
+                Hook0Problem::InternalServerError
+            })?;
+
+        Ok(res)
+    }
+
     fn extract_resource_id_from_redirection(res: &Response) -> Result<Uuid, Hook0Problem> {
         res.headers()
             .get("location")
@@ -393,7 +511,7 @@ pub fn append_url_segments(base_url: &Url, segments: &[&str]) -> Result<Url, url
     const SEP: &str = "/";
     let segments_str = segments.join(SEP);
 
-    let url = base_url.join(&format!("{}/{}", base_url.path(), segments_str))?;
+    let url = Url::parse(&format!("{base_url}/{segments_str}").replace("//", "/"))?;
 
     Ok(url)
 }

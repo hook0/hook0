@@ -14,7 +14,7 @@ use uuid::Uuid;
 
 pub const GROUP_SEP: &str = "/";
 pub const ORGA_GROUP_PREFIX: &str = "orga_";
-pub const ROLE_GROUP_PREFIX: &str = "role_";
+const ROLE_GROUP_PREFIX: &str = "role_";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, EnumIter)]
 pub enum Role {
@@ -46,6 +46,12 @@ impl FromStr for Role {
             s if s == format!("{}{}", ROLE_GROUP_PREFIX, "viewer") => Ok(Self::Viewer),
             _ => Err(()),
         }
+    }
+}
+
+impl Role {
+    pub fn string_with_prefix(&self) -> String {
+        format!("{ROLE_GROUP_PREFIX}{self}")
     }
 }
 
