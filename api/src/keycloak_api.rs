@@ -17,6 +17,18 @@ pub struct KeycloakApi {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct User {
+    pub id: Uuid,
+    pub username: String,
+    pub email: String,
+    pub first_name: String,
+    pub last_name: String,
+    pub enabled: bool,
+    pub email_verified: bool,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct GroupLookup {
     pub id: Uuid,
     pub name: String,
@@ -358,6 +370,96 @@ impl KeycloakApi {
                 Err(Hook0Problem::InternalServerError)
             }
         }
+    }
+
+    pub async fn get_user_by_email(&self, user_email: &str) -> Result<Option<User>, Hook0Problem> {
+        let operation = format!("getting user '{}' from Keycloak", user_email);
+        let user_url = self.mk_url(&["users"])?;
+
+        let res = self
+            .client
+            .get(user_url.as_str())
+            .query(&[("exact", "true"), ("email", user_email)])
+            .send()
+            .await
+            .map_err(|e| {
+                error!("Error while {}: {}", operation, &e);
+                Hook0Problem::InternalServerError
+            })?
+            .error_for_status()
+            .map_err(|e| {
+                error!("Error while {}: {}", operation, &e);
+                Hook0Problem::InternalServerError
+            })?
+            .json::<Vec<User>>()
+            .await
+            .map_err(|e| {
+                error!("Error while {}: {}", operation, &e);
+                Hook0Problem::InternalServerError
+            })?;
+
+        let user = res.iter().find(|u| u.email == user_email).cloned();
+        Ok(user)
+    }
+
+    pub async fn add_user_to_group(
+        &self,
+        user_id: &Uuid,
+        group_id: &Uuid,
+    ) -> Result<(), Hook0Problem> {
+        let operation = format!("adding user '{user_id}' to group '{group_id}' from Keycloak");
+        let user_group_url = self.mk_url(&[
+            "users",
+            user_id.to_string().as_str(),
+            "groups",
+            group_id.to_string().as_str(),
+        ])?;
+
+        self.client
+            .put(user_group_url.as_str())
+            .send()
+            .await
+            .map_err(|e| {
+                error!("Error while {}: {}", operation, &e);
+                Hook0Problem::InternalServerError
+            })?
+            .error_for_status()
+            .map_err(|e| {
+                error!("Error while {}: {}", operation, &e);
+                Hook0Problem::InternalServerError
+            })?;
+
+        Ok(())
+    }
+
+    pub async fn remove_user_from_group(
+        &self,
+        user_id: &Uuid,
+        group_id: &Uuid,
+    ) -> Result<(), Hook0Problem> {
+        let operation = format!("removing user '{user_id}' from group '{group_id}' from Keycloak");
+        let user_group_url = self.mk_url(&[
+            "users",
+            user_id.to_string().as_str(),
+            "groups",
+            group_id.to_string().as_str(),
+        ])?;
+
+        self.client
+            .delete(user_group_url.as_str())
+            .send()
+            .await
+            .map_err(|e| {
+                error!("Error while {}: {}", operation, &e);
+                Hook0Problem::InternalServerError
+            })?
+            .error_for_status()
+            .map_err(|e| {
+                error!("Error while {}: {}", operation, &e);
+                Hook0Problem::InternalServerError
+            })?;
+
+        Ok(())
     }
 
     pub async fn lookup_group_by_name(
