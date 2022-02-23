@@ -1,7 +1,6 @@
 mod work;
 
 use chrono::{DateTime, Utc};
-use clap::ArgSettings::HideEnvValues;
 use clap::{crate_name, crate_version, Parser};
 use log::{debug, info, trace};
 use reqwest::header::HeaderMap;
@@ -26,7 +25,7 @@ struct Config {
     sentry_dsn: Option<String>,
 
     /// Database URL (with credentials)
-    #[clap(long, env, setting = HideEnvValues)]
+    #[clap(long, env, hide_env_values = true)]
     database_url: String,
 
     /// Worker ID or name (if empty, will generate a random UUID)

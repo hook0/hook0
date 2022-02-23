@@ -3,7 +3,6 @@ use actix_files::{Files, NamedFile};
 use actix_web::middleware::{Compat, Logger};
 use actix_web::{http, App, HttpServer};
 use actix_web_middleware_keycloak_auth::{AlwaysPassPolicy, DecodingKey, KeycloakAuth};
-use clap::ArgSettings::{HideEnvValues, UseValueDelimiter};
 use clap::{crate_description, crate_name, crate_version, Parser};
 use log::{debug, info, trace, warn};
 use paperclip::{
@@ -39,7 +38,7 @@ struct Config {
     port: String,
 
     /// A comma-separated list of trusted IP addresses that are allowed to set "X-Forwarded-For" and "Forwarded" headers
-    #[clap(long, env = "CC_REVERSE_PROXY_IPS", setting = UseValueDelimiter)]
+    #[clap(long, env = "CC_REVERSE_PROXY_IPS", use_value_delimiter = true)]
     reverse_proxy_ips: Vec<String>,
 
     /// Optional Sentry DSN for error reporting
@@ -47,7 +46,7 @@ struct Config {
     sentry_dsn: Option<String>,
 
     /// Database URL (with credentials)
-    #[clap(long, env, setting = HideEnvValues)]
+    #[clap(long, env, hide_env_values = true)]
     database_url: String,
 
     /// Maximum number of connections to database
@@ -83,7 +82,7 @@ struct Config {
     keycloak_front_client_id: String,
 
     /// OIDC client secret (the confidential client for Hook0 API)
-    #[clap(long, env, setting = HideEnvValues)]
+    #[clap(long, env, hide_env_values = true)]
     keycloak_client_secret: String,
 
     /// Set to true to disable registration endpoint
@@ -131,7 +130,7 @@ struct Config {
     api_rate_limiting_token_replenish_period_in_ms: u64,
 
     /// Comma-separated allowed origins for CORS
-    #[clap(long, env, setting = UseValueDelimiter)]
+    #[clap(long, env, use_value_delimiter = true)]
     cors_allowed_origins: Vec<String>,
 }
 
