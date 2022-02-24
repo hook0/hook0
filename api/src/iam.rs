@@ -2,9 +2,9 @@ use actix_web::{FromRequest, HttpMessage, ResponseError};
 use futures_util::future::{ready, Ready};
 use lazy_static::lazy_static;
 use paperclip::actix::OperationModifier;
-use paperclip::v2::schema::Apiv2Schema;
+use paperclip::v2::schema::{Apiv2Schema, TypedData};
 use regex::{escape, Regex};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::{query_as, PgPool};
 use std::collections::HashMap;
 use std::fmt::Display;
@@ -38,6 +38,25 @@ pub enum Role {
 impl Default for Role {
     fn default() -> Self {
         Self::Viewer
+    }
+}
+
+impl TypedData for Role {
+    fn data_type() -> paperclip::v2::models::DataType {
+        paperclip::v2::models::DataType::String
+    }
+
+    fn format() -> Option<paperclip::v2::models::DataTypeFormat> {
+        None
+    }
+}
+
+impl Serialize for Role {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(self.to_string().as_str())
     }
 }
 
