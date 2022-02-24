@@ -35,7 +35,7 @@ pub struct OrganizationUser {
     pub email: String,
     pub first_name: String,
     pub last_name: String,
-    pub role: String,
+    pub role: Role,
 }
 
 #[api_v2_operation(
@@ -184,7 +184,7 @@ pub async fn get(
                         email: u.email,
                         first_name: u.first_name,
                         last_name: u.last_name,
-                        role: u.role.to_string(),
+                        role: u.role,
                     }
                 }
             }
