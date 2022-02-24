@@ -1144,19 +1144,6 @@
     },
     "query": "\n                INSERT INTO event.application (organization__id, name) VALUES ($1, $2)\n                RETURNING application__id AS application_id, organization__id AS organization_id, name\n            "
   },
-  "c86793d802d41da8affdc118d960017efb9d80bf58357e066b31322d872d34f3": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Text"
-        ]
-      }
-    },
-    "query": "\n            INSERT INTO event.organization (organization__id, name)\n            VALUES ($1, $2)\n        "
-  },
   "ced571dc5144ee7ddcb20ef555dd86c2957d296ff36be2ae13c008b0472556e5": {
     "describe": {
       "columns": [],
@@ -1169,6 +1156,20 @@
       }
     },
     "query": "\n            INSERT INTO event.verb (application__id, verb__name)\n            VALUES ($1, $2)\n            ON CONFLICT DO NOTHING\n        "
+  },
+  "dcb522f9b1406d407af57843bb37f1bb3cea974e158138b696e1ec3fc2445055": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n            INSERT INTO event.organization (organization__id, name, created_by)\n            VALUES ($1, $2, $3)\n        "
   },
   "e381dee2ce7ea6b771536e80b5e239f360f76e7172dc3a368da140a73cdec9be": {
     "describe": {
