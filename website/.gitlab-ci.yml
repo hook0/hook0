@@ -19,7 +19,7 @@ website.build:
       paths:
         - website/dist
 
-website.release:
+website.release: &website.release.manual
   stage: release
   image: node:$NODE_VERSION
   needs:
