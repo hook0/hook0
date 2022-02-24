@@ -34,9 +34,9 @@ website.build:
   environment:
       name: production-website
       url: https://www.hook0.com
-  rules:
-      - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   only:
+    refs:
+      - master
     changes:
       - website/**
   except:
