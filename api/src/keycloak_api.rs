@@ -258,7 +258,6 @@ impl KeycloakApi {
         email: &str,
         first_name: &str,
         last_name: &str,
-        editor_group_id: Option<&Uuid>,
     ) -> Result<(Uuid, String), Hook0Problem> {
         let user_url = self.mk_url(&["users"])?;
         let password = Self::gen_password();
@@ -295,31 +294,6 @@ impl KeycloakApi {
                 Hook0Problem::InternalServerError
             })?;
         let user_id = Self::extract_resource_id_from_redirection(&res)?;
-
-        if let Some(group_id) = editor_group_id {
-            trace!("Assigning group to user in Keycloak");
-
-            let user_group_url = self.mk_url(&[
-                "users",
-                user_id.to_string().as_str(),
-                "groups",
-                group_id.to_string().as_str(),
-            ])?;
-
-            self.client
-                .put(user_group_url.as_str())
-                .send()
-                .await
-                .map_err(|e| {
-                    error!("Error while {}: {}", OPERATION, &e);
-                    Hook0Problem::InternalServerError
-                })?
-                .error_for_status()
-                .map_err(|e| {
-                    error!("Error while {}: {}", OPERATION, &e);
-                    Hook0Problem::InternalServerError
-                })?;
-        }
 
         Ok((user_id, password))
     }

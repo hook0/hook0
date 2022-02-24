@@ -5,7 +5,7 @@ use paperclip::actix::{
     Apiv2Schema,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::query_as;
+use sqlx::{query, query_as, Postgres, Transaction};
 use std::collections::HashMap;
 use std::str::FromStr;
 use uuid::Uuid;
@@ -87,6 +87,97 @@ pub async fn list(
     }
 
     Ok(Json(organizations))
+}
+
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
+pub struct OrganizationnPost {
+    #[validate(non_control_character, length(min = 1, max = 50))]
+    name: String,
+}
+
+#[api_v2_operation(
+    summary = "Create an organization",
+    description = "Note that you will need to regenerate a JWT to be able to see/use the newly created organization.",
+    operation_id = "organizations.create",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Organizations Management")
+)]
+pub async fn create(
+    state: Data<crate::State>,
+    auth: AuthProof,
+    body: Json<OrganizationnPost>,
+) -> Result<Json<OrganizationInfo>, Hook0Problem> {
+    if let Some(user) = auth.user() {
+        if let Err(e) = body.validate() {
+            return Err(Hook0Problem::Validation(e));
+        }
+
+        // Let's start a transaction so DB operations can be rollback if something fails.
+        // Note: there is still a change of partial failure if something fails on the Keycloak API side.
+        // TODO: implement something to detect/garbage collect these inactive users/groups.
+        let mut tx = state.db.begin().await?;
+
+        let kc_api = KeycloakApi::new(
+            &state.keycloak_url,
+            &state.keycloak_realm,
+            &state.keycloak_client_id,
+            &state.keycloak_client_secret,
+        )
+        .await?;
+
+        let organization_id = create_organization(&mut tx, &kc_api, &body.name, &user.id).await?;
+
+        tx.commit().await?;
+        Ok(Json(OrganizationInfo {
+            organization_id,
+            name: body.name.to_owned(),
+            users: vec![OrganizationUser {
+                user_id: user.id,
+                email: user.email,
+                first_name: user.first_name.unwrap_or_else(String::new),
+                last_name: user.last_name.unwrap_or_else(String::new),
+                role: Role::Editor,
+            }],
+        }))
+    } else {
+        Err(Hook0Problem::Forbidden)
+    }
+}
+
+pub async fn create_organization(
+    tx: &mut Transaction<'_, Postgres>,
+    kc_api: &KeycloakApi,
+    name: &str,
+    user_id: &Uuid,
+) -> Result<Uuid, Hook0Problem> {
+    let organization_id = create_organization_in_db(tx, name).await?;
+    let editor_group_id = kc_api.create_organization(&organization_id).await?;
+    kc_api.add_user_to_group(user_id, &editor_group_id).await?;
+    Ok(organization_id)
+}
+
+async fn create_organization_in_db(
+    tx: &mut Transaction<'_, Postgres>,
+    name: &str,
+) -> Result<Uuid, Hook0Problem> {
+    let organization_id = Uuid::new_v4();
+    query!(
+        "
+            INSERT INTO event.organization (organization__id, name)
+            VALUES ($1, $2)
+        ",
+        &organization_id,
+        name
+    )
+    .execute(tx)
+    .await
+    .map_err(|e| {
+        error!("Error while creating organization in DB: {}", &e);
+        Hook0Problem::InternalServerError
+    })?;
+
+    Ok(organization_id)
 }
 
 #[api_v2_operation(
