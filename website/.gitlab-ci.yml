@@ -19,7 +19,7 @@ website.build:
       paths:
         - website/dist
 
-website.release: &website.release.manual
+.website-release-tmpl: &website-release-tmpl
   stage: release
   image: node:$NODE_VERSION
   needs:
@@ -42,8 +42,11 @@ website.release: &website.release.manual
   except:
     - schedules
 
+website.release:
+  <<: *website-release-tmpl
+
 website.release.manual:
-  <<: *website.release
+  <<: *website-release-tmpl
   when: manual
   only:
     - master
