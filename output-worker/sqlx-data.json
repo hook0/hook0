@@ -1,40 +1,42 @@
 {
   "db": "PostgreSQL",
   "0b0b57ad93c903d055b265474ba4c1d232287837a7f5a3eec75ee78868db677c": {
-    "query": "\n                    UPDATE webhook.request_attempt\n                    SET picked_at = statement_timestamp(), worker_id = $1, worker_version = $2\n                    WHERE request_attempt__id = $3\n                ",
     "describe": {
       "columns": [],
+      "nullable": [],
       "parameters": {
         "Left": [
           "Text",
           "Text",
           "Uuid"
         ]
-      },
-      "nullable": []
-    }
+      }
+    },
+    "query": "\n                    UPDATE webhook.request_attempt\n                    SET picked_at = statement_timestamp(), worker_id = $1, worker_version = $2\n                    WHERE request_attempt__id = $3\n                "
   },
   "1fa8888a1c285d6ddfe4e5bf3cc90d38f006aec1099d41860ff8343d6927d335": {
-    "query": "UPDATE webhook.request_attempt SET failed_at = statement_timestamp() WHERE request_attempt__id = $1",
     "describe": {
       "columns": [],
+      "nullable": [],
       "parameters": {
         "Left": [
           "Uuid"
         ]
-      },
-      "nullable": []
-    }
+      }
+    },
+    "query": "UPDATE webhook.request_attempt SET failed_at = statement_timestamp() WHERE request_attempt__id = $1"
   },
   "26143cbe26cb8833208d5695a4eaa1ed65d1864088821903036330ba0037fa0d": {
-    "query": "\n                            INSERT INTO webhook.request_attempt (event__id, subscription__id, delay_until, retry_count)\n                            VALUES ($1, $2, statement_timestamp() + $3, $4)\n                            RETURNING request_attempt__id\n                        ",
     "describe": {
       "columns": [
         {
-          "ordinal": 0,
           "name": "request_attempt__id",
+          "ordinal": 0,
           "type_info": "Uuid"
         }
+      ],
+      "nullable": [
+        false
       ],
       "parameters": {
         "Left": [
@@ -43,46 +45,46 @@
           "Interval",
           "Int2"
         ]
-      },
-      "nullable": [
-        false
-      ]
-    }
+      }
+    },
+    "query": "\n                            INSERT INTO webhook.request_attempt (event__id, subscription__id, delay_until, retry_count)\n                            VALUES ($1, $2, statement_timestamp() + $3, $4)\n                            RETURNING request_attempt__id\n                        "
   },
   "2caf5d798dd62a41fee2364a02d6299380a338b96fa9a090ec51755e3d3f627b": {
-    "query": "UPDATE webhook.request_attempt SET succeeded_at = statement_timestamp() WHERE request_attempt__id = $1",
     "describe": {
       "columns": [],
+      "nullable": [],
       "parameters": {
         "Left": [
           "Uuid"
         ]
-      },
-      "nullable": []
-    }
+      }
+    },
+    "query": "UPDATE webhook.request_attempt SET succeeded_at = statement_timestamp() WHERE request_attempt__id = $1"
   },
   "3a8414eea7c620d35cbca2553685f73a6253c01b1373433f10cfb8fbd1cb5b29": {
-    "query": "UPDATE webhook.request_attempt SET response__id = $1 WHERE request_attempt__id = $2",
     "describe": {
       "columns": [],
+      "nullable": [],
       "parameters": {
         "Left": [
           "Uuid",
           "Uuid"
         ]
-      },
-      "nullable": []
-    }
+      }
+    },
+    "query": "UPDATE webhook.request_attempt SET response__id = $1 WHERE request_attempt__id = $2"
   },
   "40f7f20c73a5e5ff360180fd3d9b3b720cbf1e398acd502e2db949e5d9320bf0": {
-    "query": "\n                    INSERT INTO webhook.response (response_error__name, http_code, headers, body, elapsed_time_ms)\n                    VALUES ($1, $2, $3, $4, $5)\n                    RETURNING response__id\n                ",
     "describe": {
       "columns": [
         {
-          "ordinal": 0,
           "name": "response__id",
+          "ordinal": 0,
           "type_info": "Uuid"
         }
+      ],
+      "nullable": [
+        false
       ],
       "parameters": {
         "Left": [
@@ -92,75 +94,69 @@
           "Text",
           "Int4"
         ]
-      },
-      "nullable": [
-        false
-      ]
-    }
+      }
+    },
+    "query": "\n                    INSERT INTO webhook.response (response_error__name, http_code, headers, body, elapsed_time_ms)\n                    VALUES ($1, $2, $3, $4, $5)\n                    RETURNING response__id\n                "
   },
   "785c57d9ff237775f2a85ec2deeb06fb92d4ea6ee7aa17b6502151381b202596": {
-    "query": "\n                SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.retry_count, t_http.method AS http_method, t_http.url AS http_url, t_http.headers AS http_headers, e.payload AS payload, e.payload_content_type__name AS payload_content_type, s.secret\n                FROM webhook.request_attempt AS ra\n                INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id\n                INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id\n                INNER JOIN event.event AS e ON e.event__id = ra.event__id\n                WHERE succeeded_at IS NULL AND failed_at IS NULL AND (delay_until IS NULL OR delay_until <= statement_timestamp())\n                ORDER BY created_at ASC\n                LIMIT 1\n                FOR UPDATE OF ra\n                SKIP LOCKED\n            ",
     "describe": {
       "columns": [
         {
-          "ordinal": 0,
           "name": "request_attempt__id",
+          "ordinal": 0,
           "type_info": "Uuid"
         },
         {
-          "ordinal": 1,
           "name": "event__id",
+          "ordinal": 1,
           "type_info": "Uuid"
         },
         {
-          "ordinal": 2,
           "name": "subscription__id",
+          "ordinal": 2,
           "type_info": "Uuid"
         },
         {
-          "ordinal": 3,
           "name": "created_at",
+          "ordinal": 3,
           "type_info": "Timestamptz"
         },
         {
-          "ordinal": 4,
           "name": "retry_count",
+          "ordinal": 4,
           "type_info": "Int2"
         },
         {
-          "ordinal": 5,
           "name": "http_method",
+          "ordinal": 5,
           "type_info": "Text"
         },
         {
-          "ordinal": 6,
           "name": "http_url",
+          "ordinal": 6,
           "type_info": "Text"
         },
         {
-          "ordinal": 7,
           "name": "http_headers",
+          "ordinal": 7,
           "type_info": "Jsonb"
         },
         {
-          "ordinal": 8,
           "name": "payload",
+          "ordinal": 8,
           "type_info": "Bytea"
         },
         {
-          "ordinal": 9,
           "name": "payload_content_type",
+          "ordinal": 9,
           "type_info": "Text"
         },
         {
-          "ordinal": 10,
           "name": "secret",
+          "ordinal": 10,
           "type_info": "Uuid"
         }
       ],
-      "parameters": {
-        "Left": []
-      },
       "nullable": [
         false,
         false,
@@ -173,7 +169,11 @@
         false,
         false,
         false
-      ]
-    }
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "\n                SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.retry_count, t_http.method AS http_method, t_http.url AS http_url, t_http.headers AS http_headers, e.payload AS payload, e.payload_content_type__name AS payload_content_type, s.secret\n                FROM webhook.request_attempt AS ra\n                INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id\n                INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id\n                INNER JOIN event.event AS e ON e.event__id = ra.event__id\n                WHERE succeeded_at IS NULL AND failed_at IS NULL AND (delay_until IS NULL OR delay_until <= statement_timestamp())\n                ORDER BY created_at ASC\n                LIMIT 1\n                FOR UPDATE OF ra\n                SKIP LOCKED\n            "
   }
 }
