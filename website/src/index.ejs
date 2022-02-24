@@ -38,14 +38,60 @@
                                 platform. Connecting your SaaS with others is just one API call away.
                             </p>
                             <div class="mt-10 sm:mt-12">
-                                <form method="post"
-                                      class="sm:max-w-xl sm:mx-auto lg:mx-0"
-                                      action="https://0b5ac64c.sibforms.com/serve/MUIEAKEiRuCqfPVGQFhFj8mjCNMXzc0jf5aQKAWcdRM5z2DBuJk3-wCRA6tJuJRafQ8GrZjXl7wulvsuZDAplcvswUbKwvNdie70wBvCKefhe3dMvjJX6OFKgMA7FxHWuBctmwE-iCefihN9yf3Y8RykXAlUDj-OqrFFrgYcxJWVKVf1I86zQQAr7hha15WTRx_F-qcXp2cWN3lK">
+                                <!-- success form -->
+                                <div class="relative hidden bg-white flex flex-col rounded-xl shadow-xl p-5 js-signup-form">
+                                    <dt>
+                                        <svg class="absolute h-6 w-6 text-green-500" fill="none" stroke="currentColor"
+                                             aria-hidden="true" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                  d="m5 13 4 4L19 7"></path>
+                                        </svg>
+                                        <p class="font-medium leading-6 ml-9 text-gray-900 text-lg">Email</p>
+                                    </dt>
+                                    <dd class="ml-9 mt-2 bg-green-50 p-2 rounded-md text-base font-mono text-gray-500"
+                                        data-success="email">
+                                        email
+                                    </dd>
+                                    <dt class="mt-4">
+                                        <svg class="absolute h-6 w-6 text-green-500" fill="none" stroke="currentColor"
+                                             aria-hidden="true" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                  d="m5 13 4 4L19 7"></path>
+                                        </svg>
+                                        <p class="font-medium leading-6 ml-9 text-gray-900 text-lg">Temporary
+                                            password</p>
+                                    </dt>
+                                    <dd class="ml-9 mt-2 bg-green-50 p-2 rounded-md text-base font-mono text-gray-500"
+                                        data-success="password">
+                                        password
+                                    </dd>
+                                    <dt class="mt-4">
+                                        <svg class="absolute h-6 w-6 text-yellow-500" xmlns="http://www.w3.org/2000/svg"
+                                             fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        <p class="font-medium leading-6 ml-9 text-gray-900 text-lg">Login and
+                                            change
+                                            your password</p>
+                                    </dt>
+                                    <dd class="ml-9 mt-2 text-base text-gray-500" id="success_form_password">
+                                        <a href="<%= locals.meta.login %>"
+                                           class="inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md text-white bg-gray-600 hover:bg-gray-700">
+                                            Log in
+                                        </a>
+                                    </dd>
+                                </div>
+
+                                <!-- default form -->
+                                <form method="_blank"
+                                      class="sm:max-w-xl sm:mx-auto lg:mx-0 js-signup-form">
 
                                     <div class="sm:flex">
                                         <div class="min-w-0 flex-1">
                                             <label for="EMAIL" class="sr-only">Email address</label>
-                                            <input id="EMAIL" name="EMAIL" type="email" placeholder="Enter your email"
+                                            <input id="EMAIL" name="EMAIL" tabIndex="9" type="email"
+                                                   placeholder="Enter your email"
                                                    class="block w-full px-4 py-3 rounded-md border-0 text-base text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-300 focus:ring-offset-gray-900">
                                         </div>
                                         <div class="mt-3 sm:mt-0 sm:ml-3">
@@ -53,8 +99,10 @@
                                             <input type="hidden" name="html_type" value="simple">
 
                                             <button type="submit"
+                                                    id="login_submit"
+                                                    tabIndex="10"
                                                     class="block w-full py-3 px-4 rounded-md shadow bg-green-500 text-white font-medium hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-300 focus:ring-offset-gray-900">
-                                                Let me know when it's ready
+                                                Sign up
                                             </button>
                                         </div>
                                     </div>
@@ -63,6 +111,7 @@
                                             <label>
                                                 <input type="checkbox"
                                                        class="input_replaced focus:ring-green-500 h-4 w-4 text-green-600 border-gray-300 align-middle"
+                                                       tabindex="9"
                                                        value="1" id="OPT_IN"
                                                        name="OPT_IN" required="">
                                                 <span class="mt-3 text-sm text-gray-300 sm:mt-4 align-middle">I accept Hook0 <a
@@ -73,6 +122,114 @@
                                     </div>
 
                                 </form>
+
+                                <!-- error_form -->
+                                <div class="rounded-md hidden bg-red-50 rounded-xl shadow-xl p-5 mt-5 js-signup-form">
+                                    <div class="flex">
+                                        <div class="flex-shrink-0">
+                                            <!-- Heroicon name: solid/x-circle -->
+                                            <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg"
+                                                 viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                                <path fill-rule="evenodd"
+                                                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                                      clip-rule="evenodd"/>
+                                            </svg>
+                                        </div>
+                                        <div class="ml-3">
+                                            <h3 class="text-sm font-medium text-red-800"
+                                                data-problem="title">title</h3>
+                                            <div class="mt-2 text-sm text-red-700 flex-1 md:flex md:justify-between">
+                                                <p data-problem="detail">details</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <script>
+                                  (function () {
+                                    const submit = document.getElementById('login_submit');
+                                    const [success_form, signup_form, error_form] = document.querySelectorAll('.js-signup-form');
+
+                                    signup_form.addEventListener('submit', (e) => {
+                                      e.preventDefault();
+
+                                      submit.disabled = true;
+
+                                      const email = document.getElementById('EMAIL').value;
+
+                                      /**
+                                       * @param {object} data
+                                       * @property {string} title
+                                       * @property {string} type
+                                       * @property {string} detail
+                                       */
+                                      function displayProblem(data) {
+                                        error_form.classList.remove('hidden');
+                                        $set('problem', data);
+                                      }
+
+                                      function displaySuccess(data) {
+                                        success_form.classList.remove('hidden');
+                                        signup_form.classList.add('hidden');
+                                        $set('success', data);
+                                      }
+
+                                      function $set(kind, data) {
+                                        Object.entries(data).forEach(([k, v]) => {
+                                          const el = document.querySelector(`[data-${kind}="${k}"]`);
+                                          if (!el) {
+                                            return;
+                                          }
+                                          el.innerText = v;
+                                        })
+                                      }
+
+                                      fetch('https://app.hook0.com/api/v1/register', {
+                                        redirect: 'error',
+                                        method: 'POST',
+                                        headers: {
+                                          'Content-type': 'application/json'
+                                        },
+                                        body: JSON.stringify({
+                                          "email": email,
+                                          "first_name": " ",
+                                          "last_name": " ",
+                                          "organization_name": email.replace('@', '-').replace(/[^a-z]/, '')
+                                        }),
+                                        mode: 'cors',
+                                        cache: 'default'
+                                      }).then((r) => r.json().then(data => ([r, data])))
+                                        .then(([response, data]) => {
+                                          if ([400, 409].includes(response.status) && response.headers.get('content-type') === 'application/problem+json') {
+                                            displayProblem(data);
+                                            return;
+                                          } else if (response.status !== 201) {
+                                            // fallback on global catch
+                                            throw new Error('Unknown error: ' + JSON.stringify(data));
+                                          }
+
+                                          error_form.classList.add('hidden');
+
+                                          displaySuccess({
+                                            email: email,
+                                            password: data.temporary_password
+                                          })
+                                        })
+                                        .catch(err => {
+                                          displayProblem({
+                                            title: 'Error',
+                                            detail: err.message,
+                                            type: 'unknown'
+                                          });
+                                        })
+                                        .finally(() => {
+                                          submit.disabled = false;
+                                        });
+
+                                    });
+
+                                  })();
+                                </script>
 
                             </div>
                         </div>
@@ -91,7 +248,7 @@
                      aria-labelledby="contact-heading">
                 <h2 class="sr-only" id="contact-heading">Setup and forget</h2>
                 <div class="gap-y-20 grid grid-cols-1 lg:gap-x-8 lg:gap-y-0 lg:grid-cols-4">
-                    <div class="bg-white flex flex-col rounded-2xl shadow-xl">
+                    <div class="bg-white flex flex-col rounded-xl shadow-xl">
                         <div class="primary-feature">
                             <div class="primary-feature-icon">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
@@ -104,7 +261,7 @@
                             <p class="mt-4 text-base text-gray-500">Create a Hook0 account and declare which event types
                                 your application can send.</p></div>
                     </div>
-                    <div class="bg-white flex flex-col rounded-2xl shadow-xl">
+                    <div class="bg-white flex flex-col rounded-xl shadow-xl">
                         <div class="primary-feature">
                             <div class="primary-feature-icon">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
@@ -119,7 +276,7 @@
                                 Events must have a type name, a scope (one or several user IDs, none or broadcast) and a
                                 JSON payload.</p></div>
                     </div>
-                    <div class="bg-white flex flex-col rounded-2xl shadow-xl">
+                    <div class="bg-white flex flex-col rounded-xl shadow-xl">
                         <div class="primary-feature">
                             <div class="primary-feature-icon">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
@@ -133,7 +290,7 @@
                                 register webhooks. Use Hook0's HTTP API to store and retrieve subscriptions.</p></div>
                     </div>
 
-                    <div class="bg-white flex flex-col rounded-2xl shadow-xl">
+                    <div class="bg-white flex flex-col rounded-xl shadow-xl">
                         <div class="primary-feature">
                             <div class="primary-feature-icon">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
@@ -146,8 +303,7 @@
                             </div>
                             <h3 class="font-medium text-gray-900 text-xl">4 - Users subscribe</h3>
                             <p class="mt-4 text-base text-gray-500">Your users can now register any number of webhooks
-                                to
-                                receive your app's events. Hook0 takes care of the rest!</p></div>
+                                to receive your app's events. Hook0 takes care of the rest!</p></div>
                     </div>
                 </div>
             </section>
