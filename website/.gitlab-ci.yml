@@ -22,6 +22,9 @@ website.build:
 website.release:
   stage: release
   image: node:$NODE_VERSION
+  needs:
+    - job: website.build
+      artifacts: true
   before_script:
     - pushd website/
     # https://github.com/netlify/cli/issues/1870
@@ -31,13 +34,16 @@ website.release:
   environment:
       name: production-website
       url: https://www.hook0.com
-  needs:
-    - job: website.build
-      artifacts: true
+  rules:
+      - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   only:
     changes:
       - website/**
-    refs:
-    - master
   except:
     - schedules
+
+website.release.manual:
+  <<: *website.release
+  when: manual
+  only:
+    - master
