@@ -74,7 +74,18 @@ impl Role {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
 pub struct Hook0Claims {
     pub sub: Uuid,
+    pub email: String,
+    pub given_name: Option<String>,
+    pub family_name: Option<String>,
     pub groups: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Hook0UserInfo {
+    pub id: Uuid,
+    pub email: String,
+    pub first_name: Option<String>,
+    pub last_name: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -185,6 +196,19 @@ impl AuthProof {
             }
         }
     }
+
+    pub fn user(&self) -> Option<Hook0UserInfo> {
+        if let Self::Jwt { claims } = self {
+            Some(Hook0UserInfo {
+                id: claims.sub,
+                email: claims.email.to_owned(),
+                first_name: claims.given_name.to_owned(),
+                last_name: claims.family_name.to_owned(),
+            })
+        } else {
+            None
+        }
+    }
 }
 
 impl Apiv2Schema for AuthProof {}
@@ -255,6 +279,9 @@ mod tests {
         let auth = AuthProof::Jwt {
             claims: Hook0Claims {
                 sub: Uuid::new_v4(),
+                email: String::new(),
+                given_name: None,
+                family_name: None,
                 groups: Some(groups),
             },
         };
@@ -306,6 +333,9 @@ mod tests {
         let auth = AuthProof::Jwt {
             claims: Hook0Claims {
                 sub: Uuid::new_v4(),
+                email: String::new(),
+                given_name: None,
+                family_name: None,
                 groups: Some(groups),
             },
         };
@@ -333,6 +363,9 @@ mod tests {
         let auth = AuthProof::Jwt {
             claims: Hook0Claims {
                 sub: Uuid::new_v4(),
+                email: String::new(),
+                given_name: None,
+                family_name: None,
                 groups: None,
             },
         };
