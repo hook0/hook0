@@ -318,8 +318,8 @@ async fn main() -> anyhow::Result<()> {
                                             .route(web::get().to(handlers::organizations::get)),
                                     )
                                     .service(
-                                        web::resource("/grant")
-                                            .route(web::put().to(handlers::organizations::grant))
+                                        web::resource("/invite")
+                                            .route(web::put().to(handlers::organizations::invite))
                                             .route(
                                                 web::delete().to(handlers::organizations::revoke),
                                             ),

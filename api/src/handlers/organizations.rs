@@ -219,7 +219,7 @@ pub async fn get(
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
-pub struct Grant {
+pub struct UserInvitation {
     #[validate(non_control_character, email, length(max = 100))]
     email: String,
     role: String,
@@ -228,17 +228,17 @@ pub struct Grant {
 #[api_v2_operation(
     summary = "Invite a user to an organization",
     description = "",
-    operation_id = "organizations.grant",
+    operation_id = "organizations.invite",
     consumes = "application/json",
     produces = "application/json",
     tags("Organizations Management")
 )]
-pub async fn grant(
+pub async fn invite(
     state: Data<crate::State>,
     auth: AuthProof,
     organization_id: Path<Uuid>,
-    body: Json<Grant>,
-) -> Result<Json<Grant>, Hook0Problem> {
+    body: Json<UserInvitation>,
+) -> Result<Json<UserInvitation>, Hook0Problem> {
     if auth
         .can_access_organization(&organization_id, &Role::Editor)
         .await
