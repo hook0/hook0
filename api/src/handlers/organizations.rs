@@ -151,7 +151,7 @@ pub async fn create_organization(
     name: &str,
     user_id: &Uuid,
 ) -> Result<Uuid, Hook0Problem> {
-    let organization_id = create_organization_in_db(tx, name).await?;
+    let organization_id = create_organization_in_db(tx, name, user_id).await?;
     let editor_group_id = kc_api.create_organization(&organization_id).await?;
     kc_api.add_user_to_group(user_id, &editor_group_id).await?;
     Ok(organization_id)
@@ -160,15 +160,17 @@ pub async fn create_organization(
 async fn create_organization_in_db(
     tx: &mut Transaction<'_, Postgres>,
     name: &str,
+    user_id: &Uuid,
 ) -> Result<Uuid, Hook0Problem> {
     let organization_id = Uuid::new_v4();
     query!(
         "
-            INSERT INTO event.organization (organization__id, name)
-            VALUES ($1, $2)
+            INSERT INTO event.organization (organization__id, name, created_by)
+            VALUES ($1, $2, $3)
         ",
         &organization_id,
-        name
+        name,
+        user_id,
     )
     .execute(tx)
     .await
