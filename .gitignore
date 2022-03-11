@@ -10,6 +10,8 @@ node_modules
 
 # rust
 /target/
+/api/target/
+/output-worker/target/
 
 # ide
 .idea
