@@ -112,6 +112,7 @@
       <main class="flex-1 relative overflow-y-auto focus:outline-none" tabindex="0">
         <div class="py-6 max-w-7xl mx-auto px-4 sm:px-6 md:px-8 h-96">
           <router-view></router-view>
+          <hook0-footer></hook0-footer>
         </div>
       </main>
     </div>
@@ -123,9 +124,10 @@ import {Icon, Logo, MenuItem} from './components';
 import {Vue, Options} from 'vue-class-component';
 import OrganizationSelector from "@/pages/organizations/OrganizationSelector.vue";
 import {routes} from "@/routes";
+import Hook0Footer from "@/components/Hook0Footer.vue";
 
 @Options({
-  components: {Logo, OrganizationSelector, Icon, MenuItem},
+  components: {Hook0Footer, Logo, OrganizationSelector, Icon, MenuItem},
 
   data() {
     return {
