@@ -309,7 +309,22 @@ async fn main() -> anyhow::Result<()> {
                             .wrap(Compat::new(jwt_auth.clone())) // Middleware order is counter intuitive: this is executed first
                             .service(
                                 web::resource("")
-                                    .route(web::get().to(handlers::organizations::list)),
+                                    .route(web::get().to(handlers::organizations::list))
+                                    .route(web::post().to(handlers::organizations::create)),
+                            )
+                            .service(
+                                web::scope("/{organization_id}")
+                                    .service(
+                                        web::resource("")
+                                            .route(web::get().to(handlers::organizations::get)),
+                                    )
+                                    .service(
+                                        web::resource("/invite")
+                                            .route(web::put().to(handlers::organizations::invite))
+                                            .route(
+                                                web::delete().to(handlers::organizations::revoke),
+                                            ),
+                                    ),
                             ),
                     )
                     .service(
