@@ -10,9 +10,9 @@ keywords = ["webhooks", "webhook", "webhook server", "events"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.55"
+anyhow = "1.0.56"
 chrono = "0.4.19"
-clap = { version = "3.1.2", features = ["derive", "env", "cargo", "wrap_help"] }
+clap = { version = "3.1.6", features = ["derive", "env", "cargo", "wrap_help"] }
 hex = "0.4.3"
 hmac = "0.12.1"
 itertools = "0.10.3"
