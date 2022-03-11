@@ -1,4 +1,4 @@
-use log::{debug, error};
+use log::debug;
 use paperclip::actix::{
     api_v2_operation,
     web::{Data, Json},
@@ -6,10 +6,11 @@ use paperclip::actix::{
 };
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
-use sqlx::{query, PgPool, Postgres, Transaction};
+use sqlx::PgPool;
 use uuid::Uuid;
 use validator::Validate;
 
+use super::organizations::create_organization;
 use crate::keycloak_api::KeycloakApi;
 use crate::problems::Hook0Problem;
 
@@ -89,21 +90,24 @@ async fn do_register(
 
     // Let's start a transaction so DB operations can be rollback if something fails.
     // Note: there is still a change of partial failure if something fails on the Keycloak API side.
-    // TODO: implement something to detect/garbage collect these inactive groups.
+    // TODO: implement something to detect/garbage collect these inactive users/groups.
     let mut tx = db.begin().await?;
 
-    let organization_id =
-        create_organization_in_db(&mut tx, &registration_req.organization_name).await?;
-
-    let editor_group_id = kc_api.create_organization(&organization_id).await?;
     let (user_id, temporary_password) = kc_api
         .create_user(
             &registration_req.email,
             &registration_req.first_name,
             &registration_req.last_name,
-            Some(&editor_group_id),
         )
         .await?;
+
+    let organization_id = create_organization(
+        &mut tx,
+        &kc_api,
+        &registration_req.organization_name,
+        &user_id,
+    )
+    .await?;
 
     tx.commit().await?;
     Ok(Registration {
@@ -119,27 +123,4 @@ fn check_organization_name(organization_name: &str) -> Result<(), Hook0Problem> 
     } else {
         Ok(())
     }
-}
-
-async fn create_organization_in_db(
-    tx: &mut Transaction<'_, Postgres>,
-    name: &str,
-) -> Result<Uuid, Hook0Problem> {
-    let organization_id = Uuid::new_v4();
-    query!(
-        "
-            INSERT INTO event.organization (organization__id, name)
-            VALUES ($1, $2)
-        ",
-        &organization_id,
-        name
-    )
-    .execute(tx)
-    .await
-    .map_err(|e| {
-        error!("Error while creating organization in DB: {}", &e);
-        Hook0Problem::InternalServerError
-    })?;
-
-    Ok(organization_id)
 }
