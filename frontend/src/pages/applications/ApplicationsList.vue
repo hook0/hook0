@@ -17,18 +17,17 @@
         </hook0-card-header>
 
         <hook0-card-content v-if="applications.length > 0">
-          <hook0-card-content-line v-for="application in applications" :key="application.application_id">
-            <template #label>
-              {{ application.name }}
-            </template>
-            <template #content>
-              id: {{ application.application_id }}
-            </template>
-          </hook0-card-content-line>
+          <hook0-table
+            :columnDefs="columnDefs"
+            :rowData="applications"
+          >
+          </hook0-table>
         </hook0-card-content>
 
         <hook0-card-footer>
-          <hook0-button class="primary" type="button" @click="$router.push({name:routes.ApplicationsNew})">Create new application</hook0-button>
+          <hook0-button class="primary" type="button" @click="$router.push({name:routes.ApplicationsNew})">Create new
+            application
+          </hook0-button>
         </hook0-card-footer>
       </hook0-card>
     </template>
@@ -50,12 +49,52 @@ import Hook0CardFooter from "@/components/Hook0CardFooter.vue";
 import Hook0CardHeader from "@/components/Hook0CardHeader.vue";
 import Hook0Card from "@/components/Hook0Card.vue";
 import Hook0Input from "@/components/Hook0Input.vue";
+import Hook0Table from "@/components/Hook0Table.vue";
+import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
+import {VueElement} from "vue";
+import {ColDef} from "@ag-grid-community/core";
 
 @Options({
-  components: {Hook0CardContentLine, Hook0CardContent, Hook0CardFooter, Hook0CardHeader, Hook0Card, Hook0Input, Hook0Button},
+  components: {
+    Hook0CardContentLine,
+    Hook0CardContent,
+    Hook0CardFooter,
+    Hook0CardHeader,
+    Hook0Card,
+    Hook0Input,
+    Hook0Button,
+    Hook0Table
+  },
 })
 export default class ApplicationList extends Vue {
   private applications$ !: Promise<Array<Application>>;
+
+  private columnDefs: Array<ColDef> = [
+    {
+      field: 'name',
+      suppressMovable: true,
+      headerName: 'Name',
+      cellRenderer: "Hook0TableCellLink",
+      cellRendererParams: {
+        href: (row: Application) => {
+          return {
+            name: routes.ApplicationsDetail,
+            params: {
+              id: row.application_id
+            }
+          }
+        }
+      }
+
+    }, {
+      field: 'application_id',
+      suppressMovable: true,
+      headerName: 'Id',
+    }, {
+      suppressMovable: true,
+      headerName: 'Options',
+    }];
+
 
   data() {
     return {
@@ -70,6 +109,3 @@ export default class ApplicationList extends Vue {
 };
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
-<style scoped>
-</style>
