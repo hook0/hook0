@@ -2,7 +2,8 @@
 members = [
   "api",
   "output-worker",
-  "sentry-integration"
+  "sentry-integration",
+  "clients/rust"
 ]
 
 [profile.release]
