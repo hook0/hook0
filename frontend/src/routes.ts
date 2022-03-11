@@ -1,5 +1,5 @@
 import ApplicationsList from '@/pages/applications/ApplicationsList.vue';
-import ApplicationsNew from '@/pages/applications/ApplicationsNew.vue';
+import ApplicationsEdit from '@/pages/applications/ApplicationsEdit.vue';
 import OrganizationList from '@/pages/organizations/OrganizationsList.vue';
 import ApiDocumentation from '@/pages/api/documentation/ApiDocumentation.vue';
 import Error404 from '@/pages/Error404.vue';
@@ -8,6 +8,7 @@ export const routes = {
   Home: 'Home',
   OrganizationsDetail: 'OrganizationsDetail',
   ApplicationsList: 'ApplicationsList',
+  ApplicationsDetail: 'ApplicationsDetail',
   ApplicationsNew: 'ApplicationsNew',
   EventTypesList: 'EventTypesList',
   WebhooksList: 'WebhooksList',
@@ -31,7 +32,12 @@ export default [
   {
     name: routes.ApplicationsNew,
     path: '/applications/new',
-    component: ApplicationsNew,
+    component: ApplicationsEdit,
+  },
+  {
+    name: routes.ApplicationsDetail,
+    path: '/applications/:id',
+    component: ApplicationsEdit,
   },
   {
     name: routes.EventTypesList,

@@ -52,6 +52,15 @@ export interface paths {
   };
   "/api/v1/organizations": {
     get: operations["organizations.list"];
+    /** Note that you will need to regenerate a JWT to be able to see/use the newly created organization. */
+    post: operations["organizations.create"];
+  };
+  "/api/v1/organizations/{organization_id}": {
+    get: operations["organizations.get"];
+  };
+  "/api/v1/organizations/{organization_id}/invite": {
+    put: operations["organizations.invite"];
+    delete: operations["organizations.revoke"];
   };
   "/api/v1/register": {
     post: operations["register"];
@@ -110,8 +119,8 @@ export interface definitions {
     application_id: string;
     event_id: string;
     event_type: string;
-    labels: unknown;
-    metadata?: unknown;
+    labels: { [key: string]: unknown };
+    metadata?: { [key: string]: unknown };
     occurred_at: string;
     payload: string;
     payload_content_type: string;
@@ -148,7 +157,7 @@ export interface definitions {
   InstanceConfig: {
     auto_db_migration: boolean;
     disable_registration: boolean;
-    keycloak_client_id: string;
+    keycloak_front_client_id: string;
     keycloak_realm: string;
     keycloak_url: string;
   };
@@ -156,6 +165,20 @@ export interface definitions {
     name: string;
     organization_id: string;
     role: string;
+  };
+  OrganizationInfo: {
+    name: string;
+    organization_id: string;
+    users: {
+      email: string;
+      first_name: string;
+      last_name: string;
+      role: string;
+      user_id: string;
+    }[];
+  };
+  OrganizationnPost: {
+    name: string;
   };
   Problem: {
     detail: string;
@@ -198,6 +221,9 @@ export interface definitions {
     response_error_name?: string;
     response_id: string;
   };
+  Revoke: {
+    user_id: string;
+  };
   Subscription: {
     created_at: string;
     description?: string;
@@ -217,8 +243,12 @@ export interface definitions {
     is_enabled: boolean;
     label_key: string;
     label_value: string;
-    metadata: { [key: string]: unknown };
+    metadata?: { [key: string]: unknown };
     target: string;
+  };
+  UserInvitation: {
+    email: string;
+    role: string;
   };
 }
 
@@ -650,6 +680,105 @@ export interface operations {
       /** OK */
       200: {
         schema: definitions["Organization"][];
+      };
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+  };
+  /** Note that you will need to regenerate a JWT to be able to see/use the newly created organization. */
+  "organizations.create": {
+    parameters: {
+      body: {
+        body: definitions["OrganizationnPost"];
+      };
+    };
+    responses: {
+      /** OK */
+      200: {
+        schema: definitions["OrganizationInfo"];
+      };
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+  };
+  "organizations.get": {
+    parameters: {
+      path: {
+        organization_id: string;
+      };
+    };
+    responses: {
+      /** OK */
+      200: {
+        schema: definitions["OrganizationInfo"];
+      };
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+  };
+  "organizations.invite": {
+    parameters: {
+      path: {
+        organization_id: string;
+      };
+      body: {
+        body: definitions["UserInvitation"];
+      };
+    };
+    responses: {
+      /** OK */
+      200: {
+        schema: definitions["UserInvitation"];
+      };
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+  };
+  "organizations.revoke": {
+    parameters: {
+      path: {
+        organization_id: string;
+      };
+      body: {
+        body: definitions["Revoke"];
+      };
+    };
+    responses: {
+      /** OK */
+      200: {
+        schema: definitions["Revoke"];
       };
       /** Bad Request */
       400: unknown;

@@ -1,9 +1,12 @@
 <template>
-  <form @submit="submit">
+  <form @submit="upsert">
     <hook0-card>
       <hook0-card-header>
-        <template #header>
+        <template #header v-if="isNew">
           Create new application
+        </template>
+        <template #header v-else>
+          Edit application
         </template>
         <template #subtitle>
           An application emit events that are consumed by customers through webhooks
@@ -33,7 +36,7 @@
       </hook0-card-content>
       <hook0-card-footer>
         <hook0-button class="secondary" type="button" @click="$router.back()">Cancel</hook0-button>
-        <hook0-button class="primary" type="submit">Create</hook0-button>
+        <hook0-button class="primary" type="button" @click="upsert">{{ isNew ? 'Create' : 'Update' }}</hook0-button>
       </hook0-card-footer>
     </hook0-card>
   </form>
@@ -41,20 +44,15 @@
 </template>
 
 <script lang="ts">
-import { AxiosError } from 'axios';
-import {Application, create, list} from './ApplicationService';
+import {AxiosError} from 'axios';
+import * as ApplicationService from './ApplicationService';
+import {Application} from './ApplicationService';
 import {Options, Vue} from 'vue-class-component';
-import Hook0Button from "@/components/Hook0Button.vue";
 import {routes} from "@/routes";
-import Hook0Input from "@/components/Hook0Input.vue";
-import Hook0Card from "@/components/Hook0Card.vue";
-import Hook0CardHeader from "@/components/Hook0CardHeader.vue";
-import Hook0CardFooter from "@/components/Hook0CardFooter.vue";
-import Hook0CardContent from "@/components/Hook0CardContent.vue";
-import Hook0CardContentLine from "@/components/Hook0CardContentLine.vue";
 import Hook0Alert, {AlertStatus} from "@/components/Hook0Alert.vue";
 
 import {definitions} from '@/types';
+import {UUID} from "@/http";
 
 export type Problem = definitions['Problem'];
 
@@ -68,13 +66,16 @@ interface Alert {
 
 @Options({
   components: {
-    Hook0Alert,
-    Hook0CardContentLine, Hook0CardContent, Hook0CardFooter, Hook0CardHeader, Hook0Card, Hook0Input, Hook0Button
+    Hook0Alert
   },
 })
-export default class ApplicationNew extends Vue {
-  private applications$ !: Promise<Array<Application>>;
+export default class ApplicationEdit extends Vue {
+  private isNew = true;
+
+  application_id: UUID | undefined;
+
   routes = routes;
+
   application = {
     name: '',
   };
@@ -87,36 +88,57 @@ export default class ApplicationNew extends Vue {
   };
 
   mounted() {
-    this.applications$ = list(this.$route.query.organization_id as string);
+    this.application_id = this.$route.params.id as UUID;
+    this.isNew = !this.application_id;
+
+    if (!this.isNew) {
+      ApplicationService.get(this.application_id).then((application: Application) => {
+        this.application.name = application.name;
+      }).catch(this.displayError.bind(this));
+    }
   }
 
-  submit(e: Event) {
+  upsert(e: Event) {
     e.preventDefault();
 
     this.alert.visible = false; // reset alert
 
-    create({
+    if (this.isNew) {
+      ApplicationService.create({
+        name: this.application.name,
+        organization_id: (this.$route.query.organization_id as string)
+      }).then(async (_resp) => {
+        await this.$router.push({
+          name: routes.ApplicationsList,
+        });
+      }, this.displayError.bind(this))
+      return;
+    }
+
+    ApplicationService.update(this.application_id as UUID, {
       name: this.application.name,
-      organization_id: (this.$route.query.organization_id as string)
+      organization_id: this.$route.query.organization_id as string
     }).then(async (_resp) => {
       await this.$router.push({
         name: routes.ApplicationsList,
       });
-    }, (err: AxiosError | unknown) => {
-      console.error(err);
-      this.alert.visible = true;
+    }, this.displayError.bind(this))
+  }
 
-      if (isAxiosError(err) && err.response) {
-        const problem: Problem = err.response.data as Problem;
-        this.alert.type = problem.status >= 500 ? 'alert' : 'warning';
-        this.alert.title = problem.title;
-        this.alert.description = problem.detail;
-      } else {
-        this.alert.type = 'alert';
-        this.alert.title = "An error occurred";
-        this.alert.description = String(err);
-      }
-    })
+  displayError(err: AxiosError | unknown) {
+    console.error(err);
+    this.alert.visible = true;
+
+    if (isAxiosError(err) && err.response) {
+      const problem: Problem = err.response.data as Problem;
+      this.alert.type = problem.status >= 500 ? 'alert' : 'warning';
+      this.alert.title = problem.title;
+      this.alert.description = problem.detail;
+    } else {
+      this.alert.type = 'alert';
+      this.alert.title = "An error occurred";
+      this.alert.description = String(err);
+    }
   }
 };
 
