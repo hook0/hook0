@@ -1,6 +1,8 @@
 <template>
   <div>
-    <input v-bind="{ ...$props, ...$attrs }" class="hook0-input" @input="$emit('update:modelValue', $event.target.value)" />
+    <input v-bind="{ ...$props, ...$attrs }" class="hook0-input"
+           :value="$attrs.modelValue"
+           @input="$emit('update:modelValue', $event.target.value)"/>
     <p class="hook0-input--help-text" v-if="hasSlot('helpText')">
       <slot name="helpText"></slot>
     </p>
@@ -8,7 +10,7 @@
 </template>
 
 <script lang="ts">
-import { Vue, Options } from 'vue-class-component';
+import {Vue, Options} from 'vue-class-component';
 
 @Options({
   name: 'hook0-input',
