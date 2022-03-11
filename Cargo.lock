@@ -1137,6 +1137,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "hook0-client"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "log",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "url",
+ "uuid",
+]
+
+[[package]]
 name = "hook0-output-worker"
 version = "0.2.0"
 dependencies = [
