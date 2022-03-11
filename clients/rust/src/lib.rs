@@ -99,11 +99,11 @@ impl<'a> FullEvent<'a> {
         let event_id = event
             .event_id
             .map(|uuid| uuid.to_owned())
-            .unwrap_or_else(|| Uuid::new_v4());
+            .unwrap_or_else(Uuid::new_v4);
         let occurred_at = event
             .occurred_at
             .map(|datetime| datetime.to_owned())
-            .unwrap_or_else(|| Utc::now());
+            .unwrap_or_else(Utc::now);
 
         Self {
             application_id: application_id.to_owned(),
