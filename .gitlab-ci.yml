@@ -20,6 +20,7 @@ rust.check:
       - api/**/*
       - output-worker/**/*
       - sentry-integration/**/*
+      - clients/rust/**/*
       - Cargo.*
   variables:
     SQLX_OFFLINE: "true"
