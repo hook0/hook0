@@ -29,6 +29,7 @@ import Hook0CardHeader from "@/components/Hook0CardHeader.vue";
 import Hook0CardFooter from "@/components/Hook0CardFooter.vue";
 import Hook0CardContent from "@/components/Hook0CardContent.vue";
 import Hook0CardContentLine from "@/components/Hook0CardContentLine.vue";
+import featureFlags from "@/feature-flags";
 
 @Options({
   components: {
@@ -52,7 +53,7 @@ export default class ApiDocumentation extends Vue {
 
   mounted() {
     this.swaggerUI = SwaggerUI({
-      url: "/api/v1/swagger.json",
+      url: featureFlags.getOrElse('API_ENDPOINT', process.env.VUE_APP_API_ENDPOINT) + "/swagger.json",
       domNode: this.$refs.container,
 
       docExpansion: "list",
