@@ -135,8 +135,8 @@ pub async fn create(
             users: vec![OrganizationUser {
                 user_id: user.id,
                 email: user.email,
-                first_name: user.first_name.unwrap_or_else(String::new),
-                last_name: user.last_name.unwrap_or_else(String::new),
+                first_name: user.first_name.unwrap_or_default(),
+                last_name: user.last_name.unwrap_or_default(),
                 role: Role::Editor,
             }],
         }))

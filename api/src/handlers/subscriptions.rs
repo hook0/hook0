@@ -120,7 +120,7 @@ pub async fn list(
         .map(|s| Subscription {
             subscription_id: s.subscription__id,
             is_enabled: s.is_enabled,
-            event_types: s.event_types.clone().unwrap_or_else(Vec::new),
+            event_types: s.event_types.clone().unwrap_or_default(),
             description: s.description.to_owned(),
             secret: s.secret,
             metadata: serde_json::from_value(s.metadata.clone()).unwrap_or_else(|_| HashMap::new()),
