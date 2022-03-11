@@ -2,21 +2,34 @@ use actix_web::{FromRequest, HttpMessage, ResponseError};
 use futures_util::future::{ready, Ready};
 use lazy_static::lazy_static;
 use paperclip::actix::OperationModifier;
-use paperclip::v2::schema::Apiv2Schema;
+use paperclip::v2::schema::{Apiv2Schema, TypedData};
 use regex::{escape, Regex};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::{query_as, PgPool};
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::str::FromStr;
-use strum::EnumIter;
+use strum::{EnumIter, EnumString, EnumVariantNames};
 use uuid::Uuid;
 
 pub const GROUP_SEP: &str = "/";
 pub const ORGA_GROUP_PREFIX: &str = "orga_";
-pub const ROLE_GROUP_PREFIX: &str = "role_";
+const ROLE_GROUP_PREFIX: &str = "role_";
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, EnumIter)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    strum::Display,
+    EnumString,
+    EnumIter,
+    EnumVariantNames,
+)]
+#[strum(serialize_all = "snake_case")]
 pub enum Role {
     Viewer,
     Editor,
@@ -28,31 +41,51 @@ impl Default for Role {
     }
 }
 
-impl std::fmt::Display for Role {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Editor => f.write_str("editor"),
-            Self::Viewer => f.write_str("viewer"),
-        }
+impl TypedData for Role {
+    fn data_type() -> paperclip::v2::models::DataType {
+        paperclip::v2::models::DataType::String
+    }
+
+    fn format() -> Option<paperclip::v2::models::DataTypeFormat> {
+        None
     }
 }
 
-impl FromStr for Role {
-    type Err = ();
+impl Serialize for Role {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(self.to_string().as_str())
+    }
+}
 
-    fn from_str(str: &str) -> Result<Self, Self::Err> {
-        match str.to_lowercase().as_str() {
-            s if s == format!("{}{}", ROLE_GROUP_PREFIX, "editor") => Ok(Self::Editor),
-            s if s == format!("{}{}", ROLE_GROUP_PREFIX, "viewer") => Ok(Self::Viewer),
-            _ => Err(()),
-        }
+impl Role {
+    pub fn from_string_with_prefix(str: &str) -> Option<Self> {
+        str.strip_prefix(ROLE_GROUP_PREFIX)
+            .and_then(|s| Self::from_str(s).ok())
+    }
+
+    pub fn string_with_prefix(&self) -> String {
+        format!("{ROLE_GROUP_PREFIX}{self}")
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
 pub struct Hook0Claims {
     pub sub: Uuid,
+    pub email: String,
+    pub given_name: Option<String>,
+    pub family_name: Option<String>,
     pub groups: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Hook0UserInfo {
+    pub id: Uuid,
+    pub email: String,
+    pub first_name: Option<String>,
+    pub last_name: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -92,7 +125,7 @@ impl AuthProof {
                             let role = m
                                 .get(2)
                                 .map(|regex_match| regex_match.as_str())
-                                .and_then(|role_str| Role::from_str(role_str).ok())
+                                .and_then(Role::from_string_with_prefix)
                                 .unwrap_or_default();
                             if let Ok(org_id) = Uuid::from_str(org_id_str) {
                                 organizations.insert(org_id, role);
@@ -161,6 +194,19 @@ impl AuthProof {
                     None
                 }
             }
+        }
+    }
+
+    pub fn user(&self) -> Option<Hook0UserInfo> {
+        if let Self::Jwt { claims } = self {
+            Some(Hook0UserInfo {
+                id: claims.sub,
+                email: claims.email.to_owned(),
+                first_name: claims.given_name.to_owned(),
+                last_name: claims.family_name.to_owned(),
+            })
+        } else {
+            None
         }
     }
 }
@@ -233,6 +279,9 @@ mod tests {
         let auth = AuthProof::Jwt {
             claims: Hook0Claims {
                 sub: Uuid::new_v4(),
+                email: String::new(),
+                given_name: None,
+                family_name: None,
                 groups: Some(groups),
             },
         };
@@ -284,6 +333,9 @@ mod tests {
         let auth = AuthProof::Jwt {
             claims: Hook0Claims {
                 sub: Uuid::new_v4(),
+                email: String::new(),
+                given_name: None,
+                family_name: None,
                 groups: Some(groups),
             },
         };
@@ -311,6 +363,9 @@ mod tests {
         let auth = AuthProof::Jwt {
             claims: Hook0Claims {
                 sub: Uuid::new_v4(),
+                email: String::new(),
+                given_name: None,
+                family_name: None,
                 groups: None,
             },
         };

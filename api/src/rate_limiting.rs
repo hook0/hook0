@@ -150,7 +150,14 @@ impl KeyExtractor for TokenKeyExtractor {
     fn key_name(&self, key: &Self::Key) -> Option<String> {
         Some(match key {
             AuthProof::Jwt {
-                claims: Hook0Claims { groups: _, sub },
+                claims:
+                    Hook0Claims {
+                        sub,
+                        groups: _,
+                        email: _,
+                        given_name: _,
+                        family_name: _,
+                    },
             } => format!("jwt:{}", sub),
             AuthProof::ApplicationSecret {
                 application_id,

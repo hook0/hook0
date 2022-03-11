@@ -8,7 +8,9 @@ use sqlx::postgres::PgDatabaseError;
 use sqlx::Error;
 use std::borrow::Cow;
 use std::fmt::Display;
-use strum::EnumIter;
+use strum::{EnumIter, VariantNames};
+
+use crate::iam::Role;
 
 /**
  * How to implement a new type error for Hook0:
@@ -25,6 +27,8 @@ pub enum Hook0Problem {
     RegistrationDisabled,
 
     ApplicationNameMissing,
+
+    InvalidRole,
 
     EventAlreadyIngested,
     EventInvalidPayloadContentType,
@@ -153,6 +157,17 @@ impl From<Hook0Problem> for Problem {
                 detail: "Application name length must have more than 1 character.".into(),
                 validation: None,
                 status: StatusCode::BAD_REQUEST,
+            },
+
+            Hook0Problem::InvalidRole => {
+                let roles = format!("Valid roles are: {}.", Role::VARIANTS.join(", "));
+                Problem {
+                    id: Hook0Problem::InvalidRole,
+                    title: "Provided role does not exist",
+                    detail: roles.into(),
+                    validation: None,
+                    status: StatusCode::BAD_REQUEST,
+                }
             },
 
             Hook0Problem::EventAlreadyIngested => Problem {
