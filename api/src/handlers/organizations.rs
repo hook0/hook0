@@ -311,6 +311,48 @@ pub async fn get(
     }
 }
 
+#[api_v2_operation(
+    summary = "Edit an organization",
+    description = "",
+    operation_id = "organizations.edit",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Organizations Management")
+)]
+pub async fn edit(
+    state: Data<crate::State>,
+    auth: AuthProof,
+    organization_id: Path<Uuid>,
+    body: Json<OrganizationPost>,
+) -> Result<Json<OrganizationInfo>, Hook0Problem> {
+    if auth
+        .can_access_organization(&organization_id, &Role::Editor)
+        .await
+        .is_none()
+    {
+        return Err(Hook0Problem::Forbidden);
+    }
+
+    if let Err(e) = body.validate() {
+        return Err(Hook0Problem::Validation(e));
+    }
+
+    query!(
+        "
+            UPDATE event.organization
+            SET name = $2
+            WHERE organization__id = $1
+        ",
+        organization_id.as_ref(),
+        &body.name,
+    )
+    .execute(&state.db)
+    .await?;
+
+    let org = get(state, auth, organization_id).await?;
+    Ok(org)
+}
+
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct UserInvitation {
     #[validate(non_control_character, email, length(max = 100))]

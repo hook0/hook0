@@ -1018,6 +1018,19 @@
     },
     "query": "\n                    INSERT INTO webhook.subscription__event_type (subscription__id, event_type__name)\n                    VALUES ($1, $2)\n                "
   },
+  "8f5f75851e8cb0955f95f3b588e680def4a7212ba90b63c260eb9c7dec182f6c": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text"
+        ]
+      }
+    },
+    "query": "\n            UPDATE event.organization\n            SET name = $2\n            WHERE organization__id = $1\n        "
+  },
   "9b0b663cc66c5f27ed8783913afc126dc7861219df428fdc1f5336fa8448c5fe": {
     "describe": {
       "columns": [
