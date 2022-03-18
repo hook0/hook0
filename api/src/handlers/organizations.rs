@@ -90,7 +90,7 @@ pub async fn list(
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
-pub struct OrganizationnPost {
+pub struct OrganizationPost {
     #[validate(non_control_character, length(min = 1, max = 50))]
     name: String,
 }
@@ -106,7 +106,7 @@ pub struct OrganizationnPost {
 pub async fn create(
     state: Data<crate::State>,
     auth: AuthProof,
-    body: Json<OrganizationnPost>,
+    body: Json<OrganizationPost>,
 ) -> Result<Json<OrganizationInfo>, Hook0Problem> {
     if let Some(user) = auth.user() {
         if let Err(e) = body.validate() {
