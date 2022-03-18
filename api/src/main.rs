@@ -316,7 +316,8 @@ async fn main() -> anyhow::Result<()> {
                                 web::scope("/{organization_id}")
                                     .service(
                                         web::resource("")
-                                            .route(web::get().to(handlers::organizations::get)),
+                                            .route(web::get().to(handlers::organizations::get))
+                                            .route(web::put().to(handlers::organizations::edit)),
                                     )
                                     .service(
                                         web::resource("/invite")
