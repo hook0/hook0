@@ -7,6 +7,9 @@ use serde_json::Value;
 use url::ParseError;
 use uuid::Uuid;
 
+/// The Hook0 client
+///
+/// This struct is supposed to be initialized once and shared/reused wherever you need to send events in your app.
 #[derive(Debug, Clone)]
 pub struct Hook0Client {
     client: Client,
@@ -15,6 +18,7 @@ pub struct Hook0Client {
 }
 
 impl Hook0Client {
+    /// Initialize a client
     pub fn new(
         api_url: Url,
         application_id: Uuid,
@@ -42,7 +46,8 @@ impl Hook0Client {
             .map_err(|e| Hook0ClientError::Url(e).log_and_return())
     }
 
-    pub async fn send_event(&self, event: &Event<'_>) -> Result<(), Hook0ClientError> {
+    /// Send an event to Hook0
+    pub async fn send_event(&self, event: &Event<'_>) -> Result<Uuid, Hook0ClientError> {
         let event_ingestion_url = self.mk_url(&["event"])?;
         let full_event = FullEvent::from_event(event, &self.application_id);
 
@@ -67,7 +72,7 @@ impl Hook0Client {
                 .log_and_return()
             })?;
 
-        Ok(())
+        Ok(full_event.event_id)
     }
 }
 
