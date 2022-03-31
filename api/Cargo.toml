@@ -15,7 +15,7 @@ actix-cors = "0.6.1"
 actix-files = "0.6.0"
 actix-governor = { git = "https://github.com/AaronErhardt/actix-governor", rev = "07b1d83f037ae751bc0ba0dc105f55e503827bb2", features = ["log"] }
 actix-web = "4.0.1"
-actix-web-middleware-keycloak-auth = { git = "https://github.com/dsferruzza/actix-web-middleware-keycloak-auth", rev = "1f56f0119923ecbe3607d989d9d3dd07e674edeb", features = ["paperclip_compat"] }
+actix-web-middleware-keycloak-auth = { git = "https://github.com/dsferruzza/actix-web-middleware-keycloak-auth", rev = "e33a8142e16b02725e08aa0c7eb18d5bbc13f47a", features = ["paperclip_compat"] }
 anyhow = "1.0.56"
 base64 = "0.13.0"
 chrono = { version = "0.4.19", features = ["serde"] }
@@ -24,10 +24,10 @@ futures-util = "0.3.21"
 http-api-problem = { version = "0.51.0", features = ["actix-web"] }
 ipnetwork = "0.17.0"
 lazy_static = "1.4.0"
-log = "0.4.14"
+log = "0.4.16"
 nom = "7.1.1"
 nom-regex = "0.2.0"
-paperclip = { git = "https://github.com/sfisol/paperclip", rev = "c8d5b5528f83ff20f3f831078628124e4fc4b18f", features = ["actix4", "chrono", "uuid"] }
+paperclip = { git = "https://github.com/paperclip-rs/paperclip", rev = "3477c5d22850cf6bd440dd20267dfdae300db40e", default-features = false, features = ["actix4", "chrono", "uuid"] }
 rand = { version = "0.8.5", features = ["log"] }
 regex = "1.5.5"
 reqwest = { version = "0.11.10", default-features = false, features = ["rustls-tls", "trust-dns"] }
