@@ -1115,6 +1115,7 @@ dependencies = [
  "clap",
  "futures-util",
  "governor",
+ "hook0-client",
  "http-api-problem",
  "ipnetwork",
  "lazy_static",
@@ -1148,7 +1149,7 @@ dependencies = [
  "serde_json",
  "thiserror",
  "url",
- "uuid",
+ "uuid 1.2.1",
 ]
 
 [[package]]
