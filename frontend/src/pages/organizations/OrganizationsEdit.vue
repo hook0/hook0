@@ -1,27 +1,27 @@
 <template>
-  <form @submit="upsert">
+  <form @submit="upsert" ref="form">
     <hook0-card>
       <hook0-card-header>
         <template #header v-if="isNew">
-          Create new application
+          Create new organization
         </template>
         <template #header v-else>
-          Edit application
+          Edit organization
         </template>
         <template #subtitle>
-          An application emit events that are consumed by customers through webhooks
+          An organization holds your team members
         </template>
 
       </hook0-card-header>
       <hook0-card-content>
         <hook0-card-content-line>
           <template #label>
-            Application Name
+            Organization Name
           </template>
           <template #content>
             <hook0-input
               type="text"
-              v-model="application.name"
+              v-model="organization.name"
               placeholder="my awesome api - production"
               required
             >
@@ -35,7 +35,7 @@
         <hook0-alert :type="alert.type" :title="alert.title" :description="alert.description"></hook0-alert>
       </hook0-card-content>
       <hook0-card-footer>
-        <hook0-button class="secondary" type="button" @click="cancel()">Cancel</hook0-button>
+        <hook0-button class="secondary" type="button" @click="$router.back()">Cancel</hook0-button>
         <hook0-button class="primary" type="button" @click="upsert($event)">{{
             isNew ? 'Create' : 'Update'
           }}
@@ -48,8 +48,8 @@
 
 <script lang="ts">
 import {AxiosError} from 'axios';
-import * as ApplicationService from './ApplicationService';
-import {Application} from './ApplicationService';
+import * as OrganizationService from './OrganizationService';
+import {Organization} from './OrganizationService';
 import {Options, Vue} from 'vue-class-component';
 import {routes} from "@/routes";
 import Hook0Alert, {AlertStatus} from "@/components/Hook0Alert.vue";
@@ -72,14 +72,14 @@ interface Alert {
     Hook0Alert
   },
 })
-export default class ApplicationEdit extends Vue {
+export default class OrganizationEdit extends Vue {
   private isNew = true;
 
-  application_id: UUID | undefined;
+  organization_id: UUID | undefined;
 
   routes = routes;
 
-  application = {
+  organization = {
     name: '',
   };
 
@@ -91,20 +91,14 @@ export default class ApplicationEdit extends Vue {
   };
 
   mounted() {
-    this.application_id = this.$route.params.id as UUID;
-    this.isNew = !this.application_id;
+    this.organization_id = this.$route.params.id as UUID;
+    this.isNew = !this.organization_id;
 
     if (!this.isNew) {
-      ApplicationService.get(this.application_id).then((application: Application) => {
-        this.application.name = application.name;
+      OrganizationService.get(this.organization_id).then((organization: Organization) => {
+        this.organization.name = organization.name;
       }).catch(this.displayError.bind(this));
     }
-  }
-
-  cancel() {
-    return this.$router.push({
-      name: routes.ApplicationsList
-    })
   }
 
   upsert(e: Event) {
@@ -114,23 +108,21 @@ export default class ApplicationEdit extends Vue {
     this.alert.visible = false; // reset alert
 
     if (this.isNew) {
-      ApplicationService.create({
-        name: this.application.name,
-        organization_id: (this.$route.query.organization_id as string)
+      OrganizationService.create({
+        name: this.organization.name,
       }).then(async (_resp: any) => {
         await this.$router.push({
-          name: routes.ApplicationsList,
+          name: routes.OrganizationsList,
         });
       }, this.displayError.bind(this))
       return;
     }
 
-    ApplicationService.update(this.application_id as UUID, {
-      name: this.application.name,
-      organization_id: this.$route.query.organization_id as string
+    OrganizationService.update(this.$route.query.organization_id as string, {
+      name: this.organization.name,
     }).then(async (_resp: any) => {
       await this.$router.push({
-        name: routes.ApplicationsList,
+        name: routes.OrganizationsList,
       });
     }, this.displayError.bind(this))
   }
