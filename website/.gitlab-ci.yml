@@ -49,4 +49,7 @@ website.release.manual:
   <<: *website-release-tmpl
   when: manual
   only:
-    - master
+    refs:
+      - master
+    changes:
+      - website/**
