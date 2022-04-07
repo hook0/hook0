@@ -195,7 +195,7 @@ dependencies = [
  "encoding_rs",
  "flate2",
  "futures-core",
- "h2 0.3.12",
+ "h2 0.3.13",
  "http",
  "httparse",
  "httpdate",
@@ -518,8 +518,9 @@ dependencies = [
 
 [[package]]
 name = "actix-web-middleware-keycloak-auth"
-version = "0.4.0-beta.2"
-source = "git+https://github.com/dsferruzza/actix-web-middleware-keycloak-auth?rev=e33a8142e16b02725e08aa0c7eb18d5bbc13f47a#e33a8142e16b02725e08aa0c7eb18d5bbc13f47a"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2749560b489f9e0721b08aaf9d64b835b58af4476e0f432fdbe700e85ce02417"
 dependencies = [
  "actix-web 4.0.1",
  "chrono",
@@ -811,9 +812,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "3.1.6"
+version = "3.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8c93436c21e4698bacadf42917db28b23017027a4deccb35dbe47a7e7840123"
+checksum = "71c47df61d9e16dc010b55dba1952a57d8c215dbb533fd13cdd13369aac73b1c"
 dependencies = [
  "atty",
  "bitflags",
@@ -829,9 +830,9 @@ dependencies = [
 
 [[package]]
 name = "clap_derive"
-version = "3.1.4"
+version = "3.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da95d038ede1a964ce99f49cbe27a7fb538d1da595e4b4f70b8c8f338d17bf16"
+checksum = "a3aab4734e083b809aaf5794e14e756d1c798d2c69c7f7de7a09a2f5214993c1"
 dependencies = [
  "heck 0.4.0",
  "proc-macro-error",
@@ -1066,9 +1067,9 @@ dependencies = [
 
 [[package]]
 name = "encoding_rs"
-version = "0.8.30"
+version = "0.8.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7896dc8abb250ffdda33912550faa54c88ec8b998dec0b2c55ab224921ce11df"
+checksum = "9852635589dc9f9ea1b6fe9f05b50ef208c85c834a562f0c6abb1c475736ec2b"
 dependencies = [
  "cfg-if 1.0.0",
 ]
@@ -1340,9 +1341,9 @@ dependencies = [
 
 [[package]]
 name = "h2"
-version = "0.3.12"
+version = "0.3.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62eeb471aa3e3c9197aa4bfeabfe02982f6dc96f750486c0bb0009ac58b26d2b"
+checksum = "37a82c6d637fc9515a4694bbf1cb2457b79d81ce52b3108bdeea58b07dd34a57"
 dependencies = [
  "bytes 1.1.0",
  "fnv",
@@ -1353,7 +1354,7 @@ dependencies = [
  "indexmap",
  "slab",
  "tokio 1.17.0",
- "tokio-util 0.6.9",
+ "tokio-util 0.7.1",
  "tracing",
 ]
 
@@ -1560,7 +1561,7 @@ dependencies = [
  "futures-channel",
  "futures-core",
  "futures-util",
- "h2 0.3.12",
+ "h2 0.3.13",
  "http",
  "http-body",
  "httparse",
@@ -1743,9 +1744,9 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
-version = "0.2.121"
+version = "0.2.122"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "efaa7b300f3b5fe8eb6bf21ce3895e1751d9665086af2d64b42f19701015ff4f"
+checksum = "ec647867e2bf0772e28c8bcde4f0d19a9216916e890543b5a03ed8ef27b8f259"
 
 [[package]]
 name = "linked-hash-map"
@@ -2079,8 +2080,9 @@ dependencies = [
 
 [[package]]
 name = "paperclip"
-version = "0.6.1"
-source = "git+https://github.com/paperclip-rs/paperclip?rev=3477c5d22850cf6bd440dd20267dfdae300db40e#3477c5d22850cf6bd440dd20267dfdae300db40e"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "29edecb9b5de19fcdba789406bc39144de34c100e59151095aac1b97d2b4a25e"
 dependencies = [
  "anyhow",
  "indexmap",
@@ -2102,8 +2104,9 @@ dependencies = [
 
 [[package]]
 name = "paperclip-actix"
-version = "0.4.2"
-source = "git+https://github.com/paperclip-rs/paperclip?rev=3477c5d22850cf6bd440dd20267dfdae300db40e#3477c5d22850cf6bd440dd20267dfdae300db40e"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ca6acb344bfe7c8be8e140ad01dc2a8bc1a1b829014a29291174be64bc45f06e"
 dependencies = [
  "actix-service 2.0.2",
  "actix-web 4.0.1",
@@ -2118,8 +2121,9 @@ dependencies = [
 
 [[package]]
 name = "paperclip-core"
-version = "0.4.1"
-source = "git+https://github.com/paperclip-rs/paperclip?rev=3477c5d22850cf6bd440dd20267dfdae300db40e#3477c5d22850cf6bd440dd20267dfdae300db40e"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f6ba1b92909712a1186613a6ba6e1c48c59baba59672cff2b242e8e03e90101f"
 dependencies = [
  "actix-web 4.0.1",
  "chrono",
@@ -2140,8 +2144,9 @@ dependencies = [
 
 [[package]]
 name = "paperclip-macros"
-version = "0.5.1"
-source = "git+https://github.com/paperclip-rs/paperclip?rev=3477c5d22850cf6bd440dd20267dfdae300db40e#3477c5d22850cf6bd440dd20267dfdae300db40e"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "992e1f19f6a449c41e166a2336c86912eedc17f5167886ef09d601607d9be1f1"
 dependencies = [
  "heck 0.4.0",
  "http",
@@ -2329,9 +2334,9 @@ checksum = "dbf0c48bc1d91375ae5c3cd81e3722dff1abcf81a30960240640d223f59fe0e5"
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.36"
+version = "1.0.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7342d5883fbccae1cc37a2353b09c87c9b0f3afd73f5fb9bba687a1f733b029"
+checksum = "ec757218438d5fda206afc041538b2f6d889286160d649a86a24d37e1235afd1"
 dependencies = [
  "unicode-xid",
 ]
@@ -2505,7 +2510,7 @@ dependencies = [
  "encoding_rs",
  "futures-core",
  "futures-util",
- "h2 0.3.12",
+ "h2 0.3.13",
  "http",
  "http-body",
  "hyper",
@@ -2948,9 +2953,9 @@ dependencies = [
 
 [[package]]
 name = "slab"
-version = "0.4.5"
+version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9def91fd1e018fe007022791f865d0ccc9b3a0d5001e01aabb8b40e46000afb5"
+checksum = "eb703cfe953bccee95685111adeedb76fabe4e97549a58d16f03ea7b9367bb32"
 
 [[package]]
 name = "smallvec"
@@ -3197,9 +3202,9 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "syn"
-version = "1.0.90"
+version = "1.0.91"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "704df27628939572cd88d33f171cd6f896f4eaca85252c6e0a72d8d8287ee86f"
+checksum = "b683b2b825c8eef438b77c36a06dc262294da3d5a5813fac20da149241dcd44d"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3504,9 +3509,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-core"
-version = "0.1.23"
+version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa31669fa42c09c34d94d8165dd2012e8ff3c66aca50f3bb226b68f216f2706c"
+checksum = "90442985ee2f57c9e1b548ee72ae842f4a9a20e3f417cc38dbc5dc684d9bb4ee"
 dependencies = [
  "lazy_static",
 ]
