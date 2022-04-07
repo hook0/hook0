@@ -1,15 +1,23 @@
 import ApplicationsList from '@/pages/applications/ApplicationsList.vue';
 import ApplicationsEdit from '@/pages/applications/ApplicationsEdit.vue';
-import OrganizationList from '@/pages/organizations/OrganizationsList.vue';
+import OrganizationsList from '@/pages/organizations/OrganizationsList.vue';
+import OrganizationsEdit from '@/pages/organizations/OrganizationsEdit.vue';
 import ApiDocumentation from '@/pages/api/documentation/ApiDocumentation.vue';
 import Error404 from '@/pages/Error404.vue';
 
-export const routes = {
+export type Hook0Routes = string;
+
+export const routes: Record<Hook0Routes, string> = {
   Home: 'Home',
+
+  OrganizationsList: 'OrganizationsList',
   OrganizationsDetail: 'OrganizationsDetail',
+  OrganizationsNew: 'OrganizationsNew',
+
   ApplicationsList: 'ApplicationsList',
   ApplicationsDetail: 'ApplicationsDetail',
   ApplicationsNew: 'ApplicationsNew',
+
   EventTypesList: 'EventTypesList',
   WebhooksList: 'WebhooksList',
   LogsList: 'LogsList',
@@ -20,10 +28,21 @@ export const routes = {
 
 export default [
   {
-    name: routes.OrganizationsDetail,
+    name: routes.OrganizationsList,
     path: '/organizations',
-    component: OrganizationList,
+    component: OrganizationsList,
   },
+  {
+    name: routes.OrganizationsNew,
+    path: '/organizations/new',
+    component: OrganizationsEdit,
+  },
+  {
+    name: routes.OrganizationsDetail,
+    path: '/organizations/:id',
+    component: OrganizationsEdit,
+  },
+
   {
     name: routes.ApplicationsList,
     path: '/applications',
