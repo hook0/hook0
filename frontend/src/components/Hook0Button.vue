@@ -63,6 +63,7 @@ export default defineComponent({
       const {href} = this.$router.resolve(this.to);
       return href; // for accessibility
     }
+
   },
   methods: {
     onClick(e: MouseEvent) {
@@ -81,7 +82,7 @@ export default defineComponent({
         return;
       }
 
-      if (e.metaKey) {
+      if (e.metaKey && this._href) {
         // support for power-user that want to open links in another tab
         window.open(this._href);
         return true;

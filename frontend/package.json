@@ -25,6 +25,7 @@
     "dev": "vue-cli-service build --mode dev",
     "lint": "vue-cli-service lint",
     "generate:types": "openapi-typescript http://localhost:8080/api/v1/swagger.json --output src/types.ts",
+    "generate:types:prod": "openapi-typescript https://app.hook0.com/api/v1/swagger.json --output src/types.ts",
     "release:major": "npm-release major",
     "release:minor": "npm-release minor",
     "release:patch": "npm-release patch"
@@ -42,6 +43,7 @@
     "swagger-ui": "^3.48.0",
     "uuidv4": "^6.2.7",
     "vue": "^3.0.0",
+    "vue-form-json-schema": "^3.0.0-alpha.0",
     "vue-promised": "^2.0.2",
     "vue-router": "^4.0.6",
     "vuex": "^4.0.0-rc.2",
