@@ -1,25 +1,31 @@
-import {AxiosResponse} from 'axios';
-import http from '../../http';
-import {definitions} from '@/types';
+import { AxiosResponse } from 'axios';
+import http, { UUID } from '../../http';
+import { definitions } from '@/types';
 
 export type Organization = definitions['Organization'];
+export type OrganizationPost = definitions['OrganizationnPost'];
 
-export default {
-  /*export function create(application: OrganizationPost) {
-    return http.post('/organizations', application).then((res: AxiosResponse<any>) => res.data);
-  }*/
+type Problem = definitions['Problem'];
 
-
-  /*export function get(application_id: UUID): Promise<Organization> {
-    return http.get(`/organizations/${application_id}`).then((res: AxiosResponse<any>) => res.data);
-  }
-
-  export function edit(application_id: UUID, body: OrganizationPost) {}
-
-  export function remove(application_id: UUID) {}
-  */
+export function create(organization: OrganizationPost): Promise<Organization> {
+  return http
+    .post('/organizations', organization)
+    .then((res: AxiosResponse<Organization>) => res.data);
 }
 
 export function list(): Promise<Array<Organization>> {
-  return http.get('/organizations').then((res: AxiosResponse<Array<Organization>>) => res.data);
+  return http.get('/organizations', {}).then((res: AxiosResponse<Array<Organization>>) => res.data);
+}
+
+export function get(id: UUID): Promise<Organization> {
+  return http.get(`/organizations/${id}`).then((res: AxiosResponse<Organization>) => res.data);
+}
+
+export function update(
+  organization_id: UUID,
+  organization: OrganizationPost
+): Promise<Organization> {
+  return http
+    .put(`/organizations/${organization_id}`, organization)
+    .then((res: AxiosResponse<Organization>) => res.data);
 }

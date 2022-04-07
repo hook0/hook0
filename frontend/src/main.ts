@@ -2,14 +2,17 @@
 import './tailwind.css';
 
 // Setup main app
-import { createApp, Plugin } from 'vue';
+import {createApp, Plugin} from 'vue';
 import router from './router';
-import { Promised } from 'vue-promised';
+import {Promised} from 'vue-promised';
 // import components from './components';
-import { KeycloakPlugin } from './iam';
+import {KeycloakPlugin} from './iam';
 
 import Root from './Root.vue';
-import { RouteLocation, Router } from 'vue-router';
+import {RouteLocation, Router} from 'vue-router';
+
+// @ts-ignore
+import VueFormJsonSchema from 'vue-form-json-schema/src/index';
 
 // Create and mount the root instance.
 const app = createApp(Root);
@@ -42,6 +45,10 @@ app.use(RouterOrgPlugin);
 
 // Vue - promised
 app.component('Promised', Promised);
+
+// eslint-disable-next-line
+app.component('vue-form-json-schema', VueFormJsonSchema);
+
 
 // Vue - Hook0 own components
 import Hook0Alert from "@/components/Hook0Alert.vue";

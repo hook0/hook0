@@ -143,7 +143,7 @@ import Hook0Footer from "@/components/Hook0Footer.vue";
           name: "Organization",
           icon: 'team',
           route: {
-            name: routes.OrganizationsDetail
+            name: routes.OrganizationsList
           }
         },
         {

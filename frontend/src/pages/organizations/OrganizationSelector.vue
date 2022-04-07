@@ -7,7 +7,8 @@
 
     <!-- The default scoped slot will be used as the result -->
     <template #default="organizations">
-      <select id="organizations_select" :value="$route.query.organization_id" @change="set_current_organization_by_id($event.target.value)">
+      <select id="organizations_select" :value="$route.query.organization_id"
+              @change="set_current_organization_by_id($event.target.value)">
         <option v-for="organization in organizations"
                 :key="organization.organization_id"
                 :value="organization.organization_id"
@@ -35,17 +36,20 @@ export default class OrganizationSelector extends Vue {
   async set_current_organization_by_id(organization_id: UUID) {
     await this.organizations$.then(async organizations => {
       const new_organization = organizations.find(org => org.organization_id === organization_id);
-      if (!new_organization){
+      if (!new_organization) {
         // if no organization where found fallback do nothing
         return;
       }
 
       await this.$router.push({
         ...this.$route,
-        query:{
+        query: {
           ...this.$route.query,
           organization_id: new_organization.organization_id
-        }
+        },
+      }).then(() => {
+        // force reload
+        location.reload();
       })
     });
   }
@@ -60,7 +64,7 @@ export default class OrganizationSelector extends Vue {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-select{
-  width:100%;
+select {
+  width: 100%;
 }
 </style>
