@@ -53,6 +53,16 @@ impl Hook0Client {
         })
     }
 
+    /// Get the API URL of this client
+    pub fn api_url(&self) -> &Url {
+        &self.api_url
+    }
+
+    /// Get the application ID of this client
+    pub fn application_id(&self) -> &Uuid {
+        &self.application_id
+    }
+
     fn mk_url(&self, segments: &[&str]) -> Result<Url, Hook0ClientError> {
         append_url_segments(&self.api_url, segments)
             .map_err(|e| Hook0ClientError::Url(e).log_and_return())
