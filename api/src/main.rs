@@ -282,7 +282,7 @@ async fn main() -> anyhow::Result<()> {
             .wrap(cors)
             .wrap(Logger::default())
             .wrap_api_with_spec(spec)
-            .with_json_spec_at("/api/v1/swagger.json")
+            .with_json_spec_v3_at("/api/v1/swagger.json")
             .service(
                 web::scope("/api/v1")
                     .wrap(Compat::new(rate_limiters.ip()))
