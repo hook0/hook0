@@ -38,6 +38,11 @@ rust.check:
     - cargo clippy --all-targets --all-features -- -D warnings
     - cargo test
     - popd
+    # Client
+    - pushd clients/rust
+    - cargo clippy --all-targets --all-features -- -D warnings
+    - cargo test
+    - popd
     # API
     - pushd api
     - cargo clippy --all-targets --all-features -- -D warnings
@@ -45,11 +50,6 @@ rust.check:
     - popd
     # Output Worker
     - pushd output-worker
-    - cargo clippy --all-targets --all-features -- -D warnings
-    - cargo test
-    - popd
-    # Client
-    - pushd clients/rust
     - cargo clippy --all-targets --all-features -- -D warnings
     - cargo test
     - popd
