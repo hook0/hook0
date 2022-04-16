@@ -16,7 +16,7 @@
         </template>
       </hook0-card-header>
     </hook0-card>
-    <ApplicationsList>
+    <ApplicationsList :burst="$route.params.organization_id">
     </ApplicationsList>
   </div>
 </template>

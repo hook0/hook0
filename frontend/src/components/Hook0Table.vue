@@ -38,12 +38,11 @@ interface Props {
     },
 
     /**
-     * Some context that will be available to the callback
+     * The Vue component context (this) that will be available to the callbacks as execution context
      */
     context: {
       type: Object,
-      required: false,
-      default: null,
+      required: true,
     }
   },
   components: {

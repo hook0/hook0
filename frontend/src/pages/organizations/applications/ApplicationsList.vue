@@ -19,11 +19,22 @@
         <hook0-card-content v-if="applications.length > 0">
           <transition name="ease">
             <hook0-table
+              :context="this"
               :columnDefs="columnDefs"
               :rowData="applications"
             >
             </hook0-table>
           </transition>
+        </hook0-card-content>
+
+        <hook0-card-content v-else>
+          <hook0-card-content-lines>
+            <hook0-card-content-line type="full-width">
+              <template #content>
+                <hook0-text>Time to create your first application!</hook0-text>
+              </template>
+            </hook0-card-content-line>
+          </hook0-card-content-lines>
         </hook0-card-content>
 
         <hook0-card-footer>
@@ -46,7 +57,8 @@
 </template>
 
 <script lang="ts">
-import {Application, list} from './ApplicationService';
+import {Application} from './ApplicationService';
+import * as ApplicationService from './ApplicationService';
 import {Options, Vue} from 'vue-class-component';
 import Hook0Button from "@/components/Hook0Button.vue";
 import {routes} from "@/routes";
@@ -73,6 +85,13 @@ import {UUID} from "@/http";
     Hook0Button,
     Hook0Table
   },
+  props: {
+    // cache-burst
+    burst: {
+      type: String,
+      required: false
+    }
+  }
 })
 export default class ApplicationList extends Vue {
   private applications$ !: Promise<Array<Application>>;
@@ -105,6 +124,26 @@ export default class ApplicationList extends Vue {
     }, {
       suppressMovable: true,
       headerName: 'Options',
+      cellRenderer: "Hook0TableCellLink",
+      cellRendererParams: {
+        value: 'Delete',
+        icon: 'trash',
+        onClick(row: Application) {
+          if (confirm(`Are you sure to delete "${row.name}" application?`)) {
+            ApplicationService.remove(row.application_id)
+              .then(() => {
+                // @TODO notify user of success
+                // eslint-disable-next-line
+                this._forceLoad();
+              })
+              // @TODO proper error management
+              .catch((err: Error) => {
+                alert(err);
+                throw err;
+              });
+          }
+        }
+      }
     }];
 
 
@@ -122,11 +161,14 @@ export default class ApplicationList extends Vue {
     this._load();
   }
 
+  _forceLoad() {
+    this.organization_id = this.$route.params.organization_id as UUID;
+    this.applications$ = ApplicationService.list(this.$route.params.organization_id as string);
+  }
 
   _load() {
     if (this.organization_id !== this.$route.params.organization_id) {
-      this.organization_id = this.$route.params.organization_id as UUID;
-      this.applications$ = list(this.$route.params.organization_id as string);
+      this._forceLoad();
     }
   }
 };

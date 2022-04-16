@@ -25,6 +25,20 @@
           </hook0-table>
         </hook0-card-content>
 
+        <hook0-card-content v-else>
+          <hook0-card-content-lines>
+            <hook0-card-content-line type="full-width">
+              <template #content>
+                <hook0-text>Your application will send events to webhooks (subscriptions), each of these event will have
+                  a type (e.g.
+                  "billing.invoice.created"), it's time to create your first event type!
+                </hook0-text>
+              </template>
+            </hook0-card-content-line>
+          </hook0-card-content-lines>
+
+        </hook0-card-content>
+
         <hook0-card-footer>
           <hook0-button class="primary" type="button" @click="$router.push({name:routes.EventTypesNew})">Create new
             event type
@@ -67,6 +81,13 @@ import {EventType} from "./EventTypeService";
     Hook0Button,
     Hook0Table
   },
+  props: {
+    // cache-burst
+    burst: {
+      type: String,
+      required: false
+    }
+  }
 })
 export default class EventTypesList extends Vue {
   private event_types$ !: Promise<Array<EventType>>;
@@ -101,15 +122,18 @@ export default class EventTypesList extends Vue {
       cellRendererParams: {
         value: 'Delete',
         icon: 'trash',
-        onClick: (row: EventType, context: EventTypesList): void => {
+        onClick: (row: EventType): void => {
           if (confirm(`Are you sure to delete "${row.event_type_name}" event?`)) {
-            EventTypeService.remove(context.application_id as string, row.event_type_name)
+            EventTypeService.remove(this.application_id as string, row.event_type_name)
               .then(() => {
                 // @TODO notify user of success
-                context._forceLoad();
+                this._forceLoad();
               })
               // @TODO proper error management
-              .catch(err => alert(err));
+              .catch(err => {
+                alert(err);
+                throw err;
+              });
           }
         }
       }
@@ -129,6 +153,7 @@ export default class EventTypesList extends Vue {
   }
 
   _load() {
+    // @ts-ignore
     if (this.application_id !== this.$route.params.application_id) {
       this._forceLoad();
     }
