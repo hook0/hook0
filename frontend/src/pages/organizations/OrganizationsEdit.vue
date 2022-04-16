@@ -36,7 +36,7 @@
       </hook0-card-content>
       <hook0-card-footer>
         <hook0-button class="secondary" type="button" @click="$router.back()">Cancel</hook0-button>
-        <hook0-button class="primary" type="button" @click="upsert($event)">{{
+        <hook0-button class="primary" type="button" :loading="loading" @click="upsert($event)">{{
             isNew ? 'Create' : 'Update'
           }}
         </hook0-button>
@@ -49,7 +49,7 @@
 <script lang="ts">
 import {AxiosError} from 'axios';
 import * as OrganizationService from './OrganizationService';
-import {Organization} from './OrganizationService';
+import {Organization, OrganizationPost} from './OrganizationService';
 import {Options, Vue} from 'vue-class-component';
 import {routes} from "@/routes";
 import Hook0Alert from "@/components/Hook0Alert.vue";
@@ -66,6 +66,7 @@ import {Alert} from '@/components/Hook0Alert';
 })
 export default class OrganizationEdit extends Vue {
   private isNew = true;
+  private loading = false;
 
   organization_id: UUID | undefined;
 
@@ -108,25 +109,33 @@ export default class OrganizationEdit extends Vue {
     e.stopImmediatePropagation();
 
     this.alert.visible = false; // reset alert
+    this.loading = true;
 
-    if (this.isNew) {
+    (this.isNew ?
+      // create
       OrganizationService.create({
+        name: this.organization.name,
+      }).then(async (organization) => {
+        await this.$router.push({
+          name: routes.OrganizationsDashboard,
+          params: {
+            organization_id: organization.organization_id
+          }
+        });
+      }, this.displayError.bind(this)) :
+      // update
+      OrganizationService.update(this.$route.params.organization_id as string, {
         name: this.organization.name,
       }).then(async (_resp: any) => {
         await this.$router.push({
-          name: routes.OrganizationsList,
+          name: routes.OrganizationsDashboard,
+          params: {
+            organization_id: this.$route.params.organization_id,
+          }
         });
-      }, this.displayError.bind(this))
-      return;
-    }
-
-    OrganizationService.update(this.$route.params.organization_id as string, {
-      name: this.organization.name,
-    }).then(async (_resp: any) => {
-      await this.$router.push({
-        name: routes.OrganizationsList,
-      });
-    }, this.displayError.bind(this))
+      }, this.displayError.bind(this)))
+      // finally
+      .finally(() => this.loading = false);
   }
 
   displayError(err: AxiosError | unknown) {

@@ -1,16 +1,22 @@
 import {AxiosResponse} from 'axios';
 import http, {UUID} from '@/http';
 import {definitions} from '@/types';
+import {onTokenExpired} from "@/iam";
 
 export type Organization = definitions['Organization'];
 export type OrganizationPost = definitions['OrganizationnPost'];
+export type OrganizationInfo = definitions['OrganizationInfo'];
 
 type Problem = definitions['Problem'];
 
-export function create(organization: OrganizationPost): Promise<Organization> {
+export function create(organization: OrganizationPost): Promise<OrganizationInfo> {
   return http
     .post('/organizations', organization)
-    .then((res: AxiosResponse<Organization>) => res.data);
+    .then((res: AxiosResponse<OrganizationInfo>) => res.data)
+    .then((organization) => {
+      // we currently have to force the JWT refresh so it contains the organization
+      return onTokenExpired().then(() => organization);
+    })
 }
 
 export function list(): Promise<Array<Organization>> {

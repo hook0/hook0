@@ -23,7 +23,7 @@
       </hook0-card-header>
 
     </hook0-card>
-    <EventTypesList></EventTypesList>
+    <EventTypesList :burst="$route.params.application_id"></EventTypesList>
   </div>
 </template>
 
