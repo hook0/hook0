@@ -194,9 +194,7 @@ export default class EventTypesNew extends Vue {
     e.stopImmediatePropagation();
 
     this.alert.visible = false; // reset alert
-
-
-    debugger;
+    
     this.event_type.application_id = this.$route.params.application_id as UUID;
 
     EventTypeService.create(this.event_type).then(async (_resp: any) => {
