@@ -10,10 +10,9 @@ export function create(event_type: EventTypePost): Promise<EventType> {
 }
 
 export function remove(application_id: string, event_type_name: string): Promise<EventType> {
-  return http.delete('/event_types', {
+  return http.delete(`/event_types/${event_type_name}`, {
     params: {
-      application_id,
-      event_type_name
+      application_id
     }
   }).then((res: AxiosResponse<EventType>) => res.data);
 }

@@ -3,7 +3,7 @@
     class="ag-theme-alpine"
     v-bind="{ ...$props, ...$attrs }"
     :domLayout="domLayout"
-    :modules="modules"
+    :modules="modules.concat(context ? [{moduleName: 'context', context: context}] : [])"
     :defaultColDef="defaultColDef"
     :suppressRowHoverHighlight="true"
     :suppressHorizontalScroll="true"
@@ -18,8 +18,12 @@
 import {Vue, Options} from 'vue-class-component';
 import {AgGridVue} from "@ag-grid-community/vue3";
 import {ClientSideRowModelModule} from "@ag-grid-community/client-side-row-model";
-import {AgGridEvent, ColDef, RowNode} from "@ag-grid-community/core";
+import {AgGridEvent, ColDef, ICellRendererParams, RowNode} from "@ag-grid-community/core";
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
+
+interface Props {
+  context: any
+}
 
 @Options({
   name: 'hook0-table',
@@ -31,6 +35,15 @@ import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
     },
     rowData: {
       required: true
+    },
+
+    /**
+     * Some context that will be available to the callback
+     */
+    context: {
+      type: Object,
+      required: false,
+      default: null,
     }
   },
   components: {
@@ -38,6 +51,8 @@ import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
     Hook0TableCellLink
   }
 })
+
+
 export default class Hook0Table extends Vue {
 
   private domLayout: string | null = null;
@@ -50,7 +65,7 @@ export default class Hook0Table extends Vue {
   created() {
     this.domLayout = 'autoHeight';
   }
-  
+
   onFirstDataRendered(params: AgGridEvent) {
     params.api.sizeColumnsToFit();
   }
