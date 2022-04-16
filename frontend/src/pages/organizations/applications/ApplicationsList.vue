@@ -2,7 +2,7 @@
   <Promised :promise="applications$">
     <!-- Use the "pending" slot to display a loading message -->
     <template #pending>
-      <p>Loading...</p>
+      <hook0-loader></hook0-loader>
     </template>
     <!-- The default scoped slot will be used as the result -->
     <template #default="applications">
@@ -17,15 +17,22 @@
         </hook0-card-header>
 
         <hook0-card-content v-if="applications.length > 0">
-          <hook0-table
-            :columnDefs="columnDefs"
-            :rowData="applications"
-          >
-          </hook0-table>
+          <transition name="ease">
+            <hook0-table
+              :columnDefs="columnDefs"
+              :rowData="applications"
+            >
+            </hook0-table>
+          </transition>
         </hook0-card-content>
 
         <hook0-card-footer>
-          <hook0-button class="primary" type="button" @click="$router.push({name:routes.ApplicationsNew})">Create new
+          <hook0-button class="primary" type="button"
+                        :to="{
+            name: routes.ApplicationsNew,
+            params:{
+            organization_id: $route.params.organization_id
+          }}">Create new
             application
           </hook0-button>
         </hook0-card-footer>
@@ -53,6 +60,7 @@ import Hook0Table from "@/components/Hook0Table.vue";
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 import {VueElement} from "vue";
 import {ColDef} from "@ag-grid-community/core";
+import {UUID} from "@/http";
 
 @Options({
   components: {
@@ -68,6 +76,9 @@ import {ColDef} from "@ag-grid-community/core";
 })
 export default class ApplicationList extends Vue {
   private applications$ !: Promise<Array<Application>>;
+  private organization_id: null | UUID = null;
+
+  private routes = routes;
 
   private columnDefs: Array<ColDef> = [
     {
@@ -76,11 +87,12 @@ export default class ApplicationList extends Vue {
       headerName: 'Name',
       cellRenderer: "Hook0TableCellLink",
       cellRendererParams: {
-        href: (row: Application) => {
+        to: (row: Application) => {
           return {
-            name: routes.ApplicationsDetail,
+            name: routes.ApplicationsDashboard,
             params: {
-              id: row.application_id
+              application_id: row.application_id,
+              organization_id: row.organization_id,
             }
           }
         }
@@ -98,13 +110,24 @@ export default class ApplicationList extends Vue {
 
   data() {
     return {
-      routes: routes,
       applications$: Promise.resolve(),
     }
   }
 
   mounted() {
-    this.applications$ = list(this.$route.query.organization_id as string);
+    this._load();
+  }
+
+  updated() {
+    this._load();
+  }
+
+
+  _load() {
+    if (this.organization_id !== this.$route.params.organization_id) {
+      this.organization_id = this.$route.params.organization_id as UUID;
+      this.applications$ = list(this.$route.params.organization_id as string);
+    }
   }
 };
 </script>

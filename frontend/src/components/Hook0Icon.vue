@@ -1,23 +1,29 @@
 <template>
-  <div v-html="svg" />
+  <font-awesome-icon v-bind='{ ...$props, ...$attrs }' :icon="['fas'].concat(names_std)"></font-awesome-icon>
 </template>
 
 <script lang="ts">
-import { icon, IconName } from '@fortawesome/fontawesome-svg-core';
+// Search for icons here: https://fontawesome.com/search?m=free&s=solid
+// and don't forgot to import in main.ts (see "library.add(..."), the icon you want in order to keep the js bundle size small
+import {Options, Vue, VueWithProps} from "vue-class-component";
 
-export default {
+@Options({
   props: {
     name: {
       type: String,
       required: true,
+      validator(val: string) {
+        return val && val.length > 0;
+      }
     },
   },
-  name: 'hook0-icon',
-  data() {
-    return {
-      svg: icon({ prefix: 'fas', iconName: this.name as IconName }).html[0],
-    };
-  },
+  computed: {
+    names_std: function () {
+      return (this as VueWithProps<{ name: string }>).name.split(' ').map(x => x.replace(/^fa-/, ''));
+    }
+  }
+})
+export default class Hook0Icon extends Vue {
 };
 </script>
 

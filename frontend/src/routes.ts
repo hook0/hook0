@@ -1,24 +1,35 @@
-import ApplicationsList from '@/pages/applications/ApplicationsList.vue';
-import ApplicationsEdit from '@/pages/applications/ApplicationsEdit.vue';
+import ApplicationsList from '@/pages/organizations/applications/ApplicationsList.vue';
+import ApplicationsEdit from '@/pages/organizations/applications/ApplicationsEdit.vue';
+import ApplicationsDashboard from "@/pages/organizations/applications/ApplicationsDashboard.vue";
+
 import OrganizationsList from '@/pages/organizations/OrganizationsList.vue';
 import OrganizationsEdit from '@/pages/organizations/OrganizationsEdit.vue';
+import OrganizationsDashboard from "@/pages/organizations/OrganizationsDashboard.vue";
+
 import ApiDocumentation from '@/pages/api/documentation/ApiDocumentation.vue';
 import Error404 from '@/pages/Error404.vue';
+import EventTypesList from '@/pages/organizations/applications/event_types/EventTypesList.vue';
+import EventTypesNew from '@/pages/organizations/applications/event_types/EventTypesNew.vue';
+import Home from '@/Home.vue';
+import ComingSoon from "@/pages/ComingSoon.vue";
 
 export type Hook0Routes = string;
 
 export const routes: Record<Hook0Routes, string> = {
   Home: 'Home',
 
-  OrganizationsList: 'OrganizationsList',
+  OrganizationsDashboard: 'OrganizationsDashboard',
   OrganizationsDetail: 'OrganizationsDetail',
   OrganizationsNew: 'OrganizationsNew',
 
+  ApplicationsDashboard: 'ApplicationsDashboard',
   ApplicationsList: 'ApplicationsList',
   ApplicationsDetail: 'ApplicationsDetail',
   ApplicationsNew: 'ApplicationsNew',
 
   EventTypesList: 'EventTypesList',
+  EventTypesNew: 'EventTypesNew',
+
   WebhooksList: 'WebhooksList',
   LogsList: 'LogsList',
   Settings: 'Settings',
@@ -28,9 +39,9 @@ export const routes: Record<Hook0Routes, string> = {
 
 export default [
   {
-    name: routes.OrganizationsList,
-    path: '/organizations',
-    component: OrganizationsList,
+    name: routes.Home,
+    path: '/',
+    component: Home,
   },
   {
     name: routes.OrganizationsNew,
@@ -39,44 +50,60 @@ export default [
   },
   {
     name: routes.OrganizationsDetail,
-    path: '/organizations/:id',
+    path: '/organizations/:organization_id',
     component: OrganizationsEdit,
   },
-
+  {
+    name: routes.OrganizationsDashboard,
+    path: '/organizations/:organization_id/dashboard',
+    component: OrganizationsDashboard,
+  },
   {
     name: routes.ApplicationsList,
-    path: '/applications',
+    path: '/organizations/:organization_id/applications',
     component: ApplicationsList,
   },
   {
     name: routes.ApplicationsNew,
-    path: '/applications/new',
+    path: '/organizations/:organization_id/applications/new',
     component: ApplicationsEdit,
   },
   {
+    name: routes.ApplicationsDashboard,
+    path: '/organizations/:organization_id/applications/:application_id/dashboard',
+    component: ApplicationsDashboard,
+  },
+  {
     name: routes.ApplicationsDetail,
-    path: '/applications/:id',
+    path: '/organizations/:organization_id/applications/:application_id/settings',
     component: ApplicationsEdit,
   },
   {
     name: routes.EventTypesList,
-    path: '/event_types',
-    component: { template: `<div>event_types</div>` },
+    path: '/organizations/:organization_id/applications/:application_id/event_types',
+    component: EventTypesList,
   },
   {
+    // EventTypes are immutable, they can only be created or removed
+    name: routes.EventTypesNew,
+    path: '/organizations/:organization_id/applications/:application_id/event_types/new',
+    component: EventTypesNew,
+  },
+
+  {
     name: routes.WebhooksList,
-    path: '/webhooks',
-    component: { template: `<div>webhooks</div>` },
+    path: '/organizations/:organization_id/applications/:application_id/webhooks',
+    component: ComingSoon,
   },
   {
     name: routes.LogsList,
-    path: '/logs',
-    component: { template: `<div>logs</div>` },
+    path: '/organizations/:organization_id/applications/:application_id/logs',
+    component: ComingSoon,
   },
   {
     name: routes.Settings,
     path: '/settings',
-    component: { template: `<div>settings</div>` },
+    component: ComingSoon,
   },
   {
     name: routes.APIDocumentation,

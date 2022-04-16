@@ -2,24 +2,23 @@
   <div class="h-screen flex overflow-hidden bg-gray-100">
     <!-- Static sidebar for desktop -->
     <div class="hidden md:flex md:flex-shrink-0">
-      <div class="flex flex-col w-64">
+      <div class="flex flex-col w-64 bg-gray-800">
         <!-- Sidebar component, swap this element with another sidebar if you like -->
         <div class="flex flex-col h-0 flex-1">
-          <div class="flex items-center h-16 flex-shrink-0 px-4 bg-gray-900">
+          <div class="flex items-center h-16 flex-shrink-0 px-4">
             <logo></logo>
           </div>
-          <div class="flex h-16 flex-shrink-0 bg-gray-900">
+          <div class="flex flex-shrink-0 bg-gray-100">
             <organization-selector></organization-selector>
           </div>
           <div class="flex-1 flex flex-col overflow-y-auto">
-            <nav class="flex-1 px-2 py-4 bg-gray-800 space-y-1">
+            <nav class="flex-1 px-2 py-4  space-y-1">
               <menu-item v-for="(item, index) in items" :key="index"
                          :active="item.route.name === $route.name"
                          :name="item.name"
                          @click="$router.push(item.route)">
-                <icon :kind="item.icon"></icon>
+                <hook0-icon class="mr-2" :name="item.icon"></hook0-icon>
               </menu-item>
-
             </nav>
           </div>
         </div>
@@ -58,52 +57,9 @@
             </form>
           </div>
           <div class="ml-4 flex items-center md:ml-6">
-            <button
-              class="bg-white p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-              <span class="sr-only">View notifications</span>
-              <!-- Heroicon name: bell -->
-              <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                   stroke="currentColor" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-              </svg>
-            </button>
-
             <!-- Profile dropdown -->
-            <div class="ml-3 relative">
-              <div>
-                <button
-                  id="user-menu"
-                  class="max-w-xs bg-white flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                  aria-haspopup="true">
-                  <span class="sr-only">Open user menu</span>
-                  <img class="h-8 w-8 rounded-full"
-                       src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-                       alt="">
-                </button>
-              </div>
-              <!--
-                Profile dropdown panel, show/hide based on dropdown state.
-
-                Entering: "transition ease-out duration-100"
-                  From: "transform opacity-0 scale-95"
-                  To: "transform opacity-100 scale-100"
-                Leaving: "transition ease-in duration-75"
-                  From: "transform opacity-100 scale-100"
-                  To: "transform opacity-0 scale-95"
-              -->
-              <div
-                class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 hidden"
-                role="menu" aria-orientation="vertical" aria-labelledby="user-menu">
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Your
-                  Profile</a>
-
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                   role="menuitem">Settings</a>
-
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Sign
-                  out</a>
-              </div>
+            <div class="ml-3">
+              <hook0-login-menu></hook0-login-menu>
             </div>
           </div>
         </div>
@@ -111,7 +67,8 @@
 
       <main class="flex-1 relative overflow-y-auto focus:outline-none" tabindex="0">
         <div class="py-6 max-w-7xl mx-auto px-4 sm:px-6 md:px-8 h-96">
-          <router-view></router-view>
+          <router-view>
+          </router-view>
           <hook0-footer></hook0-footer>
         </div>
       </main>
@@ -120,76 +77,92 @@
 </template>
 
 <script lang="ts">
-import {Icon, Logo, MenuItem} from './components';
+import {Logo, MenuItem} from './components';
 import {Vue, Options} from 'vue-class-component';
-import OrganizationSelector from "@/pages/organizations/OrganizationSelector.vue";
+import OrganizationSelector from "@/pages/OrganizationAndApplicationSelector.vue";
 import {routes} from "@/routes";
 import Hook0Footer from "@/components/Hook0Footer.vue";
+import {Router, RouteRecord} from "vue-router";
+import Hook0LoginMenu from "@/components/Hook0LoginMenu.vue";
 
 @Options({
-  components: {Hook0Footer, Logo, OrganizationSelector, Icon, MenuItem},
+  components: {Hook0LoginMenu, Hook0Footer, Logo, OrganizationSelector, MenuItem},
+  computed: {
+    items() {
+      // eslint-disable-next-line
+      // @ts-ignore
+      return [].concat(
+        // @ts-ignore
+        // eslint-disable-next-line
+        this.$route.params.organization_id && this.$route.params.application_id ?
+          [{
+            name: "Event Types",
+            icon: 'folder-tree',
+            route: {
+              name: routes.EventTypesList,
+              // @ts-ignore
+              params: {
+                // eslint-disable-next-line
+                organization_id: this.$route.params.organization_id,
+                // eslint-disable-next-line
+                application_id: this.$route.params.application_id,
+              }
+            }
+          },
+            {
+              name: "Webhooks",
+              icon: 'link',
+              route: {
+                name: routes.WebhooksList,
+                params: {
+                  // eslint-disable-next-line
+                  organization_id: this.$route.params.organization_id,
+                  // eslint-disable-next-line
+                  application_id: this.$route.params.application_id,
+                }
+              }
+            },
+            {
+              name: "Logs",
+              icon: 'file-lines',
+              route: {
+                name: routes.LogsList,
+                params: {
+                  // eslint-disable-next-line
+                  organization_id: this.$route.params.organization_id,
+                  // eslint-disable-next-line
+                  application_id: this.$route.params.application_id,
+                }
+              }
+            },
+            {
+              name: "Settings",
+              icon: 'gear',
+              route: {
+                name: routes.ApplicationsDashboard,
+                // @ts-ignore
+                params: {
+                  // eslint-disable-next-line
+                  organization_id: this.$route.params.organization_id,
+                  // eslint-disable-next-line
+                  application_id: this.$route.params.application_id,
+                }
+              }
+            },]
+          : [])
+        .concat(
+          [{
+            name: "API Documentation",
+            icon: 'book',
+            route: {
+              name: routes.APIDocumentation
+            }
+          }]);
+    }
+  },
 
   data() {
-    return {
-      items: [
-        {
-          name: "Dashboard",
-          icon: 'home',
-          route: {
-            name: routes.ApplicationsList
-          }
-        },
-        {
-          name: "Organization",
-          icon: 'team',
-          route: {
-            name: routes.OrganizationsList
-          }
-        },
-        {
-          name: "Applications",
-          icon: 'document',
-          route: {
-            name: routes.ApplicationsList
-          }
-        },
-        {
-          name: "Event Types",
-          icon: 'document',
-          route: {
-            name: routes.EventTypesList
-          }
-        },
-        {
-          name: "Webhooks",
-          icon: 'folder',
-          route: {
-            name: routes.WebhooksList
-          }
-        },
-        {
-          name: "Logs",
-          icon: 'calendar',
-          route: {
-            name: routes.LogsList
-          }
-        },
-        {
-          name: "Settings",
-          icon: 'document',
-          route: {
-            name: routes.Settings
-          }
-        },
-        {
-          name: "API Documentation",
-          icon: 'document',
-          route: {
-            name: routes.APIDocumentation
-          }
-        },
-      ]
-    };
+    return {};
   },
 })
 export default class Root extends Vue {
@@ -198,4 +171,28 @@ export default class Root extends Vue {
 </script>
 
 <style>
+/* shared */
+.ease-enter-active {
+  @apply transition ease-out duration-100 z-50;
+}
+
+.ease-enter {
+  @apply transform opacity-0 scale-95 duration-75;
+}
+
+.ease-enter-to {
+  @apply transform opacity-100 scale-100;
+}
+
+.ease-leave-active {
+  @apply transition ease-in duration-75;
+}
+
+.ease-leave {
+  @apply transition ease-in duration-75;
+}
+
+.ease-leave-to {
+  @apply transform opacity-0 scale-95;
+}
 </style>
