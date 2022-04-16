@@ -18,6 +18,7 @@
 
         <hook0-card-content v-if="event_types.length > 0">
           <hook0-table
+            :context="this"
             :columnDefs="columnDefs"
             :rowData="event_types"
           >
@@ -69,7 +70,7 @@ import {EventType} from "./EventTypeService";
 })
 export default class EventTypesList extends Vue {
   private event_types$ !: Promise<Array<EventType>>;
-  private application_id: UUID | null = null;
+  public application_id: UUID | null = null;
 
   private columnDefs: Array<ColDef> = [
     {
@@ -95,18 +96,17 @@ export default class EventTypesList extends Vue {
       headerName: 'Verb',
     }, {
       suppressMovable: true,
-      hide: true, // @TODO had some issues with the backend
       headerName: 'Options',
       cellRenderer: "Hook0TableCellLink",
       cellRendererParams: {
         value: 'Delete',
         icon: 'trash',
-        onClick: (row: EventType): void => {
+        onClick: (row: EventType, context: EventTypesList): void => {
           if (confirm(`Are you sure to delete "${row.event_type_name}" event?`)) {
-            EventTypeService.remove(this.application_id as string, row.event_type_name)
+            EventTypeService.remove(context.application_id as string, row.event_type_name)
               .then(() => {
                 // @TODO notify user of success
-                this._load();
+                context._forceLoad();
               })
               // @TODO proper error management
               .catch(err => alert(err));
@@ -123,10 +123,14 @@ export default class EventTypesList extends Vue {
     }
   }
 
+  _forceLoad() {
+    this.application_id = this.$route.params.application_id as UUID;
+    this.event_types$ = EventTypeService.list(this.application_id);
+  }
+
   _load() {
     if (this.application_id !== this.$route.params.application_id) {
-      this.application_id = this.$route.params.application_id as UUID;
-      this.event_types$ = EventTypeService.list(this.application_id);
+      this._forceLoad();
     }
   }
 

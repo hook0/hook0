@@ -39,16 +39,15 @@ interface ExtraParams<T> {
 
   /**
    * Click handler
-   * @param row
    */
-  onClick?: (row: T) => void;
+  onClick?: (row: T, context: any) => void;
 
   /**
    * RouteLocation factory
-   * @param row
    */
   href: (row: T) => RouteLocation
 }
+
 
 @Options({
   name: 'hook0-table-cell-link',
@@ -71,9 +70,9 @@ export default class Hook0TableCellLink<T> extends Vue {
     if (!this.params.onClick) {
       return;
     }
-
+    
     // @ts-ignore
-    this.params.onClick(this.params.data as T);
+    this.params.onClick(this.params.data as T, this.params.context);
   }
 };
 </script>
