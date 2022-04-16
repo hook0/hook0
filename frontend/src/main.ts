@@ -80,6 +80,7 @@ import Hook0DropdownMenuItemText from "@/components/Hook0DropdownMenuItemText.vu
 import Hook0Text from "@/components/Hook0Text.vue";
 import Hook0Icon from "@/components/Hook0Icon.vue";
 import Hook0Loader from "@/components/Hook0Loader.vue";
+import Hook0CardContentLines from "@/components/Hook0CardContentLines.vue";
 
 app.component('Hook0Alert', Hook0Alert);
 app.component('Hook0Loader', Hook0Loader);
@@ -91,6 +92,7 @@ app.component('Hook0Card', Hook0Card);
 app.component('Hook0CardHeader', Hook0CardHeader);
 app.component('Hook0CardFooter', Hook0CardFooter);
 app.component('Hook0CardContent', Hook0CardContent);
+app.component('Hook0CardContentLines', Hook0CardContentLines);
 app.component('Hook0CardContentLine', Hook0CardContentLine);
 
 app.component('Hook0Dropdown', Hook0Dropdown);

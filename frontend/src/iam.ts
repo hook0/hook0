@@ -8,10 +8,16 @@ const keycloak = Keycloak({
 });
 
 keycloak.onTokenExpired = () => {
-  keycloak.updateToken(3600).catch(async (_err) => {
-    await keycloak.login();
-  });
+  return onTokenExpired();
 };
+
+
+export function onTokenExpired() {
+  return keycloak.updateToken(3600).catch(async (_err) => {
+    console.error(_err);
+    return keycloak.login();
+  });
+}
 
 const auth$ = keycloak.init({
   onLoad: 'login-required',

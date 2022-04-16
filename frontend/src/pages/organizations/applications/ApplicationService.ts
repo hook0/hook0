@@ -32,3 +32,7 @@ export function update(application_id: UUID, application: ApplicationPost): Prom
     .put(`/applications/${application_id}`, application)
     .then((res: AxiosResponse<Application>) => res.data);
 }
+
+export function remove(application_id: UUID): Promise<void> {
+  return http.delete(`/applications/${application_id}`, {}).then((res: AxiosResponse<void>) => res.data);
+}

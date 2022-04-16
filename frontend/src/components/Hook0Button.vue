@@ -13,7 +13,7 @@
     <div class="hook0-button-center">
       <slot v-if="!loading"></slot>
     </div>
-    <div class="hook0-button-right" v-if="hasSlot('right') && !loading">
+    <div class="hook0-button-right" v-if="hasSlot('right') || loading">
       <hook0-icon name="spinner" spin class="animate-spin" v-if="loading"></hook0-icon>
       <slot name="right"></slot>
     </div>

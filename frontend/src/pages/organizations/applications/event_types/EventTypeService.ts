@@ -9,12 +9,12 @@ export function create(event_type: EventTypePost): Promise<EventType> {
   return http.post('/event_types', event_type).then((res: AxiosResponse<EventType>) => res.data);
 }
 
-export function remove(application_id: string, event_type_name: string): Promise<EventType> {
+export function remove(application_id: string, event_type_name: string): Promise<void> {
   return http.delete(`/event_types/${event_type_name}`, {
     params: {
       application_id
     }
-  }).then((res: AxiosResponse<EventType>) => res.data);
+  }).then((res: AxiosResponse<void>) => res.data);
 }
 
 export function list(application_id: UUID): Promise<Array<EventType>> {

@@ -117,20 +117,21 @@ export default class OrganizationSelector extends Vue {
               let organization_in_group = m.find(item => item.organization.organization_id === application.organization_id);
 
               if (!organization_in_group) {
-                organization_in_group = {
-                  // @ts-ignore
-                  organization: organization,
-                  applications: []
-                };
-
-                m.push(organization_in_group);
+                console.error('should never happen, application is linkedin to unknown organization. Silent fail');
+                return m;
               }
 
               organization_in_group.applications.push(application);
 
               return m;
             }, m);
-          }, [] as ApplicationsPerOrganization[]);
+          }, organizations.map(organization => {
+            return {
+              // @ts-ignore
+              organization: organization,
+              applications: []
+            };
+          }) as ApplicationsPerOrganization[]);
         })
     );
   }
