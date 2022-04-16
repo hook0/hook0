@@ -51,7 +51,7 @@
     </template>
     <!-- The "rejected" scoped slot will be used if there is an error -->
     <template #rejected="error">
-      <p>Error: {{ error.message }}</p>
+      <hook0-error :error="error"></hook0-error>
     </template>
   </Promised>
 </template>

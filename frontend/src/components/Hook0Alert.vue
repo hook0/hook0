@@ -29,10 +29,12 @@
       <div class="ml-3">
         <h3 class="text-sm font-medium text-yellow-800">
           {{ title }}
+          <slot name="title"></slot>
         </h3>
         <div class="mt-2 text-sm text-yellow-700">
           <p>
             {{ description }}
+            <slot name="description"></slot>
           </p>
         </div>
       </div>
@@ -49,11 +51,11 @@ import {Options, Vue} from "vue-class-component";
   props: {
     title: {
       type: String,
-      required: true
+      required: false
     },
     description: {
       type: String,
-      required: true
+      required: false
     },
     type: {
       type: String,

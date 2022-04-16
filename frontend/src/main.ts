@@ -81,8 +81,10 @@ import Hook0Text from "@/components/Hook0Text.vue";
 import Hook0Icon from "@/components/Hook0Icon.vue";
 import Hook0Loader from "@/components/Hook0Loader.vue";
 import Hook0CardContentLines from "@/components/Hook0CardContentLines.vue";
+import Hook0Error from "@/components/Hook0Error.vue";
 
 app.component('Hook0Alert', Hook0Alert);
+app.component('Hook0Error', Hook0Error);
 app.component('Hook0Loader', Hook0Loader);
 app.component('Hook0Button', Hook0Button);
 app.component('Hook0Text', Hook0Text);
