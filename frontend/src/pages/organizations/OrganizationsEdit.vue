@@ -52,20 +52,12 @@ import * as OrganizationService from './OrganizationService';
 import {Organization} from './OrganizationService';
 import {Options, Vue} from 'vue-class-component';
 import {routes} from "@/routes";
-import Hook0Alert, {AlertStatus} from "@/components/Hook0Alert.vue";
+import Hook0Alert from "@/components/Hook0Alert.vue";
 
 import {definitions} from '@/types';
-import {UUID} from "@/http";
+import {isAxiosError, Problem, UUID} from "@/http";
+import {Alert} from '@/components/Hook0Alert';
 
-export type Problem = definitions['Problem'];
-
-// For some reason typescript-eslint considers that Alert is of type any if it is imported from components/Hook0Alert.vue
-interface Alert {
-  title: string,
-  description: string,
-  type: AlertStatus,
-  visible: boolean,
-}
 
 @Options({
   components: {
@@ -91,13 +83,23 @@ export default class OrganizationEdit extends Vue {
   };
 
   mounted() {
-    this.organization_id = this.$route.params.id as UUID;
-    this.isNew = !this.organization_id;
+    this._load();
+  }
 
-    if (!this.isNew) {
-      OrganizationService.get(this.organization_id).then((organization: Organization) => {
-        this.organization.name = organization.name;
-      }).catch(this.displayError.bind(this));
+  updated() {
+    this._load();
+  }
+
+  _load() {
+    if (this.organization_id !== this.$route.params.organization_id) {
+      this.organization_id = this.$route.params.organization_id as UUID;
+      this.isNew = !this.organization_id;
+
+      if (!this.isNew) {
+        OrganizationService.get(this.organization_id).then((organization: Organization) => {
+          this.organization.name = organization.name;
+        }).catch(this.displayError.bind(this));
+      }
     }
   }
 
@@ -118,7 +120,7 @@ export default class OrganizationEdit extends Vue {
       return;
     }
 
-    OrganizationService.update(this.$route.query.organization_id as string, {
+    OrganizationService.update(this.$route.params.organization_id as string, {
       name: this.organization.name,
     }).then(async (_resp: any) => {
       await this.$router.push({
@@ -144,10 +146,7 @@ export default class OrganizationEdit extends Vue {
   }
 };
 
-function isAxiosError(err: AxiosError | unknown): err is AxiosError {
-  const e = err as AxiosError;
-  return e !== null && typeof e.isAxiosError === 'boolean' && e.isAxiosError
-}
+
 </script>
 
 <style scoped>

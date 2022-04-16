@@ -1,4 +1,4 @@
-import { Plugin } from 'vue';
+import {Plugin} from 'vue';
 import Keycloak from 'keycloak-js';
 
 const keycloak = Keycloak({
@@ -20,6 +20,7 @@ const auth$ = keycloak.init({
   checkLoginIframe: false
 });
 
+
 export const KeycloakPlugin: Plugin = {
   install: (app, _options) => {
     app.config.globalProperties.$keycloak = keycloak;
@@ -32,11 +33,14 @@ declare module '@vue/runtime-core' {
   }
 }
 
+export interface KeycloakTokenParsedAttributes {
+  email: string;
+}
+
 export default {
   getToken(): Promise<string> {
     return auth$.then((auth) => {
       if (!auth) {
-        debugger;
         window.location.reload();
       }
 
