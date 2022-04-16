@@ -5,12 +5,10 @@
 </template>
 
 <script lang="ts">
-export default {
-  name: 'hook0-text',
-  data() {
-    return {};
-  },
-};
+import {Vue} from "vue-class-component";
+
+export default class Hook0Text extends Vue {
+}
 </script>
 
 <style lang="scss" scoped>
@@ -19,6 +17,16 @@ export default {
 
   &.medium {
     @apply font-medium;
+  }
+
+  &.bold {
+    @apply font-bold;
+  }
+
+  &.def {
+    @apply text-sm font-light text-gray-400;
+    font-size: 0.65rem;
+    line-height: 0.7rem;
   }
 }
 </style>

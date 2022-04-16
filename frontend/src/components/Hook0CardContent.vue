@@ -5,12 +5,10 @@
 </template>
 
 <script lang="ts">
-export default {
-  name: 'hook0-card-content',
-  data() {
-    return {};
-  },
-};
+import {Vue} from "vue-class-component";
+
+export default class Hook0CardContent extends Vue {
+}
 </script>
 
 <style lang="scss" scoped>

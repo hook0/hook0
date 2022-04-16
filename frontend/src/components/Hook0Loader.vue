@@ -1,24 +1,16 @@
 <template>
-  <span v-bind="{ ...$props, ...$attrs }" class="text">
-    <slot></slot>
-  </span>
+  <div class="flex justify-center items-center">
+    <hook0-icon name="circle-notch" size="2x" spin></hook0-icon>
+  </div>
 </template>
 
 <script lang="ts">
-export default {
-  name: 'hook0-loader',
-  data() {
-    return {};
-  },
-};
+import Hook0Icon from "@/components/Hook0Icon.vue";
+import {Vue} from "vue-class-component";
+
+export default class Hook0Loader extends Vue {
+}
 </script>
 
 <style lang="scss" scoped>
-.text {
-  @apply font-normal;
-
-  &.medium {
-    @apply font-medium;
-  }
-}
 </style>

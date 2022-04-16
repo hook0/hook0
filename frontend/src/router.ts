@@ -1,7 +1,7 @@
-import { createRouter, createWebHistory, RouteLocationNormalized } from 'vue-router';
-import routes, { routes as routeNames } from '@/routes';
-import { list } from '@/pages/organizations/OrganizationService';
-import { UUID } from '@/http';
+import {createRouter, createWebHistory, RouteLocationNormalized} from 'vue-router';
+import routes, {routes as routeNames} from '@/routes';
+import {list} from '@/pages/organizations/OrganizationService';
+import {UUID} from '@/http';
 
 const router = createRouter({
   // Provide the history implementation to use
@@ -11,16 +11,8 @@ const router = createRouter({
 
 export default router;
 
+/*
 router.beforeEach(async (to, from, next) => {
-  function addOrganizationId(base: RouteLocationNormalized, organization_id: UUID) {
-    next({
-      ...base,
-      query: {
-        ...base.query,
-        organization_id: organization_id,
-      },
-    });
-  }
 
   const from_has_organization_id = String(from.query.organization_id).includes('-');
   const to_has_organization_id = String(to.query.organization_id).includes('-');
@@ -43,3 +35,4 @@ router.beforeEach(async (to, from, next) => {
     addOrganizationId(to, organizations[0].organization_id);
   });
 });
+*/

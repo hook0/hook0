@@ -47,13 +47,10 @@
 
 <script lang="ts">
 
-export default {
-  name: 'hook0-footer',
-  components: {},
-  data() {
-    return {};
-  },
-};
+import {Vue} from "vue-class-component";
+
+export default class Hook0Footer extends Vue {
+}
 </script>
 
 <style lang="scss" scoped>
