@@ -13,6 +13,6 @@ export default class Hook0Card extends Vue {
 
 <style lang="scss" scoped>
 .card {
-  @apply bg-white shadow overflow-hidden sm:rounded-lg;
+  @apply bg-white shadow overflow-hidden sm:rounded-lg mb-4;
 }
 </style>

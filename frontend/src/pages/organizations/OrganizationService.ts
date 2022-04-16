@@ -35,3 +35,7 @@ export function update(
     .put(`/organizations/${organization_id}`, organization)
     .then((res: AxiosResponse<Organization>) => res.data);
 }
+
+export function remove(organization_id: UUID): Promise<void> {
+  return http.delete(`/organizations/${organization_id}`, {}).then((res: AxiosResponse<void>) => res.data);
+}

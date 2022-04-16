@@ -1,8 +1,9 @@
 <template>
   <div>
-    <hook0-card class="mb-5">
+    <hook0-card>
       <hook0-card-header>
         <template #header>
+          <hook0-icon name="sitemap"></hook0-icon>
           Organization
           <hook0-text class="bold">{{ organization.name }}</hook0-text>
         </template>
@@ -11,7 +12,7 @@
         <template #actions>
           <hook0-button
             :to="{ name: routes.OrganizationsDetail, params:{organization_id: $route.params.organization_id}}">
-            Edit
+            Settings
           </hook0-button>
         </template>
       </hook0-card-header>
