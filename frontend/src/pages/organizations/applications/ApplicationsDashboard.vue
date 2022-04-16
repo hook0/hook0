@@ -1,8 +1,9 @@
 <template>
   <div>
-    <hook0-card class="mb-4">
+    <hook0-card>
       <hook0-card-header>
         <template #header>
+          <hook0-icon name="rocket"></hook0-icon>
           Application
           <hook0-text class="bold">{{ application.name }}</hook0-text>
           dashboard
@@ -16,7 +17,7 @@
             organization_id: $route.params.organization_id,
              application_id: $route.params.application_id
           }}">
-            Edit
+            Settings
           </hook0-button>
         </template>
 
