@@ -50,7 +50,7 @@ export default [
   },
   {
     name: routes.OrganizationsDetail,
-    path: '/organizations/:organization_id',
+    path: '/organizations/:organization_id/settings',
     component: OrganizationsEdit,
   },
   {
