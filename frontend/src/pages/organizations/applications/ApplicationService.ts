@@ -1,6 +1,7 @@
-import {AxiosResponse} from 'axios';
-import http, {UUID} from '@/http';
+import {AxiosError, AxiosResponse} from 'axios';
+import http, {Problem, UUID} from '@/http';
 import {definitions} from '@/types';
+import {AgPromise} from "@ag-grid-community/core";
 
 export type Application = definitions['Application'];
 export type ApplicationPost = definitions['ApplicationPost'];
@@ -18,7 +19,9 @@ export function list(organization_id: UUID): Promise<Array<Application>> {
         organization_id: organization_id,
       },
     })
-    .then((res: AxiosResponse<Array<Application>>) => res.data);
+    .then(
+      (res: AxiosResponse<Array<Application>>) => res.data,
+      (err: AxiosError<AxiosResponse<Problem, Problem>>) => Promise.reject(err.response?.data));
 }
 
 export function get(application_id: UUID): Promise<Application> {
