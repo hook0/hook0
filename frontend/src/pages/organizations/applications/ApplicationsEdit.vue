@@ -1,50 +1,55 @@
 <template>
-  <form @submit="upsert">
-    <hook0-card>
-      <hook0-card-header>
-        <template #header v-if="isNew">
-          Create new application
-        </template>
-        <template #header v-else>
-          Edit application
-        </template>
-        <template #subtitle>
-          An application emit events that are consumed by customers through webhooks
-        </template>
-
-      </hook0-card-header>
-      <hook0-card-content>
-        <hook0-card-content-line>
-          <template #label>
-            Application Name
+  <div>
+    <form @submit="upsert">
+      <hook0-card>
+        <hook0-card-header>
+          <template #header v-if="isNew">
+            Create new application
           </template>
-          <template #content>
-            <hook0-input
-              type="text"
-              v-model="application.name"
-              placeholder="my awesome api - production"
-              required
-            >
-              <template #helpText>Name of your company's product or API. Don't forget also to specify the environment,
-                for example: "facebook-production"
-              </template>
-            </hook0-input>
+          <template #header v-else>
+            Edit application
           </template>
-        </hook0-card-content-line>
-      </hook0-card-content>
+          <template #subtitle>
+            An application emit events that are consumed by customers through webhooks
+          </template>
 
-      <hook0-card-content v-if="alert.visible">
-        <hook0-alert :type="alert.type" :title="alert.title" :description="alert.description"></hook0-alert>
-      </hook0-card-content>
-      <hook0-card-footer>
-        <hook0-button class="secondary" type="button" @click="cancel2()">Cancel</hook0-button>
-        <hook0-button class="primary" type="button" @click="upsert($event)">{{
-            isNew ? 'Create' : 'Update'
-          }}
-        </hook0-button>
-      </hook0-card-footer>
-    </hook0-card>
-  </form>
+        </hook0-card-header>
+        <hook0-card-content>
+          <hook0-card-content-line>
+            <template #label>
+              Application Name
+            </template>
+            <template #content>
+              <hook0-input
+                type="text"
+                v-model="application.name"
+                placeholder="my awesome api - production"
+                required
+              >
+                <template #helpText>Name of your company's product or API. Don't forget also to specify the environment,
+                  for example: "facebook-production"
+                </template>
+              </hook0-input>
+            </template>
+          </hook0-card-content-line>
+        </hook0-card-content>
+
+        <hook0-card-content v-if="alert.visible">
+          <hook0-alert :type="alert.type" :title="alert.title" :description="alert.description"></hook0-alert>
+        </hook0-card-content>
+        <hook0-card-footer>
+          <hook0-button class="secondary" type="button" @click="cancel2()">Cancel</hook0-button>
+          <hook0-button class="primary" type="button" @click="upsert($event)">{{
+              isNew ? 'Create' : 'Update'
+            }}
+          </hook0-button>
+        </hook0-card-footer>
+      </hook0-card>
+    </form>
+
+    <ApplicationsRemove v-if="!isNew" :application-id="application_id"
+                        :application-name="application.name"></ApplicationsRemove>
+  </div>
 
 </template>
 
@@ -57,9 +62,11 @@ import {routes} from "@/routes";
 import Hook0Alert from "@/components/Hook0Alert.vue";
 import {isAxiosError, Problem, UUID} from "@/http";
 import {Alert} from "@/components/Hook0Alert";
+import ApplicationsRemove from "@/pages/organizations/applications/ApplicationsRemove.vue";
 
 @Options({
   components: {
+    ApplicationsRemove,
     Hook0Alert
   },
 })
