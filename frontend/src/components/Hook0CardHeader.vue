@@ -17,12 +17,10 @@
 </template>
 
 <script lang="ts">
-export default {
-  name: 'hook0-card-header',
-  data() {
-    return {};
-  },
-};
+import {Vue} from "vue-class-component";
+
+export default class Hook0CardHeader extends Vue {
+}
 </script>
 
 <style lang="scss" scoped>

@@ -1,6 +1,6 @@
-import { AxiosResponse } from 'axios';
-import http, { UUID } from '../../http';
-import { definitions } from '@/types';
+import {AxiosResponse} from 'axios';
+import http, {UUID} from '@/http';
+import {definitions} from '@/types';
 
 export type Application = definitions['Application'];
 export type ApplicationPost = definitions['ApplicationPost'];

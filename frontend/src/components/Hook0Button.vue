@@ -1,8 +1,8 @@
 <template>
   <a
-    v-bind="{ ...$props, ...$attrs }"
     class="hook0-button"
-    :class="{ loading: loading }"
+    :class="{ loading: loading, 'hook0-button-split': hasSlot('right') || hasSlot('left')}"
+    v-bind="{ ...$props, ...$attrs }"
     @click="onClick($event)"
     :disabled="loading || disabled"
     :href="_href"
@@ -10,9 +10,11 @@
     <div class="hook0-button-left" v-if="hasSlot('left') && !loading">
       <slot name="left"></slot>
     </div>
-    <slot v-if="!loading"></slot>
-    <hook0-icon name="spinner" class="animate-spin" v-if="loading"></hook0-icon>
+    <div class="hook0-button-center">
+      <slot v-if="!loading"></slot>
+    </div>
     <div class="hook0-button-right" v-if="hasSlot('right') && !loading">
+      <hook0-icon name="spinner" spin class="animate-spin" v-if="loading"></hook0-icon>
       <slot name="right"></slot>
     </div>
   </a>
@@ -69,6 +71,7 @@ export default defineComponent({
     onClick(e: MouseEvent) {
       if (!this.href) {
         e.preventDefault();
+        e.stopImmediatePropagation();
       }
 
       if (this.loading || this.disabled) {
@@ -102,7 +105,44 @@ export default defineComponent({
 
 <style lang="scss" scoped>
 .hook0-button {
-  @apply select-none font-medium text-indigo-600 hover:text-indigo-500;
+  @apply select-none cursor-pointer font-medium text-indigo-600 hover:text-indigo-500;
+
+  .hook0-button-left {
+    @apply inline-block;
+  }
+
+  .hook0-button-center {
+    @apply inline-block;
+  }
+
+  .hook0-button-right {
+    @apply inline-block;
+  }
+
+  &.dropdown {
+    @apply max-w-lg block w-full sm:max-w-xs cursor-pointer py-4 pl-4 pr-4;
+  }
+
+  /** must be after dropdown **/
+  &.hook0-button-split {
+    @apply flex justify-between items-stretch;
+
+    .hook0-button-left {
+      @apply justify-self-start self-center;
+    }
+
+    .hook0-button-center {
+      @apply justify-self-start self-center;
+    }
+
+    .hook0-button-right {
+      @apply justify-self-end self-center;
+    }
+  }
+
+  &.link {
+    @apply hover:bg-indigo-100 hover:text-gray-900 text-gray-700 block mb-0 px-4 py-2 text-sm;
+  }
 
   &.primary {
     @apply inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer;
@@ -139,13 +179,5 @@ export default defineComponent({
   &[disabled='disabled'] {
     @apply opacity-20 transition-all;
   }
-}
-
-.hook0-button-left {
-  @apply -ml-1 mb-1 h-5 w-5;
-}
-
-.hook0-button-right {
-  @apply ml-3 -mr-1 h-5 w-5;
 }
 </style>

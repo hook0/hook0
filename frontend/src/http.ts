@@ -1,7 +1,8 @@
-import { AxiosRequestConfig, AxiosResponse } from 'axios';
+import {AxiosError, AxiosRequestConfig, AxiosResponse} from 'axios';
 import axios from 'axios';
 import iam from './iam';
 import featureFlags from './feature-flags';
+import {definitions} from "@/types";
 
 require('bluebird');
 
@@ -63,3 +64,10 @@ export default {
 
 // Global types
 export type UUID = string;
+
+export type Problem = definitions['Problem'];
+
+export function isAxiosError(err: AxiosError | unknown): err is AxiosError {
+  const e = err as AxiosError;
+  return e !== null && typeof e.isAxiosError === 'boolean' && e.isAxiosError
+}

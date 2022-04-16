@@ -25,7 +25,9 @@
               placeholder="my awesome api - production"
               required
             >
-              <template #helpText></template>
+              <template #helpText>Name of your company's product or API. Don't forget also to specify the environment,
+                for example: "facebook-production"
+              </template>
             </hook0-input>
           </template>
         </hook0-card-content-line>
@@ -35,7 +37,7 @@
         <hook0-alert :type="alert.type" :title="alert.title" :description="alert.description"></hook0-alert>
       </hook0-card-content>
       <hook0-card-footer>
-        <hook0-button class="secondary" type="button" @click="cancel()">Cancel</hook0-button>
+        <hook0-button class="secondary" type="button" @click="cancel2()">Cancel</hook0-button>
         <hook0-button class="primary" type="button" @click="upsert($event)">{{
             isNew ? 'Create' : 'Update'
           }}
@@ -52,20 +54,9 @@ import * as ApplicationService from './ApplicationService';
 import {Application} from './ApplicationService';
 import {Options, Vue} from 'vue-class-component';
 import {routes} from "@/routes";
-import Hook0Alert, {AlertStatus} from "@/components/Hook0Alert.vue";
-
-import {definitions} from '@/types';
-import {UUID} from "@/http";
-
-export type Problem = definitions['Problem'];
-
-// For some reason typescript-eslint considers that Alert is of type any if it is imported from components/Hook0Alert.vue
-interface Alert {
-  title: string,
-  description: string,
-  type: AlertStatus,
-  visible: boolean,
-}
+import Hook0Alert from "@/components/Hook0Alert.vue";
+import {isAxiosError, Problem, UUID} from "@/http";
+import {Alert} from "@/components/Hook0Alert";
 
 @Options({
   components: {
@@ -75,7 +66,7 @@ interface Alert {
 export default class ApplicationEdit extends Vue {
   private isNew = true;
 
-  application_id: UUID | undefined;
+  application_id: UUID | null = null;
 
   routes = routes;
 
@@ -91,19 +82,35 @@ export default class ApplicationEdit extends Vue {
   };
 
   mounted() {
-    this.application_id = this.$route.params.id as UUID;
-    this.isNew = !this.application_id;
+    this._load();
+  }
 
-    if (!this.isNew) {
-      ApplicationService.get(this.application_id).then((application: Application) => {
-        this.application.name = application.name;
-      }).catch(this.displayError.bind(this));
+  updated() {
+    this._load();
+  }
+
+  _load() {
+    if (this.application_id !== this.$route.params.application_id) {
+      this.application_id = this.$route.params.application_id as UUID;
+      this.isNew = !this.application_id;
+
+      if (!this.isNew) {
+        ApplicationService.get(this.application_id).then((application: Application) => {
+          this.application.name = application.name;
+        }).catch(this.displayError.bind(this));
+      }
     }
   }
 
-  cancel() {
-    return this.$router.push({
-      name: routes.ApplicationsList
+  cancel2() {
+    this.$router.push({
+      name: routes.ApplicationsDashboard,
+      params: {
+        organization_id: this.$route.params.organization_id,
+        application_id: this.$route.params.application_id,
+      }
+    }).catch(err => {
+      // do nothing
     })
   }
 
@@ -116,22 +123,18 @@ export default class ApplicationEdit extends Vue {
     if (this.isNew) {
       ApplicationService.create({
         name: this.application.name,
-        organization_id: (this.$route.query.organization_id as string)
-      }).then(async (_resp: any) => {
-        await this.$router.push({
-          name: routes.ApplicationsList,
-        });
+        organization_id: (this.$route.params.organization_id as string)
+      }).then((_resp: any) => {
+        this.cancel2();
       }, this.displayError.bind(this))
       return;
     }
 
     ApplicationService.update(this.application_id as UUID, {
       name: this.application.name,
-      organization_id: this.$route.query.organization_id as string
-    }).then(async (_resp: any) => {
-      await this.$router.push({
-        name: routes.ApplicationsList,
-      });
+      organization_id: this.$route.params.organization_id as string
+    }).then((_resp: any) => {
+      this.cancel2()
     }, this.displayError.bind(this))
   }
 
@@ -151,11 +154,6 @@ export default class ApplicationEdit extends Vue {
     }
   }
 };
-
-function isAxiosError(err: AxiosError | unknown): err is AxiosError {
-  const e = err as AxiosError;
-  return e !== null && typeof e.isAxiosError === 'boolean' && e.isAxiosError
-}
 </script>
 
 <style scoped>
