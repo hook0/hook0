@@ -1,14 +1,14 @@
 <template>
-  <div class="hook0-card-footer"><slot></slot></div>
+  <div class="hook0-card-footer">
+    <slot></slot>
+  </div>
 </template>
 
 <script lang="ts">
-export default {
-  name: 'hook0-card-footer',
-  data() {
-    return {};
-  },
-};
+import {Vue} from "vue-class-component";
+
+export default class Hook0CardFooter extends Vue {
+}
 </script>
 
 <style lang="scss" scoped>
