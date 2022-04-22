@@ -966,7 +966,7 @@
     },
     "query": "\n            SELECT r.response__id, r.response_error__name, r.http_code, r.headers, r.body, r.elapsed_time_ms\n            FROM webhook.response AS r\n            INNER JOIN webhook.request_attempt AS ra ON ra.response__id = r.response__id\n            INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id\n            WHERE s.application__id = $1 AND r.response__id = $2\n        "
   },
-  "7ac9165b2c5cf8ada992d560877f31aa9cfe58128beff62b103ea62336c33424": {
+  "7a8cf66698ccb56b36666363340bc5924b0b353be4037a6bc46d79673a7b9110": {
     "describe": {
       "columns": [
         {
@@ -990,7 +990,7 @@
         ]
       }
     },
-    "query": "\n                                                    SELECT application__id, name\n                                                    FROM event.application_secret\n                                                    WHERE token = $1\n                                                    LIMIT 1\n                                                "
+    "query": "\n                                                    SELECT application__id, name\n                                                    FROM event.application_secret\n                                                    WHERE deleted_at IS NULL AND token = $1\n                                                    LIMIT 1\n                                                "
   },
   "7c8b6ac1bf146fb0c3b01a662d1fe80ff99d09403289967509a7fc3e4ab372d1": {
     "describe": {
