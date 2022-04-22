@@ -10,7 +10,7 @@ use log::error;
 use reqwest::header::{HeaderMap, HeaderValue, InvalidHeaderValue, AUTHORIZATION};
 use reqwest::{Client, Url};
 use serde::Serialize;
-use serde_json::Value;
+use serde_json::{Map, Value};
 use std::borrow::Cow;
 use url::ParseError;
 use uuid::Uuid;
@@ -73,7 +73,8 @@ impl Hook0Client {
         let event_ingestion_url = self.mk_url(&["event"])?;
         let full_event = FullEvent::from_event(event, &self.application_id);
 
-        self.client
+        let res = self
+            .client
             .post(event_ingestion_url)
             .json(&full_event)
             .send()
@@ -82,47 +83,54 @@ impl Hook0Client {
                 Hook0ClientError::EventSending {
                     event_id: full_event.event_id.to_owned(),
                     error: e,
-                }
-                .log_and_return()
-            })?
-            .error_for_status()
-            .map_err(|e| {
-                Hook0ClientError::EventSending {
-                    event_id: full_event.event_id.to_owned(),
-                    error: e,
+                    body: None,
                 }
                 .log_and_return()
             })?;
 
-        Ok(full_event.event_id)
+        match res.error_for_status_ref() {
+            Ok(_) => Ok(full_event.event_id),
+            Err(e) => {
+                let body = res.text().await.ok();
+                Err(Hook0ClientError::EventSending {
+                    event_id: full_event.event_id.to_owned(),
+                    error: e,
+                    body,
+                }
+                .log_and_return())
+            }
+        }
     }
 }
 
 /// A wrapper to handle event's payload
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Payload<'a> {
-    /// Payload is already base64-encoded
-    Base64(&'a str),
-
-    /// Payload is binary
-    Binary(&'a [u8]),
-
-    /// Payload is a string
-    Str(&'a str),
-
-    /// Payload as a JSON value
-    Json(&'a Value),
-}
+pub struct Payload<'a>(Cow<'a, str>);
 
 impl<'a> Payload<'a> {
+    /// Create payload from base64
+    pub fn from_base64(b64: &'a str) -> Self {
+        Self(b64.into())
+    }
+
+    /// Create payload from binary
+    pub fn from_binary(bin: &[u8]) -> Self {
+        Self(encode(bin).into())
+    }
+
+    /// Create payload from a string
+    pub fn from_string<T: AsRef<str>>(str: T) -> Self {
+        Self(encode(str.as_ref()).into())
+    }
+
+    /// Create payload from a JSON value
+    pub fn from_json(json: &Value) -> Self {
+        Self(encode(json.to_string()).into())
+    }
+
     /// Get the payload as base64
-    pub fn as_base64(&self) -> Cow<'a, str> {
-        match self {
-            Self::Base64(b64) => (*b64).into(),
-            Self::Binary(bin) => encode(bin).into(),
-            Self::Str(str) => encode(str).into(),
-            Self::Json(json) => encode(json.to_string()).into(),
-        }
+    pub fn as_base64(&self) -> &str {
+        self.0.as_ref()
     }
 }
 
@@ -138,11 +146,11 @@ pub struct Event<'a> {
     /// Content type of the payload
     pub payload_content_type: &'a str,
     /// Optional key-value metadata
-    pub metadata: &'a Option<&'a [(&'a str, &'a Value)]>,
+    pub metadata: Option<Vec<(String, Value)>>,
     /// Datetime of when the event occurred (current time will be used if nothing is provided)
-    pub occurred_at: &'a Option<&'a DateTime<Utc>>,
+    pub occurred_at: Option<DateTime<Utc>>,
     /// Labels that Hook0 will use to route the event
-    pub labels: &'a [(&'a str, &'a Value)],
+    pub labels: Vec<(String, Value)>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -150,11 +158,11 @@ struct FullEvent<'a> {
     pub application_id: Uuid,
     pub event_id: Uuid,
     pub event_type: &'a str,
-    pub payload: Cow<'a, str>,
+    pub payload: &'a str,
     pub payload_content_type: &'a str,
-    pub metadata: &'a Option<&'a [(&'a str, &'a Value)]>,
+    pub metadata: Option<Map<String, Value>>,
     pub occurred_at: DateTime<Utc>,
-    pub labels: &'a [(&'a str, &'a Value)],
+    pub labels: Map<String, Value>,
 }
 
 impl<'a> FullEvent<'a> {
@@ -163,10 +171,7 @@ impl<'a> FullEvent<'a> {
             .event_id
             .map(|uuid| uuid.to_owned())
             .unwrap_or_else(Uuid::new_v4);
-        let occurred_at = event
-            .occurred_at
-            .map(|datetime| datetime.to_owned())
-            .unwrap_or_else(Utc::now);
+        let occurred_at = event.occurred_at.unwrap_or_else(Utc::now);
 
         Self {
             application_id: application_id.to_owned(),
@@ -174,9 +179,12 @@ impl<'a> FullEvent<'a> {
             event_type: event.event_type,
             payload: event.payload.as_base64(),
             payload_content_type: event.payload_content_type,
-            metadata: event.metadata,
+            metadata: event
+                .metadata
+                .as_ref()
+                .map(|items| Map::from_iter(items.iter().cloned())),
             occurred_at,
-            labels: event.labels,
+            labels: Map::from_iter(event.labels.iter().cloned()),
         }
     }
 }
@@ -203,13 +211,16 @@ pub enum Hook0ClientError {
     Url(ParseError),
 
     /// Something went wrong when sending an event to Hook0
-    #[error("Sending event {event_id} failed: {error}")]
+    #[error("Sending event {event_id} failed: {error} [body={}]", body.as_deref().unwrap_or(""))]
     EventSending {
         /// ID of the event
         event_id: Uuid,
 
         /// Error as reported by Reqwest
         error: reqwest::Error,
+
+        /// Body of the HTTP response
+        body: Option<String>,
     },
 }
 
@@ -243,40 +254,40 @@ mod tests {
     #[test]
     fn payload_base64() {
         let b64 = encode(PAYLOAD);
-        let payload = Payload::Base64(&b64);
+        let payload = Payload::from_base64(&b64);
         assert_eq!(
             PAYLOAD,
-            String::from_utf8(decode(payload.as_base64().as_ref()).unwrap()).unwrap()
+            String::from_utf8(decode(payload.as_base64()).unwrap()).unwrap()
         )
     }
 
     #[test]
     fn payload_bin() {
         let bin = PAYLOAD.as_bytes();
-        let payload = Payload::Binary(bin);
+        let payload = Payload::from_binary(bin);
         assert_eq!(
             PAYLOAD,
-            String::from_utf8(decode(payload.as_base64().as_ref()).unwrap()).unwrap()
+            String::from_utf8(decode(payload.as_base64()).unwrap()).unwrap()
         )
     }
 
     #[test]
     fn payload_str() {
-        let payload = Payload::Str(PAYLOAD);
+        let payload = Payload::from_string(PAYLOAD);
         assert_eq!(
             PAYLOAD,
-            String::from_utf8(decode(payload.as_base64().as_ref()).unwrap()).unwrap()
+            String::from_utf8(decode(payload.as_base64()).unwrap()).unwrap()
         )
     }
 
     #[test]
     fn payload_json() {
         let json = json!({ "hook0": PAYLOAD });
-        let payload = Payload::Json(&json);
+        let payload = Payload::from_json(&json);
         assert_eq!(
             json,
             Value::from_str(
-                String::from_utf8(decode(payload.as_base64().as_ref()).unwrap())
+                String::from_utf8(decode(payload.as_base64()).unwrap())
                     .unwrap()
                     .as_str()
             )
