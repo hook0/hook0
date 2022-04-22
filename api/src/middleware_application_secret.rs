@@ -127,7 +127,7 @@ where
                                                 "
                                                     SELECT application__id, name
                                                     FROM event.application_secret
-                                                    WHERE token = $1
+                                                    WHERE deleted_at IS NULL AND token = $1
                                                     LIMIT 1
                                                 ",
                                                 &token
