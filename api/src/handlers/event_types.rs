@@ -1,3 +1,5 @@
+use chrono::Utc;
+use log::error;
 use paperclip::actix::{
     api_v2_operation,
     web::{Data, Json, Path, Query},
@@ -8,6 +10,7 @@ use sqlx::{query, query_as};
 use uuid::Uuid;
 use validator::Validate;
 
+use crate::hook0_client::{EventEventTypeCreated, Hook0ClientEvent};
 use crate::iam::{AuthProof, Role};
 use crate::problems::Hook0Problem;
 
@@ -120,6 +123,25 @@ pub async fn create(
         .map_err(Hook0Problem::from)?;
 
     tx.commit().await.map_err(Hook0Problem::from)?;
+
+    if let Some(hook0_client) = state.hook0_client.as_ref() {
+        let hook0_client_event: Hook0ClientEvent = EventEventTypeCreated {
+            application_id: body.application_id,
+            service_name: event_type.service_name.to_owned(),
+            resource_type_name: event_type.resource_type_name.to_owned(),
+            verb_name: event_type.verb_name.to_owned(),
+            event_type_name: event_type.event_type_name.to_owned(),
+            created_at: Utc::now(),
+            created_by: auth.user().map(|u| u.id),
+        }
+        .into();
+        if let Err(e) = hook0_client
+            .send_event(&hook0_client_event.mk_hook0_event())
+            .await
+        {
+            error!("Hook0ClientError: {e}");
+        };
+    }
 
     Ok(CreatedJson(event_type))
 }
