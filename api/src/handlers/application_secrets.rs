@@ -100,7 +100,7 @@ pub async fn list(
         "
             SELECT name, token, created_at, deleted_at
             FROM event.application_secret
-            WHERE application__id = $1
+            WHERE deleted_at IS NULL AND application__id = $1
             ORDER BY created_at ASC
         ",
         &qs.application_id,
