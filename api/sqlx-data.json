@@ -1051,6 +1051,44 @@
     },
     "query": "\n                SELECT name\n                FROM event.organization\n                WHERE organization__id = $1\n            "
   },
+  "9d71200b2a128a11f538b5f08f6bf140560bbd678315903d2352d1932181e3bb": {
+    "describe": {
+      "columns": [
+        {
+          "name": "name",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "token",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 2,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "deleted_at",
+          "ordinal": 3,
+          "type_info": "Timestamptz"
+        }
+      ],
+      "nullable": [
+        true,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n            SELECT name, token, created_at, deleted_at\n            FROM event.application_secret\n            WHERE deleted_at IS NULL AND application__id = $1\n            ORDER BY created_at ASC\n        "
+  },
   "9ff1f54dc2b8e90b5b42e1578aa58aaba13d41a41821ba4961064142b53bc74a": {
     "describe": {
       "columns": [
@@ -1262,44 +1300,6 @@
       }
     },
     "query": "\n            UPDATE event.application_secret\n            SET name = $1\n            WHERE application__id = $2 AND token = $3\n            RETURNING name, token, created_at, deleted_at\n        "
-  },
-  "f645a1aa41aa3fc4864ac946be3687ca5102a634c108c60ad13ffbd637879542": {
-    "describe": {
-      "columns": [
-        {
-          "name": "name",
-          "ordinal": 0,
-          "type_info": "Text"
-        },
-        {
-          "name": "token",
-          "ordinal": 1,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "created_at",
-          "ordinal": 2,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "deleted_at",
-          "ordinal": 3,
-          "type_info": "Timestamptz"
-        }
-      ],
-      "nullable": [
-        true,
-        false,
-        false,
-        true
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid"
-        ]
-      }
-    },
-    "query": "\n            SELECT name, token, created_at, deleted_at\n            FROM event.application_secret\n            WHERE application__id = $1\n            ORDER BY created_at ASC\n        "
   },
   "f919edffae818023c3d1c43ea0ceb47459cc36dcedb63a573f2648357a4aafec": {
     "describe": {
