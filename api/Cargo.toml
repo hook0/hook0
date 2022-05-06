@@ -16,15 +16,15 @@ actix-files = "0.6.0"
 actix-governor = { git = "https://github.com/AaronErhardt/actix-governor", rev = "07b1d83f037ae751bc0ba0dc105f55e503827bb2", features = ["log"] }
 actix-web = "4.0.1"
 actix-web-middleware-keycloak-auth = { version = "0.4.0", features = ["paperclip_compat"] }
-anyhow = "1.0.56"
+anyhow = "1.0.57"
 base64 = "0.13.0"
 chrono = { version = "0.4.19", features = ["serde"] }
-clap = { version = "3.1.8", features = ["derive", "env", "cargo", "wrap_help"] }
+clap = { version = "3.1.16", features = ["derive", "env", "cargo", "wrap_help"] }
 futures-util = "0.3.21"
 http-api-problem = { version = "0.51.0", features = ["actix-web"] }
 ipnetwork = "0.17.0"
 lazy_static = "1.4.0"
-log = "0.4.16"
+log = "0.4.17"
 nom = "7.1.1"
 nom-regex = "0.2.0"
 paperclip = { version = "0.7.0", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
@@ -32,11 +32,11 @@ rand = { version = "0.8.5", features = ["log"] }
 regex = "1.5.5"
 reqwest = { version = "0.11.10", default-features = false, features = ["rustls-tls", "trust-dns"] }
 sentry-integration = { path = "../sentry-integration" }
-serde = "1.0.136"
-serde_json = "1.0.79"
+serde = "1.0.137"
+serde_json = "1.0.81"
 strum = { version = "0.24.0", features = ["derive"] }
-sqlx = { version = "0.5.11", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "offline", "migrate"] } # runtime-tokio-rustls because https://github.com/launchbadge/sqlx/issues/894#issuecomment-747821912
-thiserror = "1.0.30"
+sqlx = { version = "0.5.13", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "offline", "migrate"] } # runtime-tokio-rustls because https://github.com/launchbadge/sqlx/issues/894#issuecomment-747821912
+thiserror = "1.0.31"
 url = "2.2.2"
 uuid = { version = "0.8.2", features = ["serde"] }
-validator = { version = "0.14.0", features = ["derive", "unic"] }
+validator = { version = "0.15.0", features = ["derive", "unic"] }
