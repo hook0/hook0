@@ -37,6 +37,9 @@ pub fn initialize(
 #[derive(Debug, Clone)]
 pub enum Hook0ClientEvent {
     OrganizationCreated(EventOrganizationCreated),
+    OrganizationUpdated(EventOrganizationUpdated),
+    OrganizationInvited(EventOrganizationInvited),
+    OrganizationRevoked(EventOrganizationRevoked),
     EventTypeCreated(EventEventTypeCreated),
 }
 
@@ -62,6 +65,9 @@ impl Hook0ClientEvent {
 
         match self {
             Self::OrganizationCreated(e) => to_event(e, None),
+            Self::OrganizationUpdated(e) => to_event(e, None),
+            Self::OrganizationInvited(e) => to_event(e, None),
+            Self::OrganizationRevoked(e) => to_event(e, None),
             Self::EventTypeCreated(e @ EventEventTypeCreated { created_at, .. }) => {
                 to_event(e, Some(created_at))
             }
@@ -95,6 +101,83 @@ impl Event for EventOrganizationCreated {
 impl From<EventOrganizationCreated> for Hook0ClientEvent {
     fn from(e: EventOrganizationCreated) -> Self {
         Self::OrganizationCreated(e)
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct EventOrganizationUpdated {
+    pub organization_id: Uuid,
+    pub name: String,
+}
+
+impl Event for EventOrganizationUpdated {
+    fn event_type(&self) -> &'static str {
+        "api.organization.updated"
+    }
+
+    fn labels(&self) -> Vec<(String, Value)> {
+        vec![(
+            "organization".to_owned(),
+            Value::String(self.organization_id.to_string()),
+        )]
+    }
+}
+
+impl From<EventOrganizationUpdated> for Hook0ClientEvent {
+    fn from(e: EventOrganizationUpdated) -> Self {
+        Self::OrganizationUpdated(e)
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct EventOrganizationInvited {
+    pub organization_id: Uuid,
+    pub user_id: Uuid,
+    pub email: String,
+    pub role: String,
+}
+
+impl Event for EventOrganizationInvited {
+    fn event_type(&self) -> &'static str {
+        "api.organization.invited"
+    }
+
+    fn labels(&self) -> Vec<(String, Value)> {
+        vec![(
+            "organization".to_owned(),
+            Value::String(self.organization_id.to_string()),
+        )]
+    }
+}
+
+impl From<EventOrganizationInvited> for Hook0ClientEvent {
+    fn from(e: EventOrganizationInvited) -> Self {
+        Self::OrganizationInvited(e)
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct EventOrganizationRevoked {
+    pub organization_id: Uuid,
+    pub user_id: Uuid,
+}
+
+impl Event for EventOrganizationRevoked {
+    fn event_type(&self) -> &'static str {
+        "api.organization.revoked"
+    }
+
+    fn labels(&self) -> Vec<(String, Value)> {
+        vec![(
+            "organization".to_owned(),
+            Value::String(self.organization_id.to_string()),
+        )]
+    }
+}
+
+impl From<EventOrganizationRevoked> for Hook0ClientEvent {
+    fn from(e: EventOrganizationRevoked) -> Self {
+        Self::OrganizationRevoked(e)
     }
 }
 
