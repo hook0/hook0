@@ -25,6 +25,7 @@ pub enum Hook0Problem {
     OrganizationNameMissing,
     UserAlreadyExist,
     RegistrationDisabled,
+    OrganizationIsNotEmpty,
 
     ApplicationNameMissing,
 
@@ -149,6 +150,13 @@ impl From<Hook0Problem> for Problem {
                 detail: "Registration was disabled by an administrator.".into(),
                 validation: None,
                 status: StatusCode::GONE,
+            },
+            Hook0Problem::OrganizationIsNotEmpty => Problem {
+                id: Hook0Problem::OrganizationIsNotEmpty,
+                title: "Organization is not empty",
+                detail: "Organizations that contain at least an application cannot be deleted; applications must be deleted first.".into(),
+                validation: None,
+                status: StatusCode::CONFLICT,
             },
 
             Hook0Problem::ApplicationNameMissing => Problem {
