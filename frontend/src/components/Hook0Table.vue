@@ -20,10 +20,7 @@ import {AgGridVue} from "@ag-grid-community/vue3";
 import {ClientSideRowModelModule} from "@ag-grid-community/client-side-row-model";
 import {AgGridEvent, ColDef, ICellRendererParams, RowNode} from "@ag-grid-community/core";
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
-
-interface Props {
-  context: any
-}
+import Hook0TableCellCode from '@/components/Hook0TableCellCode.vue';
 
 @Options({
   name: 'hook0-table',
@@ -47,15 +44,14 @@ interface Props {
   },
   components: {
     AgGridVue,
-    Hook0TableCellLink
+    Hook0TableCellLink,
+    Hook0TableCellCode
   }
 })
 
 
 export default class Hook0Table extends Vue {
-
   private domLayout: string | null = null;
-  private sizeColumnsToFit = false;
   private modules = [ClientSideRowModelModule];
   private defaultColDef = {
     resizable: false,
