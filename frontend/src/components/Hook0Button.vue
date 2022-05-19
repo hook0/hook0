@@ -2,7 +2,7 @@
   <a
     class="hook0-button"
     :class="{ loading: loading, 'hook0-button-split': hasSlot('right') || hasSlot('left')}"
-    v-bind="{ ...$props, ...$attrs }"
+    v-bind="omit({ ...$props, ...$attrs })"
     @click="onClick($event)"
     :disabled="loading || disabled"
     :href="_href"
@@ -25,6 +25,8 @@
 import Hook0Icon from '@/components/Hook0Icon.vue';
 import {RouteLocationRaw} from "vue-router";
 import {defineComponent, PropType} from 'vue'
+import {VueWithProps} from "vue-class-component";
+import {omit} from "ramda";
 
 export default defineComponent({
   components: {
@@ -68,6 +70,9 @@ export default defineComponent({
 
   },
   methods: {
+    omit(props: Record<string, any>) {
+      return omit(['onClick'], props);
+    },
     onClick(e: MouseEvent) {
       if (!this.href) {
         e.preventDefault();

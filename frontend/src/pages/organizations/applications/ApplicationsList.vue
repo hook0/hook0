@@ -99,57 +99,55 @@ export default class ApplicationList extends Vue {
 
   private routes = routes;
 
-  private columnDefs: Array<ColDef> = [
-    {
-      field: 'name',
-      suppressMovable: true,
-      headerName: 'Name',
-      cellRenderer: "Hook0TableCellLink",
-      cellRendererParams: {
-        to: (row: Application) => {
-          return {
-            name: routes.ApplicationsDashboard,
-            params: {
-              application_id: row.application_id,
-              organization_id: row.organization_id,
-            }
-          }
-        }
-      }
-
-    }, {
-      field: 'application_id',
-      suppressMovable: true,
-      headerName: 'Id',
-    }, {
-      suppressMovable: true,
-      headerName: 'Options',
-      cellRenderer: "Hook0TableCellLink",
-      cellRendererParams: {
-        value: 'Delete',
-        icon: 'trash',
-        onClick(row: Application) {
-          if (confirm(`Are you sure to delete "${row.name}" application?`)) {
-            ApplicationService.remove(row.application_id)
-              .then(() => {
-                // @TODO notify user of success
-                // eslint-disable-next-line
-                this._forceLoad();
-              })
-              // @TODO proper error management
-              .catch((err: Error) => {
-                alert(err);
-                throw err;
-              });
-          }
-        }
-      }
-    }];
-
 
   data() {
     return {
       applications$: Promise.resolve(),
+      columnDefs: [
+        {
+          field: 'name',
+          suppressMovable: true,
+          headerName: 'Name',
+          cellRenderer: "Hook0TableCellLink",
+          cellRendererParams: {
+            to: (row: Application) => {
+              return {
+                name: routes.ApplicationsDashboard,
+                params: {
+                  application_id: row.application_id,
+                  organization_id: row.organization_id,
+                }
+              }
+            }
+          }
+        }, {
+          field: 'application_id',
+          suppressMovable: true,
+          headerName: 'Id',
+        }, {
+          suppressMovable: true,
+          headerName: 'Options',
+          cellRenderer: "Hook0TableCellLink",
+          cellRendererParams: {
+            value: 'Delete',
+            icon: 'trash',
+            onClick(row: Application) {
+              if (confirm(`Are you sure to delete "${row.name}" application?`)) {
+                ApplicationService.remove(row.application_id)
+                  .then(() => {
+                    // @TODO notify user of success
+                    // eslint-disable-next-line
+                    this._forceLoad();
+                  })
+                  // @TODO proper error management
+                  .catch((err: Error) => {
+                    alert(err);
+                    throw err;
+                  });
+              }
+            }
+          }
+        }] as Array<ColDef>
     }
   }
 

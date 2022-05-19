@@ -1,26 +1,26 @@
 <template>
-  <Promised :promise="event_types$">
+  <Promised :promise="subscriptions$">
     <!-- Use the "pending" slot to display a loading message -->
     <template #pending>
       <hook0-loader></hook0-loader>
     </template>
     <!-- The default scoped slot will be used as the result -->
-    <template #default="event_types">
+    <template #default="subscriptions">
       <hook0-card>
         <hook0-card-header>
           <template #header>
-            Event Types
+            Subscriptions
           </template>
           <template #subtitle>
-            Each event sent through a webhook must have an event type.
+            List all subscriptions created by customers against the application events
           </template>
         </hook0-card-header>
 
-        <hook0-card-content v-if="event_types.length > 0">
+        <hook0-card-content v-if="subscriptions.length > 0">
           <hook0-table
             :context="this"
             :columnDefs="columnDefs"
-            :rowData="event_types"
+            :rowData="subscriptions"
           >
           </hook0-table>
         </hook0-card-content>
@@ -30,10 +30,7 @@
             <hook0-card-content-line type="full-width">
               <template #content>
                 <hook0-text>Your application will send events to Hook0 that will forward these events to registered
-                  subscriptions (webhooks),
-                  each of these event must have
-                  a type (e.g.
-                  "billing.invoice.created"), it's time to create your first event type!
+                  subscriptions (webhooks), it's time to create your first subscription!
                 </hook0-text>
               </template>
             </hook0-card-content-line>
@@ -42,8 +39,8 @@
         </hook0-card-content>
 
         <hook0-card-footer>
-          <hook0-button class="primary" type="button" @click="$router.push({name:routes.EventTypesNew})">Create new
-            event type
+          <hook0-button class="primary" type="button" @click="$router.push({name:routes.SubscriptionsNew})">Create new
+            subscription (webhook)
           </hook0-button>
         </hook0-card-footer>
       </hook0-card>
@@ -68,9 +65,9 @@ import Hook0Input from "@/components/Hook0Input.vue";
 import Hook0Table from "@/components/Hook0Table.vue";
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 import {ColDef} from "@ag-grid-community/core";
-import * as EventTypeService from "./EventTypeService";
+import * as SubscriptionService from "./SubscriptionService";
 import {UUID} from "@/http";
-import {EventType} from "./EventTypeService";
+import {Subscription, Target} from "./SubscriptionService";
 
 @Options({
   components: {
@@ -91,34 +88,63 @@ import {EventType} from "./EventTypeService";
     }
   }
 })
-export default class EventTypesList extends Vue {
-  private event_types$ !: Promise<Array<EventType>>;
+export default class SubscriptionsList extends Vue {
+  private subscriptions$ !: Promise<Array<Subscription>>;
   public application_id: UUID | null = null;
 
 
   data() {
     return {
       routes: routes,
-      event_types$: Promise.resolve(),
+      subscriptions$: Promise.resolve(),
       columnDefs: [
         {
-          field: 'event_type_name',
+          field: 'event_types',
           suppressMovable: true,
-          cellRenderer: "Hook0TableCellCode",
-          minWidth: 360,
           sortable: true,
-          headerName: 'Name'
+          resizable: true,
+          minWidth: 200,
+          headerName: 'event_types'
+        },
+        {
+          field: 'is_enabled',
+          suppressMovable: true,
+          sortable: true,
+          resizable: true,
+          maxWidth: 100,
+          headerName: 'Enabled',
+        }, {
+          field: 'label_key',
+          suppressMovable: true,
+          sortable: true,
+          resizable: true,
+          headerName: 'Label key',
+        }, {
+          field: 'label_value',
+          suppressMovable: true,
+          sortable: true,
+          resizable: true,
+          headerName: 'Label value',
+        }, {
+          field: 'target',
+          suppressMovable: true,
+          sortable: true,
+          headerName: 'Target',
+          minWidth: 500,
+          valueFormatter: (a) => {
+            return JSON.stringify(a.value);
+          }
         }, {
           suppressMovable: true,
-          width: 100,
           headerName: 'Options',
           cellRenderer: "Hook0TableCellLink",
+          maxWidth: 100,
           cellRendererParams: {
             value: 'Delete',
             icon: 'trash',
-            onClick: (row: EventType): void => {
-              if (confirm(`Are you sure to delete "${row.event_type_name}" event?`)) {
-                EventTypeService.remove(this.application_id as string, row.event_type_name)
+            onClick: (row: Subscription): void => {
+              if (confirm(`Are you sure to delete ${row.description ? `"${row.description}"` : 'this'} subscription?`)) {
+                SubscriptionService.remove(this.application_id as string, row.subscription_id)
                   .then(() => {
                     // @TODO notify user of success
                     this._forceLoad();
@@ -137,7 +163,7 @@ export default class EventTypesList extends Vue {
 
   _forceLoad() {
     this.application_id = this.$route.params.application_id as UUID;
-    this.event_types$ = EventTypeService.list(this.application_id);
+    this.subscriptions$ = SubscriptionService.list(this.application_id);
   }
 
   _load() {

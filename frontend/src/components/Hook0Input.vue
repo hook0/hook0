@@ -1,15 +1,20 @@
 <template>
-  <div>
-    <input v-bind="{ ...$props, ...$attrs }" class="hook0-input"
+  <div :class="$attrs.class">
+    <input v-bind="{ ...omit(['class'], $props), ...$attrs }" class="hook0-input"
            :value="$attrs.modelValue"
            @input="$emit('update:modelValue', $event.target.value)"/>
-    <p class="hook0-input--help-text" v-if="hasSlot('helpText')">
-      <slot name="helpText"></slot>
-    </p>
+
+    <div v-if="hasSlot('helpText')">
+      <hook0-text class="helpText">
+        <slot name="helpText"></slot>
+      </hook0-text>
+    </div>
   </div>
 </template>
 
 <script lang="ts">
+
+import {omit} from 'ramda';
 import {Vue, Options} from 'vue-class-component';
 
 @Options({
@@ -28,15 +33,17 @@ export default class Hook0Input extends Vue {
   hasSlot(name = 'default'): boolean {
     return !!this.$slots[name];
   }
+
+  omit = omit;
 };
 </script>
 
 <style lang="scss" scoped>
 .hook0-input {
-  @apply max-w-lg block w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:max-w-xs sm:text-sm border-gray-300 rounded-md;
+  @apply block w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm border-gray-300 rounded-md;
 }
 
-.hook0-input--help-text {
-  @apply mt-2 text-sm text-gray-500;
+.hook0-input[type=checkbox] {
+  @apply focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded;
 }
 </style>

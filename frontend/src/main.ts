@@ -29,7 +29,7 @@ import {
   faChevronRight, faCircleNotch, faPlus,
   faRocket,
   faSitemap,
-  faSpinner, faTrash, faUserCircle
+  faSpinner, faTrash, faUserCircle, faArrowsRotate, faArrowUpRightFromSquare, faMinus
 } from '@fortawesome/free-solid-svg-icons';
 import {FontAwesomeIcon} from '@fortawesome/vue-fontawesome';
 
@@ -50,7 +50,11 @@ library.add(faFolderTree,
   faLink,
   faBook,
   faFileLines,
-  faGear, faChevronDown, faRocket, faUserCircle, faPlus, faTrash, faSitemap, faSpinner, faCircleNotch, faChevronLeft, faChevronRight);
+  faArrowsRotate,
+  faArrowUpRightFromSquare,
+  faMinus,
+  faPlus,
+  faGear, faChevronDown, faRocket, faUserCircle, faTrash, faSitemap, faSpinner, faCircleNotch, faChevronLeft, faChevronRight);
 app.component('font-awesome-icon', FontAwesomeIcon);
 
 // @ts-ignore

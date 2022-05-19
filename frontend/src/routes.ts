@@ -12,6 +12,9 @@ import EventTypesList from '@/pages/organizations/applications/event_types/Event
 import EventTypesNew from '@/pages/organizations/applications/event_types/EventTypesNew.vue';
 import Home from '@/Home.vue';
 import ComingSoon from "@/pages/ComingSoon.vue";
+import SubscriptionsList from "@/pages/organizations/applications/subscriptions/SubscriptionsList.vue";
+import SubscriptionsEdit from "@/pages/organizations/applications/subscriptions/SubscriptionsEdit.vue";
+import ApplicationSecretsList from "@/pages/organizations/applications/application_secrets/ApplicationSecretsList.vue";
 
 export type Hook0Routes = string;
 
@@ -27,8 +30,16 @@ export const routes: Record<Hook0Routes, string> = {
   ApplicationsDetail: 'ApplicationsDetail',
   ApplicationsNew: 'ApplicationsNew',
 
+  ApplicationSecretsList: 'ApplicationSecretsList',
+  ApplicationSecretsDetail: 'ApplicationSecretsDetail',
+  ApplicationSecretsNew: 'ApplicationSecretsNew',
+
   EventTypesList: 'EventTypesList',
   EventTypesNew: 'EventTypesNew',
+
+  SubscriptionsList: 'SubscriptionsList',
+  SubscriptionsNew: 'SubscriptionsNew',
+  SubscriptionsDetail: 'SubscriptionsDetail',
 
   WebhooksList: 'WebhooksList',
   LogsList: 'LogsList',
@@ -78,6 +89,13 @@ export default [
     path: '/organizations/:organization_id/applications/:application_id/settings',
     component: ApplicationsEdit,
   },
+
+  {
+    name: routes.ApplicationSecretsList,
+    path: '/organizations/:organization_id/applications/:application_id/application_secrets',
+    component: ApplicationSecretsList,
+  },
+
   {
     name: routes.EventTypesList,
     path: '/organizations/:organization_id/applications/:application_id/event_types',
@@ -91,9 +109,19 @@ export default [
   },
 
   {
-    name: routes.WebhooksList,
-    path: '/organizations/:organization_id/applications/:application_id/webhooks',
-    component: ComingSoon,
+    name: routes.SubscriptionsList,
+    path: '/organizations/:organization_id/applications/:application_id/subscriptions',
+    component: SubscriptionsList,
+  },
+  {
+    name: routes.SubscriptionsNew,
+    path: '/organizations/:organization_id/applications/:application_id/subscriptions/new',
+    component: SubscriptionsEdit,
+  },
+  {
+    name: routes.SubscriptionsDetail,
+    path: '/organizations/:organization_id/applications/:application_id/subscriptions/:subscription_id',
+    component: SubscriptionsEdit,
   },
   {
     name: routes.LogsList,
