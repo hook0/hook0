@@ -253,6 +253,71 @@ impl KeycloakApi {
         Ok(id)
     }
 
+    pub async fn remove_organization(&self, organization_id: &Uuid) -> Result<(), Hook0Problem> {
+        let main_group_name = format!("{}{}", ORGA_GROUP_PREFIX, &organization_id);
+        let main_group_id = self.get_group_by_name(&main_group_name).await?;
+
+        self.remove_group(&main_group_id).await?;
+
+        Ok(())
+    }
+
+    async fn get_group_by_name(&self, group_name: &str) -> Result<Uuid, Hook0Problem> {
+        let operation = format!("getting ID of '{}' group in Keycloak", &group_name);
+        let group_url = self.mk_url(&["groups"])?;
+
+        let res = self
+            .client
+            .get(group_url.as_str())
+            .query(&[("search", group_name)])
+            .send()
+            .await
+            .map_err(|e| {
+                error!("Error while {}: {}", operation, &e);
+                Hook0Problem::InternalServerError
+            })?
+            .error_for_status()
+            .map_err(|e| {
+                error!("Error while {}: {}", operation, &e);
+                Hook0Problem::InternalServerError
+            })?
+            .json::<Vec<GroupLookup>>()
+            .await
+            .map_err(|e| {
+                error!("Error while {}: {}", operation, &e);
+                Hook0Problem::InternalServerError
+            })?;
+
+        match res.first() {
+            Some(group) if res.len() == 1 => Ok(group.id),
+            _ => {
+                error!("Cannot find exactly 1 group when {}", operation);
+                Err(Hook0Problem::InternalServerError)
+            }
+        }
+    }
+
+    async fn remove_group(&self, group_id: &Uuid) -> Result<(), Hook0Problem> {
+        let operation = format!("removing '{}' group in Keycloak", &group_id);
+        let group_url = self.mk_url(&["groups", group_id.to_string().as_str()])?;
+
+        self.client
+            .delete(group_url.as_str())
+            .send()
+            .await
+            .map_err(|e| {
+                error!("Error while {}: {}", operation, &e);
+                Hook0Problem::InternalServerError
+            })?
+            .error_for_status()
+            .map_err(|e| {
+                error!("Error while {}: {}", operation, &e);
+                Hook0Problem::InternalServerError
+            })?;
+
+        Ok(())
+    }
+
     pub async fn create_user(
         &self,
         email: &str,
