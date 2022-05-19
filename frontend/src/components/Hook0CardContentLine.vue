@@ -1,7 +1,9 @@
 <template>
   <div class="hook0-card-content-line" :class="type">
-    <dt class="hook0-card-content-line-label">
-      <slot name="label"></slot>
+    <dt>
+      <hook0-text class="label">
+        <slot name="label"></slot>
+      </hook0-text>
     </dt>
     <dd class="hook0-card-content-line-content">
       <slot name="content"></slot>
@@ -17,7 +19,7 @@ import {Options, Vue} from "vue-class-component";
     type: {
       type: String,
       default: 'split',
-      validator: (v: string) => ['split', 'full-width', 'split-content-component', 'stacked'].includes(v),
+      validator: (v: string) => ['split', 'full-width', 'split-content-component', 'stacked', 'columns'].includes(v),
     }
   },
 })
@@ -32,6 +34,10 @@ export default class Hook0CardContentLine extends Vue {
 
   &.stacked {
     @apply grid-rows-2;
+  }
+
+  &.columns .hook0-card-content-line-content {
+    @apply grid grid-flow-col auto-cols-auto gap-x-7;
   }
 
   &.split,
@@ -50,10 +56,6 @@ export default class Hook0CardContentLine extends Vue {
       @apply pt-0 mt-0;
     }
   }
-}
-
-.hook0-card-content-line-label {
-  @apply text-sm font-medium text-gray-500;
 }
 
 .hook0-card-content-line-content {
