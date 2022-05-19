@@ -13,7 +13,7 @@ keywords = ["webhooks", "webhook", "webhook server", "events"]
 [dependencies]
 actix-cors = "0.6.1"
 actix-files = "0.6.0"
-actix-governor = { git = "https://github.com/AaronErhardt/actix-governor", rev = "07b1d83f037ae751bc0ba0dc105f55e503827bb2", features = ["log"] }
+actix-governor = { git = "https://github.com/AaronErhardt/actix-governor", rev = "d63c1611e613c70e76e8afc14adae01b50d00229", features = ["log"] }
 actix-web = "4.0.1"
 actix-web-middleware-keycloak-auth = { version = "0.4.0", features = ["paperclip_compat"] }
 anyhow = "1.0.57"
@@ -21,6 +21,7 @@ base64 = "0.13.0"
 chrono = { version = "0.4.19", features = ["serde"] }
 clap = { version = "3.1.16", features = ["derive", "env", "cargo", "wrap_help"] }
 futures-util = "0.3.21"
+governor = "0.4.2"
 http-api-problem = { version = "0.51.0", features = ["actix-web"] }
 ipnetwork = "0.17.0"
 lazy_static = "1.4.0"
@@ -34,8 +35,8 @@ reqwest = { version = "0.11.10", default-features = false, features = ["rustls-t
 sentry-integration = { path = "../sentry-integration" }
 serde = "1.0.137"
 serde_json = "1.0.81"
-strum = { version = "0.24.0", features = ["derive"] }
 sqlx = { version = "0.5.13", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "offline", "migrate"] } # runtime-tokio-rustls because https://github.com/launchbadge/sqlx/issues/894#issuecomment-747821912
+strum = { version = "0.24.0", features = ["derive"] }
 thiserror = "1.0.31"
 url = "2.2.2"
 uuid = { version = "0.8.2", features = ["serde"] }
