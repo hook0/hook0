@@ -10,141 +10,42 @@
         </template>
 
       </hook0-card-header>
-      <hook0-card-content>
-        <hook0-card-content-line>
-          <template #label>
-            <hook0-text>Event Type</hook0-text>
-          </template>
-          <template #content>
-            <div class="flex flex-row justify-start items-baseline">
-              <hook0-input
-                type="text"
-                v-model="event_type.service"
-                placeholder="billing"
-                required
-                class="flex-grow-1"
-              >
-              </hook0-input>
-              <hook0-text class="bold flex-grow-0">.</hook0-text>
-              <hook0-input
-                type="text"
-                v-model="event_type.resource_type"
-                placeholder="invoice"
-                required
-                class="flex-grow-1"
-              >
-              </hook0-input>
-              <hook0-text class="bold flex-grow-0">.</hook0-text>
-              <hook0-input
-                type="text"
-                v-model="event_type.verb"
-                placeholder="created"
-                required
-                class="flex-grow-1"
-              >
-              </hook0-input>
-            </div>
-          </template>
-        </hook0-card-content-line>
-        <hook0-card-content-line>
-          <template #content>
-            <hook0-text class="block">An event is something that has happened. In the past.</hook0-text>
-            <hook0-text class="mt-2">Event should be in the form of:</hook0-text>
-            <hook0-text class="bold">&lt;service&gt;.&lt;resourceType&gt;.&lt;verb_past_tense&gt;
-            </hook0-text>
 
-            <!--            https://cloud.google.com/iam/docs/permissions-reference -->
-            <hook0-text class="mt-4 block bold">Service type examples</hook0-text>
-
-            <hook0-list>
-              <hook0-list-item>
-                <template #left>billing</template>
-              </hook0-list-item>
-              <hook0-list-item>
-                <template #left>chat</template>
-              </hook0-list-item>
-              <hook0-list-item>
-                <template #left>contacts</template>
-              </hook0-list-item>
-              <hook0-list-item>
-                <template #left>connectors</template>
-              </hook0-list-item>
-              <hook0-list-item>
-                <template #left>file</template>
-              </hook0-list-item>
-              <hook0-list-item>
-                <template #left>iam</template>
-              </hook0-list-item>
-              <hook0-list-item>
-                <template #left>iap</template>
-              </hook0-list-item>
-              <hook0-list-item>
-                <template #left>integrations</template>
-              </hook0-list-item>
-              <hook0-list-item>
-                <template #left>logging</template>
-              </hook0-list-item>
-              <hook0-list-item>
-                <template #left>monitoring</template>
-              </hook0-list-item>
-              <hook0-list-item>
-                <template #left>storage</template>
-              </hook0-list-item>
-              <hook0-list-item>
-                <template #left>workflows</template>
-              </hook0-list-item>
-            </hook0-list>
-
-            <hook0-text class="mt-4 block bold">Resource type examples</hook0-text>
-            <hook0-list>
-              <hook0-list-item>
-                <template #left>project</template>
-              </hook0-list-item>
-              <hook0-list-item>
-                <template #left>action</template>
-              </hook0-list-item>
-              <hook0-list-item>
-                <template #left>comment</template>
-              </hook0-list-item>
-              <hook0-list-item>
-                <template #left>collaborator</template>
-              </hook0-list-item>
-              <hook0-list-item>
-                <template #left>teammember</template>
-              </hook0-list-item>
-            </hook0-list>
-
-            <hook0-text class="mt-4 block bold">Verb examples</hook0-text>
-            <hook0-list>
-              <hook0-list-item>
-                <template #left>created</template>
-              </hook0-list-item>
-              <hook0-list-item>
-                <template #left>updated</template>
-              </hook0-list-item>
-              <hook0-list-item>
-                <template #left>deleted</template>
-              </hook0-list-item>
-              <hook0-list-item>
-                <template #left>copied</template>
-              </hook0-list-item>
-              <hook0-list-item>
-                <template #left>versioned</template>
-              </hook0-list-item>
-              <hook0-list-item>
-                <template #left>executed</template>
-              </hook0-list-item>
-              <hook0-list-item>
-                <template #left>completed</template>
-              </hook0-list-item>
-            </hook0-list>
-
-
-          </template>
-        </hook0-card-content-line>
-
-      </hook0-card-content>
-
+      <hook0-card-content-line>
+        <template #label>
+          <hook0-text>Event Type</hook0-text>
+        </template>
+        <template #content>
+          <div class="flex flex-row justify-start items-baseline">
+            <hook0-input
+              type="text"
+              v-model="event_type.service"
+              placeholder="billing"
+              required
+              class="flex-grow-1"
+            >
+            </hook0-input>
+            <hook0-text class="bold flex-grow-0">.</hook0-text>
+            <hook0-input
+              type="text"
+              v-model="event_type.resource_type"
+              placeholder="invoice"
+              required
+              class="flex-grow-1"
+            >
+            </hook0-input>
+            <hook0-text class="bold flex-grow-0">.</hook0-text>
+            <hook0-input
+              type="text"
+              v-model="event_type.verb"
+              placeholder="created"
+              required
+              class="flex-grow-1"
+            >
+            </hook0-input>
+          </div>
+        </template>
+      </hook0-card-content-line>
       <hook0-card-content v-if="alert.visible">
         <hook0-alert :type="alert.type" :title="alert.title" :description="alert.description"></hook0-alert>
       </hook0-card-content>
@@ -152,6 +53,127 @@
         <hook0-button class="secondary" type="button" @click="$router.back()">Cancel</hook0-button>
         <hook0-button class="primary" type="button" @click="create($event)">Create event type
         </hook0-button>
+      </hook0-card-footer>
+    </hook0-card>
+
+    <hook0-card>
+      <hook0-card-content>
+        <hook0-card-content-line type="full-width">
+          <template #content>
+            <hook0-text class="block">An event is something that has happened. In the past.</hook0-text>
+            <hook0-text class="mt-2">Event should be in the form of:</hook0-text>
+            <hook0-text class="code"> &lt;service&gt;.&lt;resourceType&gt;.&lt;verb&gt;
+            </hook0-text>
+          </template>
+        </hook0-card-content-line>
+        <hook0-card-content-line type="columns">
+          <template #content>
+            <div>
+              <!--            https://cloud.google.com/iam/docs/permissions-reference -->
+              <hook0-text class="mt-4 block bold">
+                <hook0-text class="code">&lt;service&gt;</hook0-text>
+                examples
+              </hook0-text>
+
+              <hook0-list>
+                <hook0-list-item>
+                  <template #left>billing</template>
+                </hook0-list-item>
+                <hook0-list-item>
+                  <template #left>chat</template>
+                </hook0-list-item>
+                <hook0-list-item>
+                  <template #left>contacts</template>
+                </hook0-list-item>
+                <hook0-list-item>
+                  <template #left>connectors</template>
+                </hook0-list-item>
+                <hook0-list-item>
+                  <template #left>file</template>
+                </hook0-list-item>
+                <hook0-list-item>
+                  <template #left>iam</template>
+                </hook0-list-item>
+                <hook0-list-item>
+                  <template #left>iap</template>
+                </hook0-list-item>
+                <hook0-list-item>
+                  <template #left>integrations</template>
+                </hook0-list-item>
+                <hook0-list-item>
+                  <template #left>logging</template>
+                </hook0-list-item>
+                <hook0-list-item>
+                  <template #left>monitoring</template>
+                </hook0-list-item>
+                <hook0-list-item>
+                  <template #left>storage</template>
+                </hook0-list-item>
+                <hook0-list-item>
+                  <template #left>workflows</template>
+                </hook0-list-item>
+              </hook0-list>
+            </div>
+
+            <div>
+              <hook0-text class="mt-4 block bold">
+                <hook0-text class="code">&lt;resourceType&gt;</hook0-text>
+                examples
+              </hook0-text>
+              <hook0-list>
+                <hook0-list-item>
+                  <template #left>project</template>
+                </hook0-list-item>
+                <hook0-list-item>
+                  <template #left>action</template>
+                </hook0-list-item>
+                <hook0-list-item>
+                  <template #left>comment</template>
+                </hook0-list-item>
+                <hook0-list-item>
+                  <template #left>collaborator</template>
+                </hook0-list-item>
+                <hook0-list-item>
+                  <template #left>teammember</template>
+                </hook0-list-item>
+              </hook0-list>
+            </div>
+
+            <div>
+              <hook0-text class="mt-4 block bold">
+                <hook0-text class="code">&lt;verb&gt;</hook0-text>
+                examples
+              </hook0-text>
+              <hook0-list>
+                <hook0-list-item>
+                  <template #left>created</template>
+                </hook0-list-item>
+                <hook0-list-item>
+                  <template #left>updated</template>
+                </hook0-list-item>
+                <hook0-list-item>
+                  <template #left>deleted</template>
+                </hook0-list-item>
+                <hook0-list-item>
+                  <template #left>copied</template>
+                </hook0-list-item>
+                <hook0-list-item>
+                  <template #left>versioned</template>
+                </hook0-list-item>
+                <hook0-list-item>
+                  <template #left>executed</template>
+                </hook0-list-item>
+                <hook0-list-item>
+                  <template #left>completed</template>
+                </hook0-list-item>
+              </hook0-list>
+            </div>
+
+
+          </template>
+        </hook0-card-content-line>
+      </hook0-card-content>
+      <hook0-card-footer>
       </hook0-card-footer>
     </hook0-card>
   </form>
@@ -194,7 +216,7 @@ export default class EventTypesNew extends Vue {
     e.stopImmediatePropagation();
 
     this.alert.visible = false; // reset alert
-    
+
     this.event_type.application_id = this.$route.params.application_id as UUID;
 
     EventTypeService.create(this.event_type).then(async (_resp: any) => {

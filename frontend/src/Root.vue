@@ -95,25 +95,13 @@ import Hook0LoginMenu from "@/components/Hook0LoginMenu.vue";
         // @ts-ignore
         // eslint-disable-next-line
         this.$route.params.organization_id && this.$route.params.application_id ?
-          [{
-            name: "Event Types",
-            icon: 'folder-tree',
-            route: {
-              name: routes.EventTypesList,
-              // @ts-ignore
-              params: {
-                // eslint-disable-next-line
-                organization_id: this.$route.params.organization_id,
-                // eslint-disable-next-line
-                application_id: this.$route.params.application_id,
-              }
-            }
-          },
+          [
             {
-              name: "Webhooks",
-              icon: 'link',
+              name: "API Keys",
+              icon: 'folder-tree',
               route: {
-                name: routes.WebhooksList,
+                name: routes.ApplicationSecretsList,
+                // @ts-ignore
                 params: {
                   // eslint-disable-next-line
                   organization_id: this.$route.params.organization_id,
@@ -123,7 +111,48 @@ import Hook0LoginMenu from "@/components/Hook0LoginMenu.vue";
               }
             },
             {
-              name: "Logs",
+              name: "Subscriptions",
+              icon: 'link',
+              route: {
+                name: routes.SubscriptionsList,
+                params: {
+                  // eslint-disable-next-line
+                  organization_id: this.$route.params.organization_id,
+                  // eslint-disable-next-line
+                  application_id: this.$route.params.application_id,
+                }
+              }
+            },
+            {
+              name: "Event Types",
+              icon: 'folder-tree',
+              route: {
+                name: routes.EventTypesList,
+                // @ts-ignore
+                params: {
+                  // eslint-disable-next-line
+                  organization_id: this.$route.params.organization_id,
+                  // eslint-disable-next-line
+                  application_id: this.$route.params.application_id,
+                }
+              }
+            },
+            {
+              name: "Events",
+              icon: 'file-lines',
+              route: {
+                name: routes.LogsList,
+                params: {
+                  // eslint-disable-next-line
+                  organization_id: this.$route.params.organization_id,
+                  // eslint-disable-next-line
+                  application_id: this.$route.params.application_id,
+                }
+              }
+            },
+
+            {
+              name: "Request Attempts",
               icon: 'file-lines',
               route: {
                 name: routes.LogsList,
