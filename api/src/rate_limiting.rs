@@ -3,6 +3,7 @@ use actix_governor::{
 };
 use actix_web::middleware::Condition;
 use actix_web::HttpMessage;
+use governor::middleware::NoOpMiddleware;
 use ipnetwork::IpNetwork;
 use log::warn;
 
@@ -15,9 +16,9 @@ pub struct Hook0RateLimiters {
     disable_api_rate_limiting_global: bool,
     disable_api_rate_limiting_ip: bool,
     disable_api_rate_limiting_token: bool,
-    global: GovernorConfig<GlobalKeyExtractor>,
-    ip: GovernorConfig<UserIpKeyExtractor>,
-    token: GovernorConfig<TokenKeyExtractor>,
+    global: GovernorConfig<GlobalKeyExtractor, NoOpMiddleware>,
+    ip: GovernorConfig<UserIpKeyExtractor, NoOpMiddleware>,
+    token: GovernorConfig<TokenKeyExtractor, NoOpMiddleware>,
 }
 
 impl Hook0RateLimiters {
@@ -78,21 +79,21 @@ impl Hook0RateLimiters {
         }
     }
 
-    pub fn global(&self) -> Condition<Governor<GlobalKeyExtractor>> {
+    pub fn global(&self) -> Condition<Governor<GlobalKeyExtractor, NoOpMiddleware>> {
         Condition::new(
             !self.disable_api_rate_limiting && !self.disable_api_rate_limiting_global,
             Governor::new(&self.global),
         )
     }
 
-    pub fn ip(&self) -> Condition<Governor<UserIpKeyExtractor>> {
+    pub fn ip(&self) -> Condition<Governor<UserIpKeyExtractor, NoOpMiddleware>> {
         Condition::new(
             !self.disable_api_rate_limiting && !self.disable_api_rate_limiting_ip,
             Governor::new(&self.ip),
         )
     }
 
-    pub fn token(&self) -> Condition<Governor<TokenKeyExtractor>> {
+    pub fn token(&self) -> Condition<Governor<TokenKeyExtractor, NoOpMiddleware>> {
         Condition::new(
             !self.disable_api_rate_limiting && !self.disable_api_rate_limiting_token,
             Governor::new(&self.token),
