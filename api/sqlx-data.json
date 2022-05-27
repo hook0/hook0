@@ -123,74 +123,6 @@
     },
     "query": "\n            WITH subs AS (\n                SELECT\n                    s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.label_key, s.label_value, s.target__id, s.created_at,\n                    CASE WHEN length((array_agg(set.event_type__name))[1]) > 0\n                        THEN array_agg(set.event_type__name)\n                        ELSE ARRAY[]::text[] END AS event_types\n                FROM webhook.subscription AS s\n                LEFT JOIN webhook.subscription__event_type AS set ON set.subscription__id = s.subscription__id\n                WHERE s.application__id = $1\n                GROUP BY s.subscription__id\n                ORDER BY s.created_at ASC\n            ), targets AS (\n                SELECT target__id, jsonb_build_object(\n                    'type', replace(tableoid::regclass::text, 'webhook.target_', ''),\n                    'method', method,\n                    'url', url,\n                    'headers', headers\n                ) AS target_json FROM webhook.target_http\n                WHERE target__id IN (SELECT target__id FROM subs)\n            )\n            SELECT subs.subscription__id AS \"subscription__id!\", subs.is_enabled AS \"is_enabled!\", subs.description, subs.secret AS \"secret!\", subs.metadata AS \"metadata!\", subs.label_key AS \"label_key!\", subs.label_value AS \"label_value!\", subs.created_at AS \"created_at!\", subs.event_types, targets.target_json\n            FROM subs\n            INNER JOIN targets ON subs.target__id = targets.target__id\n        "
   },
-  "0a63e2aa21baaa1f9be1ae2d09f4d8a17e8006a45157a243f719b4d00b9fd2de": {
-    "describe": {
-      "columns": [
-        {
-          "name": "event__id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "event_type__name",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "payload_content_type__name",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "ip",
-          "ordinal": 3,
-          "type_info": "Inet"
-        },
-        {
-          "name": "metadata",
-          "ordinal": 4,
-          "type_info": "Jsonb"
-        },
-        {
-          "name": "occurred_at",
-          "ordinal": 5,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "received_at",
-          "ordinal": 6,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "application_secret__token",
-          "ordinal": 7,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "labels",
-          "ordinal": 8,
-          "type_info": "Jsonb"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        true,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid"
-        ]
-      }
-    },
-    "query": "\n                SELECT event__id, event_type__name, payload_content_type__name, ip, metadata, occurred_at, received_at, application_secret__token, labels\n                FROM event.event\n                WHERE application__id = $1\n                ORDER BY received_at DESC\n                LIMIT 100\n            "
-  },
   "0bdbd8041fda6750113c1b50c28e5b827628cf5dec94c63f666ed62a0efea60d": {
     "describe": {
       "columns": [
@@ -443,6 +375,81 @@
     },
     "query": "\n                    DELETE FROM webhook.subscription__event_type\n                    WHERE subscription__id = $1\n                "
   },
+  "236fad02f803acf8e1aee1a8782c6c08959b3163d73afd35a0e3dbd7dd83b016": {
+    "describe": {
+      "columns": [
+        {
+          "name": "event__id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "event_type__name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "payload",
+          "ordinal": 2,
+          "type_info": "Bytea"
+        },
+        {
+          "name": "payload_content_type",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "ip",
+          "ordinal": 4,
+          "type_info": "Inet"
+        },
+        {
+          "name": "metadata",
+          "ordinal": 5,
+          "type_info": "Jsonb"
+        },
+        {
+          "name": "occurred_at",
+          "ordinal": 6,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "received_at",
+          "ordinal": 7,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "application_secret__token",
+          "ordinal": 8,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "labels",
+          "ordinal": 9,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n                SELECT event__id, event_type__name, payload, payload_content_type, ip, metadata, occurred_at, received_at, application_secret__token, labels\n                FROM event.event\n                WHERE application__id = $1 AND event__id = $2\n            "
+  },
   "302abef8cc402caebdbcea8da9d02d81ea9e98601a79785baf6347d9902b9993": {
     "describe": {
       "columns": [],
@@ -454,6 +461,74 @@
       }
     },
     "query": "DELETE FROM event.application WHERE application__id = $1"
+  },
+  "361cae7a7162277ee9a0cfeae7a3109c33168d8e468914c0f7e0438dddb6ccc1": {
+    "describe": {
+      "columns": [
+        {
+          "name": "event__id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "event_type__name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "payload_content_type",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "ip",
+          "ordinal": 3,
+          "type_info": "Inet"
+        },
+        {
+          "name": "metadata",
+          "ordinal": 4,
+          "type_info": "Jsonb"
+        },
+        {
+          "name": "occurred_at",
+          "ordinal": 5,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "received_at",
+          "ordinal": 6,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "application_secret__token",
+          "ordinal": 7,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "labels",
+          "ordinal": 8,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n                SELECT event__id, event_type__name, payload_content_type, ip, metadata, occurred_at, received_at, application_secret__token, labels\n                FROM event.event\n                WHERE application__id = $1\n                ORDER BY received_at DESC\n                LIMIT 100\n            "
   },
   "3c80dc303c2b9edef6646c3fc526acd63ea830f5b62f8007fe371ffbe3c14876": {
     "describe": {
@@ -493,26 +568,6 @@
       }
     },
     "query": "\n            INSERT INTO event.application_secret (application__id, name)\n            VALUES ($1, $2)\n            RETURNING name, token, created_at, deleted_at\n        "
-  },
-  "3f75b912a2a559696fd5db26690e06d81b8bc92f5c7b895e113f3f3cea95a090": {
-    "describe": {
-      "columns": [
-        {
-          "name": "nb",
-          "ordinal": 0,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "\n                SELECT COUNT(*) AS nb\n                FROM event.payload_content_type\n                WHERE payload_content_type__name = $1\n            "
   },
   "412545c2c852481f4cd920b70a4216666b3f0713a7c2cbd026b293e912f0b87e": {
     "describe": {
@@ -622,6 +677,47 @@
       }
     },
     "query": "\n            SELECT name\n            FROM event.organization\n            WHERE organization__id = $1\n        "
+  },
+  "529bfeaf4cfc68d98dfb29109963d6f4c4133c715022100de30d2d1652796c93": {
+    "describe": {
+      "columns": [
+        {
+          "name": "application_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "event_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "received_at",
+          "ordinal": 2,
+          "type_info": "Timestamptz"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "Text",
+          "Bytea",
+          "Text",
+          "Inet",
+          "Jsonb",
+          "Timestamptz",
+          "Uuid",
+          "Jsonb"
+        ]
+      }
+    },
+    "query": "\n                INSERT INTO event.event (application__id, event__id, event_type__name, payload, payload_content_type, ip, metadata, occurred_at, received_at, application_secret__token, labels)\n                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, statement_timestamp(), $9, $10)\n                RETURNING application__id AS application_id, event__id AS event_id, received_at\n            "
   },
   "5540fa0559499aed6d7e585309a22362d97cbc8023f0d037aaecbef1f8de4202": {
     "describe": {
@@ -1141,47 +1237,6 @@
     },
     "query": "\n            SELECT application__id AS application_id, organization__id AS organization_id, name\n            FROM event.application\n            WHERE application__id = $1\n        "
   },
-  "a73cc6a7b828f03c954ebc10d7a62651e1cb3604ef9114801f588514a63eab80": {
-    "describe": {
-      "columns": [
-        {
-          "name": "application_id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "event_id",
-          "ordinal": 1,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "received_at",
-          "ordinal": 2,
-          "type_info": "Timestamptz"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Uuid",
-          "Text",
-          "Bytea",
-          "Text",
-          "Inet",
-          "Jsonb",
-          "Timestamptz",
-          "Uuid",
-          "Jsonb"
-        ]
-      }
-    },
-    "query": "\n                        INSERT INTO event.event (application__id, event__id, event_type__name, payload, payload_content_type__name, ip, metadata, occurred_at, received_at, application_secret__token, labels)\n                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, statement_timestamp(), $9, $10)\n                        RETURNING application__id AS application_id, event__id AS event_id, received_at\n                    "
-  },
   "b5d4abddfdeae1cd7851e5e90d8e296a1855e69cba499f3238913cf8b2f6e5da": {
     "describe": {
       "columns": [
@@ -1320,81 +1375,6 @@
       }
     },
     "query": "\n            UPDATE event.application_secret\n            SET name = $1\n            WHERE application__id = $2 AND token = $3\n            RETURNING name, token, created_at, deleted_at\n        "
-  },
-  "f919edffae818023c3d1c43ea0ceb47459cc36dcedb63a573f2648357a4aafec": {
-    "describe": {
-      "columns": [
-        {
-          "name": "event__id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "event_type__name",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "payload",
-          "ordinal": 2,
-          "type_info": "Bytea"
-        },
-        {
-          "name": "payload_content_type__name",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "ip",
-          "ordinal": 4,
-          "type_info": "Inet"
-        },
-        {
-          "name": "metadata",
-          "ordinal": 5,
-          "type_info": "Jsonb"
-        },
-        {
-          "name": "occurred_at",
-          "ordinal": 6,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "received_at",
-          "ordinal": 7,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "application_secret__token",
-          "ordinal": 8,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "labels",
-          "ordinal": 9,
-          "type_info": "Jsonb"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        true,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Uuid"
-        ]
-      }
-    },
-    "query": "\n                SELECT event__id, event_type__name, payload, payload_content_type__name, ip, metadata, occurred_at, received_at, application_secret__token, labels\n                FROM event.event\n                WHERE application__id = $1 AND event__id = $2\n            "
   },
   "fdf3486340176c6d2fd5f54b0cd94b3bf93ef6ece1acd8d0b1f7756cd31201ba": {
     "describe": {
