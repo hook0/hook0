@@ -141,7 +141,7 @@ import Hook0LoginMenu from "@/components/Hook0LoginMenu.vue";
               name: "Events",
               icon: 'file-lines',
               route: {
-                name: routes.LogsList,
+                name: routes.EventsList,
                 params: {
                   // eslint-disable-next-line
                   organization_id: this.$route.params.organization_id,
@@ -177,10 +177,22 @@ import Hook0LoginMenu from "@/components/Hook0LoginMenu.vue";
                   application_id: this.$route.params.application_id,
                 }
               }
-            },]
-          : [])
-        .concat(
-          [{
+            },
+            {
+              name: "API Documentation",
+              icon: 'gear',
+              route: {
+                name: routes.APIDocumentationForApplication,
+                // @ts-ignore
+                params: {
+                  // eslint-disable-next-line
+                  organization_id: this.$route.params.organization_id,
+                  // eslint-disable-next-line
+                  application_id: this.$route.params.application_id,
+                }
+              }
+            }]
+          : [{
             name: "API Documentation",
             icon: 'book',
             route: {

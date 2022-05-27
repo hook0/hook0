@@ -12,7 +12,7 @@
     </template>
     <template #default>
       {{
-        params.colDef.cellRendererParams && params.colDef.cellRendererParams.value ? params.colDef.cellRendererParams.value : params.value
+        params.colDef.cellRendererParams && params.colDef.cellRendererParams.value ? (typeof params.colDef.cellRendererParams.value === 'function' ? params.colDef.cellRendererParams.value(params.data) : params.colDef.cellRendererParams.value) : params.value
       }}
     </template>
   </hook0-button>
@@ -30,7 +30,7 @@ interface ExtraParams<T> {
   /**
    * Raw value
    */
-  value?: string;
+  value?: (row: T) => string | string;
 
   /**
    * Icon to add to the button
@@ -45,7 +45,12 @@ interface ExtraParams<T> {
   /**
    * RouteLocation factory
    */
-  href: (row: T) => RouteLocation
+  href: (row: T) => string
+
+  /**
+   * RouteLocation factory
+   */
+  to: (row: T) => RouteLocation
 }
 
 
