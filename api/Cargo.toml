@@ -22,7 +22,7 @@ chrono = { version = "0.4.19", features = ["serde"] }
 clap = { version = "3.1.16", features = ["derive", "env", "cargo", "wrap_help"] }
 futures-util = "0.3.21"
 governor = "0.4.2"
-http-api-problem = { version = "0.51.0", features = ["actix-web"] }
+http-api-problem = { version = "0.52.0", features = ["actix-web"] }
 ipnetwork = "0.17.0"
 lazy_static = "1.4.0"
 log = "0.4.17"
@@ -30,7 +30,7 @@ nom = "7.1.1"
 nom-regex = "0.2.0"
 paperclip = { version = "0.7.0", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
 rand = { version = "0.8.5", features = ["log"] }
-regex = "1.5.5"
+regex = "1.5.6"
 reqwest = { version = "0.11.10", default-features = false, features = ["rustls-tls", "trust-dns"] }
 sentry-integration = { path = "../sentry-integration" }
 serde = "1.0.137"
@@ -39,5 +39,5 @@ sqlx = { version = "0.5.13", default-features = false, features = ["runtime-toki
 strum = { version = "0.24.0", features = ["derive"] }
 thiserror = "1.0.31"
 url = "2.2.2"
-uuid = { version = "0.8.2", features = ["serde"] }
+uuid = { version = "0.8.2", features = ["serde", "v4"] }
 validator = { version = "0.15.0", features = ["derive", "unic"] }
