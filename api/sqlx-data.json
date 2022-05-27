@@ -29,6 +29,26 @@
     },
     "query": "\n                INSERT INTO webhook.target_http (target__id, method, url, headers)\n                VALUES ($1, $2, $3, $4)\n            "
   },
+  "04e495f34d3f04a636e0c4f7a6c5c4c9d7291a5ffd679b21cefc3e62b20166e4": {
+    "describe": {
+      "columns": [
+        {
+          "name": "application__id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n            SELECT application__id\n            FROM event.application\n            WHERE organization__id = $1\n        "
+  },
   "074f47957f3b68849aa83568b51e267ff68d05039b45fe2b72b90eb54fc728e2": {
     "describe": {
       "columns": [
@@ -1416,6 +1436,18 @@
       }
     },
     "query": "\n                INSERT INTO event.event_type (application__id, service__name, resource_type__name, verb__name)\n                VALUES ($1, $2, $3, $4)\n                RETURNING service__name AS service_name, resource_type__name AS resource_type_name, verb__name AS verb_name, event_type__name AS event_type_name\n            "
+  },
+  "feb121f20e144762f2679eda1e79feb5e41d1a467db1c97f37f1e879229641e6": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n                DELETE FROM event.organization\n                WHERE organization__id = $1\n            "
   },
   "ff04ae42c5a87275c9fe9b28d92ddad97013233c2bd198f43b8e827c60d99bdc": {
     "describe": {
