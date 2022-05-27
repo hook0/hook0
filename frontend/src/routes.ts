@@ -128,6 +128,13 @@ export default [
     path: '/organizations/:organization_id/applications/:application_id/logs',
     component: ComingSoon,
   },
+
+  {
+    name: routes.APIDocumentationForApplication,
+    path: '/organizations/:organization_id/applications/:application_id/documentation',
+    component: ApiDocumentation,
+  },
+
   {
     name: routes.Settings,
     path: '/settings',

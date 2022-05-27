@@ -52,7 +52,10 @@ export default class ApiDocumentation extends Vue {
     return {}
   }
 
-  mounted() {
+  _load() {
+    const application_id = this.$route.params.application_id;
+    const organization_id = this.$route.params.organization_id;
+
     this.swaggerUI = SwaggerUI({
       url: featureFlags.getOrElse('API_ENDPOINT', process.env.VUE_APP_API_ENDPOINT) + "/swagger.json",
       domNode: this.$refs.container,
@@ -80,6 +83,18 @@ export default class ApiDocumentation extends Vue {
 
       displayOperationId: true,
 
+      parameterMacro: (operation: Readonly<any>, parameter: Readonly<any>) => {
+        if (organization_id && parameter.name === 'organization_id') {
+          // eslint-disable-next-line
+          parameter.schema.default = organization_id;
+        }
+
+        if (application_id && parameter.name === 'application_id') {
+          // eslint-disable-next-line
+          parameter.schema.default = application_id;
+        }
+      },
+
       requestInterceptor: (req: SwaggerUI.Request) => {
         return iam.getToken().then((jwt_token) => {
           // eslint-disable-next-line
@@ -101,6 +116,14 @@ export default class ApiDocumentation extends Vue {
         console.log('Swagger UI launched');
       }
     })
+  }
+
+  updated() {
+    this._load();
+  }
+
+  mounted() {
+    this._load();
   }
 };
 
