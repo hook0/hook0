@@ -30,6 +30,7 @@ import Hook0CardFooter from "@/components/Hook0CardFooter.vue";
 import Hook0CardContent from "@/components/Hook0CardContent.vue";
 import Hook0CardContentLine from "@/components/Hook0CardContentLine.vue";
 import featureFlags from "@/feature-flags";
+import iam from "@/iam";
 
 @Options({
   components: {
@@ -77,7 +78,15 @@ export default class ApiDocumentation extends Vue {
 
       operationsSorter: "alpha",
 
-      displayOperationId: false,
+      displayOperationId: true,
+
+      requestInterceptor: (req: SwaggerUI.Request) => {
+        return iam.getToken().then((jwt_token) => {
+          // eslint-disable-next-line
+          req.headers.Authorization = `Bearer ${jwt_token}`;
+          return req;
+        });
+      },
 
       // try out
       displayRequestDuration: true,
