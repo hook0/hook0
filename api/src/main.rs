@@ -317,7 +317,10 @@ async fn main() -> anyhow::Result<()> {
                                     .service(
                                         web::resource("")
                                             .route(web::get().to(handlers::organizations::get))
-                                            .route(web::put().to(handlers::organizations::edit)),
+                                            .route(web::put().to(handlers::organizations::edit))
+                                            .route(
+                                                web::delete().to(handlers::organizations::delete),
+                                            ),
                                     )
                                     .service(
                                         web::resource("/invite")
