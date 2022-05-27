@@ -2,7 +2,7 @@ use log::error;
 use paperclip::actix::{
     api_v2_operation,
     web::{Data, Json, Path},
-    Apiv2Schema,
+    Apiv2Schema, NoContent,
 };
 use serde::{Deserialize, Serialize};
 use sqlx::{query, query_as, Postgres, Transaction};
@@ -494,4 +494,68 @@ async fn remove_user_from_all_sub_groups(
     }
 
     Ok(())
+}
+
+#[api_v2_operation(
+    summary = "Delete an organization",
+    description = "",
+    operation_id = "organizations.delete",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Organizations Management")
+)]
+pub async fn delete(
+    state: Data<crate::State>,
+    auth: AuthProof,
+    organization_id: Path<Uuid>,
+) -> Result<NoContent, Hook0Problem> {
+    if auth
+        .can_access_organization(&organization_id, &Role::Editor)
+        .await
+        .is_none()
+    {
+        return Err(Hook0Problem::Forbidden);
+    }
+
+    let mut tx = state.db.begin().await?;
+
+    let organization_is_empty = query!(
+        "
+            SELECT application__id
+            FROM event.application
+            WHERE organization__id = $1
+        ",
+        organization_id.as_ref(),
+    )
+    .fetch_all(&mut tx)
+    .await?
+    .is_empty();
+
+    if organization_is_empty {
+        let keycloak_api = KeycloakApi::new(
+            &state.keycloak_url,
+            &state.keycloak_realm,
+            &state.keycloak_client_id,
+            &state.keycloak_client_secret,
+        )
+        .await?;
+
+        query!(
+            "
+                DELETE FROM event.organization
+                WHERE organization__id = $1
+            ",
+            organization_id.as_ref(),
+        )
+        .execute(&mut tx)
+        .await?;
+
+        keycloak_api.remove_organization(&organization_id).await?;
+
+        tx.commit().await?;
+        Ok(NoContent)
+    } else {
+        tx.rollback().await?;
+        Err(Hook0Problem::OrganizationIsNotEmpty)
+    }
 }
