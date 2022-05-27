@@ -9,10 +9,10 @@
       <hook0-card>
         <hook0-card-header>
           <template #header>
-            Event types
+            Events
           </template>
           <template #subtitle>
-            Each event sent through a webhook must have an event type.
+            Events that Hook0 receive from your application and that Hook0 forwarded to subscriptions (webhooks).
           </template>
         </hook0-card-header>
 
@@ -29,22 +29,15 @@
           <hook0-card-content-lines>
             <hook0-card-content-line type="full-width">
               <template #content>
-                <hook0-text>Your application will send events to Hook0 that will forward these events to registered
-                  subscriptions (webhooks),
-                  each of these event must have
-                  a type (e.g.
-                  "billing.invoice.created"), it's time to create your first event type!
+                <hook0-text class="center block" style="text-align: center">Your application did not send any events.
+                  Time to send the first one!
                 </hook0-text>
               </template>
             </hook0-card-content-line>
           </hook0-card-content-lines>
-
         </hook0-card-content>
 
         <hook0-card-footer>
-          <hook0-button class="primary" type="button" @click="$router.push({name:routes.EventTypesNew})">Create new
-            event type
-          </hook0-button>
         </hook0-card-footer>
       </hook0-card>
     </template>
@@ -66,11 +59,12 @@ import Hook0CardHeader from "@/components/Hook0CardHeader.vue";
 import Hook0Card from "@/components/Hook0Card.vue";
 import Hook0Input from "@/components/Hook0Input.vue";
 import Hook0Table from "@/components/Hook0Table.vue";
-import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 import {ColDef} from "@ag-grid-community/core";
-import * as EventTypeService from "./EventTypeService";
+import * as EventsService from "./EventsService";
+import {Event} from "./EventsService";
 import {UUID} from "@/http";
-import {EventType} from "./EventTypeService";
+import {Application} from "@/pages/organizations/applications/ApplicationService";
+import * as ApplicationService from "@/pages/organizations/applications/ApplicationService";
 
 @Options({
   components: {
@@ -91,53 +85,70 @@ import {EventType} from "./EventTypeService";
     }
   }
 })
-export default class EventTypesList extends Vue {
-  private event_types$ !: Promise<Array<EventType>>;
+export default class EventsList extends Vue {
+  private event_types$ !: Promise<Array<Event>>;
   public application_id: UUID | null = null;
 
 
   data() {
+    // eslint-disable-next-line
+    const ctx = this;
     return {
       routes: routes,
       event_types$: Promise.resolve(),
       columnDefs: [
         {
           field: 'event_type_name',
+          headerName: 'Event Type',
           suppressMovable: true,
-          cellRenderer: "Hook0TableCellCode",
-          minWidth: 360,
-          sortable: true,
-          headerName: 'Name'
-        }, {
-          suppressMovable: true,
-          width: 100,
-          headerName: 'Options',
           cellRenderer: "Hook0TableCellLink",
           cellRendererParams: {
-            value: 'Delete',
-            icon: 'trash',
-            onClick: (row: EventType): void => {
-              if (confirm(`Are you sure to delete "${row.event_type_name}" event?`)) {
-                EventTypeService.remove(this.application_id as string, row.event_type_name)
-                  .then(() => {
-                    // @TODO notify user of success
-                    this._forceLoad();
-                  })
-                  // @TODO proper error management
-                  .catch(err => {
-                    alert(err);
-                    throw err;
-                  });
-              }
+            value(row: Event) {
+              return row.event_type_name;
+            },
+
+            to(row: Event) {
+              return {
+                name: routes.EventsDetail,
+                params: {
+                  // eslint-disable-next-line
+                  application_id: ctx.$route.params.application_id,
+                  // eslint-disable-next-line
+                  organization_id: ctx.$route.params.organization_id,
+                  // eslint-disable-next-line
+                  event_id: row.event_id
+                }
+              };
             }
           }
+        }, {
+          field: 'ip',
+          suppressMovable: true,
+          sortable: true,
+          headerName: 'IP'
+        }, {
+          field: 'labels',
+          suppressMovable: true,
+          sortable: true,
+          headerName: 'Labels'
+        }, {
+          field: 'payload_content_type_name',
+          suppressMovable: true,
+          sortable: true,
+          headerName: 'Payload type'
+        }, {
+          field: 'received_at',
+          suppressMovable: true,
+          minWidth: 360,
+          sortable: true,
+          headerName: 'Received At'
         }] as Array<ColDef>
     }
   }
 
   _forceLoad() {
     this.application_id = this.$route.params.application_id as UUID;
-    this.event_types$ = EventTypeService.list(this.application_id);
+    this.event_types$ = EventsService.list(this.application_id);
   }
 
   _load() {

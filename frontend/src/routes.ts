@@ -15,6 +15,8 @@ import ComingSoon from "@/pages/ComingSoon.vue";
 import SubscriptionsList from "@/pages/organizations/applications/subscriptions/SubscriptionsList.vue";
 import SubscriptionsEdit from "@/pages/organizations/applications/subscriptions/SubscriptionsEdit.vue";
 import ApplicationSecretsList from "@/pages/organizations/applications/application_secrets/ApplicationSecretsList.vue";
+import EventsList from "@/pages/organizations/applications/events/EventsList.vue";
+import EventsDetail from "@/pages/organizations/applications/events/EventsDetail.vue";
 
 export type Hook0Routes = string;
 
@@ -34,6 +36,9 @@ export const routes: Record<Hook0Routes, string> = {
   ApplicationSecretsDetail: 'ApplicationSecretsDetail',
   ApplicationSecretsNew: 'ApplicationSecretsNew',
 
+  EventsList: 'EventsList',
+  EventsDetail: 'EventsDetail',
+
   EventTypesList: 'EventTypesList',
   EventTypesNew: 'EventTypesNew',
 
@@ -45,6 +50,7 @@ export const routes: Record<Hook0Routes, string> = {
   LogsList: 'LogsList',
   Settings: 'Settings',
   APIDocumentation: 'APIDocumentation',
+  APIDocumentationForApplication: 'APIDocumentationForApplication',
   Error404: '404',
 };
 
@@ -94,6 +100,18 @@ export default [
     name: routes.ApplicationSecretsList,
     path: '/organizations/:organization_id/applications/:application_id/application_secrets',
     component: ApplicationSecretsList,
+  },
+
+  {
+    name: routes.EventsList,
+    path: '/organizations/:organization_id/applications/:application_id/events',
+    component: EventsList,
+  },
+
+  {
+    name: routes.EventsDetail,
+    path: '/organizations/:organization_id/applications/:application_id/events/:event_id',
+    component: EventsDetail,
   },
 
   {
