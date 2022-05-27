@@ -10,12 +10,68 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sqlx::query_as;
 use std::collections::HashMap;
+use std::str::FromStr;
+use strum::{EnumVariantNames, IntoStaticStr, VariantNames};
 use uuid::Uuid;
 use validator::Validate;
 
 use crate::extractor_user_ip::UserIp;
 use crate::iam::{AuthProof, Role};
 use crate::problems::Hook0Problem;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, IntoStaticStr, EnumVariantNames)]
+pub enum PayloadContentType {
+    #[strum(serialize = "text/plain")]
+    Text,
+    #[strum(serialize = "application/json")]
+    Json,
+    #[strum(serialize = "application/octet-stream+base64")]
+    Binary,
+}
+
+impl FromStr for PayloadContentType {
+    type Err = Hook0Problem;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let text: &str = Self::Text.into();
+        let json: &str = Self::Json.into();
+        let binary: &str = Self::Binary.into();
+
+        match s {
+            s if s == text => Ok(Self::Text),
+            s if s == json => Ok(Self::Json),
+            s if s == binary => Ok(Self::Binary),
+            _ => Err(Hook0Problem::EventInvalidPayloadContentType),
+        }
+    }
+}
+
+impl PayloadContentType {
+    pub fn validate_and_decode(&self, payload: &str) -> Result<Vec<u8>, Hook0Problem> {
+        match self {
+            Self::Text => Ok(payload.as_bytes().to_vec()),
+            Self::Json => {
+                serde_json::from_str::<Value>(payload)
+                    .map_err(|e| Hook0Problem::EventInvalidJsonPayload(e.to_string()))?;
+                Ok(payload.as_bytes().to_vec())
+            }
+            Self::Binary => Ok(base64::decode(payload)
+                .map_err(|e| Hook0Problem::EventInvalidBase64Payload(e.to_string()))?),
+        }
+    }
+}
+
+#[api_v2_operation(
+    summary = "List supported event payload content types",
+    description = "List of every possible content types that can be used in event payloads.",
+    operation_id = "payload_content_types.list",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Events Management")
+)]
+pub async fn payload_content_types() -> Result<Json<Vec<&'static str>>, Hook0Problem> {
+    Ok(Json(PayloadContentType::VARIANTS.to_vec()))
+}
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
 pub struct Qs {
@@ -27,7 +83,7 @@ pub struct Qs {
 struct EventRaw {
     event__id: Uuid,
     event_type__name: String,
-    payload_content_type__name: String,
+    payload_content_type: String,
     ip: IpNetwork,
     metadata: Option<Value>,
     occurred_at: DateTime<Utc>,
@@ -41,7 +97,7 @@ impl EventRaw {
         Event {
             event_id: self.event__id,
             event_type_name: self.event_type__name.clone(),
-            payload_content_type_name: self.payload_content_type__name.clone(),
+            payload_content_type: self.payload_content_type.clone(),
             ip: self.ip.ip().to_string(),
             metadata: self.metadata.clone(),
             occurred_at: self.occurred_at,
@@ -56,7 +112,7 @@ impl EventRaw {
 pub struct Event {
     event_id: Uuid,
     event_type_name: String,
-    payload_content_type_name: String,
+    payload_content_type: String,
     ip: String,
     metadata: Option<Value>,
     occurred_at: DateTime<Utc>,
@@ -89,7 +145,7 @@ pub async fn list(
     let raw_events = query_as!(
             EventRaw,
             "
-                SELECT event__id, event_type__name, payload_content_type__name, ip, metadata, occurred_at, received_at, application_secret__token, labels
+                SELECT event__id, event_type__name, payload_content_type, ip, metadata, occurred_at, received_at, application_secret__token, labels
                 FROM event.event
                 WHERE application__id = $1
                 ORDER BY received_at DESC
@@ -111,7 +167,7 @@ struct EventWithPayloadRaw {
     event__id: Uuid,
     event_type__name: String,
     payload: Vec<u8>,
-    payload_content_type__name: String,
+    payload_content_type: String,
     ip: IpNetwork,
     metadata: Option<Value>,
     occurred_at: DateTime<Utc>,
@@ -126,7 +182,7 @@ impl EventWithPayloadRaw {
             event_id: self.event__id,
             event_type_name: self.event_type__name.clone(),
             payload: encode(self.payload.as_slice()),
-            payload_content_type_name: self.payload_content_type__name.clone(),
+            payload_content_type: self.payload_content_type.clone(),
             ip: self.ip.ip().to_string(),
             metadata: self.metadata.clone(),
             occurred_at: self.occurred_at,
@@ -142,7 +198,7 @@ pub struct EventWithPayload {
     event_id: Uuid,
     event_type_name: String,
     payload: String,
-    payload_content_type_name: String,
+    payload_content_type: String,
     ip: String,
     metadata: Option<Value>,
     occurred_at: DateTime<Utc>,
@@ -176,7 +232,7 @@ pub async fn get(
     let raw_event = query_as!(
             EventWithPayloadRaw,
             "
-                SELECT event__id, event_type__name, payload, payload_content_type__name, ip, metadata, occurred_at, received_at, application_secret__token, labels
+                SELECT event__id, event_type__name, payload, payload_content_type, ip, metadata, occurred_at, received_at, application_secret__token, labels
                 FROM event.event
                 WHERE application__id = $1 AND event__id = $2
             ",
@@ -208,11 +264,6 @@ pub struct EventPost {
     occurred_at: DateTime<Utc>,
     #[validate(custom = "crate::validators::labels")]
     labels: HashMap<String, Value>,
-}
-
-#[derive(Debug)]
-struct ContentTypeLookup {
-    nb: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -256,57 +307,89 @@ pub async fn ingest(
         .can_access_application(&state.db, &body.application_id, &Role::Editor)
         .await
     {
-        let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
+        let content_type = PayloadContentType::from_str(&body.payload_content_type)?;
+        let payload = content_type.validate_and_decode(&body.payload)?;
 
-        let content_type_lookup = query_as!(
-            ContentTypeLookup,
+        let event = query_as!(
+            IngestedEvent,
             "
-                SELECT COUNT(*) AS nb
-                FROM event.payload_content_type
-                WHERE payload_content_type__name = $1
+                INSERT INTO event.event (application__id, event__id, event_type__name, payload, payload_content_type, ip, metadata, occurred_at, received_at, application_secret__token, labels)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, statement_timestamp(), $9, $10)
+                RETURNING application__id AS application_id, event__id AS event_id, received_at
             ",
+            &body.application_id,
+            &body.event_id,
+            &body.event_type,
+            &payload,
             &body.payload_content_type,
+            ip.into_inner(),
+            metadata,
+            &body.occurred_at,
+            secret,
+            labels,
         )
-        .fetch_one(&mut tx)
+        .fetch_one(&state.db)
         .await
         .map_err(Hook0Problem::from)?;
 
-        let content_type_ok = matches!(content_type_lookup, ContentTypeLookup { nb: Some(1) });
-
-        let payload = base64::decode(body.payload.as_str());
-
-        match (content_type_ok, payload) {
-            (true, Ok(p)) => {
-                let event = query_as!(
-                    IngestedEvent,
-                    "
-                        INSERT INTO event.event (application__id, event__id, event_type__name, payload, payload_content_type__name, ip, metadata, occurred_at, received_at, application_secret__token, labels)
-                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, statement_timestamp(), $9, $10)
-                        RETURNING application__id AS application_id, event__id AS event_id, received_at
-                    ",
-                    &body.application_id,
-                    &body.event_id,
-                    &body.event_type,
-                    &p,
-                    &body.payload_content_type,
-                    ip.into_inner(),
-                    metadata,
-                    &body.occurred_at,
-                    secret,
-                    labels,
-                )
-                    .fetch_one(&state.db)
-                    .await
-                    .map_err(Hook0Problem::from)?;
-
-                tx.commit().await.map_err(Hook0Problem::from)?;
-
-                Ok(CreatedJson(event))
-            }
-            (false, _) => Err(Hook0Problem::EventInvalidPayloadContentType),
-            (_, Err(_)) => Err(Hook0Problem::EventInvalidBase64Payload),
-        }
+        Ok(CreatedJson(event))
     } else {
         Err(Hook0Problem::Forbidden)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use strum::VariantNames;
+
+    #[test]
+    fn payload_content_type_parsing() {
+        for v in PayloadContentType::VARIANTS {
+            let parsed_and_serialized: &str = PayloadContentType::from_str(v).unwrap().into();
+            assert_eq!(*v, parsed_and_serialized);
+        }
+    }
+
+    #[test]
+    fn validate_json_payload() {
+        let valid_payload = r#"{"test": true}"#;
+        let invalid_payload = r#"{"test": true"#;
+
+        assert_eq!(
+            valid_payload.as_bytes().to_vec(),
+            PayloadContentType::Json
+                .validate_and_decode(valid_payload)
+                .unwrap()
+        );
+        assert!(matches!(
+            PayloadContentType::Json.validate_and_decode(invalid_payload),
+            Err(Hook0Problem::EventInvalidJsonPayload(_))
+        ));
+    }
+
+    #[test]
+    fn validate_binary_payload() {
+        let empty: Vec<u8> = vec![];
+        let valid_payload = b"test";
+        let valid_encoded_payload = base64::encode(valid_payload);
+        let invalid_payload = "   ";
+
+        assert_eq!(
+            empty,
+            PayloadContentType::Binary.validate_and_decode("").unwrap()
+        );
+        assert_eq!(
+            valid_payload,
+            PayloadContentType::Binary
+                .validate_and_decode(&valid_encoded_payload)
+                .unwrap()
+                .as_slice()
+        );
+        assert!(matches!(
+            PayloadContentType::Binary.validate_and_decode(invalid_payload),
+            Err(Hook0Problem::EventInvalidBase64Payload(_))
+        ));
     }
 }

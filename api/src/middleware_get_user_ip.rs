@@ -148,6 +148,7 @@ fn parse_ip(ip_port_str: &str) -> Result<IpNetwork, GetUserIpError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
     #[test]
