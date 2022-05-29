@@ -3,6 +3,7 @@ import axios from 'axios';
 import iam from './iam';
 import featureFlags from './feature-flags';
 import {definitions} from "@/types";
+import ProblemFactory from "@/utils/problemFactory";
 import {identity} from "ramda";
 
 require('bluebird');
@@ -15,8 +16,7 @@ function getAxios() {
         headers: {
           Authorization: `Bearer ${jwt_token}`,
         },
-        withCredentials: false, // false in dev mode, true in staging/production mode
-
+        withCredentials: !!process.env.hasOwnProperty('FRONTEND_DEV_MODE'), // false in dev mode, true in staging/production mode
       });
 
       client.interceptors.response.use(identity, function (error: AxiosError) {
