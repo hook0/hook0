@@ -69,9 +69,7 @@ export default class OrganizationsRemove extends Vue {
     this.loading = true;
 
     OrganizationService.remove(this.organizationId).then(() =>
-        this.$router.push({
-          name: routes.Home
-        })
+        window.location.assign("/")
       , this.displayError.bind(this))
       // finally
       .finally(() => this.loading = false);
