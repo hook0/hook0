@@ -186,6 +186,7 @@ pub fn event_types(val: &[String]) -> Result<(), ValidationError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     use serde_json::json;
 
     #[test]

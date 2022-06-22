@@ -249,10 +249,10 @@ impl ResponseError for AuthProofExtractorError {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     use std::collections::HashMap;
     use std::iter::FromIterator;
-
-    use super::*;
 
     #[test]
     fn jwt_all_organizations() {
