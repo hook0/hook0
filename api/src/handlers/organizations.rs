@@ -313,7 +313,7 @@ pub async fn get(
 
 #[api_v2_operation(
     summary = "Edit an organization",
-    description = "",
+    description = "Note that you will need to regenerate a JWT to be able to see the updated name of the organization.",
     operation_id = "organizations.edit",
     consumes = "application/json",
     produces = "application/json",
@@ -498,7 +498,7 @@ async fn remove_user_from_all_sub_groups(
 
 #[api_v2_operation(
     summary = "Delete an organization",
-    description = "",
+    description = "Note that you will need to regenerate a JWT to be able to make the deleted organization go away.",
     operation_id = "organizations.delete",
     consumes = "application/json",
     produces = "application/json",
