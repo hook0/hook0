@@ -4,7 +4,8 @@ use hook0_client::Hook0Client;
 use log::{info, warn};
 use reqwest::Url;
 use serde::Serialize;
-use serde_json::{to_value, to_vec, Value};
+use serde_json::{to_string, to_value, Value};
+use std::borrow::Cow;
 use uuid::Uuid;
 
 pub fn initialize(
@@ -52,7 +53,7 @@ impl Hook0ClientEvent {
             hook0_client::Event {
                 event_id: &None,
                 event_type: event.event_type(),
-                payload: hook0_client::Payload::from_binary(to_vec(&event).unwrap().as_ref()),
+                payload: Cow::from(to_string(&event).unwrap()),
                 payload_content_type: "application/json",
                 metadata: Some(vec![(
                     "hook0_version".to_owned(),
