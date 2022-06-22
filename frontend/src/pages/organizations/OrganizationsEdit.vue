@@ -44,7 +44,8 @@
         </hook0-card-footer>
       </hook0-card>
     </form>
-    <OrganizationRemove v-if="!isNew && /* when we will have the API */false"
+
+    <OrganizationRemove v-if="!isNew"
                         :organization-id="$route.params.organization_id"
                         :organization-name="organization.name"></OrganizationRemove>
   </div>
@@ -110,6 +111,16 @@ export default class OrganizationEdit extends Vue {
     }
   }
 
+  reloadPageAndGoToOrganizationDetail(organization_id: string) {
+    const href = this.$router.resolve({
+      name: routes.OrganizationsDashboard,
+      params: {
+        organization_id: organization_id
+      }
+    }).href;
+    window.location.assign(href);
+  }
+
   upsert(e: Event) {
     e.preventDefault();
     e.stopImmediatePropagation();
@@ -117,29 +128,20 @@ export default class OrganizationEdit extends Vue {
     this.alert.visible = false; // reset alert
     this.loading = true;
 
+
     (this.isNew ?
       // create
       OrganizationService.create({
         name: this.organization.name,
-      }).then(async (organization) => {
-        await this.$router.push({
-          name: routes.OrganizationsDashboard,
-          params: {
-            organization_id: organization.organization_id
-          }
-        });
-      }, this.displayError.bind(this)) :
+      })
+        .then((organization) => this.reloadPageAndGoToOrganizationDetail(organization.organization_id))
+        .catch(this.displayError.bind(this)) :
       // update
       OrganizationService.update(this.$route.params.organization_id as string, {
         name: this.organization.name,
-      }).then(async (_resp: any) => {
-        await this.$router.push({
-          name: routes.OrganizationsDashboard,
-          params: {
-            organization_id: this.$route.params.organization_id,
-          }
-        });
-      }, this.displayError.bind(this)))
+      })
+        .then((_resp: any) => this.reloadPageAndGoToOrganizationDetail(this.$route.params.organization_id as string))
+        .catch(this.displayError.bind(this)))
       // finally
       .finally(() => this.loading = false);
   }
