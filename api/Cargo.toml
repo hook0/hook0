@@ -16,7 +16,7 @@ actix-files = "0.6.1"
 actix-governor = { git = "https://github.com/AaronErhardt/actix-governor", rev = "d63c1611e613c70e76e8afc14adae01b50d00229", features = ["log"] }
 actix-web = "4.1.0"
 actix-web-middleware-keycloak-auth = { version = "0.4.0", features = ["paperclip_compat"] }
-anyhow = "1.0.57"
+anyhow = "1.0.58"
 base64 = "0.13.0"
 chrono = { version = "0.4.19", features = ["serde"] }
 clap = { version = "3.2.5", features = ["derive", "env", "cargo", "wrap_help"] }
