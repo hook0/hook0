@@ -10,6 +10,7 @@ use std::borrow::Cow;
 use std::fmt::Display;
 use strum::{EnumIter, VariantNames};
 
+use crate::handlers::events::PayloadContentType;
 use crate::iam::Role;
 
 /**
@@ -33,7 +34,8 @@ pub enum Hook0Problem {
 
     EventAlreadyIngested,
     EventInvalidPayloadContentType,
-    EventInvalidBase64Payload,
+    EventInvalidBase64Payload(String),
+    EventInvalidJsonPayload(String),
 
     // Auth errors
     AuthNoAuthorizationHeader,
@@ -185,19 +187,35 @@ impl From<Hook0Problem> for Problem {
                 validation: None,
                 status: StatusCode::CONFLICT,
             },
-            Hook0Problem::EventInvalidPayloadContentType => Problem {
-                id: Hook0Problem::EventInvalidPayloadContentType,
-                title: "Invalid event payload content type",
-                detail: "The specified event payload content type is not registered. If this is not a mistake, please create it with /event_types.".into(),
-                validation: None,
-                status: StatusCode::BAD_REQUEST,
+            Hook0Problem::EventInvalidPayloadContentType => {
+                let detail = format!("The specified event payload content type is not handled. Valid content types are: {}", PayloadContentType::VARIANTS.join(", "));
+                Problem {
+                    id: Hook0Problem::EventInvalidPayloadContentType,
+                    title: "Invalid event payload content type",
+                    detail: detail.into(),
+                    validation: None,
+                    status: StatusCode::BAD_REQUEST,
+                }
             },
-            Hook0Problem::EventInvalidBase64Payload => Problem {
-                id: Hook0Problem::EventInvalidBase64Payload,
-                title: "Invalid event payload",
-                detail: "Event payload is not encoded in valid base64 format.".into(),
-                validation: None,
-                status: StatusCode::BAD_REQUEST,
+            Hook0Problem::EventInvalidBase64Payload(e) => {
+                let detail = format!("Event payload is not encoded in valid base64 format: {e}");
+                Problem {
+                    id: Hook0Problem::EventInvalidBase64Payload(e),
+                    title: "Invalid event base64 payload",
+                    detail: detail.into(),
+                    validation: None,
+                    status: StatusCode::BAD_REQUEST,
+                }
+            },
+            Hook0Problem::EventInvalidJsonPayload(e) => {
+                let detail = format!("Event payload is not encoded in valid JSON format: {e}.");
+                Problem {
+                    id: Hook0Problem::EventInvalidJsonPayload(e),
+                    title: "Invalid event JSON payload",
+                    detail: detail.into(),
+                    validation: None,
+                    status: StatusCode::BAD_REQUEST,
+                }
             },
 
             // Auth error

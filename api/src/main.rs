@@ -298,6 +298,12 @@ async fn main() -> anyhow::Result<()> {
                             web::resource("").route(web::get().to(handlers::errors::list)),
                         ),
                     )
+                    .service(
+                        web::scope("/payload_content_types").service(
+                            web::resource("")
+                                .route(web::get().to(handlers::events::payload_content_types)),
+                        ),
+                    )
                     .service(web::scope("/register").service(
                         web::resource("").route(web::post().to(handlers::registrations::register)),
                     ))
