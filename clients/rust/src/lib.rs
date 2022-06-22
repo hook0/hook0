@@ -4,7 +4,6 @@
 //! This is the Rust client for Hook0.
 //! It makes it easier to send events from a Rust application to a Hook0 instance.
 
-use base64::encode;
 use chrono::{DateTime, Utc};
 use log::error;
 use reqwest::header::{HeaderMap, HeaderValue, InvalidHeaderValue, AUTHORIZATION};
@@ -103,37 +102,6 @@ impl Hook0Client {
     }
 }
 
-/// A wrapper to handle event's payload
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Payload<'a>(Cow<'a, str>);
-
-impl<'a> Payload<'a> {
-    /// Create payload from base64
-    pub fn from_base64(b64: &'a str) -> Self {
-        Self(b64.into())
-    }
-
-    /// Create payload from binary
-    pub fn from_binary(bin: &[u8]) -> Self {
-        Self(encode(bin).into())
-    }
-
-    /// Create payload from a string
-    pub fn from_string<T: AsRef<str>>(str: T) -> Self {
-        Self(encode(str.as_ref()).into())
-    }
-
-    /// Create payload from a JSON value
-    pub fn from_json(json: &Value) -> Self {
-        Self(encode(json.to_string()).into())
-    }
-
-    /// Get the payload as base64
-    pub fn as_base64(&self) -> &str {
-        self.0.as_ref()
-    }
-}
-
 /// An event that can be sent to Hook0
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Event<'a> {
@@ -142,7 +110,7 @@ pub struct Event<'a> {
     /// Type of the event (as configured in your Hook0 application)
     pub event_type: &'a str,
     /// Payload
-    pub payload: Payload<'a>,
+    pub payload: Cow<'a, str>,
     /// Content type of the payload
     pub payload_content_type: &'a str,
     /// Optional key-value metadata
@@ -177,7 +145,7 @@ impl<'a> FullEvent<'a> {
             application_id: application_id.to_owned(),
             event_id,
             event_type: event.event_type,
-            payload: event.payload.as_base64(),
+            payload: event.payload.as_ref(),
             payload_content_type: event.payload_content_type,
             metadata: event
                 .metadata
@@ -239,59 +207,4 @@ fn append_url_segments(base_url: &Url, segments: &[&str]) -> Result<Url, url::Pa
     let url = Url::parse(&format!("{base_url}/{segments_str}").replace("//", "/"))?;
 
     Ok(url)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    use base64::decode;
-    use serde_json::json;
-    use std::str::FromStr;
-
-    const PAYLOAD: &str = "Hook0";
-
-    #[test]
-    fn payload_base64() {
-        let b64 = encode(PAYLOAD);
-        let payload = Payload::from_base64(&b64);
-        assert_eq!(
-            PAYLOAD,
-            String::from_utf8(decode(payload.as_base64()).unwrap()).unwrap()
-        )
-    }
-
-    #[test]
-    fn payload_bin() {
-        let bin = PAYLOAD.as_bytes();
-        let payload = Payload::from_binary(bin);
-        assert_eq!(
-            PAYLOAD,
-            String::from_utf8(decode(payload.as_base64()).unwrap()).unwrap()
-        )
-    }
-
-    #[test]
-    fn payload_str() {
-        let payload = Payload::from_string(PAYLOAD);
-        assert_eq!(
-            PAYLOAD,
-            String::from_utf8(decode(payload.as_base64()).unwrap()).unwrap()
-        )
-    }
-
-    #[test]
-    fn payload_json() {
-        let json = json!({ "hook0": PAYLOAD });
-        let payload = Payload::from_json(&json);
-        assert_eq!(
-            json,
-            Value::from_str(
-                String::from_utf8(decode(payload.as_base64()).unwrap())
-                    .unwrap()
-                    .as_str()
-            )
-            .unwrap()
-        )
-    }
 }
