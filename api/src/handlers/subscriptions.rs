@@ -135,6 +135,98 @@ pub async fn list(
     Ok(Json(subscriptions))
 }
 
+#[api_v2_operation(
+    summary = "Get a subscription by its IDs",
+    description = "",
+    operation_id = "subscriptions.get",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Subscriptions Management")
+)]
+pub async fn get(
+    state: Data<crate::State>,
+    auth: AuthProof,
+    qs: Query<Qs>,
+    subscription_id: Path<Uuid>,
+) -> Result<Json<Subscription>, Hook0Problem> {
+    if auth
+        .can_access_application(&state.db, &qs.application_id, &Role::Viewer)
+        .await
+        .is_none()
+    {
+        return Err(Hook0Problem::Forbidden);
+    }
+
+    #[allow(non_snake_case)]
+    struct RawSubscription {
+        subscription__id: Uuid,
+        is_enabled: bool,
+        event_types: Option<Vec<String>>,
+        description: Option<String>,
+        secret: Uuid,
+        metadata: Value,
+        label_key: String,
+        label_value: String,
+        target_json: Option<Value>,
+        created_at: DateTime<Utc>,
+    }
+
+    let raw_subscription = query_as!(
+        RawSubscription,
+        r#"
+            WITH subs AS (
+                SELECT
+                    s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.label_key, s.label_value, s.target__id, s.created_at,
+                    CASE WHEN length((array_agg(set.event_type__name))[1]) > 0
+                        THEN array_agg(set.event_type__name)
+                        ELSE ARRAY[]::text[] END AS event_types
+                FROM webhook.subscription AS s
+                LEFT JOIN webhook.subscription__event_type AS set ON set.subscription__id = s.subscription__id
+                WHERE s.application__id = $1 AND s.subscription__id = $2
+                GROUP BY s.subscription__id
+                ORDER BY s.created_at ASC
+            ), targets AS (
+                SELECT target__id, jsonb_build_object(
+                    'type', replace(tableoid::regclass::text, 'webhook.target_', ''),
+                    'method', method,
+                    'url', url,
+                    'headers', headers
+                ) AS target_json FROM webhook.target_http
+                WHERE target__id IN (SELECT target__id FROM subs)
+            )
+            SELECT subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.label_key AS "label_key!", subs.label_value AS "label_value!", subs.created_at AS "created_at!", subs.event_types, targets.target_json
+            FROM subs
+            INNER JOIN targets ON subs.target__id = targets.target__id
+            LIMIT 1
+        "#, // Column aliases ending with "!" are there because sqlx does not seem to infer correctly that these columns' types are not options
+        &qs.application_id,
+        subscription_id.into_inner(),
+    )
+        .fetch_optional(&state.db)
+        .await
+        .map_err(|e| {
+            error!("{}", &e);
+            Hook0Problem::InternalServerError
+        })?;
+
+    match raw_subscription {
+        Some(s) => Ok(Json(Subscription {
+            subscription_id: s.subscription__id,
+            is_enabled: s.is_enabled,
+            event_types: s.event_types.clone().unwrap_or_default(),
+            description: s.description.to_owned(),
+            secret: s.secret,
+            metadata: serde_json::from_value(s.metadata.clone()).unwrap_or_else(|_| HashMap::new()),
+            label_key: s.label_key.to_owned(),
+            label_value: s.label_value.to_owned(),
+            target: serde_json::from_value(s.target_json.clone().unwrap())
+                .expect("Could not parse subscription target"),
+            created_at: s.created_at,
+        })),
+        None => Err(Hook0Problem::NotFound),
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct SubscriptionPost {
     application_id: Uuid,
