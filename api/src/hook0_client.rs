@@ -41,6 +41,7 @@ pub enum Hook0ClientEvent {
     OrganizationUpdated(EventOrganizationUpdated),
     OrganizationInvited(EventOrganizationInvited),
     OrganizationRevoked(EventOrganizationRevoked),
+    OrganizationRemoved(EventOrganizationRemoved),
     EventTypeCreated(EventEventTypeCreated),
 }
 
@@ -69,6 +70,7 @@ impl Hook0ClientEvent {
             Self::OrganizationUpdated(e) => to_event(e, None),
             Self::OrganizationInvited(e) => to_event(e, None),
             Self::OrganizationRevoked(e) => to_event(e, None),
+            Self::OrganizationRemoved(e) => to_event(e, None),
             Self::EventTypeCreated(e @ EventEventTypeCreated { created_at, .. }) => {
                 to_event(e, Some(created_at))
             }
@@ -179,6 +181,30 @@ impl Event for EventOrganizationRevoked {
 impl From<EventOrganizationRevoked> for Hook0ClientEvent {
     fn from(e: EventOrganizationRevoked) -> Self {
         Self::OrganizationRevoked(e)
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct EventOrganizationRemoved {
+    pub organization_id: Uuid,
+}
+
+impl Event for EventOrganizationRemoved {
+    fn event_type(&self) -> &'static str {
+        "api.organization.removed"
+    }
+
+    fn labels(&self) -> Vec<(String, Value)> {
+        vec![(
+            "organization".to_owned(),
+            Value::String(self.organization_id.to_string()),
+        )]
+    }
+}
+
+impl From<EventOrganizationRemoved> for Hook0ClientEvent {
+    fn from(e: EventOrganizationRemoved) -> Self {
+        Self::OrganizationRemoved(e)
     }
 }
 
