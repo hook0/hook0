@@ -17,6 +17,7 @@ use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct Subscription {
+    pub application_id: Uuid,
     pub subscription_id: Uuid,
     pub is_enabled: bool,
     pub event_types: Vec<String>,
@@ -118,6 +119,7 @@ pub async fn list(
     let subscriptions = raw_subscriptions
         .iter()
         .map(|s| Subscription {
+            application_id: qs.application_id,
             subscription_id: s.subscription__id,
             is_enabled: s.is_enabled,
             event_types: s.event_types.clone().unwrap_or_default(),
@@ -211,6 +213,7 @@ pub async fn get(
 
     match raw_subscription {
         Some(s) => Ok(Json(Subscription {
+            application_id: qs.application_id,
             subscription_id: s.subscription__id,
             is_enabled: s.is_enabled,
             event_types: s.event_types.clone().unwrap_or_default(),
@@ -343,6 +346,7 @@ pub async fn add(
     tx.commit().await.map_err(Hook0Problem::from)?;
 
     Ok(CreatedJson(Subscription {
+        application_id: body.application_id,
         subscription_id: subscription.subscription__id,
         is_enabled: subscription.is_enabled,
         event_types: body.event_types.clone(),
@@ -405,13 +409,13 @@ pub async fn update(
                     WHERE subscription__id = $6 AND application__id = $7
                     RETURNING subscription__id, is_enabled, description, secret, metadata, label_key, label_value, target__id, created_at
                 ",
-                &body.is_enabled,
-                body.description,
-                serde_json::to_value(body.metadata.clone()).expect("could not serialize subscription metadata into JSON"),
-                &body.label_key,
-                &body.label_value,
-                &subscription_id.into_inner(),
-                &body.application_id
+                &body.is_enabled, // updatable
+                body.description, // updatable
+                serde_json::to_value(body.metadata.clone()).expect("could not serialize subscription metadata into JSON"), // updatable (our validator layer ensure this will never fail)
+                &body.label_key, // updatable
+                &body.label_value, // updatable
+                &subscription_id.into_inner(), // read-only
+                &body.application_id // read-only
             )
         .fetch_optional(&mut tx)
         .await
@@ -468,6 +472,7 @@ pub async fn update(
             tx.commit().await.map_err(Hook0Problem::from)?;
 
             Ok(Json(Subscription {
+                application_id: body.application_id,
                 subscription_id: s.subscription__id,
                 is_enabled: s.is_enabled,
                 event_types: body.event_types.clone(),
