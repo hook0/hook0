@@ -13,8 +13,8 @@ use uuid::Uuid;
 use validator::Validate;
 
 use crate::hook0_client::{
-    EventOrganizationCreated, EventOrganizationInvited, EventOrganizationRevoked,
-    EventOrganizationUpdated, Hook0ClientEvent,
+    EventOrganizationCreated, EventOrganizationInvited, EventOrganizationRemoved,
+    EventOrganizationRevoked, EventOrganizationUpdated, Hook0ClientEvent,
 };
 use crate::iam::{AuthProof, Role, GROUP_SEP, ORGA_GROUP_PREFIX};
 use crate::keycloak_api::{Group, KeycloakApi};
@@ -620,6 +620,20 @@ pub async fn delete(
         keycloak_api.remove_organization(&organization_id).await?;
 
         tx.commit().await?;
+
+        if let Some(hook0_client) = state.hook0_client.as_ref() {
+            let hook0_client_event: Hook0ClientEvent = EventOrganizationRemoved {
+                organization_id: organization_id.as_ref().to_owned(),
+            }
+            .into();
+            if let Err(e) = hook0_client
+                .send_event(&hook0_client_event.mk_hook0_event())
+                .await
+            {
+                error!("Hook0ClientError: {e}");
+            };
+        }
+
         Ok(NoContent)
     } else {
         tx.rollback().await?;
