@@ -159,7 +159,7 @@ pub async fn get(
 
     let application_id: Option<RawApplicationId> = query_as!(
         RawApplicationId,
-        "select application__id from webhook.subscription s where s.subscription__id = $1 limit 1",
+        "select application__id from webhook.subscription where subscription__id = $1 limit 1",
         &subscription_id
     )
     .fetch_optional(&state.db)
@@ -229,7 +229,7 @@ pub async fn get(
             LIMIT 1
         "#, // Column aliases ending with "!" are there because sqlx does not seem to infer correctly that these columns' types are not options
         &application_id,
-        subscription_id,
+        &subscription_id,
     )
         .fetch_optional(&state.db)
         .await
