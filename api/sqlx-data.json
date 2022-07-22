@@ -678,6 +678,26 @@
     },
     "query": "\n            SELECT name\n            FROM event.organization\n            WHERE organization__id = $1\n        "
   },
+  "4645ff40b69e1854b89997ce01fdbb3dc69c7e8da196f0840b8a245957952894": {
+    "describe": {
+      "columns": [
+        {
+          "name": "application__id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "select application__id from webhook.subscription where subscription__id = $1 limit 1"
+  },
   "529bfeaf4cfc68d98dfb29109963d6f4c4133c715022100de30d2d1652796c93": {
     "describe": {
       "columns": [
@@ -865,81 +885,6 @@
       }
     },
     "query": "\n                SELECT service__name AS service_name, resource_type__name AS resource_type_name, verb__name AS verb_name, event_type__name AS event_type_name\n                FROM event.event_type\n                WHERE application__id = $1 AND event_type__name = $2\n            "
-  },
-  "67550fcabf92ca33c3e6eca50d7d519f92df8877520a2427cbca98b5098b4e21": {
-    "describe": {
-      "columns": [
-        {
-          "name": "subscription__id!",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "is_enabled!",
-          "ordinal": 1,
-          "type_info": "Bool"
-        },
-        {
-          "name": "description",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "secret!",
-          "ordinal": 3,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "metadata!",
-          "ordinal": 4,
-          "type_info": "Jsonb"
-        },
-        {
-          "name": "label_key!",
-          "ordinal": 5,
-          "type_info": "Text"
-        },
-        {
-          "name": "label_value!",
-          "ordinal": 6,
-          "type_info": "Text"
-        },
-        {
-          "name": "created_at!",
-          "ordinal": 7,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "event_types",
-          "ordinal": 8,
-          "type_info": "TextArray"
-        },
-        {
-          "name": "target_json",
-          "ordinal": 9,
-          "type_info": "Jsonb"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        true,
-        false,
-        false,
-        false,
-        false,
-        false,
-        null,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Uuid"
-        ]
-      }
-    },
-    "query": "\n            WITH subs AS (\n                SELECT\n                    s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.label_key, s.label_value, s.target__id, s.created_at,\n                    CASE WHEN length((array_agg(set.event_type__name))[1]) > 0\n                        THEN array_agg(set.event_type__name)\n                        ELSE ARRAY[]::text[] END AS event_types\n                FROM webhook.subscription AS s\n                LEFT JOIN webhook.subscription__event_type AS set ON set.subscription__id = s.subscription__id\n                WHERE s.application__id = $1 AND s.subscription__id = $2\n                GROUP BY s.subscription__id\n                ORDER BY s.created_at ASC\n            ), targets AS (\n                SELECT target__id, jsonb_build_object(\n                    'type', replace(tableoid::regclass::text, 'webhook.target_', ''),\n                    'method', method,\n                    'url', url,\n                    'headers', headers\n                ) AS target_json FROM webhook.target_http\n                WHERE target__id IN (SELECT target__id FROM subs)\n            )\n            SELECT subs.subscription__id AS \"subscription__id!\", subs.is_enabled AS \"is_enabled!\", subs.description, subs.secret AS \"secret!\", subs.metadata AS \"metadata!\", subs.label_key AS \"label_key!\", subs.label_value AS \"label_value!\", subs.created_at AS \"created_at!\", subs.event_types, targets.target_json\n            FROM subs\n            INNER JOIN targets ON subs.target__id = targets.target__id\n            LIMIT 1\n        "
   },
   "680ed5d40ca52af1ccacea0de005c32c198219b374bce1a8a7dad0430f718222": {
     "describe": {
@@ -1371,6 +1316,87 @@
       }
     },
     "query": "\n            INSERT INTO event.organization (organization__id, name, created_by)\n            VALUES ($1, $2, $3)\n        "
+  },
+  "dccd323176a61aa3463a4084636d49d0162a13839ba1b49602b232547ae76ab7": {
+    "describe": {
+      "columns": [
+        {
+          "name": "application__id!",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "subscription__id!",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "is_enabled!",
+          "ordinal": 2,
+          "type_info": "Bool"
+        },
+        {
+          "name": "description",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "secret!",
+          "ordinal": 4,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "metadata!",
+          "ordinal": 5,
+          "type_info": "Jsonb"
+        },
+        {
+          "name": "label_key!",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "label_value!",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "created_at!",
+          "ordinal": 8,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "event_types",
+          "ordinal": 9,
+          "type_info": "TextArray"
+        },
+        {
+          "name": "target_json",
+          "ordinal": 10,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n            WITH subs AS (\n                SELECT\n                    s.application__id, s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.label_key, s.label_value, s.target__id, s.created_at,\n                    CASE WHEN length((array_agg(set.event_type__name))[1]) > 0\n                        THEN array_agg(set.event_type__name)\n                        ELSE ARRAY[]::text[] END AS event_types\n                FROM webhook.subscription AS s\n                LEFT JOIN webhook.subscription__event_type AS set ON set.subscription__id = s.subscription__id\n                WHERE s.application__id = $1 AND s.subscription__id = $2\n                GROUP BY s.subscription__id\n                ORDER BY s.created_at ASC\n            ), targets AS (\n                SELECT target__id, jsonb_build_object(\n                    'type', replace(tableoid::regclass::text, 'webhook.target_', ''),\n                    'method', method,\n                    'url', url,\n                    'headers', headers\n                ) AS target_json FROM webhook.target_http\n                WHERE target__id IN (SELECT target__id FROM subs)\n            )\n            SELECT subs.application__id AS \"application__id!\", subs.subscription__id AS \"subscription__id!\", subs.is_enabled AS \"is_enabled!\", subs.description, subs.secret AS \"secret!\", subs.metadata AS \"metadata!\", subs.label_key AS \"label_key!\", subs.label_value AS \"label_value!\", subs.created_at AS \"created_at!\", subs.event_types, targets.target_json\n            FROM subs\n            INNER JOIN targets ON subs.target__id = targets.target__id\n            LIMIT 1\n        "
   },
   "e381dee2ce7ea6b771536e80b5e239f360f76e7172dc3a368da140a73cdec9be": {
     "describe": {
