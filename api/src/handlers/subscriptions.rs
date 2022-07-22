@@ -138,7 +138,7 @@ pub async fn list(
 }
 
 #[api_v2_operation(
-    summary = "Get a subscription by its IDs",
+    summary = "Get a subscription by its id",
     description = "",
     operation_id = "subscriptions.get",
     consumes = "application/json",
@@ -148,11 +148,37 @@ pub async fn list(
 pub async fn get(
     state: Data<crate::State>,
     auth: AuthProof,
-    qs: Query<Qs>,
     subscription_id: Path<Uuid>,
 ) -> Result<Json<Subscription>, Hook0Problem> {
+    #[allow(non_snake_case)]
+    struct RawApplicationId {
+        application__id: Uuid,
+    }
+
+    let subscription_id = subscription_id.into_inner();
+
+    let application_id: Option<RawApplicationId> = query_as!(
+        RawApplicationId,
+        "select application__id from webhook.subscription s where s.subscription__id = $1 limit 1",
+        &subscription_id
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(|e| {
+        error!("{}", &e);
+        Hook0Problem::InternalServerError
+    })?;
+
+    if application_id.is_none() {
+        return Err(Hook0Problem::NotFound);
+    }
+
+    let application_id = application_id
+        .map(|x| x.application__id)
+        .expect("Could not unwrap application_id");
+
     if auth
-        .can_access_application(&state.db, &qs.application_id, &Role::Viewer)
+        .can_access_application(&state.db, &application_id, &Role::Viewer)
         .await
         .is_none()
     {
@@ -161,6 +187,7 @@ pub async fn get(
 
     #[allow(non_snake_case)]
     struct RawSubscription {
+        application__id: Uuid,
         subscription__id: Uuid,
         is_enabled: bool,
         event_types: Option<Vec<String>>,
@@ -178,7 +205,7 @@ pub async fn get(
         r#"
             WITH subs AS (
                 SELECT
-                    s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.label_key, s.label_value, s.target__id, s.created_at,
+                    s.application__id, s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.label_key, s.label_value, s.target__id, s.created_at,
                     CASE WHEN length((array_agg(set.event_type__name))[1]) > 0
                         THEN array_agg(set.event_type__name)
                         ELSE ARRAY[]::text[] END AS event_types
@@ -196,13 +223,13 @@ pub async fn get(
                 ) AS target_json FROM webhook.target_http
                 WHERE target__id IN (SELECT target__id FROM subs)
             )
-            SELECT subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.label_key AS "label_key!", subs.label_value AS "label_value!", subs.created_at AS "created_at!", subs.event_types, targets.target_json
+            SELECT subs.application__id AS "application__id!", subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.label_key AS "label_key!", subs.label_value AS "label_value!", subs.created_at AS "created_at!", subs.event_types, targets.target_json
             FROM subs
             INNER JOIN targets ON subs.target__id = targets.target__id
             LIMIT 1
         "#, // Column aliases ending with "!" are there because sqlx does not seem to infer correctly that these columns' types are not options
-        &qs.application_id,
-        subscription_id.into_inner(),
+        &application_id,
+        subscription_id,
     )
         .fetch_optional(&state.db)
         .await
@@ -213,7 +240,7 @@ pub async fn get(
 
     match raw_subscription {
         Some(s) => Ok(Json(Subscription {
-            application_id: qs.application_id,
+            application_id: s.application__id,
             subscription_id: s.subscription__id,
             is_enabled: s.is_enabled,
             event_types: s.event_types.clone().unwrap_or_default(),
