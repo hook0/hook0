@@ -9,6 +9,7 @@ use sha2::Sha256;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::time::{Duration, Instant};
+use strum::EnumVariantNames;
 
 use crate::RequestAttempt;
 
@@ -16,25 +17,18 @@ const USER_AGENT: &str = concat!(crate_name!(), "/", crate_version!());
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 const TIMEOUT: Duration = Duration::from_secs(15);
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, strum::Display, EnumVariantNames)]
 pub enum ResponseError {
+    #[strum(serialize = "E_UNKNOWN")]
     Unknown,
+    #[strum(serialize = "E_INVALID_TARGET")]
     InvalidTarget,
+    #[strum(serialize = "E_CONNECTION")]
     Connection,
+    #[strum(serialize = "E_TIMEOUT")]
     Timeout,
+    #[strum(serialize = "E_HTTP")]
     Http,
-}
-
-impl std::fmt::Display for ResponseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Unknown => write!(f, "E_UNKNOWN"),
-            Self::InvalidTarget => write!(f, "E_INVALID_TARGET"),
-            Self::Connection => write!(f, "E_CONNECTION"),
-            Self::Timeout => write!(f, "E_TIMEOUT"),
-            Self::Http => write!(f, "E_HTTP"),
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
