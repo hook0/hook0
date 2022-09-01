@@ -61,6 +61,18 @@
     },
     "query": "UPDATE webhook.request_attempt SET succeeded_at = statement_timestamp() WHERE request_attempt__id = $1"
   },
+  "2fdd36ebcf89333e116fbbe19fb18e270262744471e91a5362a9f845b2503ac0": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "\n                INSERT INTO webhook.response_error (response_error__name)\n                VALUES ($1)\n                ON CONFLICT (response_error__name)\n                DO NOTHING\n            "
+  },
   "3a8414eea7c620d35cbca2553685f73a6253c01b1373433f10cfb8fbd1cb5b29": {
     "describe": {
       "columns": [],
