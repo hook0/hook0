@@ -1111,6 +1111,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "sqlx",
+ "strum",
  "tokio",
  "uuid 0.8.2",
 ]
