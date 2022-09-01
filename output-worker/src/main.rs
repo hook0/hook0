@@ -12,6 +12,7 @@ use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::str::FromStr;
 use std::time::Duration;
+use strum::VariantNames;
 use tokio::time::sleep;
 use uuid::Uuid;
 
@@ -115,6 +116,24 @@ async fn main() -> anyhow::Result<()> {
     )
     .await?;
     info!("Connected to database");
+
+    info!("Upserting response error names");
+    let mut tx = conn.begin().await?;
+    for error_name in ResponseError::VARIANTS {
+        sqlx::query!(
+            "
+                INSERT INTO webhook.response_error (response_error__name)
+                VALUES ($1)
+                ON CONFLICT (response_error__name)
+                DO NOTHING
+            ",
+            error_name,
+        )
+        .execute(&mut tx)
+        .await?;
+    }
+    tx.commit().await?;
+    info!("Done upserting response error names");
 
     info!("Begin looking for work");
     loop {
