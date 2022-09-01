@@ -1,6 +1,6 @@
 use actix_cors::Cors;
 use actix_files::{Files, NamedFile};
-use actix_web::middleware::{Compat, Logger};
+use actix_web::middleware::{Compat, Logger, NormalizePath};
 use actix_web::{http, App, HttpServer};
 use actix_web_middleware_keycloak_auth::{AlwaysPassPolicy, DecodingKey, KeycloakAuth};
 use clap::{crate_description, crate_name, crate_version, Parser};
@@ -281,6 +281,7 @@ async fn main() -> anyhow::Result<()> {
             .wrap(get_user_ip)
             .wrap(cors)
             .wrap(Logger::default())
+            .wrap(NormalizePath::trim())
             .wrap_api_with_spec(spec)
             .with_json_spec_v3_at("/api/v1/swagger.json")
             .service(
