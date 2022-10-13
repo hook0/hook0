@@ -6,7 +6,7 @@ use log::{debug, info, trace};
 use reqwest::header::HeaderMap;
 use sqlx::postgres::types::PgInterval;
 use sqlx::postgres::PgConnectOptions;
-use sqlx::{Connection, PgConnection};
+use sqlx::{Connection, PgConnection, Postgres, Transaction};
 use std::cmp::min;
 use std::collections::HashMap;
 use std::convert::TryFrom;
@@ -246,10 +246,14 @@ async fn main() -> anyhow::Result<()> {
 
                 // Creating a retry request or giving up
                 if let Some(retry_in) = compute_next_retry(
+                    &mut tx,
+                    &attempt.subscription__id,
                     config.max_fast_retries,
                     config.max_slow_retries,
                     attempt.retry_count,
-                ) {
+                )
+                .await?
+                {
                     let next_retry_count = attempt.retry_count + 1;
                     let retry_id = sqlx::query!(
                         "
@@ -290,7 +294,37 @@ async fn main() -> anyhow::Result<()> {
     }
 }
 
-fn compute_next_retry(
+async fn compute_next_retry<'a>(
+    tx: &mut Transaction<'a, Postgres>,
+    subscription_id: &Uuid,
+    max_fast_retries: u32,
+    max_slow_retries: u32,
+    retry_count: i16,
+) -> Result<Option<Duration>, sqlx::Error> {
+    let sub = sqlx::query!(
+        "
+            SELECT true
+            FROM webhook.subscription
+            WHERE subscription__id = $1 AND deleted_at IS NULL AND is_enabled
+        ",
+        subscription_id
+    )
+    .fetch_optional(tx)
+    .await?;
+
+    if sub.is_some() {
+        Ok(compute_next_retry_duration(
+            max_fast_retries,
+            max_slow_retries,
+            retry_count,
+        ))
+    } else {
+        // If the subscription was disabled or soft-deleted, we do not want to schedule a next attempt
+        Ok(None)
+    }
+}
+
+fn compute_next_retry_duration(
     max_fast_retries: u32,
     max_slow_retries: u32,
     retry_count: i16,
