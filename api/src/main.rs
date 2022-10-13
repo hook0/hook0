@@ -3,6 +3,7 @@ use actix_files::{Files, NamedFile};
 use actix_web::middleware::{Compat, Logger, NormalizePath};
 use actix_web::{http, App, HttpServer};
 use actix_web_middleware_keycloak_auth::{AlwaysPassPolicy, DecodingKey, KeycloakAuth};
+use clap::builder::{BoolValueParser, TypedValueParser};
 use clap::{crate_description, crate_name, crate_version, Parser};
 use log::{debug, info, trace, warn};
 use paperclip::{
@@ -62,7 +63,7 @@ struct Config {
     keycloak_oidc_public_key: String,
 
     /// Disable automatic database migration
-    #[clap(long = "no-auto-db-migration", env = "NO_AUTO_DB_MIGRATION", parse(from_flag = std::ops::Not::not))]
+    #[clap(long = "no-auto-db-migration", env = "NO_AUTO_DB_MIGRATION", value_parser = BoolValueParser::new().map(|v| !v))]
     auto_db_migration: bool,
 
     /// URL of a Keycloak instance (example: https://my.keycloak.net/auth)
