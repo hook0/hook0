@@ -9,6 +9,8 @@ You will need administrative access to a dedicated Keycloak realm.
 
 The following sections will help you configure your realm for Hook0.
 
+_This documentation was written for the legacy Keycloak administration console which has been replaced in Keycloak 19. The configuration you need to do remains the same but the screens and field names might differ._
+
 ### Groups Scope
 
 Let's create a new client scope that will include in JWT every group our users belong to.
