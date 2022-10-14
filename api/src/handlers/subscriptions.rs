@@ -91,7 +91,7 @@ pub async fn list(
                         ELSE ARRAY[]::text[] END AS event_types
                 FROM webhook.subscription AS s
                 LEFT JOIN webhook.subscription__event_type AS set ON set.subscription__id = s.subscription__id
-                WHERE s.application__id = $1
+                WHERE s.application__id = $1 AND deleted_at IS NULL
                 GROUP BY s.subscription__id
                 ORDER BY s.created_at ASC
             ), targets AS (
@@ -159,7 +159,7 @@ pub async fn get(
 
     let application_id: Option<RawApplicationId> = query_as!(
         RawApplicationId,
-        "select application__id from webhook.subscription where subscription__id = $1 limit 1",
+        "SELECT application__id FROM webhook.subscription WHERE subscription__id = $1 AND deleted_at IS NULL LIMIT 1",
         &subscription_id
     )
     .fetch_optional(&state.db)
@@ -433,7 +433,7 @@ pub async fn update(
                 "
                     UPDATE webhook.subscription
                     SET is_enabled = $1, description = $2, metadata = $3, label_key = $4, label_value = $5
-                    WHERE subscription__id = $6 AND application__id = $7
+                    WHERE subscription__id = $6 AND application__id = $7 AND deleted_at IS NULL
                     RETURNING subscription__id, is_enabled, description, secret, metadata, label_key, label_value, target__id, created_at
                 ",
                 &body.is_enabled, // updatable
@@ -563,7 +563,8 @@ pub async fn delete(
         Some(s) => {
             query!(
                 "
-                    DELETE FROM webhook.subscription
+                    UPDATE webhook.subscription
+                    SET deleted_at = statement_timestamp()
                     WHERE application__id = $1 AND subscription__id = $2
                 ",
                 &application_id,
