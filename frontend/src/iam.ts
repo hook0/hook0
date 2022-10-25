@@ -8,7 +8,7 @@ const keycloak = Keycloak({
 });
 
 keycloak.onTokenExpired = () => {
-  return onTokenExpired();
+  void onTokenExpired();
 };
 
 
