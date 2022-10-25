@@ -21,5 +21,9 @@ export default class Hook0TableCellCode<T> extends Vue {
 };
 </script>
 <style>
-</style>
 
+.ag-theme-alpine .ag-cell {
+  line-height: 40px;
+}
+
+</style>

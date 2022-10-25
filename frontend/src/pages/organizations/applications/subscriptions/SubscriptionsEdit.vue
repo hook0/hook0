@@ -129,7 +129,7 @@
                                  :id="'event_' + index"></hook0-input>
                     <label :for="'event_' + index"
                            class="font-medium text-gray-700 select-none ml-2 cursor-pointer">
-                      <hook0-text v-text="eventType.event_type_name"></hook0-text>
+                      <hook0-text>{{eventType.event_type_name}}</hook0-text>
                     </label>
                   </template>
                 </hook0-list-item>

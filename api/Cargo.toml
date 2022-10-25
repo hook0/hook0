@@ -16,11 +16,11 @@ actix-files = "0.6.2"
 actix-governor = { version = "0.4.0-beta.1", features = ["log"] }
 actix-web = "4.2.1"
 actix-web-middleware-keycloak-auth = { version = "0.4.0", features = ["paperclip_compat"] }
-anyhow = "1.0.65"
-base64 = "0.13.0"
+anyhow = "1.0.66"
+base64 = "0.13.1"
 chrono = { version = "0.4.22", features = ["serde"] }
-clap = { version = "4.0.14", features = ["derive", "env", "cargo", "wrap_help"] }
-futures-util = "0.3.24"
+clap = { version = "4.0.18", features = ["derive", "env", "cargo", "wrap_help"] }
+futures-util = "0.3.25"
 governor = "0.4.2"
 http-api-problem = { version = "0.55.0", features = ["actix-web"] }
 ipnetwork = "0.19.0"
@@ -28,13 +28,13 @@ lazy_static = "1.4.0"
 log = "0.4.17"
 nom = "7.1.1"
 nom-regex = "0.2.0"
-paperclip = { git = "https://github.com/paperclip-rs/paperclip", rev = "05ea9b89b385ee71669de508ba4d8a0d6c750182", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
+paperclip = { git = "https://github.com/paperclip-rs/paperclip", rev = "aac5bc734a470f46c31b727b859cf9089f22c0be", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
 rand = { version = "0.8.5", features = ["log"] }
 regex = "1.6.0"
 reqwest = { version = "0.11.12", default-features = false, features = ["rustls-tls", "trust-dns"] }
 sentry-integration = { path = "../sentry-integration" }
-serde = "1.0.145"
-serde_json = "1.0.86"
+serde = "1.0.147"
+serde_json = "1.0.87"
 sqlx = { version = "0.6.2", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "offline", "migrate"] } # runtime-tokio-rustls because https://github.com/launchbadge/sqlx/issues/894#issuecomment-747821912
 strum = { version = "0.24.1", features = ["derive"] }
 thiserror = "1.0.37"
