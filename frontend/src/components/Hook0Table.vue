@@ -61,7 +61,7 @@ export default class Hook0Table extends Vue {
     this.domLayout = 'autoHeight';
   }
 
-  onFirstDataRendered(params: AgGridEvent) {
+  onFirstDataRendered(params: AgGridEvent<any>) {
     params.api.sizeColumnsToFit();
   }
 
@@ -96,4 +96,3 @@ export default class Hook0Table extends Vue {
   border-color: transparent;
 }
 </style>
-
