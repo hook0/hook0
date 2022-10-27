@@ -18,9 +18,9 @@
 
         <hook0-card-content v-if="event_types.length > 0">
           <hook0-table
-            :context="this"
-            :columnDefs="columnDefs"
-            :rowData="event_types"
+              :context="this"
+              :columnDefs="columnDefs"
+              :rowData="event_types"
           >
           </hook0-table>
         </hook0-card-content>
@@ -65,6 +65,8 @@ import {Event} from "./EventsService";
 import {UUID} from "@/http";
 import {Application} from "@/pages/organizations/applications/ApplicationService";
 import * as ApplicationService from "@/pages/organizations/applications/ApplicationService";
+import {format, formatDistance, formatRelative, parseISO, subDays} from 'date-fns'
+
 
 @Options({
   components: {
@@ -98,9 +100,19 @@ export default class EventsList extends Vue {
       event_types$: Promise.resolve(),
       columnDefs: [
         {
+          field: 'received_at',
+          suppressMovable: true,
+          suppressSizeToFit: true,
+          width: 150,
+          sortable: true,
+          headerName: 'Received At',
+          valueFormatter: (date) => formatDistance(parseISO(date.value as string), new Date(), {addSuffix: true})
+        },
+        {
           field: 'event_type_name',
           headerName: 'Event Type',
           suppressMovable: true,
+          resizable: true,
           cellRenderer: "Hook0TableCellLink",
           cellRendererParams: {
             value(row: Event) {
@@ -122,26 +134,45 @@ export default class EventsList extends Vue {
             }
           }
         }, {
-          field: 'ip',
+          field: 'payload_content_type',
           suppressMovable: true,
+          suppressSizeToFit: true,
+          width: 140,
           sortable: true,
-          headerName: 'IP'
+          cellRenderer: "Hook0TableCellCode",
+          headerName: 'Payload type'
         }, {
           field: 'labels',
           suppressMovable: true,
           sortable: true,
-          headerName: 'Labels'
+          resizable: true,
+          headerName: 'Labels',
+          cellRenderer: "Hook0TableCellCode",
+          cellRendererParams: {
+            value(row: Event) {
+              return Object.entries(row.labels as Record<string, string>).map(([key, value]) => `${key}=${value}`).join(' ');
+            }
+          }
         }, {
-          field: 'payload_content_type_name',
+          field: 'ip',
           suppressMovable: true,
           sortable: true,
-          headerName: 'Payload type'
+          suppressSizeToFit: true,
+          width: 155,
+          cellRenderer: "Hook0TableCellCode",
+          headerName: 'IP'
         }, {
-          field: 'received_at',
+          field: 'metadata',
           suppressMovable: true,
-          minWidth: 360,
           sortable: true,
-          headerName: 'Received At'
+          resizable: true,
+          headerName: 'Metadata',
+          cellRenderer: "Hook0TableCellCode",
+          cellRendererParams: {
+            value(row: Event) {
+              return JSON.stringify(row.metadata);
+            }
+          }
         }] as Array<ColDef>
     }
   }

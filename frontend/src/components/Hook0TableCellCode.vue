@@ -1,6 +1,6 @@
 <template>
   <hook0-text class="code" style="width: fit-content">{{
-      params.colDef.cellRendererParams && params.colDef.cellRendererParams.value ? params.colDef.cellRendererParams.value : params.value
+      params.colDef.cellRendererParams && params.colDef.cellRendererParams.value ? (typeof params.colDef.cellRendererParams.value === 'function' ? params.colDef.cellRendererParams.value(params.data) : params.colDef.cellRendererParams.value) : params.value
     }}
   </hook0-text>
 </template>
