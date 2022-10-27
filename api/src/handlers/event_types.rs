@@ -11,7 +11,7 @@ use uuid::Uuid;
 use validator::Validate;
 
 use crate::hook0_client::{EventEventTypeCreated, Hook0ClientEvent};
-use crate::iam::{AuthProof, Role};
+use crate::iam::{get_owner_organization, AuthProof, Role};
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -126,6 +126,9 @@ pub async fn create(
 
     if let Some(hook0_client) = state.hook0_client.as_ref() {
         let hook0_client_event: Hook0ClientEvent = EventEventTypeCreated {
+            organization_id: get_owner_organization(&state.db, &body.application_id)
+                .await
+                .unwrap_or(Uuid::nil()),
             application_id: body.application_id,
             service_name: event_type.service_name.to_owned(),
             resource_type_name: event_type.resource_type_name.to_owned(),
