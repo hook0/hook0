@@ -18,29 +18,29 @@
         <template #content>
           <div class="flex flex-row justify-start items-baseline">
             <hook0-input
-              type="text"
-              v-model="event_type.service"
-              placeholder="billing"
-              required
-              class="flex-grow-1"
+                type="text"
+                v-model="event_type.service"
+                placeholder="billing"
+                required
+                class="flex-grow-1"
             >
             </hook0-input>
             <hook0-text class="bold flex-grow-0">.</hook0-text>
             <hook0-input
-              type="text"
-              v-model="event_type.resource_type"
-              placeholder="invoice"
-              required
-              class="flex-grow-1"
+                type="text"
+                v-model="event_type.resource_type"
+                placeholder="invoice"
+                required
+                class="flex-grow-1"
             >
             </hook0-input>
             <hook0-text class="bold flex-grow-0">.</hook0-text>
             <hook0-input
-              type="text"
-              v-model="event_type.verb"
-              placeholder="created"
-              required
-              class="flex-grow-1"
+                type="text"
+                v-model="event_type.verb"
+                placeholder="created"
+                required
+                class="flex-grow-1"
             >
             </hook0-input>
           </div>
@@ -186,12 +186,11 @@ import {Options, Vue} from 'vue-class-component';
 import {routes} from "@/routes";
 import {isAxiosError, Problem, UUID} from "@/http";
 import {Alert} from "@/components/Hook0Alert";
-import {definitions} from "@/types";
-import * as EventTypeService from './EventTypeService';
 import Hook0ListItem from "@/components/Hook0ListItem.vue";
 import Hook0List from "@/components/Hook0List.vue";
+import {EventTypePost} from "./EventTypeService";
+import * as EventTypeService from './EventTypeService';
 
-export type EventTypePost = definitions['EventTypePost'];
 
 @Options({
   components: {
