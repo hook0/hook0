@@ -1,4 +1,5 @@
 use ::hook0_client::Hook0Client;
+use actix::Arbiter;
 use actix_cors::Cors;
 use actix_files::{Files, NamedFile};
 use actix_web::middleware::{Compat, Logger, NormalizePath};
@@ -157,6 +158,10 @@ struct Config {
     /// Secret of a Hook0 application that will receive events from this Hook0 instance
     #[clap(long, env, group = "client")]
     hook0_client_application_secret: Option<Uuid>,
+
+    /// Number of allowed retries when upserting event types to the linked Hook0 application fails
+    #[clap(long, env, default_value = "10")]
+    hook0_client_upserts_retries: u16,
 }
 
 /// The app state
@@ -237,6 +242,19 @@ async fn main() -> anyhow::Result<()> {
         config.hook0_client_application_id,
         config.hook0_client_application_secret,
     );
+    if let Some(client) = &hook0_client {
+        let upsert_client = client.clone();
+        let upserts_retries = config.hook0_client_upserts_retries;
+        Arbiter::current().spawn(async move {
+            trace!("Starting Hook0 client upsert task");
+            hook0_client::upsert_event_types(
+                &upsert_client,
+                hook0_client::EVENT_TYPES,
+                upserts_retries,
+            )
+            .await;
+        });
+    }
 
     // Initialize state
     let initial_state = State {
