@@ -42,6 +42,7 @@
     "bluebird": "^3.7.2",
     "click-outside-vue3": "^4.0.1",
     "core-js": "^3.6.5",
+    "date-fns": "^2.29.3",
     "fp-ts": "^2.11.6",
     "keycloak-js": "^19.0.3",
     "lodash.debounce": "^4.0.8",
