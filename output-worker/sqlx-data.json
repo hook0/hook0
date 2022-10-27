@@ -110,7 +110,27 @@
     },
     "query": "\n                    INSERT INTO webhook.response (response_error__name, http_code, headers, body, elapsed_time_ms)\n                    VALUES ($1, $2, $3, $4, $5)\n                    RETURNING response__id\n                "
   },
-  "4a22baa3480fd1ece60d2a08ff51430b237aec798c94658ed92667eb8085b77e": {
+  "4ae5a9de1e9d240ba4283078a94ce324a3b4c862c51b9f4eb13996ec9d2ee62a": {
+    "describe": {
+      "columns": [
+        {
+          "name": "bool",
+          "ordinal": 0,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n            SELECT true\n            FROM webhook.subscription\n            WHERE subscription__id = $1 AND deleted_at IS NULL AND is_enabled\n        "
+  },
+  "e036c8658d674832297953ee2d374372eb24c733bda6fc4053a972f16cb450e1": {
     "describe": {
       "columns": [
         {
@@ -154,22 +174,28 @@
           "type_info": "Jsonb"
         },
         {
-          "name": "payload",
+          "name": "event_type__name",
           "ordinal": 8,
+          "type_info": "Text"
+        },
+        {
+          "name": "payload",
+          "ordinal": 9,
           "type_info": "Bytea"
         },
         {
           "name": "payload_content_type",
-          "ordinal": 9,
+          "ordinal": 10,
           "type_info": "Text"
         },
         {
           "name": "secret",
-          "ordinal": 10,
+          "ordinal": 11,
           "type_info": "Uuid"
         }
       ],
       "nullable": [
+        false,
         false,
         false,
         false,
@@ -186,26 +212,6 @@
         "Left": []
       }
     },
-    "query": "\n                SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.retry_count, t_http.method AS http_method, t_http.url AS http_url, t_http.headers AS http_headers, e.payload AS payload, e.payload_content_type AS payload_content_type, s.secret\n                FROM webhook.request_attempt AS ra\n                INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id\n                INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id\n                INNER JOIN event.event AS e ON e.event__id = ra.event__id\n                WHERE succeeded_at IS NULL AND failed_at IS NULL AND (delay_until IS NULL OR delay_until <= statement_timestamp())\n                ORDER BY created_at ASC\n                LIMIT 1\n                FOR UPDATE OF ra\n                SKIP LOCKED\n            "
-  },
-  "4ae5a9de1e9d240ba4283078a94ce324a3b4c862c51b9f4eb13996ec9d2ee62a": {
-    "describe": {
-      "columns": [
-        {
-          "name": "bool",
-          "ordinal": 0,
-          "type_info": "Bool"
-        }
-      ],
-      "nullable": [
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid"
-        ]
-      }
-    },
-    "query": "\n            SELECT true\n            FROM webhook.subscription\n            WHERE subscription__id = $1 AND deleted_at IS NULL AND is_enabled\n        "
+    "query": "\n                SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.retry_count, t_http.method AS http_method, t_http.url AS http_url, t_http.headers AS http_headers, e.event_type__name, e.payload AS payload, e.payload_content_type AS payload_content_type, s.secret\n                FROM webhook.request_attempt AS ra\n                INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id\n                INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id\n                INNER JOIN event.event AS e ON e.event__id = ra.event__id\n                WHERE succeeded_at IS NULL AND failed_at IS NULL AND (delay_until IS NULL OR delay_until <= statement_timestamp())\n                ORDER BY created_at ASC\n                LIMIT 1\n                FOR UPDATE OF ra\n                SKIP LOCKED\n            "
   }
 }
