@@ -1,6 +1,8 @@
 import {AxiosResponse} from 'axios';
 import http, {UUID} from '@/http';
-import {definitions} from '@/types';
+import type {components} from '@/types';
+
+type definitions = components['schemas'];
 
 export type Subscription = definitions['Subscription'];
 export type SubscriptionPost = definitions['SubscriptionPost'];
