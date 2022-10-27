@@ -54,6 +54,8 @@ library.add(faFolderTree,
   faArrowUpRightFromSquare,
   faMinus,
   faPlus,
+  faToggleOn,
+  faToggleOff,
   faGear, faChevronDown, faRocket, faUserCircle, faTrash, faSitemap, faSpinner, faCircleNotch, faChevronLeft, faChevronRight);
 app.component('font-awesome-icon', FontAwesomeIcon);
 
@@ -86,6 +88,8 @@ import Hook0Icon from "@/components/Hook0Icon.vue";
 import Hook0Loader from "@/components/Hook0Loader.vue";
 import Hook0CardContentLines from "@/components/Hook0CardContentLines.vue";
 import Hook0Error from "@/components/Hook0Error.vue";
+import {faToggleOn} from "@fortawesome/free-solid-svg-icons/faToggleOn";
+import {faToggleOff} from "@fortawesome/free-solid-svg-icons/faToggleOff";
 
 app.component('Hook0Alert', Hook0Alert);
 app.component('Hook0Error', Hook0Error);
