@@ -10,7 +10,7 @@ use sqlx::{query, query_as};
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::hook0_client::{EventEventTypeCreated, Hook0ClientEvent};
+use crate::hook0_client::{EventEventTypeCreated, EventEventTypeRemoved, Hook0ClientEvent};
 use crate::iam::{get_owner_organization, AuthProof, Role};
 use crate::problems::Hook0Problem;
 
@@ -274,11 +274,29 @@ pub async fn delete(
                     WHERE application__id = $1 AND event_type__name = $2
                 ",
                 &application_id,
-                a.event_type_name,
+                &a.event_type_name,
             )
             .execute(&state.db)
             .await
             .map_err(Hook0Problem::from)?;
+
+            if let Some(hook0_client) = state.hook0_client.as_ref() {
+                let hook0_client_event: Hook0ClientEvent = EventEventTypeRemoved {
+                    organization_id: get_owner_organization(&state.db, &qs.application_id)
+                        .await
+                        .unwrap_or(Uuid::nil()),
+                    application_id: qs.application_id,
+                    event_type_name: a.event_type_name,
+                }
+                .into();
+                if let Err(e) = hook0_client
+                    .send_event(&hook0_client_event.mk_hook0_event())
+                    .await
+                {
+                    error!("Hook0ClientError: {e}");
+                };
+            }
+
             Ok(NoContent)
         }
         None => Err(Hook0Problem::NotFound),
