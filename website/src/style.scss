@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+body {
+  @apply bg-gray-900;
+}
+
 div.privacy {
   @apply mt-6 prose prose-green prose-lg text-gray-500 mx-auto;
 }
