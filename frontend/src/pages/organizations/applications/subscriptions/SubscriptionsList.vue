@@ -18,9 +18,9 @@
 
         <hook0-card-content v-if="subscriptions.length > 0">
           <hook0-table
-            :context="this"
-            :columnDefs="columnDefs"
-            :rowData="subscriptions"
+              :context="this"
+              :columnDefs="columnDefs"
+              :rowData="subscriptions"
           >
           </hook0-table>
         </hook0-card-content>
@@ -67,7 +67,8 @@ import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 import {ColDef} from "@ag-grid-community/core";
 import * as SubscriptionService from "./SubscriptionService";
 import {UUID} from "@/http";
-import {Subscription, Target} from "./SubscriptionService";
+import {Subscription, SubscriptionPostFixed, Target, toggleEnable} from "./SubscriptionService";
+import {Application} from "@/pages/organizations/applications/ApplicationService";
 
 @Options({
   components: {
@@ -99,20 +100,59 @@ export default class SubscriptionsList extends Vue {
       subscriptions$: Promise.resolve(),
       columnDefs: [
         {
+          field: 'is_enabled',
+          suppressMovable: true,
+          sortable: true,
+          resizable: true,
+          width: 200,
+          headerName: 'Enabled',
+          cellRenderer: "Hook0TableCellLink",
+          cellRendererParams: {
+            value: (subscription: Subscription) => subscription.is_enabled ? 'Enabled' : 'Disabled',
+            icon: (subscription: Subscription) => subscription.is_enabled ? 'toggle-on' : 'toggle-of',
+            onClick: (row: SubscriptionPostFixed): void => {
+              // eslint-disable-next-line
+              SubscriptionService.toggleEnable(this.application_id as string, row)
+                  .then(() => {
+                    // @TODO notify user of success
+                    this._forceLoad();
+                  })
+                  // @TODO proper error management
+                  .catch(err => {
+                    alert(err);
+                    throw err;
+                  });
+            }
+          }
+        },
+        {
+          field: 'description',
+          suppressMovable: true,
+          sortable: true,
+          resizable: true,
+          minWidth: 200,
+          headerName: 'Description',
+          cellRenderer: "Hook0TableCellLink",
+          cellRendererParams: {
+            to: (row: Subscription) => {
+              return {
+                name: routes.SubscriptionsDetail,
+                params: {
+                  application_id: this.$route.params.application_id,
+                  organization_id: this.$route.params.organization_id,
+                  subscription_id: row.subscription_id,
+                }
+              }
+            }
+          }
+        },
+        {
           field: 'event_types',
           suppressMovable: true,
           sortable: true,
           resizable: true,
           minWidth: 200,
           headerName: 'event_types'
-        },
-        {
-          field: 'is_enabled',
-          suppressMovable: true,
-          sortable: true,
-          resizable: true,
-          maxWidth: 100,
-          headerName: 'Enabled',
         }, {
           field: 'label_key',
           suppressMovable: true,
@@ -130,32 +170,35 @@ export default class SubscriptionsList extends Vue {
           suppressMovable: true,
           sortable: true,
           headerName: 'Target',
-          minWidth: 500,
+          minWidth: 200,
           valueFormatter: (a) => {
+            // @todo set another cellrenderer
             return JSON.stringify(a.value);
           }
         }, {
           suppressMovable: true,
           headerName: 'Options',
-          cellRenderer: "Hook0TableCellLink",
-          maxWidth: 100,
+          cellRenderer: "Hook0TableCellLinks",
+          maxWidth: 200,
           cellRendererParams: {
-            value: 'Delete',
-            icon: 'trash',
-            onClick: (row: Subscription): void => {
-              if (confirm(`Are you sure to delete ${row.description ? `"${row.description}"` : 'this'} subscription?`)) {
-                SubscriptionService.remove(this.application_id as string, row.subscription_id)
-                  .then(() => {
-                    // @TODO notify user of success
-                    this._forceLoad();
-                  })
-                  // @TODO proper error management
-                  .catch(err => {
-                    alert(err);
-                    throw err;
-                  });
+            parameters: [{
+              value: 'Delete',
+              icon: 'trash',
+              onClick: (row: Subscription): void => {
+                if (confirm(`Are you sure to delete ${row.description ? `"${row.description}"` : 'this'} subscription?`)) {
+                  SubscriptionService.remove(this.application_id as string, row.subscription_id)
+                      .then(() => {
+                        // @TODO notify user of success
+                        this._forceLoad();
+                      })
+                      // @TODO proper error management
+                      .catch(err => {
+                        alert(err);
+                        throw err;
+                      });
+                }
               }
-            }
+            }]
           }
         }] as Array<ColDef>
     }
