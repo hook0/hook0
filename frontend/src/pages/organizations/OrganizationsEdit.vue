@@ -21,10 +21,10 @@
             </template>
             <template #content>
               <hook0-input
-                type="text"
-                v-model="organization.name"
-                placeholder="my awesome api - production"
-                required
+                  type="text"
+                  v-model="organization.name"
+                  placeholder="my awesome api - production"
+                  required
               >
                 <template #helpText></template>
               </hook0-input>
@@ -59,7 +59,9 @@ import {Options, Vue} from 'vue-class-component';
 import {routes} from "@/routes";
 import Hook0Alert from "@/components/Hook0Alert.vue";
 
-import {definitions} from '@/types';
+import type {components} from '@/types';
+
+type definitions = components['schemas'];
 import {isAxiosError, Problem, UUID} from "@/http";
 import {Alert} from '@/components/Hook0Alert';
 import OrganizationRemove from './OrganizationsRemove.vue';
@@ -130,20 +132,20 @@ export default class OrganizationEdit extends Vue {
 
 
     (this.isNew ?
-      // create
-      OrganizationService.create({
-        name: this.organization.name,
-      })
-        .then((organization) => this.reloadPageAndGoToOrganizationDetail(organization.organization_id))
-        .catch(this.displayError.bind(this)) :
-      // update
-      OrganizationService.update(this.$route.params.organization_id as string, {
-        name: this.organization.name,
-      })
-        .then((_resp: any) => this.reloadPageAndGoToOrganizationDetail(this.$route.params.organization_id as string))
-        .catch(this.displayError.bind(this)))
-      // finally
-      .finally(() => this.loading = false);
+        // create
+        OrganizationService.create({
+          name: this.organization.name,
+        })
+            .then((organization) => this.reloadPageAndGoToOrganizationDetail(organization.organization_id))
+            .catch(this.displayError.bind(this)) :
+        // update
+        OrganizationService.update(this.$route.params.organization_id as string, {
+          name: this.organization.name,
+        })
+            .then((_resp: any) => this.reloadPageAndGoToOrganizationDetail(this.$route.params.organization_id as string))
+            .catch(this.displayError.bind(this)))
+        // finally
+        .finally(() => this.loading = false);
   }
 
   displayError(err: AxiosError | unknown) {

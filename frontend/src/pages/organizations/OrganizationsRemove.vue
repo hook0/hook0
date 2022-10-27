@@ -26,7 +26,10 @@ import {Organization, OrganizationPost} from './OrganizationService';
 import {Options, Vue} from 'vue-class-component';
 import {routes} from "@/routes";
 
-import {definitions} from '@/types';
+import type {components} from '@/types';
+
+type definitions = components['schemas'];
+
 import {isAxiosError, Problem, UUID} from "@/http";
 import {Alert} from '@/components/Hook0Alert';
 
@@ -69,10 +72,10 @@ export default class OrganizationsRemove extends Vue {
     this.loading = true;
 
     OrganizationService.remove(this.organizationId).then(() =>
-        window.location.assign("/")
-      , this.displayError.bind(this))
-      // finally
-      .finally(() => this.loading = false);
+            window.location.assign("/")
+        , this.displayError.bind(this))
+        // finally
+        .finally(() => this.loading = false);
   }
 
   displayError(err: AxiosError | unknown) {
@@ -80,6 +83,7 @@ export default class OrganizationsRemove extends Vue {
     this.alert.visible = true;
 
     if (isAxiosError(err) && err.response) {
+      // eslint-disable-next-line
       const problem: Problem = err.response.data as Problem;
       this.alert.type = problem.status >= 500 ? 'alert' : 'warning';
       this.alert.title = problem.title;
