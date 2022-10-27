@@ -5,12 +5,16 @@
 //! It makes it easier to send events from a Rust application to a Hook0 instance.
 
 use chrono::{DateTime, Utc};
-use log::error;
+use lazy_regex::regex_captures;
+use log::{debug, error, trace};
 use reqwest::header::{HeaderMap, HeaderValue, InvalidHeaderValue, AUTHORIZATION};
 use reqwest::{Client, Url};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::borrow::Cow;
+use std::collections::HashSet;
+use std::fmt::Display;
+use std::str::FromStr;
 use url::ParseError;
 use uuid::Uuid;
 
@@ -99,6 +103,129 @@ impl Hook0Client {
                 .log_and_return())
             }
         }
+    }
+
+    /// Ensure the configured app has the right event types or create them
+    ///
+    /// Returns the list of event types that were created, if any.
+    pub async fn upsert_event_types(
+        &self,
+        event_types: &[&str],
+    ) -> Result<Vec<String>, Hook0ClientError> {
+        let structured_event_types = event_types
+            .iter()
+            .map(|str| {
+                EventType::from_str(str)
+                    .map_err(|_| Hook0ClientError::InvalidEventType(str.to_string()))
+            })
+            .collect::<Result<Vec<EventType>, Hook0ClientError>>()?;
+
+        let event_types_url = self.mk_url(&["event_types"])?;
+        #[derive(Debug, Deserialize)]
+        struct ApiEventType {
+            event_type_name: String,
+        }
+
+        trace!("Getting the list of available event types");
+        let available_event_types_vec = self
+            .client
+            .get(event_types_url.as_str())
+            .query(&[("application_id", self.application_id())])
+            .send()
+            .await
+            .map_err(Hook0ClientError::GetAvailableEventTypes)?
+            .error_for_status()
+            .map_err(Hook0ClientError::GetAvailableEventTypes)?
+            .json::<Vec<ApiEventType>>()
+            .await
+            .map_err(Hook0ClientError::GetAvailableEventTypes)?;
+        let available_event_types = available_event_types_vec
+            .iter()
+            .map(|et| et.event_type_name.to_owned())
+            .collect::<HashSet<String>>();
+        debug!(
+            "There are currently {} event types",
+            available_event_types.len(),
+        );
+
+        #[derive(Debug, Serialize)]
+        struct ApiEventTypePost {
+            application_id: Uuid,
+            service: String,
+            resource_type: String,
+            verb: String,
+        }
+        impl Display for ApiEventTypePost {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{}.{}.{}", self.service, self.resource_type, self.verb)
+            }
+        }
+
+        let mut added_event_types = vec![];
+        for event_type in structured_event_types {
+            let event_type_str = event_type.to_string();
+            if !available_event_types.contains(&event_type_str) {
+                debug!("Creating the '{event_type}' event type");
+
+                let body = ApiEventTypePost {
+                    application_id: self.application_id,
+                    service: event_type.service,
+                    resource_type: event_type.resource_type,
+                    verb: event_type.verb,
+                };
+
+                self.client
+                    .post(event_types_url.as_str())
+                    .json(&body)
+                    .send()
+                    .await
+                    .map_err(|e| Hook0ClientError::CreatingEventType {
+                        event_type_name: body.to_string(),
+                        error: e,
+                    })?
+                    .error_for_status()
+                    .map_err(|e| Hook0ClientError::CreatingEventType {
+                        event_type_name: body.to_string(),
+                        error: e,
+                    })?;
+
+                added_event_types.push(body.to_string());
+            }
+        }
+        debug!("{} new event types were created", added_event_types.len());
+
+        Ok(added_event_types)
+    }
+}
+
+/// A structured event type
+#[derive(Debug, Serialize, PartialEq, Eq)]
+pub struct EventType {
+    service: String,
+    resource_type: String,
+    verb: String,
+}
+
+impl FromStr for EventType {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let captures = regex_captures!("^([A-Z0-9_]+)[.]([A-Z0-9_]+)[.]([A-Z0-9_]+)$"i, s);
+        if let Some((_, service, resource_type, verb)) = captures {
+            Ok(Self {
+                resource_type: resource_type.to_owned(),
+                service: service.to_owned(),
+                verb: verb.to_owned(),
+            })
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl Display for EventType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}.{}.{}", self.service, self.resource_type, self.verb)
     }
 }
 
@@ -190,6 +317,24 @@ pub enum Hook0ClientError {
         /// Body of the HTTP response
         body: Option<String>,
     },
+
+    /// Provided event type does not have a valid syntax
+    #[error("Provided event type '{0}' does not have a valid syntax (service.resource_type.verb)")]
+    InvalidEventType(String),
+
+    /// Something went wrong when trying to fetch the list of available event types
+    #[error("Getting available event types failed: {0}")]
+    GetAvailableEventTypes(reqwest::Error),
+
+    /// Something went wrong when creating an event type
+    #[error("Creating event type '{event_type_name}' failed: {error}")]
+    CreatingEventType {
+        /// Name of the event type
+        event_type_name: String,
+
+        /// Error as reported by Reqwest
+        error: reqwest::Error,
+    },
 }
 
 impl Hook0ClientError {
@@ -207,4 +352,36 @@ fn append_url_segments(base_url: &Url, segments: &[&str]) -> Result<Url, url::Pa
     let url = Url::parse(&format!("{base_url}/{segments_str}").replace("//", "/"))?;
 
     Ok(url)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn displaying_event_type() {
+        let et = EventType {
+            service: "service".to_owned(),
+            resource_type: "resource".to_owned(),
+            verb: "verb".to_owned(),
+        };
+
+        assert_eq!(et.to_string(), "service.resource.verb")
+    }
+
+    #[test]
+    fn parsing_valid_event_type() {
+        let et = EventType {
+            service: "service".to_owned(),
+            resource_type: "resource".to_owned(),
+            verb: "verb".to_owned(),
+        };
+
+        assert_eq!(EventType::from_str(&et.to_string()), Ok(et))
+    }
+
+    #[test]
+    fn parsing_invalid_event_type() {
+        assert_eq!(EventType::from_str("test.test"), Err(()))
+    }
 }
