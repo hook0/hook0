@@ -1,14 +1,17 @@
 <template>
   <hook0-button
-    v-bind="{
+      v-bind="{
     href: params.colDef.cellRendererParams && params.colDef.cellRendererParams.href ? params.colDef.cellRendererParams.href(params.data) : undefined,
     to: params.colDef.cellRendererParams && params.colDef.cellRendererParams.to ? params.colDef.cellRendererParams.to(params.data) : undefined,
-    onClick: params.colDef.cellRendererParams && params.colDef.cellRendererParams.onClick ? onClick : undefined
+    onClick: params.colDef.cellRendererParams && params.colDef.cellRendererParams.onClick ? onClick : undefined,
+    class: $attrs.class
      }"
-    style="width: fit-content"
+      style="width: fit-content"
   >
+
     <template #left v-if="params.colDef.cellRendererParams && params.colDef.cellRendererParams.icon">
-      <hook0-icon class="mr-1" :name="params.colDef.cellRendererParams.icon"></hook0-icon>
+      <hook0-icon class="mr-1"
+                  :name="typeof params.colDef.cellRendererParams.icon === 'function' ? params.colDef.cellRendererParams.icon(params.data) : params.colDef.cellRendererParams.icon"></hook0-icon>
     </template>
     <template #default>
       {{
@@ -21,8 +24,8 @@
 
 <script lang="ts">
 import {Vue, Options} from 'vue-class-component';
-import {ICellRendererParams} from "@ag-grid-community/core";
 import Hook0Icon from "@/components/Hook0Icon.vue";
+import {ICellRendererParams} from "@ag-grid-community/core";
 import {RouteLocation} from "vue-router";
 
 interface ExtraParams<T> {
@@ -53,6 +56,8 @@ interface ExtraParams<T> {
   to: (row: T) => RouteLocation
 }
 
+type Hook0TableCellLinkParameter<T> = ICellRendererParams & ExtraParams<T>;
+
 
 @Options({
   name: 'hook0-table-cell-link',
@@ -66,7 +71,7 @@ interface ExtraParams<T> {
   components: {Hook0Icon}
 })
 export default class Hook0TableCellLink<T> extends Vue {
-  private params!: ICellRendererParams & ExtraParams<T>;
+  private params!: Hook0TableCellLinkParameter<T>
 
   onClick<T>(event: Event): any {
     event.stopImmediatePropagation();
@@ -82,5 +87,6 @@ export default class Hook0TableCellLink<T> extends Vue {
 };
 </script>
 <style>
+
 </style>
 
