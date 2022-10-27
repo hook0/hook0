@@ -20,7 +20,11 @@ pub const EVENT_TYPES: &[&str] = &[
     "api.organization.invited",
     "api.organization.revoked",
     "api.organization.removed",
+    "api.application_secret.created",
+    "api.application_secret.updated",
+    "api.application_secret.removed",
     "api.event_type.created",
+    "api.event_type.removed",
 ];
 
 pub fn initialize(
@@ -99,7 +103,11 @@ pub enum Hook0ClientEvent {
     OrganizationInvited(EventOrganizationInvited),
     OrganizationRevoked(EventOrganizationRevoked),
     OrganizationRemoved(EventOrganizationRemoved),
+    ApplicationSecretCreated(EventApplicationSecretCreated),
+    ApplicationSecretUpdated(EventApplicationSecretUpdated),
+    ApplicationSecretRemoved(EventApplicationSecretRemoved),
     EventTypeCreated(EventEventTypeCreated),
+    EventTypeRemoved(EventEventTypeRemoved),
 }
 
 impl Hook0ClientEvent {
@@ -128,9 +136,15 @@ impl Hook0ClientEvent {
             Self::OrganizationInvited(e) => to_event(e, None),
             Self::OrganizationRevoked(e) => to_event(e, None),
             Self::OrganizationRemoved(e) => to_event(e, None),
+            Self::ApplicationSecretCreated(
+                e @ EventApplicationSecretCreated { created_at, .. },
+            ) => to_event(e, Some(created_at)),
+            Self::ApplicationSecretUpdated(e) => to_event(e, None),
+            Self::ApplicationSecretRemoved(e) => to_event(e, None),
             Self::EventTypeCreated(e @ EventEventTypeCreated { created_at, .. }) => {
                 to_event(e, Some(created_at))
             }
+            Self::EventTypeRemoved(e) => to_event(e, None),
         }
     }
 }
@@ -298,6 +312,116 @@ impl From<EventOrganizationRemoved> for Hook0ClientEvent {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct EventApplicationSecretCreated {
+    pub organization_id: Uuid,
+    pub application_id: Uuid,
+    pub name: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+impl Event for EventApplicationSecretCreated {
+    fn event_type(&self) -> &'static str {
+        "api.application_secret.created"
+    }
+
+    fn labels(&self) -> Vec<(String, Value)> {
+        vec![
+            (
+                INSTANCE_LABEL.to_owned(),
+                Value::String(INSTANCE_VALUE.to_owned()),
+            ),
+            (
+                ORGANIZATION_LABEL.to_owned(),
+                Value::String(self.organization_id.to_string()),
+            ),
+            (
+                APPLICATION_LABEL.to_owned(),
+                to_value(self.application_id).unwrap(),
+            ),
+        ]
+    }
+}
+
+impl From<EventApplicationSecretCreated> for Hook0ClientEvent {
+    fn from(e: EventApplicationSecretCreated) -> Self {
+        Self::ApplicationSecretCreated(e)
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct EventApplicationSecretUpdated {
+    pub organization_id: Uuid,
+    pub application_id: Uuid,
+    pub name: Option<String>,
+}
+
+impl Event for EventApplicationSecretUpdated {
+    fn event_type(&self) -> &'static str {
+        "api.application_secret.updated"
+    }
+
+    fn labels(&self) -> Vec<(String, Value)> {
+        vec![
+            (
+                INSTANCE_LABEL.to_owned(),
+                Value::String(INSTANCE_VALUE.to_owned()),
+            ),
+            (
+                ORGANIZATION_LABEL.to_owned(),
+                Value::String(self.organization_id.to_string()),
+            ),
+            (
+                APPLICATION_LABEL.to_owned(),
+                to_value(self.application_id).unwrap(),
+            ),
+        ]
+    }
+}
+
+impl From<EventApplicationSecretUpdated> for Hook0ClientEvent {
+    fn from(e: EventApplicationSecretUpdated) -> Self {
+        Self::ApplicationSecretUpdated(e)
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct EventApplicationSecretRemoved {
+    pub organization_id: Uuid,
+    pub application_id: Uuid,
+    pub name: Option<String>,
+    pub token: Uuid,
+}
+
+impl Event for EventApplicationSecretRemoved {
+    fn event_type(&self) -> &'static str {
+        "api.application_secret.removed"
+    }
+
+    fn labels(&self) -> Vec<(String, Value)> {
+        vec![
+            (
+                INSTANCE_LABEL.to_owned(),
+                Value::String(INSTANCE_VALUE.to_owned()),
+            ),
+            (
+                ORGANIZATION_LABEL.to_owned(),
+                Value::String(self.organization_id.to_string()),
+            ),
+            (
+                APPLICATION_LABEL.to_owned(),
+                to_value(self.application_id).unwrap(),
+            ),
+        ]
+    }
+}
+
+impl From<EventApplicationSecretRemoved> for Hook0ClientEvent {
+    fn from(e: EventApplicationSecretRemoved) -> Self {
+        Self::ApplicationSecretRemoved(e)
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct EventEventTypeCreated {
     pub organization_id: Uuid,
     pub application_id: Uuid,
@@ -335,5 +459,41 @@ impl Event for EventEventTypeCreated {
 impl From<EventEventTypeCreated> for Hook0ClientEvent {
     fn from(e: EventEventTypeCreated) -> Self {
         Self::EventTypeCreated(e)
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct EventEventTypeRemoved {
+    pub organization_id: Uuid,
+    pub application_id: Uuid,
+    pub event_type_name: String,
+}
+
+impl Event for EventEventTypeRemoved {
+    fn event_type(&self) -> &'static str {
+        "api.event_type.removed"
+    }
+
+    fn labels(&self) -> Vec<(String, Value)> {
+        vec![
+            (
+                INSTANCE_LABEL.to_owned(),
+                Value::String(INSTANCE_VALUE.to_owned()),
+            ),
+            (
+                ORGANIZATION_LABEL.to_owned(),
+                Value::String(self.organization_id.to_string()),
+            ),
+            (
+                APPLICATION_LABEL.to_owned(),
+                to_value(self.application_id).unwrap(),
+            ),
+        ]
+    }
+}
+
+impl From<EventEventTypeRemoved> for Hook0ClientEvent {
+    fn from(e: EventEventTypeRemoved) -> Self {
+        Self::EventTypeRemoved(e)
     }
 }
