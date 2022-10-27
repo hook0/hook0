@@ -1,14 +1,15 @@
 <template>
   <ag-grid-vue
-    class="ag-theme-alpine"
-    v-bind="{ ...$props, ...$attrs }"
-    :domLayout="domLayout"
-    :modules="modules.concat(context ? [{moduleName: 'context', context: context}] : [])"
-    :defaultColDef="defaultColDef"
-    :suppressRowHoverHighlight="true"
-    :suppressHorizontalScroll="true"
-    :suppressCellFocus="true"
-    @first-data-rendered="onFirstDataRendered"
+      class="ag-theme-alpine"
+      v-bind="{ ...$props, ...$attrs }"
+      :domLayout="domLayout"
+      :modules="modules.concat(context ? [{moduleName: 'context', context: context}] : [])"
+      :defaultColDef="defaultColDef"
+      :suppressRowHoverHighlight="true"
+      :suppressHorizontalScroll="true"
+      :suppressCellFocus="true"
+      :gridOptions="gridOptions"
+      @first-data-rendered="onFirstDataRendered"
   >
   </ag-grid-vue>
 </template>
@@ -21,6 +22,7 @@ import {ClientSideRowModelModule} from "@ag-grid-community/client-side-row-model
 import {AgGridEvent, ColDef, ICellRendererParams, RowNode} from "@ag-grid-community/core";
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 import Hook0TableCellCode from '@/components/Hook0TableCellCode.vue';
+import Hook0TableCellLinks from "@/components/Hook0TableCellLinks.vue";
 
 @Options({
   name: 'hook0-table',
@@ -45,6 +47,7 @@ import Hook0TableCellCode from '@/components/Hook0TableCellCode.vue';
   components: {
     AgGridVue,
     Hook0TableCellLink,
+    Hook0TableCellLinks,
     Hook0TableCellCode
   }
 })
@@ -56,6 +59,8 @@ export default class Hook0Table extends Vue {
   private defaultColDef = {
     resizable: false,
   };
+
+  private gridOptions = {};
 
   created() {
     this.domLayout = 'autoHeight';
@@ -95,4 +100,10 @@ export default class Hook0Table extends Vue {
 .ag-theme-alpine .ag-ltr .ag-has-focus .ag-cell-focus:not(.ag-cell-range-selected) {
   border-color: transparent;
 }
+
+.ag-theme-alpine .ag-cell, .ag-theme-alpine .ag-full-width-row .ag-cell-wrapper.ag-row-group {
+  line-height: 40px;
+}
+
+
 </style>
