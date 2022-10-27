@@ -140,6 +140,11 @@ trait Event: std::fmt::Debug + Clone + Serialize {
     fn labels(&self) -> Vec<(String, Value)>;
 }
 
+const INSTANCE_LABEL: &str = "instance";
+const INSTANCE_VALUE: &str = "1";
+const ORGANIZATION_LABEL: &str = "organization";
+const APPLICATION_LABEL: &str = "application";
+
 #[derive(Debug, Clone, Serialize)]
 pub struct EventOrganizationCreated {
     pub organization_id: Uuid,
@@ -154,7 +159,10 @@ impl Event for EventOrganizationCreated {
     }
 
     fn labels(&self) -> Vec<(String, Value)> {
-        vec![]
+        vec![(
+            INSTANCE_LABEL.to_owned(),
+            Value::String(INSTANCE_VALUE.to_owned()),
+        )]
     }
 }
 
@@ -176,10 +184,16 @@ impl Event for EventOrganizationUpdated {
     }
 
     fn labels(&self) -> Vec<(String, Value)> {
-        vec![(
-            "organization".to_owned(),
-            Value::String(self.organization_id.to_string()),
-        )]
+        vec![
+            (
+                INSTANCE_LABEL.to_owned(),
+                Value::String(INSTANCE_VALUE.to_owned()),
+            ),
+            (
+                ORGANIZATION_LABEL.to_owned(),
+                Value::String(self.organization_id.to_string()),
+            ),
+        ]
     }
 }
 
@@ -203,10 +217,16 @@ impl Event for EventOrganizationInvited {
     }
 
     fn labels(&self) -> Vec<(String, Value)> {
-        vec![(
-            "organization".to_owned(),
-            Value::String(self.organization_id.to_string()),
-        )]
+        vec![
+            (
+                INSTANCE_LABEL.to_owned(),
+                Value::String(INSTANCE_VALUE.to_owned()),
+            ),
+            (
+                ORGANIZATION_LABEL.to_owned(),
+                Value::String(self.organization_id.to_string()),
+            ),
+        ]
     }
 }
 
@@ -228,10 +248,16 @@ impl Event for EventOrganizationRevoked {
     }
 
     fn labels(&self) -> Vec<(String, Value)> {
-        vec![(
-            "organization".to_owned(),
-            Value::String(self.organization_id.to_string()),
-        )]
+        vec![
+            (
+                INSTANCE_LABEL.to_owned(),
+                Value::String(INSTANCE_VALUE.to_owned()),
+            ),
+            (
+                ORGANIZATION_LABEL.to_owned(),
+                Value::String(self.organization_id.to_string()),
+            ),
+        ]
     }
 }
 
@@ -252,10 +278,16 @@ impl Event for EventOrganizationRemoved {
     }
 
     fn labels(&self) -> Vec<(String, Value)> {
-        vec![(
-            "organization".to_owned(),
-            Value::String(self.organization_id.to_string()),
-        )]
+        vec![
+            (
+                INSTANCE_LABEL.to_owned(),
+                Value::String(INSTANCE_VALUE.to_owned()),
+            ),
+            (
+                ORGANIZATION_LABEL.to_owned(),
+                Value::String(self.organization_id.to_string()),
+            ),
+        ]
     }
 }
 
@@ -267,6 +299,7 @@ impl From<EventOrganizationRemoved> for Hook0ClientEvent {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct EventEventTypeCreated {
+    pub organization_id: Uuid,
     pub application_id: Uuid,
     pub service_name: String,
     pub resource_type_name: String,
@@ -282,10 +315,20 @@ impl Event for EventEventTypeCreated {
     }
 
     fn labels(&self) -> Vec<(String, Value)> {
-        vec![(
-            "application_id".to_owned(),
-            to_value(self.application_id).unwrap(),
-        )]
+        vec![
+            (
+                INSTANCE_LABEL.to_owned(),
+                Value::String(INSTANCE_VALUE.to_owned()),
+            ),
+            (
+                ORGANIZATION_LABEL.to_owned(),
+                Value::String(self.organization_id.to_string()),
+            ),
+            (
+                APPLICATION_LABEL.to_owned(),
+                to_value(self.application_id).unwrap(),
+            ),
+        ]
     }
 }
 
