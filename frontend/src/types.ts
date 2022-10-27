@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-  "/api/v1/application_secrets": {
+  "/api/v1/application_secrets/": {
     get: operations["applicationSecrets.read"];
     post: operations["applicationSecrets.create"];
   };
@@ -12,7 +12,7 @@ export interface paths {
     put: operations["applicationSecrets.update"];
     delete: operations["applicationSecrets.delete"];
   };
-  "/api/v1/applications": {
+  "/api/v1/applications/": {
     get: operations["applications.list"];
     /** An application emit events that are consumed by customers through webhooks */
     post: operations["applications.create"];
@@ -25,14 +25,14 @@ export interface paths {
     /** Delete an application, further events won't be sent, active webhook subscriptions will also be deleted. */
     delete: operations["applications.delete"];
   };
-  "/api/v1/errors": {
+  "/api/v1/errors/": {
     /** List of every possible errors that Hook0 can return. Each error is in RFC7807 problem format. */
     get: operations["errors.list"];
   };
-  "/api/v1/event": {
+  "/api/v1/event/": {
     post: operations["events.ingest"];
   };
-  "/api/v1/event_types": {
+  "/api/v1/event_types/": {
     get: operations["eventTypes.list"];
     post: operations["eventTypes.create"];
   };
@@ -40,215 +40,274 @@ export interface paths {
     get: operations["eventTypes.get"];
     delete: operations["eventTypes.delete"];
   };
-  "/api/v1/events": {
+  "/api/v1/events/": {
     get: operations["events.list"];
   };
   "/api/v1/events/{event_id}": {
     get: operations["events.get"];
   };
-  "/api/v1/instance": {
+  "/api/v1/instance/": {
     /** Get an object that shows how this instance is configured. */
     get: operations["instance.get"];
   };
-  "/api/v1/organizations": {
+  "/api/v1/organizations/": {
     get: operations["organizations.list"];
     /** Note that you will need to regenerate a JWT to be able to see/use the newly created organization. */
     post: operations["organizations.create"];
   };
-  "/api/v1/organizations/{organization_id}": {
+  "/api/v1/organizations/{organization_id}/": {
     get: operations["organizations.get"];
+    /** Note that you will need to regenerate a JWT to be able to see the updated name of the organization. */
+    put: operations["organizations.edit"];
+    /** Note that you will need to regenerate a JWT to be able to make the deleted organization go away. */
+    delete: operations["organizations.delete"];
   };
   "/api/v1/organizations/{organization_id}/invite": {
     put: operations["organizations.invite"];
     delete: operations["organizations.revoke"];
   };
-  "/api/v1/register": {
+  "/api/v1/payload_content_types/": {
+    /** List of every possible content types that can be used in event payloads. */
+    get: operations["payload_content_types.list"];
+  };
+  "/api/v1/register/": {
     post: operations["register"];
   };
-  "/api/v1/request_attempts": {
+  "/api/v1/request_attempts/": {
     get: operations["requestAttempts.read"];
   };
   "/api/v1/responses/{response_id}": {
     /** A response is produced when a request attempt is processed */
     get: operations["response.get"];
   };
-  "/api/v1/subscriptions": {
+  "/api/v1/subscriptions/": {
     /** List all subscriptions created by customers against the application events */
     get: operations["subscriptions.list"];
     /** A subscription let your customers subscribe to events. Events will be sent through the defined medium inside the subscription (e.g. HTTP POST request) as a webhook. */
     post: operations["subscriptions.create"];
   };
   "/api/v1/subscriptions/{subscription_id}": {
+    get: operations["subscriptions.get"];
     put: operations["subscriptions.update"];
     delete: operations["subscriptions.delete"];
   };
 }
 
-export interface definitions {
-  Application: {
-    application_id: string;
-    name: string;
-    organization_id: string;
-  };
-  ApplicationPost: {
-    name: string;
-    organization_id: string;
-  };
-  ApplicationSecret: {
-    created_at: string;
-    deleted_at?: string;
-    name?: string;
-    token: string;
-  };
-  ApplicationSecretPost: {
-    application_id: string;
-    name?: string;
-  };
-  Event: {
-    application_secret_token: string;
-    event_id: string;
-    event_type_name: string;
-    ip: string;
-    labels: unknown;
-    metadata?: unknown;
-    occurred_at: string;
-    payload_content_type_name: string;
-    received_at: string;
-  };
-  EventPost: {
-    application_id: string;
-    event_id: string;
-    event_type: string;
-    labels: { [key: string]: unknown };
-    metadata?: { [key: string]: unknown };
-    occurred_at: string;
-    payload: string;
-    payload_content_type: string;
-  };
-  EventType: {
-    event_type_name: string;
-    resource_type_name: string;
-    service_name: string;
-    verb_name: string;
-  };
-  EventTypePost: {
-    application_id: string;
-    resource_type: string;
-    service: string;
-    verb: string;
-  };
-  EventWithPayload: {
-    application_secret_token: string;
-    event_id: string;
-    event_type_name: string;
-    ip: string;
-    labels: unknown;
-    metadata?: unknown;
-    occurred_at: string;
-    payload: string;
-    payload_content_type_name: string;
-    received_at: string;
-  };
-  IngestedEvent: {
-    application_id: string;
-    event_id: string;
-    received_at: string;
-  };
-  InstanceConfig: {
-    auto_db_migration: boolean;
-    disable_registration: boolean;
-    keycloak_front_client_id: string;
-    keycloak_realm: string;
-    keycloak_url: string;
-  };
-  Organization: {
-    name: string;
-    organization_id: string;
-    role: string;
-  };
-  OrganizationInfo: {
-    name: string;
-    organization_id: string;
-    users: {
+export interface components {
+  schemas: {
+    Application: {
+      /** Format: uuid */
+      application_id: string;
+      name: string;
+      /** Format: uuid */
+      organization_id: string;
+    };
+    ApplicationPost: {
+      name: string;
+      /** Format: uuid */
+      organization_id: string;
+    };
+    ApplicationSecret: {
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      deleted_at?: string;
+      name?: string;
+      /** Format: uuid */
+      token: string;
+    };
+    ApplicationSecretPost: {
+      /** Format: uuid */
+      application_id: string;
+      name?: string;
+    };
+    Event: {
+      /** Format: uuid */
+      application_secret_token: string;
+      /** Format: uuid */
+      event_id: string;
+      event_type_name: string;
+      ip: string;
+      labels: { [key: string]: unknown };
+      metadata?: { [key: string]: unknown };
+      /** Format: date-time */
+      occurred_at: string;
+      payload_content_type: string;
+      /** Format: date-time */
+      received_at: string;
+    };
+    EventPost: {
+      /** Format: uuid */
+      application_id: string;
+      /** Format: uuid */
+      event_id: string;
+      event_type: string;
+      labels: { [key: string]: unknown };
+      metadata?: { [key: string]: unknown };
+      /** Format: date-time */
+      occurred_at: string;
+      payload: string;
+      payload_content_type: string;
+    };
+    EventType: {
+      event_type_name: string;
+      resource_type_name: string;
+      service_name: string;
+      verb_name: string;
+    };
+    EventTypePost: {
+      /** Format: uuid */
+      application_id: string;
+      resource_type: string;
+      service: string;
+      verb: string;
+    };
+    EventWithPayload: {
+      /** Format: uuid */
+      application_secret_token: string;
+      /** Format: uuid */
+      event_id: string;
+      event_type_name: string;
+      ip: string;
+      labels: { [key: string]: unknown };
+      metadata?: { [key: string]: unknown };
+      /** Format: date-time */
+      occurred_at: string;
+      payload: string;
+      payload_content_type: string;
+      /** Format: date-time */
+      received_at: string;
+    };
+    IngestedEvent: {
+      /** Format: uuid */
+      application_id: string;
+      /** Format: uuid */
+      event_id: string;
+      /** Format: date-time */
+      received_at: string;
+    };
+    InstanceConfig: {
+      auto_db_migration: boolean;
+      disable_registration: boolean;
+      keycloak_front_client_id: string;
+      keycloak_realm: string;
+      keycloak_url: string;
+    };
+    Organization: {
+      name: string;
+      /** Format: uuid */
+      organization_id: string;
+      role: string;
+    };
+    OrganizationInfo: {
+      name: string;
+      /** Format: uuid */
+      organization_id: string;
+      users: {
+        email: string;
+        first_name: string;
+        last_name: string;
+        role: string;
+        /** Format: uuid */
+        user_id: string;
+      }[];
+    };
+    OrganizationPost: {
+      name: string;
+    };
+    Problem: {
+      detail: string;
+      id: string;
+      /** Format: int32 */
+      status: number;
+      title: string;
+    };
+    Registration: {
+      /** Format: uuid */
+      organization_id: string;
+      temporary_password: string;
+      /** Format: uuid */
+      user_id: string;
+    };
+    RegistrationPost: {
       email: string;
       first_name: string;
       last_name: string;
-      role: string;
-      user_id: string;
-    }[];
-  };
-  OrganizationnPost: {
-    name: string;
-  };
-  Problem: {
-    detail: string;
-    id: string;
-    status: number;
-    title: string;
-  };
-  Registration: {
-    organization_id: string;
-    temporary_password: string;
-    user_id: string;
-  };
-  RegistrationPost: {
-    email: string;
-    first_name: string;
-    last_name: string;
-    organization_name: string;
-  };
-  RequestAttempt: {
-    created_at: string;
-    delay_until?: string;
-    event_id: string;
-    failed_at?: string;
-    picked_at?: string;
-    request_attempt_id: string;
-    response_id?: string;
-    retry_count: number;
-    status: string;
-    subscription: {
-      description?: string;
-      subscription_id: string;
+      organization_name: string;
     };
-    succeeded_at?: string;
-  };
-  Response: {
-    body?: string;
-    elapsed_time_ms?: number;
-    headers?: { [key: string]: string };
-    http_code?: number;
-    response_error_name?: string;
-    response_id: string;
-  };
-  Revoke: {
-    user_id: string;
-  };
-  Subscription: {
-    created_at: string;
-    description?: string;
-    event_types: string[];
-    is_enabled: boolean;
-    label_key: string;
-    label_value: string;
-    metadata: { [key: string]: unknown };
-    secret: string;
-    subscription_id: string;
-    target: string;
-  };
-  SubscriptionPost: {
-    application_id: string;
-    description?: string;
-    event_types: string[];
-    is_enabled: boolean;
-    label_key: string;
-    label_value: string;
-    metadata?: { [key: string]: unknown };
-    target: string;
-  };
-  UserInvitation: {
-    email: string;
-    role: string;
+    RequestAttempt: {
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      delay_until?: string;
+      /** Format: uuid */
+      event_id: string;
+      /** Format: date-time */
+      failed_at?: string;
+      /** Format: date-time */
+      picked_at?: string;
+      /** Format: uuid */
+      request_attempt_id: string;
+      /** Format: uuid */
+      response_id?: string;
+      /** Format: int32 */
+      retry_count: number;
+      status: string;
+      subscription: {
+        description?: string;
+        /** Format: uuid */
+        subscription_id: string;
+      };
+      /** Format: date-time */
+      succeeded_at?: string;
+    };
+    Response: {
+      body?: string;
+      /** Format: int32 */
+      elapsed_time_ms?: number;
+      headers?: { [key: string]: unknown };
+      /** Format: int32 */
+      http_code?: number;
+      response_error_name?: string;
+      /** Format: uuid */
+      response_id: string;
+    };
+    Revoke: {
+      /** Format: uuid */
+      user_id: string;
+    };
+    Subscription: {
+      /** Format: uuid */
+      application_id: string;
+      /** Format: date-time */
+      created_at: string;
+      description?: string;
+      event_types: string[];
+      is_enabled: boolean;
+      label_key: string;
+      label_value: string;
+      metadata: { [key: string]: unknown };
+      /** Format: uuid */
+      secret: string;
+      /** Format: uuid */
+      subscription_id: string;
+      target: string;
+    };
+    SubscriptionPost: {
+      /** Format: uuid */
+      application_id: string;
+      description?: string;
+      event_types: string[];
+      is_enabled: boolean;
+      label_key: string;
+      label_value: string;
+      metadata?: { [key: string]: unknown };
+      target: string;
+    };
+    UserInvitation: {
+      email: string;
+      role: string;
+    };
   };
 }
 
@@ -262,7 +321,9 @@ export interface operations {
     responses: {
       /** OK */
       200: {
-        schema: definitions["ApplicationSecret"][];
+        content: {
+          "application/json": components["schemas"]["ApplicationSecret"][];
+        };
       };
       /** Bad Request */
       400: unknown;
@@ -277,15 +338,12 @@ export interface operations {
     };
   };
   "applicationSecrets.create": {
-    parameters: {
-      body: {
-        body: definitions["ApplicationSecretPost"];
-      };
-    };
     responses: {
       /** Created */
       201: {
-        schema: definitions["ApplicationSecret"];
+        content: {
+          "application/json": components["schemas"]["ApplicationSecret"];
+        };
       };
       /** Bad Request */
       400: unknown;
@@ -297,6 +355,11 @@ export interface operations {
       409: unknown;
       /** Internal Server Error */
       500: unknown;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ApplicationSecretPost"];
+      };
     };
   };
   "applicationSecrets.update": {
@@ -304,14 +367,13 @@ export interface operations {
       path: {
         application_secret_token: string;
       };
-      body: {
-        body: definitions["ApplicationSecretPost"];
-      };
     };
     responses: {
       /** OK */
       200: {
-        schema: definitions["ApplicationSecret"];
+        content: {
+          "application/json": components["schemas"]["ApplicationSecret"];
+        };
       };
       /** Bad Request */
       400: unknown;
@@ -323,6 +385,11 @@ export interface operations {
       409: unknown;
       /** Internal Server Error */
       500: unknown;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ApplicationSecretPost"];
+      };
     };
   };
   "applicationSecrets.delete": {
@@ -358,7 +425,9 @@ export interface operations {
     responses: {
       /** OK */
       200: {
-        schema: definitions["Application"][];
+        content: {
+          "application/json": components["schemas"]["Application"][];
+        };
       };
       /** Bad Request */
       400: unknown;
@@ -374,15 +443,12 @@ export interface operations {
   };
   /** An application emit events that are consumed by customers through webhooks */
   "applications.create": {
-    parameters: {
-      body: {
-        body: definitions["ApplicationPost"];
-      };
-    };
     responses: {
       /** Created */
       201: {
-        schema: definitions["Application"];
+        content: {
+          "application/json": components["schemas"]["Application"];
+        };
       };
       /** Bad Request */
       400: unknown;
@@ -395,6 +461,11 @@ export interface operations {
       /** Internal Server Error */
       500: unknown;
     };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ApplicationPost"];
+      };
+    };
   };
   /** An application emit events that are consumed by customers through webhooks */
   "applications.get": {
@@ -406,7 +477,9 @@ export interface operations {
     responses: {
       /** OK */
       200: {
-        schema: definitions["Application"];
+        content: {
+          "application/json": components["schemas"]["Application"];
+        };
       };
       /** Bad Request */
       400: unknown;
@@ -426,14 +499,13 @@ export interface operations {
       path: {
         application_id: string;
       };
-      body: {
-        body: definitions["ApplicationPost"];
-      };
     };
     responses: {
       /** OK */
       200: {
-        schema: definitions["Application"];
+        content: {
+          "application/json": components["schemas"]["Application"];
+        };
       };
       /** Bad Request */
       400: unknown;
@@ -445,6 +517,11 @@ export interface operations {
       409: unknown;
       /** Internal Server Error */
       500: unknown;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ApplicationPost"];
+      };
     };
   };
   /** Delete an application, further events won't be sent, active webhook subscriptions will also be deleted. */
@@ -474,7 +551,9 @@ export interface operations {
     responses: {
       /** OK */
       200: {
-        schema: definitions["Problem"][];
+        content: {
+          "application/json": components["schemas"]["Problem"][];
+        };
       };
       /** Bad Request */
       400: unknown;
@@ -489,15 +568,12 @@ export interface operations {
     };
   };
   "events.ingest": {
-    parameters: {
-      body: {
-        body: definitions["EventPost"];
-      };
-    };
     responses: {
       /** Created */
       201: {
-        schema: definitions["IngestedEvent"];
+        content: {
+          "application/json": components["schemas"]["IngestedEvent"];
+        };
       };
       /** Bad Request */
       400: unknown;
@@ -510,6 +586,11 @@ export interface operations {
       /** Internal Server Error */
       500: unknown;
     };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EventPost"];
+      };
+    };
   };
   "eventTypes.list": {
     parameters: {
@@ -520,7 +601,9 @@ export interface operations {
     responses: {
       /** OK */
       200: {
-        schema: definitions["EventType"][];
+        content: {
+          "application/json": components["schemas"]["EventType"][];
+        };
       };
       /** Bad Request */
       400: unknown;
@@ -535,15 +618,12 @@ export interface operations {
     };
   };
   "eventTypes.create": {
-    parameters: {
-      body: {
-        body: definitions["EventTypePost"];
-      };
-    };
     responses: {
       /** Created */
       201: {
-        schema: definitions["EventType"];
+        content: {
+          "application/json": components["schemas"]["EventType"];
+        };
       };
       /** Bad Request */
       400: unknown;
@@ -555,6 +635,11 @@ export interface operations {
       409: unknown;
       /** Internal Server Error */
       500: unknown;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EventTypePost"];
+      };
     };
   };
   "eventTypes.get": {
@@ -569,7 +654,9 @@ export interface operations {
     responses: {
       /** OK */
       200: {
-        schema: definitions["EventType"];
+        content: {
+          "application/json": components["schemas"]["EventType"];
+        };
       };
       /** Bad Request */
       400: unknown;
@@ -616,7 +703,9 @@ export interface operations {
     responses: {
       /** OK */
       200: {
-        schema: definitions["Event"][];
+        content: {
+          "application/json": components["schemas"]["Event"][];
+        };
       };
       /** Bad Request */
       400: unknown;
@@ -642,7 +731,9 @@ export interface operations {
     responses: {
       /** OK */
       200: {
-        schema: definitions["EventWithPayload"];
+        content: {
+          "application/json": components["schemas"]["EventWithPayload"];
+        };
       };
       /** Bad Request */
       400: unknown;
@@ -661,7 +752,9 @@ export interface operations {
     responses: {
       /** OK */
       200: {
-        schema: definitions["InstanceConfig"];
+        content: {
+          "application/json": components["schemas"]["InstanceConfig"];
+        };
       };
       /** Bad Request */
       400: unknown;
@@ -679,7 +772,9 @@ export interface operations {
     responses: {
       /** OK */
       200: {
-        schema: definitions["Organization"][];
+        content: {
+          "application/json": components["schemas"]["Organization"][];
+        };
       };
       /** Bad Request */
       400: unknown;
@@ -695,15 +790,42 @@ export interface operations {
   };
   /** Note that you will need to regenerate a JWT to be able to see/use the newly created organization. */
   "organizations.create": {
+    responses: {
+      /** OK */
+      200: {
+        content: {
+          "application/json": components["schemas"]["OrganizationInfo"];
+        };
+      };
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["OrganizationPost"];
+      };
+    };
+  };
+  "organizations.get": {
     parameters: {
-      body: {
-        body: definitions["OrganizationnPost"];
+      path: {
+        organization_id: string;
       };
     };
     responses: {
       /** OK */
       200: {
-        schema: definitions["OrganizationInfo"];
+        content: {
+          "application/json": components["schemas"]["OrganizationInfo"];
+        };
       };
       /** Bad Request */
       400: unknown;
@@ -717,7 +839,8 @@ export interface operations {
       500: unknown;
     };
   };
-  "organizations.get": {
+  /** Note that you will need to regenerate a JWT to be able to see the updated name of the organization. */
+  "organizations.edit": {
     parameters: {
       path: {
         organization_id: string;
@@ -726,8 +849,37 @@ export interface operations {
     responses: {
       /** OK */
       200: {
-        schema: definitions["OrganizationInfo"];
+        content: {
+          "application/json": components["schemas"]["OrganizationInfo"];
+        };
       };
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["OrganizationPost"];
+      };
+    };
+  };
+  /** Note that you will need to regenerate a JWT to be able to make the deleted organization go away. */
+  "organizations.delete": {
+    parameters: {
+      path: {
+        organization_id: string;
+      };
+    };
+    responses: {
+      /** No Content */
+      204: never;
       /** Bad Request */
       400: unknown;
       /** Forbidden */
@@ -745,14 +897,13 @@ export interface operations {
       path: {
         organization_id: string;
       };
-      body: {
-        body: definitions["UserInvitation"];
-      };
     };
     responses: {
       /** OK */
       200: {
-        schema: definitions["UserInvitation"];
+        content: {
+          "application/json": components["schemas"]["UserInvitation"];
+        };
       };
       /** Bad Request */
       400: unknown;
@@ -765,20 +916,50 @@ export interface operations {
       /** Internal Server Error */
       500: unknown;
     };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UserInvitation"];
+      };
+    };
   };
   "organizations.revoke": {
     parameters: {
       path: {
         organization_id: string;
       };
-      body: {
-        body: definitions["Revoke"];
-      };
     };
     responses: {
       /** OK */
       200: {
-        schema: definitions["Revoke"];
+        content: {
+          "application/json": components["schemas"]["Revoke"];
+        };
+      };
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["Revoke"];
+      };
+    };
+  };
+  /** List of every possible content types that can be used in event payloads. */
+  "payload_content_types.list": {
+    responses: {
+      /** OK */
+      200: {
+        content: {
+          "application/json": string[];
+        };
       };
       /** Bad Request */
       400: unknown;
@@ -793,15 +974,12 @@ export interface operations {
     };
   };
   register: {
-    parameters: {
-      body: {
-        body: definitions["RegistrationPost"];
-      };
-    };
     responses: {
       /** Created */
       201: {
-        schema: definitions["Registration"];
+        content: {
+          "application/json": components["schemas"]["Registration"];
+        };
       };
       /** Bad Request */
       400: unknown;
@@ -813,6 +991,11 @@ export interface operations {
       409: unknown;
       /** Internal Server Error */
       500: unknown;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RegistrationPost"];
+      };
     };
   };
   "requestAttempts.read": {
@@ -826,7 +1009,9 @@ export interface operations {
     responses: {
       /** OK */
       200: {
-        schema: definitions["RequestAttempt"][];
+        content: {
+          "application/json": components["schemas"]["RequestAttempt"][];
+        };
       };
       /** Bad Request */
       400: unknown;
@@ -853,7 +1038,9 @@ export interface operations {
     responses: {
       /** OK */
       200: {
-        schema: definitions["Response"];
+        content: {
+          "application/json": components["schemas"]["Response"];
+        };
       };
       /** Bad Request */
       400: unknown;
@@ -877,7 +1064,9 @@ export interface operations {
     responses: {
       /** OK */
       200: {
-        schema: definitions["Subscription"][];
+        content: {
+          "application/json": components["schemas"]["Subscription"][];
+        };
       };
       /** Bad Request */
       400: unknown;
@@ -893,15 +1082,42 @@ export interface operations {
   };
   /** A subscription let your customers subscribe to events. Events will be sent through the defined medium inside the subscription (e.g. HTTP POST request) as a webhook. */
   "subscriptions.create": {
-    parameters: {
-      body: {
-        body: definitions["SubscriptionPost"];
-      };
-    };
     responses: {
       /** Created */
       201: {
-        schema: definitions["Subscription"];
+        content: {
+          "application/json": components["schemas"]["Subscription"];
+        };
+      };
+      /** Bad Request */
+      400: unknown;
+      /** Forbidden */
+      403: unknown;
+      /** Not Found */
+      404: unknown;
+      /** Conflict */
+      409: unknown;
+      /** Internal Server Error */
+      500: unknown;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SubscriptionPost"];
+      };
+    };
+  };
+  "subscriptions.get": {
+    parameters: {
+      path: {
+        subscription_id: string;
+      };
+    };
+    responses: {
+      /** OK */
+      200: {
+        content: {
+          "application/json": components["schemas"]["Subscription"];
+        };
       };
       /** Bad Request */
       400: unknown;
@@ -920,14 +1136,13 @@ export interface operations {
       path: {
         subscription_id: string;
       };
-      body: {
-        body: definitions["SubscriptionPost"];
-      };
     };
     responses: {
       /** OK */
       200: {
-        schema: definitions["Subscription"];
+        content: {
+          "application/json": components["schemas"]["Subscription"];
+        };
       };
       /** Bad Request */
       400: unknown;
@@ -939,6 +1154,11 @@ export interface operations {
       409: unknown;
       /** Internal Server Error */
       500: unknown;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SubscriptionPost"];
+      };
     };
   };
   "subscriptions.delete": {
