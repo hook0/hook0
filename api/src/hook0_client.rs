@@ -1,12 +1,27 @@
+use actix::clock::sleep;
+use anyhow::anyhow;
+use async_recursion::async_recursion;
 use chrono::{DateTime, Utc};
 use clap::crate_version;
-use hook0_client::Hook0Client;
-use log::{info, warn};
+use hook0_client::{Hook0Client, Hook0ClientError};
+use log::{error, info, trace, warn};
 use reqwest::Url;
 use serde::Serialize;
 use serde_json::{to_string, to_value, Value};
 use std::borrow::Cow;
+use std::time::Duration;
 use uuid::Uuid;
+
+const PERIOD_BETWEEN_EVENT_TYPES_UPSERTS_TRIES: Duration = Duration::from_secs(2);
+
+pub const EVENT_TYPES: &[&str] = &[
+    "api.organization.created",
+    "api.organization.updated",
+    "api.organization.invited",
+    "api.organization.revoked",
+    "api.organization.removed",
+    "api.event_type.created",
+];
 
 pub fn initialize(
     api_url: Option<Url>,
@@ -32,6 +47,48 @@ pub fn initialize(
             info!("No Hook0 client was configured to receive events from this Hook0 instance");
             None
         }
+    }
+}
+
+#[async_recursion]
+pub async fn upsert_event_types(
+    hook0_client: &Hook0Client,
+    event_types: &[&str],
+    retries: u16,
+) -> () {
+    fn log_error(e: anyhow::Error) {
+        error!("Could not upsert event types, Hook0 client might not work: {e}")
+    }
+
+    info!("Starting upserting Hook0 client event types");
+    match hook0_client.upsert_event_types(event_types).await {
+        Ok(_added_event_types) => info!("Hook0 client event types upserting was successful"),
+        Err(Hook0ClientError::GetAvailableEventTypes(e))
+        | Err(Hook0ClientError::CreatingEventType {
+            event_type_name: _,
+            error: e,
+        }) => {
+            if e.is_connect()
+                || e.is_timeout()
+                || (e.status().is_some() && e.status().unwrap().is_server_error())
+            {
+                log_error(e.into());
+
+                if retries != 0 {
+                    trace!(
+                        "Waiting {} seconds before retrying",
+                        PERIOD_BETWEEN_EVENT_TYPES_UPSERTS_TRIES.as_secs()
+                    );
+                    sleep(PERIOD_BETWEEN_EVENT_TYPES_UPSERTS_TRIES).await;
+                    upsert_event_types(hook0_client, event_types, retries - 1).await
+                } else {
+                    log_error(anyhow!("Too many retries"));
+                }
+            } else {
+                log_error(e.into())
+            }
+        }
+        Err(e) => log_error(e.into()),
     }
 }
 

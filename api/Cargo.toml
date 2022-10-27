@@ -11,12 +11,14 @@ keywords = ["webhooks", "webhook", "webhook server", "events"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+actix = "0.13.0"
 actix-cors = "0.6.4"
 actix-files = "0.6.2"
 actix-governor = { version = "0.4.0-beta.1", features = ["log"] }
 actix-web = "4.2.1"
 actix-web-middleware-keycloak-auth = { version = "0.4.0", features = ["paperclip_compat"] }
 anyhow = "1.0.66"
+async-recursion = "1.0.0"
 base64 = "0.13.1"
 chrono = { version = "0.4.22", features = ["serde"] }
 clap = { version = "4.0.18", features = ["derive", "env", "cargo", "wrap_help"] }
