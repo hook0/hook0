@@ -1,3 +1,4 @@
+use log::error;
 use paperclip::actix::{
     api_v2_operation,
     web::{Data, Json, Path, Query},
@@ -8,7 +9,10 @@ use sqlx::{query, query_as};
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::iam::{AuthProof, Role};
+use crate::hook0_client::{
+    EventApplicationCreated, EventApplicationRemoved, EventApplicationUpdated, Hook0ClientEvent,
+};
+use crate::iam::{get_owner_organization, AuthProof, Role};
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -66,6 +70,23 @@ pub async fn create(
         .fetch_one(&state.db)
         .await
         .map_err(Hook0Problem::from)?;
+
+    if let Some(hook0_client) = state.hook0_client.as_ref() {
+        let hook0_client_event: Hook0ClientEvent = EventApplicationCreated {
+            organization_id: get_owner_organization(&state.db, &application.application_id)
+                .await
+                .unwrap_or(Uuid::nil()),
+            application_id: application.application_id,
+            name: application.name.to_owned(),
+        }
+        .into();
+        if let Err(e) = hook0_client
+            .send_event(&hook0_client_event.mk_hook0_event())
+            .await
+        {
+            error!("Hook0ClientError: {e}");
+        };
+    }
 
     Ok(CreatedJson(application))
 }
@@ -188,7 +209,26 @@ pub async fn edit(
         .map_err(Hook0Problem::from)?;
 
     match application {
-        Some(a) => Ok(Json(a)),
+        Some(a) => {
+            if let Some(hook0_client) = state.hook0_client.as_ref() {
+                let hook0_client_event: Hook0ClientEvent = EventApplicationUpdated {
+                    organization_id: get_owner_organization(&state.db, &a.application_id)
+                        .await
+                        .unwrap_or(Uuid::nil()),
+                    application_id: a.application_id,
+                    name: a.name.to_owned(),
+                }
+                .into();
+                if let Err(e) = hook0_client
+                    .send_event(&hook0_client_event.mk_hook0_event())
+                    .await
+                {
+                    error!("Hook0ClientError: {e}");
+                };
+            }
+
+            Ok(Json(a))
+        }
         None => Err(Hook0Problem::NotFound),
     }
 }
@@ -236,6 +276,24 @@ pub async fn delete(
             .execute(&state.db)
             .await
             .map_err(Hook0Problem::from)?;
+
+            if let Some(hook0_client) = state.hook0_client.as_ref() {
+                let hook0_client_event: Hook0ClientEvent = EventApplicationRemoved {
+                    organization_id: get_owner_organization(&state.db, &a.application_id)
+                        .await
+                        .unwrap_or(Uuid::nil()),
+                    application_id: a.application_id,
+                    name: a.name.to_owned(),
+                }
+                .into();
+                if let Err(e) = hook0_client
+                    .send_event(&hook0_client_event.mk_hook0_event())
+                    .await
+                {
+                    error!("Hook0ClientError: {e}");
+                };
+            }
+
             Ok(NoContent)
         }
         None => Err(Hook0Problem::NotFound),
