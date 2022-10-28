@@ -12,7 +12,10 @@ use std::collections::HashMap;
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::iam::{AuthProof, Role};
+use crate::hook0_client::{
+    EventSubscriptionCreated, EventSubscriptionRemoved, EventSubscriptionUpdated, Hook0ClientEvent,
+};
+use crate::iam::{get_owner_organization, AuthProof, Role};
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -373,7 +376,7 @@ pub async fn add(
 
     tx.commit().await.map_err(Hook0Problem::from)?;
 
-    Ok(CreatedJson(Subscription {
+    let subscription = Subscription {
         application_id: body.application_id,
         subscription_id: subscription.subscription__id,
         is_enabled: subscription.is_enabled,
@@ -386,7 +389,34 @@ pub async fn add(
         label_value: subscription.label_value,
         target: body.target.clone(),
         created_at: subscription.created_at,
-    }))
+    };
+
+    if let Some(hook0_client) = state.hook0_client.as_ref() {
+        let hook0_client_event: Hook0ClientEvent = EventSubscriptionCreated {
+            organization_id: get_owner_organization(&state.db, &subscription.application_id)
+                .await
+                .unwrap_or(Uuid::nil()),
+            application_id: subscription.application_id,
+            subscription_id: subscription.subscription_id,
+            is_enabled: subscription.is_enabled,
+            event_types: subscription.event_types.to_owned(),
+            description: subscription.description.to_owned(),
+            metadata: subscription.metadata.to_owned(),
+            label_key: subscription.label_key.to_owned(),
+            label_value: subscription.label_value.to_owned(),
+            target: subscription.target.to_owned(),
+            created_at: subscription.created_at,
+        }
+        .into();
+        if let Err(e) = hook0_client
+            .send_event(&hook0_client_event.mk_hook0_event())
+            .await
+        {
+            error!("Hook0ClientError: {e}");
+        };
+    }
+
+    Ok(CreatedJson(subscription))
 }
 
 #[api_v2_operation(
@@ -500,7 +530,7 @@ pub async fn update(
 
             tx.commit().await.map_err(Hook0Problem::from)?;
 
-            Ok(Json(Subscription {
+            let subscription = Subscription {
                 application_id: body.application_id,
                 subscription_id: s.subscription__id,
                 is_enabled: s.is_enabled,
@@ -513,7 +543,37 @@ pub async fn update(
                 label_value: s.label_value,
                 target: body.target.clone(),
                 created_at: s.created_at,
-            }))
+            };
+
+            if let Some(hook0_client) = state.hook0_client.as_ref() {
+                let hook0_client_event: Hook0ClientEvent = EventSubscriptionUpdated {
+                    organization_id: get_owner_organization(
+                        &state.db,
+                        &subscription.application_id,
+                    )
+                    .await
+                    .unwrap_or(Uuid::nil()),
+                    application_id: subscription.application_id,
+                    subscription_id: subscription.subscription_id,
+                    is_enabled: subscription.is_enabled,
+                    event_types: subscription.event_types.to_owned(),
+                    description: subscription.description.to_owned(),
+                    metadata: subscription.metadata.to_owned(),
+                    label_key: subscription.label_key.to_owned(),
+                    label_value: subscription.label_value.to_owned(),
+                    target: subscription.target.to_owned(),
+                    created_at: subscription.created_at,
+                }
+                .into();
+                if let Err(e) = hook0_client
+                    .send_event(&hook0_client_event.mk_hook0_event())
+                    .await
+                {
+                    error!("Hook0ClientError: {e}");
+                };
+            }
+
+            Ok(Json(subscription))
         }
         None => Err(Hook0Problem::NotFound),
     }
@@ -575,6 +635,24 @@ pub async fn delete(
             .execute(&state.db)
             .await
             .map_err(Hook0Problem::from)?;
+
+            if let Some(hook0_client) = state.hook0_client.as_ref() {
+                let hook0_client_event: Hook0ClientEvent = EventSubscriptionRemoved {
+                    organization_id: get_owner_organization(&state.db, &qs.application_id)
+                        .await
+                        .unwrap_or(Uuid::nil()),
+                    application_id: qs.application_id,
+                    subscription_id: s.subscription__id,
+                }
+                .into();
+                if let Err(e) = hook0_client
+                    .send_event(&hook0_client_event.mk_hook0_event())
+                    .await
+                {
+                    error!("Hook0ClientError: {e}");
+                };
+            }
+
             Ok(NoContent)
         }
         None => Err(Hook0Problem::NotFound),
