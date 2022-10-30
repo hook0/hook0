@@ -22,6 +22,12 @@ export type HttpTarget = {
 
 // Paperclip does not support anyOf at the moment so the resulting typescript type for SubscriptionPost.target is "string"
 // Here is a temporary work-around
+export interface SubscriptionFixed extends Omit<Subscription, 'target'> {
+    target: Target
+}
+
+// Paperclip does not support anyOf at the moment so the resulting typescript type for SubscriptionPost.target is "string"
+// Here is a temporary work-around
 export interface SubscriptionPostFixed extends Omit<SubscriptionPost, 'target'> {
     target: Target
 }
@@ -44,8 +50,7 @@ export function update(subscription_id: UUID, subscription: SubscriptionPostFixe
         .then((res: AxiosResponse<Subscription>) => res.data);
 }
 
-export function toggleEnable(subscription_id: UUID, subscription: SubscriptionPostFixed): Promise<Subscription> {
-    debugger;
+export function toggleEnable(subscription_id: UUID, subscription: SubscriptionFixed): Promise<Subscription> {
     return update(subscription_id, {
         application_id: subscription.application_id,
 

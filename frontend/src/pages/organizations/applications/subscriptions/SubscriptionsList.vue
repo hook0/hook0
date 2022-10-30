@@ -67,7 +67,7 @@ import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 import {ColDef} from "@ag-grid-community/core";
 import * as SubscriptionService from "./SubscriptionService";
 import {UUID} from "@/http";
-import {Subscription, SubscriptionPostFixed, Target, toggleEnable} from "./SubscriptionService";
+import {Subscription, SubscriptionFixed, Target, toggleEnable} from "./SubscriptionService";
 import {Application} from "@/pages/organizations/applications/ApplicationService";
 
 @Options({
@@ -109,10 +109,10 @@ export default class SubscriptionsList extends Vue {
           cellRenderer: "Hook0TableCellLink",
           cellRendererParams: {
             value: (subscription: Subscription) => subscription.is_enabled ? 'Enabled' : 'Disabled',
-            icon: (subscription: Subscription) => subscription.is_enabled ? 'toggle-on' : 'toggle-of',
-            onClick: (row: SubscriptionPostFixed): void => {
+            icon: (subscription: Subscription) => subscription.is_enabled ? 'toggle-on' : 'toggle-off',
+            onClick: (row: SubscriptionFixed): void => {
               // eslint-disable-next-line
-              SubscriptionService.toggleEnable(this.application_id as string, row)
+              SubscriptionService.toggleEnable(row.subscription_id as string, row)
                   .then(() => {
                     // @TODO notify user of success
                     this._forceLoad();
@@ -225,4 +225,3 @@ export default class SubscriptionsList extends Vue {
   }
 };
 </script>
-
