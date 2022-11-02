@@ -1,0 +1,16 @@
+FROM rust:1.66 as builder-rust
+WORKDIR /app
+COPY . /app
+RUN cargo build --release
+
+FROM debian AS builder
+RUN apt update
+COPY --from=builder-rust /app/target/release/hook0-output-worker /
+COPY self-hosted/docker/copy-so-files.sh /
+RUN sh /copy-so-files.sh /hook0-output-worker
+
+FROM gcr.io/distroless/cc
+ENV LD_LIBRARY_PATH=/lib/linux-gnu/
+COPY --from=builder /tmp/linux-gnu/ /lib/linux-gnu/
+COPY --from=builder-rust /app/target/release/hook0-output-worker /
+CMD ["/hook0-output-worker"]

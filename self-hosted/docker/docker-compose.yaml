@@ -1,0 +1,90 @@
+version: '3.5'
+
+services:
+  postgres:
+    image: bitnami/postgresql:14
+    environment:
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - ./database/:/docker-entrypoint-initdb.d
+      - ./.data/postgresql:/bitnami/postgresql
+    ports:
+      - "5432:5432"
+    networks:
+      - hook0
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:20.0.0
+    command:
+      - start
+      - --import-realm
+      - --db=postgres
+      - --hostname-strict=false
+      - --hostname-admin-url=http://localhost:8080/
+      - --hostname-url=http://localhost:8080
+      - --hostname-strict-backchannel=true
+      - --http-enabled=true
+      - --db-url-host=postgres
+      - --db-url-database=keycloak
+      - --db-schema=public
+      - --db-username=keycloak
+      - --db-password=keycloak
+    volumes:
+      - ./keycloak/realm.json:/opt/keycloak/data/import/realm.json:ro
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports:
+      - "8080:8080"
+    networks:
+      - hook0
+    healthcheck:
+      test: curl --fail http://localhost:8080 || exit 1
+      interval: 60s
+      retries: 5
+      start_period: 20s
+      timeout: 10s
+    depends_on:
+      postgres:
+        condition: service_healthy
+  api:
+    image: hook0-api:latest
+    command:
+      - /hook0-api
+    env_file:
+      - api.env
+    environment:
+      IP: 0.0.0.0
+      PORT: 8000
+      CORS_ALLOWED_ORIGINS: "http://localhost:8001"
+      DATABASE_URL: "postgres://postgres:postgres@postgres:5432/hook0"
+      KEYCLOAK_URL: "http://keycloak:8080/"
+      KEYCLOAK_REALM: "hook0"
+      KEYCLOAK_CLIENT_ID: "hook0-api"
+      KEYCLOAK_FRONT_CLIENT_ID: "hook0"
+    ports:
+      - "8000:8000"
+    networks:
+      - hook0
+    depends_on:
+      postgres:
+        condition: service_healthy
+  frontend:
+    image: hook0-frontend:latest
+    ports:
+      - "8001:80"
+    networks:
+      - hook0
+    volumes:
+      - ./frontend/keycloak.json:/data/keycloak.json
+    depends_on:
+    - api
+networks:
+  hook0:
+    driver: bridge
