@@ -360,9 +360,10 @@ pub async fn add(
     for event_type in &body.event_types {
         query!(
                 "
-                    INSERT INTO webhook.subscription__event_type (subscription__id, event_type__name)
-                    VALUES ($1, $2)
+                    INSERT INTO webhook.subscription__event_type (application__id, subscription__id, event_type__name)
+                    VALUES ($1, $2, $3)
                 ",
+                &body.application_id,
                 &subscription.subscription__id,
                 &event_type,
             )
@@ -486,9 +487,10 @@ pub async fn update(
             for event_type in &body.event_types {
                 query!(
                     "
-                        INSERT INTO webhook.subscription__event_type (subscription__id, event_type__name)
-                        VALUES ($1, $2)
+                        INSERT INTO webhook.subscription__event_type (application__id, subscription__id, event_type__name)
+                        VALUES ($1, $2, $3)
                     ",
+                    &body.application_id,
                     &s.subscription__id,
                     &event_type,
                 )

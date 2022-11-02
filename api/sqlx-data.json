@@ -558,19 +558,6 @@
     },
     "query": "\n                INSERT INTO event.event (application__id, event__id, event_type__name, payload, payload_content_type, ip, metadata, occurred_at, received_at, application_secret__token, labels)\n                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, statement_timestamp(), $9, $10)\n                RETURNING application__id AS application_id, event__id AS event_id, received_at\n            "
   },
-  "5540fa0559499aed6d7e585309a22362d97cbc8023f0d037aaecbef1f8de4202": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Text"
-        ]
-      }
-    },
-    "query": "\n                        INSERT INTO webhook.subscription__event_type (subscription__id, event_type__name)\n                        VALUES ($1, $2)\n                    "
-  },
   "562eee6b240c34015aef185d6076ad5f01078bd3a3199efba88584c90363494c": {
     "describe": {
       "columns": [],
@@ -778,6 +765,20 @@
       }
     },
     "query": "\n                    UPDATE webhook.subscription\n                    SET is_enabled = $1, description = $2, metadata = $3, label_key = $4, label_value = $5\n                    WHERE subscription__id = $6 AND application__id = $7 AND deleted_at IS NULL\n                    RETURNING subscription__id, is_enabled, description, secret, metadata, label_key, label_value, target__id, created_at\n                "
+  },
+  "66183b8a3c5f60aaf8512036662b6ec7832612299011e03e0800e318954afc3f": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "Text"
+        ]
+      }
+    },
+    "query": "\n                        INSERT INTO webhook.subscription__event_type (application__id, subscription__id, event_type__name)\n                        VALUES ($1, $2, $3)\n                    "
   },
   "680ed5d40ca52af1ccacea0de005c32c198219b374bce1a8a7dad0430f718222": {
     "describe": {
@@ -1067,19 +1068,6 @@
     },
     "query": "\n                    DELETE FROM event.event_type\n                    WHERE application__id = $1 AND event_type__name = $2\n                "
   },
-  "879962177ab9ec4c4adb42cfee5f353538004303fc0f56d2ecebd37a671ed562": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Text"
-        ]
-      }
-    },
-    "query": "\n                    INSERT INTO webhook.subscription__event_type (subscription__id, event_type__name)\n                    VALUES ($1, $2)\n                "
-  },
   "8f5f75851e8cb0955f95f3b588e680def4a7212ba90b63c260eb9c7dec182f6c": {
     "describe": {
       "columns": [],
@@ -1256,6 +1244,20 @@
       }
     },
     "query": "\n            SELECT application__id AS application_id, organization__id AS organization_id, name\n            FROM event.application\n            WHERE application__id = $1\n        "
+  },
+  "a1d1ba8baa53015d683d6b77fe31a6ae672f251792eead868d2a3f94ef296ab5": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "Text"
+        ]
+      }
+    },
+    "query": "\n                    INSERT INTO webhook.subscription__event_type (application__id, subscription__id, event_type__name)\n                    VALUES ($1, $2, $3)\n                "
   },
   "b5d4abddfdeae1cd7851e5e90d8e296a1855e69cba499f3238913cf8b2f6e5da": {
     "describe": {
