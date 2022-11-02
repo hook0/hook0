@@ -1,11 +1,18 @@
 import { Plugin } from 'vue';
 import Keycloak from 'keycloak-js';
 
-const keycloak = Keycloak({
-  url: process.env.VUE_APP_KEYCLOAK_URL,
-  realm: process.env.VUE_APP_KEYCLOAK_REALM,
-  clientId: process.env.VUE_APP_KEYCLOAK_FRONT_CLIENT_ID,
-});
+function getParams() {
+  if (process.env.VUE_APP_KEYCLOAK_URL) {
+    return {
+      url: process.env.VUE_APP_KEYCLOAK_URL,
+      realm: process.env.VUE_APP_KEYCLOAK_REALM,
+      clientId: process.env.VUE_APP_KEYCLOAK_FRONT_CLIENT_ID,
+    };
+  }
+  return '/keycloak.json';
+}
+
+const keycloak = Keycloak(getParams());
 
 keycloak.onTokenExpired = () => {
   void onTokenExpired();
