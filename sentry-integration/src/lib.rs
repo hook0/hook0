@@ -1,5 +1,7 @@
 use log::{info, warn};
-use sentry::ClientInitGuard;
+use sentry::protocol::Value;
+use sentry::{configure_scope, ClientInitGuard, User};
+use std::collections::BTreeMap;
 
 /// Initialise a logger with default level at INFO
 fn mk_log_builder() -> env_logger::Builder {
@@ -55,4 +57,34 @@ pub fn init(crate_name: &'static str, sentry_dsn: &Option<String>) -> Option<Cli
             None
         }
     }
+}
+
+const AUTH_TYPE_PROPERTY: &str = "auth_type";
+
+/// Use JWT claims to set the user to be used in reports
+pub fn set_user_from_jwt(id: &str) {
+    configure_scope(|scope| {
+        scope.set_user(Some(User {
+            id: Some(id.to_owned()),
+            other: BTreeMap::from_iter([(
+                AUTH_TYPE_PROPERTY.to_owned(),
+                Value::String("jwt".to_owned()),
+            )]),
+            ..Default::default()
+        }));
+    });
+}
+
+/// Use an application secret to set the user to be used in reports
+pub fn set_user_from_application_secret(application_id: &str) {
+    configure_scope(|scope| {
+        scope.set_user(Some(User {
+            id: Some(application_id.to_owned()),
+            other: BTreeMap::from_iter([(
+                AUTH_TYPE_PROPERTY.to_owned(),
+                Value::String("application_secret".to_owned()),
+            )]),
+            ..Default::default()
+        }));
+    });
 }

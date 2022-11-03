@@ -5,6 +5,7 @@ use actix_web_middleware_keycloak_auth::{extract_jwt_claims, KeycloakAuthStatus}
 use anyhow::anyhow;
 use futures_util::future::{ok, ready, Ready};
 use log::{debug, error, trace};
+use sentry_integration::{set_user_from_application_secret, set_user_from_jwt};
 use sqlx::{query_as, PgPool};
 use std::future::Future;
 use std::pin::Pin;
@@ -12,7 +13,7 @@ use std::rc::Rc;
 use std::task::{Context, Poll};
 use uuid::Uuid;
 
-use crate::iam::AuthProof;
+use crate::iam::{AuthProof, Hook0Claims};
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Clone)]
@@ -73,11 +74,12 @@ where
                 match jwt_auth_status {
                     KeycloakAuthStatus::Success => {
                         let (request, payload) = req.into_parts();
-                        let claims_extraction = extract_jwt_claims(&request);
+                        let claims_extraction = extract_jwt_claims::<Hook0Claims>(&request);
                         let req = ServiceRequest::from_parts(request, payload);
 
                         match claims_extraction {
                             Ok(claims) => {
+                                set_user_from_jwt(&claims.sub.to_string());
                                 {
                                     let mut extensions = req.extensions_mut();
                                     extensions.insert(AuthProof::Jwt { claims });
@@ -139,6 +141,11 @@ where
                                                 Ok(Some(application_secret)) => {
                                                     {
                                                         debug!("Auth with application secret succeeded");
+                                                        set_user_from_application_secret(
+                                                            &application_secret
+                                                                .application__id
+                                                                .to_string(),
+                                                        );
                                                         let mut extensions = req.extensions_mut();
                                                         extensions.insert(
                                                             AuthProof::ApplicationSecret {
