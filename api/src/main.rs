@@ -58,6 +58,10 @@ struct Config {
     #[clap(long, env, default_value = "../frontend/dist/")]
     webapp_path: String,
 
+    /// Set to true to disable serving the web app and only serve the API
+    #[clap(long, env)]
+    disable_serving_webapp: bool,
+
     /// Keycloak RS256 public key (with GPG delimiters)
     #[clap(long, env)]
     keycloak_oidc_public_key: String,
@@ -272,7 +276,7 @@ async fn main() -> anyhow::Result<()> {
             db: initial_state.db.clone(),
         };
 
-        App::new()
+        let mut app = App::new()
             .app_data(web::Data::new(initial_state.clone()))
             .app_data(web::JsonConfig::default().error_handler(|e, _req| {
                 let problem =
@@ -445,16 +449,19 @@ async fn main() -> anyhow::Result<()> {
                                     .route(web::get().to(handlers::responses::get)),
                             ),
                     ),
-            )
-            .default_service(
+            );
+
+        if !config.disable_serving_webapp {
+            app = app.default_service(
                 Files::new("/", webapp_path.as_str())
                     .index_file(WEBAPP_INDEX_FILE)
                     .default_handler(
                         NamedFile::open(format!("{}/{}", &webapp_path, WEBAPP_INDEX_FILE))
-                            .expect("Cannot open PWA page"),
+                            .expect("Cannot open SPA main file"),
                     ),
-            )
-            .build()
+            );
+        }
+        app.build()
     })
     .bind(&format!("{}:{}", config.ip, config.port))?
     .run()
