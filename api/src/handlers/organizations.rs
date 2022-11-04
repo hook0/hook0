@@ -1,3 +1,4 @@
+use chrono::Utc;
 use log::error;
 use paperclip::actix::{
     api_v2_operation,
@@ -11,6 +12,10 @@ use std::str::FromStr;
 use uuid::Uuid;
 use validator::Validate;
 
+use crate::hook0_client::{
+    EventOrganizationCreated, EventOrganizationInvited, EventOrganizationRemoved,
+    EventOrganizationRevoked, EventOrganizationUpdated, Hook0ClientEvent,
+};
 use crate::iam::{AuthProof, Role, GROUP_SEP, ORGA_GROUP_PREFIX};
 use crate::keycloak_api::{Group, KeycloakApi};
 use crate::problems::Hook0Problem;
@@ -129,6 +134,23 @@ pub async fn create(
         let organization_id = create_organization(&mut tx, &kc_api, &body.name, &user.id).await?;
 
         tx.commit().await?;
+
+        if let Some(hook0_client) = state.hook0_client.as_ref() {
+            let hook0_client_event: Hook0ClientEvent = EventOrganizationCreated {
+                organization_id,
+                name: body.name.to_owned(),
+                created_at: Utc::now(),
+                created_by: user.id,
+            }
+            .into();
+            if let Err(e) = hook0_client
+                .send_event(&hook0_client_event.mk_hook0_event())
+                .await
+            {
+                error!("Hook0ClientError: {e}");
+            };
+        }
+
         Ok(Json(OrganizationInfo {
             organization_id,
             name: body.name.to_owned(),
@@ -349,6 +371,20 @@ pub async fn edit(
     .execute(&state.db)
     .await?;
 
+    if let Some(hook0_client) = state.hook0_client.as_ref() {
+        let hook0_client_event: Hook0ClientEvent = EventOrganizationUpdated {
+            organization_id: organization_id.as_ref().to_owned(),
+            name: body.name.to_owned(),
+        }
+        .into();
+        if let Err(e) = hook0_client
+            .send_event(&hook0_client_event.mk_hook0_event())
+            .await
+        {
+            error!("Hook0ClientError: {e}");
+        };
+    }
+
     let org = get(state, auth, organization_id).await?;
     Ok(org)
 }
@@ -415,6 +451,23 @@ pub async fn invite(
                     keycloak_api
                         .add_user_to_group(&user.id, &role_group.id)
                         .await?;
+
+                    if let Some(hook0_client) = state.hook0_client.as_ref() {
+                        let hook0_client_event: Hook0ClientEvent = EventOrganizationInvited {
+                            organization_id: organization_id.as_ref().to_owned(),
+                            user_id: user.id,
+                            email: user.email,
+                            role: role.to_string(),
+                        }
+                        .into();
+                        if let Err(e) = hook0_client
+                            .send_event(&hook0_client_event.mk_hook0_event())
+                            .await
+                        {
+                            error!("Hook0ClientError: {e}");
+                        };
+                    }
+
                     Ok(body)
                 }
                 _ => Err(Hook0Problem::NotFound),
@@ -466,6 +519,20 @@ pub async fn revoke(
         Some(group) => {
             let root_group = keycloak_api.get_group(&group.id).await?;
             remove_user_from_all_sub_groups(&keycloak_api, &body.user_id, &root_group).await?;
+
+            if let Some(hook0_client) = state.hook0_client.as_ref() {
+                let hook0_client_event: Hook0ClientEvent = EventOrganizationRevoked {
+                    organization_id: organization_id.as_ref().to_owned(),
+                    user_id: body.user_id,
+                }
+                .into();
+                if let Err(e) = hook0_client
+                    .send_event(&hook0_client_event.mk_hook0_event())
+                    .await
+                {
+                    error!("Hook0ClientError: {e}");
+                };
+            }
 
             Ok(body)
         }
@@ -553,6 +620,20 @@ pub async fn delete(
         keycloak_api.remove_organization(&organization_id).await?;
 
         tx.commit().await?;
+
+        if let Some(hook0_client) = state.hook0_client.as_ref() {
+            let hook0_client_event: Hook0ClientEvent = EventOrganizationRemoved {
+                organization_id: organization_id.as_ref().to_owned(),
+            }
+            .into();
+            if let Err(e) = hook0_client
+                .send_event(&hook0_client_event.mk_hook0_event())
+                .await
+            {
+                error!("Hook0ClientError: {e}");
+            };
+        }
+
         Ok(NoContent)
     } else {
         tx.rollback().await?;
