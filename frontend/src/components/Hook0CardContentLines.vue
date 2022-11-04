@@ -5,11 +5,9 @@
 </template>
 
 <script lang="ts">
-import {Vue} from "vue-class-component";
+import { Vue } from 'vue-class-component';
 
-export default class Hook0CardContentLines extends Vue {
-}
-
+export default class Hook0CardContentLines extends Vue {}
 </script>
 
 <style lang="scss" scoped>
