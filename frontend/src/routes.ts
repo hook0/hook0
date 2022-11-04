@@ -1,22 +1,22 @@
 import ApplicationsList from '@/pages/organizations/applications/ApplicationsList.vue';
 import ApplicationsEdit from '@/pages/organizations/applications/ApplicationsEdit.vue';
-import ApplicationsDashboard from "@/pages/organizations/applications/ApplicationsDashboard.vue";
+import ApplicationsDashboard from '@/pages/organizations/applications/ApplicationsDashboard.vue';
 
 import OrganizationsList from '@/pages/organizations/OrganizationsList.vue';
 import OrganizationsEdit from '@/pages/organizations/OrganizationsEdit.vue';
-import OrganizationsDashboard from "@/pages/organizations/OrganizationsDashboard.vue";
+import OrganizationsDashboard from '@/pages/organizations/OrganizationsDashboard.vue';
 
 import ApiDocumentation from '@/pages/api/documentation/ApiDocumentation.vue';
 import Error404 from '@/pages/Error404.vue';
 import EventTypesList from '@/pages/organizations/applications/event_types/EventTypesList.vue';
 import EventTypesNew from '@/pages/organizations/applications/event_types/EventTypesNew.vue';
 import Home from '@/Home.vue';
-import ComingSoon from "@/pages/ComingSoon.vue";
-import SubscriptionsList from "@/pages/organizations/applications/subscriptions/SubscriptionsList.vue";
-import SubscriptionsEdit from "@/pages/organizations/applications/subscriptions/SubscriptionsEdit.vue";
-import ApplicationSecretsList from "@/pages/organizations/applications/application_secrets/ApplicationSecretsList.vue";
-import EventsList from "@/pages/organizations/applications/events/EventsList.vue";
-import EventsDetail from "@/pages/organizations/applications/events/EventsDetail.vue";
+import ComingSoon from '@/pages/ComingSoon.vue';
+import SubscriptionsList from '@/pages/organizations/applications/subscriptions/SubscriptionsList.vue';
+import SubscriptionsEdit from '@/pages/organizations/applications/subscriptions/SubscriptionsEdit.vue';
+import ApplicationSecretsList from '@/pages/organizations/applications/application_secrets/ApplicationSecretsList.vue';
+import EventsList from '@/pages/organizations/applications/events/EventsList.vue';
+import EventsDetail from '@/pages/organizations/applications/events/EventsDetail.vue';
 
 export type Hook0Routes = string;
 

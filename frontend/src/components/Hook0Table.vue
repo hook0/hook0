@@ -1,28 +1,28 @@
 <template>
   <ag-grid-vue
-      class="ag-theme-alpine"
-      v-bind="{ ...$props, ...$attrs }"
-      :domLayout="domLayout"
-      :modules="modules.concat(context ? [{moduleName: 'context', context: context}] : [])"
-      :defaultColDef="defaultColDef"
-      :suppressRowHoverHighlight="true"
-      :suppressHorizontalScroll="true"
-      :suppressCellFocus="true"
-      :gridOptions="gridOptions"
-      @first-data-rendered="onFirstDataRendered"
+    class="ag-theme-alpine"
+    v-bind="{ ...$props, ...$attrs }"
+    :domLayout="domLayout"
+    :modules="modules.concat(context ? [{ moduleName: 'context', context: context }] : [])"
+    :defaultColDef="defaultColDef"
+    :suppressRowHoverHighlight="true"
+    :suppressHorizontalScroll="true"
+    :suppressCellFocus="true"
+    :gridOptions="gridOptions"
+    @first-data-rendered="onFirstDataRendered"
   >
   </ag-grid-vue>
 </template>
 
 
 <script lang="ts">
-import {Vue, Options} from 'vue-class-component';
-import {AgGridVue} from "@ag-grid-community/vue3";
-import {ClientSideRowModelModule} from "@ag-grid-community/client-side-row-model";
-import {AgGridEvent, ColDef, ICellRendererParams, RowNode} from "@ag-grid-community/core";
+import { Vue, Options } from 'vue-class-component';
+import { AgGridVue } from '@ag-grid-community/vue3';
+import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model';
+import { AgGridEvent, ColDef, ICellRendererParams, RowNode } from '@ag-grid-community/core';
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 import Hook0TableCellCode from '@/components/Hook0TableCellCode.vue';
-import Hook0TableCellLinks from "@/components/Hook0TableCellLinks.vue";
+import Hook0TableCellLinks from '@/components/Hook0TableCellLinks.vue';
 
 @Options({
   name: 'hook0-table',
@@ -33,7 +33,7 @@ import Hook0TableCellLinks from "@/components/Hook0TableCellLinks.vue";
       required: true,
     },
     rowData: {
-      required: true
+      required: true,
     },
 
     /**
@@ -42,17 +42,15 @@ import Hook0TableCellLinks from "@/components/Hook0TableCellLinks.vue";
     context: {
       type: Object,
       required: true,
-    }
+    },
   },
   components: {
     AgGridVue,
     Hook0TableCellLink,
     Hook0TableCellLinks,
-    Hook0TableCellCode
-  }
+    Hook0TableCellCode,
+  },
 })
-
-
 export default class Hook0Table extends Vue {
   private domLayout: string | null = null;
   private modules = [ClientSideRowModelModule];
@@ -69,13 +67,12 @@ export default class Hook0Table extends Vue {
   onFirstDataRendered(params: AgGridEvent<any>) {
     params.api.sizeColumnsToFit();
   }
-
-};
+}
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style>
-@import "@ag-grid-community/core/dist/styles/ag-grid.css";
-@import "@ag-grid-community/core/dist/styles/ag-theme-alpine.css";
+@import '@ag-grid-community/core/dist/styles/ag-grid.css';
+@import '@ag-grid-community/core/dist/styles/ag-theme-alpine.css';
 
 .ag-theme-alpine .ag-root-wrapper {
   border: 0;
@@ -101,9 +98,8 @@ export default class Hook0Table extends Vue {
   border-color: transparent;
 }
 
-.ag-theme-alpine .ag-cell, .ag-theme-alpine .ag-full-width-row .ag-cell-wrapper.ag-row-group {
+.ag-theme-alpine .ag-cell,
+.ag-theme-alpine .ag-full-width-row .ag-cell-wrapper.ag-row-group {
   line-height: 40px;
 }
-
-
 </style>

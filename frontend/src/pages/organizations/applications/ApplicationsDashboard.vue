@@ -13,35 +13,37 @@
         </template>
         <template #actions>
           <hook0-button
-            :to="{ name: routes.ApplicationsDetail, params:{
-            organization_id: $route.params.organization_id,
-             application_id: $route.params.application_id
-          }}">
+            :to="{
+              name: routes.ApplicationsDetail,
+              params: {
+                organization_id: $route.params.organization_id,
+                application_id: $route.params.application_id,
+              },
+            }"
+          >
             Settings
           </hook0-button>
         </template>
-
       </hook0-card-header>
-
     </hook0-card>
     <EventTypesList :burst="$route.params.application_id"></EventTypesList>
   </div>
 </template>
 
 <script lang="ts">
-import {Options, Vue} from "vue-class-component";
-import Hook0Text from "@/components/Hook0Text.vue";
-import {isAxiosError, Problem, UUID} from "@/http";
-import * as ApplicationService from "./ApplicationService";
-import {Application} from "./ApplicationService";
-import {RouteParamsRaw} from "vue-router";
-import {AxiosError} from "axios";
-import {Alert} from "@/components/Hook0Alert";
-import {routes} from "@/routes";
-import EventTypesList from "@/pages/organizations/applications/event_types/EventTypesList.vue";
+import { Options, Vue } from 'vue-class-component';
+import Hook0Text from '@/components/Hook0Text.vue';
+import { isAxiosError, Problem, UUID } from '@/http';
+import * as ApplicationService from './ApplicationService';
+import { Application } from './ApplicationService';
+import { RouteParamsRaw } from 'vue-router';
+import { AxiosError } from 'axios';
+import { Alert } from '@/components/Hook0Alert';
+import { routes } from '@/routes';
+import EventTypesList from '@/pages/organizations/applications/event_types/EventTypesList.vue';
 
 @Options({
-  components: {EventTypesList, Hook0Text},
+  components: { EventTypesList, Hook0Text },
 })
 export default class ApplicationsDashboard extends Vue {
   application_id: UUID | undefined;
@@ -66,9 +68,11 @@ export default class ApplicationsDashboard extends Vue {
       this.application_id = this.$route.params.application_id as UUID;
 
       // @ts-ignore
-      ApplicationService.get(this.application_id).then((application: Application) => {
-        this.application.name = application.name;
-      }).catch(this.displayError.bind(this));
+      ApplicationService.get(this.application_id)
+        .then((application: Application) => {
+          this.application.name = application.name;
+        })
+        .catch(this.displayError.bind(this));
     }
   }
 
@@ -90,13 +94,11 @@ export default class ApplicationsDashboard extends Vue {
       this.alert.description = problem.detail;
     } else {
       this.alert.type = 'alert';
-      this.alert.title = "An error occurred";
+      this.alert.title = 'An error occurred';
       this.alert.description = String(err);
     }
   }
-};
-
-
+}
 </script>
 
 <style scoped>

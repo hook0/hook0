@@ -8,20 +8,15 @@
     <template #default="event_types">
       <hook0-card>
         <hook0-card-header>
-          <template #header>
-            Events
-          </template>
+          <template #header> Events </template>
           <template #subtitle>
-            Events that Hook0 receive from your application and that Hook0 forwarded to subscriptions (webhooks).
+            Events that Hook0 receive from your application and that Hook0 forwarded to
+            subscriptions (webhooks).
           </template>
         </hook0-card-header>
 
         <hook0-card-content v-if="event_types.length > 0">
-          <hook0-table
-              :context="this"
-              :columnDefs="columnDefs"
-              :rowData="event_types"
-          >
+          <hook0-table :context="this" :columnDefs="columnDefs" :rowData="event_types">
           </hook0-table>
         </hook0-card-content>
 
@@ -29,16 +24,15 @@
           <hook0-card-content-lines>
             <hook0-card-content-line type="full-width">
               <template #content>
-                <hook0-text class="center block" style="text-align: center">Your application did not send any events.
-                  Time to send the first one!
+                <hook0-text class="center block" style="text-align: center"
+                  >Your application did not send any events. Time to send the first one!
                 </hook0-text>
               </template>
             </hook0-card-content-line>
           </hook0-card-content-lines>
         </hook0-card-content>
 
-        <hook0-card-footer>
-        </hook0-card-footer>
+        <hook0-card-footer> </hook0-card-footer>
       </hook0-card>
     </template>
     <!-- The "rejected" scoped slot will be used if there is an error -->
@@ -49,24 +43,23 @@
 </template>
 
 <script lang="ts">
-import {Options, Vue} from 'vue-class-component';
-import Hook0Button from "@/components/Hook0Button.vue";
-import {routes} from "@/routes";
-import Hook0CardContentLine from "@/components/Hook0CardContentLine.vue";
-import Hook0CardContent from "@/components/Hook0CardContent.vue";
-import Hook0CardFooter from "@/components/Hook0CardFooter.vue";
-import Hook0CardHeader from "@/components/Hook0CardHeader.vue";
-import Hook0Card from "@/components/Hook0Card.vue";
-import Hook0Input from "@/components/Hook0Input.vue";
-import Hook0Table from "@/components/Hook0Table.vue";
-import {ColDef} from "@ag-grid-community/core";
-import * as EventsService from "./EventsService";
-import {Event} from "./EventsService";
-import {UUID} from "@/http";
-import {Application} from "@/pages/organizations/applications/ApplicationService";
-import * as ApplicationService from "@/pages/organizations/applications/ApplicationService";
-import {format, formatDistance, formatRelative, parseISO, subDays} from 'date-fns'
-
+import { Options, Vue } from 'vue-class-component';
+import Hook0Button from '@/components/Hook0Button.vue';
+import { routes } from '@/routes';
+import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
+import Hook0CardContent from '@/components/Hook0CardContent.vue';
+import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
+import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
+import Hook0Card from '@/components/Hook0Card.vue';
+import Hook0Input from '@/components/Hook0Input.vue';
+import Hook0Table from '@/components/Hook0Table.vue';
+import { ColDef } from '@ag-grid-community/core';
+import * as EventsService from './EventsService';
+import { Event } from './EventsService';
+import { UUID } from '@/http';
+import { Application } from '@/pages/organizations/applications/ApplicationService';
+import * as ApplicationService from '@/pages/organizations/applications/ApplicationService';
+import { format, formatDistance, formatRelative, parseISO, subDays } from 'date-fns';
 
 @Options({
   components: {
@@ -77,20 +70,19 @@ import {format, formatDistance, formatRelative, parseISO, subDays} from 'date-fn
     Hook0Card,
     Hook0Input,
     Hook0Button,
-    Hook0Table
+    Hook0Table,
   },
   props: {
     // cache-burst
     burst: {
       type: String,
-      required: false
-    }
-  }
+      required: false,
+    },
+  },
 })
 export default class EventsList extends Vue {
-  private event_types$ !: Promise<Array<Event>>;
+  private event_types$!: Promise<Array<Event>>;
   public application_id: UUID | null = null;
-
 
   data() {
     // eslint-disable-next-line
@@ -106,14 +98,15 @@ export default class EventsList extends Vue {
           width: 150,
           sortable: true,
           headerName: 'Received At',
-          valueFormatter: (date) => formatDistance(parseISO(date.value as string), new Date(), {addSuffix: true})
+          valueFormatter: (date) =>
+            formatDistance(parseISO(date.value as string), new Date(), { addSuffix: true }),
         },
         {
           field: 'event_type_name',
           headerName: 'Event Type',
           suppressMovable: true,
           resizable: true,
-          cellRenderer: "Hook0TableCellLink",
+          cellRenderer: 'Hook0TableCellLink',
           cellRendererParams: {
             value(row: Event) {
               return row.event_type_name;
@@ -129,52 +122,59 @@ export default class EventsList extends Vue {
                   organization_id: ctx.$route.params.organization_id,
                   // eslint-disable-next-line
                   event_id: row.event_id
-                }
+                },
               };
-            }
-          }
-        }, {
+            },
+          },
+        },
+        {
           field: 'payload_content_type',
           suppressMovable: true,
           suppressSizeToFit: true,
           width: 140,
           sortable: true,
-          cellRenderer: "Hook0TableCellCode",
-          headerName: 'Payload type'
-        }, {
+          cellRenderer: 'Hook0TableCellCode',
+          headerName: 'Payload type',
+        },
+        {
           field: 'labels',
           suppressMovable: true,
           sortable: true,
           resizable: true,
           headerName: 'Labels',
-          cellRenderer: "Hook0TableCellCode",
+          cellRenderer: 'Hook0TableCellCode',
           cellRendererParams: {
             value(row: Event) {
-              return Object.entries(row.labels as Record<string, string>).map(([key, value]) => `${key}=${value}`).join(' ');
-            }
-          }
-        }, {
+              return Object.entries(row.labels as Record<string, string>)
+                .map(([key, value]) => `${key}=${value}`)
+                .join(' ');
+            },
+          },
+        },
+        {
           field: 'ip',
           suppressMovable: true,
           sortable: true,
           suppressSizeToFit: true,
           width: 155,
-          cellRenderer: "Hook0TableCellCode",
-          headerName: 'IP'
-        }, {
+          cellRenderer: 'Hook0TableCellCode',
+          headerName: 'IP',
+        },
+        {
           field: 'metadata',
           suppressMovable: true,
           sortable: true,
           resizable: true,
           headerName: 'Metadata',
-          cellRenderer: "Hook0TableCellCode",
+          cellRenderer: 'Hook0TableCellCode',
           cellRendererParams: {
             value(row: Event) {
               return JSON.stringify(row.metadata);
-            }
-          }
-        }] as Array<ColDef>
-    }
+            },
+          },
+        },
+      ] as Array<ColDef>,
+    };
   }
 
   _forceLoad() {
@@ -196,6 +196,6 @@ export default class EventsList extends Vue {
   updated() {
     this._load();
   }
-};
+}
 </script>
 

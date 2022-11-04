@@ -1,9 +1,7 @@
 <template>
   <hook0-card>
     <hook0-card-header>
-      <template #header>
-        Delete this organization
-      </template>
+      <template #header> Delete this organization </template>
       <template #subtitle>
         This action deletes
         <hook0-text class="bold">{{ organizationName }}</hook0-text>
@@ -11,40 +9,45 @@
       </template>
     </hook0-card-header>
     <hook0-card-content v-if="alert.visible">
-      <hook0-alert :type="alert.type" :title="alert.title" :description="alert.description"></hook0-alert>
+      <hook0-alert
+        :type="alert.type"
+        :title="alert.title"
+        :description="alert.description"
+      ></hook0-alert>
     </hook0-card-content>
     <hook0-card-footer>
-      <hook0-button class="danger" type="button" :loading="loading" @click="remove($event)">Delete</hook0-button>
+      <hook0-button class="danger" type="button" :loading="loading" @click="remove($event)"
+        >Delete</hook0-button
+      >
     </hook0-card-footer>
   </hook0-card>
 </template>
 
 <script lang="ts">
-import {AxiosError} from 'axios';
+import { AxiosError } from 'axios';
 import * as OrganizationService from './OrganizationService';
-import {Organization, OrganizationPost} from './OrganizationService';
-import {Options, Vue} from 'vue-class-component';
-import {routes} from "@/routes";
+import { Organization, OrganizationPost } from './OrganizationService';
+import { Options, Vue } from 'vue-class-component';
+import { routes } from '@/routes';
 
-import type {components} from '@/types';
+import type { components } from '@/types';
 
 type definitions = components['schemas'];
 
-import {isAxiosError, Problem, UUID} from "@/http";
-import {Alert} from '@/components/Hook0Alert';
-
+import { isAxiosError, Problem, UUID } from '@/http';
+import { Alert } from '@/components/Hook0Alert';
 
 @Options({
   props: {
     organizationId: {
       type: String,
-      required: true
+      required: true,
     },
     organizationName: {
       type: String,
-      required: true
-    }
-  }
+      required: true,
+    },
+  },
 })
 export default class OrganizationsRemove extends Vue {
   private loading = false;
@@ -71,11 +74,10 @@ export default class OrganizationsRemove extends Vue {
     this.alert.visible = false; // reset alert
     this.loading = true;
 
-    OrganizationService.remove(this.organizationId).then(() =>
-            window.location.assign("/")
-        , this.displayError.bind(this))
-        // finally
-        .finally(() => this.loading = false);
+    OrganizationService.remove(this.organizationId)
+      .then(() => window.location.assign('/'), this.displayError.bind(this))
+      // finally
+      .finally(() => (this.loading = false));
   }
 
   displayError(err: AxiosError | unknown) {
@@ -90,13 +92,11 @@ export default class OrganizationsRemove extends Vue {
       this.alert.description = problem.detail;
     } else {
       this.alert.type = 'alert';
-      this.alert.title = "An error occurred";
+      this.alert.title = 'An error occurred';
       this.alert.description = String(err);
     }
   }
-};
-
-
+}
 </script>
 
 <style scoped>

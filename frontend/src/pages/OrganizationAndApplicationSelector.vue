@@ -10,13 +10,9 @@
 
     <!-- The default scoped slot will be used as the result -->
     <template #default="applicationsPerOrganizations">
-
       <hook0-dropdown class="container" justify="left">
         <template v-slot:menu="parent">
-          <hook0-button
-            class="dropdown"
-            @click="parent.toggle"
-          >
+          <hook0-button class="dropdown" @click="parent.toggle">
             <template #default>
               <div class="flex flex-col">
                 <hook0-text class="def">{{ organization_name }}</hook0-text>
@@ -34,33 +30,43 @@
             <div v-for="(organizationGroup, index) in applicationsPerOrganizations" :key="index">
               <hook0-dropdown-menu-item-link
                 class="flex justify-between"
-                @click="goto(parent, { name: routes.OrganizationsDashboard, params:{organization_id: organizationGroup.organization.organization_id}})"
+                @click="
+                  goto(parent, {
+                    name: routes.OrganizationsDashboard,
+                    params: { organization_id: organizationGroup.organization.organization_id },
+                  })
+                "
               >
                 <hook0-icon name="sitemap"></hook0-icon>
                 <hook0-text class="ml-1">{{ organizationGroup.organization.name }}</hook0-text>
               </hook0-dropdown-menu-item-link>
 
               <div class="pl-2">
-                <hook0-dropdown-menu-item-link v-for="(application, index) in organizationGroup.applications"
-                                               :key="index"
-                                               @click="goto(parent,{ name: routes.ApplicationsDashboard,
-                                                 params:{
-                                                  application_id: application.application_id,
-                                                  organization_id: organizationGroup.organization.organization_id
-                                                  }})">
+                <hook0-dropdown-menu-item-link
+                  v-for="(application, index) in organizationGroup.applications"
+                  :key="index"
+                  @click="
+                    goto(parent, {
+                      name: routes.ApplicationsDashboard,
+                      params: {
+                        application_id: application.application_id,
+                        organization_id: organizationGroup.organization.organization_id,
+                      },
+                    })
+                  "
+                >
                   <hook0-text class="ml-1">{{ application.name }}</hook0-text>
                   <hook0-text class="ml-1 def">application</hook0-text>
                 </hook0-dropdown-menu-item-link>
               </div>
             </div>
           </div>
-          <hook0-dropdown-menu-item-link :to="{ name: routes.OrganizationsNew}">
+          <hook0-dropdown-menu-item-link :to="{ name: routes.OrganizationsNew }">
             <hook0-icon name="plus"></hook0-icon>
             <hook0-text class="ml-1">New Organization</hook0-text>
           </hook0-dropdown-menu-item-link>
         </template>
       </hook0-dropdown>
-
     </template>
 
     <!-- The "rejected" scoped slot will be used if there is an error -->
@@ -73,28 +79,27 @@
 <script lang="ts">
 import * as OrganizationService from './organizations/OrganizationService';
 import * as ApplicationService from './organizations/applications/ApplicationService';
-import {MixedVueBase, Options, Vue, VueBase, VueWithProps} from "vue-class-component";
-import {UUID} from "@/http";
-import {Organization} from "./organizations/OrganizationService";
-import {Application} from './organizations/applications/ApplicationService';
-import {routes} from "@/routes";
-import {VueElement} from "vue";
+import { MixedVueBase, Options, Vue, VueBase, VueWithProps } from 'vue-class-component';
+import { UUID } from '@/http';
+import { Organization } from './organizations/OrganizationService';
+import { Application } from './organizations/applications/ApplicationService';
+import { routes } from '@/routes';
+import { VueElement } from 'vue';
 import * as Option from 'fp-ts/Option';
-import {flow, pipe} from "fp-ts/function";
-import {RouteLocation, RouteParams, RouteRecord} from "vue-router";
-import Hook0Loader from "@/components/Hook0Loader.vue";
-import Hook0DropdownOptions from "@/components/Hook0DropdownOptions";
+import { flow, pipe } from 'fp-ts/function';
+import { RouteLocation, RouteParams, RouteRecord } from 'vue-router';
+import Hook0Loader from '@/components/Hook0Loader.vue';
+import Hook0DropdownOptions from '@/components/Hook0DropdownOptions';
 
 type ApplicationsPerOrganization = {
-  organization: Organization,
-  applications: Array<Application>
+  organization: Organization;
+  applications: Array<Application>;
 };
 
 @Options({
-  components: {Hook0Loader},
+  components: { Hook0Loader },
 })
 export default class OrganizationSelector extends Vue {
-
   private applicationsPerOrganization$!: Promise<ApplicationsPerOrganization[]>;
   private routes = routes;
   private organization_name = '';
@@ -102,22 +107,32 @@ export default class OrganizationSelector extends Vue {
   private removeRouterGuard!: () => void;
 
   getApplicationsPerOrganization(): Promise<ApplicationsPerOrganization[]> {
-    return OrganizationService.list().then(organizations =>
-      Promise.all(organizations.map(organization => ApplicationService.list(organization.organization_id)))
-        .then(applications => {
-          return applications.reduce((m, applications) => {
+    return OrganizationService.list().then((organizations) =>
+      Promise.all(
+        organizations.map((organization) => ApplicationService.list(organization.organization_id))
+      ).then((applications) => {
+        return applications.reduce(
+          (m, applications) => {
             return applications.reduce((m, application) => {
-              const organization = organizations.find(org => org.organization_id === application.organization_id);
+              const organization = organizations.find(
+                (org) => org.organization_id === application.organization_id
+              );
 
               if (!organization) {
-                console.error('should never happen, application is linkedin to unknown organization. Silent fail');
+                console.error(
+                  'should never happen, application is linkedin to unknown organization. Silent fail'
+                );
                 return m;
               }
 
-              let organization_in_group = m.find(item => item.organization.organization_id === application.organization_id);
+              let organization_in_group = m.find(
+                (item) => item.organization.organization_id === application.organization_id
+              );
 
               if (!organization_in_group) {
-                console.error('should never happen, application is linkedin to unknown organization. Silent fail');
+                console.error(
+                  'should never happen, application is linkedin to unknown organization. Silent fail'
+                );
                 return m;
               }
 
@@ -125,14 +140,16 @@ export default class OrganizationSelector extends Vue {
 
               return m;
             }, m);
-          }, organizations.map(organization => {
+          },
+          organizations.map((organization) => {
             return {
               // @ts-ignore
               organization: organization,
-              applications: []
+              applications: [],
             };
-          }) as ApplicationsPerOrganization[]);
-        })
+          }) as ApplicationsPerOrganization[]
+        );
+      })
     );
   }
 
@@ -142,26 +159,34 @@ export default class OrganizationSelector extends Vue {
   }
 
   _updateDropdown(params: RouteParams) {
-    return (this as OrganizationSelector).applicationsPerOrganization$.then((organizationGroup: ApplicationsPerOrganization[]) => {
+    return (this as OrganizationSelector).applicationsPerOrganization$.then(
+      (organizationGroup: ApplicationsPerOrganization[]) => {
+        const organization_name = flow(
+          Option.map((organization_id) =>
+            Option.fromNullable(
+              organizationGroup.find(
+                (group) => group.organization.organization_id === params.organization_id
+              )
+            )
+          ),
+          Option.flatten,
+          Option.map((organizationGroup) => organizationGroup.organization.name)
+        )(Option.fromNullable(params.organization_id as UUID));
 
-      const organization_name = flow(
-        Option.map((organization_id) => Option.fromNullable(organizationGroup.find(group => group.organization.organization_id === params.organization_id))),
-        Option.flatten,
-        Option.map((organizationGroup) => organizationGroup.organization.name),
-      )
-      (Option.fromNullable(params.organization_id as UUID));
+        this.organization_name = Option.getOrElse(() => 'Hello!')(organization_name);
 
-      this.organization_name = Option.getOrElse(() => 'Hello!')(organization_name);
+        const application_name = flow(Option.map((application: Application) => application.name))(
+          Option.fromNullable(
+            organizationGroup
+              .flatMap((group) => group.applications)
+              .find((application) => application.application_id === params.application_id)
+          )
+        );
 
-      const application_name = flow(
-        Option.map((application: Application) => application.name)
-      )
-      (Option.fromNullable(organizationGroup.flatMap(group => group.applications).find(application => application.application_id === params.application_id)));
-
-      this.application_name = Option.getOrElse(() => 'Select an application')(application_name);
-    })
+        this.application_name = Option.getOrElse(() => 'Select an application')(application_name);
+      }
+    );
   }
-
 
   created(): void {
     this.applicationsPerOrganization$ = this.getApplicationsPerOrganization();
@@ -173,7 +198,7 @@ export default class OrganizationSelector extends Vue {
 
   mounted() {
     this.removeRouterGuard = this.$router.afterEach((to, from) => {
-      return this._updateDropdown(this.$route.params)
+      return this._updateDropdown(this.$route.params);
     });
 
     return this._updateDropdown(this.$route.params);
@@ -182,7 +207,7 @@ export default class OrganizationSelector extends Vue {
   unmounted() {
     this.removeRouterGuard();
   }
-};
+}
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
@@ -192,7 +217,7 @@ export default class OrganizationSelector extends Vue {
   @apply max-w-lg block w-full cursor-pointer;
 
   &.loader {
-    @apply flex flex-grow justify-center items-center
+    @apply flex flex-grow justify-center items-center;
   }
 }
 </style>
