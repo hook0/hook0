@@ -1,14 +1,12 @@
 <template>
-  <span
-    v-bind="omit({ ...$props, ...$attrs })"
-    :class="['text'].concat($attrs.class || [])">
+  <span v-bind="omit({ ...$props, ...$attrs })" :class="['text'].concat($attrs.class || [])">
     <slot></slot>
   </span>
 </template>
 
 <script lang="ts">
-import {Vue} from "vue-class-component";
-import {omit} from "ramda";
+import { Vue } from 'vue-class-component';
+import { omit } from 'ramda';
 
 export default class Hook0Text extends Vue {
   omit(props: Record<string, any>) {
@@ -45,7 +43,6 @@ export default class Hook0Text extends Vue {
 
   &.helpText {
     @apply mt-2 text-sm text-gray-500;
-
   }
 }
 </style>

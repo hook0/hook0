@@ -17,10 +17,9 @@
 </template>
 
 <script lang="ts">
-import {Vue} from "vue-class-component";
+import { Vue } from 'vue-class-component';
 
-export default class Hook0CardHeader extends Vue {
-}
+export default class Hook0CardHeader extends Vue {}
 </script>
 
 <style lang="scss" scoped>

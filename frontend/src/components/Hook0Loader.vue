@@ -5,11 +5,10 @@
 </template>
 
 <script lang="ts">
-import Hook0Icon from "@/components/Hook0Icon.vue";
-import {Vue} from "vue-class-component";
+import Hook0Icon from '@/components/Hook0Icon.vue';
+import { Vue } from 'vue-class-component';
 
-export default class Hook0Loader extends Vue {
-}
+export default class Hook0Loader extends Vue {}
 </script>
 
 <style lang="scss" scoped>
