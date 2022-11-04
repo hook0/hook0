@@ -1,9 +1,7 @@
 <template>
   <div class="h-screen flex overflow-hidden bg-gray-100">
-    <!-- Static sidebar for desktop -->
     <div class="hidden md:flex md:flex-shrink-0">
       <div class="flex flex-col w-64 bg-gray-800">
-        <!-- Sidebar component, swap this element with another sidebar if you like -->
         <div class="flex flex-col h-0 flex-1">
           <div class="flex items-center h-16 flex-shrink-0 px-4">
             <logo></logo>
@@ -14,9 +12,11 @@
           <div class="flex-1 flex flex-col overflow-y-auto">
             <nav class="flex-1 px-2 py-4  space-y-1">
               <menu-item v-for="(item, index) in items" :key="index"
-                         :active="item.route.name === $route.name"
+                         :active="item.route && item.route.name === $route.name"
                          :name="item.name"
-                         @click="$router.push(item.route)">
+                         :href="item.href"
+                         :to="item.route"
+              >
                 <hook0-icon class="mr-2" :name="item.icon"></hook0-icon>
               </menu-item>
             </nav>
@@ -27,7 +27,7 @@
     <div class="flex flex-col w-0 flex-1 overflow-hidden">
       <div class="relative z-10 flex-shrink-0 flex h-16 bg-white shadow">
         <button
-          class="px-4 border-r border-gray-200 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 md:hidden">
+            class="px-4 border-r border-gray-200 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 md:hidden">
           <span class="sr-only">Open sidebar</span>
           <!-- Heroicon name: menu-alt-2 -->
           <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
@@ -92,113 +92,113 @@ import Hook0LoginMenu from "@/components/Hook0LoginMenu.vue";
       // eslint-disable-next-line
       // @ts-ignore
       return [].concat(
-        // @ts-ignore
-        // eslint-disable-next-line
-        this.$route.params.organization_id && this.$route.params.application_id ?
-          [
-            {
-              name: "API Keys",
-              icon: 'folder-tree',
-              route: {
-                name: routes.ApplicationSecretsList,
-                // @ts-ignore
-                params: {
-                  // eslint-disable-next-line
-                  organization_id: this.$route.params.organization_id,
-                  // eslint-disable-next-line
-                  application_id: this.$route.params.application_id,
-                }
-              }
-            },
-            {
-              name: "Subscriptions",
-              icon: 'link',
-              route: {
-                name: routes.SubscriptionsList,
-                params: {
-                  // eslint-disable-next-line
-                  organization_id: this.$route.params.organization_id,
-                  // eslint-disable-next-line
-                  application_id: this.$route.params.application_id,
-                }
-              }
-            },
-            {
-              name: "Event Types",
-              icon: 'folder-tree',
-              route: {
-                name: routes.EventTypesList,
-                // @ts-ignore
-                params: {
-                  // eslint-disable-next-line
-                  organization_id: this.$route.params.organization_id,
-                  // eslint-disable-next-line
-                  application_id: this.$route.params.application_id,
-                }
-              }
-            },
-            {
-              name: "Events",
-              icon: 'file-lines',
-              route: {
-                name: routes.EventsList,
-                params: {
-                  // eslint-disable-next-line
-                  organization_id: this.$route.params.organization_id,
-                  // eslint-disable-next-line
-                  application_id: this.$route.params.application_id,
-                }
-              }
-            },
+          // @ts-ignore
+          // eslint-disable-next-line
+          this.$route.params.organization_id && this.$route.params.application_id ?
+              [
+                {
+                  name: "API Keys",
+                  icon: 'folder-tree',
+                  route: {
+                    name: routes.ApplicationSecretsList,
+                    // @ts-ignore
+                    params: {
+                      // eslint-disable-next-line
+                      organization_id: this.$route.params.organization_id,
+                      // eslint-disable-next-line
+                      application_id: this.$route.params.application_id,
+                    }
+                  }
+                },
+                {
+                  name: "Subscriptions",
+                  icon: 'link',
+                  route: {
+                    name: routes.SubscriptionsList,
+                    params: {
+                      // eslint-disable-next-line
+                      organization_id: this.$route.params.organization_id,
+                      // eslint-disable-next-line
+                      application_id: this.$route.params.application_id,
+                    }
+                  }
+                },
+                {
+                  name: "Event Types",
+                  icon: 'folder-tree',
+                  route: {
+                    name: routes.EventTypesList,
+                    // @ts-ignore
+                    params: {
+                      // eslint-disable-next-line
+                      organization_id: this.$route.params.organization_id,
+                      // eslint-disable-next-line
+                      application_id: this.$route.params.application_id,
+                    }
+                  }
+                },
+                {
+                  name: "Events",
+                  icon: 'file-lines',
+                  route: {
+                    name: routes.EventsList,
+                    params: {
+                      // eslint-disable-next-line
+                      organization_id: this.$route.params.organization_id,
+                      // eslint-disable-next-line
+                      application_id: this.$route.params.application_id,
+                    }
+                  }
+                },
 
-            {
-              name: "Request Attempts",
-              icon: 'file-lines',
-              route: {
-                name: routes.LogsList,
-                params: {
-                  // eslint-disable-next-line
-                  organization_id: this.$route.params.organization_id,
-                  // eslint-disable-next-line
-                  application_id: this.$route.params.application_id,
-                }
-              }
-            },
-            {
-              name: "Settings",
-              icon: 'gear',
-              route: {
-                name: routes.ApplicationsDashboard,
-                // @ts-ignore
-                params: {
-                  // eslint-disable-next-line
-                  organization_id: this.$route.params.organization_id,
-                  // eslint-disable-next-line
-                  application_id: this.$route.params.application_id,
-                }
-              }
-            },
-            {
-              name: "API Documentation",
-              icon: 'gear',
-              route: {
-                name: routes.APIDocumentationForApplication,
-                // @ts-ignore
-                params: {
-                  // eslint-disable-next-line
-                  organization_id: this.$route.params.organization_id,
-                  // eslint-disable-next-line
-                  application_id: this.$route.params.application_id,
-                }
-              }
-            }]
-          : [{
-            name: "API Documentation",
-            icon: 'book',
-            route: {
-              name: routes.APIDocumentation
-            }
-          }]);
+                {
+                  name: "Request Attempts",
+                  icon: 'file-lines',
+                  route: {
+                    name: routes.LogsList,
+                    params: {
+                      // eslint-disable-next-line
+                      organization_id: this.$route.params.organization_id,
+                      // eslint-disable-next-line
+                      application_id: this.$route.params.application_id,
+                    }
+                  }
+                },
+                {
+                  name: "Settings",
+                  icon: 'gear',
+                  route: {
+                    name: routes.ApplicationsDashboard,
+                    // @ts-ignore
+                    params: {
+                      // eslint-disable-next-line
+                      organization_id: this.$route.params.organization_id,
+                      // eslint-disable-next-line
+                      application_id: this.$route.params.application_id,
+                    }
+                  }
+                },
+                {
+                  name: "API Documentation",
+                  icon: 'gear',
+                  href: 'https://documentation.hook0.com/',
+                }]
+              : [{
+                name: "API Documentation",
+                icon: 'book',
+                href: 'https://documentation.hook0.com/'
+              }]);
+    }
+  },
+
+  methods: {
+    openRoute(route: string | RouteRecord) {
+      if (typeof route === "string") {
+        window.open(route);
+      }
+
+      // eslint-disable-next-line
+      this.$router.push(route);
     }
   },
 
