@@ -3,10 +3,10 @@
 </template>
 
 <script lang="ts">
-import {Options, Vue} from "vue-class-component";
-import Hook0Text from "./Hook0Text.vue";
-import {Codemirror} from "vue-codemirror";
-import {formatRFC7231, parseISO} from "date-fns";
+import { Options, Vue } from 'vue-class-component';
+import Hook0Text from './Hook0Text.vue';
+import { Codemirror } from 'vue-codemirror';
+import { formatRFC7231, parseISO } from 'date-fns';
 
 @Options({
   inheritAttrs: false,
@@ -17,7 +17,7 @@ import {formatRFC7231, parseISO} from "date-fns";
     value: {
       type: String,
       required: true,
-    }
+    },
   },
 })
 export default class Hook0DateTime extends Vue {

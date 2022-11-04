@@ -1,18 +1,27 @@
 <template>
-  <select class="hook0-select" v-bind="{ ...omitOptions($props), ...$attrs }" ref="select" @input="sendEvent()">
+  <select
+    class="hook0-select"
+    v-bind="{ ...omitOptions($props), ...$attrs }"
+    ref="select"
+    @input="sendEvent()"
+  >
     <optgroup :label="group.label" v-for="group in groupedOptions" :key="group.label">
-      <option :value="option.value" v-for="option in group.options" :key="option.value">{{ option.label }}</option>
+      <option :value="option.value" v-for="option in group.options" :key="option.value">
+        {{ option.label }}
+      </option>
     </optgroup>
 
-    <option :value="option.value" v-for="option in simpleOptions" :key="option.value">{{ option.label }}</option>
+    <option :value="option.value" v-for="option in simpleOptions" :key="option.value">
+      {{ option.label }}
+    </option>
   </select>
 </template>
 
 <script lang="ts">
 /* eslint-disable no-prototype-builtins */
-import {Options, Vue, VueWithProps} from "vue-class-component";
-import {Hook0SelectGroupedOption, Hook0SelectSingleOption} from "@/components/Hook0Select";
-import {omit} from "ramda";
+import { Options, Vue, VueWithProps } from 'vue-class-component';
+import { Hook0SelectGroupedOption, Hook0SelectSingleOption } from '@/components/Hook0Select';
+import { omit } from 'ramda';
 
 function isSimpleOption(option: Hook0SelectSingleOption) {
   return option.hasOwnProperty('value') && option.hasOwnProperty('label');
@@ -21,7 +30,6 @@ function isSimpleOption(option: Hook0SelectSingleOption) {
 function isGroupedOptions(option: Hook0SelectGroupedOption) {
   return Array.isArray(option.options) && option.options.every(isSimpleOption);
 }
-
 
 @Options({
   name: 'hook0-select',
@@ -32,7 +40,11 @@ function isGroupedOptions(option: Hook0SelectGroupedOption) {
       type: Array,
       validator: (options: Array<Hook0SelectSingleOption | Hook0SelectGroupedOption>) => {
         // eslint-disable-next-line no-prototype-builtins
-        return options.every(option => isSimpleOption(option as Hook0SelectSingleOption) || isGroupedOptions(option as Hook0SelectGroupedOption));
+        return options.every(
+          (option) =>
+            isSimpleOption(option as Hook0SelectSingleOption) ||
+            isGroupedOptions(option as Hook0SelectGroupedOption)
+        );
       },
     },
   },
@@ -49,9 +61,6 @@ function isGroupedOptions(option: Hook0SelectGroupedOption) {
     },
   },
 })
-
-
-
 export default class Hook0Select extends Vue {
   private groupedOptions: Hook0SelectGroupedOption[] = [];
   private simpleOptions: Hook0SelectSingleOption[] = [];
@@ -73,7 +82,6 @@ export default class Hook0Select extends Vue {
     this.$emit('update:modelValue', this.$refs.select.value);
   }
 }
-
 </script>
 
 <style lang="scss" scoped>

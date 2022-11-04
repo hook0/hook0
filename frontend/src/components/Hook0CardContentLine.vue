@@ -12,20 +12,19 @@
 </template>
 
 <script lang="ts">
-import {Options, Vue} from "vue-class-component";
+import { Options, Vue } from 'vue-class-component';
 
 @Options({
   props: {
     type: {
       type: String,
       default: 'split',
-      validator: (v: string) => ['split', 'full-width', 'split-content-component', 'stacked', 'columns'].includes(v),
-    }
+      validator: (v: string) =>
+        ['split', 'full-width', 'split-content-component', 'stacked', 'columns'].includes(v),
+    },
   },
 })
-export default class Hook0CardContentLine extends Vue {
-
-}
+export default class Hook0CardContentLine extends Vue {}
 </script>
 
 <style lang="scss" scoped>

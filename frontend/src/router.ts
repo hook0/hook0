@@ -1,7 +1,7 @@
-import {createRouter, createWebHistory, RouteLocationNormalized} from 'vue-router';
-import routes, {routes as routeNames} from '@/routes';
-import {list} from '@/pages/organizations/OrganizationService';
-import {UUID} from '@/http';
+import { createRouter, createWebHistory, RouteLocationNormalized } from 'vue-router';
+import routes, { routes as routeNames } from '@/routes';
+import { list } from '@/pages/organizations/OrganizationService';
+import { UUID } from '@/http';
 
 const router = createRouter({
   // Provide the history implementation to use

@@ -10,12 +10,14 @@
             <organization-selector></organization-selector>
           </div>
           <div class="flex-1 flex flex-col overflow-y-auto">
-            <nav class="flex-1 px-2 py-4  space-y-1">
-              <menu-item v-for="(item, index) in items" :key="index"
-                         :active="item.route && item.route.name === $route.name"
-                         :name="item.name"
-                         :href="item.href"
-                         :to="item.route"
+            <nav class="flex-1 px-2 py-4 space-y-1">
+              <menu-item
+                v-for="(item, index) in items"
+                :key="index"
+                :active="item.route && item.route.name === $route.name"
+                :name="item.name"
+                :href="item.href"
+                :to="item.route"
               >
                 <hook0-icon class="mr-2" :name="item.icon"></hook0-icon>
               </menu-item>
@@ -27,13 +29,24 @@
     <div class="flex flex-col w-0 flex-1 overflow-hidden">
       <div class="relative z-10 flex-shrink-0 flex h-16 bg-white shadow">
         <button
-            class="px-4 border-r border-gray-200 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 md:hidden">
+          class="px-4 border-r border-gray-200 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 md:hidden"
+        >
           <span class="sr-only">Open sidebar</span>
           <!-- Heroicon name: menu-alt-2 -->
-          <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-               stroke="currentColor"
-               aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
+          <svg
+            class="h-6 w-6"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 6h16M4 12h16M4 18h7"
+            />
           </svg>
         </button>
         <div class="flex-1 px-4 flex justify-between">
@@ -43,16 +56,27 @@
               <div class="relative w-full text-gray-400 focus-within:text-gray-600">
                 <div class="absolute inset-y-0 left-0 flex items-center pointer-events-none">
                   <!-- Heroicon name: search -->
-                  <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
-                       aria-hidden="true">
-                    <path fill-rule="evenodd"
-                          d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                          clip-rule="evenodd"/>
+                  <svg
+                    class="h-5 w-5"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                      clip-rule="evenodd"
+                    />
                   </svg>
                 </div>
-                <input id="search_field"
-                       class="block w-full h-full pl-8 pr-3 py-2 border-transparent text-gray-900 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-0 focus:border-transparent sm:text-sm"
-                       placeholder="Search" type="search" name="search">
+                <input
+                  id="search_field"
+                  class="block w-full h-full pl-8 pr-3 py-2 border-transparent text-gray-900 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-0 focus:border-transparent sm:text-sm"
+                  placeholder="Search"
+                  type="search"
+                  name="search"
+                />
               </div>
             </form>
           </div>
@@ -67,8 +91,7 @@
 
       <main class="flex-1 relative overflow-y-auto focus:outline-none" tabindex="0">
         <div class="py-6 max-w-7xl mx-auto px-4 sm:px-6 md:px-8 h-96">
-          <router-view>
-          </router-view>
+          <router-view></router-view>
           <hook0-footer></hook0-footer>
         </div>
       </main>
@@ -77,138 +100,140 @@
 </template>
 
 <script lang="ts">
-import {Logo, MenuItem} from './components';
-import {Vue, Options} from 'vue-class-component';
-import OrganizationSelector from "@/pages/OrganizationAndApplicationSelector.vue";
-import {routes} from "@/routes";
-import Hook0Footer from "@/components/Hook0Footer.vue";
-import {Router, RouteRecord} from "vue-router";
-import Hook0LoginMenu from "@/components/Hook0LoginMenu.vue";
+import { Logo, MenuItem } from './components';
+import { Vue, Options } from 'vue-class-component';
+import OrganizationSelector from '@/pages/OrganizationAndApplicationSelector.vue';
+import { routes } from '@/routes';
+import Hook0Footer from '@/components/Hook0Footer.vue';
+import { Router, RouteRecord } from 'vue-router';
+import Hook0LoginMenu from '@/components/Hook0LoginMenu.vue';
 
 @Options({
-  components: {Hook0LoginMenu, Hook0Footer, Logo, OrganizationSelector, MenuItem},
+  components: { Hook0LoginMenu, Hook0Footer, Logo, OrganizationSelector, MenuItem },
   computed: {
     items() {
       // eslint-disable-next-line
       // @ts-ignore
       return [].concat(
-          // @ts-ignore
-          // eslint-disable-next-line
-          this.$route.params.organization_id && this.$route.params.application_id ?
-              [
-                {
-                  name: "API Keys",
-                  icon: 'folder-tree',
-                  route: {
-                    name: routes.ApplicationSecretsList,
-                    // @ts-ignore
-                    params: {
-                      // eslint-disable-next-line
-                      organization_id: this.$route.params.organization_id,
-                      // eslint-disable-next-line
-                      application_id: this.$route.params.application_id,
-                    }
-                  }
+        // @ts-ignore
+        // eslint-disable-next-line
+        this.$route.params.organization_id && this.$route.params.application_id
+          ? [
+              {
+                name: 'API Keys',
+                icon: 'folder-tree',
+                route: {
+                  name: routes.ApplicationSecretsList,
+                  // @ts-ignore
+                  params: {
+                    // eslint-disable-next-line
+                    organization_id: this.$route.params.organization_id,
+                    // eslint-disable-next-line
+                    application_id: this.$route.params.application_id,
+                  },
                 },
-                {
-                  name: "Subscriptions",
-                  icon: 'link',
-                  route: {
-                    name: routes.SubscriptionsList,
-                    params: {
-                      // eslint-disable-next-line
-                      organization_id: this.$route.params.organization_id,
-                      // eslint-disable-next-line
-                      application_id: this.$route.params.application_id,
-                    }
-                  }
+              },
+              {
+                name: 'Subscriptions',
+                icon: 'link',
+                route: {
+                  name: routes.SubscriptionsList,
+                  params: {
+                    // eslint-disable-next-line
+                    organization_id: this.$route.params.organization_id,
+                    // eslint-disable-next-line
+                    application_id: this.$route.params.application_id,
+                  },
                 },
-                {
-                  name: "Event Types",
-                  icon: 'folder-tree',
-                  route: {
-                    name: routes.EventTypesList,
-                    // @ts-ignore
-                    params: {
-                      // eslint-disable-next-line
-                      organization_id: this.$route.params.organization_id,
-                      // eslint-disable-next-line
-                      application_id: this.$route.params.application_id,
-                    }
-                  }
+              },
+              {
+                name: 'Event Types',
+                icon: 'folder-tree',
+                route: {
+                  name: routes.EventTypesList,
+                  // @ts-ignore
+                  params: {
+                    // eslint-disable-next-line
+                    organization_id: this.$route.params.organization_id,
+                    // eslint-disable-next-line
+                    application_id: this.$route.params.application_id,
+                  },
                 },
-                {
-                  name: "Events",
-                  icon: 'file-lines',
-                  route: {
-                    name: routes.EventsList,
-                    params: {
-                      // eslint-disable-next-line
-                      organization_id: this.$route.params.organization_id,
-                      // eslint-disable-next-line
-                      application_id: this.$route.params.application_id,
-                    }
-                  }
+              },
+              {
+                name: 'Events',
+                icon: 'file-lines',
+                route: {
+                  name: routes.EventsList,
+                  params: {
+                    // eslint-disable-next-line
+                    organization_id: this.$route.params.organization_id,
+                    // eslint-disable-next-line
+                    application_id: this.$route.params.application_id,
+                  },
                 },
+              },
 
-                {
-                  name: "Request Attempts",
-                  icon: 'file-lines',
-                  route: {
-                    name: routes.LogsList,
-                    params: {
-                      // eslint-disable-next-line
-                      organization_id: this.$route.params.organization_id,
-                      // eslint-disable-next-line
-                      application_id: this.$route.params.application_id,
-                    }
-                  }
+              {
+                name: 'Request Attempts',
+                icon: 'file-lines',
+                route: {
+                  name: routes.LogsList,
+                  params: {
+                    // eslint-disable-next-line
+                    organization_id: this.$route.params.organization_id,
+                    // eslint-disable-next-line
+                    application_id: this.$route.params.application_id,
+                  },
                 },
-                {
-                  name: "Settings",
-                  icon: 'gear',
-                  route: {
-                    name: routes.ApplicationsDashboard,
-                    // @ts-ignore
-                    params: {
-                      // eslint-disable-next-line
-                      organization_id: this.$route.params.organization_id,
-                      // eslint-disable-next-line
-                      application_id: this.$route.params.application_id,
-                    }
-                  }
+              },
+              {
+                name: 'Settings',
+                icon: 'gear',
+                route: {
+                  name: routes.ApplicationsDashboard,
+                  // @ts-ignore
+                  params: {
+                    // eslint-disable-next-line
+                    organization_id: this.$route.params.organization_id,
+                    // eslint-disable-next-line
+                    application_id: this.$route.params.application_id,
+                  },
                 },
-                {
-                  name: "API Documentation",
-                  icon: 'gear',
-                  href: 'https://documentation.hook0.com/',
-                }]
-              : [{
-                name: "API Documentation",
+              },
+              {
+                name: 'API Documentation',
+                icon: 'gear',
+                href: 'https://documentation.hook0.com/',
+              },
+            ]
+          : [
+              {
+                name: 'API Documentation',
                 icon: 'book',
-                href: 'https://documentation.hook0.com/'
-              }]);
-    }
+                href: 'https://documentation.hook0.com/',
+              },
+            ]
+      );
+    },
   },
 
   methods: {
     openRoute(route: string | RouteRecord) {
-      if (typeof route === "string") {
+      if (typeof route === 'string') {
         window.open(route);
       }
 
       // eslint-disable-next-line
       this.$router.push(route);
-    }
+    },
   },
 
   data() {
     return {};
   },
 })
-export default class Root extends Vue {
-
-};
+export default class Root extends Vue {}
 </script>
 
 <style>

@@ -6,11 +6,10 @@
 </template>
 
 <script lang="ts">
-import {Vue, Options} from 'vue-class-component'
+import { Vue, Options } from 'vue-class-component';
 
 @Options({})
-export default class Logo extends Vue {
-};
+export default class Logo extends Vue {}
 </script>
 
 <style scoped>

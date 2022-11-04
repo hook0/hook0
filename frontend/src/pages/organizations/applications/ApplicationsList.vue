@@ -8,21 +8,16 @@
     <template #default="applications">
       <hook0-card>
         <hook0-card-header>
-          <template #header>
-            Applications
-          </template>
+          <template #header> Applications </template>
           <template #subtitle>
-            Each application send events to Hook0 API and Hook0 dispatch these extends to customers through webhooks
+            Each application send events to Hook0 API and Hook0 dispatch these extends to customers
+            through webhooks
           </template>
         </hook0-card-header>
 
         <hook0-card-content v-if="applications.length > 0">
           <transition name="ease">
-            <hook0-table
-              :context="this"
-              :columnDefs="columnDefs"
-              :rowData="applications"
-            >
+            <hook0-table :context="this" :columnDefs="columnDefs" :rowData="applications">
             </hook0-table>
           </transition>
         </hook0-card-content>
@@ -38,13 +33,16 @@
         </hook0-card-content>
 
         <hook0-card-footer>
-          <hook0-button class="primary" type="button"
-                        :to="{
-            name: routes.ApplicationsNew,
-            params:{
-            organization_id: $route.params.organization_id
-          }}">Create new
-            application
+          <hook0-button
+            class="primary"
+            type="button"
+            :to="{
+              name: routes.ApplicationsNew,
+              params: {
+                organization_id: $route.params.organization_id,
+              },
+            }"
+            >Create new application
           </hook0-button>
         </hook0-card-footer>
       </hook0-card>
@@ -57,22 +55,22 @@
 </template>
 
 <script lang="ts">
-import {Application} from './ApplicationService';
+import { Application } from './ApplicationService';
 import * as ApplicationService from './ApplicationService';
-import {Options, Vue} from 'vue-class-component';
-import Hook0Button from "@/components/Hook0Button.vue";
-import {routes} from "@/routes";
-import Hook0CardContentLine from "@/components/Hook0CardContentLine.vue";
-import Hook0CardContent from "@/components/Hook0CardContent.vue";
-import Hook0CardFooter from "@/components/Hook0CardFooter.vue";
-import Hook0CardHeader from "@/components/Hook0CardHeader.vue";
-import Hook0Card from "@/components/Hook0Card.vue";
-import Hook0Input from "@/components/Hook0Input.vue";
-import Hook0Table from "@/components/Hook0Table.vue";
+import { Options, Vue } from 'vue-class-component';
+import Hook0Button from '@/components/Hook0Button.vue';
+import { routes } from '@/routes';
+import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
+import Hook0CardContent from '@/components/Hook0CardContent.vue';
+import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
+import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
+import Hook0Card from '@/components/Hook0Card.vue';
+import Hook0Input from '@/components/Hook0Input.vue';
+import Hook0Table from '@/components/Hook0Table.vue';
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
-import {VueElement} from "vue";
-import {ColDef} from "@ag-grid-community/core";
-import {UUID} from "@/http";
+import { VueElement } from 'vue';
+import { ColDef } from '@ag-grid-community/core';
+import { UUID } from '@/http';
 
 @Options({
   components: {
@@ -83,22 +81,21 @@ import {UUID} from "@/http";
     Hook0Card,
     Hook0Input,
     Hook0Button,
-    Hook0Table
+    Hook0Table,
   },
   props: {
     // cache-burst
     burst: {
       type: String,
-      required: false
-    }
-  }
+      required: false,
+    },
+  },
 })
 export default class ApplicationList extends Vue {
-  private applications$ !: Promise<Array<Application>>;
+  private applications$!: Promise<Array<Application>>;
   private organization_id: null | UUID = null;
 
   private routes = routes;
-
 
   data() {
     return {
@@ -108,7 +105,7 @@ export default class ApplicationList extends Vue {
           field: 'name',
           suppressMovable: true,
           headerName: 'Name',
-          cellRenderer: "Hook0TableCellLink",
+          cellRenderer: 'Hook0TableCellLink',
           cellRendererParams: {
             to: (row: Application) => {
               return {
@@ -116,18 +113,20 @@ export default class ApplicationList extends Vue {
                 params: {
                   application_id: row.application_id,
                   organization_id: row.organization_id,
-                }
-              }
-            }
-          }
-        }, {
+                },
+              };
+            },
+          },
+        },
+        {
           field: 'application_id',
           suppressMovable: true,
           headerName: 'Id',
-        }, {
+        },
+        {
           suppressMovable: true,
           headerName: 'Options',
-          cellRenderer: "Hook0TableCellLink",
+          cellRenderer: 'Hook0TableCellLink',
           cellRendererParams: {
             value: 'Delete',
             icon: 'trash',
@@ -145,10 +144,11 @@ export default class ApplicationList extends Vue {
                     throw err;
                   });
               }
-            }
-          }
-        }] as Array<ColDef>
-    }
+            },
+          },
+        },
+      ] as Array<ColDef>,
+    };
   }
 
   mounted() {
@@ -169,6 +169,6 @@ export default class ApplicationList extends Vue {
       this._forceLoad();
     }
   }
-};
+}
 </script>
 
