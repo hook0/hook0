@@ -6,5 +6,4 @@ module.exports = {
   trailingComma: 'es5',
   bracketSameLine: false,
   semi: true,
-  parser: 'babel',
 };
