@@ -14,7 +14,7 @@
               <menu-item
                 v-for="(item, index) in items"
                 :key="index"
-                :active="item.route && item.route.name === $route.name"
+                :active="item.route ? item.route.name === $route.name : false"
                 :name="item.name"
                 :href="item.href"
                 :to="item.route"
