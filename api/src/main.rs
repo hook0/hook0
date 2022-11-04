@@ -1,10 +1,12 @@
+use ::hook0_client::Hook0Client;
+use actix::Arbiter;
 use actix_cors::Cors;
 use actix_files::{Files, NamedFile};
 use actix_web::middleware::{Compat, Logger, NormalizePath};
 use actix_web::{http, App, HttpServer};
 use actix_web_middleware_keycloak_auth::{AlwaysPassPolicy, DecodingKey, KeycloakAuth};
 use clap::builder::{BoolValueParser, TypedValueParser};
-use clap::{crate_description, crate_name, crate_version, Parser};
+use clap::{crate_description, crate_name, crate_version, ArgGroup, Parser};
 use log::{debug, info, trace, warn};
 use paperclip::{
     actix::{web, OpenApiExt},
@@ -13,9 +15,11 @@ use paperclip::{
 use reqwest::Url;
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 use std::str::FromStr;
+use uuid::Uuid;
 
 mod extractor_user_ip;
 mod handlers;
+mod hook0_client;
 mod iam;
 mod keycloak_api;
 mod middleware_application_secret;
@@ -29,6 +33,11 @@ const WEBAPP_INDEX_FILE: &str = "index.html";
 
 #[derive(Debug, Clone, Parser)]
 #[clap(author, about, version, name = APP_TITLE)]
+#[clap(group(
+    ArgGroup::new("client")
+        .multiple(true)
+        .requires_all(&["hook0-client-api-url", "hook0-client-application-id", "hook0-client-application-secret"]),
+))]
 struct Config {
     /// IP address on which to start the HTTP server
     #[clap(long, env, default_value = "127.0.0.1")]
@@ -137,6 +146,22 @@ struct Config {
     /// Comma-separated allowed origins for CORS
     #[clap(long, env, use_value_delimiter = true)]
     cors_allowed_origins: Vec<String>,
+
+    /// Base API URL of a Hook0 instance that will receive events from this Hook0 instance
+    #[clap(long, env, group = "client")]
+    hook0_client_api_url: Option<Url>,
+
+    /// UUID of a Hook0 application that will receive events from this Hook0 instance
+    #[clap(long, env, group = "client")]
+    hook0_client_application_id: Option<Uuid>,
+
+    /// Secret of a Hook0 application that will receive events from this Hook0 instance
+    #[clap(long, env, group = "client")]
+    hook0_client_application_secret: Option<Uuid>,
+
+    /// Number of allowed retries when upserting event types to the linked Hook0 application fails
+    #[clap(long, env, default_value = "10")]
+    hook0_client_upserts_retries: u16,
 }
 
 /// The app state
@@ -150,6 +175,8 @@ pub struct State {
     keycloak_front_client_id: String,
     disable_registration: bool,
     auto_db_migration: bool,
+    #[allow(dead_code)] // TODO: remove this exception
+    hook0_client: Option<Hook0Client>,
 }
 
 #[actix_web::main]
@@ -209,6 +236,26 @@ async fn main() -> anyhow::Result<()> {
         sqlx::migrate!("./migrations").run(&pool).await?;
     }
 
+    // Initialize Hook0 client
+    let hook0_client = hook0_client::initialize(
+        config.hook0_client_api_url,
+        config.hook0_client_application_id,
+        config.hook0_client_application_secret,
+    );
+    if let Some(client) = &hook0_client {
+        let upsert_client = client.clone();
+        let upserts_retries = config.hook0_client_upserts_retries;
+        Arbiter::current().spawn(async move {
+            trace!("Starting Hook0 client upsert task");
+            hook0_client::upsert_event_types(
+                &upsert_client,
+                hook0_client::EVENT_TYPES,
+                upserts_retries,
+            )
+            .await;
+        });
+    }
+
     // Initialize state
     let initial_state = State {
         db: pool,
@@ -219,6 +266,7 @@ async fn main() -> anyhow::Result<()> {
         keycloak_front_client_id: config.keycloak_front_client_id,
         disable_registration: config.disable_registration,
         auto_db_migration: config.auto_db_migration,
+        hook0_client,
     };
     let keycloak_oidc_public_key = config.keycloak_oidc_public_key;
 

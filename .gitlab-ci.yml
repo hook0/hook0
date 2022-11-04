@@ -20,6 +20,7 @@ rust.check:
       - api/**/*
       - output-worker/**/*
       - sentry-integration/**/*
+      - clients/rust/**/*
       - Cargo.*
   variables:
     SQLX_OFFLINE: "true"
@@ -34,6 +35,11 @@ rust.check:
     - cargo fmt --all -- --check
     # Sentry integration
     - pushd sentry-integration
+    - cargo clippy --all-targets --all-features -- -D warnings
+    - cargo test
+    - popd
+    # Client
+    - pushd clients/rust
     - cargo clippy --all-targets --all-features -- -D warnings
     - cargo test
     - popd
