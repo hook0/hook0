@@ -359,6 +359,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "619743e34b5ba4e9703bba34deac3427c72507c7159f5fd030aea8cac0cfe341"
 
 [[package]]
+name = "async-recursion"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2cda8f4bcc10624c4e85bc66b3f452cca98cfa5ca002dc83a16aad2367641bea"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "async-trait"
 version = "0.1.58"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1104,17 +1115,20 @@ dependencies = [
 name = "hook0-api"
 version = "0.1.0"
 dependencies = [
+ "actix",
  "actix-cors",
  "actix-files",
  "actix-governor",
  "actix-web",
  "actix-web-middleware-keycloak-auth",
  "anyhow",
+ "async-recursion",
  "base64",
  "chrono",
  "clap",
  "futures-util",
  "governor",
+ "hook0-client",
  "http-api-problem",
  "ipnetwork",
  "lazy_static",
@@ -1134,6 +1148,21 @@ dependencies = [
  "url",
  "uuid 1.2.1",
  "validator",
+]
+
+[[package]]
+name = "hook0-client"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "lazy-regex",
+ "log",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "url",
+ "uuid 1.2.1",
 ]
 
 [[package]]
@@ -1421,6 +1450,29 @@ name = "language-tags"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d4345964bb142484797b161f473a503a434de77149dd8c7427788c6e13379388"
+
+[[package]]
+name = "lazy-regex"
+version = "2.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6b12f2eb6ed7d39405c5eb25a034b4c106a9ad87a6d9be3298de6c5f32fd57d"
+dependencies = [
+ "lazy-regex-proc_macros",
+ "once_cell",
+ "regex",
+]
+
+[[package]]
+name = "lazy-regex-proc_macros"
+version = "2.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f2496e5264069bc726ccf37eb76b9cd89406ae110d836c3f76729f99c8a23293"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "regex",
+ "syn",
+]
 
 [[package]]
 name = "lazy_static"

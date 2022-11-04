@@ -1,6 +1,7 @@
 use actix_web::{FromRequest, HttpMessage, ResponseError};
 use futures_util::future::{ready, Ready};
 use lazy_static::lazy_static;
+use log::error;
 use paperclip::actix::OperationModifier;
 use paperclip::v2::schema::{Apiv2Schema, TypedData};
 use regex::{escape, Regex};
@@ -15,6 +16,28 @@ use uuid::Uuid;
 pub const GROUP_SEP: &str = "/";
 pub const ORGA_GROUP_PREFIX: &str = "orga_";
 const ROLE_GROUP_PREFIX: &str = "role_";
+
+pub async fn get_owner_organization(db: &PgPool, application_id: &Uuid) -> Option<Uuid> {
+    struct Organization {
+        pub id: Uuid,
+    }
+
+    let org = query_as!(
+        Organization,
+        "SELECT organization__id AS id FROM event.application WHERE application__id = $1",
+        application_id
+    )
+    .fetch_one(db)
+    .await;
+
+    match org {
+        Ok(Organization { id }) => Some(id),
+        Err(e) => {
+            error!("{e}");
+            None
+        }
+    }
+}
 
 #[derive(
     Debug,
@@ -172,19 +195,7 @@ impl AuthProof {
                 }
             }
             Self::Jwt { claims: _ } => {
-                struct Organization {
-                    pub id: Uuid,
-                }
-
-                let org = query_as!(
-                    Organization,
-                    "SELECT organization__id AS id FROM event.application WHERE application__id = $1",
-                    application_id
-                )
-                .fetch_one(db)
-                .await;
-
-                if let Ok(Organization { id }) = org {
+                if let Some(id) = get_owner_organization(db, application_id).await {
                     let available_organizations = self.organizations();
                     match available_organizations.get(&id) {
                         Some(role) if role >= minimum_required_role => Some(self),
