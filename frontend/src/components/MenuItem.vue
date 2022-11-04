@@ -1,30 +1,26 @@
 <template>
-  <hook0-button
-      class="default"
-      :class="{ active: active, inactive: !active }"
-  >
+  <hook0-button class="default" :class="{ active: active, inactive: !active }">
     <slot></slot>
     {{ name }}
   </hook0-button>
 </template>
 
 <script lang="ts">
-import {Vue, Options} from 'vue-class-component'
+import { Vue, Options } from 'vue-class-component';
 
 @Options({
   props: {
     name: {
       type: String,
-      required: true
+      required: true,
     },
     active: {
       type: Boolean,
-      required: true
+      required: true,
     },
-  }
+  },
 })
-export default class MenuItem extends Vue {
-};
+export default class MenuItem extends Vue {}
 </script>
 
 <style scoped>
@@ -33,7 +29,7 @@ export default class MenuItem extends Vue {
 }
 
 .active {
-  @apply bg-gray-900 ;
+  @apply bg-gray-900;
 }
 
 .inactive {

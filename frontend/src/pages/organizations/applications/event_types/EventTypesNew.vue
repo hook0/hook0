@@ -2,13 +2,8 @@
   <form @submit="create" ref="form">
     <hook0-card>
       <hook0-card-header>
-        <template #header>
-          Create new event type
-        </template>
-        <template #subtitle>
-          Each event sent through a webhook must have an event type.
-        </template>
-
+        <template #header> Create new event type </template>
+        <template #subtitle> Each event sent through a webhook must have an event type. </template>
       </hook0-card-header>
 
       <hook0-card-content-line>
@@ -18,40 +13,45 @@
         <template #content>
           <div class="flex flex-row justify-start items-baseline">
             <hook0-input
-                type="text"
-                v-model="event_type.service"
-                placeholder="billing"
-                required
-                class="flex-grow-1"
+              type="text"
+              v-model="event_type.service"
+              placeholder="billing"
+              required
+              class="flex-grow-1"
             >
             </hook0-input>
             <hook0-text class="bold flex-grow-0">.</hook0-text>
             <hook0-input
-                type="text"
-                v-model="event_type.resource_type"
-                placeholder="invoice"
-                required
-                class="flex-grow-1"
+              type="text"
+              v-model="event_type.resource_type"
+              placeholder="invoice"
+              required
+              class="flex-grow-1"
             >
             </hook0-input>
             <hook0-text class="bold flex-grow-0">.</hook0-text>
             <hook0-input
-                type="text"
-                v-model="event_type.verb"
-                placeholder="created"
-                required
-                class="flex-grow-1"
+              type="text"
+              v-model="event_type.verb"
+              placeholder="created"
+              required
+              class="flex-grow-1"
             >
             </hook0-input>
           </div>
         </template>
       </hook0-card-content-line>
       <hook0-card-content v-if="alert.visible">
-        <hook0-alert :type="alert.type" :title="alert.title" :description="alert.description"></hook0-alert>
+        <hook0-alert
+          :type="alert.type"
+          :title="alert.title"
+          :description="alert.description"
+        ></hook0-alert>
       </hook0-card-content>
       <hook0-card-footer>
         <hook0-button class="secondary" type="button" @click="$router.back()">Cancel</hook0-button>
-        <hook0-button class="primary" type="button" @click="create($event)">Create event type
+        <hook0-button class="primary" type="button" @click="create($event)"
+          >Create event type
         </hook0-button>
       </hook0-card-footer>
     </hook0-card>
@@ -60,9 +60,12 @@
       <hook0-card-content>
         <hook0-card-content-line type="full-width">
           <template #content>
-            <hook0-text class="block">An event is something that has happened. In the past.</hook0-text>
+            <hook0-text class="block"
+              >An event is something that has happened. In the past.</hook0-text
+            >
             <hook0-text class="mt-2">Event should be in the form of:</hook0-text>
-            <hook0-text class="code"> &lt;service&gt;.&lt;resourceType&gt;.&lt;verb&gt;
+            <hook0-text class="code">
+              &lt;service&gt;.&lt;resourceType&gt;.&lt;verb&gt;
             </hook0-text>
           </template>
         </hook0-card-content-line>
@@ -168,40 +171,35 @@
                 </hook0-list-item>
               </hook0-list>
             </div>
-
-
           </template>
         </hook0-card-content-line>
       </hook0-card-content>
-      <hook0-card-footer>
-      </hook0-card-footer>
+      <hook0-card-footer> </hook0-card-footer>
     </hook0-card>
   </form>
-
 </template>
 
 <script lang="ts">
-import {AxiosError} from 'axios';
-import {Options, Vue} from 'vue-class-component';
-import {routes} from "@/routes";
-import {isAxiosError, Problem, UUID} from "@/http";
-import {Alert} from "@/components/Hook0Alert";
-import Hook0ListItem from "@/components/Hook0ListItem.vue";
-import Hook0List from "@/components/Hook0List.vue";
-import {EventTypePost} from "./EventTypeService";
+import { AxiosError } from 'axios';
+import { Options, Vue } from 'vue-class-component';
+import { routes } from '@/routes';
+import { isAxiosError, Problem, UUID } from '@/http';
+import { Alert } from '@/components/Hook0Alert';
+import Hook0ListItem from '@/components/Hook0ListItem.vue';
+import Hook0List from '@/components/Hook0List.vue';
+import { EventTypePost } from './EventTypeService';
 import * as EventTypeService from './EventTypeService';
-
 
 @Options({
   components: {
     Hook0List,
     Hook0ListItem,
-  }
+  },
 })
 export default class EventTypesNew extends Vue {
   routes = routes;
 
-  event_type: EventTypePost = {application_id: "", service: "", resource_type: "", verb: ""};
+  event_type: EventTypePost = { application_id: '', service: '', resource_type: '', verb: '' };
 
   alert: Alert = {
     visible: false,
@@ -222,7 +220,7 @@ export default class EventTypesNew extends Vue {
       await this.$router.push({
         name: routes.EventTypesList,
       });
-    }, this.displayError.bind(this))
+    }, this.displayError.bind(this));
   }
 
   displayError(err: AxiosError | unknown) {
@@ -236,12 +234,11 @@ export default class EventTypesNew extends Vue {
       this.alert.description = problem.detail;
     } else {
       this.alert.type = 'alert';
-      this.alert.title = "An error occurred";
+      this.alert.title = 'An error occurred';
       this.alert.description = String(err);
     }
   }
-};
-
+}
 </script>
 
 <style scoped>

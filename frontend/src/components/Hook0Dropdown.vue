@@ -22,28 +22,27 @@
 </template>
 
 <script lang="ts">
-import {Options, Vue} from "vue-class-component";
-import Hook0Icon from "@/components/Hook0Icon.vue";
-
+import { Options, Vue } from 'vue-class-component';
+import Hook0Icon from '@/components/Hook0Icon.vue';
 
 @Options({
-  components: {Hook0Icon},
+  components: { Hook0Icon },
   props: {
     justify: {
       type: String,
       default: 'right',
       validator(val: string) {
-        return ['left', 'right'].includes(val)
-      }
-    }
-  }
+        return ['left', 'right'].includes(val);
+      },
+    },
+  },
 })
 export default class Hook0Dropdown extends Vue {
   show = false;
 
   vcoConfig!: {
-    handler: any,
-    middleware: any,
+    handler: any;
+    middleware: any;
   };
 
   data() {
@@ -51,10 +50,9 @@ export default class Hook0Dropdown extends Vue {
       vcoConfig: {
         handler: this.onClickOutside.bind(this),
         middleware: this.onClickOutsideCheck.bind(this),
-      }
-    }
+      },
+    };
   }
-
 
   toggle(event: Event) {
     event.preventDefault();
@@ -76,7 +74,11 @@ export default class Hook0Dropdown extends Vue {
   }
 
   onClickOutsideCheck(event: Event) {
-    return this.show && event.target !== this.$refs.toggler && (event.target as HTMLElement).closest('.hook0-toggler') === null;
+    return (
+      this.show &&
+      event.target !== this.$refs.toggler &&
+      (event.target as HTMLElement).closest('.hook0-toggler') === null
+    );
   }
 
   onClickOutside(event: Event) {
@@ -86,7 +88,6 @@ export default class Hook0Dropdown extends Vue {
 </script>
 
 <style lang="scss" scoped>
-
 .hook0-dropdown {
   @apply relative;
 
@@ -102,7 +103,6 @@ export default class Hook0Dropdown extends Vue {
     &.right {
       @apply origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 divide-y divide-gray-100 focus:outline-none w-80 z-50;
     }
-
   }
 
   &.dropdown-right {

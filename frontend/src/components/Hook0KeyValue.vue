@@ -1,10 +1,20 @@
 <template>
   <div class="w-full">
     <div class="kv-item" v-for="(item, index) in pairs" :key="index">
-      <hook0-input type="text" @input="emit()" v-model="item.key" class="col-span-4"
-                   :placeholder="keyPlaceholder"></hook0-input>
-      <hook0-input type="text" @input="emit()" v-model="item.value" class="col-span-4"
-                   :placeholder="valuePlaceholder"></hook0-input>
+      <hook0-input
+        type="text"
+        @input="emit()"
+        v-model="item.key"
+        class="col-span-4"
+        :placeholder="keyPlaceholder"
+      ></hook0-input>
+      <hook0-input
+        type="text"
+        @input="emit()"
+        v-model="item.value"
+        class="col-span-4"
+        :placeholder="valuePlaceholder"
+      ></hook0-input>
       <hook0-button @click="remove(index)" :disabled="pairs.length === 1" class="white col-span-1">
         <hook0-icon name="fa-minus"></hook0-icon>
       </hook0-button>
@@ -16,15 +26,14 @@
 </template>
 
 <script lang="ts">
-import {Options, Vue} from "vue-class-component";
-import {Hook0KeyValueKeyValuePair} from "@/components/Hook0KeyValue";
-import debounce from "lodash.debounce";
-import {DebouncedFuncLeading} from "lodash";
+import { Options, Vue } from 'vue-class-component';
+import { Hook0KeyValueKeyValuePair } from '@/components/Hook0KeyValue';
+import debounce from 'lodash.debounce';
+import { DebouncedFuncLeading } from 'lodash';
 
 function getDefaultItem(): Hook0KeyValueKeyValuePair {
-  return {key: '', value: ''};
+  return { key: '', value: '' };
 }
-
 
 @Options({
   name: 'hook0-key-value',
@@ -53,9 +62,10 @@ function getDefaultItem(): Hook0KeyValueKeyValuePair {
   },
   data() {
     //  always start with at least one element
-    const pairs = (this.value as Hook0KeyValueKeyValuePair[]).length === 0 ? [getDefaultItem()] : this.value;
+    const pairs =
+      (this.value as Hook0KeyValueKeyValuePair[]).length === 0 ? [getDefaultItem()] : this.value;
     return {
-      pairs
+      pairs,
     };
   },
   computed: {},

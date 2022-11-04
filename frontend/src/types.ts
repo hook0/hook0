@@ -4,92 +4,92 @@
  */
 
 export interface paths {
-  "/api/v1/application_secrets/": {
-    get: operations["applicationSecrets.read"];
-    post: operations["applicationSecrets.create"];
+  '/api/v1/application_secrets/': {
+    get: operations['applicationSecrets.read'];
+    post: operations['applicationSecrets.create'];
   };
-  "/api/v1/application_secrets/{application_secret_token}": {
-    put: operations["applicationSecrets.update"];
-    delete: operations["applicationSecrets.delete"];
+  '/api/v1/application_secrets/{application_secret_token}': {
+    put: operations['applicationSecrets.update'];
+    delete: operations['applicationSecrets.delete'];
   };
-  "/api/v1/applications/": {
-    get: operations["applications.list"];
+  '/api/v1/applications/': {
+    get: operations['applications.list'];
     /** An application emit events that are consumed by customers through webhooks */
-    post: operations["applications.create"];
+    post: operations['applications.create'];
   };
-  "/api/v1/applications/{application_id}": {
+  '/api/v1/applications/{application_id}': {
     /** An application emit events that are consumed by customers through webhooks */
-    get: operations["applications.get"];
+    get: operations['applications.get'];
     /** Change the name of an application */
-    put: operations["applications.update"];
+    put: operations['applications.update'];
     /** Delete an application, further events won't be sent, active webhook subscriptions will also be deleted. */
-    delete: operations["applications.delete"];
+    delete: operations['applications.delete'];
   };
-  "/api/v1/errors/": {
+  '/api/v1/errors/': {
     /** List of every possible errors that Hook0 can return. Each error is in RFC7807 problem format. */
-    get: operations["errors.list"];
+    get: operations['errors.list'];
   };
-  "/api/v1/event/": {
-    post: operations["events.ingest"];
+  '/api/v1/event/': {
+    post: operations['events.ingest'];
   };
-  "/api/v1/event_types/": {
-    get: operations["eventTypes.list"];
-    post: operations["eventTypes.create"];
+  '/api/v1/event_types/': {
+    get: operations['eventTypes.list'];
+    post: operations['eventTypes.create'];
   };
-  "/api/v1/event_types/{event_type_name}": {
-    get: operations["eventTypes.get"];
-    delete: operations["eventTypes.delete"];
+  '/api/v1/event_types/{event_type_name}': {
+    get: operations['eventTypes.get'];
+    delete: operations['eventTypes.delete'];
   };
-  "/api/v1/events/": {
-    get: operations["events.list"];
+  '/api/v1/events/': {
+    get: operations['events.list'];
   };
-  "/api/v1/events/{event_id}": {
-    get: operations["events.get"];
+  '/api/v1/events/{event_id}': {
+    get: operations['events.get'];
   };
-  "/api/v1/instance/": {
+  '/api/v1/instance/': {
     /** Get an object that shows how this instance is configured. */
-    get: operations["instance.get"];
+    get: operations['instance.get'];
   };
-  "/api/v1/organizations/": {
-    get: operations["organizations.list"];
+  '/api/v1/organizations/': {
+    get: operations['organizations.list'];
     /** Note that you will need to regenerate a JWT to be able to see/use the newly created organization. */
-    post: operations["organizations.create"];
+    post: operations['organizations.create'];
   };
-  "/api/v1/organizations/{organization_id}/": {
-    get: operations["organizations.get"];
+  '/api/v1/organizations/{organization_id}/': {
+    get: operations['organizations.get'];
     /** Note that you will need to regenerate a JWT to be able to see the updated name of the organization. */
-    put: operations["organizations.edit"];
+    put: operations['organizations.edit'];
     /** Note that you will need to regenerate a JWT to be able to make the deleted organization go away. */
-    delete: operations["organizations.delete"];
+    delete: operations['organizations.delete'];
   };
-  "/api/v1/organizations/{organization_id}/invite": {
-    put: operations["organizations.invite"];
-    delete: operations["organizations.revoke"];
+  '/api/v1/organizations/{organization_id}/invite': {
+    put: operations['organizations.invite'];
+    delete: operations['organizations.revoke'];
   };
-  "/api/v1/payload_content_types/": {
+  '/api/v1/payload_content_types/': {
     /** List of every possible content types that can be used in event payloads. */
-    get: operations["payload_content_types.list"];
+    get: operations['payload_content_types.list'];
   };
-  "/api/v1/register/": {
-    post: operations["register"];
+  '/api/v1/register/': {
+    post: operations['register'];
   };
-  "/api/v1/request_attempts/": {
-    get: operations["requestAttempts.read"];
+  '/api/v1/request_attempts/': {
+    get: operations['requestAttempts.read'];
   };
-  "/api/v1/responses/{response_id}": {
+  '/api/v1/responses/{response_id}': {
     /** A response is produced when a request attempt is processed */
-    get: operations["response.get"];
+    get: operations['response.get'];
   };
-  "/api/v1/subscriptions/": {
+  '/api/v1/subscriptions/': {
     /** List all subscriptions created by customers against the application events */
-    get: operations["subscriptions.list"];
+    get: operations['subscriptions.list'];
     /** A subscription let your customers subscribe to events. Events will be sent through the defined medium inside the subscription (e.g. HTTP POST request) as a webhook. */
-    post: operations["subscriptions.create"];
+    post: operations['subscriptions.create'];
   };
-  "/api/v1/subscriptions/{subscription_id}": {
-    get: operations["subscriptions.get"];
-    put: operations["subscriptions.update"];
-    delete: operations["subscriptions.delete"];
+  '/api/v1/subscriptions/{subscription_id}': {
+    get: operations['subscriptions.get'];
+    put: operations['subscriptions.update'];
+    delete: operations['subscriptions.delete'];
   };
 }
 
@@ -312,7 +312,7 @@ export interface components {
 }
 
 export interface operations {
-  "applicationSecrets.read": {
+  'applicationSecrets.read': {
     parameters: {
       query: {
         application_id: string;
@@ -322,7 +322,7 @@ export interface operations {
       /** OK */
       200: {
         content: {
-          "application/json": components["schemas"]["ApplicationSecret"][];
+          'application/json': components['schemas']['ApplicationSecret'][];
         };
       };
       /** Bad Request */
@@ -337,12 +337,12 @@ export interface operations {
       500: unknown;
     };
   };
-  "applicationSecrets.create": {
+  'applicationSecrets.create': {
     responses: {
       /** Created */
       201: {
         content: {
-          "application/json": components["schemas"]["ApplicationSecret"];
+          'application/json': components['schemas']['ApplicationSecret'];
         };
       };
       /** Bad Request */
@@ -358,11 +358,11 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["ApplicationSecretPost"];
+        'application/json': components['schemas']['ApplicationSecretPost'];
       };
     };
   };
-  "applicationSecrets.update": {
+  'applicationSecrets.update': {
     parameters: {
       path: {
         application_secret_token: string;
@@ -372,7 +372,7 @@ export interface operations {
       /** OK */
       200: {
         content: {
-          "application/json": components["schemas"]["ApplicationSecret"];
+          'application/json': components['schemas']['ApplicationSecret'];
         };
       };
       /** Bad Request */
@@ -388,11 +388,11 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["ApplicationSecretPost"];
+        'application/json': components['schemas']['ApplicationSecretPost'];
       };
     };
   };
-  "applicationSecrets.delete": {
+  'applicationSecrets.delete': {
     parameters: {
       path: {
         application_secret_token: string;
@@ -416,7 +416,7 @@ export interface operations {
       500: unknown;
     };
   };
-  "applications.list": {
+  'applications.list': {
     parameters: {
       query: {
         organization_id: string;
@@ -426,7 +426,7 @@ export interface operations {
       /** OK */
       200: {
         content: {
-          "application/json": components["schemas"]["Application"][];
+          'application/json': components['schemas']['Application'][];
         };
       };
       /** Bad Request */
@@ -442,12 +442,12 @@ export interface operations {
     };
   };
   /** An application emit events that are consumed by customers through webhooks */
-  "applications.create": {
+  'applications.create': {
     responses: {
       /** Created */
       201: {
         content: {
-          "application/json": components["schemas"]["Application"];
+          'application/json': components['schemas']['Application'];
         };
       };
       /** Bad Request */
@@ -463,12 +463,12 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["ApplicationPost"];
+        'application/json': components['schemas']['ApplicationPost'];
       };
     };
   };
   /** An application emit events that are consumed by customers through webhooks */
-  "applications.get": {
+  'applications.get': {
     parameters: {
       path: {
         application_id: string;
@@ -478,7 +478,7 @@ export interface operations {
       /** OK */
       200: {
         content: {
-          "application/json": components["schemas"]["Application"];
+          'application/json': components['schemas']['Application'];
         };
       };
       /** Bad Request */
@@ -494,7 +494,7 @@ export interface operations {
     };
   };
   /** Change the name of an application */
-  "applications.update": {
+  'applications.update': {
     parameters: {
       path: {
         application_id: string;
@@ -504,7 +504,7 @@ export interface operations {
       /** OK */
       200: {
         content: {
-          "application/json": components["schemas"]["Application"];
+          'application/json': components['schemas']['Application'];
         };
       };
       /** Bad Request */
@@ -520,12 +520,12 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["ApplicationPost"];
+        'application/json': components['schemas']['ApplicationPost'];
       };
     };
   };
   /** Delete an application, further events won't be sent, active webhook subscriptions will also be deleted. */
-  "applications.delete": {
+  'applications.delete': {
     parameters: {
       path: {
         application_id: string;
@@ -547,12 +547,12 @@ export interface operations {
     };
   };
   /** List of every possible errors that Hook0 can return. Each error is in RFC7807 problem format. */
-  "errors.list": {
+  'errors.list': {
     responses: {
       /** OK */
       200: {
         content: {
-          "application/json": components["schemas"]["Problem"][];
+          'application/json': components['schemas']['Problem'][];
         };
       };
       /** Bad Request */
@@ -567,12 +567,12 @@ export interface operations {
       500: unknown;
     };
   };
-  "events.ingest": {
+  'events.ingest': {
     responses: {
       /** Created */
       201: {
         content: {
-          "application/json": components["schemas"]["IngestedEvent"];
+          'application/json': components['schemas']['IngestedEvent'];
         };
       };
       /** Bad Request */
@@ -588,11 +588,11 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["EventPost"];
+        'application/json': components['schemas']['EventPost'];
       };
     };
   };
-  "eventTypes.list": {
+  'eventTypes.list': {
     parameters: {
       query: {
         application_id: string;
@@ -602,7 +602,7 @@ export interface operations {
       /** OK */
       200: {
         content: {
-          "application/json": components["schemas"]["EventType"][];
+          'application/json': components['schemas']['EventType'][];
         };
       };
       /** Bad Request */
@@ -617,12 +617,12 @@ export interface operations {
       500: unknown;
     };
   };
-  "eventTypes.create": {
+  'eventTypes.create': {
     responses: {
       /** Created */
       201: {
         content: {
-          "application/json": components["schemas"]["EventType"];
+          'application/json': components['schemas']['EventType'];
         };
       };
       /** Bad Request */
@@ -638,11 +638,11 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["EventTypePost"];
+        'application/json': components['schemas']['EventTypePost'];
       };
     };
   };
-  "eventTypes.get": {
+  'eventTypes.get': {
     parameters: {
       path: {
         event_type_name: string;
@@ -655,7 +655,7 @@ export interface operations {
       /** OK */
       200: {
         content: {
-          "application/json": components["schemas"]["EventType"];
+          'application/json': components['schemas']['EventType'];
         };
       };
       /** Bad Request */
@@ -670,7 +670,7 @@ export interface operations {
       500: unknown;
     };
   };
-  "eventTypes.delete": {
+  'eventTypes.delete': {
     parameters: {
       path: {
         event_type_name: string;
@@ -694,7 +694,7 @@ export interface operations {
       500: unknown;
     };
   };
-  "events.list": {
+  'events.list': {
     parameters: {
       query: {
         application_id: string;
@@ -704,7 +704,7 @@ export interface operations {
       /** OK */
       200: {
         content: {
-          "application/json": components["schemas"]["Event"][];
+          'application/json': components['schemas']['Event'][];
         };
       };
       /** Bad Request */
@@ -719,7 +719,7 @@ export interface operations {
       500: unknown;
     };
   };
-  "events.get": {
+  'events.get': {
     parameters: {
       path: {
         event_id: string;
@@ -732,7 +732,7 @@ export interface operations {
       /** OK */
       200: {
         content: {
-          "application/json": components["schemas"]["EventWithPayload"];
+          'application/json': components['schemas']['EventWithPayload'];
         };
       };
       /** Bad Request */
@@ -748,12 +748,12 @@ export interface operations {
     };
   };
   /** Get an object that shows how this instance is configured. */
-  "instance.get": {
+  'instance.get': {
     responses: {
       /** OK */
       200: {
         content: {
-          "application/json": components["schemas"]["InstanceConfig"];
+          'application/json': components['schemas']['InstanceConfig'];
         };
       };
       /** Bad Request */
@@ -768,12 +768,12 @@ export interface operations {
       500: unknown;
     };
   };
-  "organizations.list": {
+  'organizations.list': {
     responses: {
       /** OK */
       200: {
         content: {
-          "application/json": components["schemas"]["Organization"][];
+          'application/json': components['schemas']['Organization'][];
         };
       };
       /** Bad Request */
@@ -789,12 +789,12 @@ export interface operations {
     };
   };
   /** Note that you will need to regenerate a JWT to be able to see/use the newly created organization. */
-  "organizations.create": {
+  'organizations.create': {
     responses: {
       /** OK */
       200: {
         content: {
-          "application/json": components["schemas"]["OrganizationInfo"];
+          'application/json': components['schemas']['OrganizationInfo'];
         };
       };
       /** Bad Request */
@@ -810,11 +810,11 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["OrganizationPost"];
+        'application/json': components['schemas']['OrganizationPost'];
       };
     };
   };
-  "organizations.get": {
+  'organizations.get': {
     parameters: {
       path: {
         organization_id: string;
@@ -824,7 +824,7 @@ export interface operations {
       /** OK */
       200: {
         content: {
-          "application/json": components["schemas"]["OrganizationInfo"];
+          'application/json': components['schemas']['OrganizationInfo'];
         };
       };
       /** Bad Request */
@@ -840,7 +840,7 @@ export interface operations {
     };
   };
   /** Note that you will need to regenerate a JWT to be able to see the updated name of the organization. */
-  "organizations.edit": {
+  'organizations.edit': {
     parameters: {
       path: {
         organization_id: string;
@@ -850,7 +850,7 @@ export interface operations {
       /** OK */
       200: {
         content: {
-          "application/json": components["schemas"]["OrganizationInfo"];
+          'application/json': components['schemas']['OrganizationInfo'];
         };
       };
       /** Bad Request */
@@ -866,12 +866,12 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["OrganizationPost"];
+        'application/json': components['schemas']['OrganizationPost'];
       };
     };
   };
   /** Note that you will need to regenerate a JWT to be able to make the deleted organization go away. */
-  "organizations.delete": {
+  'organizations.delete': {
     parameters: {
       path: {
         organization_id: string;
@@ -892,7 +892,7 @@ export interface operations {
       500: unknown;
     };
   };
-  "organizations.invite": {
+  'organizations.invite': {
     parameters: {
       path: {
         organization_id: string;
@@ -902,7 +902,7 @@ export interface operations {
       /** OK */
       200: {
         content: {
-          "application/json": components["schemas"]["UserInvitation"];
+          'application/json': components['schemas']['UserInvitation'];
         };
       };
       /** Bad Request */
@@ -918,11 +918,11 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["UserInvitation"];
+        'application/json': components['schemas']['UserInvitation'];
       };
     };
   };
-  "organizations.revoke": {
+  'organizations.revoke': {
     parameters: {
       path: {
         organization_id: string;
@@ -932,7 +932,7 @@ export interface operations {
       /** OK */
       200: {
         content: {
-          "application/json": components["schemas"]["Revoke"];
+          'application/json': components['schemas']['Revoke'];
         };
       };
       /** Bad Request */
@@ -948,17 +948,17 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["Revoke"];
+        'application/json': components['schemas']['Revoke'];
       };
     };
   };
   /** List of every possible content types that can be used in event payloads. */
-  "payload_content_types.list": {
+  'payload_content_types.list': {
     responses: {
       /** OK */
       200: {
         content: {
-          "application/json": string[];
+          'application/json': string[];
         };
       };
       /** Bad Request */
@@ -978,7 +978,7 @@ export interface operations {
       /** Created */
       201: {
         content: {
-          "application/json": components["schemas"]["Registration"];
+          'application/json': components['schemas']['Registration'];
         };
       };
       /** Bad Request */
@@ -994,11 +994,11 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["RegistrationPost"];
+        'application/json': components['schemas']['RegistrationPost'];
       };
     };
   };
-  "requestAttempts.read": {
+  'requestAttempts.read': {
     parameters: {
       query: {
         application_id: string;
@@ -1010,7 +1010,7 @@ export interface operations {
       /** OK */
       200: {
         content: {
-          "application/json": components["schemas"]["RequestAttempt"][];
+          'application/json': components['schemas']['RequestAttempt'][];
         };
       };
       /** Bad Request */
@@ -1026,7 +1026,7 @@ export interface operations {
     };
   };
   /** A response is produced when a request attempt is processed */
-  "response.get": {
+  'response.get': {
     parameters: {
       query: {
         application_id: string;
@@ -1039,7 +1039,7 @@ export interface operations {
       /** OK */
       200: {
         content: {
-          "application/json": components["schemas"]["Response"];
+          'application/json': components['schemas']['Response'];
         };
       };
       /** Bad Request */
@@ -1055,7 +1055,7 @@ export interface operations {
     };
   };
   /** List all subscriptions created by customers against the application events */
-  "subscriptions.list": {
+  'subscriptions.list': {
     parameters: {
       query: {
         application_id: string;
@@ -1065,7 +1065,7 @@ export interface operations {
       /** OK */
       200: {
         content: {
-          "application/json": components["schemas"]["Subscription"][];
+          'application/json': components['schemas']['Subscription'][];
         };
       };
       /** Bad Request */
@@ -1081,12 +1081,12 @@ export interface operations {
     };
   };
   /** A subscription let your customers subscribe to events. Events will be sent through the defined medium inside the subscription (e.g. HTTP POST request) as a webhook. */
-  "subscriptions.create": {
+  'subscriptions.create': {
     responses: {
       /** Created */
       201: {
         content: {
-          "application/json": components["schemas"]["Subscription"];
+          'application/json': components['schemas']['Subscription'];
         };
       };
       /** Bad Request */
@@ -1102,11 +1102,11 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["SubscriptionPost"];
+        'application/json': components['schemas']['SubscriptionPost'];
       };
     };
   };
-  "subscriptions.get": {
+  'subscriptions.get': {
     parameters: {
       path: {
         subscription_id: string;
@@ -1116,7 +1116,7 @@ export interface operations {
       /** OK */
       200: {
         content: {
-          "application/json": components["schemas"]["Subscription"];
+          'application/json': components['schemas']['Subscription'];
         };
       };
       /** Bad Request */
@@ -1131,7 +1131,7 @@ export interface operations {
       500: unknown;
     };
   };
-  "subscriptions.update": {
+  'subscriptions.update': {
     parameters: {
       path: {
         subscription_id: string;
@@ -1141,7 +1141,7 @@ export interface operations {
       /** OK */
       200: {
         content: {
-          "application/json": components["schemas"]["Subscription"];
+          'application/json': components['schemas']['Subscription'];
         };
       };
       /** Bad Request */
@@ -1157,11 +1157,11 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["SubscriptionPost"];
+        'application/json': components['schemas']['SubscriptionPost'];
       };
     };
   };
-  "subscriptions.delete": {
+  'subscriptions.delete': {
     parameters: {
       path: {
         subscription_id: string;

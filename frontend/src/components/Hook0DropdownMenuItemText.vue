@@ -5,14 +5,13 @@
 </template>
 
 <script lang="ts">
-import {Options, Vue} from "vue-class-component";
+import { Options, Vue } from 'vue-class-component';
 
 @Options({
   components: {},
   props: {},
 })
-export default class Hook0DropdownMenuItemText extends Vue {
-}
+export default class Hook0DropdownMenuItemText extends Vue {}
 </script>
 
 <style lang="scss" scoped></style>

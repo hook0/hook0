@@ -15,7 +15,11 @@
     </div>
     <div>
       <nav class="hook0-pagination-pages" aria-label="Pagination">
-        <hook0-button class="white left" :disabled="pageCurrent === 1" @click="$emit('change', pageCurrent - 1)">
+        <hook0-button
+          class="white left"
+          :disabled="pageCurrent === 1"
+          @click="$emit('change', pageCurrent - 1)"
+        >
           <span class="sr-only">{{ $t('pagination.previous') }}</span>
           <hook0-icon name="chevron-left"></hook0-icon>
         </hook0-button>

@@ -1,7 +1,7 @@
 <template>
   <a
     class="hook0-button"
-    :class="{ loading: loading, 'hook0-button-split': hasSlot('right') || hasSlot('left')}"
+    :class="{ loading: loading, 'hook0-button-split': hasSlot('right') || hasSlot('left') }"
     v-bind="omit({ ...$props, ...$attrs })"
     @click="onClick($event)"
     :disabled="loading || disabled"
@@ -21,16 +21,15 @@
 </template>
 
 <script lang="ts">
-
 import Hook0Icon from '@/components/Hook0Icon.vue';
-import {RouteLocationRaw} from "vue-router";
-import {defineComponent, PropType} from 'vue'
-import {VueWithProps} from "vue-class-component";
-import {omit} from "ramda";
+import { RouteLocationRaw } from 'vue-router';
+import { defineComponent, PropType } from 'vue';
+import { VueWithProps } from 'vue-class-component';
+import { omit } from 'ramda';
 
 export default defineComponent({
   components: {
-    Hook0Icon
+    Hook0Icon,
   },
   // type inference enabled
   props: {
@@ -64,10 +63,9 @@ export default defineComponent({
       }
 
       // @ts-ignore
-      const {href} = this.$router.resolve(this.to);
+      const { href } = this.$router.resolve(this.to);
       return href; // for accessibility
-    }
-
+    },
   },
   methods: {
     omit(props: Record<string, any>) {
@@ -103,9 +101,9 @@ export default defineComponent({
     },
     hasSlot(name = 'default'): boolean {
       return !!this.$slots[name];
-    }
-  }
-})
+    },
+  },
+});
 </script>
 
 <style lang="scss" scoped>

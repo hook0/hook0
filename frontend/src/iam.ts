@@ -1,4 +1,4 @@
-import {Plugin} from 'vue';
+import { Plugin } from 'vue';
 import Keycloak from 'keycloak-js';
 
 const keycloak = Keycloak({
@@ -11,7 +11,6 @@ keycloak.onTokenExpired = () => {
   void onTokenExpired();
 };
 
-
 export function onTokenExpired() {
   return keycloak.updateToken(3600).catch(async (_err) => {
     console.error(_err);
@@ -23,14 +22,13 @@ const auth$ = keycloak.init({
   onLoad: 'login-required',
   redirectUri: window.location.href,
   enableLogging: process.env.NODE_ENV !== 'production',
-  checkLoginIframe: false
+  checkLoginIframe: false,
 });
-
 
 export const KeycloakPlugin: Plugin = {
   install: (app, _options) => {
     app.config.globalProperties.$keycloak = keycloak;
-  }
+  },
 };
 
 declare module '@vue/runtime-core' {

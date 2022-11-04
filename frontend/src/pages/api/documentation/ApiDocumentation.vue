@@ -1,36 +1,30 @@
 <template>
   <hook0-card>
     <hook0-card-header>
-      <template #header>
-        Hook0 API Documentation
-      </template>
-      <template #subtitle>
-        Automate everything!
-      </template>
-
+      <template #header> Hook0 API Documentation </template>
+      <template #subtitle> Automate everything! </template>
     </hook0-card-header>
     <hook0-card-content>
       <div ref="container">
         <!-- swagger ui documentation -->
       </div>
     </hook0-card-content>
-    <hook0-card-footer>
-    </hook0-card-footer>
+    <hook0-card-footer> </hook0-card-footer>
   </hook0-card>
 </template>
 
 <script lang="ts">
 import SwaggerUI from 'swagger-ui';
-import "swagger-ui/dist/swagger-ui.css";
+import 'swagger-ui/dist/swagger-ui.css';
 
-import {Options, Vue} from 'vue-class-component';
-import Hook0Card from "@/components/Hook0Card.vue";
-import Hook0CardHeader from "@/components/Hook0CardHeader.vue";
-import Hook0CardFooter from "@/components/Hook0CardFooter.vue";
-import Hook0CardContent from "@/components/Hook0CardContent.vue";
-import Hook0CardContentLine from "@/components/Hook0CardContentLine.vue";
-import featureFlags from "@/feature-flags";
-import iam from "@/iam";
+import { Options, Vue } from 'vue-class-component';
+import Hook0Card from '@/components/Hook0Card.vue';
+import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
+import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
+import Hook0CardContent from '@/components/Hook0CardContent.vue';
+import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
+import featureFlags from '@/feature-flags';
+import iam from '@/iam';
 
 @Options({
   components: {
@@ -38,18 +32,18 @@ import iam from "@/iam";
     Hook0CardContent,
     Hook0CardFooter,
     Hook0CardHeader,
-    Hook0Card
+    Hook0Card,
   },
 })
 export default class ApiDocumentation extends Vue {
   private swaggerUI!: SwaggerUI;
 
   declare $refs: {
-    container: HTMLDivElement
-  }
+    container: HTMLDivElement;
+  };
 
   data() {
-    return {}
+    return {};
   }
 
   _load() {
@@ -57,10 +51,11 @@ export default class ApiDocumentation extends Vue {
     const organization_id = this.$route.params.organization_id;
 
     this.swaggerUI = SwaggerUI({
-      url: featureFlags.getOrElse('API_ENDPOINT', process.env.VUE_APP_API_ENDPOINT) + "/swagger.json",
+      url:
+        featureFlags.getOrElse('API_ENDPOINT', process.env.VUE_APP_API_ENDPOINT) + '/swagger.json',
       domNode: this.$refs.container,
 
-      docExpansion: "list",
+      docExpansion: 'list',
 
       showExtensions: true,
       showCommonExtensions: true,
@@ -79,7 +74,7 @@ export default class ApiDocumentation extends Vue {
         return order.indexOf(tag1) - order.indexOf(tag2);
       },
 
-      operationsSorter: "alpha",
+      operationsSorter: 'alpha',
 
       displayOperationId: true,
 
@@ -114,8 +109,8 @@ export default class ApiDocumentation extends Vue {
 
       onComplete: () => {
         console.log('Swagger UI launched');
-      }
-    })
+      },
+    });
   }
 
   updated() {
@@ -125,8 +120,7 @@ export default class ApiDocumentation extends Vue {
   mounted() {
     this._load();
   }
-};
-
+}
 </script>
 
 <style scoped>
