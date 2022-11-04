@@ -89,6 +89,8 @@ pub async fn work(attempt: &RequestAttempt) -> Response {
     let hs = attempt.headers();
     let event_id = HeaderValue::from_str(attempt.event__id.to_string().as_str())
         .expect("Could not create a header value from the event ID UUID");
+    let et = HeaderValue::from_str(&attempt.event_type__name)
+        .expect("Could not create a header value from the event type");
     let content_type = HeaderValue::from_str(attempt.payload_content_type.as_str())
         .expect("Could not create a header value from the event content type");
     let sig = Signature::new(&attempt.secret.to_string(), &attempt.payload, Utc::now())
@@ -97,8 +99,9 @@ pub async fn work(attempt: &RequestAttempt) -> Response {
 
     match (m, u, c, hs) {
         (Ok(method), Ok(url), Ok(client), Ok(mut headers)) => {
-            headers.insert("X-Event-Id", event_id);
             headers.insert("Content-Type", content_type);
+            headers.insert("X-Event-Id", event_id);
+            headers.insert("X-Event-Type", et);
             headers.insert("X-Hook0-Signature", sig);
 
             debug!("Calling webhook...");
