@@ -1,20 +1,20 @@
 <template>
   <a
     class="hook0-button"
-    :class="{ loading: loading, 'hook0-button-split': hasSlot('right') || hasSlot('left') }"
+    :class="{ loading: loadingStatus, 'hook0-button-split': hasSlot('right') || hasSlot('left') }"
     v-bind="omit({ ...$props, ...$attrs })"
     @click="onClick($event)"
-    :disabled="loading || disabled"
+    :disabled="loadingStatus || disabled"
     :href="_href"
   >
-    <div class="hook0-button-left" v-if="hasSlot('left') && !loading">
+    <div class="hook0-button-left" v-if="hasSlot('left') && !loadingStatus">
       <slot name="left"></slot>
     </div>
     <div class="hook0-button-center">
-      <slot v-if="!loading"></slot>
+      <slot v-if="!loadingStatus"></slot>
     </div>
-    <div class="hook0-button-right" v-if="hasSlot('right') || loading">
-      <hook0-icon name="spinner" spin class="animate-spin" v-if="loading"></hook0-icon>
+    <div class="hook0-button-right" v-if="hasSlot('right') || loadingStatus">
+      <hook0-icon name="spinner" spin class="animate-spin" v-if="loadingStatus"></hook0-icon>
       <slot name="right"></slot>
     </div>
   </a>
@@ -33,10 +33,12 @@ export default defineComponent({
   },
   // type inference enabled
   props: {
+    // Loading as a boolean
     loading: {
-      type: Boolean,
       default: false,
+      validator: (value: any) => value instanceof Promise || typeof value === 'boolean',
     },
+
     // helper to let the button go to a specified route
     to: {
       type: Object as PropType<RouteLocationRaw>,
@@ -51,6 +53,11 @@ export default defineComponent({
       default: false,
       required: false,
     },
+  },
+  data() {
+    return {
+      loadingStatus: false,
+    };
   },
   computed: {
     _href(): undefined | string {
@@ -67,7 +74,32 @@ export default defineComponent({
       return href; // for accessibility
     },
   },
+  mounted() {
+    this._forwardPromiseState();
+  },
+  updated() {
+    this._forwardPromiseState();
+  },
   methods: {
+    _forwardPromiseState() {
+      if (!((this.loading as any) instanceof Promise)) {
+        this.loadingStatus = this.loading;
+        return;
+      }
+
+      const setStatus = (state: boolean) => () => {
+        if (!((this.loading as any) instanceof Promise)) {
+          return;
+        }
+
+        this.loadingStatus = state;
+      };
+
+      setStatus(true)();
+      // @ts-ignore
+      // eslint-disable-next-line
+      this.loading.finally(setStatus(false));
+    },
     omit(props: Record<string, any>) {
       return omit(['onClick'], props);
     },

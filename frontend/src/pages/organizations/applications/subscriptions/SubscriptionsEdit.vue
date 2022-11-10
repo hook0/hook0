@@ -177,8 +177,9 @@ import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0Select from '@/components/Hook0Select.vue';
 import Hook0KeyValue from '@/components/Hook0KeyValue.vue';
 import { Hook0SelectSingleOption } from '@/components/Hook0Select';
-import { KeyValuePair } from 'ramda';
+import { head, KeyValuePair } from 'ramda';
 import { Hook0KeyValueKeyValuePair } from '@/components/Hook0KeyValue';
+import { intersectWith } from '@/utils/fp';
 
 interface SelectableEventType extends EventType {
   selected: boolean;
@@ -198,6 +199,22 @@ function EventTypeFromSelectableEventType(selectableEventTypes: SelectableEventT
     resource_type_name: selectableEventTypes.resource_type_name,
     service_name: selectableEventTypes.service_name,
     verb_name: selectableEventTypes.verb_name,
+  };
+}
+
+function SelectedEventTypesFromEventTypeNames(eventTypeNames: string[]): SelectableEventType[] {
+  return eventTypeNames.map((eventTypeName) => SelectableEventTypeFromEventTypeName(eventTypeName));
+}
+
+function SelectableEventTypeFromEventTypeName(eventTypeName: string): SelectableEventType {
+  const [resource_type_name, service_name, verb_name] = eventTypeName.split('.');
+
+  return {
+    event_type_name: eventTypeName,
+    resource_type_name,
+    service_name,
+    verb_name,
+    selected: true,
   };
 }
 
@@ -230,7 +247,7 @@ export default class SubscriptionsEdit extends Vue {
 
   routes = routes;
 
-  public eventTypes: Array<SelectableEventType> | null = null;
+  public eventTypes: Array<SelectableEventType> = [];
 
   httpTarget = {
     METHODS: 'GET,PATCH,POST,PUT,DELETE,OPTIONS,HEAD'.split(',').map(toOption),
@@ -272,20 +289,29 @@ export default class SubscriptionsEdit extends Vue {
 
   _load() {
     this.alert.visible = false;
-    this.eventTypes = null;
+    this.eventTypes = [];
+
+    function mapper(eventType: EventType): SelectableEventType {
+      return {
+        ...eventType,
+        selected: false,
+      };
+    }
 
     if (this.subscription_id !== this.$route.params.subscription_id) {
       this.subscription_id = this.$route.params.subscription_id as UUID;
       this.isNew = !this.subscription_id;
 
-      if (!this.isNew) {
-        SubscriptionService.get(this.subscription_id)
-          .then((subscription: Subscription) => {
-            // We do the mapping bellow (instead of a single-line assignement) to stay in control of what we manage
+      // first load the subscription if in edit mode
+      (!this.isNew
+        ? SubscriptionService.get(this.subscription_id).then((subscription: Subscription) => {
+            // We do the mapping bellow (instead of a single-line assignment) to stay in control of what we manage
             this.subscription.secret = subscription.secret;
             this.subscription.created_at = subscription.created_at;
             this.subscription.description = subscription.description || '';
+
             this.subscription.event_types = subscription.event_types;
+
             this.subscription.is_enabled = subscription.is_enabled;
             this.subscription.label_key = subscription.label_key;
             this.subscription.label_value = subscription.label_value;
@@ -297,20 +323,30 @@ export default class SubscriptionsEdit extends Vue {
               (subscription.target as unknown as Target).headers
             );
           })
-          .catch(this.displayError.bind(this));
-      }
-    }
+        : Promise.resolve()
+      )
+        // then (always) load the eventTypes
+        .then(() => EventTypeService.list(this.$route.params.application_id as string))
+        .then((eventTypes) => {
+          // apply selection if any event_types were already selected (edit mode)
+          // this will display previously selected event type names that are not available anymore
+          this.eventTypes = intersectWith<SelectableEventType, SelectableEventType, string>(
+            (a) => a.event_type_name,
 
-    function mapper(eventType: EventType): SelectableEventType {
-      return {
-        ...eventType,
-        selected: false,
-      };
-    }
+            // depending on the user event type selection, for a single event type we might have one or more events
+            (selectableType: SelectableEventType[]) => {
+              return {
+                ...(head(selectableType) as SelectableEventType),
+                selected: selectableType.some((type) => type.selected),
+              };
+            },
 
-    EventTypeService.list(this.$route.params.application_id as string).then((eventTypes) => {
-      this.eventTypes = eventTypes.map(mapper);
-    }, this.displayError.bind(this));
+            eventTypes.map(mapper),
+            SelectedEventTypesFromEventTypeNames(this.subscription.event_types)
+          );
+        })
+        .catch(this.displayError.bind(this));
+    }
   }
 
   cancel2() {
@@ -351,7 +387,7 @@ export default class SubscriptionsEdit extends Vue {
         label_value: this.subscription.label_value,
         label_key: this.subscription.label_key,
         is_enabled: this.subscription.is_enabled,
-        event_types: EventTypeNamesFromSelectedEventTypes(this.eventTypes as SelectableEventType[]),
+        event_types: EventTypeNamesFromSelectedEventTypes(this.eventTypes),
       }).then((_resp: any) => {
         this.cancel2();
       }, this.displayError.bind(this));
@@ -371,7 +407,7 @@ export default class SubscriptionsEdit extends Vue {
       label_value: this.subscription.label_value,
       label_key: this.subscription.label_key,
       is_enabled: this.subscription.is_enabled,
-      event_types: EventTypeNamesFromSelectedEventTypes(this.eventTypes as SelectableEventType[]),
+      event_types: EventTypeNamesFromSelectedEventTypes(this.eventTypes),
       application_id: this.$route.params.application_id as string,
     }).then((_resp: any) => {
       this.cancel2();
