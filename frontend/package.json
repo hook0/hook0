@@ -78,7 +78,7 @@
     "eslint-plugin-prettier-vue": "^4.2.0",
     "eslint-plugin-vue": "^9.7.0",
     "npm-release": "^1.0.0",
-    "openapi-typescript": "^5.4.0",
+    "openapi-typescript": "^6.0.2",
     "postcss": "^8.4.4",
     "prettier": "^2.5.1",
     "sass": "^1.32.6",
