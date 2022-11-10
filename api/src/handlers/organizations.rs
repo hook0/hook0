@@ -18,6 +18,7 @@ use crate::hook0_client::{
 };
 use crate::iam::{AuthProof, Role, GROUP_SEP, ORGA_GROUP_PREFIX};
 use crate::keycloak_api::{Group, KeycloakApi};
+use crate::onboarding::{new_organization_onboarding, organization_onboarding, OnboardingStep};
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -32,6 +33,7 @@ pub struct OrganizationInfo {
     pub organization_id: Uuid,
     pub name: String,
     pub users: Vec<OrganizationUser>,
+    pub onboarding: Vec<OnboardingStep>,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -161,6 +163,7 @@ pub async fn create(
                 last_name: user.last_name.unwrap_or_default(),
                 role: Role::Editor,
             }],
+            onboarding: new_organization_onboarding(),
         }))
     } else {
         Err(Hook0Problem::Forbidden)
@@ -323,10 +326,13 @@ pub async fn get(
             }
             let org_users = users.into_values().map(|u| u.into()).collect::<Vec<_>>();
 
+            let onboarding = organization_onboarding(&state.db, &organization_id).await?;
+
             Ok(Json(OrganizationInfo {
                 organization_id,
                 name,
                 users: org_users,
+                onboarding,
             }))
         }
         None => Err(Hook0Problem::NotFound),

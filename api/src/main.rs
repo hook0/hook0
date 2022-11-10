@@ -24,6 +24,7 @@ mod iam;
 mod keycloak_api;
 mod middleware_application_secret;
 mod middleware_get_user_ip;
+mod onboarding;
 mod problems;
 mod rate_limiting;
 mod validators;

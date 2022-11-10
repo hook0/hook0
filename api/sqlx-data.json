@@ -235,6 +235,44 @@
     },
     "query": "SELECT application__id AS application_id, organization__id AS organization_id, name FROM event.application WHERE organization__id = $1"
   },
+  "1675d587193877bf62f8a14a3a68895b9c6ae30b67344b721e79e187a379678d": {
+    "describe": {
+      "columns": [
+        {
+          "name": "event_type!",
+          "ordinal": 0,
+          "type_info": "Bool"
+        },
+        {
+          "name": "sub!",
+          "ordinal": 1,
+          "type_info": "Bool"
+        },
+        {
+          "name": "app_secret!",
+          "ordinal": 2,
+          "type_info": "Bool"
+        },
+        {
+          "name": "event!",
+          "ordinal": 3,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        null,
+        null,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "UuidArray"
+        ]
+      }
+    },
+    "query": "\n                    SELECT\n                        EXISTS(SELECT 1 FROM event.event_type WHERE application__id = ANY($1)) AS \"event_type!\",\n                        EXISTS(SELECT 1 FROM webhook.subscription WHERE application__id = ANY($1)) AS \"sub!\",\n                        EXISTS(SELECT 1 FROM event.application_secret WHERE application__id = ANY($1)) AS \"app_secret!\",\n                        EXISTS(SELECT 1 FROM event.event WHERE application__id = ANY($1)) AS \"event!\"\n                "
+  },
   "183a1dbd85659cca02698b6dc7654cda6c6942100b859cddab0d74667295fa20": {
     "describe": {
       "columns": [
@@ -765,6 +803,26 @@
       }
     },
     "query": "\n                    UPDATE webhook.subscription\n                    SET is_enabled = $1, description = $2, metadata = $3, label_key = $4, label_value = $5\n                    WHERE subscription__id = $6 AND application__id = $7 AND deleted_at IS NULL\n                    RETURNING subscription__id, is_enabled, description, secret, metadata, label_key, label_value, target__id, created_at\n                "
+  },
+  "60f16c59f954e1fdadd0c904929a8efb4e5a3925080ba0308dc8f8a07c391eab": {
+    "describe": {
+      "columns": [
+        {
+          "name": "application_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n            SELECT application__id AS application_id\n            FROM event.application\n            WHERE organization__id = $1\n        "
   },
   "66183b8a3c5f60aaf8512036662b6ec7832612299011e03e0800e318954afc3f": {
     "describe": {
