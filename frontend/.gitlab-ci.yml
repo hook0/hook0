@@ -9,6 +9,7 @@ frontend.build:
     - npm ci
     - npm run build
     - npm run lint
+    - npm run test:ci
   artifacts:
     name: "$CI_BUILD_NAME"
     paths:
