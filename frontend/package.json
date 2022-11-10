@@ -24,6 +24,9 @@
     "build": "vue-cli-service build",
     "dev": "vue-cli-service build --mode dev",
     "lint": "vue-cli-service lint",
+    "test": "jest --watchAll=false --maxWorkers=50%",
+    "test:watch": "jest --maxWorkers=25%",
+    "test:ci": "jest --runInBand --coverage --collectCoverage",
     "generate:types": "openapi-typescript http://localhost:8080/api/v1/swagger.json --output src/types.ts",
     "generate:types:prod": "openapi-typescript https://app.hook0.com/api/v1/swagger.json --output src/types.ts",
     "release:major": "npm-release major",
@@ -62,6 +65,7 @@
   },
   "devDependencies": {
     "@babel/eslint-parser": "^7.16.3",
+    "@types/jest": "^29.2.2",
     "@types/lodash.debounce": "^4.0.7",
     "@types/ramda": "^0.28.1",
     "@types/swagger-ui": "^3.47.0",
@@ -77,6 +81,7 @@
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-prettier-vue": "^4.2.0",
     "eslint-plugin-vue": "^9.7.0",
+    "jest": "^29.3.1",
     "npm-release": "^1.0.0",
     "openapi-typescript": "^6.0.2",
     "postcss": "^8.4.4",
@@ -84,6 +89,7 @@
     "sass": "^1.32.6",
     "sass-loader": "^13.1.0",
     "tailwindcss": "^3.2.1",
+    "ts-jest": "^29.0.3",
     "typescript": "~4.8.4",
     "vue-class-component": "^8.0.0-rc.1",
     "vue-property-decorator": "^9.1.2"
