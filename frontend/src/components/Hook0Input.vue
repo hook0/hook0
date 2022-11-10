@@ -1,6 +1,7 @@
 <template>
   <div :class="$attrs.class">
     <input
+      ref="ipt"
       v-bind="{ ...omit(['class'], $props), ...$attrs }"
       class="hook0-input"
       :value="$attrs.modelValue"
@@ -34,6 +35,22 @@ export default class Hook0Input extends Vue {
 
   hasSlot(name = 'default'): boolean {
     return !!this.$slots[name];
+  }
+
+  mounted() {
+    this._internalState();
+  }
+
+  updated() {
+    this._internalState();
+  }
+
+  _internalState() {
+    // checkbox needs special care
+    if (this.$attrs.type === 'checkbox' && typeof this.$attrs.value === 'boolean') {
+      // @ts-ignore
+      this.$refs.ipt.checked = this.$attrs.value;
+    }
   }
 
   omit = omit;
