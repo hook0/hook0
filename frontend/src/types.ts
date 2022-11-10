@@ -3,92 +3,161 @@
  * Do not make direct changes to the file.
  */
 
+/** Type helpers */
+type Without<T, U> = { [P in Exclude<keyof T, keyof U>]?: never };
+type XOR<T, U> = T | U extends object ? (Without<T, U> & U) | (Without<U, T> & T) : T | U;
+type OneOf<T extends any[]> = T extends [infer Only]
+  ? Only
+  : T extends [infer A, infer B, ...infer Rest]
+  ? OneOf<[XOR<A, B>, ...Rest]>
+  : never;
+
 export interface paths {
   '/api/v1/application_secrets/': {
+    /** List application secrets */
     get: operations['applicationSecrets.read'];
+    /** Create a new application secret */
     post: operations['applicationSecrets.create'];
   };
   '/api/v1/application_secrets/{application_secret_token}': {
+    /** Update an application secret */
     put: operations['applicationSecrets.update'];
+    /** Delete an application secret */
     delete: operations['applicationSecrets.delete'];
   };
   '/api/v1/applications/': {
+    /** List applications */
     get: operations['applications.list'];
-    /** An application emit events that are consumed by customers through webhooks */
+    /**
+     * Create a new application
+     * @description An application emit events that are consumed by customers through webhooks
+     */
     post: operations['applications.create'];
   };
   '/api/v1/applications/{application_id}': {
-    /** An application emit events that are consumed by customers through webhooks */
+    /**
+     * Get an application by its ID
+     * @description An application emit events that are consumed by customers through webhooks
+     */
     get: operations['applications.get'];
-    /** Change the name of an application */
+    /**
+     * Edit an application
+     * @description Change the name of an application
+     */
     put: operations['applications.update'];
-    /** Delete an application, further events won't be sent, active webhook subscriptions will also be deleted. */
+    /**
+     * Delete an application
+     * @description Delete an application, further events won't be sent, active webhook subscriptions will also be deleted.
+     */
     delete: operations['applications.delete'];
   };
   '/api/v1/errors/': {
-    /** List of every possible errors that Hook0 can return. Each error is in RFC7807 problem format. */
+    /**
+     * List errors
+     * @description List of every possible errors that Hook0 can return. Each error is in RFC7807 problem format.
+     */
     get: operations['errors.list'];
   };
   '/api/v1/event/': {
+    /** Ingest an event */
     post: operations['events.ingest'];
   };
   '/api/v1/event_types/': {
+    /** List event types */
     get: operations['eventTypes.list'];
+    /** Create a new event type */
     post: operations['eventTypes.create'];
   };
   '/api/v1/event_types/{event_type_name}': {
+    /** Get an event type by its name */
     get: operations['eventTypes.get'];
+    /** Delete an event type */
     delete: operations['eventTypes.delete'];
   };
   '/api/v1/events/': {
+    /** List latest events */
     get: operations['events.list'];
   };
   '/api/v1/events/{event_id}': {
+    /** Get an event */
     get: operations['events.get'];
   };
   '/api/v1/instance/': {
-    /** Get an object that shows how this instance is configured. */
+    /**
+     * Get instance configuration
+     * @description Get an object that shows how this instance is configured.
+     */
     get: operations['instance.get'];
   };
   '/api/v1/organizations/': {
+    /** List organizations */
     get: operations['organizations.list'];
-    /** Note that you will need to regenerate a JWT to be able to see/use the newly created organization. */
+    /**
+     * Create an organization
+     * @description Note that you will need to regenerate a JWT to be able to see/use the newly created organization.
+     */
     post: operations['organizations.create'];
   };
   '/api/v1/organizations/{organization_id}/': {
+    /** Get organization's info by its ID */
     get: operations['organizations.get'];
-    /** Note that you will need to regenerate a JWT to be able to see the updated name of the organization. */
+    /**
+     * Edit an organization
+     * @description Note that you will need to regenerate a JWT to be able to see the updated name of the organization.
+     */
     put: operations['organizations.edit'];
-    /** Note that you will need to regenerate a JWT to be able to make the deleted organization go away. */
+    /**
+     * Delete an organization
+     * @description Note that you will need to regenerate a JWT to be able to make the deleted organization go away.
+     */
     delete: operations['organizations.delete'];
   };
   '/api/v1/organizations/{organization_id}/invite': {
+    /** Invite a user to an organization */
     put: operations['organizations.invite'];
+    /** Revoke a user's access to an organization */
     delete: operations['organizations.revoke'];
   };
   '/api/v1/payload_content_types/': {
-    /** List of every possible content types that can be used in event payloads. */
+    /**
+     * List supported event payload content types
+     * @description List of every possible content types that can be used in event payloads.
+     */
     get: operations['payload_content_types.list'];
   };
   '/api/v1/register/': {
+    /** Create a new user account and a new organization */
     post: operations['register'];
   };
   '/api/v1/request_attempts/': {
+    /** List request attempts */
     get: operations['requestAttempts.read'];
   };
   '/api/v1/responses/{response_id}': {
-    /** A response is produced when a request attempt is processed */
+    /**
+     * Get a response by its ID
+     * @description A response is produced when a request attempt is processed
+     */
     get: operations['response.get'];
   };
   '/api/v1/subscriptions/': {
-    /** List all subscriptions created by customers against the application events */
+    /**
+     * List subscriptions
+     * @description List all subscriptions created by customers against the application events
+     */
     get: operations['subscriptions.list'];
-    /** A subscription let your customers subscribe to events. Events will be sent through the defined medium inside the subscription (e.g. HTTP POST request) as a webhook. */
+    /**
+     * Create a new subscription
+     * @description A subscription let your customers subscribe to events. Events will be sent through the defined medium inside the subscription (e.g. HTTP POST request) as a webhook.
+     */
     post: operations['subscriptions.create'];
   };
   '/api/v1/subscriptions/{subscription_id}': {
+    /** Get a subscription by its id */
     get: operations['subscriptions.get'];
+    /** Update a subscription */
     put: operations['subscriptions.update'];
+    /** Delete a subscription */
     delete: operations['subscriptions.delete'];
   };
 }
@@ -128,8 +197,8 @@ export interface components {
       event_id: string;
       event_type_name: string;
       ip: string;
-      labels: { [key: string]: unknown };
-      metadata?: { [key: string]: unknown };
+      labels: Record<string, never>;
+      metadata?: Record<string, never>;
       /** Format: date-time */
       occurred_at: string;
       payload_content_type: string;
@@ -142,8 +211,8 @@ export interface components {
       /** Format: uuid */
       event_id: string;
       event_type: string;
-      labels: { [key: string]: unknown };
-      metadata?: { [key: string]: unknown };
+      labels: Record<string, never>;
+      metadata?: Record<string, never>;
       /** Format: date-time */
       occurred_at: string;
       payload: string;
@@ -169,8 +238,8 @@ export interface components {
       event_id: string;
       event_type_name: string;
       ip: string;
-      labels: { [key: string]: unknown };
-      metadata?: { [key: string]: unknown };
+      labels: Record<string, never>;
+      metadata?: Record<string, never>;
       /** Format: date-time */
       occurred_at: string;
       payload: string;
@@ -265,7 +334,7 @@ export interface components {
       body?: string;
       /** Format: int32 */
       elapsed_time_ms?: number;
-      headers?: { [key: string]: unknown };
+      headers?: Record<string, never>;
       /** Format: int32 */
       http_code?: number;
       response_error_name?: string;
@@ -286,7 +355,7 @@ export interface components {
       is_enabled: boolean;
       label_key: string;
       label_value: string;
-      metadata: { [key: string]: unknown };
+      metadata: Record<string, never>;
       /** Format: uuid */
       secret: string;
       /** Format: uuid */
@@ -301,7 +370,7 @@ export interface components {
       is_enabled: boolean;
       label_key: string;
       label_value: string;
-      metadata?: { [key: string]: unknown };
+      metadata?: Record<string, never>;
       target: string;
     };
     UserInvitation: {
@@ -309,696 +378,751 @@ export interface components {
       role: string;
     };
   };
+  responses: never;
+  parameters: never;
+  requestBodies: never;
+  headers: never;
+  pathItems: never;
 }
+
+export type external = Record<string, never>;
 
 export interface operations {
   'applicationSecrets.read': {
+    /** List application secrets */
     parameters: {
       query: {
         application_id: string;
       };
     };
     responses: {
-      /** OK */
+      /** @description OK */
       200: {
         content: {
           'application/json': components['schemas']['ApplicationSecret'][];
         };
       };
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
     };
   };
   'applicationSecrets.create': {
+    /** Create a new application secret */
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ApplicationSecretPost'];
+      };
+    };
     responses: {
-      /** Created */
+      /** @description Created */
       201: {
         content: {
           'application/json': components['schemas']['ApplicationSecret'];
         };
       };
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
+    };
+  };
+  'applicationSecrets.update': {
+    /** Update an application secret */
+    parameters: {
+      path: {
+        application_secret_token: string;
+      };
     };
     requestBody: {
       content: {
         'application/json': components['schemas']['ApplicationSecretPost'];
       };
     };
-  };
-  'applicationSecrets.update': {
-    parameters: {
-      path: {
-        application_secret_token: string;
-      };
-    };
     responses: {
-      /** OK */
+      /** @description OK */
       200: {
         content: {
           'application/json': components['schemas']['ApplicationSecret'];
         };
       };
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ApplicationSecretPost'];
-      };
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
     };
   };
   'applicationSecrets.delete': {
+    /** Delete an application secret */
     parameters: {
-      path: {
-        application_secret_token: string;
-      };
       query: {
         application_id: string;
       };
+      path: {
+        application_secret_token: string;
+      };
     };
     responses: {
-      /** No Content */
+      /** @description No Content */
       204: never;
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
     };
   };
   'applications.list': {
+    /** List applications */
     parameters: {
       query: {
         organization_id: string;
       };
     };
     responses: {
-      /** OK */
+      /** @description OK */
       200: {
         content: {
           'application/json': components['schemas']['Application'][];
         };
       };
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
     };
   };
-  /** An application emit events that are consumed by customers through webhooks */
   'applications.create': {
+    /**
+     * Create a new application
+     * @description An application emit events that are consumed by customers through webhooks
+     */
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ApplicationPost'];
+      };
+    };
     responses: {
-      /** Created */
+      /** @description Created */
       201: {
         content: {
           'application/json': components['schemas']['Application'];
         };
       };
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ApplicationPost'];
-      };
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
     };
   };
-  /** An application emit events that are consumed by customers through webhooks */
   'applications.get': {
+    /**
+     * Get an application by its ID
+     * @description An application emit events that are consumed by customers through webhooks
+     */
     parameters: {
       path: {
         application_id: string;
       };
     };
     responses: {
-      /** OK */
+      /** @description OK */
       200: {
         content: {
           'application/json': components['schemas']['Application'];
         };
       };
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
     };
   };
-  /** Change the name of an application */
   'applications.update': {
+    /**
+     * Edit an application
+     * @description Change the name of an application
+     */
     parameters: {
       path: {
         application_id: string;
       };
-    };
-    responses: {
-      /** OK */
-      200: {
-        content: {
-          'application/json': components['schemas']['Application'];
-        };
-      };
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
     };
     requestBody: {
       content: {
         'application/json': components['schemas']['ApplicationPost'];
       };
     };
+    responses: {
+      /** @description OK */
+      200: {
+        content: {
+          'application/json': components['schemas']['Application'];
+        };
+      };
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
+    };
   };
-  /** Delete an application, further events won't be sent, active webhook subscriptions will also be deleted. */
   'applications.delete': {
+    /**
+     * Delete an application
+     * @description Delete an application, further events won't be sent, active webhook subscriptions will also be deleted.
+     */
     parameters: {
       path: {
         application_id: string;
       };
     };
     responses: {
-      /** No Content */
+      /** @description No Content */
       204: never;
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
     };
   };
-  /** List of every possible errors that Hook0 can return. Each error is in RFC7807 problem format. */
   'errors.list': {
+    /**
+     * List errors
+     * @description List of every possible errors that Hook0 can return. Each error is in RFC7807 problem format.
+     */
     responses: {
-      /** OK */
+      /** @description OK */
       200: {
         content: {
           'application/json': components['schemas']['Problem'][];
         };
       };
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
     };
   };
   'events.ingest': {
-    responses: {
-      /** Created */
-      201: {
-        content: {
-          'application/json': components['schemas']['IngestedEvent'];
-        };
-      };
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
-    };
+    /** Ingest an event */
     requestBody: {
       content: {
         'application/json': components['schemas']['EventPost'];
       };
     };
+    responses: {
+      /** @description Created */
+      201: {
+        content: {
+          'application/json': components['schemas']['IngestedEvent'];
+        };
+      };
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
+    };
   };
   'eventTypes.list': {
+    /** List event types */
     parameters: {
       query: {
         application_id: string;
       };
     };
     responses: {
-      /** OK */
+      /** @description OK */
       200: {
         content: {
           'application/json': components['schemas']['EventType'][];
         };
       };
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
     };
   };
   'eventTypes.create': {
-    responses: {
-      /** Created */
-      201: {
-        content: {
-          'application/json': components['schemas']['EventType'];
-        };
-      };
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
-    };
+    /** Create a new event type */
     requestBody: {
       content: {
         'application/json': components['schemas']['EventTypePost'];
       };
     };
+    responses: {
+      /** @description Created */
+      201: {
+        content: {
+          'application/json': components['schemas']['EventType'];
+        };
+      };
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
+    };
   };
   'eventTypes.get': {
+    /** Get an event type by its name */
     parameters: {
-      path: {
-        event_type_name: string;
-      };
       query: {
         application_id: string;
       };
+      path: {
+        event_type_name: string;
+      };
     };
     responses: {
-      /** OK */
+      /** @description OK */
       200: {
         content: {
           'application/json': components['schemas']['EventType'];
         };
       };
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
     };
   };
   'eventTypes.delete': {
+    /** Delete an event type */
     parameters: {
+      query: {
+        application_id: string;
+      };
       path: {
         event_type_name: string;
       };
-      query: {
-        application_id: string;
-      };
     };
     responses: {
-      /** No Content */
+      /** @description No Content */
       204: never;
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
     };
   };
   'events.list': {
+    /** List latest events */
     parameters: {
       query: {
         application_id: string;
       };
     };
     responses: {
-      /** OK */
+      /** @description OK */
       200: {
         content: {
           'application/json': components['schemas']['Event'][];
         };
       };
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
     };
   };
   'events.get': {
+    /** Get an event */
     parameters: {
-      path: {
-        event_id: string;
-      };
       query: {
         application_id: string;
       };
+      path: {
+        event_id: string;
+      };
     };
     responses: {
-      /** OK */
+      /** @description OK */
       200: {
         content: {
           'application/json': components['schemas']['EventWithPayload'];
         };
       };
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
     };
   };
-  /** Get an object that shows how this instance is configured. */
   'instance.get': {
+    /**
+     * Get instance configuration
+     * @description Get an object that shows how this instance is configured.
+     */
     responses: {
-      /** OK */
+      /** @description OK */
       200: {
         content: {
           'application/json': components['schemas']['InstanceConfig'];
         };
       };
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
     };
   };
   'organizations.list': {
+    /** List organizations */
     responses: {
-      /** OK */
+      /** @description OK */
       200: {
         content: {
           'application/json': components['schemas']['Organization'][];
         };
       };
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
     };
   };
-  /** Note that you will need to regenerate a JWT to be able to see/use the newly created organization. */
   'organizations.create': {
+    /**
+     * Create an organization
+     * @description Note that you will need to regenerate a JWT to be able to see/use the newly created organization.
+     */
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['OrganizationPost'];
+      };
+    };
     responses: {
-      /** OK */
+      /** @description OK */
       200: {
         content: {
           'application/json': components['schemas']['OrganizationInfo'];
         };
       };
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['OrganizationPost'];
-      };
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
     };
   };
   'organizations.get': {
+    /** Get organization's info by its ID */
     parameters: {
       path: {
         organization_id: string;
       };
     };
     responses: {
-      /** OK */
+      /** @description OK */
       200: {
         content: {
           'application/json': components['schemas']['OrganizationInfo'];
         };
       };
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
     };
   };
-  /** Note that you will need to regenerate a JWT to be able to see the updated name of the organization. */
   'organizations.edit': {
+    /**
+     * Edit an organization
+     * @description Note that you will need to regenerate a JWT to be able to see the updated name of the organization.
+     */
     parameters: {
       path: {
         organization_id: string;
       };
-    };
-    responses: {
-      /** OK */
-      200: {
-        content: {
-          'application/json': components['schemas']['OrganizationInfo'];
-        };
-      };
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
     };
     requestBody: {
       content: {
         'application/json': components['schemas']['OrganizationPost'];
       };
     };
+    responses: {
+      /** @description OK */
+      200: {
+        content: {
+          'application/json': components['schemas']['OrganizationInfo'];
+        };
+      };
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
+    };
   };
-  /** Note that you will need to regenerate a JWT to be able to make the deleted organization go away. */
   'organizations.delete': {
+    /**
+     * Delete an organization
+     * @description Note that you will need to regenerate a JWT to be able to make the deleted organization go away.
+     */
     parameters: {
       path: {
         organization_id: string;
       };
     };
     responses: {
-      /** No Content */
+      /** @description No Content */
       204: never;
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
     };
   };
   'organizations.invite': {
+    /** Invite a user to an organization */
     parameters: {
       path: {
         organization_id: string;
       };
-    };
-    responses: {
-      /** OK */
-      200: {
-        content: {
-          'application/json': components['schemas']['UserInvitation'];
-        };
-      };
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
     };
     requestBody: {
       content: {
         'application/json': components['schemas']['UserInvitation'];
       };
     };
+    responses: {
+      /** @description OK */
+      200: {
+        content: {
+          'application/json': components['schemas']['UserInvitation'];
+        };
+      };
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
+    };
   };
   'organizations.revoke': {
+    /** Revoke a user's access to an organization */
     parameters: {
       path: {
         organization_id: string;
       };
-    };
-    responses: {
-      /** OK */
-      200: {
-        content: {
-          'application/json': components['schemas']['Revoke'];
-        };
-      };
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
     };
     requestBody: {
       content: {
         'application/json': components['schemas']['Revoke'];
       };
     };
-  };
-  /** List of every possible content types that can be used in event payloads. */
-  'payload_content_types.list': {
     responses: {
-      /** OK */
+      /** @description OK */
+      200: {
+        content: {
+          'application/json': components['schemas']['Revoke'];
+        };
+      };
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
+    };
+  };
+  'payload_content_types.list': {
+    /**
+     * List supported event payload content types
+     * @description List of every possible content types that can be used in event payloads.
+     */
+    responses: {
+      /** @description OK */
       200: {
         content: {
           'application/json': string[];
         };
       };
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
     };
   };
   register: {
-    responses: {
-      /** Created */
-      201: {
-        content: {
-          'application/json': components['schemas']['Registration'];
-        };
-      };
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
-    };
+    /** Create a new user account and a new organization */
     requestBody: {
       content: {
         'application/json': components['schemas']['RegistrationPost'];
       };
     };
+    responses: {
+      /** @description Created */
+      201: {
+        content: {
+          'application/json': components['schemas']['Registration'];
+        };
+      };
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
+    };
   };
   'requestAttempts.read': {
+    /** List request attempts */
     parameters: {
       query: {
         application_id: string;
@@ -1007,26 +1131,29 @@ export interface operations {
       };
     };
     responses: {
-      /** OK */
+      /** @description OK */
       200: {
         content: {
           'application/json': components['schemas']['RequestAttempt'][];
         };
       };
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
     };
   };
-  /** A response is produced when a request attempt is processed */
   'response.get': {
+    /**
+     * Get a response by its ID
+     * @description A response is produced when a request attempt is processed
+     */
     parameters: {
       query: {
         application_id: string;
@@ -1036,155 +1163,162 @@ export interface operations {
       };
     };
     responses: {
-      /** OK */
+      /** @description OK */
       200: {
         content: {
           'application/json': components['schemas']['Response'];
         };
       };
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
     };
   };
-  /** List all subscriptions created by customers against the application events */
   'subscriptions.list': {
+    /**
+     * List subscriptions
+     * @description List all subscriptions created by customers against the application events
+     */
     parameters: {
       query: {
         application_id: string;
       };
     };
     responses: {
-      /** OK */
+      /** @description OK */
       200: {
         content: {
           'application/json': components['schemas']['Subscription'][];
         };
       };
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
     };
   };
-  /** A subscription let your customers subscribe to events. Events will be sent through the defined medium inside the subscription (e.g. HTTP POST request) as a webhook. */
   'subscriptions.create': {
+    /**
+     * Create a new subscription
+     * @description A subscription let your customers subscribe to events. Events will be sent through the defined medium inside the subscription (e.g. HTTP POST request) as a webhook.
+     */
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SubscriptionPost'];
+      };
+    };
     responses: {
-      /** Created */
+      /** @description Created */
       201: {
         content: {
           'application/json': components['schemas']['Subscription'];
         };
       };
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['SubscriptionPost'];
-      };
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
     };
   };
   'subscriptions.get': {
+    /** Get a subscription by its id */
     parameters: {
       path: {
         subscription_id: string;
       };
     };
     responses: {
-      /** OK */
+      /** @description OK */
       200: {
         content: {
           'application/json': components['schemas']['Subscription'];
         };
       };
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
     };
   };
   'subscriptions.update': {
+    /** Update a subscription */
     parameters: {
       path: {
         subscription_id: string;
       };
-    };
-    responses: {
-      /** OK */
-      200: {
-        content: {
-          'application/json': components['schemas']['Subscription'];
-        };
-      };
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
     };
     requestBody: {
       content: {
         'application/json': components['schemas']['SubscriptionPost'];
       };
     };
+    responses: {
+      /** @description OK */
+      200: {
+        content: {
+          'application/json': components['schemas']['Subscription'];
+        };
+      };
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
+    };
   };
   'subscriptions.delete': {
+    /** Delete a subscription */
     parameters: {
-      path: {
-        subscription_id: string;
-      };
       query: {
         application_id: string;
       };
+      path: {
+        subscription_id: string;
+      };
     };
     responses: {
-      /** No Content */
+      /** @description No Content */
       204: never;
-      /** Bad Request */
-      400: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Not Found */
-      404: unknown;
-      /** Conflict */
-      409: unknown;
-      /** Internal Server Error */
-      500: unknown;
+      /** @description Bad Request */
+      400: never;
+      /** @description Forbidden */
+      403: never;
+      /** @description Not Found */
+      404: never;
+      /** @description Conflict */
+      409: never;
+      /** @description Internal Server Error */
+      500: never;
     };
   };
 }
-
-export interface external {}
