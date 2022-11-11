@@ -38,7 +38,7 @@ export function create(subscription: SubscriptionPostFixed): Promise<Subscriptio
     .then((res: AxiosResponse<Subscription>) => res.data);
 }
 
-export function remove(application_id: string, subscription_id: UUID): Promise<void> {
+export function remove(application_id: UUID, subscription_id: UUID): Promise<void> {
   return http
     .delete(`/subscriptions/${subscription_id}`, {
       params: {
