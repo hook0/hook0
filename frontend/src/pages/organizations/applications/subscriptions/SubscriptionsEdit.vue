@@ -150,7 +150,8 @@
     <SubscriptionsRemove
       v-if="!isNew"
       :subscription-id="subscription_id"
-      :subscription-name="subscription.name"
+      :subscription-name="subscription.description"
+      :application-id="this.$route.params.application_id"
     ></SubscriptionsRemove>
   </div>
 </template>
