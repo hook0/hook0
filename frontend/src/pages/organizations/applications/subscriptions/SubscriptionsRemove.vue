@@ -77,9 +77,10 @@ export default class SubscriptionsRemove extends Vue {
       .then(
         () =>
           this.$router.push({
-            name: routes.OrganizationsDashboard,
+            name: routes.SubscriptionsList,
             params: {
               organization_id: this.$route.params.organization_id,
+              application_id: this.$route.params.application_id,
             },
           }),
         this.displayError.bind(this)

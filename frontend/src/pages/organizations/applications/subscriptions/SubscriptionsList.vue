@@ -180,35 +180,31 @@ export default class SubscriptionsList extends Vue {
         {
           suppressMovable: true,
           headerName: 'Options',
-          cellRenderer: 'Hook0TableCellLinks',
+          cellRenderer: 'Hook0TableCellLink',
           maxWidth: 200,
           cellRendererParams: {
-            parameters: [
-              {
-                value: 'Delete',
-                icon: 'trash',
-                onClick: (row: Subscription): void => {
-                  if (
-                    confirm(
-                      `Are you sure to delete ${
-                        row.description ? `"${row.description}"` : 'this'
-                      } subscription?`
-                    )
-                  ) {
-                    SubscriptionService.remove(this.application_id as string, row.subscription_id)
-                      .then(() => {
-                        // @TODO notify user of success
-                        this._forceLoad();
-                      })
-                      // @TODO proper error management
-                      .catch((err) => {
-                        alert(err);
-                        throw err;
-                      });
-                  }
-                },
-              },
-            ],
+            value: 'Delete',
+            icon: 'trash',
+            onClick: (row: Subscription): void => {
+              if (
+                confirm(
+                  `Are you sure to delete ${
+                    row.description ? `"${row.description}"` : 'this'
+                  } subscription?`
+                )
+              ) {
+                SubscriptionService.remove(this.application_id as string, row.subscription_id)
+                  .then(() => {
+                    // @TODO notify user of success
+                    this._forceLoad();
+                  })
+                  // @TODO proper error management
+                  .catch((err) => {
+                    alert(err);
+                    throw err;
+                  });
+              }
+            },
           },
         },
       ] as Array<ColDef>,
