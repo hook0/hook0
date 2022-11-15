@@ -304,7 +304,7 @@ async fn compute_next_retry<'a>(
 ) -> Result<Option<Duration>, sqlx::Error> {
     let sub = sqlx::query!(
         "
-            SELECT true
+            SELECT true AS whatever
             FROM webhook.subscription
             WHERE subscription__id = $1 AND deleted_at IS NULL AND is_enabled
         ",
