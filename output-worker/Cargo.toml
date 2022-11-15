@@ -11,8 +11,8 @@ keywords = ["webhooks", "webhook", "webhook server", "events"]
 
 [dependencies]
 anyhow = "1.0.66"
-chrono = "0.4.22"
-clap = { version = "4.0.22", features = ["derive", "env", "cargo", "wrap_help"] }
+chrono = "0.4.23"
+clap = { version = "4.0.24", features = ["derive", "env", "cargo", "wrap_help"] }
 hex = "0.4.3"
 hmac = "0.12.1"
 itertools = "0.10.5"
@@ -25,4 +25,4 @@ sha2 = "0.10.6"
 sqlx = { version = "0.6.2", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono", "time", "json", "offline"] }
 strum = { version = "0.24.1", features = ["derive"] }
 tokio = { version = "1.21.2", features = ["rt-multi-thread", "macros", "time"] }
-uuid = { version = "1.2.1", features = ["v4"] }
+uuid = { version = "1.2.2", features = ["v4"] }

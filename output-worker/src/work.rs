@@ -280,7 +280,7 @@ mod tests {
 
     #[test]
     fn create_signature() {
-        let signed_at = Utc.ymd(2021, 11, 15).and_hms(0, 30, 0);
+        let signed_at = Utc.with_ymd_and_hms(2021, 11, 15, 0, 30, 0).unwrap();
         let payload = "hello !";
         let secret = "secret";
 
