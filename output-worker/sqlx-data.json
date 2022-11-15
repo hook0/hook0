@@ -110,11 +110,11 @@
     },
     "query": "\n                    INSERT INTO webhook.response (response_error__name, http_code, headers, body, elapsed_time_ms)\n                    VALUES ($1, $2, $3, $4, $5)\n                    RETURNING response__id\n                "
   },
-  "4ae5a9de1e9d240ba4283078a94ce324a3b4c862c51b9f4eb13996ec9d2ee62a": {
+  "b64e544fcc0522a6971f053aaeead080ccac32ccac36b012668e86b09747c166": {
     "describe": {
       "columns": [
         {
-          "name": "bool",
+          "name": "whatever",
           "ordinal": 0,
           "type_info": "Bool"
         }
@@ -128,7 +128,7 @@
         ]
       }
     },
-    "query": "\n            SELECT true\n            FROM webhook.subscription\n            WHERE subscription__id = $1 AND deleted_at IS NULL AND is_enabled\n        "
+    "query": "\n            SELECT true AS whatever\n            FROM webhook.subscription\n            WHERE subscription__id = $1 AND deleted_at IS NULL AND is_enabled\n        "
   },
   "e036c8658d674832297953ee2d374372eb24c733bda6fc4053a972f16cb450e1": {
     "describe": {
