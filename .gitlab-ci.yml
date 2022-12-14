@@ -11,6 +11,7 @@ stages:
   - build
   - test
   - release
+  - documentation
 
 rust.check:
   stage: test
@@ -57,3 +58,4 @@ rust.check:
 include:
   - local: 'frontend/.gitlab-ci.yml'
   - local: 'website/.gitlab-ci.yml'
+  - local: 'api/.gitlab-ci.yml'
