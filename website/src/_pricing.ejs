@@ -11,8 +11,8 @@
                         <span class="text-4xl font-extrabold text-gray-900">FREE</span>
                         <span class="text-base font-medium text-gray-500">Forever</span>
                     </p>
-                    <a href="<%= locals.social.gitlab.href %>"
-                       class="mt-8 block w-full bg-purple-600 border border-transparent rounded-md py-2 text-sm font-semibold text-white text-center hover:bg-purple-700">Use
+                    <a href="<%= locals.social.gitlab.repoHref %>"
+                       class="mt-8 block w-full bg-purple-600 border border-transparent rounded-md py-2 text-sm font-semibold text-white text-center hover:bg-purple-700">Deploy
                         it</a>
                 </div>
                 <div class="pt-6 pb-8 px-6">
@@ -153,8 +153,7 @@
             <div class="border border-gray-200 rounded-lg shadow-sm divide-y divide-gray-200">
                 <div class="p-6">
                     <h2 class="text-lg leading-6 font-medium text-gray-900">Enterprise</h2>
-                    <p class="mt-4 text-sm text-gray-500">Unleash your data connectivity with fixed costs, connect your
-                        SaaS to the web.</p>
+                    <p class="mt-4 text-sm text-gray-500">Get pre-paid events at a better price, along with enterprise features.</p>
                     <p class="mt-8">
                         <span class="text-4xl font-extrabold text-gray-900">€190</span>
                         <span class="text-base font-medium text-gray-500">/month</span>
@@ -234,7 +233,7 @@
                     <h2 class="text-lg leading-6 font-medium text-gray-900">Pay As You Go</h2>
                     <p class="mt-4 text-sm text-gray-500">Unleash your data connectivity and only pay as you grow, connect your SaaS to the web. You win, we win.</p>
                     <p class="mt-8">
-                        <span class="text-4xl font-extrabold text-gray-900">€0.002</span>
+                        <span class="text-4xl font-extrabold text-gray-900">€0.0001</span>
                         <span class="text-base font-medium text-gray-500">/event</span>
                     </p>
                     <a href="<%= locals.meta.contact %>"
@@ -292,11 +291,16 @@
                                       d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
                                       clip-rule="evenodd"/>
                             </svg>
-                            <span class="text-sm text-gray-500"><strong>30 days</strong> data retention</span>
+                            <span class="text-sm text-gray-500"><strong>7 days</strong> data retention</span>
                         </li>
                     </ul>
                 </div>
             </div>
         </div>
+
+        <p class="mt-4 ml-2 flex space-x-3">
+            <svg class="flex-shrink-0 h-5 w-5 text-purple-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="currentColor" aria-hidden="true"><path d="M256 512c141.4 0 256-114.6 256-256S397.4 0 256 0S0 114.6 0 256S114.6 512 256 512zM216 336h24V272H216c-13.3 0-24-10.7-24-24s10.7-24 24-24h48c13.3 0 24 10.7 24 24v88h8c13.3 0 24 10.7 24 24s-10.7 24-24 24H216c-13.3 0-24-10.7-24-24s10.7-24 24-24zm40-144c-17.7 0-32-14.3-32-32s14.3-32 32-32s32 14.3 32 32s-14.3 32-32 32z"/></svg>
+            <span class="text-sm text-gray-500">One <strong>event</strong> can trigger multiple webhook subscriptions which can in turn be retried multiple times. <strong>Subscriptions and retries are free.</strong></span>
+        </p>
     </div>
 </div>
