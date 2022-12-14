@@ -175,7 +175,7 @@ import Hook0LoginMenu from '@/components/Hook0LoginMenu.vue';
               },
 
               {
-                name: 'Request Attempts',
+                name: 'Logs',
                 icon: 'file-lines',
                 route: {
                   name: routes.LogsList,

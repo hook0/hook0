@@ -14,7 +14,6 @@
   </ag-grid-vue>
 </template>
 
-
 <script lang="ts">
 import { Vue, Options } from 'vue-class-component';
 import { AgGridVue } from '@ag-grid-community/vue3';
@@ -23,6 +22,7 @@ import { AgGridEvent, ColDef, ICellRendererParams, RowNode } from '@ag-grid-comm
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 import Hook0TableCellCode from '@/components/Hook0TableCellCode.vue';
 import Hook0TableCellLinks from '@/components/Hook0TableCellLinks.vue';
+import Hook0TableCellIcon from '@/components/Hook0TableCellIcon.vue';
 
 @Options({
   name: 'hook0-table',
@@ -49,6 +49,7 @@ import Hook0TableCellLinks from '@/components/Hook0TableCellLinks.vue';
     Hook0TableCellLink,
     Hook0TableCellLinks,
     Hook0TableCellCode,
+    Hook0TableCellIcon,
   },
 })
 export default class Hook0Table extends Vue {
