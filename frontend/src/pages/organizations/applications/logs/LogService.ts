@@ -1,0 +1,33 @@
+import { AxiosResponse } from 'axios';
+import http, { UUID } from '@/http';
+import type { components } from '@/types';
+
+type definitions = components['schemas'];
+
+export type RequestAttempt = definitions['RequestAttempt'];
+
+export const enum RequestAttemptStatusType {
+  Waiting = 'waiting',
+  Pending = 'pending',
+  InProgress = 'inprogress',
+  Successful = 'successful',
+  Failed = 'failed',
+}
+
+export type RequestAttemptStatus = {
+  type: RequestAttemptStatusType;
+};
+
+type Modify<T, R> = Omit<T, keyof R> & R;
+
+export type RequestAttemptTypeFixed = Modify<RequestAttempt, { status: RequestAttemptStatus }>;
+
+export function list(application_id: UUID): Promise<Array<RequestAttemptTypeFixed>> {
+  return http
+    .get('/request_attempts', {
+      params: {
+        application_id: application_id,
+      },
+    })
+    .then((res: AxiosResponse<Array<RequestAttemptTypeFixed>>) => res.data);
+}
