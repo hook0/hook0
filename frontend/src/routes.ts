@@ -14,6 +14,7 @@ import Home from '@/Home.vue';
 import ComingSoon from '@/pages/ComingSoon.vue';
 import SubscriptionsList from '@/pages/organizations/applications/subscriptions/SubscriptionsList.vue';
 import SubscriptionsEdit from '@/pages/organizations/applications/subscriptions/SubscriptionsEdit.vue';
+import LogList from '@/pages/organizations/applications/logs/LogList.vue';
 import ApplicationSecretsList from '@/pages/organizations/applications/application_secrets/ApplicationSecretsList.vue';
 import EventsList from '@/pages/organizations/applications/events/EventsList.vue';
 import EventsDetail from '@/pages/organizations/applications/events/EventsDetail.vue';
@@ -144,7 +145,7 @@ export default [
   {
     name: routes.LogsList,
     path: '/organizations/:organization_id/applications/:application_id/logs',
-    component: ComingSoon,
+    component: LogList,
   },
 
   {
