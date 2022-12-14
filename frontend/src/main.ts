@@ -18,7 +18,9 @@ import VueFormJsonSchema from 'vue-form-json-schema/src/index';
 // FontAwesome
 import { library } from '@fortawesome/fontawesome-svg-core';
 
+// https://fontawesome.com/v6/search?o=r&m=free&s=solid
 import {
+  faCheck,
   faFolderTree,
   faLink,
   faFileLines,
@@ -37,6 +39,8 @@ import {
   faArrowsRotate,
   faArrowUpRightFromSquare,
   faMinus,
+  faQuestion,
+  faXmark,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 
@@ -71,7 +75,13 @@ library.add(
   faSpinner,
   faCircleNotch,
   faChevronLeft,
-  faChevronRight
+  faChevronRight,
+
+  //RequestAttemptStatus
+  faCheck,
+  faQuestion,
+  faXmark
+  // faSpinner
 );
 app.component('font-awesome-icon', FontAwesomeIcon);
 
