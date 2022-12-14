@@ -1,8 +1,10 @@
 <template>
-  <font-awesome-icon
-    v-bind="{ ...$props, ...$attrs }"
-    :icon="['fas'].concat(names_std)"
-  ></font-awesome-icon>
+  <span :title="title">
+    <font-awesome-icon
+      v-bind="{ ...$props, ...$attrs }"
+      :icon="['fas'].concat(names_std)"
+    ></font-awesome-icon>
+  </span>
 </template>
 
 <script lang="ts">
@@ -18,6 +20,10 @@ import { Options, Vue, VueWithProps } from 'vue-class-component';
       validator(val: string) {
         return val && val.length > 0;
       },
+    },
+    title: {
+      type: String,
+      required: false,
     },
   },
   computed: {
