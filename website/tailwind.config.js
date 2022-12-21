@@ -8,15 +8,10 @@ delete colors.coolGray;
 delete colors.blueGray;
 
 module.exports = {
-  content: ["./**.html"],
+  content: ['./**.html', 'src/**.ejs'],
   theme: {
     extend: {},
-    colors: colors
+    colors: colors,
   },
-  plugins: [
-    require("postcss-import"),
-    require("tailwindcss"),
-    require("postcss-100vh-fix"),
-    require("@tailwindcss/typography"),
-  ],
+  plugins: [require('postcss-import'), require('tailwindcss'), require('postcss-100vh-fix'), require('@tailwindcss/typography')],
 };
