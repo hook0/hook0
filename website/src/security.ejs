@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Hook0 - Security and compliance</title>
+    <%- include ('./_head.ejs') %>
+</head>
+<body>
+<%- include ('./_header.ejs') %>
+
+<div class="relative py-16 bg-white overflow-hidden">
+    <div class="relative px-4 sm:px-6 lg:px-8">
+        <div class="text-lg max-w-prose prose prose-lg mx-auto">
+            <h1>
+                <span class="block text-base text-center text-green-600 font-semibold tracking-wide uppercase">Security &amp; Compliance</span>
+            </h1>
+
+            <div>
+                <div class="section haze wf-section">
+                    <div class="wrapper">
+                        <div class="intro margin-bottom"><h2>GDPR - COMPLIANCE AND CERTIFICATION</h2>
+                            <div class="divider"></div>
+                        </div>
+                        <div class="w-layout-grid main-grid">
+                            <div class="text-default">1.1.
+                                If you are dealing with any European Union data through a vendor (like Hook0), then you
+                                need a contractual agreement in place with each vendor so the EU knows you’re only doing
+                                business with companies that fully comply with the General Data Protection Regulation
+                                (GDPR).
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section haze wf-section">
+                    <div class="wrapper">
+                        <div class="intro margin-bottom"><h2>Data Processing Addendum</h2>
+                            <div class="divider"></div>
+                        </div>
+                        <div class="w-layout-grid main-grid">
+                            <div class="text-default">1.1.
+                                A data processing agreement (DPA) - also known as a data processing addendum - is a
+                                contract between data controllers and data processors or data processors and
+                                subprocessors. <a href="data-processing-addendum.ejs">Learn more</a>.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section haze wf-section">
+                    <div class="wrapper">
+                        <div class="intro margin-bottom"><h2>Subprocessors</h2>
+                            <div class="divider"></div>
+                        </div>
+                        <div class="w-layout-grid main-grid">
+                            <div class="text-default">1.1.
+                                Under the GDPR, a sub-processor is any business or contractor customer data may pass
+                                through as a side effect of using Hook0's service<a href="gdpr-subprocessors.ejs">Learn
+                                    more</a>.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section haze wf-section">
+                    <div class="wrapper">
+                        <div class="intro margin-bottom"><h2>PCI DSS</h2>
+                            <div class="divider"></div>
+                        </div>
+                        <div class="w-layout-grid main-grid">
+                            <div class="text-default">Hook0’s payment and card information is handled by <a
+                                        href="https://stripe.com/docs/security">Stripe</a>, which has been audited by an
+                                independent PCI Qualified Security Assessor and is certified as a PCI Level 1 Service
+                                Provider, the most stringent level of certification available in the payments industry.
+                                Hook0 does not typically receive credit card data, making it compliant with Payment Card
+                                Industry Data Security Standards (PCI DSS) in most situations.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section haze wf-section">
+                    <div class="wrapper">
+                        <div class="intro margin-bottom"><h2>Vulnerability Disclosure</h2>
+                            <div class="divider"></div>
+                        </div>
+                        <div class="w-layout-grid main-grid">
+                            <p>
+                                If you would like to report a vulnerability or have any security concerns with a
+                                Hook0 product, please contact <a href="mailto:security@hook0.com">security@hook0.com</a>.
+                            </p>
+                            <p>Include a proof of concept, a list of tools used (including versions), and the output of
+                                the
+                                tools. We take all disclosures very seriously. Once disclosures are received, we rapidly
+                                verify each vulnerability before taking the necessary steps to fix it. Once verified, we
+                                periodically send status updates as problems are fixed.</p>
+                            <p>If you would like to encrypt sensitive information that you send us, our PGP key can be
+                                <a
+                                        href="https://keybase.io/fgribreau">found on Keybase.</a></p>
+                            <p>We also have an open bug bounty for critical vulnerabilities report regarding Hook0 API
+                                (https://app.hook0.com/api/v1/).<br></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section haze wf-section">
+                    <div class="wrapper">
+                        <div class="intro">
+                            <h2>Infrastructure and Network Security</h2>
+                            <h3>Physical Access Control<br></h3>
+                            <div class="divider"></div>
+                        </div>
+                        <div class="w-layout-grid main-grid">
+                            <div id="w-node-a3d127b3-cffe-c522-8fd8-8fe1253cb8bb-a603d9ec"
+                                 class="text-default w-richtext"><p>Hook0 is hosted on <a
+                                            href="https://www.clever-cloud.com/">Clever-Cloud Platform</a>. CleverCloud data centers feature a layered security model, including extensive safeguards such as:</p>
+                                <ul role="list">
+                                    <li>Custom-designed electronic access cards</li>
+                                    <li>Alarms</li>
+                                    <li>Vehicle access barriers</li>
+                                    <li>Perimeter fencing</li>
+                                    <li>Metal detectors</li>
+                                    <li>Biometrics</li>
+                                </ul>
+
+                                <p>Hook0 employees do not have physical access to CleverCloud data centers, servers,
+                                    network equipment, or storage.<br></p></div>
+                        </div>
+                        <div class="intro"><h3>Logical Access Control<br></h3>
+                            <div class="divider"></div>
+                        </div>
+                        <div class="w-layout-grid main-grid">
+                            <div id="w-node-a20eb89d-6764-7a3f-a590-331450178a47-a603d9ec"
+                                 class="text-default w-richtext"><p>Hook0 is the assigned administrator of its
+                                    infrastructure on CleverCloud, and only designated authorized Hook0
+                                    operations team members to have access to configure the infrastructure on an
+                                    as-needed basis behind a two-factor authenticated virtual private network. Specific
+                                    private keys are required for individual servers, and keys are stored in a secure
+                                    and encrypted location.<br></p></div>
+                        </div>
+                        <div class="intro"><h3>Third-Party Audit<br></h3>
+                            <div class="divider"></div>
+                        </div>
+                        <div class="w-layout-grid main-grid">
+                            <div id="w-node-df14f42f-4b6a-75e8-4ccc-6648f1b5ae1d-a603d9ec"
+                                 class="text-default w-richtext"><p>CleverCloud undergoes various third-party independent audits regularly and can
+                                    provide verification of compliance controls for its data centers, infrastructure,
+                                    and operations. This includes, but is not limited, to SSAE 16-compliant SOC 2
+                                    certification and ISO 27001 certification. <br></p></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section haze wf-section">
+                    <div class="wrapper">
+                        <div class="intro">
+                            <h2>Business Continuity and Disaster Recovery<h2>
+                            <h3>High Availability</h3>
+                            <div class="divider"></div>
+                        </div>
+                        <div class="w-layout-grid main-grid">
+                            <div id="w-node-_67c3014e-cbb8-472f-e841-7ffca299fcde-a603d9ec"
+                                 class="text-default w-richtext"><p>Every part of the Hook0 service uses
+                                    properly-provisioned, redundant servers (e.g., multiple load balancers, web servers,
+                                    replica databases) in the case of failure. As part of regular maintenance, servers
+                                    are taken out of operation without impacting availability.<br></p></div>
+                        </div>
+                    </div>
+                    <div class="wrapper">
+                        <div class="intro"><h3>Business Continuity<br></h3>
+                            <div class="divider"></div>
+                        </div>
+                        <div class="w-layout-grid main-grid">
+                            <div id="w-node-_0b4d9b09-dcad-14ce-8208-63afa20166cb-a603d9ec"
+                                 class="text-default w-richtext"><p>Hook0 keeps hourly encrypted backups of data
+                                    in multiple regions on CleverCloud. While never expected, in the case of
+                                    production data loss (i.e., primary data stores lost), we will restore
+                                    organizational data from these backups.<br></p></div>
+                        </div>
+                    </div>
+                    <div class="wrapper">
+                        <div class="intro"><h3>Disaster Recovery<br></h3>
+                            <div class="divider"></div>
+                        </div>
+                        <div class="w-layout-grid main-grid">
+                            <div id="w-node-_75579b42-9659-defa-36da-561185d15424-a603d9ec"
+                                 class="text-default w-richtext"><p>In the event of a region-wide outage, Hook0
+                                    will bring up a duplicate environment in a different CleverCloud region.
+                                    The Hook0 operations team has extensive experience performing full region
+                                    migrations.<br></p></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section haze wf-section">
+                    <div class="wrapper">
+                        <div class="intro">
+                            <h2>Corporate Security</h2>
+                            <h3>Malware Protection<br></h3>
+                            <div class="divider"></div>
+                        </div>
+                        <div class="w-layout-grid main-grid">
+                            <div id="w-node-_6cf5fc1e-ce21-6818-e17e-6128aad0db27-a603d9ec"
+                                 class="text-default w-richtext"><p>At Hook0, we believe that good security
+                                    practices start with our own team, so we go out of our way to protect against
+                                    internal threats and local vulnerabilities. <br></p></div>
+                        </div>
+                    </div>
+                    <div class="wrapper">
+                        <div class="intro"><h3>Risk Management<br></h3>
+                            <div class="divider"></div>
+                        </div>
+                        <div class="w-layout-grid main-grid">
+                            <div id="w-node-_6cf5fc1e-ce21-6818-e17e-6128aad0db32-a603d9ec"
+                                 class="text-default w-richtext"><p>Hook0 follows the risk management procedures
+                                    outlined in <a href="http://csrc.nist.gov/publications/PubsSPs.html">NIST SP
+                                        800-30</a>, which include nine steps for risk assessment and seven steps for
+                                    risk mitigation.</p>
+                                <p>All Hook0 product changes must go through code review, CI, and build pipeline
+                                    to reach production servers. Only designated employees on Hook0’s operations
+                                    team have secure shell (SSH) access to production servers.</p>
+                                <p>We perform testing and risk management on all systems and applications on a regular
+                                    and ongoing basis. New methods are developed, reviewed, and deployed to production
+                                    via pull request and internal review. New risk management practices are documented
+                                    and shared via staff presentations on lessons learned and best practices.</p>
+                                <p>Hook0 performs risk assessments throughout the product lifecycle per the
+                                    standards outlined in <a href="https://www.law.cornell.edu/cfr/text/45/164.308">HIPAA
+                                        Security Rule, 45 CFR 164.308</a>:</p>
+                                <ul role="list">
+                                    <li>Before the integration of new system technologies and before changes are made to
+                                        Hook0 physical safeguards
+                                    </li>
+                                    <li>While making changes to Hook0 physical equipment and facilities that
+                                        introduce new, untested configurations
+                                    </li>
+                                    <li>Periodically as part of technical and non-technical assessments of the security
+                                        rule requirements as well as in response to environmental or operational changes
+                                        affecting security<br></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <div class="wrapper">
+                        <div class="intro"><h3>Contingency Planning<br></h3>
+                            <div class="divider"></div>
+                        </div>
+                        <div class="w-layout-grid main-grid">
+                            <div id="w-node-_6cf5fc1e-ce21-6818-e17e-6128aad0db3d-a603d9ec"
+                                 class="text-default w-richtext"><p>The Hook0 operations team includes service
+                                    continuity and threat remediation among its top priorities. We keep a contingency
+                                    plan in case of unforeseen events, including risk management, disaster recovery, and
+                                    customer communication sub-plans that are tested and updated on an ongoing basis and
+                                    thoroughly reviewed for gaps and changes at least annually.<br></p></div>
+                        </div>
+                    </div>
+                    <div class="wrapper">
+                        <div class="intro"><h3>Security Policies<br></h3>
+                            <div class="divider"></div>
+                        </div>
+                        <div class="w-layout-grid main-grid">
+                            <div id="w-node-_48a5ea86-2fe2-249d-e213-1275397caba7-a603d9ec"
+                                 class="text-default w-richtext"><p>Hook0 maintains an internal wiki of security
+                                    policies, which is updated on an ongoing basis and reviewed annually for gaps. <br>
+                                </p></div>
+                        </div>
+                    </div>
+                    <div class="wrapper">
+                        <div class="intro"><h3>Security Training<br></h3>
+                            <div class="divider"></div>
+                        </div>
+                        <div class="w-layout-grid main-grid">
+                            <div id="w-node-c2d24279-13b0-7042-d5ad-6b04fe9e5848-a603d9ec"
+                                 class="text-default w-richtext"><p>All new employees receive onboarding and systems
+                                    training, including environment and permissions setup, formal software development
+                                    training (if pertinent), security policies review, company policies review, and
+                                    corporate values and ethics training.</p>
+                                <p>All engineers review security policies as part of onboarding and are encouraged to
+                                    review and contribute to policies via internal documentation. Any change to policy
+                                    affecting the product is communicated as a pull request, such that all engineers can
+                                    review and contribute before internal publication. Major updates are communicated
+                                    via email to all Hook0 employees.<br></p></div>
+                        </div>
+                    </div>
+                    <div class="wrapper">
+                        <div class="intro"><h3>Disclosure Policy<br></h3>
+                            <div class="divider"></div>
+                        </div>
+                        <div class="w-layout-grid main-grid">
+                            <div id="w-node-eb1dfb15-fc65-69a6-ce8f-8eb5d2afefdb-a603d9ec"
+                                 class="text-default w-richtext"><p>Hook0 follows the incident handling and
+                                    response process recommended by <a
+                                            href="https://www.sans.org/reading-room/whitepapers/incident/incident-handlers-handbook-33901">SANS</a>,
+                                    which includes identifying, containing, eradicating, recovering from, communicating,
+                                    and documenting security events. Hook0 notifies customers of any data
+                                    breaches as soon as possible via email and phone call, followed by multiple periodic
+                                    updates throughout each day addressing progress and impact. Hook0 Enterprise
+                                    plans include a dedicated customer success manager who holds responsibility for
+                                    customer communication, as well as regular check-ins and escalations.</p>
+                                <p>Hook0 maintains a live report of operational uptime and issues on our <a
+                                            href="https://status.hook0.com/">status page</a>. Any known incidents
+                                    are reported there, as well as on our <a href="https://twitter.com/hook0_">Twitter
+                                        feed</a>.</p>
+                                <p><br></p></div>
+                        </div>
+                    </div>
+                </div>
+
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<%- include ('./_footer.ejs') %>
+
+</body>
+</html>
