@@ -47,22 +47,24 @@
                     webhooks service.</p>
             </div>
             <div class="mt-12 lg:mt-0 lg:col-span-2">
-                <dl class="space-y-10 sm:space-y-0 sm:grid sm:grid-cols-2 sm:grid-rows-<%= Math.floor(locals.features.filter(f => !f.primary).length / 2) + 1 %> sm:grid-flow-col sm:gap-x-6 sm:gap-y-10 lg:gap-x-8">
+                <dl class="space-y-10 sm:space-y-0 sm:grid sm:grid-cols-2 sm:grid-rows-<%= Math.floor(locals.features.filter(f => !f.primary).length / 2) + 1 %>  sm:gap-x-6 sm:gap-y-10 lg:gap-x-8">
                     <% locals.features.filter(f => !f.primary).forEach(({description, title, wip}, i, arr) => { %>
                         <div class="relative">
                             <dt>
                                 <% if (wip) { %>
                                     <!-- Heroicon name: outline/clock -->
-                                    <svg class="absolute h-6 w-6 text-yellow-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    <svg class="absolute h-6 w-6 text-yellow-500" xmlns="http://www.w3.org/2000/svg"
+                                         fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                     </svg>
                                 <% } else { %>
                                     <!-- Heroicon name: outline/check -->
                                     <svg class="absolute h-6 w-6 text-green-500" xmlns="http://www.w3.org/2000/svg"
-                                    fill="none"
-                                    viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                         fill="none"
+                                         viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M5 13l4 4L19 7"/>
+                                              d="M5 13l4 4L19 7"/>
                                     </svg>
                                 <% } %>
 
