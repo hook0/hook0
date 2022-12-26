@@ -56,15 +56,25 @@ Hook0 only requires Rust and supports most operating systems and SQL database ve
 
 _Other operating systems may also work, but are not officially supported._
 
-# License
-Hook0 is free and the source is available. Versions are published under the [Server Side Public License (SSPL) v1](./LICENSE.txt).
-
-The license allows the free right to use, modify, create derivative works, and redistribute, with three simple limitations:
-
-- You may not provide the products to others as a managed service
-- You may not circumvent the license key functionality or remove/obscure features protected by license keys
+d by license keys
 - You may not remove or obscure any licensing, copyright, or other notices
 
 # Related
 
 [Hook0 Cloud Status Page](https://status.hook0.com/)
+
+# ❤️ Contributing & Sponsoring
+Please read our [Contributing Guide](./contributing.md) before submitting Pull Requests.
+
+All security vulnerabilities should be reported in accordance with our Security Policy.
+
+# License
+
+Hook0 is a premium open-source [Server Side Public License (SSPL) v1](./LICENSE.txt) project made possible with support from our passionate core team, talented contributors, and amazing Sponsors. Thank you all!
+
+The license allows the free right to use, modify, create derivative works, and redistribute, with three simple limitations:
+
+- You may not provide the products to others as a managed service
+- You may not circumvent the license key functionality or remove/obscure features protect
+
+© Hook0 SAS
