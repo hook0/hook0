@@ -37,7 +37,7 @@ The [Hook0 Documentation](https://documentation.hook0.com/) is a great place to 
 - [Slack](https://join.slack.com/t/fgribreau/shared_invite/zt-edpjwt2t-Zh39mDUMNQ0QOr9qOj~jrg) (Live Discussions)
 - [Gitlab Issues](https://gitlab.com/hook0/hook0/-/issues) (Report Bugs, Questions, Feature Requests)
 - [Twitter](https://twitter.com/hook0_) (Latest News)
-- [Website](https://www.hook0.com/) (Log in, sign up)
+- [Website](https://www.hook0.com/) (Login, sign up)
 
 # 📌 Requirements
 Hook0 only requires Rust and supports most operating systems and SQL database vendors.
