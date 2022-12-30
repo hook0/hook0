@@ -31,7 +31,7 @@ lazy_static = "1.4.0"
 log = "0.4.17"
 nom = "7.1.1"
 nom-regex = "0.2.0"
-paperclip = { git = "https://github.com/paperclip-rs/paperclip", rev = "757ae2784e9c4b0aa1889dcee87c4d731b6cf0d2", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
+paperclip = { git = "https://github.com/paperclip-rs/paperclip", rev = "db3b920d6b8738bf5d1aa1d4701e3e74d05afd46", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
 regex = "1.7.0"
 reqwest = { version = "0.11.13", default-features = false, features = ["rustls-tls", "trust-dns"] }
 sentry-integration = { path = "../sentry-integration" }
