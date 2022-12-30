@@ -13,49 +13,10 @@ stages:
   - release
   - documentation
 
-rust.check:
-  stage: test
-  image: rust:$RUST_VERSION
-  only:
-    changes:
-      - api/**/*
-      - output-worker/**/*
-      - sentry-integration/**/*
-      - clients/rust/**/*
-      - Cargo.*
-  variables:
-    SQLX_OFFLINE: "true"
-  services:
-    - postgres:$PG_VERSION
-  before_script:
-    - rustc --version && cargo --version
-    - rustup component add clippy
-    - rustup component add rustfmt
-  script:
-    # Global
-    - cargo fmt --all -- --check
-    # Sentry integration
-    - pushd sentry-integration
-    - cargo clippy --all-targets --all-features -- -D warnings
-    - cargo test
-    - popd
-    # Client
-    - pushd clients/rust
-    - cargo clippy --all-targets --all-features -- -D warnings
-    - cargo test
-    - popd
-    # API
-    - pushd api
-    - cargo clippy --all-targets --all-features -- -D warnings
-    - cargo test
-    - popd
-    # Output Worker
-    - pushd output-worker
-    - cargo clippy --all-targets --all-features -- -D warnings
-    - cargo test
-    - popd
-
 include:
-  - local: 'frontend/.gitlab-ci.yml'
-  - local: 'website/.gitlab-ci.yml'
   - local: 'api/.gitlab-ci.yml'
+  - local: 'clients/rust/.gitlab-ci.yml'
+  - local: 'frontend/.gitlab-ci.yml'
+  - local: 'output-worker/.gitlab-ci.yml'
+  - local: 'sentry-integration/.gitlab-ci.yml'
+  - local: 'website/.gitlab-ci.yml'
