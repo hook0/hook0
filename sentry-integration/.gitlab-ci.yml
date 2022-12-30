@@ -1,0 +1,16 @@
+sentry_integration.check:
+  stage: test
+  image: rust:$RUST_VERSION
+  only:
+    changes:
+      - sentry-integration/**/*
+      - Cargo.*
+  before_script:
+    - rustc --version && cargo --version
+    - rustup component add clippy
+    - rustup component add rustfmt
+  script:
+    - pushd sentry-integration
+    - cargo fmt --all -- --check
+    - cargo clippy --all-targets --all-features -- -D warnings
+    - cargo test
