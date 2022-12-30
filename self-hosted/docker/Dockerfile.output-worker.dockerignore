@@ -1,0 +1,6 @@
+*
+!Cargo*
+!api
+!output-worker
+!sentry-integration
+!self-hosted/docker/copy-so-files.sh
