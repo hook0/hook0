@@ -1137,7 +1137,7 @@ dependencies = [
  "log",
  "nom",
  "nom-regex",
- "paperclip 0.7.1 (git+https://github.com/paperclip-rs/paperclip?rev=757ae2784e9c4b0aa1889dcee87c4d731b6cf0d2)",
+ "paperclip 0.7.1 (git+https://github.com/paperclip-rs/paperclip?rev=db3b920d6b8738bf5d1aa1d4701e3e74d05afd46)",
  "regex",
  "reqwest",
  "sentry-integration",
@@ -1790,16 +1790,16 @@ dependencies = [
 [[package]]
 name = "paperclip"
 version = "0.7.1"
-source = "git+https://github.com/paperclip-rs/paperclip?rev=757ae2784e9c4b0aa1889dcee87c4d731b6cf0d2#757ae2784e9c4b0aa1889dcee87c4d731b6cf0d2"
+source = "git+https://github.com/paperclip-rs/paperclip?rev=db3b920d6b8738bf5d1aa1d4701e3e74d05afd46#db3b920d6b8738bf5d1aa1d4701e3e74d05afd46"
 dependencies = [
  "anyhow",
  "indexmap",
  "itertools",
  "once_cell",
  "openapiv3",
- "paperclip-actix 0.5.1 (git+https://github.com/paperclip-rs/paperclip?rev=757ae2784e9c4b0aa1889dcee87c4d731b6cf0d2)",
- "paperclip-core 0.5.2 (git+https://github.com/paperclip-rs/paperclip?rev=757ae2784e9c4b0aa1889dcee87c4d731b6cf0d2)",
- "paperclip-macros 0.6.1 (git+https://github.com/paperclip-rs/paperclip?rev=757ae2784e9c4b0aa1889dcee87c4d731b6cf0d2)",
+ "paperclip-actix 0.5.1 (git+https://github.com/paperclip-rs/paperclip?rev=db3b920d6b8738bf5d1aa1d4701e3e74d05afd46)",
+ "paperclip-core 0.5.2 (git+https://github.com/paperclip-rs/paperclip?rev=db3b920d6b8738bf5d1aa1d4701e3e74d05afd46)",
+ "paperclip-macros 0.6.1 (git+https://github.com/paperclip-rs/paperclip?rev=db3b920d6b8738bf5d1aa1d4701e3e74d05afd46)",
  "semver",
  "serde",
  "serde_derive",
@@ -1828,7 +1828,7 @@ dependencies = [
 [[package]]
 name = "paperclip-actix"
 version = "0.5.1"
-source = "git+https://github.com/paperclip-rs/paperclip?rev=757ae2784e9c4b0aa1889dcee87c4d731b6cf0d2#757ae2784e9c4b0aa1889dcee87c4d731b6cf0d2"
+source = "git+https://github.com/paperclip-rs/paperclip?rev=db3b920d6b8738bf5d1aa1d4701e3e74d05afd46#db3b920d6b8738bf5d1aa1d4701e3e74d05afd46"
 dependencies = [
  "actix-service",
  "actix-web",
@@ -1836,8 +1836,8 @@ dependencies = [
  "mime_guess",
  "once_cell",
  "openapiv3",
- "paperclip-core 0.5.2 (git+https://github.com/paperclip-rs/paperclip?rev=757ae2784e9c4b0aa1889dcee87c4d731b6cf0d2)",
- "paperclip-macros 0.6.1 (git+https://github.com/paperclip-rs/paperclip?rev=757ae2784e9c4b0aa1889dcee87c4d731b6cf0d2)",
+ "paperclip-core 0.5.2 (git+https://github.com/paperclip-rs/paperclip?rev=db3b920d6b8738bf5d1aa1d4701e3e74d05afd46)",
+ "paperclip-macros 0.6.1 (git+https://github.com/paperclip-rs/paperclip?rev=db3b920d6b8738bf5d1aa1d4701e3e74d05afd46)",
  "serde_json",
 ]
 
@@ -1863,7 +1863,7 @@ dependencies = [
 [[package]]
 name = "paperclip-core"
 version = "0.5.2"
-source = "git+https://github.com/paperclip-rs/paperclip?rev=757ae2784e9c4b0aa1889dcee87c4d731b6cf0d2#757ae2784e9c4b0aa1889dcee87c4d731b6cf0d2"
+source = "git+https://github.com/paperclip-rs/paperclip?rev=db3b920d6b8738bf5d1aa1d4701e3e74d05afd46#db3b920d6b8738bf5d1aa1d4701e3e74d05afd46"
 dependencies = [
  "actix-web",
  "chrono",
@@ -1871,7 +1871,7 @@ dependencies = [
  "mime",
  "once_cell",
  "openapiv3",
- "paperclip-macros 0.6.1 (git+https://github.com/paperclip-rs/paperclip?rev=757ae2784e9c4b0aa1889dcee87c4d731b6cf0d2)",
+ "paperclip-macros 0.6.1 (git+https://github.com/paperclip-rs/paperclip?rev=db3b920d6b8738bf5d1aa1d4701e3e74d05afd46)",
  "pin-project-lite",
  "regex",
  "serde",
@@ -1903,7 +1903,7 @@ dependencies = [
 [[package]]
 name = "paperclip-macros"
 version = "0.6.1"
-source = "git+https://github.com/paperclip-rs/paperclip?rev=757ae2784e9c4b0aa1889dcee87c4d731b6cf0d2#757ae2784e9c4b0aa1889dcee87c4d731b6cf0d2"
+source = "git+https://github.com/paperclip-rs/paperclip?rev=db3b920d6b8738bf5d1aa1d4701e3e74d05afd46#db3b920d6b8738bf5d1aa1d4701e3e74d05afd46"
 dependencies = [
  "heck",
  "http",
