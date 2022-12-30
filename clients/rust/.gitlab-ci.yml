@@ -1,0 +1,16 @@
+client.rust.check:
+  stage: test
+  image: rust:$RUST_VERSION
+  only:
+    changes:
+      - clients/rust/**/*
+      - Cargo.*
+  before_script:
+    - rustc --version && cargo --version
+    - rustup component add clippy
+    - rustup component add rustfmt
+  script:
+    - pushd clients/rust
+    - cargo fmt --all -- --check
+    - cargo clippy --all-targets --all-features -- -D warnings
+    - cargo test
