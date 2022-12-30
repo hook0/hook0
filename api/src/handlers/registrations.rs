@@ -18,7 +18,6 @@ use crate::problems::Hook0Problem;
 pub struct Registration {
     organization_id: Uuid,
     user_id: Uuid,
-    temporary_password: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
@@ -31,6 +30,8 @@ pub struct RegistrationPost {
     last_name: String,
     #[validate(non_control_character, email, length(max = 100))]
     email: String,
+    #[validate(non_control_character, length(min = 10, max = 100))]
+    password: String,
 }
 
 #[api_v2_operation(
@@ -93,9 +94,10 @@ async fn do_register(
     // TODO: implement something to detect/garbage collect these inactive users/groups.
     let mut tx = db.begin().await?;
 
-    let (user_id, temporary_password) = kc_api
+    let user_id = kc_api
         .create_user(
             &registration_req.email,
+            &registration_req.password,
             &registration_req.first_name,
             &registration_req.last_name,
         )
@@ -113,7 +115,6 @@ async fn do_register(
     Ok(Registration {
         organization_id,
         user_id,
-        temporary_password,
     })
 }
 
