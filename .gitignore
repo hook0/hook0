@@ -16,3 +16,6 @@ node_modules
 # ide
 .idea
 api/.clever.json
+
+# docker-compose
+.data
