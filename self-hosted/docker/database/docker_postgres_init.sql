@@ -1,0 +1,8 @@
+CREATE DATABASE hook0;
+CREATE USER hook0_api WITH ENCRYPTED PASSWORD 'hook0_api';
+GRANT ALL ON DATABASE hook0 to hook0_api;
+
+CREATE DATABASE keycloak;
+CREATE USER keycloak WITH ENCRYPTED PASSWORD 'keycloak';
+GRANT ALL ON DATABASE keycloak to keycloak;
+GRANT ROOT TO keycloak;
