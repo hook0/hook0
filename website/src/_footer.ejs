@@ -1,57 +1,195 @@
 <a name="footer" id="footer"></a>
-<footer class="bg-white">
-    <div class="max-w-7xl mx-auto py-12 px-4 overflow-hidden sm:px-6 lg:px-8">
-        <nav class="-mx-5 -my-2 flex flex-wrap justify-center" aria-label="Footer">
-            <div class="px-5 py-2">
-                <a href="./index.ejs#how-it-works" class="text-base text-gray-500 hover:text-gray-900"
-                   title="How Hook0 works to send webhooks">
-                    How it works
-                </a>
-            </div>
+<footer class="bg-gray-800" aria-labelledby="footer-heading">
+    <h2 id="footer-heading" class="sr-only">Footer</h2>
+    <div class="mx-auto max-w-7xl py-12 px-4 sm:px-6 lg:py-16 lg:px-8">
+        <div class="container mx-auto px-8">
+            <div class="flex flex-col md:flex-row justify-center gap-y-8 gap-x-14 pt-12 pb-32">
 
-            <div class="px-5 py-2">
-                <a href="https://status.hook0.com/" class="text-base text-gray-500 hover:text-gray-900"
-                   title="Hook0 Status Page">
-                    Status Page
-                </a>
-            </div>
+                <div>
+                    <h3 class="text-base font-medium text-white">About</h3>
+                    <ul role="list" class="mt-4 space-y-4">
+                        <li class="pl-0">
+                            <a href="mailto:support@hook0.com" class="text-base text-gray-300 hover:text-white">
+                                Contact
+                            </a>
+                        </li>
+                        <li class="pl-0">
+                            <a href="/#pricing" class="text-base text-gray-300 hover:text-white">
+                                Pricing
+                            </a>
+                        </li>
+                        <li class="pl-0">
+                            <a href="<%= locals.meta.doc_guides %>"
+                               class="text-base text-gray-300 hover:text-white">
+                                Resources
+                            </a>
+                        </li>
+                        <li class="pl-0">
+                            <a href="./security.ejs" class="text-base text-gray-300 hover:text-white">
+                                Security &amp; Compliance
+                            </a>
+                        </li>
+                        <li class="pl-0">
+                            <a href="privacy-policy.ejs" class="text-base text-gray-300 hover:text-white">
+                                Privacy
+                            </a>
+                        </li>
+                        <li class="pl-0">
+                            <a href="./terms.ejs" class="text-base text-gray-300 hover:text-white">
+                                Legal
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="mt-12 md:mt-0">
+                    <h3 class="text-base font-medium text-white">Developers</h3>
+                    <ul role="list" class="mt-4 space-y-4">
+                        <li class="pl-0">
+                            <a href="<%= locals.meta.doc_getstarted %>" class="text-base text-gray-300 hover:text-white">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                                     stroke="currentColor" aria-hidden="true"
+                                     class="inline-block w-5 h-5 mr-2 align-text-bottom text-white-700">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                          d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                                Start in 5 minutes
+                            </a>
+                        </li>
+                        <li class="pl-0">
+                            <a href="<%= locals.meta.doc_guides %>" class="text-base text-gray-300 hover:text-white">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                                     stroke="currentColor" aria-hidden="true"
+                                     class="inline-block w-5 h-5 mr-2 align-text-bottom text-white">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                          d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                                </svg>
 
-            <div class="px-5 py-2">
-                <a href="privacy-policy.ejs" class="text-base text-gray-500 hover:text-gray-900">
-                    Privacy Policy
-                </a>
-            </div>
+                                Documentation
+                            </a>
+                        </li>
+                        <li class="pl-0">
+                            <a href="<%= locals.meta.doc_api_reference %>" class="text-base text-gray-300 hover:text-white">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                                     stroke="currentColor" aria-hidden="true"
+                                     class="inline-block w-5 h-5 mr-2 align-text-bottom text-white">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                          d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"></path>
+                                </svg>
 
-            <div class="px-5 py-2">
-                <a href="terms.ejs" class="text-base text-gray-500 hover:text-gray-900">
-                    Terms of Service
-                </a>
-            </div>
+                                API Reference
+                            </a>
+                        </li>
+                        <li class="pl-0">
+                            <a href="<%= locals.social.gitlab.href %>" class="text-base text-gray-300 hover:text-white">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                                     stroke="currentColor" aria-hidden="true"
+                                     class="inline-block w-5 h-5 mr-2 align-text-bottom text-white">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                          d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                                </svg>
+                                SDK &amp; Libraries
+                            </a>
+                        </li>
+                        <li class="pl-0">
+                            <a href="<%= locals.social.gitlab.repoHref %>" class="text-base text-gray-300 hover:text-white">
+                                <svg role="img" class="inline-block w-5 h-5 mr-2 align-text-bottom text-white"
+                                     fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>
+                                        GitLab</title>
+                                    <path d="M4.845.904c-.435 0-.82.28-.955.692C2.639 5.449 1.246 9.728.07 13.335a1.437 1.437 0 00.522 1.607l11.071 8.045c.2.145.472.144.67-.004l11.073-8.04a1.436 1.436 0 00.522-1.61c-1.285-3.942-2.683-8.256-3.817-11.746a1.004 1.004 0 00-.957-.684.987.987 0 00-.949.69l-2.405 7.408H8.203l-2.41-7.408a.987.987 0 00-.942-.69h-.006zm-.006 1.42l2.173 6.678H2.675zm14.326 0l2.168 6.678h-4.341zm-10.593 7.81h6.862c-1.142 3.52-2.288 7.04-3.434 10.559L8.572 10.135zm-5.514.005h4.321l3.086 9.5zm13.567 0h4.325c-2.467 3.17-4.95 6.328-7.411 9.502 1.028-3.167 2.059-6.334 3.086-9.502zM2.1 10.762l6.977 8.947-7.817-5.682a.305.305 0 01-.112-.341zm19.798 0l.952 2.922a.305.305 0 01-.11.341v.002l-7.82 5.68.026-.035z"></path>
+                                </svg>
 
-            <div class="px-5 py-2">
-                <a href="security.ejs" class="text-base text-gray-500 hover:text-gray-900">
-                    Security &amp; Compliance
-                </a>
-            </div>
+                                Source Code
+                            </a>
+                        </li>
+                        <li class="pl-0">
+                            <a href="https://status.hook0.com/" class="text-base text-gray-300 hover:text-white">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                                     stroke="currentColor" aria-hidden="true"
+                                     class="inline-block w-5 h-5 mr-2 align-text-bottom text-white">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                          d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.072 0a5 5 0 010 7.07M13 12a1 1 0 11-2 0 1 1 0 012 0z"></path>
+                                </svg>
 
-            <div class="px-5 py-2">
-                <a href="mailto:support@hook0.com" class="text-base text-gray-500 hover:text-gray-900">
-                    Contact Us
-                </a>
+                                Status Page
+                            </a>
+                        </li>
+                        <li class="pl-0">
+                            <a href="https://documentation.hook0.com/docs/docker-compose"
+                               class="text-base text-gray-300 hover:text-white">
+
+                                <svg role="img" class="inline-block w-5 h-5 mr-2 align-text-bottom text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.737 5.1a3.375 3.375 0 012.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 01.9 2.7m0 0a3 3 0 01-3 3m0 3h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008zm-3 6h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008z" />
+                                </svg>
+
+
+                                Self-hosting Hook0
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-base font-medium text-white">Community</h3>
+                    <ul role="list" class="mt-4 space-y-4">
+                        <li class="pl-0">
+                            <a href="https://gitlab.com/hook0/hook0/-/blob/master/code_of_conduct.md" target="_blank"
+                               class="text-base text-gray-300 hover:text-white">
+                                <span class="inline-block w-5 h-5 mr-2 align-text-bottom text-white">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                     stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                          d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
+                                </svg>
+                                </span>
+
+                                Code of Conduct
+                            </a>
+                        </li>
+                        <li class="pl-0">
+                            <a href="<%= locals.social.slack.href %>" target="_blank" title=""
+                               class="text-base text-gray-300 hover:text-white">
+                                <span class="inline-block w-5 h-5 mr-2 align-text-bottom text-white"><%- locals.social.slack.logo %></span>
+                                <%= locals.social.slack.name %>
+                            </a>
+                        </li>
+                        <li class="pl-0">
+                            <a href="<%= locals.social.gitlab.repoHref %>" target="_blank" title=""
+                               class="text-base text-gray-300 hover:text-white">
+                                <span class="inline-block w-5 h-5 mr-2 align-text-bottom text-white"><%- locals.social.gitlab.logo %></span>
+                                <%= locals.social.gitlab.name %>
+                            </a>
+                        </li>
+                        <li class="pl-0">
+                            <a href="<%= locals.social.linkedin.href %>" target="_blank" title=""
+                               class="text-base text-gray-300 hover:text-white">
+                                <span class="inline-block w-5 h-5 mr-2 align-text-bottom text-white"><%- locals.social.linkedin.logo %></span>
+                                <%= locals.social.linkedin.name %>
+                            </a>
+                        </li>
+                        <li class="pl-0">
+                            <a href="<%= locals.social.twitter.href %>" target="_blank" title=""
+                               class="text-base text-gray-300 hover:text-white">
+                                <span class="sr-only"><%= locals.social.twitter.name %></span>
+                                <span class="inline-block w-5 h-5 mr-2 align-text-bottom text-white"><%- locals.social.twitter.logo %></span>
+                                <%= locals.social.twitter.name %>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </div>
-        </nav>
-        <div class="mt-8 flex justify-center space-x-6">
-            <% Object.values(locals.social).forEach((social) => { %>
-                <a href="<%= social.href %>" class="text-gray-400 hover:text-gray-500">
-                    <span class="sr-only"><%= social.name %></span>
-                    <%- social.logo %>
-                </a>
-            <% }) %>
         </div>
-        <p class="mt-8 text-center text-base text-gray-400">
-            &copy; Hook0. All rights reserved.</br>
-            Hook0 is made by an European French Tech company from Nantes, France.<br/>
-            100% bootstraped, no VCs, we are here to stay.
-        </p>
+        <div class="mt-8 border-t border-gray-700 pt-8 md:flex md:items-center md:justify-between">
+
+            <div class="flex space-x-6 md:order-2">
+                <% Object.values(locals.social).forEach((social) => { %>
+                    <a href="<%= social.href %>" class="text-gray-400 hover:text-gray-300">
+                        <span class="sr-only"><%= social.name %></span>
+                        <%- social.logo %>
+                    </a>
+                <% }) %>
+            </div>
+            <p class="mt-8 text-base text-gray-400 md:order-1 md:mt-0">&copy; Hook0. All rights reserved.</br>
+                Hook0 is made by an European French Tech company from Nantes, France.<br/>
+                100% bootstraped, no VCs, we are here to stay.</p>
+        </div>
     </div>
 </footer>
