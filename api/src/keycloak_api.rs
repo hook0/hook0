@@ -321,11 +321,11 @@ impl KeycloakApi {
     pub async fn create_user(
         &self,
         email: &str,
+        password: &str,
         first_name: &str,
         last_name: &str,
-    ) -> Result<(Uuid, String), Hook0Problem> {
+    ) -> Result<Uuid, Hook0Problem> {
         let user_url = self.mk_url(&["users"])?;
-        let password = Self::gen_password();
         let user = KcUser {
             username: email,
             email,
@@ -333,8 +333,8 @@ impl KeycloakApi {
             last_name,
             credentials: vec![KcUserCredential {
                 id: "password",
-                value: &password,
-                temporary: true, // TODO: send a welcome email and set this to true
+                value: password,
+                temporary: false,
             }],
             enabled: true,
             email_verified: false,
@@ -360,7 +360,7 @@ impl KeycloakApi {
             })?;
         let user_id = Self::extract_resource_id_from_redirection(&res)?;
 
-        Ok((user_id, password))
+        Ok(user_id)
     }
 
     pub async fn ensure_email_does_not_exist(&self, user_email: &str) -> Result<(), Hook0Problem> {
@@ -635,16 +635,6 @@ impl KeycloakApi {
                     Hook0Problem::InternalServerError
                 })
             })
-    }
-
-    fn gen_password() -> String {
-        use rand::Rng;
-
-        rand::thread_rng()
-            .sample_iter(&rand::distributions::Alphanumeric)
-            .take(15)
-            .map(|byte| byte as char)
-            .collect()
     }
 }
 

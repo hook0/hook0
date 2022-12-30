@@ -1138,7 +1138,6 @@ dependencies = [
  "nom",
  "nom-regex",
  "paperclip 0.7.1 (git+https://github.com/paperclip-rs/paperclip?rev=757ae2784e9c4b0aa1889dcee87c4d731b6cf0d2)",
- "rand",
  "regex",
  "reqwest",
  "sentry-integration",
@@ -2096,7 +2095,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34af8d1a0e25924bc5b7c43c079c942339d8f0a8b57c39049bef581b46327404"
 dependencies = [
  "libc",
- "log",
  "rand_chacha",
  "rand_core",
 ]
