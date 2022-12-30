@@ -1,11 +1,10 @@
-api.check:
+output_worker.check:
   stage: test
   image: rust:$RUST_VERSION
   only:
     changes:
-      - api/**/*
+      - output-worker/**/*
       - sentry-integration/**/*
-      - clients/rust/**/*
       - Cargo.*
   variables:
     SQLX_OFFLINE: "true"
@@ -16,22 +15,7 @@ api.check:
     - rustup component add clippy
     - rustup component add rustfmt
   script:
-    - pushd api
+    - pushd output-worker
     - cargo fmt --all -- --check
     - cargo clippy --all-targets --all-features -- -D warnings
     - cargo test
-
-api.documentation:
-  stage: documentation
-  environment:
-    name: production-api
-    url: https://app.hook0.com/api/v1
-  only:
-    refs:
-      - master
-    changes:
-      - api/**
-      - Cargo.*
-  image: node:$NODE_VERSION
-  script:
-    - npx --yes rdme@8.3.0 openapi --id=${README_IO_ID} --key=${README_IO_KEY} --update https://app.hook0.com/api/v1/swagger.json
