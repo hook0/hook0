@@ -67,7 +67,7 @@ impl Response {
                     (key, value)
                 });
             let hashmap: HashMap<String, String> = iter.collect();
-            serde_json::to_value(&hashmap).ok()
+            serde_json::to_value(hashmap).ok()
         })
     }
 
