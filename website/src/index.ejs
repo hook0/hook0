@@ -28,208 +28,45 @@
                                           clip-rule="evenodd"/>
                                 </svg>
                             </a>
-                            <h1 class="mt-4 text-2xl tracking-tight font-extrabold text-white sm:mt-5 sm:text-5xl lg:mt-6 xl:text-4xl">
-                                <div class="block">Webhooks <span class="text-green-400">As A Service</span></div>
+                            <h1 class="mt-4 text-4xl tracking-tight font-extrabold text-white sm:mt-5 sm:text-6xl lg:mt-6 xl:text-6xl">
+                                <span class="block">Webhooks</span>
+                                <span class="block text-green-400">As A Service</span>
                             </h1>
+
                             <p class="mt-3 text-base text-gray-300 sm:mt-5 sm:text-xl lg:text-lg xl:text-xl">
-                                Imagine if every SaaS could talk to every SaaS without any effort. You’d get an
-                                Open-Source Webhooks-as-a-service (WaaS) provider like Hook0, the easiest way to build a
-                                platform. Connecting your SaaS with others is just one API call away.
+                                Hook0 is an Open-Source Webhooks-as-a-service (WaaS) that makes it easy for developers to send webhooks. Developers make one API call, and Svix takes care of deliverability, retries, security, and more.
                             </p>
                             <div class="mt-10 sm:mt-12">
-                                <!-- success form -->
-                                <div class="relative hidden bg-white flex flex-col rounded-xl shadow-xl p-5 js-signup-form">
-                                    <dt>
-                                        <svg class="absolute h-6 w-6 text-green-500" fill="none" stroke="currentColor"
-                                             aria-hidden="true" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                  d="m5 13 4 4L19 7"></path>
-                                        </svg>
-                                        <p class="font-medium leading-6 ml-9 text-gray-900 text-lg">Email</p>
-                                    </dt>
-                                    <dd class="ml-9 mt-2 bg-green-50 p-2 rounded-md text-base font-mono text-gray-500"
-                                        data-success="email">
-                                        email
-                                    </dd>
-                                    <dt class="mt-4">
-                                        <svg class="absolute h-6 w-6 text-green-500" fill="none" stroke="currentColor"
-                                             aria-hidden="true" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                  d="m5 13 4 4L19 7"></path>
-                                        </svg>
-                                        <p class="font-medium leading-6 ml-9 text-gray-900 text-lg">Temporary
-                                            password</p>
-                                    </dt>
-                                    <dd class="ml-9 mt-2 bg-green-50 p-2 rounded-md text-base font-mono text-gray-500"
-                                        data-success="password">
-                                        password
-                                    </dd>
-                                    <dt class="mt-4">
-                                        <svg class="absolute h-6 w-6 text-yellow-500" xmlns="http://www.w3.org/2000/svg"
-                                             fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                        </svg>
-                                        <p class="font-medium leading-6 ml-9 text-gray-900 text-lg">Login and
-                                            change
-                                            your password</p>
-                                    </dt>
-                                    <dd class="ml-9 mt-2 text-base text-gray-500" id="success_form_password">
-                                        <a href="<%= locals.meta.login %>"
-                                           class="inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md text-white bg-gray-600 hover:bg-gray-700">
-                                            Log in
+                                <div class="mt-10 sm:mt-12">
+                                    <div class="rounded-md shadow">
+                                        <a href="./sign_up.ejs" class="w-full flex items-center justify-center px-8 py-3 shadow border border-transparent text-base font-medium rounded-md text-white bg-green-500 hover:bg-green-700 md:py-4 md:text-lg md:px-10 focus:ring-2 focus:ring-green-300 focus:ring-offset-2 focus:ring-offset-gray-900">
+                                            Get Started For Free
                                         </a>
-                                    </dd>
+                                    </div>
                                 </div>
 
-                                <!-- default form -->
-                                <form method="_blank"
-                                      class="sm:max-w-xl sm:mx-auto lg:mx-0 js-signup-form">
-
-                                    <div class="sm:flex">
-                                        <div class="min-w-0 flex-1">
-                                            <label for="EMAIL" class="sr-only">Email address</label>
-                                            <input id="EMAIL" name="EMAIL" tabIndex="9" type="email"
-                                                   placeholder="Enter your email"
-                                                   class="block w-full px-4 py-3 rounded-md border-0 text-base text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-300 focus:ring-offset-gray-900">
-                                        </div>
-                                        <div class="mt-3 sm:mt-0 sm:ml-3">
-                                            <input type="hidden" name="locale" value="en">
-                                            <input type="hidden" name="html_type" value="simple">
-
-                                            <button type="submit"
-                                                    id="login_submit"
-                                                    tabIndex="10"
-                                                    class="block w-full py-3 px-4 rounded-md shadow bg-green-500 text-white font-medium hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-300 focus:ring-offset-gray-900">
-                                                Sign up
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div class="sm:flex">
-                                        <div class="mt-3 sm:mt-0 text-sm text-gray-300 sm:mt-4">
-                                            <label>
-                                                <input type="checkbox"
-                                                       class="input_replaced focus:ring-green-500 h-4 w-4 text-green-600 border-gray-300 align-middle"
-                                                       tabindex="9"
-                                                       value="1" id="OPT_IN"
-                                                       name="OPT_IN" required="">
-                                                <span class="mt-3 text-sm text-gray-300 sm:mt-4 align-middle">I accept Hook0 <a
-                                                            href="./terms.ejs"
-                                                            class="font-medium text-white">terms of service</a>.</span>
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                </form>
-
-                                <!-- error_form -->
-                                <div class="rounded-md hidden bg-red-50 rounded-xl shadow-xl p-5 mt-5 js-signup-form">
-                                    <div class="flex">
-                                        <div class="flex-shrink-0">
-                                            <!-- Heroicon name: solid/x-circle -->
-                                            <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg"
-                                                 viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                                <path fill-rule="evenodd"
-                                                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                                                      clip-rule="evenodd"/>
+                                <div class="mt-8 w-full sm:mx-auto sm:max-w-lg lg:ml-0">
+                                    <div class="flex flex-wrap items-start justify-between">
+                                        <div class="flex justify-center px-1 text-white">
+                                            <svg class="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                                             </svg>
+                                            Free Trial
                                         </div>
-                                        <div class="ml-3">
-                                            <h3 class="text-sm font-medium text-red-800"
-                                                data-problem="title">title</h3>
-                                            <div class="mt-2 text-sm text-red-700 flex-1 md:flex md:justify-between">
-                                                <p data-problem="detail">details</p>
-                                            </div>
+                                        <div class="flex justify-center px-1 text-white">
+                                            <svg class="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                            </svg>
+                                            No Credit Card Required
+                                        </div>
+                                        <div class="flex justify-center px-1 text-white">
+                                            <svg class="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                            </svg>
+                                            Cancel Anytime
                                         </div>
                                     </div>
                                 </div>
-
-                                <script>
-                                  (function () {
-                                    const submit = document.getElementById('login_submit');
-                                    const [success_form, signup_form, error_form] = document.querySelectorAll('.js-signup-form');
-
-                                    signup_form.addEventListener('submit', (e) => {
-                                      e.preventDefault();
-
-                                      submit.disabled = true;
-
-                                      const email = document.getElementById('EMAIL').value;
-
-                                      /**
-                                       * @param {object} data
-                                       * @property {string} title
-                                       * @property {string} type
-                                       * @property {string} detail
-                                       */
-                                      function displayProblem(data) {
-                                        error_form.classList.remove('hidden');
-                                        $set('problem', data);
-                                      }
-
-                                      function displaySuccess(data) {
-                                        success_form.classList.remove('hidden');
-                                        signup_form.classList.add('hidden');
-                                        $set('success', data);
-                                      }
-
-                                      function $set(kind, data) {
-                                        Object.entries(data).forEach(([k, v]) => {
-                                          const el = document.querySelector(`[data-${kind}="${k}"]`);
-                                          if (!el) {
-                                            return;
-                                          }
-                                          el.innerText = v;
-                                        })
-                                      }
-
-                                      fetch('https://app.hook0.com/api/v1/register', {
-                                        redirect: 'error',
-                                        method: 'POST',
-                                        headers: {
-                                          'Content-type': 'application/json'
-                                        },
-                                        body: JSON.stringify({
-                                          "email": email,
-                                          "first_name": " ",
-                                          "last_name": " ",
-                                          "organization_name": email.replace('@', '-').replace(/[^a-z]/, '')
-                                        }),
-                                        mode: 'cors',
-                                        cache: 'default'
-                                      }).then((r) => r.json().then(data => ([r, data])))
-                                        .then(([response, data]) => {
-                                          if ([400, 409].includes(response.status) && response.headers.get('content-type') === 'application/problem+json') {
-                                            displayProblem(data);
-                                            return;
-                                          } else if (response.status !== 201) {
-                                            // fallback on global catch
-                                            throw new Error('Unknown error: ' + JSON.stringify(data));
-                                          }
-
-                                          error_form.classList.add('hidden');
-
-                                          displaySuccess({
-                                            email: email,
-                                            password: data.temporary_password
-                                          })
-                                        })
-                                        .catch(err => {
-                                          displayProblem({
-                                            title: 'Error',
-                                            detail: err.message,
-                                            type: 'unknown'
-                                          });
-                                        })
-                                        .finally(() => {
-                                          submit.disabled = false;
-                                        });
-
-                                    });
-
-                                  })();
-                                </script>
-
                             </div>
                         </div>
                     </div>
@@ -243,6 +80,7 @@
                 </div>
             </div>
 
+            <% /*
             <section class="mt-40 lg:px-8 max-w-7xl mx-auto pb-32 px-4 relative sm:px-6 z-10"
                      aria-labelledby="contact-heading">
                 <h2 class="sr-only" id="contact-heading">Setup and forget</h2>
@@ -306,6 +144,7 @@
                     </div>
                 </div>
             </section>
+            */%>
         </div>
 
     </main>
@@ -320,6 +159,8 @@
 <%- include('./_testimonials') %>
 
 <%- include('./_use-case') %>
+
+  <%- include('./_api-and-doc.ejs') %>
 
 <a name="pricing" id="pricing"></a>
 <%- include('./_pricing') %>
