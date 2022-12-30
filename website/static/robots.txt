@@ -1,0 +1,2 @@
+# Hello :)
+Sitemap: https://www.hook0.com/sitemap.xml
