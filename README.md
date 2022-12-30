@@ -56,9 +56,6 @@ Hook0 only requires Rust and supports most operating systems and SQL database ve
 
 _Other operating systems may also work, but are not officially supported._
 
-d by license keys
-- You may not remove or obscure any licensing, copyright, or other notices
-
 # Related
 
 [Hook0 Cloud Status Page](https://status.hook0.com/)
