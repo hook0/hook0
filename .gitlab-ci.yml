@@ -14,9 +14,24 @@ stages:
   - documentation
 
 include:
+  - template: SAST.gitlab-ci.yml
   - local: 'api/.gitlab-ci.yml'
   - local: 'clients/rust/.gitlab-ci.yml'
   - local: 'frontend/.gitlab-ci.yml'
   - local: 'output-worker/.gitlab-ci.yml'
   - local: 'sentry-integration/.gitlab-ci.yml'
   - local: 'website/.gitlab-ci.yml'
+
+
+osv:
+  image: golang:1.19.4-alpine3.17
+  allow_failure: true
+  script:
+    - apk add git
+    - go install github.com/google/osv-scanner/cmd/osv-scanner@v1
+    - osv-scanner --version
+    - osv-scanner --help
+    - osv-scanner --json --recursive . > dependency_check.json
+  artifacts:
+    reports:
+      dependency_scanning: dependency_check.json
