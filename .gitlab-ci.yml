@@ -7,8 +7,7 @@ variables:
   POSTGRES_PASSWORD: ""
   POSTGRES_HOST_AUTH_METHOD: trust
 
-services:
-  - docker:20.10.16-dind
+
 
 stages:
   - build
@@ -27,15 +26,14 @@ include:
 
 
 osv_dependency_scan:
+  tags:
+    - docker-privileged
+  services:
+    - docker:20.10.16-dind
   image: docker:20.10.16
   stage: test
   allow_failure: true
   variables:
-    # When using dind service, you must instruct docker to talk with the
-    # daemon started inside of the service. The daemon is available with
-    # a network connection instead of the default /var/run/docker.sock socket.
-    DOCKER_HOST: tcp://docker:2375
-    # This instructs Docker not to start over TLS.
-    DOCKER_TLS_CERTDIR: ""
+    DOCKER_TLS_CERTDIR: "/certs"
   script:
     - docker run -v $(pwd):/app -i ghcr.io/google/osv-scanner:v1.1.0 --recursive /app
