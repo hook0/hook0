@@ -8,7 +8,7 @@ variables:
   POSTGRES_HOST_AUTH_METHOD: trust
 
 services:
-  - docker:dind
+  - docker:20.10.16-dind
 
 stages:
   - build
@@ -27,6 +27,7 @@ include:
 
 
 osv_dependency_scan:
+  image: docker:20.10.16
   stage: test
   allow_failure: true
   script:
