@@ -26,14 +26,10 @@ include:
 
 
 osv_dependency_scan:
-  tags:
-    - docker-privileged
   services:
-    - docker:20.10.16-dind
-  image: docker:20.10.16
+    - docker:dind
+  image: docker:20.10.16-dind
   stage: test
   allow_failure: true
-  variables:
-    DOCKER_TLS_CERTDIR: "/certs"
   script:
     - docker run -v $(pwd):/app -i ghcr.io/google/osv-scanner:v1.1.0 --recursive /app
