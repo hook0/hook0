@@ -30,4 +30,7 @@ osv:
     - apk add git
     - go install github.com/google/osv-scanner/cmd/osv-scanner@v1
     - osv-scanner --version
-    - osv-scanner --recursive .
+    - osv-scanner --json --recursive . > dependency_check.json
+  artifacts:
+    reports:
+      dependency_scanning: dependency_check.json
