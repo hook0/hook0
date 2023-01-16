@@ -26,18 +26,6 @@ include:
   - local: 'website/.gitlab-ci.yml'
 
 
-osv:
-  image: golang:1.19.4-alpine3.17
-  allow_failure: true
-  script:
-    - apk add git
-    - go install github.com/google/osv-scanner/cmd/osv-scanner@v1
-    - osv-scanner --version
-    - osv-scanner --json --recursive . > dependency_check.json
-  artifacts:
-    reports:
-      dependency_scanning: dependency_check.json
-
 osv_dependency_scan:
   stage: test
   allow_failure: true
