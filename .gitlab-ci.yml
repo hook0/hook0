@@ -31,4 +31,4 @@ osv_dependency_scan:
   stage: test
   allow_failure: true
   script:
-    - docker run -v $(pwd):/app -it ghcr.io/google/osv-scanner:v1.1.0 --recursive /app
+    - docker run -v $(pwd):/app -i ghcr.io/google/osv-scanner:v1.1.0 --recursive /app
