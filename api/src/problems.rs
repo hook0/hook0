@@ -32,6 +32,8 @@ pub enum Hook0Problem {
 
     InvalidRole,
 
+    EventTypeAlreadyExist,
+
     EventAlreadyIngested,
     EventInvalidPayloadContentType,
     EventInvalidBase64Payload(String),
@@ -63,6 +65,7 @@ impl From<sqlx::Error> for Hook0Problem {
 
                 match pg_error.constraint() {
                     Some("application_name_chk") => Hook0Problem::ApplicationNameMissing,
+                    Some("event_type_pkey") => Hook0Problem::EventTypeAlreadyExist,
                     Some("event_pkey") => Hook0Problem::EventAlreadyIngested,
                     _ => {
                         error!("Database error: {}", &pg_error);
@@ -178,6 +181,14 @@ impl From<Hook0Problem> for Problem {
                     validation: None,
                     status: StatusCode::BAD_REQUEST,
                 }
+            },
+
+            Hook0Problem::EventTypeAlreadyExist => Problem {
+                id: Hook0Problem::EventTypeAlreadyExist,
+                title: "This event type already exist",
+                detail: "An event type with this name is already present.".into(),
+                validation: None,
+                status: StatusCode::CONFLICT,
             },
 
             Hook0Problem::EventAlreadyIngested => Problem {
