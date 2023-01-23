@@ -14,14 +14,14 @@ keywords = ["webhooks", "webhook", "webhook server", "events"]
 actix = "0.13.0"
 actix-cors = "0.6.4"
 actix-files = "0.6.2"
-actix-governor = { version = "0.4.0-beta.3", features = ["log"] }
-actix-web = "4.2.1"
+actix-governor = { version = "0.4.0", features = ["log"] }
+actix-web = "4.3.0"
 actix-web-middleware-keycloak-auth = { version = "0.4.0", features = ["paperclip_compat"] }
 anyhow = "1.0.68"
-async-recursion = "1.0.0"
-base64 = "0.20.0"
+async-recursion = "1.0.2"
+base64 = "0.21.0"
 chrono = { version = "0.4.23", features = ["serde"] }
-clap = { version = "4.0.32", features = ["derive", "env", "cargo", "wrap_help"] }
+clap = { version = "4.1.1", features = ["derive", "env", "cargo", "wrap_help"] }
 futures-util = "0.3.25"
 governor = "0.5.1"
 hook0-client = { path = "../clients/rust" }
@@ -29,11 +29,11 @@ http-api-problem = { version = "0.56.0", features = ["actix-web"] }
 ipnetwork = "0.19.0"
 lazy_static = "1.4.0"
 log = "0.4.17"
-nom = "7.1.1"
+nom = "7.1.3"
 nom-regex = "0.2.0"
-paperclip = { git = "https://github.com/paperclip-rs/paperclip", rev = "db3b920d6b8738bf5d1aa1d4701e3e74d05afd46", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
-regex = "1.7.0"
-reqwest = { version = "0.11.13", default-features = false, features = ["rustls-tls", "trust-dns"] }
+paperclip = { version = "0.8.0", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
+regex = "1.7.1"
+reqwest = { version = "0.11.14", default-features = false, features = ["rustls-tls", "trust-dns"] }
 sentry-integration = { path = "../sentry-integration" }
 serde = "1.0.152"
 serde_json = "1.0.91"
