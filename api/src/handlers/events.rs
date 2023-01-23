@@ -1,4 +1,5 @@
-use base64::encode;
+use base64::engine::general_purpose::STANDARD as Base64;
+use base64::Engine;
 use chrono::{DateTime, Utc};
 use ipnetwork::IpNetwork;
 use paperclip::actix::{
@@ -55,7 +56,8 @@ impl PayloadContentType {
                     .map_err(|e| Hook0Problem::EventInvalidJsonPayload(e.to_string()))?;
                 Ok(payload.as_bytes().to_vec())
             }
-            Self::Binary => Ok(base64::decode(payload)
+            Self::Binary => Ok(Base64
+                .decode(payload)
                 .map_err(|e| Hook0Problem::EventInvalidBase64Payload(e.to_string()))?),
         }
     }
@@ -181,7 +183,7 @@ impl EventWithPayloadRaw {
         EventWithPayload {
             event_id: self.event__id,
             event_type_name: self.event_type__name.clone(),
-            payload: encode(self.payload.as_slice()),
+            payload: Base64.encode(self.payload.as_slice()),
             payload_content_type: self.payload_content_type.clone(),
             ip: self.ip.ip().to_string(),
             metadata: self.metadata.clone(),
@@ -373,7 +375,7 @@ mod tests {
     fn validate_binary_payload() {
         let empty: Vec<u8> = vec![];
         let valid_payload = b"test";
-        let valid_encoded_payload = base64::encode(valid_payload);
+        let valid_encoded_payload = Base64.encode(valid_payload);
         let invalid_payload = "   ";
 
         assert_eq!(
