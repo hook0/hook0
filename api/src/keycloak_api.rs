@@ -412,7 +412,7 @@ impl KeycloakApi {
     }
 
     pub async fn get_user_by_email(&self, user_email: &str) -> Result<Option<User>, Hook0Problem> {
-        let operation = format!("getting user '{}' from Keycloak", user_email);
+        let operation = format!("getting user '{user_email}' from Keycloak");
         let user_url = self.mk_url(&["users"])?;
 
         let res = self
@@ -505,7 +505,7 @@ impl KeycloakApi {
         &self,
         group_name: &str,
     ) -> Result<Option<GroupLookup>, Hook0Problem> {
-        let operation = format!("looking up group '{}' from Keycloak", group_name);
+        let operation = format!("looking up group '{group_name}' from Keycloak");
         let group_url = self.mk_url(&["groups"])?;
 
         let res = self
@@ -535,7 +535,7 @@ impl KeycloakApi {
     }
 
     pub async fn get_group(&self, group_id: &Uuid) -> Result<Group, Hook0Problem> {
-        let operation = format!("getting group '{}' from Keycloak", group_id);
+        let operation = format!("getting group '{group_id}' from Keycloak");
         let group_url = self.mk_url(&["groups", group_id.to_string().as_str()])?;
 
         let res = self
@@ -566,7 +566,7 @@ impl KeycloakApi {
         &self,
         group_id: &Uuid,
     ) -> Result<Vec<GroupMember>, Hook0Problem> {
-        let operation = format!("getting members of group '{}' from Keycloak", group_id);
+        let operation = format!("getting members of group '{group_id}' from Keycloak");
         let group_url = self.mk_url(&["groups", group_id.to_string().as_str(), "members"])?;
 
         let res = self
