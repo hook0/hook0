@@ -21,8 +21,8 @@ anyhow = "1.0.68"
 async-recursion = "1.0.2"
 base64 = "0.21.0"
 chrono = { version = "0.4.23", features = ["serde"] }
-clap = { version = "4.1.1", features = ["derive", "env", "cargo", "wrap_help"] }
-futures-util = "0.3.25"
+clap = { version = "4.1.4", features = ["derive", "env", "cargo", "wrap_help"] }
+futures-util = "0.3.26"
 governor = "0.5.1"
 hook0-client = { path = "../clients/rust" }
 http-api-problem = { version = "0.56.0", features = ["actix-web"] }

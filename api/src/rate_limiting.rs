@@ -159,12 +159,12 @@ impl KeyExtractor for TokenKeyExtractor {
                         given_name: _,
                         family_name: _,
                     },
-            } => format!("jwt:{}", sub),
+            } => format!("jwt:{sub}"),
             AuthProof::ApplicationSecret {
                 application_id,
                 name: _,
                 secret: _,
-            } => format!("application_secret:{}", application_id),
+            } => format!("application_secret:{application_id}"),
         })
     }
 }
