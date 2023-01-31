@@ -38,11 +38,8 @@ pub fn metadata(val: &HashMap<String, Value>) -> Result<(), ValidationError> {
         return Err(ValidationError {
             code: CODE_METADATA_SIZE.into(),
             message: Some(
-                format!(
-                    "Metadata object cannot have more than {} properties",
-                    METADATA_MAX_SIZE
-                )
-                .into(),
+                format!("Metadata object cannot have more than {METADATA_MAX_SIZE} properties",)
+                    .into(),
             ),
             params: HashMap::new(),
         });
@@ -68,19 +65,19 @@ pub fn metadata(val: &HashMap<String, Value>) -> Result<(), ValidationError> {
     if !invalid_properties.is_empty() {
         let invalid = invalid_properties
             .iter()
-            .map(|(k, t)| format!("'{}' → {}", k, t))
+            .map(|(k, t)| format!("'{k}' → {t}"))
             .collect::<Vec<_>>()
             .join(", ");
         Err(ValidationError {
             code: CODE_METADATA_PROPERTY_TYPE.into(),
-            message: Some(format!("Metadata values must be of type string (found the following invalid properties: {})", &invalid).into()),
+            message: Some(format!("Metadata values must be of type string (found the following invalid properties: {invalid})").into()),
             params: HashMap::new(),
         })
     } else if !invalid_length.is_empty() {
         let invalid = invalid_length.join(", ");
         Err(ValidationError {
             code: CODE_METADATA_PROPERTY_LENGTH.into(),
-            message: Some(format!("Metadata properties and values must have a length between {} and {} (the following properties are out of range: {})", METADATA_PROPERTY_MIN_LENGTH, METADATA_PROPERTY_MAX_LENGTH, &invalid).into()),
+            message: Some(format!("Metadata properties and values must have a length between {METADATA_PROPERTY_MIN_LENGTH} and {METADATA_PROPERTY_MAX_LENGTH} (the following properties are out of range: {invalid})").into()),
             params: HashMap::new(),
         })
     } else {
@@ -93,11 +90,7 @@ pub fn labels(val: &HashMap<String, Value>) -> Result<(), ValidationError> {
         return Err(ValidationError {
             code: CODE_LABELS_SIZE.into(),
             message: Some(
-                format!(
-                    "Labels object cannot have more than {} properties",
-                    LABELS_MAX_SIZE
-                )
-                .into(),
+                format!("Labels object cannot have more than {LABELS_MAX_SIZE} properties",).into(),
             ),
             params: HashMap::new(),
         });
@@ -123,19 +116,19 @@ pub fn labels(val: &HashMap<String, Value>) -> Result<(), ValidationError> {
     if !invalid_properties.is_empty() {
         let invalid = invalid_properties
             .iter()
-            .map(|(k, t)| format!("'{}' → {}", k, t))
+            .map(|(k, t)| format!("'{k}' → {t}"))
             .collect::<Vec<_>>()
             .join(", ");
         Err(ValidationError {
             code: CODE_LABELS_PROPERTY_TYPE.into(),
-            message: Some(format!("Labels values must be of type string (found the following invalid properties: {})", &invalid).into()),
+            message: Some(format!("Labels values must be of type string (found the following invalid properties: {invalid})").into()),
             params: HashMap::new(),
         })
     } else if !invalid_length.is_empty() {
         let invalid = invalid_length.join(", ");
         Err(ValidationError {
             code: CODE_LABELS_PROPERTY_LENGTH.into(),
-            message: Some(format!("Labels properties and values must have a length between {} and {} (the following properties are out of range: {})", LABELS_PROPERTY_MIN_LENGTH, LABELS_PROPERTY_MAX_LENGTH, &invalid).into()),
+            message: Some(format!("Labels properties and values must have a length between {LABELS_PROPERTY_MIN_LENGTH} and {LABELS_PROPERTY_MAX_LENGTH} (the following properties are out of range: {invalid})").into()),
             params: HashMap::new(),
         })
     } else {
@@ -150,8 +143,7 @@ pub fn event_types(val: &[String]) -> Result<(), ValidationError> {
             code: CODE_EVENT_TYPES_SIZE.into(),
             message: Some(
                 format!(
-                    "There must be between {} and {} event types (found {})",
-                    EVENT_TYPES_MIN_SIZE, EVENT_TYPES_MAX_SIZE, size
+                    "There must be between {EVENT_TYPES_MIN_SIZE} and {EVENT_TYPES_MAX_SIZE} event types (found {size})"
                 )
                 .into(),
             ),
@@ -175,7 +167,7 @@ pub fn event_types(val: &[String]) -> Result<(), ValidationError> {
             .join(", ");
         Err(ValidationError {
                 code: CODE_EVENT_TYPES_NAME_LENGTH.into(),
-                message: Some(format!("Event types must have a length between {} and {} (invalid event types were spotted at the following indexes: {})", EVENT_TYPES_NAME_MIN_LENGTH, EVENT_TYPES_NAME_MAX_LENGTH, &invalid).into()),
+                message: Some(format!("Event types must have a length between {EVENT_TYPES_NAME_MIN_LENGTH} and {EVENT_TYPES_NAME_MAX_LENGTH} (invalid event types were spotted at the following indexes: {invalid})").into()),
                 params: HashMap::new(),
             })
     } else {
@@ -210,7 +202,7 @@ mod tests {
         let length = METADATA_PROPERTY_MAX_LENGTH + 1;
         let mut val = HashMap::with_capacity(length);
         for i in 0..length {
-            val.insert(format!("test-{}", i), json!("test"));
+            val.insert(format!("test-{i}"), json!("test"));
         }
         let output = metadata(&val);
         assert!(output.is_err());
@@ -308,7 +300,7 @@ mod tests {
         let length = LABELS_PROPERTY_MAX_LENGTH + 1;
         let mut val = HashMap::with_capacity(length);
         for i in 0..length {
-            val.insert(format!("test-{}", i), json!("test"));
+            val.insert(format!("test-{i}"), json!("test"));
         }
         let output = labels(&val);
         assert!(output.is_err());
@@ -407,7 +399,7 @@ mod tests {
         let length = EVENT_TYPES_MAX_SIZE + 1;
         let mut val = Vec::with_capacity(length);
         for i in 0..length {
-            val.push(format!("test-{}", i));
+            val.push(format!("test-{i}"));
         }
         let output = event_types(&val);
         assert!(output.is_err());

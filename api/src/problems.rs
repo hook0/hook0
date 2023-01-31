@@ -86,10 +86,9 @@ impl From<Hook0Problem> for HttpApiProblem {
         let problem: Problem = hook0_problem.to_owned().into();
         HttpApiProblem::new(problem.status)
             .type_url(format!(
-                "https://hook0.com/documentation/errors/{}",
-                hook0_problem
+                "https://hook0.com/documentation/errors/{hook0_problem}",
             )) // rely on Display trait of Hook0Problem
-            .value("id".to_owned(), &format!("{}", hook0_problem)) // also rely on Display trait of Hook0Problem
+            .value("id".to_owned(), &hook0_problem.to_string()) // also rely on Display trait of Hook0Problem
             .value("validation".to_owned(), &problem.validation)
             .title(problem.title)
             .detail(problem.detail)
@@ -325,14 +324,14 @@ impl Default for JsonPayloadProblem {
 impl Display for JsonPayloadProblem {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Overflow { limit } => write!(f, "Body is too big (maximum is {} bytes)", limit),
+            Self::Overflow { limit } => write!(f, "Body is too big (maximum is {limit} bytes)"),
             Self::ContentType => {
                 write!(f, "Content-Type header should be set to 'application/json'")
             }
-            Self::Deserialize(e) => write!(f, "JSON deserialization error: {}", e),
-            Self::Serialize(e) => write!(f, "JSON serialization error: {}", e),
-            Self::Payload(e) => write!(f, "Payload error: {}", e),
-            Self::Other(e) => write!(f, "{}", e),
+            Self::Deserialize(e) => write!(f, "JSON deserialization error: {e}"),
+            Self::Serialize(e) => write!(f, "JSON serialization error: {e}"),
+            Self::Payload(e) => write!(f, "Payload error: {e}"),
+            Self::Other(e) => write!(f, "{e}"),
         }
     }
 }
