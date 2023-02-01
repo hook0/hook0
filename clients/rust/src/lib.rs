@@ -8,7 +8,7 @@ use chrono::{DateTime, Utc};
 use lazy_regex::regex_captures;
 use log::{debug, error, trace};
 use reqwest::header::{HeaderMap, HeaderValue, InvalidHeaderValue, AUTHORIZATION};
-use reqwest::{Client, Url};
+use reqwest::{Certificate, Client, Url};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::borrow::Cow;
@@ -34,17 +34,24 @@ impl Hook0Client {
     /// - `api_url` - Base API URL of a Hook0 instance (example: `https://app.hook0.com/api/v1`).
     /// - `application_id` - UUID of your Hook0 application.
     /// - `application_secret` - Secret of your Hook0 application.
+    /// - `custom_ca` - An optional PEM-encoded certificate of a custom CA to be added to the TLS stack of outgoing HTTPS requests.
     pub fn new(
         api_url: Url,
         application_id: Uuid,
         application_secret: &Uuid,
+        custom_ca: &Option<Certificate>,
     ) -> Result<Self, Hook0ClientError> {
         let authenticated_client = HeaderValue::from_str(&format!("Bearer {application_secret}"))
             .map_err(|e| Hook0ClientError::AuthHeader(e).log_and_return())
             .map(|hv| HeaderMap::from_iter([(AUTHORIZATION, hv)]))
             .and_then(|headers| {
-                Client::builder()
-                    .default_headers(headers)
+                let mut client = Client::builder().default_headers(headers);
+
+                if let Some(cert) = custom_ca {
+                    client = client.add_root_certificate(cert.to_owned());
+                }
+
+                client
                     .build()
                     .map_err(|e| Hook0ClientError::ReqwestClient(e).log_and_return())
             })?;

@@ -2,8 +2,9 @@ mod work;
 
 use chrono::{DateTime, Utc};
 use clap::{crate_name, crate_version, Parser};
-use log::{debug, info, trace};
+use log::{debug, info, trace, warn};
 use reqwest::header::HeaderMap;
+use reqwest::Certificate;
 use sqlx::postgres::types::PgInterval;
 use sqlx::postgres::PgConnectOptions;
 use sqlx::{Connection, PgConnection, Postgres, Transaction};
@@ -44,6 +45,10 @@ struct Config {
     /// Maximum number of slow retries (before giving up)
     #[clap(long, env, default_value = "30")]
     max_slow_retries: u32,
+
+    /// PEM-encoded certificate of a custom CA to be added to the TLS stack of outgoing HTTPS requests
+    #[clap(long, env)]
+    custom_ca: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -105,6 +110,17 @@ async fn main() -> anyhow::Result<()> {
         &worker_version,
         &worker_id
     );
+
+    // Parse custom CA certificate
+    let custom_ca = config
+        .custom_ca
+        .and_then(|pem| match Certificate::from_pem(pem.as_bytes()) {
+            Ok(cert) => Some(cert),
+            Err(e) => {
+                warn!("Could not parse custom CA PEM certificate: {e}");
+                None
+            }
+        });
 
     debug!("Connecting to database...");
     let mut conn = PgConnection::connect_with(
@@ -176,7 +192,7 @@ async fn main() -> anyhow::Result<()> {
             info!("Picked request attempt {}", &attempt.request_attempt__id);
 
             // Work
-            let response = work(&attempt).await;
+            let response = work(&attempt, &custom_ca).await;
             debug!(
                 "Got a response for request attempt {} in {} ms",
                 &attempt.request_attempt__id,

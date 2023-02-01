@@ -12,7 +12,7 @@ use paperclip::{
     actix::{web, OpenApiExt},
     v2::models::{DefaultApiRaw, Info},
 };
-use reqwest::Url;
+use reqwest::{Certificate, Url};
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 use std::str::FromStr;
 use uuid::Uuid;
@@ -162,6 +162,10 @@ struct Config {
     /// Number of allowed retries when upserting event types to the linked Hook0 application fails
     #[clap(long, env, default_value = "10")]
     hook0_client_upserts_retries: u16,
+
+    /// PEM-encoded certificate of a custom CA to be added to the TLS stack of outgoing HTTPS requests
+    #[clap(long, env)]
+    custom_ca: Option<String>,
 }
 
 /// The app state
@@ -175,8 +179,8 @@ pub struct State {
     keycloak_front_client_id: String,
     disable_registration: bool,
     auto_db_migration: bool,
-    #[allow(dead_code)] // TODO: remove this exception
     hook0_client: Option<Hook0Client>,
+    custom_ca: Option<Certificate>,
 }
 
 #[actix_web::main]
@@ -218,6 +222,17 @@ async fn main() -> anyhow::Result<()> {
         config.api_rate_limiting_token_replenish_period_in_ms,
     );
 
+    // Parse custom CA certificate
+    let custom_ca = config
+        .custom_ca
+        .and_then(|pem| match Certificate::from_pem(pem.as_bytes()) {
+            Ok(cert) => Some(cert),
+            Err(e) => {
+                warn!("Could not parse custom CA PEM certificate: {e}");
+                None
+            }
+        });
+
     // Create a DB connection pool
     let pool = PgPoolOptions::new()
         .max_connections(config.max_db_connections)
@@ -241,6 +256,7 @@ async fn main() -> anyhow::Result<()> {
         config.hook0_client_api_url,
         config.hook0_client_application_id,
         config.hook0_client_application_secret,
+        &custom_ca,
     );
     if let Some(client) = &hook0_client {
         let upsert_client = client.clone();
@@ -267,6 +283,7 @@ async fn main() -> anyhow::Result<()> {
         disable_registration: config.disable_registration,
         auto_db_migration: config.auto_db_migration,
         hook0_client,
+        custom_ca,
     };
     let keycloak_oidc_public_key = config.keycloak_oidc_public_key;
 

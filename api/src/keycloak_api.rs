@@ -1,6 +1,6 @@
 use log::{error, trace};
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
-use reqwest::{Client, Response, Url};
+use reqwest::{Certificate, Client, Response, Url};
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use uuid::Uuid;
@@ -88,6 +88,7 @@ impl KeycloakApi {
         keycloak_realm: &str,
         client_id: &str,
         client_secret: &str,
+        custom_ca: &Option<Certificate>,
     ) -> Result<Self, Hook0Problem> {
         let url = append_url_segments(
             keycloak_url,
@@ -151,13 +152,16 @@ impl KeycloakApi {
             })
             .map(|hv| HeaderMap::from_iter([(AUTHORIZATION, hv)]))
             .and_then(|headers| {
-                Client::builder()
-                    .default_headers(headers)
-                    .build()
-                    .map_err(|e| {
-                        error!("Could not build HTTP client: {}", &e);
-                        Hook0Problem::InternalServerError
-                    })
+                let mut client = Client::builder().default_headers(headers);
+
+                if let Some(cert) = custom_ca {
+                    client = client.add_root_certificate(cert.to_owned());
+                }
+
+                client.build().map_err(|e| {
+                    error!("Could not build HTTP client: {}", &e);
+                    Hook0Problem::InternalServerError
+                })
             })?;
         let api_url = append_url_segments(keycloak_url, &["admin", "realms", keycloak_realm])
             .map_err(|e| {

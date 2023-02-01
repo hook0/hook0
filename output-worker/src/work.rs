@@ -4,7 +4,7 @@ use hex::ToHex;
 use hmac::{Hmac, Mac};
 use log::{debug, error, trace, warn};
 use reqwest::header::{HeaderMap, HeaderValue, InvalidHeaderValue};
-use reqwest::{Client, Method, Url};
+use reqwest::{Certificate, Client, Method, Url};
 use sha2::Sha256;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -76,7 +76,7 @@ impl Response {
     }
 }
 
-pub async fn work(attempt: &RequestAttempt) -> Response {
+pub async fn work(attempt: &RequestAttempt, custom_ca: &Option<Certificate>) -> Response {
     debug!(
         "Processing request attempt {}",
         &attempt.request_attempt__id
@@ -85,7 +85,7 @@ pub async fn work(attempt: &RequestAttempt) -> Response {
 
     let m = Method::from_str(attempt.http_method.as_str());
     let u = Url::parse(attempt.http_url.as_str());
-    let c = mk_http_client();
+    let c = mk_http_client(custom_ca);
     let hs = attempt.headers();
     let event_id = HeaderValue::from_str(attempt.event__id.to_string().as_str())
         .expect("Could not create a header value from the event ID UUID");
@@ -219,14 +219,19 @@ pub async fn work(attempt: &RequestAttempt) -> Response {
     }
 }
 
-fn mk_http_client() -> reqwest::Result<Client> {
-    Client::builder()
+fn mk_http_client(custom_ca: &Option<Certificate>) -> reqwest::Result<Client> {
+    let mut client = Client::builder()
         .connection_verbose(true)
         .connect_timeout(CONNECT_TIMEOUT)
         .timeout(TIMEOUT)
         .user_agent(USER_AGENT)
-        .tcp_keepalive(None)
-        .build()
+        .tcp_keepalive(None);
+
+    if let Some(cert) = custom_ca {
+        client = client.add_root_certificate(cert.to_owned());
+    }
+
+    client.build()
 }
 
 struct Signature {

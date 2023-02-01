@@ -128,6 +128,7 @@ pub async fn create(
             &state.keycloak_realm,
             &state.keycloak_client_id,
             &state.keycloak_client_secret,
+            &state.custom_ca,
         )
         .await?;
 
@@ -255,6 +256,7 @@ pub async fn get(
         &state.keycloak_realm,
         &state.keycloak_client_id,
         &state.keycloak_client_secret,
+        &state.custom_ca,
     )
     .await?;
 
@@ -431,6 +433,7 @@ pub async fn invite(
                 &state.keycloak_realm,
                 &state.keycloak_client_id,
                 &state.keycloak_client_secret,
+                &state.custom_ca,
             )
             .await?;
 
@@ -509,6 +512,7 @@ pub async fn revoke(
         &state.keycloak_realm,
         &state.keycloak_client_id,
         &state.keycloak_client_secret,
+        &state.custom_ca,
     )
     .await?;
 
@@ -604,6 +608,7 @@ pub async fn delete(
             &state.keycloak_realm,
             &state.keycloak_client_id,
             &state.keycloak_client_secret,
+            &state.custom_ca,
         )
         .await?;
 

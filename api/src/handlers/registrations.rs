@@ -4,7 +4,7 @@ use paperclip::actix::{
     web::{Data, Json},
     Apiv2Schema, CreatedJson,
 };
-use reqwest::Url;
+use reqwest::{Certificate, Url};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -61,6 +61,7 @@ pub async fn register(
         &state.keycloak_realm,
         &state.keycloak_client_id,
         &state.keycloak_client_secret,
+        &state.custom_ca,
     )
     .await
     .map(CreatedJson)
@@ -73,6 +74,7 @@ async fn do_register(
     keycloak_realm: &str,
     keycloak_client_id: &str,
     keycloak_client_secret: &str,
+    custom_ca: &Option<Certificate>,
 ) -> Result<Registration, Hook0Problem> {
     debug!("Starting registration for {}", &registration_req.email);
 
@@ -81,6 +83,7 @@ async fn do_register(
         keycloak_realm,
         keycloak_client_id,
         keycloak_client_secret,
+        custom_ca,
     )
     .await?;
 
