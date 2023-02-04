@@ -41,5 +41,5 @@ sqlx = { version = "0.6.2", default-features = false, features = ["runtime-tokio
 strum = { version = "0.24.1", features = ["derive"] }
 thiserror = "1.0.38"
 url = "2.3.1"
-uuid = { version = "1.2.2", features = ["serde", "v4"] }
+uuid = { version = "1.3.0", features = ["serde", "v4"] }
 validator = { version = "0.16.0", features = ["derive", "unic"] }
