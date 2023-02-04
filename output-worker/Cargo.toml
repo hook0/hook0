@@ -25,4 +25,4 @@ sha2 = "0.10.6"
 sqlx = { version = "0.6.2", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono", "time", "json", "offline"] }
 strum = { version = "0.24.1", features = ["derive"] }
 tokio = { version = "1.25.0", features = ["rt-multi-thread", "macros", "time"] }
-uuid = { version = "1.2.2", features = ["v4"] }
+uuid = { version = "1.3.0", features = ["v4"] }
