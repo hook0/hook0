@@ -1,3 +1,8 @@
+// Force exposed items to be documented
+#![deny(missing_docs)]
+
+//! This is a collection of helpers related to Sentry.
+
 use log::{info, warn};
 use sentry::protocol::Value;
 use sentry::{configure_scope, ClientInitGuard, User};
@@ -27,7 +32,12 @@ fn init_sentry_logger(crate_name: &'static str) {
 }
 
 /// Initialize Sentry integration
-pub fn init(crate_name: &'static str, sentry_dsn: &Option<String>) -> Option<ClientInitGuard> {
+pub fn init(
+    crate_name: &'static str,
+    sentry_dsn: &Option<String>,
+    traces_sample_rate: &Option<f32>,
+    profiles_sample_rate: &Option<f32>,
+) -> Option<ClientInitGuard> {
     let client;
     match sentry_dsn {
         Some(dsn) => {
@@ -39,6 +49,9 @@ pub fn init(crate_name: &'static str, sentry_dsn: &Option<String>) -> Option<Cli
                     send_default_pii: true,
                     attach_stacktrace: true,
                     debug: true,
+                    traces_sample_rate: traces_sample_rate.unwrap_or(0.0),
+                    enable_profiling: matches!(profiles_sample_rate, Some(r) if r > &0.0),
+                    profiles_sample_rate: profiles_sample_rate.unwrap_or(0.0),
                     ..Default::default()
                 },
             ));
