@@ -97,7 +97,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Initialize app logger as well as Sentry integration
     // Return value *must* be kept in a variable or else it will be dropped and Sentry integration won't work
-    let _sentry = sentry_integration::init(crate_name!(), &config.sentry_dsn);
+    let _sentry = sentry_integration::init(crate_name!(), &config.sentry_dsn, &None, &None);
 
     info!(
         "Starting {} {} [{}]",
