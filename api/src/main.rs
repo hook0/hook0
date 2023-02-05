@@ -348,6 +348,7 @@ async fn main() -> anyhow::Result<()> {
             .wrap(cors)
             .wrap(Logger::default())
             .wrap(NormalizePath::trim())
+            .wrap(sentry_actix::Sentry::new())
             .wrap_api_with_spec(spec)
             .with_json_spec_v3_at("/api/v1/swagger.json")
             .service(
