@@ -26,7 +26,11 @@
           <hook0-card-content-lines>
             <hook0-card-content-line type="full-width">
               <template #content>
-                <hook0-text>Time to create your first application!</hook0-text>
+                <hook0-text
+                  >Start your journey by creating a Hook0 application. This application will have
+                  API keys that will be required to send events to Hook0 API so it can dispatch
+                  these events to your customers through webhooks.</hook0-text
+                >
               </template>
             </hook0-card-content-line>
           </hook0-card-content-lines>
@@ -71,9 +75,11 @@ import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 import { VueElement } from 'vue';
 import { ColDef } from '@ag-grid-community/core';
 import { UUID } from '@/http';
+import Hook0Text from '@/components/Hook0Text.vue';
 
 @Options({
   components: {
+    Hook0Text,
     Hook0CardContentLine,
     Hook0CardContent,
     Hook0CardFooter,
@@ -171,4 +177,3 @@ export default class ApplicationList extends Vue {
   }
 }
 </script>
-
