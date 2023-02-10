@@ -34,10 +34,10 @@ nom-regex = "0.2.0"
 paperclip = { version = "0.8.0", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
 regex = "1.7.1"
 reqwest = { version = "0.11.14", default-features = false, features = ["rustls-tls", "trust-dns"] }
-sentry-actix = "0.29.2"
+sentry-actix = "0.29.3"
 sentry-integration = { path = "../sentry-integration" }
 serde = "1.0.152"
-serde_json = "1.0.92"
+serde_json = "1.0.93"
 sqlx = { version = "0.6.2", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "offline", "migrate"] } # runtime-tokio-rustls because https://github.com/launchbadge/sqlx/issues/894#issuecomment-747821912
 strum = { version = "0.24.1", features = ["derive"] }
 thiserror = "1.0.38"
