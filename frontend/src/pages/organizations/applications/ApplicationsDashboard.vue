@@ -9,7 +9,7 @@
           dashboard
         </template>
         <template #subtitle>
-          (Coming soon) here Hook0 will display metrics about webhooks & events usage
+          here Hook0 will display metrics about webhooks & events usage
         </template>
         <template #actions>
           <hook0-button
@@ -101,5 +101,4 @@ export default class ApplicationsDashboard extends Vue {
 }
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>
