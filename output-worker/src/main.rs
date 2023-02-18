@@ -331,12 +331,12 @@ fn compute_next_retry_duration(
     retry_count: i16,
 ) -> Option<Duration> {
     u32::try_from(retry_count).ok().and_then(|count| {
-        if count <= max_fast_retries {
+        if count < max_fast_retries {
             Some(min(
                 MINIMUM_FAST_RETRY_DELAY * count,
                 MAXIMUM_FAST_RETRY_DELAY,
             ))
-        } else if count <= max_fast_retries + max_slow_retries {
+        } else if count < max_fast_retries + max_slow_retries {
             Some(SLOW_RETRY_DELAY)
         } else {
             None
