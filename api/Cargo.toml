@@ -15,13 +15,13 @@ actix = "0.13.0"
 actix-cors = "0.6.4"
 actix-files = "0.6.2"
 actix-governor = { version = "0.4.0", features = ["log"] }
-actix-web = "4.3.0"
+actix-web = "4.3.1"
 actix-web-middleware-keycloak-auth = { version = "0.4.0", features = ["paperclip_compat"] }
 anyhow = "1.0.69"
 async-recursion = "1.0.2"
 base64 = "0.21.0"
 chrono = { version = "0.4.23", features = ["serde"] }
-clap = { version = "4.1.6", features = ["derive", "env", "cargo", "wrap_help"] }
+clap = { version = "4.1.8", features = ["derive", "env", "cargo", "wrap_help"] }
 futures-util = "0.3.26"
 governor = "0.5.1"
 hook0-client = { path = "../clients/rust" }
@@ -34,7 +34,7 @@ nom-regex = "0.2.0"
 paperclip = { version = "0.8.0", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
 regex = "1.7.1"
 reqwest = { version = "0.11.14", default-features = false, features = ["trust-dns"] }
-sentry-actix = "0.29.3"
+sentry-actix = "0.30.0"
 sentry-integration = { path = "../sentry-integration" }
 serde = "1.0.152"
 serde_json = "1.0.93"
