@@ -50,7 +50,7 @@
     "core-js": "^3.6.5",
     "date-fns": "^2.29.3",
     "fp-ts": "^2.11.6",
-    "keycloak-js": "^20.0.0",
+    "keycloak-js": "^21.0.1",
     "lodash.debounce": "^4.0.8",
     "ramda": "^0.28.0",
     "swagger-ui": "^4.15.0",
