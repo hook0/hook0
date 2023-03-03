@@ -287,7 +287,6 @@ export interface components {
     Registration: {
       /** Format: uuid */
       organization_id: string;
-      temporary_password: string;
       /** Format: uuid */
       user_id: string;
     };
@@ -296,6 +295,7 @@ export interface components {
       first_name: string;
       last_name: string;
       organization_name: string;
+      password: string;
     };
     RequestAttempt: {
       /** Format: date-time */
