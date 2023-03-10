@@ -72,8 +72,8 @@ export default class Hook0Table extends Vue {
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style>
-@import '@ag-grid-community/core/dist/styles/ag-grid.css';
-@import '@ag-grid-community/core/dist/styles/ag-theme-alpine.css';
+@import '@ag-grid-community/styles/ag-grid.css';
+@import '@ag-grid-community/styles/ag-theme-alpine.css';
 
 .ag-theme-alpine .ag-root-wrapper {
   border: 0;
