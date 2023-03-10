@@ -41,6 +41,8 @@ import {
   faMinus,
   faQuestion,
   faXmark,
+  faPause,
+  faCalendar,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 
@@ -80,7 +82,9 @@ library.add(
   //RequestAttemptStatus
   faCheck,
   faQuestion,
-  faXmark
+  faXmark,
+  faPause,
+  faCalendar
   // faSpinner
 );
 app.component('font-awesome-icon', FontAwesomeIcon);
