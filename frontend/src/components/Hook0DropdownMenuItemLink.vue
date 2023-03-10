@@ -1,6 +1,7 @@
 <template>
   <hook0-button
     class="link"
+    :class="$attrs.class"
     v-bind="{ ...$props, ...$attrs }"
     role="menuitem"
     tabindex="-1"
@@ -21,6 +22,4 @@ import { Options, Vue } from 'vue-class-component';
 export default class Hook0DropdownMenuItemLink extends Vue {}
 </script>
 
-<style lang="scss" scoped>
-
-</style>
+<style lang="scss" scoped></style>
