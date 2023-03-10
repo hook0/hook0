@@ -81,7 +81,7 @@ export default class Hook0Dropdown extends Vue {
     );
   }
 
-  onClickOutside(event: Event) {
+  onClickOutside(_: Event) {
     this.close();
   }
 }
@@ -107,6 +107,14 @@ export default class Hook0Dropdown extends Vue {
 
   &.dropdown-right {
     .hook0-dropdown-panel {
+    }
+  }
+
+  &.darkmode {
+    @apply bg-gray-900;
+
+    .hook0-dropdown-panel {
+      @apply bg-gray-900;
     }
   }
 }

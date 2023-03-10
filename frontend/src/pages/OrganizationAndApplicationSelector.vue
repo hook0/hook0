@@ -10,17 +10,17 @@
 
     <!-- The default scoped slot will be used as the result -->
     <template #default="applicationsPerOrganizations">
-      <hook0-dropdown class="container" justify="left">
+      <hook0-dropdown class="container darkmode" justify="left">
         <template v-slot:menu="parent">
           <hook0-button class="dropdown" @click="parent.toggle">
             <template #default>
               <div class="flex flex-col">
                 <hook0-text class="def">{{ organization_name }}</hook0-text>
-                <hook0-text>{{ application_name }}</hook0-text>
+                <hook0-text class="darkmode">{{ application_name }}</hook0-text>
               </div>
             </template>
             <template #right>
-              <hook0-icon name="chevron-down"></hook0-icon>
+              <hook0-icon name="chevron-down" class="darkmode"></hook0-icon>
             </template>
           </hook0-button>
         </template>
@@ -29,7 +29,7 @@
           <div>
             <div v-for="(organizationGroup, index) in applicationsPerOrganizations" :key="index">
               <hook0-dropdown-menu-item-link
-                class="flex justify-between"
+                class="flex justify-between darkmode"
                 @click="
                   goto(parent, {
                     name: routes.OrganizationsDashboard,
@@ -37,12 +37,15 @@
                   })
                 "
               >
-                <hook0-icon name="sitemap"></hook0-icon>
-                <hook0-text class="ml-1">{{ organizationGroup.organization.name }}</hook0-text>
+                <hook0-icon name="sitemap" class="darkmode"></hook0-icon>
+                <hook0-text class="ml-1 darkmode">{{
+                  organizationGroup.organization.name
+                }}</hook0-text>
               </hook0-dropdown-menu-item-link>
 
               <div class="pl-2">
                 <hook0-dropdown-menu-item-link
+                  class="darkmode"
                   v-for="(application, index) in organizationGroup.applications"
                   :key="index"
                   @click="
@@ -55,15 +58,15 @@
                     })
                   "
                 >
-                  <hook0-text class="ml-1">{{ application.name }}</hook0-text>
-                  <hook0-text class="ml-1 def">application</hook0-text>
+                  <hook0-text class="ml-1 darkmode">{{ application.name }}</hook0-text>
+                  <hook0-text class="ml-1 def darkmode">application</hook0-text>
                 </hook0-dropdown-menu-item-link>
               </div>
             </div>
           </div>
-          <hook0-dropdown-menu-item-link :to="{ name: routes.OrganizationsNew }">
-            <hook0-icon name="plus"></hook0-icon>
-            <hook0-text class="ml-1">New Organization</hook0-text>
+          <hook0-dropdown-menu-item-link :to="{ name: routes.OrganizationsNew }" class="darkmode">
+            <hook0-icon name="plus" class="darkmode"></hook0-icon>
+            <hook0-text class="ml-1 darkmode">New Organization</hook0-text>
           </hook0-dropdown-menu-item-link>
         </template>
       </hook0-dropdown>
@@ -79,15 +82,14 @@
 <script lang="ts">
 import * as OrganizationService from './organizations/OrganizationService';
 import * as ApplicationService from './organizations/applications/ApplicationService';
-import { MixedVueBase, Options, Vue, VueBase, VueWithProps } from 'vue-class-component';
+import { Options, Vue } from 'vue-class-component';
 import { UUID } from '@/http';
 import { Organization } from './organizations/OrganizationService';
 import { Application } from './organizations/applications/ApplicationService';
 import { routes } from '@/routes';
-import { VueElement } from 'vue';
 import * as Option from 'fp-ts/Option';
-import { flow, pipe } from 'fp-ts/function';
-import { RouteLocation, RouteParams, RouteRecord } from 'vue-router';
+import { flow } from 'fp-ts/function';
+import { RouteLocation, RouteParams } from 'vue-router';
 import Hook0Loader from '@/components/Hook0Loader.vue';
 import Hook0DropdownOptions from '@/components/Hook0DropdownOptions';
 

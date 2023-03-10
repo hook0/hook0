@@ -33,6 +33,10 @@ export default class Hook0Text extends Vue {
     line-height: 0.7rem;
   }
 
+  &.darkmode {
+    @apply text-gray-300;
+  }
+
   &.code {
     @apply font-mono font-medium text-sm whitespace-nowrap select-text cursor-text;
   }
