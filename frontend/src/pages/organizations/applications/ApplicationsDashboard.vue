@@ -27,6 +27,8 @@
       </hook0-card-header>
     </hook0-card>
     <EventTypesList :burst="$route.params.application_id"></EventTypesList>
+    <EventsList :burst="$route.params.application_id"></EventsList>
+    <LogList :burst="$route.params.application_id"></LogList>
   </div>
 </template>
 
@@ -41,9 +43,11 @@ import { AxiosError } from 'axios';
 import { Alert } from '@/components/Hook0Alert';
 import { routes } from '@/routes';
 import EventTypesList from '@/pages/organizations/applications/event_types/EventTypesList.vue';
+import EventsList from '@/pages/organizations/applications/events/EventsList.vue';
+import LogList from '@/pages/organizations/applications/logs/LogList.vue';
 
 @Options({
-  components: { EventTypesList, Hook0Text },
+  components: { EventTypesList, Hook0Text, EventsList, LogList },
 })
 export default class ApplicationsDashboard extends Vue {
   application_id: UUID | undefined;
