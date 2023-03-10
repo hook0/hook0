@@ -58,7 +58,7 @@ import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0Table from '@/components/Hook0Table.vue';
-import { ColDef } from '@ag-grid-community/core';
+import { ColDef, ValueFormatterParams } from '@ag-grid-community/core';
 import * as LogService from './LogService';
 import {
   RequestAttempt,
@@ -68,11 +68,6 @@ import {
 } from './LogService';
 import { UUID } from '@/http';
 import { format, formatDistance, formatRelative, parseISO, subDays } from 'date-fns';
-import {
-  ColumnFunctionCallbackParams,
-  ValueFormatterFunc,
-  ValueFormatterParams,
-} from '@ag-grid-community/core/dist/cjs/es5/entities/colDef';
 
 @Options({
   components: {
