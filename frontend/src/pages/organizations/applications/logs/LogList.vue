@@ -88,7 +88,7 @@ import { format, formatDistance, formatRelative, parseISO, subDays } from 'date-
     },
   },
 })
-export default class EventsList extends Vue {
+export default class LogList extends Vue {
   private request_attempts$!: Promise<Array<RequestAttemptTypeFixed>>;
   public application_id: UUID | null = null;
 
@@ -112,11 +112,11 @@ export default class EventsList extends Vue {
               switch (row.status.type) {
                 // @todo(i18n) change when/if we want to support i18n
                 case RequestAttemptStatusType.Waiting:
-                  return 'Event waiting to be picked';
+                  return 'Request scheduled for later';
                 case RequestAttemptStatusType.Pending:
-                  return 'Event picked and waiting to be dispatched';
+                  return 'Request waiting to be picked';
                 case RequestAttemptStatusType.InProgress:
-                  return 'Event is currently being sent';
+                  return 'Request is currently being sent';
                 case RequestAttemptStatusType.Failed:
                   return 'Request had an error';
                 case RequestAttemptStatusType.Successful:
@@ -129,8 +129,9 @@ export default class EventsList extends Vue {
               switch (row.status.type) {
                 // @todo(i18n) change when/if we want to support i18n
 
-                case RequestAttemptStatusType.Waiting: // waiting to be picked
-                case RequestAttemptStatusType.Pending: // event picked and waiting to be dispatched
+                case RequestAttemptStatusType.Waiting:
+                  return 'fa-calendar';
+                case RequestAttemptStatusType.Pending:
                   return 'fa-pause';
                 case RequestAttemptStatusType.InProgress:
                   return 'fa-spinner';
@@ -148,7 +149,7 @@ export default class EventsList extends Vue {
           field: 'created_at',
           suppressMovable: true,
           suppressSizeToFit: true,
-          width: 150,
+          width: 175,
           sortable: true,
           headerName: 'Created At',
           valueFormatter: (date: ValueFormatterParams<RequestAttemptTypeFixed, string>) =>
@@ -158,11 +159,16 @@ export default class EventsList extends Vue {
           field: 'picked_at',
           suppressMovable: true,
           suppressSizeToFit: true,
-          width: 150,
+          width: 175,
           sortable: true,
           headerName: 'Picked At',
-          valueFormatter: (date: ValueFormatterParams<RequestAttemptTypeFixed, string>) =>
-            formatDistance(parseISO(date.value), new Date(), { addSuffix: true }),
+          valueFormatter: (date: ValueFormatterParams<RequestAttemptTypeFixed, string>) => {
+            if (date.value) {
+              return formatDistance(parseISO(date.value), new Date(), { addSuffix: true });
+            } else {
+              return '';
+            }
+          },
         },
         {
           field: 'subscription id',
@@ -170,6 +176,7 @@ export default class EventsList extends Vue {
           suppressSizeToFit: false,
           width: 150,
           sortable: true,
+          resizable: true,
           headerName: 'Subscription',
           cellRenderer: 'Hook0TableCellLink',
           cellRendererParams: {
