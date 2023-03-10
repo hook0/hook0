@@ -24,7 +24,6 @@
 import Hook0Icon from '@/components/Hook0Icon.vue';
 import { RouteLocationRaw } from 'vue-router';
 import { defineComponent, PropType } from 'vue';
-import { VueWithProps } from 'vue-class-component';
 import { omit } from 'ramda';
 
 export default defineComponent({
@@ -177,6 +176,10 @@ export default defineComponent({
 
   &.link {
     @apply hover:bg-indigo-100 hover:text-gray-900 text-gray-700 block mb-0 px-4 py-2 text-sm;
+
+    &.darkmode {
+      @apply hover:bg-gray-800 hover:text-gray-500;
+    }
   }
 
   &.primary {
