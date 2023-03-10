@@ -37,4 +37,8 @@ import { Options, Vue, VueWithProps } from 'vue-class-component';
 export default class Hook0Icon extends Vue {}
 </script>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+.darkmode {
+  @apply text-gray-200;
+}
+</style>
