@@ -1,0 +1,7 @@
+.idea
+target
+.parcel-cache
+*.iml
+*.log
+node_modules
+src/main/resources/theme/hook0-redesign/login/resources/dist
