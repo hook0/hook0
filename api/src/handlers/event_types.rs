@@ -12,6 +12,7 @@ use validator::Validate;
 
 use crate::hook0_client::{EventEventTypeCreated, EventEventTypeRemoved, Hook0ClientEvent};
 use crate::iam::{get_owner_organization, AuthProof, Role};
+use crate::openapi::OaApplicationSecret;
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -50,6 +51,7 @@ pub struct EventTypePost {
 pub async fn create(
     state: Data<crate::State>,
     auth: AuthProof,
+    _: OaApplicationSecret,
     body: Json<EventTypePost>,
 ) -> Result<CreatedJson<EventType>, Hook0Problem> {
     if auth
@@ -160,6 +162,7 @@ pub async fn create(
 pub async fn list(
     state: Data<crate::State>,
     auth: AuthProof,
+    _: OaApplicationSecret,
     qs: Query<Qs>,
 ) -> Result<Json<Vec<EventType>>, Hook0Problem> {
     if auth
@@ -198,6 +201,7 @@ pub async fn list(
 pub async fn get(
     state: Data<crate::State>,
     auth: AuthProof,
+    _: OaApplicationSecret,
     event_type_name: Path<String>,
     qs: Query<Qs>,
 ) -> Result<Json<EventType>, Hook0Problem> {
@@ -240,6 +244,7 @@ pub async fn get(
 pub async fn delete(
     state: Data<crate::State>,
     auth: AuthProof,
+    _: OaApplicationSecret,
     event_type_name: Path<String>,
     qs: Query<Qs>,
 ) -> Result<NoContent, Hook0Problem> {
