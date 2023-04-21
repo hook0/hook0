@@ -13,6 +13,7 @@ use crate::hook0_client::{
     EventApplicationCreated, EventApplicationRemoved, EventApplicationUpdated, Hook0ClientEvent,
 };
 use crate::iam::{get_owner_organization, AuthProof, Role};
+use crate::openapi::OaApplicationSecret;
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -102,6 +103,7 @@ pub async fn create(
 pub async fn get(
     state: Data<crate::State>,
     auth: AuthProof,
+    _: OaApplicationSecret,
     application_id: Path<Uuid>,
 ) -> Result<Json<Application>, Hook0Problem> {
     if auth
@@ -175,6 +177,7 @@ pub async fn list(
 pub async fn edit(
     state: Data<crate::State>,
     auth: AuthProof,
+    _: OaApplicationSecret,
     application_id: Path<Uuid>,
     body: Json<ApplicationPost>,
 ) -> Result<Json<Application>, Hook0Problem> {
@@ -244,6 +247,7 @@ pub async fn edit(
 pub async fn delete(
     state: Data<crate::State>,
     auth: AuthProof,
+    _: OaApplicationSecret,
     application_id: Path<Uuid>,
 ) -> Result<NoContent, Hook0Problem> {
     if auth

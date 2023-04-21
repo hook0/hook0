@@ -11,6 +11,7 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 use crate::iam::{AuthProof, Role};
+use crate::openapi::OaApplicationSecret;
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -39,6 +40,7 @@ pub struct Qs {
 pub async fn get(
     state: Data<crate::State>,
     auth: AuthProof,
+    _: OaApplicationSecret,
     qs: Query<Qs>,
     response_id: Path<Uuid>,
 ) -> Result<Json<Response>, Hook0Problem> {
