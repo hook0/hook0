@@ -3,7 +3,7 @@
     class="ag-theme-alpine"
     v-bind="{ ...$props, ...$attrs }"
     :domLayout="domLayout"
-    :modules="modules.concat(context ? [{ moduleName: 'context', context: context }] : [])"
+    :modules="modules.concat(contextModule ? [contextModule] : [])"
     :defaultColDef="defaultColDef"
     :suppressRowHoverHighlight="true"
     :suppressHorizontalScroll="true"
@@ -18,13 +18,16 @@
 import { Vue, Options } from 'vue-class-component';
 import { AgGridVue } from '@ag-grid-community/vue3';
 import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model';
-import { AgGridEvent, ColDef, ICellRendererParams, RowNode } from '@ag-grid-community/core';
+import { AgGridEvent, ColDef, ICellRendererParams, Module, RowNode } from '@ag-grid-community/core';
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 import Hook0TableCellCode from '@/components/Hook0TableCellCode.vue';
 import Hook0TableCellLinks from '@/components/Hook0TableCellLinks.vue';
 import Hook0TableCellIcon from '@/components/Hook0TableCellIcon.vue';
+import { defineComponent } from 'vue';
 
-@Options({
+type Context = Record<string, any>;
+
+export default defineComponent({
   name: 'hook0-table',
   inheritAttrs: false,
   props: {
@@ -44,31 +47,48 @@ import Hook0TableCellIcon from '@/components/Hook0TableCellIcon.vue';
       required: true,
     },
   },
-  components: {
-    AgGridVue,
-    Hook0TableCellLink,
-    Hook0TableCellLinks,
-    Hook0TableCellCode,
-    Hook0TableCellIcon,
+  data() {
+    return {
+      domLayout: null as string | null,
+      modules: [ClientSideRowModelModule],
+
+      defaultColDef: {
+        resizable: false,
+      },
+      gridOptions: {},
+    };
   },
-})
-export default class Hook0Table extends Vue {
-  private domLayout: string | null = null;
-  private modules = [ClientSideRowModelModule];
-  private defaultColDef = {
-    resizable: false,
-  };
-
-  private gridOptions = {};
-
   created() {
     this.domLayout = 'autoHeight';
-  }
-
-  onFirstDataRendered(params: AgGridEvent<any>) {
-    params.api.sizeColumnsToFit();
-  }
-}
+  },
+  computed: {
+    contextModule(): null | (Module & { context: Context }) {
+      return this.context
+        ? {
+            moduleName: 'context',
+            version: ClientSideRowModelModule.version,
+            context: this.context as Context,
+          }
+        : null;
+    },
+  },
+  components: {
+    AgGridVue,
+    // eslint-disable-next-line vue/no-unused-components
+    Hook0TableCellLink,
+    // eslint-disable-next-line vue/no-unused-components
+    Hook0TableCellLinks,
+    // eslint-disable-next-line vue/no-unused-components
+    Hook0TableCellCode,
+    // eslint-disable-next-line vue/no-unused-components
+    Hook0TableCellIcon,
+  },
+  methods: {
+    onFirstDataRendered(params: AgGridEvent<any>) {
+      params.api.sizeColumnsToFit();
+    },
+  },
+});
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style>
