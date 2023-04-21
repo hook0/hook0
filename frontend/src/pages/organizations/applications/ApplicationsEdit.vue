@@ -111,16 +111,7 @@ export default class ApplicationEdit extends Vue {
   }
 
   cancel2() {
-    this.$router
-      .push({
-        name: routes.ApplicationsDashboard,
-        params: {
-          application_id: this.$route.params.application_id,
-        },
-      })
-      .catch((err) => {
-        // do nothing
-      });
+    this.$router.back();
   }
 
   upsert(e: Event) {
