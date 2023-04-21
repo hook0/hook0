@@ -10,6 +10,7 @@ use std::cmp::max;
 use uuid::Uuid;
 
 use crate::iam::{AuthProof, Role};
+use crate::openapi::OaApplicationSecret;
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -107,6 +108,7 @@ pub struct Qs {
 pub async fn list(
     state: Data<crate::State>,
     auth: AuthProof,
+    _: OaApplicationSecret,
     qs: Query<Qs>,
 ) -> Result<Json<Vec<RequestAttempt>>, Hook0Problem> {
     if auth
