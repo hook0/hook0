@@ -23,7 +23,7 @@ include:
   - local: 'output-worker/.gitlab-ci.yml'
   - local: 'sentry-integration/.gitlab-ci.yml'
   - local: 'website/.gitlab-ci.yml'
-  - local: 'keycloak-theme/.gitlab-ci.yml'
+  # - local: 'keycloak-theme/.gitlab-ci.yml'
 
 
 osv_dependency_scan:
