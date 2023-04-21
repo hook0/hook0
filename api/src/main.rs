@@ -8,10 +8,8 @@ use actix_web_middleware_keycloak_auth::{AlwaysPassPolicy, DecodingKey, Keycloak
 use clap::builder::{BoolValueParser, TypedValueParser};
 use clap::{crate_description, crate_name, crate_version, ArgGroup, Parser};
 use log::{debug, info, trace, warn};
-use paperclip::{
-    actix::{web, OpenApiExt},
-    v2::models::{DefaultApiRaw, Info},
-};
+use paperclip::actix::{web, OpenApiExt};
+use paperclip::v2::models::{DefaultApiRaw, Info, OperationProtocol};
 use reqwest::Url;
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 use std::str::FromStr;
@@ -251,7 +249,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Initialize Hook0 client
     let hook0_client = hook0_client::initialize(
-        config.hook0_client_api_url,
+        config.hook0_client_api_url.clone(),
         config.hook0_client_application_id,
         config.hook0_client_application_secret,
     );
@@ -282,6 +280,7 @@ async fn main() -> anyhow::Result<()> {
         hook0_client,
     };
     let keycloak_oidc_public_key = config.keycloak_oidc_public_key;
+    let hook0_client_api_url = config.hook0_client_api_url;
 
     // Run web server
     let webapp_path = config.webapp_path.clone();
@@ -297,6 +296,20 @@ async fn main() -> anyhow::Result<()> {
                 version: crate_version!().to_owned(),
                 ..Default::default()
             },
+            host: hook0_client_api_url
+                .as_ref()
+                .and_then(|url| url.host_str().map(|host| host.to_string())),
+            schemes: [hook0_client_api_url
+                .as_ref()
+                .and_then(|x| {
+                    if x.scheme() == "https" {
+                        Some(OperationProtocol::Https)
+                    } else {
+                        None
+                    }
+                })
+                .unwrap_or(OperationProtocol::Http)]
+            .into(),
             ..Default::default()
         };
 
