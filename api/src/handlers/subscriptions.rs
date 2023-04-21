@@ -16,6 +16,7 @@ use crate::hook0_client::{
     EventSubscriptionCreated, EventSubscriptionRemoved, EventSubscriptionUpdated, Hook0ClientEvent,
 };
 use crate::iam::{get_owner_organization, AuthProof, Role};
+use crate::openapi::OaApplicationSecret;
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -59,6 +60,7 @@ pub struct Qs {
 pub async fn list(
     state: Data<crate::State>,
     auth: AuthProof,
+    _: OaApplicationSecret,
     qs: Query<Qs>,
 ) -> Result<Json<Vec<Subscription>>, Hook0Problem> {
     if auth
@@ -151,6 +153,7 @@ pub async fn list(
 pub async fn get(
     state: Data<crate::State>,
     auth: AuthProof,
+    _: OaApplicationSecret,
     subscription_id: Path<Uuid>,
 ) -> Result<Json<Subscription>, Hook0Problem> {
     #[allow(non_snake_case)]
@@ -288,6 +291,7 @@ pub struct SubscriptionPost {
 pub async fn add(
     state: Data<crate::State>,
     auth: AuthProof,
+    _: OaApplicationSecret,
     body: Json<SubscriptionPost>,
 ) -> Result<CreatedJson<Subscription>, Hook0Problem> {
     if auth
@@ -430,6 +434,7 @@ pub async fn add(
 pub async fn update(
     state: Data<crate::State>,
     auth: AuthProof,
+    _: OaApplicationSecret,
     subscription_id: Path<Uuid>,
     body: Json<SubscriptionPost>,
 ) -> Result<Json<Subscription>, Hook0Problem> {
@@ -590,6 +595,7 @@ pub async fn update(
 pub async fn delete(
     state: Data<crate::State>,
     auth: AuthProof,
+    _: OaApplicationSecret,
     subscription_id: Path<Uuid>,
     qs: Query<Qs>,
 ) -> Result<NoContent, Hook0Problem> {

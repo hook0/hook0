@@ -15,6 +15,7 @@ use crate::hook0_client::{
     Hook0ClientEvent,
 };
 use crate::iam::{get_owner_organization, AuthProof, Role};
+use crate::openapi::OaApplicationSecret;
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -48,6 +49,7 @@ pub struct ApplicationSecretPost {
 pub async fn create(
     state: Data<crate::State>,
     auth: AuthProof,
+    _: OaApplicationSecret,
     body: Json<ApplicationSecretPost>,
 ) -> Result<CreatedJson<ApplicationSecret>, Hook0Problem> {
     if auth
@@ -108,6 +110,7 @@ pub async fn create(
 pub async fn list(
     state: Data<crate::State>,
     auth: AuthProof,
+    _: OaApplicationSecret,
     qs: Query<Qs>,
 ) -> Result<Json<Vec<ApplicationSecret>>, Hook0Problem> {
     if auth
@@ -146,6 +149,7 @@ pub async fn list(
 pub async fn update(
     state: Data<crate::State>,
     auth: AuthProof,
+    _: OaApplicationSecret,
     application_secret_token: Path<Uuid>,
     body: Json<ApplicationSecretPost>,
 ) -> Result<Json<ApplicationSecret>, Hook0Problem> {
@@ -213,6 +217,7 @@ pub async fn update(
 pub async fn delete(
     state: Data<crate::State>,
     auth: AuthProof,
+    _: OaApplicationSecret,
     application_secret_token: Path<Uuid>,
     qs: Query<Qs>,
 ) -> Result<NoContent, Hook0Problem> {

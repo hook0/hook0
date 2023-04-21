@@ -6,10 +6,9 @@ use actix_web::middleware::{Compat, Logger, NormalizePath};
 use actix_web::{http, App, HttpServer};
 use actix_web_middleware_keycloak_auth::{AlwaysPassPolicy, DecodingKey, KeycloakAuth};
 use clap::builder::{BoolValueParser, TypedValueParser};
-use clap::{crate_description, crate_name, crate_version, ArgGroup, Parser};
+use clap::{crate_name, ArgGroup, Parser};
 use log::{debug, info, trace, warn};
 use paperclip::actix::{web, OpenApiExt};
-use paperclip::v2::models::{DefaultApiRaw, Info, OperationProtocol};
 use reqwest::Url;
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 use std::str::FromStr;
@@ -22,6 +21,7 @@ mod iam;
 mod keycloak_api;
 mod middleware_application_secret;
 mod middleware_get_user_ip;
+mod openapi;
 mod problems;
 mod rate_limiting;
 mod validators;
@@ -286,32 +286,7 @@ async fn main() -> anyhow::Result<()> {
     let webapp_path = config.webapp_path.clone();
     HttpServer::new(move || {
         // Compute default OpenAPI spec
-        let spec = DefaultApiRaw {
-            info: Info {
-                title: APP_TITLE.to_owned(),
-                description: match crate_description!() {
-                    "" => None,
-                    d => Some(d.to_owned()),
-                },
-                version: crate_version!().to_owned(),
-                ..Default::default()
-            },
-            host: hook0_client_api_url
-                .as_ref()
-                .and_then(|url| url.host_str().map(|host| host.to_string())),
-            schemes: [hook0_client_api_url
-                .as_ref()
-                .and_then(|x| {
-                    if x.scheme() == "https" {
-                        Some(OperationProtocol::Https)
-                    } else {
-                        None
-                    }
-                })
-                .unwrap_or(OperationProtocol::Http)]
-            .into(),
-            ..Default::default()
-        };
+        let spec = openapi::default_spec(&hook0_client_api_url);
 
         // Prepare user IP extraction middleware
         let get_user_ip = middleware_get_user_ip::GetUserIp {
