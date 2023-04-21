@@ -38,7 +38,7 @@
                 :value="httpTarget.headers"
                 @update:modelValue="subscription.target.headers = toMap($event)"
                 key-placeholder="header name"
-                value-placeholder="header value"
+                value-placeholder="value"
               ></hook0-key-value>
             </template>
           </hook0-card-content-line>
@@ -130,6 +130,18 @@
             </template>
           </hook0-card-content-line>
         </hook0-card-content>
+
+        <hook0-card-content-line>
+          <template #label> Metadata </template>
+          <template #content>
+            <hook0-key-value
+              :value="subscription.metadata"
+              @update:modelValue="subscription.metadata = $event"
+              key-placeholder="key"
+              value-placeholder="value"
+            ></hook0-key-value>
+          </template>
+        </hook0-card-content-line>
 
         <hook0-card-content v-if="alert.visible">
           <hook0-alert
@@ -264,7 +276,7 @@ export default class SubscriptionsEdit extends Vue {
     is_enabled: true,
     label_key: '',
     label_value: '',
-    metadata: {}, // K/V
+    metadata: {}, // K/V as object
     target: {
       type: 'http',
       method: '',

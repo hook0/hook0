@@ -30,24 +30,93 @@ import { Options, Vue } from 'vue-class-component';
 import { Hook0KeyValueKeyValuePair } from '@/components/Hook0KeyValue';
 import debounce from 'lodash.debounce';
 import { DebouncedFuncLeading } from 'lodash';
+import { isString } from 'fp-ts/string';
+import { defineComponent } from 'vue';
 
+/**
+ * Hook0-Key-Value can manipulate either:
+ * - an object
+ * - an array of key-value pairs object (Hook0KeyValueKeyValuePair)
+ */
 function getDefaultItem(): Hook0KeyValueKeyValuePair {
   return { key: '', value: '' };
 }
 
-@Options({
+type Hook0KeyValuePlainObject = Record<string, string>;
+
+enum RWMode {
+  ARRAY,
+  OBJECT,
+}
+
+interface iRWMode<T> {
+  is(val: T): boolean;
+  init(val: T): Hook0KeyValueKeyValuePair[];
+  write(val: Hook0KeyValueKeyValuePair[]): T;
+}
+
+const MODE = {
+  [RWMode.ARRAY]: {
+    is(val: Hook0KeyValueKeyValuePair[]) {
+      return (
+        Array.isArray(val) &&
+        // eslint-disable-next-line no-prototype-builtins
+        val.every((item) => item.hasOwnProperty('key') && item.hasOwnProperty('value'))
+      );
+    },
+    init(val: Hook0KeyValueKeyValuePair[]) {
+      return val.length === 0 ? [getDefaultItem()] : val;
+    },
+    write(val: Hook0KeyValueKeyValuePair[]): Hook0KeyValueKeyValuePair[] {
+      return val;
+    },
+  } as iRWMode<Hook0KeyValueKeyValuePair[]>,
+  [RWMode.OBJECT]: {
+    is(val: Hook0KeyValuePlainObject) {
+      return (
+        typeof val === 'object' &&
+        Object.entries(val).every(([key, value]) => isString(key) && isString(value))
+      );
+    },
+    init(val: Hook0KeyValuePlainObject) {
+      const entries = Object.entries(val);
+      return entries.length === 0
+        ? [getDefaultItem()]
+        : entries.map(([key, value]) => ({ key, value }));
+    },
+    write(val: Hook0KeyValueKeyValuePair[]): Hook0KeyValuePlainObject {
+      return <Hook0KeyValuePlainObject>val.reduce((m, { key, value }) => {
+        // @ts-ignore
+        m[key] = value;
+        return m;
+      }, {});
+    },
+  } as iRWMode<Hook0KeyValuePlainObject>,
+};
+
+function getNewInternalState(val: Hook0KeyValueKeyValuePair[] | Hook0KeyValuePlainObject) {
+  const encoder = MODE[RWMode.ARRAY].is(val as Hook0KeyValueKeyValuePair[])
+    ? MODE[RWMode.ARRAY]
+    : MODE[RWMode.OBJECT];
+
+  //  always start with at least one element
+  const pairs = encoder.init(val as Hook0KeyValueKeyValuePair[] & Hook0KeyValuePlainObject);
+
+  return { encoder, pairs };
+}
+
+export default defineComponent({
   name: 'hook0-key-value',
   props: {
     /**
      * note that this value will be mutated
      */
     value: {
-      type: Array,
+      type: Object,
       required: true,
-      validator: (val: Hook0KeyValueKeyValuePair[]) => {
-        // eslint-disable-next-line no-prototype-builtins
-        return val.every((item) => item.hasOwnProperty('key') && item.hasOwnProperty('value'));
-      },
+      validator: (val: Hook0KeyValueKeyValuePair[] | Hook0KeyValuePlainObject) =>
+        MODE[RWMode.ARRAY].is(val as Hook0KeyValueKeyValuePair[]) ||
+        MODE[RWMode.OBJECT].is(val as Hook0KeyValuePlainObject),
     },
     keyPlaceholder: {
       type: String,
@@ -61,42 +130,62 @@ function getDefaultItem(): Hook0KeyValueKeyValuePair {
     },
   },
   data() {
-    //  always start with at least one element
-    const pairs =
-      (this.value as Hook0KeyValueKeyValuePair[]).length === 0 ? [getDefaultItem()] : this.value;
+    const { encoder, pairs } = getNewInternalState(
+      this.value as Hook0KeyValueKeyValuePair[] | Hook0KeyValuePlainObject
+    );
+
     return {
+      encoder,
       pairs,
+      emit: this._emit,
     };
   },
   computed: {},
-})
-export default class Hook0KeyValue extends Vue {
-  private pairs!: Hook0KeyValueKeyValuePair[];
-  private emit!: DebouncedFuncLeading<() => void>;
+
+  watch: {
+    value(newVal, oldVal) {
+      const { encoder, pairs } = getNewInternalState(
+        newVal as Hook0KeyValueKeyValuePair[] | Hook0KeyValuePlainObject
+      );
+      this.encoder = encoder;
+      this.pairs = pairs;
+    },
+  },
 
   mounted() {
-    this.emit = debounce(this._emit.bind(this));
-  }
+    this._internalState();
+  },
 
-  _emit() {
-    this.$emit('update:modelValue', this.pairs);
-  }
+  beforeUpdate() {
+    this._internalState();
+  },
 
-  /**
-   *
-   * @param {Number} index
-   */
-  remove(index: number) {
-    this.pairs.splice(index, 1);
-  }
+  methods: {
+    _internalState() {
+      this.emit = debounce(this._emit.bind(this));
+    },
 
-  /**
-   *
-   */
-  add() {
-    this.pairs.push(getDefaultItem());
-  }
-}
+    _emit() {
+      this.$emit('update:modelValue', this.encoder.write(this.pairs));
+    },
+    /**
+     *
+     * @param {Number} index
+     */
+    remove(index: number) {
+      this.pairs.splice(index, 1);
+      this.emit();
+    },
+
+    /**
+     *
+     */
+    add() {
+      this.pairs.push(getDefaultItem());
+      this.emit();
+    },
+  },
+});
 </script>
 
 <style lang="scss" scoped>
