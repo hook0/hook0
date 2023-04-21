@@ -18,6 +18,7 @@ use validator::Validate;
 
 use crate::extractor_user_ip::UserIp;
 use crate::iam::{AuthProof, Role};
+use crate::openapi::OaApplicationSecret;
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, IntoStaticStr, EnumVariantNames)]
@@ -134,6 +135,7 @@ pub struct Event {
 pub async fn list(
     state: Data<crate::State>,
     auth: AuthProof,
+    _: OaApplicationSecret,
     qs: Query<Qs>,
 ) -> Result<Json<Vec<Event>>, Hook0Problem> {
     if auth
@@ -220,6 +222,7 @@ pub struct EventWithPayload {
 pub async fn get(
     state: Data<crate::State>,
     auth: AuthProof,
+    _: OaApplicationSecret,
     event_id: Path<Uuid>,
     qs: Query<Qs>,
 ) -> Result<Json<EventWithPayload>, Hook0Problem> {
@@ -286,6 +289,7 @@ pub struct IngestedEvent {
 pub async fn ingest(
     state: Data<crate::State>,
     auth: AuthProof,
+    _: OaApplicationSecret,
     ip: UserIp,
     body: Json<EventPost>,
 ) -> Result<CreatedJson<IngestedEvent>, Hook0Problem> {
