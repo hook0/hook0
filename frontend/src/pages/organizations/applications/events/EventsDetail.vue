@@ -10,51 +10,94 @@
     </template>
 
     <template #default="event">
-      <hook0-card>
-        <hook0-card-header>
-          <template #header>
-            {{ event.event_type_name }}
-          </template>
-          <template #subtitle>
-            <hook0-text class="block">
-              <hook0-text class="label pr-1">Received at</hook0-text>
-              <hook0-date-time :value="event.received_at"></hook0-date-time>
-            </hook0-text>
+      <div>
+        <hook0-card>
+          <hook0-card-header>
+            <template #header>
+              {{ event.event_type_name }}
+            </template>
+            <template #subtitle>
+              <hook0-text class="block">
+                <hook0-text class="label pr-1">Received at</hook0-text>
+                <hook0-date-time :value="event.received_at"></hook0-date-time>
+              </hook0-text>
 
-            <hook0-text class="block">
-              <hook0-text class="label pr-1">Occurred at</hook0-text>
-              <hook0-date-time :value="event.occurred_at"></hook0-date-time>
-            </hook0-text>
-          </template>
-        </hook0-card-header>
-        <hook0-card-content>
-          <hook0-card-content-line>
-            <template #label> Payload Content type </template>
-            <template #content>
-              <hook0-text class="code">{{ event.payload_content_type }}</hook0-text>
+              <hook0-text class="block">
+                <hook0-text class="label pr-1">Occurred at</hook0-text>
+                <hook0-date-time :value="event.occurred_at"></hook0-date-time>
+              </hook0-text>
             </template>
-          </hook0-card-content-line>
-          <hook0-card-content-line>
-            <template #label> Payload (decoded) </template>
-            <template #content>
-              <hook0-code :code="event.payload_decoded" />
+          </hook0-card-header>
+          <hook0-card-content>
+            <hook0-card-content-line>
+              <template #label> Source Ip </template>
+              <template #content>
+                <hook0-text class="code">{{ event.ip }}</hook0-text>
+              </template>
+            </hook0-card-content-line>
+          </hook0-card-content>
+        </hook0-card>
+
+        <hook0-card>
+          <hook0-card-header>
+            <template #header> Metadata </template>
+            <template #subtitle>
+              <hook0-button href="https://documentation.hook0.com/docs/metadata" class="label pr-1"
+                >Learn more…</hook0-button
+              >
             </template>
-          </hook0-card-content-line>
-          <hook0-card-content-line>
-            <template #label> Payload (raw) </template>
-            <template #content>
-              <hook0-code :code="event.payload" />
-            </template>
-          </hook0-card-content-line>
-          <hook0-card-content-line>
-            <template #label> Ip </template>
-            <template #content>
-              <hook0-text class="code">{{ event.ip }}</hook0-text>
-            </template>
-          </hook0-card-content-line>
-        </hook0-card-content>
-        <hook0-card-footer> </hook0-card-footer>
-      </hook0-card>
+          </hook0-card-header>
+          <hook0-card-content>
+            <hook0-card-content-line :key="key" v-for="(key, value) in event.metadata">
+              <template #label>{{ key }}</template>
+              <template #content>
+                <hook0-text class="code">{{ value }}</hook0-text>
+              </template>
+            </hook0-card-content-line>
+          </hook0-card-content>
+        </hook0-card>
+        <hook0-card>
+          <hook0-card-header>
+            <template #header>Labels</template>
+            <template #subtitle> </template>
+          </hook0-card-header>
+          <hook0-card-content>
+            <hook0-card-content-line :key="key" v-for="(key, value) in event.labels">
+              <template #label>{{ key }}</template>
+              <template #content>
+                <hook0-text class="code">{{ value }}</hook0-text>
+              </template>
+            </hook0-card-content-line>
+          </hook0-card-content>
+        </hook0-card>
+
+        <hook0-card>
+          <hook0-card-header>
+            <template #header> Payload </template>
+            <template #subtitle> </template>
+          </hook0-card-header>
+          <hook0-card-content>
+            <hook0-card-content-line>
+              <template #label> Payload Content type </template>
+              <template #content>
+                <hook0-text class="code">{{ event.payload_content_type }}</hook0-text>
+              </template>
+            </hook0-card-content-line>
+            <hook0-card-content-line>
+              <template #label> Payload (decoded) </template>
+              <template #content>
+                <hook0-code :code="event.payload_decoded" />
+              </template>
+            </hook0-card-content-line>
+            <hook0-card-content-line>
+              <template #label> Payload (raw) </template>
+              <template #content>
+                <hook0-code :code="event.payload" />
+              </template>
+            </hook0-card-content-line>
+          </hook0-card-content>
+        </hook0-card>
+      </div>
     </template>
   </Promised>
 </template>
@@ -105,5 +148,4 @@ export default class EventsDetail extends Vue {
 }
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>
