@@ -34,7 +34,7 @@ const WEBAPP_INDEX_FILE: &str = "index.html";
 #[clap(group(
     ArgGroup::new("client")
         .multiple(true)
-        .requires_all(&["hook0-client-api-url", "hook0-client-application-id", "hook0-client-application-secret"]),
+        .requires_all(&["hook0_client_api_url", "hook0_client_application_id", "hook0_client_application_secret"]),
 ))]
 struct Config {
     /// IP address on which to start the HTTP server
