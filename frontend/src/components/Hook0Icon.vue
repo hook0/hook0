@@ -1,6 +1,7 @@
 <template>
   <span :title="title">
     <font-awesome-icon
+      fixed-width
       v-bind="{ ...$props, ...$attrs }"
       :icon="['fas'].concat(names_std)"
     ></font-awesome-icon>
