@@ -43,6 +43,9 @@ import {
   faXmark,
   faPause,
   faCalendar,
+  faKey,
+  faFileContract,
+  faSliders,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 
@@ -84,8 +87,13 @@ library.add(
   faQuestion,
   faXmark,
   faPause,
-  faCalendar
+  faCalendar,
   // faSpinner
+
+  // Navigation
+  faKey,
+  faFileContract,
+  faSliders
 );
 app.component('font-awesome-icon', FontAwesomeIcon);
 
