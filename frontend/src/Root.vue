@@ -19,7 +19,7 @@
                 :href="item.href"
                 :to="item.route"
               >
-                <hook0-icon class="mr-2" :name="item.icon"></hook0-icon>
+                <hook0-icon class="mr-1" :name="item.icon"></hook0-icon>
               </menu-item>
             </nav>
           </div>
@@ -121,23 +121,10 @@ import Hook0LoginMenu from '@/components/Hook0LoginMenu.vue';
           ? [
               {
                 name: 'API Keys',
-                icon: 'folder-tree',
+                icon: 'key',
                 route: {
                   name: routes.ApplicationSecretsList,
                   // @ts-ignore
-                  params: {
-                    // eslint-disable-next-line
-                    organization_id: this.$route.params.organization_id,
-                    // eslint-disable-next-line
-                    application_id: this.$route.params.application_id,
-                  },
-                },
-              },
-              {
-                name: 'Subscriptions',
-                icon: 'link',
-                route: {
-                  name: routes.SubscriptionsList,
                   params: {
                     // eslint-disable-next-line
                     organization_id: this.$route.params.organization_id,
@@ -173,10 +160,22 @@ import Hook0LoginMenu from '@/components/Hook0LoginMenu.vue';
                   },
                 },
               },
-
               {
-                name: 'Logs',
-                icon: 'file-lines',
+                name: 'Subscriptions',
+                icon: 'link',
+                route: {
+                  name: routes.SubscriptionsList,
+                  params: {
+                    // eslint-disable-next-line
+                    organization_id: this.$route.params.organization_id,
+                    // eslint-disable-next-line
+                    application_id: this.$route.params.application_id,
+                  },
+                },
+              },
+              {
+                name: 'Request Attempts',
+                icon: 'file-contract',
                 route: {
                   name: routes.LogsList,
                   params: {
@@ -189,7 +188,7 @@ import Hook0LoginMenu from '@/components/Hook0LoginMenu.vue';
               },
               {
                 name: 'Settings',
-                icon: 'gear',
+                icon: 'sliders',
                 route: {
                   name: routes.ApplicationsDashboard,
                   // @ts-ignore
