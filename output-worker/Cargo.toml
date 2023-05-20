@@ -6,9 +6,6 @@ edition = "2021"
 license = "SSPL-1.0"
 keywords = ["webhooks", "webhook", "webhook server", "events"]
 
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 anyhow = "1.0.71"
 chrono = "0.4.24"
