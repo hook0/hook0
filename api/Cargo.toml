@@ -7,9 +7,6 @@ edition = "2021"
 license = "SSPL-1.0"
 keywords = ["webhooks", "webhook", "webhook server", "events"]
 
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 actix = "0.13.0"
 actix-cors = "0.6.4"
