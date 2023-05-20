@@ -3,8 +3,6 @@ name = "hook0-client"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 chrono = { version = "0.4.24", features = ["serde"] }
 lazy-regex = "2.5.0"
