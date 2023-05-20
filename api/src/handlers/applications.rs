@@ -15,12 +15,27 @@ use crate::hook0_client::{
 use crate::iam::{get_owner_organization, AuthProof, Role};
 use crate::openapi::OaApplicationSecret;
 use crate::problems::Hook0Problem;
+use crate::quotas::{Quota, QuotaValue};
 
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct Application {
     application_id: Uuid,
     organization_id: Uuid,
     name: String,
+}
+
+#[derive(Debug, Serialize, Apiv2Schema)]
+pub struct ApplicationInfo {
+    application_id: Uuid,
+    organization_id: Uuid,
+    name: String,
+    quotas: ApplicationQuotas,
+}
+
+#[derive(Debug, Serialize, Apiv2Schema)]
+pub struct ApplicationQuotas {
+    events_per_day_limit: QuotaValue,
+    days_of_events_retention_limit: QuotaValue,
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
@@ -105,7 +120,7 @@ pub async fn get(
     auth: AuthProof,
     _: OaApplicationSecret,
     application_id: Path<Uuid>,
-) -> Result<Json<Application>, Hook0Problem> {
+) -> Result<Json<ApplicationInfo>, Hook0Problem> {
     if auth
         .can_access_application(&state.db, &application_id, &Role::Viewer)
         .await
@@ -114,6 +129,8 @@ pub async fn get(
         return Err(Hook0Problem::Forbidden);
     }
 
+    let application_id = application_id.into_inner();
+
     let application = query_as!(
         Application,
         "
@@ -121,14 +138,32 @@ pub async fn get(
             FROM event.application
             WHERE application__id = $1
         ",
-        application_id.into_inner()
+        &application_id,
     )
     .fetch_optional(&state.db)
     .await
     .map_err(Hook0Problem::from)?;
 
     match application {
-        Some(a) => Ok(Json(a)),
+        Some(a) => {
+            let quotas = ApplicationQuotas {
+                events_per_day_limit: state
+                    .quotas
+                    .get_limit_for_application(Quota::EventsPerDay, &application_id)
+                    .await?,
+                days_of_events_retention_limit: state
+                    .quotas
+                    .get_limit_for_application(Quota::DaysOfEventsRetention, &application_id)
+                    .await?,
+            };
+
+            Ok(Json(ApplicationInfo {
+                application_id: a.application_id,
+                organization_id: a.organization_id,
+                name: a.name,
+                quotas,
+            }))
+        }
         None => Err(Hook0Problem::NotFound),
     }
 }

@@ -1,0 +1,263 @@
+use sqlx::{query_as, PgPool};
+use uuid::Uuid;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Quota {
+    MembersPerOrganization,
+    ApplicationsPerOrganization,
+    EventsPerDay,
+    DaysOfEventsRetention,
+}
+
+pub type QuotaValue = i32;
+
+#[derive(Debug, Clone)]
+struct QueryResult {
+    val: Option<QuotaValue>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Quotas {
+    db: PgPool,
+    global_members_per_organization_limit: QuotaValue,
+    global_applications_per_organization_limit: QuotaValue,
+    global_events_per_day_limit: QuotaValue,
+    global_days_of_events_retention_limit: QuotaValue,
+}
+
+impl Quotas {
+    pub fn new(
+        db: PgPool,
+        global_members_per_organization_limit: QuotaValue,
+        global_applications_per_organization_limit: QuotaValue,
+        global_events_per_day_limit: QuotaValue,
+        global_days_of_events_retention_limit: QuotaValue,
+    ) -> Self {
+        Self {
+            db,
+            global_members_per_organization_limit,
+            global_applications_per_organization_limit,
+            global_events_per_day_limit,
+            global_days_of_events_retention_limit,
+        }
+    }
+
+    pub async fn get_limit_for_organization(
+        &self,
+        quota: Quota,
+        organization_id: &Uuid,
+    ) -> Result<QuotaValue, sqlx::Error> {
+        let plan_value = match quota {
+            Quota::MembersPerOrganization => {
+                query_as!(
+                    QueryResult,
+                    "
+                        SELECT p.members_per_organization_limit AS val
+                        FROM iam.organization AS o
+                        INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id
+                        WHERE o.organization__id = $1
+                    ",
+                    organization_id,
+                )
+                .fetch_optional(&self.db)
+                .await
+            }
+            Quota::ApplicationsPerOrganization => {
+                query_as!(
+                    QueryResult,
+                    "
+                        SELECT p.applications_per_organization_limit AS val
+                        FROM iam.organization AS o
+                        INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id
+                        WHERE o.organization__id = $1
+                    ",
+                    organization_id,
+                )
+                .fetch_optional(&self.db)
+                .await
+            }
+            Quota::EventsPerDay => {
+                query_as!(
+                    QueryResult,
+                    "
+                        SELECT p.events_per_day_limit AS val
+                        FROM iam.organization AS o
+                        INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id
+                        WHERE o.organization__id = $1
+                    ",
+                    organization_id,
+                )
+                .fetch_optional(&self.db)
+                .await
+            }
+            Quota::DaysOfEventsRetention => {
+                query_as!(
+                    QueryResult,
+                    "
+                        SELECT p.days_of_events_retention_limit AS val
+                        FROM iam.organization AS o
+                        INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id
+                        WHERE o.organization__id = $1
+                    ",
+                    organization_id,
+                )
+                .fetch_optional(&self.db)
+                .await
+            }
+        }?
+        .and_then(|r| r.val);
+        Ok(plan_value.unwrap_or(match quota {
+            Quota::MembersPerOrganization => self.global_members_per_organization_limit,
+            Quota::ApplicationsPerOrganization => self.global_applications_per_organization_limit,
+            Quota::EventsPerDay => self.global_events_per_day_limit,
+            Quota::DaysOfEventsRetention => self.global_days_of_events_retention_limit,
+        }))
+    }
+
+    // pub async fn get_current_for_organization(
+    //     &self,
+    //     quota: Quota,
+    //     organization_id: &Uuid,
+    // ) -> Result<QuotaValue, sqlx::Error> {
+    //     let val = match quota {
+    //         Quota::MembersPerOrganization => todo!(),
+    //         Quota::ApplicationsPerOrganization => query_as!(
+    //             QueryResult,
+    //             "
+    //                 SELECT count(a.application__id)::integer AS val
+    //                 FROM event.application AS a
+    //                 WHERE a.organization__id = $1
+    //             ",
+    //             organization_id,
+    //         )
+    //         .fetch_one(&self.db)
+    //         .await?
+    //         .val
+    //         .unwrap_or(0),
+    //         Quota::EventsPerDay => todo!(),
+    //         Quota::DaysOfEventsRetention => todo!(),
+    //     };
+    //     Ok(val)
+    // }
+
+    pub async fn get_limit_for_application(
+        &self,
+        quota: Quota,
+        application_id: &Uuid,
+    ) -> Result<QuotaValue, sqlx::Error> {
+        let app_value = match quota {
+            Quota::MembersPerOrganization => None,
+            Quota::ApplicationsPerOrganization => None,
+            Quota::EventsPerDay => {
+                query_as!(
+                    QueryResult,
+                    "
+                        SELECT a.events_per_day_limit AS val
+                        FROM event.application AS a
+                        INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
+                        INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id
+                        WHERE a.application__id = $1
+                    ",
+                    application_id,
+                )
+                .fetch_optional(&self.db)
+                .await?
+            }
+            Quota::DaysOfEventsRetention => {
+                query_as!(
+                    QueryResult,
+                    "
+                        SELECT a.days_of_events_retention_limit AS val
+                        FROM event.application AS a
+                        INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
+                        INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id
+                        WHERE a.application__id = $1
+                    ",
+                    application_id,
+                )
+                .fetch_optional(&self.db)
+                .await?
+            }
+        };
+        let plan_value = match app_value {
+            Some(r) => r.val,
+            None => match quota {
+                Quota::MembersPerOrganization => {
+                    query_as!(
+                        QueryResult,
+                        "
+                            SELECT p.members_per_organization_limit AS val
+                            FROM event.application AS a
+                            INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
+                            INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id
+                            WHERE a.application__id = $1
+                        ",
+                        application_id,
+                    )
+                    .fetch_optional(&self.db)
+                    .await
+                }
+                Quota::ApplicationsPerOrganization => {
+                    query_as!(
+                        QueryResult,
+                        "
+                            SELECT p.applications_per_organization_limit AS val
+                            FROM event.application AS a
+                            INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
+                            INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id
+                            WHERE a.application__id = $1
+                        ",
+                        application_id,
+                    )
+                    .fetch_optional(&self.db)
+                    .await
+                }
+                Quota::EventsPerDay => {
+                    query_as!(
+                        QueryResult,
+                        "
+                            SELECT p.events_per_day_limit AS val
+                            FROM event.application AS a
+                            INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
+                            INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id
+                            WHERE a.application__id = $1
+                        ",
+                        application_id,
+                    )
+                    .fetch_optional(&self.db)
+                    .await
+                }
+                Quota::DaysOfEventsRetention => {
+                    query_as!(
+                        QueryResult,
+                        "
+                            SELECT p.days_of_events_retention_limit AS val
+                            FROM event.application AS a
+                            INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
+                            INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id
+                            WHERE a.application__id = $1
+                        ",
+                        application_id,
+                    )
+                    .fetch_optional(&self.db)
+                    .await
+                }
+            }?
+            .and_then(|r| r.val),
+        };
+        Ok(plan_value.unwrap_or(match quota {
+            Quota::MembersPerOrganization => self.global_members_per_organization_limit,
+            Quota::ApplicationsPerOrganization => self.global_applications_per_organization_limit,
+            Quota::EventsPerDay => self.global_events_per_day_limit,
+            Quota::DaysOfEventsRetention => self.global_days_of_events_retention_limit,
+        }))
+    }
+
+    // pub async fn get_current_for_application(
+    //     &self,
+    //     quota: Quota,
+    //     application_id: &Uuid,
+    // ) -> Result<QuotaValue, sqlx::Error> {
+    //     todo!()
+    // }
+}
