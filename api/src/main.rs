@@ -23,6 +23,7 @@ mod middleware_application_secret;
 mod middleware_get_user_ip;
 mod openapi;
 mod problems;
+mod quotas;
 mod rate_limiting;
 mod validators;
 
@@ -168,6 +169,22 @@ struct Config {
     /// Number of allowed retries when upserting event types to the linked Hook0 application fails
     #[clap(long, env, default_value = "10")]
     hook0_client_upserts_retries: u16,
+
+    /// Default limit of members per organization (can be overriden by a plan)
+    #[clap(long, env, default_value = "1")]
+    quota_global_members_per_organization_limit: quotas::QuotaValue,
+
+    /// Default limit of applications per organization (can be overriden by a plan)
+    #[clap(long, env, default_value = "1")]
+    quota_global_applications_per_organization_limit: quotas::QuotaValue,
+
+    /// Default limit of events per day (can be overriden by a plan)
+    #[clap(long, env, default_value = "100")]
+    quota_global_events_per_day_limit: quotas::QuotaValue,
+
+    /// Default limit of day of event's retention (can be overriden by a plan)
+    #[clap(long, env, default_value = "7")]
+    quota_global_days_of_events_retention_limit: quotas::QuotaValue,
 }
 
 /// The app state
@@ -182,6 +199,7 @@ pub struct State {
     disable_registration: bool,
     auto_db_migration: bool,
     hook0_client: Option<Hook0Client>,
+    quotas: quotas::Quotas,
 }
 
 #[actix_web::main]
@@ -266,6 +284,15 @@ async fn main() -> anyhow::Result<()> {
         });
     }
 
+    // Initialize quotas manager
+    let quotas = quotas::Quotas::new(
+        pool.clone(),
+        config.quota_global_members_per_organization_limit,
+        config.quota_global_applications_per_organization_limit,
+        config.quota_global_events_per_day_limit,
+        config.quota_global_days_of_events_retention_limit,
+    );
+
     // Initialize state
     let initial_state = State {
         db: pool,
@@ -277,6 +304,7 @@ async fn main() -> anyhow::Result<()> {
         disable_registration: config.disable_registration,
         auto_db_migration: config.auto_db_migration,
         hook0_client,
+        quotas,
     };
     let keycloak_oidc_public_key = config.keycloak_oidc_public_key;
     let hook0_client_api_url = config.hook0_client_api_url;
