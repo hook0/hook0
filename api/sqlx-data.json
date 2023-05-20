@@ -49,6 +49,38 @@
     },
     "query": "\n            SELECT application__id\n            FROM event.application\n            WHERE organization__id = $1\n        "
   },
+  "08005a1c66c449bcf4a8ea3f202b3c66912c8f187b885f2f3ccef99e5e9f05c9": {
+    "describe": {
+      "columns": [
+        {
+          "name": "val",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n                            SELECT p.events_per_day_limit AS val\n                            FROM event.application AS a\n                            INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id\n                            INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id\n                            WHERE a.application__id = $1\n                        "
+  },
+  "0bcf29a5d093dd25c40641dff9a1e1fbd3292f50e4254af3c2a0058c3ecb0e78": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n                DELETE FROM iam.organization\n                WHERE organization__id = $1\n            "
+  },
   "0bdbd8041fda6750113c1b50c28e5b827628cf5dec94c63f666ed62a0efea60d": {
     "describe": {
       "columns": [
@@ -235,6 +267,26 @@
     },
     "query": "SELECT application__id AS application_id, organization__id AS organization_id, name FROM event.application WHERE organization__id = $1"
   },
+  "10fd7a2dbc2a27be1041324fdb2d12364e8aa602380fa8aad30617732f92c2b3": {
+    "describe": {
+      "columns": [
+        {
+          "name": "val",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n                        SELECT p.members_per_organization_limit AS val\n                        FROM iam.organization AS o\n                        INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id\n                        WHERE o.organization__id = $1\n                    "
+  },
   "183a1dbd85659cca02698b6dc7654cda6c6942100b859cddab0d74667295fa20": {
     "describe": {
       "columns": [
@@ -363,6 +415,26 @@
     },
     "query": "\n                SELECT event__id, event_type__name, payload, payload_content_type, ip, metadata, occurred_at, received_at, application_secret__token, labels\n                FROM event.event\n                WHERE application__id = $1 AND event__id = $2\n            "
   },
+  "2d737e68182eaebc39553496281ee45cb23e139842508c03220fc59207ffc466": {
+    "describe": {
+      "columns": [
+        {
+          "name": "val",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n                        SELECT p.applications_per_organization_limit AS val\n                        FROM iam.organization AS o\n                        INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id\n                        WHERE o.organization__id = $1\n                    "
+  },
   "302abef8cc402caebdbcea8da9d02d81ea9e98601a79785baf6347d9902b9993": {
     "describe": {
       "columns": [],
@@ -374,6 +446,26 @@
       }
     },
     "query": "DELETE FROM event.application WHERE application__id = $1"
+  },
+  "32d6c3de75835a2af8d20cdf03cd0d1a4e5f910c1dc2abbbbf14710ab94da1c0": {
+    "describe": {
+      "columns": [
+        {
+          "name": "val",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n                        SELECT a.days_of_events_retention_limit AS val\n                        FROM event.application AS a\n                        INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id\n                        INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id\n                        WHERE a.application__id = $1\n                    "
   },
   "361cae7a7162277ee9a0cfeae7a3109c33168d8e468914c0f7e0438dddb6ccc1": {
     "describe": {
@@ -496,26 +588,6 @@
       }
     },
     "query": "\n                        UPDATE webhook.target_http\n                        SET method = $1, url = $2, headers = $3\n                        WHERE target__id = $4\n                    "
-  },
-  "43916a73d87e1b33a968003b35340c555c52960f0597dd9dcb9afff25e0cb846": {
-    "describe": {
-      "columns": [
-        {
-          "name": "name",
-          "ordinal": 0,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid"
-        ]
-      }
-    },
-    "query": "\n            SELECT name\n            FROM event.organization\n            WHERE organization__id = $1\n        "
   },
   "529bfeaf4cfc68d98dfb29109963d6f4c4133c715022100de30d2d1652796c93": {
     "describe": {
@@ -691,6 +763,26 @@
       }
     },
     "query": "\n                SELECT service__name AS service_name, resource_type__name AS resource_type_name, verb__name AS verb_name, event_type__name AS event_type_name\n                FROM event.event_type\n                WHERE application__id = $1 AND event_type__name = $2\n            "
+  },
+  "5a6dc516a2bd1f579de33b9f273daed36a72a6700ea99a4fecb78500ac8d72f9": {
+    "describe": {
+      "columns": [
+        {
+          "name": "val",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n                            SELECT p.days_of_events_retention_limit AS val\n                            FROM event.application AS a\n                            INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id\n                            INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id\n                            WHERE a.application__id = $1\n                        "
   },
   "60323f5a3ce646aeed44d0cfeeea088301a2c7233c26b2455b3d97396dfda3ad": {
     "describe": {
@@ -965,6 +1057,20 @@
     },
     "query": "SELECT application__id FROM webhook.subscription WHERE subscription__id = $1 AND deleted_at IS NULL LIMIT 1"
   },
+  "754162e03e573d10892145b1e5b963aed20243558fdce3b1aff674c6804b2fea": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n            INSERT INTO iam.organization (organization__id, name, created_by)\n            VALUES ($1, $2, $3)\n        "
+  },
   "75c3aa82e6a7fd6d7ef407b312670fa722dca1e941b8d9c5c2cc18d165d11e6b": {
     "describe": {
       "columns": [
@@ -1068,18 +1174,51 @@
     },
     "query": "\n                    DELETE FROM event.event_type\n                    WHERE application__id = $1 AND event_type__name = $2\n                "
   },
-  "8f5f75851e8cb0955f95f3b588e680def4a7212ba90b63c260eb9c7dec182f6c": {
+  "8bccde7d3f6d54349865d3430ebfba2260a65a665eda3edd664525112a21659b": {
     "describe": {
-      "columns": [],
-      "nullable": [],
+      "columns": [
+        {
+          "name": "val",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        true
+      ],
       "parameters": {
         "Left": [
-          "Uuid",
-          "Text"
+          "Uuid"
         ]
       }
     },
-    "query": "\n            UPDATE event.organization\n            SET name = $2\n            WHERE organization__id = $1\n        "
+    "query": "\n                            SELECT p.members_per_organization_limit AS val\n                            FROM event.application AS a\n                            INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id\n                            INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id\n                            WHERE a.application__id = $1\n                        "
+  },
+  "96c90472a2036739b9528e579127c73d94428b78fe3276f58d0550f4abbaccee": {
+    "describe": {
+      "columns": [
+        {
+          "name": "name",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "plan?",
+          "ordinal": 1,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n                SELECT o.name, p.name AS \"plan?\"\n                FROM iam.organization AS o\n                LEFT JOIN iam.plan AS p ON p.plan__id = o.plan__id\n                WHERE organization__id = $1\n            "
   },
   "977fc5dee15cf9596bc038507e355d1f94d0a69484f3fa4a8f04ad4ae707b238": {
     "describe": {
@@ -1155,17 +1294,17 @@
     },
     "query": "\n            WITH subs AS (\n                SELECT\n                    s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.label_key, s.label_value, s.target__id, s.created_at,\n                    CASE WHEN length((array_agg(set.event_type__name))[1]) > 0\n                        THEN array_agg(set.event_type__name)\n                        ELSE ARRAY[]::text[] END AS event_types\n                FROM webhook.subscription AS s\n                LEFT JOIN webhook.subscription__event_type AS set ON set.subscription__id = s.subscription__id\n                WHERE s.application__id = $1 AND deleted_at IS NULL\n                GROUP BY s.subscription__id\n                ORDER BY s.created_at ASC\n            ), targets AS (\n                SELECT target__id, jsonb_build_object(\n                    'type', replace(tableoid::regclass::text, 'webhook.target_', ''),\n                    'method', method,\n                    'url', url,\n                    'headers', headers\n                ) AS target_json FROM webhook.target_http\n                WHERE target__id IN (SELECT target__id FROM subs)\n            )\n            SELECT subs.subscription__id AS \"subscription__id!\", subs.is_enabled AS \"is_enabled!\", subs.description, subs.secret AS \"secret!\", subs.metadata AS \"metadata!\", subs.label_key AS \"label_key!\", subs.label_value AS \"label_value!\", subs.created_at AS \"created_at!\", subs.event_types, targets.target_json\n            FROM subs\n            INNER JOIN targets ON subs.target__id = targets.target__id\n        "
   },
-  "9b0b663cc66c5f27ed8783913afc126dc7861219df428fdc1f5336fa8448c5fe": {
+  "97a054e9c5397f4db96b1b8147c14f8c048a0801cbba41ed1545f41b976991e3": {
     "describe": {
       "columns": [
         {
-          "name": "name",
+          "name": "val",
           "ordinal": 0,
-          "type_info": "Text"
+          "type_info": "Int4"
         }
       ],
       "nullable": [
-        false
+        true
       ],
       "parameters": {
         "Left": [
@@ -1173,7 +1312,27 @@
         ]
       }
     },
-    "query": "\n                SELECT name\n                FROM event.organization\n                WHERE organization__id = $1\n            "
+    "query": "\n                        SELECT a.events_per_day_limit AS val\n                        FROM event.application AS a\n                        INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id\n                        INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id\n                        WHERE a.application__id = $1\n                    "
+  },
+  "9ccb8ef428a2da37add5191f77220199b92f147f22a337a720ce174c27f49739": {
+    "describe": {
+      "columns": [
+        {
+          "name": "val",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n                            SELECT p.applications_per_organization_limit AS val\n                            FROM event.application AS a\n                            INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id\n                            INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id\n                            WHERE a.application__id = $1\n                        "
   },
   "9d71200b2a128a11f538b5f08f6bf140560bbd678315903d2352d1932181e3bb": {
     "describe": {
@@ -1259,6 +1418,32 @@
     },
     "query": "\n                    INSERT INTO webhook.subscription__event_type (application__id, subscription__id, event_type__name)\n                    VALUES ($1, $2, $3)\n                "
   },
+  "acb25f62329a4ea4e55402212fe34e8df1520df901a47cfef488a3446f0a9c4d": {
+    "describe": {
+      "columns": [
+        {
+          "name": "name",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "plan?",
+          "ordinal": 1,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n            SELECT o.name, p.name AS \"plan?\"\n            FROM iam.organization AS o\n            LEFT JOIN iam.plan AS p ON p.plan__id = o.plan__id\n            WHERE organization__id = $1\n        "
+  },
   "b5d4abddfdeae1cd7851e5e90d8e296a1855e69cba499f3238913cf8b2f6e5da": {
     "describe": {
       "columns": [
@@ -1292,6 +1477,39 @@
     },
     "query": "\n                INSERT INTO event.application (organization__id, name) VALUES ($1, $2)\n                RETURNING application__id AS application_id, organization__id AS organization_id, name\n            "
   },
+  "b83c896371da2bb7c073078abfc6a99843e786c89981f494929eb75d17e3c97d": {
+    "describe": {
+      "columns": [
+        {
+          "name": "val",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n                        SELECT p.events_per_day_limit AS val\n                        FROM iam.organization AS o\n                        INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id\n                        WHERE o.organization__id = $1\n                    "
+  },
+  "c5a41930ae5018eee254598f164fa7b4eaad05c3ee5342a765e3e32a020ecba4": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text"
+        ]
+      }
+    },
+    "query": "\n            UPDATE iam.organization\n            SET name = $2\n            WHERE organization__id = $1\n        "
+  },
   "ced571dc5144ee7ddcb20ef555dd86c2957d296ff36be2ae13c008b0472556e5": {
     "describe": {
       "columns": [],
@@ -1304,20 +1522,6 @@
       }
     },
     "query": "\n            INSERT INTO event.verb (application__id, verb__name)\n            VALUES ($1, $2)\n            ON CONFLICT DO NOTHING\n        "
-  },
-  "dcb522f9b1406d407af57843bb37f1bb3cea974e158138b696e1ec3fc2445055": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Text",
-          "Uuid"
-        ]
-      }
-    },
-    "query": "\n            INSERT INTO event.organization (organization__id, name, created_by)\n            VALUES ($1, $2, $3)\n        "
   },
   "dccd323176a61aa3463a4084636d49d0162a13839ba1b49602b232547ae76ab7": {
     "describe": {
@@ -1479,6 +1683,26 @@
     },
     "query": "\n            UPDATE event.application_secret\n            SET name = $1\n            WHERE application__id = $2 AND token = $3\n            RETURNING name, token, created_at, deleted_at\n        "
   },
+  "fc93e0d9e63aae32b324b0d14bdab6cc1e32bb07d3d43c7a00dea98ad3458979": {
+    "describe": {
+      "columns": [
+        {
+          "name": "val",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n                        SELECT p.days_of_events_retention_limit AS val\n                        FROM iam.organization AS o\n                        INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id\n                        WHERE o.organization__id = $1\n                    "
+  },
   "fdf3486340176c6d2fd5f54b0cd94b3bf93ef6ece1acd8d0b1f7756cd31201ba": {
     "describe": {
       "columns": [
@@ -1519,18 +1743,6 @@
       }
     },
     "query": "\n                INSERT INTO event.event_type (application__id, service__name, resource_type__name, verb__name)\n                VALUES ($1, $2, $3, $4)\n                RETURNING service__name AS service_name, resource_type__name AS resource_type_name, verb__name AS verb_name, event_type__name AS event_type_name\n            "
-  },
-  "feb121f20e144762f2679eda1e79feb5e41d1a467db1c97f37f1e879229641e6": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid"
-        ]
-      }
-    },
-    "query": "\n                DELETE FROM event.organization\n                WHERE organization__id = $1\n            "
   },
   "ff04ae42c5a87275c9fe9b28d92ddad97013233c2bd198f43b8e827c60d99bdc": {
     "describe": {
