@@ -19,19 +19,31 @@ use crate::hook0_client::{
 use crate::iam::{AuthProof, Role, GROUP_SEP, ORGA_GROUP_PREFIX};
 use crate::keycloak_api::{Group, KeycloakApi};
 use crate::problems::Hook0Problem;
+use crate::quotas::{Quota, QuotaValue};
 
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct Organization {
     pub organization_id: Uuid,
     pub role: String,
     pub name: String,
+    pub plan: Option<String>,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct OrganizationInfo {
     pub organization_id: Uuid,
     pub name: String,
+    pub plan: Option<String>,
     pub users: Vec<OrganizationUser>,
+    pub quotas: OrganizationQuotas,
+}
+
+#[derive(Debug, Serialize, Apiv2Schema)]
+pub struct OrganizationQuotas {
+    pub members_per_organization_limit: QuotaValue,
+    pub applications_per_organization_limit: QuotaValue,
+    pub events_per_day_limit: QuotaValue,
+    pub days_of_events_retention_limit: QuotaValue,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -57,35 +69,38 @@ pub async fn list(
 ) -> Result<Json<Vec<Organization>>, Hook0Problem> {
     struct OrganizationMetadata {
         name: String,
+        plan: Option<String>,
     }
     let mut organizations = vec![];
 
     for (organization_id, role) in auth.organizations() {
         let metadata = query_as!(
             OrganizationMetadata,
-            "
-                SELECT name
-                FROM event.organization
+            r#"
+                SELECT o.name, p.name AS "plan?"
+                FROM iam.organization AS o
+                LEFT JOIN iam.plan AS p ON p.plan__id = o.plan__id
                 WHERE organization__id = $1
-            ",
+            "#,
             &organization_id
         )
         .fetch_optional(&state.db)
         .await
         .map_err(Hook0Problem::from)?;
 
-        let name = metadata.map(|om| om.name).unwrap_or_else(|| {
+        let (name, plan) = metadata.map(|om| (om.name, om.plan)).unwrap_or_else(|| {
             error!(
                 "Could not find organization {} in database",
                 &organization_id
             );
-            organization_id.to_string()
+            (organization_id.to_string(), None)
         });
 
         let org = Organization {
             organization_id,
             role: role.to_string(),
             name,
+            plan,
         };
 
         organizations.push(org);
@@ -151,9 +166,29 @@ pub async fn create(
             };
         }
 
+        let quotas = OrganizationQuotas {
+            members_per_organization_limit: state
+                .quotas
+                .get_limit_for_organization(Quota::MembersPerOrganization, &organization_id)
+                .await?,
+            applications_per_organization_limit: state
+                .quotas
+                .get_limit_for_organization(Quota::ApplicationsPerOrganization, &organization_id)
+                .await?,
+            events_per_day_limit: state
+                .quotas
+                .get_limit_for_organization(Quota::EventsPerDay, &organization_id)
+                .await?,
+            days_of_events_retention_limit: state
+                .quotas
+                .get_limit_for_organization(Quota::DaysOfEventsRetention, &organization_id)
+                .await?,
+        };
+
         Ok(Json(OrganizationInfo {
             organization_id,
             name: body.name.to_owned(),
+            plan: None,
             users: vec![OrganizationUser {
                 user_id: user.id,
                 email: user.email,
@@ -161,6 +196,7 @@ pub async fn create(
                 last_name: user.last_name.unwrap_or_default(),
                 role: Role::Editor,
             }],
+            quotas,
         }))
     } else {
         Err(Hook0Problem::Forbidden)
@@ -187,7 +223,7 @@ async fn create_organization_in_db(
     let organization_id = Uuid::new_v4();
     query!(
         "
-            INSERT INTO event.organization (organization__id, name, created_by)
+            INSERT INTO iam.organization (organization__id, name, created_by)
             VALUES ($1, $2, $3)
         ",
         &organization_id,
@@ -228,26 +264,28 @@ pub async fn get(
     let organization_id = organization_id.into_inner();
     struct OrganizationMetadata {
         name: String,
+        plan: Option<String>,
     }
     let metadata = query_as!(
         OrganizationMetadata,
-        "
-            SELECT name
-            FROM event.organization
+        r#"
+            SELECT o.name, p.name AS "plan?"
+            FROM iam.organization AS o
+            LEFT JOIN iam.plan AS p ON p.plan__id = o.plan__id
             WHERE organization__id = $1
-        ",
+        "#,
         &organization_id
     )
     .fetch_optional(&state.db)
     .await
     .map_err(Hook0Problem::from)?;
 
-    let name = metadata.map(|om| om.name).unwrap_or_else(|| {
+    let (name, plan) = metadata.map(|om| (om.name, om.plan)).unwrap_or_else(|| {
         error!(
             "Could not find organization {} in database",
             &organization_id
         );
-        organization_id.to_string()
+        (organization_id.to_string(), None)
     });
 
     let keycloak_api = KeycloakApi::new(
@@ -323,10 +361,34 @@ pub async fn get(
             }
             let org_users = users.into_values().map(|u| u.into()).collect::<Vec<_>>();
 
+            let quotas = OrganizationQuotas {
+                members_per_organization_limit: state
+                    .quotas
+                    .get_limit_for_organization(Quota::MembersPerOrganization, &organization_id)
+                    .await?,
+                applications_per_organization_limit: state
+                    .quotas
+                    .get_limit_for_organization(
+                        Quota::ApplicationsPerOrganization,
+                        &organization_id,
+                    )
+                    .await?,
+                events_per_day_limit: state
+                    .quotas
+                    .get_limit_for_organization(Quota::EventsPerDay, &organization_id)
+                    .await?,
+                days_of_events_retention_limit: state
+                    .quotas
+                    .get_limit_for_organization(Quota::DaysOfEventsRetention, &organization_id)
+                    .await?,
+            };
+
             Ok(Json(OrganizationInfo {
                 organization_id,
                 name,
+                plan,
                 users: org_users,
+                quotas,
             }))
         }
         None => Err(Hook0Problem::NotFound),
@@ -361,7 +423,7 @@ pub async fn edit(
 
     query!(
         "
-            UPDATE event.organization
+            UPDATE iam.organization
             SET name = $2
             WHERE organization__id = $1
         ",
@@ -609,7 +671,7 @@ pub async fn delete(
 
         query!(
             "
-                DELETE FROM event.organization
+                DELETE FROM iam.organization
                 WHERE organization__id = $1
             ",
             organization_id.as_ref(),
