@@ -286,7 +286,6 @@ async fn main() -> anyhow::Result<()> {
 
     // Initialize quotas manager
     let quotas = quotas::Quotas::new(
-        pool.clone(),
         config.quota_global_members_per_organization_limit,
         config.quota_global_applications_per_organization_limit,
         config.quota_global_events_per_day_limit,
