@@ -523,6 +523,19 @@ pub async fn invite(
                 .await?;
             match (u, g) {
                 (Some(user), Some(group)) => {
+                    let quota_limit = state
+                        .quotas
+                        .get_limit_for_organization(
+                            &state.db,
+                            Quota::MembersPerOrganization,
+                            &organization_id,
+                        )
+                        .await?;
+                    let quota_current = keycloak_api.get_group_members(&group.id).await?.len();
+                    if quota_current >= quota_limit as usize {
+                        return Err(Hook0Problem::TooManyMembersPerOrganization(quota_limit));
+                    }
+
                     let root_group = keycloak_api.get_group(&group.id).await?;
                     let role_group = root_group
                         .sub_groups
