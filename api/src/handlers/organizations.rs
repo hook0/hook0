@@ -169,19 +169,31 @@ pub async fn create(
         let quotas = OrganizationQuotas {
             members_per_organization_limit: state
                 .quotas
-                .get_limit_for_organization(Quota::MembersPerOrganization, &organization_id)
+                .get_limit_for_organization(
+                    &state.db,
+                    Quota::MembersPerOrganization,
+                    &organization_id,
+                )
                 .await?,
             applications_per_organization_limit: state
                 .quotas
-                .get_limit_for_organization(Quota::ApplicationsPerOrganization, &organization_id)
+                .get_limit_for_organization(
+                    &state.db,
+                    Quota::ApplicationsPerOrganization,
+                    &organization_id,
+                )
                 .await?,
             events_per_day_limit: state
                 .quotas
-                .get_limit_for_organization(Quota::EventsPerDay, &organization_id)
+                .get_limit_for_organization(&state.db, Quota::EventsPerDay, &organization_id)
                 .await?,
             days_of_events_retention_limit: state
                 .quotas
-                .get_limit_for_organization(Quota::DaysOfEventsRetention, &organization_id)
+                .get_limit_for_organization(
+                    &state.db,
+                    Quota::DaysOfEventsRetention,
+                    &organization_id,
+                )
                 .await?,
         };
 
@@ -364,22 +376,31 @@ pub async fn get(
             let quotas = OrganizationQuotas {
                 members_per_organization_limit: state
                     .quotas
-                    .get_limit_for_organization(Quota::MembersPerOrganization, &organization_id)
+                    .get_limit_for_organization(
+                        &state.db,
+                        Quota::MembersPerOrganization,
+                        &organization_id,
+                    )
                     .await?,
                 applications_per_organization_limit: state
                     .quotas
                     .get_limit_for_organization(
+                        &state.db,
                         Quota::ApplicationsPerOrganization,
                         &organization_id,
                     )
                     .await?,
                 events_per_day_limit: state
                     .quotas
-                    .get_limit_for_organization(Quota::EventsPerDay, &organization_id)
+                    .get_limit_for_organization(&state.db, Quota::EventsPerDay, &organization_id)
                     .await?,
                 days_of_events_retention_limit: state
                     .quotas
-                    .get_limit_for_organization(Quota::DaysOfEventsRetention, &organization_id)
+                    .get_limit_for_organization(
+                        &state.db,
+                        Quota::DaysOfEventsRetention,
+                        &organization_id,
+                    )
                     .await?,
             };
 

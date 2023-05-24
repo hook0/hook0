@@ -1,4 +1,4 @@
-use sqlx::{query_as, PgPool};
+use sqlx::{query_as, Acquire, Postgres};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -18,7 +18,6 @@ struct QueryResult {
 
 #[derive(Debug, Clone)]
 pub struct Quotas {
-    db: PgPool,
     global_members_per_organization_limit: QuotaValue,
     global_applications_per_organization_limit: QuotaValue,
     global_events_per_day_limit: QuotaValue,
@@ -27,14 +26,12 @@ pub struct Quotas {
 
 impl Quotas {
     pub fn new(
-        db: PgPool,
         global_members_per_organization_limit: QuotaValue,
         global_applications_per_organization_limit: QuotaValue,
         global_events_per_day_limit: QuotaValue,
         global_days_of_events_retention_limit: QuotaValue,
     ) -> Self {
         Self {
-            db,
             global_members_per_organization_limit,
             global_applications_per_organization_limit,
             global_events_per_day_limit,
@@ -42,11 +39,14 @@ impl Quotas {
         }
     }
 
-    pub async fn get_limit_for_organization(
+    pub async fn get_limit_for_organization<'a, A: Acquire<'a, Database = Postgres>>(
         &self,
+        db: A,
         quota: Quota,
         organization_id: &Uuid,
     ) -> Result<QuotaValue, sqlx::Error> {
+        let mut db = db.acquire().await?;
+
         let plan_value = match quota {
             Quota::MembersPerOrganization => {
                 query_as!(
@@ -59,7 +59,7 @@ impl Quotas {
                     ",
                     organization_id,
                 )
-                .fetch_optional(&self.db)
+                .fetch_optional(&mut *db)
                 .await
             }
             Quota::ApplicationsPerOrganization => {
@@ -73,7 +73,7 @@ impl Quotas {
                     ",
                     organization_id,
                 )
-                .fetch_optional(&self.db)
+                .fetch_optional(&mut *db)
                 .await
             }
             Quota::EventsPerDay => {
@@ -87,7 +87,7 @@ impl Quotas {
                     ",
                     organization_id,
                 )
-                .fetch_optional(&self.db)
+                .fetch_optional(&mut *db)
                 .await
             }
             Quota::DaysOfEventsRetention => {
@@ -101,7 +101,7 @@ impl Quotas {
                     ",
                     organization_id,
                 )
-                .fetch_optional(&self.db)
+                .fetch_optional(&mut *db)
                 .await
             }
         }?
@@ -114,37 +114,14 @@ impl Quotas {
         }))
     }
 
-    // pub async fn get_current_for_organization(
-    //     &self,
-    //     quota: Quota,
-    //     organization_id: &Uuid,
-    // ) -> Result<QuotaValue, sqlx::Error> {
-    //     let val = match quota {
-    //         Quota::MembersPerOrganization => todo!(),
-    //         Quota::ApplicationsPerOrganization => query_as!(
-    //             QueryResult,
-    //             "
-    //                 SELECT count(a.application__id)::integer AS val
-    //                 FROM event.application AS a
-    //                 WHERE a.organization__id = $1
-    //             ",
-    //             organization_id,
-    //         )
-    //         .fetch_one(&self.db)
-    //         .await?
-    //         .val
-    //         .unwrap_or(0),
-    //         Quota::EventsPerDay => todo!(),
-    //         Quota::DaysOfEventsRetention => todo!(),
-    //     };
-    //     Ok(val)
-    // }
-
-    pub async fn get_limit_for_application(
+    pub async fn get_limit_for_application<'a, A: Acquire<'a, Database = Postgres>>(
         &self,
+        db: A,
         quota: Quota,
         application_id: &Uuid,
     ) -> Result<QuotaValue, sqlx::Error> {
+        let mut db = db.acquire().await?;
+
         let app_value = match quota {
             Quota::MembersPerOrganization => None,
             Quota::ApplicationsPerOrganization => None,
@@ -160,7 +137,7 @@ impl Quotas {
                     ",
                     application_id,
                 )
-                .fetch_optional(&self.db)
+                .fetch_optional(&mut *db)
                 .await?
             }
             Quota::DaysOfEventsRetention => {
@@ -175,7 +152,7 @@ impl Quotas {
                     ",
                     application_id,
                 )
-                .fetch_optional(&self.db)
+                .fetch_optional(&mut *db)
                 .await?
             }
         };
@@ -194,7 +171,7 @@ impl Quotas {
                         ",
                         application_id,
                     )
-                    .fetch_optional(&self.db)
+                    .fetch_optional(&mut *db)
                     .await
                 }
                 Quota::ApplicationsPerOrganization => {
@@ -209,7 +186,7 @@ impl Quotas {
                         ",
                         application_id,
                     )
-                    .fetch_optional(&self.db)
+                    .fetch_optional(&mut *db)
                     .await
                 }
                 Quota::EventsPerDay => {
@@ -224,7 +201,7 @@ impl Quotas {
                         ",
                         application_id,
                     )
-                    .fetch_optional(&self.db)
+                    .fetch_optional(&mut *db)
                     .await
                 }
                 Quota::DaysOfEventsRetention => {
@@ -239,7 +216,7 @@ impl Quotas {
                         ",
                         application_id,
                     )
-                    .fetch_optional(&self.db)
+                    .fetch_optional(&mut *db)
                     .await
                 }
             }?
@@ -252,12 +229,4 @@ impl Quotas {
             Quota::DaysOfEventsRetention => self.global_days_of_events_retention_limit,
         }))
     }
-
-    // pub async fn get_current_for_application(
-    //     &self,
-    //     quota: Quota,
-    //     application_id: &Uuid,
-    // ) -> Result<QuotaValue, sqlx::Error> {
-    //     todo!()
-    // }
 }
