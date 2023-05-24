@@ -181,7 +181,6 @@ pub struct State {
     keycloak_front_client_id: String,
     disable_registration: bool,
     auto_db_migration: bool,
-    #[allow(dead_code)] // TODO: remove this exception
     hook0_client: Option<Hook0Client>,
 }
 
