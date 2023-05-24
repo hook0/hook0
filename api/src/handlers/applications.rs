@@ -149,11 +149,15 @@ pub async fn get(
             let quotas = ApplicationQuotas {
                 events_per_day_limit: state
                     .quotas
-                    .get_limit_for_application(Quota::EventsPerDay, &application_id)
+                    .get_limit_for_application(&state.db, Quota::EventsPerDay, &application_id)
                     .await?,
                 days_of_events_retention_limit: state
                     .quotas
-                    .get_limit_for_application(Quota::DaysOfEventsRetention, &application_id)
+                    .get_limit_for_application(
+                        &state.db,
+                        Quota::DaysOfEventsRetention,
+                        &application_id,
+                    )
                     .await?,
             };
 
