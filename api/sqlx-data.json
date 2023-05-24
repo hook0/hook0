@@ -1444,6 +1444,26 @@
     },
     "query": "\n            SELECT o.name, p.name AS \"plan?\"\n            FROM iam.organization AS o\n            LEFT JOIN iam.plan AS p ON p.plan__id = o.plan__id\n            WHERE organization__id = $1\n        "
   },
+  "aea89710529bfea5507a669c6d551ea6845e5d626b5beec0d95f34fdf190ffce": {
+    "describe": {
+      "columns": [
+        {
+          "name": "val!",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n            SELECT COUNT(application__id) AS \"val!\"\n            FROM event.application\n            WHERE organization__id = $1\n        "
+  },
   "b5d4abddfdeae1cd7851e5e90d8e296a1855e69cba499f3238913cf8b2f6e5da": {
     "describe": {
       "columns": [
