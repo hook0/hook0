@@ -75,6 +75,34 @@ pub async fn create(
         return Err(Hook0Problem::Validation(e));
     }
 
+    let quota_limit = state
+        .quotas
+        .get_limit_for_organization(
+            &state.db,
+            Quota::ApplicationsPerOrganization,
+            &body.organization_id,
+        )
+        .await?;
+    struct QueryResult {
+        val: i64,
+    }
+    let quota_current = query_as!(
+        QueryResult,
+        r#"
+            SELECT COUNT(application__id) AS "val!"
+            FROM event.application
+            WHERE organization__id = $1
+        "#,
+        &body.organization_id,
+    )
+    .fetch_one(&state.db)
+    .await?;
+    if quota_current.val >= quota_limit as i64 {
+        return Err(Hook0Problem::TooManyApplicationsPerOrganization(
+            quota_limit,
+        ));
+    }
+
     let application = query_as!(
             Application,
             "
