@@ -9,7 +9,7 @@ keywords = ["webhooks", "webhook", "webhook server", "events"]
 [dependencies]
 anyhow = "1.0.71"
 chrono = "0.4.24"
-clap = { version = "4.2.7", features = ["derive", "env", "cargo", "wrap_help"] }
+clap = { version = "4.3.0", features = ["derive", "env", "cargo", "wrap_help"] }
 hex = "0.4.3"
 hmac = "0.12.1"
 itertools = "0.10.5"
