@@ -10,7 +10,6 @@
   </hook0-text>
 </template>
 
-
 <script lang="ts">
 import { Vue, Options } from 'vue-class-component';
 import { ICellRendererParams } from '@ag-grid-community/core';

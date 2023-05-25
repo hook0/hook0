@@ -164,6 +164,19 @@ export interface components {
       /** Format: uuid */
       organization_id: string;
     };
+    ApplicationInfo: {
+      /** Format: uuid */
+      application_id: string;
+      name: string;
+      /** Format: uuid */
+      organization_id: string;
+      quotas: {
+        /** Format: int32 */
+        days_of_events_retention_limit: number;
+        /** Format: int32 */
+        events_per_day_limit: number;
+      };
+    };
     ApplicationPost: {
       name: string;
       /** Format: uuid */
@@ -259,12 +272,30 @@ export interface components {
       name: string;
       /** Format: uuid */
       organization_id: string;
+      plan?: {
+        label: string;
+        name: string;
+      };
       role: string;
     };
     OrganizationInfo: {
       name: string;
       /** Format: uuid */
       organization_id: string;
+      plan?: {
+        label: string;
+        name: string;
+      };
+      quotas: {
+        /** Format: int32 */
+        applications_per_organization_limit: number;
+        /** Format: int32 */
+        days_of_events_retention_limit: number;
+        /** Format: int32 */
+        events_per_day_limit: number;
+        /** Format: int32 */
+        members_per_organization_limit: number;
+      };
       users: {
         email: string;
         first_name: string;
@@ -381,8 +412,8 @@ export interface components {
 export type external = Record<string, never>;
 
 export interface operations {
+  /** List application secrets */
   'applicationSecrets.read': {
-    /** List application secrets */
     parameters: {
       query: {
         application_id: string;
@@ -407,8 +438,8 @@ export interface operations {
       500: never;
     };
   };
+  /** Create a new application secret */
   'applicationSecrets.create': {
-    /** Create a new application secret */
     requestBody: {
       content: {
         'application/json': components['schemas']['ApplicationSecretPost'];
@@ -433,8 +464,8 @@ export interface operations {
       500: never;
     };
   };
+  /** Update an application secret */
   'applicationSecrets.update': {
-    /** Update an application secret */
     parameters: {
       path: {
         application_secret_token: string;
@@ -464,8 +495,8 @@ export interface operations {
       500: never;
     };
   };
+  /** Delete an application secret */
   'applicationSecrets.delete': {
-    /** Delete an application secret */
     parameters: {
       query: {
         application_id: string;
@@ -489,8 +520,8 @@ export interface operations {
       500: never;
     };
   };
+  /** List applications */
   'applications.list': {
-    /** List applications */
     parameters: {
       query: {
         organization_id: string;
@@ -515,11 +546,11 @@ export interface operations {
       500: never;
     };
   };
+  /**
+   * Create a new application
+   * @description An application emit events that are consumed by customers through webhooks
+   */
   'applications.create': {
-    /**
-     * Create a new application
-     * @description An application emit events that are consumed by customers through webhooks
-     */
     requestBody: {
       content: {
         'application/json': components['schemas']['ApplicationPost'];
@@ -544,11 +575,11 @@ export interface operations {
       500: never;
     };
   };
+  /**
+   * Get an application by its ID
+   * @description An application emit events that are consumed by customers through webhooks
+   */
   'applications.get': {
-    /**
-     * Get an application by its ID
-     * @description An application emit events that are consumed by customers through webhooks
-     */
     parameters: {
       path: {
         application_id: string;
@@ -558,7 +589,7 @@ export interface operations {
       /** @description OK */
       200: {
         content: {
-          'application/json': components['schemas']['Application'];
+          'application/json': components['schemas']['ApplicationInfo'];
         };
       };
       /** @description Bad Request */
@@ -573,11 +604,11 @@ export interface operations {
       500: never;
     };
   };
+  /**
+   * Edit an application
+   * @description Change the name of an application
+   */
   'applications.update': {
-    /**
-     * Edit an application
-     * @description Change the name of an application
-     */
     parameters: {
       path: {
         application_id: string;
@@ -607,11 +638,11 @@ export interface operations {
       500: never;
     };
   };
+  /**
+   * Delete an application
+   * @description Delete an application, further events won't be sent, active webhook subscriptions will also be deleted.
+   */
   'applications.delete': {
-    /**
-     * Delete an application
-     * @description Delete an application, further events won't be sent, active webhook subscriptions will also be deleted.
-     */
     parameters: {
       path: {
         application_id: string;
@@ -632,11 +663,11 @@ export interface operations {
       500: never;
     };
   };
+  /**
+   * List errors
+   * @description List of every possible errors that Hook0 can return. Each error is in RFC7807 problem format.
+   */
   'errors.list': {
-    /**
-     * List errors
-     * @description List of every possible errors that Hook0 can return. Each error is in RFC7807 problem format.
-     */
     responses: {
       /** @description OK */
       200: {
@@ -656,8 +687,8 @@ export interface operations {
       500: never;
     };
   };
+  /** Ingest an event */
   'events.ingest': {
-    /** Ingest an event */
     requestBody: {
       content: {
         'application/json': components['schemas']['EventPost'];
@@ -682,8 +713,8 @@ export interface operations {
       500: never;
     };
   };
+  /** List event types */
   'eventTypes.list': {
-    /** List event types */
     parameters: {
       query: {
         application_id: string;
@@ -708,8 +739,8 @@ export interface operations {
       500: never;
     };
   };
+  /** Create a new event type */
   'eventTypes.create': {
-    /** Create a new event type */
     requestBody: {
       content: {
         'application/json': components['schemas']['EventTypePost'];
@@ -734,8 +765,8 @@ export interface operations {
       500: never;
     };
   };
+  /** Get an event type by its name */
   'eventTypes.get': {
-    /** Get an event type by its name */
     parameters: {
       query: {
         application_id: string;
@@ -763,8 +794,8 @@ export interface operations {
       500: never;
     };
   };
+  /** Delete an event type */
   'eventTypes.delete': {
-    /** Delete an event type */
     parameters: {
       query: {
         application_id: string;
@@ -788,8 +819,8 @@ export interface operations {
       500: never;
     };
   };
+  /** List latest events */
   'events.list': {
-    /** List latest events */
     parameters: {
       query: {
         application_id: string;
@@ -814,8 +845,8 @@ export interface operations {
       500: never;
     };
   };
+  /** Get an event */
   'events.get': {
-    /** Get an event */
     parameters: {
       query: {
         application_id: string;
@@ -843,11 +874,11 @@ export interface operations {
       500: never;
     };
   };
+  /**
+   * Get instance configuration
+   * @description Get an object that shows how this instance is configured.
+   */
   'instance.get': {
-    /**
-     * Get instance configuration
-     * @description Get an object that shows how this instance is configured.
-     */
     responses: {
       /** @description OK */
       200: {
@@ -867,8 +898,8 @@ export interface operations {
       500: never;
     };
   };
+  /** List organizations */
   'organizations.list': {
-    /** List organizations */
     responses: {
       /** @description OK */
       200: {
@@ -888,11 +919,11 @@ export interface operations {
       500: never;
     };
   };
+  /**
+   * Create an organization
+   * @description Note that you will need to regenerate a JWT to be able to see/use the newly created organization.
+   */
   'organizations.create': {
-    /**
-     * Create an organization
-     * @description Note that you will need to regenerate a JWT to be able to see/use the newly created organization.
-     */
     requestBody: {
       content: {
         'application/json': components['schemas']['OrganizationPost'];
@@ -917,8 +948,8 @@ export interface operations {
       500: never;
     };
   };
+  /** Get organization's info by its ID */
   'organizations.get': {
-    /** Get organization's info by its ID */
     parameters: {
       path: {
         organization_id: string;
@@ -943,11 +974,11 @@ export interface operations {
       500: never;
     };
   };
+  /**
+   * Edit an organization
+   * @description Note that you will need to regenerate a JWT to be able to see the updated name of the organization.
+   */
   'organizations.edit': {
-    /**
-     * Edit an organization
-     * @description Note that you will need to regenerate a JWT to be able to see the updated name of the organization.
-     */
     parameters: {
       path: {
         organization_id: string;
@@ -977,11 +1008,11 @@ export interface operations {
       500: never;
     };
   };
+  /**
+   * Delete an organization
+   * @description Note that you will need to regenerate a JWT to be able to make the deleted organization go away.
+   */
   'organizations.delete': {
-    /**
-     * Delete an organization
-     * @description Note that you will need to regenerate a JWT to be able to make the deleted organization go away.
-     */
     parameters: {
       path: {
         organization_id: string;
@@ -1002,8 +1033,8 @@ export interface operations {
       500: never;
     };
   };
+  /** Invite a user to an organization */
   'organizations.invite': {
-    /** Invite a user to an organization */
     parameters: {
       path: {
         organization_id: string;
@@ -1033,8 +1064,8 @@ export interface operations {
       500: never;
     };
   };
+  /** Revoke a user's access to an organization */
   'organizations.revoke': {
-    /** Revoke a user's access to an organization */
     parameters: {
       path: {
         organization_id: string;
@@ -1064,11 +1095,11 @@ export interface operations {
       500: never;
     };
   };
+  /**
+   * List supported event payload content types
+   * @description List of every possible content types that can be used in event payloads.
+   */
   'payload_content_types.list': {
-    /**
-     * List supported event payload content types
-     * @description List of every possible content types that can be used in event payloads.
-     */
     responses: {
       /** @description OK */
       200: {
@@ -1088,8 +1119,8 @@ export interface operations {
       500: never;
     };
   };
+  /** Create a new user account and a new organization */
   register: {
-    /** Create a new user account and a new organization */
     requestBody: {
       content: {
         'application/json': components['schemas']['RegistrationPost'];
@@ -1114,8 +1145,8 @@ export interface operations {
       500: never;
     };
   };
+  /** List request attempts */
   'requestAttempts.read': {
-    /** List request attempts */
     parameters: {
       query: {
         application_id: string;
@@ -1142,11 +1173,11 @@ export interface operations {
       500: never;
     };
   };
+  /**
+   * Get a response by its ID
+   * @description A response is produced when a request attempt is processed
+   */
   'response.get': {
-    /**
-     * Get a response by its ID
-     * @description A response is produced when a request attempt is processed
-     */
     parameters: {
       query: {
         application_id: string;
@@ -1174,11 +1205,11 @@ export interface operations {
       500: never;
     };
   };
+  /**
+   * List subscriptions
+   * @description List all subscriptions created by customers against the application events
+   */
   'subscriptions.list': {
-    /**
-     * List subscriptions
-     * @description List all subscriptions created by customers against the application events
-     */
     parameters: {
       query: {
         application_id: string;
@@ -1203,11 +1234,11 @@ export interface operations {
       500: never;
     };
   };
+  /**
+   * Create a new subscription
+   * @description A subscription let your customers subscribe to events. Events will be sent through the defined medium inside the subscription (e.g. HTTP POST request) as a webhook.
+   */
   'subscriptions.create': {
-    /**
-     * Create a new subscription
-     * @description A subscription let your customers subscribe to events. Events will be sent through the defined medium inside the subscription (e.g. HTTP POST request) as a webhook.
-     */
     requestBody: {
       content: {
         'application/json': components['schemas']['SubscriptionPost'];
@@ -1232,8 +1263,8 @@ export interface operations {
       500: never;
     };
   };
+  /** Get a subscription by its id */
   'subscriptions.get': {
-    /** Get a subscription by its id */
     parameters: {
       path: {
         subscription_id: string;
@@ -1258,8 +1289,8 @@ export interface operations {
       500: never;
     };
   };
+  /** Update a subscription */
   'subscriptions.update': {
-    /** Update a subscription */
     parameters: {
       path: {
         subscription_id: string;
@@ -1289,8 +1320,8 @@ export interface operations {
       500: never;
     };
   };
+  /** Delete a subscription */
   'subscriptions.delete': {
-    /** Delete a subscription */
     parameters: {
       query: {
         application_id: string;
