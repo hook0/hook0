@@ -54,7 +54,8 @@ impl Quotas {
                     "
                         SELECT p.members_per_organization_limit AS val
                         FROM iam.organization AS o
-                        INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id
+                        LEFT JOIN pricing.price AS pr ON pr.price__id = o.price__id
+                        LEFT JOIN pricing.plan AS p ON p.plan__id = pr.plan__id
                         WHERE o.organization__id = $1
                     ",
                     organization_id,
@@ -68,7 +69,8 @@ impl Quotas {
                     "
                         SELECT p.applications_per_organization_limit AS val
                         FROM iam.organization AS o
-                        INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id
+                        LEFT JOIN pricing.price AS pr ON pr.price__id = o.price__id
+                        LEFT JOIN pricing.plan AS p ON p.plan__id = pr.plan__id
                         WHERE o.organization__id = $1
                     ",
                     organization_id,
@@ -82,7 +84,8 @@ impl Quotas {
                     "
                         SELECT p.events_per_day_limit AS val
                         FROM iam.organization AS o
-                        INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id
+                        LEFT JOIN pricing.price AS pr ON pr.price__id = o.price__id
+                        LEFT JOIN pricing.plan AS p ON p.plan__id = pr.plan__id
                         WHERE o.organization__id = $1
                     ",
                     organization_id,
@@ -96,7 +99,8 @@ impl Quotas {
                     "
                         SELECT p.days_of_events_retention_limit AS val
                         FROM iam.organization AS o
-                        INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id
+                        LEFT JOIN pricing.price AS pr ON pr.price__id = o.price__id
+                        LEFT JOIN pricing.plan AS p ON p.plan__id = pr.plan__id
                         WHERE o.organization__id = $1
                     ",
                     organization_id,
@@ -132,7 +136,8 @@ impl Quotas {
                         SELECT a.events_per_day_limit AS val
                         FROM event.application AS a
                         INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
-                        INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id
+                        LEFT JOIN pricing.price AS pr ON pr.price__id = o.price__id
+                        LEFT JOIN pricing.plan AS p ON p.plan__id = pr.plan__id
                         WHERE a.application__id = $1
                     ",
                     application_id,
@@ -147,7 +152,8 @@ impl Quotas {
                         SELECT a.days_of_events_retention_limit AS val
                         FROM event.application AS a
                         INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
-                        INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id
+                        LEFT JOIN pricing.price AS pr ON pr.price__id = o.price__id
+                        LEFT JOIN pricing.plan AS p ON p.plan__id = pr.plan__id
                         WHERE a.application__id = $1
                     ",
                     application_id,
@@ -166,7 +172,8 @@ impl Quotas {
                             SELECT p.members_per_organization_limit AS val
                             FROM event.application AS a
                             INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
-                            INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id
+                            LEFT JOIN pricing.price AS pr ON pr.price__id = o.price__id
+                            LEFT JOIN pricing.plan AS p ON p.plan__id = pr.plan__id
                             WHERE a.application__id = $1
                         ",
                         application_id,
@@ -181,7 +188,8 @@ impl Quotas {
                             SELECT p.applications_per_organization_limit AS val
                             FROM event.application AS a
                             INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
-                            INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id
+                            LEFT JOIN pricing.price AS pr ON pr.price__id = o.price__id
+                            LEFT JOIN pricing.plan AS p ON p.plan__id = pr.plan__id
                             WHERE a.application__id = $1
                         ",
                         application_id,
@@ -196,7 +204,8 @@ impl Quotas {
                             SELECT p.events_per_day_limit AS val
                             FROM event.application AS a
                             INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
-                            INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id
+                            LEFT JOIN pricing.price AS pr ON pr.price__id = o.price__id
+                            LEFT JOIN pricing.plan AS p ON p.plan__id = pr.plan__id
                             WHERE a.application__id = $1
                         ",
                         application_id,
@@ -211,7 +220,8 @@ impl Quotas {
                             SELECT p.days_of_events_retention_limit AS val
                             FROM event.application AS a
                             INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
-                            INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id
+                            LEFT JOIN pricing.price AS pr ON pr.price__id = o.price__id
+                            LEFT JOIN pricing.plan AS p ON p.plan__id = pr.plan__id
                             WHERE a.application__id = $1
                         ",
                         application_id,

@@ -86,7 +86,8 @@ pub async fn list(
             r#"
                 SELECT o.name, p.name AS "plan_name?", p.label AS "plan_label?"
                 FROM iam.organization AS o
-                LEFT JOIN iam.plan AS p ON p.plan__id = o.plan__id
+                LEFT JOIN pricing.price AS pr ON pr.price__id = o.price__id
+                LEFT JOIN pricing.plan AS p ON p.plan__id = pr.plan__id
                 WHERE organization__id = $1
             "#,
             &organization_id
@@ -298,7 +299,8 @@ pub async fn get(
         r#"
             SELECT o.name, p.name AS "plan_name?", p.label AS "plan_label?"
             FROM iam.organization AS o
-            LEFT JOIN iam.plan AS p ON p.plan__id = o.plan__id
+            LEFT JOIN pricing.price AS pr ON pr.price__id = o.price__id
+            LEFT JOIN pricing.plan AS p ON p.plan__id = pr.plan__id
             WHERE organization__id = $1
         "#,
         &organization_id
