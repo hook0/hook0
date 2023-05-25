@@ -195,4 +195,3 @@ export default class ApplicationSecretsList extends Vue {
   }
 }
 </script>
-

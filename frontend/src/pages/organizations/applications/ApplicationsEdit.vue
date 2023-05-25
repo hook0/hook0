@@ -156,5 +156,4 @@ export default class ApplicationEdit extends Vue {
 }
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>
