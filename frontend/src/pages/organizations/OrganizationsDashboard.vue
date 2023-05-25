@@ -6,6 +6,18 @@
           <hook0-icon name="sitemap"></hook0-icon>
           Organization
           <hook0-text class="bold">{{ organization.name }}</hook0-text>
+          <span
+            v-if="organization.plan"
+            class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10"
+            :title="'Plan: ' + organization.plan"
+            >{{ organization.plan }}</span
+          >
+          <span
+            v-else
+            class="ml-2 inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10"
+            title="Plan: Developer"
+            >Developer</span
+          >
         </template>
         <template #subtitle> </template>
         <template #actions>
@@ -46,6 +58,7 @@ export default class OrganizationsDashboard extends Vue {
 
   organization = {
     name: '',
+    plan: '',
   };
 
   routes = routes;
@@ -64,6 +77,7 @@ export default class OrganizationsDashboard extends Vue {
       OrganizationService.get(this.organization_id)
         .then((organization: Organization) => {
           this.organization.name = organization.name;
+          this.organization.plan = organization.plan || '';
         })
         .catch(this.displayError.bind(this));
     }
