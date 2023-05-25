@@ -42,7 +42,6 @@
   </hook0-button>
 </template>
 
-
 <script lang="ts">
 import { Vue, Options } from 'vue-class-component';
 import Hook0Icon from '@/components/Hook0Icon.vue';
@@ -105,7 +104,4 @@ export default class Hook0TableCellLink<T> extends Vue {
   }
 }
 </script>
-<style>
-
-</style>
-
+<style></style>
