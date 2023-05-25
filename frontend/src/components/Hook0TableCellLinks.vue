@@ -9,7 +9,6 @@
   </div>
 </template>
 
-
 <script lang="ts">
 import { Vue, Options } from 'vue-class-component';
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
@@ -30,6 +29,4 @@ import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 })
 export default class Hook0TableCellLinks<T> extends Vue {}
 </script>
-<style>
-</style>
-
+<style></style>

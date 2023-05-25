@@ -52,7 +52,7 @@
 <script lang="ts">
 import { AxiosError } from 'axios';
 import * as OrganizationService from './OrganizationService';
-import { Organization, OrganizationPost } from './OrganizationService';
+import { OrganizationInfo, OrganizationPost } from './OrganizationService';
 import { Options, Vue } from 'vue-class-component';
 import { routes } from '@/routes';
 import Hook0Alert from '@/components/Hook0Alert.vue';
@@ -104,7 +104,7 @@ export default class OrganizationEdit extends Vue {
 
       if (!this.isNew) {
         OrganizationService.get(this.organization_id)
-          .then((organization: Organization) => {
+          .then((organization: OrganizationInfo) => {
             this.organization.name = organization.name;
           })
           .catch(this.displayError.bind(this));
@@ -169,5 +169,4 @@ export default class OrganizationEdit extends Vue {
 }
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>

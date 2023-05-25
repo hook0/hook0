@@ -46,6 +46,10 @@ import {
   faKey,
   faFileContract,
   faSliders,
+  faMoneyCheckDollar,
+  faUsers,
+  faFolder,
+  faDatabase,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 
@@ -81,6 +85,10 @@ library.add(
   faCircleNotch,
   faChevronLeft,
   faChevronRight,
+  faMoneyCheckDollar,
+  faUsers,
+  faFolder,
+  faDatabase,
 
   //RequestAttemptStatus
   faCheck,

@@ -29,5 +29,4 @@ const hasOwn = (obj: any, attr: string) => Object.prototype.hasOwnProperty.call(
 export default class Hook0Error extends Vue {}
 </script>
 
-<style lang="scss" scoped>
-</style>
+<style lang="scss" scoped></style>
