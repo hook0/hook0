@@ -5,6 +5,7 @@ create table iam.plan
 (
     plan__id uuid not null primary key default public.gen_random_uuid(),
     name text not null unique,
+    label text not null,
     created_at timestamptz not null default statement_timestamp(),
     members_per_organization_limit integer,
     applications_per_organization_limit integer,

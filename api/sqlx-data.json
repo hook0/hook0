@@ -1194,32 +1194,6 @@
     },
     "query": "\n                            SELECT p.members_per_organization_limit AS val\n                            FROM event.application AS a\n                            INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id\n                            INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id\n                            WHERE a.application__id = $1\n                        "
   },
-  "96c90472a2036739b9528e579127c73d94428b78fe3276f58d0550f4abbaccee": {
-    "describe": {
-      "columns": [
-        {
-          "name": "name",
-          "ordinal": 0,
-          "type_info": "Text"
-        },
-        {
-          "name": "plan?",
-          "ordinal": 1,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid"
-        ]
-      }
-    },
-    "query": "\n                SELECT o.name, p.name AS \"plan?\"\n                FROM iam.organization AS o\n                LEFT JOIN iam.plan AS p ON p.plan__id = o.plan__id\n                WHERE organization__id = $1\n            "
-  },
   "977fc5dee15cf9596bc038507e355d1f94d0a69484f3fa4a8f04ad4ae707b238": {
     "describe": {
       "columns": [
@@ -1418,32 +1392,6 @@
     },
     "query": "\n                    INSERT INTO webhook.subscription__event_type (application__id, subscription__id, event_type__name)\n                    VALUES ($1, $2, $3)\n                "
   },
-  "acb25f62329a4ea4e55402212fe34e8df1520df901a47cfef488a3446f0a9c4d": {
-    "describe": {
-      "columns": [
-        {
-          "name": "name",
-          "ordinal": 0,
-          "type_info": "Text"
-        },
-        {
-          "name": "plan?",
-          "ordinal": 1,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid"
-        ]
-      }
-    },
-    "query": "\n            SELECT o.name, p.name AS \"plan?\"\n            FROM iam.organization AS o\n            LEFT JOIN iam.plan AS p ON p.plan__id = o.plan__id\n            WHERE organization__id = $1\n        "
-  },
   "aea89710529bfea5507a669c6d551ea6845e5d626b5beec0d95f34fdf190ffce": {
     "describe": {
       "columns": [
@@ -1463,6 +1411,38 @@
       }
     },
     "query": "\n            SELECT COUNT(application__id) AS \"val!\"\n            FROM event.application\n            WHERE organization__id = $1\n        "
+  },
+  "aefa87808a9f343e5a3c1e90c5ec2480730d239a364a4ed1780e39a4db7f8842": {
+    "describe": {
+      "columns": [
+        {
+          "name": "name",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "plan_name?",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "plan_label?",
+          "ordinal": 2,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n                SELECT o.name, p.name AS \"plan_name?\", p.label AS \"plan_label?\"\n                FROM iam.organization AS o\n                LEFT JOIN iam.plan AS p ON p.plan__id = o.plan__id\n                WHERE organization__id = $1\n            "
   },
   "b5d4abddfdeae1cd7851e5e90d8e296a1855e69cba499f3238913cf8b2f6e5da": {
     "describe": {
@@ -1516,6 +1496,38 @@
       }
     },
     "query": "\n                        SELECT p.events_per_day_limit AS val\n                        FROM iam.organization AS o\n                        INNER JOIN iam.plan AS p ON p.plan__id = o.plan__id\n                        WHERE o.organization__id = $1\n                    "
+  },
+  "c3e455f21615d5fa6353ef28cf60ec3d545bdd794a0fe8ee7496d933e11ec7d5": {
+    "describe": {
+      "columns": [
+        {
+          "name": "name",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "plan_name?",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "plan_label?",
+          "ordinal": 2,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n            SELECT o.name, p.name AS \"plan_name?\", p.label AS \"plan_label?\"\n            FROM iam.organization AS o\n            LEFT JOIN iam.plan AS p ON p.plan__id = o.plan__id\n            WHERE organization__id = $1\n        "
   },
   "c5a41930ae5018eee254598f164fa7b4eaad05c3ee5342a765e3e32a020ecba4": {
     "describe": {
