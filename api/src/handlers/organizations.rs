@@ -26,16 +26,22 @@ pub struct Organization {
     pub organization_id: Uuid,
     pub role: String,
     pub name: String,
-    pub plan: Option<String>,
+    pub plan: Option<OrganizationInfoPlan>,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct OrganizationInfo {
     pub organization_id: Uuid,
     pub name: String,
-    pub plan: Option<String>,
+    pub plan: Option<OrganizationInfoPlan>,
     pub users: Vec<OrganizationUser>,
     pub quotas: OrganizationQuotas,
+}
+
+#[derive(Debug, Serialize, Apiv2Schema)]
+pub struct OrganizationInfoPlan {
+    pub name: String,
+    pub label: String,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -69,7 +75,8 @@ pub async fn list(
 ) -> Result<Json<Vec<Organization>>, Hook0Problem> {
     struct OrganizationMetadata {
         name: String,
-        plan: Option<String>,
+        plan_name: Option<String>,
+        plan_label: Option<String>,
     }
     let mut organizations = vec![];
 
@@ -77,7 +84,7 @@ pub async fn list(
         let metadata = query_as!(
             OrganizationMetadata,
             r#"
-                SELECT o.name, p.name AS "plan?"
+                SELECT o.name, p.name AS "plan_name?", p.label AS "plan_label?"
                 FROM iam.organization AS o
                 LEFT JOIN iam.plan AS p ON p.plan__id = o.plan__id
                 WHERE organization__id = $1
@@ -88,13 +95,20 @@ pub async fn list(
         .await
         .map_err(Hook0Problem::from)?;
 
-        let (name, plan) = metadata.map(|om| (om.name, om.plan)).unwrap_or_else(|| {
-            error!(
-                "Could not find organization {} in database",
-                &organization_id
-            );
-            (organization_id.to_string(), None)
-        });
+        let (name, plan_name, plan_label) = metadata
+            .map(|om| (om.name, om.plan_name, om.plan_label))
+            .unwrap_or_else(|| {
+                error!(
+                    "Could not find organization {} in database",
+                    &organization_id
+                );
+                (organization_id.to_string(), None, None)
+            });
+
+        let plan = match (plan_name, plan_label) {
+            (Some(name), Some(label)) => Some(OrganizationInfoPlan { name, label }),
+            _ => None,
+        };
 
         let org = Organization {
             organization_id,
@@ -276,12 +290,13 @@ pub async fn get(
     let organization_id = organization_id.into_inner();
     struct OrganizationMetadata {
         name: String,
-        plan: Option<String>,
+        plan_name: Option<String>,
+        plan_label: Option<String>,
     }
     let metadata = query_as!(
         OrganizationMetadata,
         r#"
-            SELECT o.name, p.name AS "plan?"
+            SELECT o.name, p.name AS "plan_name?", p.label AS "plan_label?"
             FROM iam.organization AS o
             LEFT JOIN iam.plan AS p ON p.plan__id = o.plan__id
             WHERE organization__id = $1
@@ -292,13 +307,20 @@ pub async fn get(
     .await
     .map_err(Hook0Problem::from)?;
 
-    let (name, plan) = metadata.map(|om| (om.name, om.plan)).unwrap_or_else(|| {
-        error!(
-            "Could not find organization {} in database",
-            &organization_id
-        );
-        (organization_id.to_string(), None)
-    });
+    let (name, plan_name, plan_label) = metadata
+        .map(|om| (om.name, om.plan_name, om.plan_label))
+        .unwrap_or_else(|| {
+            error!(
+                "Could not find organization {} in database",
+                &organization_id
+            );
+            (organization_id.to_string(), None, None)
+        });
+
+    let plan = match (plan_name, plan_label) {
+        (Some(name), Some(label)) => Some(OrganizationInfoPlan { name, label }),
+        _ => None,
+    };
 
     let keycloak_api = KeycloakApi::new(
         &state.keycloak_url,
