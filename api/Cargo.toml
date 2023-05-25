@@ -16,7 +16,7 @@ actix-web = "4.3.1"
 actix-web-middleware-keycloak-auth = { version = "0.4.0", features = ["paperclip_compat"] }
 anyhow = "1.0.71"
 async-recursion = "1.0.4"
-base64 = "0.21.1"
+base64 = "0.21.2"
 chrono = { version = "0.4.24", features = ["serde"] }
 clap = { version = "4.3.0", features = ["derive", "env", "cargo", "wrap_help"] }
 futures-util = "0.3.28"
@@ -31,7 +31,7 @@ nom-regex = "0.2.0"
 paperclip = { version = "0.8.0", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
 regex = "1.8.2"
 reqwest = { version = "0.11.18", default-features = false, features = ["trust-dns"] }
-sentry-actix = "0.31.2"
+sentry-actix = "0.31.3"
 sentry-integration = { path = "../sentry-integration" }
 serde = "1.0.163"
 serde_json = "1.0.96"
