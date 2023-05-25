@@ -12,7 +12,7 @@ function getParams() {
   return '/keycloak.json';
 }
 
-const keycloak = Keycloak(getParams());
+const keycloak = new Keycloak(getParams());
 
 keycloak.onTokenExpired = () => {
   void onTokenExpired();
@@ -40,7 +40,7 @@ export const KeycloakPlugin: Plugin = {
 
 declare module '@vue/runtime-core' {
   export interface ComponentCustomProperties {
-    $keycloak: Keycloak.KeycloakInstance;
+    $keycloak: Keycloak;
   }
 }
 
