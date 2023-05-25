@@ -10,7 +10,6 @@
   />
 </template>
 
-
 <script lang="ts">
 import { Vue, Options } from 'vue-class-component';
 
@@ -44,6 +43,4 @@ export default class Hook0Code extends Vue {
   }
 }
 </script>
-<style>
-
-</style>
+<style></style>

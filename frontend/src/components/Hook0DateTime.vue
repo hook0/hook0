@@ -39,5 +39,4 @@ export default class Hook0DateTime extends Vue {
 }
 </script>
 
-<style lang="scss" scoped>
-</style>
+<style lang="scss" scoped></style>
