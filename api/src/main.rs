@@ -170,6 +170,10 @@ struct Config {
     #[clap(long, env, default_value = "10")]
     hook0_client_upserts_retries: u16,
 
+    /// Set to true to apply quotas limits (default is not to)
+    #[clap(long, env)]
+    enable_quota_enforcement: bool,
+
     /// Default limit of members per organization (can be overriden by a plan)
     #[clap(long, env, default_value = "1")]
     quota_global_members_per_organization_limit: quotas::QuotaValue,
@@ -286,11 +290,17 @@ async fn main() -> anyhow::Result<()> {
 
     // Initialize quotas manager
     let quotas = quotas::Quotas::new(
+        config.enable_quota_enforcement,
         config.quota_global_members_per_organization_limit,
         config.quota_global_applications_per_organization_limit,
         config.quota_global_events_per_day_limit,
         config.quota_global_days_of_events_retention_limit,
     );
+    if config.enable_quota_enforcement {
+        info!("Quota enforcement is enabled");
+    } else {
+        info!("Quota enforcement is disabled");
+    }
 
     // Initialize state
     let initial_state = State {
