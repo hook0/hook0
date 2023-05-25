@@ -8,6 +8,7 @@ declare namespace __WebpackModuleApi {
       readonly VUE_APP_KEYCLOAK_REALM: string;
       readonly VUE_APP_KEYCLOAK_FRONT_CLIENT_ID: string;
       readonly VUE_APP_FEATURES_KEYCLOAK?: string;
+      readonly VUE_APP_ENABLE_QUOTA_ENFORCEMENT?: boolean;
     };
   }
 }

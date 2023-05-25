@@ -25,8 +25,8 @@ export function list(): Promise<Array<Organization>> {
   return http.get('/organizations', {}).then((res: AxiosResponse<Array<Organization>>) => res.data);
 }
 
-export function get(id: UUID): Promise<Organization> {
-  return http.get(`/organizations/${id}`).then((res: AxiosResponse<Organization>) => res.data);
+export function get(id: UUID): Promise<OrganizationInfo> {
+  return http.get(`/organizations/${id}`).then((res: AxiosResponse<OrganizationInfo>) => res.data);
 }
 
 export function update(
