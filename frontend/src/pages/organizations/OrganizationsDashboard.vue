@@ -94,5 +94,4 @@ export default class OrganizationsDashboard extends Vue {
 }
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>

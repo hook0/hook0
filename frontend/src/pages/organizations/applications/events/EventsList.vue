@@ -121,7 +121,7 @@ export default class EventsList extends Vue {
                   // eslint-disable-next-line
                   organization_id: ctx.$route.params.organization_id,
                   // eslint-disable-next-line
-                  event_id: row.event_id
+                  event_id: row.event_id,
                 },
               };
             },
@@ -198,4 +198,3 @@ export default class EventsList extends Vue {
   }
 }
 </script>
-

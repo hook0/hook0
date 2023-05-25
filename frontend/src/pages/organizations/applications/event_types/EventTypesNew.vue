@@ -241,5 +241,4 @@ export default class EventTypesNew extends Vue {
 }
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>
