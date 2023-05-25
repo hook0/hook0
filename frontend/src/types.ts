@@ -272,14 +272,20 @@ export interface components {
       name: string;
       /** Format: uuid */
       organization_id: string;
-      plan?: string;
+      plan?: {
+        label: string;
+        name: string;
+      };
       role: string;
     };
     OrganizationInfo: {
       name: string;
       /** Format: uuid */
       organization_id: string;
-      plan?: string;
+      plan?: {
+        label: string;
+        name: string;
+      };
       quotas: {
         /** Format: int32 */
         applications_per_organization_limit: number;
