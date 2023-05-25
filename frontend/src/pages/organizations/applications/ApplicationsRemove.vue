@@ -101,5 +101,4 @@ export default class ApplicationsRemove extends Vue {
 }
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>

@@ -123,5 +123,4 @@ export default class ApiDocumentation extends Vue {
 }
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>

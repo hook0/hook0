@@ -11,5 +11,4 @@ import { Vue } from 'vue-class-component';
 export default class Hook0Loader extends Vue {}
 </script>
 
-<style lang="scss" scoped>
-</style>
+<style lang="scss" scoped></style>

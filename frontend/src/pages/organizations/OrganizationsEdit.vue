@@ -169,5 +169,4 @@ export default class OrganizationEdit extends Vue {
 }
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>
