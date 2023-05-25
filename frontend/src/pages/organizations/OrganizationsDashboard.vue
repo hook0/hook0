@@ -77,7 +77,7 @@ export default class OrganizationsDashboard extends Vue {
       OrganizationService.get(this.organization_id)
         .then((organization: Organization) => {
           this.organization.name = organization.name;
-          this.organization.plan = organization.plan || '';
+          this.organization.plan = organization.plan?.label || '';
         })
         .catch(this.displayError.bind(this));
     }
