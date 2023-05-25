@@ -175,7 +175,7 @@ export default class OrganizationSelector extends Vue {
           Option.map((organizationGroup) => organizationGroup.organization.name)
         )(Option.fromNullable(params.organization_id as UUID));
 
-        this.organization_name = Option.getOrElse(() => 'Hello!')(organization_name);
+        this.organization_name = Option.getOrElse(() => '')(organization_name);
 
         const application_name = flow(Option.map((application: Application) => application.name))(
           Option.fromNullable(

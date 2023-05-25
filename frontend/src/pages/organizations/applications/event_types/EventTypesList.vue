@@ -152,4 +152,3 @@ export default class EventTypesList extends Vue {
   }
 }
 </script>
-

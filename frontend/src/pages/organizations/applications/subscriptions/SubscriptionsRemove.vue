@@ -107,5 +107,4 @@ export default class SubscriptionsRemove extends Vue {
 }
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>
