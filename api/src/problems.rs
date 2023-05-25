@@ -12,6 +12,7 @@ use strum::{EnumIter, VariantNames};
 
 use crate::handlers::events::PayloadContentType;
 use crate::iam::Role;
+use crate::quotas::QuotaValue;
 
 /**
  * How to implement a new type error for Hook0:
@@ -44,6 +45,10 @@ pub enum Hook0Problem {
     AuthInvalidAuthorizationHeader,
     AuthApplicationSecretLookupError,
     AuthInvalidApplicationSecret,
+
+    // Quota errors
+    TooManyMembersPerOrganization(QuotaValue),
+    TooManyApplicationsPerOrganization(QuotaValue),
 
     // Generic errors
     JsonPayload(JsonPayloadProblem),
@@ -256,6 +261,28 @@ impl From<Hook0Problem> for Problem {
                 detail: "The provided application secret does not exist.".into(),
                 validation: None,
                 status: StatusCode::FORBIDDEN,
+            },
+
+            // Quota errors
+            Hook0Problem::TooManyMembersPerOrganization(limit) => {
+                let detail = format!("This organization cannot have more than {limit} users. You might want to upgrade to a better plan.");
+                Problem {
+                    id: Hook0Problem::TooManyMembersPerOrganization(limit),
+                    title: "Exceeded number of users that can be invited in this organization",
+                    detail: detail.into(),
+                    validation: None,
+                    status: StatusCode::TOO_MANY_REQUESTS,
+                }
+            },
+            Hook0Problem::TooManyApplicationsPerOrganization(limit) => {
+                let detail = format!("This organization cannot have more than {limit} applications. You might want to upgrade to a better plan.");
+                Problem {
+                    id: Hook0Problem::TooManyApplicationsPerOrganization(limit),
+                    title: "Exceeded number of applications that can be created in this organization",
+                    detail: detail.into(),
+                    validation: None,
+                    status: StatusCode::TOO_MANY_REQUESTS,
+                }
             },
 
             // Generic errors
