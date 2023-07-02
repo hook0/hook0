@@ -8,9 +8,9 @@ export function intersectWith<T, A, C>(
   return pipe(
     // @ts-ignore
     sortBy(identity),
-    groupWith((a, b) => identity(a as T) === identity(b as T)),
+    groupWith((a, b) => identity(a) === identity(b)),
     // @ts-ignore
     map(mapper)
     // @ts-ignore
-  )(concat(...lists)) as A[];
+  )(concat(...lists));
 }

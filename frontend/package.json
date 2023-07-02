@@ -35,10 +35,10 @@
     "release:patch": "npm-release patch"
   },
   "dependencies": {
-    "@ag-grid-community/client-side-row-model": "^29.1.0",
-    "@ag-grid-community/core": "^29.1.0",
-    "@ag-grid-community/styles": "^29.1.0",
-    "@ag-grid-community/vue3": "^29.1.0",
+    "@ag-grid-community/client-side-row-model": "^30.0.2",
+    "@ag-grid-community/core": "^30.0.2",
+    "@ag-grid-community/styles": "^30.0.2",
+    "@ag-grid-community/vue3": "^30.0.2",
     "@codemirror/lang-json": "^6.0.1",
     "@codemirror/theme-one-dark": "^6.1.0",
     "@fortawesome/fontawesome-svg-core": "^6.2.0",

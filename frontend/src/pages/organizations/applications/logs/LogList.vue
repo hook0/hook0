@@ -152,8 +152,13 @@ export default class LogList extends Vue {
           width: 175,
           sortable: true,
           headerName: 'Created At',
-          valueFormatter: (date: ValueFormatterParams<RequestAttemptTypeFixed, string>) =>
-            formatDistance(parseISO(date.value), new Date(), { addSuffix: true }),
+          valueFormatter: (date: ValueFormatterParams<RequestAttemptTypeFixed, string>) => {
+            if (date.value) {
+              return formatDistance(parseISO(date.value), new Date(), { addSuffix: true });
+            } else {
+              return '';
+            }
+          },
         },
         {
           field: 'picked_at',
