@@ -6,7 +6,7 @@ use paperclip::actix::{
     Apiv2Schema, NoContent,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::{query, query_as, Postgres, Transaction};
+use sqlx::{query, query_as, PgConnection, Postgres, Transaction};
 use std::collections::HashMap;
 use std::str::FromStr;
 use uuid::Uuid;
@@ -243,7 +243,7 @@ pub async fn create_organization(
 }
 
 async fn create_organization_in_db(
-    tx: &mut Transaction<'_, Postgres>,
+    conn: &mut PgConnection,
     name: &str,
     user_id: &Uuid,
 ) -> Result<Uuid, Hook0Problem> {
@@ -257,7 +257,7 @@ async fn create_organization_in_db(
         name,
         user_id,
     )
-    .execute(tx)
+    .execute(conn)
     .await
     .map_err(|e| {
         error!("Error while creating organization in DB: {}", &e);
@@ -714,7 +714,7 @@ pub async fn delete(
         ",
         organization_id.as_ref(),
     )
-    .fetch_all(&mut tx)
+    .fetch_all(&mut *tx)
     .await?
     .is_empty();
 
@@ -734,7 +734,7 @@ pub async fn delete(
             ",
             organization_id.as_ref(),
         )
-        .execute(&mut tx)
+        .execute(&mut *tx)
         .await?;
 
         keycloak_api.remove_organization(&organization_id).await?;

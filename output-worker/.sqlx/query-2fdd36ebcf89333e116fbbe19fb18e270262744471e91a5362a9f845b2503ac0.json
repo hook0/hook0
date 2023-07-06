@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO webhook.response_error (response_error__name)\n                VALUES ($1)\n                ON CONFLICT (response_error__name)\n                DO NOTHING\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2fdd36ebcf89333e116fbbe19fb18e270262744471e91a5362a9f845b2503ac0"
+}
