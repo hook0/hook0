@@ -13,7 +13,7 @@ require('bluebird');
 function getAxios() {
   return iam.getToken().then((jwt_token) => {
     const client = axios.create({
-      baseURL: featureFlags.getOrElse('API_ENDPOINT', process.env.VUE_APP_API_ENDPOINT),
+      baseURL: featureFlags.getOrElse('API_ENDPOINT', process.env.VUE_APP_API_ENDPOINT ?? ''),
       timeout: 1000,
       headers: {
         Authorization: `Bearer ${jwt_token}`,

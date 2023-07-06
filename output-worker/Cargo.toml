@@ -9,17 +9,17 @@ keywords = ["webhooks", "webhook", "webhook server", "events"]
 [dependencies]
 anyhow = "1.0.71"
 chrono = "0.4.26"
-clap = { version = "4.3.10", features = ["derive", "env", "cargo", "wrap_help"] }
+clap = { version = "4.3.11", features = ["derive", "env", "cargo", "wrap_help"] }
 hex = "0.4.3"
 hmac = "0.12.1"
 itertools = "0.10.5"
 log = "0.4.19"
 reqwest = { version = "0.11.18", default-features = false, features = ["trust-dns"] }
 sentry-integration = { path = "../sentry-integration" }
-serde = "1.0.164"
-serde_json = "1.0.99"
+serde = "1.0.166"
+serde_json = "1.0.100"
 sha2 = "0.10.7"
-sqlx = { version = "0.6.3", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono", "time", "json", "offline"] }
+sqlx = { version = "0.7.0", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono", "time", "json"] }
 strum = { version = "0.25.0", features = ["derive"] }
 tokio = { version = "1.29.1", features = ["rt-multi-thread", "macros", "time"] }
 uuid = { version = "1.4.0", features = ["v4"] }

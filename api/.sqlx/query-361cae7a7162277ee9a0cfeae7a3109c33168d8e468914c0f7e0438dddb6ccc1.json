@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT event__id, event_type__name, payload_content_type, ip, metadata, occurred_at, received_at, application_secret__token, labels\n                FROM event.event\n                WHERE application__id = $1\n                ORDER BY received_at DESC\n                LIMIT 100\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "event__id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "event_type__name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "payload_content_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "ip",
+        "type_info": "Inet"
+      },
+      {
+        "ordinal": 4,
+        "name": "metadata",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 5,
+        "name": "occurred_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "received_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "application_secret__token",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 8,
+        "name": "labels",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "361cae7a7162277ee9a0cfeae7a3109c33168d8e468914c0f7e0438dddb6ccc1"
+}

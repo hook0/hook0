@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                            SELECT p.events_per_day_limit AS val\n                            FROM iam.organization AS o\n                            LEFT JOIN pricing.price AS pr ON pr.price__id = o.price__id\n                            LEFT JOIN pricing.plan AS p ON p.plan__id = pr.plan__id\n                            WHERE o.organization__id = $1\n                        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "val",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "aef8f3a782376a669a31bcda87b04a3544d0547c33a39a074e6b8b31d4413fc7"
+}
