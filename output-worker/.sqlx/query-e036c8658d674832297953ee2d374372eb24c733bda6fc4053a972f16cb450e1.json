@@ -1,0 +1,86 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.retry_count, t_http.method AS http_method, t_http.url AS http_url, t_http.headers AS http_headers, e.event_type__name, e.payload AS payload, e.payload_content_type AS payload_content_type, s.secret\n                FROM webhook.request_attempt AS ra\n                INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id\n                INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id\n                INNER JOIN event.event AS e ON e.event__id = ra.event__id\n                WHERE succeeded_at IS NULL AND failed_at IS NULL AND (delay_until IS NULL OR delay_until <= statement_timestamp())\n                ORDER BY created_at ASC\n                LIMIT 1\n                FOR UPDATE OF ra\n                SKIP LOCKED\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "request_attempt__id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "event__id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "subscription__id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "retry_count",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 5,
+        "name": "http_method",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "http_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "http_headers",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 8,
+        "name": "event_type__name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "payload",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 10,
+        "name": "payload_content_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "secret",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e036c8658d674832297953ee2d374372eb24c733bda6fc4053a972f16cb450e1"
+}

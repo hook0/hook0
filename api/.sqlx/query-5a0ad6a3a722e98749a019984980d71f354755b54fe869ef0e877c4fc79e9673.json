@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT service__name AS service_name, resource_type__name AS resource_type_name, verb__name AS verb_name, event_type__name AS event_type_name\n                FROM event.event_type\n                WHERE application__id = $1 AND event_type__name = $2\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "service_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "resource_type_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "verb_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "event_type_name",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "5a0ad6a3a722e98749a019984980d71f354755b54fe869ef0e877c4fc79e9673"
+}

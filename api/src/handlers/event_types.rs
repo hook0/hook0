@@ -77,7 +77,7 @@ pub async fn create(
         &body.application_id,
         &body.service,
     )
-    .execute(&mut tx)
+    .execute(&mut *tx)
     .await
     .map_err(Hook0Problem::from)?;
 
@@ -91,7 +91,7 @@ pub async fn create(
         &body.service,
         &body.resource_type,
     )
-    .execute(&mut tx)
+    .execute(&mut *tx)
     .await
     .map_err(Hook0Problem::from)?;
 
@@ -104,7 +104,7 @@ pub async fn create(
         &body.application_id,
         &body.verb,
     )
-    .execute(&mut tx)
+    .execute(&mut *tx)
     .await
     .map_err(Hook0Problem::from)?;
 
@@ -120,7 +120,7 @@ pub async fn create(
             &body.resource_type,
             &body.verb
         )
-        .fetch_one(&mut tx)
+        .fetch_one(&mut *tx)
         .await
         .map_err(Hook0Problem::from)?;
 

@@ -1,12 +1,12 @@
 import { Plugin } from 'vue';
-import Keycloak from 'keycloak-js';
+import Keycloak, { KeycloakConfig } from 'keycloak-js';
 
-function getParams() {
+function getParams(): string | KeycloakConfig {
   if (process.env.VUE_APP_KEYCLOAK_URL) {
     return {
       url: process.env.VUE_APP_KEYCLOAK_URL,
-      realm: process.env.VUE_APP_KEYCLOAK_REALM,
-      clientId: process.env.VUE_APP_KEYCLOAK_FRONT_CLIENT_ID,
+      realm: process.env.VUE_APP_KEYCLOAK_REALM ?? '',
+      clientId: process.env.VUE_APP_KEYCLOAK_FRONT_CLIENT_ID ?? '',
     };
   }
   return '/keycloak.json';

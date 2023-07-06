@@ -52,7 +52,8 @@ export default class ApiDocumentation extends Vue {
 
     this.swaggerUI = SwaggerUI({
       url:
-        featureFlags.getOrElse('API_ENDPOINT', process.env.VUE_APP_API_ENDPOINT) + '/swagger.json',
+        featureFlags.getOrElse('API_ENDPOINT', process.env.VUE_APP_API_ENDPOINT ?? '') +
+        '/swagger.json',
       domNode: this.$refs.container,
 
       docExpansion: 'list',
