@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT o.name, p.name AS \"plan_name?\", p.label AS \"plan_label?\"\n            FROM iam.organization AS o\n            LEFT JOIN pricing.price AS pr ON pr.price__id = o.price__id\n            LEFT JOIN pricing.plan AS p ON p.plan__id = pr.plan__id\n            WHERE organization__id = $1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "plan_name?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "plan_label?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "a96cceaaf7e737e0916d7f2068b7c7e43abbfaac509c1dd8f88de0790d546e2d"
+}
