@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                        UPDATE webhook.target_http\n                        SET method = $1, url = $2, headers = $3\n                        WHERE target__id = $4\n                    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Jsonb",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "41bb7b5e1005b64070d71781e49a47b263e1fdbad66e446458deb3e8c8c94c86"
+}

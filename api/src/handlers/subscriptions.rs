@@ -340,7 +340,7 @@ pub async fn add(
             &body.label_key,
             &body.label_value,
         )
-            .fetch_one(&mut tx)
+            .fetch_one(&mut *tx)
             .await
             .map_err(Hook0Problem::from)?;
 
@@ -359,7 +359,7 @@ pub async fn add(
             url,
             serde_json::to_value(headers).expect("could not serialize target headers into JSON"),
         )
-        .execute(&mut tx)
+        .execute(&mut *tx)
         .await
         .map_err(Hook0Problem::from)?,
     };
@@ -374,7 +374,7 @@ pub async fn add(
                 &subscription.subscription__id,
                 &event_type,
             )
-                .execute(&mut tx).await
+                .execute(&mut *tx).await
                 .map_err(Hook0Problem::from)?;
     }
 
@@ -480,7 +480,7 @@ pub async fn update(
                 &subscription_id.into_inner(), // read-only
                 &body.application_id // read-only
             )
-        .fetch_optional(&mut tx)
+        .fetch_optional(&mut *tx)
         .await
         .map_err(Hook0Problem::from)?;
 
@@ -503,7 +503,7 @@ pub async fn update(
                         .expect("could not serialize target headers into JSON"),
                     &s.target__id
                 )
-                .execute(&mut tx)
+                .execute(&mut *tx)
                 .await
                 .map_err(Hook0Problem::from)?,
             };
@@ -515,7 +515,7 @@ pub async fn update(
                 ",
                 &s.subscription__id,
             )
-            .execute(&mut tx)
+            .execute(&mut *tx)
             .await
             .map_err(Hook0Problem::from)?;
 
@@ -529,7 +529,7 @@ pub async fn update(
                     &s.subscription__id,
                     &event_type,
                 )
-                .execute(&mut tx).await
+                .execute(&mut *tx).await
                 .map_err(Hook0Problem::from)?;
             }
 

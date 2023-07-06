@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    UPDATE webhook.subscription\n                    SET deleted_at = statement_timestamp()\n                    WHERE application__id = $1 AND subscription__id = $2\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7ab6badad1fd72ffb1c81f26e71e32d8bb4c45e8f19cedfe396d2186f90a8554"
+}

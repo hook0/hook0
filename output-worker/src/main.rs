@@ -6,7 +6,7 @@ use log::{debug, info, trace};
 use reqwest::header::HeaderMap;
 use sqlx::postgres::types::PgInterval;
 use sqlx::postgres::PgConnectOptions;
-use sqlx::{Connection, PgConnection, Postgres, Transaction};
+use sqlx::{Connection, PgConnection};
 use std::cmp::min;
 use std::collections::HashMap;
 use std::convert::TryFrom;
@@ -130,7 +130,7 @@ async fn main() -> anyhow::Result<()> {
             ",
             error_name,
         )
-        .execute(&mut tx)
+        .execute(&mut *tx)
         .await?;
     }
     tx.commit().await?;
@@ -155,7 +155,7 @@ async fn main() -> anyhow::Result<()> {
                 SKIP LOCKED
             "
         )
-        .fetch_optional(&mut tx)
+        .fetch_optional(&mut *tx)
         .await?;
 
         if let Some(attempt) = next_attempt {
@@ -171,7 +171,7 @@ async fn main() -> anyhow::Result<()> {
                 &worker_version,
                 attempt.request_attempt__id
             )
-            .execute(&mut tx)
+            .execute(&mut *tx)
             .await?;
             info!("Picked request attempt {}", &attempt.request_attempt__id);
 
@@ -201,7 +201,7 @@ async fn main() -> anyhow::Result<()> {
                 response.body,
                 response.elapsed_time_ms(),
             )
-            .fetch_one(&mut tx)
+            .fetch_one(&mut *tx)
             .await?
             .response__id;
 
@@ -215,7 +215,7 @@ async fn main() -> anyhow::Result<()> {
                 "UPDATE webhook.request_attempt SET response__id = $1 WHERE request_attempt__id = $2",
                 response_id, attempt.request_attempt__id
             )
-            .execute(&mut tx)
+            .execute(&mut *tx)
             .await?;
 
             if response.is_success() {
@@ -228,7 +228,7 @@ async fn main() -> anyhow::Result<()> {
                     "UPDATE webhook.request_attempt SET succeeded_at = statement_timestamp() WHERE request_attempt__id = $1",
                     attempt.request_attempt__id
                 )
-                .execute(&mut tx)
+                .execute(&mut *tx)
                 .await?;
 
                 info!(
@@ -242,7 +242,7 @@ async fn main() -> anyhow::Result<()> {
                     "UPDATE webhook.request_attempt SET failed_at = statement_timestamp() WHERE request_attempt__id = $1",
                     attempt.request_attempt__id
                 )
-                .execute(&mut tx)
+                .execute(&mut *tx)
                 .await?;
 
                 // Creating a retry request or giving up
@@ -267,7 +267,7 @@ async fn main() -> anyhow::Result<()> {
                         PgInterval::try_from(retry_in).unwrap(),
                         next_retry_count,
                     )
-                    .fetch_one(&mut tx)
+                    .fetch_one(&mut *tx)
                     .await?
                     .request_attempt__id;
 
@@ -296,7 +296,7 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn compute_next_retry<'a>(
-    tx: &mut Transaction<'a, Postgres>,
+    conn: &mut PgConnection,
     subscription_id: &Uuid,
     max_fast_retries: u32,
     max_slow_retries: u32,
@@ -310,7 +310,7 @@ async fn compute_next_retry<'a>(
         ",
         subscription_id
     )
-    .fetch_optional(tx)
+    .fetch_optional(conn)
     .await?;
 
     if sub.is_some() {

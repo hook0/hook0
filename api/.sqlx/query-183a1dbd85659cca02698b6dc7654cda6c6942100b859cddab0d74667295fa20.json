@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT subscription__id\n            FROM webhook.subscription\n            WHERE application__id = $1 AND subscription__id = $2\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "subscription__id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "183a1dbd85659cca02698b6dc7654cda6c6942100b859cddab0d74667295fa20"
+}

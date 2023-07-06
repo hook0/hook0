@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    INSERT INTO webhook.subscription__event_type (application__id, subscription__id, event_type__name)\n                    VALUES ($1, $2, $3)\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a1d1ba8baa53015d683d6b77fe31a6ae672f251792eead868d2a3f94ef296ab5"
+}
