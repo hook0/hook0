@@ -2,11 +2,11 @@ mod work;
 
 use chrono::{DateTime, Utc};
 use clap::{crate_name, crate_version, Parser};
-use log::{debug, info, trace};
+use log::{debug, info, trace, warn};
 use reqwest::header::HeaderMap;
 use sqlx::postgres::types::PgInterval;
 use sqlx::postgres::PgConnectOptions;
-use sqlx::{Connection, PgConnection};
+use sqlx::{query, query_as, Connection, PgConnection};
 use std::cmp::min;
 use std::collections::HashMap;
 use std::convert::TryFrom;
@@ -29,9 +29,9 @@ struct Config {
     #[clap(long, env, hide_env_values = true)]
     database_url: String,
 
-    /// Worker ID or name (if empty, will generate a random UUID)
+    /// Worker name (as defined in the infrastructure.worker table)
     #[clap(long, env)]
-    worker_id: Option<String>,
+    worker_name: String,
 
     /// Worker version (if empty, will use version from Cargo.toml)
     #[clap(long, env)]
@@ -44,6 +44,12 @@ struct Config {
     /// Maximum number of slow retries (before giving up)
     #[clap(long, env, default_value = "30")]
     max_slow_retries: u32,
+}
+
+#[derive(Debug, Clone)]
+enum WorkerType {
+    Public,
+    Private { worker_id: Uuid },
 }
 
 #[derive(Debug, Clone)]
@@ -88,9 +94,7 @@ const SLOW_RETRY_DELAY: Duration = Duration::from_secs(60 * 60);
 async fn main() -> anyhow::Result<()> {
     let config = Config::parse();
 
-    let worker_id = config
-        .worker_id
-        .unwrap_or_else(|| Uuid::new_v4().to_string());
+    let worker_name = config.worker_name;
     let worker_version = config
         .worker_version
         .unwrap_or_else(|| crate_version!().to_owned());
@@ -100,28 +104,24 @@ async fn main() -> anyhow::Result<()> {
     let _sentry = sentry_integration::init(crate_name!(), &config.sentry_dsn, &None, &None);
 
     info!(
-        "Starting {} {} [{}]",
+        "Starting {} {worker_version} [{worker_name}]",
         crate_name!(),
-        &worker_version,
-        &worker_id
     );
 
     debug!("Connecting to database...");
     let mut conn = PgConnection::connect_with(
-        &PgConnectOptions::from_str(&config.database_url)?.application_name(&format!(
-            "{}-{}-{}",
-            crate_name!(),
-            &worker_version,
-            &worker_id
-        )),
+        &PgConnectOptions::from_str(&config.database_url)?
+            .application_name(&format!("{}-{worker_version}-{worker_name}", crate_name!(),)),
     )
     .await?;
     info!("Connected to database");
 
+    let worker_type = get_worker_type(&worker_name, &mut conn).await?;
+
     info!("Upserting response error names");
     let mut tx = conn.begin().await?;
     for error_name in ResponseError::VARIANTS {
-        sqlx::query!(
+        query!(
             "
                 INSERT INTO webhook.response_error (response_error__name)
                 VALUES ($1)
@@ -140,34 +140,63 @@ async fn main() -> anyhow::Result<()> {
     loop {
         trace!("Fetching next unprocessed request attempt...");
         let mut tx = conn.begin().await?;
-        let next_attempt = sqlx::query_as!(
-            RequestAttempt,
-            "
-                SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.retry_count, t_http.method AS http_method, t_http.url AS http_url, t_http.headers AS http_headers, e.event_type__name, e.payload AS payload, e.payload_content_type AS payload_content_type, s.secret
-                FROM webhook.request_attempt AS ra
-                INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
-                INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
-                INNER JOIN event.event AS e ON e.event__id = ra.event__id
-                WHERE succeeded_at IS NULL AND failed_at IS NULL AND (delay_until IS NULL OR delay_until <= statement_timestamp())
-                ORDER BY created_at ASC
-                LIMIT 1
-                FOR UPDATE OF ra
-                SKIP LOCKED
-            "
-        )
-        .fetch_optional(&mut *tx)
-        .await?;
+
+        let next_attempt = match worker_type {
+            WorkerType::Public => {
+                // Only consider request attempts where associated subscription have no dedicated worker specified
+                query_as!(
+                    RequestAttempt,
+                    "
+                        SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.retry_count, t_http.method AS http_method, t_http.url AS http_url, t_http.headers AS http_headers, e.event_type__name, e.payload AS payload, e.payload_content_type AS payload_content_type, s.secret
+                        FROM webhook.request_attempt AS ra
+                        INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
+                        LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
+                        INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
+                        INNER JOIN event.event AS e ON e.event__id = ra.event__id
+                        WHERE succeeded_at IS NULL AND failed_at IS NULL AND (delay_until IS NULL OR delay_until <= statement_timestamp()) AND sw.worker__id IS NULL
+                        ORDER BY created_at ASC
+                        LIMIT 1
+                        FOR UPDATE OF ra
+                        SKIP LOCKED
+                    "
+                )
+                .fetch_optional(&mut *tx)
+                .await?
+            }
+            WorkerType::Private { worker_id } => {
+                // Only consider request attempts where associated subscription have at least the currect worker specified as dedicated worker
+                query_as!(
+                    RequestAttempt,
+                    "
+                        SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.retry_count, t_http.method AS http_method, t_http.url AS http_url, t_http.headers AS http_headers, e.event_type__name, e.payload AS payload, e.payload_content_type AS payload_content_type, s.secret
+                        FROM webhook.request_attempt AS ra
+                        INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
+                        INNER JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id AND sw.worker__id = $1
+                        INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
+                        INNER JOIN event.event AS e ON e.event__id = ra.event__id
+                        WHERE succeeded_at IS NULL AND failed_at IS NULL AND (delay_until IS NULL OR delay_until <= statement_timestamp())
+                        ORDER BY created_at ASC
+                        LIMIT 1
+                        FOR UPDATE OF ra
+                        SKIP LOCKED
+                    ",
+                    &worker_id
+                )
+                .fetch_optional(&mut *tx)
+                .await?
+            }
+        };
 
         if let Some(attempt) = next_attempt {
             // Set picked_at
             debug!("Picking request attempt {}", &attempt.request_attempt__id);
-            sqlx::query!(
+            query!(
                 "
                     UPDATE webhook.request_attempt
-                    SET picked_at = statement_timestamp(), worker_id = $1, worker_version = $2
+                    SET picked_at = statement_timestamp(), worker_name = $1, worker_version = $2
                     WHERE request_attempt__id = $3
                 ",
-                &worker_id,
+                &worker_name,
                 &worker_version,
                 attempt.request_attempt__id
             )
@@ -189,7 +218,7 @@ async fn main() -> anyhow::Result<()> {
                 "Storing response for request attempt {}",
                 &attempt.request_attempt__id
             );
-            let response_id = sqlx::query!(
+            let response_id = query!(
                 "
                     INSERT INTO webhook.response (response_error__name, http_code, headers, body, elapsed_time_ms)
                     VALUES ($1, $2, $3, $4, $5)
@@ -211,7 +240,7 @@ async fn main() -> anyhow::Result<()> {
                 &response_id, &attempt.request_attempt__id
             );
             #[allow(clippy::suspicious_else_formatting)] // Clippy false positive
-            sqlx::query!(
+            query!(
                 "UPDATE webhook.request_attempt SET response__id = $1 WHERE request_attempt__id = $2",
                 response_id, attempt.request_attempt__id
             )
@@ -224,7 +253,7 @@ async fn main() -> anyhow::Result<()> {
                     "Completing request attempt {}",
                     &attempt.request_attempt__id
                 );
-                sqlx::query!(
+                query!(
                     "UPDATE webhook.request_attempt SET succeeded_at = statement_timestamp() WHERE request_attempt__id = $1",
                     attempt.request_attempt__id
                 )
@@ -238,7 +267,7 @@ async fn main() -> anyhow::Result<()> {
             } else {
                 // Mark attempt as failed
                 debug!("Failing request attempt {}", &attempt.request_attempt__id);
-                sqlx::query!(
+                query!(
                     "UPDATE webhook.request_attempt SET failed_at = statement_timestamp() WHERE request_attempt__id = $1",
                     attempt.request_attempt__id
                 )
@@ -256,7 +285,7 @@ async fn main() -> anyhow::Result<()> {
                 .await?
                 {
                     let next_retry_count = attempt.retry_count + 1;
-                    let retry_id = sqlx::query!(
+                    let retry_id = query!(
                         "
                             INSERT INTO webhook.request_attempt (event__id, subscription__id, delay_until, retry_count)
                             VALUES ($1, $2, statement_timestamp() + $3, $4)
@@ -295,6 +324,45 @@ async fn main() -> anyhow::Result<()> {
     }
 }
 
+async fn get_worker_type(
+    worker_name: &str,
+    conn: &mut PgConnection,
+) -> Result<WorkerType, sqlx::Error> {
+    #[allow(non_snake_case)]
+    struct Worker {
+        worker__id: Uuid,
+        public: bool,
+    }
+    let worker = query_as!(
+        Worker,
+        "
+            SELECT worker__id, public
+            FROM infrastructure.worker
+            WHERE name = $1
+        ",
+        worker_name
+    )
+    .fetch_optional(conn)
+    .await?;
+    if let Some(w) = worker {
+        info!(
+            "Worker is running as '{worker_name}' (ID={}) which is {}",
+            &w.worker__id,
+            if w.public { "public" } else { "private" }
+        );
+        if w.public {
+            Ok(WorkerType::Public)
+        } else {
+            Ok(WorkerType::Private {
+                worker_id: w.worker__id,
+            })
+        }
+    } else {
+        warn!("Worker name '{worker_name}' was not found in database; worker is running as a public worker");
+        Ok(WorkerType::Public)
+    }
+}
+
 async fn compute_next_retry<'a>(
     conn: &mut PgConnection,
     subscription_id: &Uuid,
@@ -302,7 +370,7 @@ async fn compute_next_retry<'a>(
     max_slow_retries: u32,
     retry_count: i16,
 ) -> Result<Option<Duration>, sqlx::Error> {
-    let sub = sqlx::query!(
+    let sub = query!(
         "
             SELECT true AS whatever
             FROM webhook.subscription

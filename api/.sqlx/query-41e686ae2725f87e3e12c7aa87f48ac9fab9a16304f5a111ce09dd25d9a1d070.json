@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO webhook.subscription__worker (subscription__id, worker__id)\n                SELECT $1, infrastructure.worker.worker__id\n                FROM infrastructure.worker\n                WHERE infrastructure.worker.name = $2\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "41e686ae2725f87e3e12c7aa87f48ac9fab9a16304f5a111ce09dd25d9a1d070"
+}
