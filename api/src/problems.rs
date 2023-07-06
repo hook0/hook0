@@ -35,6 +35,8 @@ pub enum Hook0Problem {
 
     EventTypeAlreadyExist,
 
+    UnauthorizedWorkers(Vec<String>),
+
     EventAlreadyIngested,
     EventInvalidPayloadContentType,
     EventInvalidBase64Payload(String),
@@ -193,6 +195,17 @@ impl From<Hook0Problem> for Problem {
                 detail: "An event type with this name is already present.".into(),
                 validation: None,
                 status: StatusCode::CONFLICT,
+            },
+
+            Hook0Problem::UnauthorizedWorkers(w) => {
+                let detail = format!("You do not have access to the following workers: {}", w.join(", "));
+                Problem {
+                    id: Hook0Problem::UnauthorizedWorkers(w),
+                    title: "Some of the provided dedicated workers are not authorized for your organization",
+                    detail: detail.into(),
+                    validation: None,
+                    status: StatusCode::BAD_REQUEST,
+                }
             },
 
             Hook0Problem::EventAlreadyIngested => Problem {
