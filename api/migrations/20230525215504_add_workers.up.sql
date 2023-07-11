@@ -13,6 +13,7 @@ create table iam.organization__worker (
     worker__id uuid not null references infrastructure.worker (worker__id) on update cascade on delete cascade,
     constraint worker__organization_pkey primary key (organization__id, worker__id)
 );
+comment on table iam.organization__worker is 'when a worker is associated to an organization it means that the organization can use this worker';
 
 create table webhook.subscription__worker (
     subscription__id uuid not null references webhook.subscription (subscription__id) on update cascade on delete cascade,
