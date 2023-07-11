@@ -52,6 +52,15 @@ enum WorkerType {
     Private { worker_id: Uuid },
 }
 
+impl std::fmt::Display for WorkerType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Public => write!(f, "public"),
+            Self::Private { worker_id } => write!(f, "private (ID={worker_id}"),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 #[allow(non_snake_case)]
 pub struct RequestAttempt {
@@ -345,18 +354,15 @@ async fn get_worker_type(
     .fetch_optional(conn)
     .await?;
     if let Some(w) = worker {
-        info!(
-            "Worker is running as '{worker_name}' (ID={}) which is {}",
-            &w.worker__id,
-            if w.public { "public" } else { "private" }
-        );
-        if w.public {
-            Ok(WorkerType::Public)
+        let worker_type = if w.public {
+            WorkerType::Public
         } else {
-            Ok(WorkerType::Private {
+            WorkerType::Private {
                 worker_id: w.worker__id,
-            })
-        }
+            }
+        };
+        info!("Worker is running as '{worker_name}' which is {worker_type}",);
+        Ok(worker_type)
     } else {
         warn!("Worker name '{worker_name}' was not found in database; worker is running as a public worker");
         Ok(WorkerType::Public)
