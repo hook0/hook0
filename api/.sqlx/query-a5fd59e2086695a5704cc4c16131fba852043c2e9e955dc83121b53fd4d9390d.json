@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    SELECT w.name AS \"name!\"\n                    FROM infrastructure.worker AS w\n                    LEFT JOIN iam.organization__worker AS aw ON aw.worker__id = w.worker__id\n                    WHERE aw.organization__id = $1 OR w.public\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "a5fd59e2086695a5704cc4c16131fba852043c2e9e955dc83121b53fd4d9390d"
+}
