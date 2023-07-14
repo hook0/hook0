@@ -8,10 +8,10 @@
     <template #default="request_attempts">
       <hook0-card>
         <hook0-card-header>
-          <template #header> Logs (request attempts)</template>
+          <template #header>Request Attempts</template>
           <template #subtitle>
             Requests that Hook0 sent to
-            <hook0-button :to="{ name: routes.SubscriptionsList }">subscriptions</hook0-button>
+            <hook0-button :to="{ name: routes.SubscriptionsList }">subscriptions</hook0-button>.
           </template>
         </hook0-card-header>
 
@@ -58,7 +58,7 @@ import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0Table from '@/components/Hook0Table.vue';
-import { ColDef, ValueFormatterParams } from '@ag-grid-community/core';
+import { ColDef } from '@ag-grid-community/core';
 import * as LogService from './LogService';
 import {
   RequestAttempt,
@@ -102,7 +102,7 @@ export default class LogList extends Vue {
           field: 'status',
           suppressMovable: true,
           suppressSizeToFit: true,
-          width: 20,
+          width: 75,
           sortable: true,
           headerName: 'Status',
           cellRenderer: 'Hook0TableCellIcon',
@@ -127,7 +127,6 @@ export default class LogList extends Vue {
             icon(row: RequestAttemptTypeFixed) {
               switch (row.status.type) {
                 // @todo(i18n) change when/if we want to support i18n
-
                 case RequestAttemptStatusType.Waiting:
                   return 'fa-calendar';
                 case RequestAttemptStatusType.Pending:
