@@ -374,6 +374,7 @@ export interface components {
       application_id: string;
       /** Format: date-time */
       created_at: string;
+      dedicated_workers: string[];
       description?: string;
       event_types: string[];
       is_enabled: boolean;
@@ -389,6 +390,7 @@ export interface components {
     SubscriptionPost: {
       /** Format: uuid */
       application_id: string;
+      dedicated_workers?: string[];
       description?: string;
       event_types: string[];
       is_enabled: boolean;
