@@ -56,7 +56,7 @@ impl std::fmt::Display for WorkerType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Public => write!(f, "public"),
-            Self::Private { worker_id } => write!(f, "private (ID={worker_id}"),
+            Self::Private { worker_id } => write!(f, "private (ID={worker_id})"),
         }
     }
 }
