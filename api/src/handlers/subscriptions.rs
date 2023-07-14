@@ -427,7 +427,7 @@ pub async fn add(
             .iter()
             .cloned(),
     );
-    if workers.is_subset(&allowed_dedicated_workers) {
+    if !workers.is_subset(&allowed_dedicated_workers) {
         let unauthorized_workers = workers
             .difference(&allowed_dedicated_workers)
             .cloned()
@@ -435,7 +435,7 @@ pub async fn add(
         return Err(Hook0Problem::UnauthorizedWorkers(unauthorized_workers));
     }
 
-    for worker in body.dedicated_workers.as_deref().unwrap_or(&[]) {
+    for worker in workers {
         query!(
             "
                 INSERT INTO webhook.subscription__worker (subscription__id, worker__id)
@@ -444,7 +444,7 @@ pub async fn add(
                 WHERE infrastructure.worker.name = $2
             ",
             &subscription.subscription__id,
-            worker,
+            &worker,
         )
         .execute(&mut *tx)
         .await
@@ -648,7 +648,7 @@ pub async fn update(
                     .iter()
                     .cloned(),
             );
-            if workers.is_subset(&allowed_dedicated_workers) {
+            if !workers.is_subset(&allowed_dedicated_workers) {
                 let unauthorized_workers = workers
                     .difference(&allowed_dedicated_workers)
                     .cloned()
@@ -667,7 +667,7 @@ pub async fn update(
             .await
             .map_err(Hook0Problem::from)?;
 
-            for worker in body.dedicated_workers.as_deref().unwrap_or(&[]) {
+            for worker in workers {
                 query!(
                     "
                         INSERT INTO webhook.subscription__worker (subscription__id, worker__id)
@@ -676,7 +676,7 @@ pub async fn update(
                         WHERE infrastructure.worker.name = $2
                     ",
                     &s.subscription__id,
-                    worker,
+                    &worker,
                 )
                 .execute(&mut *tx)
                 .await
