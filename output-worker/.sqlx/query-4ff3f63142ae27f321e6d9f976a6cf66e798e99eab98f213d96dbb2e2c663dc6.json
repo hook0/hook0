@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT worker__id, public\n            FROM infrastructure.worker\n            WHERE name = $1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "worker__id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "public",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "4ff3f63142ae27f321e6d9f976a6cf66e798e99eab98f213d96dbb2e2c663dc6"
+}

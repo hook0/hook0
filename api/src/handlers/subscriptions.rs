@@ -8,7 +8,7 @@ use paperclip::actix::{
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sqlx::{query, query_as};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
 use validator::Validate;
 
@@ -32,6 +32,7 @@ pub struct Subscription {
     pub label_value: String,
     pub target: Target,
     pub created_at: DateTime<Utc>,
+    pub dedicated_workers: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, Apiv2Schema)]
@@ -83,6 +84,7 @@ pub async fn list(
         label_value: String,
         target_json: Option<Value>,
         created_at: DateTime<Utc>,
+        dedicated_workers: Option<Vec<String>>,
     }
 
     let raw_subscriptions = query_as!(
@@ -93,9 +95,14 @@ pub async fn list(
                     s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.label_key, s.label_value, s.target__id, s.created_at,
                     CASE WHEN length((array_agg(set.event_type__name))[1]) > 0
                         THEN array_agg(set.event_type__name)
-                        ELSE ARRAY[]::text[] END AS event_types
+                        ELSE ARRAY[]::text[] END AS event_types,
+                    CASE WHEN length((array_agg(w.name))[1]) > 0
+                        THEN array_agg(w.name)
+                        ELSE ARRAY[]::text[] END AS dedicated_workers
                 FROM webhook.subscription AS s
                 LEFT JOIN webhook.subscription__event_type AS set ON set.subscription__id = s.subscription__id
+                LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
+                LEFT JOIN infrastructure.worker AS w ON w.worker__id = sw.worker__id
                 WHERE s.application__id = $1 AND deleted_at IS NULL
                 GROUP BY s.subscription__id
                 ORDER BY s.created_at ASC
@@ -108,7 +115,7 @@ pub async fn list(
                 ) AS target_json FROM webhook.target_http
                 WHERE target__id IN (SELECT target__id FROM subs)
             )
-            SELECT subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.label_key AS "label_key!", subs.label_value AS "label_value!", subs.created_at AS "created_at!", subs.event_types, targets.target_json
+            SELECT subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.label_key AS "label_key!", subs.label_value AS "label_value!", subs.created_at AS "created_at!", subs.event_types, targets.target_json, subs.dedicated_workers
             FROM subs
             INNER JOIN targets ON subs.target__id = targets.target__id
         "#, // Column aliases ending with "!" are there because sqlx does not seem to infer correctly that these columns' types are not options
@@ -136,6 +143,7 @@ pub async fn list(
             target: serde_json::from_value(s.target_json.clone().unwrap())
                 .expect("Could not parse subscription target"),
             created_at: s.created_at,
+            dedicated_workers: s.dedicated_workers.clone().unwrap_or_default(),
         })
         .collect::<Vec<_>>();
 
@@ -204,6 +212,7 @@ pub async fn get(
         label_value: String,
         target_json: Option<Value>,
         created_at: DateTime<Utc>,
+        dedicated_workers: Option<Vec<String>>,
     }
 
     let raw_subscription = query_as!(
@@ -214,9 +223,14 @@ pub async fn get(
                     s.application__id, s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.label_key, s.label_value, s.target__id, s.created_at,
                     CASE WHEN length((array_agg(set.event_type__name))[1]) > 0
                         THEN array_agg(set.event_type__name)
-                        ELSE ARRAY[]::text[] END AS event_types
+                        ELSE ARRAY[]::text[] END AS event_types,
+                    CASE WHEN length((array_agg(w.name))[1]) > 0
+                        THEN array_agg(w.name)
+                        ELSE ARRAY[]::text[] END AS dedicated_workers
                 FROM webhook.subscription AS s
                 LEFT JOIN webhook.subscription__event_type AS set ON set.subscription__id = s.subscription__id
+                LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
+                LEFT JOIN infrastructure.worker AS w ON w.worker__id = sw.worker__id
                 WHERE s.application__id = $1 AND s.subscription__id = $2
                 GROUP BY s.subscription__id
                 ORDER BY s.created_at ASC
@@ -229,7 +243,7 @@ pub async fn get(
                 ) AS target_json FROM webhook.target_http
                 WHERE target__id IN (SELECT target__id FROM subs)
             )
-            SELECT subs.application__id AS "application__id!", subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.label_key AS "label_key!", subs.label_value AS "label_value!", subs.created_at AS "created_at!", subs.event_types, targets.target_json
+            SELECT subs.application__id AS "application__id!", subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.label_key AS "label_key!", subs.label_value AS "label_value!", subs.created_at AS "created_at!", subs.event_types, targets.target_json, subs.dedicated_workers
             FROM subs
             INNER JOIN targets ON subs.target__id = targets.target__id
             LIMIT 1
@@ -258,6 +272,7 @@ pub async fn get(
             target: serde_json::from_value(s.target_json.clone().unwrap())
                 .expect("Could not parse subscription target"),
             created_at: s.created_at,
+            dedicated_workers: s.dedicated_workers.unwrap_or_default(),
         })),
         None => Err(Hook0Problem::NotFound),
     }
@@ -278,6 +293,8 @@ pub struct SubscriptionPost {
     #[validate(non_control_character, length(min = 1, max = 100))]
     label_value: String,
     target: Target,
+    #[validate(length(min = 1, max = 20))]
+    dedicated_workers: Option<Vec<String>>,
 }
 
 #[api_v2_operation(
@@ -305,6 +322,10 @@ pub async fn add(
     if let Err(e) = body.validate() {
         return Err(Hook0Problem::Validation(e));
     }
+
+    let organization_id = get_owner_organization(&state.db, &body.application_id)
+        .await
+        .unwrap_or(Uuid::nil());
 
     let metadata = match body.metadata.as_ref() {
         Some(m) => serde_json::to_value(m.clone())
@@ -378,6 +399,58 @@ pub async fn add(
                 .map_err(Hook0Problem::from)?;
     }
 
+    #[allow(non_snake_case)]
+    struct RawWorkerName {
+        name: String,
+    }
+    let allowed_dedicated_workers = query_as!(
+        RawWorkerName,
+        r#"
+            SELECT w.name AS "name!"
+            FROM infrastructure.worker AS w
+            LEFT JOIN iam.organization__worker AS aw ON aw.worker__id = w.worker__id
+            WHERE aw.organization__id = $1 OR w.public
+        "#,
+        &organization_id,
+    )
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(Hook0Problem::from)?
+    .iter()
+    .map(|rw| rw.name.to_owned())
+    .collect::<HashSet<_>>();
+
+    let workers: HashSet<String> = HashSet::from_iter(
+        body.dedicated_workers
+            .as_deref()
+            .unwrap_or(&[])
+            .iter()
+            .cloned(),
+    );
+    if workers.is_subset(&allowed_dedicated_workers) {
+        let unauthorized_workers = workers
+            .difference(&allowed_dedicated_workers)
+            .cloned()
+            .collect::<Vec<_>>();
+        return Err(Hook0Problem::UnauthorizedWorkers(unauthorized_workers));
+    }
+
+    for worker in body.dedicated_workers.as_deref().unwrap_or(&[]) {
+        query!(
+            "
+                INSERT INTO webhook.subscription__worker (subscription__id, worker__id)
+                SELECT $1, infrastructure.worker.worker__id
+                FROM infrastructure.worker
+                WHERE infrastructure.worker.name = $2
+            ",
+            &subscription.subscription__id,
+            worker,
+        )
+        .execute(&mut *tx)
+        .await
+        .map_err(Hook0Problem::from)?;
+    }
+
     tx.commit().await.map_err(Hook0Problem::from)?;
 
     let subscription = Subscription {
@@ -393,13 +466,12 @@ pub async fn add(
         label_value: subscription.label_value,
         target: body.target.clone(),
         created_at: subscription.created_at,
+        dedicated_workers: body.dedicated_workers.clone().unwrap_or_default(),
     };
 
     if let Some(hook0_client) = state.hook0_client.as_ref() {
         let hook0_client_event: Hook0ClientEvent = EventSubscriptionCreated {
-            organization_id: get_owner_organization(&state.db, &subscription.application_id)
-                .await
-                .unwrap_or(Uuid::nil()),
+            organization_id,
             application_id: subscription.application_id,
             subscription_id: subscription.subscription_id,
             is_enabled: subscription.is_enabled,
@@ -449,6 +521,10 @@ pub async fn update(
     if let Err(e) = body.validate() {
         return Err(Hook0Problem::Validation(e));
     }
+
+    let organization_id = get_owner_organization(&state.db, &body.application_id)
+        .await
+        .unwrap_or(Uuid::nil());
 
     let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
 
@@ -533,6 +609,80 @@ pub async fn update(
                 .map_err(Hook0Problem::from)?;
             }
 
+            query!(
+                "
+                    DELETE FROM webhook.subscription__worker
+                    WHERE subscription__id = $1
+                ",
+                &s.subscription__id,
+            )
+            .execute(&mut *tx)
+            .await
+            .map_err(Hook0Problem::from)?;
+
+            #[allow(non_snake_case)]
+            struct RawWorkerName {
+                name: String,
+            }
+            let allowed_dedicated_workers = query_as!(
+                RawWorkerName,
+                r#"
+                    SELECT w.name AS "name!"
+                    FROM infrastructure.worker AS w
+                    LEFT JOIN iam.organization__worker AS aw ON aw.worker__id = w.worker__id
+                    WHERE aw.organization__id = $1 OR w.public
+                "#,
+                &organization_id,
+            )
+            .fetch_all(&mut *tx)
+            .await
+            .map_err(Hook0Problem::from)?
+            .iter()
+            .map(|rw| rw.name.to_owned())
+            .collect::<HashSet<_>>();
+
+            let workers: HashSet<String> = HashSet::from_iter(
+                body.dedicated_workers
+                    .as_deref()
+                    .unwrap_or(&[])
+                    .iter()
+                    .cloned(),
+            );
+            if workers.is_subset(&allowed_dedicated_workers) {
+                let unauthorized_workers = workers
+                    .difference(&allowed_dedicated_workers)
+                    .cloned()
+                    .collect::<Vec<_>>();
+                return Err(Hook0Problem::UnauthorizedWorkers(unauthorized_workers));
+            }
+
+            query!(
+                "
+                    DELETE FROM webhook.subscription__worker
+                    WHERE subscription__id = $1
+                ",
+                &s.subscription__id,
+            )
+            .execute(&mut *tx)
+            .await
+            .map_err(Hook0Problem::from)?;
+
+            for worker in body.dedicated_workers.as_deref().unwrap_or(&[]) {
+                query!(
+                    "
+                        INSERT INTO webhook.subscription__worker (subscription__id, worker__id)
+                        SELECT $1, infrastructure.worker.worker__id
+                        FROM infrastructure.worker
+                        WHERE infrastructure.worker.name = $2
+                    ",
+                    &s.subscription__id,
+                    worker,
+                )
+                .execute(&mut *tx)
+                .await
+                .map_err(Hook0Problem::from)?;
+            }
+
             tx.commit().await.map_err(Hook0Problem::from)?;
 
             let subscription = Subscription {
@@ -548,6 +698,7 @@ pub async fn update(
                 label_value: s.label_value,
                 target: body.target.clone(),
                 created_at: s.created_at,
+                dedicated_workers: body.dedicated_workers.clone().unwrap_or_default(),
             };
 
             if let Some(hook0_client) = state.hook0_client.as_ref() {
