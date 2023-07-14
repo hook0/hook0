@@ -127,6 +127,7 @@ export default class ApplicationList extends Vue {
         {
           field: 'application_id',
           suppressMovable: true,
+          cellRenderer: 'Hook0TableCellCode',
           headerName: 'Id',
         },
         {

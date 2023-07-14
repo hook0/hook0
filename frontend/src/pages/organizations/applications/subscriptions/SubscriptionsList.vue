@@ -10,7 +10,7 @@
         <hook0-card-header>
           <template #header> Subscriptions </template>
           <template #subtitle>
-            List all subscriptions created by customers against the application events
+            List all subscriptions created by customers against the application events.
           </template>
         </hook0-card-header>
 
@@ -61,11 +61,15 @@ import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0Table from '@/components/Hook0Table.vue';
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
-import { ColDef } from '@ag-grid-community/core';
+import { ColDef, ValueFormatterParams, ValueGetterParams } from '@ag-grid-community/core';
 import * as SubscriptionService from './SubscriptionService';
 import { UUID } from '@/http';
 import { Subscription, SubscriptionFixed, Target, toggleEnable } from './SubscriptionService';
 import { Application } from '@/pages/organizations/applications/ApplicationService';
+
+function targetIsHttp(target: object): target is { type: string; method: string; url: string } {
+  return target && 'type' in target && target.type === 'http';
+}
 
 @Options({
   components: {
@@ -128,7 +132,7 @@ export default class SubscriptionsList extends Vue {
           suppressMovable: true,
           sortable: true,
           resizable: true,
-          minWidth: 200,
+          minWidth: 100,
           headerName: 'Description',
           cellRenderer: 'Hook0TableCellLink',
           cellRendererParams: {
@@ -150,31 +154,40 @@ export default class SubscriptionsList extends Vue {
           sortable: true,
           resizable: true,
           minWidth: 200,
-          headerName: 'event_types',
+          headerName: 'Event types',
+          valueFormatter: (params: ValueFormatterParams<Subscription, string[]>) => {
+            return params.value?.join(', ');
+          },
         },
         {
-          field: 'label_key',
           suppressMovable: true,
           sortable: true,
           resizable: true,
-          headerName: 'Label key',
-        },
-        {
-          field: 'label_value',
-          suppressMovable: true,
-          sortable: true,
-          resizable: true,
-          headerName: 'Label value',
+          headerName: 'Label',
+          cellRenderer: 'Hook0TableCellCode',
+          cellRendererParams: {
+            value: (data: Subscription) => {
+              return `${data.label_key}=${data.label_value}`;
+            },
+          },
         },
         {
           field: 'target',
           suppressMovable: true,
           sortable: true,
+          resizable: true,
           headerName: 'Target',
-          minWidth: 200,
-          valueFormatter: (a) => {
-            // @todo set another cellrenderer
-            return JSON.stringify(a.value);
+          minWidth: 300,
+          cellRenderer: 'Hook0TableCellCode',
+          cellRendererParams: {
+            value: (data: Subscription) => {
+              const target = (data.target as unknown) ?? {};
+              if (targetIsHttp(target)) {
+                return `${target.method} ${target.url}`;
+              } else {
+                return JSON.stringify(data.target);
+              }
+            },
           },
         },
         {
