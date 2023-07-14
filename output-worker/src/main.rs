@@ -48,14 +48,17 @@ struct Config {
 
 #[derive(Debug, Clone)]
 enum WorkerType {
-    Public,
+    Public { worker_id: Option<Uuid> },
     Private { worker_id: Uuid },
 }
 
 impl std::fmt::Display for WorkerType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Public => write!(f, "public"),
+            Self::Public {
+                worker_id: Some(worker_id),
+            } => write!(f, "public (ID={worker_id})"),
+            Self::Public { worker_id: None } => write!(f, "public (anonymous)"),
             Self::Private { worker_id } => write!(f, "private (ID={worker_id})"),
         }
     }
@@ -151,7 +154,7 @@ async fn main() -> anyhow::Result<()> {
         let mut tx = conn.begin().await?;
 
         let next_attempt = match worker_type {
-            WorkerType::Public => {
+            WorkerType::Public { worker_id } => {
                 // Only consider request attempts where associated subscription have no dedicated worker specified
                 query_as!(
                     RequestAttempt,
@@ -162,12 +165,13 @@ async fn main() -> anyhow::Result<()> {
                         LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
                         INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
                         INNER JOIN event.event AS e ON e.event__id = ra.event__id
-                        WHERE succeeded_at IS NULL AND failed_at IS NULL AND (delay_until IS NULL OR delay_until <= statement_timestamp()) AND sw.worker__id IS NULL
+                        WHERE succeeded_at IS NULL AND failed_at IS NULL AND (delay_until IS NULL OR delay_until <= statement_timestamp()) AND (sw.worker__id IS NULL OR sw.worker__id = $1)
                         ORDER BY created_at ASC
                         LIMIT 1
                         FOR UPDATE OF ra
                         SKIP LOCKED
-                    "
+                    ",
+                    worker_id,
                 )
                 .fetch_optional(&mut *tx)
                 .await?
@@ -189,7 +193,7 @@ async fn main() -> anyhow::Result<()> {
                         FOR UPDATE OF ra
                         SKIP LOCKED
                     ",
-                    &worker_id
+                    &worker_id,
                 )
                 .fetch_optional(&mut *tx)
                 .await?
@@ -355,7 +359,9 @@ async fn get_worker_type(
     .await?;
     if let Some(w) = worker {
         let worker_type = if w.public {
-            WorkerType::Public
+            WorkerType::Public {
+                worker_id: Some(w.worker__id),
+            }
         } else {
             WorkerType::Private {
                 worker_id: w.worker__id,
@@ -365,7 +371,7 @@ async fn get_worker_type(
         Ok(worker_type)
     } else {
         warn!("Worker name '{worker_name}' was not found in database; worker is running as a public worker");
-        Ok(WorkerType::Public)
+        Ok(WorkerType::Public { worker_id: None })
     }
 }
 
