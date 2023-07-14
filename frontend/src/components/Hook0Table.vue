@@ -23,6 +23,7 @@ import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 import Hook0TableCellCode from '@/components/Hook0TableCellCode.vue';
 import Hook0TableCellLinks from '@/components/Hook0TableCellLinks.vue';
 import Hook0TableCellIcon from '@/components/Hook0TableCellIcon.vue';
+import Hook0TableCellDate from '@/components/Hook0TableCellDate.vue';
 import { defineComponent } from 'vue';
 
 type Context = Record<string, any>;
@@ -82,6 +83,8 @@ export default defineComponent({
     Hook0TableCellCode,
     // eslint-disable-next-line vue/no-unused-components
     Hook0TableCellIcon,
+    // eslint-disable-next-line vue/no-unused-components
+    Hook0TableCellDate,
   },
   methods: {
     onFirstDataRendered(params: AgGridEvent<any>) {
