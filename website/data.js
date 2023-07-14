@@ -88,29 +88,6 @@ await hook0.message.create(
   },
 ];
 
-locals.customers = [
-  {
-    title: 'TUI',
-    path: '',
-  },
-  {
-    title: 'IBM',
-    path: '',
-  },
-  {
-    title: 'Zoom',
-    path: '',
-  },
-  {
-    title: 'Amazon',
-    path: '',
-  },
-  {
-    title: 'Google',
-    path: '',
-  },
-];
-
 locals.features = [
   {
     primary: true,

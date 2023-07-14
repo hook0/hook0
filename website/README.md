@@ -1,4 +1,12 @@
-# Hook0 Website
+# Hook0 Website ( https://www.hook0.com/ ) 
+
+# development
+
+
+```
+npm install
+npm run serve
+```
 
 # icons
 
