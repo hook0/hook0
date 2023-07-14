@@ -10,5 +10,5 @@ npm run serve
 
 # icons
 
-- social icons: https://github.com/simple-icons/simple-icons
+- social icons: https://github.com/simple-icons/simple-icons https://simpleicons.org/
 - icons: https://heroicons.com/
