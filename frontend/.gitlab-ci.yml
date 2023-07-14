@@ -2,7 +2,7 @@ frontend.build:
   stage: build
   only:
       changes:
-        - frontend/**
+        - frontend/**/*
   image: node:$NODE_VERSION
   script:
     - pushd frontend/

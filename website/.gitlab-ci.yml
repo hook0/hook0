@@ -2,7 +2,7 @@ website.build:
   stage: build
   only:
     changes:
-      - website/**
+      - website/**/*
   image: node:$NODE_VERSION
   script:
     - pushd website/
@@ -38,7 +38,7 @@ website.build:
     refs:
       - master
     changes:
-      - website/**
+      - website/**/*
   except:
     - schedules
 
@@ -52,4 +52,4 @@ website.release.manual:
     refs:
       - master
     changes:
-      - website/**
+      - website/**/*
