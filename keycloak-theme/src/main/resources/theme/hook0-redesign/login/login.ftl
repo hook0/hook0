@@ -82,6 +82,7 @@
                 </ul>
             </div>
         </#if>
+        <#--
         <div id="kc-sso-providers" class="${properties.kcFormSocialAccountSectionClass!}">
                 <hr/>
                 <br/>
@@ -91,6 +92,7 @@
                     </div>
                 </div>
         </div>
+        -->
     </div>
     <#elseif section = "info" >
         <#if realm.password && realm.registrationAllowed && !registrationDisabled??>
