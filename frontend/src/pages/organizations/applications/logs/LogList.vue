@@ -67,7 +67,6 @@ import {
   RequestAttemptTypeFixed,
 } from './LogService';
 import { UUID } from '@/http';
-import { format, formatDistance, formatRelative, parseISO, subDays } from 'date-fns';
 
 @Options({
   components: {
@@ -152,13 +151,7 @@ export default class LogList extends Vue {
           width: 175,
           sortable: true,
           headerName: 'Created At',
-          valueFormatter: (date: ValueFormatterParams<RequestAttemptTypeFixed, string>) => {
-            if (date.value) {
-              return formatDistance(parseISO(date.value), new Date(), { addSuffix: true });
-            } else {
-              return '';
-            }
-          },
+          cellRenderer: 'Hook0TableCellDate',
         },
         {
           field: 'picked_at',
@@ -167,12 +160,9 @@ export default class LogList extends Vue {
           width: 175,
           sortable: true,
           headerName: 'Picked At',
-          valueFormatter: (date: ValueFormatterParams<RequestAttemptTypeFixed, string>) => {
-            if (date.value) {
-              return formatDistance(parseISO(date.value), new Date(), { addSuffix: true });
-            } else {
-              return '';
-            }
+          cellRenderer: 'Hook0TableCellDate',
+          cellRendererParams: {
+            defaultText: 'pending…',
           },
         },
         {
