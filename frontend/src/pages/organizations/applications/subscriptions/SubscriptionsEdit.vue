@@ -273,6 +273,7 @@ export default class SubscriptionsEdit extends Vue {
     description: '',
     application_id: '',
     event_types: [] as string[],
+    dedicated_workers: [] as string[],
     is_enabled: true,
     label_key: '',
     label_value: '',
@@ -329,6 +330,7 @@ export default class SubscriptionsEdit extends Vue {
             this.subscription.label_key = subscription.label_key;
             this.subscription.label_value = subscription.label_value;
             this.subscription.metadata = subscription.metadata;
+            this.subscription.dedicated_workers = subscription.dedicated_workers;
 
             // currently PaperClip does not handle our "enum Target" on Rust-side and yield a string
             this.subscription.target = subscription.target as unknown as Target;
@@ -421,6 +423,7 @@ export default class SubscriptionsEdit extends Vue {
       label_key: this.subscription.label_key,
       is_enabled: this.subscription.is_enabled,
       event_types: EventTypeNamesFromSelectedEventTypes(this.eventTypes),
+      dedicated_workers: this.subscription.dedicated_workers,
       application_id: this.$route.params.application_id as string,
     }).then((_resp: any) => {
       this.cancel2();
