@@ -128,6 +128,7 @@ export default class ApplicationSecretsList extends Vue {
           suppressMovable: true,
           sortable: true,
           headerName: 'Created At',
+          cellRenderer: 'Hook0TableCellDate',
         },
         {
           suppressMovable: true,
