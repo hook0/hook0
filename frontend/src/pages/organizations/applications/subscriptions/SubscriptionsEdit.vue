@@ -302,7 +302,6 @@ export default class SubscriptionsEdit extends Vue {
 
   _load() {
     this.alert.visible = false;
-    this.eventTypes = [];
 
     function mapper(eventType: EventType): SelectableEventType {
       return {
@@ -314,6 +313,7 @@ export default class SubscriptionsEdit extends Vue {
     if (this.subscription_id !== this.$route.params.subscription_id) {
       this.subscription_id = this.$route.params.subscription_id as UUID;
       this.isNew = !this.subscription_id;
+      this.eventTypes = [];
 
       // first load the subscription if in edit mode
       (!this.isNew
