@@ -56,7 +56,9 @@ export default defineComponent({
       defaultColDef: {
         resizable: false,
       },
-      gridOptions: {},
+      gridOptions: {
+        enableCellTextSelection: true,
+      },
     };
   },
   created() {
