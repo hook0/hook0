@@ -103,8 +103,8 @@ export default class SubscriptionsList extends Vue {
           field: 'is_enabled',
           suppressMovable: true,
           sortable: true,
-          resizable: true,
-          width: 200,
+          suppressSizeToFit: true,
+          width: 115,
           headerName: 'Enabled',
           cellRenderer: 'Hook0TableCellLink',
           cellRendererParams: {
@@ -134,6 +134,9 @@ export default class SubscriptionsList extends Vue {
           resizable: true,
           minWidth: 100,
           headerName: 'Description',
+          valueGetter: (params: ValueGetterParams<Subscription, string>) => {
+            return params.data?.description ?? '[no description]';
+          },
           cellRenderer: 'Hook0TableCellLink',
           cellRendererParams: {
             to: (row: Subscription) => {
@@ -154,7 +157,7 @@ export default class SubscriptionsList extends Vue {
           sortable: true,
           resizable: true,
           minWidth: 200,
-          headerName: 'Event types',
+          headerName: 'Event Types',
           valueFormatter: (params: ValueFormatterParams<Subscription, string[]>) => {
             return params.value?.join(', ');
           },
@@ -194,7 +197,8 @@ export default class SubscriptionsList extends Vue {
           suppressMovable: true,
           headerName: 'Options',
           cellRenderer: 'Hook0TableCellLink',
-          maxWidth: 200,
+          suppressSizeToFit: true,
+          maxWidth: 100,
           cellRendererParams: {
             value: 'Delete',
             icon: 'trash',
