@@ -28,6 +28,7 @@
     </hook0-card>
     <EventTypesList :burst="$route.params.application_id"></EventTypesList>
     <EventsList :burst="$route.params.application_id"></EventsList>
+    <SubscriptionsList :burst="$route.params.application_id"></SubscriptionsList>
     <LogList :burst="$route.params.application_id"></LogList>
   </div>
 </template>
@@ -44,10 +45,11 @@ import { Alert } from '@/components/Hook0Alert';
 import { routes } from '@/routes';
 import EventTypesList from '@/pages/organizations/applications/event_types/EventTypesList.vue';
 import EventsList from '@/pages/organizations/applications/events/EventsList.vue';
+import SubscriptionsList from '@/pages/organizations/applications/subscriptions/SubscriptionsList.vue';
 import LogList from '@/pages/organizations/applications/logs/LogList.vue';
 
 @Options({
-  components: { EventTypesList, Hook0Text, EventsList, LogList },
+  components: { EventTypesList, Hook0Text, EventsList, SubscriptionsList, LogList },
 })
 export default class ApplicationsDashboard extends Vue {
   application_id: UUID | undefined;
