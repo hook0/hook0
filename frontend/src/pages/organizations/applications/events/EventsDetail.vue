@@ -14,28 +14,25 @@
         <hook0-card>
           <hook0-card-header>
             <template #header>
-              {{ event.event_type_name }}
+              Event of type <hook0-text class="code">{{ event.event_type_name }}</hook0-text>
             </template>
             <template #subtitle>
               <hook0-text class="block">
-                <hook0-text class="label pr-1">Received at</hook0-text>
+                <hook0-text class="label pr-1">Occurred At:</hook0-text>
+                <hook0-date-time :value="event.occurred_at"></hook0-date-time>
+              </hook0-text>
+
+              <hook0-text class="block">
+                <hook0-text class="label pr-1">Received At:</hook0-text>
                 <hook0-date-time :value="event.received_at"></hook0-date-time>
               </hook0-text>
 
               <hook0-text class="block">
-                <hook0-text class="label pr-1">Occurred at</hook0-text>
-                <hook0-date-time :value="event.occurred_at"></hook0-date-time>
+                <hook0-text class="label pr-1">Source IP:</hook0-text>
+                <hook0-text class="code">{{ event.ip }}</hook0-text>
               </hook0-text>
             </template>
           </hook0-card-header>
-          <hook0-card-content>
-            <hook0-card-content-line>
-              <template #label> Source Ip </template>
-              <template #content>
-                <hook0-text class="code">{{ event.ip }}</hook0-text>
-              </template>
-            </hook0-card-content-line>
-          </hook0-card-content>
         </hook0-card>
 
         <hook0-card>
@@ -48,12 +45,19 @@
             </template>
           </hook0-card-header>
           <hook0-card-content>
-            <hook0-card-content-line :key="key" v-for="(key, value) in event.metadata">
-              <template #label>{{ key }}</template>
-              <template #content>
-                <hook0-text class="code">{{ value }}</hook0-text>
-              </template>
-            </hook0-card-content-line>
+            <template v-if="event.metadata !== null && Object.keys(event.metadata).length > 0">
+              <hook0-card-content-line :key="key" v-for="(value, key) in event.metadata">
+                <template #label>{{ key }}</template>
+                <template #content>
+                  <hook0-text class="code">{{ value }}</hook0-text>
+                </template>
+              </hook0-card-content-line>
+            </template>
+            <template v-else>
+              <hook0-card-content-line>
+                <template #label>No metadata</template>
+              </hook0-card-content-line>
+            </template>
           </hook0-card-content>
         </hook0-card>
         <hook0-card>
@@ -62,7 +66,7 @@
             <template #subtitle> </template>
           </hook0-card-header>
           <hook0-card-content>
-            <hook0-card-content-line :key="key" v-for="(key, value) in event.labels">
+            <hook0-card-content-line :key="key" v-for="(value, key) in event.labels">
               <template #label>{{ key }}</template>
               <template #content>
                 <hook0-text class="code">{{ value }}</hook0-text>
@@ -78,7 +82,7 @@
           </hook0-card-header>
           <hook0-card-content>
             <hook0-card-content-line>
-              <template #label> Payload Content type </template>
+              <template #label> Payload Content Type </template>
               <template #content>
                 <hook0-text class="code">{{ event.payload_content_type }}</hook0-text>
               </template>

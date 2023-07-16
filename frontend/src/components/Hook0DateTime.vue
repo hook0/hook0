@@ -6,7 +6,7 @@
 import { Options, Vue } from 'vue-class-component';
 import Hook0Text from './Hook0Text.vue';
 import { Codemirror } from 'vue-codemirror';
-import { formatRFC7231, parseISO } from 'date-fns';
+import { formatISO9075, parseISO } from 'date-fns';
 
 @Options({
   inheritAttrs: false,
@@ -34,7 +34,7 @@ export default class Hook0DateTime extends Vue {
 
   refresh() {
     // @ts-ignore
-    this.value_humanized = formatRFC7231(parseISO(this.$props.value as string));
+    this.value_humanized = formatISO9075(parseISO(this.$props.value as string));
   }
 }
 </script>

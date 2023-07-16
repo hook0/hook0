@@ -17,12 +17,12 @@ const enum PayloadContentType {
   Binary = 'application/octet-stream+base64',
 }
 
-function decode(payload: string, payload_content_type_name: string) {
+function decode(payload: string, payload_content_type_name: string): string {
   switch (payload_content_type_name) {
     case PayloadContentType.Text:
       return atob(payload);
     case PayloadContentType.Json:
-      return atob(payload);
+      return JSON.stringify(JSON.parse(atob(payload)), null, 4);
     case PayloadContentType.Binary:
     default:
       return payload;
