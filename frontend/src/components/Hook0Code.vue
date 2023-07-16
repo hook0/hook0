@@ -1,7 +1,7 @@
 <template>
   <codemirror
     v-model="code"
-    :style="{ height: '400px' }"
+    :style="{ minHeight: '100px' }"
     :autofocus="true"
     :indent-with-tab="true"
     :tab-size="2"
@@ -33,7 +33,7 @@ import { EditorView } from 'codemirror';
   },
 })
 export default class Hook0Code extends Vue {
-  extensions = [json(), oneDark];
+  extensions = [json(), oneDark, EditorView.lineWrapping];
 
   // Codemirror EditorView instance ref
   view: EditorView | undefined;
