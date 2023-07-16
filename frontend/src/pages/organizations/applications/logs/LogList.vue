@@ -149,6 +149,7 @@ export default class LogList extends Vue {
           suppressSizeToFit: true,
           width: 175,
           sortable: true,
+          resizable: true,
           headerName: 'Created At',
           cellRenderer: 'Hook0TableCellDate',
         },
@@ -158,6 +159,7 @@ export default class LogList extends Vue {
           suppressSizeToFit: true,
           width: 175,
           sortable: true,
+          resizable: true,
           headerName: 'Picked At',
           cellRenderer: 'Hook0TableCellDate',
           cellRendererParams: {

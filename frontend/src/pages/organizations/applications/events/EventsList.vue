@@ -53,7 +53,7 @@ import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0Table from '@/components/Hook0Table.vue';
-import { ColDef } from '@ag-grid-community/core';
+import { ColDef, ValueFormatterParams } from '@ag-grid-community/core';
 import * as EventsService from './EventsService';
 import { Event } from './EventsService';
 import { UUID } from '@/http';
@@ -95,11 +95,11 @@ export default class EventsList extends Vue {
           field: 'received_at',
           suppressMovable: true,
           suppressSizeToFit: true,
-          width: 150,
+          width: 175,
           sortable: true,
+          resizable: true,
           headerName: 'Received At',
-          valueFormatter: (date) =>
-            formatDistance(parseISO(date.value as string), new Date(), { addSuffix: true }),
+          cellRenderer: 'Hook0TableCellDate',
         },
         {
           field: 'event_type_name',
@@ -130,11 +130,10 @@ export default class EventsList extends Vue {
         {
           field: 'payload_content_type',
           suppressMovable: true,
-          suppressSizeToFit: true,
-          width: 140,
           sortable: true,
+          resizable: true,
           cellRenderer: 'Hook0TableCellCode',
-          headerName: 'Payload type',
+          headerName: 'Payload Type',
         },
         {
           field: 'labels',
@@ -155,8 +154,9 @@ export default class EventsList extends Vue {
           field: 'ip',
           suppressMovable: true,
           sortable: true,
+          resizable: true,
           suppressSizeToFit: true,
-          width: 155,
+          width: 110,
           cellRenderer: 'Hook0TableCellCode',
           headerName: 'IP',
         },
@@ -164,13 +164,12 @@ export default class EventsList extends Vue {
           field: 'metadata',
           suppressMovable: true,
           sortable: true,
-          resizable: true,
+          suppressSizeToFit: true,
+          width: 95,
           headerName: 'Metadata',
-          cellRenderer: 'Hook0TableCellCode',
-          cellRendererParams: {
-            value(row: Event) {
-              return JSON.stringify(row.metadata);
-            },
+          valueFormatter: (params: ValueFormatterParams<Event, Record<string, never>>) => {
+            const number = Object.keys(params.value ?? {}).length;
+            return number > 0 ? `✔ (${number})` : '❌';
           },
         },
       ] as Array<ColDef>,

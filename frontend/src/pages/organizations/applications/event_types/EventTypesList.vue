@@ -8,7 +8,7 @@
     <template #default="event_types">
       <hook0-card>
         <hook0-card-header>
-          <template #header> Event types </template>
+          <template #header>Event Types</template>
           <template #subtitle>
             Each event sent through a webhook must have an event type.
           </template>
@@ -105,6 +105,7 @@ export default class EventTypesList extends Vue {
         },
         {
           suppressMovable: true,
+          suppressSizeToFit: true,
           width: 100,
           headerName: 'Options',
           cellRenderer: 'Hook0TableCellLink',
