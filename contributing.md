@@ -9,7 +9,7 @@ our way of saying: **Thank you!**
 > We're here to help!
 >
 > If you have _any_ questions along your contributor journey, please feel free to come chat with us on
-> [our Slack](https://join.slack.com/t/fgribreau/shared_invite/zt-edpjwt2t-Zh39mDUMNQ0QOr9qOj~jrg).
+> [our Discord](https://discord.gg/7tGYQEy7).
 
 ## Code of Conduct
 
@@ -60,7 +60,7 @@ parts of the docs in dire need of some tender love and care? Feel free to Sugges
 ### Helping Others
 
 The Hook0 community is growing quickly, which also means there's more and more people that have questions. Helping
-out your fellow developers by answering questions on [Slack](https://join.slack.com/t/fgribreau/shared_invite/zt-edpjwt2t-Zh39mDUMNQ0QOr9qOj~jrg) or
+out your fellow developers by answering questions on [Discord](https://discord.gg/7tGYQEy7) or
 [Gitlab issues](https://gitlab.com/hook0/hook0/-/issues/?sort=milestone_due_desc&state=opened&label_name%5B%5D=Community%3A%3Acontribution&first_page_size=20) is a great way to help the
 project.
 
