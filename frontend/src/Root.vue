@@ -1,17 +1,125 @@
+<script setup lang="ts">
+import { RouteLocationNamedRaw, useRoute, RouterView } from 'vue-router';
+import { computed } from 'vue';
+
+import Hook0Logo from '@/components/Hook0Logo.vue';
+import MenuItem from '@/components/MenuItem.vue';
+import OrganizationSelector from '@/pages/OrganizationAndApplicationSelector.vue';
+import { routes } from '@/routes';
+import Hook0Footer from '@/components/Hook0Footer.vue';
+import Hook0LoginMenu from '@/components/Hook0LoginMenu.vue';
+import Hook0Icon from '@/components/Hook0Icon.vue';
+
+const route = useRoute();
+
+interface Route {
+  name: string;
+  icon: string;
+  route?: RouteLocationNamedRaw;
+  href?: string;
+}
+
+const items = computed<Route[]>(() => {
+  if (route.params.organization_id && route.params.application_id) {
+    return [
+      {
+        name: 'API Keys',
+        icon: 'key',
+        route: {
+          name: routes.ApplicationSecretsList,
+          params: {
+            organization_id: route.params.organization_id,
+            application_id: route.params.application_id,
+          },
+        },
+      },
+      {
+        name: 'Event Types',
+        icon: 'folder-tree',
+        route: {
+          name: routes.EventTypesList,
+          params: {
+            organization_id: route.params.organization_id,
+            application_id: route.params.application_id,
+          },
+        },
+      },
+      {
+        name: 'Events',
+        icon: 'file-lines',
+        route: {
+          name: routes.EventsList,
+          params: {
+            organization_id: route.params.organization_id,
+            application_id: route.params.application_id,
+          },
+        },
+      },
+      {
+        name: 'Subscriptions',
+        icon: 'link',
+        route: {
+          name: routes.SubscriptionsList,
+          params: {
+            organization_id: route.params.organization_id,
+            application_id: route.params.application_id,
+          },
+        },
+      },
+      {
+        name: 'Request Attempts',
+        icon: 'file-contract',
+        route: {
+          name: routes.LogsList,
+          params: {
+            organization_id: route.params.organization_id,
+            application_id: route.params.application_id,
+          },
+        },
+      },
+      {
+        name: 'Settings',
+        icon: 'sliders',
+        route: {
+          name: routes.ApplicationsDashboard,
+          params: {
+            organization_id: route.params.organization_id,
+            application_id: route.params.application_id,
+          },
+        },
+      },
+      {
+        name: 'API Documentation',
+        icon: 'gear',
+        href: 'https://documentation.hook0.com/',
+      },
+    ];
+  } else {
+    return [
+      {
+        name: 'API Documentation',
+        icon: 'book',
+        href: 'https://documentation.hook0.com/',
+      },
+    ];
+  }
+});
+</script>
+
 <template>
   <div class="h-screen flex overflow-hidden bg-gray-100">
     <div class="hidden md:flex md:flex-shrink-0">
       <div class="flex flex-col w-64 bg-gray-800">
         <div class="flex flex-col h-0 flex-1">
           <div class="flex items-center h-16 flex-shrink-0 px-4">
-            <logo></logo>
+            <Hook0Logo></Hook0Logo>
           </div>
           <div class="flex flex-shrink-0 bg-gray-100">
-            <organization-selector></organization-selector>
+            <OrganizationSelector></OrganizationSelector>
           </div>
           <div class="flex-1 flex flex-col overflow-y-auto">
             <nav class="flex-1 px-2 py-4 space-y-1">
-              <menu-item
+              <MenuItem
                 v-for="(item, index) in items"
                 :key="index"
                 :active="item.route ? item.route.name === $route.name : false"
@@ -19,8 +127,8 @@
                 :href="item.href"
                 :to="item.route"
               >
-                <hook0-icon class="mr-1" :name="item.icon"></hook0-icon>
-              </menu-item>
+                <Hook0Icon class="mr-1" :name="item.icon"></Hook0Icon>
+              </MenuItem>
             </nav>
           </div>
         </div>
@@ -84,7 +192,7 @@
           <div class="ml-4 flex items-center md:ml-6">
             <!-- Profile dropdown -->
             <div class="ml-3">
-              <hook0-login-menu></hook0-login-menu>
+              <Hook0LoginMenu></Hook0LoginMenu>
             </div>
           </div>
         </div>
@@ -92,149 +200,13 @@
 
       <main class="flex-1 relative overflow-y-auto focus:outline-none" tabindex="0">
         <div class="py-6 max-w-7xl mx-auto px-4 sm:px-6 md:px-8 h-96">
-          <router-view></router-view>
-          <hook0-footer></hook0-footer>
+          <RouterView></RouterView>
+          <Hook0Footer></Hook0Footer>
         </div>
       </main>
     </div>
   </div>
 </template>
-
-<script lang="ts">
-import { Logo, MenuItem } from './components';
-import { Vue, Options } from 'vue-class-component';
-import OrganizationSelector from '@/pages/OrganizationAndApplicationSelector.vue';
-import { routes } from '@/routes';
-import Hook0Footer from '@/components/Hook0Footer.vue';
-import { Router, RouteRecord } from 'vue-router';
-import Hook0LoginMenu from '@/components/Hook0LoginMenu.vue';
-
-@Options({
-  components: { Hook0LoginMenu, Hook0Footer, Logo, OrganizationSelector, MenuItem },
-  computed: {
-    items() {
-      // eslint-disable-next-line
-      // @ts-ignore
-      return [].concat(
-        // @ts-ignore
-        // eslint-disable-next-line
-        this.$route.params.organization_id && this.$route.params.application_id
-          ? [
-              {
-                name: 'API Keys',
-                icon: 'key',
-                route: {
-                  name: routes.ApplicationSecretsList,
-                  // @ts-ignore
-                  params: {
-                    // eslint-disable-next-line
-                    organization_id: this.$route.params.organization_id,
-                    // eslint-disable-next-line
-                    application_id: this.$route.params.application_id,
-                  },
-                },
-              },
-              {
-                name: 'Event Types',
-                icon: 'folder-tree',
-                route: {
-                  name: routes.EventTypesList,
-                  // @ts-ignore
-                  params: {
-                    // eslint-disable-next-line
-                    organization_id: this.$route.params.organization_id,
-                    // eslint-disable-next-line
-                    application_id: this.$route.params.application_id,
-                  },
-                },
-              },
-              {
-                name: 'Events',
-                icon: 'file-lines',
-                route: {
-                  name: routes.EventsList,
-                  params: {
-                    // eslint-disable-next-line
-                    organization_id: this.$route.params.organization_id,
-                    // eslint-disable-next-line
-                    application_id: this.$route.params.application_id,
-                  },
-                },
-              },
-              {
-                name: 'Subscriptions',
-                icon: 'link',
-                route: {
-                  name: routes.SubscriptionsList,
-                  params: {
-                    // eslint-disable-next-line
-                    organization_id: this.$route.params.organization_id,
-                    // eslint-disable-next-line
-                    application_id: this.$route.params.application_id,
-                  },
-                },
-              },
-              {
-                name: 'Request Attempts',
-                icon: 'file-contract',
-                route: {
-                  name: routes.LogsList,
-                  params: {
-                    // eslint-disable-next-line
-                    organization_id: this.$route.params.organization_id,
-                    // eslint-disable-next-line
-                    application_id: this.$route.params.application_id,
-                  },
-                },
-              },
-              {
-                name: 'Settings',
-                icon: 'sliders',
-                route: {
-                  name: routes.ApplicationsDashboard,
-                  // @ts-ignore
-                  params: {
-                    // eslint-disable-next-line
-                    organization_id: this.$route.params.organization_id,
-                    // eslint-disable-next-line
-                    application_id: this.$route.params.application_id,
-                  },
-                },
-              },
-              {
-                name: 'API Documentation',
-                icon: 'gear',
-                href: 'https://documentation.hook0.com/',
-              },
-            ]
-          : [
-              {
-                name: 'API Documentation',
-                icon: 'book',
-                href: 'https://documentation.hook0.com/',
-              },
-            ]
-      );
-    },
-  },
-
-  methods: {
-    openRoute(route: string | RouteRecord) {
-      if (typeof route === 'string') {
-        window.open(route);
-      }
-
-      // eslint-disable-next-line
-      this.$router.push(route);
-    },
-  },
-
-  data() {
-    return {};
-  },
-})
-export default class Root extends Vue {}
-</script>
 
 <style>
 /* shared */

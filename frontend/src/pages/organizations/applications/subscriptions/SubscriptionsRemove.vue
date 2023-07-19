@@ -1,110 +1,104 @@
-<template>
-  <hook0-card>
-    <hook0-card-header>
-      <template #header> Delete this subscription </template>
-      <template #subtitle>
-        This action deletes
-        <hook0-text class="bold">{{ subscriptionName }}</hook0-text>
-        and everything this subscription contains. There is no going back.
-      </template>
-    </hook0-card-header>
-    <hook0-card-content v-if="alert.visible">
-      <hook0-alert
-        :type="alert.type"
-        :title="alert.title"
-        :description="alert.description"
-      ></hook0-alert>
-    </hook0-card-content>
-    <hook0-card-footer>
-      <hook0-button class="danger" type="button" :loading="loading" @click="remove($event)"
-        >Delete</hook0-button
-      >
-    </hook0-card-footer>
-  </hook0-card>
-</template>
-
-<script lang="ts">
+<script setup lang="ts">
 import { AxiosError } from 'axios';
-import * as SubscriptionsService from './SubscriptionService';
-import { Options, Vue } from 'vue-class-component';
-import { routes } from '@/routes';
-import { isAxiosError, Problem, UUID } from '@/http';
+import { ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+
+import { isAxiosError, Problem } from '@/http';
 import { Alert } from '@/components/Hook0Alert';
+import { routes } from '@/routes';
+import * as SubscriptionsService from './SubscriptionService';
+import Hook0Text from '@/components/Hook0Text.vue';
+import Hook0Alert from '@/components/Hook0Alert.vue';
+import Hook0Button from '@/components/Hook0Button.vue';
+import Hook0Card from '@/components/Hook0Card.vue';
+import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
+import Hook0CardContent from '@/components/Hook0CardContent.vue';
+import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 
-@Options({
-  props: {
-    subscriptionId: {
-      type: String,
-      required: true,
-    },
-    applicationId: {
-      type: String,
-      required: true,
-    },
-    subscriptionName: {
-      type: String,
-      required: true,
-    },
-  },
-})
-export default class SubscriptionsRemove extends Vue {
-  private loading = false;
-  private subscriptionId!: string;
-  private applicationId!: string;
-  private subscriptionName!: string;
+const router = useRouter();
+const route = useRoute();
 
-  routes = routes;
+interface Props {
+  applicationId: string;
+  subscriptionId: string;
+  subscriptionName: string;
+}
 
-  alert: Alert = {
-    visible: false,
-    type: 'alert',
-    title: '',
-    description: '',
-  };
+const props = defineProps<Props>();
 
-  remove(e: Event) {
-    e.preventDefault();
-    e.stopImmediatePropagation();
+const loading = ref(false);
+const alert = ref<Alert>({
+  visible: false,
+  type: 'alert',
+  title: '',
+  description: '',
+});
 
-    if (!confirm(`Are you sure to delete "${this.subscriptionName}" subscription?`)) {
-      return;
-    }
+function remove(e: Event) {
+  e.preventDefault();
+  e.stopImmediatePropagation();
 
-    this.alert.visible = false; // reset alert
-    this.loading = true;
-
-    SubscriptionsService.remove(this.applicationId, this.subscriptionId)
-      .then(
-        () =>
-          this.$router.push({
-            name: routes.SubscriptionsList,
-            params: {
-              organization_id: this.$route.params.organization_id,
-              application_id: this.$route.params.application_id,
-            },
-          }),
-        this.displayError.bind(this)
-      )
-      // finally
-      .finally(() => (this.loading = false));
+  if (!confirm(`Are you sure to delete "${props.subscriptionName}" subscription?`)) {
+    return;
   }
 
-  displayError(err: AxiosError | unknown) {
-    console.error(err);
-    this.alert.visible = true;
+  alert.value.visible = false; // reset alert
+  loading.value = true;
 
-    if (isAxiosError(err) && err.response) {
-      const problem: Problem = err.response.data as Problem;
-      this.alert.type = problem.status >= 500 ? 'alert' : 'warning';
-      this.alert.title = problem.title;
-      this.alert.description = problem.detail;
-    } else {
-      this.alert.type = 'alert';
-      this.alert.title = 'An error occurred';
-      this.alert.description = String(err);
-    }
+  SubscriptionsService.remove(props.applicationId, props.subscriptionId)
+    .then(
+      () =>
+        router.push({
+          name: routes.SubscriptionsList,
+          params: {
+            organization_id: route.params.organization_id,
+            application_id: route.params.application_id,
+          },
+        }),
+      displayError
+    )
+    // finally
+    .finally(() => (loading.value = false));
+}
+
+function displayError(err: AxiosError | unknown) {
+  console.error(err);
+  alert.value.visible = true;
+
+  if (isAxiosError(err) && err.response) {
+    const problem: Problem = err.response.data as Problem;
+    alert.value.type = problem.status >= 500 ? 'alert' : 'warning';
+    alert.value.title = problem.title;
+    alert.value.description = problem.detail;
+  } else {
+    alert.value.type = 'alert';
+    alert.value.title = 'An error occurred';
+    alert.value.description = String(err);
   }
 }
 </script>
 
-<style scoped></style>
+<template>
+  <Hook0Card>
+    <Hook0CardHeader>
+      <template #header> Delete this subscription </template>
+      <template #subtitle>
+        This action deletes
+        <Hook0Text class="bold">{{ subscriptionName }}</Hook0Text>
+        and everything this subscription contains. There is no going back.
+      </template>
+    </Hook0CardHeader>
+    <Hook0CardContent v-if="alert.visible">
+      <Hook0Alert
+        :type="alert.type"
+        :title="alert.title"
+        :description="alert.description"
+      ></Hook0Alert>
+    </Hook0CardContent>
+    <Hook0CardFooter>
+      <Hook0Button class="danger" type="button" :loading="loading" @click="remove($event)"
+        >Delete</Hook0Button
+      >
+    </Hook0CardFooter>
+  </Hook0Card>
+</template>
