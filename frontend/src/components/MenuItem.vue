@@ -1,29 +1,22 @@
-<template>
-  <hook0-button class="default" :class="{ active: active, inactive: !active }">
-    <slot></slot>
-    {{ name }}
-  </hook0-button>
-</template>
+<script setup lang="ts">
+import Hook0Button from '@/components/Hook0Button.vue';
 
-<script lang="ts">
-import { Vue, Options } from 'vue-class-component';
+interface Props {
+  name: string;
+  active: boolean;
+}
 
-@Options({
-  props: {
-    name: {
-      type: String,
-      required: true,
-    },
-    active: {
-      type: Boolean,
-      required: true,
-    },
-  },
-})
-export default class MenuItem extends Vue {}
+defineProps<Props>();
 </script>
 
-<style scoped>
+<template>
+  <Hook0Button class="default" :class="{ active: active, inactive: !active }">
+    <slot></slot>
+    {{ name }}
+  </Hook0Button>
+</template>
+
+<style lang="scss" scoped>
 .default {
   @apply text-gray-300 text-white flex items-center px-2 py-2 text-sm font-medium rounded-md cursor-pointer;
 }

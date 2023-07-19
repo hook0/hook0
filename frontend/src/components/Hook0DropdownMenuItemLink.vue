@@ -1,25 +1,22 @@
-<template>
-  <hook0-button
-    class="link"
-    :class="$attrs.class"
-    v-bind="{ ...$props, ...$attrs }"
-    role="menuitem"
-    tabindex="-1"
-    id="menu-item-0"
-    @click="$emit('click', $event)"
-  >
-    <slot></slot>
-  </hook0-button>
-</template>
+<script setup lang="ts">
+import Hook0Button from '@/components/Hook0Button.vue';
 
-<script lang="ts">
-import { Options, Vue } from 'vue-class-component';
-
-@Options({
-  components: {},
-  props: {},
-})
-export default class Hook0DropdownMenuItemLink extends Vue {}
+defineSlots<{
+  default(): unknown;
+}>();
+const emit = defineEmits(['click']);
 </script>
 
-<style lang="scss" scoped></style>
+<template>
+  <Hook0Button
+    v-bind="{ ...$props, ...$attrs }"
+    id="menu-item-0"
+    class="link"
+    :class="$attrs.class"
+    role="menuitem"
+    tabindex="-1"
+    @click="emit('click', $event)"
+  >
+    <slot></slot>
+  </Hook0Button>
+</template>

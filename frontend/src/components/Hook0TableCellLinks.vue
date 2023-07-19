@@ -1,32 +1,28 @@
-<template>
-  <div class="grid grid-flow-col auto-cols-max gap-1">
-    <hook0-table-cell-link
-      v-for="(param, index) in params.parameters"
-      :key="index"
-      :params="{ ...params, ...param }"
-    >
-    </hook0-table-cell-link>
-  </div>
-</template>
+<script setup lang="ts">
+import { ICellRendererParams } from '@ag-grid-community/core';
 
-<script lang="ts">
-import { Vue, Options } from 'vue-class-component';
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 
-@Options({
-  name: 'hook0-table-cell-links',
+defineOptions({
   inheritAttrs: false,
-  props: {
-    params: {
-      type: Object, // Array
-      required: true,
-      validator: (v: { parameters: any[] }) => {
-        return Array.isArray(v.parameters);
-      },
-    },
-  },
-  components: { Hook0TableCellLink },
-})
-export default class Hook0TableCellLinks<T> extends Vue {}
+});
+
+type Hook0TableCellDateParameter = ICellRendererParams;
+
+interface Props {
+  params: { parameters: Hook0TableCellDateParameter };
+}
+
+defineProps<Props>();
 </script>
-<style></style>
+
+<template>
+  <div class="grid grid-flow-col auto-cols-max gap-1">
+    <Hook0TableCellLink
+      v-for="(param, index) in params.parameters"
+      :key="index"
+      :params="{ ...param }"
+    >
+    </Hook0TableCellLink>
+  </div>
+</template>

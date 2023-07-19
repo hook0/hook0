@@ -1,61 +1,60 @@
+<script setup lang="ts">
+import { omit } from 'ramda';
+import { onMounted, onUpdated, ref, useAttrs, useSlots } from 'vue';
+
+import Hook0Text from '@/components/Hook0Text.vue';
+
+defineOptions({
+  inheritAttrs: false,
+});
+const emit = defineEmits(['update:modelValue']);
+defineSlots<{
+  helpText(): unknown;
+}>();
+
+const ipt = ref<null | HTMLInputElement>(null);
+
+function hasSlot(name: string): boolean {
+  return !!useSlots()[name];
+}
+
+function _internalState() {
+  // checkbox needs special care
+  if (
+    useAttrs().type === 'checkbox' &&
+    typeof useAttrs().value === 'boolean' &&
+    ipt.value !== null
+  ) {
+    ipt.value.checked = useAttrs().value as boolean;
+  }
+}
+
+onMounted(() => {
+  _internalState();
+});
+
+onUpdated(() => {
+  _internalState();
+});
+</script>
+
 <template>
   <div :class="$attrs.class">
     <input
       ref="ipt"
-      v-bind="{ ...omit(['class'], $props), ...$attrs }"
+      v-bind="{ ...omit(['class', 'style'], $props), ...$attrs }"
       class="hook0-input"
       :value="$attrs.modelValue"
-      @input="$emit('update:modelValue', $event.target.value)"
+      @input="(e: Event) => emit('update:modelValue', (e.target as HTMLInputElement)?.value)"
     />
 
     <div v-if="hasSlot('helpText')">
-      <hook0-text class="helpText">
+      <Hook0Text class="helpText">
         <slot name="helpText"></slot>
-      </hook0-text>
+      </Hook0Text>
     </div>
   </div>
 </template>
-
-<script lang="ts">
-import { omit } from 'ramda';
-import { Vue, Options } from 'vue-class-component';
-
-@Options({
-  name: 'hook0-input',
-  inheritAttrs: false,
-  props: {
-    helpText: {
-      type: String,
-      required: false,
-    },
-  },
-})
-export default class Hook0Input extends Vue {
-  helpText?: string = undefined;
-
-  hasSlot(name = 'default'): boolean {
-    return !!this.$slots[name];
-  }
-
-  mounted() {
-    this._internalState();
-  }
-
-  updated() {
-    this._internalState();
-  }
-
-  _internalState() {
-    // checkbox needs special care
-    if (this.$attrs.type === 'checkbox' && typeof this.$attrs.value === 'boolean') {
-      // @ts-ignore
-      this.$refs.ipt.checked = this.$attrs.value;
-    }
-  }
-
-  omit = omit;
-}
-</script>
 
 <style lang="scss" scoped>
 .hook0-input {

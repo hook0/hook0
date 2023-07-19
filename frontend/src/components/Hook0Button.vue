@@ -1,141 +1,126 @@
+<script setup lang="ts">
+import { RouteLocationRaw, useRouter } from 'vue-router';
+import { ref, computed, onMounted, onUpdated, useSlots } from 'vue';
+import { omit } from 'ramda';
+
+import Hook0Icon from '@/components/Hook0Icon.vue';
+
+interface Props {
+  loading?: boolean | Promise<unknown>;
+  to?: RouteLocationRaw;
+  href?: string;
+  disabled?: boolean;
+}
+const router = useRouter();
+const props = defineProps<Props>();
+const emit = defineEmits(['click']);
+defineSlots<{
+  default(): unknown;
+  left(): unknown;
+  right(): unknown;
+}>();
+
+const href = computed(() => {
+  if (props.href) {
+    return props.href;
+  }
+
+  if (!props.to) {
+    return undefined;
+  }
+
+  const { href } = router.resolve(props.to);
+  return href; // for accessibility
+});
+const loading = computed(() => props.loading ?? false);
+
+const loadingStatus = ref(false);
+
+function _forwardPromiseState() {
+  if (!(loading.value instanceof Promise)) {
+    loadingStatus.value = loading.value;
+    return;
+  }
+
+  const setStatus = (state: boolean) => () => {
+    if (!(loading.value instanceof Promise)) {
+      return;
+    }
+
+    loadingStatus.value = state;
+  };
+
+  setStatus(true)();
+  loading.value.finally(setStatus(false));
+}
+
+function omitOnClick(props: Record<string, unknown>) {
+  return omit(['onClick'], props);
+}
+
+function onClick(e: MouseEvent) {
+  if (!props.href) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }
+
+  if (props.loading || props.disabled) {
+    // do nothing
+    return;
+  }
+
+  if (!href.value) {
+    // no href so bubble-up event
+    emit('click', e);
+    return;
+  }
+
+  if (e.metaKey && href.value) {
+    // support for power-user that want to open links in another tab
+    window.open(href.value);
+    return true;
+  }
+
+  if (props.to) {
+    router.push(props.to).catch((err) => {
+      console.error(err);
+    });
+  }
+}
+function hasSlot(name: string): boolean {
+  return !!useSlots()[name];
+}
+
+onMounted(() => {
+  _forwardPromiseState();
+});
+
+onUpdated(() => {
+  _forwardPromiseState();
+});
+</script>
+
 <template>
   <a
     class="hook0-button"
     :class="{ loading: loadingStatus, 'hook0-button-split': hasSlot('right') || hasSlot('left') }"
-    v-bind="omit({ ...$props, ...$attrs })"
-    @click="onClick($event)"
+    v-bind="omitOnClick({ ...$props, ...$attrs })"
     :disabled="loadingStatus || disabled"
-    :href="_href"
+    :href="href"
+    @click="onClick($event)"
   >
-    <div class="hook0-button-left" v-if="hasSlot('left') && !loadingStatus">
+    <div v-if="hasSlot('left') && !loadingStatus" class="hook0-button-left">
       <slot name="left"></slot>
     </div>
     <div class="hook0-button-center">
       <slot v-if="!loadingStatus"></slot>
     </div>
-    <div class="hook0-button-right" v-if="hasSlot('right') || loadingStatus">
-      <hook0-icon name="spinner" spin class="animate-spin" v-if="loadingStatus"></hook0-icon>
+    <div v-if="hasSlot('right') || loadingStatus" class="hook0-button-right">
+      <Hook0Icon v-if="loadingStatus" name="spinner" spin class="animate-spin"></Hook0Icon>
       <slot name="right"></slot>
     </div>
   </a>
 </template>
-
-<script lang="ts">
-import Hook0Icon from '@/components/Hook0Icon.vue';
-import { RouteLocationRaw } from 'vue-router';
-import { defineComponent, PropType } from 'vue';
-import { omit } from 'ramda';
-
-export default defineComponent({
-  components: {
-    Hook0Icon,
-  },
-  // type inference enabled
-  props: {
-    // Loading as a boolean
-    loading: {
-      default: false,
-      validator: (value: any) => value instanceof Promise || typeof value === 'boolean',
-    },
-
-    // helper to let the button go to a specified route
-    to: {
-      type: Object as PropType<RouteLocationRaw>,
-      required: false,
-    },
-    href: {
-      type: String,
-      required: false,
-    },
-    disabled: {
-      type: Boolean,
-      default: false,
-      required: false,
-    },
-  },
-  data() {
-    return {
-      loadingStatus: false,
-    };
-  },
-  computed: {
-    _href(): undefined | string {
-      if (this.href) {
-        return this.href;
-      }
-
-      if (!this.to) {
-        return undefined;
-      }
-
-      // @ts-ignore
-      const { href } = this.$router.resolve(this.to);
-      return href; // for accessibility
-    },
-  },
-  mounted() {
-    this._forwardPromiseState();
-  },
-  updated() {
-    this._forwardPromiseState();
-  },
-  methods: {
-    _forwardPromiseState() {
-      if (!((this.loading as any) instanceof Promise)) {
-        this.loadingStatus = this.loading;
-        return;
-      }
-
-      const setStatus = (state: boolean) => () => {
-        if (!((this.loading as any) instanceof Promise)) {
-          return;
-        }
-
-        this.loadingStatus = state;
-      };
-
-      setStatus(true)();
-      // @ts-ignore
-      // eslint-disable-next-line
-      this.loading.finally(setStatus(false));
-    },
-    omit(props: Record<string, any>) {
-      return omit(['onClick'], props);
-    },
-    onClick(e: MouseEvent) {
-      if (!this.href) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-      }
-
-      if (this.loading || this.disabled) {
-        // do nothing
-        return;
-      }
-
-      if (!this._href) {
-        // no href so bubble-up event
-        this.$emit('click', e);
-        return;
-      }
-
-      if (e.metaKey && this._href) {
-        // support for power-user that want to open links in another tab
-        window.open(this._href);
-        return true;
-      }
-
-      // @ts-ignore
-      this.$router.push(this.to).catch((err) => {
-        console.error(err);
-      });
-    },
-    hasSlot(name = 'default'): boolean {
-      return !!this.$slots[name];
-    },
-  },
-});
-</script>
 
 <style lang="scss" scoped>
 .hook0-button {

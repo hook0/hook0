@@ -1,14 +1,14 @@
+<script setup lang="ts">
+defineSlots<{
+  default(): unknown;
+}>();
+</script>
+
 <template>
-  <ul class="list" v-bind="{ ...$props, ...$attrs }">
+  <ul class="list" v-bind="{ ...$attrs }">
     <slot></slot>
   </ul>
 </template>
-
-<script lang="ts">
-import { Vue } from 'vue-class-component';
-
-export default class Hook0List extends Vue {}
-</script>
 
 <style lang="scss" scoped>
 .list {
