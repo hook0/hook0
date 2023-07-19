@@ -1,19 +1,19 @@
+<script setup lang="ts">
+import { omit } from 'ramda';
+
+function omitClass(props: Record<string, unknown>) {
+  return omit(['class'], props);
+}
+</script>
+
 <template>
-  <span v-bind="omit({ ...$props, ...$attrs })" :class="['text'].concat($attrs.class || [])">
+  <span
+    v-bind="omitClass({ ...$props, ...$attrs })"
+    :class="['text'].concat($attrs.class as string[] ?? [])"
+  >
     <slot></slot>
   </span>
 </template>
-
-<script lang="ts">
-import { Vue } from 'vue-class-component';
-import { omit } from 'ramda';
-
-export default class Hook0Text extends Vue {
-  omit(props: Record<string, any>) {
-    return omit(['class'], props);
-  }
-}
-</script>
 
 <style lang="scss" scoped>
 .text {

@@ -1,3 +1,11 @@
+<script setup lang="ts">
+defineSlots<{
+  header(): unknown;
+  subtitle(): unknown;
+  actions(): unknown;
+}>();
+</script>
+
 <template>
   <div class="hook0-card-header">
     <div class="hook0-card-header-container">
@@ -15,12 +23,6 @@
     </div>
   </div>
 </template>
-
-<script lang="ts">
-import { Vue } from 'vue-class-component';
-
-export default class Hook0CardHeader extends Vue {}
-</script>
 
 <style lang="scss" scoped>
 .hook0-card-header {

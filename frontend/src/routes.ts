@@ -2,7 +2,6 @@ import ApplicationsList from '@/pages/organizations/applications/ApplicationsLis
 import ApplicationsEdit from '@/pages/organizations/applications/ApplicationsEdit.vue';
 import ApplicationsDashboard from '@/pages/organizations/applications/ApplicationsDashboard.vue';
 
-import OrganizationsList from '@/pages/organizations/OrganizationsList.vue';
 import OrganizationsEdit from '@/pages/organizations/OrganizationsEdit.vue';
 import OrganizationsDashboard from '@/pages/organizations/OrganizationsDashboard.vue';
 
