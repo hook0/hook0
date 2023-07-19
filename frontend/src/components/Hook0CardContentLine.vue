@@ -1,31 +1,31 @@
+<script setup lang="ts">
+import { computed } from 'vue';
+import Hook0Text from '@/components/Hook0Text.vue';
+
+interface Props {
+  type?: 'split' | 'full-width' | 'split-content-component' | 'stacked' | 'columns';
+}
+const props = defineProps<Props>();
+const type = computed(() => props.type ?? 'split');
+
+defineSlots<{
+  label(): unknown;
+  content(): unknown;
+}>();
+</script>
+
 <template>
   <div class="hook0-card-content-line" :class="type">
     <dt>
-      <hook0-text class="label">
+      <Hook0Text class="label">
         <slot name="label"></slot>
-      </hook0-text>
+      </Hook0Text>
     </dt>
     <dd class="hook0-card-content-line-content">
       <slot name="content"></slot>
     </dd>
   </div>
 </template>
-
-<script lang="ts">
-import { Options, Vue } from 'vue-class-component';
-
-@Options({
-  props: {
-    type: {
-      type: String,
-      default: 'split',
-      validator: (v: string) =>
-        ['split', 'full-width', 'split-content-component', 'stacked', 'columns'].includes(v),
-    },
-  },
-})
-export default class Hook0CardContentLine extends Vue {}
-</script>
 
 <style lang="scss" scoped>
 .hook0-card-content-line {

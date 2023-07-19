@@ -1,32 +1,22 @@
-<template>
-  <hook0-alert type="alert">
-    <template #title>{{ error.title }} ({{ error.status }} {{ error.id }})</template>
-    <template #description>
-      <hook0-text>{{ error.detail }}</hook0-text>
-      <br />
-      <hook0-text class="def">{{ error.type }}</hook0-text>
-    </template>
-  </hook0-alert>
-</template>
+<script setup lang="ts">
+import ProblemFactory from '@/utils/problemFactory';
+import Hook0Text from '@/components/Hook0Text.vue';
+import Hook0Alert from '@/components/Hook0Alert.vue';
 
-<script lang="ts">
-import { Options, Vue } from 'vue-class-component';
+interface Props {
+  error: ProblemFactory;
+}
 
-const hasOwn = (obj: any, attr: string) => Object.prototype.hasOwnProperty.call(obj, attr);
-
-@Options({
-  components: {},
-  props: {
-    error: {
-      type: Object,
-      required: true,
-      validator(problem: any) {
-        return hasOwn(problem, 'title') && hasOwn(problem, 'detail');
-      },
-    },
-  },
-})
-export default class Hook0Error extends Vue {}
+const props = defineProps<Props>();
 </script>
 
-<style lang="scss" scoped></style>
+<template>
+  <Hook0Alert type="alert">
+    <template #title>{{ props.error.title }} ({{ props.error.status }})</template>
+    <template #description>
+      <Hook0Text>{{ props.error.detail }}</Hook0Text>
+      <br />
+      <Hook0Text class="def">{{ props.error.type }}</Hook0Text>
+    </template>
+  </Hook0Alert>
+</template>

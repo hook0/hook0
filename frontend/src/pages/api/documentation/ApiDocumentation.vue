@@ -1,127 +1,121 @@
-<template>
-  <hook0-card>
-    <hook0-card-header>
-      <template #header> Hook0 API Documentation </template>
-      <template #subtitle> Automate everything! </template>
-    </hook0-card-header>
-    <hook0-card-content>
-      <div ref="container">
-        <!-- swagger ui documentation -->
-      </div>
-    </hook0-card-content>
-    <hook0-card-footer> </hook0-card-footer>
-  </hook0-card>
-</template>
-
-<script lang="ts">
+<script setup lang="ts">
 import SwaggerUI from 'swagger-ui';
 import 'swagger-ui/dist/swagger-ui.css';
+import { useRoute } from 'vue-router';
+import { onMounted, onUpdated, ref } from 'vue';
 
-import { Options, Vue } from 'vue-class-component';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
-import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import featureFlags from '@/feature-flags';
-import iam from '@/iam';
+import { getToken } from '@/iam';
 
-@Options({
-  components: {
-    Hook0CardContentLine,
-    Hook0CardContent,
-    Hook0CardFooter,
-    Hook0CardHeader,
-    Hook0Card,
-  },
-})
-export default class ApiDocumentation extends Vue {
-  private swaggerUI!: SwaggerUI;
+const route = useRoute();
+const swaggerUI = ref<null | SwaggerUI>(null);
+const container = ref<null | HTMLDivElement>(null);
 
-  declare $refs: {
-    container: HTMLDivElement;
-  };
+function _load() {
+  const application_id = route.params.application_id;
+  const organization_id = route.params.organization_id;
 
-  data() {
-    return {};
-  }
+  swaggerUI.value = SwaggerUI({
+    url:
+      featureFlags.getOrElse('API_ENDPOINT', import.meta.env.VITE_API_ENDPOINT ?? '') +
+      '/swagger.json',
+    domNode: container.value,
 
-  _load() {
-    const application_id = this.$route.params.application_id;
-    const organization_id = this.$route.params.organization_id;
+    docExpansion: 'list',
 
-    this.swaggerUI = SwaggerUI({
-      url:
-        featureFlags.getOrElse('API_ENDPOINT', process.env.VUE_APP_API_ENDPOINT ?? '') +
-        '/swagger.json',
-      domNode: this.$refs.container,
+    showExtensions: true,
+    showCommonExtensions: true,
 
-      docExpansion: 'list',
+    // if set to true, it triggers infinite redirect loop with keycloak
+    deepLinking: false,
 
-      showExtensions: true,
-      showCommonExtensions: true,
+    tagsSorter: (tag1, tag2) => {
+      const order = [
+        'Hook0',
+        'Organizations Management',
+        'Applications Management',
+        'Events Management',
+        'Subscriptions Management',
+      ];
+      return order.indexOf(tag1) - order.indexOf(tag2);
+    },
 
-      // if set to true, it triggers infinite redirect loop with keycloak
-      deepLinking: false,
+    operationsSorter: 'alpha',
 
-      tagsSorter: (tag1, tag2) => {
-        const order = [
-          'Hook0',
-          'Organizations Management',
-          'Applications Management',
-          'Events Management',
-          'Subscriptions Management',
-        ];
-        return order.indexOf(tag1) - order.indexOf(tag2);
-      },
+    displayOperationId: true,
 
-      operationsSorter: 'alpha',
+    parameterMacro: (_operation: Readonly<unknown>, parameter: Readonly<unknown>) => {
+      if (
+        organization_id &&
+        'name' in parameter &&
+        parameter.name === 'organization_id' &&
+        'schema' in parameter &&
+        typeof parameter.schema === 'object' &&
+        parameter.schema !== null &&
+        'default' in parameter.schema
+      ) {
+        parameter.schema.default = organization_id;
+      }
 
-      displayOperationId: true,
+      if (
+        application_id &&
+        'name' in parameter &&
+        parameter.name === 'application_id' &&
+        'schema' in parameter &&
+        typeof parameter.schema === 'object' &&
+        parameter.schema !== null &&
+        'default' in parameter.schema
+      ) {
+        parameter.schema.default = application_id;
+      }
+    },
 
-      parameterMacro: (operation: Readonly<any>, parameter: Readonly<any>) => {
-        if (organization_id && parameter.name === 'organization_id') {
-          // eslint-disable-next-line
-          parameter.schema.default = organization_id;
-        }
+    requestInterceptor: (req: SwaggerUI.Request) => {
+      return getToken().then((jwt_token) => ({
+        ...req,
+        Headers: { Authorization: `Bearer ${jwt_token}` },
+      }));
+    },
 
-        if (application_id && parameter.name === 'application_id') {
-          // eslint-disable-next-line
-          parameter.schema.default = application_id;
-        }
-      },
+    // try out
+    displayRequestDuration: true,
+    tryItOutEnabled: true,
+    // \try out
 
-      requestInterceptor: (req: SwaggerUI.Request) => {
-        return iam.getToken().then((jwt_token) => {
-          // eslint-disable-next-line
-          req.headers.Authorization = `Bearer ${jwt_token}`;
-          return req;
-        });
-      },
+    syntaxHighlight: {
+      activate: true,
+    },
 
-      // try out
-      displayRequestDuration: true,
-      tryItOutEnabled: true,
-      // \try out
-
-      syntaxHighlight: {
-        activate: true,
-      },
-
-      onComplete: () => {
-        console.log('Swagger UI launched');
-      },
-    });
-  }
-
-  updated() {
-    this._load();
-  }
-
-  mounted() {
-    this._load();
-  }
+    onComplete: () => {
+      console.log('Swagger UI launched');
+    },
+  });
 }
+
+onMounted(() => {
+  _load();
+});
+
+onUpdated(() => {
+  _load();
+});
 </script>
 
-<style scoped></style>
+<template>
+  <Hook0Card>
+    <Hook0CardHeader>
+      <template #header> Hook0 API Documentation </template>
+      <template #subtitle> Automate everything! </template>
+    </Hook0CardHeader>
+    <Hook0CardContent>
+      <div ref="container">
+        <!-- swagger ui documentation -->
+      </div>
+    </Hook0CardContent>
+    <Hook0CardFooter> </Hook0CardFooter>
+  </Hook0Card>
+</template>
