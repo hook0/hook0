@@ -9,9 +9,6 @@ import { KeycloakPlugin } from './iam';
 
 import Root from './Root.vue';
 
-// @ts-ignore
-import VueFormJsonSchema from 'vue-form-json-schema/src/index';
-
 // FontAwesome
 import { library } from '@fortawesome/fontawesome-svg-core';
 
@@ -104,9 +101,6 @@ library.add(
 
 // Vue - promised
 app.component('Promised', Promised);
-
-// eslint-disable-next-line
-app.component('vue-form-json-schema', VueFormJsonSchema);
 
 // Mount the app
 app.mount('#app');
