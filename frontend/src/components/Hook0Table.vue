@@ -1,102 +1,64 @@
-<template>
-  <ag-grid-vue
-    class="ag-theme-alpine"
-    v-bind="{ ...$props, ...$attrs }"
-    :domLayout="domLayout"
-    :modules="modules.concat(contextModule ? [contextModule] : [])"
-    :defaultColDef="defaultColDef"
-    :suppressRowHoverHighlight="true"
-    :suppressHorizontalScroll="true"
-    :suppressCellFocus="true"
-    :gridOptions="gridOptions"
-    @first-data-rendered="onFirstDataRendered"
-  >
-  </ag-grid-vue>
-</template>
-
-<script lang="ts">
-import { Vue, Options } from 'vue-class-component';
+<script setup lang="ts">
 import { AgGridVue } from '@ag-grid-community/vue3';
 import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model';
-import { AgGridEvent, ColDef, ICellRendererParams, Module, RowNode } from '@ag-grid-community/core';
-import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
-import Hook0TableCellCode from '@/components/Hook0TableCellCode.vue';
-import Hook0TableCellLinks from '@/components/Hook0TableCellLinks.vue';
-import Hook0TableCellIcon from '@/components/Hook0TableCellIcon.vue';
-import Hook0TableCellDate from '@/components/Hook0TableCellDate.vue';
-import { defineComponent } from 'vue';
+import { AgGridEvent, ColDef, Module } from '@ag-grid-community/core';
+import { computed } from 'vue';
 
-type Context = Record<string, any>;
-
-export default defineComponent({
-  name: 'hook0-table',
+defineOptions({
   inheritAttrs: false,
-  props: {
-    columnDefs: {
-      type: Array,
-      required: true,
-    },
-    rowData: {
-      required: true,
-    },
-
-    /**
-     * The Vue component context (this) that will be available to the callbacks as execution context
-     */
-    context: {
-      type: Object,
-      required: true,
-    },
-  },
-  data() {
-    return {
-      domLayout: null as string | null,
-      modules: [ClientSideRowModelModule],
-
-      defaultColDef: {
-        resizable: false,
-      },
-      gridOptions: {
-        enableCellTextSelection: true,
-      },
-    };
-  },
-  created() {
-    this.domLayout = 'autoHeight';
-  },
-  computed: {
-    contextModule(): null | (Module & { context: Context }) {
-      return this.context
-        ? {
-            moduleName: 'context',
-            version: ClientSideRowModelModule.version,
-            context: this.context as Context,
-          }
-        : null;
-    },
-  },
-  components: {
-    AgGridVue,
-    // eslint-disable-next-line vue/no-unused-components
-    Hook0TableCellLink,
-    // eslint-disable-next-line vue/no-unused-components
-    Hook0TableCellLinks,
-    // eslint-disable-next-line vue/no-unused-components
-    Hook0TableCellCode,
-    // eslint-disable-next-line vue/no-unused-components
-    Hook0TableCellIcon,
-    // eslint-disable-next-line vue/no-unused-components
-    Hook0TableCellDate,
-  },
-  methods: {
-    onFirstDataRendered(params: AgGridEvent<any>) {
-      params.api.sizeColumnsToFit();
-    },
-  },
 });
+
+interface Props {
+  columnDefs: ColDef[];
+  rowData: unknown[];
+  context: object;
+}
+
+const props = defineProps<Props>();
+const domLayout = 'autoHeight';
+const modules = [ClientSideRowModelModule];
+
+const defaultColDef = {
+  resizable: false,
+};
+const gridOptions = {
+  enableCellTextSelection: true,
+};
+
+type Context = Record<string, unknown>;
+const contextModule = computed<null | (Module & { context: Context })>(() => {
+  return props.context
+    ? {
+        moduleName: 'context',
+        version: ClientSideRowModelModule.version,
+        context: props.context as Context,
+      }
+    : null;
+});
+
+function onFirstDataRendered(params: AgGridEvent<unknown>) {
+  params.api.sizeColumnsToFit();
+}
 </script>
+
+<template>
+  <AgGridVue
+    class="ag-theme-alpine"
+    v-bind="{ ...$props, ...$attrs }"
+    :dom-layout="domLayout"
+    :modules="modules.concat(contextModule ? [contextModule] : [])"
+    :default-col-def="defaultColDef"
+    :suppress-row-hover-highlight="true"
+    :suppress-horizontal-scroll="true"
+    :suppress-cell-focus="true"
+    :grid-options="gridOptions"
+    @first-data-rendered="onFirstDataRendered"
+  >
+  </AgGridVue>
+</template>
+
 <!-- Add "scoped" attribute to limit CSS to this component only -->
-<style>
+<style lang="scss">
 @import '@ag-grid-community/styles/ag-grid.css';
 @import '@ag-grid-community/styles/ag-theme-alpine.css';
 
