@@ -1,14 +1,13 @@
+<script setup lang="ts">
+import Hook0Card from '@/components/Hook0Card.vue';
+import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
+</script>
+
 <template>
-  <hook0-card>
-    <hook0-card-header>
+  <Hook0Card>
+    <Hook0CardHeader>
       <template #header>404 Not Found</template>
       <template #subtitle>Oops! </template>
-    </hook0-card-header>
-  </hook0-card>
+    </Hook0CardHeader>
+  </Hook0Card>
 </template>
-
-<script lang="ts">
-import { Vue } from 'vue-class-component';
-
-export default class Error404 extends Vue {}
-</script>

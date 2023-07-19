@@ -1,37 +1,32 @@
+<script setup lang="ts">
+import Hook0Text from '@/components/Hook0Text.vue';
+import Hook0Card from '@/components/Hook0Card.vue';
+import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
+import Hook0CardContent from '@/components/Hook0CardContent.vue';
+import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
+import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
+</script>
+
 <template>
-  <hook0-card>
-    <hook0-card-header>
+  <Hook0Card>
+    <Hook0CardHeader>
       <template #header>Hello 👋</template>
       <template #subtitle
         >Hook0 API is complete and production ready but the UI is still a work in progress...
       </template>
-    </hook0-card-header>
-    <hook0-card-content>
-      <hook0-card-content-lines>
-        <hook0-card-content-line type="full-width">
+    </Hook0CardHeader>
+    <Hook0CardContent>
+      <Hook0CardContentLines>
+        <Hook0CardContentLine type="full-width">
           <template #content>
-            <hook0-text
+            <Hook0Text
               >Start your journey by selecting your
-              <hook0-text class="bold">organization</hook0-text>
+              <Hook0Text class="bold">organization</Hook0Text>
               on the left selector and then creating your first application.
-            </hook0-text>
+            </Hook0Text>
           </template>
-        </hook0-card-content-line>
-      </hook0-card-content-lines>
-    </hook0-card-content>
-  </hook0-card>
+        </Hook0CardContentLine>
+      </Hook0CardContentLines>
+    </Hook0CardContent>
+  </Hook0Card>
 </template>
-<script lang="ts">
-import { Vue, Options } from 'vue-class-component';
-import { routes } from '@/routes';
-import Hook0CardContent from '@/components/Hook0CardContent.vue';
-
-@Options({
-  components: { Hook0CardContent },
-})
-export default class Home extends Vue {
-  mounted() {
-    // do nothing, let the selector do its job
-  }
-}
-</script>

@@ -1,3 +1,16 @@
+<script setup lang="ts">
+import { computed } from 'vue';
+
+interface Props {
+  title?: string;
+  description?: string;
+  type?: 'alert' | 'warning' | 'success';
+}
+
+const props = defineProps<Props>();
+const type = computed(() => props.type ?? 'alert');
+</script>
+
 <template>
   <div class="hook0-alert">
     <div class="flex">
@@ -65,37 +78,6 @@
     </div>
   </div>
 </template>
-
-<script lang="ts">
-import { Options, Vue } from 'vue-class-component';
-
-@Options({
-  components: {},
-  props: {
-    title: {
-      type: String,
-      required: false,
-    },
-    description: {
-      type: String,
-      required: false,
-    },
-    type: {
-      type: String,
-      default: 'alert',
-      validator: (status: string) =>
-        status === 'warning' || status === 'alert' || status === 'success',
-    },
-  },
-})
-export default class Hook0Alert extends Vue {
-  // private data_attribute !: any;
-
-  data() {
-    return {};
-  }
-}
-</script>
 
 <style lang="scss" scoped>
 .hook0-alert {

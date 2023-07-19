@@ -1,37 +1,12 @@
-<template>
-  <div class="w-full">
-    <div class="kv-item" v-for="(item, index) in pairs" :key="index">
-      <hook0-input
-        type="text"
-        @input="emit()"
-        v-model="item.key"
-        class="col-span-4"
-        :placeholder="keyPlaceholder"
-      ></hook0-input>
-      <hook0-input
-        type="text"
-        @input="emit()"
-        v-model="item.value"
-        class="col-span-4"
-        :placeholder="valuePlaceholder"
-      ></hook0-input>
-      <hook0-button @click="remove(index)" :disabled="pairs.length === 1" class="white col-span-1">
-        <hook0-icon name="fa-minus"></hook0-icon>
-      </hook0-button>
-      <hook0-button @click="add(index)" class="white col-span-1">
-        <hook0-icon name="fa-plus"></hook0-icon>
-      </hook0-button>
-    </div>
-  </div>
-</template>
-
-<script lang="ts">
-import { Options, Vue } from 'vue-class-component';
-import { Hook0KeyValueKeyValuePair } from '@/components/Hook0KeyValue';
+<script setup lang="ts">
 import debounce from 'lodash.debounce';
-import { DebouncedFuncLeading } from 'lodash';
 import { isString } from 'fp-ts/string';
-import { defineComponent } from 'vue';
+import { ref } from 'vue';
+
+import { Hook0KeyValueKeyValuePair } from '@/components/Hook0KeyValue';
+import Hook0Input from '@/components/Hook0Input.vue';
+import Hook0Icon from '@/components/Hook0Icon.vue';
+import Hook0Button from '@/components/Hook0Button.vue';
 
 /**
  * Hook0-Key-Value can manipulate either:
@@ -105,88 +80,60 @@ function getNewInternalState(val: Hook0KeyValueKeyValuePair[] | Hook0KeyValuePla
   return { encoder, pairs };
 }
 
-export default defineComponent({
-  name: 'hook0-key-value',
-  props: {
-    /**
-     * note that this value will be mutated
-     */
-    value: {
-      type: Object,
-      required: true,
-      validator: (val: Hook0KeyValueKeyValuePair[] | Hook0KeyValuePlainObject) =>
-        MODE[RWMode.ARRAY].is(val as Hook0KeyValueKeyValuePair[]) ||
-        MODE[RWMode.OBJECT].is(val as Hook0KeyValuePlainObject),
-    },
-    keyPlaceholder: {
-      type: String,
-      required: false,
-      default: '',
-    },
-    valuePlaceholder: {
-      type: String,
-      required: false,
-      default: '',
-    },
-  },
-  data() {
-    const { encoder, pairs } = getNewInternalState(
-      this.value as Hook0KeyValueKeyValuePair[] | Hook0KeyValuePlainObject
-    );
+interface Props {
+  value: Hook0KeyValueKeyValuePair[] | Hook0KeyValuePlainObject;
+  keyPlaceholder?: string;
+  valuePlaceholder?: string;
+}
 
-    return {
-      encoder,
-      pairs,
-      emit: this._emit,
-    };
-  },
-  computed: {},
+const props = defineProps<Props>();
+const rawEmit = defineEmits(['update:modelValue']);
 
-  watch: {
-    value(newVal, oldVal) {
-      const { encoder, pairs } = getNewInternalState(
-        newVal as Hook0KeyValueKeyValuePair[] | Hook0KeyValuePlainObject
-      );
-      this.encoder = encoder;
-      this.pairs = pairs;
-    },
-  },
+const state = ref(getNewInternalState(props.value));
+const { encoder, pairs } = state.value;
 
-  mounted() {
-    this._internalState();
-  },
+function _emit() {
+  rawEmit('update:modelValue', encoder.write(pairs));
+}
+const emit = debounce(_emit);
 
-  beforeUpdate() {
-    this._internalState();
-  },
+function remove(index: number) {
+  pairs.splice(index, 1);
+  emit();
+}
 
-  methods: {
-    _internalState() {
-      this.emit = debounce(this._emit.bind(this));
-    },
-
-    _emit() {
-      this.$emit('update:modelValue', this.encoder.write(this.pairs));
-    },
-    /**
-     *
-     * @param {Number} index
-     */
-    remove(index: number) {
-      this.pairs.splice(index, 1);
-      this.emit();
-    },
-
-    /**
-     *
-     */
-    add() {
-      this.pairs.push(getDefaultItem());
-      this.emit();
-    },
-  },
-});
+function add() {
+  pairs.push(getDefaultItem());
+  emit();
+}
 </script>
+
+<template>
+  <div class="w-full">
+    <div v-for="(item, index) in pairs" :key="index" class="kv-item">
+      <Hook0Input
+        v-model="item.key"
+        type="text"
+        class="col-span-4"
+        :placeholder="keyPlaceholder"
+        @input="emit()"
+      ></Hook0Input>
+      <Hook0Input
+        v-model="item.value"
+        type="text"
+        class="col-span-4"
+        :placeholder="valuePlaceholder"
+        @input="emit()"
+      ></Hook0Input>
+      <Hook0Button :disabled="pairs.length === 1" class="white col-span-1" @click="remove(index)">
+        <Hook0Icon name="fa-minus"></Hook0Icon>
+      </Hook0Button>
+      <Hook0Button class="white col-span-1" @click="add()">
+        <Hook0Icon name="fa-plus"></Hook0Icon>
+      </Hook0Button>
+    </div>
+  </div>
+</template>
 
 <style lang="scss" scoped>
 .kv-item {

@@ -1,42 +1,21 @@
-<template>
-  <hook0-text :title="value">{{ value_humanized }}</hook0-text>
-</template>
-
-<script lang="ts">
-import { Options, Vue } from 'vue-class-component';
+<script setup lang="ts">
 import Hook0Text from './Hook0Text.vue';
-import { Codemirror } from 'vue-codemirror';
 import { formatISO9075, parseISO } from 'date-fns';
+import { computed } from 'vue';
 
-@Options({
+defineOptions({
   inheritAttrs: false,
-  components: {
-    Hook0Text,
-  },
-  props: {
-    value: {
-      type: String,
-      required: true,
-    },
-  },
-})
-export default class Hook0DateTime extends Vue {
-  private value_humanized = '';
-  private value = '';
+});
 
-  mounted() {
-    this.refresh();
-  }
-
-  updated() {
-    this.refresh();
-  }
-
-  refresh() {
-    // @ts-ignore
-    this.value_humanized = formatISO9075(parseISO(this.$props.value as string));
-  }
+interface Props {
+  value: string;
 }
+const props = defineProps<Props>();
+const valueHumanized = computed(() => formatISO9075(parseISO(props.value)));
 </script>
+
+<template>
+  <Hook0Text :title="value">{{ valueHumanized }}</Hook0Text>
+</template>
 
 <style lang="scss" scoped></style>

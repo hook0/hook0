@@ -1,18 +1,88 @@
+<script setup lang="ts">
+import { useRoute } from 'vue-router';
+import { onMounted, onUpdated, ref } from 'vue';
+
+import Hook0Text from '@/components/Hook0Text.vue';
+import { isAxiosError, Problem, UUID } from '@/http';
+import * as ApplicationService from './ApplicationService';
+import { Application } from './ApplicationService';
+import { AxiosError } from 'axios';
+import { Alert } from '@/components/Hook0Alert';
+import { routes } from '@/routes';
+import EventTypesList from '@/pages/organizations/applications/event_types/EventTypesList.vue';
+import EventsList from '@/pages/organizations/applications/events/EventsList.vue';
+import SubscriptionsList from '@/pages/organizations/applications/subscriptions/SubscriptionsList.vue';
+import LogList from '@/pages/organizations/applications/logs/LogList.vue';
+import Hook0Icon from '@/components/Hook0Icon.vue';
+import Hook0Button from '@/components/Hook0Button.vue';
+import Hook0Card from '@/components/Hook0Card.vue';
+import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
+
+const route = useRoute();
+
+const application_id = ref<UUID | null>(null);
+const application = ref({
+  name: '',
+});
+const alert = ref<Alert>({
+  visible: false,
+  type: 'alert',
+  title: '',
+  description: '',
+});
+
+function _load() {
+  if (application_id.value !== route.params.application_id) {
+    application_id.value = route.params.application_id as UUID;
+
+    ApplicationService.get(application_id.value)
+      .then((app: Application) => {
+        application.value.name = app.name;
+      })
+      .catch(displayError);
+  }
+}
+
+function displayError(err: AxiosError | unknown) {
+  console.error(err);
+  alert.value.visible = true;
+
+  if (isAxiosError(err) && err.response) {
+    const problem: Problem = err.response.data as Problem;
+    alert.value.type = problem.status >= 500 ? 'alert' : 'warning';
+    alert.value.title = problem.title;
+    alert.value.description = problem.detail;
+  } else {
+    alert.value.type = 'alert';
+    alert.value.title = 'An error occurred';
+    alert.value.description = String(err);
+  }
+}
+
+onMounted(() => {
+  _load();
+});
+
+onUpdated(() => {
+  _load();
+});
+</script>
+
 <template>
   <div>
-    <hook0-card>
-      <hook0-card-header>
+    <Hook0Card>
+      <Hook0CardHeader>
         <template #header>
-          <hook0-icon name="rocket"></hook0-icon>
+          <Hook0Icon name="rocket"></Hook0Icon>
           Application
-          <hook0-text class="bold">{{ application.name }}</hook0-text>
+          <Hook0Text class="bold">{{ application.name }}</Hook0Text>
           dashboard
         </template>
         <template #subtitle>
           here Hook0 will display metrics about webhooks & events usage
         </template>
         <template #actions>
-          <hook0-button
+          <Hook0Button
             :to="{
               name: routes.ApplicationsDetail,
               params: {
@@ -22,89 +92,13 @@
             }"
           >
             Settings
-          </hook0-button>
+          </Hook0Button>
         </template>
-      </hook0-card-header>
-    </hook0-card>
+      </Hook0CardHeader>
+    </Hook0Card>
     <EventTypesList :burst="$route.params.application_id"></EventTypesList>
     <EventsList :burst="$route.params.application_id"></EventsList>
     <SubscriptionsList :burst="$route.params.application_id"></SubscriptionsList>
     <LogList :burst="$route.params.application_id"></LogList>
   </div>
 </template>
-
-<script lang="ts">
-import { Options, Vue } from 'vue-class-component';
-import Hook0Text from '@/components/Hook0Text.vue';
-import { isAxiosError, Problem, UUID } from '@/http';
-import * as ApplicationService from './ApplicationService';
-import { Application } from './ApplicationService';
-import { RouteParamsRaw } from 'vue-router';
-import { AxiosError } from 'axios';
-import { Alert } from '@/components/Hook0Alert';
-import { routes } from '@/routes';
-import EventTypesList from '@/pages/organizations/applications/event_types/EventTypesList.vue';
-import EventsList from '@/pages/organizations/applications/events/EventsList.vue';
-import SubscriptionsList from '@/pages/organizations/applications/subscriptions/SubscriptionsList.vue';
-import LogList from '@/pages/organizations/applications/logs/LogList.vue';
-
-@Options({
-  components: { EventTypesList, Hook0Text, EventsList, SubscriptionsList, LogList },
-})
-export default class ApplicationsDashboard extends Vue {
-  application_id: UUID | undefined;
-
-  private routes = routes;
-
-  application = {
-    name: '',
-  };
-
-  mounted() {
-    this._load();
-  }
-
-  updated() {
-    this._load();
-  }
-
-  _load() {
-    if (this.application_id !== this.$route.params.application_id) {
-      // @ts-ignore
-      this.application_id = this.$route.params.application_id as UUID;
-
-      // @ts-ignore
-      ApplicationService.get(this.application_id)
-        .then((application: Application) => {
-          this.application.name = application.name;
-        })
-        .catch(this.displayError.bind(this));
-    }
-  }
-
-  alert: Alert = {
-    visible: false,
-    type: 'alert',
-    title: '',
-    description: '',
-  };
-
-  displayError(err: AxiosError | unknown) {
-    console.error(err);
-    this.alert.visible = true;
-
-    if (isAxiosError(err) && err.response) {
-      const problem: Problem = err.response.data as Problem;
-      this.alert.type = problem.status >= 500 ? 'alert' : 'warning';
-      this.alert.title = problem.title;
-      this.alert.description = problem.detail;
-    } else {
-      this.alert.type = 'alert';
-      this.alert.title = 'An error occurred';
-      this.alert.description = String(err);
-    }
-  }
-}
-</script>
-
-<style scoped></style>

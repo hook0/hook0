@@ -1,12 +1,14 @@
-import { Plugin } from 'vue';
+import { InjectionKey, Plugin } from 'vue';
 import Keycloak, { KeycloakConfig } from 'keycloak-js';
 
+export const keycloakKey = Symbol() as InjectionKey<Keycloak>;
+
 function getParams(): string | KeycloakConfig {
-  if (process.env.VUE_APP_KEYCLOAK_URL) {
+  if (import.meta.env.VITE_KEYCLOAK_URL) {
     return {
-      url: process.env.VUE_APP_KEYCLOAK_URL,
-      realm: process.env.VUE_APP_KEYCLOAK_REALM ?? '',
-      clientId: process.env.VUE_APP_KEYCLOAK_FRONT_CLIENT_ID ?? '',
+      url: import.meta.env.VITE_KEYCLOAK_URL,
+      realm: import.meta.env.VITE_KEYCLOAK_REALM ?? '',
+      clientId: import.meta.env.VITE_KEYCLOAK_FRONT_CLIENT_ID ?? '',
     };
   }
   return '/keycloak.json';
@@ -28,34 +30,26 @@ export function onTokenExpired() {
 const auth$ = keycloak.init({
   onLoad: 'login-required',
   redirectUri: window.location.href,
-  enableLogging: process.env.NODE_ENV !== 'production',
+  enableLogging: import.meta.env.NODE_ENV !== 'production',
   checkLoginIframe: false,
 });
 
 export const KeycloakPlugin: Plugin = {
   install: (app, _options) => {
-    app.config.globalProperties.$keycloak = keycloak;
+    app.provide(keycloakKey, keycloak);
   },
 };
-
-declare module '@vue/runtime-core' {
-  export interface ComponentCustomProperties {
-    $keycloak: Keycloak;
-  }
-}
 
 export interface KeycloakTokenParsedAttributes {
   email: string;
 }
 
-export default {
-  getToken(): Promise<string> {
-    return auth$.then((auth) => {
-      if (!auth) {
-        window.location.reload();
-      }
+export function getToken(): Promise<string> {
+  return auth$.then((auth) => {
+    if (!auth) {
+      window.location.reload();
+    }
 
-      return keycloak.token as string;
-    });
-  },
-};
+    return keycloak.token as string;
+  });
+}
