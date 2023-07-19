@@ -9,8 +9,6 @@ export type Organization = definitions['Organization'];
 export type OrganizationPost = definitions['OrganizationPost'];
 export type OrganizationInfo = definitions['OrganizationInfo'];
 
-type Problem = definitions['Problem'];
-
 export function create(organization: OrganizationPost): Promise<OrganizationInfo> {
   return http
     .post('/organizations', organization)

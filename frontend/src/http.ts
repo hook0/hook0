@@ -1,6 +1,6 @@
-import { Axios, AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
+import { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import axios from 'axios';
-import iam from './iam';
+import { getToken } from './iam';
 import featureFlags from './feature-flags';
 import type { components } from '@/types';
 
@@ -8,17 +8,15 @@ type definitions = components['schemas'];
 import ProblemFactory from '@/utils/problemFactory';
 import { identity } from 'ramda';
 
-require('bluebird');
-
 function getAxios() {
-  return iam.getToken().then((jwt_token) => {
+  return getToken().then((jwt_token) => {
     const client = axios.create({
-      baseURL: featureFlags.getOrElse('API_ENDPOINT', process.env.VUE_APP_API_ENDPOINT ?? ''),
+      baseURL: featureFlags.getOrElse('API_ENDPOINT', import.meta.env.VITE_API_ENDPOINT ?? ''),
       timeout: 1000,
       headers: {
         Authorization: `Bearer ${jwt_token}`,
       },
-      withCredentials: !!process.env.hasOwnProperty('FRONTEND_DEV_MODE'), // false in dev mode, true in staging/production mode
+      withCredentials: !!import.meta.env.hasOwnProperty('FRONTEND_DEV_MODE'), // false in dev mode, true in staging/production mode
     });
 
     client.interceptors.response.use(identity, function (error: AxiosError) {

@@ -1,3 +1,10 @@
+<script setup lang="ts">
+defineSlots<{
+  left(): unknown;
+  right(): unknown;
+}>();
+</script>
+
 <template>
   <li class="list-item">
     <div class="list-item-left">
@@ -8,12 +15,6 @@
     </div>
   </li>
 </template>
-
-<script lang="ts">
-import { Vue } from 'vue-class-component';
-
-export default class Hook0ListItem extends Vue {}
-</script>
 
 <style lang="scss" scoped>
 .list-item {
