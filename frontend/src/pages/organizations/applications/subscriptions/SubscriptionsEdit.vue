@@ -423,7 +423,10 @@ export default class SubscriptionsEdit extends Vue {
       label_key: this.subscription.label_key,
       is_enabled: this.subscription.is_enabled,
       event_types: EventTypeNamesFromSelectedEventTypes(this.eventTypes),
-      dedicated_workers: this.subscription.dedicated_workers,
+      dedicated_workers:
+        this.subscription.dedicated_workers.length > 0
+          ? this.subscription.dedicated_workers
+          : undefined,
       application_id: this.$route.params.application_id as string,
     }).then((_resp: any) => {
       this.cancel2();
