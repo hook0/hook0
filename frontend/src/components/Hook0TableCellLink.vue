@@ -1,52 +1,13 @@
-<template>
-  <hook0-button
-    v-bind="{
-      href:
-        params.colDef.cellRendererParams && params.colDef.cellRendererParams.href
-          ? params.colDef.cellRendererParams.href(params.data)
-          : undefined,
-      to:
-        params.colDef.cellRendererParams && params.colDef.cellRendererParams.to
-          ? params.colDef.cellRendererParams.to(params.data)
-          : undefined,
-      onClick:
-        params.colDef.cellRendererParams && params.colDef.cellRendererParams.onClick
-          ? onClick
-          : undefined,
-      class: $attrs.class,
-    }"
-    style="width: fit-content"
-  >
-    <template
-      #left
-      v-if="params.colDef.cellRendererParams && params.colDef.cellRendererParams.icon"
-    >
-      <hook0-icon
-        class="mr-1"
-        :name="
-          typeof params.colDef.cellRendererParams.icon === 'function'
-            ? params.colDef.cellRendererParams.icon(params.data)
-            : params.colDef.cellRendererParams.icon
-        "
-      ></hook0-icon>
-    </template>
-    <template #default>
-      {{
-        params.colDef.cellRendererParams && params.colDef.cellRendererParams.value
-          ? typeof params.colDef.cellRendererParams.value === 'function'
-            ? params.colDef.cellRendererParams.value(params.data)
-            : params.colDef.cellRendererParams.value
-          : params.value
-      }}
-    </template>
-  </hook0-button>
-</template>
-
-<script lang="ts">
-import { Vue, Options } from 'vue-class-component';
-import Hook0Icon from '@/components/Hook0Icon.vue';
+<script setup lang="ts">
 import { ICellRendererParams } from '@ag-grid-community/core';
 import { RouteLocation } from 'vue-router';
+
+import Hook0Icon from '@/components/Hook0Icon.vue';
+import Hook0Button from '@/components/Hook0Button.vue';
+
+defineOptions({
+  inheritAttrs: false,
+});
 
 interface ExtraParams<T> {
   /**
@@ -75,33 +36,66 @@ interface ExtraParams<T> {
   to: (row: T) => RouteLocation;
 }
 
-type Hook0TableCellLinkParameter<T> = ICellRendererParams & ExtraParams<T>;
+type Hook0TableCellDateParameter<T> = ICellRendererParams & ExtraParams<T>;
 
-@Options({
-  name: 'hook0-table-cell-link',
-  inheritAttrs: false,
-  props: {
-    params: {
-      type: Object,
-      required: true,
-    },
-  },
-  components: { Hook0Icon },
-})
-export default class Hook0TableCellLink<T> extends Vue {
-  private params!: Hook0TableCellLinkParameter<T>;
+interface Props {
+  params: Hook0TableCellDateParameter<object[]>;
+}
 
-  onClick<T>(event: Event): any {
-    event.stopImmediatePropagation();
-    event.preventDefault();
+const props = defineProps<Props>();
 
-    if (!this.params.onClick) {
-      return;
-    }
+function onClick(event: Event) {
+  event.stopImmediatePropagation();
+  event.preventDefault();
 
-    // eslint-disable-next-line
-    this.params.onClick.call(this.params.context, this.params.data);
+  if (!props.params.onClick) {
+    return;
   }
+
+  props.params.onClick(props.params.data as object[]);
 }
 </script>
-<style></style>
+
+<template>
+  <Hook0Button
+    v-bind="{
+      href:
+        params.colDef?.cellRendererParams && params.colDef.cellRendererParams.href
+          ? params.colDef.cellRendererParams.href(params.data)
+          : undefined,
+      to:
+        params.colDef?.cellRendererParams && params.colDef.cellRendererParams.to
+          ? params.colDef.cellRendererParams.to(params.data)
+          : undefined,
+      onClick:
+        params.colDef?.cellRendererParams && params.colDef.cellRendererParams.onClick
+          ? onClick
+          : undefined,
+      class: $attrs.class,
+    }"
+    style="width: fit-content"
+  >
+    <template
+      v-if="params.colDef?.cellRendererParams && params.colDef.cellRendererParams.icon"
+      #left
+    >
+      <Hook0Icon
+        class="mr-1"
+        :name="
+          typeof params.colDef.cellRendererParams.icon === 'function'
+            ? params.colDef.cellRendererParams.icon(params.data)
+            : params.colDef.cellRendererParams.icon
+        "
+      ></Hook0Icon>
+    </template>
+    <template #default>
+      {{
+        params.colDef?.cellRendererParams && params.colDef.cellRendererParams.value
+          ? typeof params.colDef.cellRendererParams.value === 'function'
+            ? params.colDef.cellRendererParams.value(params.data)
+            : params.colDef.cellRendererParams.value
+          : params.value
+      }}
+    </template>
+  </Hook0Button>
+</template>

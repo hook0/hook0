@@ -1,10 +1,60 @@
+<script setup lang="ts">
+import { computed, ref } from 'vue';
+import { directive as vClickOutsideElement } from 'vue-click-outside-element';
+
+import Hook0DropdownOptions from './Hook0DropdownOptions';
+
+interface Props {
+  justify?: 'left' | 'right';
+}
+const props = defineProps<Props>();
+const justify = computed(() => props.justify ?? 'right');
+
+const show = ref(false);
+const toggler = ref(null);
+
+defineSlots<{
+  menu(props: Hook0DropdownOptions): unknown;
+  dropdown(props: Hook0DropdownOptions): unknown;
+}>();
+
+function toggle(event: Event) {
+  event.preventDefault();
+  event.stopImmediatePropagation();
+
+  if (show.value) {
+    close();
+  } else {
+    open();
+  }
+}
+
+function open() {
+  show.value = true;
+}
+
+function close() {
+  show.value = false;
+}
+
+function onClickOutside(event: Event) {
+  if (
+    show.value &&
+    event.target !== toggler.value &&
+    (event.target as HTMLElement).closest('.hook0-toggler') === null
+  ) {
+    close();
+  }
+}
+</script>
+
 <template>
   <div :class="$attrs.class" class="hook0-dropdown">
     <div ref="toggler" class="hook0-toggler">
       <slot name="menu" :open="open" :close="close" :toggle="toggle"></slot>
     </div>
 
-    <div ref="dropdown" v-click-outside="vcoConfig">
+    <div ref="dropdown" v-click-outside-element="onClickOutside">
       <transition name="ease">
         <div
           v-if="show"
@@ -20,72 +70,6 @@
     </div>
   </div>
 </template>
-
-<script lang="ts">
-import { Options, Vue } from 'vue-class-component';
-import Hook0Icon from '@/components/Hook0Icon.vue';
-
-@Options({
-  components: { Hook0Icon },
-  props: {
-    justify: {
-      type: String,
-      default: 'right',
-      validator(val: string) {
-        return ['left', 'right'].includes(val);
-      },
-    },
-  },
-})
-export default class Hook0Dropdown extends Vue {
-  show = false;
-
-  vcoConfig!: {
-    handler: any;
-    middleware: any;
-  };
-
-  data() {
-    return {
-      vcoConfig: {
-        handler: this.onClickOutside.bind(this),
-        middleware: this.onClickOutsideCheck.bind(this),
-      },
-    };
-  }
-
-  toggle(event: Event) {
-    event.preventDefault();
-    event.stopImmediatePropagation();
-
-    if (this.show) {
-      this.close();
-    } else {
-      this.open();
-    }
-  }
-
-  open() {
-    this.show = true;
-  }
-
-  close() {
-    this.show = false;
-  }
-
-  onClickOutsideCheck(event: Event) {
-    return (
-      this.show &&
-      event.target !== this.$refs.toggler &&
-      (event.target as HTMLElement).closest('.hook0-toggler') === null
-    );
-  }
-
-  onClickOutside(_: Event) {
-    this.close();
-  }
-}
-</script>
 
 <style lang="scss" scoped>
 .hook0-dropdown {

@@ -1,14 +1,14 @@
+<script setup lang="ts">
+defineSlots<{
+  default(): unknown;
+}>();
+</script>
+
 <template>
   <div class="card">
     <slot></slot>
   </div>
 </template>
-
-<script lang="ts">
-import { Vue } from 'vue-class-component';
-
-export default class Hook0Card extends Vue {}
-</script>
 
 <style lang="scss" scoped>
 .card {
