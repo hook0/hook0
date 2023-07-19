@@ -1,13 +1,17 @@
+<script setup lang="ts">
+import Hook0Button from '@/components/Hook0Button.vue';
+</script>
+
 <template>
   <footer>
     <div class="footer-container">
       <nav class="footer-items" aria-label="Footer">
         <div class="footer-item">
-          <hook0-button href="mailto:support@hook0.com"> Contact us </hook0-button>
+          <Hook0Button href="mailto:support@hook0.com"> Contact us </Hook0Button>
           -
-          <hook0-button href="https://gitlab.com/hook0/hook0/-/issues/new">
+          <Hook0Button href="https://gitlab.com/hook0/hook0/-/issues/new">
             Report issue
-          </hook0-button>
+          </Hook0Button>
         </div>
       </nav>
 
@@ -42,12 +46,6 @@
     </div>
   </footer>
 </template>
-
-<script lang="ts">
-import { Vue } from 'vue-class-component';
-
-export default class Hook0Footer extends Vue {}
-</script>
 
 <style lang="scss" scoped>
 .footer-container {

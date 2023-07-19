@@ -1,155 +1,152 @@
+<script setup lang="ts">
+import { onMounted, onUpdated, ref } from 'vue';
+import { useRoute } from 'vue-router';
+
+import Hook0Button from '@/components/Hook0Button.vue';
+import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
+import Hook0CardContent from '@/components/Hook0CardContent.vue';
+import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
+import Hook0Card from '@/components/Hook0Card.vue';
+import { UUID } from '@/http';
+import Hook0Text from '@/components/Hook0Text.vue';
+import * as EventsService from './EventsService';
+import { EventWithPayload } from './EventsService';
+import Hook0Code from '@/components/Hook0Code.vue';
+import Hook0DateTime from '@/components/Hook0DateTime.vue';
+import Hook0Loader from '@/components/Hook0Loader.vue';
+import Hook0Error from '@/components/Hook0Error.vue';
+
+const route = useRoute();
+
+const event$ = ref<Promise<Array<EventWithPayload>>>();
+const event_id = ref<null | UUID>(null);
+const application_id = ref<null | UUID>(null);
+
+function _load() {
+  if (
+    event_id.value !== route.params.event_id ||
+    application_id.value !== route.params.application_id
+  ) {
+    event_id.value = route.params.event_id as UUID;
+    application_id.value = route.params.application_id as UUID;
+
+    event$.value = EventsService.get(event_id.value, application_id.value).then();
+  }
+}
+
+onMounted(() => {
+  _load();
+});
+
+onUpdated(() => {
+  _load();
+});
+</script>
+
 <template>
   <Promised :promise="event$">
     <!-- Use the "pending" slot to display a loading message -->
     <template #pending>
-      <hook0-loader></hook0-loader>
+      <Hook0Loader></Hook0Loader>
     </template>
 
     <template #rejected="error">
-      <hook0-error :error="error"></hook0-error>
+      <Hook0Error :error="error"></Hook0Error>
     </template>
 
     <template #default="event">
       <div>
-        <hook0-card>
-          <hook0-card-header>
+        <Hook0Card>
+          <Hook0CardHeader>
             <template #header>
-              Event of type <hook0-text class="code">{{ event.event_type_name }}</hook0-text>
+              Event of type <Hook0Text class="code">{{ event.event_type_name }}</Hook0Text>
             </template>
             <template #subtitle>
-              <hook0-text class="block">
-                <hook0-text class="label pr-1">Occurred At:</hook0-text>
-                <hook0-date-time :value="event.occurred_at"></hook0-date-time>
-              </hook0-text>
+              <Hook0Text class="block">
+                <Hook0Text class="label pr-1">Occurred At:</Hook0Text>
+                <Hook0DateTime :value="event.occurred_at"></Hook0DateTime>
+              </Hook0Text>
 
-              <hook0-text class="block">
-                <hook0-text class="label pr-1">Received At:</hook0-text>
-                <hook0-date-time :value="event.received_at"></hook0-date-time>
-              </hook0-text>
+              <Hook0Text class="block">
+                <Hook0Text class="label pr-1">Received At:</Hook0Text>
+                <Hook0DateTime :value="event.received_at"></Hook0DateTime>
+              </Hook0Text>
 
-              <hook0-text class="block">
-                <hook0-text class="label pr-1">Source IP:</hook0-text>
-                <hook0-text class="code">{{ event.ip }}</hook0-text>
-              </hook0-text>
+              <Hook0Text class="block">
+                <Hook0Text class="label pr-1">Source IP:</Hook0Text>
+                <Hook0Text class="code">{{ event.ip }}</Hook0Text>
+              </Hook0Text>
             </template>
-          </hook0-card-header>
-        </hook0-card>
+          </Hook0CardHeader>
+        </Hook0Card>
 
-        <hook0-card>
-          <hook0-card-header>
+        <Hook0Card>
+          <Hook0CardHeader>
             <template #header> Metadata </template>
             <template #subtitle>
-              <hook0-button href="https://documentation.hook0.com/docs/metadata" class="label pr-1"
-                >Learn more…</hook0-button
+              <Hook0Button href="https://documentation.hook0.com/docs/metadata" class="label pr-1"
+                >Learn more…</Hook0Button
               >
             </template>
-          </hook0-card-header>
-          <hook0-card-content>
+          </Hook0CardHeader>
+          <Hook0CardContent>
             <template v-if="event.metadata !== null && Object.keys(event.metadata).length > 0">
-              <hook0-card-content-line :key="key" v-for="(value, key) in event.metadata">
+              <Hook0CardContentLine v-for="(value, key) in event.metadata" :key="key">
                 <template #label>{{ key }}</template>
                 <template #content>
-                  <hook0-text class="code">{{ value }}</hook0-text>
+                  <Hook0Text class="code">{{ value }}</Hook0Text>
                 </template>
-              </hook0-card-content-line>
+              </Hook0CardContentLine>
             </template>
             <template v-else>
-              <hook0-card-content-line>
+              <Hook0CardContentLine>
                 <template #label>No metadata</template>
-              </hook0-card-content-line>
+              </Hook0CardContentLine>
             </template>
-          </hook0-card-content>
-        </hook0-card>
-        <hook0-card>
-          <hook0-card-header>
+          </Hook0CardContent>
+        </Hook0Card>
+        <Hook0Card>
+          <Hook0CardHeader>
             <template #header>Labels</template>
             <template #subtitle> </template>
-          </hook0-card-header>
-          <hook0-card-content>
-            <hook0-card-content-line :key="key" v-for="(value, key) in event.labels">
+          </Hook0CardHeader>
+          <Hook0CardContent>
+            <Hook0CardContentLine v-for="(value, key) in event.labels" :key="key">
               <template #label>{{ key }}</template>
               <template #content>
-                <hook0-text class="code">{{ value }}</hook0-text>
+                <Hook0Text class="code">{{ value }}</Hook0Text>
               </template>
-            </hook0-card-content-line>
-          </hook0-card-content>
-        </hook0-card>
+            </Hook0CardContentLine>
+          </Hook0CardContent>
+        </Hook0Card>
 
-        <hook0-card>
-          <hook0-card-header>
+        <Hook0Card>
+          <Hook0CardHeader>
             <template #header> Payload </template>
             <template #subtitle> </template>
-          </hook0-card-header>
-          <hook0-card-content>
-            <hook0-card-content-line>
+          </Hook0CardHeader>
+          <Hook0CardContent>
+            <Hook0CardContentLine>
               <template #label> Payload Content Type </template>
               <template #content>
-                <hook0-text class="code">{{ event.payload_content_type }}</hook0-text>
+                <Hook0Text class="code">{{ event.payload_content_type }}</Hook0Text>
               </template>
-            </hook0-card-content-line>
-            <hook0-card-content-line>
+            </Hook0CardContentLine>
+            <Hook0CardContentLine>
               <template #label> Payload (decoded) </template>
               <template #content>
-                <hook0-code :code="event.payload_decoded" />
+                <Hook0Code :code="event.payload_decoded" />
               </template>
-            </hook0-card-content-line>
-            <hook0-card-content-line>
+            </Hook0CardContentLine>
+            <Hook0CardContentLine>
               <template #label> Payload (raw) </template>
               <template #content>
-                <hook0-code :code="event.payload" />
+                <Hook0Code :code="event.payload" />
               </template>
-            </hook0-card-content-line>
-          </hook0-card-content>
-        </hook0-card>
+            </Hook0CardContentLine>
+          </Hook0CardContent>
+        </Hook0Card>
       </div>
     </template>
   </Promised>
 </template>
-
-<script lang="ts">
-import { AxiosError } from 'axios';
-import * as EventsService from './EventsService';
-import { EventWithPayload } from './EventsService';
-import { Options, Vue } from 'vue-class-component';
-import { routes } from '@/routes';
-import { isAxiosError, Problem, UUID } from '@/http';
-import Hook0Text from '@/components/Hook0Text.vue';
-import Hook0Code from '@/components/Hook0Code.vue';
-import Hook0DateTime from '@/components/Hook0DateTime.vue';
-
-@Options({
-  components: { Hook0Text, Hook0Code, Hook0DateTime },
-})
-export default class EventsDetail extends Vue {
-  event_id: UUID | null = null;
-  application_id: UUID | null = null;
-
-  routes = routes;
-
-  event$: Promise<EventWithPayload> = new Promise(() => {
-    //
-  });
-
-  mounted() {
-    this._load();
-  }
-
-  updated() {
-    this._load();
-  }
-
-  _load() {
-    if (
-      this.event_id !== this.$route.params.event_id ||
-      this.application_id !== this.$route.params.application_id
-    ) {
-      this.event_id = this.$route.params.event_id as UUID;
-      this.application_id = this.$route.params.application_id as UUID;
-
-      this.event$ = EventsService.get(this.event_id, this.application_id).then();
-    }
-  }
-}
-</script>
-
-<style scoped></style>
