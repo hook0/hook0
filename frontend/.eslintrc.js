@@ -3,6 +3,7 @@ module.exports = {
 
   env: {
     node: true,
+    es2022: true,
   },
 
   parser: 'vue-eslint-parser',
@@ -22,12 +23,11 @@ module.exports = {
     'no-console': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
     'no-debugger': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
     'comma-style': ['error', 'last'],
-    'vue/no-multiple-template-root': 'off',
     '@typescript-eslint/ban-ts-comment': 'off',
     'vue/multi-word-component-names': [
       'error',
       {
-        ignores: ['Promised', 'Error404'],
+        ignores: ['Promised', 'Error404', 'Root', 'Home'],
       },
     ],
     'no-unused-vars': 'off', // Disabled because overseeded by the @typescript-eslint/no-unused-vars rule
@@ -38,6 +38,8 @@ module.exports = {
         argsIgnorePattern: '^[_].*',
       },
     ],
+    'vue/component-api-style': ['error', ['script-setup']],
+    'vue/component-name-in-template-casing': ['error', 'PascalCase'],
   },
 
   settings: {
@@ -107,6 +109,7 @@ module.exports = {
 
   extends: [
     'plugin:vue/vue3-essential',
+    'plugin:vue/vue3-recommended',
     'plugin:@typescript-eslint/recommended',
     'plugin:@typescript-eslint/recommended-requiring-type-checking',
     'plugin:prettier-vue/recommended',
