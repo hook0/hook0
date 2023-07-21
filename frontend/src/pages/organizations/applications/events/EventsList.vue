@@ -92,7 +92,7 @@ const columnDefs: ColDef[] = [
     sortable: true,
     resizable: true,
     suppressSizeToFit: true,
-    width: 110,
+    width: 160,
     cellRenderer: Hook0TableCellCode,
     headerName: 'IP',
   },
