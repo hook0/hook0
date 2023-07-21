@@ -61,7 +61,7 @@ const columnDefs: ColDef[] = [
     suppressMovable: true,
     headerName: 'Options',
     suppressSizeToFit: true,
-    width: 100,
+    width: 105,
     cellRenderer: Hook0TableCellLink,
     cellRendererParams: {
       value: 'Delete',
