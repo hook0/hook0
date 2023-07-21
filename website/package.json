@@ -8,6 +8,7 @@
     "preinstall": "rm -rf ./src/mediakit; cp -R -v $(pwd)/../mediakit ./src/mediakit",
     "serve": "npx nodemon -w ./data -w . -i dist/ -i src/ --ext .js,.json --exec npm run serve:basic",
     "serve:basic": "parcel serve src/*.ejs",
+    "dev": "parcel build --no-optimize src/*.ejs",
     "build": "parcel build src/*.ejs --public-url=https://www.hook0.com"
   },
   "contributors": [
