@@ -192,4 +192,13 @@ locals.features = [
   },
 ];
 
+locals.subscriptionLinks = {
+  cloud: {
+    pro: 'https://buy.stripe.com/fZe02ucoR007b7y8ww',
+  },
+  onprem: {
+    pro: 'https://buy.stripe.com/14k02u3SlfZ5b7y8wy'
+  }
+};
+
 module.exports = locals;
