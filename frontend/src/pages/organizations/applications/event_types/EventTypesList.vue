@@ -42,7 +42,7 @@ const columnDefs: ColDef[] = [
   {
     suppressMovable: true,
     suppressSizeToFit: true,
-    width: 100,
+    width: 105,
     headerName: 'Options',
     cellRenderer: Hook0TableCellLink,
     cellRendererParams: {
