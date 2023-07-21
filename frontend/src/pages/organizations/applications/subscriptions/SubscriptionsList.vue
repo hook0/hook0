@@ -126,7 +126,7 @@ const columnDefs: ColDef[] = [
     headerName: 'Options',
     cellRenderer: Hook0TableCellLink,
     suppressSizeToFit: true,
-    maxWidth: 100,
+    maxWidth: 105,
     cellRendererParams: {
       value: 'Delete',
       icon: 'trash',
