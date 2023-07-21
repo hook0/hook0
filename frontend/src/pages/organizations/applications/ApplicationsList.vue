@@ -54,6 +54,7 @@ const columnDefs: ColDef[] = [
     headerName: 'Id',
   },
   {
+    width: 105,
     suppressMovable: true,
     headerName: 'Options',
     cellRenderer: Hook0TableCellLink,
