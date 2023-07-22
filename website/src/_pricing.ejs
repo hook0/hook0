@@ -6,11 +6,16 @@
 
     const QUERYSTRING_KEY = 'pricing.destination';
 
+    function getDestination(){
+        return new URL(window.location).searchParams.get(QUERYSTRING_KEY);
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         const container = document.querySelector('.pricing');
 
         function _display(newModel) {
-            container.className = container.className.replace(/deploy\-([^ ]+)/, `deploy-${newModel}`);
+            container.dataset.destination = newModel;
+
             const url = new URL(window.location);
             url.searchParams.set(QUERYSTRING_KEY, newModel);
             history.pushState({}, null, url);
@@ -20,22 +25,21 @@
             link.addEventListener('click', function (e) {
                 e.preventDefault();
                 e.stopImmediatePropagation();
-                _display(container.className.match(/deploy\-(.+)/)[1] === destination.CLOUD ? destination.ONPREMISE : destination.CLOUD);
+                _display(getDestination() === destination.CLOUD ? destination.ONPREMISE : destination.CLOUD);
             });
         });
 
-        const url = new URL(window.location);
-        _display(url.searchParams.get(QUERYSTRING_KEY) || destination.CLOUD);
+        _display(getDestination() || destination.CLOUD);
     });
 
 </script>
 <style>
-    .deploy-cloud .pricing-switcher .deploy-cloud h3,
-    .deploy-cloud .pricing-switcher .deploy-cloud h3 svg,
-    .deploy-cloud .pricing-switcher .deploy-cloud p,
-    .deploy-onpremise .pricing-switcher .deploy-onpremise h3,
-    .deploy-onpremise .pricing-switcher .deploy-onpremise h3 svg,
-    .deploy-onpremise .pricing-switcher .deploy-onpremise p {
+    .pricing[data-destination="cloud"] .pricing-switcher .pricing[data-destination="cloud"] h3,
+    .pricing[data-destination="cloud"] .pricing-switcher .pricing[data-destination="cloud"] h3 svg,
+    .pricing[data-destination="cloud"] .pricing-switcher .pricing[data-destination="cloud"] p,
+    .pricing[data-destination="onpremise"] .pricing-switcher .pricing[data-destination="onpremise"] h3,
+    .pricing[data-destination="onpremise"] .pricing-switcher .pricing[data-destination="onpremise"] h3 svg,
+    .pricing[data-destination="onpremise"] .pricing-switcher .pricing[data-destination="onpremise"] p {
         color: #509ee3;
         fill: #509ee3;
     }
@@ -145,11 +149,11 @@
         z-index: 2;
     }
 
-    .deploy-cloud .pricing-switcher div::after {
+    .pricing[data-destination="cloud"] .pricing-switcher div::after {
         transform: translateX(-24px);
     }
 
-    .deploy-onpremise .pricing-switcher div::after {
+    .pricing[data-destination="onpremise"] .pricing-switcher div::after {
         transform: translateX(-4px);
     }
 
@@ -157,8 +161,8 @@
         display: none;
     }
 
-    .pricing.deploy-cloud .pricing--cloud,
-    .pricing.deploy-onpremise .pricing--onpremise {
+    .pricing[data-destination="cloud"] .pricing--cloud,
+    .pricing[data-destination="onpremise"] .pricing--onpremise {
         display: block;
     }
 
