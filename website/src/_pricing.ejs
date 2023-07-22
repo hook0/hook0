@@ -34,17 +34,17 @@
 
 </script>
 <style>
-    .pricing[data-destination="cloud"] .pricing-switcher [data-destination="cloud"] h3,
-    .pricing[data-destination="cloud"] .pricing-switcher [data-destination="cloud"] h3 svg,
-    .pricing[data-destination="cloud"] .pricing-switcher [data-destination="cloud"] p,
-    .pricing[data-destination="onpremise"] .pricing-switcher [data-destination="onpremise"] h3,
-    .pricing[data-destination="onpremise"] .pricing-switcher [data-destination="onpremise"] h3 svg,
-    .pricing[data-destination="onpremise"] .pricing-switcher [data-destination="onpremise"] p {
+    .pricing[data-destination="cloud"] .pricing-switcher #cloud h3,
+    .pricing[data-destination="cloud"] .pricing-switcher #cloud h3 svg,
+    .pricing[data-destination="cloud"] .pricing-switcher #cloud p,
+    .pricing[data-destination="onpremise"] .pricing-switcher #onpremise h3,
+    .pricing[data-destination="onpremise"] .pricing-switcher #onpremise h3 svg,
+    .pricing[data-destination="onpremise"] .pricing-switcher #onpremise p {
         color: #509ee3;
         fill: #509ee3;
     }
 
-    .pricing-switcher > p {
+    .pricing-switcher div > p {
         color: #4c5773;
         font-size: 18px;
         font-weight: bold;
@@ -91,7 +91,7 @@
         margin: 0 8px;
         position: relative;
         top: 3px;
-        width: 20px;
+        width: 30px;
     }
 
     .pricing-switcher a p {
@@ -177,7 +177,7 @@
 
         <div class="pricing-switcher">
             <div>
-                <a id="cloud" href="#cloud" class="deploy-cloud" data-destination="cloud">
+                <a id="cloud" href="#cloud" data-destination="cloud">
                     <h3>Cloud
                         <svg width="28" height="20" viewBox="0 0 28 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path fill-rule="evenodd" clip-rule="evenodd"
@@ -186,7 +186,7 @@
                     </h3>
                     <p>Hook0 as a service</p>
                 </a>
-                <a id="onpremise" href="#onpremise" class="deploy-onpremise" data-destination="onpremise">
+                <a id="onpremise" href="#onpremise" data-destination="onpremise">
                     <h3>On-Prem
                         <svg width="26" height="22" viewBox="0 0 26 22" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path fill-rule="evenodd" clip-rule="evenodd"
