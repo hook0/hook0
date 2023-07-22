@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   function display(newModel) {
-    container.className = container.className.replace(/deploy\-(.+)/, `deploy-${newModel}`);
+    container.className = container.className.replace(/deploy\-([^ ]+)/, `deploy-${newModel}`);
     const url = new URL(window.location);
     url.searchParams.set(QUERYSTRING_KEY, newModel);
     history.pushState({}, null, url);
