@@ -34,7 +34,7 @@ Hook.com (Cloud) allows you to create free Hook0 projects in 90 seconds.
 # 🤔 Community Help
 The [Hook0 Documentation](https://documentation.hook0.com/) is a great place to start, or explore these other channels:
 
-- [Discord](https://discord.gg/VB68XsCPQ6) (Live Discussions)
+- [Discord](https://www.hook0.com/community) (Live Discussions)
 - [Gitlab Issues](https://gitlab.com/hook0/hook0/-/issues) (Report Bugs, Questions, Feature Requests)
 - [Twitter](https://twitter.com/hook0_) (Latest News)
 - [Website](https://www.hook0.com/) (Login, sign up)
