@@ -19,8 +19,8 @@ Hook0 is a real-time API and App dashboard for managing webhooks.
 
 [Learn more about Hook0](https://www.hook0.com/)
 
-# 🚀 Hook.com (Cloud)
-Hook.com (Cloud) allows you to create free Hook0 projects in 90 seconds.
+# 🚀 Hook0.com (Cloud)
+Hook0.com (Cloud) allows you to create free Hook0 projects in 90 seconds.
 
 - Free Community Cloud tier available (no credit card required)
 - No product limitations or service usage quotas (unlimited users and applications, API requests, etc)
