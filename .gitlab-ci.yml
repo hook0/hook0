@@ -1,36 +1,44 @@
+# You can override the included template(s) by including variable overrides
+# SAST customization: https://docs.gitlab.com/ee/user/application_security/sast/#customizing-the-sast-settings
+# Secret Detection customization: https://docs.gitlab.com/ee/user/application_security/secret_detection/#customizing-settings
+# Dependency Scanning customization: https://docs.gitlab.com/ee/user/application_security/dependency_scanning/#customizing-the-dependency-scanning-settings
+# Container Scanning customization: https://docs.gitlab.com/ee/user/application_security/container_scanning/#customizing-the-container-scanning-settings
+# Note that environment variables can be set in several places
+# See https://docs.gitlab.com/ee/ci/variables/#cicd-variable-precedence
+
+# container_scanning:
+#   variables:
+#     DOCKER_IMAGE: ...
+#     DOCKER_USER: ...
+#     DOCKER_PASSWORD: ...
 variables:
-  PG_VERSION: "14"
-  RUST_VERSION: "1.71"
-  NODE_VERSION: "18"
+  PG_VERSION: '14'
+  RUST_VERSION: '1.71'
+  NODE_VERSION: '18'
   POSTGRES_DB: hook0-ci
   POSTGRES_USER: runner
-  POSTGRES_PASSWORD: ""
+  POSTGRES_PASSWORD: ''
   POSTGRES_HOST_AUTH_METHOD: trust
-
-
-
 stages:
-  - build
-  - test
-  - release
-  - documentation
-
+- build
+- test
+- release
+- documentation
 include:
-  - template: SAST.gitlab-ci.yml
-  - local: 'api/.gitlab-ci.yml'
-  - local: 'clients/rust/.gitlab-ci.yml'
-  - local: 'frontend/.gitlab-ci.yml'
-  - local: 'output-worker/.gitlab-ci.yml'
-  - local: 'sentry-integration/.gitlab-ci.yml'
-  - local: 'website/.gitlab-ci.yml'
-  - local: 'keycloak-theme/.gitlab-ci.yml'
-
-
+- template: SAST.gitlab-ci.yml
+- local: api/.gitlab-ci.yml
+- local: clients/rust/.gitlab-ci.yml
+- local: frontend/.gitlab-ci.yml
+- local: output-worker/.gitlab-ci.yml
+- local: sentry-integration/.gitlab-ci.yml
+- local: website/.gitlab-ci.yml
+- local: keycloak-theme/.gitlab-ci.yml
+- template: Jobs/Container-Scanning.gitlab-ci.yml
 osv_dependency_scan:
   services:
-    - docker:dind
+  - docker:dind
   image: docker:dind
   stage: test
   allow_failure: true
   script:
-    - docker run -v $(pwd):/app -i ghcr.io/google/osv-scanner:v1.3.6 --recursive /app
+  - docker run -v $(pwd):/app -i ghcr.io/google/osv-scanner:v1.3.6 --recursive /app
