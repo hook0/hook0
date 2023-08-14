@@ -70,7 +70,6 @@ const columnDefs: ColDef[] = [
         if (confirm(`Are you sure to delete "${row.name as string}" API Key?`)) {
           ApplicationSecretService.remove(application_id.value as string, row.token)
             .then(() => {
-              debugger;
               // @TODO notify user of success
               _forceLoad();
             })
