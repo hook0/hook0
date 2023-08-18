@@ -54,4 +54,9 @@ do
    #convert -negate "${OUTPUT_DIR}/${i}x${i}-white.png" "${OUTPUT_DIR}/${i}x${i}-black.png"
 done
 
+for i in 256 312 400 500 512 630 720 820 1024 1080 1500 1920 2048 4096
+do
+  /Applications/Inkscape.app/Contents/MacOS/inkscape --export-type png --export-filename "${OUTPUT_DIR}/${i}x${i}-banner.png" -w $i logo-banner.png
+done
+
 convert ${OUTPUT_DIR}/16x16.png ${OUTPUT_DIR}/32x32.png ${OUTPUT_DIR}/48x48.png ${OUTPUT_DIR}/favicon.ico
