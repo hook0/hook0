@@ -5,9 +5,9 @@ set -euo pipefail
 npm install
 
 # copy mediakit
-cp -v ../mediakit/logo/512x512.png ./src/main/resources/theme/hook0-redesign/email/img/logo.png
-cp -v ../mediakit/logo/512x512.png ./src/main/resources/theme/hook0-redesign/login/resources/img/logo.png
-cp -v ../mediakit/logo/favicon.ico ./src/main/resources/theme/hook0-redesign/login/resources/img/
+cp -v ../mediakit/logo/512x512-white.png ./src/main/resources/theme/hook0-redesign/email/img/logo.png
+cp -v ../mediakit/logo/favicon.ico  ./src/main/resources/theme/hook0-redesign/login/resources/img/favicon.ico
+cp -v ../mediakit/logo/512x512-banner-transparent.png ./src/main/resources/theme/hook0-redesign/login/resources/img/logo.png
 
 # compile theme
 npm run build
