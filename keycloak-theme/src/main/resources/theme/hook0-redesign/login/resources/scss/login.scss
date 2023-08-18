@@ -21,7 +21,7 @@ body, .login-pf body, .login-pf {
 
 #kc-header-wrapper {
   background-image: url(../img/logo.png);
-  background-size: 16rem;
+  background-size: contain;
   @apply h-32 w-full bg-no-repeat bg-center text-transparent;
 }
 
