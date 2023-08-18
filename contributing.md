@@ -13,7 +13,7 @@ our way of saying: **Thank you!**
 
 ## Code of Conduct
 
-**The Hook0 [Code of Conduct](code_of_conduct.md) is one of the ways
+**The Hook0 [Code of Conduct](CODE_OF_CONDUCT.md) is one of the ways
 we put our values into practice. We expect all of our staff, contractors and contributors to know and follow this
 code.**
 
@@ -35,7 +35,7 @@ Examples of behavior that contributes to creating a positive environment include
 - Showing empathy towards other community members
 
 **Before continuing, please take a moment to read our full
-[Code of Conduct](code_of_conduct.md).**
+[Code of Conduct](CODE_OF_CONDUCT.md).**
 
 ## Ways to Contribute
 
