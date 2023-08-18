@@ -1,4 +1,41 @@
-# Hook0 — Webhook as a Service
+<!-- PROJECT LOGO -->
+<p align="center">
+  <a href="https://github.com/hook0/hook0">
+   <img src="./mediakit/logo/1920x1920-banner.png" alt="Hook0 Logo banner">
+  </a>
+
+<h3 align="center">Hook0</h3>
+
+  <p align="center">
+    The open-source implementation of a webhooks server and UI.
+    <br />
+    <a href="https://www.hook0.com"><strong>Learn more »</strong></a>
+    <br />
+    <br />
+    <a href="https://www.hook0.com/community">Discord</a>
+    ·
+    <a href="https://www.hook0.com">Website</a>
+    ·
+    <a href="https://github.com/hook0/hook0/issues">Issues</a>
+    ·
+    <a href="https://gitlab.com/hook0/hook0/-/boards">Roadmap</a>
+  </p>
+</p>
+
+<p align="center">
+   <a href="https://www.hook0.com/community"><img src="https://img.shields.io/badge/Discord-hook0.com%2Fcommunity-%234A154B" alt="Join Hook0 Discord"></a>
+   <!--<a href="https://producthunt.com/posts/hook0"><img src="https://img.shields.io/badge/Product%20Hunt-%231%20Product%20of%20the%20Month-%23DA552E" alt="Product Hunt"></a>-->
+   <a href="https://status.hook0.com/"><img height="20px" src="https://uptime.betterstack.com/status-badges/v1/monitor/es5i.svg" alt="Uptime"></a>
+   <a href="https://github.com/hook0/hook0/stargazers"><img src="https://img.shields.io/github/stars/hook0/hook0" alt="Github Stars"></a>
+   <!--<a href="https://news.ycombinator.com/item?id="><img src="https://img.shields.io/badge/Hacker%20News-%231-%23FF6600" alt="Hacker News"></a>-->
+   <a href="https://github.com/hook0/hook0/blob/main/LICENSE.txt"><img src="https://img.shields.io/badge/license-SSPL-purple" alt="License"></a>
+   <a href="https://github.com/hook0/hook0/pulse"><img src="https://img.shields.io/github/commit-activity/m/hook0/hook0" alt="Commits-per-month"></a>
+   <a href="https://www.hook0.com/?pricing.destination=cloud#pricing"><img src="https://img.shields.io/badge/Pricing-Free-brightgreen" alt="Pricing"></a>
+   <!--<a href="https://hub.docker.com/r/hook0/hook0"><img src="https://img.shields.io/docker/pulls/hook0/hook0"></a>-->
+   <a href="https://gitlab.com/hook0/hook0/-/issues/?sort=milestone_due_desc&state=opened&label_name%5B%5D=Community%3A%3Aaccepting%20merge%20requests&first_page_size=20"><img src="https://img.shields.io/badge/Help%20Wanted-Contribute-blue"></a>
+   <a href="https://www.hook0.com/community"><img src="https://img.shields.io/badge/translations-contribute-brightgreen" /></a>
+   <a href="https://contributor-covenant.org/version/1/4/code-of-conduct/"><img src="https://img.shields.io/badge/Contributor%20Covenant-1.4-purple" /></a>
+</p>
 
 Welcome to Hook0! Sign up to [hook0.com](https://www.hook0.com/) and start opening your SaaS to the web!
 
