@@ -43,13 +43,15 @@
 # Profile photo: 200 x 200 px
 # Video length: 1080 x 1920 px
 
+OUTPUT_DIR="../logo"
+rm -rf -v $OUTPUT_DIR
+mkdir -p $OUTPUT_DIR
 for i in 16 32 48 64 110 170 128 256 312 400 500 512 630 720 820 1024 1080 1500 1920 2048 4096
 do
-   /Applications/Inkscape.app/Contents/MacOS/inkscape --export-type png --export-filename "${i}x${i}.png" -w $i raw.svg
-   convert -flatten "${i}x${i}.png" "${i}x${i}-white.png"
-   convert -negate "${i}x${i}-white.png" "${i}x${i}-black.png"
+   /Applications/Inkscape.app/Contents/MacOS/inkscape --export-type png --export-filename "${OUTPUT_DIR}/${i}x${i}.png" -w $i raw.svg
+   /Applications/Inkscape.app/Contents/MacOS/inkscape --export-type png --export-filename "${OUTPUT_DIR}/${i}x${i}-gray.png" -w $i raw-gray.svg
+   convert -flatten "${OUTPUT_DIR}/${i}x${i}.png" "${OUTPUT_DIR}/${i}x${i}-white.png"
+   #convert -negate "${OUTPUT_DIR}/${i}x${i}-white.png" "${OUTPUT_DIR}/${i}x${i}-black.png"
 done
 
-convert 16x16.png 32x32.png 48x48.png favicon.ico
-
-cp -v favicon.ico ../../static/
+convert ${OUTPUT_DIR}/16x16.png ${OUTPUT_DIR}/32x32.png ${OUTPUT_DIR}/48x48.png ${OUTPUT_DIR}/favicon.ico
