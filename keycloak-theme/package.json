@@ -8,7 +8,7 @@
   ],
   "description": "Hook0 Theme for Keycloak",
   "scripts": {
-    "preinstall": "cp -v ../mediakit/logo/512x512-white.png ./src/main/resources/theme/hook0-redesign/email/img/logo.png && cp -v ../mediakit/logo/512x512-white.png ./src/main/resources/theme/hook0-redesign/login/resources/img/logo.png && cp -v ../mediakit/logo/favicon.ico  ./src/main/resources/theme/hook0-redesign/login/resources/img/favicon.ico",
+    "preinstall": "echo 'check build.sh'",
     "build": "parcel build --dist-dir=./src/main/resources/theme/hook0-redesign/login/resources/dist/ src/main/resources/theme/hook0-redesign/login/resources/scss/*.scss"
   },
   "author": "Francois-Guillaume Ribreau <npm@fgribreau.com> (https://fgribreau.com/)",
