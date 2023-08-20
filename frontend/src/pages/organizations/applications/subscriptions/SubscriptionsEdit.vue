@@ -100,10 +100,10 @@ const subscription = ref({
 });
 const eventTypes = ref<SelectableEventType[]>([]);
 
-const httpTarget = {
+const httpTarget = ref({
   METHODS: 'GET,PATCH,POST,PUT,DELETE,OPTIONS,HEAD'.split(',').map(toOption),
   headers: [] as Hook0KeyValueKeyValuePair[], // K/V
-};
+});
 const alert = ref<Alert>({
   visible: false,
   type: 'alert',
@@ -144,7 +144,9 @@ function _load() {
 
           // currently PaperClip does not handle our "enum Target" on Rust-side and yield a string
           subscription.value.target = sub.target as unknown as Target;
-          httpTarget.headers = fromMap((subscription.value.target as unknown as Target).headers);
+          httpTarget.value.headers = fromMap(
+            (subscription.value.target as unknown as Target).headers
+          );
         })
       : Promise.resolve()
     )

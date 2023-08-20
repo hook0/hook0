@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import debounce from 'lodash.debounce';
 import { isString } from 'fp-ts/string';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 
 import { Hook0KeyValueKeyValuePair } from '@/components/Hook0KeyValue';
 import Hook0Input from '@/components/Hook0Input.vue';
@@ -76,7 +76,6 @@ function getNewInternalState(val: Hook0KeyValueKeyValuePair[] | Hook0KeyValuePla
 
   //  always start with at least one element
   const pairs = encoder.init(val as Hook0KeyValueKeyValuePair[] & Hook0KeyValuePlainObject);
-
   return { encoder, pairs };
 }
 
@@ -90,27 +89,37 @@ const props = defineProps<Props>();
 const rawEmit = defineEmits(['update:modelValue']);
 
 const state = ref(getNewInternalState(props.value));
-const { encoder, pairs } = state.value;
+
+watch(
+  () => props.value,
+  (_newVal, _oldVal) => {
+    const newState = getNewInternalState(props.value);
+    state.value = newState;
+  }
+);
 
 function _emit() {
-  rawEmit('update:modelValue', encoder.write(pairs));
+  rawEmit(
+    'update:modelValue',
+    state.value.encoder.write(state.value.pairs.filter(({ key }) => key.length > 0))
+  );
 }
 const emit = debounce(_emit);
 
 function remove(index: number) {
-  pairs.splice(index, 1);
+  state.value.pairs.splice(index, 1);
   emit();
 }
 
 function add() {
-  pairs.push(getDefaultItem());
+  state.value.pairs.push(getDefaultItem());
   emit();
 }
 </script>
 
 <template>
   <div class="w-full">
-    <div v-for="(item, index) in pairs" :key="index" class="kv-item">
+    <div v-for="(item, index) in state.pairs" :key="index" class="kv-item">
       <Hook0Input
         v-model="item.key"
         type="text"
@@ -125,7 +134,11 @@ function add() {
         :placeholder="valuePlaceholder"
         @input="emit()"
       ></Hook0Input>
-      <Hook0Button :disabled="pairs.length === 1" class="white col-span-1" @click="remove(index)">
+      <Hook0Button
+        :disabled="state.pairs.length === 1"
+        class="white col-span-1"
+        @click="remove(index)"
+      >
         <Hook0Icon name="fa-minus"></Hook0Icon>
       </Hook0Button>
       <Hook0Button class="white col-span-1" @click="add()">
