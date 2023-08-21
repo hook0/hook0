@@ -34,7 +34,7 @@
    <!--<a href="https://hub.docker.com/r/hook0/hook0"><img src="https://img.shields.io/docker/pulls/hook0/hook0"></a>-->
    <a href="https://gitlab.com/hook0/hook0/-/issues/?sort=milestone_due_desc&state=opened&label_name%5B%5D=Community%3A%3Aaccepting%20merge%20requests&first_page_size=20"><img src="https://img.shields.io/badge/Help%20Wanted-Contribute-blue"></a>
    <a href="https://www.hook0.com/community"><img src="https://img.shields.io/badge/translations-contribute-brightgreen" /></a>
-   <a href="https://contributor-covenant.org/version/1/4/code-of-conduct/"><img src="https://img.shields.io/badge/Contributor%20Covenant-1.4-purple" /></a>
+   <a href="https://contributor-covenant.org/version/1/4/code-of-conduct/"><img src="https://img.shields.io/badge/Contributor%20Covenant-1.4-purple" /></a> <a href="https://console.algora.io/org/hook0/bounties?status=open"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fconsole.algora.io%2Fapi%2Fshields%2Fhook0%2Fbounties%3Fstatus%3Dopen" /></a>
 </p>
 
 Welcome to Hook0! Sign up to [hook0.com](https://www.hook0.com/) and start opening your SaaS to the web!
