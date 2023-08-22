@@ -93,7 +93,7 @@ services:
       - hook0
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl --fail --user-agent 'docker-composer-healthcheck' http://localhost:$${PORT}/api/v1/swagger.json || exit 1"]
+      test: ["CMD-SHELL", "curl --fail --user-agent 'docker-compose-healthcheck' http://localhost:$${PORT}/api/v1/swagger.json || exit 1"]
       timeout: 1s
       interval: 5s
     depends_on:
