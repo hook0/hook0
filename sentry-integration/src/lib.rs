@@ -36,7 +36,6 @@ pub fn init(
     crate_name: &'static str,
     sentry_dsn: &Option<String>,
     traces_sample_rate: &Option<f32>,
-    profiles_sample_rate: &Option<f32>,
 ) -> Option<ClientInitGuard> {
     let client;
     match sentry_dsn {
@@ -50,8 +49,6 @@ pub fn init(
                     attach_stacktrace: true,
                     debug: true,
                     traces_sample_rate: traces_sample_rate.unwrap_or(0.0),
-                    enable_profiling: matches!(profiles_sample_rate, Some(r) if r > &0.0),
-                    profiles_sample_rate: profiles_sample_rate.unwrap_or(0.0),
                     ..Default::default()
                 },
             ));
