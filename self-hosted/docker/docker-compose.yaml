@@ -63,8 +63,8 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "curl --fail http://localhost:8080/health/live || exit 1"]
       timeout: 3s
-      start_period: 30s
-      start_interval: 30s
+      start_period: 40s
+      start_interval: 40s
       interval: 5s
     depends_on:
       postgres-keycloak:
@@ -93,7 +93,7 @@ services:
       - hook0
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl --fail --user-agent 'docker-composer-healthcheck' http://localhost:$${PORT}/api/v1/swagger.json || exit 1"]
+      test: ["CMD-SHELL", "curl --fail --user-agent 'docker-compose-healthcheck' http://localhost:$${PORT}/api/v1/swagger.json || exit 1"]
       timeout: 1s
       interval: 5s
     depends_on:
