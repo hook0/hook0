@@ -63,8 +63,8 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "curl --fail http://localhost:8080/health/live || exit 1"]
       timeout: 3s
-      start_period: 30s
-      start_interval: 30s
+      start_period: 40s
+      start_interval: 40s
       interval: 5s
     depends_on:
       postgres-keycloak:
