@@ -1,10 +1,10 @@
-# 20. Record architecture decisions
+# 2. VueJS component style
 
 Date: 2023-04-21
 
 ## Status
 
-Accepted
+Superseded (by #0003)
 
 ## Context
 
