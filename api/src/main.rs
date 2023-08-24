@@ -58,10 +58,6 @@ struct Config {
     #[clap(long, env)]
     sentry_traces_sample_rate: Option<f32>,
 
-    /// Optional sample rate for profiling transactions with Sentry (between 0.0 and 1.0)
-    #[clap(long, env)]
-    sentry_profiles_sample_rate: Option<f32>,
-
     /// Database URL (with credentials)
     #[clap(long, env, hide_env_values = true)]
     database_url: String,
@@ -216,7 +212,6 @@ async fn main() -> anyhow::Result<()> {
         crate_name!(),
         &config.sentry_dsn,
         &config.sentry_traces_sample_rate,
-        &config.sentry_profiles_sample_rate,
     );
 
     trace!("Starting {}", APP_TITLE);
