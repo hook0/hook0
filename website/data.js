@@ -200,4 +200,6 @@ locals.subscriptionLinks = {
   },
 };
 
+locals.ossFriends = require('./oss-friends.json').data;
+
 module.exports = locals;
