@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Hook0 — oss-friends</title>
+    <%- include ('./_head.ejs') %>
+</head>
+<body>
+<a name="top"></a>
+
+<%- include ('./_header.ejs') %>
+
+<div class="relative overflow-hidden">
+    <main class="max-w-8xl relative mx-auto mb-auto flex w-full flex-col justify-center sm:px-2 lg:px-8 xl:px-12">
+        <div class="px-4 py-20 text-center sm:px-6 lg:px-8 lg:py-28"><h1
+                    class="text-3xl font-bold tracking-tight text-black-100 sm:text-4xl md:text-5xl">
+                <span class="xl:inline">Our</span> <span
+                        class="text-green-400 xl:inline">Open-source</span>
+                <span class="inline ">Friends</span></h1>
+            <p class="mx-auto mt-3 max-w-md text-base text-slate-200 dark:text-slate-300 sm:text-lg md:mt-5 md:max-w-2xl md:text-xl">
+                In Hook0, we are proud to collaborate with a diverse group of partners to promote open-source software and the values of transparency, collaboration, and community that it represents.
+            </p>
+
+        </div>
+        <div class="pt-10 bg-white sm:pt-16 lg:pt-8 lg:pb-0 ">
+            <div class="mx-auto max-w-7xl lg:px-8">
+                <div class="m-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <% locals.ossFriends.forEach((friend) => { %>
+                        <div class="overflow-hidden pt-6 bg-gray-50 flow-root pb-8 px-6 rounded-lg">
+                            <a href="<%= friend.href %>" class="mb-2 text-xl font-bold">
+                                <%= friend.name %>
+                            </a>
+                            <p class="mt-4 text-sm text-gray-700"><%= friend.description %></p>
+                            <div class="mt-4">
+                                <a target="_blank" variant="primary" href="<%= friend.href %>">
+                                    Learn more
+                                </a>
+                            </div>
+                        </div>
+                    <% }) %>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<%- include ('./_cta.ejs') %>
+
+<%- include ('./_footer.ejs') %>
+
+</body>
+</html>
