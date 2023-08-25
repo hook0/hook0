@@ -5,10 +5,10 @@
   "homepage": "https://www.hook0.com/",
   "private": true,
   "scripts": {
-    "preinstall": "rm -rf ./src/mediakit; cp -R -v $(pwd)/../mediakit ./src/mediakit && cp -v ./src/mediakit/logo/favicon.ico static/favicon.ico",
-    "serve": "npx nodemon -w ./data -w . -i dist/ -i src/ --ext .js,.json --exec npm run serve:basic",
-    "serve:basic": "parcel serve src/*.ejs",
-    "dev": "parcel build --no-optimize src/*.ejs",
+    "preinstall": "rm -rf ./src/mediakit; cp -R -v $(pwd)/../mediakit ./src/mediakit && cp -v ./src/mediakit/logo/favicon.ico static/favicon.ico && npm run --silent update:oss-friends",
+    "update:oss-friends": "curl https://formbricks.com/api/oss-friends > ./oss-friends.json",
+    "serve": "npx nodemon -w ./data -w . -i dist/ -i src/ --ext .js,.json,.ejs --exec 'npm run build:dev && npx serve dist'",
+    "build:dev": "parcel build src/*.ejs",
     "build": "parcel build src/*.ejs --public-url=https://www.hook0.com"
   },
   "contributors": [
@@ -30,5 +30,8 @@
     "prettier": "^3.0.0",
     "sharp": "^0.31.3",
     "tailwindcss": "^3.0.1"
+  },
+  "volta": {
+    "node": "18.17.1"
   }
 }
