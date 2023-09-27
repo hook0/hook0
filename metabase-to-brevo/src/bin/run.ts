@@ -37,10 +37,11 @@ syncAll(config.metabase.collectionId, config.sendinblue.folderId)
     `);
 
     if (config.betteruptime.heartbeatUrl) {
-      axios({
+      const axiosConfig = {
         method: 'get',
         url: config.betteruptime.heartbeatUrl
-      })
+      };
+      axios(axiosConfig)
         .then(() => logger.info('✅ betteruptime hearthbeat called'))
         .catch(onAxiosError('❌ cannot call betteruptime heathbeat', axiosConfig));
     }
