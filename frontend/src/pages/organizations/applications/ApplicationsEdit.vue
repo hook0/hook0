@@ -5,7 +5,6 @@ import { onMounted, onUpdated, ref } from 'vue';
 import { isAxiosError, Problem, UUID } from '@/http';
 import * as ApplicationService from './ApplicationService';
 import { Application } from './ApplicationService';
-import { AxiosError } from 'axios';
 import { Alert } from '@/components/Hook0Alert';
 import Hook0Alert from '@/components/Hook0Alert.vue';
 import ApplicationsRemove from '@/pages/organizations/applications/ApplicationsRemove.vue';
@@ -75,7 +74,7 @@ function upsert(e: Event) {
   }, displayError);
 }
 
-function displayError(err: AxiosError | unknown) {
+function displayError(err: unknown) {
   console.error(err);
   alert.value.visible = true;
 

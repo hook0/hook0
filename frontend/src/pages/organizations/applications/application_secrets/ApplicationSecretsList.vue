@@ -2,7 +2,7 @@
 import { ColDef } from '@ag-grid-community/core';
 import { onMounted, onUpdated, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { AxiosError, isAxiosError } from 'axios';
+import { isAxiosError } from 'axios';
 
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
@@ -119,7 +119,7 @@ function _load() {
   }
 }
 
-function displayError(err: AxiosError | unknown) {
+function displayError(err: unknown) {
   console.error(err);
   alert.value.visible = true;
 

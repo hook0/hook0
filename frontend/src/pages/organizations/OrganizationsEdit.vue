@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { AxiosError } from 'axios';
 import { onMounted, onUpdated, ref } from 'vue';
 
 import * as OrganizationService from './OrganizationService';
@@ -86,7 +85,7 @@ function upsert(e: Event) {
     .finally(() => (loading.value = false));
 }
 
-function displayError(err: AxiosError | unknown) {
+function displayError(err: unknown) {
   console.error(err);
   alert.value.visible = true;
 

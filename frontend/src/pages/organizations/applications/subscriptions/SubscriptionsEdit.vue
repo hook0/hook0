@@ -4,7 +4,6 @@ import { onMounted, onUpdated, ref } from 'vue';
 import { head } from 'ramda';
 
 import { isAxiosError, Problem, UUID } from '@/http';
-import { AxiosError } from 'axios';
 import { Alert } from '@/components/Hook0Alert';
 import Hook0Alert from '@/components/Hook0Alert.vue';
 import * as SubscriptionService from './SubscriptionService';
@@ -241,7 +240,7 @@ function upsert(e: Event) {
   }, displayError);
 }
 
-function displayError(err: AxiosError | unknown) {
+function displayError(err: unknown) {
   console.error(err);
   alert.value.visible = true;
 

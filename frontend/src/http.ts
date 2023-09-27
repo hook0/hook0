@@ -84,7 +84,7 @@ export type UUID = string;
 
 export type Problem = definitions['Problem'];
 
-export function isAxiosError(err: AxiosError | unknown): err is AxiosError {
+export function isAxiosError(err: unknown): err is AxiosError {
   const e = err as AxiosError;
   return e !== null && typeof e.isAxiosError === 'boolean' && e.isAxiosError;
 }

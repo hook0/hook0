@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { AxiosError } from 'axios';
 import { ref } from 'vue';
 
 import { isAxiosError, Problem, UUID } from '@/http';
@@ -51,7 +50,7 @@ function create(e: Event) {
   }, displayError);
 }
 
-function displayError(err: AxiosError | unknown) {
+function displayError(err: unknown) {
   console.error(err);
   alert.value.visible = true;
 

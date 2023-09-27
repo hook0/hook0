@@ -36,7 +36,7 @@ const loading = computed(() => props.loading ?? false);
 
 const loadingStatus = ref(false);
 
-function _forwardPromiseState() {
+async function _forwardPromiseState() {
   if (!(loading.value instanceof Promise)) {
     loadingStatus.value = loading.value;
     return;
@@ -51,7 +51,7 @@ function _forwardPromiseState() {
   };
 
   setStatus(true)();
-  loading.value.finally(setStatus(false));
+  await loading.value.finally(setStatus(false));
 }
 
 function omitOnClick(props: Record<string, unknown>) {
@@ -92,11 +92,11 @@ function hasSlot(name: string): boolean {
 }
 
 onMounted(() => {
-  _forwardPromiseState();
+  void _forwardPromiseState();
 });
 
 onUpdated(() => {
-  _forwardPromiseState();
+  void _forwardPromiseState();
 });
 </script>
 
