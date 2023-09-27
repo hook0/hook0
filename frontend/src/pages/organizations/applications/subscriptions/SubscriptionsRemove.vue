@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { AxiosError } from 'axios';
 import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -61,7 +60,7 @@ function remove(e: Event) {
     .finally(() => (loading.value = false));
 }
 
-function displayError(err: AxiosError | unknown) {
+function displayError(err: unknown) {
   console.error(err);
   alert.value.visible = true;
 
