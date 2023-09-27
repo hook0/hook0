@@ -7,6 +7,8 @@ api.check:
       - sentry-integration/**/*
       - clients/rust/**/*
       - Cargo.*
+  rules:
+    - if: $CI_PIPELINE_SOURCE != "schedule"
   variables:
     SQLX_OFFLINE: "true"
   services:
@@ -32,6 +34,8 @@ api.documentation:
     changes:
       - api/**
       - Cargo.*
+  rules:
+    - if: $CI_PIPELINE_SOURCE != "schedule"
   image: node:$NODE_VERSION
   script:
     - npx --yes rdme@8.3.0 openapi --id=${README_IO_ID} --key=${README_IO_KEY} --update https://app.hook0.com/api/v1/swagger.json
