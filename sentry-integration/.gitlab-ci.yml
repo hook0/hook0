@@ -1,12 +1,11 @@
 sentry_integration.check:
   stage: test
   image: rust:$RUST_VERSION
-  only:
-    changes:
-      - sentry-integration/**/*
-      - Cargo.*
   rules:
     - if: $CI_PIPELINE_SOURCE != "schedule"
+      changes:
+        - sentry-integration/**/*
+        - Cargo.*
   before_script:
     - rustc --version && cargo --version
     - rustup component add clippy

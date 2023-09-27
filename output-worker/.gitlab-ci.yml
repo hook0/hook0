@@ -1,13 +1,12 @@
 output_worker.check:
   stage: test
   image: rust:$RUST_VERSION
-  only:
-    changes:
-      - output-worker/**/*
-      - sentry-integration/**/*
-      - Cargo.*
   rules:
     - if: $CI_PIPELINE_SOURCE != "schedule"
+      changes:
+        - output-worker/**/*
+        - sentry-integration/**/*
+        - Cargo.*
   variables:
     SQLX_OFFLINE: "true"
   services:
