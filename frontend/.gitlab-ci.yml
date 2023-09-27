@@ -1,10 +1,9 @@
 frontend.build:
   stage: build
-  only:
-      changes:
-        - frontend/**/*
   rules:
     - if: $CI_PIPELINE_SOURCE != "schedule"
+      changes:
+        - frontend/**/*
   image: node:$NODE_VERSION
   script:
     - pushd frontend/
