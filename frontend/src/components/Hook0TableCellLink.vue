@@ -13,7 +13,7 @@ interface ExtraParams<T> {
   /**
    * Raw value
    */
-  value?: (row: T) => string | string;
+  value?: (row: T) => string;
 
   /**
    * Icon to add to the button
