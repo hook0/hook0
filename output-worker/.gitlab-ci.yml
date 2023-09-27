@@ -6,6 +6,8 @@ output_worker.check:
       - output-worker/**/*
       - sentry-integration/**/*
       - Cargo.*
+  rules:
+    - if: $CI_PIPELINE_SOURCE != "schedule"
   variables:
     SQLX_OFFLINE: "true"
   services:

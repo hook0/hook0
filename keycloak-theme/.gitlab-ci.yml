@@ -4,6 +4,8 @@ keycloak-theme.build:
     changes:
       - keycloak-theme/**/*
       - mediakit/**/*
+  rules:
+    - if: $CI_PIPELINE_SOURCE != "schedule"
   image: node:$NODE_VERSION
   before_script:
     - apt update -y && apt install -y --no-install-recommends default-jdk maven
