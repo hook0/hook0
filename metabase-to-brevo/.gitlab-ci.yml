@@ -1,0 +1,32 @@
+run_metabase_to_sendinblue_sync:
+  image: node:latest
+  stage: scheduled
+  environment: production
+  script:
+    - cd metabase-to-sendinblue-connector
+    - npm install
+    - npm run build
+    - npm run start:run
+  variables:
+    KUBERNETES_CPU_LIMIT: '1'
+    KUBERNETES_CPU_REQUEST: '0.2'
+    KUBERNETES_MEMORY_LIMIT: '4Gi'
+    KUBERNETES_MEMORY_REQUEST: '3.5Gi'
+    NODE_OPTIONS: '--max-old-space-size=4096'
+  cache:
+    key:
+      files:
+        - metabase-to-sendinblue-connector/package-lock.json
+    paths:
+      - metabase-to-sendinblue-connector/node_modules
+  artifacts:
+    when: always
+    untracked: true
+    expire_in: 2 week
+    name: 'metabase-to-sendinblue-sync-${CI_COMMIT_REF_NAME}'
+    paths:
+      - output/
+  retry: 2
+  rules:
+    - if: '$IS_SCHEDULE && $WHICH_SCHEDULE == "metabase-to-sendinblue-sync"'
+      when: always
