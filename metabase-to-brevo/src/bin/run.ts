@@ -7,7 +7,7 @@ import {logger} from '../lib/logger';
 import {promisify} from 'util';
 import {writeFile} from 'fs';
 import axios from 'axios';
-import { onAxiosError } from '../lib/error';
+import {onAxiosError} from '../lib/error';
 const writeFileP = promisify(writeFile);
 
 syncAll(config.metabase.collectionId, config.sendinblue.folderId)
@@ -36,13 +36,14 @@ syncAll(config.metabase.collectionId, config.sendinblue.folderId)
         .join('\n')}
     `);
 
-    const axiosConfig = {
-      method: 'get',
-      url: config.betteruptime.heartbeatUrl,
-    };
-    axios(axiosConfig)
-    .then(() => logger.info('✅ betteruptime hearthbeat called'))
-    .catch(onAxiosError('❌ cannot call betteruptime heathbeat', axiosConfig));
+    if (config.betteruptime.heartbeatUrl) {
+      axios({
+        method: 'get',
+        url: config.betteruptime.heartbeatUrl
+      })
+        .then(() => logger.info('✅ betteruptime hearthbeat called'))
+        .catch(onAxiosError('❌ cannot call betteruptime heathbeat', axiosConfig));
+    }
 
     // wait for the logs to flush and exit the process
     return delay(10 * 1000).then(() => process.exit(0));
