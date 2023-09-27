@@ -15,6 +15,7 @@ stages:
   - release
   - dast
   - documentation
+  - scheduled
 
 include:
   - template: SAST.gitlab-ci.yml
@@ -28,7 +29,7 @@ include:
   - local: 'sentry-integration/.gitlab-ci.yml'
   - local: 'website/.gitlab-ci.yml'
   - local: 'keycloak-theme/.gitlab-ci.yml'
-
+  - local: 'metabase-to-brevo-connector/.gitlab-ci.yml'
 
 osv_dependency_scan:
   services:
