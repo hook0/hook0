@@ -39,9 +39,13 @@ osv_dependency_scan:
   allow_failure: true
   script:
     - docker run -v $(pwd):/app -i ghcr.io/google/osv-scanner:v1.3.6 --recursive /app
+  rules:
+    - if: $CI_PIPELINE_SOURCE != "schedule"
 
 dast:
   stage: dast
   dast_configuration:
     site_profile: "REST API v1"
     scanner_profile: "DAST"
+  rules:
+    - if: $CI_PIPELINE_SOURCE != "schedule"
