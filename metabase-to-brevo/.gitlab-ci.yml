@@ -1,9 +1,9 @@
-run_metabase_to_sendinblue_sync:
+run_metabase_to_brevo_sync:
   image: node:latest
   stage: scheduled
   environment: production
   script:
-    - cd metabase-to-sendinblue-connector
+    - cd metabase-to-brevo
     - npm install
     - npm run build
     - npm run start:run
@@ -16,17 +16,17 @@ run_metabase_to_sendinblue_sync:
   cache:
     key:
       files:
-        - metabase-to-sendinblue-connector/package-lock.json
+        - metabase-to-brevo/package-lock.json
     paths:
-      - metabase-to-sendinblue-connector/node_modules
+      - metabase-to-brevo/node_modules
   artifacts:
     when: always
     untracked: true
     expire_in: 2 week
-    name: 'metabase-to-sendinblue-sync-${CI_COMMIT_REF_NAME}'
+    name: 'metabase-to-brevo-sync-${CI_COMMIT_REF_NAME}'
     paths:
       - output/
   retry: 2
   rules:
-    - if: '$IS_SCHEDULE && $WHICH_SCHEDULE == "metabase-to-sendinblue-sync"'
+    - if: '$IS_SCHEDULE && $WHICH_SCHEDULE == "metabase-to-brevo-sync"'
       when: always
