@@ -1,10 +1,9 @@
 website.build:
   stage: build
-  only:
-    changes:
-      - website/**/*
   rules:
     - if: $CI_PIPELINE_SOURCE != "schedule"
+      changes:
+        - website/**/*
   image: node:$NODE_VERSION
   script:
     - pushd website/
@@ -36,15 +35,10 @@ website.build:
   environment:
       name: production-website
       url: https://www.hook0.com
-  only:
-    refs:
-      - master
-    changes:
-      - website/**/*
-  except:
-    - schedules
   rules:
-    - if: $CI_PIPELINE_SOURCE != "schedule"
+    - if: $CI_COMMIT_BRANCH == "master" && $CI_PIPELINE_SOURCE != "schedule"
+      changes:
+        - website/**/*
 
 website.release:
   <<: *website-release-tmpl
@@ -52,8 +46,3 @@ website.release:
 website.release.manual:
   <<: *website-release-tmpl
   when: manual
-  only:
-    refs:
-      - master
-    changes:
-      - website/**/*
