@@ -6,7 +6,6 @@ import Hook0Text from '@/components/Hook0Text.vue';
 import { isAxiosError, Problem, UUID } from '@/http';
 import * as ApplicationService from './ApplicationService';
 import { Application } from './ApplicationService';
-import { AxiosError } from 'axios';
 import { Alert } from '@/components/Hook0Alert';
 import { routes } from '@/routes';
 import EventTypesList from '@/pages/organizations/applications/event_types/EventTypesList.vue';
@@ -43,7 +42,7 @@ function _load() {
   }
 }
 
-function displayError(err: AxiosError | unknown) {
+function displayError(err: unknown) {
   console.error(err);
   alert.value.visible = true;
 
