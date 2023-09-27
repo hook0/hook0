@@ -259,8 +259,7 @@ export class MetabaseClient {
         return response.data;
       })
       .then((contacts) => {
-        console.log('contacts', contacts);
-        const res = contacts.map((contact: MetabaseContact) => {
+        return contacts.map((contact: MetabaseContact) => {
           return Object.keys(contact).reduce((acc, key) => {
             if (key === 'email') {
               acc.email = contact.email.toLowerCase();
@@ -274,8 +273,6 @@ export class MetabaseClient {
             return acc;
           }, {} as Partial<MetabaseContact>);
         });
-        console.log('res', res);
-        return res;
       })
       .catch(onError(`cannot run question ${questionId} on metabase`));
   }
