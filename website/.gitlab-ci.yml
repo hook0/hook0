@@ -3,6 +3,8 @@ website.build:
   only:
     changes:
       - website/**/*
+  rules:
+    - if: $CI_PIPELINE_SOURCE != "schedule"
   image: node:$NODE_VERSION
   script:
     - pushd website/
@@ -41,6 +43,8 @@ website.build:
       - website/**/*
   except:
     - schedules
+  rules:
+    - if: $CI_PIPELINE_SOURCE != "schedule"
 
 website.release:
   <<: *website-release-tmpl

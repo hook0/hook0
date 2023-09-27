@@ -5,6 +5,8 @@ sentry_integration.check:
     changes:
       - sentry-integration/**/*
       - Cargo.*
+  rules:
+    - if: $CI_PIPELINE_SOURCE != "schedule"
   before_script:
     - rustc --version && cargo --version
     - rustup component add clippy

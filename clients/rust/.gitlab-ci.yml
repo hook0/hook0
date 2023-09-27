@@ -5,6 +5,8 @@ client.rust.check:
     changes:
       - clients/rust/**/*
       - Cargo.*
+  rules:
+    - if: $CI_PIPELINE_SOURCE != "schedule"
   before_script:
     - rustc --version && cargo --version
     - rustup component add clippy
