@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router';
-import { AxiosError } from 'axios';
 import { onMounted, onUpdated, ref } from 'vue';
 
 import Hook0Text from '@/components/Hook0Text.vue';
@@ -57,7 +56,7 @@ function _load() {
   }
 }
 
-function displayError(err: AxiosError | unknown) {
+function displayError(err: unknown) {
   console.error(err);
   alert.value.visible = true;
 
