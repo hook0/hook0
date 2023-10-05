@@ -7,7 +7,7 @@ edition = "2021"
 chrono = { version = "0.4.31", features = ["serde"] }
 lazy-regex = "3.0.2"
 log = "0.4.20"
-reqwest = { version = "0.11.20", default-features = false, features = ["trust-dns", "json"] }
+reqwest = { version = "0.11.22", default-features = false, features = ["trust-dns", "json"] }
 serde = { version = "1.0.188", features = ["derive"] }
 serde_json = "1.0.107"
 thiserror = "1.0.49"
