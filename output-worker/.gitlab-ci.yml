@@ -2,8 +2,7 @@ output_worker.check:
   stage: test
   image: rust:$RUST_VERSION
   rules:
-    - if: $CI_PIPELINE_SOURCE != "schedule"
-      changes:
+    - changes:
         - output-worker/**/*
         - sentry-integration/**/*
         - Cargo.*

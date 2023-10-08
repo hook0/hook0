@@ -2,8 +2,7 @@ api.check:
   stage: test
   image: rust:$RUST_VERSION
   rules:
-    - if: $CI_PIPELINE_SOURCE != "schedule"
-      changes:
+    - changes:
         - api/**/*
         - sentry-integration/**/*
         - clients/rust/**/*
@@ -28,8 +27,7 @@ api.documentation:
     name: production-api
     url: https://app.hook0.com/api/v1
   rules:
-    - if: $CI_COMMIT_BRANCH == "master" && $CI_PIPELINE_SOURCE != "schedule"
-      changes:
+    - changes:
         - api/**
         - Cargo.*
   image: node:$NODE_VERSION

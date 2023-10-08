@@ -1,8 +1,7 @@
 keycloak-theme.build:
   stage: build
   rules:
-    - if: $CI_PIPELINE_SOURCE != "schedule"
-      changes:
+    - changes:
         - keycloak-theme/**/*
         - mediakit/**/*
   image: node:$NODE_VERSION
