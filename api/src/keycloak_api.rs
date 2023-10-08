@@ -395,7 +395,7 @@ impl KeycloakApi {
         let count = res.parse::<i32>();
 
         match count {
-            Ok(c) if c == 0 => Ok(()),
+            Ok(0) => Ok(()),
             Ok(c) if c < 0 => {
                 error!(
                     "Error while parsing result given by Keycloak API: search found {} users",
