@@ -1,8 +1,7 @@
 website.build:
   stage: build
   rules:
-    - if: $CI_PIPELINE_SOURCE != "schedule"
-      changes:
+    - changes:
         - website/**/*
   image: node:$NODE_VERSION
   script:
@@ -36,8 +35,7 @@ website.build:
       name: production-website
       url: https://www.hook0.com
   rules:
-    - if: $CI_COMMIT_BRANCH == "master" && $CI_PIPELINE_SOURCE != "schedule"
-      changes:
+    - changes:
         - website/**/*
 
 website.release:

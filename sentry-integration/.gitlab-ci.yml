@@ -2,8 +2,7 @@ sentry_integration.check:
   stage: test
   image: rust:$RUST_VERSION
   rules:
-    - if: $CI_PIPELINE_SOURCE != "schedule"
-      changes:
+    - changes:
         - sentry-integration/**/*
         - Cargo.*
   before_script:
