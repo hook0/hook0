@@ -35,7 +35,8 @@ website.build:
       name: production-website
       url: https://www.hook0.com
   rules:
-    - changes:
+    - if: $CI_COMMIT_BRANCH == "master"
+      changes:
         - website/**/*
 
 website.release:
