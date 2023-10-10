@@ -193,6 +193,7 @@ locals.features = [
 
 locals.subscriptionLinks = {
   cloud: {
+    startup: 'https://buy.stripe.com/eVaaH8agJcMT6RieV0',
     pro: 'https://buy.stripe.com/fZe02ucoR007b7y8ww',
   },
   onprem: {
