@@ -27,7 +27,8 @@ api.documentation:
     name: production-api
     url: https://app.hook0.com/api/v1
   rules:
-    - changes:
+    - if: $CI_COMMIT_BRANCH == "master"
+      changes:
         - api/**
         - Cargo.*
   image: node:$NODE_VERSION
