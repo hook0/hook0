@@ -6,6 +6,7 @@ use actix_web::HttpMessage;
 use governor::middleware::NoOpMiddleware;
 use ipnetwork::IpNetwork;
 use log::warn;
+use uuid::Uuid;
 
 use crate::iam::{AuthProof, Hook0Claims};
 use crate::problems::Hook0Problem;
@@ -165,6 +166,7 @@ impl KeyExtractor for TokenKeyExtractor {
                 name: _,
                 secret: _,
             } => format!("application_secret:{application_id}"),
+            AuthProof::MasterApiKey => format!("master_api_key:{}", Uuid::new_v4()),
         })
     }
 }

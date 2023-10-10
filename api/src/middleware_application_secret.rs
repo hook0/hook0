@@ -19,6 +19,7 @@ use crate::problems::Hook0Problem;
 #[derive(Debug, Clone)]
 pub struct ApplicationSecretAuth {
     pub db: PgPool,
+    pub master_api_key: Option<Uuid>,
 }
 
 impl<S> Transform<S, ServiceRequest> for ApplicationSecretAuth
@@ -37,6 +38,7 @@ where
         ok(ApplicationSecretAuthMiddleware {
             service: Rc::new(service),
             db: self.db.clone(),
+            master_api_key: self.master_api_key,
         })
     }
 }
@@ -45,6 +47,7 @@ where
 pub struct ApplicationSecretAuthMiddleware<S> {
     service: Rc<S>,
     db: PgPool,
+    master_api_key: Option<Uuid>,
 }
 
 impl<S> Service<ServiceRequest> for ApplicationSecretAuthMiddleware<S>
@@ -113,64 +116,75 @@ where
                                             "Application secret was extracted from request headers"
                                         );
 
-                                        let pool = Box::new(self.db.clone());
-                                        let pool: &'static PgPool = Box::leak(pool);
-                                        let srv = Rc::clone(&self.service);
-                                        Box::pin(async move {
-                                            #[derive(Debug)]
-                                            #[allow(non_snake_case)]
-                                            struct ApplicationSecretLookup {
-                                                application__id: Uuid,
-                                                name: Option<String>,
+                                        if self.master_api_key == Some(token) {
+                                            {
+                                                let mut extensions = req.extensions_mut();
+                                                extensions.insert(AuthProof::MasterApiKey);
                                             }
+                                            debug!("Auth with master API key succeeded");
+                                            Box::pin(self.service.call(req))
+                                        } else {
+                                            let pool = Box::new(self.db.clone());
+                                            let pool: &'static PgPool = Box::leak(pool);
+                                            let srv = Rc::clone(&self.service);
+                                            Box::pin(async move {
+                                                #[derive(Debug)]
+                                                #[allow(non_snake_case)]
+                                                struct ApplicationSecretLookup {
+                                                    application__id: Uuid,
+                                                    name: Option<String>,
+                                                }
 
-                                            let application_secret_lookup = query_as!(
-                                                ApplicationSecretLookup,
-                                                "
-                                                    SELECT application__id, name
-                                                    FROM event.application_secret
-                                                    WHERE deleted_at IS NULL AND token = $1
-                                                    LIMIT 1
-                                                ",
-                                                &token
-                                            )
-                                            .fetch_optional(pool)
-                                            .await;
+                                                let application_secret_lookup = query_as!(
+                                                    ApplicationSecretLookup,
+                                                    "
+                                                        SELECT application__id, name
+                                                        FROM event.application_secret
+                                                        WHERE deleted_at IS NULL AND token = $1
+                                                        LIMIT 1
+                                                    ",
+                                                    &token
+                                                )
+                                                .fetch_optional(pool)
+                                                .await;
 
-                                            match application_secret_lookup {
-                                                Ok(Some(application_secret)) => {
-                                                    {
-                                                        debug!("Auth with application secret succeeded");
-                                                        set_user_from_application_secret(
-                                                            &application_secret
-                                                                .application__id
-                                                                .to_string(),
-                                                        );
-                                                        let mut extensions = req.extensions_mut();
-                                                        extensions.insert(
-                                                            AuthProof::ApplicationSecret {
-                                                                secret: token,
-                                                                name: application_secret.name,
-                                                                application_id: application_secret
-                                                                    .application__id,
-                                                            },
-                                                        );
+                                                match application_secret_lookup {
+                                                    Ok(Some(application_secret)) => {
+                                                        {
+                                                            debug!("Auth with application secret succeeded");
+                                                            set_user_from_application_secret(
+                                                                &application_secret
+                                                                    .application__id
+                                                                    .to_string(),
+                                                            );
+                                                            let mut extensions =
+                                                                req.extensions_mut();
+                                                            extensions.insert(
+                                                                AuthProof::ApplicationSecret {
+                                                                    secret: token,
+                                                                    name: application_secret.name,
+                                                                    application_id:
+                                                                        application_secret
+                                                                            .application__id,
+                                                                },
+                                                            );
+                                                        }
+                                                        srv.call(req).await
                                                     }
-                                                    srv.call(req).await
+                                                    Ok(None) => {
+                                                        let e =
+                                                                    Hook0Problem::AuthInvalidApplicationSecret;
+                                                        debug!("{}", &e);
+                                                        Ok(req.error_response(e))
+                                                    }
+                                                    Err(err) => {
+                                                        let e = Hook0Problem::AuthApplicationSecretLookupError;
+                                                        error!("{}: {}", &e, &err);
+                                                        Ok(req.error_response(e))
+                                                    }
                                                 }
-                                                Ok(None) => {
-                                                    let e =
-                                                        Hook0Problem::AuthInvalidApplicationSecret;
-                                                    debug!("{}", &e);
-                                                    Ok(req.error_response(e))
-                                                }
-                                                Err(err) => {
-                                                    let e = Hook0Problem::AuthApplicationSecretLookupError;
-                                                    error!("{}: {}", &e, &err);
-                                                    Ok(req.error_response(e))
-                                                }
-                                            }
-                                        })
+                                            })
+                                        }
                                     }
                                     Err(_) => {
                                         let e = Hook0Problem::AuthInvalidAuthorizationHeader;
