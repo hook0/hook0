@@ -121,6 +121,7 @@ pub enum AuthProof {
         name: Option<String>,
         application_id: Uuid,
     },
+    MasterApiKey,
 }
 
 impl AuthProof {
@@ -168,10 +169,14 @@ impl AuthProof {
         organization_id: &Uuid,
         minimum_required_role: &Role,
     ) -> Option<&Self> {
-        let available_organizations = self.organizations();
-        match available_organizations.get(organization_id) {
-            Some(role) if role >= minimum_required_role => Some(self),
-            _ => None,
+        if matches!(self, Self::MasterApiKey) {
+            Some(self)
+        } else {
+            let available_organizations = self.organizations();
+            match available_organizations.get(organization_id) {
+                Some(role) if role >= minimum_required_role => Some(self),
+                _ => None,
+            }
         }
     }
 
@@ -205,6 +210,7 @@ impl AuthProof {
                     None
                 }
             }
+            Self::MasterApiKey => Some(self),
         }
     }
 
