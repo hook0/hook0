@@ -82,6 +82,10 @@ struct Config {
     #[clap(long = "no-auto-db-migration", env = "NO_AUTO_DB_MIGRATION", value_parser = BoolValueParser::new().map(|v| !v))]
     auto_db_migration: bool,
 
+    /// A global admin API key that have almost all rights. Better left undefined, USE AT YOUR OWN RISKS!
+    #[clap(long, env, hide_env_values = true)]
+    master_api_key: Option<Uuid>,
+
     /// URL of a Keycloak instance (example: https://my.keycloak.net/auth)
     #[clap(long, env)]
     keycloak_url: Url,
@@ -297,6 +301,12 @@ async fn main() -> anyhow::Result<()> {
         info!("Quota enforcement is disabled");
     }
 
+    // Prepare master API key
+    let master_api_key = config.master_api_key;
+    if master_api_key.is_some() {
+        warn!("The master API key is defined in the current configuration; THIS MAY BE A SECURITY ISSUE IN PRODUCTION");
+    }
+
     // Initialize state
     let initial_state = State {
         db: pool,
@@ -354,6 +364,7 @@ async fn main() -> anyhow::Result<()> {
 
         let secret_auth = middleware_application_secret::ApplicationSecretAuth {
             db: initial_state.db.clone(),
+            master_api_key,
         };
 
         let mut app = App::new()
