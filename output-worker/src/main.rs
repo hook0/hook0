@@ -1,9 +1,11 @@
+mod monitoring;
 mod work;
 
 use chrono::{DateTime, Utc};
 use clap::{crate_name, crate_version, Parser};
 use log::{debug, info, trace, warn};
 use reqwest::header::HeaderMap;
+use reqwest::Url;
 use sqlx::postgres::types::PgInterval;
 use sqlx::postgres::PgConnectOptions;
 use sqlx::{query, query_as, Connection, PgConnection};
@@ -44,6 +46,14 @@ struct Config {
     /// Maximum number of slow retries (before giving up)
     #[clap(long, env, default_value = "30")]
     max_slow_retries: u32,
+
+    /// Heartbeat URL that should be called regularly
+    #[clap(long, env)]
+    monitoring_heartbeat_url: Option<Url>,
+
+    /// Minimal duration (in second) to wait between sending two heartbeats
+    #[clap(long, env, default_value = "60")]
+    monitoring_heartbeat_min_period_in_s: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -147,6 +157,9 @@ async fn main() -> anyhow::Result<()> {
     }
     tx.commit().await?;
     info!("Done upserting response error names");
+
+    let heartbeat_min_period = Duration::from_secs(config.monitoring_heartbeat_min_period_in_s);
+    let mut last_heartbeat = Utc::now() - heartbeat_min_period;
 
     info!("Begin looking for work");
     loop {
@@ -340,6 +353,17 @@ async fn main() -> anyhow::Result<()> {
 
         // Commit transaction
         tx.commit().await?;
+
+        // Send monitoring heartbeat if necessary
+        if let Some(url) = &config.monitoring_heartbeat_url {
+            if last_heartbeat + heartbeat_min_period <= Utc::now() {
+                if let Err(e) = monitoring::send_heartbeat(url, &worker_name, &worker_version).await
+                {
+                    warn!("Monitoring heartbeat failed: {e}");
+                };
+                last_heartbeat = Utc::now();
+            }
+        }
     }
 }
 
