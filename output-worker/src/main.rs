@@ -163,10 +163,13 @@ async fn main() -> anyhow::Result<()> {
                         FROM webhook.request_attempt AS ra
                         INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
                         LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
+                        INNER JOIN event.application AS a ON a.application__id = s.application__id
+                        INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
+                        LEFT JOIN iam.organization__worker AS ow ON ow.organization__id = o.organization__id AND ow.default = true
                         INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
                         INNER JOIN event.event AS e ON e.event__id = ra.event__id
-                        WHERE succeeded_at IS NULL AND failed_at IS NULL AND (delay_until IS NULL OR delay_until <= statement_timestamp()) AND (sw.worker__id IS NULL OR sw.worker__id = $1)
-                        ORDER BY created_at ASC
+                        WHERE ra.succeeded_at IS NULL AND ra.failed_at IS NULL AND (ra.delay_until IS NULL OR ra.delay_until <= statement_timestamp()) AND (COALESCE(sw.worker__id, ow.worker__id) IS NULL OR COALESCE(sw.worker__id, ow.worker__id) = $1)
+                        ORDER BY ra.created_at ASC
                         LIMIT 1
                         FOR UPDATE OF ra
                         SKIP LOCKED
@@ -184,11 +187,14 @@ async fn main() -> anyhow::Result<()> {
                         SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.retry_count, t_http.method AS http_method, t_http.url AS http_url, t_http.headers AS http_headers, e.event_type__name, e.payload AS payload, e.payload_content_type AS payload_content_type, s.secret
                         FROM webhook.request_attempt AS ra
                         INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
-                        INNER JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id AND sw.worker__id = $1
+                        LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
+                        INNER JOIN event.application AS a ON a.application__id = s.application__id
+                        INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
+                        LEFT JOIN iam.organization__worker AS ow ON ow.organization__id = o.organization__id AND ow.default = true
                         INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
                         INNER JOIN event.event AS e ON e.event__id = ra.event__id
-                        WHERE succeeded_at IS NULL AND failed_at IS NULL AND (delay_until IS NULL OR delay_until <= statement_timestamp())
-                        ORDER BY created_at ASC
+                        WHERE ra.succeeded_at IS NULL AND ra.failed_at IS NULL AND (ra.delay_until IS NULL OR ra.delay_until <= statement_timestamp()) AND (COALESCE(sw.worker__id, ow.worker__id) = $1)
+                        ORDER BY ra.created_at ASC
                         LIMIT 1
                         FOR UPDATE OF ra
                         SKIP LOCKED
