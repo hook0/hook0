@@ -13,6 +13,7 @@ import Hook0DropdownMenuItems from '@/components/Hook0DropdownMenuItems.vue';
 import Hook0DropdownMenuItemText from '@/components/Hook0DropdownMenuItemText.vue';
 import Hook0DropdownMenuItemLink from '@/components/Hook0DropdownMenuItemLink.vue';
 import Hook0Loader from '@/components/Hook0Loader.vue';
+import CrispChat from '@/components/CrispChat.vue';
 
 const $keycloak = inject(keycloakKey) as Keycloak;
 
@@ -78,4 +79,6 @@ onMounted(() => {
     </Hook0Dropdown>
     <Hook0Loader v-else></Hook0Loader>
   </div>
+
+  <CrispChat v-if="currentUser" :email="currentUser.email" :name="currentUser.name" />
 </template>
