@@ -20,6 +20,7 @@ use crate::extractor_user_ip::UserIp;
 use crate::iam::{AuthProof, Role};
 use crate::openapi::OaApplicationSecret;
 use crate::problems::Hook0Problem;
+use crate::quotas::Quota;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, IntoStaticStr, EnumVariantNames)]
 pub enum PayloadContentType {
@@ -306,39 +307,92 @@ pub async fn ingest(
         .expect("could not serialize event labels into JSON");
 
     if let Some(AuthProof::ApplicationSecret {
-        application_id: _,
+        application_id,
         name: _,
         secret,
     }) = auth
         .can_access_application(&state.db, &body.application_id, &Role::Editor)
         .await
     {
-        let content_type = PayloadContentType::from_str(&body.payload_content_type)?;
-        let payload = content_type.validate_and_decode(&body.payload)?;
-
-        let event = query_as!(
-            IngestedEvent,
+        #[allow(non_snake_case)]
+        struct Org {
+            price__id: Option<Uuid>,
+        }
+        let can_exceed_events_per_day_quota = query_as!(
+            Org,
             "
-                INSERT INTO event.event (application__id, event__id, event_type__name, payload, payload_content_type, ip, metadata, occurred_at, received_at, application_secret__token, labels)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, statement_timestamp(), $9, $10)
-                RETURNING application__id AS application_id, event__id AS event_id, received_at
+                SELECT o.price__id
+                FROM event.application AS a
+                INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
+                WHERE a.application__id = $1
             ",
-            &body.application_id,
-            &body.event_id,
-            &body.event_type,
-            &payload,
-            &body.payload_content_type,
-            ip.into_inner(),
-            metadata,
-            &body.occurred_at,
-            secret,
-            labels,
+            &application_id
         )
         .fetch_one(&state.db)
         .await
-        .map_err(Hook0Problem::from)?;
+        .map_err(Hook0Problem::from)?
+        .price__id
+        .is_some();
+        let events_per_days_limit = state
+            .quotas
+            .get_limit_for_application(&state.db, Quota::EventsPerDay, application_id)
+            .await?;
 
-        Ok(CreatedJson(event))
+        let can_ingest = if can_exceed_events_per_day_quota {
+            true
+        } else {
+            #[allow(non_snake_case)]
+            struct EventsPerDay {
+                amount: i64,
+            }
+            let current_events_per_day = query_as!(
+                EventsPerDay,
+                r#"
+                    SELECT COALESCE(amount, 0) AS "amount!"
+                    FROM event.events_per_day
+                    WHERE application__id = $1 AND date = current_date
+                "#,
+                application_id
+            )
+            .fetch_optional(&state.db)
+            .await
+            .map_err(Hook0Problem::from)?
+            .map(|e| e.amount)
+            .unwrap_or(0);
+
+            current_events_per_day < events_per_days_limit as i64
+        };
+
+        if can_ingest {
+            let content_type = PayloadContentType::from_str(&body.payload_content_type)?;
+            let payload = content_type.validate_and_decode(&body.payload)?;
+
+            let event = query_as!(
+                IngestedEvent,
+                "
+                    INSERT INTO event.event (application__id, event__id, event_type__name, payload, payload_content_type, ip, metadata, occurred_at, received_at, application_secret__token, labels)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, statement_timestamp(), $9, $10)
+                    RETURNING application__id AS application_id, event__id AS event_id, received_at
+                ",
+                application_id,
+                &body.event_id,
+                &body.event_type,
+                &payload,
+                &body.payload_content_type,
+                ip.into_inner(),
+                metadata,
+                &body.occurred_at,
+                secret,
+                labels,
+            )
+            .fetch_one(&state.db)
+            .await
+            .map_err(Hook0Problem::from)?;
+
+            Ok(CreatedJson(event))
+        } else {
+            Err(Hook0Problem::TooManyEventsToday(events_per_days_limit))
+        }
     } else {
         Err(Hook0Problem::Forbidden)
     }

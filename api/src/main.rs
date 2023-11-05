@@ -12,6 +12,7 @@ use paperclip::actix::{web, OpenApiExt};
 use reqwest::Url;
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 use std::str::FromStr;
+use std::time::Duration;
 use uuid::Uuid;
 
 mod extractor_user_ip;
@@ -19,6 +20,7 @@ mod handlers;
 mod hook0_client;
 mod iam;
 mod keycloak_api;
+mod materialized_views;
 mod middleware_application_secret;
 mod middleware_get_user_ip;
 mod openapi;
@@ -189,6 +191,10 @@ struct Config {
     /// Default limit of day of event's retention (can be overriden by a plan)
     #[clap(long, env, default_value = "7")]
     quota_global_days_of_events_retention_limit: quotas::QuotaValue,
+
+    /// Duration (in second) to wait between materialized views refreshes
+    #[clap(long, env, default_value = "60")]
+    materialized_views_refresh_period_in_s: u64,
 }
 
 /// The app state
@@ -306,6 +312,15 @@ async fn main() -> anyhow::Result<()> {
     if master_api_key.is_some() {
         warn!("The master API key is defined in the current configuration; THIS MAY BE A SECURITY ISSUE IN PRODUCTION");
     }
+
+    let refresh_db = pool.clone();
+    actix_web::rt::spawn(async move {
+        materialized_views::periodically_refresh_materialized_views(
+            &refresh_db,
+            Duration::from_secs(config.materialized_views_refresh_period_in_s),
+        )
+        .await;
+    });
 
     // Initialize state
     let initial_state = State {
