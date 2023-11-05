@@ -173,8 +173,8 @@ impl Quotas {
                 }
             };
             let plan_value = match app_value {
-                Some(r) => r.val,
-                None => match quota {
+                Some(QueryResult { val: Some(val) }) => Some(val),
+                _ => match quota {
                     Quota::MembersPerOrganization => {
                         query_as!(
                             QueryResult,
