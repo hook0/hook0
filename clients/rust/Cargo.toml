@@ -5,11 +5,11 @@ edition = "2021"
 
 [dependencies]
 chrono = { version = "0.4.31", features = ["serde"] }
-lazy-regex = "3.0.2"
+lazy-regex = "3.1.0"
 log = "0.4.20"
 reqwest = { version = "0.11.22", default-features = false, features = ["trust-dns", "json"] }
-serde = { version = "1.0.190", features = ["derive"] }
-serde_json = "1.0.107"
+serde = { version = "1.0.192", features = ["derive"] }
+serde_json = "1.0.108"
 thiserror = "1.0.50"
 url = "2.4.1"
 uuid = { version = "1.5.0", features = ["serde", "v4"] }
