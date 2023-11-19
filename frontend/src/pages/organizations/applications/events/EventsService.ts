@@ -19,10 +19,13 @@ const enum PayloadContentType {
 
 function decode(payload: string, payload_content_type_name: string): string {
   switch (payload_content_type_name) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     case PayloadContentType.Text:
       return atob(payload);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     case PayloadContentType.Json:
       return JSON.stringify(JSON.parse(atob(payload)), null, 4);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     case PayloadContentType.Binary:
     default:
       return payload;
