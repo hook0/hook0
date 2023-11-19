@@ -51,6 +51,7 @@ pub enum Hook0Problem {
     // Quota errors
     TooManyMembersPerOrganization(QuotaValue),
     TooManyApplicationsPerOrganization(QuotaValue),
+    TooManyEventsToday(QuotaValue),
 
     // Generic errors
     JsonPayload(JsonPayloadProblem),
@@ -292,6 +293,16 @@ impl From<Hook0Problem> for Problem {
                 Problem {
                     id: Hook0Problem::TooManyApplicationsPerOrganization(limit),
                     title: "Exceeded number of applications that can be created in this organization",
+                    detail: detail.into(),
+                    validation: None,
+                    status: StatusCode::TOO_MANY_REQUESTS,
+                }
+            },
+            Hook0Problem::TooManyEventsToday(limit) => {
+                let detail = format!("This organization cannot ingest more than {limit} events per day. You might want to upgrade to a better plan.");
+                Problem {
+                    id: Hook0Problem::TooManyEventsToday(limit),
+                    title: "Exceeded number of events that can be ingested in this organization today",
                     detail: detail.into(),
                     validation: None,
                     status: StatusCode::TOO_MANY_REQUESTS,
