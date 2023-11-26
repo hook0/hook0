@@ -53,7 +53,7 @@
     "crisp-sdk-web": "^1.0.21",
     "date-fns": "^2.29.3",
     "fp-ts": "^2.11.6",
-    "keycloak-js": "^22.0.0",
+    "keycloak-js": "^23.0.0",
     "lodash.debounce": "^4.0.8",
     "ramda": "^0.29.0",
     "swagger-ui": "^4.15.0",
