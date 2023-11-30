@@ -526,6 +526,12 @@ pub async fn update(
         .await
         .unwrap_or(Uuid::nil());
 
+    let metadata = match body.metadata.as_ref() {
+        Some(m) => serde_json::to_value(m.clone())
+            .expect("could not serialize subscription metadata into JSON"),
+        None => json!({}),
+    };
+
     let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
 
     #[allow(non_snake_case)]
@@ -550,7 +556,7 @@ pub async fn update(
                 ",
                 &body.is_enabled, // updatable
                 body.description, // updatable
-                serde_json::to_value(body.metadata.clone()).expect("could not serialize subscription metadata into JSON"), // updatable (our validator layer ensure this will never fail)
+                metadata, // updatable (our validator layer ensure this will never fail)
                 &body.label_key, // updatable
                 &body.label_value, // updatable
                 &subscription_id.into_inner(), // read-only
