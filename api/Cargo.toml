@@ -18,7 +18,7 @@ anyhow = "1.0.75"
 async-recursion = "1.0.5"
 base64 = "0.21.5"
 chrono = { version = "0.4.31", features = ["serde"] }
-clap = { version = "4.4.8", features = ["derive", "env", "cargo", "wrap_help"] }
+clap = { version = "4.4.10", features = ["derive", "env", "cargo", "wrap_help"] }
 futures-util = "0.3.29"
 governor = "0.6.0"
 hook0-client = { path = "../clients/rust" }
@@ -31,7 +31,7 @@ nom-regex = "0.2.0"
 paperclip = { version = "0.8.2", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
 regex = "1.10.2"
 reqwest = { version = "0.11.22", default-features = false, features = ["trust-dns"] }
-sentry-actix = "0.31.8"
+sentry-actix = "0.32.0"
 sentry-integration = { path = "../sentry-integration" }
 serde = "1.0.193"
 serde_json = "1.0.108"
