@@ -5,10 +5,12 @@ use paperclip::actix::{
     web::{Data, Json, Path, Query},
     Apiv2Schema, CreatedJson, NoContent,
 };
-use serde::{Deserialize, Serialize};
+use reqwest::Url;
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{json, Value};
 use sqlx::{query, query_as};
 use std::collections::{HashMap, HashSet};
+use std::ops::Deref;
 use uuid::Uuid;
 use validator::Validate;
 
@@ -40,9 +42,49 @@ pub struct Subscription {
 pub enum Target {
     Http {
         method: String,
-        url: String,
+        #[serde(deserialize_with = "deserialize_http_url")]
+        url: HttpUrl,
         headers: HashMap<String, String>,
     },
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct HttpUrl(Url);
+
+impl Deref for HttpUrl {
+    type Target = Url;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl AsRef<Url> for HttpUrl {
+    fn as_ref(&self) -> &Url {
+        &self.0
+    }
+}
+
+fn deserialize_http_url<'de, D>(deserializer: D) -> Result<HttpUrl, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    const ALLOWED_SCHEMES: &[&str] = &["http", "https"];
+    let url = Url::deserialize(deserializer)?;
+
+    if !ALLOWED_SCHEMES.contains(&url.scheme()) {
+        Err(serde::de::Error::custom(format!(
+            "'{}' URLs are not allowed; use one of the following schemes: {}",
+            url.scheme(),
+            ALLOWED_SCHEMES.join(", ")
+        )))
+    } else if !url.has_host() {
+        Err(serde::de::Error::custom(
+            "URL must contain a host (domain or IP address)",
+        ))
+    } else {
+        Ok(HttpUrl(url))
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize, Apiv2Schema)]
@@ -377,7 +419,7 @@ pub async fn add(
             ",
             &subscription.target__id,
             method.to_uppercase(),
-            url,
+            url.as_str(),
             serde_json::to_value(headers).expect("could not serialize target headers into JSON"),
         )
         .execute(&mut *tx)
@@ -580,7 +622,7 @@ pub async fn update(
                         WHERE target__id = $4
                     ",
                     method.to_uppercase(),
-                    url,
+                    url.as_str(),
                     serde_json::to_value(headers)
                         .expect("could not serialize target headers into JSON"),
                     &s.target__id
