@@ -1,4 +1,4 @@
-ARG KEYCLOAK_VERSION=22.0
+ARG KEYCLOAK_VERSION=23.0
 
 FROM redhat/ubi9 as ubi-micro-build
 RUN mkdir -p /mnt/rootfs

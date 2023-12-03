@@ -48,9 +48,7 @@ services:
     volumes:
       - keycloak-keys:/opt/keycloak-keys
     environment:
-      - KC_DB_URL=jdbc:postgresql://postgres-keycloak:5432/keycloak
-      - KC_DB_USERNAME=postgres
-      - KC_DB_PASSWORD=postgres
+      - KC_DB_URL=jdbc:postgresql://postgres-keycloak:5432/keycloak?user=postgres&password=postgres
       - KEYCLOAK_ADMIN=admin
       - KEYCLOAK_ADMIN_PASSWORD=admin
       - KEYCLOAK_REALM=hook0
