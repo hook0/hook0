@@ -454,9 +454,9 @@ dependencies = [
 
 [[package]]
 name = "atomic-write-file"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ae364a6c1301604bbc6dfbf8c385c47ff82301dd01eef506195a029196d8d04"
+checksum = "edcdbedc2236483ab103a53415653d6b4442ea6141baf1ffa85df29635e88436"
 dependencies = [
  "nix",
  "rand",
@@ -676,9 +676,9 @@ dependencies = [
 
 [[package]]
 name = "core-foundation"
-version = "0.9.3"
+version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "194a7a9e6de53fa55116934067c844d9d749312f75c6f6d0980e8c252f8c2146"
+checksum = "91e195e091a93c46f7102ec7818a2aa394e1e1771c3ab4825963fa03e45afb8f"
 dependencies = [
  "core-foundation-sys",
  "libc",
@@ -686,9 +686,9 @@ dependencies = [
 
 [[package]]
 name = "core-foundation-sys"
-version = "0.8.4"
+version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e496a50fda8aacccc86d7529e2c1e0892dbd0f898a6b5645b5561b89c3210efa"
+checksum = "06ea2b9bc92be3c2baa9334a323ebca2d6f074ff852cd1d7b11064035cd3868f"
 
 [[package]]
 name = "cpufeatures"
@@ -804,9 +804,9 @@ dependencies = [
 
 [[package]]
 name = "deranged"
-version = "0.3.9"
+version = "0.3.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0f32d04922c60427da6f9fef14d042d9edddef64cb9d4ce0d64d0685fbeb1fd3"
+checksum = "8eb30d70a07a3b04884d2677f06bec33509dc67ca60d92949e5535352d3191dc"
 dependencies = [
  "powerfmt",
 ]
@@ -1635,9 +1635,9 @@ checksum = "0717cef1bc8b636c6e1c1bbdefc09e6322da8a9321966e8928ef80d20f7f770f"
 
 [[package]]
 name = "linux-raw-sys"
-version = "0.4.11"
+version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "969488b55f8ac402214f3f5fd243ebb7206cf82de60d3172994707a4bcc2b829"
+checksum = "c4cd1a83af159aa67994778be9070f0ae1bd732942279cabb14f86f986a21456"
 
 [[package]]
 name = "local-channel"
@@ -2319,9 +2319,9 @@ dependencies = [
 
 [[package]]
 name = "rsa"
-version = "0.9.5"
+version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af6c4b23d99685a1408194da11270ef8e9809aff951cc70ec9b17350b087e474"
+checksum = "5d0e5124fcb30e76a7e79bfee683a2746db83784b86289f6251b54b7950a0dfc"
 dependencies = [
  "const-oid",
  "digest",
@@ -2354,15 +2354,15 @@ dependencies = [
 
 [[package]]
 name = "rustix"
-version = "0.38.25"
+version = "0.38.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc99bc2d4f1fed22595588a013687477aedf3cdcfb26558c559edb67b4d9b22e"
+checksum = "9470c4bf8246c8daf25f9598dca807fb6510347b1e1cfa55749113850c79d88a"
 dependencies = [
  "bitflags 2.4.1",
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.48.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3903,18 +3903,18 @@ dependencies = [
 
 [[package]]
 name = "zerocopy"
-version = "0.7.27"
+version = "0.7.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f43de342578a3a14a9314a2dab1942cbfcbe5686e1f91acdc513058063eafe18"
+checksum = "7d6f15f7ade05d2a4935e34a457b936c23dc70a05cc1d97133dc99e7a3fe0f0e"
 dependencies = [
  "zerocopy-derive",
 ]
 
 [[package]]
 name = "zerocopy-derive"
-version = "0.7.27"
+version = "0.7.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1012d89e3acb79fad7a799ce96866cfb8098b74638465ea1b1533d35900ca90"
+checksum = "dbbad221e3f78500350ecbd7dfa4e63ef945c05f4c61cb7f4d3f84cd0bba649b"
 dependencies = [
  "proc-macro2",
  "quote",
