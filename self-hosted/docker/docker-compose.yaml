@@ -126,6 +126,7 @@ services:
     environment:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/hook0
       - WORKER_NAME=default
+      - DISABLE_TARGET_IP_CHECK=true
     networks:
       - hook0
     restart: unless-stopped
