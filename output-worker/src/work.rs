@@ -12,7 +12,7 @@ use std::str::FromStr;
 use std::time::{Duration, Instant};
 use strum::EnumVariantNames;
 
-use crate::RequestAttempt;
+use crate::{Config, RequestAttempt};
 
 const USER_AGENT: &str = concat!(crate_name!(), "/", crate_version!());
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
@@ -77,7 +77,7 @@ impl Response {
     }
 }
 
-pub async fn work(disable_target_ip_check: bool, attempt: &RequestAttempt) -> Response {
+pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
     debug!(
         "Processing request attempt {}",
         &attempt.request_attempt__id
@@ -159,7 +159,7 @@ pub async fn work(disable_target_ip_check: bool, attempt: &RequestAttempt) -> Re
             });
 
             if has_forbidden_ip {
-                if disable_target_ip_check {
+                if config.disable_target_ip_check {
                     debug!("Target URL resolves to a forbidden IP but this is allowed in the worker's configuration");
                     Ok(url)
                 } else {

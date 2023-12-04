@@ -120,9 +120,10 @@ const SLOW_RETRY_DELAY: Duration = Duration::from_secs(60 * 60);
 async fn main() -> anyhow::Result<()> {
     let config = Config::parse();
 
-    let worker_name = config.worker_name;
+    let worker_name = config.worker_name.to_owned();
     let worker_version = config
         .worker_version
+        .to_owned()
         .unwrap_or_else(|| crate_version!().to_owned());
 
     // Initialize app logger as well as Sentry integration
@@ -245,7 +246,7 @@ async fn main() -> anyhow::Result<()> {
             info!("Picked request attempt {}", &attempt.request_attempt__id);
 
             // Work
-            let response = work(config.disable_target_ip_check, &attempt).await;
+            let response = work(&config, &attempt).await;
             debug!(
                 "Got a response for request attempt {} in {} ms",
                 &attempt.request_attempt__id,
