@@ -37,7 +37,7 @@ pub struct Subscription {
     pub dedicated_workers: Vec<String>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, Apiv2Schema)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Apiv2Schema)]
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum Target {
     Http {
@@ -48,7 +48,7 @@ pub enum Target {
     },
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct HttpUrl(Url);
 
 impl Deref for HttpUrl {
@@ -861,5 +861,59 @@ pub async fn delete(
             Ok(NoContent)
         }
         None => Err(Hook0Problem::NotFound),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::from_value;
+
+    use super::*;
+
+    #[test]
+    fn test_deserialize_http_target_valid() {
+        let url = "https://www.hook0.com";
+        let input = json!({
+            "type": "http",
+            "method": "GET",
+            "headers": {},
+            "url": url,
+        });
+        let expected = Target::Http {
+            method: "GET".to_owned(),
+            url: HttpUrl(Url::parse(url).unwrap()),
+            headers: HashMap::new(),
+        };
+        assert_eq!(from_value::<Target>(input).unwrap(), expected);
+    }
+
+    #[test]
+    fn test_deserialize_http_target_wrong_scheme() {
+        let url = "ftp://www.hook0.com";
+        let input = json!({
+            "type": "http",
+            "method": "GET",
+            "headers": {},
+            "url": url,
+        });
+        assert!(from_value::<Target>(input)
+            .unwrap_err()
+            .to_string()
+            .contains("scheme"));
+    }
+
+    #[test]
+    fn test_deserialize_http_target_no_host() {
+        let url = "http://";
+        let input = json!({
+            "type": "http",
+            "method": "GET",
+            "headers": {},
+            "url": url,
+        });
+        assert!(from_value::<Target>(input)
+            .unwrap_err()
+            .to_string()
+            .contains("host"));
     }
 }
