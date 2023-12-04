@@ -1,6 +1,6 @@
 [package]
 name = "hook0-output-worker"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["David Sferruzza <david.sferruzza@gmail.com>", "François-Guillaume Ribreau <hook0@fgribreau.com>"]
 edition = "2021"
 license = "SSPL-1.0"

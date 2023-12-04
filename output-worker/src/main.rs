@@ -3,18 +3,20 @@ mod work;
 
 use chrono::{DateTime, Utc};
 use clap::{crate_name, crate_version, Parser};
-use log::{debug, info, trace, warn};
+use log::{debug, error, info, trace, warn};
 use reqwest::header::HeaderMap;
 use reqwest::Url;
 use sqlx::postgres::types::PgInterval;
-use sqlx::postgres::PgConnectOptions;
-use sqlx::{query, query_as, Connection, PgConnection};
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use sqlx::{query, query_as, PgConnection, PgPool};
 use std::cmp::min;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::str::FromStr;
 use std::time::Duration;
 use strum::VariantNames;
+use tokio::sync::mpsc::{channel, Sender};
+use tokio::task::JoinSet;
 use tokio::time::sleep;
 use uuid::Uuid;
 
@@ -39,6 +41,10 @@ struct Config {
     #[clap(long, env)]
     worker_version: Option<String>,
 
+    /// Number of request attempts to handle concurrently
+    #[clap(long, env, default_value = "1", value_parser=clap::value_parser!(u8).range(1..=100))]
+    concurrent: u8,
+
     /// Maximum number of fast retries (before doing slow retries)
     #[clap(long, env, default_value = "30")]
     max_fast_retries: u32,
@@ -60,7 +66,7 @@ struct Config {
     disable_target_ip_check: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 enum WorkerType {
     Public { worker_id: Option<Uuid> },
     Private { worker_id: Uuid },
@@ -136,21 +142,23 @@ async fn main() -> anyhow::Result<()> {
     );
 
     debug!("Connecting to database...");
-    let mut conn = PgConnection::connect_with(
-        &PgConnectOptions::from_str(&config.database_url)?
-            .application_name(&format!("{}-{worker_version}-{worker_name}", crate_name!(),)),
-    )
-    .await?;
+    let pool = PgPoolOptions::new()
+        .max_connections(config.concurrent.into())
+        .connect_with(
+            PgConnectOptions::from_str(&config.database_url)?
+                .application_name(&format!("{}-{worker_version}-{worker_name}", crate_name!(),)),
+        )
+        .await?;
     info!("Connected to database");
 
-    let worker_type = get_worker_type(&worker_name, &mut conn).await?;
+    let worker_type = get_worker_type(&worker_name, &pool).await?;
 
     if config.disable_target_ip_check {
         warn!("Webhook's target IP check is disabled: this allows the worker to send HTTP requests that target local IP addresses (for example: loopback, LAN, ...); THIS MAY BE A SECURITY ISSUE IN PRODUCTION")
     }
 
     info!("Upserting response error names");
-    let mut tx = conn.begin().await?;
+    let mut tx = pool.begin().await?;
     for error_name in ResponseError::VARIANTS {
         query!(
             "
@@ -167,13 +175,70 @@ async fn main() -> anyhow::Result<()> {
     tx.commit().await?;
     info!("Done upserting response error names");
 
-    let heartbeat_min_period = Duration::from_secs(config.monitoring_heartbeat_min_period_in_s);
-    let mut last_heartbeat = Utc::now() - heartbeat_min_period;
+    let mut tasks = JoinSet::new();
+    let minimun_tasks_len = if config.monitoring_heartbeat_url.is_some() {
+        1
+    } else {
+        0
+    };
 
+    let heartbeat_tx = if let Some(url) = config.monitoring_heartbeat_url {
+        let heartbeat_min_period = Duration::from_secs(config.monitoring_heartbeat_min_period_in_s);
+        let (tx, rx) = channel(10);
+        let wn = worker_name.to_owned();
+        let wv = worker_version.to_owned();
+        tasks.spawn(async move {
+            monitoring::heartbeat_sender(heartbeat_min_period, &url, rx, &wn, &wv).await
+        });
+        Some(tx)
+    } else {
+        None
+    };
+
+    for unit_id in 0..config.concurrent {
+        let p = pool.clone();
+        let wn = worker_name.to_owned();
+        let wv = worker_version.to_owned();
+        let tx = heartbeat_tx.to_owned();
+        tasks.spawn(async move {
+            let t = look_for_work(
+                unit_id,
+                &p,
+                &wn,
+                &wv,
+                &worker_type,
+                config.max_fast_retries,
+                config.max_slow_retries,
+                tx,
+            )
+            .await;
+            if let Err(ref e) = t {
+                error!("Unit {unit_id} crashed: {e}");
+            }
+            t
+        });
+    }
+
+    while tasks.len() > minimun_tasks_len && (tasks.join_next().await).is_some() {}
+
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn look_for_work(
+    unit_id: u8,
+    pool: &PgPool,
+    worker_name: &str,
+    worker_version: &str,
+    worker_type: &WorkerType,
+    max_fast_retries: u32,
+    max_slow_retries: u32,
+    heartbeat_tx: Option<Sender<u8>>,
+) -> anyhow::Result<()> {
     info!("Begin looking for work");
     loop {
-        trace!("Fetching next unprocessed request attempt...");
-        let mut tx = conn.begin().await?;
+        trace!("[unit={unit_id}] Fetching next unprocessed request attempt...");
+        let mut tx = pool.begin().await?;
 
         let next_attempt = match worker_type {
             WorkerType::Public { worker_id } => {
@@ -196,7 +261,7 @@ async fn main() -> anyhow::Result<()> {
                         FOR UPDATE OF ra
                         SKIP LOCKED
                     ",
-                    worker_id,
+                    worker_id.to_owned(),
                 )
                 .fetch_optional(&mut *tx)
                 .await?
@@ -230,7 +295,10 @@ async fn main() -> anyhow::Result<()> {
 
         if let Some(attempt) = next_attempt {
             // Set picked_at
-            debug!("Picking request attempt {}", &attempt.request_attempt__id);
+            debug!(
+                "[unit={unit_id}] Picking request attempt {}",
+                &attempt.request_attempt__id
+            );
             query!(
                 "
                     UPDATE webhook.request_attempt
@@ -243,20 +311,23 @@ async fn main() -> anyhow::Result<()> {
             )
             .execute(&mut *tx)
             .await?;
-            info!("Picked request attempt {}", &attempt.request_attempt__id);
+            info!(
+                "[unit={unit_id}] Picked request attempt {}",
+                &attempt.request_attempt__id
+            );
 
             // Work
             let response = work(&config, &attempt).await;
             debug!(
-                "Got a response for request attempt {} in {} ms",
+                "[unit={unit_id}] Got a response for request attempt {} in {} ms",
                 &attempt.request_attempt__id,
                 &response.elapsed_time_ms()
             );
-            trace!("{:?}", &response);
+            trace!("[unit={unit_id}] {:?}", &response);
 
             // Store response
             debug!(
-                "Storing response for request attempt {}",
+                "[unit={unit_id}] Storing response for request attempt {}",
                 &attempt.request_attempt__id
             );
             let response_id = query!(
@@ -277,7 +348,7 @@ async fn main() -> anyhow::Result<()> {
 
             // Associate response and request attempt
             debug!(
-                "Associating response {} with request attempt {}",
+                "[unit={unit_id}] Associating response {} with request attempt {}",
                 &response_id, &attempt.request_attempt__id
             );
             #[allow(clippy::suspicious_else_formatting)] // Clippy false positive
@@ -291,7 +362,7 @@ async fn main() -> anyhow::Result<()> {
             if response.is_success() {
                 // Mark attempt as completed
                 debug!(
-                    "Completing request attempt {}",
+                    "[unit={unit_id}] Completing request attempt {}",
                     &attempt.request_attempt__id
                 );
                 query!(
@@ -307,7 +378,10 @@ async fn main() -> anyhow::Result<()> {
                 );
             } else {
                 // Mark attempt as failed
-                debug!("Failing request attempt {}", &attempt.request_attempt__id);
+                debug!(
+                    "[unit={unit_id}] Failing request attempt {}",
+                    &attempt.request_attempt__id
+                );
                 query!(
                     "UPDATE webhook.request_attempt SET failed_at = statement_timestamp() WHERE request_attempt__id = $1",
                     attempt.request_attempt__id
@@ -319,8 +393,8 @@ async fn main() -> anyhow::Result<()> {
                 if let Some(retry_in) = compute_next_retry(
                     &mut tx,
                     &attempt.subscription__id,
-                    config.max_fast_retries,
-                    config.max_slow_retries,
+                    max_fast_retries,
+                    max_slow_retries,
                     attempt.retry_count,
                 )
                 .await?
@@ -342,7 +416,7 @@ async fn main() -> anyhow::Result<()> {
                     .request_attempt__id;
 
                     info!(
-                        "Request attempt {} failed; retry #{} created as {} to be picked in {}s",
+                        "[unit={unit_id}] Request attempt {} failed; retry #{} created as {} to be picked in {}s",
                         &attempt.request_attempt__id,
                         &next_retry_count,
                         &retry_id,
@@ -350,13 +424,13 @@ async fn main() -> anyhow::Result<()> {
                     );
                 } else {
                     info!(
-                        "Request attempt {} failed after {} attempts; giving up",
+                        "[unit={unit_id}] Request attempt {} failed after {} attempts; giving up",
                         &attempt.request_attempt__id, &attempt.retry_count,
                     );
                 }
             }
         } else {
-            trace!("No unprocessed attempt found");
+            trace!("[unit={unit_id}] No unprocessed attempt found");
             sleep(POLLING_SLEEP).await;
         }
 
@@ -364,22 +438,13 @@ async fn main() -> anyhow::Result<()> {
         tx.commit().await?;
 
         // Send monitoring heartbeat if necessary
-        if let Some(url) = &config.monitoring_heartbeat_url {
-            if last_heartbeat + heartbeat_min_period <= Utc::now() {
-                if let Err(e) = monitoring::send_heartbeat(url, &worker_name, &worker_version).await
-                {
-                    warn!("Monitoring heartbeat failed: {e}");
-                };
-                last_heartbeat = Utc::now();
-            }
+        if let Some(ref tx) = heartbeat_tx {
+            tx.send(unit_id).await?;
         }
     }
 }
 
-async fn get_worker_type(
-    worker_name: &str,
-    conn: &mut PgConnection,
-) -> Result<WorkerType, sqlx::Error> {
+async fn get_worker_type(worker_name: &str, conn: &PgPool) -> Result<WorkerType, sqlx::Error> {
     #[allow(non_snake_case)]
     struct Worker {
         worker__id: Uuid,
