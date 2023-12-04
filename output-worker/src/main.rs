@@ -182,7 +182,8 @@ async fn main() -> anyhow::Result<()> {
         0
     };
 
-    let heartbeat_tx = if let Some(url) = config.monitoring_heartbeat_url {
+    let monitoring_heartbeat_url = config.monitoring_heartbeat_url.to_owned();
+    let heartbeat_tx = if let Some(url) = monitoring_heartbeat_url {
         let heartbeat_min_period = Duration::from_secs(config.monitoring_heartbeat_min_period_in_s);
         let (tx, rx) = channel(10);
         let wn = worker_name.to_owned();
@@ -200,18 +201,9 @@ async fn main() -> anyhow::Result<()> {
         let wn = worker_name.to_owned();
         let wv = worker_version.to_owned();
         let tx = heartbeat_tx.to_owned();
+        let cfg = config.to_owned();
         tasks.spawn(async move {
-            let t = look_for_work(
-                unit_id,
-                &p,
-                &wn,
-                &wv,
-                &worker_type,
-                config.max_fast_retries,
-                config.max_slow_retries,
-                tx,
-            )
-            .await;
+            let t = look_for_work(&cfg, unit_id, &p, &wn, &wv, &worker_type, tx).await;
             if let Err(ref e) = t {
                 error!("Unit {unit_id} crashed: {e}");
             }
@@ -226,13 +218,12 @@ async fn main() -> anyhow::Result<()> {
 
 #[allow(clippy::too_many_arguments)]
 async fn look_for_work(
+    config: &Config,
     unit_id: u8,
     pool: &PgPool,
     worker_name: &str,
     worker_version: &str,
     worker_type: &WorkerType,
-    max_fast_retries: u32,
-    max_slow_retries: u32,
     heartbeat_tx: Option<Sender<u8>>,
 ) -> anyhow::Result<()> {
     info!("Begin looking for work");
@@ -317,7 +308,7 @@ async fn look_for_work(
             );
 
             // Work
-            let response = work(&config, &attempt).await;
+            let response = work(config, &attempt).await;
             debug!(
                 "[unit={unit_id}] Got a response for request attempt {} in {} ms",
                 &attempt.request_attempt__id,
@@ -393,8 +384,8 @@ async fn look_for_work(
                 if let Some(retry_in) = compute_next_retry(
                     &mut tx,
                     &attempt.subscription__id,
-                    max_fast_retries,
-                    max_slow_retries,
+                    config.max_fast_retries,
+                    config.max_slow_retries,
                     attempt.retry_count,
                 )
                 .await?
