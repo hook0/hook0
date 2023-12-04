@@ -226,7 +226,7 @@ async fn look_for_work(
     worker_type: &WorkerType,
     heartbeat_tx: Option<Sender<u8>>,
 ) -> anyhow::Result<()> {
-    info!("Begin looking for work");
+    info!("[unit={unit_id}] Begin looking for work");
     loop {
         trace!("[unit={unit_id}] Fetching next unprocessed request attempt...");
         let mut tx = pool.begin().await?;
@@ -364,7 +364,7 @@ async fn look_for_work(
                 .await?;
 
                 info!(
-                    "Request attempt {} was completed sucessfully",
+                    "[unit={unit_id}] Request attempt {} was completed sucessfully",
                     &attempt.request_attempt__id
                 );
             } else {
