@@ -54,6 +54,10 @@ struct Config {
     /// Minimal duration (in second) to wait between sending two heartbeats
     #[clap(long, env, default_value = "60")]
     monitoring_heartbeat_min_period_in_s: u64,
+
+    /// If set to false (default), webhooks that target IPs that are not globally reachable (like "127.0.0.1" for example) will fail
+    #[clap(long, env, default_value = "false")]
+    disable_target_ip_check: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -116,9 +120,10 @@ const SLOW_RETRY_DELAY: Duration = Duration::from_secs(60 * 60);
 async fn main() -> anyhow::Result<()> {
     let config = Config::parse();
 
-    let worker_name = config.worker_name;
+    let worker_name = config.worker_name.to_owned();
     let worker_version = config
         .worker_version
+        .to_owned()
         .unwrap_or_else(|| crate_version!().to_owned());
 
     // Initialize app logger as well as Sentry integration
@@ -139,6 +144,10 @@ async fn main() -> anyhow::Result<()> {
     info!("Connected to database");
 
     let worker_type = get_worker_type(&worker_name, &mut conn).await?;
+
+    if config.disable_target_ip_check {
+        warn!("Webhook's target IP check is disabled: this allows the worker to send HTTP requests that target local IP addresses (for example: loopback, LAN, ...); THIS MAY BE A SECURITY ISSUE IN PRODUCTION")
+    }
 
     info!("Upserting response error names");
     let mut tx = conn.begin().await?;
@@ -237,7 +246,7 @@ async fn main() -> anyhow::Result<()> {
             info!("Picked request attempt {}", &attempt.request_attempt__id);
 
             // Work
-            let response = work(&attempt).await;
+            let response = work(&config, &attempt).await;
             debug!(
                 "Got a response for request attempt {} in {} ms",
                 &attempt.request_attempt__id,
