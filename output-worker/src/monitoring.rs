@@ -15,7 +15,7 @@ struct HearbeatBody<'a> {
 pub async fn heartbeat_sender(
     heartbeat_min_period: Duration,
     url: &Url,
-    mut rx: Receiver<u8>,
+    rx: &mut Receiver<u8>,
     worker_name: &str,
     worker_version: &str,
 ) -> anyhow::Result<()> {
