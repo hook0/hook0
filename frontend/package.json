@@ -38,10 +38,10 @@
     "generate:types:prod": "openapi-typescript https://app.hook0.com/api/v1/swagger.json --output src/types.ts"
   },
   "dependencies": {
-    "@ag-grid-community/client-side-row-model": "^30.0.2",
-    "@ag-grid-community/core": "^30.0.2",
-    "@ag-grid-community/styles": "^30.0.2",
-    "@ag-grid-community/vue3": "^30.0.2",
+    "@ag-grid-community/client-side-row-model": "^31.0.1",
+    "@ag-grid-community/core": "^31.0.1",
+    "@ag-grid-community/styles": "^31.0.1",
+    "@ag-grid-community/vue3": "^31.0.1",
     "@codemirror/lang-json": "^6.0.1",
     "@codemirror/theme-one-dark": "^6.1.0",
     "@fortawesome/fontawesome-svg-core": "^6.2.0",
