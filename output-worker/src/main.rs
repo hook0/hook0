@@ -176,11 +176,12 @@ async fn main() -> anyhow::Result<()> {
     info!("Done upserting response error names");
 
     let mut tasks = JoinSet::new();
-    let minimun_tasks_len = if config.monitoring_heartbeat_url.is_some() {
-        1
-    } else {
-        0
-    };
+    let expected_tasks_len = usize::from(config.concurrent)
+        + if config.monitoring_heartbeat_url.is_some() {
+            1
+        } else {
+            0
+        };
 
     let monitoring_heartbeat_url = config.monitoring_heartbeat_url.to_owned();
     let heartbeat_tx = if let Some(url) = monitoring_heartbeat_url {
@@ -189,7 +190,16 @@ async fn main() -> anyhow::Result<()> {
         let wn = worker_name.to_owned();
         let wv = worker_version.to_owned();
         tasks.spawn(async move {
-            monitoring::heartbeat_sender(heartbeat_min_period, &url, rx, &wn, &wv).await
+            let mut rx = rx;
+            loop {
+                let t = monitoring::heartbeat_sender(heartbeat_min_period, &url, &mut rx, &wn, &wv)
+                    .await;
+                if let Err(ref e) = t {
+                    error!("Monitoring task crashed: {e}");
+                }
+                sleep(Duration::from_secs(1)).await;
+                info!("Restarting monitoring task...");
+            }
         });
         Some(tx)
     } else {
@@ -203,17 +213,20 @@ async fn main() -> anyhow::Result<()> {
         let tx = heartbeat_tx.to_owned();
         let cfg = config.to_owned();
         tasks.spawn(async move {
-            let t = look_for_work(&cfg, unit_id, &p, &wn, &wv, &worker_type, tx).await;
-            if let Err(ref e) = t {
-                error!("Unit {unit_id} crashed: {e}");
+            loop {
+                let t = look_for_work(&cfg, unit_id, &p, &wn, &wv, &worker_type, tx.clone()).await;
+                if let Err(ref e) = t {
+                    error!("Unit {unit_id} crashed: {e}");
+                }
+                sleep(Duration::from_secs(1)).await;
+                info!("Restarting unit {unit_id}...");
             }
-            t
         });
     }
 
-    while tasks.len() > minimun_tasks_len && (tasks.join_next().await).is_some() {}
+    while tasks.len() >= expected_tasks_len && (tasks.join_next().await).is_some() {}
 
-    Ok(())
+    Err(anyhow::anyhow!("Fatal error"))
 }
 
 #[allow(clippy::too_many_arguments)]
