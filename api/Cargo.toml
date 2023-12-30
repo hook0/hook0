@@ -12,14 +12,14 @@ actix = "0.13.1"
 actix-cors = "0.6.5"
 actix-files = "0.6.2"
 actix-governor = { version = "0.5.0", features = ["log"] }
-actix-web = "4.4.0"
+actix-web = "4.4.1"
 actix-web-middleware-keycloak-auth = { version = "0.4.2", features = ["paperclip_compat"] }
-anyhow = "1.0.75"
+anyhow = "1.0.77"
 async-recursion = "1.0.5"
 base64 = "0.21.5"
 chrono = { version = "0.4.31", features = ["serde"] }
-clap = { version = "4.4.11", features = ["derive", "env", "cargo", "wrap_help"] }
-futures-util = "0.3.29"
+clap = { version = "4.4.12", features = ["derive", "env", "cargo", "wrap_help"] }
+futures-util = "0.3.30"
 governor = "0.6.0"
 hook0-client = { path = "../clients/rust" }
 http-api-problem = { version = "0.57.0", features = ["actix-web"] }
@@ -30,14 +30,14 @@ nom = "7.1.3"
 nom-regex = "0.2.0"
 paperclip = { version = "0.8.2", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
 regex = "1.10.2"
-reqwest = { version = "0.11.22", default-features = false, features = ["trust-dns"] }
-sentry-actix = "0.32.0"
+reqwest = { version = "0.11.23", default-features = false, features = ["trust-dns"] }
+sentry-actix = "0.32.1"
 sentry-integration = { path = "../sentry-integration" }
 serde = "1.0.193"
 serde_json = "1.0.108"
 sqlx = { version = "0.7.3", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "migrate"] }
 strum = { version = "0.25.0", features = ["derive"] }
-thiserror = "1.0.50"
+thiserror = "1.0.52"
 url = "2.5.0"
 uuid = { version = "1.6.1", features = ["serde", "v4"] }
 validator = { version = "0.16.1", features = ["derive", "unic"] }
