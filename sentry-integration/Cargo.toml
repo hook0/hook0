@@ -9,4 +9,4 @@ license = "SSPL-1.0"
 [dependencies]
 env_logger = "0.10.1"
 log = "0.4.20"
-sentry = { version = "0.32.0", default-features = false, features = ["backtrace", "contexts", "panic", "reqwest", "rustls", "log", "debug-logs", "anyhow"] }
+sentry = { version = "0.32.1", default-features = false, features = ["backtrace", "contexts", "panic", "reqwest", "rustls", "log", "debug-logs", "anyhow"] }
