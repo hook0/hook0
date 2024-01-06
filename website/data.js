@@ -197,7 +197,7 @@ locals.subscriptionLinks = {
     pro: 'https://buy.stripe.com/fZe02ucoR007b7y8ww',
   },
   onprem: {
-    pro: 'https://buy.stripe.com/14k02u3SlfZ5b7y8wy',
+    pro: 'https://buy.stripe.com/3cs9D4gF75kr5NefZ6',
   },
 };
 
