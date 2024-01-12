@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
     <title>Hook0 — Open-Source Webhooks-as-a-service (WaaS)</title>
-    <%- include ('./_head.ejs') %>
+    <%- include('./includes/_head.ejs') %>
 </head>
 <body>
   <a name="top"></a>
 
-<%- include ('./_header.ejs') %>
+<%- include('./includes/_header.ejs') %>
 
 <div class="relative overflow-hidden">
     <main>
@@ -20,7 +20,7 @@
                                class="inline-flex items-center text-white bg-black rounded-full p-1 pr-2 sm:text-base lg:text-sm xl:text-base hover:text-gray-200">
                                 <span class="px-3 py-0.5 text-white text-xs font-semibold leading-5 tracking-wide bg-green-500 rounded-full">No investors thus future-proof</span>
                                 <span class="ml-4 text-sm">Hook0 is open-Source</span>
-                                <%- include ('./svg/chevron-right.svg') %>
+                                <%- include('./svg/chevron-right.svg') %>
                             </a>
                             <h1 class="mt-4 text-4xl tracking-tight font-extrabold text-white sm:mt-5 sm:text-6xl lg:mt-6 xl:text-6xl">
                                 <span class="block">Webhooks</span>
@@ -42,15 +42,15 @@
                                 <div class="mt-8 w-full sm:mx-auto sm:max-w-lg lg:ml-0">
                                     <div class="flex flex-wrap items-start justify-between">
                                         <div class="flex justify-center px-1 text-white">
-                                            <%- include ('./svg/check-white.svg') %>
+                                            <%- include('./svg/check-white.svg') %>
                                             Free Trial
                                         </div>
                                         <div class="flex justify-center px-1 text-white">
-                                            <%- include ('./svg/check-white.svg') %>
+                                            <%- include('./svg/check-white.svg') %>
                                             No Credit Card Required
                                         </div>
                                         <div class="flex justify-center px-1 text-white">
-                                            <%- include ('./svg/check-white.svg') %>
+                                            <%- include('./svg/check-white.svg') %>
                                             Cancel Anytime
                                         </div>
                                     </div>
@@ -138,25 +138,25 @@
     </main>
 </div>
 
-  <%- include('./_customers') %>
+<%- include('./includes/_customers.ejs') %>
 
 <a name="how-it-works"></a>
 
 
-<%- include('./_features') %>
+<%- include('./includes/_features.ejs') %>
 
-<%- include('./_testimonials') %>
+<%- include('./includes/_testimonials.ejs') %>
 
-<%- include('./_use-case') %>
+<%- include('./includes/_use-case.ejs') %>
 
-  <%- include('./_api-and-doc.ejs') %>
+<%- include('./includes/_api-and-doc.ejs') %>
 
 <a name="pricing" id="pricing"></a>
-<%- include('./_pricing') %>
+<%- include('./includes/_pricing.ejs') %>
 
-<%- include ('./_faq.ejs') %>
+<%- include('./includes/_faq.ejs') %>
 
-<%- include ('./_footer.ejs') %>
+<%- include('./includes/_footer.ejs') %>
 
 </body>
 </html>
