@@ -1,0 +1,30 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<link rel='stylesheet' href='./style.scss'/>
+
+<% if (process.env.CRISP_WEBSITE_ID) { %>
+<!-- Crisp -->
+<script type="text/javascript">
+    window.$crisp=[];
+    window.CRISP_WEBSITE_ID="<%= process.env.CRISP_WEBSITE_ID %>";
+    (function(){d=document;s=d.createElement("script");s.src="https://client.crisp.chat/l.js";s.async=1;d.getElementsByTagName("head")[0].appendChild(s);})();
+</script>
+<% } %>
+
+<% if (process.env.MATOMO_URL && process.env.MATOMO_SITE_ID) { %>
+<!-- Matomo -->
+<script>
+    var _paq = window._paq = window._paq || [];
+    /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+    _paq.push(['trackPageView']);
+    _paq.push(['enableLinkTracking']);
+    (function() {
+    var u="<%= process.env.MATOMO_URL %>";
+    _paq.push(['setTrackerUrl', u+'piwik.php']);
+    _paq.push(['setSiteId', '<%= process.env.MATOMO_SITE_ID %>']);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.async=true; g.src=u+'piwik.js'; s.parentNode.insertBefore(g,s);
+    })();
+</script>
+<!-- End Matomo Code -->
+<% } %>
