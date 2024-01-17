@@ -18,25 +18,39 @@
 
 
                 <ul role="list">
-                    <li>Hook0 started life as a way to open-source the internal webhook management services from
+                    <li>
+                        Hook0 started life as a way to open-source the internal webhook management services from
                         François-Guillaume Ribreau and David Sferruzza successive SaaS and stop writing again and again
                         somewhat the same code.
                     </li>
                     <li>We do not share user data with third parties under any circumstances.</li>
                     <li>All revenue comes from paid subscriptions, removing the need for any type of tracking.</li>
-                    <li>Hook0 does not store your payment information. Payment is handled through Stripe, but if you are
+                    <li>
+                        Hook0 does not store your payment information. Payment is handled through Stripe, but if you are
                         uncomfortable using those services, alternative arrangements are available.
                     </li>
-                    <li>Hook0 earns all of its revenue through user subscriptions, and has no business relationship with
+                    <li>
+                        Hook0 earns all of its revenue through user subscriptions, and has no business relationship with
                         large surveillance-based platforms like Facebook, Amazon or Google.
                     </li>
-                    <li>If there is a privacy breach, we promise to disclose it as soon as possible on the <a
+                    <% if (process.env.MATOMO_URL && process.env.MATOMO_SITE_ID) { %>
+                    <li>
+                        We use a self-hosted instance of Matomo to track visits on this website.
+                        It is configured to be GDPR compliant and does not track any personal data.
+                        <div id="matomo-opt-out"></div>
+                        <script src="<%= process.env.MATOMO_URL %>/index.php?module=CoreAdminHome&action=optOutJS&divId=matomo-opt-out&language=auto&showIntro=1"></script>
+                    </li>
+                    <% } %>
+                    <li>
+                        If there is a privacy breach, we promise to disclose it as soon as possible on the <a
                                 href='https://twitter.com/hook0_'>Twitter</a> account.
                     </li>
-                    <li>If you choose to delete your account, all your data will be removed after a 30-day waiting
+                    <li>
+                        If you choose to delete your account, all your data will be removed after a 30-day waiting
                         period.
                     </li>
-                    <li>If you spot a privacy leak, please report it to <a href="mailto:support@hook0.com">support@hook0.com</a>.
+                    <li>
+                        If you spot a privacy leak, please report it to <a href="mailto:support@hook0.com">support@hook0.com</a>.
                     </li>
                 </ul>
             </div>
