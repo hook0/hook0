@@ -199,7 +199,8 @@ onUpdated(() => {
     }
   }
 
-  &[disabled='disabled'] {
+  &[disabled='disabled'],
+  &[disabled='true'] {
     @apply opacity-20 transition-all;
   }
 }
