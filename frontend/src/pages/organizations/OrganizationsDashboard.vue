@@ -20,6 +20,7 @@ import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
+import MembersList from '@/pages/organizations/MembersList.vue';
 
 const route = useRoute();
 const pricingEnabled = isPricingEnabled();
@@ -117,6 +118,7 @@ onUpdated(() => {
         </template>
       </Hook0CardHeader>
     </Hook0Card>
+
     <Hook0Card v-if="pricingEnabled && !organization.plan">
       <Hook0CardHeader>
         <template #header>
@@ -189,6 +191,13 @@ onUpdated(() => {
         </Hook0Button>
       </Hook0CardFooter>
     </Hook0Card>
+
+    <MembersList
+      v-if="organization.quotas.members_per_organization_limit > 1"
+      :burst="$route.params.organization_id"
+    >
+    </MembersList>
+
     <ApplicationsList :burst="$route.params.organization_id"> </ApplicationsList>
   </div>
 </template>
