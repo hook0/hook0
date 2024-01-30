@@ -149,7 +149,7 @@ pub async fn create(
         }
 
         // Let's start a transaction so DB operations can be rollback if something fails.
-        // Note: there is still a change of partial failure if something fails on the Keycloak API side.
+        // Note: there is still a chance of partial failure if something fails on the Keycloak API side.
         // TODO: implement something to detect/garbage collect these inactive users/groups.
         let mut tx = state.db.begin().await?;
 
