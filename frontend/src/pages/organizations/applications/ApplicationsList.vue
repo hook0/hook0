@@ -115,7 +115,7 @@ onUpdated(() => {
           <template #header> Applications </template>
           <template #subtitle>
             Each application send events to Hook0 API and Hook0 dispatch these extends to customers
-            through webhooks
+            through webhooks.
           </template>
         </Hook0CardHeader>
 
