@@ -537,8 +537,9 @@ impl KeycloakApi {
     pub async fn get_group(&self, group_id: &Uuid) -> Result<Group, Hook0Problem> {
         let operation = format!("getting group '{group_id}' from Keycloak");
         let group_url = self.mk_url(&["groups", group_id.to_string().as_str()])?;
+        let children_url = self.mk_url(&["groups", group_id.to_string().as_str(), "children"])?;
 
-        let res = self
+        let group = self
             .client
             .get(group_url.as_str())
             .send()
@@ -559,7 +560,36 @@ impl KeycloakApi {
                 Hook0Problem::InternalServerError
             })?;
 
-        Ok(res)
+        // At some point Keycloak stopped returning sub groups directly which requires doing a dedicated API call
+        if group.sub_groups.is_empty() {
+            let children = self
+                .client
+                .get(children_url.as_str())
+                .send()
+                .await
+                .map_err(|e| {
+                    error!("Error while {}: {}", operation, &e);
+                    Hook0Problem::InternalServerError
+                })?
+                .error_for_status()
+                .map_err(|e| {
+                    error!("Error while {}: {}", operation, &e);
+                    Hook0Problem::InternalServerError
+                })?
+                .json::<Vec<Group>>()
+                .await
+                .map_err(|e| {
+                    error!("Error while {}: {}", operation, &e);
+                    Hook0Problem::InternalServerError
+                })?;
+
+            Ok(Group {
+                sub_groups: children,
+                ..group
+            })
+        } else {
+            Ok(group)
+        }
     }
 
     pub async fn get_group_members(
