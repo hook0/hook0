@@ -34,6 +34,11 @@ interface ExtraParams<T> {
    * RouteLocation factory
    */
   to: (row: T) => RouteLocation;
+
+  /**
+   * If true, link will be disabled
+   */
+  disabled?: boolean;
 }
 
 type Hook0TableCellDateParameter<T> = ICellRendererParams & ExtraParams<T>;
@@ -72,6 +77,10 @@ function onClick(event: Event) {
           ? onClick
           : undefined,
       class: $attrs.class,
+      disabled:
+        params.colDef?.cellRendererParams && params.colDef.cellRendererParams.disabled
+          ? params.colDef.cellRendererParams.disabled(params.data)
+          : undefined,
     }"
     style="width: fit-content"
   >
