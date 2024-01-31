@@ -1,5 +1,6 @@
 output_worker.check:
   stage: test
+  dependencies: []
   image: rust:$RUST_VERSION
   rules:
     - changes:

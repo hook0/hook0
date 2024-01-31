@@ -1,5 +1,6 @@
 website.build:
   stage: build
+  dependencies: []
   rules:
     - changes:
         - website/**/*
