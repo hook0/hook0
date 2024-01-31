@@ -12,7 +12,7 @@ frontend.build:
   artifacts:
     name: "$CI_BUILD_NAME"
     paths:
-      - node_modules/
+      - frontend/node_modules/
       - frontend/dist/
 
 frontend.check:
