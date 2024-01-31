@@ -12,7 +12,12 @@ function getAxios() {
   return getToken().then((jwt_token) => {
     const client = axios.create({
       baseURL: featureFlags.getOrElse('API_ENDPOINT', import.meta.env.VITE_API_ENDPOINT ?? ''),
-      timeout: 1000,
+      timeout: featureFlags.getIntegerOrElse(
+        'API_TIMEOUT',
+        Number.isNaN(parseInt(import.meta.env.VITE_API_TIMEOUT, 10))
+          ? 3000
+          : parseInt(import.meta.env.VITE_API_TIMEOUT, 10)
+      ),
       headers: {
         Authorization: `Bearer ${jwt_token}`,
       },
