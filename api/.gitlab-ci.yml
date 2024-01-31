@@ -1,5 +1,6 @@
 api.check:
   stage: test
+  dependencies: []
   image: rust:$RUST_VERSION
   rules:
     - changes:
@@ -23,6 +24,7 @@ api.check:
 
 api.documentation:
   stage: documentation
+  dependencies: []
   environment:
     name: production-api
     url: https://app.hook0.com/api/v1

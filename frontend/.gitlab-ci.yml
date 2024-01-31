@@ -1,5 +1,6 @@
 frontend.build:
   stage: build
+  dependencies: []
   rules:
     - changes:
         - frontend/**/*
@@ -11,4 +12,18 @@ frontend.build:
   artifacts:
     name: "$CI_BUILD_NAME"
     paths:
+      - node_modules/
       - frontend/dist/
+
+frontend.check:
+  stage: test
+  dependencies:
+    - frontend.build
+  rules:
+    - changes:
+        - frontend/**/*
+  image: node:$NODE_VERSION
+  script:
+    - pushd frontend/
+    - npm run check
+    - npm run lint
