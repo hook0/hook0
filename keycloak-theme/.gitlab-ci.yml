@@ -1,5 +1,6 @@
 keycloak-theme.build:
   stage: build
+  dependencies: []
   rules:
     - changes:
         - keycloak-theme/**/*
