@@ -11,4 +11,9 @@ export default {
   getOrElse(feature: string, fallback: string): string {
     return queryParams.hasOwnProperty(feature) ? queryParams[feature] : fallback;
   },
+  getIntegerOrElse(feature: string, fallback: number): number {
+    return queryParams.hasOwnProperty(feature) && !Number.isNaN(parseInt(queryParams[feature], 10))
+      ? parseInt(queryParams[feature], 10)
+      : fallback;
+  },
 };
