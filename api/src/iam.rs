@@ -10,7 +10,7 @@ use sqlx::{query_as, PgPool};
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::str::FromStr;
-use strum::{EnumIter, EnumString, EnumVariantNames};
+use strum::{EnumIter, EnumString, VariantNames};
 use uuid::Uuid;
 
 pub const GROUP_SEP: &str = "/";
@@ -50,7 +50,7 @@ pub async fn get_owner_organization(db: &PgPool, application_id: &Uuid) -> Optio
     strum::Display,
     EnumString,
     EnumIter,
-    EnumVariantNames,
+    VariantNames,
 )]
 #[strum(serialize_all = "snake_case")]
 pub enum Role {
