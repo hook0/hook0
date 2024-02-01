@@ -12,7 +12,7 @@ use serde_json::{json, Value};
 use sqlx::query_as;
 use std::collections::HashMap;
 use std::str::FromStr;
-use strum::{EnumVariantNames, IntoStaticStr, VariantNames};
+use strum::{IntoStaticStr, VariantNames};
 use uuid::Uuid;
 use validator::Validate;
 
@@ -22,7 +22,7 @@ use crate::openapi::OaApplicationSecret;
 use crate::problems::Hook0Problem;
 use crate::quotas::Quota;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, IntoStaticStr, EnumVariantNames)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, IntoStaticStr, VariantNames)]
 pub enum PayloadContentType {
     #[strum(serialize = "text/plain")]
     Text,
