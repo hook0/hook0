@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::str::FromStr;
 use std::time::{Duration, Instant};
-use strum::EnumVariantNames;
+use strum::VariantNames;
 
 use crate::{Config, RequestAttempt};
 
@@ -18,7 +18,7 @@ const USER_AGENT: &str = concat!(crate_name!(), "/", crate_version!());
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 const TIMEOUT: Duration = Duration::from_secs(15);
 
-#[derive(Debug, Clone, Copy, strum::Display, EnumVariantNames)]
+#[derive(Debug, Clone, Copy, strum::Display, VariantNames)]
 pub enum ResponseError {
     #[strum(serialize = "E_UNKNOWN")]
     Unknown,
