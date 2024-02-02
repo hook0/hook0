@@ -76,6 +76,10 @@ struct Config {
     #[clap(long, env)]
     disable_serving_webapp: bool,
 
+    /// Key for the health check endpoint; if not specified, endpoint is disabled; if empty, endpoint is public
+    #[clap(long, env, hide_env_values = true)]
+    health_check_key: Option<String>,
+
     /// Keycloak RS256 public key (with GPG delimiters)
     #[clap(long, env)]
     keycloak_oidc_public_key: String,
@@ -210,6 +214,7 @@ pub struct State {
     auto_db_migration: bool,
     hook0_client: Option<Hook0Client>,
     quotas: quotas::Quotas,
+    health_check_key: Option<String>,
 }
 
 #[actix_web::main]
@@ -334,6 +339,7 @@ async fn main() -> anyhow::Result<()> {
         auto_db_migration: config.auto_db_migration,
         hook0_client,
         quotas,
+        health_check_key: config.health_check_key,
     };
     let keycloak_oidc_public_key = config.keycloak_oidc_public_key;
     let hook0_client_api_url = config.hook0_client_api_url;
@@ -406,6 +412,9 @@ async fn main() -> anyhow::Result<()> {
                             web::resource("").route(web::get().to(handlers::instance::get)),
                         ),
                     )
+                    .service(web::scope("/health").service(
+                        web::resource("").route(web::get().to(handlers::instance::health)),
+                    ))
                     .service(
                         web::scope("/errors").service(
                             web::resource("").route(web::get().to(handlers::errors::list)),
