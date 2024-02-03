@@ -18,7 +18,7 @@ cd .. || exit 1
 cp ./target/release/hook0-output-worker /
 EOF
 
-FROM debian
+FROM debian:12
 ARG UID=10001
 RUN adduser \
     --disabled-password \
