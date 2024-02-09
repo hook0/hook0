@@ -439,8 +439,8 @@ async fn look_for_work(
         } else {
             trace!("[unit={unit_id}] No unprocessed attempt found");
 
-            // Commit transaction and wait
-            tx.commit().await?;
+            // Rollback transaction and wait
+            tx.rollback().await?;
             sleep(POLLING_SLEEP).await;
         }
 
