@@ -8,7 +8,7 @@ use reqwest::header::HeaderMap;
 use reqwest::Url;
 use sqlx::postgres::types::PgInterval;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-use sqlx::{query, query_as, PgConnection, PgPool};
+use sqlx::{query, query_as, Executor, PgConnection, PgPool};
 use std::cmp::min;
 use std::collections::HashMap;
 use std::convert::TryFrom;
@@ -32,6 +32,10 @@ struct Config {
     /// Database URL (with credentials)
     #[clap(long, env, hide_env_values = true)]
     database_url: String,
+
+    /// Statement timeout (in millisecond) for database queries (if 0, not timeout will be set)
+    #[clap(long, env, default_value = "0")]
+    database_query_timeout: u32,
 
     /// Worker name (as defined in the infrastructure.worker table)
     #[clap(long, env)]
@@ -142,8 +146,18 @@ async fn main() -> anyhow::Result<()> {
     );
 
     debug!("Connecting to database...");
+    let timeout = config.database_query_timeout;
     let pool = PgPoolOptions::new()
         .max_connections(config.concurrent.into())
+        .after_connect(move |conn, _meta| {
+            Box::pin(async move {
+                if timeout > 0 {
+                    conn.execute(format!("SET statement_timeout = {timeout}").as_str())
+                        .await?;
+                }
+                Ok(())
+            })
+        })
         .connect_with(
             PgConnectOptions::from_str(&config.database_url)?
                 .application_name(&format!("{}-{worker_version}-{worker_name}", crate_name!(),)),
