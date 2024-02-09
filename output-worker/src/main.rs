@@ -432,17 +432,14 @@ async fn look_for_work(
                         &attempt.request_attempt__id, &attempt.retry_count,
                     );
                 }
-
-                // Commit transaction
-                tx.commit().await?;
             }
         } else {
             trace!("[unit={unit_id}] No unprocessed attempt found");
-
-            // Rollback transaction and wait
-            tx.rollback().await?;
             sleep(POLLING_SLEEP).await;
         }
+
+        // Commit transaction
+        tx.commit().await?;
 
         // Send monitoring heartbeat if necessary
         if let Some(ref tx) = heartbeat_tx {
