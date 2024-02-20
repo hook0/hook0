@@ -31,6 +31,29 @@ interface Props {
 defineProps<Props>();
 const columnDefs: ColDef[] = [
   {
+    field: 'event_id',
+    headerName: 'Event ID',
+    suppressMovable: true,
+    resizable: true,
+    cellRenderer: Hook0TableCellLink,
+    cellRendererParams: {
+      value(row: Event) {
+        return row.event_id;
+      },
+
+      to(row: Event) {
+        return {
+          name: routes.EventsDetail,
+          params: {
+            application_id: route.params.application_id,
+            organization_id: route.params.organization_id,
+            event_id: row.event_id,
+          },
+        };
+      },
+    },
+  },
+  {
     field: 'received_at',
     suppressMovable: true,
     suppressSizeToFit: true,
@@ -45,23 +68,7 @@ const columnDefs: ColDef[] = [
     headerName: 'Event Type',
     suppressMovable: true,
     resizable: true,
-    cellRenderer: Hook0TableCellLink,
-    cellRendererParams: {
-      value(row: Event) {
-        return row.event_type_name;
-      },
-
-      to(row: Event) {
-        return {
-          name: routes.EventsDetail,
-          params: {
-            application_id: route.params.application_id,
-            organization_id: route.params.organization_id,
-            event_id: row.event_id,
-          },
-        };
-      },
-    },
+    cellRenderer: Hook0TableCellCode,
   },
   {
     field: 'payload_content_type',
