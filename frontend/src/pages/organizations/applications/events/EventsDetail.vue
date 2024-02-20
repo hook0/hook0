@@ -63,6 +63,11 @@ onUpdated(() => {
             </template>
             <template #subtitle>
               <Hook0Text class="block">
+                <Hook0Text class="label pr-1">Event ID:</Hook0Text>
+                <Hook0Text class="code">{{ event.event_id }}</Hook0Text>
+              </Hook0Text>
+
+              <Hook0Text class="block">
                 <Hook0Text class="label pr-1">Occurred At:</Hook0Text>
                 <Hook0DateTime :value="event.occurred_at"></Hook0DateTime>
               </Hook0Text>

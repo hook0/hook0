@@ -17,7 +17,7 @@ import Hook0TableCellDate from '@/components/Hook0TableCellDate.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0TableCellIcon from '@/components/Hook0TableCellIcon.vue';
 import * as LogService from './LogService';
-import { RequestAttemptStatusType, RequestAttemptTypeFixed } from './LogService';
+import { RequestAttempt, RequestAttemptStatusType, RequestAttemptTypeFixed } from './LogService';
 import Hook0Loader from '@/components/Hook0Loader.vue';
 import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
 import Hook0Error from '@/components/Hook0Error.vue';
@@ -77,26 +77,26 @@ const columnDefs: ColDef[] = [
     },
   },
   {
-    field: 'created_at',
+    field: 'event_id',
+    headerName: 'Event ID',
     suppressMovable: true,
-    suppressSizeToFit: true,
-    width: 175,
-    sortable: true,
     resizable: true,
-    headerName: 'Created At',
-    cellRenderer: Hook0TableCellDate,
-  },
-  {
-    field: 'picked_at',
-    suppressMovable: true,
-    suppressSizeToFit: true,
-    width: 175,
-    sortable: true,
-    resizable: true,
-    headerName: 'Picked At',
-    cellRenderer: Hook0TableCellDate,
+    cellRenderer: Hook0TableCellLink,
     cellRendererParams: {
-      defaultText: 'pending…',
+      value(row: RequestAttempt) {
+        return row.event_id;
+      },
+
+      to(row: RequestAttempt) {
+        return {
+          name: routes.EventsDetail,
+          params: {
+            application_id: route.params.application_id,
+            organization_id: route.params.organization_id,
+            event_id: row.event_id,
+          },
+        };
+      },
     },
   },
   {
@@ -122,6 +122,29 @@ const columnDefs: ColDef[] = [
           },
         };
       },
+    },
+  },
+  {
+    field: 'created_at',
+    suppressMovable: true,
+    suppressSizeToFit: true,
+    width: 175,
+    sortable: true,
+    resizable: true,
+    headerName: 'Created At',
+    cellRenderer: Hook0TableCellDate,
+  },
+  {
+    field: 'picked_at',
+    suppressMovable: true,
+    suppressSizeToFit: true,
+    width: 175,
+    sortable: true,
+    resizable: true,
+    headerName: 'Picked At',
+    cellRenderer: Hook0TableCellDate,
+    cellRendererParams: {
+      defaultText: 'pending…',
     },
   },
 ];
