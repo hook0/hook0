@@ -252,10 +252,6 @@ pub async fn edit(
         .can_access_application(&state.db, &application_id, &Role::Editor)
         .await
         .is_none()
-        && auth
-            .can_access_organization(&body.organization_id, &Role::Editor)
-            .await
-            .is_none()
     {
         return Err(Hook0Problem::Forbidden);
     }
