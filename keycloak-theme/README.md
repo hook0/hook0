@@ -3,7 +3,7 @@
 ## Build the theme extension
 
 ```
-mvn package
+./build.sh
 ```
 
 ## Theme Development Workflow
