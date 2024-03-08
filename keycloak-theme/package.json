@@ -31,5 +31,8 @@
     "autoprefixer": "^10.4.14",
     "postcss": "^8.2.1",
     "tailwindcss": "npm:@tailwindcss/postcss7-compat@^2.2.7"
+  },
+  "volta": {
+    "node": "20.11.1"
   }
 }
