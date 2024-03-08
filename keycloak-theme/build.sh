@@ -12,8 +12,6 @@ cp -v ../mediakit/logo/512x512-banner-transparent.png ./src/main/resources/theme
 # compile theme
 npm run build
 
-
-
 # package theme and wrap it in a .jar file
 mvn package
 
