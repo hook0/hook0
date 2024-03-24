@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            DELETE FROM event.event\n            WHERE application__id = $1\n                AND received_at + $2 < statement_timestamp()\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Interval"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c60e052a5eed3b9d10a9ccd25fbd7bedf1c19da105044eab9ee8727d42af28a3"
+}
