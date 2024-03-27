@@ -343,12 +343,11 @@ async fn main() -> anyhow::Result<()> {
 
     // Spawn task to clean up old events
     let cleanup_db = pool.clone();
-    let cleanup_quotas = quotas.clone();
     actix_web::rt::spawn(async move {
         old_events_cleanup::periodically_clean_up_old_events(
             &cleanup_db,
-            &cleanup_quotas,
             Duration::from_secs(config.old_events_cleanup_period_in_s),
+            config.quota_global_days_of_events_retention_limit,
             config.old_events_cleanup_grace_period_in_day,
             config.old_events_cleanup_report_and_delete,
         )
