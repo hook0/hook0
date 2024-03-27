@@ -38,6 +38,10 @@ async fn clean_up_old_events_and_responses(
 ) -> Result<(), sqlx::Error> {
     trace!("Start cleaning up old events...");
     let start = Instant::now();
+
+    debug!("Backup up events per day...");
+    backup_events_per_day(db).await?;
+
     let mut tx = db.begin().await?;
 
     debug!("Removing old events...");
@@ -53,11 +57,35 @@ async fn clean_up_old_events_and_responses(
 
     if delete {
         tx.commit().await?;
+
+        debug!("Running vacuum analyze and reindexing...");
+        vacuum_analyze_and_reindex(db).await?;
+
         info!("Cleaned up {total_deleted_events} old events and {total_dangling_responses} dangling responses in {:?}", start.elapsed());
     } else {
         tx.rollback().await?;
         info!("Could clean up {total_deleted_events} old events and {total_dangling_responses} dangling responses in {:?} (but transaction was rolled back)", start.elapsed());
     }
+    Ok(())
+}
+
+async fn backup_events_per_day<'a, A: Acquire<'a, Database = Postgres>>(
+    db: A,
+) -> Result<(), sqlx::Error> {
+    let mut db = db.acquire().await?;
+
+    query!(
+        "
+            INSERT INTO event.all_time_events_per_day (application__id, date, amount)
+            SELECT application__id, date, amount
+            FROM event.events_per_day
+            WHERE date < CURRENT_DATE
+            ON CONFLICT DO NOTHING
+        ",
+    )
+    .execute(&mut *db)
+    .await?;
+
     Ok(())
 }
 
@@ -112,4 +140,26 @@ async fn delete_dangling_responses<'a, A: Acquire<'a, Database = Postgres>>(
     .await?;
 
     Ok(res.rows_affected())
+}
+
+async fn vacuum_analyze_and_reindex<'a, A: Acquire<'a, Database = Postgres>>(
+    db: A,
+) -> Result<(), sqlx::Error> {
+    let mut db = db.acquire().await?;
+
+    query!("VACUUM ANALYZE event.event, webhook.request_attempt, webhook.response")
+        .execute(&mut *db)
+        .await?;
+
+    query!("REINDEX TABLE CONCURRENTLY event.event")
+        .execute(&mut *db)
+        .await?;
+    query!("REINDEX TABLE CONCURRENTLY webhook.request_attempt")
+        .execute(&mut *db)
+        .await?;
+    query!("REINDEX TABLE CONCURRENTLY webhook.response")
+        .execute(&mut *db)
+        .await?;
+
+    Ok(())
 }
