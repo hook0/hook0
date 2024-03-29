@@ -23,6 +23,7 @@ mod keycloak_api;
 mod materialized_views;
 mod middleware_application_secret;
 mod middleware_get_user_ip;
+mod old_events_cleanup;
 mod openapi;
 mod problems;
 mod quotas;
@@ -199,6 +200,18 @@ struct Config {
     /// Duration (in second) to wait between materialized views refreshes
     #[clap(long, env, default_value = "60")]
     materialized_views_refresh_period_in_s: u64,
+
+    /// Duration (in second) to wait between old events cleanups
+    #[clap(long, env, default_value = "3600")]
+    old_events_cleanup_period_in_s: u64,
+
+    /// Duration (in day) to wait before actually deleting events that are passed retention period
+    #[clap(long, env, default_value = "30")]
+    old_events_cleanup_grace_period_in_day: u16,
+
+    /// If true, old events will be reported and cleaned up; if false (default), they will only be reported
+    #[clap(long, env, default_value = "false")]
+    old_events_cleanup_report_and_delete: bool,
 }
 
 /// The app state
@@ -318,11 +331,25 @@ async fn main() -> anyhow::Result<()> {
         warn!("The master API key is defined in the current configuration; THIS MAY BE A SECURITY ISSUE IN PRODUCTION");
     }
 
+    // Spawn task to refresh materialized views
     let refresh_db = pool.clone();
     actix_web::rt::spawn(async move {
         materialized_views::periodically_refresh_materialized_views(
             &refresh_db,
             Duration::from_secs(config.materialized_views_refresh_period_in_s),
+        )
+        .await;
+    });
+
+    // Spawn task to clean up old events
+    let cleanup_db = pool.clone();
+    actix_web::rt::spawn(async move {
+        old_events_cleanup::periodically_clean_up_old_events(
+            &cleanup_db,
+            Duration::from_secs(config.old_events_cleanup_period_in_s),
+            config.quota_global_days_of_events_retention_limit,
+            config.old_events_cleanup_grace_period_in_day,
+            config.old_events_cleanup_report_and_delete,
         )
         .await;
     });
