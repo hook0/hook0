@@ -58,8 +58,10 @@ async fn clean_up_old_events_and_responses(
     if delete {
         tx.commit().await?;
 
-        debug!("Running vacuum analyze and reindexing...");
-        vacuum_analyze_and_reindex(db).await?;
+        if total_deleted_events + total_dangling_responses > 0 {
+            debug!("Running vacuum analyze and reindexing...");
+            vacuum_analyze_and_reindex(db).await?;
+        }
 
         info!("Cleaned up {total_deleted_events} old events and {total_dangling_responses} dangling responses in {:?}", start.elapsed());
     } else {
