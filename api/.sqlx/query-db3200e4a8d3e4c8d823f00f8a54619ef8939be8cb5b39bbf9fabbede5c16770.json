@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO iam.token (token__id, type, revocation_id, expired_at, user__id, session_id)\n            VALUES\n                ($1, 'user_access', $2, $3, $4, $5),\n                ($6, 'refresh', $7, $8, $4, $5)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bytea",
+        "Timestamptz",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Bytea",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "db3200e4a8d3e4c8d823f00f8a54619ef8939be8cb5b39bbf9fabbede5c16770"
+}

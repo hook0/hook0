@@ -98,3 +98,17 @@ pub fn set_user_from_application_secret(application_id: &str) {
         }));
     });
 }
+
+/// Use a token ID to set the user to be used in reports
+pub fn set_user_from_token(token_id: &str) {
+    configure_scope(|scope| {
+        scope.set_user(Some(User {
+            id: Some(token_id.to_owned()),
+            other: BTreeMap::from_iter([(
+                AUTH_TYPE_PROPERTY.to_owned(),
+                Value::String("token".to_owned()),
+            )]),
+            ..Default::default()
+        }));
+    });
+}

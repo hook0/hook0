@@ -1,17 +1,15 @@
-use log::debug;
-use paperclip::actix::{
-    api_v2_operation,
-    web::{Data, Json},
-    Apiv2Schema, CreatedJson,
-};
-use reqwest::Url;
+use argon2::password_hash::rand_core::OsRng;
+use argon2::password_hash::SaltString;
+use argon2::{Argon2, PasswordHasher};
+use log::error;
+use paperclip::actix::web::{Data, Json};
+use paperclip::actix::{api_v2_operation, Apiv2Schema, CreatedJson};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use sqlx::query;
 use uuid::Uuid;
 use validator::Validate;
 
-use super::organizations::create_organization;
-use crate::keycloak_api::KeycloakApi;
+use crate::iam::Role;
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -23,8 +21,6 @@ pub struct Registration {
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct RegistrationPost {
     #[validate(non_control_character, length(min = 1, max = 50))]
-    organization_name: String,
-    #[validate(non_control_character, length(min = 1, max = 50))]
     first_name: String,
     #[validate(non_control_character, length(min = 1, max = 50))]
     last_name: String,
@@ -35,7 +31,7 @@ pub struct RegistrationPost {
 }
 
 #[api_v2_operation(
-    summary = "Create a new user account and a new organization",
+    summary = "Create a new user account and its own personal organization",
     description = "",
     operation_id = "register",
     consumes = "application/json",
@@ -46,7 +42,7 @@ pub async fn register(
     state: Data<crate::State>,
     body: Json<RegistrationPost>,
 ) -> Result<CreatedJson<Registration>, Hook0Problem> {
-    if state.disable_registration {
+    if state.registration_disabled {
         return Err(Hook0Problem::RegistrationDisabled);
     }
 
@@ -54,74 +50,72 @@ pub async fn register(
         return Err(Hook0Problem::Validation(e));
     }
 
-    do_register(
-        body.into_inner(),
-        &state.db,
-        &state.keycloak_url,
-        &state.keycloak_realm,
-        &state.keycloak_client_id,
-        &state.keycloak_client_secret,
-    )
-    .await
-    .map(CreatedJson)
-}
+    if body.password.len() >= usize::from(state.password_minimum_length) {
+        let mut tx = state.db.begin().await?;
 
-async fn do_register(
-    registration_req: RegistrationPost,
-    db: &PgPool,
-    keycloak_url: &Url,
-    keycloak_realm: &str,
-    keycloak_client_id: &str,
-    keycloak_client_secret: &str,
-) -> Result<Registration, Hook0Problem> {
-    debug!("Starting registration for {}", &registration_req.email);
-
-    let kc_api = KeycloakApi::new(
-        keycloak_url,
-        keycloak_realm,
-        keycloak_client_id,
-        keycloak_client_secret,
-    )
-    .await?;
-
-    check_organization_name(&registration_req.organization_name)?;
-    kc_api
-        .ensure_email_does_not_exist(&registration_req.email)
-        .await?;
-
-    // Let's start a transaction so DB operations can be rollback if something fails.
-    // Note: there is still a change of partial failure if something fails on the Keycloak API side.
-    // TODO: implement something to detect/garbage collect these inactive users/groups.
-    let mut tx = db.begin().await?;
-
-    let user_id = kc_api
-        .create_user(
-            &registration_req.email,
-            &registration_req.password,
-            &registration_req.first_name,
-            &registration_req.last_name,
+        let user_id = Uuid::new_v4();
+        let salt = SaltString::generate(&mut OsRng);
+        let password_hash = Argon2::default()
+            .hash_password(body.password.as_bytes(), &salt)
+            .map_err(|e| {
+                error!("Error trying to hash user password: {e}");
+                Hook0Problem::InternalServerError
+            })?
+            .serialize();
+        query!(
+            "
+                INSERT INTO iam.user (user__id, email, password, first_name, last_name)
+                VALUES ($1, $2, $3, $4, $5)
+            ",
+            &user_id,
+            &body.email,
+            password_hash.as_str(),
+            &body.first_name,
+            &body.last_name,
         )
+        .execute(&mut *tx)
         .await?;
 
-    let organization_id = create_organization(
-        &mut tx,
-        &kc_api,
-        &registration_req.organization_name,
-        &user_id,
-    )
-    .await?;
+        let organization_id = Uuid::new_v4();
+        let organization_name = format!(
+            "{} {}'s personal organization",
+            &body.first_name, &body.last_name
+        );
+        query!(
+            "
+                INSERT INTO iam.organization (organization__id, name, created_by)
+                VALUES ($1, $2, $3)
+            ",
+            &organization_id,
+            &organization_name,
+            &user_id,
+        )
+        .execute(&mut *tx)
+        .await?;
 
-    tx.commit().await?;
-    Ok(Registration {
-        organization_id,
-        user_id,
-    })
-}
+        query!(
+            "
+                INSERT INTO iam.user__organization (user__id, organization__id, role)
+                VALUES ($1, $2, $3)
+            ",
+            &user_id,
+            &organization_id,
+            Role::Editor.as_ref(),
+        )
+        .execute(&mut *tx)
+        .await?;
 
-fn check_organization_name(organization_name: &str) -> Result<(), Hook0Problem> {
-    if organization_name.len() <= 1 {
-        Err(Hook0Problem::OrganizationNameMissing)
+        // TODO: send email with verification code
+
+        tx.commit().await?;
+
+        Ok(CreatedJson(Registration {
+            organization_id,
+            user_id,
+        }))
     } else {
-        Ok(())
+        Err(Hook0Problem::PasswordTooShort(
+            state.password_minimum_length,
+        ))
     }
 }

@@ -40,14 +40,52 @@ pub fn default_spec(hook0_client_api_url: &Option<Url>) -> DefaultApiRaw {
 #[derive(Apiv2Security, Deserialize)]
 #[openapi(
     apiKey,
-    alias = "application_secret",
+    alias = "biscuit",
     in = "header",
     name = "Authorization",
-    description = "Authentication using application secrets (use the format `Bearer TOKEN`)"
+    description = "Authentication using a Biscuit token (use the format `Bearer TOKEN`)"
 )]
-pub struct OaApplicationSecret;
+pub struct OaBiscuit;
 
-impl FromRequest for OaApplicationSecret {
+impl FromRequest for OaBiscuit {
+    type Error = Error;
+    type Future = Ready<Result<Self, Self::Error>>;
+
+    fn from_request(_: &HttpRequest, _payload: &mut actix_web::dev::Payload) -> Self::Future {
+        ready(Ok(Self {}))
+    }
+}
+
+#[derive(Apiv2Security, Deserialize)]
+#[openapi(
+    apiKey,
+    alias = "biscuit_user_access",
+    in = "header",
+    name = "Authorization",
+    description = "Authentication using a Biscuit token of type 'user_access' (use the format `Bearer TOKEN`)"
+)]
+pub struct OaBiscuitUserAccess;
+
+impl FromRequest for OaBiscuitUserAccess {
+    type Error = Error;
+    type Future = Ready<Result<Self, Self::Error>>;
+
+    fn from_request(_: &HttpRequest, _payload: &mut actix_web::dev::Payload) -> Self::Future {
+        ready(Ok(Self {}))
+    }
+}
+
+#[derive(Apiv2Security, Deserialize)]
+#[openapi(
+    apiKey,
+    alias = "biscuit_refresh",
+    in = "header",
+    name = "Authorization",
+    description = "Authentication using a Biscuit token of type 'refresh' (use the format `Bearer TOKEN`)"
+)]
+pub struct OaBiscuitRefresh;
+
+impl FromRequest for OaBiscuitRefresh {
     type Error = Error;
     type Future = Ready<Result<Self, Self::Error>>;
 
