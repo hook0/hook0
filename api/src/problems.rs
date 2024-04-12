@@ -28,6 +28,7 @@ pub enum Hook0Problem {
     OrganizationNameMissing,
     UserAlreadyExist,
     RegistrationDisabled,
+    PasswordTooShort(u8),
     OrganizationIsNotEmpty,
     InvitedUserDoesNotExist,
 
@@ -49,6 +50,10 @@ pub enum Hook0Problem {
     AuthInvalidAuthorizationHeader,
     AuthApplicationSecretLookupError,
     AuthInvalidApplicationSecret,
+    AuthBiscuitLookupError,
+    AuthInvalidBiscuit,
+    AuthFailedLogin,
+    AuthFailedRefresh,
 
     // Quota errors
     TooManyMembersPerOrganization(QuotaValue),
@@ -193,6 +198,16 @@ impl From<Hook0Problem> for Problem {
                 validation: None,
                 status: StatusCode::GONE,
             },
+            Hook0Problem::PasswordTooShort(minimum_length) => {
+                let detail = format!("Password must be at least {minimum_length} characters long.");
+                Problem {
+                    id: Hook0Problem::PasswordTooShort(minimum_length),
+                    title: "Provided password is too short",
+                    detail: detail.into(),
+                    validation: None,
+                    status: StatusCode::BAD_REQUEST,
+                }
+            },
             Hook0Problem::OrganizationIsNotEmpty => Problem {
                 id: Hook0Problem::OrganizationIsNotEmpty,
                 title: "Organization is not empty",
@@ -312,6 +327,34 @@ impl From<Hook0Problem> for Problem {
                 detail: "The provided application secret does not exist.".into(),
                 validation: None,
                 status: StatusCode::FORBIDDEN,
+            },
+            Hook0Problem::AuthBiscuitLookupError => Problem {
+                id: Hook0Problem::AuthBiscuitLookupError,
+                title: "Could not check database to verify if the provided Biscuit was revoked",
+                detail: "This is likely to be caused by database unavailability.".into(),
+                validation: None,
+                status: StatusCode::INTERNAL_SERVER_ERROR,
+            },
+            Hook0Problem::AuthInvalidBiscuit => Problem {
+                id: Hook0Problem::AuthInvalidBiscuit,
+                title: "Invalid Biscuit",
+                detail: "The provided authentication token (Biscuit) is not valid, was not created using the current private key or is expired.".into(),
+                validation: None,
+                status: StatusCode::FORBIDDEN,
+            },
+            Hook0Problem::AuthFailedLogin => Problem {
+                id: Hook0Problem::AuthFailedLogin,
+                title: "Login failed",
+                detail: "The provided credentials do not match ones of a valid user.".into(),
+                validation: None,
+                status: StatusCode::UNAUTHORIZED,
+            },
+            Hook0Problem::AuthFailedRefresh => Problem {
+                id: Hook0Problem::AuthFailedRefresh,
+                title: "Refreshing access token failed",
+                detail: "The provided refresh token is probably invalid or expired.".into(),
+                validation: None,
+                status: StatusCode::UNAUTHORIZED,
             },
 
             // Quota errors

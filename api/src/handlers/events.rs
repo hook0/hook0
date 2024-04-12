@@ -1,15 +1,14 @@
+use actix_web::web::ReqData;
 use base64::engine::general_purpose::STANDARD as Base64;
 use base64::Engine;
+use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};
 use ipnetwork::IpNetwork;
-use paperclip::actix::{
-    api_v2_operation,
-    web::{Data, Json, Path, Query},
-    Apiv2Schema, CreatedJson,
-};
+use paperclip::actix::web::{Data, Json, Path, Query};
+use paperclip::actix::{api_v2_operation, Apiv2Schema, CreatedJson};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use sqlx::query_as;
+use sqlx::{query_as, query_scalar};
 use std::collections::HashMap;
 use std::str::FromStr;
 use strum::{IntoStaticStr, VariantNames};
@@ -17,8 +16,8 @@ use uuid::Uuid;
 use validator::Validate;
 
 use crate::extractor_user_ip::UserIp;
-use crate::iam::{AuthProof, Role};
-use crate::openapi::OaApplicationSecret;
+use crate::iam::{authorize_for_application, Action};
+use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
 use crate::quotas::Quota;
 
@@ -135,14 +134,19 @@ pub struct Event {
 )]
 pub async fn list(
     state: Data<crate::State>,
-    auth: AuthProof,
-    _: OaApplicationSecret,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
     qs: Query<Qs>,
 ) -> Result<Json<Vec<Event>>, Hook0Problem> {
-    if auth
-        .can_access_application(&state.db, &qs.application_id, &Role::Viewer)
-        .await
-        .is_none()
+    if authorize_for_application(
+        &state.db,
+        &biscuit,
+        Action::EventList {
+            application_id: &qs.application_id,
+        },
+    )
+    .await
+    .is_err()
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -222,15 +226,20 @@ pub struct EventWithPayload {
 )]
 pub async fn get(
     state: Data<crate::State>,
-    auth: AuthProof,
-    _: OaApplicationSecret,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
     event_id: Path<Uuid>,
     qs: Query<Qs>,
 ) -> Result<Json<EventWithPayload>, Hook0Problem> {
-    if auth
-        .can_access_application(&state.db, &qs.application_id, &Role::Viewer)
-        .await
-        .is_none()
+    if authorize_for_application(
+        &state.db,
+        &biscuit,
+        Action::EventGet {
+            application_id: &qs.application_id,
+        },
+    )
+    .await
+    .is_err()
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -289,11 +298,25 @@ pub struct IngestedEvent {
 )]
 pub async fn ingest(
     state: Data<crate::State>,
-    auth: AuthProof,
-    _: OaApplicationSecret,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
     ip: UserIp,
     body: Json<EventPost>,
 ) -> Result<CreatedJson<IngestedEvent>, Hook0Problem> {
+    let application_id = body.application_id;
+
+    if authorize_for_application(
+        &state.db,
+        &biscuit,
+        Action::EventIngest {
+            application_id: &application_id,
+        },
+    )
+    .await
+    .is_err()
+    {
+        return Err(Hook0Problem::Forbidden);
+    }
     if let Err(e) = body.validate() {
         return Err(Hook0Problem::Validation(e));
     }
@@ -306,72 +329,52 @@ pub async fn ingest(
     let labels = serde_json::to_value(body.labels.clone())
         .expect("could not serialize event labels into JSON");
 
-    if let Some(AuthProof::ApplicationSecret {
-        application_id,
-        name: _,
-        secret,
-    }) = auth
-        .can_access_application(&state.db, &body.application_id, &Role::Editor)
-        .await
-    {
-        #[allow(non_snake_case)]
-        struct Org {
-            price__id: Option<Uuid>,
-        }
-        let can_exceed_events_per_day_quota = query_as!(
-            Org,
-            "
-                SELECT o.price__id
-                FROM event.application AS a
-                INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
-                WHERE a.application__id = $1
-            ",
-            &application_id
+    let can_exceed_events_per_day_quota = query_scalar!(
+        "
+            SELECT o.price__id
+            FROM event.application AS a
+            INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
+            WHERE a.application__id = $1
+        ",
+        &application_id
+    )
+    .fetch_one(&state.db)
+    .await
+    .map_err(Hook0Problem::from)?
+    .is_some();
+    let events_per_days_limit = state
+        .quotas
+        .get_limit_for_application(&state.db, Quota::EventsPerDay, &application_id)
+        .await?;
+
+    let can_ingest = if can_exceed_events_per_day_quota {
+        true
+    } else {
+        let current_events_per_day = query_scalar!(
+            r#"
+                SELECT COALESCE(amount, 0) AS "amount!"
+                FROM event.events_per_day
+                WHERE application__id = $1 AND date = current_date
+            "#,
+            application_id
         )
-        .fetch_one(&state.db)
+        .fetch_optional(&state.db)
         .await
         .map_err(Hook0Problem::from)?
-        .price__id
-        .is_some();
-        let events_per_days_limit = state
-            .quotas
-            .get_limit_for_application(&state.db, Quota::EventsPerDay, application_id)
-            .await?;
+        .unwrap_or(0);
 
-        let can_ingest = if can_exceed_events_per_day_quota {
-            true
-        } else {
-            #[allow(non_snake_case)]
-            struct EventsPerDay {
-                amount: i64,
-            }
-            let current_events_per_day = query_as!(
-                EventsPerDay,
-                r#"
-                    SELECT COALESCE(amount, 0) AS "amount!"
-                    FROM event.events_per_day
-                    WHERE application__id = $1 AND date = current_date
-                "#,
-                application_id
-            )
-            .fetch_optional(&state.db)
-            .await
-            .map_err(Hook0Problem::from)?
-            .map(|e| e.amount)
-            .unwrap_or(0);
+        current_events_per_day < events_per_days_limit
+    };
 
-            current_events_per_day < events_per_days_limit as i64
-        };
+    if can_ingest {
+        let content_type = PayloadContentType::from_str(&body.payload_content_type)?;
+        let payload = content_type.validate_and_decode(&body.payload)?;
 
-        if can_ingest {
-            let content_type = PayloadContentType::from_str(&body.payload_content_type)?;
-            let payload = content_type.validate_and_decode(&body.payload)?;
-
-            let event = query_as!(
+        let event = query_as!(
                 IngestedEvent,
                 "
-                    INSERT INTO event.event (application__id, event__id, event_type__name, payload, payload_content_type, ip, metadata, occurred_at, received_at, application_secret__token, labels)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, statement_timestamp(), $9, $10)
+                    INSERT INTO event.event (application__id, event__id, event_type__name, payload, payload_content_type, ip, metadata, occurred_at, received_at, labels)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, statement_timestamp(), $9)
                     RETURNING application__id AS application_id, event__id AS event_id, received_at
                 ",
                 application_id,
@@ -382,19 +385,15 @@ pub async fn ingest(
                 ip.into_inner(),
                 metadata,
                 &body.occurred_at,
-                secret,
                 labels,
             )
             .fetch_one(&state.db)
             .await
             .map_err(Hook0Problem::from)?;
 
-            Ok(CreatedJson(event))
-        } else {
-            Err(Hook0Problem::TooManyEventsToday(events_per_days_limit))
-        }
+        Ok(CreatedJson(event))
     } else {
-        Err(Hook0Problem::Forbidden)
+        Err(Hook0Problem::TooManyEventsToday(events_per_days_limit))
     }
 }
 

@@ -1,14 +1,13 @@
+use actix_web::web::ReqData;
+use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};
 use log::error;
-use paperclip::actix::{
-    api_v2_operation,
-    web::{Data, Json, Path, Query},
-    Apiv2Schema, CreatedJson, NoContent,
-};
+use paperclip::actix::web::{Data, Json, Path, Query};
+use paperclip::actix::{api_v2_operation, Apiv2Schema, CreatedJson, NoContent};
 use reqwest::Url;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{json, Value};
-use sqlx::{query, query_as};
+use sqlx::{query, query_as, query_scalar};
 use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
 use uuid::Uuid;
@@ -17,8 +16,8 @@ use validator::Validate;
 use crate::hook0_client::{
     EventSubscriptionCreated, EventSubscriptionRemoved, EventSubscriptionUpdated, Hook0ClientEvent,
 };
-use crate::iam::{get_owner_organization, AuthProof, Role};
-use crate::openapi::OaApplicationSecret;
+use crate::iam::{authorize_for_application, get_owner_organization, Action};
+use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -102,14 +101,19 @@ pub struct Qs {
 )]
 pub async fn list(
     state: Data<crate::State>,
-    auth: AuthProof,
-    _: OaApplicationSecret,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
     qs: Query<Qs>,
 ) -> Result<Json<Vec<Subscription>>, Hook0Problem> {
-    if auth
-        .can_access_application(&state.db, &qs.application_id, &Role::Viewer)
-        .await
-        .is_none()
+    if authorize_for_application(
+        &state.db,
+        &biscuit,
+        Action::SubscriptionList {
+            application_id: &qs.application_id,
+        },
+    )
+    .await
+    .is_err()
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -202,19 +206,13 @@ pub async fn list(
 )]
 pub async fn get(
     state: Data<crate::State>,
-    auth: AuthProof,
-    _: OaApplicationSecret,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
     subscription_id: Path<Uuid>,
 ) -> Result<Json<Subscription>, Hook0Problem> {
-    #[allow(non_snake_case)]
-    struct RawApplicationId {
-        application__id: Uuid,
-    }
-
     let subscription_id = subscription_id.into_inner();
 
-    let application_id: Option<RawApplicationId> = query_as!(
-        RawApplicationId,
+    let application_id = query_scalar!(
         "SELECT application__id FROM webhook.subscription WHERE subscription__id = $1 AND deleted_at IS NULL LIMIT 1",
         &subscription_id
     )
@@ -229,14 +227,18 @@ pub async fn get(
         return Err(Hook0Problem::NotFound);
     }
 
-    let application_id = application_id
-        .map(|x| x.application__id)
-        .expect("Could not unwrap application_id");
+    let application_id = application_id.expect("Could not unwrap application_id");
 
-    if auth
-        .can_access_application(&state.db, &application_id, &Role::Viewer)
-        .await
-        .is_none()
+    if authorize_for_application(
+        &state.db,
+        &biscuit,
+        Action::SubscriptionGet {
+            application_id: &application_id,
+            subscription_id: &subscription_id,
+        },
+    )
+    .await
+    .is_err()
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -347,16 +349,23 @@ pub struct SubscriptionPost {
     produces = "application/json",
     tags("Subscriptions Management")
 )]
-pub async fn add(
+pub async fn create(
     state: Data<crate::State>,
-    auth: AuthProof,
-    _: OaApplicationSecret,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
     body: Json<SubscriptionPost>,
 ) -> Result<CreatedJson<Subscription>, Hook0Problem> {
-    if auth
-        .can_access_application(&state.db, &body.application_id, &Role::Editor)
-        .await
-        .is_none()
+    if authorize_for_application(
+        &state.db,
+        &biscuit,
+        Action::SubscriptionCreate {
+            application_id: &body.application_id,
+            label_key: &body.label_key,
+            label_value: &body.label_value,
+        },
+    )
+    .await
+    .is_err()
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -545,17 +554,23 @@ pub async fn add(
     produces = "application/json",
     tags("Subscriptions Management")
 )]
-pub async fn update(
+pub async fn edit(
     state: Data<crate::State>,
-    auth: AuthProof,
-    _: OaApplicationSecret,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
     subscription_id: Path<Uuid>,
     body: Json<SubscriptionPost>,
 ) -> Result<Json<Subscription>, Hook0Problem> {
-    if auth
-        .can_access_application(&state.db, &body.application_id, &Role::Editor)
-        .await
-        .is_none()
+    if authorize_for_application(
+        &state.db,
+        &biscuit,
+        Action::SubscriptionEdit {
+            application_id: &body.application_id,
+            subscription_id: &subscription_id,
+        },
+    )
+    .await
+    .is_err()
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -751,12 +766,7 @@ pub async fn update(
 
             if let Some(hook0_client) = state.hook0_client.as_ref() {
                 let hook0_client_event: Hook0ClientEvent = EventSubscriptionUpdated {
-                    organization_id: get_owner_organization(
-                        &state.db,
-                        &subscription.application_id,
-                    )
-                    .await
-                    .unwrap_or(Uuid::nil()),
+                    organization_id,
                     application_id: subscription.application_id,
                     subscription_id: subscription.subscription_id,
                     is_enabled: subscription.is_enabled,
@@ -793,15 +803,21 @@ pub async fn update(
 )]
 pub async fn delete(
     state: Data<crate::State>,
-    auth: AuthProof,
-    _: OaApplicationSecret,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
     subscription_id: Path<Uuid>,
     qs: Query<Qs>,
 ) -> Result<NoContent, Hook0Problem> {
-    if auth
-        .can_access_application(&state.db, &qs.application_id, &Role::Editor)
-        .await
-        .is_none()
+    if authorize_for_application(
+        &state.db,
+        &biscuit,
+        Action::SubscriptionDelete {
+            application_id: &qs.application_id,
+            subscription_id: &subscription_id,
+        },
+    )
+    .await
+    .is_err()
     {
         return Err(Hook0Problem::Forbidden);
     }

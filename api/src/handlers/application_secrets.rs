@@ -1,10 +1,9 @@
+use actix_web::web::ReqData;
+use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};
 use log::error;
-use paperclip::actix::{
-    api_v2_operation,
-    web::{Data, Json, Path, Query},
-    Apiv2Schema, CreatedJson, NoContent,
-};
+use paperclip::actix::web::{Data, Json, Path, Query};
+use paperclip::actix::{api_v2_operation, Apiv2Schema, CreatedJson, NoContent};
 use serde::{Deserialize, Serialize};
 use sqlx::{query, query_as};
 use uuid::Uuid;
@@ -14,8 +13,8 @@ use crate::hook0_client::{
     EventApplicationSecretCreated, EventApplicationSecretRemoved, EventApplicationSecretUpdated,
     Hook0ClientEvent,
 };
-use crate::iam::{get_owner_organization, AuthProof, Role};
-use crate::openapi::OaApplicationSecret;
+use crate::iam::{authorize_for_application, get_owner_organization, Action};
+use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -48,14 +47,19 @@ pub struct ApplicationSecretPost {
 )]
 pub async fn create(
     state: Data<crate::State>,
-    auth: AuthProof,
-    _: OaApplicationSecret,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
     body: Json<ApplicationSecretPost>,
 ) -> Result<CreatedJson<ApplicationSecret>, Hook0Problem> {
-    if auth
-        .can_access_application(&state.db, &body.application_id, &Role::Editor)
-        .await
-        .is_none()
+    if authorize_for_application(
+        &state.db,
+        &biscuit,
+        Action::ApplicationSecretCreate {
+            application_id: &body.application_id,
+        },
+    )
+    .await
+    .is_err()
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -109,14 +113,19 @@ pub async fn create(
 )]
 pub async fn list(
     state: Data<crate::State>,
-    auth: AuthProof,
-    _: OaApplicationSecret,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
     qs: Query<Qs>,
 ) -> Result<Json<Vec<ApplicationSecret>>, Hook0Problem> {
-    if auth
-        .can_access_application(&state.db, &qs.application_id, &Role::Viewer)
-        .await
-        .is_none()
+    if authorize_for_application(
+        &state.db,
+        &biscuit,
+        Action::ApplicationSecretList {
+            application_id: &qs.application_id,
+        },
+    )
+    .await
+    .is_err()
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -146,17 +155,22 @@ pub async fn list(
     produces = "application/json",
     tags("Applications Management")
 )]
-pub async fn update(
+pub async fn edit(
     state: Data<crate::State>,
-    auth: AuthProof,
-    _: OaApplicationSecret,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
     application_secret_token: Path<Uuid>,
     body: Json<ApplicationSecretPost>,
 ) -> Result<Json<ApplicationSecret>, Hook0Problem> {
-    if auth
-        .can_access_application(&state.db, &body.application_id, &Role::Editor)
-        .await
-        .is_none()
+    if authorize_for_application(
+        &state.db,
+        &biscuit,
+        Action::ApplicationSecretEdit {
+            application_id: &body.application_id,
+        },
+    )
+    .await
+    .is_err()
     {
         return Err(Hook0Problem::Forbidden);
     }
@@ -216,15 +230,20 @@ pub async fn update(
 )]
 pub async fn delete(
     state: Data<crate::State>,
-    auth: AuthProof,
-    _: OaApplicationSecret,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
     application_secret_token: Path<Uuid>,
     qs: Query<Qs>,
 ) -> Result<NoContent, Hook0Problem> {
-    if auth
-        .can_access_application(&state.db, &qs.application_id, &Role::Editor)
-        .await
-        .is_none()
+    if authorize_for_application(
+        &state.db,
+        &biscuit,
+        Action::ApplicationSecretDelete {
+            application_id: &qs.application_id,
+        },
+    )
+    .await
+    .is_err()
     {
         return Err(Hook0Problem::Forbidden);
     }
