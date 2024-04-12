@@ -29,6 +29,9 @@ pub const EVENT_TYPES: &[&str] = &[
     "api.application_secret.created",
     "api.application_secret.updated",
     "api.application_secret.removed",
+    "api.service_token.created",
+    "api.service_token.updated",
+    "api.service_token.removed",
     "api.event_type.created",
     "api.event_type.removed",
     "api.subscription.created",
@@ -39,10 +42,10 @@ pub const EVENT_TYPES: &[&str] = &[
 pub fn initialize(
     api_url: Option<Url>,
     application_id: Option<Uuid>,
-    application_secret: Option<Uuid>,
+    token: Option<String>,
 ) -> Option<Hook0Client> {
-    match (api_url, application_id, application_secret) {
-        (Some(url), Some(id), Some(secret)) => match Hook0Client::new(url, id, &secret) {
+    match (api_url, application_id, token) {
+        (Some(url), Some(id), Some(t)) => match Hook0Client::new(url, id, &t) {
             Ok(client) => {
                 info!(
                     "Events from this Hook0 instance will be sent to {} [application ID = {}]",
@@ -118,6 +121,9 @@ pub enum Hook0ClientEvent {
     ApplicationSecretCreated(EventApplicationSecretCreated),
     ApplicationSecretUpdated(EventApplicationSecretUpdated),
     ApplicationSecretRemoved(EventApplicationSecretRemoved),
+    ServiceTokenCreated(EventServiceTokenCreated),
+    ServiceTokenUpdated(EventServiceTokenUpdated),
+    ServiceTokenRemoved(EventServiceTokenRemoved),
     EventTypeCreated(EventEventTypeCreated),
     EventTypeRemoved(EventEventTypeRemoved),
     SubscriptionCreated(EventSubscriptionCreated),
@@ -159,6 +165,11 @@ impl Hook0ClientEvent {
             ) => to_event(e, Some(created_at)),
             Self::ApplicationSecretUpdated(e) => to_event(e, None),
             Self::ApplicationSecretRemoved(e) => to_event(e, None),
+            Self::ServiceTokenCreated(e @ EventServiceTokenCreated { created_at, .. }) => {
+                to_event(e, Some(created_at))
+            }
+            Self::ServiceTokenUpdated(e) => to_event(e, None),
+            Self::ServiceTokenRemoved(e) => to_event(e, None),
             Self::EventTypeCreated(e @ EventEventTypeCreated { created_at, .. }) => {
                 to_event(e, Some(created_at))
             }
@@ -553,6 +564,103 @@ impl From<EventApplicationSecretRemoved> for Hook0ClientEvent {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct EventServiceTokenCreated {
+    pub token_id: Uuid,
+    pub organization_id: Uuid,
+    pub name: String,
+    pub created_at: DateTime<Utc>,
+}
+
+impl Event for EventServiceTokenCreated {
+    fn event_type(&self) -> &'static str {
+        "api.service_token.created"
+    }
+
+    fn labels(&self) -> Vec<(String, Value)> {
+        vec![
+            (
+                INSTANCE_LABEL.to_owned(),
+                Value::String(INSTANCE_VALUE.to_owned()),
+            ),
+            (
+                ORGANIZATION_LABEL.to_owned(),
+                Value::String(self.organization_id.to_string()),
+            ),
+        ]
+    }
+}
+
+impl From<EventServiceTokenCreated> for Hook0ClientEvent {
+    fn from(e: EventServiceTokenCreated) -> Self {
+        Self::ServiceTokenCreated(e)
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct EventServiceTokenUpdated {
+    pub token_id: Uuid,
+    pub organization_id: Uuid,
+    pub name: String,
+}
+
+impl Event for EventServiceTokenUpdated {
+    fn event_type(&self) -> &'static str {
+        "api.service_token.updated"
+    }
+
+    fn labels(&self) -> Vec<(String, Value)> {
+        vec![
+            (
+                INSTANCE_LABEL.to_owned(),
+                Value::String(INSTANCE_VALUE.to_owned()),
+            ),
+            (
+                ORGANIZATION_LABEL.to_owned(),
+                Value::String(self.organization_id.to_string()),
+            ),
+        ]
+    }
+}
+
+impl From<EventServiceTokenUpdated> for Hook0ClientEvent {
+    fn from(e: EventServiceTokenUpdated) -> Self {
+        Self::ServiceTokenUpdated(e)
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct EventServiceTokenRemoved {
+    pub token_id: Uuid,
+    pub organization_id: Uuid,
+    pub name: String,
+}
+
+impl Event for EventServiceTokenRemoved {
+    fn event_type(&self) -> &'static str {
+        "api.service_token.removed"
+    }
+
+    fn labels(&self) -> Vec<(String, Value)> {
+        vec![
+            (
+                INSTANCE_LABEL.to_owned(),
+                Value::String(INSTANCE_VALUE.to_owned()),
+            ),
+            (
+                ORGANIZATION_LABEL.to_owned(),
+                Value::String(self.organization_id.to_string()),
+            ),
+        ]
+    }
+}
+
+impl From<EventServiceTokenRemoved> for Hook0ClientEvent {
+    fn from(e: EventServiceTokenRemoved) -> Self {
+        Self::ServiceTokenRemoved(e)
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct EventEventTypeCreated {
     pub organization_id: Uuid,
     pub application_id: Uuid,
@@ -561,7 +669,6 @@ pub struct EventEventTypeCreated {
     pub verb_name: String,
     pub event_type_name: String,
     pub created_at: DateTime<Utc>,
-    pub created_by: Option<Uuid>,
 }
 
 impl Event for EventEventTypeCreated {

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                    INSERT INTO event.event (application__id, event__id, event_type__name, payload, payload_content_type, ip, metadata, occurred_at, received_at, application_secret__token, labels)\n                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, statement_timestamp(), $9, $10)\n                    RETURNING application__id AS application_id, event__id AS event_id, received_at\n                ",
+  "query": "\n                    INSERT INTO event.event (application__id, event__id, event_type__name, payload, payload_content_type, ip, metadata, occurred_at, received_at, labels)\n                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, statement_timestamp(), $9)\n                    RETURNING application__id AS application_id, event__id AS event_id, received_at\n                ",
   "describe": {
     "columns": [
       {
@@ -29,7 +29,6 @@
         "Inet",
         "Jsonb",
         "Timestamptz",
-        "Uuid",
         "Jsonb"
       ]
     },
@@ -39,5 +38,5 @@
       false
     ]
   },
-  "hash": "86bb17f73739c6b35b78a18efc531f6ccafac1a90694920240d1d0645f22a144"
+  "hash": "28630bcf9952a728913af3e5c027484e29122463d784d0593ae49a8f3324b835"
 }
