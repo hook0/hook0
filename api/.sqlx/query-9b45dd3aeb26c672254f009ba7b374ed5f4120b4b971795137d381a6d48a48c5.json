@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE iam.user\n            SET last_login = statement_timestamp()\n            WHERE user__id = $1\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9b45dd3aeb26c672254f009ba7b374ed5f4120b4b971795137d381a6d48a48c5"
+}
