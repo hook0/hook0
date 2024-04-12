@@ -1,4 +1,5 @@
-use paperclip::actix::{api_v2_operation, web::Json, Apiv2Schema};
+use paperclip::actix::web::Json;
+use paperclip::actix::{api_v2_operation, Apiv2Schema};
 use serde::Serialize;
 use strum::IntoEnumIterator;
 

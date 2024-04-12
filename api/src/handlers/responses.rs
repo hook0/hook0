@@ -1,17 +1,16 @@
+use actix_web::web::ReqData;
+use biscuit_auth::Biscuit;
 use log::warn;
-use paperclip::actix::{
-    api_v2_operation,
-    web::{Data, Json, Path, Query},
-    Apiv2Schema,
-};
+use paperclip::actix::web::{Data, Json, Path, Query};
+use paperclip::actix::{api_v2_operation, Apiv2Schema};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::query_as;
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use crate::iam::{AuthProof, Role};
-use crate::openapi::OaApplicationSecret;
+use crate::iam::{authorize_for_application, Action};
+use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -39,15 +38,20 @@ pub struct Qs {
 )]
 pub async fn get(
     state: Data<crate::State>,
-    auth: AuthProof,
-    _: OaApplicationSecret,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
     qs: Query<Qs>,
     response_id: Path<Uuid>,
 ) -> Result<Json<Response>, Hook0Problem> {
-    if auth
-        .can_access_application(&state.db, &qs.application_id, &Role::Viewer)
-        .await
-        .is_none()
+    if authorize_for_application(
+        &state.db,
+        &biscuit,
+        Action::ResponseGet {
+            application_id: &qs.application_id,
+        },
+    )
+    .await
+    .is_err()
     {
         return Err(Hook0Problem::Forbidden);
     }

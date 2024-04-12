@@ -13,10 +13,11 @@ actix-cors = "0.7.0"
 actix-files = "0.6.5"
 actix-governor = { version = "0.5.0", features = ["log"] }
 actix-web = "4.5.1"
-actix-web-middleware-keycloak-auth = { version = "0.4.2", features = ["paperclip_compat"] }
 anyhow = "1.0.82"
+argon2 = "0.5.3"
 async-recursion = "1.1.0"
 base64 = "0.22.0"
+biscuit-auth = { version = "4.1.1", features = ["uuid"] }
 chrono = { version = "0.4.38", features = ["serde"] }
 clap = { version = "4.5.4", features = ["derive", "env", "cargo", "wrap_help"] }
 futures-util = "0.3.30"
@@ -45,7 +46,12 @@ url = "2.5.0"
 uuid = { version = "1.8.0", features = ["serde", "v4"] }
 validator = { version = "0.16.1", features = ["derive", "unic"] }
 
+[dev-dependencies]
+test-log = { version = "0.2.15", features = ["unstable"] }
+
 [features]
-default = ["reqwest-rustls-tls-webpki-roots"]
+default = ["reqwest-rustls-tls-webpki-roots", "migrate-users-from-keycloak", "application-secret-compatibility"]
 reqwest-rustls-tls-webpki-roots = ["reqwest/rustls-tls-webpki-roots", "hook0-client/reqwest-rustls-tls-webpki-roots"]
 reqwest-rustls-tls-native-roots = ["reqwest/rustls-tls-native-roots", "hook0-client/reqwest-rustls-tls-native-roots"]
+migrate-users-from-keycloak = []
+application-secret-compatibility = []

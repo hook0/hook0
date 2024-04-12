@@ -1,5 +1,6 @@
 use actix_web::web::Query;
-use paperclip::actix::{api_v2_operation, web::Data, web::Json, Apiv2Schema};
+use paperclip::actix::web::{Data, Json};
+use paperclip::actix::{api_v2_operation, Apiv2Schema};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
@@ -7,10 +8,9 @@ use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct InstanceConfig {
-    keycloak_url: String,
-    keycloak_realm: String,
-    keycloak_front_client_id: String,
-    disable_registration: bool,
+    biscuit_public_key: String,
+    registration_disabled: bool,
+    password_minimum_length: u8,
     auto_db_migration: bool,
 }
 
@@ -25,10 +25,9 @@ pub struct InstanceConfig {
 )]
 pub async fn get(state: Data<crate::State>) -> Result<Json<InstanceConfig>, Hook0Problem> {
     Ok(Json(InstanceConfig {
-        keycloak_url: state.keycloak_url.to_string(),
-        keycloak_realm: state.keycloak_realm.to_owned(),
-        keycloak_front_client_id: state.keycloak_front_client_id.to_owned(),
-        disable_registration: state.disable_registration,
+        biscuit_public_key: state.biscuit_private_key.public().to_bytes_hex(),
+        registration_disabled: state.registration_disabled,
+        password_minimum_length: state.password_minimum_length,
         auto_db_migration: state.auto_db_migration,
     }))
 }
