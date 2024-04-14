@@ -57,7 +57,7 @@
     "keycloak-js": "^24.0.1",
     "lodash.debounce": "^4.0.8",
     "ramda": "^0.29.0",
-    "swagger-ui": "^4.15.0",
+    "swagger-ui": "^5.12.1",
     "uuidv4": "^6.2.7",
     "vue": "^3.0.0",
     "vue-click-outside-element": "^3.1.2",
