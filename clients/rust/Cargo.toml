@@ -4,10 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-chrono = { version = "0.4.37", features = ["serde"] }
+chrono = { version = "0.4.38", features = ["serde"] }
 lazy-regex = "3.1.0"
 log = "0.4.21"
-reqwest = { version = "0.12.2", default-features = false, features = ["trust-dns", "json"] }
+reqwest = { version = "0.12.3", default-features = false, features = ["trust-dns", "json"] }
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.115"
 thiserror = "1.0.58"
