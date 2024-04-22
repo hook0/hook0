@@ -590,7 +590,7 @@ pub async fn invite(
 
                     Ok(body)
                 }
-                _ => Err(Hook0Problem::NotFound),
+                _ => Err(Hook0Problem::InvitedUserDoesNotExist),
             }
         }
         Err(_) => Err(Hook0Problem::InvalidRole),

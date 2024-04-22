@@ -2,7 +2,6 @@
 import { ColDef } from '@ag-grid-community/core';
 import { onMounted, onUpdated, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { isAxiosError } from 'axios';
 
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
@@ -124,16 +123,10 @@ function displayError(err: unknown) {
   console.error(err);
   alert.value.visible = true;
 
-  if (isAxiosError(err) && err.response) {
-    const problem: Problem = err.response.data as Problem;
-    alert.value.type = problem.status >= 500 ? 'alert' : 'warning';
-    alert.value.title = problem.title;
-    alert.value.description = problem.detail;
-  } else {
-    alert.value.type = 'alert';
-    alert.value.title = 'An error occurred';
-    alert.value.description = String(err);
-  }
+  const problem: Problem = err as Problem;
+  alert.value.type = problem.status >= 500 ? 'alert' : 'warning';
+  alert.value.title = problem.title;
+  alert.value.description = problem.detail;
 }
 
 onMounted(() => {

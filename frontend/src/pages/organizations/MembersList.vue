@@ -16,7 +16,7 @@ import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0Table from '@/components/Hook0Table.vue';
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 import Hook0Text from '@/components/Hook0Text.vue';
-import { Problem, UUID, isAxiosError } from '@/http';
+import { Problem, UUID } from '@/http';
 import Hook0Loader from '@/components/Hook0Loader.vue';
 import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
 import Hook0Error from '@/components/Hook0Error.vue';
@@ -145,19 +145,12 @@ function _load() {
 }
 
 function displayError(err: unknown) {
-  console.error(err);
   alert.value.visible = true;
 
-  if (isAxiosError(err) && err.response) {
-    const problem: Problem = err.response.data as Problem;
-    alert.value.type = problem.status >= 500 ? 'alert' : 'warning';
-    alert.value.title = problem.title;
-    alert.value.description = problem.detail;
-  } else {
-    alert.value.type = 'alert';
-    alert.value.title = 'An error occurred';
-    alert.value.description = typeof err === 'object' ? JSON.stringify(err) : String(err);
-  }
+  const problem: Problem = err as Problem;
+  alert.value.type = problem.status >= 500 ? 'alert' : 'warning';
+  alert.value.title = problem.title;
+  alert.value.description = problem.detail;
 }
 
 onMounted(async () => {
