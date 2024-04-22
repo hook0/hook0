@@ -29,6 +29,7 @@ pub enum Hook0Problem {
     UserAlreadyExist,
     RegistrationDisabled,
     OrganizationIsNotEmpty,
+    InvitedUserDoesNotExist,
 
     ApplicationNameMissing,
 
@@ -171,6 +172,13 @@ impl From<Hook0Problem> for Problem {
                 detail: "Organizations that contain at least an application cannot be deleted; applications must be deleted first.".into(),
                 validation: None,
                 status: StatusCode::CONFLICT,
+            },
+            Hook0Problem::InvitedUserDoesNotExist => Problem {
+                id: Hook0Problem::InvitedUserDoesNotExist,
+                title: "Invited user does not exist",
+                detail: "The user you are trying to invite does not exist. Please make sure the user is already register in Hook0.".into(),
+                validation: None,
+                status: StatusCode::NOT_FOUND,
             },
 
             Hook0Problem::ApplicationNameMissing => Problem {
