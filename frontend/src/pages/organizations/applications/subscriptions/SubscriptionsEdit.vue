@@ -273,10 +273,39 @@ onUpdated(() => {
           <template v-if="isNew" #header> Create new subscription (webhook) </template>
           <template v-else #header> Edit subscription (webhook) </template>
           <template #subtitle>
-            A subscription (webhook) receives all events sent to Hook0 that match its filters
+            A subscription (webhook) receives all events sent to Hook0 that match its filters.
           </template>
         </Hook0CardHeader>
         <Hook0CardContent>
+          <Hook0CardContentLine v-if="!isNew">
+            <template #label>
+              Subscription secret
+
+              <Hook0Text class="helpText mt-2 block">
+                The secret is used to
+                <Hook0Button
+                  href="https://documentation.hook0.com/docs/verifying-webhook-signatures"
+                  target="_blank"
+                  >authenticate the webhooks</Hook0Button
+                >
+                sent by Hook0.
+                <em>Do not share this secret with anyone.</em>
+              </Hook0Text>
+            </template>
+
+            <template #content>
+              <div class="flex flex-row">
+                <Hook0Input
+                  v-model="subscription.secret"
+                  type="text"
+                  class="w-full disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200 disabled:shadow-none"
+                  disabled
+                >
+                </Hook0Input>
+              </div>
+            </template>
+          </Hook0CardContentLine>
+
           <Hook0CardContentLine>
             <template #label> Endpoint HTTP verb and url </template>
             <template #content>
