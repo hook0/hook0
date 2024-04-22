@@ -2,7 +2,7 @@
 import { ref } from 'vue';
 
 import * as OrganizationService from './OrganizationService';
-import { isAxiosError, Problem } from '@/http';
+import { Problem } from '@/http';
 import { Alert } from '@/components/Hook0Alert';
 import Hook0Text from '@/components/Hook0Text.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
@@ -48,16 +48,10 @@ function displayError(err: unknown) {
   console.error(err);
   alert.value.visible = true;
 
-  if (isAxiosError(err) && err.response) {
-    const problem: Problem = err.response.data as Problem;
-    alert.value.type = problem.status >= 500 ? 'alert' : 'warning';
-    alert.value.title = problem.title;
-    alert.value.description = problem.detail;
-  } else {
-    alert.value.type = 'alert';
-    alert.value.title = 'An error occurred';
-    alert.value.description = String(err);
-  }
+  const problem: Problem = err as Problem;
+  alert.value.type = problem.status >= 500 ? 'alert' : 'warning';
+  alert.value.title = problem.title;
+  alert.value.description = problem.detail;
 }
 </script>
 

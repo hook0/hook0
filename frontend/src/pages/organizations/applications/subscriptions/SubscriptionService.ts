@@ -1,5 +1,5 @@
-import { AxiosResponse } from 'axios';
-import http, { UUID } from '@/http';
+import { AxiosError, AxiosResponse } from 'axios';
+import http, { handleError, Problem, UUID } from '@/http';
 import type { components } from '@/types';
 
 type definitions = components['schemas'];
@@ -33,9 +33,10 @@ export interface SubscriptionPostFixed extends Omit<SubscriptionPost, 'target'> 
 }
 
 export function create(subscription: SubscriptionPostFixed): Promise<Subscription> {
-  return http
-    .post('/subscriptions', subscription)
-    .then((res: AxiosResponse<Subscription>) => res.data);
+  return http.post('/subscriptions', subscription).then(
+    (res: AxiosResponse<Subscription>) => res.data,
+    (err: AxiosError<AxiosResponse<Problem, Problem>>) => Promise.reject(handleError(err))
+  );
 }
 
 export function remove(application_id: UUID, subscription_id: UUID): Promise<void> {
@@ -45,16 +46,20 @@ export function remove(application_id: UUID, subscription_id: UUID): Promise<voi
         application_id,
       },
     })
-    .then((res: AxiosResponse<void>) => res.data);
+    .then(
+      (res: AxiosResponse<void>) => res.data,
+      (err: AxiosError<AxiosResponse<Problem, Problem>>) => Promise.reject(handleError(err))
+    );
 }
 
 export function update(
   subscription_id: UUID,
   subscription: SubscriptionPostFixed | SubscriptionEnableToggle
 ): Promise<Subscription> {
-  return http
-    .put(`/subscriptions/${subscription_id}`, subscription)
-    .then((res: AxiosResponse<Subscription>) => res.data);
+  return http.put(`/subscriptions/${subscription_id}`, subscription).then(
+    (res: AxiosResponse<Subscription>) => res.data,
+    (err: AxiosError<AxiosResponse<Problem, Problem>>) => Promise.reject(handleError(err))
+  );
 }
 
 export function toggleEnable(
@@ -84,9 +89,15 @@ export function list(application_id: UUID): Promise<Array<Subscription>> {
         application_id: application_id,
       },
     })
-    .then((res: AxiosResponse<Array<Subscription>>) => res.data);
+    .then(
+      (res: AxiosResponse<Array<Subscription>>) => res.data,
+      (err: AxiosError<AxiosResponse<Problem, Problem>>) => Promise.reject(handleError(err))
+    );
 }
 
 export function get(id: UUID): Promise<Subscription> {
-  return http.get(`/subscriptions/${id}`).then((res: AxiosResponse<Subscription>) => res.data);
+  return http.get(`/subscriptions/${id}`).then(
+    (res: AxiosResponse<Subscription>) => res.data,
+    (err: AxiosError<AxiosResponse<Problem, Problem>>) => Promise.reject(handleError(err))
+  );
 }
