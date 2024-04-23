@@ -14,7 +14,7 @@ export function create(organization: OrganizationPost): Promise<OrganizationInfo
     .post('/organizations', organization)
     .then(
       (res: AxiosResponse<OrganizationInfo>) => res.data,
-      (err: AxiosError<AxiosResponse<Problem, Problem>>) => Promise.reject(handleError(err))
+      (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
     )
     .then((organization) => {
       // we currently have to force the JWT refresh so it contains the organization
@@ -25,14 +25,14 @@ export function create(organization: OrganizationPost): Promise<OrganizationInfo
 export function list(): Promise<Array<Organization>> {
   return http.get('/organizations', {}).then(
     (res: AxiosResponse<Array<Organization>>) => res.data,
-    (err: AxiosError<AxiosResponse<Problem, Problem>>) => Promise.reject(handleError(err))
+    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
   );
 }
 
 export function get(id: UUID): Promise<OrganizationInfo> {
   return http.get(`/organizations/${id}`).then(
     (res: AxiosResponse<OrganizationInfo>) => res.data,
-    (err: AxiosError<AxiosResponse<Problem, Problem>>) => Promise.reject(handleError(err))
+    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
   );
 }
 
@@ -42,13 +42,13 @@ export function update(
 ): Promise<Organization> {
   return http.put(`/organizations/${organization_id}`, organization).then(
     (res: AxiosResponse<Organization>) => res.data,
-    (err: AxiosError<AxiosResponse<Problem, Problem>>) => Promise.reject(handleError(err))
+    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
   );
 }
 
 export function remove(organization_id: UUID): Promise<void> {
   return http.delete(`/organizations/${organization_id}`, {}).then(
     (res: AxiosResponse<void>) => res.data,
-    (err: AxiosError<AxiosResponse<Problem, Problem>>) => Promise.reject(handleError(err))
+    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
   );
 }
