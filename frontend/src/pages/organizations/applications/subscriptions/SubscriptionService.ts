@@ -35,7 +35,7 @@ export interface SubscriptionPostFixed extends Omit<SubscriptionPost, 'target'> 
 export function create(subscription: SubscriptionPostFixed): Promise<Subscription> {
   return http.post('/subscriptions', subscription).then(
     (res: AxiosResponse<Subscription>) => res.data,
-    (err: AxiosError<AxiosResponse<Problem, Problem>>) => Promise.reject(handleError(err))
+    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
   );
 }
 
@@ -48,7 +48,7 @@ export function remove(application_id: UUID, subscription_id: UUID): Promise<voi
     })
     .then(
       (res: AxiosResponse<void>) => res.data,
-      (err: AxiosError<AxiosResponse<Problem, Problem>>) => Promise.reject(handleError(err))
+      (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
     );
 }
 
@@ -58,7 +58,7 @@ export function update(
 ): Promise<Subscription> {
   return http.put(`/subscriptions/${subscription_id}`, subscription).then(
     (res: AxiosResponse<Subscription>) => res.data,
-    (err: AxiosError<AxiosResponse<Problem, Problem>>) => Promise.reject(handleError(err))
+    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
   );
 }
 
@@ -91,13 +91,13 @@ export function list(application_id: UUID): Promise<Array<Subscription>> {
     })
     .then(
       (res: AxiosResponse<Array<Subscription>>) => res.data,
-      (err: AxiosError<AxiosResponse<Problem, Problem>>) => Promise.reject(handleError(err))
+      (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
     );
 }
 
 export function get(id: UUID): Promise<Subscription> {
   return http.get(`/subscriptions/${id}`).then(
     (res: AxiosResponse<Subscription>) => res.data,
-    (err: AxiosError<AxiosResponse<Problem, Problem>>) => Promise.reject(handleError(err))
+    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
   );
 }
