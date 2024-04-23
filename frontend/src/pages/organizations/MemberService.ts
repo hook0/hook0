@@ -16,7 +16,7 @@ export type Members = {
 export async function get(organization_id: UUID): Promise<Members> {
   const org = await http.get(`/organizations/${organization_id}`, {}).then(
     (res: AxiosResponse<Organization>) => res.data,
-    (err: AxiosError<AxiosResponse<Problem, Problem>>) => Promise.reject(handleError(err))
+    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
   );
 
   return {
@@ -28,13 +28,13 @@ export async function get(organization_id: UUID): Promise<Members> {
 export async function invite(organization_id: UUID, invitation: Invitation): Promise<void> {
   return http.put(`/organizations/${organization_id}/invite`, invitation).then(
     (res: AxiosResponse<void>) => res.data,
-    (err: AxiosError<AxiosResponse<Problem, Problem>>) => Promise.reject(handleError(err))
+    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
   );
 }
 
 export function revoke(organization_id: UUID, user_id: UUID): Promise<void> {
   return http.delete(`/organizations/${organization_id}/invite`, { data: { user_id } }).then(
     (res: AxiosResponse<void>) => res.data,
-    (err: AxiosError<AxiosResponse<Problem, Problem>>) => Promise.reject(handleError(err))
+    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
   );
 }
