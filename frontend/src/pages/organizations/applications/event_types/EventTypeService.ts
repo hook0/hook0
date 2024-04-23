@@ -10,7 +10,7 @@ export type EventTypePost = definitions['EventTypePost'];
 export function create(event_type: EventTypePost): Promise<EventType> {
   return http.post('/event_types', event_type).then(
     (res: AxiosResponse<EventType>) => res.data,
-    (err: AxiosError<AxiosResponse<Problem, Problem>>) => Promise.reject(handleError(err))
+    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
   );
 }
 
@@ -23,7 +23,7 @@ export function remove(application_id: string, event_type_name: string): Promise
     })
     .then(
       (res: AxiosResponse<void>) => res.data,
-      (err: AxiosError<AxiosResponse<Problem, Problem>>) => Promise.reject(handleError(err))
+      (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
     );
 }
 
@@ -36,13 +36,13 @@ export function list(application_id: UUID): Promise<Array<EventType>> {
     })
     .then(
       (res: AxiosResponse<Array<EventType>>) => res.data,
-      (err: AxiosError<AxiosResponse<Problem, Problem>>) => Promise.reject(handleError(err))
+      (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
     );
 }
 
 export function get(id: UUID): Promise<EventType> {
   return http.get(`/event_types/${id}`).then(
     (res: AxiosResponse<EventType>) => res.data,
-    (err: AxiosError<AxiosResponse<Problem, Problem>>) => Promise.reject(handleError(err))
+    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
   );
 }
