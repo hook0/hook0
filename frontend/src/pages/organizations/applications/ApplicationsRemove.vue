@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import * as ApplicationsService from './ApplicationService';
-import { isAxiosError, Problem } from '@/http';
+import { Problem } from '@/http';
 import { Alert } from '@/components/Hook0Alert';
 import { routes } from '@/routes';
 import Hook0Text from '@/components/Hook0Text.vue';
@@ -58,20 +58,13 @@ function remove(e: Event) {
     .finally(() => (loading.value = false));
 }
 
-function displayError(err: unknown) {
+function displayError(err: Problem) {
   console.error(err);
   alert.value.visible = true;
 
-  if (isAxiosError(err) && err.response) {
-    const problem: Problem = err.response.data as Problem;
-    alert.value.type = problem.status >= 500 ? 'alert' : 'warning';
-    alert.value.title = problem.title;
-    alert.value.description = problem.detail;
-  } else {
-    alert.value.type = 'alert';
-    alert.value.title = 'An error occurred';
-    alert.value.description = String(err);
-  }
+  alert.value.type = err.status >= 500 ? 'alert' : 'warning';
+  alert.value.title = err.title;
+  alert.value.description = err.detail;
 }
 </script>
 
