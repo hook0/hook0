@@ -1,5 +1,5 @@
-import { AxiosResponse } from 'axios';
-import http, { UUID } from '@/http';
+import { AxiosError, AxiosResponse } from 'axios';
+import http, { handleError, Problem, UUID } from '@/http';
 import type { components } from '@/types';
 
 type definitions = components['schemas'];
@@ -29,5 +29,8 @@ export function list(application_id: UUID): Promise<Array<RequestAttemptTypeFixe
         application_id: application_id,
       },
     })
-    .then((res: AxiosResponse<Array<RequestAttemptTypeFixed>>) => res.data);
+    .then(
+      (res: AxiosResponse<Array<RequestAttemptTypeFixed>>) => res.data,
+      (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
+    );
 }
