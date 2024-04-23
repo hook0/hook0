@@ -240,14 +240,13 @@ function upsert(e: Event) {
   }, displayError);
 }
 
-function displayError(err: unknown) {
+function displayError(err: Problem) {
   console.error(err);
   alert.value.visible = true;
 
-  const problem: Problem = err as Problem;
-  alert.value.type = problem.status >= 500 ? 'alert' : 'warning';
-  alert.value.title = problem.title;
-  alert.value.description = problem.detail;
+  alert.value.type = err.status >= 500 ? 'alert' : 'warning';
+  alert.value.title = err.title;
+  alert.value.description = err.detail;
 }
 
 onMounted(() => {
