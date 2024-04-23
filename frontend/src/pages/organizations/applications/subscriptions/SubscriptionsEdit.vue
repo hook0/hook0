@@ -3,7 +3,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { onMounted, onUpdated, ref } from 'vue';
 import { head } from 'ramda';
 
-import { isAxiosError, Problem, UUID } from '@/http';
+import { Problem, UUID } from '@/http';
 import { Alert } from '@/components/Hook0Alert';
 import Hook0Alert from '@/components/Hook0Alert.vue';
 import * as SubscriptionService from './SubscriptionService';
@@ -240,20 +240,13 @@ function upsert(e: Event) {
   }, displayError);
 }
 
-function displayError(err: unknown) {
+function displayError(err: Problem) {
   console.error(err);
   alert.value.visible = true;
 
-  if (isAxiosError(err) && err.response) {
-    const problem: Problem = err.response.data as Problem;
-    alert.value.type = problem.status >= 500 ? 'alert' : 'warning';
-    alert.value.title = problem.title;
-    alert.value.description = problem.detail;
-  } else {
-    alert.value.type = 'alert';
-    alert.value.title = 'An error occurred';
-    alert.value.description = String(err);
-  }
+  alert.value.type = err.status >= 500 ? 'alert' : 'warning';
+  alert.value.title = err.title;
+  alert.value.description = err.detail;
 }
 
 onMounted(() => {

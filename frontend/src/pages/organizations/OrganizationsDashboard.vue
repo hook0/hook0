@@ -3,7 +3,7 @@ import { useRoute } from 'vue-router';
 import { onMounted, onUpdated, ref } from 'vue';
 
 import Hook0Text from '@/components/Hook0Text.vue';
-import { isAxiosError, Problem, UUID } from '@/http';
+import { Problem, UUID } from '@/http';
 import * as OrganizationService from '@/pages/organizations/OrganizationService';
 import { OrganizationInfo } from '@/pages/organizations/OrganizationService';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
@@ -57,20 +57,13 @@ function _load() {
   }
 }
 
-function displayError(err: unknown) {
+function displayError(err: Problem) {
   console.error(err);
   alert.value.visible = true;
 
-  if (isAxiosError(err) && err.response) {
-    const problem: Problem = err.response.data as Problem;
-    alert.value.type = problem.status >= 500 ? 'alert' : 'warning';
-    alert.value.title = problem.title;
-    alert.value.description = problem.detail;
-  } else {
-    alert.value.type = 'alert';
-    alert.value.title = 'An error occurred';
-    alert.value.description = String(err);
-  }
+  alert.value.type = err.status >= 500 ? 'alert' : 'warning';
+  alert.value.title = err.title;
+  alert.value.description = err.detail;
 }
 
 onMounted(() => {
