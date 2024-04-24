@@ -19,5 +19,5 @@ export default function (base_url, auth_token, application_id, event_id, subscri
         'List request attempts': (r) => r.status === 200 && r.body && r.body.includes('status'),
     })) return null;
 
-    return JSON.parse(response.body).status;
+    return JSON.parse(res.body).status;
 }
