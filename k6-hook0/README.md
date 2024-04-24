@@ -41,9 +41,9 @@ k6 run main.js # Pour lancer les tests
 Vous pouvez modifier les valeurs par défaut dans le fichier `config.js`
 Ou bien passer par les variables d'enviroennement avec `k6 run main.js -e VAR1=VALUE1 -e VAR2=VALUE2 ...`
 
-const vus = __ENV.VUS || VUS;
-const iterations = __ENV.ITERATIONS || ITERATIONS;
-const maxDuration = __ENV.MAX_DURATION || MAX_DURATION;
+    const vus = __ENV.VUS || VUS;
+    const iterations = __ENV.ITERATIONS || ITERATIONS;
+    const maxDuration = __ENV.MAX_DURATION || MAX_DURATION;
 
     const hostname = __ENV.HOSTNAME || DEFAULT_HOSTNAME;
     const targetUrl = __ENV.TARGET_URL || DEFAULT_TARGET_URL;
