@@ -3,7 +3,7 @@
 1. Cloner le projet
 2. Installer les dépendances
 ```bash
-Installer k6 (https://k6.io/docs/get-started/installation/)
+# Installer k6 (https://k6.io/docs/get-started/installation/)
 npm install
 ```
 
