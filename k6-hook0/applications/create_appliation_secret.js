@@ -19,7 +19,9 @@ export default function (baseUrl, applicationId, masterApiKey) {
     let res = http.post(url, payload, params)
     if(!check(res, {
         'Secret key created': (r) => r.status === 201 && r.body && r.body.includes('token')
-    })) return null;
+    })) {
+        return null;
+    }
 
     return JSON.parse(res.body).token
 }
