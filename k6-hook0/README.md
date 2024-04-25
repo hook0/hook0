@@ -1,45 +1,50 @@
 ## 🚀 Installation
 
-1. Cloner le projet
-2. Installer les dépendances
+1. Clone the project
+2. Install dependencies
 ```bash
-# Installer k6 (https://k6.io/docs/get-started/installation/)
+# Install k6 (https://k6.io/docs/get-started/installation/)
 npm install
 ```
 
-## 🔥 Lancer le projet
+
+## 🔥 Launch the project
 
 ```bash
-node setup.js # Pour suprimer les valeurs stockés de le base de donnée à partir des organisations
-k6 run main.js # Pour lancer les tests
+node setup.js # To delete the stored values from the database from the organizations
+k6 run main.js # To run the tests
 ```
+
 
 ## 📝 Description
 
-- `setup.js` : Script pour supprimer les valeurs stockés de le base de donnée à partir des organisations
-- `main.js` : Script pour lancer les tests
-- `utils.js` : Fonctions utilitaires
-- `config.js` : Configuration du projet
+- `setup.js` : Script to delete the stored values from the database from the organizations
+- `main.js` : Script to run the tests
+- `utils.js` : Utility functions
+- `config.js` : Project configuration
 
-## 🎯 Buts
 
-- Créer un utilisateur et une organisation
-- Créer une application
-- Créer un token secret d'application
-- Créer deux events types
-- Créer deux subscriptions (la première prendra les deux events types, la deuxième prendra un seul event type)
-- S'abonner aux deux subscriptions avec un event par subscription
-- Vérifier si les events ont bien été reçus
+## 🎯 Goals
+
+- Create a user and an organization
+- Create an application
+- Create an application secret token
+- Create two event types
+- Create two subscriptions (the first will take the two event types, the second will take only one event type)
+- Subscribe to the two subscriptions with one event per subscription
+- Check if the events have been received
+
 
 ## 📚 Documentation
 
 - [K6](https://k6.io/docs/)
 - [Hook0](https://documentation.hook0.com/)
 
-## ⚙️ Configuration optionnelle
 
-Vous pouvez modifier les valeurs par défaut dans le fichier `config.js`
-Ou bien passer par les variables d'enviroennement avec `k6 run main.js -e VAR1=VALUE1 -e VAR2=VALUE2 ...`
+## ⚙️ Optional configuration
+
+You can modify the default values in the `config.js` file
+Or use environment variables with `k6 run main.js -e VAR1=VALUE1 -e VAR2=VALUE2 ...`
 
     const vus = __ENV.VUS || VUS;
     const iterations = __ENV.ITERATIONS || ITERATIONS;
@@ -47,20 +52,12 @@ Ou bien passer par les variables d'enviroennement avec `k6 run main.js -e VAR1=V
 
     const hostname = __ENV.HOSTNAME || DEFAULT_HOSTNAME;
     const targetUrl = __ENV.TARGET_URL || DEFAULT_TARGET_URL;
-    const authToken = __ENV.AUTH_TOKEN || DEFAULT_AUTH_TOKEN;
     const masterApiKey = __ENV.MASTER_API_KEY || DEFAULT_MASTER_API_KEY;
 
-    const timeBeforeEachRequest = __ENV.TIME_BEFORE_EACH_REQUEST || TIME_BEFORE_EACH_REQUEST;
-    const timeBeforeEachVerification = __ENV.TIME_BEFORE_EACH_VERIFICATION || TIME_BEFORE_EACH_VERIFICATION;
-    const timeBeforeEachDelete = __ENV.TIME_BEFORE_EACH_DELETE || TIME_BEFORE_EACH_DELETE;
-
-    const retryCount = __ENV.RETRY_COUNT || RETRY_COUNT;
-
 Configurable:
-- `VUS` : Nombre d'utilisateurs virtuels
-- `ITERATIONS` : Nombre d'itérations par utilisateur virtuel
-- `MAX_DURATION` : Durée maximale de l'exécution du test avant qu'il timeout
-- `HOSTNAME` : Nom de domaine de l'API
-- `TARGET_URL` : URL qui recevera les requêtes des webhooks
-- `AUTH_TOKEN` : Token d'authentification
-- `MASTER_API_KEY` : Clé master d'api si vous utilisez [cette](https://documentation.hook0.com/docs/api-authentication) méthode d'authentification
+- `VUS` : Number of virtual users
+- `ITERATIONS` : Number of iterations per virtual user
+- `MAX_DURATION` : Maximum duration of the test execution before it times out
+- `HOSTNAME` : Domain name of the API
+- `TARGET_URL` : URL that will receive the webhook requests
+- `MASTER_API_KEY` : Master API key if you use [this](https://documentation.hook0.com/docs/api-authentication) authentication method
