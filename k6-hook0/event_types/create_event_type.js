@@ -6,7 +6,7 @@ export default function (baseUrl, application_secret, application_id) {
   const url = `${baseUrl}api/v1/event_types/`;
   const payload = JSON.stringify({
     application_id: application_id,
-    service: generateRandomLetters(5),
+    service: "test_k6_"+generateRandomLetters(5),
     resource_type: generateRandomLetters(5),
     verb: generateRandomLetters(5),
   });

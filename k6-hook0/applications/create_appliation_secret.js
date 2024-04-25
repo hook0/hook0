@@ -5,7 +5,7 @@ export default function (baseUrl, applicationId, masterApiKey) {
     let url = `${baseUrl}/api/v1/application_secrets/`
     let payload = JSON.stringify({
         application_id: applicationId,
-        name: 'test'
+        name: 'test_k6'
     })
 
     let params = {

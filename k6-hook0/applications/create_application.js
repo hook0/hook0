@@ -4,7 +4,7 @@ import { check } from 'k6';
 export default function(baseUrl, organizationId, masterApiKey) {
     const url = `${baseUrl}api/v1/applications/`;
     const payload = JSON.stringify({
-        name: 'test',
+        name: 'test_k6',
         organization_id: organizationId, // Ensure this value is not undefined or null
     });
     const params = {

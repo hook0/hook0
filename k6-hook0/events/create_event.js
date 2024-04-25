@@ -18,7 +18,8 @@ export default function (auth_token, base_url, application_id, event_type) {
         "event_type": event_type,
         "occurred_at": "2022-11-04T16:12:58Z",
         "payload_content_type": "application/json",
-        "payload": "{\"test\": true}"
+        "payload": "{\"test_k6\": true}",
+        "metadata": "{\"test_k6\": true}"
     };
 
     let res = http.post(url, JSON.stringify(payload), {headers: headers});
