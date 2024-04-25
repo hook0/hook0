@@ -28,7 +28,9 @@ export default function(BASE_URL) {
     const res = http.post(url, payload, params);
     if(!check(res, {
         'User and default organisation created with success': (r) => r.status === 201 && r.body && r.body.includes('organization_id') && r.body.includes('user_id'),
-    })) return null;
+    })) {
+        return null;
+    }
 
     return JSON.parse(res.body);
 }
