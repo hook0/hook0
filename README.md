@@ -82,10 +82,10 @@ Hook0 only requires Rust and supports most operating systems and SQL database ve
 - Rust active LTS
 
 **Supported Databases**
-- PostgreSQL 10+
+- PostgreSQL 15+ _(You can try to downgrade, it might work with an early version.)_
 
 **Supported OS**
-- Ubuntu 18.04
+- Ubuntu LTS
 - CentOS / RHEL 8
 - macOS Catalina or newer
 - Windows 10/11
