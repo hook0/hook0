@@ -28,7 +28,7 @@
    <a href="https://status.hook0.com/"><img height="20px" src="https://uptime.betterstack.com/status-badges/v1/monitor/es5i.svg" alt="Uptime"></a>
    <a href="https://github.com/hook0/hook0/stargazers"><img src="https://img.shields.io/github/stars/hook0/hook0" alt="Github Stars"></a>
    <!--<a href="https://news.ycombinator.com/item?id="><img src="https://img.shields.io/badge/Hacker%20News-%231-%23FF6600" alt="Hacker News"></a>-->
-   <a href="https://github.com/hook0/hook0/blob/main/LICENSE.txt"><img src="https://img.shields.io/badge/license-SSPL-purple" alt="License"></a>
+   <a href="https://github.com/hook0/hook0/blob/master/LICENSE.txt"><img src="https://img.shields.io/badge/license-SSPL-purple" alt="License"></a>
    <a href="https://github.com/hook0/hook0/pulse"><img src="https://img.shields.io/github/commit-activity/m/hook0/hook0" alt="Commits-per-month"></a>
    <a href="https://www.hook0.com/?pricing.destination=cloud#pricing"><img src="https://img.shields.io/badge/Pricing-Free-brightgreen" alt="Pricing"></a>
    <!--<a href="https://hub.docker.com/r/hook0/hook0"><img src="https://img.shields.io/docker/pulls/hook0/hook0"></a>-->
@@ -82,10 +82,10 @@ Hook0 only requires Rust and supports most operating systems and SQL database ve
 - Rust active LTS
 
 **Supported Databases**
-- PostgreSQL 10+
+- PostgreSQL 15+ _(it might work with an early version)_
 
 **Supported OS**
-- Ubuntu 18.04
+- Ubuntu LTS
 - CentOS / RHEL 8
 - macOS Catalina or newer
 - Windows 10/11
