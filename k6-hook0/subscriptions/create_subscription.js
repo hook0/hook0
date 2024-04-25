@@ -32,7 +32,9 @@ export default function (baseUrl, auth_token, application_id, event_types, targe
     const res = http.post(url, JSON.stringify(payload), params);
     if(!check(res, {
         'Subscription created': (r) => r.status === 201 && r.body && r.body.includes('created_at') && r.body.includes('subscription_id'),
-    })) return null;
+    })) {
+        return null;
+    }
 
     return JSON.parse(res.body);
 }
