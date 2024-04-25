@@ -10,7 +10,8 @@ import Error404 from '@/pages/Error404.vue';
 import EventTypesList from '@/pages/organizations/applications/event_types/EventTypesList.vue';
 import EventTypesNew from '@/pages/organizations/applications/event_types/EventTypesNew.vue';
 import Home from '@/Home.vue';
-import ComingSoon from '@/pages/ComingSoon.vue';
+//import ComingSoon from '@/pages/ComingSoon.vue';
+import UsersSettings from '@/pages/users/UsersSettings.vue';
 import SubscriptionsList from '@/pages/organizations/applications/subscriptions/SubscriptionsList.vue';
 import SubscriptionsEdit from '@/pages/organizations/applications/subscriptions/SubscriptionsEdit.vue';
 import LogList from '@/pages/organizations/applications/logs/LogList.vue';
@@ -156,7 +157,7 @@ export default [
   {
     name: routes.Settings,
     path: '/settings',
-    component: ComingSoon,
+    component: UsersSettings,
   },
   {
     name: routes.APIDocumentation,
