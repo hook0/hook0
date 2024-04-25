@@ -90,8 +90,16 @@ export type UUID = string;
 export type Problem = definitions['Problem'];
 
 export function handleError(err: AxiosError<AxiosResponse<Problem>>): Problem {
-  if (err.response?.data) {
-    return err.response.data as unknown as Problem;
+  if (err.response?.data && typeof err.response.data === 'object') {
+    const problem = err.response.data as unknown as Problem;
+    if (
+      typeof problem.detail === 'string' &&
+      typeof problem.status === 'number' &&
+      typeof problem.id === 'string' &&
+      typeof problem.title === 'string'
+    ) {
+      return problem;
+    }
   }
   return {
     id: 'unknown',
