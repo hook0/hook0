@@ -1,17 +1,17 @@
 import http from 'k6/http';
 import { check } from 'k6';
 
-export default function (baseUrl, auth_token, application_id, event_types, target_url) {
+export default function (baseUrl, auth_token, application_id, event_types, target_url, label_key, label_value){
     const url = `${baseUrl}/api/v1/subscriptions/`;
     const payload = {
         is_enabled: true,
         metadata: {
-            newKey: 'New Value',
+            test_k6: 'true',
         },
         application_id: application_id,
-        description: 'Ceci est un test',
-        label_key: 'all',
-        label_value: 'yes',
+        description: 'Ceci est un test réalisé avec k6',
+        label_key: label_key,
+        label_value: label_value,
         event_types: event_types,
         target: {
             type: 'http',
@@ -34,5 +34,5 @@ export default function (baseUrl, auth_token, application_id, event_types, targe
         'Subscription created': (r) => r.status === 201 && r.body && r.body.includes('created_at') && r.body.includes('subscription_id'),
     })) return null;
 
-    return JSON.parse(res.body).subscription_id;
+    return JSON.parse(res.body);
 }

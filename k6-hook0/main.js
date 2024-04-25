@@ -57,13 +57,17 @@ export function setup() {
         return;
     }
 
-    let subscription_1 = create_subscription(config.hostname, application_secret, application_id, [event_type_1, event_type_2], config.targetUrl);
+    let subscription_1 = create_subscription(config.hostname, application_secret, application_id, [event_type_1, event_type_2], config.targetUrl, "all", "yes");
     if (!isNotNull(subscription_1)) {
         console.error("Failed to create subscription");
         return;
     }
+    let subscription_1_id = subscription_1.subscription_id;
+    let label_key = subscription_1.label_key;
+    let label_value = subscription_1.label_value;
 
-    let subscription_2 = create_subscription(config.hostname, application_secret, application_id, [event_type_1], config.targetUrl);
+
+    let subscription_2 = create_subscription(config.hostname, application_secret, application_id, [event_type_1], config.targetUrl, "all", "yes");
     if (!isNotNull(subscription_2)) {
         console.error("Failed to create subscription");
         return;
@@ -81,21 +85,25 @@ export function setup() {
         return;
     }
 
-    let request_attempts_1 = list_requests_attempts(config.hostname, application_secret, application_id, event_1, subscription_1);
+    let request_attempts_1 = list_requests_attempts(config.hostname, application_secret, application_id, event_1);
     if (!isNotNull(request_attempts_1)) {
         console.error("Failed to list request attempts 1");
         return;
     }
+    if (request_attempts_1.length !== 2) {
+        console.error("Expected to find 2 request attempts for event 1 | Found: " + request_attempts_1.length);
+        return;
+    }
 
-    console.log(request_attempts_1);
-
-    let request_attempts_2 = list_requests_attempts(config.hostname, application_secret, application_id, event_2, subscription_2);
+    let request_attempts_2 = list_requests_attempts(config.hostname, application_secret, application_id, event_2);
     if (!isNotNull(request_attempts_2)) {
         console.error("Failed to list request attempts 2");
         return;
     }
-
-    console.log(request_attempts_2);
+    if (request_attempts_2.length !== 1) {
+        console.error("Expected to find 1 request attempts for event 2 | Found: " + request_attempts_2.length);
+        return;
+    }
 }
 
 export default function () {

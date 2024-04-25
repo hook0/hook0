@@ -3,9 +3,9 @@ import { check } from 'k6';
 import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 
 const DEFAULT_EMAIL = uuidv4() + '@test.com';
-const DEFAULT_FIRST_NAME = 'test';
-const DEFAULT_LAST_NAME = 'test';
-const DEFAULT_ORGANIZATION_NAME = 'test';
+const DEFAULT_FIRST_NAME = 'test_k6';
+const DEFAULT_LAST_NAME = 'test_k6';
+const DEFAULT_ORGANIZATION_NAME = 'test_k6';
 const DEFAULT_PASSWORD = 'testtest24';
 
 export default function(BASE_URL) {
