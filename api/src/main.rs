@@ -3,7 +3,7 @@ use actix::Arbiter;
 use actix_cors::Cors;
 use actix_files::{Files, NamedFile};
 use actix_web::middleware::{Compat, Logger, NormalizePath};
-use actix_web::{http, App, HttpServer};
+use actix_web::{http, middleware, App, HttpServer};
 use actix_web_middleware_keycloak_auth::{AlwaysPassPolicy, DecodingKey, KeycloakAuth};
 use clap::builder::{BoolValueParser, TypedValueParser};
 use clap::{crate_name, ArgGroup, Parser};
@@ -212,6 +212,14 @@ struct Config {
     /// If true, old events will be reported and cleaned up; if false (default), they will only be reported
     #[clap(long, env, default_value = "false")]
     old_events_cleanup_report_and_delete: bool,
+
+    /// If true, the secured HTTP headers will be disabled
+    #[clap(long, env, default_value = "false")]
+    disable_security_headers: bool,
+
+    /// If true, the HSTS header will be enabled
+    #[clap(long, env, default_value = "false")]
+    enable_hsts_header: bool,
 }
 
 /// The app state
@@ -415,6 +423,21 @@ async fn main() -> anyhow::Result<()> {
             master_api_key,
         };
 
+        let security_headers = middleware::DefaultHeaders::new()
+            .add(("X-Content-Type-Options", "nosniff"))
+            .add(("Referrer-Policy", "strict-origin-when-cross-origin"))
+            .add(("X-XSS-Protection", "1; mode=block"))
+            .add(("Referrer-Policy", "SAMEORIGIN"));
+
+        let hsts_header = middleware::DefaultHeaders::new()
+            .add(("Strict-Transport-Security", "max-age=157680000"));
+
+        let security_headers_condition =
+            middleware::Condition::new(!config.disable_security_headers, security_headers);
+
+        let hsts_header_condition =
+            middleware::Condition::new(config.enable_hsts_header, hsts_header);
+
         let mut app = App::new()
             .app_data(web::Data::new(initial_state.clone()))
             .app_data(web::JsonConfig::default().error_handler(|e, _req| {
@@ -423,6 +446,8 @@ async fn main() -> anyhow::Result<()> {
                 actix_web::error::Error::from(problem)
             }))
             .wrap(get_user_ip)
+            .wrap(hsts_header_condition)
+            .wrap(security_headers_condition)
             .wrap(cors)
             .wrap(Logger::default())
             .wrap(NormalizePath::trim())
