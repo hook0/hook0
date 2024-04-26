@@ -3,7 +3,7 @@ import http, { handleError, Problem, UUID } from '@/http';
 import type { components } from '@/types';
 
 type definitions = components['schemas'];
-import { onTokenExpired } from '@/iam';
+import { refresh } from '@/iam';
 
 export type Organization = definitions['Organization'];
 export type OrganizationPost = definitions['OrganizationPost'];
@@ -18,7 +18,7 @@ export function create(organization: OrganizationPost): Promise<OrganizationInfo
     )
     .then((organization) => {
       // we currently have to force the JWT refresh so it contains the organization
-      return onTokenExpired().then(() => organization);
+      return refresh().then(() => organization);
     });
 }
 
@@ -40,15 +40,27 @@ export function update(
   organization_id: UUID,
   organization: OrganizationPost
 ): Promise<Organization> {
-  return http.put(`/organizations/${organization_id}`, organization).then(
-    (res: AxiosResponse<Organization>) => res.data,
-    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
-  );
+  return http
+    .put(`/organizations/${organization_id}`, organization)
+    .then(
+      (res: AxiosResponse<Organization>) => res.data,
+      (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
+    )
+    .then((organization) => {
+      // we currently have to force the JWT refresh so it contains the organization
+      return refresh().then(() => organization);
+    });
 }
 
 export function remove(organization_id: UUID): Promise<void> {
-  return http.delete(`/organizations/${organization_id}`, {}).then(
-    (res: AxiosResponse<void>) => res.data,
-    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
-  );
+  return http
+    .delete(`/organizations/${organization_id}`, {})
+    .then(
+      (res: AxiosResponse<void>) => res.data,
+      (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
+    )
+    .then((organization) => {
+      // we currently have to force the JWT refresh so it contains the organization
+      return refresh().then(() => organization);
+    });
 }
