@@ -1,3 +1,4 @@
+use crate::mailer::Mailer;
 use crate::problems::Hook0Problem;
 use ::hook0_client::Hook0Client;
 use actix::fut::result;
@@ -17,7 +18,6 @@ use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 use std::str::FromStr;
 use std::time::Duration;
 use uuid::Uuid;
-use crate::mailer::Mailer;
 
 mod extractor_user_ip;
 mod handlers;
@@ -263,8 +263,8 @@ fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
 #[derive(Debug, Clone)]
 pub struct State {
     db: PgPool,
-    mailer: Mailer,
     biscuit_private_key: PrivateKey,
+    mailer: Mailer,
     #[cfg(feature = "migrate-users-from-keycloak")]
     keycloak_url: Url,
     #[cfg(feature = "migrate-users-from-keycloak")]
@@ -293,6 +293,21 @@ async fn main() -> anyhow::Result<()> {
             &config.sentry_dsn,
             &config.sentry_traces_sample_rate,
         );
+
+        // Prepare trusted reverse proxies IPs
+        let reverse_proxy_ips = config
+            .reverse_proxy_ips
+            .iter()
+            .map(|str| str.trim().to_owned())
+            .collect::<Vec<_>>();
+        if reverse_proxy_ips.is_empty() {
+            warn!("No trusted reverse proxy IPs were set; if this is a production instance this is a problem");
+        } else {
+            debug!(
+                "The following IPs will be considered as trusted reverse proxies: {}",
+                &reverse_proxy_ips.join(", ")
+            );
+        }
 
         trace!("Starting {}", APP_TITLE);
 
@@ -413,14 +428,14 @@ async fn main() -> anyhow::Result<()> {
             config.email_sender_name,
             config.email_sender_address,
         )
-            .await
-            .unwrap();
+        .await
+        .unwrap();
 
         // Initialize state
         let initial_state = State {
             db: pool,
-            mailer,
             biscuit_private_key,
+            mailer,
             #[cfg(feature = "migrate-users-from-keycloak")]
             keycloak_url: config.keycloak_url,
             #[cfg(feature = "migrate-users-from-keycloak")]
