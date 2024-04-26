@@ -9,7 +9,7 @@ import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import featureFlags from '@/feature-flags';
-import { getToken } from '@/iam';
+import { getAccessToken } from '@/iam';
 
 const route = useRoute();
 const swaggerUI = ref<null | SwaggerUI>(null);
@@ -75,10 +75,12 @@ function _load() {
     },
 
     requestInterceptor: (req: SwaggerUI.Request) => {
-      return getToken().then((jwt_token) => ({
-        ...req,
-        Headers: { Authorization: `Bearer ${jwt_token}` },
-      }));
+      const accessToken = getAccessToken().value;
+      return Object.assign(
+        {},
+        req,
+        accessToken ? { Headers: { Authorization: `Bearer ${accessToken}` } } : {}
+      );
     },
 
     // try out

@@ -5,7 +5,7 @@ import './tailwind.css';
 import { createApp } from 'vue';
 import router from './router';
 import { Promised } from 'vue-promised';
-import { KeycloakPlugin } from './iam';
+import { AuthPlugin } from './iam';
 
 import Root from './Root.vue';
 
@@ -51,11 +51,11 @@ import { faToggleOff } from '@fortawesome/free-solid-svg-icons/faToggleOff';
 // Create and mount the root instance.
 const app = createApp(Root);
 
-// Vue - UIRouter
+// Vue Router
 app.use(router);
 
-// Expose Keycloak JS
-app.use(KeycloakPlugin);
+// Authentication & authorization
+app.use(AuthPlugin);
 
 // font-awesome
 // Add here

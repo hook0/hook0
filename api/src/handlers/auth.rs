@@ -28,7 +28,12 @@ pub struct LoginPost {
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
 pub struct LoginResponse {
     access_token: String,
+    access_token_expiration: DateTime<Utc>,
     refresh_token: String,
+    refresh_token_expiration: DateTime<Utc>,
+    email: String,
+    first_name: String,
+    last_name: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -252,7 +257,7 @@ async fn do_login<'a, A: Acquire<'a, Database = Postgres>>(
 
     let session_id = session_id.unwrap_or_else(Uuid::new_v4);
     let access_token_id = Uuid::new_v4();
-    let access_token = create_user_access_token(
+    let (access_token, access_token_expiration) = create_user_access_token(
         biscuit_private_key,
         access_token_id,
         session_id,
@@ -262,18 +267,32 @@ async fn do_login<'a, A: Acquire<'a, Database = Postgres>>(
         &user.last_name,
         roles,
     )
+    .and_then(|rt| {
+        if let Some(expired_at) = rt.expired_at {
+            Ok((rt, expired_at))
+        } else {
+            Err(biscuit_auth::error::Token::InternalError)
+        }
+    })
     .map_err(|e| {
         error!("Could not create a Biscuit (user access token): {e}");
         Hook0Problem::InternalServerError
     })?;
 
     let refresh_token_id = Uuid::new_v4();
-    let refresh_token = create_refresh_token(
+    let (refresh_token, refresh_token_expiration) = create_refresh_token(
         biscuit_private_key,
         refresh_token_id,
         session_id,
         user.user_id,
     )
+    .and_then(|rt| {
+        if let Some(expired_at) = rt.expired_at {
+            Ok((rt, expired_at))
+        } else {
+            Err(biscuit_auth::error::Token::InternalError)
+        }
+    })
     .map_err(|e| {
         error!("Could not create a Biscuit (refresh token): {e}");
         Hook0Problem::InternalServerError
@@ -288,12 +307,12 @@ async fn do_login<'a, A: Acquire<'a, Database = Postgres>>(
         ",
         &access_token_id,
         &access_token.revocation_id,
-        access_token.expired_at,
+        access_token_expiration,
         &user.user_id,
         &session_id,
         &refresh_token_id,
         &refresh_token.revocation_id,
-        refresh_token.expired_at,
+        refresh_token_expiration,
     )
     .execute(&mut *db)
     .await?;
@@ -311,7 +330,12 @@ async fn do_login<'a, A: Acquire<'a, Database = Postgres>>(
 
     Ok(CreatedJson(LoginResponse {
         access_token: access_token.serialized_biscuit,
+        access_token_expiration,
         refresh_token: refresh_token.serialized_biscuit,
+        refresh_token_expiration,
+        email: user.email,
+        first_name: user.first_name,
+        last_name: user.last_name,
     }))
 }
 

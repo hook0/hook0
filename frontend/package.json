@@ -35,7 +35,7 @@
     "test:watch": "jest --maxWorkers=25%",
     "test:ci": "jest --runInBand --coverage --collectCoverage",
     "format": "prettier --write src/ ./*.{js,ts,json}",
-    "generate:types": "openapi-typescript http://localhost:8080/api/v1/swagger.json --output src/types.ts",
+    "generate:types": "openapi-typescript http://localhost:8081/api/v1/swagger.json --output src/types.ts",
     "generate:types:prod": "openapi-typescript https://app.hook0.com/api/v1/swagger.json --output src/types.ts"
   },
   "dependencies": {
@@ -43,6 +43,7 @@
     "@ag-grid-community/core": "^31.0.1",
     "@ag-grid-community/styles": "^31.0.1",
     "@ag-grid-community/vue3": "^31.0.1",
+    "@biscuit-auth/biscuit-wasm": "^0.4.0",
     "@codemirror/lang-json": "^6.0.1",
     "@codemirror/theme-one-dark": "^6.1.0",
     "@fortawesome/fontawesome-svg-core": "^6.2.0",
@@ -88,6 +89,8 @@
     "typescript": "^5.0.2",
     "vite": "^5.0.10",
     "vite-plugin-checker": "^0.6.1",
+    "vite-plugin-top-level-await": "^1.4.1",
+    "vite-plugin-wasm": "^3.3.0",
     "vue-tsc": "^1.8.5"
   },
   "keywords": [
