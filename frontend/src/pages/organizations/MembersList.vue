@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { ColDef, ValueFormatterParams } from '@ag-grid-community/core';
-import { onMounted, onUpdated, ref, inject } from 'vue';
+import { onMounted, onUpdated, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import Keycloak from 'keycloak-js';
 
-import { KeycloakTokenParsedAttributes, getToken, keycloakKey } from '@/iam';
+import { getUserInfo } from '@/iam';
 import { Invitation, Members, User } from './MemberService';
 import * as MemberService from './MemberService';
 import Hook0Button from '@/components/Hook0Button.vue';
@@ -90,10 +89,7 @@ const columnDefs: ColDef[] = [
   },
 ];
 
-const $keycloak = inject(keycloakKey) as Keycloak;
-const currentUser = ref<(Keycloak.KeycloakTokenParsed & KeycloakTokenParsedAttributes) | null>(
-  null
-);
+const currentUser = getUserInfo();
 const alert = ref<Alert>({
   visible: false,
   type: 'alert',
@@ -153,10 +149,7 @@ function displayError(err: Problem) {
   alert.value.description = err.detail;
 }
 
-onMounted(async () => {
-  await getToken().then(() => {
-    currentUser.value = $keycloak.idTokenParsed as KeycloakTokenParsedAttributes;
-  });
+onMounted(() => {
   _load();
 });
 
