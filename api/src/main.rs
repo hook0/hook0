@@ -29,6 +29,7 @@ mod problems;
 mod quotas;
 mod rate_limiting;
 mod validators;
+mod mailer;
 
 const APP_TITLE: &str = "Hook0 API";
 const WEBAPP_INDEX_FILE: &str = "index.html";
