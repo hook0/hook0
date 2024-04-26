@@ -27,6 +27,7 @@ ipnetwork = "0.20.0"
 lazy_static = "1.4.0"
 lettre = "0.11.7"
 log = "0.4.21"
+mrml = "3.1.5"
 nom = "7.1.3"
 nom-regex = "0.2.0"
 paperclip = { version = "0.8.2", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
