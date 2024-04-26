@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import { inject, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import Keycloak from 'keycloak-js';
 
-import { KeycloakTokenParsedAttributes, getToken, keycloakKey } from '@/iam';
+import { getUserInfo, logout as doLogout } from '@/iam';
 import { routes } from '@/routes';
 import Hook0Icon from '@/components/Hook0Icon.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
@@ -15,27 +13,17 @@ import Hook0DropdownMenuItemLink from '@/components/Hook0DropdownMenuItemLink.vu
 import Hook0Loader from '@/components/Hook0Loader.vue';
 import CrispChat from '@/components/CrispChat.vue';
 
-const $keycloak = inject(keycloakKey) as Keycloak;
-
 const router = useRouter();
 defineSlots<{
   default(): unknown;
 }>();
 
-const currentUser = ref<(Keycloak.KeycloakTokenParsed & KeycloakTokenParsedAttributes) | null>(
-  null
-);
+const currentUser = getUserInfo();
 
 async function logout() {
-  await $keycloak.logout();
-  await router.push('/');
+  await doLogout();
+  await router.push('/login');
 }
-
-onMounted(() => {
-  return getToken().then(() => {
-    currentUser.value = $keycloak.idTokenParsed as KeycloakTokenParsedAttributes;
-  });
-});
 </script>
 
 <template>
