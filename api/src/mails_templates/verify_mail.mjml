@@ -1,0 +1,25 @@
+<mjml>
+    <mj-head>
+        <mj-title>Verify email</mj-title>
+        <mj-style inline="inline">
+            body {
+                margin: 0;
+                padding: 0;
+                width: 100% !important;
+                background-color: #f0f0f0;
+            }
+        </mj-style>
+    </mj-head>
+    <mj-body>
+        <mj-section>
+            <mj-column>
+                <mj-image src="https://media.licdn.com/dms/image/D4E0BAQGsPhBoelzE-w/company-logo_200_200/0/1692644882512/hook0_logo?e=2147483647&v=beta&t=g2x3nONV1hYeBrKaf0Yw086pRmJn4KxneGQA4OR-s2k" alt="Hook0" width="150px" />
+                <mj-text font-weight="bold" font-size="26px" color="#000000" font-family="helvetica" align="center">Welcome to Hook0</mj-text>
+                <mj-text align="center" font-size="20px" color="#000000" font-family="helvetica">Someone has created a Hook0 account with this email address. If this was you, click the link below to verify your email address</mj-text>
+                <mj-button background-color="#F45E43" color="white" font-size="20px" font-family="helvetica" href="{ $url }">Verify email</mj-button>
+                <mj-text align="center" font-size="16px" color="#000000" font-family="helvetica">This link will expire within <strong>5 minutes</strong>.</mj-text>
+                <mj-text align="center" font-size="16px" color="#000000" font-family="helvetica">If you didn't create this account, just ignore this message.</mj-text>
+            </mj-column>
+        </mj-section>
+    </mj-body>
+</mjml>

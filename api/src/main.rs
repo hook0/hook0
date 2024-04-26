@@ -1,4 +1,6 @@
+use crate::problems::Hook0Problem;
 use ::hook0_client::Hook0Client;
+use actix::fut::result;
 use actix::Arbiter;
 use actix_cors::Cors;
 use actix_files::{Files, NamedFile};
@@ -20,6 +22,7 @@ mod handlers;
 mod hook0_client;
 mod iam;
 mod keycloak_api;
+mod mailer;
 mod materialized_views;
 mod middleware_application_secret;
 mod middleware_get_user_ip;
@@ -29,7 +32,6 @@ mod problems;
 mod quotas;
 mod rate_limiting;
 mod validators;
-mod mailer;
 
 const APP_TITLE: &str = "Hook0 API";
 const WEBAPP_INDEX_FILE: &str = "index.html";
@@ -221,6 +223,26 @@ struct Config {
     /// If true, the HSTS header will be enabled
     #[clap(long, env, default_value = "false")]
     enable_hsts_header: bool,
+
+    /// Support email address
+    #[clap(long, env, default_value = "hook0.com")]
+    support_email: String,
+
+    /// Email server name
+    #[clap(long, env, default_value = "support")]
+    email_name: String,
+
+    /// Email server address
+    #[clap(long, env, default_value = "localhost")]
+    email_server: String,
+
+    /// Email server port
+    #[clap(long, env, default_value = "1025")]
+    email_port: u16,
+
+    /// Email server TLS
+    #[clap(long, env, default_value = "false")]
+    email_tls: bool,
 }
 
 /// The app state
@@ -239,13 +261,77 @@ pub struct State {
     health_check_key: Option<String>,
 }
 
-#[actix_web::main]
-async fn main() -> anyhow::Result<()> {
+//#[actix_web::main]
+/* async */
+fn main() -> anyhow::Result<()> {
     let config = Config::parse();
+
+    // Create Mailer and send email
+    let mailer_result = mailer::Mailer::new(
+        config.email_server,
+        config.email_port,
+        config.email_tls,
+        config.email_name,
+        config.support_email,
+    );
+    match mailer_result {
+        Ok((mailer, from)) => {
+            let mail = mailer::Mails::VerifyMail {
+                subject: "Verify email".to_string(),
+                variables: vec![(
+                    "url".to_string(),
+                    "https://www.youtube.com/watch?v=dQw4w9WgXcQ".to_string(),
+                )],
+            };
+            let address = lettre::Address::new("david", "sferruzza.tld");
+            match address {
+                Ok(address) => {
+                    let mail_result = mailer.send_mail(mail, address, from);
+                    match mail_result {
+                        Ok(_) => Ok(()),
+                        Err(e) => {
+                            eprintln!("Error: {:?}", e);
+                            Err(e.into())
+                        }
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Error: {:?}", e);
+                    Err(e.into())
+                }
+            }
+        }
+        Err(e) => {
+            eprintln!("Error: {:?}", e);
+            Err(e.into())
+        }
+    }
+
+    /* let mail = mailer::Mails::SimpleMail(mailer::SimpleMail {
+        from: config.support_email,
+        to: "Hei <hei@domain.tld>".to_string(),
+        subject: "Hello".to_string(),
+        body: "Hello, World!".to_string(),
+    });
+
+    let mail2 = mailer::Mails::MjmlMail(mailer::MjmlMail {
+        from: config.support_email,
+        to: "David Sferruzza <david@sferruzza.tld>".to_string(),
+        subject: "Verify email".to_string(),
+        template: "verify_mail".to_string(),
+        data: serde_json::json!({
+            "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        }),
+    });
+
+    mailer.send_mail(mail);
+    mailer.send_mail(mail2);
+
+    std::process::exit(0);*/
 
     // Initialize app logger as well as Sentry integration
     // Return value *must* be kept in a variable or else it will be dropped and Sentry integration won't work
-    let _sentry = sentry_integration::init(
+    /* let _sentry = sentry_integration::init(
         crate_name!(),
         &config.sentry_dsn,
         &config.sentry_traces_sample_rate,
@@ -635,5 +721,5 @@ async fn main() -> anyhow::Result<()> {
     .bind(&format!("{}:{}", config.ip, config.port))?
     .run()
     .await
-    .map_err(|e| e.into())
+    .map_err(|e| e.into())*/
 }

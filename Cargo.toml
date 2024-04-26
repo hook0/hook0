@@ -15,6 +15,3 @@ codegen-units = 1
 # Rust 1.51 added an interesting flag for faster incremental debug builds on macOS.
 # It can make debug builds up to seconds faster (depending on your use-case).
 split-debuginfo = "unpacked"
-
-[profile.dev.package.sqlx-macros]
-opt-level = 3
