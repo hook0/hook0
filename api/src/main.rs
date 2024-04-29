@@ -9,6 +9,7 @@ use actix_web::{http, middleware, App, HttpServer};
 use actix_web_middleware_keycloak_auth::{AlwaysPassPolicy, DecodingKey, KeycloakAuth};
 use clap::builder::{BoolValueParser, TypedValueParser};
 use clap::{crate_name, ArgGroup, Parser};
+use lettre::Address;
 use log::{debug, info, trace, warn};
 use paperclip::actix::{web, OpenApiExt};
 use reqwest::Url;
@@ -224,25 +225,25 @@ struct Config {
     #[clap(long, env, default_value = "false")]
     enable_hsts_header: bool,
 
-    /// Support email address
-    #[clap(long, env, default_value = "hook0.com")]
-    support_email: String,
+    /// Sender email address
+    #[clap(long, env)]
+    email_sender_address: Address,
 
-    /// Email server name
-    #[clap(long, env, default_value = "support")]
-    email_name: String,
+    /// Sender name
+    #[clap(long, env, default_value = "Hook0")]
+    email_sender_name: String,
 
-    /// Email server address
-    #[clap(long, env, default_value = "localhost")]
-    email_server: String,
+    /// SMTP server hostname
+    #[clap(long, env)]
+    smtp_server: String,
 
-    /// Email server port
-    #[clap(long, env, default_value = "1025")]
-    email_port: u16,
+    /// SMTP server port
+    #[clap(long, env)]
+    smtp_port: u16,
 
-    /// Email server TLS
-    #[clap(long, env, default_value = "false")]
-    email_tls: bool,
+    /// SMTP server TLS
+    #[clap(long, env, default_value = "true")]
+    smtp_tls: bool,
 }
 
 /// The app state
@@ -261,42 +262,28 @@ pub struct State {
     health_check_key: Option<String>,
 }
 
-//#[actix_web::main]
-/* async */
-fn main() -> anyhow::Result<()> {
+#[actix_web::main]
+async fn main() -> anyhow::Result<()> {
     let config = Config::parse();
 
     // Create Mailer and send email
-    let mailer_result = mailer::Mailer::new(
-        config.email_server,
-        config.email_port,
-        config.email_tls,
-        config.email_name,
-        config.support_email,
+    let mailer = mailer::Mailer::new(
+        config.smtp_server,
+        config.smtp_port,
+        config.smtp_tls,
+        config.email_sender_name,
+        config.email_sender_address,
     );
-    match mailer_result {
-        Ok((mailer, from)) => {
-            let mail = mailer::Mails::Welcome {
-                name: "David".to_string(),
-            };
-            let address = lettre::Address::new("david", "sferruzza.tld");
-            match address {
-                Ok(address) => {
-                    let mail_result = mailer.send_mail(mail, address, from);
-                    match mail_result {
-                        Ok(_) => Ok(()),
-                        Err(e) => {
-                            eprintln!("Error: {:?}", e);
-                            Err(e.into())
-                        }
-                    }
-                }
-                Err(e) => {
-                    eprintln!("Error: {:?}", e);
-                    Err(e.into())
-                }
-            }
-        }
+    let mail = mailer::Mail::Welcome {
+        name: "David".to_string(),
+    };
+    let recipient = lettre::message::Mailbox::new(
+        Some("David".to_owned()),
+        Address::from_str("david@sferruzza.tld").unwrap(),
+    );
+    let mail_result = mailer.send_mail(mail, recipient).await;
+    match mail_result {
+        Ok(_) => Ok(()),
         Err(e) => {
             eprintln!("Error: {:?}", e);
             Err(e.into())
