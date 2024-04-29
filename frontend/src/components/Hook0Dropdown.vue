@@ -37,6 +37,11 @@ function close() {
   show.value = false;
 }
 
+function route(route: string) {
+  close();
+  window.location.assign(route);
+}
+
 function onClickOutside(event: Event) {
   if (
     show.value &&
@@ -51,7 +56,7 @@ function onClickOutside(event: Event) {
 <template>
   <div :class="$attrs.class" class="hook0-dropdown">
     <div ref="toggler" class="hook0-toggler">
-      <slot name="menu" :open="open" :close="close" :toggle="toggle"></slot>
+      <slot name="menu" :open="open" :close="close" :route="route" :toggle="toggle"></slot>
     </div>
 
     <div ref="dropdown" v-click-outside-element="onClickOutside">
@@ -64,7 +69,7 @@ function onClickOutside(event: Event) {
           aria-orientation="vertical"
           tabindex="-1"
         >
-          <slot name="dropdown" :open="open" :close="close" :toggle="toggle"></slot>
+          <slot name="dropdown" :open="open" :close="close" :toggle="toggle" :route="route"></slot>
         </div>
       </transition>
     </div>
