@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { directive as vClickOutsideElement } from 'vue-click-outside-element';
+import { RouteLocationRaw, useRouter } from 'vue-router';
 
 import Hook0DropdownOptions from './Hook0DropdownOptions';
-import { RouteLocationRaw, useRouter } from 'vue-router';
 
 interface Props {
   justify?: 'left' | 'right';
