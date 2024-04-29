@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { directive as vClickOutsideElement } from 'vue-click-outside-element';
+import { RouteLocationRaw, useRouter } from 'vue-router';
 
 import Hook0DropdownOptions from './Hook0DropdownOptions';
 
@@ -12,6 +13,8 @@ const justify = computed(() => props.justify ?? 'right');
 
 const show = ref(false);
 const toggler = ref(null);
+
+const router = useRouter();
 
 defineSlots<{
   menu(props: Hook0DropdownOptions): unknown;
@@ -37,6 +40,11 @@ function close() {
   show.value = false;
 }
 
+function route(route: RouteLocationRaw) {
+  close();
+  return router.push(route);
+}
+
 function onClickOutside(event: Event) {
   if (
     show.value &&
@@ -51,7 +59,7 @@ function onClickOutside(event: Event) {
 <template>
   <div :class="$attrs.class" class="hook0-dropdown">
     <div ref="toggler" class="hook0-toggler">
-      <slot name="menu" :open="open" :close="close" :toggle="toggle"></slot>
+      <slot name="menu" :open="open" :close="close" :route="route" :toggle="toggle"></slot>
     </div>
 
     <div ref="dropdown" v-click-outside-element="onClickOutside">
@@ -64,7 +72,7 @@ function onClickOutside(event: Event) {
           aria-orientation="vertical"
           tabindex="-1"
         >
-          <slot name="dropdown" :open="open" :close="close" :toggle="toggle"></slot>
+          <slot name="dropdown" :open="open" :close="close" :toggle="toggle" :route="route"></slot>
         </div>
       </transition>
     </div>
