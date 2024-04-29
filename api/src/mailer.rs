@@ -2,6 +2,8 @@ use crate::problems::Hook0Problem;
 use lettre::message::header;
 use lettre::{Address, Message, Transport};
 use std::string::String;
+use actix_files::NamedFile;
+use url::Url;
 
 pub(crate) struct Mailer {
     mailer: lettre::SmtpTransport,
@@ -13,11 +15,15 @@ pub(crate) struct Mailer {
 pub(crate) enum Mails {
     VerifyMail {
         subject: String,
-        variables: Vec<(String, String)>,
+        url: String,
     },
     ResetPassword {
         subject: String,
-        variables: Vec<(String, String)>,
+        url: String,
+    },
+    Welcome {
+        subject: String,
+        name: String,
     },
 }
 
@@ -26,6 +32,7 @@ impl Mails {
         match self {
             Mails::VerifyMail { .. } => include_str!("mails_templates/verify_mail.mjml"),
             Mails::ResetPassword { .. } => include_str!("mails_templates/reset_password.mjml"),
+            Mails::Welcome { .. } => include_str!("mails_templates/welcome.mjml"),
         }
     }
 
@@ -33,13 +40,15 @@ impl Mails {
         match self {
             Mails::VerifyMail { subject, .. } => subject.clone(),
             Mails::ResetPassword { subject, .. } => subject.clone(),
+            Mails::Welcome { subject, .. } => subject.clone(),
         }
     }
 
     pub fn variables(&self) -> Vec<(String, String)> {
         match self {
-            Mails::VerifyMail { variables, .. } => variables.clone(),
-            Mails::ResetPassword { variables, .. } => variables.clone(),
+            Mails::VerifyMail { url, .. } => vec![("url".to_string(), url.clone())],
+            Mails::ResetPassword { url, .. } => vec![("url".to_string(), url.clone())],
+            Mails::Welcome { name, .. } => vec![("name".to_string(), name.clone())],
         }
     }
 }

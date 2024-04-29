@@ -276,12 +276,9 @@ fn main() -> anyhow::Result<()> {
     );
     match mailer_result {
         Ok((mailer, from)) => {
-            let mail = mailer::Mails::VerifyMail {
-                subject: "Reset Password".to_string(),
-                variables: vec![(
-                    "url".to_string(),
-                    "https://www.youtube.com/watch?v=dQw4w9WgXcQ".to_string(),
-                )],
+            let mail = mailer::Mails::Welcome {
+                subject: "Welcome to Hook0".to_string(),
+                name: "David".to_string(),
             };
             let address = lettre::Address::new("david", "sferruzza.tld");
             match address {
