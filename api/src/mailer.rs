@@ -1,50 +1,43 @@
-use crate::problems::Hook0Problem;
-use lettre::message::{header, MultiPart};
-use lettre::{Address, Message, Transport};
-use std::string::String;
 use html2text::from_read;
+use lettre::message::{Mailbox, MultiPart};
+use lettre::{Address, AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor};
+use std::string::String;
 
-pub(crate) struct Mailer {
-    mailer: lettre::SmtpTransport,
-    server: String,
-    port: u16,
-    tls: bool,
+use crate::problems::Hook0Problem;
+
+pub struct Mailer {
+    transport: AsyncSmtpTransport<Tokio1Executor>,
+    sender: Mailbox,
 }
 
-pub(crate) enum Mails {
-    VerifyMail {
-        url: String,
-    },
-    ResetPassword {
-        url: String,
-    },
-    Welcome {
-        name: String,
-    },
+pub enum Mail {
+    VerifyMail { url: String },
+    ResetPassword { url: String },
+    Welcome { name: String },
 }
 
-impl Mails {
+impl Mail {
     pub fn template(&self) -> &'static str {
         match self {
-            Mails::VerifyMail { .. } => include_str!("mails_templates/verify_mail.mjml"),
-            Mails::ResetPassword { .. } => include_str!("mails_templates/reset_password.mjml"),
-            Mails::Welcome { .. } => include_str!("mails_templates/welcome.mjml"),
+            Mail::VerifyMail { .. } => include_str!("mails_templates/verify_mail.mjml"),
+            Mail::ResetPassword { .. } => include_str!("mails_templates/reset_password.mjml"),
+            Mail::Welcome { .. } => include_str!("mails_templates/welcome.mjml"),
         }
     }
 
     pub fn subject(&self) -> String {
         match self {
-            Mails::VerifyMail { .. } => { "Please verify your email address".to_string() }
-            Mails::ResetPassword { .. } => { "Reset your password".to_string() }
-            Mails::Welcome { .. } => { "Welcome to our platform".to_string() }
+            Mail::VerifyMail { .. } => "Please verify your email address".to_owned(),
+            Mail::ResetPassword { .. } => "Reset your password".to_owned(),
+            Mail::Welcome { .. } => "Welcome to our platform".to_owned(),
         }
     }
 
     pub fn variables(&self) -> Vec<(String, String)> {
         match self {
-            Mails::VerifyMail { url, .. } => vec![("url".to_string(), url.clone())],
-            Mails::ResetPassword { url, .. } => vec![("url".to_string(), url.clone())],
-            Mails::Welcome { name, .. } => vec![("name".to_string(), name.clone())],
+            Mail::VerifyMail { url, .. } => vec![("url".to_owned(), url.to_owned())],
+            Mail::ResetPassword { url, .. } => vec![("url".to_owned(), url.to_owned())],
+            Mail::Welcome { name, .. } => vec![("name".to_owned(), name.to_owned())],
         }
     }
 }
@@ -54,66 +47,36 @@ impl Mailer {
         server: String,
         port: u16,
         tls: bool,
-        name: String,
-        mail: String,
-    ) -> Result<(Mailer, Address), Hook0Problem> {
-        let adress = Address::new(name, mail);
-        match adress {
-            Ok(adress) => {
-                let mailer = lettre::SmtpTransport::builder_dangerous(&server)
-                    .port(port)
-                    .build();
+        sender_name: String,
+        sender_address: Address,
+    ) -> Mailer {
+        let transport = AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(server)
+            .port(port)
+            .build();
+        let sender = Mailbox::new(Some(sender_name), sender_address);
 
-                Ok((
-                    Mailer {
-                        mailer,
-                        server,
-                        port,
-                        tls,
-                    },
-                    adress,
-                ))
-            }
-            Err(e) => Err(Hook0Problem::ErrorInBuildAdress(e.to_string())),
-        }
+        Mailer { transport, sender }
     }
 
-    pub fn send_mail(
-        &self,
-        mail: Mails,
-        address: Address,
-        from: Address,
-    ) -> Result<(), Hook0Problem> {
+    pub async fn send_mail(&self, mail: Mail, recipient: Mailbox) -> Result<(), Hook0Problem> {
         let template = mail.template();
-        let mut mjml = template.to_string();
+        let mut mjml = template.to_owned();
         for (key, value) in mail.variables() {
-            mjml = mjml.replace(&format!("{{ ${} }}", key), &value);
+            mjml = mjml.replace(&format!("{{ ${key} }}"), &value);
         }
 
-        match mrml::parse(mjml) {
-            Ok(parsed) => match parsed.render(&Default::default()) {
-                Ok(rendered) => {
-                    let text_mail = from_read(rendered.as_bytes(), 80);
+        let parsed = mrml::parse(mjml)?;
+        let rendered = parsed.render(&Default::default())?;
 
-                    let email = Message::builder()
-                        .from(from.to_string().as_str().parse()?)
-                        .to(address.to_string().as_str().parse()?)
-                        .subject(mail.subject())
-                        .multipart(MultiPart::alternative_plain_html(
-                            text_mail,
-                            rendered,
-                        ))
-                        .unwrap();
+        let text_mail = from_read(rendered.as_bytes(), 80);
 
-                    let result = self.mailer.send(&email);
-                    match result {
-                        Ok(_) => Ok(()),
-                        Err(e) => Err(Hook0Problem::EmailSendFailed(e.to_string())),
-                    }
-                }
-                Err(e) => Err(Hook0Problem::EmailTemplateRenderFailed(e.to_string())),
-            },
-            Err(e) => Err(Hook0Problem::EmailTemplateParseFailed(e.to_string())),
-        }
+        let email = Message::builder()
+            .from(self.sender.to_owned())
+            .to(recipient)
+            .subject(mail.subject())
+            .multipart(MultiPart::alternative_plain_html(text_mail, rendered))?;
+
+        self.transport.send(email).await?;
+        Ok(())
     }
 }
