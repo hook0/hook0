@@ -31,7 +31,7 @@ const alert = ref<Alert>({
 async function submit() {
   await login(email.value, password.value)
     .then(() => {
-      void router.push(routes.Home);
+      return router.push(routes.Home);
     })
     .catch((err: AxiosError<AxiosResponse<Problem>>) => {
       let problem = handleError(err);
