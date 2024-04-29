@@ -22,6 +22,7 @@ clap = { version = "4.5.4", features = ["derive", "env", "cargo", "wrap_help"] }
 futures-util = "0.3.30"
 governor = "0.6.3"
 hook0-client = { path = "../clients/rust" }
+html2text = "0.12.4"
 http-api-problem = { version = "0.57.0", features = ["actix-web"] }
 ipnetwork = "0.20.0"
 lazy_static = "1.4.0"

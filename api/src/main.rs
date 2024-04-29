@@ -277,7 +277,6 @@ fn main() -> anyhow::Result<()> {
     match mailer_result {
         Ok((mailer, from)) => {
             let mail = mailer::Mails::Welcome {
-                subject: "Welcome to Hook0".to_string(),
                 name: "David".to_string(),
             };
             let address = lettre::Address::new("david", "sferruzza.tld");

@@ -2,8 +2,7 @@ use crate::problems::Hook0Problem;
 use lettre::message::header;
 use lettre::{Address, Message, Transport};
 use std::string::String;
-use actix_files::NamedFile;
-use url::Url;
+use html2text::from_read;
 
 pub(crate) struct Mailer {
     mailer: lettre::SmtpTransport,
@@ -14,15 +13,12 @@ pub(crate) struct Mailer {
 
 pub(crate) enum Mails {
     VerifyMail {
-        subject: String,
         url: String,
     },
     ResetPassword {
-        subject: String,
         url: String,
     },
     Welcome {
-        subject: String,
         name: String,
     },
 }
@@ -38,9 +34,9 @@ impl Mails {
 
     pub fn subject(&self) -> String {
         match self {
-            Mails::VerifyMail { subject, .. } => subject.clone(),
-            Mails::ResetPassword { subject, .. } => subject.clone(),
-            Mails::Welcome { subject, .. } => subject.clone(),
+            Mails::VerifyMail { .. } => { "Please verify your email address".to_string() }
+            Mails::ResetPassword { .. } => { "Reset your password".to_string() }
+            Mails::Welcome { .. } => { "Welcome to our platform".to_string() }
         }
     }
 
