@@ -15,24 +15,31 @@ pub(crate) enum Mails {
         subject: String,
         variables: Vec<(String, String)>,
     },
+    ResetPassword {
+        subject: String,
+        variables: Vec<(String, String)>,
+    },
 }
 
 impl Mails {
     pub fn template(&self) -> &'static str {
         match self {
             Mails::VerifyMail { .. } => include_str!("mails_templates/verify_mail.mjml"),
+            Mails::ResetPassword { .. } => include_str!("mails_templates/reset_password.mjml"),
         }
     }
 
     pub fn subject(&self) -> String {
         match self {
             Mails::VerifyMail { subject, .. } => subject.clone(),
+            Mails::ResetPassword { subject, .. } => subject.clone(),
         }
     }
 
     pub fn variables(&self) -> Vec<(String, String)> {
         match self {
             Mails::VerifyMail { variables, .. } => variables.clone(),
+            Mails::ResetPassword { variables, .. } => variables.clone(),
         }
     }
 }
@@ -82,8 +89,8 @@ impl Mailer {
             Ok(parsed) => match parsed.render(&Default::default()) {
                 Ok(rendered) => {
                     let email = Message::builder()
-                        .from(("<".to_owned() + from.to_string().as_str() + ">").parse()?)
-                        .to(("<".to_owned() + address.to_string().as_str() + ">").parse()?)
+                        .from(from.to_string().as_str().parse()?)
+                        .to(address.to_string().as_str().parse()?)
                         .subject(mail.subject())
                         .header(header::ContentType::TEXT_HTML)
                         .body(rendered)

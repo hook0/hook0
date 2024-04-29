@@ -277,7 +277,7 @@ fn main() -> anyhow::Result<()> {
     match mailer_result {
         Ok((mailer, from)) => {
             let mail = mailer::Mails::VerifyMail {
-                subject: "Verify email".to_string(),
+                subject: "Reset Password".to_string(),
                 variables: vec![(
                     "url".to_string(),
                     "https://www.youtube.com/watch?v=dQw4w9WgXcQ".to_string(),
