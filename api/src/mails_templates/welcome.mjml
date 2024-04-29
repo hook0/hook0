@@ -1,0 +1,54 @@
+<mjml>
+    <mj-head>
+        <mj-title>Welcome to Hook0</mj-title>
+        <mj-style>
+            body {
+                margin: 0;
+                padding: 0;
+                width: 100% !important;
+                background-color: #f0f0f0;
+            }
+            h1 {
+                font-size: 24px;
+            }
+            h2 {
+                font-size: 20px;
+            }
+            p {
+                font-size: 16px;
+            }
+            button {
+                background-color: #F45E43;
+                border: none;
+                padding: 15px 30px;
+                border-radius: 5px;
+                font-size: 20px;
+                cursor: pointer;
+                margin: 10px 0;
+            }
+            button a {
+                color: white;
+                text-decoration: none;
+            }
+        </mj-style>
+    </mj-head>
+    <mj-body>
+        <mj-section>
+            <mj-column>
+                <mj-image src="https://media.licdn.com/dms/image/D4E0BAQGsPhBoelzE-w/company-logo_200_200/0/1692644882512/hook0_logo?e=2147483647&v=beta&t=g2x3nONV1hYeBrKaf0Yw086pRmJn4KxneGQA4OR-s2k" alt="Hook0" width="150px" />
+                <mj-text align="center">
+                    <h1>Welcome to Hook0, { $name }</h1>
+                    <p>You have successfully signed up for Hook0.</p>
+                    <p>You can now setup your first webhook and start receiving events.</p>
+                    <br>
+                    <p>For helping you, we created a <strong>documentation</strong> to start your adventure with Hook0</p>
+                    <p>Click on the link below to access the documentation</p>
+                    <button>
+                        <a href="https://documentation.hook0.com/docs/getting-started">Getting started</a>
+                    </button>
+                    <h2>Thank you for using Hook0</h2>
+                </mj-text>
+            </mj-column>
+        </mj-section>
+    </mj-body>
+</mjml>
