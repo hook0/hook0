@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUpdated, ref } from 'vue';
 
-import { login, refresh, readStateFromStorage } from '@/iam';
+import { login, getAccessToken } from '@/iam';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
@@ -49,9 +49,9 @@ function displayError(err: Problem) {
 }
 
 function _onLoad() {
-  let storage = readStateFromStorage();
-  if (storage !== null) {
-    void router.push(routes.Home);
+  let token = getAccessToken();
+  if (token.value !== null) {
+    return router.push(routes.Home);
   }
 }
 
