@@ -1,5 +1,5 @@
 use crate::problems::Hook0Problem;
-use lettre::message::header;
+use lettre::message::{header, MultiPart};
 use lettre::{Address, Message, Transport};
 use std::string::String;
 use html2text::from_read;
@@ -93,12 +93,16 @@ impl Mailer {
         match mrml::parse(mjml) {
             Ok(parsed) => match parsed.render(&Default::default()) {
                 Ok(rendered) => {
+                    let text_mail = from_read(rendered.as_bytes(), 80);
+
                     let email = Message::builder()
                         .from(from.to_string().as_str().parse()?)
                         .to(address.to_string().as_str().parse()?)
                         .subject(mail.subject())
-                        .header(header::ContentType::TEXT_HTML)
-                        .body(rendered)
+                        .multipart(MultiPart::alternative_plain_html(
+                            text_mail,
+                            rendered,
+                        ))
                         .unwrap();
 
                     let result = self.mailer.send(&email);
