@@ -23,7 +23,7 @@ const localStorageKey = 'auth';
 const state = ref<null | State>(null);
 let refreshTimerId: null | number = null;
 
-export function readStateFromStorage(): State | null {
+function readStateFromStorage(): State | null {
   const data = window.localStorage.getItem(localStorageKey);
 
   if (data !== null) {
