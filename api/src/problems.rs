@@ -62,15 +62,7 @@ pub enum Hook0Problem {
     InternalServerError,
     Forbidden,
     ServiceUnavailable(HealthCheck),
-
-    // Email problems
-    ErrorInBuildAdress(String),
-    ErrorInBuildMailer(String),
-
-    EmailSendFailed(String),
-    EmailTemplateNotFound(String),
-    EmailTemplateRenderFailed(String),
-    EmailTemplateParseFailed(String),
+    EmailSending(String),
 }
 
 impl From<sqlx::Error> for Hook0Problem {
@@ -141,9 +133,27 @@ impl ResponseError for Hook0Problem {
     }
 }
 
-impl From<lettre::address::AddressError> for Hook0Problem {
-    fn from(err: lettre::address::AddressError) -> Hook0Problem {
-        Hook0Problem::ErrorInBuildAdress(err.to_string())
+impl From<lettre::error::Error> for Hook0Problem {
+    fn from(err: lettre::error::Error) -> Hook0Problem {
+        Hook0Problem::EmailSending(err.to_string())
+    }
+}
+
+impl From<lettre::transport::smtp::Error> for Hook0Problem {
+    fn from(err: lettre::transport::smtp::Error) -> Hook0Problem {
+        Hook0Problem::EmailSending(err.to_string())
+    }
+}
+
+impl From<mrml::prelude::parser::Error> for Hook0Problem {
+    fn from(err: mrml::prelude::parser::Error) -> Hook0Problem {
+        Hook0Problem::EmailSending(err.to_string())
+    }
+}
+
+impl From<mrml::prelude::render::Error> for Hook0Problem {
+    fn from(err: mrml::prelude::render::Error) -> Hook0Problem {
+        Hook0Problem::EmailSending(err.to_string())
     }
 }
 
@@ -385,62 +395,12 @@ impl From<Hook0Problem> for Problem {
                 validation: None,
                 status: StatusCode::SERVICE_UNAVAILABLE,
             },
-            Hook0Problem::ErrorInBuildAdress(e) => {
-                let error_str = e.to_string();
-                Problem {
-                    id: Hook0Problem::ErrorInBuildAdress(e.to_owned()),
-                    title: "Failed to build email address",
-                    detail: error_str.into(),
-                    validation: None,
-                    status: StatusCode::INTERNAL_SERVER_ERROR,
-                }
-            },
-            Hook0Problem::ErrorInBuildMailer(e) => {
-                let error_str = e.to_string();
-                Problem {
-                    id: Hook0Problem::ErrorInBuildMailer(e.to_owned()),
-                    title: "Failed to build mailer",
-                    detail: error_str.into(),
-                    validation: None,
-                    status: StatusCode::INTERNAL_SERVER_ERROR,
-                }
-            },
-            Hook0Problem::EmailSendFailed(e) => {
-                let error_str = e.to_string();
-                Problem {
-                    id: Hook0Problem::EmailSendFailed(e.to_owned()),
-                    title: "Failed to send email",
-                    detail: error_str.into(),
-                    validation: None,
-                    status: StatusCode::INTERNAL_SERVER_ERROR,
-                }
-            },
-            Hook0Problem::EmailTemplateNotFound(e) => Problem {
-                id: Hook0Problem::EmailTemplateNotFound(e.to_owned()),
-                title: "Email template not found",
-                detail: format!("Could not find the email template: {e}.").into(),
+            Hook0Problem::EmailSending(e) => Problem {
+                id: Hook0Problem::EmailSending(e.to_owned()),
+                title: "Could not send email",
+                detail: format!("{e}.").into(),
                 validation: None,
-                status: StatusCode::NOT_FOUND,
-            },
-            Hook0Problem::EmailTemplateRenderFailed(e) => {
-                let error_str = e.to_string();
-                Problem {
-                    id: Hook0Problem::EmailTemplateRenderFailed(e.to_owned()),
-                    title: "Failed to render email template",
-                    detail: error_str.into(),
-                    validation: None,
-                    status: StatusCode::INTERNAL_SERVER_ERROR,
-                }
-            },
-            Hook0Problem::EmailTemplateParseFailed(e) => {
-                let error_str = e.to_string();
-                Problem {
-                    id: Hook0Problem::EmailTemplateParseFailed(e.to_owned()),
-                    title: "Failed to parse email template",
-                    detail: error_str.into(),
-                    validation: None,
-                    status: StatusCode::INTERNAL_SERVER_ERROR,
-                }
+                status: StatusCode::INTERNAL_SERVER_ERROR,
             },
         }
     }

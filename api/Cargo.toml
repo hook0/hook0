@@ -26,7 +26,7 @@ html2text = "0.12.4"
 http-api-problem = { version = "0.57.0", features = ["actix-web"] }
 ipnetwork = "0.20.0"
 lazy_static = "1.4.0"
-lettre = "0.11.7"
+lettre = { version = "0.11.7", default-features = false, features = ["builder", "smtp-transport", "pool", "tokio1-rustls-tls"] }
 log = "0.4.21"
 mrml = "3.1.5"
 nom = "7.1.3"
