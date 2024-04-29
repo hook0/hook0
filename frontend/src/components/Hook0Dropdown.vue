@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { directive as vClickOutsideElement } from 'vue-click-outside-element';
 
 import Hook0DropdownOptions from './Hook0DropdownOptions';
+import { RouteLocationRaw, useRouter } from 'vue-router';
 
 interface Props {
   justify?: 'left' | 'right';
@@ -12,6 +13,8 @@ const justify = computed(() => props.justify ?? 'right');
 
 const show = ref(false);
 const toggler = ref(null);
+
+const router = useRouter();
 
 defineSlots<{
   menu(props: Hook0DropdownOptions): unknown;
@@ -37,9 +40,9 @@ function close() {
   show.value = false;
 }
 
-function route(route: string) {
+function route(route: RouteLocationRaw) {
   close();
-  window.location.assign(route);
+  return router.push(route);
 }
 
 function onClickOutside(event: Event) {
