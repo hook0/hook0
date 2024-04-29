@@ -213,9 +213,9 @@ struct Config {
     #[clap(long, env, default_value = "false")]
     old_events_cleanup_report_and_delete: bool,
 
-    /// If true, the secured HTTP headers will be disabled
-    #[clap(long, env, default_value = "false")]
-    disable_security_headers: bool,
+    /// If true, the secured HTTP headers will be enabled
+    #[clap(long, env, default_value = "true")]
+    enable_security_headers: bool,
 
     /// If true, the HSTS header will be enabled
     #[clap(long, env, default_value = "false")]
@@ -433,7 +433,7 @@ async fn main() -> anyhow::Result<()> {
             .add(("Strict-Transport-Security", "max-age=157680000"));
 
         let security_headers_condition =
-            middleware::Condition::new(!config.disable_security_headers, security_headers);
+            middleware::Condition::new(config.enable_security_headers, security_headers);
 
         let hsts_header_condition =
             middleware::Condition::new(config.enable_hsts_header, hsts_header);
