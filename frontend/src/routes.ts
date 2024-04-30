@@ -70,11 +70,13 @@ export default [
     name: routes.Login,
     path: '/login',
     component: Login,
+    meta: { requiresAuth: false },
   },
   {
     name: routes.Register,
     path: '/register',
     component: Register,
+    meta: { requiresAuth: false },
   },
   {
     name: routes.OrganizationsNew,
