@@ -11,8 +11,6 @@ import Hook0Alert from '@/components/Hook0Alert.vue';
 import { Alert } from '@/components/Hook0Alert.ts';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
-//import { handleError, Problem } from '@/http.ts';
-//import { AxiosError, AxiosResponse } from 'axios';
 import { useRouter } from 'vue-router';
 import { routes } from '@/routes.ts';
 import { AxiosError, AxiosResponse } from 'axios';
@@ -32,25 +30,10 @@ const alert = ref<Alert>({
   description: '',
 });
 
-let intervalId: number | null = null;
-
 async function submit() {
   await register(email.value, firstName.value, lastName.value, password.value)
     .then(() => {
-      let seconds = 3;
-      intervalId = window.setInterval(() => {
-        if (seconds >= 0) {
-          displaySucess(seconds);
-          seconds--;
-        } else {
-          if (intervalId !== null) {
-            window.clearInterval(intervalId);
-            intervalId = null;
-            //ça ne veut pas fonctionner avec return mais void fonctionne
-            void router.push('/login');
-          }
-        }
-      }, 1000);
+      displaySucess();
     })
     .catch((err: AxiosError<AxiosResponse<Problem>>) => {
       let problem = handleError(err);
@@ -67,11 +50,11 @@ function displayError(err: Problem) {
   alert.value.description = err.detail;
 }
 
-function displaySucess(seconds: number = 3) {
+function displaySucess() {
   alert.value.visible = true;
   alert.value.type = 'success';
   alert.value.title = 'Success';
-  alert.value.description = 'You will be redirected in ' + seconds + ' seconds';
+  alert.value.description = "You're successfully registered. Please confirm your email address.";
 }
 
 function _onLoad() {

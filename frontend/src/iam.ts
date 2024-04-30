@@ -128,16 +128,12 @@ export async function register(
   lastName: string,
   password: string
 ): Promise<void> {
-  try {
-    await http.unauthenticated.post('/register', {
-      email,
-      first_name: firstName,
-      last_name: lastName,
-      password,
-    });
-  } catch (error) {
-    return Promise.reject(error);
-  }
+  return http.unauthenticated.post('/register', {
+    email,
+    first_name: firstName,
+    last_name: lastName,
+    password,
+  });
 }
 
 export async function refresh(): Promise<void> {
@@ -208,10 +204,14 @@ export const AuthPlugin: Plugin = {
       scheduleAutoRefresh().catch(console.error);
     } else {
       removeStateFromStorage();
-      if (router.currentRoute.value.name !== routes.Register) {
-        return;
-      }
-      router.push('/login').catch(console.error);
     }
+    router.beforeEach((to, _from) => {
+      if ((to.meta?.requiresAuth ?? true) && state.value === null) {
+        return { name: routes.Login };
+      } else if (!(to.meta?.requiresAuth ?? true) && state.value !== null) {
+        return { name: routes.Home };
+      }
+      return true;
+    });
   },
 };
