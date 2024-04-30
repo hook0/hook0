@@ -4,6 +4,7 @@ import http from '@/http';
 import type { components } from '@/types';
 import router from '@/router';
 import { differenceInMilliseconds, subMinutes } from 'date-fns';
+import { routes } from '@/routes.ts';
 
 type definitions = components['schemas'];
 type LoginResponse = definitions['LoginResponse'];
@@ -121,6 +122,24 @@ export async function login(email: string, password: string): Promise<void> {
   }
 }
 
+export async function register(
+  email: string,
+  firstName: string,
+  lastName: string,
+  password: string
+): Promise<void> {
+  try {
+    await http.unauthenticated.post('/register', {
+      email,
+      first_name: firstName,
+      last_name: lastName,
+      password,
+    });
+  } catch (error) {
+    return Promise.reject(error);
+  }
+}
+
 export async function refresh(): Promise<void> {
   if (state.value) {
     const res = await http.withRefreshToken.post<LoginResponse>('/auth/refresh');
@@ -189,6 +208,9 @@ export const AuthPlugin: Plugin = {
       scheduleAutoRefresh().catch(console.error);
     } else {
       removeStateFromStorage();
+      if (router.currentRoute.value.name !== routes.Register) {
+        return;
+      }
       router.push('/login').catch(console.error);
     }
   },
