@@ -8,6 +8,7 @@ import OrganizationsDashboard from '@/pages/organizations/OrganizationsDashboard
 import ApiDocumentation from '@/pages/api/documentation/ApiDocumentation.vue';
 import Error404 from '@/pages/Error404.vue';
 import Login from '@/pages/LoginPage.vue';
+import Register from '@/pages/RegisterPage.vue';
 import EventTypesList from '@/pages/organizations/applications/event_types/EventTypesList.vue';
 import EventTypesNew from '@/pages/organizations/applications/event_types/EventTypesNew.vue';
 import Home from '@/Home.vue';
@@ -26,6 +27,7 @@ export const routes: Record<Hook0Routes, string> = {
   Home: 'Home',
 
   Login: 'Login',
+  Register: 'Register',
 
   OrganizationsDashboard: 'OrganizationsDashboard',
   OrganizationsDetail: 'OrganizationsDetail',
@@ -68,6 +70,11 @@ export default [
     name: routes.Login,
     path: '/login',
     component: Login,
+  },
+  {
+    name: routes.Register,
+    path: '/register',
+    component: Register,
   },
   {
     name: routes.OrganizationsNew,
