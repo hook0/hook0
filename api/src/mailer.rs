@@ -1,7 +1,9 @@
 use html2text::from_read;
 use lettre::message::{Mailbox, MultiPart};
 use lettre::{Address, AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor};
+use log::{info, warn};
 use std::string::String;
+use std::time::Duration;
 
 use crate::problems::Hook0Problem;
 
@@ -43,19 +45,25 @@ impl Mail {
 }
 
 impl Mailer {
-    pub fn new(
-        server: String,
-        port: u16,
-        tls: bool,
+    pub async fn new(
+        smtp_connection_url: &str,
+        smtp_timeout: Duration,
         sender_name: String,
         sender_address: Address,
-    ) -> Mailer {
-        let transport = AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(server)
-            .port(port)
+    ) -> Result<Mailer, lettre::transport::smtp::Error> {
+        let transport = AsyncSmtpTransport::<Tokio1Executor>::from_url(smtp_connection_url)?
+            .timeout(Some(smtp_timeout))
             .build();
         let sender = Mailbox::new(Some(sender_name), sender_address);
 
-        Mailer { transport, sender }
+        let test = transport.test_connection().await;
+        match test {
+            Ok(true) => info!("SMTP server is up"),
+            Ok(false) => warn!("SMTP server connection test failed"),
+            Err(e) => warn!("SMTP server connection test failed: {e}"),
+        }
+
+        Ok(Mailer { transport, sender })
     }
 
     pub async fn send_mail(&self, mail: Mail, recipient: Mailbox) -> Result<(), Hook0Problem> {
