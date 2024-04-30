@@ -233,17 +233,13 @@ struct Config {
     #[clap(long, env, default_value = "Hook0")]
     email_sender_name: String,
 
-    /// SMTP server hostname
-    #[clap(long, env)]
-    smtp_server: String,
+    /// Connection URL to SMTP server; for example: `smtp://localhost:1025`, `smtps://user:password@provider.com:465` (SMTP over TLS) or `smtp://user:password@provider.com:465?tls=required` (SMTP with STARTTLS)
+    #[clap(long, env, hide_env_values = true)]
+    smtp_connection_url: String,
 
-    /// SMTP server port
-    #[clap(long, env)]
-    smtp_port: u16,
-
-    /// SMTP server TLS
-    #[clap(long, env, default_value = "true")]
-    smtp_tls: bool,
+    /// Duration (in second) to use as timeout when sending emails to the SMTP server
+    #[clap(long, env, default_value = "5")]
+    smtp_timeout_in_s: u64,
 }
 
 /// The app state
@@ -266,14 +262,23 @@ pub struct State {
 async fn main() -> anyhow::Result<()> {
     let config = Config::parse();
 
+    // Initialize app logger as well as Sentry integration
+    // Return value *must* be kept in a variable or else it will be dropped and Sentry integration won't work
+    let _sentry = sentry_integration::init(
+        crate_name!(),
+        &config.sentry_dsn,
+        &config.sentry_traces_sample_rate,
+    );
+
     // Create Mailer and send email
     let mailer = mailer::Mailer::new(
-        config.smtp_server,
-        config.smtp_port,
-        config.smtp_tls,
+        &config.smtp_connection_url,
+        Duration::from_secs(config.smtp_timeout_in_s),
         config.email_sender_name,
         config.email_sender_address,
-    );
+    )
+    .await
+    .unwrap();
     let mail = mailer::Mail::Welcome {
         name: "David".to_string(),
     };
@@ -283,12 +288,12 @@ async fn main() -> anyhow::Result<()> {
     );
     let mail_result = mailer.send_mail(mail, recipient).await;
     match mail_result {
-        Ok(_) => Ok(()),
+        Ok(_) => (),
         Err(e) => {
             eprintln!("Error: {:?}", e);
-            Err(e.into())
         }
-    }
+    };
+    Ok(())
 
     /* let mail = mailer::Mails::SimpleMail(mailer::SimpleMail {
         from: config.support_email,
@@ -312,15 +317,7 @@ async fn main() -> anyhow::Result<()> {
 
     std::process::exit(0);*/
 
-    // Initialize app logger as well as Sentry integration
-    // Return value *must* be kept in a variable or else it will be dropped and Sentry integration won't work
-    /* let _sentry = sentry_integration::init(
-        crate_name!(),
-        &config.sentry_dsn,
-        &config.sentry_traces_sample_rate,
-    );
-
-    trace!("Starting {}", APP_TITLE);
+    /*trace!("Starting {}", APP_TITLE);
 
     // Prepare trusted reverse proxies IPs
     let reverse_proxy_ips = config
