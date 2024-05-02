@@ -17,6 +17,7 @@ use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 use std::str::FromStr;
 use std::time::Duration;
 use uuid::Uuid;
+use crate::mailer::Mailer;
 
 mod extractor_user_ip;
 mod handlers;
@@ -246,6 +247,7 @@ struct Config {
 #[derive(Debug, Clone)]
 pub struct State {
     db: PgPool,
+    mailer: Mailer,
     keycloak_url: Url,
     keycloak_realm: String,
     keycloak_client_id: String,
@@ -269,55 +271,6 @@ async fn main() -> anyhow::Result<()> {
         &config.sentry_dsn,
         &config.sentry_traces_sample_rate,
     );
-
-    // Create Mailer and send email
-    let mailer = mailer::Mailer::new(
-        &config.smtp_connection_url,
-        Duration::from_secs(config.smtp_timeout_in_s),
-        config.email_sender_name,
-        config.email_sender_address,
-    )
-    .await
-    .unwrap();
-    let mail = mailer::Mail::Welcome {
-        name: "David".to_string(),
-    };
-    let recipient = lettre::message::Mailbox::new(
-        Some("David".to_owned()),
-        Address::from_str("david@sferruzza.tld").unwrap(),
-    );
-    let mail_result = mailer.send_mail(mail, recipient).await;
-    match mail_result {
-        Ok(_) => (),
-        Err(e) => {
-            eprintln!("Error: {:?}", e);
-        }
-    };
-    Ok(())
-
-    /* let mail = mailer::Mails::SimpleMail(mailer::SimpleMail {
-        from: config.support_email,
-        to: "Hei <hei@domain.tld>".to_string(),
-        subject: "Hello".to_string(),
-        body: "Hello, World!".to_string(),
-    });
-
-    let mail2 = mailer::Mails::MjmlMail(mailer::MjmlMail {
-        from: config.support_email,
-        to: "David Sferruzza <david@sferruzza.tld>".to_string(),
-        subject: "Verify email".to_string(),
-        template: "verify_mail".to_string(),
-        data: serde_json::json!({
-            "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-        }),
-    });
-
-    mailer.send_mail(mail);
-    mailer.send_mail(mail2);
-
-    std::process::exit(0);*/
-
-    /*trace!("Starting {}", APP_TITLE);
 
     // Prepare trusted reverse proxies IPs
     let reverse_proxy_ips = config
@@ -429,9 +382,20 @@ async fn main() -> anyhow::Result<()> {
         .await;
     });
 
+    // Create Mailer
+    let mailer = mailer::Mailer::new(
+        &config.smtp_connection_url,
+        Duration::from_secs(config.smtp_timeout_in_s),
+        config.email_sender_name,
+        config.email_sender_address,
+    )
+        .await
+        .unwrap();
+
     // Initialize state
     let initial_state = State {
         db: pool,
+        mailer,
         keycloak_url: config.keycloak_url,
         keycloak_realm: config.keycloak_realm,
         keycloak_client_id: config.keycloak_client_id,
@@ -701,5 +665,5 @@ async fn main() -> anyhow::Result<()> {
     .bind(&format!("{}:{}", config.ip, config.port))?
     .run()
     .await
-    .map_err(|e| e.into())*/
+    .map_err(|e| e.into())
 }
