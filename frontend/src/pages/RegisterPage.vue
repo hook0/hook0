@@ -54,7 +54,7 @@ function displaySucess() {
   alert.value.visible = true;
   alert.value.type = 'success';
   alert.value.title = 'Success';
-  alert.value.description = "You're successfully registered. Please confirm your email address.";
+  alert.value.description = "You're successfully registered. You need to confirm your email address before using Hook0. Check your mailbox!";
 }
 
 function _onLoad() {
