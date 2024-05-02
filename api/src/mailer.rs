@@ -7,6 +7,7 @@ use std::time::Duration;
 
 use crate::problems::Hook0Problem;
 
+#[derive(Clone)]
 pub struct Mailer {
     transport: AsyncSmtpTransport<Tokio1Executor>,
     sender: Mailbox,
