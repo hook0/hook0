@@ -58,10 +58,6 @@ function displaySucess() {
 }
 
 function _onLoad() {
-  alert.value.visible = false;
-  alert.value.type = 'alert';
-  alert.value.title = '';
-  alert.value.description = '';
   let token = getAccessToken();
   if (token.value !== null) {
     return router.push(routes.Home);
