@@ -20,6 +20,7 @@ import LogList from '@/pages/organizations/applications/logs/LogList.vue';
 import ApplicationSecretsList from '@/pages/organizations/applications/application_secrets/ApplicationSecretsList.vue';
 import EventsList from '@/pages/organizations/applications/events/EventsList.vue';
 import EventsDetail from '@/pages/organizations/applications/events/EventsDetail.vue';
+import VerifyUser from '@/pages/users/VerifyEmail.vue';
 
 export type Hook0Routes = string;
 
@@ -28,6 +29,7 @@ export const routes: Record<Hook0Routes, string> = {
 
   Login: 'Login',
   Register: 'Register',
+  VerifyEmail: 'VerifyEmail',
 
   OrganizationsDashboard: 'OrganizationsDashboard',
   OrganizationsDetail: 'OrganizationsDetail',
@@ -76,6 +78,12 @@ export default [
     name: routes.Register,
     path: '/register',
     component: Register,
+    meta: { requiresAuth: false },
+  },
+  {
+    name: routes.VerifyEmail,
+    path: '/verify-email',
+    component: VerifyUser,
     meta: { requiresAuth: false },
   },
   {
