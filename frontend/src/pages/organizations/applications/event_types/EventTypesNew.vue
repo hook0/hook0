@@ -2,7 +2,6 @@
 import { ref } from 'vue';
 
 import { Problem, UUID } from '@/http';
-import { Alert } from '@/components/Hook0Alert';
 import { routes } from '@/routes';
 import Hook0ListItem from '@/components/Hook0ListItem.vue';
 import Hook0List from '@/components/Hook0List.vue';
@@ -16,8 +15,8 @@ import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
-import Hook0Alert from '@/components/Hook0Alert.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
+import { push } from 'notivue';
 
 const router = useRouter();
 const route = useRoute();
@@ -28,18 +27,9 @@ const event_type = ref<EventTypePost>({
   resource_type: '',
   verb: '',
 });
-const alert = ref<Alert>({
-  visible: false,
-  type: 'alert',
-  title: '',
-  description: '',
-});
-
 function create(e: Event) {
   e.preventDefault();
   e.stopImmediatePropagation();
-
-  alert.value.visible = false; // reset alert
 
   event_type.value.application_id = route.params.application_id as UUID;
 
@@ -52,11 +42,12 @@ function create(e: Event) {
 
 function displayError(err: Problem) {
   console.error(err);
-  alert.value.visible = true;
-
-  alert.value.type = err.status >= 500 ? 'alert' : 'warning';
-  alert.value.title = err.title;
-  alert.value.description = err.detail;
+  let options = {
+    title: err.title,
+    message: err.detail,
+    duration: 5000,
+  };
+  err.status >= 500 ? push.error(options) : push.warning(options);
 }
 </script>
 
@@ -103,13 +94,6 @@ function displayError(err: Problem) {
           </div>
         </template>
       </Hook0CardContentLine>
-      <Hook0CardContent v-if="alert.visible">
-        <Hook0Alert
-          :type="alert.type"
-          :title="alert.title"
-          :description="alert.description"
-        ></Hook0Alert>
-      </Hook0CardContent>
       <Hook0CardFooter>
         <Hook0Button class="secondary" type="button" @click="$router.back()">Cancel</Hook0Button>
         <Hook0Button class="primary" type="button" @click="create($event)"
