@@ -11,10 +11,12 @@ import Hook0Alert from '@/components/Hook0Alert.vue';
 import { Alert } from '@/components/Hook0Alert.ts';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
+import Hook0Notification from '@/components/Hook0Notifications.vue';
 import { useRouter } from 'vue-router';
 import { routes } from '@/routes.ts';
 import { AxiosError, AxiosResponse } from 'axios';
 import { handleError, Problem } from '@/http.ts';
+import { push } from 'notivue';
 
 const router = useRouter();
 
@@ -33,7 +35,12 @@ const alert = ref<Alert>({
 async function submit() {
   await register(email.value, firstName.value, lastName.value, password.value)
     .then(() => {
-      displaySucess();
+      push.success({
+        title: 'Success',
+        message:
+          "You're successfully registered. You need to confirm your email address before using Hook0. Check your mailbox!",
+        duration: 5000,
+      });
     })
     .catch((err: AxiosError<AxiosResponse<Problem>>) => {
       let problem = handleError(err);
@@ -50,12 +57,13 @@ function displayError(err: Problem) {
   alert.value.description = err.detail;
 }
 
-function displaySucess() {
+/* function displaySucess() {
   alert.value.visible = true;
   alert.value.type = 'success';
   alert.value.title = 'Success';
-  alert.value.description = "You're successfully registered. You need to confirm your email address before using Hook0. Check your mailbox!";
-}
+  alert.value.description =
+    "You're successfully registered. You need to confirm your email address before using Hook0. Check your mailbox!";
+} */
 
 function _onLoad() {
   let token = getAccessToken();
@@ -146,6 +154,7 @@ onUpdated(_onLoad);
             </template>
           </Hook0CardContentLine>
         </Hook0CardContent>
+        <Hook0Notification></Hook0Notification>
         <Hook0CardContent v-if="alert.visible">
           <Hook0Alert
             :type="alert.type"
