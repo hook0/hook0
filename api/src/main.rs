@@ -1,7 +1,6 @@
 use crate::mailer::Mailer;
 use crate::problems::Hook0Problem;
 use ::hook0_client::Hook0Client;
-use actix::fut::result;
 use actix::Arbiter;
 use actix_cors::Cors;
 use actix_files::{Files, NamedFile};
@@ -531,6 +530,12 @@ async fn main() -> anyhow::Result<()> {
                         .wrap(Compat::new(rate_limiters.global()))
                         .service(
                             web::scope("/auth")
+                                .service(
+                                    web::resource("/verify-email}")
+                                        .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
+                                        .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first
+                                        .route(web::get().to(handlers::auth::verify_email)),
+                                )
                                 .service(
                                     web::resource("/login")
                                         .route(web::post().to(handlers::auth::login)),

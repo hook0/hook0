@@ -54,6 +54,7 @@ pub enum Hook0Problem {
     AuthInvalidBiscuit,
     AuthFailedLogin,
     AuthFailedRefresh,
+    AuthFailedEmailVerification(Option<String>),
 
     // Quota errors
     TooManyMembersPerOrganization(QuotaValue),
@@ -355,6 +356,19 @@ impl From<Hook0Problem> for Problem {
                 detail: "The provided refresh token is probably invalid or expired.".into(),
                 validation: None,
                 status: StatusCode::UNAUTHORIZED,
+            },
+            Hook0Problem::AuthFailedEmailVerification(e) => {
+                let detail = match &e {
+                    Some(err) => format!("The email was not verified yet. Please check your inbox and click on the verification link. Error: {err}"),
+                    None => "The provided email verification token is probably invalid or expired.".to_owned(),
+                };
+                Problem {
+                    id: Hook0Problem::AuthFailedEmailVerification(e),
+                    title: "Email not verified",
+                    detail: detail.into(),
+                    validation: None,
+                    status: StatusCode::UNAUTHORIZED,
+                }
             },
 
             // Quota errors

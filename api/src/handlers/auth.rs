@@ -2,7 +2,7 @@ use actix_web::web::ReqData;
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use biscuit_auth::{Biscuit, PrivateKey};
 use chrono::{DateTime, Utc};
-use log::error;
+use log::{error, info};
 use paperclip::actix::web::{Data, Json};
 use paperclip::actix::{api_v2_operation, Apiv2Schema, CreatedJson, NoContent};
 use serde::{Deserialize, Serialize};
@@ -10,10 +10,7 @@ use sqlx::{query, query_as, Acquire, Postgres};
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::iam::{
-    authorize_only_user, authorize_refresh_token, create_refresh_token, create_user_access_token,
-    Action,
-};
+use crate::iam::{authorize_only_user, authorize_refresh_token, create_refresh_token, create_user_access_token, Action, authorize_email_verification};
 use crate::openapi::{OaBiscuitRefresh, OaBiscuitUserAccess};
 use crate::problems::Hook0Problem;
 
@@ -34,6 +31,12 @@ pub struct LoginResponse {
     email: String,
     first_name: String,
     last_name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
+pub struct EmailVerificationGet {
+    #[validate(non_control_character, length(min = 1, max = 1000))]
+    token: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -427,5 +430,61 @@ pub async fn logout(
         Ok(NoContent)
     } else {
         Err(Hook0Problem::Forbidden)
+    }
+}
+
+#[api_v2_operation(
+    summary = "Email verification",
+    description = "Verify the email of a user.",
+    operation_id = "auth.verify_email",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Authentication")
+)]
+pub async fn verify_email(
+    state: Data<crate::State>,
+    query: Json<EmailVerificationGet>,
+) -> Result<NoContent, Hook0Problem> {
+    info!("Email verification");
+    if let Err(e) = query.validate() {
+        return Err(Hook0Problem::Validation(e));
+    }
+
+    let token = query.token.clone();
+    info!("Token: {}", token);
+    let token = match biscuit_auth::Biscuit::from(token, &state.biscuit_private_key.public()) {
+        Ok(token) => token,
+        Err(e) => return Err(Hook0Problem::AuthFailedEmailVerification(Option::from(e.to_string()))),
+    };
+    if let Ok(token) = authorize_email_verification(&token) {
+
+         match query!(
+            "
+                SELECT user__id
+                FROM iam.user
+                WHERE user__id = $1
+                    AND email_verified_at IS NULL
+            ",
+            &token.user_id,
+        ).fetch_optional(&state.db).await? {
+            Some(_) => {},
+            None => return Err(Hook0Problem::AuthFailedEmailVerification(Option::from("User already verified".to_owned()))),
+         }
+
+        query!(
+            "
+                UPDATE iam.user
+                SET email_verified_at = statement_timestamp()
+                WHERE user__id = $1
+            ",
+            &token.user_id,
+        )
+        .execute(&state.db)
+        .await?;
+
+        Ok(NoContent)
+    } else {
+        info!("Email verification failed");
+        Err(Hook0Problem::AuthFailedEmailVerification(None))
     }
 }
