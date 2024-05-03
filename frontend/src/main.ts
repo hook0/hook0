@@ -6,6 +6,7 @@ import { createApp } from 'vue';
 import router from './router';
 import { Promised } from 'vue-promised';
 import { AuthPlugin } from './iam';
+import { createNotivue } from 'notivue';
 
 import Root from './Root.vue';
 
@@ -48,6 +49,23 @@ import {
 import { faToggleOn } from '@fortawesome/free-solid-svg-icons/faToggleOn';
 import { faToggleOff } from '@fortawesome/free-solid-svg-icons/faToggleOff';
 
+import 'notivue/notification.css'; // Only needed if using built-in notifications
+import 'notivue/animations.css'; // Only needed if using built-in animations
+import 'notivue/notification-progress.css';
+
+const notivue = createNotivue({
+  position: 'top-right',
+  limit: 4,
+  enqueue: true,
+  avoidDuplicates: true,
+  notifications: {
+    global: {
+      duration: 10000,
+    },
+  },
+  pauseOnHover: true,
+});
+
 // Create and mount the root instance.
 const app = createApp(Root);
 
@@ -56,6 +74,9 @@ app.use(router);
 
 // Authentication & authorization
 app.use(AuthPlugin);
+
+// Notifications with notivue
+app.use(notivue);
 
 // font-awesome
 // Add here
