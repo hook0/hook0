@@ -14,10 +14,7 @@ use crate::hook0_client::{
     EventOrganizationCreated, EventOrganizationInvited, EventOrganizationRemoved,
     EventOrganizationRevoked, EventOrganizationUpdated, Hook0ClientEvent,
 };
-use crate::iam::{
-    authorize, authorize_only_user, Action, AuthorizeServiceToken, AuthorizedToken,
-    AuthorizedUserToken, Role,
-};
+use crate::iam::{authorize, authorize_only_user, Action, AuthorizeServiceToken, AuthorizedToken, AuthorizedUserToken, Role, AuthorizedEmailVerificationToken};
 use crate::openapi::{OaBiscuit, OaBiscuitUserAccess};
 use crate::problems::Hook0Problem;
 use crate::quotas::{Quota, QuotaValue};
@@ -84,6 +81,7 @@ pub async fn list(
                 (vec![(organization_id, Role::Editor)], false)
             }
             AuthorizedToken::Master => (vec![], true),
+            _ => { return Err(Hook0Problem::Forbidden); }
         };
 
         struct OrganizationMetadata {
