@@ -9,6 +9,7 @@ import { routes } from '@/routes';
 import Hook0Footer from '@/components/Hook0Footer.vue';
 import Hook0LoginMenu from '@/components/Hook0LoginMenu.vue';
 import Hook0Icon from '@/components/Hook0Icon.vue';
+import { Notivue, Notification, NotificationProgress } from 'notivue';
 
 const route = useRoute();
 
@@ -107,6 +108,11 @@ const items = computed<Route[]>(() => {
 </script>
 
 <template>
+  <Notivue v-slot="item">
+    <Notification :item="item">
+      <NotificationProgress :item="item" />
+    </Notification>
+  </Notivue>
   <div class="h-screen flex overflow-hidden bg-gray-100">
     <div class="hidden md:flex md:flex-shrink-0">
       <div class="flex flex-col w-64 bg-gray-800">
