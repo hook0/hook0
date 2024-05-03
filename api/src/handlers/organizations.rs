@@ -14,7 +14,7 @@ use crate::hook0_client::{
     EventOrganizationCreated, EventOrganizationInvited, EventOrganizationRemoved,
     EventOrganizationRevoked, EventOrganizationUpdated, Hook0ClientEvent,
 };
-use crate::iam::{authorize, authorize_only_user, Action, AuthorizeServiceToken, AuthorizedToken, AuthorizedUserToken, Role, AuthorizedEmailVerificationToken};
+use crate::iam::{authorize, authorize_only_user, Action, AuthorizeServiceToken, AuthorizedToken, AuthorizedUserToken, Role};
 use crate::openapi::{OaBiscuit, OaBiscuitUserAccess};
 use crate::problems::Hook0Problem;
 use crate::quotas::{Quota, QuotaValue};
