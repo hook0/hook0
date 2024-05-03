@@ -781,13 +781,12 @@ pub fn authorize(
 ) -> Result<AuthorizedToken, biscuit_auth::error::Token> {
     let mut authorizer = authorizer!(
         r#"
-            valid_types(["master_access", "service_access", "user_access", "email_verification"]);
+            valid_types(["master_access", "service_access", "user_access"]);
             valid_type($t) <- type($t), valid_types($vt), $vt.contains($t);
             check if valid_type($t);
 
             supported_version("service_access", 1);
             supported_version("user_access", 1);
-            supported_version("email_verification", 1);
             valid_version($t, $v) <- type($t), version($v), supported_version($t, $v);
             valid_version("master_access", 0) <- type("master_access");
             check if valid_version($t, $v);
@@ -918,15 +917,6 @@ pub fn authorize(
                 organization_id,
             }))
         }
-        "email_verification" => {
-            let raw_user_id: Vec<(Vec<u8>,)> = authorizer.query(rule!("data($id) <- user_id($id)"))?;
-            let user_id = raw_user_id
-                .first()
-                .and_then(|(str,)| Uuid::from_slice(str).ok())
-                .ok_or(biscuit_auth::error::Token::InternalError)?;
-
-            Ok(AuthorizedToken::EmailVerification(AuthorizedEmailVerificationToken { user_id }))
-        }
         "master_access" => Ok(AuthorizedToken::Master),
         _ => {
             error!("Invalid token type: {token_type}");
@@ -949,6 +939,41 @@ pub fn authorize_only_user(
         Err(e) => Err(e),
     }
 }
+
+pub fn authorize_email_verification(
+    biscuit: &Biscuit,
+) -> Result<AuthorizedEmailVerificationToken, biscuit_auth::error::Token> {
+    let mut authorizer = authorizer!(
+        r#"
+            supported_version("email_verification", 1);
+            valid_version($t, $v) <- type($t), version($v), supported_version($t, $v);
+            check if valid_version($t, $v);
+
+            expired($t) <- expired_at($exp), time($t), $exp < $t;
+            deny if expired($t);
+        "#
+    );
+    authorizer.set_time();
+    authorizer.add_allow_all();
+
+    authorizer.set_limits(AuthorizerLimits {
+        max_time: Duration::from_secs(1800),
+        ..Default::default()
+    });
+    authorizer.add_token(biscuit)?;
+    let result = authorizer.authorize();
+    trace!("Authorizer state:\n{}", authorizer.print_world());
+    result?;
+
+    let raw_user_id: Vec<(Vec<u8>,)> = authorizer.query(rule!("data($id) <- user_id($id)"))?;
+    let user_id = raw_user_id
+        .first()
+        .and_then(|(str,)| Uuid::from_slice(str).ok())
+        .ok_or(biscuit_auth::error::Token::InternalError)?;
+
+    Ok(AuthorizedEmailVerificationToken { user_id })
+}
+
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AuthorizedRefreshToken {
