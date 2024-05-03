@@ -281,6 +281,39 @@ pub fn create_service_access_token(
     })
 }
 
+const EMAIL_VERIFICATION_TOKEN_VERSION: i64 = 1;
+
+pub fn create_email_verification_token(
+    private_key: &PrivateKey,
+    user_id: Uuid
+) -> Result<RootToken, biscuit_auth::error::Token> {
+    let keypair = KeyPair::from(private_key);
+    let created_at = SystemTime::now();
+
+    let biscuit = biscuit!(
+        r#"
+            type("email_verification");
+            version({EMAIL_VERIFICATION_TOKEN_VERSION});
+            user_id({user_id});
+            created_at({created_at});
+        "#,
+    )
+    .build(&keypair)?;
+    let serialized_biscuit = biscuit.to_base64()?;
+    let revocation_id = biscuit
+        .revocation_identifiers()
+        .first()
+        .map(|rid| rid.to_owned())
+        .ok_or(biscuit_auth::error::Token::InternalError)?;
+
+    Ok(RootToken {
+        biscuit,
+        serialized_biscuit,
+        revocation_id,
+        expired_at: None,
+    })
+}
+
 pub fn create_master_access_token(
     private_key: &PrivateKey,
 ) -> Result<Biscuit, biscuit_auth::error::Token> {
@@ -716,6 +749,7 @@ impl<'a> Action<'a> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AuthorizedToken {
     User(AuthorizedUserToken),
+    EmailVerification(AuthorizedEmailVerificationToken),
     Service(AuthorizeServiceToken),
     Master,
 }
@@ -735,6 +769,11 @@ pub struct AuthorizeServiceToken {
     pub organization_id: Uuid,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AuthorizedEmailVerificationToken {
+    pub user_id: Uuid,
+}
+
 pub fn authorize(
     biscuit: &Biscuit,
     organization_id: Option<Uuid>,
@@ -742,12 +781,13 @@ pub fn authorize(
 ) -> Result<AuthorizedToken, biscuit_auth::error::Token> {
     let mut authorizer = authorizer!(
         r#"
-            valid_types(["master_access", "service_access", "user_access"]);
+            valid_types(["master_access", "service_access", "user_access", "email_verification"]);
             valid_type($t) <- type($t), valid_types($vt), $vt.contains($t);
             check if valid_type($t);
 
             supported_version("service_access", 1);
             supported_version("user_access", 1);
+            supported_version("email_verification", 1);
             valid_version($t, $v) <- type($t), version($v), supported_version($t, $v);
             valid_version("master_access", 0) <- type("master_access");
             check if valid_version($t, $v);
@@ -877,6 +917,15 @@ pub fn authorize(
             Ok(AuthorizedToken::Service(AuthorizeServiceToken {
                 organization_id,
             }))
+        }
+        "email_verification" => {
+            let raw_user_id: Vec<(Vec<u8>,)> = authorizer.query(rule!("data($id) <- user_id($id)"))?;
+            let user_id = raw_user_id
+                .first()
+                .and_then(|(str,)| Uuid::from_slice(str).ok())
+                .ok_or(biscuit_auth::error::Token::InternalError)?;
+
+            Ok(AuthorizedToken::EmailVerification(AuthorizedEmailVerificationToken { user_id }))
         }
         "master_access" => Ok(AuthorizedToken::Master),
         _ => {

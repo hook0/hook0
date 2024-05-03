@@ -252,6 +252,10 @@ struct Config {
     /// Duration (in second) to use as timeout when sending emails to the SMTP server
     #[clap(long, env, default_value = "5")]
     smtp_timeout_in_s: u64,
+
+    /// Domain url ( actually used for the mailer )
+    #[clap(long, env)]
+    domain_url: String,
 }
 
 fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
@@ -265,6 +269,7 @@ pub struct State {
     db: PgPool,
     biscuit_private_key: PrivateKey,
     mailer: Mailer,
+    domain_url: String,
     #[cfg(feature = "migrate-users-from-keycloak")]
     keycloak_url: Url,
     #[cfg(feature = "migrate-users-from-keycloak")]
@@ -434,6 +439,7 @@ async fn main() -> anyhow::Result<()> {
         // Initialize state
         let initial_state = State {
             db: pool,
+            domain_url: config.domain_url,
             biscuit_private_key,
             mailer,
             #[cfg(feature = "migrate-users-from-keycloak")]

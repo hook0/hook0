@@ -1,7 +1,10 @@
+use std::str::FromStr;
 use argon2::password_hash::rand_core::OsRng;
 use argon2::password_hash::SaltString;
 use argon2::{Argon2, PasswordHasher};
-use log::error;
+use lettre::Address;
+use lettre::message::Mailbox;
+use log::{error, info};
 use paperclip::actix::web::{Data, Json};
 use paperclip::actix::{api_v2_operation, Apiv2Schema, CreatedJson};
 use serde::{Deserialize, Serialize};
@@ -9,7 +12,8 @@ use sqlx::query;
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::iam::Role;
+use crate::iam::{create_email_verification_token, Role};
+use crate::mailer::Mail;
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -105,7 +109,31 @@ pub async fn register(
         .execute(&mut *tx)
         .await?;
 
-        // TODO: send email with verification code
+        let verification_token = create_email_verification_token(&state.biscuit_private_key, user_id).map_err(|e| {
+            error!("Error trying to create email verification token: {e}");
+            Hook0Problem::InternalServerError
+        })?;
+
+        let mailer = &state.mailer.clone();
+
+        let address = Address::from_str(&body.email).map_err(|e| {
+            error!("Error trying to parse email address: {e}");
+            Hook0Problem::InternalServerError
+        })?;
+        let recipient = Mailbox::new(Some(format!("{} {}", body.first_name, body.last_name)), address);
+
+        match mailer.send_mail(
+            Mail::VerifyMail {
+                url: format!("{}/verify-email?token={}", state.domain_url, &verification_token.serialized_biscuit),
+            },
+            recipient,
+        ).await {
+            Ok(_) => {},
+            Err(e) => {
+                error!("Error trying to send email: {e}");
+                return Err(e);
+            },
+        }
 
         tx.commit().await?;
 
