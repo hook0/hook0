@@ -4,9 +4,7 @@ import { onMounted, onUpdated, ref } from 'vue';
 import * as OrganizationService from './OrganizationService';
 import { OrganizationInfo } from './OrganizationService';
 import { routes } from '@/routes';
-import Hook0Alert from '@/components/Hook0Alert.vue';
 import { Problem, UUID } from '@/http';
-import { Alert } from '@/components/Hook0Alert';
 import OrganizationRemove from './OrganizationsRemove.vue';
 import { useRoute, useRouter } from 'vue-router';
 import Hook0Input from '@/components/Hook0Input.vue';
@@ -16,6 +14,7 @@ import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
+import { push } from 'notivue';
 
 const router = useRouter();
 const route = useRoute();
@@ -25,12 +24,6 @@ const loading = ref(false);
 const organization_id = ref<UUID | null>(null);
 const organization = ref({
   name: '',
-});
-const alert = ref<Alert>({
-  visible: false,
-  type: 'alert',
-  title: '',
-  description: '',
 });
 
 function _load() {
@@ -62,7 +55,6 @@ function upsert(e: Event) {
   e.preventDefault();
   e.stopImmediatePropagation();
 
-  alert.value.visible = false; // reset alert
   loading.value = true;
 
   (isNew.value
@@ -87,11 +79,12 @@ function upsert(e: Event) {
 
 function displayError(err: Problem) {
   console.error(err);
-  alert.value.visible = true;
-
-  alert.value.type = err.status >= 500 ? 'alert' : 'warning';
-  alert.value.title = err.title;
-  alert.value.description = err.detail;
+  let options = {
+    title: err.title,
+    message: err.detail,
+    duration: 5000,
+  };
+  err.status >= 500 ? push.error(options) : push.warning(options);
 }
 
 onMounted(() => {
@@ -128,13 +121,6 @@ onUpdated(() => {
           </Hook0CardContentLine>
         </Hook0CardContent>
 
-        <Hook0CardContent v-if="alert.visible">
-          <Hook0Alert
-            :type="alert.type"
-            :title="alert.title"
-            :description="alert.description"
-          ></Hook0Alert>
-        </Hook0CardContent>
         <Hook0CardFooter>
           <Hook0Button class="secondary" type="button" @click="$router.back()">Cancel</Hook0Button>
           <Hook0Button class="primary" type="button" :loading="loading" @click="upsert($event)"
