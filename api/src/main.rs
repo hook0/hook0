@@ -531,10 +531,9 @@ async fn main() -> anyhow::Result<()> {
                         .service(
                             web::scope("/auth")
                                 .service(
-                                    web::resource("/verify-email}")
-                                        .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
-                                        .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first
-                                        .route(web::get().to(handlers::auth::verify_email)),
+                                    web::resource("/verify-email")
+                                        .route(web::get().to(handlers::auth::verify_email))
+                                        .route(web::post().to(handlers::auth::verify_email)),
                                 )
                                 .service(
                                     web::resource("/login")
