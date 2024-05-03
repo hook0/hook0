@@ -445,17 +445,16 @@ pub async fn verify_email(
     state: Data<crate::State>,
     query: Json<EmailVerificationGet>,
 ) -> Result<NoContent, Hook0Problem> {
-    info!("Email verification");
     if let Err(e) = query.validate() {
         return Err(Hook0Problem::Validation(e));
     }
 
     let token = query.token.clone();
-    info!("Token: {}", token);
-    let token = match biscuit_auth::Biscuit::from(token, &state.biscuit_private_key.public()) {
+    let token = match biscuit_auth::Biscuit::from_base64(token, &state.biscuit_private_key.public()) {
         Ok(token) => token,
         Err(e) => return Err(Hook0Problem::AuthFailedEmailVerification(Option::from(e.to_string()))),
     };
+
     if let Ok(token) = authorize_email_verification(&token) {
 
          match query!(
