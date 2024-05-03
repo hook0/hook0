@@ -12,7 +12,6 @@ import Hook0List from '@/components/Hook0List.vue';
 import Hook0ListItem from '@/components/Hook0ListItem.vue';
 import ApplicationsList from '@/pages/organizations/applications/ApplicationsList.vue';
 import { routes } from '@/routes';
-import { Alert } from '@/components/Hook0Alert';
 import { isPricingEnabled } from '@/pricing';
 import Hook0Icon from '@/components/Hook0Icon.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
@@ -21,6 +20,7 @@ import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
 import MembersList from '@/pages/organizations/MembersList.vue';
+import { push } from 'notivue';
 
 const route = useRoute();
 const pricingEnabled = isPricingEnabled();
@@ -35,12 +35,6 @@ const organization = ref({
     events_per_day_limit: 0,
     days_of_events_retention_limit: 0,
   },
-});
-const alert = ref<Alert>({
-  visible: false,
-  type: 'alert',
-  title: '',
-  description: '',
 });
 
 function _load() {
@@ -59,11 +53,12 @@ function _load() {
 
 function displayError(err: Problem) {
   console.error(err);
-  alert.value.visible = true;
-
-  alert.value.type = err.status >= 500 ? 'alert' : 'warning';
-  alert.value.title = err.title;
-  alert.value.description = err.detail;
+  let options = {
+    title: err.title,
+    message: err.detail,
+    duration: 5000,
+  };
+  err.status >= 500 ? push.error(options) : push.warning(options);
 }
 
 onMounted(() => {

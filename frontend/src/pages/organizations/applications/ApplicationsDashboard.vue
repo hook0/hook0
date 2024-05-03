@@ -6,7 +6,6 @@ import Hook0Text from '@/components/Hook0Text.vue';
 import { Problem, UUID } from '@/http';
 import * as ApplicationService from './ApplicationService';
 import { Application } from './ApplicationService';
-import { Alert } from '@/components/Hook0Alert';
 import { routes } from '@/routes';
 import EventTypesList from '@/pages/organizations/applications/event_types/EventTypesList.vue';
 import EventsList from '@/pages/organizations/applications/events/EventsList.vue';
@@ -16,18 +15,13 @@ import Hook0Icon from '@/components/Hook0Icon.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
+import { push } from 'notivue';
 
 const route = useRoute();
 
 const application_id = ref<UUID | null>(null);
 const application = ref({
   name: '',
-});
-const alert = ref<Alert>({
-  visible: false,
-  type: 'alert',
-  title: '',
-  description: '',
 });
 
 function _load() {
@@ -44,11 +38,12 @@ function _load() {
 
 function displayError(err: Problem) {
   console.error(err);
-  alert.value.visible = true;
-
-  alert.value.type = err.status >= 500 ? 'alert' : 'warning';
-  alert.value.title = err.title;
-  alert.value.description = err.detail;
+  let options = {
+    title: err.title,
+    message: err.detail,
+    duration: 5000,
+  };
+  err.status >= 500 ? push.error(options) : push.warning(options);
 }
 
 onMounted(() => {

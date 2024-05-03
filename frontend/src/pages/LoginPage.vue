@@ -7,26 +7,18 @@ import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
-import Hook0Alert from '@/components/Hook0Alert.vue';
-import { Alert } from '@/components/Hook0Alert.ts';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import { handleError, Problem } from '@/http.ts';
 import { AxiosError, AxiosResponse } from 'axios';
 import { useRouter } from 'vue-router';
 import { routes } from '@/routes.ts';
+import { push } from 'notivue';
 
 const router = useRouter();
 
 const email = ref<string>('');
 const password = ref<string>('');
-
-const alert = ref<Alert>({
-  visible: false,
-  type: 'alert',
-  title: '',
-  description: '',
-});
 
 async function submit() {
   await login(email.value, password.value)
@@ -41,11 +33,12 @@ async function submit() {
 
 function displayError(err: Problem) {
   console.error(err);
-  alert.value.visible = true;
-
-  alert.value.type = err.status >= 500 ? 'alert' : 'warning';
-  alert.value.title = err.title;
-  alert.value.description = err.detail;
+  let options = {
+    title: err.title,
+    message: err.detail,
+    duration: 5000,
+  };
+  err.status >= 500 ? push.error(options) : push.warning(options);
 }
 
 function _onLoad() {
@@ -101,13 +94,6 @@ onUpdated(_onLoad);
               </div>
             </template>
           </Hook0CardContentLine>
-        </Hook0CardContent>
-        <Hook0CardContent v-if="alert.visible">
-          <Hook0Alert
-            :type="alert.type"
-            :title="alert.title"
-            :description="alert.description"
-          ></Hook0Alert>
         </Hook0CardContent>
         <Hook0CardFooter>
           <Hook0Button class="primary" type="button" @click="submit">Login</Hook0Button>

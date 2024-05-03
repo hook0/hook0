@@ -4,15 +4,13 @@ import { useRoute, useRouter } from 'vue-router';
 
 import * as ApplicationsService from './ApplicationService';
 import { Problem } from '@/http';
-import { Alert } from '@/components/Hook0Alert';
 import { routes } from '@/routes';
 import Hook0Text from '@/components/Hook0Text.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
-import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
-import Hook0Alert from '@/components/Hook0Alert.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
+import { push } from 'notivue';
 
 const router = useRouter();
 const route = useRoute();
@@ -25,12 +23,6 @@ interface Props {
 const props = defineProps<Props>();
 
 const loading = ref(false);
-const alert = ref<Alert>({
-  visible: false,
-  type: 'alert',
-  title: '',
-  description: '',
-});
 
 function remove(e: Event) {
   e.preventDefault();
@@ -40,7 +32,6 @@ function remove(e: Event) {
     return;
   }
 
-  alert.value.visible = false; // reset alert
   loading.value = true;
 
   ApplicationsService.remove(props.applicationId)
@@ -60,11 +51,12 @@ function remove(e: Event) {
 
 function displayError(err: Problem) {
   console.error(err);
-  alert.value.visible = true;
-
-  alert.value.type = err.status >= 500 ? 'alert' : 'warning';
-  alert.value.title = err.title;
-  alert.value.description = err.detail;
+  let options = {
+    title: err.title,
+    message: err.detail,
+    duration: 5000,
+  };
+  err.status >= 500 ? push.error(options) : push.warning(options);
 }
 </script>
 
@@ -78,13 +70,6 @@ function displayError(err: Problem) {
         and everything this application contains. There is no going back.
       </template>
     </Hook0CardHeader>
-    <Hook0CardContent v-if="alert.visible">
-      <Hook0Alert
-        :type="alert.type"
-        :title="alert.title"
-        :description="alert.description"
-      ></Hook0Alert>
-    </Hook0CardContent>
     <Hook0CardFooter>
       <Hook0Button class="danger" type="button" :loading="loading" @click="remove($event)"
         >Delete</Hook0Button

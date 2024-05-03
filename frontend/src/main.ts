@@ -58,12 +58,13 @@ const notivue = createNotivue({
   limit: 4,
   enqueue: true,
   avoidDuplicates: true,
-  notifications: {
-    global: {
-      duration: 10000,
-    },
+  animations: {
+    enter: 'Notivue__enter',
+    leave: 'Notivue__leave',
+    clearAll: 'Notivue__clearAll',
   },
   pauseOnHover: true,
+  transition: 'transform 0.35s cubic-bezier(0.5, 1, 0.25, 1)',
 });
 
 // Create and mount the root instance.

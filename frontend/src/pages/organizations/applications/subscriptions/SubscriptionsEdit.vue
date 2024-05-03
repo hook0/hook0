@@ -4,8 +4,6 @@ import { onMounted, onUpdated, ref } from 'vue';
 import { head } from 'ramda';
 
 import { Problem, UUID } from '@/http';
-import { Alert } from '@/components/Hook0Alert';
-import Hook0Alert from '@/components/Hook0Alert.vue';
 import * as SubscriptionService from './SubscriptionService';
 import { Subscription, Target } from './SubscriptionService';
 import { routes } from '@/routes';
@@ -29,6 +27,7 @@ import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Icon from '@/components/Hook0Icon.vue';
+import { push } from 'notivue';
 
 interface SelectableEventType extends EventType {
   selected: boolean;
@@ -103,16 +102,8 @@ const httpTarget = ref({
   METHODS: 'GET,PATCH,POST,PUT,DELETE,OPTIONS,HEAD'.split(',').map(toOption),
   headers: [] as Hook0KeyValueKeyValuePair[], // K/V
 });
-const alert = ref<Alert>({
-  visible: false,
-  type: 'alert',
-  title: '',
-  description: '',
-});
 
 function _load() {
-  alert.value.visible = false;
-
   function mapper(eventType: EventType): SelectableEventType {
     return {
       ...eventType,
@@ -193,8 +184,6 @@ function upsert(e: Event) {
   e.preventDefault();
   e.stopImmediatePropagation();
 
-  alert.value.visible = false; // reset alert
-
   if (isNew.value) {
     SubscriptionService.create({
       application_id: route.params.application_id as string,
@@ -242,11 +231,12 @@ function upsert(e: Event) {
 
 function displayError(err: Problem) {
   console.error(err);
-  alert.value.visible = true;
-
-  alert.value.type = err.status >= 500 ? 'alert' : 'warning';
-  alert.value.title = err.title;
-  alert.value.description = err.detail;
+  let options = {
+    title: err.title,
+    message: err.detail,
+    duration: 5000,
+  };
+  err.status >= 500 ? push.error(options) : push.warning(options);
 }
 
 onMounted(() => {
@@ -431,14 +421,6 @@ onUpdated(() => {
             ></Hook0KeyValue>
           </template>
         </Hook0CardContentLine>
-
-        <Hook0CardContent v-if="alert.visible">
-          <Hook0Alert
-            :type="alert.type"
-            :title="alert.title"
-            :description="alert.description"
-          ></Hook0Alert>
-        </Hook0CardContent>
         <Hook0CardFooter>
           <Hook0Button class="secondary" type="button" @click="cancel2()">Cancel</Hook0Button>
           <Hook0Button class="primary" type="button" @click="upsert($event)"
