@@ -57,6 +57,7 @@
     "fp-ts": "^2.11.6",
     "keycloak-js": "^24.0.1",
     "lodash.debounce": "^4.0.8",
+    "notivue": "^2.4.4",
     "ramda": "^0.29.0",
     "swagger-ui": "^5.15.2",
     "uuidv4": "^6.2.7",
