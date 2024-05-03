@@ -17,10 +17,10 @@ import { Problem, UUID } from '@/http';
 import Hook0Text from '@/components/Hook0Text.vue';
 import * as ApplicationSecretService from './ApplicationSecretService';
 import { ApplicationSecret } from './ApplicationSecretService';
-import { Alert } from '@/components/Hook0Alert';
 import Hook0Loader from '@/components/Hook0Loader.vue';
 import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
 import Hook0Error from '@/components/Hook0Error.vue';
+import { push } from 'notivue';
 
 const route = useRoute();
 
@@ -83,12 +83,6 @@ const columnDefs: ColDef[] = [
     },
   },
 ];
-const alert = ref<Alert>({
-  visible: false,
-  type: 'alert',
-  title: '',
-  description: '',
-});
 
 const application_secrets$ = ref<Promise<Array<ApplicationSecret>>>();
 const application_id = ref<null | UUID>(null);
@@ -121,11 +115,12 @@ function _load() {
 
 function displayError(err: Problem) {
   console.error(err);
-  alert.value.visible = true;
-
-  alert.value.type = err.status >= 500 ? 'alert' : 'warning';
-  alert.value.title = err.title;
-  alert.value.description = err.detail;
+  let options = {
+    title: err.title,
+    message: err.detail,
+    duration: 5000,
+  };
+  err.status >= 500 ? push.error(options) : push.warning(options);
 }
 
 onMounted(() => {
