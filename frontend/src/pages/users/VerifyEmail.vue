@@ -42,12 +42,10 @@ function _onLoad() {
   }
   VerifyEmailService.verifyEmail(token)
     .then(() => {
-      setInterval(() => {
-        displaySuccess();
+      displaySuccess();
         setTimeout(() => {
           void router.push(routes.Login);
         }, 5000);
-      }, 1000);
     })
     .catch(displayError);
 }
