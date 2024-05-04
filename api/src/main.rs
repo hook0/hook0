@@ -252,7 +252,7 @@ struct Config {
     #[clap(long, env, default_value = "5")]
     smtp_timeout_in_s: u64,
 
-    /// Domain url ( actually used for the mailer )
+    /// Domain URL (used for building links in emails)
     #[clap(long, env)]
     domain_url: String,
 }
