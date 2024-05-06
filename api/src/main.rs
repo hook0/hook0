@@ -553,6 +553,16 @@ async fn main() -> anyhow::Result<()> {
                                         .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
                                         .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first
                                         .route(web::post().to(handlers::auth::logout)),
+                                )
+                                .service(
+                                    web::resource("/reset-password")
+                                        .route(web::post().to(handlers::auth::reset_password)),
+                                )
+                                .service(
+                                    web::resource("/password")
+                                        .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
+                                        .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first
+                                        .route(web::post().to(handlers::auth::change_password)),
                                 ),
                         )
                         // no auth
