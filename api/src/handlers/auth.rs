@@ -483,7 +483,7 @@ pub async fn verify_email(
 
         Ok(NoContent)
     } else {
-        info!("Email verification failed");
+        dbg!("Email verification failed");
         Err(Hook0Problem::AuthFailedEmailVerification(None))
     }
 }
