@@ -114,7 +114,7 @@ pub async fn register(
             Hook0Problem::InternalServerError
         })?;
 
-        let mailer = &state.mailer.clone();
+        let mailer = &state.mailer;
 
         let address = Address::from_str(&body.email).map_err(|e| {
             error!("Error trying to parse email address: {e}");
