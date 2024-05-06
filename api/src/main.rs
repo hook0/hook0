@@ -1,5 +1,3 @@
-use crate::mailer::Mailer;
-use crate::problems::Hook0Problem;
 use ::hook0_client::Hook0Client;
 use actix::Arbiter;
 use actix_cors::Cors;
@@ -255,10 +253,6 @@ struct Config {
     /// Frontend application URL (used for building links in emails)
     #[clap(long, env)]
     app_url: String,
-
-    /// Api url (don't use actually)
-    #[clap(long, env)]
-    api_url: String,
 }
 
 fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
@@ -271,7 +265,7 @@ fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
 pub struct State {
     db: PgPool,
     biscuit_private_key: PrivateKey,
-    mailer: Mailer,
+    mailer: mailer::Mailer,
     app_url: String,
     #[cfg(feature = "migrate-users-from-keycloak")]
     keycloak_url: Url,
@@ -301,21 +295,6 @@ async fn main() -> anyhow::Result<()> {
             &config.sentry_dsn,
             &config.sentry_traces_sample_rate,
         );
-
-        // Prepare trusted reverse proxies IPs
-        let reverse_proxy_ips = config
-            .reverse_proxy_ips
-            .iter()
-            .map(|str| str.trim().to_owned())
-            .collect::<Vec<_>>();
-        if reverse_proxy_ips.is_empty() {
-            warn!("No trusted reverse proxy IPs were set; if this is a production instance this is a problem");
-        } else {
-            debug!(
-                "The following IPs will be considered as trusted reverse proxies: {}",
-                &reverse_proxy_ips.join(", ")
-            );
-        }
 
         trace!("Starting {}", APP_TITLE);
 
@@ -437,7 +416,7 @@ async fn main() -> anyhow::Result<()> {
             config.email_sender_address,
         )
         .await
-        .unwrap();
+        .expect("Could not initialize mailer; check SMTP configuration");
 
         // Initialize state
         let initial_state = State {

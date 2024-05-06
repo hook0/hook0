@@ -38,9 +38,9 @@ impl Mail {
 
     pub fn variables(&self) -> Vec<(String, String)> {
         match self {
-            Mail::VerifyMail { url, .. } => vec![("url".to_owned(), url.to_owned())],
-            Mail::ResetPassword { url, .. } => vec![("url".to_owned(), url.to_owned())],
-            Mail::Welcome { name, .. } => vec![("name".to_owned(), name.to_owned())],
+            Mail::VerifyMail { url } => vec![("url".to_owned(), url.to_owned())],
+            Mail::ResetPassword { url } => vec![("url".to_owned(), url.to_owned())],
+            Mail::Welcome { name } => vec![("name".to_owned(), name.to_owned())],
         }
     }
 }
