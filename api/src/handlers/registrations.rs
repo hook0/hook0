@@ -1,14 +1,14 @@
-use std::str::FromStr;
 use argon2::password_hash::rand_core::OsRng;
 use argon2::password_hash::SaltString;
 use argon2::{Argon2, PasswordHasher};
-use lettre::Address;
 use lettre::message::Mailbox;
-use log::{error};
+use lettre::Address;
+use log::{error, warn};
 use paperclip::actix::web::{Data, Json};
 use paperclip::actix::{api_v2_operation, Apiv2Schema, CreatedJson};
 use serde::{Deserialize, Serialize};
 use sqlx::query;
+use std::str::FromStr;
 use uuid::Uuid;
 use validator::Validate;
 
@@ -53,6 +53,12 @@ pub async fn register(
     if let Err(e) = body.validate() {
         return Err(Hook0Problem::Validation(e));
     }
+
+    let recipient_address = Address::from_str(&body.email).map_err(|e| {
+        // Should not happen because we checked (using a validator) that body.email is a well structured email address
+        error!("Error trying to parse email address: {e}");
+        Hook0Problem::InternalServerError
+    })?;
 
     if body.password.len() >= usize::from(state.password_minimum_length) {
         let mut tx = state.db.begin().await?;
@@ -109,31 +115,31 @@ pub async fn register(
         .execute(&mut *tx)
         .await?;
 
-        let verification_token = create_email_verification_token(&state.biscuit_private_key, user_id).map_err(|e| {
-            error!("Error trying to create email verification token: {e}");
-            Hook0Problem::InternalServerError
-        })?;
-
-        let mailer = &state.mailer;
-
-        let address = Address::from_str(&body.email).map_err(|e| {
-            error!("Error trying to parse email address: {e}");
-            Hook0Problem::InternalServerError
-        })?;
-        let recipient = Mailbox::new(Some(format!("{} {}", body.first_name, body.last_name)), address);
-
-        match mailer.send_mail(
-            Mail::VerifyMail {
-                url: format!("{}/verify-email?token={}", state.app_url, &verification_token.serialized_biscuit),
-            },
-            recipient,
-        ).await {
-            Ok(_) => {},
-            Err(e) => {
-                error!("Error trying to send email: {e}");
-                return Err(Hook0Problem::InternalServerError);
-            },
-        }
+        let verification_token =
+            create_email_verification_token(&state.biscuit_private_key, user_id).map_err(|e| {
+                error!("Error trying to create email verification token: {e}");
+                Hook0Problem::InternalServerError
+            })?;
+        let recipient = Mailbox::new(
+            Some(format!("{} {}", body.first_name, body.last_name)),
+            recipient_address,
+        );
+        &state
+            .mailer
+            .send_mail(
+                Mail::VerifyMail {
+                    url: format!(
+                        "{}/verify-email?token={}",
+                        state.app_url, &verification_token.serialized_biscuit
+                    ),
+                },
+                recipient,
+            )
+            .await
+            .map_err(|e| {
+                warn!("Could not send verification email: {e}");
+                e
+            })?;
 
         tx.commit().await?;
 
