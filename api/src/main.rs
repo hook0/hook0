@@ -252,9 +252,13 @@ struct Config {
     #[clap(long, env, default_value = "5")]
     smtp_timeout_in_s: u64,
 
-    /// Domain URL (used for building links in emails)
+    /// Frontend application URL (used for building links in emails)
     #[clap(long, env)]
-    domain_url: String,
+    app_url: String,
+
+    /// Api url (don't use actually)
+    #[clap(long, env)]
+    api_url: String,
 }
 
 fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
@@ -268,7 +272,7 @@ pub struct State {
     db: PgPool,
     biscuit_private_key: PrivateKey,
     mailer: Mailer,
-    domain_url: String,
+    app_url: String,
     #[cfg(feature = "migrate-users-from-keycloak")]
     keycloak_url: Url,
     #[cfg(feature = "migrate-users-from-keycloak")]
@@ -438,7 +442,7 @@ async fn main() -> anyhow::Result<()> {
         // Initialize state
         let initial_state = State {
             db: pool,
-            domain_url: config.domain_url,
+            app_url: config.app_url,
             biscuit_private_key,
             mailer,
             #[cfg(feature = "migrate-users-from-keycloak")]
