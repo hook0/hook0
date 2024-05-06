@@ -452,7 +452,7 @@ pub async fn verify_email(
     let token = query.token.clone();
     let token = match biscuit_auth::Biscuit::from_base64(token, &state.biscuit_private_key.public()) {
         Ok(token) => token,
-        Err(e) => return Err(Hook0Problem::AuthFailedEmailVerification(Option::from(e.to_string()))),
+        Err(e) => return Err(Hook0Problem::AuthFailedEmailVerification("Token not valid".to_owned())),
     };
 
     if let Ok(token) = authorize_email_verification(&token) {
@@ -467,7 +467,7 @@ pub async fn verify_email(
             &token.user_id,
         ).fetch_optional(&state.db).await? {
             Some(_) => {},
-            None => return Err(Hook0Problem::AuthFailedEmailVerification(Option::from("User already verified".to_owned()))),
+            None => return Err(Hook0Problem::AuthFailedEmailVerification("User already verified".to_owned())),
          }
 
         query!(
@@ -484,6 +484,6 @@ pub async fn verify_email(
         Ok(NoContent)
     } else {
         dbg!("Email verification failed");
-        Err(Hook0Problem::AuthFailedEmailVerification(None))
+        Err(Hook0Problem::AuthFailedEmailVerification("Token not valid".to_owned()))
     }
 }
