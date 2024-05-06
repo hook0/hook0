@@ -124,7 +124,7 @@ pub async fn register(
 
         match mailer.send_mail(
             Mail::VerifyMail {
-                url: format!("{}/verify-email?token={}", state.domain_url, &verification_token.serialized_biscuit),
+                url: format!("{}/verify-email?token={}", state.app_url, &verification_token.serialized_biscuit),
             },
             recipient,
         ).await {
