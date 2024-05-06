@@ -131,7 +131,7 @@ pub async fn register(
             Ok(_) => {},
             Err(e) => {
                 error!("Error trying to send email: {e}");
-                return Err(e);
+                return Err(Hook0Problem::InternalServerError);
             },
         }
 
