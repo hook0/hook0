@@ -34,7 +34,7 @@ pub struct LoginResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
-pub struct EmailVerificationGet {
+pub struct EmailVerificationPost {
     #[validate(non_control_character, length(min = 1, max = 1000))]
     token: String,
 }
@@ -443,13 +443,13 @@ pub async fn logout(
 )]
 pub async fn verify_email(
     state: Data<crate::State>,
-    query: Json<EmailVerificationGet>,
+    body: Json<EmailVerificationPost>,
 ) -> Result<NoContent, Hook0Problem> {
-    if let Err(e) = query.validate() {
+    if let Err(e) = body.validate() {
         return Err(Hook0Problem::Validation(e));
     }
 
-    let token = query.token.clone();
+    let token = body.token.clone();
     let token = match biscuit_auth::Biscuit::from_base64(token, &state.biscuit_private_key.public()) {
         Ok(token) => token,
         Err(e) => {
