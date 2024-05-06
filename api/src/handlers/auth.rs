@@ -474,7 +474,7 @@ pub async fn verify_email(
             "
                 UPDATE iam.user
                 SET email_verified_at = statement_timestamp()
-                WHERE user__id = $1
+                WHERE user__id = $1 AND email_verified_at IS NULL
             ",
             &token.user_id,
         )
