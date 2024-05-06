@@ -289,6 +289,7 @@ pub fn create_email_verification_token(
 ) -> Result<RootToken, biscuit_auth::error::Token> {
     let keypair = KeyPair::from(private_key);
     let created_at = SystemTime::now();
+    let expired_at: DateTime<Utc> = (created_at + Duration::from_secs(60 * 30)).into();
 
     let biscuit = biscuit!(
         r#"
@@ -296,6 +297,7 @@ pub fn create_email_verification_token(
             version({EMAIL_VERIFICATION_TOKEN_VERSION});
             user_id({user_id});
             created_at({created_at});
+            expired_at({expired_at});
         "#,
     )
     .build(&keypair)?;
@@ -310,7 +312,7 @@ pub fn create_email_verification_token(
         biscuit,
         serialized_biscuit,
         revocation_id,
-        expired_at: None,
+        expired_at: Some(expired_at),
     })
 }
 
