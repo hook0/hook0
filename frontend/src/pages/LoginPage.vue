@@ -23,6 +23,11 @@ const password = ref<string>('');
 async function submit() {
   await login(email.value, password.value)
     .then(() => {
+      push.success({
+        title: 'Success',
+        message: 'You have successfully logged in.',
+        duration: 5000,
+      });
       return router.push(routes.Home);
     })
     .catch((err: AxiosError<AxiosResponse<Problem>>) => {
