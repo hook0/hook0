@@ -3,22 +3,31 @@ import * as VerifyEmailService from './VerifyEmailService';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import { Problem } from '@/http.ts';
-import { onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import router from '@/router.ts';
 import { routes } from '@/routes.ts';
 import { push } from 'notivue';
+import { Alert } from '@/components/Hook0Alert.ts';
+import Hook0CardContent from '@/components/Hook0CardContent.vue';
+import Hook0Alert from '@/components/Hook0Alert.vue';
 
 const route = useRoute();
 
+const alert = ref<Alert>({
+  visible: false,
+  type: 'alert',
+  title: '',
+  description: '',
+});
+
 function displayError(err: Problem) {
   console.error(err);
-  let options = {
-    title: err.title,
-    message: err.detail,
-    duration: 5000,
-  };
-  err.status >= 500 ? push.error(options) : push.warning(options);
+  alert.value.visible = true;
+
+  alert.value.type = err.status >= 500 ? 'alert' : 'warning';
+  alert.value.title = err.title;
+  alert.value.description = err.detail;
 }
 
 function displaySuccess() {
@@ -43,9 +52,9 @@ function _onLoad() {
   VerifyEmailService.verifyEmail(token)
     .then(() => {
       displaySuccess();
-        setTimeout(() => {
-          void router.push(routes.Login);
-        }, 5000);
+      setTimeout(() => {
+        void router.push(routes.Login);
+      }, 5000);
     })
     .catch(displayError);
 }
@@ -56,7 +65,14 @@ onMounted(() => {
 </script>
 
 <template>
-  <Hook0Card>
+  <Hook0CardContent v-if="alert.visible">
+    <Hook0Alert
+      :type="alert.type"
+      :title="alert.title"
+      :description="alert.description"
+    ></Hook0Alert>
+  </Hook0CardContent>
+  <Hook0Card v-else>
     <Hook0CardHeader>
       <template #header>Verify email</template>
       <template #subtitle>If request failed, retry in a few minutes or contact support</template>
