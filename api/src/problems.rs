@@ -54,8 +54,7 @@ pub enum Hook0Problem {
     AuthInvalidBiscuit,
     AuthFailedLogin,
     AuthFailedRefresh,
-    AuthFailedEmailVerification(String),
-    AuthFailedResetPassword(String),
+    AuthFailedEmailVerification,
 
     // Quota errors
     TooManyMembersPerOrganization(QuotaValue),
@@ -356,22 +355,11 @@ impl From<Hook0Problem> for Problem {
                 validation: None,
                 status: StatusCode::UNAUTHORIZED,
             },
-            Hook0Problem::AuthFailedEmailVerification(e) => {
-                let detail = format!("Email verification failed: {e}");
+            Hook0Problem::AuthFailedEmailVerification => {
                 Problem {
-                    id: Hook0Problem::AuthFailedEmailVerification(e),
-                    title: "Email not verified",
-                    detail: detail.into(),
-                    validation: None,
-                    status: StatusCode::UNAUTHORIZED,
-                }
-            },
-            Hook0Problem::AuthFailedResetPassword(e) => {
-                let detail = format!("Password reset failed: {e}");
-                Problem {
-                    id: Hook0Problem::AuthFailedResetPassword(e),
-                    title: "Password reset failed",
-                    detail: detail.into(),
+                    id: Hook0Problem::AuthFailedEmailVerification,
+                    title: "Could not verify user's email address",
+                    detail: "The link in your verification email may be expired. Please retry the whole process or contact support.".into(),
                     validation: None,
                     status: StatusCode::UNAUTHORIZED,
                 }
