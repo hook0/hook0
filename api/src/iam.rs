@@ -318,6 +318,42 @@ pub fn create_email_verification_token(
     })
 }
 
+const RESET_PASSWORD_TOKEN_VERSION: i64 = 1;
+pub fn create_reset_password_token(
+    private_key: &PrivateKey,
+    email: String
+) -> Result<RootToken, biscuit_auth::error::Token> {
+    let keypair = KeyPair::from(private_key);
+    let created_at = SystemTime::now();
+
+    let expired_at: DateTime<Utc> = (created_at + Duration::from_secs(60 * 30)).into();
+    let expired_at_system_time: SystemTime = expired_at.into();
+
+    let biscuit = biscuit!(
+        r#"
+            type("password_reset");
+            version({RESET_PASSWORD_TOKEN_VERSION});
+            email({email});
+            created_at({created_at});
+            expired_at({expired_at_system_time});
+        "#,
+    )
+    .build(&keypair)?;
+    let serialized_biscuit = biscuit.to_base64()?;
+    let revocation_id = biscuit
+        .revocation_identifiers()
+        .first()
+        .map(|rid| rid.to_owned())
+        .ok_or(biscuit_auth::error::Token::InternalError)?;
+
+    Ok(RootToken {
+        biscuit,
+        serialized_biscuit,
+        revocation_id,
+        expired_at: Some(expired_at),
+    })
+}
+
 pub fn create_master_access_token(
     private_key: &PrivateKey,
 ) -> Result<Biscuit, biscuit_auth::error::Token> {
@@ -347,6 +383,7 @@ pub enum Action<'a> {
     TestNoOrganization,
     //
     AuthLogout,
+    AuthChangePassword,
     //
     OrganizationList,
     OrganizationCreate,
@@ -458,6 +495,7 @@ impl<'a> Action<'a> {
             Self::TestNoOrganization => "test:no_organization",
             //
             Self::AuthLogout => "auth:logout",
+            Self::AuthChangePassword => "auth:change_password",
             //
             Self::OrganizationList => "organization:list",
             Self::OrganizationCreate => "organization:create",
@@ -520,6 +558,7 @@ impl<'a> Action<'a> {
             Self::TestNoOrganization => vec![],
             //
             Self::AuthLogout => vec![],
+            Self::AuthChangePassword => vec![],
             //
             Self::OrganizationList => vec![],
             Self::OrganizationCreate => vec![],
@@ -597,6 +636,7 @@ impl<'a> Action<'a> {
             Self::TestNoOrganization => None,
             //
             Self::AuthLogout => None,
+            Self::AuthChangePassword => None,
             //
             Self::OrganizationList => None,
             Self::OrganizationCreate => None,
@@ -657,6 +697,7 @@ impl<'a> Action<'a> {
             Self::TestNoOrganization => vec![],
             //
             Self::AuthLogout => vec![],
+            Self::AuthChangePassword => vec![],
             //
             Self::OrganizationList => vec![],
             Self::OrganizationCreate => vec![],
@@ -775,6 +816,11 @@ pub struct AuthorizeServiceToken {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AuthorizedEmailVerificationToken {
     pub user_id: Uuid,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AuthorizedResetPasswordToken {
+    pub email: String,
 }
 
 pub fn authorize(
@@ -975,6 +1021,41 @@ pub fn authorize_email_verification(
         .ok_or(biscuit_auth::error::Token::InternalError)?;
 
     Ok(AuthorizedEmailVerificationToken { user_id })
+}
+
+pub fn authorize_reset_password(
+    biscuit: &Biscuit,
+) -> Result<AuthorizedResetPasswordToken, biscuit_auth::error::Token> {
+    let mut authorizer = authorizer!(
+        r#"
+            supported_version("password_reset", 1);
+            valid_version($t, $v) <- type($t), version($v), supported_version($t, $v);
+            check if valid_version($t, $v);
+
+            expired($t) <- expired_at($exp), time($t), $exp < $t;
+            deny if expired($t);
+        "#
+    );
+    authorizer.set_time();
+    authorizer.add_allow_all();
+
+    authorizer.set_limits(AuthorizerLimits {
+        max_time: Duration::from_secs(1800),
+        ..Default::default()
+    });
+    authorizer.add_token(biscuit)?;
+    let result = authorizer.authorize();
+    trace!("Authorizer state:\n{}", authorizer.print_world());
+    result?;
+
+    let raw_email: Vec<(String,)> = authorizer.query(rule!("data($str) <- email($str)"))?;
+    let email = raw_email
+        .first()
+        .ok_or(biscuit_auth::error::Token::InternalError)?
+        .0
+        .to_owned();
+
+    Ok(AuthorizedResetPasswordToken { email })
 }
 
 
