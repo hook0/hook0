@@ -1,16 +1,22 @@
+use std::str::FromStr;
+use std::usize;
+use actix_web::http::header::q;
 use actix_web::web::ReqData;
-use argon2::{Argon2, PasswordHash, PasswordVerifier};
+use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use biscuit_auth::{Biscuit, PrivateKey};
 use chrono::{DateTime, Utc};
+use lettre::Address;
+use lettre::message::Mailbox;
 use log::{error, info};
 use paperclip::actix::web::{Data, Json};
 use paperclip::actix::{api_v2_operation, Apiv2Schema, CreatedJson, NoContent};
 use serde::{Deserialize, Serialize};
-use sqlx::{query, query_as, Acquire, Postgres};
+use sqlx::{query, query_as, Acquire, Postgres, PgPool};
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::iam::{authorize_only_user, authorize_refresh_token, create_refresh_token, create_user_access_token, Action, authorize_email_verification};
+use crate::iam::{authorize_only_user, authorize_refresh_token, create_refresh_token, create_user_access_token, Action, authorize_email_verification, authorize_reset_password, create_reset_password_token};
+use crate::mailer::Mail;
 use crate::openapi::{OaBiscuitRefresh, OaBiscuitUserAccess};
 use crate::problems::Hook0Problem;
 
@@ -37,6 +43,21 @@ pub struct LoginResponse {
 pub struct EmailVerificationPost {
     #[validate(non_control_character, length(min = 1, max = 1000))]
     token: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
+pub struct ResetPasswordPost {
+    #[validate(non_control_character, length(min = 1, max = 1000))]
+    token: Option<String>,
+    password: Option<String>,
+    email: Option<String>
+}
+
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
+pub struct ChangePasswordPost {
+    #[validate(non_control_character, length(min = 1, max = 1000))]
+    token: String,
+    password: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -489,4 +510,178 @@ pub async fn verify_email(
         dbg!("Email verification failed");
         Err(Hook0Problem::AuthFailedEmailVerification("Token not valid".to_owned()))
     }
+}
+
+#[api_v2_operation(
+    summary = "Reset password",
+    description = "Reset the password of a user.",
+    operation_id = "auth.reset_password",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Authentication")
+)]
+pub async fn reset_password(
+    state: Data<crate::State>,
+    body: Json<ResetPasswordPost>,
+) -> Result<NoContent, Hook0Problem> {
+    if let Err(e) = body.validate() {
+        return Err(Hook0Problem::Validation(e));
+    }
+
+    if let Some(token) = &body.token {
+        let token = match biscuit_auth::Biscuit::from_base64(token, &state.biscuit_private_key.public()) {
+            Ok(token) => token,
+            Err(e) => {
+                dbg!(e);
+                return Err(Hook0Problem::AuthFailedResetPassword("Token not valid".to_owned()));
+            }
+        };
+
+        if let Ok(token) = authorize_reset_password(&token) {
+            let email = token.email;
+
+            let password = body.password.clone();
+
+            change_password_function(password, state.password_minimum_length, email, &state.db).await?;
+
+            Ok(NoContent)
+        } else {
+            dbg!("Reset password failed");
+            Err(Hook0Problem::AuthFailedResetPassword("Token not valid".to_owned()))
+        }
+    } else {
+        let email = if let Some(email) = &body.email {
+            email.clone()
+        } else {
+            return Err(Hook0Problem::AuthFailedResetPassword("Email must be present".to_owned()));
+        };
+        let user_lookup = query_as!(
+                    UserLookup,
+                    "
+                        SELECT user__id AS user_id, password AS password_hash, email, first_name, last_name, email_verified_at
+                        FROM iam.user
+                        WHERE email = $1
+                    ",
+                    &email,
+                )
+            .fetch_one(&state.db)
+            .await
+            .map_err(Hook0Problem::from)?;
+
+        if let user = user_lookup {
+            if !user.email_verified_at.is_some() {
+                return Err(Hook0Problem::AuthFailedResetPassword("Email not verified".to_owned()));
+            }
+
+            let biscuit_token = create_reset_password_token(&state.biscuit_private_key, email).map_err(|e| {
+                error!("Error trying to create reset password token: {e}");
+                Hook0Problem::InternalServerError
+            })?;
+            let mailer = &state.mailer;
+
+            let address = Address::from_str(body.email.as_deref().unwrap_or_default()).map_err(|e| {
+                error!("Error trying to parse email address: {e}");
+                Hook0Problem::InternalServerError
+            })?;
+            let recipient = Mailbox::new(Some(format!("{} {}", user.first_name, user.last_name)), address);
+
+            match mailer.send_mail(
+                Mail::ResetPassword {
+                    url: format!("{}/reset-password?token={}", state.app_url, &biscuit_token.serialized_biscuit),
+                }
+                , recipient
+            ).await {
+                Ok(_) => {},
+                Err(e) => {
+                    error!("Error trying to send email: {e}");
+                    return Err(Hook0Problem::InternalServerError);
+                },
+            }
+        }
+        Err(Hook0Problem::AuthFailedResetPassword("User not found".to_owned()))
+    }
+}
+
+#[api_v2_operation(
+    summary = "Change password",
+    description = "Change the password of a user.",
+    operation_id = "auth.change_password",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Authentication")
+)]
+pub async fn change_password(
+    state: Data<crate::State>,
+    body: Json<ChangePasswordPost>,
+    biscuit: ReqData<Biscuit>,
+) -> Result<NoContent, Hook0Problem> {
+    if let Err(e) = body.validate() {
+        return Err(Hook0Problem::Validation(e));
+    }
+
+    let token = body.token.clone();
+    let token = match biscuit_auth::Biscuit::from_base64(token, &state.biscuit_private_key.public()) {
+        Ok(token) => token,
+        Err(e) => {
+            dbg!(e);
+            return Err(Hook0Problem::AuthFailedResetPassword("Token not valid".to_owned()));
+        }
+    };
+
+    if let Ok(token) = authorize_only_user(&biscuit, None, Action::AuthChangePassword) {
+        let email = token.email.clone();
+
+        let password = body.password.clone();
+
+        change_password_function(Some(password), state.password_minimum_length, email, &state.db).await?;
+
+        Ok(NoContent)
+    } else {
+        Err(Hook0Problem::Forbidden)
+    }
+}
+
+pub async fn change_password_function(
+    password: Option<String>,
+    password_min_length: u8,
+    email: String,
+    db: &PgPool,
+) -> Result<NoContent, Hook0Problem> {
+    let password = match password {
+        Some(password) => password,
+        None => return Err(Hook0Problem::AuthFailedResetPassword("Password must be present".to_owned())),
+    };
+
+    if password.len() < usize::from(password_min_length) {
+        let details = format!(
+            "Password must have at least {} characters",
+            password_min_length
+        );
+        return Err(Hook0Problem::AuthFailedResetPassword(details));
+    }
+
+    let salt = argon2::password_hash::SaltString::generate(
+        &mut argon2::password_hash::rand_core::OsRng,
+    );
+    let password_hash = Argon2::default()
+        .hash_password(password.as_bytes(), &salt)
+        .map_err(|e| {
+            error!("Error trying to hash user password: {e}");
+            Hook0Problem::InternalServerError
+        })?
+        .serialize();
+
+    query!(
+        "
+            UPDATE iam.user
+            SET password = $1
+            WHERE email = $2
+        ",
+        password_hash.as_str(),
+        &email,
+    )
+    .execute(&*db)
+    .await?;
+
+    Ok(NoContent)
 }

@@ -55,6 +55,7 @@ pub enum Hook0Problem {
     AuthFailedLogin,
     AuthFailedRefresh,
     AuthFailedEmailVerification(String),
+    AuthFailedResetPassword(String),
 
     // Quota errors
     TooManyMembersPerOrganization(QuotaValue),
@@ -360,6 +361,16 @@ impl From<Hook0Problem> for Problem {
                 Problem {
                     id: Hook0Problem::AuthFailedEmailVerification(e),
                     title: "Email not verified",
+                    detail: detail.into(),
+                    validation: None,
+                    status: StatusCode::UNAUTHORIZED,
+                }
+            },
+            Hook0Problem::AuthFailedResetPassword(e) => {
+                let detail = format!("Password reset failed: {e}");
+                Problem {
+                    id: Hook0Problem::AuthFailedResetPassword(e),
+                    title: "Password reset failed",
                     detail: detail.into(),
                     validation: None,
                     status: StatusCode::UNAUTHORIZED,
