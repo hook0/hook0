@@ -163,8 +163,6 @@ impl From<mrml::prelude::render::Error> for Hook0Problem {
     }
 }
 
-impl std::error::Error for Hook0Problem {}
-
 #[derive(Debug, Clone)]
 pub struct Problem {
     pub id: Hook0Problem,
