@@ -536,7 +536,6 @@ async fn main() -> anyhow::Result<()> {
                             web::scope("/auth")
                                 .service(
                                     web::resource("/verify-email")
-                                        .route(web::get().to(handlers::auth::verify_email))
                                         .route(web::post().to(handlers::auth::verify_email)),
                                 )
                                 .service(
