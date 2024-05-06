@@ -282,16 +282,16 @@ pub fn create_service_access_token(
 }
 
 const EMAIL_VERIFICATION_TOKEN_VERSION: i64 = 1;
+const EMAIL_VERIFICATION_TOKEN_EXPIRATION: Duration = Duration::from_secs(60 * 30);
 
 pub fn create_email_verification_token(
     private_key: &PrivateKey,
-    user_id: Uuid
+    user_id: Uuid,
 ) -> Result<RootToken, biscuit_auth::error::Token> {
     let keypair = KeyPair::from(private_key);
     let created_at = SystemTime::now();
 
-    let expired_at: DateTime<Utc> = (created_at + Duration::from_secs(60 * 30)).into();
-    let expired_at_system_time: SystemTime = expired_at.into();
+    let expired_at = created_at + EMAIL_VERIFICATION_TOKEN_EXPIRATION;
 
     let biscuit = biscuit!(
         r#"
@@ -299,7 +299,7 @@ pub fn create_email_verification_token(
             version({EMAIL_VERIFICATION_TOKEN_VERSION});
             user_id({user_id});
             created_at({created_at});
-            expired_at({expired_at_system_time});
+            expired_at({expired_at});
         "#,
     )
     .build(&keypair)?;
@@ -314,28 +314,28 @@ pub fn create_email_verification_token(
         biscuit,
         serialized_biscuit,
         revocation_id,
-        expired_at: Some(expired_at),
+        expired_at: Some(DateTime::from(expired_at)),
     })
 }
 
 const RESET_PASSWORD_TOKEN_VERSION: i64 = 1;
+const RESET_PASSWORD_TOKEN_EXPIRATION: Duration = Duration::from_secs(60 * 30);
+
 pub fn create_reset_password_token(
     private_key: &PrivateKey,
-    email: String
+    user_id: Uuid,
 ) -> Result<RootToken, biscuit_auth::error::Token> {
     let keypair = KeyPair::from(private_key);
     let created_at = SystemTime::now();
-
-    let expired_at: DateTime<Utc> = (created_at + Duration::from_secs(60 * 30)).into();
-    let expired_at_system_time: SystemTime = expired_at.into();
+    let expired_at = created_at + RESET_PASSWORD_TOKEN_EXPIRATION;
 
     let biscuit = biscuit!(
         r#"
             type("password_reset");
             version({RESET_PASSWORD_TOKEN_VERSION});
-            email({email});
+            user_id({user_id});
             created_at({created_at});
-            expired_at({expired_at_system_time});
+            expired_at({expired_at});
         "#,
     )
     .build(&keypair)?;
@@ -350,7 +350,7 @@ pub fn create_reset_password_token(
         biscuit,
         serialized_biscuit,
         revocation_id,
-        expired_at: Some(expired_at),
+        expired_at: Some(DateTime::from(expired_at)),
     })
 }
 
@@ -618,6 +618,7 @@ impl<'a> Action<'a> {
             Self::TestNoOrganization => true,
             //
             Self::AuthLogout => true,
+            Self::AuthChangePassword => true,
             //
             Self::OrganizationList => true,
             Self::OrganizationCreate => true,
@@ -820,7 +821,7 @@ pub struct AuthorizedEmailVerificationToken {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AuthorizedResetPasswordToken {
-    pub email: String,
+    pub user_id: Uuid,
 }
 
 pub fn authorize(
@@ -1048,16 +1049,14 @@ pub fn authorize_reset_password(
     trace!("Authorizer state:\n{}", authorizer.print_world());
     result?;
 
-    let raw_email: Vec<(String,)> = authorizer.query(rule!("data($str) <- email($str)"))?;
-    let email = raw_email
+    let raw_user_id: Vec<(Vec<u8>,)> = authorizer.query(rule!("data($id) <- user_id($id)"))?;
+    let user_id = raw_user_id
         .first()
-        .ok_or(biscuit_auth::error::Token::InternalError)?
-        .0
-        .to_owned();
+        .and_then(|(str,)| Uuid::from_slice(str).ok())
+        .ok_or(biscuit_auth::error::Token::InternalError)?;
 
-    Ok(AuthorizedResetPasswordToken { email })
+    Ok(AuthorizedResetPasswordToken { user_id })
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AuthorizedRefreshToken {
