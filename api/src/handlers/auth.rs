@@ -1,21 +1,23 @@
-use std::str::FromStr;
-use std::usize;
-use actix_web::http::header::q;
 use actix_web::web::ReqData;
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use biscuit_auth::{Biscuit, PrivateKey};
 use chrono::{DateTime, Utc};
-use lettre::Address;
 use lettre::message::Mailbox;
-use log::{error, info};
+use lettre::Address;
+use log::{debug, error, info};
 use paperclip::actix::web::{Data, Json};
 use paperclip::actix::{api_v2_operation, Apiv2Schema, CreatedJson, NoContent};
 use serde::{Deserialize, Serialize};
-use sqlx::{query, query_as, Acquire, Postgres, PgPool};
+use sqlx::{query, query_as, Acquire, PgPool, Postgres};
+use std::str::FromStr;
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::iam::{authorize_only_user, authorize_refresh_token, create_refresh_token, create_user_access_token, Action, authorize_email_verification, authorize_reset_password, create_reset_password_token};
+use crate::iam::{
+    authorize_email_verification, authorize_only_user, authorize_refresh_token,
+    authorize_reset_password, create_refresh_token, create_reset_password_token,
+    create_user_access_token, Action,
+};
 use crate::mailer::Mail;
 use crate::openapi::{OaBiscuitRefresh, OaBiscuitUserAccess};
 use crate::problems::Hook0Problem;
@@ -46,18 +48,25 @@ pub struct EmailVerificationPost {
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
+pub struct BeginResetPasswordPost {
+    #[validate(non_control_character, email, length(max = 100))]
+    email: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct ResetPasswordPost {
     #[validate(non_control_character, length(min = 1, max = 1000))]
-    token: Option<String>,
-    password: Option<String>,
-    email: Option<String>
+    token: String,
+    #[validate(non_control_character, length(min = 10, max = 100))]
+    new_password: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct ChangePasswordPost {
     #[validate(non_control_character, length(min = 1, max = 1000))]
     token: String,
-    password: String,
+    #[validate(non_control_character, length(min = 10, max = 100))]
+    new_password: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -470,45 +479,39 @@ pub async fn verify_email(
         return Err(Hook0Problem::Validation(e));
     }
 
-    let token = body.token.clone();
-    let token = match biscuit_auth::Biscuit::from_base64(token, &state.biscuit_private_key.public()) {
-        Ok(token) => token,
-        Err(e) => {
-            dbg!(e);
-            return Err(Hook0Problem::AuthFailedEmailVerification("Token not valid".to_owned()));
-        }
-    };
+    let body = body.into_inner();
+
+    let token =
+        Biscuit::from_base64(body.token, &state.biscuit_private_key.public()).map_err(|e| {
+            debug!("{e}");
+            Hook0Problem::AuthFailedEmailVerification
+        })?;
 
     if let Ok(token) = authorize_email_verification(&token) {
-
-         match query!(
-            "
-                SELECT user__id
-                FROM iam.user
-                WHERE user__id = $1
-                    AND email_verified_at IS NULL
-            ",
-            &token.user_id,
-        ).fetch_optional(&state.db).await? {
-            Some(_) => {},
-            None => return Err(Hook0Problem::AuthFailedEmailVerification("User already verified".to_owned())),
-         }
-
-        query!(
+        let user_was_verified = query!(
             "
                 UPDATE iam.user
                 SET email_verified_at = statement_timestamp()
                 WHERE user__id = $1 AND email_verified_at IS NULL
+                RETURNING user__id
             ",
             &token.user_id,
         )
-        .execute(&state.db)
-        .await?;
+        .fetch_optional(&state.db)
+        .await?
+        .is_some();
 
-        Ok(NoContent)
+        if user_was_verified {
+            Ok(NoContent)
+        } else {
+            debug!(
+                "User {} tried to verify its email whereas it is already verified",
+                &token.user_id
+            );
+            Err(Hook0Problem::AuthFailedEmailVerification)
+        }
     } else {
-        dbg!("Email verification failed");
-        Err(Hook0Problem::AuthFailedEmailVerification("Token not valid".to_owned()))
+        Err(Hook0Problem::AuthFailedEmailVerification)
     }
 }
 
@@ -529,11 +532,13 @@ pub async fn reset_password(
     }
 
     if let Some(token) = &body.token {
-        let token = match biscuit_auth::Biscuit::from_base64(token, &state.biscuit_private_key.public()) {
+        let token = match Biscuit::from_base64(token, &state.biscuit_private_key.public()) {
             Ok(token) => token,
             Err(e) => {
                 dbg!(e);
-                return Err(Hook0Problem::AuthFailedResetPassword("Token not valid".to_owned()));
+                return Err(Hook0Problem::AuthFailedResetPassword(
+                    "Token not valid".to_owned(),
+                ));
             }
         };
 
@@ -542,18 +547,22 @@ pub async fn reset_password(
 
             let password = body.password.clone();
 
-            change_password_function(password, state.password_minimum_length, email, &state.db).await?;
+            do_change_password(password, state.password_minimum_length, email, &state.db).await?;
 
             Ok(NoContent)
         } else {
             dbg!("Reset password failed");
-            Err(Hook0Problem::AuthFailedResetPassword("Token not valid".to_owned()))
+            Err(Hook0Problem::AuthFailedResetPassword(
+                "Token not valid".to_owned(),
+            ))
         }
     } else {
         let email = if let Some(email) = &body.email {
             email.clone()
         } else {
-            return Err(Hook0Problem::AuthFailedResetPassword("Email must be present".to_owned()));
+            return Err(Hook0Problem::AuthFailedResetPassword(
+                "Email must be present".to_owned(),
+            ));
         };
         let user_lookup = query_as!(
                     UserLookup,
@@ -570,35 +579,50 @@ pub async fn reset_password(
 
         if let user = user_lookup {
             if !user.email_verified_at.is_some() {
-                return Err(Hook0Problem::AuthFailedResetPassword("Email not verified".to_owned()));
+                return Err(Hook0Problem::AuthFailedResetPassword(
+                    "Email not verified".to_owned(),
+                ));
             }
 
-            let biscuit_token = create_reset_password_token(&state.biscuit_private_key, email).map_err(|e| {
-                error!("Error trying to create reset password token: {e}");
-                Hook0Problem::InternalServerError
-            })?;
+            let biscuit_token = create_reset_password_token(&state.biscuit_private_key, email)
+                .map_err(|e| {
+                    error!("Error trying to create reset password token: {e}");
+                    Hook0Problem::InternalServerError
+                })?;
             let mailer = &state.mailer;
 
-            let address = Address::from_str(body.email.as_deref().unwrap_or_default()).map_err(|e| {
-                error!("Error trying to parse email address: {e}");
-                Hook0Problem::InternalServerError
-            })?;
-            let recipient = Mailbox::new(Some(format!("{} {}", user.first_name, user.last_name)), address);
+            let address =
+                Address::from_str(body.email.as_deref().unwrap_or_default()).map_err(|e| {
+                    error!("Error trying to parse email address: {e}");
+                    Hook0Problem::InternalServerError
+                })?;
+            let recipient = Mailbox::new(
+                Some(format!("{} {}", user.first_name, user.last_name)),
+                address,
+            );
 
-            match mailer.send_mail(
-                Mail::ResetPassword {
-                    url: format!("{}/reset-password?token={}", state.app_url, &biscuit_token.serialized_biscuit),
-                }
-                , recipient
-            ).await {
-                Ok(_) => {},
+            match mailer
+                .send_mail(
+                    Mail::ResetPassword {
+                        url: format!(
+                            "{}/reset-password?token={}",
+                            state.app_url, &biscuit_token.serialized_biscuit
+                        ),
+                    },
+                    recipient,
+                )
+                .await
+            {
+                Ok(_) => {}
                 Err(e) => {
                     error!("Error trying to send email: {e}");
                     return Err(Hook0Problem::InternalServerError);
-                },
+                }
             }
         }
-        Err(Hook0Problem::AuthFailedResetPassword("User not found".to_owned()))
+        Err(Hook0Problem::AuthFailedResetPassword(
+            "User not found".to_owned(),
+        ))
     }
 }
 
@@ -612,28 +636,24 @@ pub async fn reset_password(
 )]
 pub async fn change_password(
     state: Data<crate::State>,
-    body: Json<ChangePasswordPost>,
+    _: OaBiscuitUserAccess,
     biscuit: ReqData<Biscuit>,
+    body: Json<ChangePasswordPost>,
 ) -> Result<NoContent, Hook0Problem> {
     if let Err(e) = body.validate() {
         return Err(Hook0Problem::Validation(e));
     }
 
-    let token = body.token.clone();
-    let token = match biscuit_auth::Biscuit::from_base64(token, &state.biscuit_private_key.public()) {
-        Ok(token) => token,
-        Err(e) => {
-            dbg!(e);
-            return Err(Hook0Problem::AuthFailedResetPassword("Token not valid".to_owned()));
-        }
-    };
+    let body = body.into_inner();
 
     if let Ok(token) = authorize_only_user(&biscuit, None, Action::AuthChangePassword) {
-        let email = token.email.clone();
-
-        let password = body.password.clone();
-
-        change_password_function(Some(password), state.password_minimum_length, email, &state.db).await?;
+        do_change_password(
+            &state.db,
+            state.password_minimum_length,
+            body.new_password,
+            token.user_id,
+        )
+        .await?;
 
         Ok(NoContent)
     } else {
@@ -641,47 +661,38 @@ pub async fn change_password(
     }
 }
 
-pub async fn change_password_function(
-    password: Option<String>,
-    password_min_length: u8,
-    email: String,
+async fn do_change_password(
     db: &PgPool,
-) -> Result<NoContent, Hook0Problem> {
-    let password = match password {
-        Some(password) => password,
-        None => return Err(Hook0Problem::AuthFailedResetPassword("Password must be present".to_owned())),
-    };
-
-    if password.len() < usize::from(password_min_length) {
-        let details = format!(
-            "Password must have at least {} characters",
-            password_min_length
+    password_minimum_length: u8,
+    new_password: String,
+    user_id: Uuid,
+) -> Result<(), Hook0Problem> {
+    if new_password.len() >= usize::from(password_minimum_length) {
+        let salt = argon2::password_hash::SaltString::generate(
+            &mut argon2::password_hash::rand_core::OsRng,
         );
-        return Err(Hook0Problem::AuthFailedResetPassword(details));
+        let password_hash = Argon2::default()
+            .hash_password(new_password.as_bytes(), &salt)
+            .map_err(|e| {
+                error!("Error trying to hash user password: {e}");
+                Hook0Problem::InternalServerError
+            })?
+            .serialize();
+
+        query!(
+            "
+                UPDATE iam.user
+                SET password = $1
+                WHERE user__id = $2
+            ",
+            password_hash.as_str(),
+            &user_id,
+        )
+        .execute(&*db)
+        .await?;
+
+        Ok(())
+    } else {
+        Err(Hook0Problem::PasswordTooShort(password_minimum_length))
     }
-
-    let salt = argon2::password_hash::SaltString::generate(
-        &mut argon2::password_hash::rand_core::OsRng,
-    );
-    let password_hash = Argon2::default()
-        .hash_password(password.as_bytes(), &salt)
-        .map_err(|e| {
-            error!("Error trying to hash user password: {e}");
-            Hook0Problem::InternalServerError
-        })?
-        .serialize();
-
-    query!(
-        "
-            UPDATE iam.user
-            SET password = $1
-            WHERE email = $2
-        ",
-        password_hash.as_str(),
-        &email,
-    )
-    .execute(&*db)
-    .await?;
-
-    Ok(NoContent)
 }
