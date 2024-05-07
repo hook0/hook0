@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { onMounted, onUpdated, ref } from 'vue';
+import { ref } from 'vue';
 
-import { login, getAccessToken } from '@/iam';
+import { login } from '@/iam';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
@@ -45,16 +45,6 @@ function displayError(err: Problem) {
   };
   err.status >= 500 ? push.error(options) : push.warning(options);
 }
-
-function _onLoad() {
-  let token = getAccessToken();
-  if (token.value !== null) {
-    return router.push(routes.Home);
-  }
-}
-
-onMounted(_onLoad);
-onUpdated(_onLoad);
 </script>
 
 <template>
