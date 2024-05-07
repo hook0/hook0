@@ -4,6 +4,7 @@ use lettre::{Address, AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executo
 use log::{info, warn};
 use std::string::String;
 use std::time::Duration;
+use url::Url;
 
 use crate::problems::Hook0Problem;
 
@@ -11,6 +12,7 @@ use crate::problems::Hook0Problem;
 pub struct Mailer {
     transport: AsyncSmtpTransport<Tokio1Executor>,
     sender: Mailbox,
+    logo_url: Url,
 }
 
 pub enum Mail {
@@ -51,6 +53,7 @@ impl Mailer {
         smtp_timeout: Duration,
         sender_name: String,
         sender_address: Address,
+        logo_url: Url,
     ) -> Result<Mailer, lettre::transport::smtp::Error> {
         let transport = AsyncSmtpTransport::<Tokio1Executor>::from_url(smtp_connection_url)?
             .timeout(Some(smtp_timeout))
@@ -64,7 +67,7 @@ impl Mailer {
             Err(e) => warn!("SMTP server connection test failed: {e}"),
         }
 
-        Ok(Mailer { transport, sender })
+        Ok(Mailer { transport, sender, logo_url })
     }
 
     pub async fn send_mail(&self, mail: Mail, recipient: Mailbox) -> Result<(), Hook0Problem> {
@@ -73,6 +76,9 @@ impl Mailer {
         for (key, value) in mail.variables() {
             mjml = mjml.replace(&format!("{{ ${key} }}"), &value);
         }
+
+        // Replace the logo_url variable with the actual logo_url value if { $logo_url } is present in the template
+        mjml = mjml.replace("{{ ${logo_url} }}", &self.logo_url.to_string());
 
         let parsed = mrml::parse(mjml)?;
         let rendered = parsed.render(&Default::default())?;
