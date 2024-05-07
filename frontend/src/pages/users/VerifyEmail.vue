@@ -33,8 +33,8 @@ function displayError(err: Problem) {
 function displaySuccess() {
   push.success({
     title: 'Email verified',
-    message: 'You will be redirected to login page in 3 seconds',
-    duration: 3000,
+    message: 'You are successfully verified.',
+    duration: 5000,
   });
 }
 
@@ -52,9 +52,7 @@ function _onLoad() {
   VerifyEmailService.verifyEmail(token)
     .then(() => {
       displaySuccess();
-      setTimeout(() => {
-        void router.push(routes.Login);
-      }, 5000);
+      void router.push(routes.Login);
     })
     .catch(displayError);
 }
@@ -72,10 +70,4 @@ onMounted(() => {
       :description="alert.description"
     ></Hook0Alert>
   </Hook0CardContent>
-  <Hook0Card v-else>
-    <Hook0CardHeader>
-      <template #header>Verify email</template>
-      <template #subtitle>If request failed, retry in a few minutes or contact support</template>
-    </Hook0CardHeader>
-  </Hook0Card>
 </template>
