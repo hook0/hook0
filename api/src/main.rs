@@ -250,6 +250,10 @@ struct Config {
     #[clap(long, env, default_value = "5")]
     smtp_timeout_in_s: u64,
 
+    /// URL of the Hook0 logo
+    #[clap(long, env, default_value = "https://hook0.com/hook0_logo.jpeg")]
+    email_logo_url: Url,
+
     /// Frontend application URL (used for building links in emails)
     #[clap(long, env)]
     app_url: String,
@@ -414,6 +418,7 @@ async fn main() -> anyhow::Result<()> {
             Duration::from_secs(config.smtp_timeout_in_s),
             config.email_sender_name,
             config.email_sender_address,
+            config.email_logo_url,
         )
         .await
         .expect("Could not initialize mailer; check SMTP configuration");
