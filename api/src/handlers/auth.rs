@@ -20,7 +20,7 @@ use crate::iam::{
     create_user_access_token, Action,
 };
 use crate::mailer::Mail;
-use crate::openapi::{OaBiscuitRefresh, OaBiscuitResetPassword, OaBiscuitUserAccess};
+use crate::openapi::{OaBiscuitRefresh, OaBiscuitUserAccess};
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
@@ -595,8 +595,6 @@ pub async fn begin_reset_password(
 pub async fn reset_password(
     state: Data<crate::State>,
     body: Json<ResetPasswordPost>,
-    _: OaBiscuitResetPassword,
-    biscuit: ReqData<Biscuit>,
 ) -> Result<NoContent, Hook0Problem> {
     if let Err(e) = body.validate() {
         return Err(Hook0Problem::Validation(e));
@@ -604,7 +602,13 @@ pub async fn reset_password(
 
     let body = body.into_inner();
 
-    if let Ok(token) = authorize_reset_password(&biscuit) {
+    let token =
+        Biscuit::from_base64(body.token, state.biscuit_private_key.public()).map_err(|e| {
+            debug!("{e}");
+            Hook0Problem::AuthEmailExpired
+        })?;
+
+    if let Ok(token) = authorize_reset_password(&token) {
         let uid = query_scalar!(
             "
                 SELECT user__id
