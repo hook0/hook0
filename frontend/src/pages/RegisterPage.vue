@@ -12,6 +12,8 @@ import Hook0Button from '@/components/Hook0Button.vue';
 import { AxiosError, AxiosResponse } from 'axios';
 import { handleError, Problem } from '@/http.ts';
 import { push } from 'notivue';
+import { routes } from '@/routes.ts';
+import router from '@/router.ts';
 
 const email = ref<string>('');
 const firstName = ref<string>('');
@@ -27,6 +29,7 @@ async function submit() {
           "You're successfully registered. You need to confirm your email address before using Hook0. Check your mailbox!",
         duration: 5000,
       });
+      void router.push(routes.Login);
     })
     .catch((err: AxiosError<AxiosResponse<Problem>>) => {
       let problem = handleError(err);
