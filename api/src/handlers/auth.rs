@@ -148,7 +148,7 @@ async fn import_user_from_keycloak(
     email: &str,
     password: &str,
 ) -> Result<UserLookup, Hook0Problem> {
-    use log::{debug, trace};
+    use log::trace;
 
     reqwest::Client::new()
         .post(format!(
