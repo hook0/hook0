@@ -5,11 +5,11 @@ use biscuit_auth::{Biscuit, PrivateKey};
 use chrono::{DateTime, Utc};
 use lettre::message::Mailbox;
 use lettre::Address;
-use log::{debug, error, info};
+use log::{debug, error};
 use paperclip::actix::web::{Data, Json};
 use paperclip::actix::{api_v2_operation, Apiv2Schema, CreatedJson, NoContent};
 use serde::{Deserialize, Serialize};
-use sqlx::{query, query_as, Acquire, PgPool, Postgres};
+use sqlx::{query, query_as, query_scalar, Acquire, Postgres};
 use std::str::FromStr;
 use uuid::Uuid;
 use validator::Validate;
@@ -20,7 +20,7 @@ use crate::iam::{
     create_user_access_token, Action,
 };
 use crate::mailer::Mail;
-use crate::openapi::{OaBiscuitRefresh, OaBiscuitUserAccess};
+use crate::openapi::{OaBiscuitRefresh, OaBiscuitResetPassword, OaBiscuitUserAccess};
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
@@ -148,7 +148,6 @@ async fn import_user_from_keycloak(
     email: &str,
     password: &str,
 ) -> Result<UserLookup, Hook0Problem> {
-    use argon2::PasswordHasher;
     use log::{debug, trace};
 
     reqwest::Client::new()
@@ -197,7 +196,7 @@ async fn import_user_from_keycloak(
             &groups.into_iter().map(|g| g.path).collect::<Vec<_>>(),
         );
 
-        let password_hash = do_generate_hashed_password(password.to_owned()).map_err(|e| {
+        let password_hash = generate_hashed_password(password).map_err(|e| {
             error!("Error trying to hash user password: {e}");
             Hook0Problem::InternalServerError
         })?;
@@ -475,7 +474,7 @@ pub async fn verify_email(
     let body = body.into_inner();
 
     let token =
-        Biscuit::from_base64(body.token, &state.biscuit_private_key.public()).map_err(|e| {
+        Biscuit::from_base64(body.token, state.biscuit_private_key.public()).map_err(|e| {
             debug!("{e}");
             Hook0Problem::AuthEmailExpired
         })?;
@@ -526,10 +525,16 @@ pub async fn begin_reset_password(
 
     let body = body.into_inner();
 
+    struct UserLookup {
+        user_id: Uuid,
+        email: String,
+        first_name: String,
+        last_name: String,
+    }
     let user_lookup = query_as!(
         UserLookup,
         "
-            SELECT user__id AS user_id, password AS password_hash, email, first_name, last_name, email_verified_at
+            SELECT user__id AS user_id, email, first_name, last_name
             FROM iam.user
             WHERE email = $1
         ",
@@ -540,45 +545,39 @@ pub async fn begin_reset_password(
     .map_err(Hook0Problem::from)?;
 
     if let Some(user) = user_lookup {
-        if user.email_verified_at.is_some() {
-            let biscuit_token =
-                create_reset_password_token(&state.biscuit_private_key, user.user_id).map_err(
-                    |e| {
-                        error!("Error trying to create reset password token: {e}");
-                        Hook0Problem::InternalServerError
-                    },
-                )?;
-            let mailer = &state.mailer;
+        let biscuit_token = create_reset_password_token(&state.biscuit_private_key, user.user_id)
+            .map_err(|e| {
+            error!("Error trying to create reset password token: {e}");
+            Hook0Problem::InternalServerError
+        })?;
 
-            let address = Address::from_str(&user.email).map_err(|e| {
-                error!("Error trying to parse email address: {e}");
-                Hook0Problem::InternalServerError
-            })?;
-            let recipient = Mailbox::new(
-                Some(format!("{} {}", user.first_name, user.last_name)),
-                address,
-            );
+        let address = Address::from_str(&user.email).map_err(|e| {
+            error!("Error trying to parse email address: {e}");
+            Hook0Problem::InternalServerError
+        })?;
+        let recipient = Mailbox::new(
+            Some(format!("{} {}", user.first_name, user.last_name)),
+            address,
+        );
 
-            match mailer
-                .send_mail(
-                    Mail::ResetPassword {
-                        url: format!(
-                            "{}/reset-password?token={}",
-                            state.app_url, &biscuit_token.serialized_biscuit
-                        ),
-                    },
-                    recipient,
-                )
-                .await
-            {
-                Ok(_) => Ok(NoContent),
-                Err(e) => {
-                    error!("Error trying to send email: {e}");
-                    Err(Hook0Problem::InternalServerError)
-                }
+        match state
+            .mailer
+            .send_mail(
+                Mail::ResetPassword {
+                    url: format!(
+                        "{}/reset-password?token={}",
+                        state.app_url, &biscuit_token.serialized_biscuit
+                    ),
+                },
+                recipient,
+            )
+            .await
+        {
+            Ok(_) => Ok(NoContent),
+            Err(e) => {
+                error!("Error trying to send email: {e}");
+                Err(Hook0Problem::InternalServerError)
             }
-        } else {
-            Err(Hook0Problem::AuthEmailExpired)
         }
     } else {
         Err(Hook0Problem::AuthEmailExpired)
@@ -596,7 +595,7 @@ pub async fn begin_reset_password(
 pub async fn reset_password(
     state: Data<crate::State>,
     body: Json<ResetPasswordPost>,
-    _: OaBiscuitUserAccess,
+    _: OaBiscuitResetPassword,
     biscuit: ReqData<Biscuit>,
 ) -> Result<NoContent, Hook0Problem> {
     if let Err(e) = body.validate() {
@@ -606,10 +605,9 @@ pub async fn reset_password(
     let body = body.into_inner();
 
     if let Ok(token) = authorize_reset_password(&biscuit) {
-        let user_lookup = query_as!(
-            UserLookup,
+        let uid = query_scalar!(
             "
-                SELECT user__id AS user_id, password AS password_hash, email, first_name, last_name, email_verified_at
+                SELECT user__id
                 FROM iam.user
                 WHERE user__id = $1
             ",
@@ -619,15 +617,30 @@ pub async fn reset_password(
         .await
         .map_err(Hook0Problem::from)?;
 
-        if let Some(user) = user_lookup {
+        if let Some(user_id) = uid {
+            let mut tx = state.db.begin().await?;
+
             do_change_password(
-                &state.db,
+                &mut tx,
                 state.password_minimum_length,
-                body.new_password,
-                user.user_id,
+                &body.new_password,
+                user_id,
             )
             .await?;
 
+            query!(
+                "
+                    UPDATE iam.user
+                    SET email_verified_at = statement_timestamp()
+                    WHERE user__id = $1
+                        AND email_verified_at IS NULL
+                ",
+                &user_id,
+            )
+            .execute(&mut *tx)
+            .await?;
+
+            tx.commit().await?;
             Ok(NoContent)
         } else {
             Err(Hook0Problem::AuthEmailExpired)
@@ -661,7 +674,7 @@ pub async fn change_password(
         do_change_password(
             &state.db,
             state.password_minimum_length,
-            body.new_password,
+            &body.new_password,
             token.user_id,
         )
         .await?;
@@ -672,29 +685,30 @@ pub async fn change_password(
     }
 }
 
-async fn do_change_password(
-    db: &PgPool,
+async fn do_change_password<'a, A: Acquire<'a, Database = Postgres>>(
+    db: A,
     password_minimum_length: u8,
-    new_password: String,
+    new_password: &str,
     user_id: Uuid,
 ) -> Result<(), Hook0Problem> {
     if new_password.len() >= usize::from(password_minimum_length) {
-        let password_hash = do_generate_hashed_password(new_password.to_owned()).map_err(|e| {
+        let password_hash = generate_hashed_password(new_password).map_err(|e| {
             error!("Error trying to hash user password: {e}");
             Hook0Problem::InternalServerError
         })?;
+
+        let mut db = db.acquire().await?;
 
         query!(
             "
                 UPDATE iam.user
                 SET password = $1
                 WHERE user__id = $2
-                AND email_verified_at IS NOT NULL
             ",
             password_hash.as_str(),
             &user_id,
         )
-        .execute(&*db)
+        .execute(&mut *db)
         .await?;
 
         Ok(())
@@ -703,7 +717,7 @@ async fn do_change_password(
     }
 }
 
-fn do_generate_hashed_password(password: String) -> Result<PasswordHashString, Hook0Problem> {
+fn generate_hashed_password(password: &str) -> Result<PasswordHashString, Hook0Problem> {
     let salt =
         argon2::password_hash::SaltString::generate(&mut argon2::password_hash::rand_core::OsRng);
     let password_hash = Argon2::default()

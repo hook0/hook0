@@ -68,7 +68,6 @@ pub enum Hook0Problem {
     InternalServerError,
     Forbidden,
     ServiceUnavailable(HealthCheck),
-    EmailSending(String),
 }
 
 impl From<sqlx::Error> for Hook0Problem {
@@ -96,6 +95,34 @@ impl From<sqlx::Error> for Hook0Problem {
                 Hook0Problem::InternalServerError
             }
         }
+    }
+}
+
+impl From<lettre::error::Error> for Hook0Problem {
+    fn from(err: lettre::error::Error) -> Hook0Problem {
+        warn!("{err}");
+        Hook0Problem::InternalServerError
+    }
+}
+
+impl From<lettre::transport::smtp::Error> for Hook0Problem {
+    fn from(err: lettre::transport::smtp::Error) -> Hook0Problem {
+        warn!("{err}");
+        Hook0Problem::InternalServerError
+    }
+}
+
+impl From<mrml::prelude::parser::Error> for Hook0Problem {
+    fn from(err: mrml::prelude::parser::Error) -> Hook0Problem {
+        warn!("{err}");
+        Hook0Problem::InternalServerError
+    }
+}
+
+impl From<mrml::prelude::render::Error> for Hook0Problem {
+    fn from(err: mrml::prelude::render::Error) -> Hook0Problem {
+        warn!("{err}");
+        Hook0Problem::InternalServerError
     }
 }
 
@@ -136,34 +163,6 @@ impl ResponseError for Hook0Problem {
                 PROBLEM_JSON_MEDIA_TYPE,
             ))
             .body(json)
-    }
-}
-
-impl From<lettre::error::Error> for Hook0Problem {
-    fn from(err: lettre::error::Error) -> Hook0Problem {
-        warn!("{}", err.to_string());
-        Hook0Problem::EmailSending(err.to_string())
-    }
-}
-
-impl From<lettre::transport::smtp::Error> for Hook0Problem {
-    fn from(err: lettre::transport::smtp::Error) -> Hook0Problem {
-        warn!("{}", err.to_string());
-        Hook0Problem::EmailSending(err.to_string())
-    }
-}
-
-impl From<mrml::prelude::parser::Error> for Hook0Problem {
-    fn from(err: mrml::prelude::parser::Error) -> Hook0Problem {
-        warn!("{}", err.to_string());
-        Hook0Problem::EmailSending(err.to_string())
-    }
-}
-
-impl From<mrml::prelude::render::Error> for Hook0Problem {
-    fn from(err: mrml::prelude::render::Error) -> Hook0Problem {
-        warn!("{}", err.to_string());
-        Hook0Problem::EmailSending(err.to_string())
     }
 }
 
@@ -363,7 +362,7 @@ impl From<Hook0Problem> for Problem {
                 Problem {
                     id: Hook0Problem::AuthEmailExpired,
                     title: "Could not verify your link",
-                    detail: "The link you clicked is maybe expired. Please retry the whole process or contact support.".into(),
+                    detail: "The link you clicked might be expired. Please retry the whole process or contact support.".into(),
                     validation: None,
                     status: StatusCode::UNAUTHORIZED,
                 }
@@ -449,13 +448,6 @@ impl From<Hook0Problem> for Problem {
                 detail: format!("{h}.").into(),
                 validation: None,
                 status: StatusCode::SERVICE_UNAVAILABLE,
-            },
-            Hook0Problem::EmailSending(e) => Problem {
-                id: Hook0Problem::EmailSending(e.to_owned()),
-                title: "Could not send email",
-                detail: format!("An error occurred while sending the email. Our team was notified. Error: {e}").into(),
-                validation: None,
-                status: StatusCode::INTERNAL_SERVER_ERROR,
             },
         }
     }
