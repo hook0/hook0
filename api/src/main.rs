@@ -539,8 +539,9 @@ async fn main() -> anyhow::Result<()> {
                                         .route(web::post().to(handlers::auth::logout)),
                                 )
                                 .service(
-                                    web::resource("/begin-reset-password")
-                                        .route(web::post().to(handlers::auth::begin_reset_password)),
+                                    web::resource("/begin-reset-password").route(
+                                        web::post().to(handlers::auth::begin_reset_password),
+                                    ),
                                 )
                                 .service(
                                     web::resource("/reset-password")
