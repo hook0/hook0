@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { onMounted, onUpdated, ref } from 'vue';
+import { ref } from 'vue';
 
-import { register, getAccessToken } from '@/iam';
+import { register } from '@/iam';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
@@ -9,13 +9,9 @@ import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
-import { useRouter } from 'vue-router';
-import { routes } from '@/routes.ts';
 import { AxiosError, AxiosResponse } from 'axios';
 import { handleError, Problem } from '@/http.ts';
 import { push } from 'notivue';
-
-const router = useRouter();
 
 const email = ref<string>('');
 const firstName = ref<string>('');
@@ -42,16 +38,6 @@ async function submit() {
       problem.status >= 500 ? push.error(options) : push.warning(options);
     });
 }
-
-function _onLoad() {
-  let token = getAccessToken();
-  if (token.value !== null) {
-    return router.push(routes.Home);
-  }
-}
-
-onMounted(_onLoad);
-onUpdated(_onLoad);
 </script>
 
 <template>
