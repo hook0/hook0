@@ -54,7 +54,7 @@ pub enum Hook0Problem {
     AuthInvalidBiscuit,
     AuthFailedLogin,
     AuthFailedRefresh,
-    AuthFailedEmailVerification,
+    AuthEmailExpired,
 
     // Quota errors
     TooManyMembersPerOrganization(QuotaValue),
@@ -355,11 +355,11 @@ impl From<Hook0Problem> for Problem {
                 validation: None,
                 status: StatusCode::UNAUTHORIZED,
             },
-            Hook0Problem::AuthFailedEmailVerification => {
+            Hook0Problem::AuthEmailExpired => {
                 Problem {
-                    id: Hook0Problem::AuthFailedEmailVerification,
-                    title: "Could not verify user's email address",
-                    detail: "The link in your verification email may be expired. Please retry the whole process or contact support.".into(),
+                    id: Hook0Problem::AuthEmailExpired,
+                    title: "Could not verify your link",
+                    detail: "The link you clicked is maybe expired. Please retry the whole process or contact support.".into(),
                     validation: None,
                     status: StatusCode::UNAUTHORIZED,
                 }
