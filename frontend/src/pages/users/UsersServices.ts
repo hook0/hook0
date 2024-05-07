@@ -12,7 +12,7 @@ export function deleteUser(): Promise<void> {
 }
 
 export async function changePassword(new_password: string): Promise<void> {
-  await http.withRefreshToken
+  await http
     .post('/auth/password', {
       new_password,
     })
@@ -23,7 +23,7 @@ export async function changePassword(new_password: string): Promise<void> {
 }
 
 export function verifyEmail(token: string): Promise<void> {
-  return http.post(`/auth/verify-email`, { token }).then(
+  return http.unauthenticated.post(`/auth/verify-email`, { token }).then(
     (res: AxiosResponse<void>) => res.data,
     (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
   );
