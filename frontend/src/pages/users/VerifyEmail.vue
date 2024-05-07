@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import * as VerifyEmailService from './VerifyEmailService';
-import Hook0Card from '@/components/Hook0Card.vue';
-import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import { Problem } from '@/http.ts';
 import { onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
