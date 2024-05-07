@@ -124,10 +124,10 @@ pub async fn register(
             Some(format!("{} {}", body.first_name, body.last_name)),
             recipient_address,
         );
-        &state
+        state
             .mailer
             .send_mail(
-                Mail::VerifyMail {
+                Mail::VerifyUserEmail {
                     url: format!(
                         "{}/verify-email?token={}",
                         state.app_url, &verification_token.serialized_biscuit
