@@ -78,7 +78,7 @@ impl Mailer {
         }
 
         // Replace the logo_url variable with the actual logo_url value if { $logo_url } is present in the template
-        mjml = mjml.replace("{{ ${logo_url} }}", &self.logo_url.to_string());
+        mjml = mjml.replace("{ $logo_url }", &self.logo_url.to_string());
 
         let parsed = mrml::parse(mjml)?;
         let rendered = parsed.render(&Default::default())?;
