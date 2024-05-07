@@ -93,3 +93,22 @@ impl FromRequest for OaBiscuitRefresh {
         ready(Ok(Self {}))
     }
 }
+
+#[derive(Apiv2Security, Deserialize)]
+#[openapi(
+    apiKey,
+    alias = "biscuit_reset_password",
+    in = "header",
+    name = "Authorization",
+    description = "Authentication using a Biscuit token of type 'reset_password' (use the format `Bearer TOKEN`)"
+)]
+pub struct OaBiscuitResetPassword;
+
+impl FromRequest for OaBiscuitResetPassword {
+    type Error = Error;
+    type Future = Ready<Result<Self, Self::Error>>;
+
+    fn from_request(_: &HttpRequest, _payload: &mut actix_web::dev::Payload) -> Self::Future {
+        ready(Ok(Self {}))
+    }
+}

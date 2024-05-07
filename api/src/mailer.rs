@@ -16,33 +16,33 @@ pub struct Mailer {
 }
 
 pub enum Mail {
-    VerifyMail { url: String },
+    VerifyUserEmail { url: String },
     ResetPassword { url: String },
-    Welcome { name: String },
+    // Welcome { name: String },
 }
 
 impl Mail {
     pub fn template(&self) -> &'static str {
         match self {
-            Mail::VerifyMail { .. } => include_str!("mails_templates/verify_mail.mjml"),
-            Mail::ResetPassword { .. } => include_str!("mails_templates/reset_password.mjml"),
-            Mail::Welcome { .. } => include_str!("mails_templates/welcome.mjml"),
+            Mail::VerifyUserEmail { .. } => include_str!("mail_templates/verify_user_email.mjml"),
+            Mail::ResetPassword { .. } => include_str!("mail_templates/reset_password.mjml"),
+            // Mail::Welcome { .. } => include_str!("mail_templates/welcome.mjml"),
         }
     }
 
     pub fn subject(&self) -> String {
         match self {
-            Mail::VerifyMail { .. } => "Please verify your email address".to_owned(),
+            Mail::VerifyUserEmail { .. } => "Please verify your email address".to_owned(),
             Mail::ResetPassword { .. } => "Reset your password".to_owned(),
-            Mail::Welcome { .. } => "Welcome to our platform".to_owned(),
+            // Mail::Welcome { .. } => "Welcome to our platform".to_owned(),
         }
     }
 
     pub fn variables(&self) -> Vec<(String, String)> {
         match self {
-            Mail::VerifyMail { url } => vec![("url".to_owned(), url.to_owned())],
+            Mail::VerifyUserEmail { url } => vec![("url".to_owned(), url.to_owned())],
             Mail::ResetPassword { url } => vec![("url".to_owned(), url.to_owned())],
-            Mail::Welcome { name } => vec![("name".to_owned(), name.to_owned())],
+            // Mail::Welcome { name } => vec![("name".to_owned(), name.to_owned())],
         }
     }
 }
@@ -82,7 +82,7 @@ impl Mailer {
         }
 
         // Replace the logo_url variable with the actual logo_url value if { $logo_url } is present in the template
-        mjml = mjml.replace("{ $logo_url }", &self.logo_url.to_string());
+        mjml = mjml.replace("{ $logo_url }", self.logo_url.as_str());
 
         let parsed = mrml::parse(mjml)?;
         let rendered = parsed.render(&Default::default())?;
