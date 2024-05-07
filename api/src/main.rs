@@ -482,20 +482,20 @@ async fn main() -> anyhow::Result<()> {
                 master_api_key,
             };
 
-        let security_headers = middleware::DefaultHeaders::new()
-            .add(("X-Content-Type-Options", "nosniff"))
-            .add(("Referrer-Policy", "strict-origin-when-cross-origin"))
-            .add(("X-XSS-Protection", "1; mode=block"))
-            .add(("Referrer-Policy", "SAMEORIGIN"));
+            let security_headers = middleware::DefaultHeaders::new()
+                .add(("X-Content-Type-Options", "nosniff"))
+                .add(("Referrer-Policy", "strict-origin-when-cross-origin"))
+                .add(("X-XSS-Protection", "1; mode=block"))
+                .add(("Referrer-Policy", "SAMEORIGIN"));
 
-        let hsts_header = middleware::DefaultHeaders::new()
-            .add(("Strict-Transport-Security", "max-age=157680000"));
+            let hsts_header = middleware::DefaultHeaders::new()
+                .add(("Strict-Transport-Security", "max-age=157680000"));
 
-        let security_headers_condition =
-            middleware::Condition::new(config.enable_security_headers, security_headers);
+            let security_headers_condition =
+                middleware::Condition::new(config.enable_security_headers, security_headers);
 
-        let hsts_header_condition =
-            middleware::Condition::new(config.enable_hsts_header, hsts_header);
+            let hsts_header_condition =
+                middleware::Condition::new(config.enable_hsts_header, hsts_header);
             let mut app = App::new()
                 .app_data(web::Data::new(initial_state.clone()))
                 .app_data(web::JsonConfig::default().error_handler(|e, _req| {
