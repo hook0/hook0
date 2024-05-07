@@ -1,7 +1,7 @@
 use actix_web::error::JsonPayloadError;
 use actix_web::{HttpResponse, ResponseError};
 use http_api_problem::*;
-use log::error;
+use log::{error, warn};
 use paperclip::actix::api_v2_errors;
 use serde_json::{to_value, Value};
 use sqlx::postgres::PgDatabaseError;
@@ -141,24 +141,28 @@ impl ResponseError for Hook0Problem {
 
 impl From<lettre::error::Error> for Hook0Problem {
     fn from(err: lettre::error::Error) -> Hook0Problem {
+        warn!("{}", err.to_string());
         Hook0Problem::EmailSending(err.to_string())
     }
 }
 
 impl From<lettre::transport::smtp::Error> for Hook0Problem {
     fn from(err: lettre::transport::smtp::Error) -> Hook0Problem {
+        warn!("{}", err.to_string());
         Hook0Problem::EmailSending(err.to_string())
     }
 }
 
 impl From<mrml::prelude::parser::Error> for Hook0Problem {
     fn from(err: mrml::prelude::parser::Error) -> Hook0Problem {
+        warn!("{}", err.to_string());
         Hook0Problem::EmailSending(err.to_string())
     }
 }
 
 impl From<mrml::prelude::render::Error> for Hook0Problem {
     fn from(err: mrml::prelude::render::Error) -> Hook0Problem {
+        warn!("{}", err.to_string());
         Hook0Problem::EmailSending(err.to_string())
     }
 }
@@ -449,7 +453,7 @@ impl From<Hook0Problem> for Problem {
             Hook0Problem::EmailSending(e) => Problem {
                 id: Hook0Problem::EmailSending(e.to_owned()),
                 title: "Could not send email",
-                detail: format!("{e}.").into(),
+                detail: format!("An error occurred while sending the email. Our team was notified. Error: {e}").into(),
                 validation: None,
                 status: StatusCode::INTERNAL_SERVER_ERROR,
             },
