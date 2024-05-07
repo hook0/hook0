@@ -64,8 +64,6 @@ pub struct ResetPasswordPost {
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct ChangePasswordPost {
-    #[validate(non_control_character, length(min = 1, max = 1000))]
-    token: String,
     #[validate(non_control_character, length(min = 10, max = 100))]
     new_password: String,
 }
