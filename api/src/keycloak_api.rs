@@ -1,7 +1,7 @@
 use log::{error, trace};
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use reqwest::{Client, Url};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::problems::Hook0Problem;
@@ -50,32 +50,6 @@ pub struct GroupMember {
     pub first_name: String,
     pub last_name: String,
     pub enabled: bool,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct KcGroup<'a> {
-    name: &'a str,
-    path: &'a str,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct KcUser<'a> {
-    username: &'a str,
-    email: &'a str,
-    first_name: &'a str,
-    last_name: &'a str,
-    credentials: Vec<KcUserCredential<'a>>,
-    enabled: bool,
-    email_verified: bool,
-}
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct KcUserCredential<'a> {
-    id: &'a str,
-    value: &'a str,
-    temporary: bool,
 }
 
 impl KeycloakApi {

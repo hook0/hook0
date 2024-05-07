@@ -136,14 +136,6 @@ pub struct Hook0Claims {
 }
 
 #[derive(Debug, Clone)]
-pub struct Hook0UserInfo {
-    pub id: Uuid,
-    pub email: String,
-    pub first_name: Option<String>,
-    pub last_name: Option<String>,
-}
-
-#[derive(Debug, Clone)]
 pub struct RootToken {
     pub biscuit: Biscuit,
     pub serialized_biscuit: String,
