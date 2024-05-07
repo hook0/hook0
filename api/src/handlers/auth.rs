@@ -1,4 +1,5 @@
 use actix_web::web::ReqData;
+use argon2::password_hash::PasswordHashString;
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use biscuit_auth::{Biscuit, PrivateKey};
 use chrono::{DateTime, Utc};
@@ -10,7 +11,6 @@ use paperclip::actix::{api_v2_operation, Apiv2Schema, CreatedJson, NoContent};
 use serde::{Deserialize, Serialize};
 use sqlx::{query, query_as, Acquire, PgPool, Postgres};
 use std::str::FromStr;
-use argon2::password_hash::PasswordHashString;
 use uuid::Uuid;
 use validator::Validate;
 
@@ -541,11 +541,13 @@ pub async fn begin_reset_password(
 
     if let Some(user) = user_lookup {
         if user.email_verified_at.is_some() {
-            let biscuit_token = create_reset_password_token(&state.biscuit_private_key, user.user_id)
-                .map_err(|e| {
-                    error!("Error trying to create reset password token: {e}");
-                    Hook0Problem::InternalServerError
-                })?;
+            let biscuit_token =
+                create_reset_password_token(&state.biscuit_private_key, user.user_id).map_err(
+                    |e| {
+                        error!("Error trying to create reset password token: {e}");
+                        Hook0Problem::InternalServerError
+                    },
+                )?;
             let mailer = &state.mailer;
 
             let address = Address::from_str(&user.email).map_err(|e| {
@@ -702,9 +704,8 @@ async fn do_change_password(
 }
 
 fn do_generate_hashed_password(password: String) -> Result<PasswordHashString, Hook0Problem> {
-    let salt = argon2::password_hash::SaltString::generate(
-        &mut argon2::password_hash::rand_core::OsRng,
-    );
+    let salt =
+        argon2::password_hash::SaltString::generate(&mut argon2::password_hash::rand_core::OsRng);
     let password_hash = Argon2::default()
         .hash_password(password.as_bytes(), &salt)
         .map_err(|e| {

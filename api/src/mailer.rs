@@ -67,7 +67,11 @@ impl Mailer {
             Err(e) => warn!("SMTP server connection test failed: {e}"),
         }
 
-        Ok(Mailer { transport, sender, logo_url })
+        Ok(Mailer {
+            transport,
+            sender,
+            logo_url,
+        })
     }
 
     pub async fn send_mail(&self, mail: Mail, recipient: Mailbox) -> Result<(), Hook0Problem> {
