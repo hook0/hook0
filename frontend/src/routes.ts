@@ -30,6 +30,7 @@ export const routes: Record<Hook0Routes, string> = {
   Login: 'Login',
   Register: 'Register',
   VerifyEmail: 'VerifyEmail',
+  UserSettings: 'UserSettings',
 
   OrganizationsDashboard: 'OrganizationsDashboard',
   OrganizationsDetail: 'OrganizationsDetail',
@@ -56,7 +57,6 @@ export const routes: Record<Hook0Routes, string> = {
 
   WebhooksList: 'WebhooksList',
   LogsList: 'LogsList',
-  Settings: 'Settings',
   APIDocumentation: 'APIDocumentation',
   APIDocumentationForApplication: 'APIDocumentationForApplication',
   Error404: '404',
@@ -85,6 +85,11 @@ export default [
     path: '/verify-email',
     component: VerifyUser,
     meta: { requiresAuth: false },
+  },
+  {
+    name: routes.UserSettings,
+    path: '/settings',
+    component: UsersSettings,
   },
   {
     name: routes.OrganizationsNew,
@@ -177,12 +182,6 @@ export default [
     name: routes.APIDocumentationForApplication,
     path: '/organizations/:organization_id/applications/:application_id/documentation',
     component: ApiDocumentation,
-  },
-
-  {
-    name: routes.Settings,
-    path: '/settings',
-    component: UsersSettings,
   },
   {
     name: routes.APIDocumentation,

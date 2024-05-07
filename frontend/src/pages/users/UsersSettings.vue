@@ -1,45 +1,41 @@
 <script setup lang="ts">
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
-import { inject, onMounted, onUpdated, ref } from 'vue';
-import { getToken, keycloakKey, KeycloakTokenParsedAttributes } from '@/iam.ts';
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
-import Keycloak from 'keycloak-js';
 import Hook0Input from '@/components/Hook0Input.vue';
-import Hook0Alert from '@/components/Hook0Alert.vue';
-import { Alert } from '@/components/Hook0Alert.ts';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
-import * as UsersServices from '@/pages/users/UsersService.ts';
+import * as UsersServices from '@/pages/users/UsersServices.ts';
 import { Problem } from '@/http.ts';
+import { push } from 'notivue';
+import { getUserInfo, logout } from '@/iam.ts';
+import { ref } from 'vue';
 
-const $keycloak = inject(keycloakKey) as Keycloak;
+const currentUser = getUserInfo();
 
-const alert = ref<Alert>({
-  visible: false,
-  type: 'alert',
-  title: '',
-  description: '',
-});
+const new_password = ref<string>('');
+const confirm_new_password = ref<string>('');
 
-function _load() {
-  return getToken().then(() => {
-    currentUser.value = $keycloak.idTokenParsed as KeycloakTokenParsedAttributes;
-  });
+async function changePassword(e: Event) {
+  e.preventDefault();
+  e.stopImmediatePropagation();
+
+  if (new_password.value !== confirm_new_password.value) {
+    push.error({
+      title: 'Error',
+      message: 'Passwords do not match.',
+      duration: 5000,
+    });
+    return;
+  }
+
+  await UsersServices.changePassword(new_password.value)
+    .then(() => {
+      void logout();
+    })
+    .catch(displayError);
 }
-
-onMounted(() => {
-  void _load();
-});
-
-onUpdated(() => {
-  void _load();
-});
-
-const currentUser = ref<(Keycloak.KeycloakTokenParsed & KeycloakTokenParsedAttributes) | null>(
-  null
-);
 
 function deleteAccount(e: Event) {
   e.preventDefault();
@@ -49,17 +45,15 @@ function deleteAccount(e: Event) {
     return;
   }
 
-  alert.value.visible = false; // reset alert
-
   UsersServices.deleteUser()
     .then(() => {
-      alert.value.visible = true;
-      alert.value.type = 'success';
-      alert.value.title = 'Account deleted';
-      alert.value.description =
-        'Your account has been deleted. You will be redirected to the login page.';
+      push.success({
+        title: 'Success',
+        message: 'Your account has been deleted. You will be logged out in 3 seconds.',
+        duration: 3000,
+      });
       setTimeout(() => {
-        void $keycloak.logout();
+        void logout();
       }, 3000);
     })
     .catch(displayError);
@@ -67,11 +61,12 @@ function deleteAccount(e: Event) {
 
 function displayError(err: Problem) {
   console.error(err);
-  alert.value.visible = true;
-
-  alert.value.type = err.status >= 500 ? 'alert' : 'warning';
-  alert.value.title = err.title;
-  alert.value.description = err.detail;
+  let options = {
+    title: err.title,
+    message: err.detail,
+    duration: 5000,
+  };
+  err.status >= 500 ? push.error(options) : push.warning(options);
 }
 </script>
 
@@ -104,7 +99,7 @@ function displayError(err: Problem) {
             <template #label> First Name </template>
             <template #content>
               <Hook0Input
-                v-model="currentUser.given_name"
+                v-model="currentUser.firstName"
                 type="text"
                 placeholder="First Name"
                 disabled
@@ -118,7 +113,7 @@ function displayError(err: Problem) {
             <template #label> Last Name </template>
             <template #content>
               <Hook0Input
-                v-model="currentUser.family_name"
+                v-model="currentUser.lastName"
                 type="text"
                 placeholder="Last Name"
                 disabled
@@ -132,19 +127,55 @@ function displayError(err: Problem) {
 
       <Hook0Card v-if="currentUser">
         <Hook0CardHeader>
+          <template #header> Change password </template>
+          <template #subtitle>
+            Change your password. You will be logged out after changing your password.
+          </template>
+        </Hook0CardHeader>
+        <Hook0CardContent>
+          <Hook0CardContentLine>
+            <template #label> New password </template>
+            <template #content>
+              <Hook0Input
+                v-model="new_password"
+                type="password"
+                placeholder="New password"
+                required
+                class="w-full"
+              >
+              </Hook0Input>
+            </template>
+          </Hook0CardContentLine>
+
+          <Hook0CardContentLine>
+            <template #label> Confirm new password </template>
+            <template #content>
+              <Hook0Input
+                v-model="confirm_new_password"
+                type="password"
+                placeholder="Confirm new password"
+                required
+                class="w-full"
+              >
+              </Hook0Input>
+            </template>
+          </Hook0CardContentLine>
+        </Hook0CardContent>
+        <Hook0CardFooter>
+          <Hook0Button class="primary" type="button" @click="changePassword($event)"
+            >Change password</Hook0Button
+          >
+        </Hook0CardFooter>
+      </Hook0Card>
+
+      <Hook0Card v-if="currentUser">
+        <Hook0CardHeader>
           <template #header> Delete my account </template>
           <template #subtitle>
             This action <strong>delete your account</strong> and all your data linked to it.
             <strong>This action irreversible.</strong>
           </template>
         </Hook0CardHeader>
-        <Hook0CardContent v-if="alert.visible">
-          <Hook0Alert
-            :type="alert.type"
-            :title="alert.title"
-            :description="alert.description"
-          ></Hook0Alert>
-        </Hook0CardContent>
         <Hook0CardFooter>
           <Hook0Button class="danger" type="button" @click="deleteAccount($event)"
             >Delete</Hook0Button

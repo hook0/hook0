@@ -48,7 +48,7 @@ async function logout() {
           </Hook0DropdownMenuItemText>
         </Hook0DropdownMenuItems>
         <Hook0DropdownMenuItems>
-          <Hook0DropdownMenuItemLink @click="parent.route(routes.Settings)">
+          <Hook0DropdownMenuItemLink :to="{ name: routes.UserSettings }" @click="parent.close()">
             <Hook0Text>Settings</Hook0Text>
           </Hook0DropdownMenuItemLink>
         </Hook0DropdownMenuItems>
