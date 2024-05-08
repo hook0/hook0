@@ -207,9 +207,16 @@ export const AuthPlugin: Plugin = {
       removeStateFromStorage();
     }
     router.beforeEach((to, _from) => {
+      console.log(!(to.meta?.requiresAuth ?? true));
+      console.log(to.meta?.redirectIfLoggedIn ?? true);
+      console.log(state.value !== null);
       if ((to.meta?.requiresAuth ?? true) && state.value === null) {
         return { name: routes.Login };
-      } else if (!(to.meta?.requiresAuth ?? true) && state.value !== null) {
+      } else if (
+        !(to.meta?.requiresAuth ?? true) &&
+        (to.meta?.redirectIfLoggedIn ?? true) &&
+        state.value !== null
+      ) {
         return { name: routes.Home };
       }
       return true;
