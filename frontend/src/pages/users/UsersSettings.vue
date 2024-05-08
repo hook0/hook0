@@ -158,7 +158,9 @@ function displayError(err: Problem) {
           </Hook0CardContentLine>
         </Hook0CardContent>
         <Hook0CardFooter>
-          <Hook0Button class="primary" type="submit" @click="changePassword($event)">Change password</Hook0Button>
+          <Hook0Button class="primary" type="submit" @click="changePassword($event)"
+            >Change password</Hook0Button
+          >
         </Hook0CardFooter>
       </form>
     </Hook0Card>
@@ -173,7 +175,9 @@ function displayError(err: Problem) {
           </template>
         </Hook0CardHeader>
         <Hook0CardFooter>
-          <Hook0Button class="danger" type="submit" @click="deleteAccount($event)">Delete</Hook0Button>
+          <Hook0Button class="danger" type="submit" @click="deleteAccount($event)"
+            >Delete</Hook0Button
+          >
         </Hook0CardFooter>
       </form>
     </Hook0Card>
