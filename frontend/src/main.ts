@@ -45,6 +45,8 @@ import {
   faUsers,
   faFolder,
   faDatabase,
+  faPen,
+  faEye,
 } from '@fortawesome/free-solid-svg-icons';
 import { faToggleOn } from '@fortawesome/free-solid-svg-icons/faToggleOn';
 import { faToggleOff } from '@fortawesome/free-solid-svg-icons/faToggleOff';
@@ -106,6 +108,8 @@ library.add(
   faUsers,
   faFolder,
   faDatabase,
+  faPen,
+  faEye,
 
   //RequestAttemptStatus
   faCheck,
