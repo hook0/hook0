@@ -30,9 +30,7 @@ async function changePassword(e: Event) {
     return;
   }
 
-  await UsersService.changePassword(new_password.value)
-    .then(() => {})
-    .catch(displayError);
+  await UsersService.changePassword(new_password.value).catch(displayError);
 }
 
 async function deleteAccount(e: Event) {
@@ -160,9 +158,7 @@ function displayError(err: Problem) {
           </Hook0CardContentLine>
         </Hook0CardContent>
         <Hook0CardFooter>
-          <Hook0Button class="primary" type="button" @click="changePassword($event)"
-            >Change password</Hook0Button
-          >
+          <Hook0Button class="primary" type="submit">Change password</Hook0Button>
         </Hook0CardFooter>
       </form>
     </Hook0Card>
@@ -177,9 +173,7 @@ function displayError(err: Problem) {
           </template>
         </Hook0CardHeader>
         <Hook0CardFooter>
-          <Hook0Button class="danger" type="button" @click="deleteAccount($event)"
-            >Delete</Hook0Button
-          >
+          <Hook0Button class="danger" type="submit">Delete</Hook0Button>
         </Hook0CardFooter>
       </form>
     </Hook0Card>

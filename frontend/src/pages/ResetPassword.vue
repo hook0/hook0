@@ -23,7 +23,7 @@ const alert = ref<Alert>({
   description: '',
 });
 
-const token = ref('');
+let token: string = '';
 const new_password = ref('');
 const confirm_new_password = ref('');
 
@@ -36,7 +36,7 @@ async function submit() {
     });
     return;
   }
-  await resetPassword(token.value, new_password.value)
+  await resetPassword(token, new_password.value)
     .then(() => {
       push.success({
         title: 'Success',
@@ -61,8 +61,8 @@ function displayError(err: Problem) {
 }
 
 function _onLoad() {
-  token.value = router.currentRoute.value.query.token as string;
-  if (!token.value) {
+  token = router.currentRoute.value.query.token as string;
+  if (!token) {
     displayError({
       id: 'InvalidToken',
       status: 400,
@@ -124,7 +124,7 @@ onMounted(() => {
         </Hook0CardContentLine>
       </Hook0CardContent>
       <Hook0CardFooter>
-        <Hook0Button class="primary" type="submit" @click="submit">Submit</Hook0Button>
+        <Hook0Button class="primary" type="submit">Submit</Hook0Button>
       </Hook0CardFooter>
     </Hook0Card>
   </form>
