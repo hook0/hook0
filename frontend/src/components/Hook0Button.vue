@@ -58,19 +58,11 @@ function omitOnClick(props: Record<string, unknown>) {
   return omit(['onClick'], props);
 }
 
-const isButtonEnabled = ref(<boolean>true);
-
 function onClick(e: MouseEvent) {
   if (!props.href) {
     e.preventDefault();
     e.stopImmediatePropagation();
   }
-
-  isButtonEnabled.value = false;
-
-  setTimeout(() => {
-    isButtonEnabled.value = true;
-  }, 1000);
 
   if (props.loading || props.disabled) {
     // do nothing
@@ -113,7 +105,7 @@ onUpdated(() => {
     class="hook0-button"
     :class="{ loading: loadingStatus, 'hook0-button-split': hasSlot('right') || hasSlot('left') }"
     v-bind="omitOnClick({ ...$props, ...$attrs })"
-    :disabled="loadingStatus || disabled || !isButtonEnabled"
+    :disabled="loadingStatus || disabled"
     :href="href"
     @click="onClick($event)"
   >
