@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import * as UserServices from './UsersServices.ts';
+import * as UserService from './UsersServices.ts';
 import { Problem } from '@/http.ts';
 import { onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
@@ -47,7 +47,7 @@ function _onLoad() {
     });
     return;
   }
-  UserServices.verifyEmail(token)
+  UserService.verifyEmail(token)
     .then(() => {
       displaySuccess();
       return router.push(routes.Login);
