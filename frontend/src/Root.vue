@@ -95,6 +95,24 @@ const items = computed<Route[]>(() => {
         href: 'https://documentation.hook0.com/',
       },
     ];
+  } else if (route.params.organization_id) {
+    return [
+      {
+        name: 'Services Tokens',
+        icon: 'key',
+        route: {
+          name: routes.ServicesTokenList,
+          params: {
+            organization_id: route.params.organization_id,
+          },
+        },
+      },
+      {
+        name: 'API Documentation',
+        icon: 'book',
+        href: 'https://documentation.hook0.com/',
+      },
+    ];
   } else {
     return [
       {
