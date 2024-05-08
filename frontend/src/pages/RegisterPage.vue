@@ -29,7 +29,7 @@ async function submit() {
           "You're successfully registered. You need to confirm your email address before using Hook0. Check your mailbox!",
         duration: 5000,
       });
-      void router.push(routes.Login);
+      return router.push(routes.Login);
     })
     .catch((err: AxiosError<AxiosResponse<Problem>>) => {
       let problem = handleError(err);
@@ -122,7 +122,7 @@ async function submit() {
           </Hook0CardContentLine>
         </Hook0CardContent>
         <Hook0CardFooter>
-          <Hook0Button class="primary" type="submit" @click="submit">Register</Hook0Button>
+          <Hook0Button class="primary" type="submit">Register</Hook0Button>
         </Hook0CardFooter>
       </Hook0Card>
     </form>
