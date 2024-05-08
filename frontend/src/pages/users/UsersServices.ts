@@ -12,7 +12,7 @@ export async function deleteUser(): Promise<void> {
 }
 
 export async function changePassword(new_password: string): Promise<void> {
-  await http
+  return http
     .post('/auth/password', {
       new_password,
     })

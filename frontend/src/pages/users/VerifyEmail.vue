@@ -56,11 +56,7 @@ async function _onLoad() {
 }
 
 onMounted(() => {
-  _onLoad()
-    .then(() => {})
-    .catch((error) => {
-      console.error(error);
-    });
+  _onLoad().catch(console.error);
 });
 </script>
 
