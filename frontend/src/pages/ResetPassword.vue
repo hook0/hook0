@@ -124,7 +124,7 @@ onMounted(() => {
         </Hook0CardContentLine>
       </Hook0CardContent>
       <Hook0CardFooter>
-        <Hook0Button class="primary" type="submit">Submit</Hook0Button>
+        <Hook0Button class="primary" type="submit" @click="submit">Submit</Hook0Button>
       </Hook0CardFooter>
     </Hook0Card>
   </form>
