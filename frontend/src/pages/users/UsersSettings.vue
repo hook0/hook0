@@ -35,7 +35,7 @@ async function changePassword(e: Event) {
     .catch(displayError);
 }
 
-function deleteAccount(e: Event) {
+async function deleteAccount(e: Event) {
   e.preventDefault();
   e.stopImmediatePropagation();
 
@@ -43,7 +43,7 @@ function deleteAccount(e: Event) {
     return;
   }
 
-  UsersService.deleteUser()
+  await UsersService.deleteUser()
     .then(() => {
       push.success({
         title: 'Success',
