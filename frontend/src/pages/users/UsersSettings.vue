@@ -6,7 +6,7 @@ import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
-import * as UsersServices from '@/pages/users/UsersServices.ts';
+import * as UsersService from '@/pages/users/UsersServices.ts';
 import { Problem } from '@/http.ts';
 import { push } from 'notivue';
 import { getUserInfo, logout } from '@/iam.ts';
@@ -30,10 +30,8 @@ async function changePassword(e: Event) {
     return;
   }
 
-  await UsersServices.changePassword(new_password.value)
-    .then(() => {
-      void logout();
-    })
+  await UsersService.changePassword(new_password.value)
+    .then(() => {})
     .catch(displayError);
 }
 
@@ -45,7 +43,7 @@ function deleteAccount(e: Event) {
     return;
   }
 
-  UsersServices.deleteUser()
+  UsersService.deleteUser()
     .then(() => {
       push.success({
         title: 'Success',
@@ -72,60 +70,60 @@ function displayError(err: Problem) {
 
 <template>
   <div>
-    <form>
-      <Hook0Card v-if="currentUser">
-        <Hook0CardHeader>
-          <template #header> Personal information </template>
-          <template #subtitle>
-            This is your personal information. Contact support to change it.
+    <Hook0Card v-if="currentUser">
+      <Hook0CardHeader>
+        <template #header> Personal information </template>
+        <template #subtitle>
+          This is your personal information. Contact support to change it.
+        </template>
+      </Hook0CardHeader>
+      <Hook0CardContent>
+        <Hook0CardContentLine>
+          <template #label> Email </template>
+          <template #content>
+            <Hook0Input
+              v-model="currentUser.email"
+              type="text"
+              placeholder="Email"
+              disabled
+              class="w-full disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200 disabled:shadow-none"
+            >
+            </Hook0Input>
           </template>
-        </Hook0CardHeader>
-        <Hook0CardContent>
-          <Hook0CardContentLine>
-            <template #label> Email </template>
-            <template #content>
-              <Hook0Input
-                v-model="currentUser.email"
-                type="text"
-                placeholder="Email"
-                disabled
-                class="w-full disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200 disabled:shadow-none"
-              >
-              </Hook0Input>
-            </template>
-          </Hook0CardContentLine>
+        </Hook0CardContentLine>
 
-          <Hook0CardContentLine>
-            <template #label> First Name </template>
-            <template #content>
-              <Hook0Input
-                v-model="currentUser.firstName"
-                type="text"
-                placeholder="First Name"
-                disabled
-                class="w-full disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200 disabled:shadow-none"
-              >
-              </Hook0Input>
-            </template>
-          </Hook0CardContentLine>
+        <Hook0CardContentLine>
+          <template #label> First Name </template>
+          <template #content>
+            <Hook0Input
+              v-model="currentUser.firstName"
+              type="text"
+              placeholder="First Name"
+              disabled
+              class="w-full disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200 disabled:shadow-none"
+            >
+            </Hook0Input>
+          </template>
+        </Hook0CardContentLine>
 
-          <Hook0CardContentLine>
-            <template #label> Last Name </template>
-            <template #content>
-              <Hook0Input
-                v-model="currentUser.lastName"
-                type="text"
-                placeholder="Last Name"
-                disabled
-                class="w-full disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200 disabled:shadow-none"
-              >
-              </Hook0Input>
-            </template>
-          </Hook0CardContentLine>
-        </Hook0CardContent>
-      </Hook0Card>
+        <Hook0CardContentLine>
+          <template #label> Last Name </template>
+          <template #content>
+            <Hook0Input
+              v-model="currentUser.lastName"
+              type="text"
+              placeholder="Last Name"
+              disabled
+              class="w-full disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200 disabled:shadow-none"
+            >
+            </Hook0Input>
+          </template>
+        </Hook0CardContentLine>
+      </Hook0CardContent>
+    </Hook0Card>
 
-      <Hook0Card v-if="currentUser">
+    <Hook0Card v-if="currentUser">
+      <form @submit="changePassword($event)">
         <Hook0CardHeader>
           <template #header> Change password </template>
           <template #subtitle>
@@ -166,9 +164,11 @@ function displayError(err: Problem) {
             >Change password</Hook0Button
           >
         </Hook0CardFooter>
-      </Hook0Card>
+      </form>
+    </Hook0Card>
 
-      <Hook0Card v-if="currentUser">
+    <Hook0Card v-if="currentUser">
+      <form @submit="deleteAccount($event)">
         <Hook0CardHeader>
           <template #header> Delete my account </template>
           <template #subtitle>
@@ -181,17 +181,15 @@ function displayError(err: Problem) {
             >Delete</Hook0Button
           >
         </Hook0CardFooter>
-      </Hook0Card>
+      </form>
+    </Hook0Card>
 
-      <!-- If the user is not logged in, show a message -->
-      <Hook0Card v-else>
-        <Hook0CardHeader>
-          <template #header>Not logged in</template>
-          <template #subtitle
-            >You are not logged in. Please log in to view your settings.
-          </template>
-        </Hook0CardHeader>
-      </Hook0Card>
-    </form>
+    <!-- If the user is not logged in, show a message -->
+    <Hook0Card v-else>
+      <Hook0CardHeader>
+        <template #header>Not logged in</template>
+        <template #subtitle>You are not logged in. Please log in to view your settings. </template>
+      </Hook0CardHeader>
+    </Hook0Card>
   </div>
 </template>

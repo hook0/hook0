@@ -163,7 +163,7 @@ export async function logout(): Promise<void> {
     }
     state.value = null;
     removeStateFromStorage();
-    return router.push(routes.Login);
+    await router.push(routes.Login);
   }
 }
 
