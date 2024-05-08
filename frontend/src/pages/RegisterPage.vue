@@ -122,7 +122,7 @@ async function submit() {
           </Hook0CardContentLine>
         </Hook0CardContent>
         <Hook0CardFooter>
-          <Hook0Button class="primary" type="submit">Register</Hook0Button>
+          <Hook0Button class="primary" type="submit" @click="submit">Register</Hook0Button>
         </Hook0CardFooter>
       </Hook0Card>
     </form>
