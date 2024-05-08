@@ -49,7 +49,7 @@ const columnDefs: ColDef[] = [
     suppressMovable: true,
     headerName: 'Options',
     suppressSizeToFit: true,
-    width: 70,
+    width: 95,
     cellRenderer: Hook0TableCellLink,
     cellRendererParams: {
       value: 'Show',
@@ -67,7 +67,7 @@ const columnDefs: ColDef[] = [
     suppressMovable: true,
     headerName: '',
     suppressSizeToFit: true,
-    width: 70,
+    width: 95,
     cellRenderer: Hook0TableCellLink,
     cellRendererParams: {
       value: 'Edit',
@@ -93,7 +93,7 @@ const columnDefs: ColDef[] = [
     suppressMovable: true,
     headerName: '',
     suppressSizeToFit: true,
-    width: 70,
+    width: 105,
     cellRenderer: Hook0TableCellLink,
     cellRendererParams: {
       value: 'Delete',
