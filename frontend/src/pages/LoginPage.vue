@@ -91,7 +91,7 @@ function displayError(err: Problem) {
           </Hook0CardContentLine>
         </Hook0CardContent>
         <Hook0CardFooter>
-          <Hook0Button class="primary" type="submit">Login</Hook0Button>
+          <Hook0Button class="primary" type="submit" @click="submit">Login</Hook0Button>
         </Hook0CardFooter>
       </Hook0Card>
     </form>
