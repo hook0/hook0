@@ -22,8 +22,7 @@ export async function changePassword(new_password: string): Promise<void> {
     );
 }
 
-// Check to put in async or not ?
-export function verifyEmail(token: string): Promise<void> {
+export async function verifyEmail(token: string): Promise<void> {
   return http.unauthenticated.post(`/auth/verify-email`, { token }).then(
     (res: AxiosResponse<void>) => res.data,
     (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
