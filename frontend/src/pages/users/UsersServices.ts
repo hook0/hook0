@@ -36,3 +36,10 @@ export async function beginResetPassword(email: string): Promise<void> {
     (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
   );
 }
+
+export async function resetPassword(token: string, new_password: string): Promise<void> {
+  return http.unauthenticated.post(`/auth/reset-password`, { token, new_password }).then(
+    (res: AxiosResponse<void>) => res.data,
+    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
+  );
+}
