@@ -36,7 +36,7 @@ function displaySuccess() {
   });
 }
 
-function _onLoad() {
+async function _onLoad() {
   const token = route.query.token as string;
   if (!token) {
     displayError({
@@ -47,7 +47,7 @@ function _onLoad() {
     });
     return;
   }
-  UserService.verifyEmail(token)
+  await UserService.verifyEmail(token)
     .then(() => {
       displaySuccess();
       return router.push(routes.Login);
@@ -56,7 +56,11 @@ function _onLoad() {
 }
 
 onMounted(() => {
-  _onLoad();
+  _onLoad()
+    .then(() => {})
+    .catch((error) => {
+      console.error(error);
+    });
 });
 </script>
 
