@@ -50,7 +50,7 @@ function _onLoad() {
   UserServices.verifyEmail(token)
     .then(() => {
       displaySuccess();
-      void router.push(routes.Login);
+      return router.push(routes.Login);
     })
     .catch(displayError);
 }
