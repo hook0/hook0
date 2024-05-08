@@ -23,6 +23,7 @@ import EventsDetail from '@/pages/organizations/applications/events/EventsDetail
 import VerifyUser from '@/pages/users/VerifyEmail.vue';
 import BeginResetPassword from '@/pages/BeginResetPassword.vue';
 import ResetPassword from '@/pages/ResetPassword.vue';
+import ServicesTokenList from '@/pages/organizations/services_token/ServicesTokenList.vue';
 
 export type Hook0Routes = string;
 
@@ -39,6 +40,8 @@ export const routes: Record<Hook0Routes, string> = {
   OrganizationsDashboard: 'OrganizationsDashboard',
   OrganizationsDetail: 'OrganizationsDetail',
   OrganizationsNew: 'OrganizationsNew',
+
+  ServicesTokenList: 'ServicesTokenList',
 
   ApplicationsDashboard: 'ApplicationsDashboard',
   ApplicationsList: 'ApplicationsList',
@@ -117,6 +120,11 @@ export default [
     name: routes.OrganizationsNew,
     path: '/organizations/new',
     component: OrganizationsEdit,
+  },
+  {
+    name: routes.ServicesTokenList,
+    path: '/organizations/:organization_id/services_tokens',
+    component: ServicesTokenList,
   },
   {
     name: routes.OrganizationsDetail,
