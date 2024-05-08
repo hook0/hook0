@@ -24,7 +24,7 @@
     ".prettierrc.js"
   ],
   "scripts": {
-    "preinstall": "cp -v ../mediakit/logo/favicon.ico ./public/favicon.ico",
+    "preinstall": "cp -v ../mediakit/logo/favicon.ico ./public/favicon.ico && cp -v ../mediakit/logo/256x256.png ./public/256x256.png",
     "//start:dev": "don't forget to first start the Rust API in order to then access to this frontend through the API http server",
     "serve": "vue-cli-service serve --mode dev --watch",
     "build": "vite build",

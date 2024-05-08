@@ -21,6 +21,8 @@ import ApplicationSecretsList from '@/pages/organizations/applications/applicati
 import EventsList from '@/pages/organizations/applications/events/EventsList.vue';
 import EventsDetail from '@/pages/organizations/applications/events/EventsDetail.vue';
 import VerifyUser from '@/pages/users/VerifyEmail.vue';
+import BeginResetPassword from '@/pages/BeginResetPassword.vue';
+import ResetPassword from '@/pages/ResetPassword.vue';
 
 export type Hook0Routes = string;
 
@@ -31,6 +33,8 @@ export const routes: Record<Hook0Routes, string> = {
   Register: 'Register',
   VerifyEmail: 'VerifyEmail',
   UserSettings: 'UserSettings',
+  BeginResetPassword: 'BeginResetPassword',
+  ResetPassword: 'ResetPassword',
 
   OrganizationsDashboard: 'OrganizationsDashboard',
   OrganizationsDetail: 'OrganizationsDetail',
@@ -90,6 +94,24 @@ export default [
     name: routes.UserSettings,
     path: '/settings',
     component: UsersSettings,
+  },
+  {
+    name: routes.BeginResetPassword,
+    path: '/begin-reset-password',
+    component: BeginResetPassword,
+    meta: {
+      requiresAuth: false,
+      redirectIfLoggedIn: false,
+    },
+  },
+  {
+    name: routes.ResetPassword,
+    path: '/reset-password',
+    component: ResetPassword,
+    meta: {
+      requiresAuth: false,
+      redirectIfLoggedIn: false,
+    },
   },
   {
     name: routes.OrganizationsNew,
