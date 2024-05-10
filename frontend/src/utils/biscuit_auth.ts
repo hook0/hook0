@@ -1,5 +1,6 @@
 import featureFlags from '@/feature-flags.ts';
 import { Biscuit, PublicKey } from '@biscuit-auth/biscuit-wasm';
+import { Problem } from '@/http.ts';
 
 const biscuitPublicKey = verifyBiscuitPublicKey();
 
@@ -17,6 +18,12 @@ export function getDeserializedBiscuit(biscuit: string) {
   try {
     return Biscuit.fromBase64(biscuit, biscuitPublicKey).toString();
   } catch (e) {
-    return Error('Invalid Biscuit');
+    const problem = {
+      id: 'InvalidBiscuit',
+      title: 'Invalid Biscuit',
+      status: 400,
+      detail: 'The biscuit is invalid',
+    };
+    throw problem as Problem;
   }
 }
