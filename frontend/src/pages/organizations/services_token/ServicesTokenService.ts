@@ -43,3 +43,7 @@ export function remove(service_token_id: UUID): Promise<void> {
     (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
   );
 }
+
+export function get(service_token_id: UUID): Promise<void> {
+
+}
