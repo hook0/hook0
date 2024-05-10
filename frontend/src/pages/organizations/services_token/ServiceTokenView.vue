@@ -10,7 +10,6 @@ import { UUID } from '@/http';
 import Hook0Text from '@/components/Hook0Text.vue';
 import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
 import { getDeserializedBiscuit } from '@/utils/biscuit_auth.ts';
-import { push } from 'notivue';
 
 const route = useRoute();
 
@@ -19,17 +18,9 @@ const organization_id = ref<null | UUID>(null);
 
 function _forceLoad() {
   organization_id.value = route.params.organization_id as UUID;
-  biscuit_token.value = route.params.biscuit_token as string;
-  let biscuit = getDeserializedBiscuit(biscuit_token.value);
-  if (typeof biscuit === 'string') {
-    biscuit_token.value = biscuit;
-  } else {
-    push.error({
-      title: 'Error',
-      message: biscuit.toString(),
-      duration: 5000,
-    });
-  }
+  let biscuit = getDeserializedBiscuit(route.params.biscuit_token as string);
+  biscuit_token.value = biscuit;
+  console.log(biscuit_token.value);
 }
 
 function _load() {
@@ -48,21 +39,26 @@ onUpdated(() => {
 </script>
 
 <template>
-  <Hook0Card>
-    <Hook0CardHeader>
-      <Hook0Text>Service Token</Hook0Text>
-    </Hook0CardHeader>
-    <Hook0CardContent>
-      <Hook0CardContentLines>
-        <Hook0CardContentLine>
-          <Hook0Text>Organization ID</Hook0Text>
-          <Hook0Text>{{ organization_id }}</Hook0Text>
-        </Hook0CardContentLine>
-        <Hook0CardContentLine>
-          <Hook0Text>Biscuit Token</Hook0Text>
-          <Hook0Text>{{ biscuit_token }}</Hook0Text>
-        </Hook0CardContentLine>
-      </Hook0CardContentLines>
-    </Hook0CardContent>
-  </Hook0Card>
+  <div>
+    <Hook0Card>
+      <Hook0CardHeader>
+        <template #header> Service Token </template>
+        <template #subtitle>
+          <div class="text-sm text-gray-500">
+            This is your service token. You can use it to authenticate your services with Hook0.
+          </div>
+        </template>
+      </Hook0CardHeader>
+      <Hook0CardContent>
+        <Hook0CardContentLines>
+          <Hook0CardContentLine>
+            <template #label> Service Token </template>
+            <template #content>
+              <Hook0Text>{{ biscuit_token }}</Hook0Text>
+            </template>
+          </Hook0CardContentLine>
+        </Hook0CardContentLines>
+      </Hook0CardContent>
+    </Hook0Card>
+  </div>
 </template>
