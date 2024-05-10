@@ -62,7 +62,7 @@ const columnDefs: ColDef[] = [
             name: routes.ServiceTokenView,
             params: {
               organization_id: organization_id.value as string,
-              service_token_id: row.token_id,
+              biscuit_token: row.biscuit,
             },
           })
           .catch(displayError);
@@ -106,7 +106,7 @@ const columnDefs: ColDef[] = [
       icon: 'trash',
       onClick: (row: ServiceToken): void => {
         if (confirm('Are you sure you want to delete this service token?')) {
-          ServiceTokenService.remove(row.token_id)
+          ServiceTokenService.remove(row.token_id, organization_id.value as string)
             .then(() => {
               _forceLoad();
             })
