@@ -37,13 +37,15 @@ export function update(
   );
 }
 
-export function remove(service_token_id: UUID): Promise<void> {
-  return http.delete(`/service_token/${service_token_id}`, {}).then(
-    (res: AxiosResponse<void>) => res.data,
-    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
-  );
-}
-
-export function get(service_token_id: UUID): Promise<void> {
-
+export function remove(service_token_id: UUID, organization_id: UUID): Promise<void> {
+  return http
+    .delete(`/service_token/${service_token_id}`, {
+      params: {
+        organization_id,
+      },
+    })
+    .then(
+      (res: AxiosResponse<void>) => res.data,
+      (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
+    );
 }
