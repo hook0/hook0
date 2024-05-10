@@ -130,7 +130,7 @@ export default [
   },
   {
     name: routes.ServiceTokenView,
-    path: '/organizations/:organization_id/services_tokens/:service_token_id',
+    path: '/organizations/:organization_id/services_tokens/:biscuit_token',
     component: ServiceTokenView,
   },
   {
