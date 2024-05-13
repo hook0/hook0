@@ -15,16 +15,9 @@ export function verifyBiscuitPublicKey(): PublicKey {
 }
 
 export function getDeserializedBiscuit(biscuit: string) {
-  try {
-    return Biscuit.fromBase64(biscuit, biscuitPublicKey).toString();
-  } catch (e) {
-    return {
-      title: 'Invalid Biscuit',
-      message: 'The biscuit is invalid',
-    };
-  }
+  return Biscuit.fromBase64(biscuit, biscuitPublicKey);
 }
 
 export function attenuateBiscuitToApplicationOnly(biscuit: Biscuit, application_id: UUID): Biscuit {
-  return biscuit.appendBlock(block`check application_id = ${application_id};`);
+  return biscuit.appendBlock(block`check if application_id(${application_id})`);
 }
