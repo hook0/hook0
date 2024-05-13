@@ -18,6 +18,19 @@ export function getDeserializedBiscuit(biscuit: string) {
   return Biscuit.fromBase64(biscuit, biscuitPublicKey);
 }
 
-export function attenuateBiscuitToApplicationOnly(biscuit: Biscuit, application_id: UUID): Biscuit {
-  return biscuit.appendBlock(block`check if application_id(${application_id})`);
+export function attenuateBiscuit(
+  biscuit: Biscuit,
+  application_id: UUID | null,
+  expired_at: Date | null
+): Biscuit {
+  if (application_id && expired_at) {
+    return biscuit.appendBlock(
+      block`check if application_id(${application_id}); check if time($t), $t < ${expired_at};`
+    );
+  } else if (application_id) {
+    return biscuit.appendBlock(block`check if application_id(${application_id});`);
+  } else if (expired_at) {
+    return biscuit.appendBlock(block`check if time($t), $t < ${expired_at};`);
+  }
+  return biscuit;
 }
