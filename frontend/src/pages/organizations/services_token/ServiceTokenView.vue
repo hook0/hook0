@@ -7,7 +7,7 @@ import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import { UUID } from '@/http';
-import { getDeserializedBiscuit } from '@/utils/biscuit_auth.ts';
+import { attenuateBiscuitToApplicationOnly, getDeserializedBiscuit } from '@/utils/biscuit_auth.ts';
 import { list, Application } from '@/pages/organizations/applications/ApplicationService.ts';
 import Hook0Button from '@/components/Hook0Button.vue';
 import { push } from 'notivue';
@@ -15,10 +15,11 @@ import Hook0Error from '@/components/Hook0Error.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Loader from '@/components/Hook0Loader.vue';
 import Hook0Select from '@/components/Hook0Select.vue';
+import { Biscuit } from '@biscuit-auth/biscuit-wasm';
 
 const route = useRoute();
 
-const biscuit_token = ref<null | string>(null);
+const biscuit_token = ref<null | Biscuit>(null);
 const organization_id = ref<null | UUID>(null);
 
 const applications$ = ref<null | Promise<Array<Application>>>(null);
@@ -26,15 +27,26 @@ const applications$ = ref<null | Promise<Array<Application>>>(null);
 function _forceLoad() {
   organization_id.value = route.params.organization_id as UUID;
 
-  let biscuit = getDeserializedBiscuit(route.params.biscuit_token as string);
-  if (typeof biscuit === 'object') {
-    push.error(biscuit);
+  try {
+    biscuit_token.value = getDeserializedBiscuit(route.params.biscuit_token as string);
+  } catch (e) {
+    console.log(e);
+    push.error({
+      title: 'Invalid biscuit token',
+      message: 'The biscuit token is invalid',
+      duration: 5000,
+    });
     return;
   }
 
-  biscuit_token.value = biscuit;
   applications$.value = list(organization_id.value);
-  console.log(applications$.value);
+
+  let new_biscuit = attenuateBiscuitToApplicationOnly(
+    biscuit_token.value,
+    '6827edfe-1bc3-4285-b8fc-d59df50bf907' as UUID
+  );
+  console.log(new_biscuit);
+  console.log(new_biscuit.toBase64());
 }
 
 function _load() {
@@ -74,7 +86,10 @@ onUpdated(() => {
             <Hook0CardContentLine>
               <template #label> Application </template>
               <template #content>
-                <!-- Hook0Select or Hook0Input type checkbox -->
+                <Hook0Select
+                  v-model="applications$"
+                  :options="applications.map((a: Application) => ({ label: a.name, value: a.application_id }))"
+                ></Hook0Select>
               </template>
             </Hook0CardContentLine>
           </Hook0CardContent>
