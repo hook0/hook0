@@ -19,6 +19,7 @@ export function attenuateBiscuit(
   application_id: UUID | null,
   expired_at: Date | null
 ): Biscuit {
+  console.log(expired_at);
   let biscuit: Biscuit;
   try {
     biscuit = Biscuit.fromBase64(biscuit_string, biscuitPublicKey);
@@ -29,11 +30,7 @@ export function attenuateBiscuit(
     );
   }
 
-  //TODO Check if expirate_at is in pass
-  let actual_time = new Date();
-  if (expired_at && expired_at < actual_time) {
-    throw new Error('Biscuit expired');
-  }
+  /// Todo check if time is in the past
 
   if (application_id && expired_at) {
     return biscuit.appendBlock(
