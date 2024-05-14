@@ -385,6 +385,7 @@ pub enum Action<'a> {
     OrganizationRevoke,
     OrganizationDelete,
     //
+    ServiceTokenGet,
     ServiceTokenList,
     ServiceTokenCreate,
     ServiceTokenEdit {
@@ -497,6 +498,7 @@ impl<'a> Action<'a> {
             Self::OrganizationRevoke => "organization:revoke",
             Self::OrganizationDelete => "organization:delete",
             //
+            Self::ServiceTokenGet => "service_token:get",
             Self::ServiceTokenList => "service_token:list",
             Self::ServiceTokenCreate => "service_token:create",
             Self::ServiceTokenEdit { .. } => "service_token:edit",
@@ -560,6 +562,7 @@ impl<'a> Action<'a> {
             Self::OrganizationRevoke => vec![],
             Self::OrganizationDelete => vec![],
             //
+            Self::ServiceTokenGet => vec![Role::Viewer],
             Self::ServiceTokenList => vec![Role::Viewer],
             Self::ServiceTokenCreate => vec![],
             Self::ServiceTokenEdit { .. } => vec![],
@@ -639,6 +642,7 @@ impl<'a> Action<'a> {
             Self::OrganizationRevoke => None,
             Self::OrganizationDelete => None,
             //
+            Self::ServiceTokenGet { .. } => None,
             Self::ServiceTokenList => None,
             Self::ServiceTokenCreate => None,
             Self::ServiceTokenEdit { .. } => None,
@@ -700,6 +704,7 @@ impl<'a> Action<'a> {
             Self::OrganizationRevoke => vec![],
             Self::OrganizationDelete => vec![],
             //
+            Self::ServiceTokenGet => vec![],
             Self::ServiceTokenList => vec![],
             Self::ServiceTokenCreate => vec![],
             Self::ServiceTokenEdit { service_token_id } => vec![fact!(
