@@ -331,11 +331,7 @@ pub async fn get(
     let organization_id = qs.organization_id;
     let token_id = token_id.into_inner();
 
-    if authorize(
-        &biscuit,
-        Some(organization_id),
-        Action::ServiceTokenGet,
-    ).is_err() {
+    if authorize(&biscuit, Some(organization_id), Action::ServiceTokenGet).is_err() {
         return Err(Hook0Problem::Forbidden);
     }
 
