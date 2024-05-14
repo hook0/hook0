@@ -43,7 +43,7 @@ function _forceLoad() {
   organization_id.value = route.params.organization_id as UUID;
   service_token_id.value = route.params.service_token_id as UUID;
 
-  get(organization_id.value, service_token_id.value)
+  get(service_token_id.value, organization_id.value)
     .then((service_token) => {
       service_token$.value = service_token;
     })
@@ -165,13 +165,13 @@ onUpdated(() => {
               <Hook0CardContentLine>
                 <template #label> Do you want attenuate the token expiration date? </template>
                 <template #content>
-                  <input type="checkbox" v-model="is_date_expiration_attenuation" />
+                  <input v-model="is_date_expiration_attenuation" type="checkbox" />
                 </template>
               </Hook0CardContentLine>
               <Hook0CardContentLine v-if="is_date_expiration_attenuation">
                 <template #label> Expiration date </template>
                 <template #content>
-                  <input type="date" v-model="date_attenuation" />
+                  <input v-model="date_attenuation" type="datetime-local" />
                 </template>
               </Hook0CardContentLine>
             </Hook0CardContent>
