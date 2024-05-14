@@ -11,7 +11,7 @@ import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0Table from '@/components/Hook0Table.vue';
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 import Hook0TableCellCode from '@/components/Hook0TableCellCode.vue';
-import { UUID } from '@/http';
+import { Problem, UUID } from '@/http';
 import Hook0Text from '@/components/Hook0Text.vue';
 import { routes } from '@/routes';
 import Hook0TableCellDate from '@/components/Hook0TableCellDate.vue';
@@ -21,21 +21,23 @@ import Hook0Loader from '@/components/Hook0Loader.vue';
 import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
 import Hook0Error from '@/components/Hook0Error.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
-import {
-  list,
-  EventType,
-} from '@/pages/organizations/applications/event_types/EventTypeService.ts';
+import { _send_test_event } from './EventsService';
+import { list } from '@/pages/organizations/applications/event_types/EventTypeService.ts';
 import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0Select from '@/components/Hook0Select.vue';
+import { push } from 'notivue';
 
 const route = useRoute();
 
 const is_test_enabled = ref<boolean>(false);
 
+const event_type$ = ref<Promise<Array<{ label: string; value: string }>>>(Promise.resolve([]));
+
 const event_id = ref<null | UUID>('b9ecf40b-2a44-4862-b7c6-d25e01d4d235');
-const event_type = ref<Promise<Array<EventType>>>();
-const labels = ref<null | Record<string, string>>({ all: 'yes' });
-const occured_at = ref<null | Date>(new Date());
+const selected_event_type = ref<null | string>();
+const label_key = ref<null | string>('all');
+const label_value = ref<null | string>('yes');
+const occured_at = ref<null | Date>();
 const payload = ref<null | string>('{"test": true}');
 
 interface Props {
@@ -139,7 +141,14 @@ function _forceLoad() {
   application_id.value = route.params.application_id as UUID;
   events$.value = EventsService.list(application_id.value);
 
-  event_type.value = list(application_id.value);
+  event_type$.value = list(application_id.value)
+    .then((event_types) =>
+      event_types.map((et) => ({ label: et.event_type_name, value: et.event_type_name }))
+    )
+    .catch((error) => {
+      displayError(error as Problem);
+      return [];
+    });
 }
 
 function _load() {
@@ -152,7 +161,58 @@ function enabled_test() {
   is_test_enabled.value = true;
 }
 
-function send_test_event() {}
+function send_test_event() {
+  if (
+    !selected_event_type.value ||
+    !label_key.value ||
+    !label_value.value ||
+    !occured_at.value ||
+    !payload.value
+  ) {
+    push.error({
+      title: 'Invalid test event',
+      message: 'The test event form is invalid',
+      duration: 5000,
+    });
+    return;
+  }
+
+  let label = {
+    [label_key.value]: label_value.value,
+  };
+
+  _send_test_event(
+    application_id.value as UUID,
+    event_id.value as UUID,
+    selected_event_type.value,
+    label,
+    occured_at.value,
+    payload.value
+  )
+    .then(() => {
+      is_test_enabled.value = false;
+      push.success({
+        title: 'Test event sent',
+        message: 'The test event was sent successfully',
+        duration: 5000,
+      });
+    })
+    .catch(displayError);
+}
+
+function cancel_test() {
+  is_test_enabled.value = false;
+}
+
+function displayError(err: Problem) {
+  console.error(err);
+  let options = {
+    title: err.title,
+    message: err.detail,
+    duration: 5000,
+  };
+  err.status >= 500 ? push.error(options) : push.warning(options);
+}
 
 onMounted(() => {
   _load();
@@ -164,7 +224,7 @@ onUpdated(() => {
 </script>
 
 <template>
-  <Promised v-if="is_test_enabled" :promise="event_type">
+  <Promised v-if="is_test_enabled" :promise="event_type$">
     <template #pending>
       <Hook0Loader></Hook0Loader>
     </template>
@@ -186,50 +246,71 @@ onUpdated(() => {
           </template>
         </Hook0CardHeader>
 
-        <Hook0CardContent>
-          <Hook0CardContentLines>
-            <Hook0CardContentLine type="full-width">
-              <form @submit="send_test_event">
-                <!-- Make the form and put description to each value. Use Hook0Input component and hook0select -->
-                <Hook0Input
-                  v-model="event_id"
-                  type="text"
-                  label="Event ID"
-                  help-text="The event ID is a unique identifier for the event."
-                ></Hook0Input>
-                <Hook0Select
-                  v-model="event_type"
-                  :options="event_types"
-                  label="Event Type"
-                  help-text="The event type is the type of the event."
-                ></Hook0Select>
-                <Hook0Input
-                  v-model="labels"
-                  type="text"
-                  label="Labels"
-                  help-text="The labels are key-value pairs that describe the event."
-                ></Hook0Input>
-                <Hook0Input
-                  v-model="occured_at"
-                  type="date"
-                  label="Occured At"
-                  help-text="The occured at is the time when the event occured."
-                ></Hook0Input>
-                <Hook0Input
-                  v-model="payload"
-                  type="text"
-                  label="Payload"
-                  help-text="The payload is the data of the event."
-                ></Hook0Input>
-                <Hook0Button type="submit" class="primary" @click="send_test_event"
-                  >Send test event</Hook0Button
-                >
-              </form>
+        <form @submit="send_test_event">
+          <Hook0CardContent>
+            <Hook0CardContentLine>
+              <template #label> Event Type </template>
+              <template #content>
+                <Hook0Select v-model="selected_event_type" :options="event_types"></Hook0Select>
+              </template>
             </Hook0CardContentLine>
-          </Hook0CardContentLines>
-        </Hook0CardContent>
+            <Hook0CardContentLine>
+              <template #label>
+                Subscription labels
 
-        <Hook0CardFooter> </Hook0CardFooter>
+                <Hook0Text class="helpText mt-2 block">
+                  Hook0 will only forward events to subscriptions that have the same
+                  <Hook0Text class="code">label_key</Hook0Text>
+                  and
+                  <Hook0Text class="code">label_value</Hook0Text>
+                  as specified in the event.
+                </Hook0Text>
+
+                <Hook0Text class="helpText mt-2 block"> </Hook0Text>
+              </template>
+              <template #content>
+                <div class="flex flex-row">
+                  <Hook0Input
+                    v-model="label_key"
+                    type="text"
+                    class="w-full"
+                    placeholder="label_key"
+                    required
+                  >
+                  </Hook0Input>
+
+                  <Hook0Input
+                    v-model="label_value"
+                    type="text"
+                    class="w-full ml-1"
+                    placeholder="label_value"
+                    required
+                  >
+                  </Hook0Input>
+                </div>
+              </template>
+            </Hook0CardContentLine>
+            <Hook0CardContentLine>
+              <template #label> Occurred At </template>
+              <template #content>
+                <input type="datetime-local" v-model="occured_at" />
+              </template>
+            </Hook0CardContentLine>
+            <Hook0CardContentLine>
+              <template #label> Payload </template>
+              <template #content>
+                <Hook0Input v-model="payload" placeholder='{"test": true}'></Hook0Input>
+              </template>
+            </Hook0CardContentLine>
+          </Hook0CardContent>
+
+          <Hook0CardFooter>
+            <Hook0Button type="button" class="secondary" @click="cancel_test">Cancel</Hook0Button>
+            <Hook0Button type="submit" class="primary" @click="send_test_event"
+              >Send test event</Hook0Button
+            >
+          </Hook0CardFooter>
+        </form>
       </Hook0Card>
     </template>
     <template #rejected="error">

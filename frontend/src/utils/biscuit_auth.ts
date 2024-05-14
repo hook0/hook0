@@ -29,6 +29,12 @@ export function attenuateBiscuit(
     );
   }
 
+  //TODO Check if expirate_at is in pass
+  let actual_time = new Date();
+  if (expired_at && expired_at < actual_time) {
+    throw new Error('Biscuit expired');
+  }
+
   if (application_id && expired_at) {
     return biscuit.appendBlock(
       block`check if application_id(${application_id}); check if time($t), $t < ${expired_at};`
