@@ -11,7 +11,7 @@ import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0Table from '@/components/Hook0Table.vue';
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 import Hook0TableCellCode from '@/components/Hook0TableCellCode.vue';
-import { UUID } from '@/http';
+import { handleError, Problem, UUID } from '@/http';
 import Hook0Text from '@/components/Hook0Text.vue';
 import { routes } from '@/routes';
 import Hook0TableCellDate from '@/components/Hook0TableCellDate.vue';
@@ -20,8 +20,25 @@ import { Event } from './EventsService';
 import Hook0Loader from '@/components/Hook0Loader.vue';
 import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
 import Hook0Error from '@/components/Hook0Error.vue';
+import Hook0Button from '@/components/Hook0Button.vue';
+import {
+  list,
+  EventType,
+} from '@/pages/organizations/applications/event_types/EventTypeService.ts';
+import Hook0Input from '@/components/Hook0Input.vue';
+import Hook0Select from '@/components/Hook0Select.vue';
+import { push } from 'notivue';
+import { AxiosError, AxiosResponse } from 'axios';
 
 const route = useRoute();
+
+const is_test_enabled = ref<boolean>(false);
+
+const event_id = ref<null | UUID>('b9ecf40b-2a44-4862-b7c6-d25e01d4d235');
+const event_type = ref<Promise<Array<EventType>>>();
+const labels = ref<null | Record<string, string>>({ all: 'yes' });
+const occured_at = ref<null | Date>(new Date());
+const payload = ref<null | string>('{"test": true}');
 
 interface Props {
   // cache-burst
@@ -123,6 +140,25 @@ const application_id = ref<null | UUID>(null);
 function _forceLoad() {
   application_id.value = route.params.application_id as UUID;
   events$.value = EventsService.list(application_id.value);
+
+  list(application_id.value)
+    .then((event_types) => {
+      event_type.value = event_types;
+    })
+    .catch((err: AxiosError<AxiosResponse<Problem>>) => {
+      let problem = handleError(err);
+      displayError(problem);
+    });
+}
+
+function displayError(err: Problem) {
+  console.error(err);
+  let options = {
+    title: err.title,
+    message: err.detail,
+    duration: 5000,
+  };
+  err.status >= 500 ? push.error(options) : push.warning(options);
 }
 
 function _load() {
@@ -130,6 +166,12 @@ function _load() {
     _forceLoad();
   }
 }
+
+function enabled_test() {
+  is_test_enabled.value = true;
+}
+
+function send_test_event() {}
 
 onMounted(() => {
   _load();
@@ -141,7 +183,79 @@ onUpdated(() => {
 </script>
 
 <template>
-  <Promised :promise="events$">
+  <Promised v-if="is_test_enabled" :promise="event_type">
+    <template #pending>
+      <Hook0Loader></Hook0Loader>
+    </template>
+    <template #default="event_types">
+      <Hook0Card>
+        <Hook0CardHeader>
+          <template #header> Send a test event </template>
+          <template #subtitle>
+            For sending a test event, you need to
+            <Hook0Button href="https://documentation.hook0.com/docs/getting-started#event-types"
+              >create an event types</Hook0Button
+            >
+            first. After that you can
+            <Hook0Button
+              href="https://documentation.hook0.com/docs/getting-started#creating-a-subscription"
+              >create a subscription</Hook0Button
+            >
+            for this event type. Finally you can send a test event.
+          </template>
+        </Hook0CardHeader>
+
+        <Hook0CardContent>
+          <Hook0CardContentLines>
+            <Hook0CardContentLine type="full-width">
+              <form @submit="send_test_event">
+                <!-- Make the form and put description to each value. Use Hook0Input component and hook0select -->
+                <Hook0Input
+                  v-model="event_id"
+                  type="text"
+                  label="Event ID"
+                  help-text="The event ID is a unique identifier for the event."
+                ></Hook0Input>
+                <Hook0Select
+                  v-model="event_type"
+                  :options="event_types"
+                  label="Event Type"
+                  help-text="The event type is the type of the event."
+                ></Hook0Select>
+                <Hook0Input
+                  v-model="labels"
+                  type="text"
+                  label="Labels"
+                  help-text="The labels are key-value pairs that describe the event."
+                ></Hook0Input>
+                <Hook0Input
+                  v-model="occured_at"
+                  type="date"
+                  label="Occured At"
+                  help-text="The occured at is the time when the event occured."
+                ></Hook0Input>
+                <Hook0Input
+                  v-model="payload"
+                  type="text"
+                  label="Payload"
+                  help-text="The payload is the data of the event."
+                ></Hook0Input>
+                <Hook0Button type="submit" class="primary" @click="send_test_event"
+                  >Send test event</Hook0Button
+                >
+              </form>
+            </Hook0CardContentLine>
+          </Hook0CardContentLines>
+        </Hook0CardContent>
+
+        <Hook0CardFooter> </Hook0CardFooter>
+      </Hook0Card>
+    </template>
+    <template #rejected="error">
+      <Hook0Error :error="error"></Hook0Error>
+    </template>
+  </Promised>
+  <Promised v-else :promise="events$">
     <!-- Use the "pending" slot to display a loading message -->
     <template #pending>
       <Hook0Loader></Hook0Loader>
@@ -178,7 +292,13 @@ onUpdated(() => {
           </Hook0CardContentLines>
         </Hook0CardContent>
 
-        <Hook0CardFooter> </Hook0CardFooter>
+        <Hook0CardFooter>
+          <form @submit="enabled_test">
+            <Hook0Button type="submit" class="primary" @click="enabled_test"
+              >Enable test</Hook0Button
+            >
+          </form>
+        </Hook0CardFooter>
       </Hook0Card>
     </template>
     <!-- The "rejected" scoped slot will be used if there is an error -->
