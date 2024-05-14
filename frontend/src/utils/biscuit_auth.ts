@@ -14,15 +14,21 @@ export function verifyBiscuitPublicKey(): PublicKey {
   }
 }
 
-export function getDeserializedBiscuit(biscuit: string) {
-  return Biscuit.fromBase64(biscuit, biscuitPublicKey);
-}
-
 export function attenuateBiscuit(
-  biscuit: Biscuit,
+  biscuit_string: string,
   application_id: UUID | null,
   expired_at: Date | null
 ): Biscuit {
+  let biscuit: Biscuit;
+  try {
+    biscuit = Biscuit.fromBase64(biscuit_string, biscuitPublicKey);
+  } catch (e) {
+    console.log('Failed to parse biscuit', e);
+    throw new Error(
+      'An error occurred while generating the service token. Your biscuit may be invalid. If the error persists, please contact support.'
+    );
+  }
+
   if (application_id && expired_at) {
     return biscuit.appendBlock(
       block`check if application_id(${application_id}); check if time($t), $t < ${expired_at};`

@@ -62,7 +62,7 @@ const columnDefs: ColDef[] = [
             name: routes.ServiceTokenView,
             params: {
               organization_id: organization_id.value as string,
-              biscuit_token: row.biscuit,
+              service_token_id: row.token_id,
             },
           })
           .catch(displayError);

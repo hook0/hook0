@@ -50,9 +50,16 @@ export function remove(service_token_id: UUID, organization_id: UUID): Promise<v
     );
 }
 
-export function get(service_token_id: UUID): Promise<ServiceToken> {
-  return http.get(`/service_token/${service_token_id}`).then(
-    (res: AxiosResponse<ServiceToken>) => res.data,
-    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
-  );
+export function get(service_token_id: UUID, organization_id: UUID): Promise<ServiceToken> {
+  console.log(organization_id);
+  return http
+    .get(`/service_token/${service_token_id}`, {
+      params: {
+        organization_id,
+      },
+    })
+    .then(
+      (res: AxiosResponse<ServiceToken>) => res.data,
+      (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
+    );
 }

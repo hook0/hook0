@@ -6,8 +6,8 @@ import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
-import { Problem, UUID } from '@/http';
-import { attenuateBiscuit, getDeserializedBiscuit } from '@/utils/biscuit_auth.ts';
+import { handleError, Problem, UUID } from '@/http';
+import { attenuateBiscuit } from '@/utils/biscuit_auth.ts';
 import { list } from '@/pages/organizations/applications/ApplicationService.ts';
 import Hook0Button from '@/components/Hook0Button.vue';
 import { push } from 'notivue';
@@ -18,34 +18,41 @@ import Hook0Select from '@/components/Hook0Select.vue';
 import { Biscuit } from '@biscuit-auth/biscuit-wasm';
 import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
 import Hook0Code from '@/components/Hook0Code.vue';
+import { ServiceToken, get } from '@/pages/organizations/services_token/ServicesTokenService.ts';
+import { AxiosError, AxiosResponse } from 'axios';
 
 const route = useRoute();
 
-const biscuit_token = ref<null | Biscuit>(null);
+// Params references
 const organization_id = ref<null | UUID>(null);
+const service_token_id = ref<null | UUID>(null);
+
+// Load references
+const service_token$ = ref<null | ServiceToken>(null);
 const applications$ = ref<Promise<Array<{ label: string; value: UUID }>>>(Promise.resolve([]));
 
+// Form references
 const selected_application_id = ref<null | UUID>(null);
 const is_date_expiration_attenuation = ref(false);
 const date_attenuation = ref<null | Date>(null);
 
+// Attenuated token
 const attenuated_biscuit = ref<null | Biscuit>(null);
 
 function _forceLoad() {
   organization_id.value = route.params.organization_id as UUID;
+  service_token_id.value = route.params.service_token_id as UUID;
 
-  try {
-    biscuit_token.value = getDeserializedBiscuit(route.params.biscuit_token as string);
-  } catch (e) {
-    console.log(e);
-    push.error({
-      title: 'Invalid biscuit token',
-      message: 'The biscuit token is invalid',
-      duration: 5000,
+  get(organization_id.value, service_token_id.value)
+    .then((service_token) => {
+      service_token$.value = service_token;
+    })
+    .catch((err: AxiosError<AxiosResponse<Problem>>) => {
+      let problem = handleError(err);
+      displayError(problem);
     });
-    return;
-  }
 
+  // Get organization applications and put them into applications$ references and add an empty option
   applications$.value = list(organization_id.value)
     .then((applications) => [
       { label: '', value: '' },
@@ -64,10 +71,10 @@ function _load() {
 }
 
 function submit() {
-  if (!biscuit_token.value) {
+  if (!service_token$.value) {
     push.error({
-      title: 'Invalid biscuit token',
-      message: 'The biscuit token is invalid',
+      title: 'Invalid service token',
+      message: 'The service token is invalid',
       duration: 5000,
     });
     return;
@@ -82,16 +89,25 @@ function submit() {
     return;
   }
 
-  attenuated_biscuit.value = attenuateBiscuit(
-    biscuit_token.value as Biscuit,
-    selected_application_id.value,
-    date_attenuation.value
-  );
-  push.success({
-    title: 'Service token generated',
-    message: 'The service token has been generated',
-    duration: 5000,
-  });
+  try {
+    attenuated_biscuit.value = attenuateBiscuit(
+      service_token$.value?.biscuit,
+      selected_application_id.value,
+      date_attenuation.value
+    );
+    push.success({
+      title: 'Service token generated',
+      message: 'The service token has been generated',
+      duration: 5000,
+    });
+  } catch (e) {
+    push.error({
+      title: 'Something went wrong',
+      message:
+        'An error occurred while generating the service token. Your biscuit may be invalid. If the error persists, please contact support.',
+      duration: 5000,
+    });
+  }
 }
 
 function displayError(err: Problem) {
@@ -120,7 +136,11 @@ onUpdated(() => {
         <template #header> Service Token </template>
         <template #subtitle>
           <div class="text-sm text-gray-500">
-            {{ biscuit_token }}
+            This is a service token link to your organization. Actually he got an unlimited
+            expiration date and can be used to authenticated all your applications. If you want to
+            restrict it to a specific application or to a specific expiration date, you can generate
+            a new token. By attenuating the token, you will create a new token with the same rights
+            but with a specific expiration date or linked to a specific application.
           </div>
         </template>
       </Hook0CardHeader>
