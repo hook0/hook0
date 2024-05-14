@@ -673,6 +673,7 @@ async fn main() -> anyhow::Result<()> {
                                 )
                                 .service(
                                     web::resource("/{service_token_id}")
+                                        .route(web::get().to(handlers::service_token::get))
                                         .route(web::put().to(handlers::service_token::edit))
                                         .route(web::delete().to(handlers::service_token::delete)),
                                 ),
