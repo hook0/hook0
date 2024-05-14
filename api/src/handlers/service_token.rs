@@ -335,9 +335,7 @@ pub async fn get(
         &biscuit,
         Some(organization_id),
         Action::ServiceTokenGet,
-    )
-    .is_err()
-    {
+    ).is_err() {
         return Err(Hook0Problem::Forbidden);
     }
 

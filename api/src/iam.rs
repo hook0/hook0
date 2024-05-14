@@ -642,7 +642,7 @@ impl<'a> Action<'a> {
             Self::OrganizationRevoke => None,
             Self::OrganizationDelete => None,
             //
-            Self::ServiceTokenGet { .. } => None,
+            Self::ServiceTokenGet => None,
             Self::ServiceTokenList => None,
             Self::ServiceTokenCreate => None,
             Self::ServiceTokenEdit { .. } => None,
