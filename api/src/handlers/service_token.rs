@@ -312,3 +312,54 @@ pub async fn delete(
         None => Err(Hook0Problem::NotFound),
     }
 }
+
+#[api_v2_operation(
+    summary = "Get a service token",
+    description = "",
+    operation_id = "serviceToken.get",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Organization Management")
+)]
+pub async fn get(
+    state: Data<crate::State>,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
+    token_id: Path<Uuid>,
+    qs: Query<Qs>,
+) -> Result<Json<ServiceToken>, Hook0Problem> {
+    let organization_id = qs.organization_id;
+    let token_id = token_id.into_inner();
+
+    if authorize(
+        &biscuit,
+        Some(organization_id),
+        Action::ServiceTokenGet,
+    )
+    .is_err()
+    {
+        return Err(Hook0Problem::Forbidden);
+    }
+
+    let service_token = query_as!(
+        ServiceToken,
+        r#"
+            SELECT token__id AS token_id, name AS "name!", biscuit AS "biscuit!", created_at
+            FROM iam.token
+            WHERE token__id = $1
+                AND type = 'service_access'
+                AND organization__id = $2
+                AND (expired_at IS NULL OR expired_at > statement_timestamp())
+        "#,
+        &token_id,
+        &organization_id,
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(Hook0Problem::from)?;
+
+    match service_token {
+        Some(a) => Ok(Json(a)),
+        None => Err(Hook0Problem::NotFound),
+    }
+}
