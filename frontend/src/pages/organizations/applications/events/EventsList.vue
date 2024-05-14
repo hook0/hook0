@@ -11,7 +11,7 @@ import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0Table from '@/components/Hook0Table.vue';
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 import Hook0TableCellCode from '@/components/Hook0TableCellCode.vue';
-import { handleError, Problem, UUID } from '@/http';
+import { UUID } from '@/http';
 import Hook0Text from '@/components/Hook0Text.vue';
 import { routes } from '@/routes';
 import Hook0TableCellDate from '@/components/Hook0TableCellDate.vue';
@@ -27,8 +27,6 @@ import {
 } from '@/pages/organizations/applications/event_types/EventTypeService.ts';
 import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0Select from '@/components/Hook0Select.vue';
-import { push } from 'notivue';
-import { AxiosError, AxiosResponse } from 'axios';
 
 const route = useRoute();
 
@@ -141,24 +139,7 @@ function _forceLoad() {
   application_id.value = route.params.application_id as UUID;
   events$.value = EventsService.list(application_id.value);
 
-  list(application_id.value)
-    .then((event_types) => {
-      event_type.value = event_types;
-    })
-    .catch((err: AxiosError<AxiosResponse<Problem>>) => {
-      let problem = handleError(err);
-      displayError(problem);
-    });
-}
-
-function displayError(err: Problem) {
-  console.error(err);
-  let options = {
-    title: err.title,
-    message: err.detail,
-    duration: 5000,
-  };
-  err.status >= 500 ? push.error(options) : push.warning(options);
+  event_type.value = list(application_id.value);
 }
 
 function _load() {
