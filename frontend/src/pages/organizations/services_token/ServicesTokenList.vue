@@ -178,7 +178,7 @@ onUpdated(() => {
         <Hook0CardHeader>
           <template #header> Service Tokens </template>
           <template #subtitle>
-            These keys will allow you to authenticate API requests with some services to Hook0.
+            A service token is an organization-wide API key that allows other programs to send API requests to Hook0.
           </template>
         </Hook0CardHeader>
 
