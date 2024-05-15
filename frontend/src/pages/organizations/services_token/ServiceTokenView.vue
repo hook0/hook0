@@ -20,7 +20,7 @@ import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
 import Hook0Code from '@/components/Hook0Code.vue';
 import { ServiceToken, get } from '@/pages/organizations/services_token/ServicesTokenService.ts';
 import { AxiosError, AxiosResponse } from 'axios';
-import { formatRFC3339, isBefore } from 'date-fns';
+import { isBefore } from 'date-fns';
 const route = useRoute();
 
 // Params references
@@ -34,7 +34,7 @@ const applications$ = ref<Promise<Array<{ label: string; value: UUID }>>>(Promis
 // Form references
 const selected_application_id = ref<null | UUID>(null);
 const is_date_expiration_attenuation = ref(false);
-const date_attenuation = ref<null | Date>(null);
+const date_attenuation = ref<null | string>(null);
 
 // Attenuated token
 const attenuated_biscuit = ref<null | Biscuit>(null);
@@ -98,12 +98,11 @@ function submit() {
       });
       return;
     }
-    let date_expired = date_attenuation.value ? formatRFC3339(date_attenuation.value) : null;
 
     attenuated_biscuit.value = attenuateBiscuit(
       service_token$.value?.biscuit,
       selected_application_id.value,
-      date_expired
+      date_attenuation.value ? new Date(date_attenuation.value) : null
     );
     push.success({
       title: 'Service token generated',
