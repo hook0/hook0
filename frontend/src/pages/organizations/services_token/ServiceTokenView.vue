@@ -20,6 +20,8 @@ import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
 import Hook0Code from '@/components/Hook0Code.vue';
 import { ServiceToken, get } from '@/pages/organizations/services_token/ServicesTokenService.ts';
 import { AxiosError, AxiosResponse } from 'axios';
+import { formatRFC3339, isBefore } from 'date-fns';
+import { uuid } from 'uuidv4';
 
 const route = useRoute();
 
@@ -90,10 +92,20 @@ function submit() {
   }
 
   try {
+    if (date_attenuation.value && isBefore(date_attenuation.value, new Date())) {
+      push.error({
+        title: 'Invalid expiration date',
+        message: 'The expiration date must be in the future',
+        duration: 5000,
+      });
+      return;
+    }
+    let date_expired = date_attenuation.value ? formatRFC3339(date_attenuation.value) : null;
+
     attenuated_biscuit.value = attenuateBiscuit(
       service_token$.value?.biscuit,
       selected_application_id.value,
-      date_attenuation.value
+      date_expired
     );
     push.success({
       title: 'Service token generated',
