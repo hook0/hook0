@@ -124,7 +124,7 @@ function createNew(event: Event) {
   event.stopImmediatePropagation();
   event.preventDefault();
 
-  const name = prompt('Create a new service token, name?');
+  const name = prompt('Give a name to your new service token:');
   if (!name) {
     return;
   }
