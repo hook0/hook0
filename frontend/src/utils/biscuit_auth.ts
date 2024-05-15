@@ -1,6 +1,7 @@
 import featureFlags from '@/feature-flags.ts';
 import { Biscuit, block, PublicKey } from '@biscuit-auth/biscuit-wasm';
 import { UUID } from '@/http.ts';
+import { parse } from 'uuid';
 
 const biscuitPublicKey = verifyBiscuitPublicKey();
 
@@ -17,7 +18,7 @@ export function verifyBiscuitPublicKey(): PublicKey {
 export function attenuateBiscuit(
   biscuit_string: string,
   application_id: UUID | null,
-  expired_at: string | null
+  expired_at: Date | null
 ): Biscuit {
   let biscuit: Biscuit;
   try {
@@ -29,14 +30,14 @@ export function attenuateBiscuit(
     );
   }
 
-  /// Todo check if time is in the past
+  const application_id_bytes = application_id ? parse(application_id) : null;
 
-  if (application_id && expired_at) {
+  if (application_id_bytes && expired_at) {
     return biscuit.appendBlock(
-      block`check if application_id(${application_id}); check if time($t), $t < ${expired_at};`
+      block`check if application_id(${application_id_bytes}); check if time($t), $t < ${expired_at};`
     );
-  } else if (application_id) {
-    return biscuit.appendBlock(block`check if application_id(${application_id});`);
+  } else if (application_id_bytes) {
+    return biscuit.appendBlock(block`check if application_id(${application_id_bytes});`);
   } else if (expired_at) {
     return biscuit.appendBlock(block`check if time($t), $t < ${expired_at};`);
   }
