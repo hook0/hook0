@@ -21,8 +21,6 @@ import Hook0Code from '@/components/Hook0Code.vue';
 import { ServiceToken, get } from '@/pages/organizations/services_token/ServicesTokenService.ts';
 import { AxiosError, AxiosResponse } from 'axios';
 import { formatRFC3339, isBefore } from 'date-fns';
-import { uuid } from 'uuidv4';
-
 const route = useRoute();
 
 // Params references
