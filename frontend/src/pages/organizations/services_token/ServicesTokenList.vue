@@ -105,7 +105,7 @@ const columnDefs: ColDef[] = [
       value: 'Delete',
       icon: 'trash',
       onClick: (row: ServiceToken): void => {
-        if (confirm('Are you sure you want to delete this service token?')) {
+        if (confirm('Are you sure you want to delete this service token?\n\nEvery token derived from this token will be revoked as well.')) {
           ServiceTokenService.remove(row.token_id, organization_id.value as string)
             .then(() => {
               _forceLoad();
