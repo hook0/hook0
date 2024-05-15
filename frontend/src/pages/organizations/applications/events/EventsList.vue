@@ -357,7 +357,7 @@ onUpdated(() => {
         <Hook0CardFooter>
           <form @submit="enabled_test">
             <Hook0Button type="submit" class="primary" @click="enabled_test"
-              >Enable test</Hook0Button
+              >Send an event</Hook0Button
             >
           </form>
         </Hook0CardFooter>
