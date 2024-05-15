@@ -17,9 +17,8 @@ export function verifyBiscuitPublicKey(): PublicKey {
 export function attenuateBiscuit(
   biscuit_string: string,
   application_id: UUID | null,
-  expired_at: Date | null
+  expired_at: string | null
 ): Biscuit {
-  console.log(expired_at);
   let biscuit: Biscuit;
   try {
     biscuit = Biscuit.fromBase64(biscuit_string, biscuitPublicKey);
