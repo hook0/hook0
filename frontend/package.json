@@ -51,7 +51,6 @@
     "@fortawesome/vue-fontawesome": "^3.0.0-5",
     "@tailwindcss/forms": "^0.5.3",
     "axios": "^1.2.2",
-    "buffer": "^6.0.3",
     "codemirror": "^6.0.1",
     "crisp-sdk-web": "^1.0.21",
     "date-fns": "^3.0.6",
