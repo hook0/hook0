@@ -211,7 +211,7 @@ export const AuthPlugin: Plugin = {
       if ((to.meta?.requiresAuth ?? true) && state.value === null) {
         return { name: routes.Login };
       }
-      // If the route does not require authentication, didn't have a redirectIfLoggedIn meta set to false and the user is logged in, redirect to the home page
+      // If the route does not require authentication and does not have a redirectIfLoggedIn meta set to false while the user is logged in, then we redirect to the home page
       else if (
         !(to.meta?.requiresAuth ?? true) &&
         (to.meta?.redirectIfLoggedIn ?? true) &&
