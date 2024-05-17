@@ -44,6 +44,8 @@ import {
   faUsers,
   faFolder,
   faDatabase,
+  faEye,
+  faPen,
 } from '@fortawesome/free-solid-svg-icons';
 import { faToggleOn } from '@fortawesome/free-solid-svg-icons/faToggleOn';
 import { faToggleOff } from '@fortawesome/free-solid-svg-icons/faToggleOff';
@@ -51,6 +53,9 @@ import { createNotivue } from 'notivue';
 
 // Create and mount the root instance.
 const app = createApp(Root);
+
+// Check if webassembly is supported
+app.use(checkWebAssembly);
 
 // Vue Router
 app.use(router);
@@ -62,6 +67,7 @@ app.use(AuthPlugin);
 import 'notivue/notification.css'; // Only needed if using built-in notifications
 import 'notivue/animations.css'; // Only needed if using built-in animations
 import 'notivue/notification-progress.css';
+import { checkWebAssembly } from '@/utils/biscuit_auth.ts';
 
 const notivue = createNotivue({
   position: 'top-right',
@@ -106,6 +112,8 @@ library.add(
   faUsers,
   faFolder,
   faDatabase,
+  faEye,
+  faPen,
 
   //RequestAttemptStatus
   faCheck,
