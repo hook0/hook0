@@ -43,3 +43,23 @@ export function attenuateBiscuit(
   }
   return biscuit;
 }
+
+export const checkWebAssembly: Plugin = {
+  install(app) {
+    try {
+      if (typeof WebAssembly === "object" && typeof WebAssembly.instantiate === "function") {
+        const module = new WebAssembly.Module(Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00));
+        if (!(module instanceof WebAssembly.Module) || !(new WebAssembly.Instance(module) instanceof WebAssembly.Instance)) {
+          throw new Error();
+        }
+      } else {
+        throw new Error();
+      }
+    } catch (e) {
+      Notify.error({
+        title: 'WebAssembly Unsupported',
+        message: 'Your browser does not support WebAssembly. You need to enable it on your browser or install a browser that supports it.',
+      });
+    }
+  }
+};
