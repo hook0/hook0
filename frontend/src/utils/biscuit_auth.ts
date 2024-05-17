@@ -1,30 +1,31 @@
-import featureFlags from '@/feature-flags.ts';
 import { Biscuit, block, PublicKey } from '@biscuit-auth/biscuit-wasm';
-import { UUID } from '@/http.ts';
+import http, { handleError, Problem, UUID } from '@/http.ts';
 import { parse } from 'uuid';
+import { push } from 'notivue';
+import { App, Plugin } from 'vue';
+import { AxiosError, AxiosResponse } from 'axios';
+import { components } from '@/types.ts';
 
-const biscuitPublicKey = verifyBiscuitPublicKey();
+type definitions = components['schemas'];
+export type InstanceConfig = definitions['InstanceConfig'];
 
-export function verifyBiscuitPublicKey(): PublicKey {
-  try {
-    return PublicKey.fromString(
-      featureFlags.getOrElse('BISCUIT_PUBLIC_KEY', import.meta.env.VITE_BISCUIT_PUBLIC_KEY ?? '')
-    );
-  } catch (e) {
-    throw new Error('Invalid BISCUIT_PUBLIC_KEY');
-  }
+export function getInstanceConfig(): Promise<InstanceConfig> {
+  return http.get('/instance', {}).then(
+    (res: AxiosResponse<InstanceConfig>) => res.data,
+    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
+  );
 }
-
 export function attenuateBiscuit(
   biscuit_string: string,
   application_id: UUID | null,
-  expired_at: Date | null
+  expired_at: Date | null,
+  biscuitPublicKey: string
 ): Biscuit {
+  const public_key: PublicKey = PublicKey.fromString(biscuitPublicKey);
   let biscuit: Biscuit;
   try {
-    biscuit = Biscuit.fromBase64(biscuit_string, biscuitPublicKey);
+    biscuit = Biscuit.fromBase64(biscuit_string, public_key);
   } catch (e) {
-    console.log('Failed to parse biscuit', e);
     throw new Error(
       'An error occurred while generating the service token. Your biscuit may be invalid. If the error persists, please contact support.'
     );
@@ -45,21 +46,27 @@ export function attenuateBiscuit(
 }
 
 export const checkWebAssembly: Plugin = {
-  install(app) {
+  install(_app: App) {
     try {
-      if (typeof WebAssembly === "object" && typeof WebAssembly.instantiate === "function") {
-        const module = new WebAssembly.Module(Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00));
-        if (!(module instanceof WebAssembly.Module) || !(new WebAssembly.Instance(module) instanceof WebAssembly.Instance)) {
+      if (typeof WebAssembly === 'object' && typeof WebAssembly.instantiate === 'function') {
+        const module = new WebAssembly.Module(
+          Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00)
+        );
+        if (
+          !(module instanceof WebAssembly.Module) ||
+          !(new WebAssembly.Instance(module) instanceof WebAssembly.Instance)
+        ) {
           throw new Error();
         }
       } else {
         throw new Error();
       }
     } catch (e) {
-      Notify.error({
+      push.error({
         title: 'WebAssembly Unsupported',
-        message: 'Your browser does not support WebAssembly. You need to enable it on your browser or install a browser that supports it.',
+        message:
+          'Your browser does not support WebAssembly. You need to enable it on your browser or install a browser that supports it.',
       });
     }
-  }
+  },
 };
