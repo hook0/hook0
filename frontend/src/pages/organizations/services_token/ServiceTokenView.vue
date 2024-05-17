@@ -7,7 +7,7 @@ import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import { handleError, Problem, UUID } from '@/http';
-import { attenuateBiscuit } from '@/utils/biscuit_auth.ts';
+import { attenuateBiscuit, getInstanceConfig, InstanceConfig } from '@/utils/biscuit_auth.ts';
 import { list } from '@/pages/organizations/applications/ApplicationService.ts';
 import Hook0Button from '@/components/Hook0Button.vue';
 import { push } from 'notivue';
@@ -21,6 +21,7 @@ import Hook0Code from '@/components/Hook0Code.vue';
 import { ServiceToken, get } from '@/pages/organizations/services_token/ServicesTokenService.ts';
 import { AxiosError, AxiosResponse } from 'axios';
 import { isBefore } from 'date-fns';
+import Hook0Text from '@/components/Hook0Text.vue';
 const route = useRoute();
 
 // Params references
@@ -28,6 +29,7 @@ const organization_id = ref<null | UUID>(null);
 const service_token_id = ref<null | UUID>(null);
 
 // Load references
+const biscuit_public_key$ = ref<null | string>(null);
 const service_token$ = ref<null | ServiceToken>(null);
 const applications$ = ref<Promise<Array<{ label: string; value: UUID }>>>(Promise.resolve([]));
 
@@ -42,6 +44,15 @@ const attenuated_biscuit = ref<null | Biscuit>(null);
 function _forceLoad() {
   organization_id.value = route.params.organization_id as UUID;
   service_token_id.value = route.params.service_token_id as UUID;
+
+  getInstanceConfig()
+    .then((config: InstanceConfig) => {
+      biscuit_public_key$.value = config.biscuit_public_key;
+    })
+    .catch((err: AxiosError<AxiosResponse<Problem>>) => {
+      let problem = handleError(err);
+      displayError(problem);
+    });
 
   get(service_token_id.value, organization_id.value)
     .then((service_token) => {
@@ -71,6 +82,16 @@ function _load() {
 }
 
 function submit() {
+  if (!biscuit_public_key$.value) {
+    push.error({
+      title: 'Something went wrong',
+      message:
+        'An error occurred while getting the biscuit public key from Hook0. If the problem persists, please contact support.',
+      duration: 5000,
+    });
+    return;
+  }
+
   if (!service_token$.value) {
     push.error({
       title: 'Invalid service token',
@@ -89,20 +110,21 @@ function submit() {
     return;
   }
 
-  try {
-    if (date_attenuation.value && isBefore(date_attenuation.value, new Date())) {
-      push.error({
-        title: 'Invalid expiration date',
-        message: 'The expiration date must be in the future',
-        duration: 5000,
-      });
-      return;
-    }
+  if (date_attenuation.value && isBefore(date_attenuation.value, new Date())) {
+    push.error({
+      title: 'Invalid expiration date',
+      message: 'The expiration date must be in the future',
+      duration: 5000,
+    });
+    return;
+  }
 
+  try {
     attenuated_biscuit.value = attenuateBiscuit(
       service_token$.value?.biscuit,
       selected_application_id.value,
-      date_attenuation.value ? new Date(date_attenuation.value) : null
+      date_attenuation.value ? new Date(date_attenuation.value) : null,
+      biscuit_public_key$.value
     );
     push.success({
       title: 'Service token generated',
@@ -110,12 +132,19 @@ function submit() {
       duration: 5000,
     });
   } catch (e) {
-    push.error({
-      title: 'Something went wrong',
-      message:
-        'An error occurred while generating the service token. Your biscuit may be invalid. If the error persists, please contact support.',
-      duration: 5000,
-    });
+    if (e instanceof Error) {
+      push.error({
+        title: 'Something went wrong',
+        message: e.message,
+        duration: 5000,
+      });
+    } else {
+      push.error({
+        title: 'Something went wrong',
+        message: 'An error occurred while generating the service token',
+        duration: 5000,
+      });
+    }
   }
 }
 
@@ -153,6 +182,23 @@ onUpdated(() => {
           </div>
         </template>
       </Hook0CardHeader>
+      <Hook0CardContent v-if="service_token$">
+        <Hook0CardContentLine>
+          <template #label>
+            Service Token
+
+            <Hook0Text class="helpText mt-2 block">
+              This is your actual service token, this token get every access in your organization.
+              <strong>Don't share with anyone.</strong>
+            </Hook0Text>
+
+            <Hook0Text class="helpText mt-2 block"> </Hook0Text>
+          </template>
+          <template #content>
+            <Hook0Code :code="service_token$.biscuit"></Hook0Code>
+          </template>
+        </Hook0CardContentLine>
+      </Hook0CardContent>
       <Promised :promise="applications$">
         <!-- Use the "pending" slot to display a loading message -->
         <template #pending>
