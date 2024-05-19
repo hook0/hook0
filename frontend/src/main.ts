@@ -6,6 +6,7 @@ import { createApp } from 'vue';
 import router from './router';
 import { Promised } from 'vue-promised';
 import { AuthPlugin } from './iam';
+import { checkWebAssembly } from '@/utils/biscuit_auth.ts';
 
 import Root from './Root.vue';
 
@@ -68,7 +69,6 @@ app.use(AuthPlugin);
 import 'notivue/notification.css'; // Only needed if using built-in notifications
 import 'notivue/animations.css'; // Only needed if using built-in animations
 import 'notivue/notification-progress.css';
-import { checkWebAssembly } from '@/utils/biscuit_auth.ts';
 
 const notivue = createNotivue({
   position: 'top-right',
