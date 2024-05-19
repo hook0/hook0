@@ -10,7 +10,6 @@ import Hook0Dropdown from '@/components/Hook0Dropdown.vue';
 import Hook0DropdownMenuItems from '@/components/Hook0DropdownMenuItems.vue';
 import Hook0DropdownMenuItemText from '@/components/Hook0DropdownMenuItemText.vue';
 import Hook0DropdownMenuItemLink from '@/components/Hook0DropdownMenuItemLink.vue';
-import Hook0Loader from '@/components/Hook0Loader.vue';
 import CrispChat from '@/components/CrispChat.vue';
 
 const router = useRouter();
@@ -22,7 +21,7 @@ const currentUser = getUserInfo();
 
 async function logout() {
   await doLogout();
-  await router.push('/login');
+  await router.push({ name: routes.Login });
 }
 </script>
 
@@ -65,7 +64,6 @@ async function logout() {
         </Hook0DropdownMenuItems>
       </template>
     </Hook0Dropdown>
-    <Hook0Loader v-else></Hook0Loader>
   </div>
 
   <CrispChat v-if="currentUser" :email="currentUser.email" :name="currentUser.name" />
