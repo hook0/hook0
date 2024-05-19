@@ -17,10 +17,7 @@ const currentUser = getUserInfo();
 const new_password = ref<string>('');
 const confirm_new_password = ref<string>('');
 
-async function changePassword(e: Event) {
-  e.preventDefault();
-  e.stopImmediatePropagation();
-
+async function changePassword() {
   if (new_password.value !== confirm_new_password.value) {
     push.error({
       title: 'Error',
@@ -31,12 +28,15 @@ async function changePassword(e: Event) {
   }
 
   await UsersService.changePassword(new_password.value).catch(displayError);
+
+  push.success({
+    title: 'Success',
+    message: 'Your password was successfully changed.',
+    duration: 3000,
+  });
 }
 
-async function deleteAccount(e: Event) {
-  e.preventDefault();
-  e.stopImmediatePropagation();
-
+async function deleteAccount() {
   if (!confirm(`Are you sure to delete your account?`)) {
     return;
   }
@@ -121,12 +121,10 @@ function displayError(err: Problem) {
     </Hook0Card>
 
     <Hook0Card v-if="currentUser">
-      <form @submit="changePassword($event)">
+      <form @submit.prevent="changePassword">
         <Hook0CardHeader>
           <template #header> Change password </template>
-          <template #subtitle>
-            Change your password. You will be logged out after changing your password.
-          </template>
+          <template #subtitle> Set a new password to your user account. </template>
         </Hook0CardHeader>
         <Hook0CardContent>
           <Hook0CardContentLine>
@@ -158,15 +156,13 @@ function displayError(err: Problem) {
           </Hook0CardContentLine>
         </Hook0CardContent>
         <Hook0CardFooter>
-          <Hook0Button class="primary" type="submit" @click="changePassword($event)"
-            >Change password</Hook0Button
-          >
+          <Hook0Button class="primary" submit>Change password</Hook0Button>
         </Hook0CardFooter>
       </form>
     </Hook0Card>
 
     <Hook0Card v-if="currentUser">
-      <form @submit="deleteAccount($event)">
+      <form @submit.prevent="deleteAccount">
         <Hook0CardHeader>
           <template #header> Delete my account </template>
           <template #subtitle>
@@ -175,9 +171,7 @@ function displayError(err: Problem) {
           </template>
         </Hook0CardHeader>
         <Hook0CardFooter>
-          <Hook0Button class="danger" type="submit" @click="deleteAccount($event)"
-            >Delete</Hook0Button
-          >
+          <Hook0Button class="danger" submit>Delete</Hook0Button>
         </Hook0CardFooter>
       </form>
     </Hook0Card>

@@ -28,7 +28,7 @@ async function submit() {
         message: 'You have successfully logged in.',
         duration: 5000,
       });
-      return router.push(routes.Home);
+      return router.push({ name: routes.Home });
     })
     .catch((err: AxiosError<AxiosResponse<Problem>>) => {
       let problem = handleError(err);
@@ -48,7 +48,7 @@ function displayError(err: Problem) {
 </script>
 
 <template>
-  <form @submit="submit">
+  <form @submit.prevent="submit">
     <Hook0Card>
       <Hook0CardHeader>
         <template #header> Login </template>
@@ -61,7 +61,14 @@ function displayError(err: Problem) {
           <template #label> Email </template>
           <template #content>
             <div class="flex flex-row">
-              <Hook0Input v-model="email" type="email" class="w-full" placeholder="Email" required>
+              <Hook0Input
+                v-model="email"
+                type="email"
+                class="w-full"
+                placeholder="Email"
+                required
+                autofocus
+              >
               </Hook0Input>
             </div>
           </template>
@@ -84,7 +91,10 @@ function displayError(err: Problem) {
         </Hook0CardContentLine>
       </Hook0CardContent>
       <Hook0CardFooter>
-        <Hook0Button class="primary" type="submit" @click="submit">Login</Hook0Button>
+        <Hook0Button class="secondary" :to="{ name: routes.BeginResetPassword }"
+          >Forgot password?</Hook0Button
+        >
+        <Hook0Button class="primary" submit>Login</Hook0Button>
       </Hook0CardFooter>
     </Hook0Card>
   </form>
