@@ -50,7 +50,7 @@ async function _onLoad() {
   await UserService.verifyEmail(token)
     .then(() => {
       displaySuccess();
-      return router.push(routes.Login);
+      return router.push({ name: routes.Login });
     })
     .catch(displayError);
 }

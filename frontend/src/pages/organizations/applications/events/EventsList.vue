@@ -246,7 +246,7 @@ onUpdated(() => {
           </template>
         </Hook0CardHeader>
 
-        <form @submit="send_test_event">
+        <form @submit.prevent="send_test_event">
           <Hook0CardContent>
             <Hook0CardContentLine>
               <template #label> Event Type </template>
@@ -305,10 +305,8 @@ onUpdated(() => {
           </Hook0CardContent>
 
           <Hook0CardFooter>
-            <Hook0Button type="button" class="secondary" @click="cancel_test">Cancel</Hook0Button>
-            <Hook0Button type="submit" class="primary" @click="send_test_event"
-              >Send test event</Hook0Button
-            >
+            <Hook0Button class="secondary" @click="cancel_test">Cancel</Hook0Button>
+            <Hook0Button class="primary" submit>Send test event</Hook0Button>
           </Hook0CardFooter>
         </form>
       </Hook0Card>
@@ -355,11 +353,7 @@ onUpdated(() => {
         </Hook0CardContent>
 
         <Hook0CardFooter>
-          <form @submit="enabled_test">
-            <Hook0Button type="submit" class="primary" @click="enabled_test"
-              >Send an event</Hook0Button
-            >
-          </form>
+          <Hook0Button class="primary" @click="enabled_test">Send an event</Hook0Button>
         </Hook0CardFooter>
       </Hook0Card>
     </template>

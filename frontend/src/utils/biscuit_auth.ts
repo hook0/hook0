@@ -15,6 +15,7 @@ export function getInstanceConfig(): Promise<InstanceConfig> {
     (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
   );
 }
+
 export function attenuateBiscuit(
   biscuit_string: string,
   application_id: UUID | null,

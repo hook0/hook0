@@ -107,10 +107,7 @@ const roles: Hook0SelectSingleOption[] = [
   { label: 'Viewer', value: 'viewer' },
 ];
 
-function invite(e: Event) {
-  e.preventDefault();
-  e.stopImmediatePropagation();
-
+function invite() {
   if (organization_id.value && invitation$.value.email !== '' && invitation$.value.role != '') {
     MemberService.invite(organization_id.value, invitation$.value)
       .then(() => {
@@ -191,7 +188,7 @@ onUpdated(() => {
           </Hook0CardContentLines>
         </Hook0CardContent>
 
-        <form @submit="invite">
+        <form @submit.prevent="invite">
           <Hook0CardFooter>
             <Hook0Input
               v-model="invitation$.email"
@@ -207,9 +204,8 @@ onUpdated(() => {
             />
             <Hook0Button
               class="primary"
-              type="submit"
+              submit
               :disabled="invitation$.email === '' || invitation$.role === ''"
-              @click="invite($event)"
               >Invite a user
             </Hook0Button>
           </Hook0CardFooter>

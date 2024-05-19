@@ -206,7 +206,7 @@ onUpdated(() => {
         </template>
         <!-- The default scoped slot will be used as the result -->
         <template #default="applications">
-          <form @submit="submit">
+          <form @submit.prevent="submit">
             <Hook0CardContent>
               <Hook0CardContentLine>
                 <template #label> Application </template>
@@ -231,7 +231,7 @@ onUpdated(() => {
               </Hook0CardContentLine>
             </Hook0CardContent>
             <Hook0CardFooter>
-              <Hook0Button class="primary" type="submit" @click="submit">Generate</Hook0Button>
+              <Hook0Button class="primary" submit>Generate</Hook0Button>
             </Hook0CardFooter>
           </form>
         </template>

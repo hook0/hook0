@@ -8,8 +8,7 @@ import { onMounted, ref } from 'vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import { push } from 'notivue';
-import { AxiosError, AxiosResponse } from 'axios';
-import { handleError, Problem } from '@/http.ts';
+import { Problem } from '@/http.ts';
 import { resetPassword } from '@/pages/users/UsersServices.ts';
 import { routes } from '@/routes.ts';
 import router from '@/router.ts';
@@ -43,11 +42,10 @@ async function submit() {
         message: 'Your password has been reset successfully. Please login.',
         duration: 5000,
       });
-      return router.push(routes.Login);
+      return router.push({ name: routes.Login });
     })
-    .catch((err: AxiosError<AxiosResponse<Problem>>) => {
-      let problem = handleError(err);
-      displayError(problem);
+    .catch((err: Problem) => {
+      displayError(err);
     });
 }
 
@@ -79,17 +77,10 @@ onMounted(() => {
 </script>
 
 <template>
-  <Hook0CardContent v-if="alert.visible">
-    <Hook0Alert
-      :type="alert.type"
-      :title="alert.title"
-      :description="alert.description"
-    ></Hook0Alert>
-  </Hook0CardContent>
-  <form v-else @submit="submit">
+  <form @submit.prevent="submit">
     <Hook0Card>
       <Hook0CardHeader>
-        <template #header> Change account password </template>
+        <template #header> Set new account's password </template>
       </Hook0CardHeader>
       <Hook0CardContent>
         <Hook0CardContentLine>
@@ -102,6 +93,7 @@ onMounted(() => {
                 class="w-full"
                 placeholder="New password"
                 required
+                autofocus
               >
               </Hook0Input>
             </div>
@@ -124,8 +116,17 @@ onMounted(() => {
         </Hook0CardContentLine>
       </Hook0CardContent>
       <Hook0CardFooter>
-        <Hook0Button class="primary" type="submit" @click="submit">Submit</Hook0Button>
+        <Hook0Button class="primary" submit>Set new password</Hook0Button>
       </Hook0CardFooter>
     </Hook0Card>
   </form>
+  <Hook0Card v-if="alert.visible">
+    <Hook0CardContent>
+      <Hook0Alert
+        :type="alert.type"
+        :title="alert.title"
+        :description="alert.description"
+      ></Hook0Alert>
+    </Hook0CardContent>
+  </Hook0Card>
 </template>
