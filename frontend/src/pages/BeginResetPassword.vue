@@ -11,6 +11,7 @@ import { push } from 'notivue';
 import { AxiosError, AxiosResponse } from 'axios';
 import { handleError, Problem } from '@/http.ts';
 import { beginResetPassword } from '@/pages/users/UsersServices.ts';
+import { routes } from '@/routes.ts';
 
 const email = ref('');
 
@@ -41,14 +42,14 @@ function displayError(err: Problem) {
 </script>
 
 <template>
-  <form @submit="submit">
+  <form @submit.prevent="submit">
     <Hook0Card>
       <Hook0CardHeader>
-        <template #header> Reset my account password </template>
+        <template #header>Reset your account's password</template>
         <template #subtitle>
           <div class="text-sm text-gray-500">
-            For security reasons, we need to verify your identity. We've sent a mail to your email
-            address. Please click on the link in the email to reset your password.
+            You will receive an email with a verification link that will allow you to set a new
+            pasword.
           </div>
         </template>
       </Hook0CardHeader>
@@ -57,14 +58,22 @@ function displayError(err: Problem) {
           <template #label> Email </template>
           <template #content>
             <div class="flex flex-row">
-              <Hook0Input v-model="email" type="email" class="w-full" placeholder="Email" required>
+              <Hook0Input
+                v-model="email"
+                type="email"
+                class="w-full"
+                placeholder="Email"
+                required
+                autofocus
+              >
               </Hook0Input>
             </div>
           </template>
         </Hook0CardContentLine>
       </Hook0CardContent>
       <Hook0CardFooter>
-        <Hook0Button class="primary" type="submit" @click="submit">Submit</Hook0Button>
+        <Hook0Button class="secondary" :to="{ name: routes.Login }">Back to login</Hook0Button>
+        <Hook0Button class="primary" submit>Send verification email</Hook0Button>
       </Hook0CardFooter>
     </Hook0Card>
   </form>

@@ -4,6 +4,11 @@ import { onMounted, onUpdated, ref, useAttrs, useSlots } from 'vue';
 
 import Hook0Text from '@/components/Hook0Text.vue';
 
+interface Props {
+  autofocus?: boolean;
+}
+const props = defineProps<Props>();
+
 defineOptions({
   inheritAttrs: false,
 });
@@ -31,6 +36,11 @@ function _internalState() {
 
 onMounted(() => {
   _internalState();
+
+  if (props.autofocus ?? false) {
+    console.log('focus');
+    ipt.value?.focus();
+  }
 });
 
 onUpdated(() => {
