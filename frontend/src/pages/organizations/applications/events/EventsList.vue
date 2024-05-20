@@ -34,7 +34,6 @@ const show_event_form = ref<boolean>(false);
 
 const event_type$ = ref<Promise<Array<{ label: string; value: string }>>>(Promise.resolve([]));
 
-const event_id = ref<null | UUID>(uuidv4());
 const selected_event_type = ref<null | string>();
 const label_key = ref<null | string>('all');
 const label_value = ref<null | string>('yes');
@@ -184,7 +183,7 @@ function send_test_event() {
 
   send_json_event(
     application_id.value as UUID,
-    event_id.value as UUID,
+    uuidv4(),
     selected_event_type.value,
     labels,
     occurred_at.value,
