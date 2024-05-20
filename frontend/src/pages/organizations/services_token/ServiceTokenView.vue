@@ -171,14 +171,13 @@ onUpdated(() => {
   <div>
     <Hook0Card>
       <Hook0CardHeader>
-        <template #header> Service Token </template>
+        <template #header>
+          Service Token
+          <small v-if="service_token$">{{ service_token$.name }}</small>
+        </template>
         <template #subtitle>
           <div class="text-sm text-gray-500">
-            This is a service token link to your organization. Actually he got an unlimited
-            expiration date and can be used to authenticated all your applications. If you want to
-            restrict it to a specific application or to a specific expiration date, you can generate
-            a new token. By attenuating the token, you will create a new token with the same rights
-            but with a specific expiration date or linked to a specific application.
+            A service token allows you to authenticate any API call related to your organization.
           </div>
         </template>
       </Hook0CardHeader>
@@ -188,8 +187,8 @@ onUpdated(() => {
             Service Token
 
             <Hook0Text class="helpText mt-2 block">
-              This is your actual service token, this token get every access in your organization.
-              <strong>Don't share with anyone.</strong>
+              This token can do everything in your organization.
+              <br /><strong>Don't share with anyone.</strong>
             </Hook0Text>
 
             <Hook0Text class="helpText mt-2 block"> </Hook0Text>
@@ -199,6 +198,19 @@ onUpdated(() => {
           </template>
         </Hook0CardContentLine>
       </Hook0CardContent>
+    </Hook0Card>
+
+    <Hook0Card>
+      <Hook0CardHeader>
+        <template #header> Attenuated your token </template>
+        <template #subtitle>
+          <div class="text-sm text-gray-500">
+            You can reduce your token's permissions. This will generate and display a new token.
+            Hook0 will only store your root token, not attenuated ones; but if you revoke a root
+            token, every token derived from it will be revoked too.
+          </div>
+        </template>
+      </Hook0CardHeader>
       <Promised :promise="applications$">
         <!-- Use the "pending" slot to display a loading message -->
         <template #pending>
@@ -209,7 +221,10 @@ onUpdated(() => {
           <form @submit.prevent="submit">
             <Hook0CardContent>
               <Hook0CardContentLine>
-                <template #label> Application </template>
+                <template #label>
+                  Reduce scope to one of your applications
+                  <br /><em>By default, tokens can access any of your applications.</em>
+                </template>
                 <template #content>
                   <Hook0Select
                     v-model="selected_application_id"
@@ -218,7 +233,9 @@ onUpdated(() => {
                 </template>
               </Hook0CardContentLine>
               <Hook0CardContentLine>
-                <template #label> Do you want attenuate the token expiration date? </template>
+                <template #label>
+                  Set an expiration date?<br /><em>By default, tokens live forever.</em>
+                </template>
                 <template #content>
                   <input v-model="is_date_expiration_attenuation" type="checkbox" />
                 </template>
@@ -241,17 +258,7 @@ onUpdated(() => {
           <Hook0Error :error="error"></Hook0Error>
         </template>
       </Promised>
-    </Hook0Card>
-    <Hook0Card v-if="attenuated_biscuit">
-      <Hook0CardHeader>
-        <template #header> Attenuated Token </template>
-        <template #subtitle>
-          <div class="text-sm text-gray-500">
-            This is your attenuated token with your params. Don't share with anyone.
-          </div>
-        </template>
-      </Hook0CardHeader>
-      <Hook0CardContent>
+      <Hook0CardContent v-if="attenuated_biscuit">
         <Hook0CardContentLines>
           <Hook0Code :code="attenuated_biscuit.toBase64()"></Hook0Code>
         </Hook0CardContentLines>
