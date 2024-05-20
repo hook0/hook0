@@ -46,4 +46,4 @@ create index token_revocation_id_idx on iam.token (revocation_id);
 create index token_organization__id_idx on iam.token (organization__id);
 create index token_user__id_idx on iam.token (user__id);
 
-alter table event.event alter column application_secret__token set default null;
+alter table event.event alter column application_secret__token drop not null;
