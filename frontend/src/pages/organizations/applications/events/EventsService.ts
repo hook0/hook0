@@ -63,7 +63,7 @@ export function list(application_id: UUID): Promise<Array<Event>> {
     );
 }
 
-export function _send_test_event(
+export function send_json_event(
   application_id: UUID,
   event_id: UUID,
   event_type: string,
