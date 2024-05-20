@@ -11,16 +11,17 @@ import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0Table from '@/components/Hook0Table.vue';
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
-import Hook0TableCellCode from '@/components/Hook0TableCellCode.vue';
 import Hook0TableCellDate from '@/components/Hook0TableCellDate.vue';
 import { Problem, UUID } from '@/http';
 import Hook0Text from '@/components/Hook0Text.vue';
-import * as ApplicationSecretService from './ApplicationSecretService';
-import { ApplicationSecret } from './ApplicationSecretService';
+import * as ServiceTokenService from './ServicesTokenService.ts';
+import { ServiceToken } from './ServicesTokenService.ts';
 import Hook0Loader from '@/components/Hook0Loader.vue';
 import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
 import Hook0Error from '@/components/Hook0Error.vue';
 import { push } from 'notivue';
+import router from '@/router.ts';
+import { routes } from '@/routes.ts';
 
 const route = useRoute();
 
@@ -39,17 +40,6 @@ const columnDefs: ColDef[] = [
     headerName: 'Name',
   },
   {
-    field: 'token',
-    suppressMovable: true,
-    sortable: true,
-    suppressSizeToFit: true,
-    resizable: true,
-    width: 345,
-    cellRenderer: Hook0TableCellCode,
-    cellRendererParams: {},
-    headerName: 'Token',
-  },
-  {
     field: 'created_at',
     suppressMovable: true,
     sortable: true,
@@ -61,54 +51,102 @@ const columnDefs: ColDef[] = [
     suppressMovable: true,
     headerName: 'Options',
     suppressSizeToFit: true,
+    width: 95,
+    cellRenderer: Hook0TableCellLink,
+    cellRendererParams: {
+      value: 'Show',
+      icon: 'eye',
+      onClick: (row: ServiceToken): void => {
+        router
+          .push({
+            name: routes.ServiceTokenView,
+            params: {
+              organization_id: organization_id.value as string,
+              service_token_id: row.token_id,
+            },
+          })
+          .catch(displayError);
+      },
+    },
+  },
+  {
+    suppressMovable: true,
+    headerName: '',
+    suppressSizeToFit: true,
+    width: 95,
+    cellRenderer: Hook0TableCellLink,
+    cellRendererParams: {
+      value: 'Edit',
+      icon: 'pen',
+      onClick: (row: ServiceToken): void => {
+        const name = prompt('Edit the service token name?', row.name);
+        if (!name) {
+          return;
+        }
+
+        ServiceTokenService.update(row.token_id, {
+          name: name,
+          organization_id: organization_id.value as string,
+        })
+          .then(() => {
+            _forceLoad();
+          })
+          .catch(displayError);
+      },
+    },
+  },
+  {
+    suppressMovable: true,
+    headerName: '',
+    suppressSizeToFit: true,
     width: 105,
     cellRenderer: Hook0TableCellLink,
     cellRendererParams: {
       value: 'Delete',
       icon: 'trash',
-      onClick: (row: ApplicationSecret): void => {
-        if (confirm(`Are you sure to delete "${row.name as string}" API Key?`)) {
-          ApplicationSecretService.remove(application_id.value as string, row.token)
+      onClick: (row: ServiceToken): void => {
+        if (
+          confirm(
+            'Are you sure you want to delete this service token?\n\nEvery token derived from this token will be revoked as well.'
+          )
+        ) {
+          ServiceTokenService.remove(row.token_id, organization_id.value as string)
             .then(() => {
-              // @TODO notify user of success
               _forceLoad();
             })
-            // @TODO proper error management
-            .catch((err) => {
-              window.alert(err);
-              throw err;
-            });
+            .catch(displayError);
         }
       },
     },
   },
 ];
 
-const application_secrets$ = ref<Promise<Array<ApplicationSecret>>>();
-const application_id = ref<null | UUID>(null);
+const services_token$ = ref<Promise<Array<ServiceToken>>>();
+const organization_id = ref<null | UUID>(null);
 
 function createNew(event: Event) {
   event.stopImmediatePropagation();
   event.preventDefault();
 
-  const name = prompt('Create a new secret key, name?');
+  const name = prompt('Give a name to your new service token:');
   if (!name) {
     return;
   }
 
-  ApplicationSecretService.create({
-    application_id: application_id.value as string,
-    name: name,
-  }).then(() => _forceLoad(), displayError);
+  ServiceTokenService.create({ name: name, organization_id: organization_id.value as string })
+    .then(() => {
+      _forceLoad();
+    })
+    .catch(displayError);
 }
 
 function _forceLoad() {
-  application_id.value = route.params.application_id as UUID;
-  application_secrets$.value = ApplicationSecretService.list(application_id.value);
+  organization_id.value = route.params.organization_id as UUID;
+  services_token$.value = ServiceTokenService.list(organization_id.value);
 }
 
 function _load() {
-  if (application_id.value !== route.params.application_id) {
+  if (organization_id.value !== route.params.organization_id) {
     _forceLoad();
   }
 }
@@ -133,26 +171,27 @@ onUpdated(() => {
 </script>
 
 <template>
-  <Promised :promise="application_secrets$">
+  <Promised :promise="services_token$">
     <!-- Use the "pending" slot to display a loading message -->
     <template #pending>
       <Hook0Loader></Hook0Loader>
     </template>
     <!-- The default scoped slot will be used as the result -->
-    <template #default="application_secrets">
+    <template #default="services_tokens">
       <Hook0Card>
         <Hook0CardHeader>
-          <template #header> API Keys </template>
+          <template #header> Service Tokens </template>
           <template #subtitle>
-            These keys will allow you to authenticate API requests to Hook0.
+            A service token is an organization-wide API key that allows other programs to send API
+            requests to Hook0.
           </template>
         </Hook0CardHeader>
 
-        <Hook0CardContent v-if="application_secrets.length > 0">
+        <Hook0CardContent v-if="services_tokens.length > 0">
           <Hook0Table
-            :context="{ application_secrets$, columnDefs }"
+            :context="{ services_token$, columnDefs }"
             :column-defs="columnDefs"
-            :row-data="application_secrets"
+            :row-data="services_tokens"
           >
           </Hook0Table>
         </Hook0CardContent>
@@ -175,7 +214,7 @@ onUpdated(() => {
 
         <Hook0CardFooter>
           <Hook0Button class="primary" type="button" @click="createNew"
-            >Create new API Key
+            >Create a new service token
           </Hook0Button>
         </Hook0CardFooter>
       </Hook0Card>

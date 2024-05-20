@@ -9,6 +9,8 @@ import { routes } from '@/routes';
 import Hook0Footer from '@/components/Hook0Footer.vue';
 import Hook0LoginMenu from '@/components/Hook0LoginMenu.vue';
 import Hook0Icon from '@/components/Hook0Icon.vue';
+import { Notivue, Notification, NotificationProgress } from 'notivue';
+import Hook0Button from './components/Hook0Button.vue';
 
 const route = useRoute();
 
@@ -94,6 +96,24 @@ const items = computed<Route[]>(() => {
         href: 'https://documentation.hook0.com/',
       },
     ];
+  } else if (route.params.organization_id) {
+    return [
+      {
+        name: 'Services Tokens',
+        icon: 'key',
+        route: {
+          name: routes.ServicesTokenList,
+          params: {
+            organization_id: route.params.organization_id,
+          },
+        },
+      },
+      {
+        name: 'API Documentation',
+        icon: 'book',
+        href: 'https://documentation.hook0.com/',
+      },
+    ];
   } else {
     return [
       {
@@ -107,12 +127,17 @@ const items = computed<Route[]>(() => {
 </script>
 
 <template>
+  <Notivue v-slot="item">
+    <Notification :item="item">
+      <NotificationProgress :item="item" />
+    </Notification>
+  </Notivue>
   <div class="h-screen flex overflow-hidden bg-gray-100">
     <div class="hidden md:flex md:flex-shrink-0">
       <div class="flex flex-col w-64 bg-gray-800">
         <div class="flex flex-col h-0 flex-1">
           <div class="flex items-center h-16 flex-shrink-0 px-4">
-            <Hook0Logo></Hook0Logo>
+            <Hook0Button :to="{ name: routes.Home }"><Hook0Logo></Hook0Logo></Hook0Button>
           </div>
           <div class="flex flex-shrink-0 bg-gray-100">
             <OrganizationSelector></OrganizationSelector>

@@ -4,6 +4,7 @@ import http from '@/http';
 import type { components } from '@/types';
 import router from '@/router';
 import { differenceInMilliseconds, subMinutes } from 'date-fns';
+import { routes } from '@/routes.ts';
 
 type definitions = components['schemas'];
 type LoginResponse = definitions['LoginResponse'];
@@ -121,6 +122,20 @@ export async function login(email: string, password: string): Promise<void> {
   }
 }
 
+export async function register(
+  email: string,
+  firstName: string,
+  lastName: string,
+  password: string
+): Promise<void> {
+  return http.unauthenticated.post('/register', {
+    email,
+    first_name: firstName,
+    last_name: lastName,
+    password,
+  });
+}
+
 export async function refresh(): Promise<void> {
   if (state.value) {
     const res = await http.withRefreshToken.post<LoginResponse>('/auth/refresh');
@@ -148,6 +163,7 @@ export async function logout(): Promise<void> {
     }
     state.value = null;
     removeStateFromStorage();
+    await router.push({ name: routes.Login });
   }
 }
 
@@ -189,7 +205,21 @@ export const AuthPlugin: Plugin = {
       scheduleAutoRefresh().catch(console.error);
     } else {
       removeStateFromStorage();
-      router.push('/login').catch(console.error);
     }
+    router.beforeEach((to, _from) => {
+      // If the route requires authentication and the user is not logged in, redirect to the login page
+      if ((to.meta?.requiresAuth ?? true) && state.value === null) {
+        return { name: routes.Login };
+      }
+      // If the route does not require authentication and does not have a redirectIfLoggedIn meta set to false while the user is logged in, then we redirect to the home page
+      else if (
+        !(to.meta?.requiresAuth ?? true) &&
+        (to.meta?.redirectIfLoggedIn ?? true) &&
+        state.value !== null
+      ) {
+        return { name: routes.Home };
+      }
+      return true;
+    });
   },
 };

@@ -24,7 +24,7 @@
     ".prettierrc.js"
   ],
   "scripts": {
-    "preinstall": "cp -v ../mediakit/logo/favicon.ico ./public/favicon.ico",
+    "preinstall": "cp -v ../mediakit/logo/favicon.ico ./public/favicon.ico && cp -v ../mediakit/logo/256x256.png ./public/256x256.png",
     "//start:dev": "don't forget to first start the Rust API in order to then access to this frontend through the API http server",
     "serve": "vue-cli-service serve --mode dev --watch",
     "build": "vite build",
@@ -57,9 +57,10 @@
     "fp-ts": "^2.11.6",
     "keycloak-js": "^24.0.1",
     "lodash.debounce": "^4.0.8",
+    "notivue": "^2.4.4",
     "ramda": "^0.29.0",
     "swagger-ui": "^5.15.2",
-    "uuidv4": "^6.2.7",
+    "uuid": "^9.0.1",
     "vue": "^3.0.0",
     "vue-click-outside-element": "^3.1.2",
     "vue-codemirror": "^6.1.1",
@@ -72,6 +73,7 @@
     "@types/lodash.debounce": "^4.0.7",
     "@types/ramda": "^0.29.1",
     "@types/swagger-ui": "^3.47.0",
+    "@types/uuid": "^9.0.8",
     "@vitejs/plugin-vue": "^5.0.2",
     "@vue/eslint-config-typescript": "^13.0.0",
     "autoprefixer": "^10.4.0",
