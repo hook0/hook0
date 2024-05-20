@@ -91,7 +91,6 @@ struct EventRaw {
     metadata: Option<Value>,
     occurred_at: DateTime<Utc>,
     received_at: DateTime<Utc>,
-    application_secret__token: Uuid,
     labels: Value,
 }
 
@@ -105,7 +104,6 @@ impl EventRaw {
             metadata: self.metadata.clone(),
             occurred_at: self.occurred_at,
             received_at: self.received_at,
-            application_secret_token: self.application_secret__token,
             labels: self.labels.clone(),
         }
     }
@@ -120,7 +118,6 @@ pub struct Event {
     metadata: Option<Value>,
     occurred_at: DateTime<Utc>,
     received_at: DateTime<Utc>,
-    application_secret_token: Uuid,
     labels: Value,
 }
 
@@ -154,7 +151,7 @@ pub async fn list(
     let raw_events = query_as!(
             EventRaw,
             "
-                SELECT event__id, event_type__name, payload_content_type, ip, metadata, occurred_at, received_at, application_secret__token, labels
+                SELECT event__id, event_type__name, payload_content_type, ip, metadata, occurred_at, received_at, labels
                 FROM event.event
                 WHERE application__id = $1
                 ORDER BY received_at DESC
@@ -181,7 +178,6 @@ struct EventWithPayloadRaw {
     metadata: Option<Value>,
     occurred_at: DateTime<Utc>,
     received_at: DateTime<Utc>,
-    application_secret__token: Uuid,
     labels: Value,
 }
 
@@ -196,7 +192,6 @@ impl EventWithPayloadRaw {
             metadata: self.metadata.clone(),
             occurred_at: self.occurred_at,
             received_at: self.received_at,
-            application_secret_token: self.application_secret__token,
             labels: self.labels.clone(),
         }
     }
@@ -212,7 +207,6 @@ pub struct EventWithPayload {
     metadata: Option<Value>,
     occurred_at: DateTime<Utc>,
     received_at: DateTime<Utc>,
-    application_secret_token: Uuid,
     labels: Value,
 }
 
@@ -247,7 +241,7 @@ pub async fn get(
     let raw_event = query_as!(
             EventWithPayloadRaw,
             "
-                SELECT event__id, event_type__name, payload, payload_content_type, ip, metadata, occurred_at, received_at, application_secret__token, labels
+                SELECT event__id, event_type__name, payload, payload_content_type, ip, metadata, occurred_at, received_at, labels
                 FROM event.event
                 WHERE application__id = $1 AND event__id = $2
             ",
