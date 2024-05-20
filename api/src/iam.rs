@@ -387,6 +387,7 @@ pub enum Action<'a> {
     //
     ServiceTokenList,
     ServiceTokenCreate,
+    ServiceTokenGet,
     ServiceTokenEdit {
         service_token_id: &'a Uuid,
     },
@@ -499,6 +500,7 @@ impl<'a> Action<'a> {
             //
             Self::ServiceTokenList => "service_token:list",
             Self::ServiceTokenCreate => "service_token:create",
+            Self::ServiceTokenGet => "service_token:get",
             Self::ServiceTokenEdit { .. } => "service_token:edit",
             Self::ServiceTokenDelete { .. } => "service_token:delete",
             //
@@ -562,6 +564,7 @@ impl<'a> Action<'a> {
             //
             Self::ServiceTokenList => vec![Role::Viewer],
             Self::ServiceTokenCreate => vec![],
+            Self::ServiceTokenGet => vec![Role::Viewer],
             Self::ServiceTokenEdit { .. } => vec![],
             Self::ServiceTokenDelete { .. } => vec![],
             //
@@ -641,6 +644,7 @@ impl<'a> Action<'a> {
             //
             Self::ServiceTokenList => None,
             Self::ServiceTokenCreate => None,
+            Self::ServiceTokenGet => None,
             Self::ServiceTokenEdit { .. } => None,
             Self::ServiceTokenDelete { .. } => None,
             //
@@ -702,6 +706,7 @@ impl<'a> Action<'a> {
             //
             Self::ServiceTokenList => vec![],
             Self::ServiceTokenCreate => vec![],
+            Self::ServiceTokenGet => vec![],
             Self::ServiceTokenEdit { service_token_id } => vec![fact!(
                 "service_token_id({service_token_id})",
                 service_token_id = *service_token_id
