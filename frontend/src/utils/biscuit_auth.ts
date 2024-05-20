@@ -17,7 +17,7 @@ export function getInstanceConfig(): Promise<InstanceConfig> {
 }
 
 export function attenuateBiscuit(
-  biscuit_string: string,
+  biscuit_token: string,
   application_id: UUID | null,
   expired_at: Date | null,
   biscuitPublicKey: string
@@ -25,7 +25,7 @@ export function attenuateBiscuit(
   const public_key: PublicKey = PublicKey.fromString(biscuitPublicKey);
   let biscuit: Biscuit;
   try {
-    biscuit = Biscuit.fromBase64(biscuit_string, public_key);
+    biscuit = Biscuit.fromBase64(biscuit_token, public_key);
   } catch (e) {
     throw new Error(
       'An error occurred while generating the service token. Your biscuit may be invalid. If the error persists, please contact support.'

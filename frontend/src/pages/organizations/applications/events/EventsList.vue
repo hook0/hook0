@@ -21,23 +21,24 @@ import Hook0Loader from '@/components/Hook0Loader.vue';
 import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
 import Hook0Error from '@/components/Hook0Error.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
-import { _send_test_event } from './EventsService';
+import { send_json_event } from './EventsService';
 import { list } from '@/pages/organizations/applications/event_types/EventTypeService.ts';
 import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0Select from '@/components/Hook0Select.vue';
 import { push } from 'notivue';
+import { v4 as uuidv4 } from 'uuid';
 
 const route = useRoute();
 
-const is_test_enabled = ref<boolean>(false);
+const show_event_form = ref<boolean>(false);
 
 const event_type$ = ref<Promise<Array<{ label: string; value: string }>>>(Promise.resolve([]));
 
-const event_id = ref<null | UUID>('b9ecf40b-2a44-4862-b7c6-d25e01d4d235');
+const event_id = ref<null | UUID>(uuidv4());
 const selected_event_type = ref<null | string>();
 const label_key = ref<null | string>('all');
 const label_value = ref<null | string>('yes');
-const occured_at = ref<null | Date>();
+const occurred_at = ref<null | Date>();
 const payload = ref<null | string>('{"test": true}');
 
 interface Props {
@@ -157,8 +158,8 @@ function _load() {
   }
 }
 
-function enabled_test() {
-  is_test_enabled.value = true;
+function display_event_form() {
+  show_event_form.value = true;
 }
 
 function send_test_event() {
@@ -166,7 +167,7 @@ function send_test_event() {
     !selected_event_type.value ||
     !label_key.value ||
     !label_value.value ||
-    !occured_at.value ||
+    !occurred_at.value ||
     !payload.value
   ) {
     push.error({
@@ -177,31 +178,32 @@ function send_test_event() {
     return;
   }
 
-  let label = {
+  let labels = {
     [label_key.value]: label_value.value,
   };
 
-  _send_test_event(
+  send_json_event(
     application_id.value as UUID,
     event_id.value as UUID,
     selected_event_type.value,
-    label,
-    occured_at.value,
+    labels,
+    occurred_at.value,
     payload.value
   )
     .then(() => {
-      is_test_enabled.value = false;
+      show_event_form.value = false;
       push.success({
         title: 'Test event sent',
         message: 'The test event was sent successfully',
         duration: 5000,
       });
+      _forceLoad();
     })
     .catch(displayError);
 }
 
 function cancel_test() {
-  is_test_enabled.value = false;
+  show_event_form.value = false;
 }
 
 function displayError(err: Problem) {
@@ -224,7 +226,7 @@ onUpdated(() => {
 </script>
 
 <template>
-  <Promised v-if="is_test_enabled" :promise="event_type$">
+  <Promised v-if="show_event_form" :promise="event_type$">
     <template #pending>
       <Hook0Loader></Hook0Loader>
     </template>
@@ -293,7 +295,7 @@ onUpdated(() => {
             <Hook0CardContentLine>
               <template #label> Occurred At </template>
               <template #content>
-                <input v-model="occured_at" type="datetime-local" />
+                <input v-model="occurred_at" type="datetime-local" />
               </template>
             </Hook0CardContentLine>
             <Hook0CardContentLine>
@@ -353,7 +355,7 @@ onUpdated(() => {
         </Hook0CardContent>
 
         <Hook0CardFooter>
-          <Hook0Button class="primary" @click="enabled_test">Send an event</Hook0Button>
+          <Hook0Button class="primary" @click="display_event_form">Send an event</Hook0Button>
         </Hook0CardFooter>
       </Hook0Card>
     </template>
