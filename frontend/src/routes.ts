@@ -12,7 +12,6 @@ import Register from '@/pages/RegisterPage.vue';
 import EventTypesList from '@/pages/organizations/applications/event_types/EventTypesList.vue';
 import EventTypesNew from '@/pages/organizations/applications/event_types/EventTypesNew.vue';
 import Home from '@/Home.vue';
-//import ComingSoon from '@/pages/ComingSoon.vue';
 import UsersSettings from '@/pages/users/UsersSettings.vue';
 import SubscriptionsList from '@/pages/organizations/applications/subscriptions/SubscriptionsList.vue';
 import SubscriptionsEdit from '@/pages/organizations/applications/subscriptions/SubscriptionsEdit.vue';
