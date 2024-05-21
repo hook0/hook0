@@ -30,7 +30,17 @@ function startTutorial() {
       <Hook0CardContentLines>
         <Hook0CardContentLine type="full-width">
           <template #content>
-            <Hook0Text> Some text here ... </Hook0Text>
+            <Hook0Text>
+              During this tutorial, you will learn how to use graphical interface of Hook0. You can
+              also use our API to interact with your applications and environments. To create your
+              first organization, click on the button below and follow the instructions or use our
+              <Hook0Button
+                target="_blank"
+                href="https://documentation.hook0.com/docs/getting-started"
+                >documentation</Hook0Button
+              >
+              to do the same thing but with the Hook0 API.
+            </Hook0Text>
           </template>
         </Hook0CardContentLine>
       </Hook0CardContentLines>

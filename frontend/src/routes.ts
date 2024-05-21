@@ -27,6 +27,8 @@ import ServiceTokenView from '@/pages/organizations/services_token/ServiceTokenV
 import IntroductionStep from '@/pages/tutorial/IntroductionStep.vue';
 import SecondStep from '@/pages/tutorial/SecondStep.vue';
 import ThirdStep from '@/pages/tutorial/ThirdStep.vue';
+import FourthStep from '@/pages/tutorial/FourthStep.vue';
+import FifthStep from '@/pages/tutorial/FifthStep.vue';
 
 export type Hook0Routes = string;
 
@@ -36,6 +38,8 @@ export const routes: Record<Hook0Routes, string> = {
   Tutorial: 'Tutorial',
   TutorialStep2: 'TutorialStep2',
   TutorialStep3: 'TutorialStep3',
+  TutorialStep4: 'TutorialStep4',
+  TutorialStep5: 'TutorialStep5',
 
   Login: 'Login',
   Register: 'Register',
@@ -90,13 +94,23 @@ export default [
   },
   {
     name: routes.TutorialStep2,
-    path: '/tutorial/organizations/:organization_id',
+    path: '/tutorial/2/organizations/:organization_id',
     component: SecondStep,
   },
   {
     name: routes.TutorialStep3,
-    path: '/tutorial/organizations/:organization_id/applications/:application_id',
+    path: '/tutorial/3/organizations/:organization_id/applications/:application_id',
     component: ThirdStep,
+  },
+  {
+    name: routes.TutorialStep4,
+    path: '/tutorial/4/organizations/:organization_id/applications/:application_id',
+    component: FourthStep,
+  },
+  {
+    name: routes.TutorialStep5,
+    path: '/tutorial/5/organizations/:organization_id/applications/:application_id',
+    component: FifthStep,
   },
   {
     name: routes.Login,
