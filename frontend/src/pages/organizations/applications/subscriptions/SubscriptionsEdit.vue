@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router';
-import { onMounted, onUpdated, ref } from 'vue';
+import { onMounted, onUpdated, ref, defineEmits, defineProps } from 'vue';
 import { head } from 'ramda';
 
 import { Problem, UUID } from '@/http';
@@ -28,6 +28,15 @@ import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Icon from '@/components/Hook0Icon.vue';
 import { push } from 'notivue';
+
+const props = defineProps({
+  tutorialMode: {
+    type: Boolean,
+    default: false,
+  },
+});
+
+const emit = defineEmits(['tutorial-subscription-created']);
 
 interface SelectableEventType extends EventType {
   selected: boolean;
@@ -211,7 +220,16 @@ function upsert(e: Event) {
       is_enabled: subscription.value.is_enabled,
       event_types: EventTypeNamesFromSelectedEventTypes(eventTypes.value),
     }).then((_resp) => {
-      cancel2();
+      if (props.tutorialMode) {
+        push.success({
+          title: 'Subscription created',
+          message: 'You have successfully created your first subscription',
+          duration: 5000,
+        });
+        emit('tutorial-subscription-created');
+      } else {
+        cancel2();
+      }
     }, displayError);
     return;
   }
@@ -432,7 +450,9 @@ onUpdated(() => {
           </template>
         </Hook0CardContentLine>
         <Hook0CardFooter>
-          <Hook0Button class="secondary" type="button" @click="cancel2()">Cancel</Hook0Button>
+          <Hook0Button v-if="!props.tutorialMode" class="secondary" type="button" @click="cancel2()"
+            >Cancel</Hook0Button
+          >
           <Hook0Button class="primary" type="button" @click="upsert($event)"
             >{{ isNew ? 'Create' : 'Update' }}
           </Hook0Button>
