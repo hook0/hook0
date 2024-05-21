@@ -24,11 +24,18 @@ import BeginResetPassword from '@/pages/BeginResetPassword.vue';
 import ResetPassword from '@/pages/ResetPassword.vue';
 import ServicesTokenList from '@/pages/organizations/services_token/ServicesTokenList.vue';
 import ServiceTokenView from '@/pages/organizations/services_token/ServiceTokenView.vue';
+import IntroductionStep from '@/pages/tutorial/IntroductionStep.vue';
+import SecondStep from '@/pages/tutorial/SecondStep.vue';
+import ThirdStep from '@/pages/tutorial/ThirdStep.vue';
 
 export type Hook0Routes = string;
 
 export const routes: Record<Hook0Routes, string> = {
   Home: 'Home',
+
+  Tutorial: 'Tutorial',
+  TutorialStep2: 'TutorialStep2',
+  TutorialStep3: 'TutorialStep3',
 
   Login: 'Login',
   Register: 'Register',
@@ -75,6 +82,21 @@ export default [
     name: routes.Home,
     path: '/',
     component: Home,
+  },
+  {
+    name: routes.Tutorial,
+    path: '/tutorial',
+    component: IntroductionStep,
+  },
+  {
+    name: routes.TutorialStep2,
+    path: '/tutorial/organizations/:organization_id',
+    component: SecondStep,
+  },
+  {
+    name: routes.TutorialStep3,
+    path: '/tutorial/organizations/:organization_id/applications/:application_id',
+    component: ThirdStep,
   },
   {
     name: routes.Login,
