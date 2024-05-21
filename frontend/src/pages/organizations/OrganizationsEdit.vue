@@ -3,10 +3,9 @@ import { onMounted, onUpdated, ref } from 'vue';
 
 import * as OrganizationService from './OrganizationService';
 import { OrganizationInfo } from './OrganizationService';
-//import { routes } from '@/routes';
 import { Problem, UUID } from '@/http';
 import OrganizationRemove from './OrganizationsRemove.vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -15,10 +14,9 @@ import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import { push } from 'notivue';
-import router from '@/router.ts';
 import { routes } from '@/routes.ts';
 
-//const router = useRouter();
+const router = useRouter();
 const route = useRoute();
 
 const isNew = ref(true);
