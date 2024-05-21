@@ -22,6 +22,8 @@ import { ServiceToken, get } from '@/pages/organizations/services_token/Services
 import { AxiosError, AxiosResponse } from 'axios';
 import { isBefore } from 'date-fns';
 import Hook0Text from '@/components/Hook0Text.vue';
+import router from '@/router.ts';
+import { routes } from '@/routes.ts';
 const route = useRoute();
 
 // Params references
@@ -79,6 +81,10 @@ function _load() {
   if (organization_id.value !== route.params.organization_id) {
     _forceLoad();
   }
+}
+
+function cancel() {
+  router.push({ name: routes.ServicesTokenList, params: { organization_id: organization_id.value as string } });
 }
 
 function submit() {
@@ -248,6 +254,7 @@ onUpdated(() => {
               </Hook0CardContentLine>
             </Hook0CardContent>
             <Hook0CardFooter>
+              <Hook0Button class="secondary" type="button" @click="cancel">Cancel</Hook0Button>
               <Hook0Button class="primary" submit>Generate</Hook0Button>
             </Hook0CardFooter>
           </form>
