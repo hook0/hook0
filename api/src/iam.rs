@@ -562,9 +562,9 @@ impl<'a> Action<'a> {
             Self::OrganizationRevoke => vec![],
             Self::OrganizationDelete => vec![],
             //
-            Self::ServiceTokenList => vec![Role::Editor],
+            Self::ServiceTokenList => vec![],
             Self::ServiceTokenCreate => vec![],
-            Self::ServiceTokenGet => vec![Role::Editor],
+            Self::ServiceTokenGet => vec![],
             Self::ServiceTokenEdit { .. } => vec![],
             Self::ServiceTokenDelete { .. } => vec![],
             //
@@ -575,7 +575,7 @@ impl<'a> Action<'a> {
             Self::ApplicationDelete { .. } => vec![],
             //
             #[cfg(feature = "application-secret-compatibility")]
-            Self::ApplicationSecretList { .. } => vec![Role::Editor],
+            Self::ApplicationSecretList { .. } => vec![],
             #[cfg(feature = "application-secret-compatibility")]
             Self::ApplicationSecretCreate { .. } => vec![],
             #[cfg(feature = "application-secret-compatibility")]
