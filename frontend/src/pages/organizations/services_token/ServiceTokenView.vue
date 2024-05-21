@@ -84,7 +84,10 @@ function _load() {
 }
 
 function cancel() {
-  router.push({ name: routes.ServicesTokenList, params: { organization_id: organization_id.value as string } });
+  return router.push({
+    name: routes.ServicesTokenList,
+    params: { organization_id: organization_id.value as string },
+  });
 }
 
 function submit() {
