@@ -11,18 +11,24 @@ import Hook0Button from '@/components/Hook0Button.vue';
 import { routes } from '@/routes.ts';
 import { useRouter } from 'vue-router';
 import { UUID } from '@/http.ts';
-import Hook0Code from '@/components/Hook0Code.vue';
-import Hook0Text from '@/components/Hook0Text.vue';
+import { push } from 'notivue';
 
 const router = useRouter();
 
 const organizationId = ref<UUID | null>(null);
 
-const goSecondStep = () => {
+const goSecondStep = (organization_id: UUID) => {
+  organizationId.value = organization_id;
   if (organizationId.value) {
     return router.push({
       name: routes.TutorialStep2,
       params: { organization_id: organizationId.value },
+    });
+  } else {
+    push.error({
+      title: 'Organization id is required',
+      message: 'Something went wrong. Please try again. If the problem persists, contact support.',
+      duration: 5000,
     });
   }
 };
@@ -43,7 +49,7 @@ const goSecondStep = () => {
           <template v-if="!organizationId" #content>
             <OrganizationsEdit
               :tutorial-mode="true"
-              @tutorial-organization-created="organizationId = $event"
+              @tutorial-organization-created="goSecondStep($event)"
             />
           </template>
         </Hook0CardContentLine>

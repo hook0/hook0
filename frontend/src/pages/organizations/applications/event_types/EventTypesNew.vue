@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { defineProps, ref } from 'vue';
 
 import { Problem, UUID } from '@/http';
 import { routes } from '@/routes';
@@ -21,6 +21,15 @@ import { push } from 'notivue';
 const router = useRouter();
 const route = useRoute();
 
+const props = defineProps({
+  tutorialMode: {
+    type: Boolean,
+    default: false,
+  },
+});
+
+const emit = defineEmits(['tutorial-event-type-created']);
+
 const event_type = ref<EventTypePost>({
   application_id: '',
   service: '',
@@ -34,9 +43,18 @@ function create(e: Event) {
   event_type.value.application_id = route.params.application_id as UUID;
 
   EventTypeService.create(event_type.value).then(async (_resp) => {
-    await router.push({
-      name: routes.EventTypesList,
-    });
+    if (props.tutorialMode) {
+      push.success({
+        title: 'Event type created',
+        message: 'You have successfully created your first event type',
+        duration: 5000,
+      });
+      emit('tutorial-event-type-created');
+    } else {
+      await router.push({
+        name: routes.EventTypesList,
+      });
+    }
   }, displayError);
 }
 
@@ -95,7 +113,13 @@ function displayError(err: Problem) {
         </template>
       </Hook0CardContentLine>
       <Hook0CardFooter>
-        <Hook0Button class="secondary" type="button" @click="$router.back()">Cancel</Hook0Button>
+        <Hook0Button
+          v-if="!props.tutorialMode"
+          class="secondary"
+          type="button"
+          @click="$router.back()"
+          >Cancel</Hook0Button
+        >
         <Hook0Button class="primary" type="button" @click="create($event)"
           >Create event type
         </Hook0Button>
