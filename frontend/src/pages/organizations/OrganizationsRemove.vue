@@ -9,6 +9,8 @@ import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import { push } from 'notivue';
+import router from '@/router.ts';
+import { routes } from '@/routes.ts';
 
 interface Props {
   organizationId: string;
@@ -30,7 +32,15 @@ function remove(e: Event) {
   loading.value = true;
 
   OrganizationService.remove(props.organizationId)
-    .then(() => window.location.assign('/'), displayError)
+    .then(() => {
+      push.success({
+        title: 'Organization deleted',
+        message: `Organization "${props.organizationName}" has been deleted.`,
+        duration: 5000,
+      });
+      return router.push({ name: routes.Home });
+    })
+    .catch(displayError)
     // finally
     .finally(() => (loading.value = false));
 }
