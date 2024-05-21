@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router';
-import { onMounted, onUpdated, ref } from 'vue';
+import { onMounted, onUpdated, ref, defineProps, defineEmits } from 'vue';
 
 import { Problem, UUID } from '@/http';
 import * as ApplicationService from './ApplicationService';
@@ -23,6 +23,15 @@ const application_id = ref<UUID | null>(null);
 const application = ref({
   name: '',
 });
+
+const props = defineProps({
+  tutorialMode: {
+    type: Boolean,
+    default: false,
+  },
+});
+
+const emit = defineEmits(['tutorial-application-created']);
 
 function _load() {
   if (application_id.value !== route.params.application_id) {
@@ -52,7 +61,17 @@ function upsert(e: Event) {
       name: application.value.name,
       organization_id: route.params.organization_id as string,
     }).then((_resp) => {
-      cancel();
+      if (props.tutorialMode) {
+        push.success({
+          title: 'Application created',
+          message:
+            'Your application has been created successfully. You can pass to the next step. 🎉',
+          duration: 5000,
+        });
+        emit('tutorial-application-created', _resp.application_id);
+      } else {
+        cancel();
+      }
     }, displayError);
     return;
   }

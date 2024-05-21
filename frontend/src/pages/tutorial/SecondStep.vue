@@ -1,0 +1,112 @@
+<script setup lang="ts">
+import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
+import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
+import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
+import Hook0CardContent from '@/components/Hook0CardContent.vue';
+import Hook0Card from '@/components/Hook0Card.vue';
+import { onMounted, ref } from 'vue';
+import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
+import ApplicationsEdit from '@/pages/organizations/applications/ApplicationsEdit.vue';
+import Hook0Button from '@/components/Hook0Button.vue';
+import { useRoute, useRouter } from 'vue-router';
+import Hook0Alert from '@/components/Hook0Alert.vue';
+import { Alert } from '@/components/Hook0Alert.ts';
+import { Problem, UUID } from '@/http.ts';
+import { routes } from '@/routes.ts';
+
+const router = useRouter();
+const route = useRoute();
+
+const alert = ref<Alert>({
+  visible: false,
+  type: 'alert',
+  title: '',
+  description: '',
+});
+
+const organizationId = ref<UUID | null>(null);
+const applicationId = ref<UUID | null>(null);
+
+function _load() {
+  organizationId.value = route.params.organization_id as UUID;
+  if (!organizationId.value) {
+    displayError({
+      id: 'OrganizationIdRequired',
+      status: 400,
+      title: 'Organization ID is required',
+      detail: 'Organization ID is required to create an application',
+    });
+  }
+}
+
+function displayError(err: Problem) {
+  console.error(err);
+  alert.value.visible = true;
+
+  alert.value.type = err.status >= 500 ? 'alert' : 'warning';
+  alert.value.title = err.title;
+  alert.value.description = err.detail;
+}
+
+function cancel() {
+  router.back();
+}
+
+function goThirdStep() {
+  if (organizationId.value && applicationId.value) {
+    return router.push({
+      name: routes.TutorialStep3,
+      params: {
+        organization_id: organizationId.value,
+        application_id: applicationId.value,
+      },
+    });
+  }
+}
+
+onMounted(() => {
+  _load();
+});
+</script>
+
+<template>
+  <Hook0CardContent v-if="alert.visible">
+    <Hook0Alert
+      :type="alert.type"
+      :title="alert.title"
+      :description="alert.description"
+    ></Hook0Alert>
+    <Hook0Button class="secondary" type="button" @click="cancel">Close</Hook0Button>
+  </Hook0CardContent>
+  <Hook0Card v-else>
+    <Hook0CardHeader>
+      <template #header>Step 2: Create your first application</template>
+      <template #subtitle
+        >Application is a way to group your services. You can create multiple applications to group
+        your services based on your needs.
+      </template>
+    </Hook0CardHeader>
+    <Hook0CardContent>
+      <Hook0CardContentLines>
+        <Hook0CardContentLine type="full-width">
+          <template #content>
+            <ApplicationsEdit
+              v-if="organizationId && !applicationId"
+              :tutorial-mode="true"
+              @tutorial-application-created="applicationId = $event"
+            />
+          </template>
+        </Hook0CardContentLine>
+      </Hook0CardContentLines>
+    </Hook0CardContent>
+    <Hook0CardFooter>
+      <Hook0Button
+        class="primary"
+        type="button"
+        :disabled="!organizationId || !applicationId"
+        @click="goThirdStep"
+        >Next</Hook0Button
+      >
+    </Hook0CardFooter>
+  </Hook0Card>
+</template>
