@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUpdated, ref } from 'vue';
+import { onMounted, onUpdated, ref, defineProps, defineEmits } from 'vue';
 
 import * as OrganizationService from './OrganizationService';
 import { OrganizationInfo } from './OrganizationService';
@@ -25,6 +25,25 @@ const organization_id = ref<UUID | null>(null);
 const organization = ref({
   name: '',
 });
+
+const props = defineProps({
+  tutorialMode: {
+    type: Boolean,
+    default: false,
+  },
+});
+
+const emit = defineEmits(['tutorial-organization-created']);
+
+function reloadPageAndGoToOrganizationDetail(organization_id: string) {
+  const href = router.resolve({
+    name: routes.OrganizationsDashboard,
+    params: {
+      organization_id: organization_id,
+    },
+  }).href;
+  window.location.assign(href);
+}
 
 function _load() {
   if (organization_id.value !== route.params.organization_id) {
@@ -53,15 +72,16 @@ function upsert(e: Event) {
         name: organization.value.name,
       })
         .then((org) => {
-          push.success({
-            title: 'Organization created',
-            message: `Organization ${org.name} has been created`,
-            duration: 5000,
-          });
-          return router.push({
-            name: routes.OrganizationsDashboard,
-            params: { organization_id: org.organization_id },
-          });
+          if (props.tutorialMode) {
+            push.success({
+              title: 'Organization created',
+              message: 'You can now click on the next button to continue the tutorial.',
+              duration: 5000,
+            });
+            emit('tutorial-organization-created', org.organization_id);
+          } else {
+            reloadPageAndGoToOrganizationDetail(org.organization_id);
+          }
         })
         .catch(displayError)
     : // update
@@ -130,7 +150,6 @@ onUpdated(() => {
         </Hook0CardContent>
 
         <Hook0CardFooter>
-          <Hook0Button class="secondary" type="button" @click="$router.back()">Cancel</Hook0Button>
           <Hook0Button class="primary" type="button" :loading="loading" @click="upsert($event)"
             >{{ isNew ? 'Create' : 'Update' }}
           </Hook0Button>
