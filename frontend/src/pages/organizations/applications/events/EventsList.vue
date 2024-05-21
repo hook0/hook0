@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ColDef } from 'ag-grid-community';
-import { onMounted, onUpdated, ref } from 'vue';
+import { onMounted, onUpdated, ref, defineEmits, defineProps } from 'vue';
 import { useRoute } from 'vue-router';
 
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
@@ -27,6 +27,15 @@ import Hook0Select from '@/components/Hook0Select.vue';
 import { push } from 'notivue';
 import { v4 as uuidv4 } from 'uuid';
 
+const props = defineProps({
+  tutorialMode: {
+    type: Boolean,
+    default: false,
+  },
+});
+
+const emit = defineEmits(['tutorial-event-send']);
+
 const route = useRoute();
 
 const show_event_form = ref<boolean>(false);
@@ -39,13 +48,7 @@ const label_value = ref<null | string>('yes');
 const occurred_at = ref<null | Date>();
 const payload = ref<null | string>('{"test": true}');
 
-interface Props {
-  // cache-burst
-  burst?: string | string[];
-}
-
-defineProps<Props>();
-const columnDefs: ColDef<Event>[] = [
+const columnDefs: ColDef[] = [
   {
     field: 'event_id',
     headerName: 'Event ID',
@@ -143,6 +146,10 @@ function _forceLoad() {
       displayError(error as Problem);
       return [];
     });
+
+  if (props.tutorialMode) {
+    display_event_form();
+  }
 }
 
 function _load() {
@@ -184,13 +191,17 @@ function send_test_event() {
     payload.value
   )
     .then(() => {
-      show_event_form.value = false;
-      push.success({
-        title: 'Test event sent',
-        message: 'The test event was sent successfully',
-        duration: 5000,
-      });
-      _forceLoad();
+      if (props.tutorialMode) {
+        emit('tutorial-event-send');
+      } else {
+        show_event_form.value = false;
+        push.success({
+          title: 'Test event sent',
+          message: 'The test event was sent successfully',
+          duration: 5000,
+        });
+        _forceLoad();
+      }
     })
     .catch(displayError);
 }
@@ -300,8 +311,10 @@ onUpdated(() => {
           </Hook0CardContent>
 
           <Hook0CardFooter>
-            <Hook0Button class="secondary" @click="cancel_test">Cancel</Hook0Button>
-            <Hook0Button class="primary" submit>Send test event</Hook0Button>
+            <Hook0Button v-if="!props.tutorialMode" class="secondary" @click="cancel_test"
+              >Cancel</Hook0Button
+            >
+            <Hook0Button class="primary" submit>Send event</Hook0Button>
           </Hook0CardFooter>
         </form>
       </Hook0Card>
