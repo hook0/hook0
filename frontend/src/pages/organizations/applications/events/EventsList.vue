@@ -21,7 +21,6 @@ import Hook0Loader from '@/components/Hook0Loader.vue';
 import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
 import Hook0Error from '@/components/Hook0Error.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
-import { send_json_event } from './EventsService';
 import { list } from '@/pages/organizations/applications/event_types/EventTypeService.ts';
 import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0Select from '@/components/Hook0Select.vue';
@@ -100,6 +99,7 @@ const columnDefs: ColDef[] = [
     suppressMovable: true,
     sortable: true,
     resizable: true,
+    width: 100,
     headerName: 'Labels',
     cellRenderer: Hook0TableCellCode,
     cellRendererParams: {
@@ -116,7 +116,7 @@ const columnDefs: ColDef[] = [
     sortable: true,
     resizable: true,
     suppressSizeToFit: true,
-    width: 160,
+    width: 90,
     cellRenderer: Hook0TableCellCode,
     headerName: 'IP',
   },
@@ -125,11 +125,33 @@ const columnDefs: ColDef[] = [
     suppressMovable: true,
     sortable: true,
     suppressSizeToFit: true,
-    width: 95,
+    width: 80,
     headerName: 'Metadata',
     valueFormatter: (params: ValueFormatterParams<Event, Record<string, never>>) => {
       const number = Object.keys(params.value ?? {}).length;
       return number > 0 ? `✔ (${number})` : '❌';
+    },
+  },
+  {
+    suppressMovable: true,
+    headerName: 'Options',
+    suppressSizeToFit: true,
+    width: 95,
+    cellRenderer: Hook0TableCellLink,
+    cellRendererParams: {
+      value: 'Replay',
+      icon: 'arrows-rotate',
+      onClick: (row: Event): void => {
+        EventsService.replay(row.event_id)
+          .then(() => {
+            push.success({
+              title: 'Event replayed',
+              message: 'The event was replayed successfully',
+              duration: 5000,
+            });
+          })
+          .catch(displayError);
+      },
     },
   },
 ];
@@ -181,7 +203,7 @@ function send_test_event() {
     [label_key.value]: label_value.value,
   };
 
-  send_json_event(
+  EventsService.send_json_event(
     application_id.value as UUID,
     uuidv4(),
     selected_event_type.value,
