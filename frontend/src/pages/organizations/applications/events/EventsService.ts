@@ -88,3 +88,10 @@ export function send_json_event(
       (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
     );
 }
+
+export function replay(event_id: UUID): Promise<void> {
+  return http.post(`/event/${event_id}`).then(
+    () => {},
+    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
+  );
+}

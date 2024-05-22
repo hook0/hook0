@@ -5,10 +5,10 @@ use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};
 use ipnetwork::IpNetwork;
 use paperclip::actix::web::{Data, Json, Path, Query};
-use paperclip::actix::{api_v2_operation, Apiv2Schema, CreatedJson};
+use paperclip::actix::{api_v2_operation, Apiv2Schema, CreatedJson, NoContent};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use sqlx::{query_as, query_scalar};
+use sqlx::{query, query_as, query_scalar};
 use std::collections::HashMap;
 use std::str::FromStr;
 use strum::{IntoStaticStr, VariantNames};
@@ -389,6 +389,61 @@ pub async fn ingest(
     } else {
         Err(Hook0Problem::TooManyEventsToday(events_per_days_limit))
     }
+}
+
+#[api_v2_operation(
+    summary = "Replay an event",
+    description = "",
+    operation_id = "events.replay",
+    consumes = "application/json",
+    tags("Events Management")
+)]
+pub async fn replay(
+    state: Data<crate::State>,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
+    event_id: Path<Uuid>,
+) -> Result<NoContent, Hook0Problem> {
+    let event_uuid = event_id.into_inner();
+
+    let application_id = query_scalar!(
+        "
+            SELECT application__id AS application_id
+            FROM event.event
+            WHERE event__id = $1
+        ",
+        event_uuid
+    )
+    .fetch_one(&state.db)
+    .await
+    .map_err(Hook0Problem::from)?;
+
+    if authorize_for_application(
+        &state.db,
+        &biscuit,
+        Action::EventReplay {
+            application_id: &application_id,
+        },
+    )
+    .await
+    .is_err()
+    {
+        return Err(Hook0Problem::Forbidden);
+    }
+
+    let replayed = query!(
+        "
+            UPDATE event.event
+            SET dispatched_at = NULL
+            WHERE event__id = $1
+        ",
+        event_uuid
+    )
+    .execute(&state.db)
+    .await
+    .map_err(Hook0Problem::from);
+
+    Ok(NoContent)
 }
 
 #[cfg(test)]
