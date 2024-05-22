@@ -47,6 +47,7 @@ Or use environment variables with `k6 run main.js -e VAR1=VALUE1 -e VAR2=VALUE2 
     const maxDuration = __ENV.MAX_DURATION || MAX_DURATION;
 
     const hostname = __ENV.HOSTNAME || DEFAULT_HOSTNAME;
+    const targetUrl = __ENV.TARGET_URL || DEFAULT_TARGET_URL;
     const serviceToken = __ENV.SERVICE_TOKEN || DEFAULT_SERVICE_TOKEN;
     const organizationId = __ENV.ORGANIZATION_ID || DEFAULT_ORGANIZATION_ID;
 
