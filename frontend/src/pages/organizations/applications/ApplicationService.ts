@@ -16,7 +16,7 @@ export function create(application: ApplicationPost): Promise<Application> {
       (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
     )
     .then((application) => {
-      // we currently have to force the JWT refresh so it contains the application
+      // we force the user token refresh so that the org/app selector refreshes its options
       return refresh().then(() => application);
     });
 }
@@ -49,7 +49,7 @@ export function update(application_id: UUID, application: ApplicationPost): Prom
       (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
     )
     .then((application) => {
-      // we currently have to force the JWT refresh so it contains the application
+      // we force the user token refresh so that the org/app selector refreshes its options
       return refresh().then(() => application);
     });
 }
@@ -62,7 +62,7 @@ export function remove(application_id: UUID): Promise<void> {
       (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
     )
     .then((application) => {
-      // we currently have to force the JWT refresh so it contains the application
+      // we force the user token refresh so that the org/app selector refreshes its options
       return refresh().then(() => application);
     });
 }
