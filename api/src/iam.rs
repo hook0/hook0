@@ -467,6 +467,9 @@ pub enum Action<'a> {
     EventIngest {
         application_id: &'a Uuid,
     },
+    EventReplay {
+        application_id: &'a Uuid,
+    },
     //
     RequestAttemptList {
         application_id: &'a Uuid,
@@ -533,6 +536,7 @@ impl<'a> Action<'a> {
             Self::EventList { .. } => "event:list",
             Self::EventGet { .. } => "event:get",
             Self::EventIngest { .. } => "event:ingest",
+            Self::EventReplay { .. } => "event:replay",
             //
             Self::RequestAttemptList { .. } => "request_attempt:list",
             //
@@ -597,6 +601,7 @@ impl<'a> Action<'a> {
             Self::EventList { .. } => vec![Role::Viewer],
             Self::EventGet { .. } => vec![Role::Viewer],
             Self::EventIngest { .. } => vec![],
+            Self::EventReplay { .. } => vec![],
             //
             Self::RequestAttemptList { .. } => vec![Role::Viewer],
             //
@@ -677,6 +682,7 @@ impl<'a> Action<'a> {
             Self::EventList { application_id, .. } => Some(**application_id),
             Self::EventGet { application_id, .. } => Some(**application_id),
             Self::EventIngest { application_id, .. } => Some(**application_id),
+            Self::EventReplay { application_id, .. } => Some(**application_id),
             //
             Self::RequestAttemptList { application_id, .. } => Some(**application_id),
             //
@@ -767,6 +773,7 @@ impl<'a> Action<'a> {
             Self::EventList { .. } => vec![],
             Self::EventGet { .. } => vec![],
             Self::EventIngest { .. } => vec![],
+            Self::EventReplay { .. } => vec![],
             //
             Self::RequestAttemptList { .. } => vec![],
             //
