@@ -7,9 +7,6 @@ import create_subscription from "./subscriptions/create_subscription.js";
 import create_event from "./events/create_event.js";
 import list_requests_attempts from "./events/list_requests_attempts.js";
 
-import http from 'k6/http';
-import { check, sleep } from 'k6';
-
 export const config = getEnvironmentVariables();
 
 export const options = {
