@@ -698,6 +698,10 @@ async fn main() -> anyhow::Result<()> {
                                 .service(
                                     web::resource("")
                                         .route(web::post().to(handlers::events::ingest)),
+                                )
+                                .service(
+                                    web::resource("{event_id}")
+                                        .route(web::post().to(handlers::events::replay)),
                                 ),
                         )
                         .service(
