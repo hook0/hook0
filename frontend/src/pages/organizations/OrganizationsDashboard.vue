@@ -26,7 +26,7 @@ import { push } from 'notivue';
 const route = useRoute();
 const pricingEnabled = isPricingEnabled();
 
-const has_service_token = ref(false);
+const has_service_token = ref(true);
 const organization_id = ref<UUID | null>(null);
 const organization = ref({
   name: '',
