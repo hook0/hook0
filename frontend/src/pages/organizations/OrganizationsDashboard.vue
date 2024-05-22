@@ -5,6 +5,7 @@ import { onMounted, onUpdated, ref } from 'vue';
 import Hook0Text from '@/components/Hook0Text.vue';
 import { Problem, UUID } from '@/http';
 import * as OrganizationService from '@/pages/organizations/OrganizationService';
+import * as ServiceTokenService from '@/pages/organizations/services_token/ServicesTokenService.ts';
 import { OrganizationInfo } from '@/pages/organizations/OrganizationService';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
@@ -25,6 +26,7 @@ import { push } from 'notivue';
 const route = useRoute();
 const pricingEnabled = isPricingEnabled();
 
+const has_service_token = ref(true);
 const organization_id = ref<UUID | null>(null);
 const organization = ref({
   name: '',
@@ -46,6 +48,12 @@ function _load() {
         organization.value.name = org.name;
         organization.value.plan = org.plan?.label || '';
         organization.value.quotas = org.quotas;
+      })
+      .catch(displayError);
+
+    ServiceTokenService.list(organization_id.value)
+      .then((tokens) => {
+        has_service_token.value = tokens.length > 0;
       })
       .catch(displayError);
   }
@@ -187,5 +195,38 @@ onUpdated(() => {
     </MembersList>
 
     <ApplicationsList :burst="$route.params.organization_id"> </ApplicationsList>
+
+    <Hook0Card v-if="!has_service_token">
+      <Hook0CardHeader>
+        <template #header>
+          <Hook0Icon name="key"></Hook0Icon>
+          Service Tokens
+        </template>
+      </Hook0CardHeader>
+
+      <Hook0CardContent>
+        <Hook0CardContentLines>
+          <Hook0CardContentLine type="full-width">
+            <template #content>
+              <Hook0Text>
+                Service tokens are used to authenticate your applications with Hook0. You can create
+                as many as you need.
+              </Hook0Text>
+            </template>
+          </Hook0CardContentLine>
+        </Hook0CardContentLines>
+      </Hook0CardContent>
+
+      <Hook0CardFooter>
+        <Hook0Button
+          class="primary"
+          :to="{
+            name: routes.ServicesTokenList,
+            params: { organization_id },
+          }"
+          >Create your first service token
+        </Hook0Button>
+      </Hook0CardFooter>
+    </Hook0Card>
   </div>
 </template>

@@ -200,12 +200,10 @@ onUpdated(() => {
           <Hook0CardContentLines>
             <Hook0CardContentLine type="full-width">
               <template #content>
-                <Hook0Text
-                  >Hook0 authenticates your API requests using your application’s API keys. If you
-                  don’t include your key when making an API request, or use an incorrect or outdated
-                  one, Hook0 returns a 401 -
-                  <Hook0Text class="code">Unauthorized HTTP response code</Hook0Text>
-                  .
+                <Hook0Text>
+                  You can (and should!) create a service token. A service token allows you to make
+                  API calls without relying on a user's login/password. You can also attenuate a
+                  service token in order to reduce its scope for improved security.
                 </Hook0Text>
               </template>
             </Hook0CardContentLine>

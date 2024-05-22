@@ -3,7 +3,6 @@ import { onMounted, onUpdated, ref } from 'vue';
 
 import * as OrganizationService from './OrganizationService';
 import { OrganizationInfo } from './OrganizationService';
-import { routes } from '@/routes';
 import { Problem, UUID } from '@/http';
 import OrganizationRemove from './OrganizationsRemove.vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -15,6 +14,7 @@ import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import { push } from 'notivue';
+import { routes } from '@/routes.ts';
 
 const router = useRouter();
 const route = useRoute();
@@ -41,16 +41,6 @@ function _load() {
   }
 }
 
-function reloadPageAndGoToOrganizationDetail(organization_id: string) {
-  const href = router.resolve({
-    name: routes.OrganizationsDashboard,
-    params: {
-      organization_id: organization_id,
-    },
-  }).href;
-  window.location.assign(href);
-}
-
 function upsert(e: Event) {
   e.preventDefault();
   e.stopImmediatePropagation();
@@ -62,15 +52,33 @@ function upsert(e: Event) {
       OrganizationService.create({
         name: organization.value.name,
       })
-        .then((org) => reloadPageAndGoToOrganizationDetail(org.organization_id))
+        .then((org) => {
+          push.success({
+            title: 'Organization created',
+            message: `Organization ${org.name} has been created`,
+            duration: 5000,
+          });
+          return router.push({
+            name: routes.OrganizationsDashboard,
+            params: { organization_id: org.organization_id },
+          });
+        })
         .catch(displayError)
     : // update
       OrganizationService.update(route.params.organization_id as string, {
         name: organization.value.name,
       })
-        .then((_resp) =>
-          reloadPageAndGoToOrganizationDetail(route.params.organization_id as string)
-        )
+        .then(() => {
+          push.success({
+            title: 'Organization updated',
+            message: `Organization ${organization.value.name} has been updated`,
+            duration: 5000,
+          });
+          return router.push({
+            name: routes.OrganizationsDashboard,
+            params: { organization_id: route.params.organization_id },
+          });
+        })
         .catch(displayError)
   )
     // finally
