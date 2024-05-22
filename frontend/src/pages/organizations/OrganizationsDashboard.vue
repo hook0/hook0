@@ -26,7 +26,7 @@ import { push } from 'notivue';
 const route = useRoute();
 const pricingEnabled = isPricingEnabled();
 
-const service_tokens = ref(0);
+const has_service_token = ref(false);
 const organization_id = ref<UUID | null>(null);
 const organization = ref({
   name: '',
@@ -53,11 +53,9 @@ function _load() {
 
     ServiceTokenService.list(organization_id.value)
       .then((tokens) => {
-        service_tokens.value = tokens.length;
+        has_service_token.value = tokens.length > 0;
       })
       .catch(displayError);
-
-    console.log(service_tokens.value);
   }
 }
 
@@ -198,7 +196,7 @@ onUpdated(() => {
 
     <ApplicationsList :burst="$route.params.organization_id"> </ApplicationsList>
 
-    <Hook0Card v-if="service_tokens < 1">
+    <Hook0Card v-if="!has_service_token">
       <Hook0CardHeader>
         <template #header>
           <Hook0Icon name="key"></Hook0Icon>
