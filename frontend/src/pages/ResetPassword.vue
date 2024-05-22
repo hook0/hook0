@@ -77,7 +77,16 @@ onMounted(() => {
 </script>
 
 <template>
-  <form @submit.prevent="submit">
+  <Hook0Card v-if="alert.visible">
+    <Hook0CardContent>
+      <Hook0Alert
+        :type="alert.type"
+        :title="alert.title"
+        :description="alert.description"
+      ></Hook0Alert>
+    </Hook0CardContent>
+  </Hook0Card>
+  <form v-else @submit.prevent="submit">
     <Hook0Card>
       <Hook0CardHeader>
         <template #header> Set new account's password </template>
@@ -120,13 +129,4 @@ onMounted(() => {
       </Hook0CardFooter>
     </Hook0Card>
   </form>
-  <Hook0Card v-if="alert.visible">
-    <Hook0CardContent>
-      <Hook0Alert
-        :type="alert.type"
-        :title="alert.title"
-        :description="alert.description"
-      ></Hook0Alert>
-    </Hook0CardContent>
-  </Hook0Card>
 </template>
