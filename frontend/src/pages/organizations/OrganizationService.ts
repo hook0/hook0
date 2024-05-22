@@ -17,7 +17,7 @@ export function create(organization: OrganizationPost): Promise<OrganizationInfo
       (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
     )
     .then((organization) => {
-      // we currently have to force the JWT refresh so it contains the organization
+      // we currently have to force the user token refresh so it contains the organization
       return refresh().then(() => organization);
     });
 }
@@ -47,7 +47,7 @@ export function update(
       (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
     )
     .then((organization) => {
-      // we currently have to force the JWT refresh so it contains the organization
+      // we currently have to force the user token refresh so it contains the organization
       return refresh().then(() => organization);
     });
 }
@@ -60,7 +60,7 @@ export function remove(organization_id: UUID): Promise<void> {
       (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
     )
     .then((organization) => {
-      // we currently have to force the JWT refresh so it contains the organization
+      // we currently have to force the user token refresh so it contains the organization
       return refresh().then(() => organization);
     });
 }

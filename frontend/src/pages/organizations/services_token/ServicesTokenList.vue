@@ -201,11 +201,9 @@ onUpdated(() => {
             <Hook0CardContentLine type="full-width">
               <template #content>
                 <Hook0Text>
-                  Hook0 authenticated your API requests using three types of tokens: user tokens,
-                  services tokens and API keys. Here you can list, create, edit, delete and
-                  attenuate your service tokens. This tokens are allowed to make requests with all
-                  the permissions inside an organization and he's applications. You can create a new
-                  service token by clicking on the button below.
+                  You can (and should!) create a service token. A service token allows you to make
+                  API calls without relying on a user's login/password. You can also attenuate a
+                  service token in order to reduce its scope for improved security.
                 </Hook0Text>
               </template>
             </Hook0CardContentLine>
