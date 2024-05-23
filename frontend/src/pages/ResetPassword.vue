@@ -2,7 +2,6 @@
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
-import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import { onMounted, ref } from 'vue';
 import Hook0Button from '@/components/Hook0Button.vue';
@@ -92,37 +91,25 @@ onMounted(() => {
         <template #header> Set new account's password </template>
       </Hook0CardHeader>
       <Hook0CardContent>
-        <Hook0CardContentLine>
-          <template #label> New password </template>
-          <template #content>
-            <div class="flex flex-row">
-              <Hook0Input
-                v-model="new_password"
-                type="password"
-                class="w-full"
-                placeholder="New password"
-                required
-                autofocus
-              >
-              </Hook0Input>
-            </div>
-          </template>
-        </Hook0CardContentLine>
-        <Hook0CardContentLine>
-          <template #label> Confirm new password </template>
-          <template #content>
-            <div class="flex flex-row">
-              <Hook0Input
-                v-model="confirm_new_password"
-                type="password"
-                class="w-full"
-                placeholder="Confirm new password"
-                required
-              >
-              </Hook0Input>
-            </div>
-          </template>
-        </Hook0CardContentLine>
+        <Hook0Input
+          v-model="new_password"
+          type="password"
+          class="w-11/12 mx-auto mb-4 mt-4"
+          placeholder="************"
+          required
+          autofocus
+          label="New password"
+        >
+        </Hook0Input>
+        <Hook0Input
+          v-model="confirm_new_password"
+          type="password"
+          class="w-11/12 mx-auto mb-4"
+          placeholder="************"
+          required
+          label="Confirm new password"
+        >
+        </Hook0Input>
       </Hook0CardContent>
       <Hook0CardFooter>
         <Hook0Button class="primary" submit>Set new password</Hook0Button>

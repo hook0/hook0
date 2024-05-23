@@ -2,7 +2,6 @@
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
-import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import { ref } from 'vue';
 import Hook0Button from '@/components/Hook0Button.vue';
@@ -54,22 +53,16 @@ function displayError(err: Problem) {
         </template>
       </Hook0CardHeader>
       <Hook0CardContent>
-        <Hook0CardContentLine>
-          <template #label> Email </template>
-          <template #content>
-            <div class="flex flex-row">
-              <Hook0Input
-                v-model="email"
-                type="email"
-                class="w-full"
-                placeholder="Email"
-                required
-                autofocus
-              >
-              </Hook0Input>
-            </div>
-          </template>
-        </Hook0CardContentLine>
+        <Hook0Input
+          v-model="email"
+          type="email"
+          class="w-11/12 mx-auto mb-4 mt-4"
+          placeholder="johndoe@example.com"
+          required
+          autofocus
+          label="Email"
+        >
+        </Hook0Input>
       </Hook0CardContent>
       <Hook0CardFooter>
         <Hook0Button class="secondary" :to="{ name: routes.Login }">Back to login</Hook0Button>
