@@ -5,7 +5,6 @@ import { register } from '@/iam';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
-import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
@@ -46,7 +45,7 @@ async function submit() {
 <template>
   <div>
     <form @submit.prevent="submit">
-      <Hook0Card>
+      <Hook0Card class="shadow-2xl">
         <Hook0CardHeader>
           <template #header> Register </template>
           <template #subtitle>
@@ -57,71 +56,48 @@ async function submit() {
           </template>
         </Hook0CardHeader>
         <Hook0CardContent>
-          <Hook0CardContentLine>
-            <template #label> Email </template>
-            <template #content>
-              <div class="flex flex-row">
-                <Hook0Input
-                  v-model="email"
-                  type="email"
-                  class="w-full"
-                  placeholder="Email"
-                  required
-                >
-                </Hook0Input>
-              </div>
-            </template>
-          </Hook0CardContentLine>
+          <Hook0Input
+            v-model="email"
+            type="email"
+            class="w-11/12 mx-auto mb-4 mt-4"
+            placeholder="johndoe@example.com"
+            required
+            label="Email"
+          >
+          </Hook0Input>
 
-          <Hook0CardContentLine>
-            <template #label> First Name </template>
-            <template #content>
-              <div class="flex flex-row">
-                <Hook0Input
-                  v-model="firstName"
-                  type="text"
-                  class="w-full"
-                  placeholder="First Name"
-                  required
-                >
-                </Hook0Input>
-              </div>
-            </template>
-          </Hook0CardContentLine>
+          <Hook0Input
+            v-model="firstName"
+            type="text"
+            class="w-11/12 mx-auto mb-4"
+            placeholder="John"
+            required
+            label="First Name"
+          >
+          </Hook0Input>
 
-          <Hook0CardContentLine>
-            <template #label> Last Name </template>
-            <template #content>
-              <div class="flex flex-row">
-                <Hook0Input
-                  v-model="lastName"
-                  type="text"
-                  class="w-full"
-                  placeholder="Last Name"
-                  required
-                >
-                </Hook0Input>
-              </div>
-            </template>
-          </Hook0CardContentLine>
+          <Hook0Input
+            v-model="lastName"
+            type="text"
+            class="w-11/12 mx-auto mb-4"
+            placeholder="Doe"
+            required
+            label="Last Name"
+          >
+          </Hook0Input>
 
-          <Hook0CardContentLine>
-            <template #label> Password </template>
-            <template #content>
-              <div class="flex flex-row">
-                <Hook0Input
-                  v-model="password"
-                  type="password"
-                  class="w-full"
-                  placeholder="Password"
-                  required
-                >
-                </Hook0Input>
-              </div>
-            </template>
-          </Hook0CardContentLine>
+          <Hook0Input
+            v-model="password"
+            type="password"
+            class="w-11/12 mx-auto mb-4"
+            placeholder="************"
+            required
+            label="Password"
+          >
+          </Hook0Input>
         </Hook0CardContent>
         <Hook0CardFooter>
+          <Hook0Button class="secondary" :to="{ name: routes.Login }">Sign in</Hook0Button>
           <Hook0Button class="primary" submit>Register</Hook0Button>
         </Hook0CardFooter>
       </Hook0Card>
