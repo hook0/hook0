@@ -83,8 +83,8 @@ onMounted(() => {
     <Hook0CardHeader>
       <template #header>Step 5: Send an event</template>
       <template #subtitle>
-        In this step, you will learn how to send an event to your webhook. You can use this feature
-        to send events to your webhook and test your subscriptions.
+        In this step, you will send a test event. You should make it match your subscription's event
+        type and label so that you receive a webhook!
       </template>
     </Hook0CardHeader>
     <Hook0CardContent>
