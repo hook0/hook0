@@ -90,8 +90,9 @@ onMounted(() => {
     <Hook0CardHeader>
       <template #header>Step 2: Create your first application</template>
       <template #subtitle
-        >Application is a way to group your services. You can create multiple applications to group
-        your services based on your needs.
+        >An application is an isolated environment in Hook0. It has its own event types, events,
+        subscriptions. You can create multiple applications to group your services based on your
+        needs.
       </template>
     </Hook0CardHeader>
     <Hook0CardContent>
