@@ -391,9 +391,14 @@ pub async fn ingest(
     }
 }
 
+#[derive(Debug, Deserialize, Apiv2Schema)]
+pub struct ReplayEvent {
+    application_id: Uuid,
+}
+
 #[api_v2_operation(
     summary = "Replay an event",
-    description = "",
+    description = "Trigger existing subscriptions matching an existing event, which will result in webhook being send again",
     operation_id = "events.replay",
     consumes = "application/json",
     tags("Events Management")
@@ -403,26 +408,15 @@ pub async fn replay(
     _: OaBiscuit,
     biscuit: ReqData<Biscuit>,
     event_id: Path<Uuid>,
+    body: Json<ReplayEvent>,
 ) -> Result<NoContent, Hook0Problem> {
     let event_uuid = event_id.into_inner();
-
-    let application_id = query_scalar!(
-        "
-            SELECT application__id AS application_id
-            FROM event.event
-            WHERE event__id = $1
-        ",
-        event_uuid
-    )
-    .fetch_one(&state.db)
-    .await
-    .map_err(Hook0Problem::from)?;
 
     if authorize_for_application(
         &state.db,
         &biscuit,
         Action::EventReplay {
-            application_id: &application_id,
+            application_id: &body.application_id,
         },
     )
     .await
@@ -443,7 +437,10 @@ pub async fn replay(
     .await
     .map_err(Hook0Problem::from);
 
-    Ok(NoContent)
+    match replayed {
+        Ok(_) => Ok(NoContent),
+        Err(e) => Err(e),
+    }
 }
 
 #[cfg(test)]

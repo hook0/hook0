@@ -89,9 +89,14 @@ export function send_json_event(
     );
 }
 
-export function replay(event_id: UUID): Promise<void> {
-  return http.post(`/event/${event_id}`).then(
-    () => {},
-    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
-  );
+export function replay(event_id: UUID, application_id: UUID): Promise<void> {
+  console.log('app_id', application_id);
+  return http
+    .post(`/events/${event_id}/replay`, {
+      application_id,
+    })
+    .then(
+      () => {},
+      (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
+    );
 }

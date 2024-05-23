@@ -142,7 +142,7 @@ const columnDefs: ColDef[] = [
       value: 'Replay',
       icon: 'arrows-rotate',
       onClick: (row: Event): void => {
-        EventsService.replay(row.event_id)
+        EventsService.replay(row.event_id, application_id.value as UUID)
           .then(() => {
             push.success({
               title: 'Event replayed',
