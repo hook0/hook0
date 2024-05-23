@@ -32,8 +32,9 @@ function startTutorial() {
           <template #content>
             <Hook0Text>
               During this tutorial, you will learn how to use graphical interface of Hook0. You can
-              also use our API to interact with your applications and environments. To configure your
-              first organization, click on the button below and follow the instructions or use our
+              also use our API to interact with your applications and environments. To configure
+              your first organization, click on the button below and follow the instructions or use
+              our
               <Hook0Button
                 target="_blank"
                 href="https://documentation.hook0.com/docs/getting-started"
