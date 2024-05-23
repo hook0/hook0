@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ColDef, ValueFormatterParams } from '@ag-grid-community/core';
+import { ColDef } from '@ag-grid-community/core';
 import { onMounted, onUpdated, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
@@ -87,14 +87,6 @@ const columnDefs: ColDef[] = [
     cellRenderer: Hook0TableCellCode,
   },
   {
-    field: 'payload_content_type',
-    suppressMovable: true,
-    sortable: true,
-    resizable: true,
-    cellRenderer: Hook0TableCellCode,
-    headerName: 'Payload Type',
-  },
-  {
     field: 'labels',
     suppressMovable: true,
     sortable: true,
@@ -111,32 +103,10 @@ const columnDefs: ColDef[] = [
     },
   },
   {
-    field: 'ip',
-    suppressMovable: true,
-    sortable: true,
-    resizable: true,
-    suppressSizeToFit: true,
-    width: 90,
-    cellRenderer: Hook0TableCellCode,
-    headerName: 'IP',
-  },
-  {
-    field: 'metadata',
-    suppressMovable: true,
-    sortable: true,
-    suppressSizeToFit: true,
-    width: 80,
-    headerName: 'Metadata',
-    valueFormatter: (params: ValueFormatterParams<Event, Record<string, never>>) => {
-      const number = Object.keys(params.value ?? {}).length;
-      return number > 0 ? `✔ (${number})` : '❌';
-    },
-  },
-  {
     suppressMovable: true,
     headerName: 'Options',
     suppressSizeToFit: true,
-    width: 95,
+    width: 115,
     cellRenderer: Hook0TableCellLink,
     cellRendererParams: {
       value: 'Replay',
