@@ -430,8 +430,10 @@ pub async fn replay(
             UPDATE event.event
             SET dispatched_at = NULL
             WHERE event__id = $1
+            AND application__id = $2
         ",
-        event_uuid
+        event_uuid,
+        body.application_id,
     )
     .execute(&state.db)
     .await
