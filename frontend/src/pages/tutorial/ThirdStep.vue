@@ -92,7 +92,7 @@ onMounted(() => {
   <Hook0Card v-else>
     <Hook0CardHeader>
       <template #header>Step 3: Create your first event type</template>
-      <template #subtitle>Each event sent through a webhook must have an event type. </template>
+      <template #subtitle>Each event sent through a Hook0 must have an event type. </template>
     </Hook0CardHeader>
     <Hook0CardContent>
       <Hook0CardContentLines>
