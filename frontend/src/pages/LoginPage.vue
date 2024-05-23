@@ -5,7 +5,6 @@ import { login } from '@/iam';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
-import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
@@ -49,7 +48,7 @@ function displayError(err: Problem) {
 
 <template>
   <form @submit.prevent="submit">
-    <Hook0Card>
+    <Hook0Card class="shadow-2xl">
       <Hook0CardHeader>
         <template #header> Login </template>
         <template #subtitle>
@@ -57,43 +56,32 @@ function displayError(err: Problem) {
         </template>
       </Hook0CardHeader>
       <Hook0CardContent>
-        <Hook0CardContentLine>
-          <template #label> Email </template>
-          <template #content>
-            <div class="flex flex-row">
-              <Hook0Input
-                v-model="email"
-                type="email"
-                class="w-full"
-                placeholder="Email"
-                required
-                autofocus
-              >
-              </Hook0Input>
-            </div>
-          </template>
-        </Hook0CardContentLine>
+        <Hook0Input
+          v-model="email"
+          type="email"
+          class="w-11/12 mx-auto mb-4 mt-4"
+          placeholder="johndoe@example.com"
+          required
+          autofocus
+          label="Email"
+        >
+        </Hook0Input>
 
-        <Hook0CardContentLine>
-          <template #label> Password </template>
-          <template #content>
-            <div class="flex flex-row">
-              <Hook0Input
-                v-model="password"
-                type="password"
-                class="w-full"
-                placeholder="Password"
-                required
-              >
-              </Hook0Input>
-            </div>
-          </template>
-        </Hook0CardContentLine>
+        <Hook0Input
+          v-model="password"
+          type="password"
+          class="w-11/12 mx-auto"
+          placeholder="*********"
+          required
+          label="Password"
+        >
+        </Hook0Input>
       </Hook0CardContent>
       <Hook0CardFooter>
         <Hook0Button class="secondary" :to="{ name: routes.BeginResetPassword }"
           >Forgot password?</Hook0Button
         >
+        <Hook0Button class="secondary" :to="{ name: routes.Register }">Sign up</Hook0Button>
         <Hook0Button class="primary" submit>Login</Hook0Button>
       </Hook0CardFooter>
     </Hook0Card>
