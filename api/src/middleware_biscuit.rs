@@ -21,6 +21,8 @@ pub struct BiscuitAuth {
     pub db: PgPool,
     pub biscuit_private_key: PrivateKey,
     pub master_api_key: Option<Uuid>,
+    #[cfg(feature = "application-secret-compatibility")]
+    pub enable_application_secret_compatibility: bool,
 }
 
 impl<S> Transform<S, ServiceRequest> for BiscuitAuth
@@ -41,6 +43,8 @@ where
             db: self.db.clone(),
             biscuit_private_key: self.biscuit_private_key.clone(),
             master_api_key: self.master_api_key,
+            #[cfg(feature = "application-secret-compatibility")]
+            enable_application_secret_compatibility: self.enable_application_secret_compatibility,
         })
     }
 }
@@ -51,6 +55,8 @@ pub struct BiscuitAuthMiddleware<S> {
     db: PgPool,
     biscuit_private_key: PrivateKey,
     master_api_key: Option<Uuid>,
+    #[cfg(feature = "application-secret-compatibility")]
+    enable_application_secret_compatibility: bool,
 }
 
 impl<S> Service<ServiceRequest> for BiscuitAuthMiddleware<S>
@@ -164,90 +170,96 @@ where
                                     }
                                 } else {
                                     #[cfg(feature = "application-secret-compatibility")]
-                                    if let Ok(application_secret_token) = uuid_token {
-                                        let pool = Box::new(self.db.clone());
-                                        let pool: &'static PgPool = Box::leak(pool);
-                                        let biscuit_private_key = self.biscuit_private_key.clone();
-                                        let srv = Rc::clone(&self.service);
-                                        Box::pin(async move {
-                                            #[derive(Debug)]
-                                            struct ApplicationSecretLookup {
-                                                organization_id: Uuid,
-                                                application_id: Uuid,
-                                            }
-                                            let application_secret_lookup = sqlx::query_as!(
-                                                ApplicationSecretLookup,
-                                                "
-                                                    SELECT a.organization__id AS organization_id, s.application__id AS application_id
-                                                    FROM event.application_secret AS s
-                                                    INNER JOIN event.application AS a ON a.application__id = s.application__id
-                                                    WHERE s.token = $1
-                                                ",
-                                                application_secret_token,
-                                            )
-                                            .fetch_optional(pool)
-                                            .await;
-
-                                            match application_secret_lookup {
-                                                Ok(Some(application_secret)) => {
-                                                    let service_access_biscuit = crate::iam::create_service_access_token(
-                                                        &biscuit_private_key,
-                                                        Uuid::nil(),
-                                                        application_secret.organization_id,
-                                                    )
-                                                    .and_then(|root_token| {
-                                                        use biscuit_auth::builder_ext::BuilderExt;
-
-                                                        let biscuit = root_token.biscuit.append({
-                                                            let mut block = biscuit_auth::builder::BlockBuilder::new();
-                                                            block.add_check(biscuit_auth::macros::check!(
-                                                                "check if application_id({application_id})",
-                                                                application_id = application_secret.application_id
-                                                            ))?;
-                                                            block.check_expiration_date(std::time::SystemTime::now() + std::time::Duration::from_secs(1));
-                                                            block
-                                                        })?;
-                                                        Ok(biscuit)
-                                                    });
-
-                                                    match service_access_biscuit {
-                                                        Ok(biscuit) => {
-                                                            {
-                                                                debug!(
-                                                                    "Auth with application secret succeeded (application ID = {})",
-                                                                    application_secret.application_id
-                                                                );
-                                                                sentry_integration::set_user_from_application_secret(
-                                                                    &application_secret
-                                                                        .application_id
-                                                                        .to_string(),
-                                                                );
-                                                                let mut extensions =
-                                                                    req.extensions_mut();
-                                                                extensions.insert(biscuit);
+                                    if self.enable_application_secret_compatibility {
+                                        if let Ok(application_secret_token) = uuid_token {
+                                            let pool = Box::new(self.db.clone());
+                                            let pool: &'static PgPool = Box::leak(pool);
+                                            let biscuit_private_key = self.biscuit_private_key.clone();
+                                            let srv = Rc::clone(&self.service);
+                                            Box::pin(async move {
+                                                #[derive(Debug)]
+                                                struct ApplicationSecretLookup {
+                                                    organization_id: Uuid,
+                                                    application_id: Uuid,
+                                                }
+                                                let application_secret_lookup = sqlx::query_as!(
+                                                    ApplicationSecretLookup,
+                                                    "
+                                                        SELECT a.organization__id AS organization_id, s.application__id AS application_id
+                                                        FROM event.application_secret AS s
+                                                        INNER JOIN event.application AS a ON a.application__id = s.application__id
+                                                        WHERE s.token = $1
+                                                    ",
+                                                    application_secret_token,
+                                                )
+                                                .fetch_optional(pool)
+                                                .await;
+    
+                                                match application_secret_lookup {
+                                                    Ok(Some(application_secret)) => {
+                                                        let service_access_biscuit = crate::iam::create_service_access_token(
+                                                            &biscuit_private_key,
+                                                            Uuid::nil(),
+                                                            application_secret.organization_id,
+                                                        )
+                                                        .and_then(|root_token| {
+                                                            use biscuit_auth::builder_ext::BuilderExt;
+    
+                                                            let biscuit = root_token.biscuit.append({
+                                                                let mut block = biscuit_auth::builder::BlockBuilder::new();
+                                                                block.add_check(biscuit_auth::macros::check!(
+                                                                    "check if application_id({application_id})",
+                                                                    application_id = application_secret.application_id
+                                                                ))?;
+                                                                block.check_expiration_date(std::time::SystemTime::now() + std::time::Duration::from_secs(1));
+                                                                block
+                                                            })?;
+                                                            Ok(biscuit)
+                                                        });
+    
+                                                        match service_access_biscuit {
+                                                            Ok(biscuit) => {
+                                                                {
+                                                                    debug!(
+                                                                        "Auth with application secret succeeded (application ID = {})",
+                                                                        application_secret.application_id
+                                                                    );
+                                                                    sentry_integration::set_user_from_application_secret(
+                                                                        &application_secret
+                                                                            .application_id
+                                                                            .to_string(),
+                                                                    );
+                                                                    let mut extensions =
+                                                                        req.extensions_mut();
+                                                                    extensions.insert(biscuit);
+                                                                }
+                                                                srv.call(req).await
                                                             }
-                                                            srv.call(req).await
-                                                        }
-                                                        Err(e) => {
-                                                            error!("Error while creating service access Biscuit from application secret: {e}");
-                                                            let res =
-                                                                Hook0Problem::InternalServerError;
-                                                            Ok(req.error_response(res))
+                                                            Err(e) => {
+                                                                error!("Error while creating service access Biscuit from application secret: {e}");
+                                                                let res =
+                                                                    Hook0Problem::InternalServerError;
+                                                                Ok(req.error_response(res))
+                                                            }
                                                         }
                                                     }
+                                                    Ok(None) => {
+                                                        let e = Hook0Problem::AuthInvalidBiscuit;
+                                                        debug!("{e}: {biscuit_err}");
+                                                        Ok(req.error_response(e))
+                                                    }
+                                                    Err(e) => {
+                                                        error!("Error while searching for an application scret: {e}");
+                                                        let res = Hook0Problem::InternalServerError;
+                                                        Ok(req.error_response(res))
+                                                    }
                                                 }
-                                                Ok(None) => {
-                                                    let e = Hook0Problem::AuthInvalidBiscuit;
-                                                    debug!("{e}: {biscuit_err}");
-                                                    Ok(req.error_response(e))
-                                                }
-                                                Err(e) => {
-                                                    error!("Error while searching for an application scret: {e}");
-                                                    let res = Hook0Problem::InternalServerError;
-                                                    Ok(req.error_response(res))
-                                                }
-                                            }
-                                        })
+                                            })
+                                        } else {
+                                            let e = Hook0Problem::AuthInvalidBiscuit;
+                                            debug!("{e}: {biscuit_err}");
+                                            Box::pin(ready(Ok(req.error_response(e))))
+                                        }
                                     } else {
                                         let e = Hook0Problem::AuthInvalidBiscuit;
                                         debug!("{e}: {biscuit_err}");
