@@ -237,9 +237,11 @@ const items = computed<Route[]>(() => {
       </div>
     </div>
   </div>
+
+  <!-- If user not logged in -->
   <div v-else class="h-screen flex flex-col justify-center items-center">
     <div class="h-1/6 mb-6 flex justify-center">
-      <img src="../public/hook0_logo.jpeg" />
+      <img src="../public/256x256.svg" />
     </div>
     <div class="w-full flex justify-center items-center">
       <RouterView />
