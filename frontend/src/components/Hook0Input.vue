@@ -6,7 +6,7 @@ import Hook0Text from '@/components/Hook0Text.vue';
 
 interface Props {
   autofocus?: boolean;
-  label?: string; // Added label prop
+  label?: string;
 }
 const props = defineProps<Props>();
 
@@ -51,7 +51,6 @@ onUpdated(() => {
 <template>
   <div :class="$attrs.class">
     <label v-if="props.label" class="hook0-label">{{ props.label }}</label>
-    <!-- Added label -->
     <input
       ref="ipt"
       v-bind="{ ...omit(['class', 'style'], $props), ...$attrs }"
@@ -79,6 +78,6 @@ onUpdated(() => {
 
 .hook0-label {
   @apply block text-sm font-medium text-gray-700;
-  margin-bottom: 0.5rem; // Espace entre le label et l'input
+  margin-bottom: 0.5rem; // Space between input and label
 }
 </style>
