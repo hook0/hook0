@@ -87,12 +87,12 @@ struct Config {
 
     /// Enable Keycloak migration mode
     #[cfg(feature = "migrate-users-from-keycloak")]
-    #[clap(long, env)]
+    #[clap(long, env, default_value = "true")]
     enable_keycloak_migration: bool,
 
     /// Enable application secret compatibility mode
     #[cfg(feature = "application-secret-compatibility")]
-    #[clap(long, env)]
+    #[clap(long, env, default_value = "true")]
     enable_application_secret_compatibility: bool,
 
     /// Keycloak RS256 public key (with GPG delimiters)
