@@ -174,7 +174,8 @@ where
                                         if let Ok(application_secret_token) = uuid_token {
                                             let pool = Box::new(self.db.clone());
                                             let pool: &'static PgPool = Box::leak(pool);
-                                            let biscuit_private_key = self.biscuit_private_key.clone();
+                                            let biscuit_private_key =
+                                                self.biscuit_private_key.clone();
                                             let srv = Rc::clone(&self.service);
                                             Box::pin(async move {
                                                 #[derive(Debug)]
@@ -194,7 +195,7 @@ where
                                                 )
                                                 .fetch_optional(pool)
                                                 .await;
-    
+
                                                 match application_secret_lookup {
                                                     Ok(Some(application_secret)) => {
                                                         let service_access_biscuit = crate::iam::create_service_access_token(
@@ -204,7 +205,6 @@ where
                                                         )
                                                         .and_then(|root_token| {
                                                             use biscuit_auth::builder_ext::BuilderExt;
-    
                                                             let biscuit = root_token.biscuit.append({
                                                                 let mut block = biscuit_auth::builder::BlockBuilder::new();
                                                                 block.add_check(biscuit_auth::macros::check!(
@@ -216,7 +216,7 @@ where
                                                             })?;
                                                             Ok(biscuit)
                                                         });
-    
+
                                                         match service_access_biscuit {
                                                             Ok(biscuit) => {
                                                                 {
