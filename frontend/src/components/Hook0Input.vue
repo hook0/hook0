@@ -38,7 +38,6 @@ onMounted(() => {
   _internalState();
 
   if (props.autofocus ?? false) {
-    console.log('focus');
     ipt.value?.focus();
   }
 });
