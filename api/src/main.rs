@@ -85,6 +85,16 @@ struct Config {
     #[clap(long, env, hide_env_values = true)]
     health_check_key: Option<String>,
 
+    /// Enable Keycloak migration mode
+    #[cfg(feature = "migrate-users-from-keycloak")]
+    #[clap(long, env)]
+    enable_keycloak_migration: bool,
+
+    /// Enable application secret compatibility mode
+    #[cfg(feature = "application-secret-compatibility")]
+    #[clap(long, env)]
+    enable_application_secret_compatibility: bool,
+
     /// Keycloak RS256 public key (with GPG delimiters)
     #[cfg(feature = "migrate-users-from-keycloak")]
     #[clap(long, env)]
@@ -272,6 +282,8 @@ pub struct State {
     mailer: mailer::Mailer,
     app_url: String,
     #[cfg(feature = "migrate-users-from-keycloak")]
+    enable_keycloak_migration: bool,
+    #[cfg(feature = "migrate-users-from-keycloak")]
     keycloak_url: Url,
     #[cfg(feature = "migrate-users-from-keycloak")]
     keycloak_realm: String,
@@ -430,6 +442,8 @@ async fn main() -> anyhow::Result<()> {
             biscuit_private_key,
             mailer,
             #[cfg(feature = "migrate-users-from-keycloak")]
+            enable_keycloak_migration: config.enable_keycloak_migration,
+            #[cfg(feature = "migrate-users-from-keycloak")]
             keycloak_url: config.keycloak_url,
             #[cfg(feature = "migrate-users-from-keycloak")]
             keycloak_realm: config.keycloak_realm,
@@ -480,6 +494,8 @@ async fn main() -> anyhow::Result<()> {
                 db: initial_state.db.clone(),
                 biscuit_private_key: initial_state.biscuit_private_key.clone(),
                 master_api_key,
+                #[cfg(feature = "application-secret-compatibility")]
+                enable_application_secret_compatibility: config.enable_application_secret_compatibility,
             };
 
             let security_headers = middleware::DefaultHeaders::new()
