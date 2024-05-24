@@ -62,6 +62,7 @@ async function submit() {
             class="w-11/12 mx-auto mb-4 mt-4"
             placeholder="johndoe@example.com"
             required
+            autofocus
             label="Email"
           >
           </Hook0Input>
