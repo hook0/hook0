@@ -495,7 +495,8 @@ async fn main() -> anyhow::Result<()> {
                 biscuit_private_key: initial_state.biscuit_private_key.clone(),
                 master_api_key,
                 #[cfg(feature = "application-secret-compatibility")]
-                enable_application_secret_compatibility: config.enable_application_secret_compatibility,
+                enable_application_secret_compatibility: config
+                    .enable_application_secret_compatibility,
             };
 
             let security_headers = middleware::DefaultHeaders::new()
