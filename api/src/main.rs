@@ -268,6 +268,7 @@ struct Config {
     #[clap(long, env)]
     app_url: String,
 
+    /// Maximum duration (in millisecond) that can be spent running Biscuit's authorizer
     #[clap(long, env, default_value = "10")]
     max_authorization_time_in_ms: u64,
 }
