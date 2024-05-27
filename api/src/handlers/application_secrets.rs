@@ -57,6 +57,7 @@ pub async fn create(
         Action::ApplicationSecretCreate {
             application_id: &body.application_id,
         },
+        state.max_authorization_time_in_ms,
     )
     .await
     .is_err()
@@ -123,6 +124,7 @@ pub async fn list(
         Action::ApplicationSecretList {
             application_id: &qs.application_id,
         },
+        state.max_authorization_time_in_ms,
     )
     .await
     .is_err()
@@ -168,6 +170,7 @@ pub async fn edit(
         Action::ApplicationSecretEdit {
             application_id: &body.application_id,
         },
+        state.max_authorization_time_in_ms,
     )
     .await
     .is_err()
@@ -241,6 +244,7 @@ pub async fn delete(
         Action::ApplicationSecretDelete {
             application_id: &qs.application_id,
         },
+        state.max_authorization_time_in_ms,
     )
     .await
     .is_err()

@@ -59,6 +59,7 @@ pub async fn create(
         Action::EventTypeCreate {
             application_id: &body.application_id,
         },
+        state.max_authorization_time_in_ms,
     )
     .await
     .is_err()
@@ -174,6 +175,7 @@ pub async fn list(
         Action::EventTypeList {
             application_id: &qs.application_id,
         },
+        state.max_authorization_time_in_ms,
     )
     .await
     .is_err()
@@ -219,6 +221,7 @@ pub async fn get(
         Action::EventTypeGet {
             application_id: &qs.application_id,
         },
+        state.max_authorization_time_in_ms,
     )
     .await
     .is_err()
@@ -267,6 +270,7 @@ pub async fn delete(
         Action::EventTypeDelete {
             application_id: &qs.application_id,
         },
+        state.max_authorization_time_in_ms,
     )
     .await
     .is_err()

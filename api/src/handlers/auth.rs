@@ -437,7 +437,12 @@ pub async fn logout(
     _: OaBiscuitUserAccess,
     biscuit: ReqData<Biscuit>,
 ) -> Result<NoContent, Hook0Problem> {
-    if let Ok(token) = authorize_only_user(&biscuit, None, Action::AuthLogout) {
+    if let Ok(token) = authorize_only_user(
+        &biscuit,
+        None,
+        Action::AuthLogout,
+        state.max_authorization_time_in_ms,
+    ) {
         query!(
             "
                 UPDATE iam.token
@@ -678,7 +683,12 @@ pub async fn change_password(
 
     let body = body.into_inner();
 
-    if let Ok(token) = authorize_only_user(&biscuit, None, Action::AuthChangePassword) {
+    if let Ok(token) = authorize_only_user(
+        &biscuit,
+        None,
+        Action::AuthChangePassword,
+        state.max_authorization_time_in_ms,
+    ) {
         do_change_password(
             &state.db,
             state.password_minimum_length,
