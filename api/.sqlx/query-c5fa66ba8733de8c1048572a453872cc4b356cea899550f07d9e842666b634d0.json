@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM iam.user where email_verified_at is null and created_at < now() - interval '7 day'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "c5fa66ba8733de8c1048572a453872cc4b356cea899550f07d9e842666b634d0"
+}
