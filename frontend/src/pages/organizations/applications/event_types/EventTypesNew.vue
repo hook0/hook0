@@ -21,13 +21,11 @@ import { push } from 'notivue';
 const router = useRouter();
 const route = useRoute();
 
-const props = defineProps({
-  tutorialMode: {
-    type: Boolean,
-    default: false,
-  },
-});
+interface Props {
+  tutorialMode?: boolean;
+}
 
+const props = defineProps<Props>();
 const emit = defineEmits(['tutorial-event-type-created']);
 
 const event_type = ref<EventTypePost>({

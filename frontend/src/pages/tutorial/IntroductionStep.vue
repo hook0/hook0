@@ -8,7 +8,7 @@ import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import { ref } from 'vue';
-import FirstStep from '@/pages/tutorial/FirstStep.vue';
+import FirstStep from '@/pages/tutorial/Step1CreateOrganization.vue';
 
 const isFirstStep = ref(false);
 function startTutorial() {

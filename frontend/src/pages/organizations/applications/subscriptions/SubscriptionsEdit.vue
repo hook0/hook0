@@ -29,12 +29,11 @@ import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Icon from '@/components/Hook0Icon.vue';
 import { push } from 'notivue';
 
-const props = defineProps({
-  tutorialMode: {
-    type: Boolean,
-    default: false,
-  },
-});
+interface Props {
+  tutorialMode?: boolean;
+}
+
+const props = defineProps<Props>();
 
 const emit = defineEmits(['tutorial-subscription-created']);
 

@@ -25,10 +25,10 @@ import ResetPassword from '@/pages/ResetPassword.vue';
 import ServicesTokenList from '@/pages/organizations/services_token/ServicesTokenList.vue';
 import ServiceTokenView from '@/pages/organizations/services_token/ServiceTokenView.vue';
 import IntroductionStep from '@/pages/tutorial/IntroductionStep.vue';
-import SecondStep from '@/pages/tutorial/SecondStep.vue';
-import ThirdStep from '@/pages/tutorial/ThirdStep.vue';
-import FourthStep from '@/pages/tutorial/FourthStep.vue';
-import FifthStep from '@/pages/tutorial/FifthStep.vue';
+import SecondStep from '@/pages/tutorial/Step2CreateApplication.vue';
+import ThirdStep from '@/pages/tutorial/Step3CreateEventType.vue';
+import FourthStep from '@/pages/tutorial/Step4CreateSubscription.vue';
+import FifthStep from '@/pages/tutorial/Step5SendEvent.vue';
 
 export type Hook0Routes = string;
 
