@@ -416,6 +416,16 @@ async fn main() -> anyhow::Result<()> {
             .await;
         });
 
+        // Spawn task to clean unverified users
+        let clean_unverified_users_db = pool.clone();
+        actix_web::rt::spawn(async move {
+            materialized_views::periodically_clean_unverified_users(
+                &clean_unverified_users_db,
+                Duration::from_secs(config.old_events_cleanup_period_in_s),
+            )
+            .await;
+        });
+
         // Spawn task to clean up old events
         let cleanup_db = pool.clone();
         actix_web::rt::spawn(async move {
