@@ -16,6 +16,7 @@ use std::str::FromStr;
 use std::time::Duration;
 use uuid::Uuid;
 
+mod clean_unverified_users;
 mod extractor_user_ip;
 mod handlers;
 mod hook0_client;
@@ -271,6 +272,14 @@ struct Config {
     /// Maximum duration (in millisecond) that can be spent running Biscuit's authorizer
     #[clap(long, env, default_value = "10")]
     max_authorization_time_in_ms: u64,
+
+    /// Is unverified users cleanup enabled
+    #[clap(long, env, default_value = "false")]
+    enable_unverified_users_cleanup: bool,
+
+    /// Interval in days to clean unverified users
+    #[clap(long, env, default_value = "7")]
+    unverified_users_cleanup_interval_in_days: u64,
 }
 
 fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
@@ -416,15 +425,18 @@ async fn main() -> anyhow::Result<()> {
             .await;
         });
 
-        // Spawn task to clean unverified users
-        let clean_unverified_users_db = pool.clone();
-        actix_web::rt::spawn(async move {
-            materialized_views::periodically_clean_unverified_users(
-                &clean_unverified_users_db,
-                Duration::from_secs(config.old_events_cleanup_period_in_s),
-            )
-            .await;
-        });
+        // Spawn task to clean unverified users if enabled
+        if config.enable_unverified_users_cleanup {
+            let clean_unverified_users_db = pool.clone();
+            actix_web::rt::spawn(async move {
+                clean_unverified_users::periodically_clean_unverified_users(
+                    &clean_unverified_users_db,
+                    Duration::from_secs(config.old_events_cleanup_period_in_s),
+                    config.unverified_users_cleanup_interval_in_days,
+                )
+                .await;
+            });
+        }
 
         // Spawn task to clean up old events
         let cleanup_db = pool.clone();
