@@ -26,23 +26,21 @@ const organization = ref({
   name: '',
 });
 
-const props = defineProps({
-  tutorialMode: {
-    type: Boolean,
-    default: false,
-  },
-});
+interface Props {
+  tutorialMode?: boolean;
+}
+
+const props = defineProps<Props>();
 
 const emit = defineEmits(['tutorial-organization-created']);
 
 function reloadPageAndGoToOrganizationDetail(organization_id: string) {
-  const href = router.resolve({
+  return router.push({
     name: routes.OrganizationsDashboard,
     params: {
       organization_id: organization_id,
     },
-  }).href;
-  window.location.assign(href);
+  });
 }
 
 function _load() {
@@ -80,7 +78,7 @@ function upsert(e: Event) {
             });
             emit('tutorial-organization-created', org.organization_id);
           } else {
-            reloadPageAndGoToOrganizationDetail(org.organization_id);
+            return reloadPageAndGoToOrganizationDetail(org.organization_id);
           }
         })
         .catch(displayError)
