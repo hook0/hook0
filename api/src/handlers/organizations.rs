@@ -75,7 +75,12 @@ pub async fn list(
     _: OaBiscuit,
     biscuit: ReqData<Biscuit>,
 ) -> Result<Json<Vec<Organization>>, Hook0Problem> {
-    if let Ok(token) = authorize(&biscuit, None, Action::OrganizationList) {
+    if let Ok(token) = authorize(
+        &biscuit,
+        None,
+        Action::OrganizationList,
+        state.max_authorization_time_in_ms,
+    ) {
         let (token_organizations, is_master) = match token {
             AuthorizedToken::User(AuthorizedUserToken { organizations, .. }) => {
                 (organizations, false)
@@ -161,7 +166,12 @@ pub async fn create(
     biscuit: ReqData<Biscuit>,
     body: Json<OrganizationPost>,
 ) -> Result<Json<OrganizationInfo>, Hook0Problem> {
-    if let Ok(token) = authorize_only_user(&biscuit, None, Action::OrganizationCreate) {
+    if let Ok(token) = authorize_only_user(
+        &biscuit,
+        None,
+        Action::OrganizationCreate,
+        state.max_authorization_time_in_ms,
+    ) {
         if let Err(e) = body.validate() {
             return Err(Hook0Problem::Validation(e));
         }
@@ -276,7 +286,14 @@ pub async fn get(
 ) -> Result<Json<OrganizationInfo>, Hook0Problem> {
     let organization_id = organization_id.into_inner();
 
-    if authorize(&biscuit, Some(organization_id), Action::OrganizationGet).is_err() {
+    if authorize(
+        &biscuit,
+        Some(organization_id),
+        Action::OrganizationGet,
+        state.max_authorization_time_in_ms,
+    )
+    .is_err()
+    {
         return Err(Hook0Problem::Forbidden);
     }
 
@@ -405,6 +422,7 @@ pub async fn edit(
         &biscuit,
         Some(organization_id.as_ref().to_owned()),
         Action::OrganizationEdit,
+        state.max_authorization_time_in_ms,
     )
     .is_err()
     {
@@ -469,7 +487,14 @@ pub async fn invite(
 ) -> Result<Json<UserInvitation>, Hook0Problem> {
     let organization_id = organization_id.into_inner();
 
-    if authorize(&biscuit, Some(organization_id), Action::OrganizationInvite).is_err() {
+    if authorize(
+        &biscuit,
+        Some(organization_id),
+        Action::OrganizationInvite,
+        state.max_authorization_time_in_ms,
+    )
+    .is_err()
+    {
         return Err(Hook0Problem::Forbidden);
     }
 
@@ -551,7 +576,14 @@ pub async fn revoke(
 ) -> Result<Json<Revoke>, Hook0Problem> {
     let organization_id = organization_id.into_inner();
 
-    if authorize(&biscuit, Some(organization_id), Action::OrganizationRevoke).is_err() {
+    if authorize(
+        &biscuit,
+        Some(organization_id),
+        Action::OrganizationRevoke,
+        state.max_authorization_time_in_ms,
+    )
+    .is_err()
+    {
         return Err(Hook0Problem::Forbidden);
     }
 
@@ -618,7 +650,14 @@ pub async fn delete(
 ) -> Result<NoContent, Hook0Problem> {
     let organization_id = organization_id.into_inner();
 
-    if authorize(&biscuit, Some(organization_id), Action::OrganizationDelete).is_err() {
+    if authorize(
+        &biscuit,
+        Some(organization_id),
+        Action::OrganizationDelete,
+        state.max_authorization_time_in_ms,
+    )
+    .is_err()
+    {
         return Err(Hook0Problem::Forbidden);
     }
 

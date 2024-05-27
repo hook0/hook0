@@ -267,6 +267,9 @@ struct Config {
     /// Frontend application URL (used for building links in emails)
     #[clap(long, env)]
     app_url: String,
+
+    #[clap(long, env, default_value = "10")]
+    max_authorization_time_in_ms: u64,
 }
 
 fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
@@ -297,6 +300,7 @@ pub struct State {
     hook0_client: Option<Hook0Client>,
     quotas: quotas::Quotas,
     health_check_key: Option<String>,
+    max_authorization_time_in_ms: u64,
 }
 
 #[actix_web::main]
@@ -457,6 +461,7 @@ async fn main() -> anyhow::Result<()> {
             hook0_client,
             quotas,
             health_check_key: config.health_check_key,
+            max_authorization_time_in_ms: config.max_authorization_time_in_ms,
         };
         let hook0_client_api_url = config.hook0_client_api_url;
 
