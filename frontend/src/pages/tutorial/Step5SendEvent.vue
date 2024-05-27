@@ -56,13 +56,16 @@ function cancel() {
   router.back();
 }
 
-function backToHome() {
+function back_to_application() {
   push.success({
     title: 'Event sent',
     message: 'Wow ! You just sent an event to your webhook ! 🎉🎉',
     duration: 5000,
   });
-  return router.push({ name: routes.Home });
+  return router.push({
+    name: routes.ApplicationsDashboard,
+    params: { organization_id: organizationId.value, application_id: applicationId.value },
+  });
 }
 
 onMounted(() => {
@@ -94,15 +97,19 @@ onMounted(() => {
             <EventsList
               v-if="organizationId && applicationId && disabled_button"
               :tutorial-mode="true"
-              @tutorial-event-send="backToHome"
+              @tutorial-event-send="back_to_application"
             />
           </template>
         </Hook0CardContentLine>
       </Hook0CardContentLines>
     </Hook0CardContent>
     <Hook0CardFooter>
-      <Hook0Button class="primary" type="button" :disabled="disabled_button" @click="backToHome"
-        >Back to home</Hook0Button
+      <Hook0Button
+        class="primary"
+        type="button"
+        :disabled="disabled_button"
+        @click="back_to_application"
+        >Back to application</Hook0Button
       >
     </Hook0CardFooter>
   </Hook0Card>
