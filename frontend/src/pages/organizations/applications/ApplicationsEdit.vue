@@ -24,12 +24,11 @@ const application = ref({
   name: '',
 });
 
-const props = defineProps({
-  tutorialMode: {
-    type: Boolean,
-    default: false,
-  },
-});
+interface Props {
+  tutorialMode?: boolean;
+}
+
+const props = defineProps<Props>();
 
 const emit = defineEmits(['tutorial-application-created']);
 

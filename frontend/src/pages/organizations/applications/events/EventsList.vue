@@ -27,12 +27,13 @@ import Hook0Select from '@/components/Hook0Select.vue';
 import { push } from 'notivue';
 import { v4 as uuidv4 } from 'uuid';
 
-const props = defineProps({
-  tutorialMode: {
-    type: Boolean,
-    default: false,
-  },
-});
+interface Props {
+  // cache-burst
+  burst?: string | string[];
+  tutorialMode?: boolean;
+}
+
+const props = defineProps<Props>();
 
 const emit = defineEmits(['tutorial-event-send']);
 
