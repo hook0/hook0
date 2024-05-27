@@ -141,6 +141,7 @@ pub async fn list(
         Action::EventList {
             application_id: &qs.application_id,
         },
+        state.max_authorization_time_in_ms,
     )
     .await
     .is_err()
@@ -231,6 +232,7 @@ pub async fn get(
         Action::EventGet {
             application_id: &qs.application_id,
         },
+        state.max_authorization_time_in_ms,
     )
     .await
     .is_err()
@@ -305,6 +307,7 @@ pub async fn ingest(
         Action::EventIngest {
             application_id: &application_id,
         },
+        state.max_authorization_time_in_ms,
     )
     .await
     .is_err()
@@ -418,6 +421,7 @@ pub async fn replay(
         Action::EventReplay {
             application_id: &body.application_id,
         },
+        state.max_authorization_time_in_ms,
     )
     .await
     .is_err()
