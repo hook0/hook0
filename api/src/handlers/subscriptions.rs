@@ -111,6 +111,7 @@ pub async fn list(
         Action::SubscriptionList {
             application_id: &qs.application_id,
         },
+        state.max_authorization_time_in_ms,
     )
     .await
     .is_err()
@@ -236,6 +237,7 @@ pub async fn get(
             application_id: &application_id,
             subscription_id: &subscription_id,
         },
+        state.max_authorization_time_in_ms,
     )
     .await
     .is_err()
@@ -363,6 +365,7 @@ pub async fn create(
             label_key: &body.label_key,
             label_value: &body.label_value,
         },
+        state.max_authorization_time_in_ms,
     )
     .await
     .is_err()
@@ -568,6 +571,7 @@ pub async fn edit(
             application_id: &body.application_id,
             subscription_id: &subscription_id,
         },
+        state.max_authorization_time_in_ms,
     )
     .await
     .is_err()
@@ -815,6 +819,7 @@ pub async fn delete(
             application_id: &qs.application_id,
             subscription_id: &subscription_id,
         },
+        state.max_authorization_time_in_ms,
     )
     .await
     .is_err()

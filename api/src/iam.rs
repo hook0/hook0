@@ -832,6 +832,7 @@ pub fn authorize(
     biscuit: &Biscuit,
     organization_id: Option<Uuid>,
     action: Action,
+    max_authorization_time_in_ms: u64,
 ) -> Result<AuthorizedToken, biscuit_auth::error::Token> {
     let mut authorizer = authorizer!(
         r#"
@@ -882,7 +883,7 @@ pub fn authorize(
     authorizer.add_allow_all();
 
     authorizer.set_limits(AuthorizerLimits {
-        max_time: Duration::from_millis(5),
+        max_time: Duration::from_millis(max_authorization_time_in_ms),
         ..Default::default()
     });
     authorizer.add_token(biscuit)?;
@@ -983,8 +984,14 @@ pub fn authorize_only_user(
     biscuit: &Biscuit,
     organization_id: Option<Uuid>,
     action: Action,
+    max_authorization_time_in_ms: u64,
 ) -> Result<AuthorizedUserToken, biscuit_auth::error::Token> {
-    match authorize(biscuit, organization_id, action) {
+    match authorize(
+        biscuit,
+        organization_id,
+        action,
+        max_authorization_time_in_ms,
+    ) {
         Ok(AuthorizedToken::User(aut)) => Ok(aut),
         Ok(_) => {
             trace!("Authorization was denied because a user_access token was required");
@@ -1122,6 +1129,7 @@ pub async fn authorize_for_application<'a>(
     db: &PgPool,
     biscuit: &Biscuit,
     action: Action<'a>,
+    max_authorization_time_in_ms: u64,
 ) -> Result<AuthorizedToken, String> {
     let application_id = action.application_id().ok_or_else(|| {
         let e = format!("The following action is not application-scoped (please report the issue, this is most likely a bug): {action:?}");
@@ -1138,7 +1146,13 @@ pub async fn authorize_for_application<'a>(
             )
         })
         .and_then(|organization_id| {
-            authorize(biscuit, Some(organization_id), action).map_err(|e| format!("{e:?}"))
+            authorize(
+                biscuit,
+                Some(organization_id),
+                action,
+                max_authorization_time_in_ms,
+            )
+            .map_err(|e| format!("{e:?}"))
         })
         .map_err(|e| {
             trace!("{e}");
@@ -1155,6 +1169,8 @@ mod tests {
 
     use super::*;
 
+    const MAX_DURATION_TIME_IN_MS: u64 = 10;
+
     #[test_log::test]
     #[test_log(default_log_filter = "trace")]
     fn service_access_token_authorization_root_token() {
@@ -1168,7 +1184,8 @@ mod tests {
             dbg!(authorize(
                 &biscuit,
                 Some(organization_id),
-                Action::TestSimple
+                Action::TestSimple,
+                MAX_DURATION_TIME_IN_MS
             )),
             Ok(AuthorizedToken::Service(AuthorizeServiceToken {
                 organization_id
@@ -1204,12 +1221,14 @@ mod tests {
             &not_yet_expired_biscuit,
             Some(organization_id),
             Action::TestSimple,
+            MAX_DURATION_TIME_IN_MS
         ))
         .is_ok());
         assert!(dbg!(authorize(
             &expired_biscuit,
             Some(organization_id),
             Action::TestSimple,
+            MAX_DURATION_TIME_IN_MS
         ))
         .is_err());
     }
@@ -1228,6 +1247,7 @@ mod tests {
             &biscuit,
             Some(other_organization_id),
             Action::TestSimple,
+            MAX_DURATION_TIME_IN_MS
         ))
         .is_err());
     }
@@ -1256,6 +1276,7 @@ mod tests {
             Action::TestWithApplication {
                 application_id: &application_id
             },
+            MAX_DURATION_TIME_IN_MS
         ))
         .is_ok());
         assert!(dbg!(authorize(
@@ -1264,6 +1285,7 @@ mod tests {
             Action::TestWithApplication {
                 application_id: &application_id
             },
+            MAX_DURATION_TIME_IN_MS
         ))
         .is_ok());
         assert!(dbg!(authorize(
@@ -1272,6 +1294,7 @@ mod tests {
             Action::TestWithApplication {
                 application_id: &application_id
             },
+            MAX_DURATION_TIME_IN_MS
         ))
         .is_err());
         // Using an application-restricted Biscuit on an organization-only endpoint
@@ -1279,6 +1302,7 @@ mod tests {
             &application_restricted_biscuit,
             Some(organization_id),
             Action::TestSimple,
+            MAX_DURATION_TIME_IN_MS
         ))
         .is_err());
     }
@@ -1292,8 +1316,20 @@ mod tests {
         let RootToken { biscuit, .. } =
             create_service_access_token(&keypair.private(), token_id, organization_id).unwrap();
 
-        assert!(dbg!(authorize(&biscuit, None, Action::TestSimple)).is_err());
-        assert!(dbg!(authorize(&biscuit, None, Action::TestNoOrganization)).is_ok());
+        assert!(dbg!(authorize(
+            &biscuit,
+            None,
+            Action::TestSimple,
+            MAX_DURATION_TIME_IN_MS
+        ))
+        .is_err());
+        assert!(dbg!(authorize(
+            &biscuit,
+            None,
+            Action::TestNoOrganization,
+            MAX_DURATION_TIME_IN_MS
+        ))
+        .is_ok());
     }
 
     #[test_log::test]
@@ -1321,7 +1357,8 @@ mod tests {
             dbg!(authorize(
                 &biscuit,
                 Some(organization_id),
-                Action::TestSimple
+                Action::TestSimple,
+                MAX_DURATION_TIME_IN_MS
             )),
             Ok(AuthorizedToken::User(AuthorizedUserToken {
                 session_id,
@@ -1363,19 +1400,22 @@ mod tests {
         assert!(dbg!(authorize(
             &biscuit,
             Some(organization_id1),
-            Action::TestSimple
+            Action::TestSimple,
+            MAX_DURATION_TIME_IN_MS
         ))
         .is_ok());
         assert!(dbg!(authorize(
             &biscuit,
             Some(organization_id2),
-            Action::TestSimple
+            Action::TestSimple,
+            MAX_DURATION_TIME_IN_MS
         ))
         .is_ok());
         assert!(dbg!(authorize(
             &biscuit,
             Some(organization_id3),
-            Action::TestSimple
+            Action::TestSimple,
+            MAX_DURATION_TIME_IN_MS
         ))
         .is_err());
         assert!(dbg!(authorize(
@@ -1383,7 +1423,8 @@ mod tests {
             Some(organization_id1),
             Action::TestWithApplication {
                 application_id: &Uuid::new_v4()
-            }
+            },
+            MAX_DURATION_TIME_IN_MS
         ))
         .is_ok());
         assert!(dbg!(authorize(
@@ -1391,7 +1432,8 @@ mod tests {
             Some(organization_id2),
             Action::TestWithApplication {
                 application_id: &Uuid::new_v4()
-            }
+            },
+            MAX_DURATION_TIME_IN_MS
         ))
         .is_err());
         assert!(dbg!(authorize(
@@ -1399,7 +1441,8 @@ mod tests {
             Some(organization_id3),
             Action::TestWithApplication {
                 application_id: &Uuid::new_v4()
-            }
+            },
+            MAX_DURATION_TIME_IN_MS
         ))
         .is_err());
     }
