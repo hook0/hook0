@@ -67,6 +67,7 @@ pub async fn create(
         &biscuit,
         Some(body.organization_id),
         Action::ApplicationCreate,
+        state.max_authorization_time_in_ms,
     )
     .is_err()
     {
@@ -155,6 +156,7 @@ pub async fn get(
         Action::ApplicationGet {
             application_id: &application_id,
         },
+        state.max_authorization_time_in_ms,
     )
     .await
     .is_err()
@@ -219,7 +221,14 @@ pub async fn list(
     biscuit: ReqData<Biscuit>,
     qs: Query<Qs>,
 ) -> Result<Json<Vec<Application>>, Hook0Problem> {
-    if authorize(&biscuit, Some(qs.organization_id), Action::ApplicationList).is_err() {
+    if authorize(
+        &biscuit,
+        Some(qs.organization_id),
+        Action::ApplicationList,
+        state.max_authorization_time_in_ms,
+    )
+    .is_err()
+    {
         return Err(Hook0Problem::Forbidden);
     }
 
@@ -256,6 +265,7 @@ pub async fn edit(
         Action::ApplicationEdit {
             application_id: &application_id,
         },
+        state.max_authorization_time_in_ms,
     )
     .await
     .is_err()
@@ -326,6 +336,7 @@ pub async fn delete(
         Action::ApplicationDelete {
             application_id: &application_id,
         },
+        state.max_authorization_time_in_ms,
     )
     .await
     .is_err()
