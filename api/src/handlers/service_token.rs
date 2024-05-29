@@ -56,7 +56,14 @@ pub async fn create(
 ) -> Result<CreatedJson<ServiceToken>, Hook0Problem> {
     let organization_id = body.organization_id;
 
-    if authorize(&biscuit, Some(organization_id), Action::ServiceTokenCreate).is_err() {
+    if authorize(
+        &biscuit,
+        Some(organization_id),
+        Action::ServiceTokenCreate,
+        state.max_authorization_time_in_ms,
+    )
+    .is_err()
+    {
         return Err(Hook0Problem::Forbidden);
     }
 
@@ -129,7 +136,14 @@ pub async fn list(
 ) -> Result<Json<Vec<ServiceToken>>, Hook0Problem> {
     let organization_id = qs.organization_id;
 
-    if authorize(&biscuit, Some(organization_id), Action::ServiceTokenList).is_err() {
+    if authorize(
+        &biscuit,
+        Some(organization_id),
+        Action::ServiceTokenList,
+        state.max_authorization_time_in_ms,
+    )
+    .is_err()
+    {
         return Err(Hook0Problem::Forbidden);
     }
 
@@ -176,6 +190,7 @@ pub async fn edit(
         Action::ServiceTokenEdit {
             service_token_id: &token_id,
         },
+        state.max_authorization_time_in_ms,
     )
     .is_err()
     {
@@ -252,6 +267,7 @@ pub async fn delete(
         Action::ServiceTokenDelete {
             service_token_id: &token_id,
         },
+        state.max_authorization_time_in_ms,
     )
     .is_err()
     {
@@ -331,7 +347,14 @@ pub async fn get(
     let organization_id = qs.organization_id;
     let token_id = token_id.into_inner();
 
-    if authorize(&biscuit, Some(organization_id), Action::ServiceTokenGet).is_err() {
+    if authorize(
+        &biscuit,
+        Some(organization_id),
+        Action::ServiceTokenGet,
+        state.max_authorization_time_in_ms,
+    )
+    .is_err()
+    {
         return Err(Hook0Problem::Forbidden);
     }
 
