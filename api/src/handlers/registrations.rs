@@ -72,10 +72,11 @@ pub async fn register(
                 Hook0Problem::InternalServerError
             })?
             .serialize();
-        query!(
+        let user_insert = query!(
             "
                 INSERT INTO iam.user (user__id, email, password, first_name, last_name)
                 VALUES ($1, $2, $3, $4, $5)
+                ON CONFLICT (email) DO NOTHING
             ",
             &user_id,
             &body.email,
@@ -86,67 +87,73 @@ pub async fn register(
         .execute(&mut *tx)
         .await?;
 
-        let organization_id = Uuid::new_v4();
-        let organization_name = format!(
-            "{} {}'s personal organization",
-            &body.first_name, &body.last_name
-        );
-        query!(
-            "
-                INSERT INTO iam.organization (organization__id, name, created_by)
-                VALUES ($1, $2, $3)
-            ",
-            &organization_id,
-            &organization_name,
-            &user_id,
-        )
-        .execute(&mut *tx)
-        .await?;
-
-        query!(
-            "
-                INSERT INTO iam.user__organization (user__id, organization__id, role)
-                VALUES ($1, $2, $3)
-            ",
-            &user_id,
-            &organization_id,
-            Role::Editor.as_ref(),
-        )
-        .execute(&mut *tx)
-        .await?;
-
-        let verification_token =
-            create_email_verification_token(&state.biscuit_private_key, user_id).map_err(|e| {
-                error!("Error trying to create email verification token: {e}");
-                Hook0Problem::InternalServerError
-            })?;
-        let recipient = Mailbox::new(
-            Some(format!("{} {}", body.first_name, body.last_name)),
-            recipient_address,
-        );
-        state
-            .mailer
-            .send_mail(
-                Mail::VerifyUserEmail {
-                    url: format!(
-                        "{}/verify-email?token={}",
-                        state.app_url, &verification_token.serialized_biscuit
-                    ),
-                },
-                recipient,
+        if user_insert.rows_affected() > 0 {
+            let organization_id = Uuid::new_v4();
+            let organization_name = format!(
+                "{} {}'s personal organization",
+                &body.first_name, &body.last_name
+            );
+            query!(
+                "
+                    INSERT INTO iam.organization (organization__id, name, created_by)
+                    VALUES ($1, $2, $3)
+                ",
+                &organization_id,
+                &organization_name,
+                &user_id,
             )
-            .await
-            .map_err(|e| {
-                warn!("Could not send verification email: {e}");
-                e
-            })?;
+            .execute(&mut *tx)
+            .await?;
 
-        tx.commit().await?;
+            query!(
+                "
+                    INSERT INTO iam.user__organization (user__id, organization__id, role)
+                    VALUES ($1, $2, $3)
+                ",
+                &user_id,
+                &organization_id,
+                Role::Editor.as_ref(),
+            )
+            .execute(&mut *tx)
+            .await?;
 
-        Ok(CreatedJson(Registration {
-            organization_id,
-            user_id,
-        }))
+            let verification_token =
+                create_email_verification_token(&state.biscuit_private_key, user_id).map_err(
+                    |e| {
+                        error!("Error trying to create email verification token: {e}");
+                        Hook0Problem::InternalServerError
+                    },
+                )?;
+            let recipient = Mailbox::new(
+                Some(format!("{} {}", body.first_name, body.last_name)),
+                recipient_address,
+            );
+            state
+                .mailer
+                .send_mail(
+                    Mail::VerifyUserEmail {
+                        url: format!(
+                            "{}/verify-email?token={}",
+                            state.app_url, &verification_token.serialized_biscuit
+                        ),
+                    },
+                    recipient,
+                )
+                .await
+                .map_err(|e| {
+                    warn!("Could not send verification email: {e}");
+                    e
+                })?;
+
+            tx.commit().await?;
+
+            Ok(CreatedJson(Registration {
+                organization_id,
+                user_id,
+            }))
+        } else {
+            Err(Hook0Problem::UserAlreadyExist)
+        }
     } else {
         Err(Hook0Problem::PasswordTooShort(
             state.password_minimum_length,
