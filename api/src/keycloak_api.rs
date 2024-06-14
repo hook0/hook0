@@ -18,7 +18,6 @@ pub struct KeycloakApi {
 #[serde(rename_all = "camelCase")]
 pub struct User {
     pub id: Uuid,
-    pub username: String,
     pub email: String,
     pub first_name: String,
     pub last_name: String,
@@ -27,29 +26,12 @@ pub struct User {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct GroupLookup {
-    pub id: Uuid,
-    pub name: String,
-    pub path: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Group {
-    pub id: Uuid,
-    pub name: String,
+    // pub id: Uuid,
+    // pub name: String,
     pub path: String,
-    pub sub_groups: Vec<Group>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct GroupMember {
-    pub id: Uuid,
-    pub email: String,
-    pub first_name: String,
-    pub last_name: String,
-    pub enabled: bool,
+    // pub sub_groups: Vec<Group>,
 }
 
 impl KeycloakApi {
