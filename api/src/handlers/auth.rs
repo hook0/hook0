@@ -132,7 +132,9 @@ pub async fn login(
         #[cfg(feature = "migrate-users-from-keycloak")]
         {
             if state.enable_keycloak_migration {
-                let user = import_user_from_keycloak(&state, &body.email, &body.password).await?;
+                let user =
+                    import_user_from_keycloak(&state, &body.email.to_lowercase(), &body.password)
+                        .await?;
                 do_login(&state.db, &state.biscuit_private_key, user, None).await
             } else {
                 Err(Hook0Problem::AuthFailedLogin)
