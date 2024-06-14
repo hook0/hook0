@@ -1,3 +1,19 @@
+include:
+  - component: $CI_SERVER_HOST/CleverCloud/clever-cloud-pipeline/deploy-to-prod@1.0.4
+    inputs:
+      stage: release
+      environment: staging
+      app_id: $CLEVERCLOUD_STAGING_APP_ID
+      when: manual
+  - component: $CI_SERVER_HOST/CleverCloud/clever-cloud-pipeline/deploy-to-prod@1.0.4
+    inputs:
+      stage: release
+      environment: production
+      step_name: deploy to production
+      app_id: $CLEVERCLOUD_PRODUCTION_APP_ID
+      when: manual
+
+
 api.check:
   stage: test
   dependencies: []
@@ -36,3 +52,4 @@ api.documentation:
   image: node:$NODE_VERSION
   script:
     - npx --yes rdme@8.3.0 openapi --id=${README_IO_ID} --key=${README_IO_KEY} --update https://app.hook0.com/api/v1/swagger.json
+
