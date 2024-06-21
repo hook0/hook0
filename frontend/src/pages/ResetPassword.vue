@@ -8,7 +8,7 @@ import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import { push } from 'notivue';
 import { Problem } from '@/http.ts';
-import { resetPassword } from '@/pages/users/UsersServices.ts';
+import { resetPassword } from '@/pages/user/UserService';
 import { routes } from '@/routes.ts';
 import router from '@/router.ts';
 import Hook0Alert from '@/components/Hook0Alert.vue';
