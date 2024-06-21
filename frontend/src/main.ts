@@ -6,7 +6,6 @@ import { createApp } from 'vue';
 import router from './router';
 import { Promised } from 'vue-promised';
 import { AuthPlugin } from './iam';
-import { checkWebAssembly } from '@/utils/biscuit_auth.ts';
 
 import Root from './Root.vue';
 
@@ -55,9 +54,6 @@ import { createNotivue } from 'notivue';
 
 // Create and mount the root instance.
 const app = createApp(Root);
-
-// Check if webassembly is supported
-app.use(checkWebAssembly);
 
 // Vue Router
 app.use(router);
