@@ -12,6 +12,7 @@ pub struct InstanceConfig {
     registration_disabled: bool,
     password_minimum_length: u8,
     auto_db_migration: bool,
+    application_secret_compatibility: bool,
 }
 
 /// Get instance configuration
@@ -29,6 +30,7 @@ pub async fn get(state: Data<crate::State>) -> Result<Json<InstanceConfig>, Hook
         registration_disabled: state.registration_disabled,
         password_minimum_length: state.password_minimum_length,
         auto_db_migration: state.auto_db_migration,
+        application_secret_compatibility: state.application_secret_compatibility,
     }))
 }
 
