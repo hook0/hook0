@@ -29,6 +29,7 @@ mod openapi;
 mod problems;
 mod quotas;
 mod rate_limiting;
+mod unverified_users_cleanup;
 mod validators;
 
 #[cfg(feature = "migrate-users-from-keycloak")]
@@ -236,6 +237,18 @@ struct Config {
     #[clap(long, env, default_value = "false")]
     old_events_cleanup_report_and_delete: bool,
 
+    /// If true, unverified users will be remove from database after a while
+    #[clap(long, env, default_value = "false")]
+    enable_unverified_users_cleanup: bool,
+
+    /// Duration (in day) to wait before removing a unverified user
+    #[clap(long, env, default_value = "7")]
+    unverified_users_cleanup_interval_in_days: u32,
+
+    /// If true, unverified users will be reported and cleaned up; if false (default), they will only be reported
+    #[clap(long, env, default_value = "false")]
+    unverified_users_cleanup_report_and_delete: bool,
+
     /// If true, the secured HTTP headers will be enabled
     #[clap(long, env, default_value = "true")]
     enable_security_headers: bool,
@@ -415,6 +428,20 @@ async fn main() -> anyhow::Result<()> {
             )
             .await;
         });
+
+        // Spawn task to clean unverified users if enabled
+        if config.enable_unverified_users_cleanup {
+            let clean_unverified_users_db = pool.clone();
+            actix_web::rt::spawn(async move {
+                unverified_users_cleanup::periodically_clean_up_unverified_users(
+                    &clean_unverified_users_db,
+                    Duration::from_secs(config.old_events_cleanup_period_in_s),
+                    config.unverified_users_cleanup_interval_in_days,
+                    config.unverified_users_cleanup_report_and_delete,
+                )
+                .await;
+            });
+        }
 
         // Spawn task to clean up old events
         let cleanup_db = pool.clone();
