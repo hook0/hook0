@@ -41,6 +41,8 @@ export const socialMedia = [
   },
 ];
 
+export const loginButtonLink = "https://app.hook0.com/login";
+
 export const navItems = [
   { name: "Use cases", link: "#use-cases" },
   { name: "Pricing", link: "#pricing" },
