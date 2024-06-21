@@ -1,5 +1,0 @@
-Contact: mailto:security[_-@-^]hook0.com
-Encryption: https://keybase.io/fgribreau/pgp_keys.asc
-Acknowledgments: https://www.hook0.com/
-Preferred-Languages: en, fr
-Policy: mailto:support[_-@-^]hook0.com
