@@ -6,7 +6,7 @@ import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
-import * as UsersService from '@/pages/users/UsersServices.ts';
+import * as UserService from '@/pages/user/UserService';
 import { Problem } from '@/http.ts';
 import { push } from 'notivue';
 import { getUserInfo, logout } from '@/iam.ts';
@@ -27,7 +27,7 @@ async function changePassword() {
     return;
   }
 
-  await UsersService.changePassword(new_password.value).catch(displayError);
+  await UserService.changePassword(new_password.value).catch(displayError);
 
   push.success({
     title: 'Success',
@@ -41,7 +41,7 @@ async function deleteAccount() {
     return;
   }
 
-  await UsersService.deleteUser()
+  await UserService.deleteUser()
     .then(() => {
       push.success({
         title: 'Success',

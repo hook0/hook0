@@ -12,14 +12,14 @@ import Register from '@/pages/RegisterPage.vue';
 import EventTypesList from '@/pages/organizations/applications/event_types/EventTypesList.vue';
 import EventTypesNew from '@/pages/organizations/applications/event_types/EventTypesNew.vue';
 import Home from '@/Home.vue';
-import UsersSettings from '@/pages/users/UsersSettings.vue';
+import UserSettings from '@/pages/user/UserSettings.vue';
 import SubscriptionsList from '@/pages/organizations/applications/subscriptions/SubscriptionsList.vue';
 import SubscriptionsEdit from '@/pages/organizations/applications/subscriptions/SubscriptionsEdit.vue';
 import LogList from '@/pages/organizations/applications/logs/LogList.vue';
 import ApplicationSecretsList from '@/pages/organizations/applications/application_secrets/ApplicationSecretsList.vue';
 import EventsList from '@/pages/organizations/applications/events/EventsList.vue';
 import EventsDetail from '@/pages/organizations/applications/events/EventsDetail.vue';
-import VerifyUser from '@/pages/users/VerifyEmail.vue';
+import VerifyUser from '@/pages/user/VerifyEmail.vue';
 import BeginResetPassword from '@/pages/BeginResetPassword.vue';
 import ResetPassword from '@/pages/ResetPassword.vue';
 import ServicesTokenList from '@/pages/organizations/services_token/ServicesTokenList.vue';
@@ -97,7 +97,7 @@ export default [
   {
     name: routes.UserSettings,
     path: '/settings',
-    component: UsersSettings,
+    component: UserSettings,
   },
   {
     name: routes.BeginResetPassword,
