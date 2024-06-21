@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import * as UserService from './UsersServices.ts';
+import * as UserService from './UserService.ts';
 import { Problem } from '@/http.ts';
 import { onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
