@@ -19,7 +19,7 @@
 .DS_Store
 *.pem
 .vscode
-.oss-friends.json
+oss-friends.json
 
 # debug
 npm-debug.log*
