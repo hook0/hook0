@@ -308,6 +308,7 @@ pub struct State {
     keycloak_client_id: String,
     #[cfg(feature = "migrate-users-from-keycloak")]
     keycloak_client_secret: String,
+    application_secret_compatibility: bool,
     registration_disabled: bool,
     password_minimum_length: u8,
     auto_db_migration: bool,
@@ -483,6 +484,16 @@ async fn main() -> anyhow::Result<()> {
             keycloak_client_id: config.keycloak_client_id,
             #[cfg(feature = "migrate-users-from-keycloak")]
             keycloak_client_secret: config.keycloak_client_secret,
+            application_secret_compatibility: {
+                #[cfg(feature = "application-secret-compatibility")]
+                {
+                    config.enable_application_secret_compatibility
+                }
+                #[cfg(not(feature = "application-secret-compatibility"))]
+                {
+                    false
+                }
+            },
             registration_disabled: config.disable_registration,
             password_minimum_length: config.password_minimum_length,
             auto_db_migration: config.auto_db_migration,

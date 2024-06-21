@@ -21,6 +21,8 @@ import Hook0Loader from '@/components/Hook0Loader.vue';
 import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
 import Hook0Error from '@/components/Hook0Error.vue';
 import { push } from 'notivue';
+// import Hook0Alert from '@/components/Hook0Alert.vue';
+// import { routes } from '@/routes';
 
 const route = useRoute();
 
@@ -133,6 +135,27 @@ onUpdated(() => {
 </script>
 
 <template>
+  <!--
+  <Hook0Card>
+    <Hook0CardContent>
+      <Hook0Alert type="warning">
+        <template #title><strong>Application Secrets are deprecated</strong></template>
+        <template #description>
+          <Hook0Text
+            >We introduced Service Tokens that supersede Application Secrets. Service Tokens are
+            organization-wide, but can be attenuated to allow API related to one given
+            application.</Hook0Text
+          >
+          <br />
+          <br />
+          <Hook0Button class="primary" :to="{ name: routes.ServicesTokenList }"
+            >Go to Service Tokens</Hook0Button
+          >
+        </template>
+      </Hook0Alert>
+    </Hook0CardContent>
+  </Hook0Card>
+  -->
   <Promised :promise="application_secrets$">
     <!-- Use the "pending" slot to display a loading message -->
     <template #pending>

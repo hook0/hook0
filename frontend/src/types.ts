@@ -42,6 +42,13 @@ export interface paths {
      */
     delete: operations['applications.delete'];
   };
+  '/api/v1/auth/begin-reset-password': {
+    /**
+     * Begin reset password
+     * @description Send an email with a link to reset the password of a user.
+     */
+    post: operations['auth.begin_reset_password'];
+  };
   '/api/v1/auth/login': {
     /**
      * Login
@@ -56,12 +63,33 @@ export interface paths {
      */
     post: operations['auth.logout'];
   };
+  '/api/v1/auth/password': {
+    /**
+     * Change password
+     * @description Change the password of a user.
+     */
+    post: operations['auth.change_password'];
+  };
   '/api/v1/auth/refresh': {
     /**
      * Refresh access token
      * @description Get a new access token in exchange of a refresh token.
      */
     post: operations['auth.refresh'];
+  };
+  '/api/v1/auth/reset-password': {
+    /**
+     * Reset password
+     * @description Reset the password of a user.
+     */
+    post: operations['auth.reset_password'];
+  };
+  '/api/v1/auth/verify-email': {
+    /**
+     * Email verification
+     * @description Verify the email of a user.
+     */
+    post: operations['auth.verify_email'];
   };
   '/api/v1/errors/': {
     /**
@@ -93,6 +121,13 @@ export interface paths {
   '/api/v1/events/{event_id}': {
     /** Get an event */
     get: operations['events.get'];
+  };
+  '/api/v1/events/{event_id}/replay': {
+    /**
+     * Replay an event
+     * @description Trigger existing subscriptions matching an existing event, which will result in webhook being send again
+     */
+    post: operations['events.replay'];
   };
   '/api/v1/health/': {
     /**
@@ -166,6 +201,8 @@ export interface paths {
     post: operations['serviceToken.create'];
   };
   '/api/v1/service_token/{service_token_id}': {
+    /** Get a service token */
+    get: operations['serviceToken.get'];
     /** Edit a service token */
     put: operations['serviceToken.edit'];
     /** Delete a service token */
@@ -236,9 +273,16 @@ export interface components {
       application_id: string;
       name?: string;
     };
+    BeginResetPasswordPost: {
+      email: string;
+    };
+    ChangePasswordPost: {
+      new_password: string;
+    };
+    EmailVerificationPost: {
+      token: string;
+    };
     Event: {
-      /** Format: uuid */
-      application_secret_token: string;
       /** Format: uuid */
       event_id: string;
       event_type_name: string;
@@ -279,8 +323,6 @@ export interface components {
     };
     EventWithPayload: {
       /** Format: uuid */
-      application_secret_token: string;
-      /** Format: uuid */
       event_id: string;
       event_type_name: string;
       ip: string;
@@ -305,6 +347,7 @@ export interface components {
       received_at: string;
     };
     InstanceConfig: {
+      application_secret_compatibility: boolean;
       auto_db_migration: boolean;
       biscuit_public_key: string;
       /** Format: int32 */
@@ -385,6 +428,10 @@ export interface components {
       last_name: string;
       password: string;
     };
+    ReplayEvent: {
+      /** Format: uuid */
+      application_id: string;
+    };
     RequestAttempt: {
       /** Format: date-time */
       created_at: string;
@@ -410,6 +457,10 @@ export interface components {
       };
       /** Format: date-time */
       succeeded_at?: string;
+    };
+    ResetPasswordPost: {
+      new_password: string;
+      token: string;
     };
     Response: {
       body?: string;
@@ -832,6 +883,43 @@ export interface operations {
     };
   };
   /**
+   * Begin reset password
+   * @description Send an email with a link to reset the password of a user.
+   */
+  'auth.begin_reset_password': {
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BeginResetPasswordPost'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        content: never;
+      };
+      /** @description Bad Request */
+      400: {
+        content: never;
+      };
+      /** @description Forbidden */
+      403: {
+        content: never;
+      };
+      /** @description Not Found */
+      404: {
+        content: never;
+      };
+      /** @description Conflict */
+      409: {
+        content: never;
+      };
+      /** @description Internal Server Error */
+      500: {
+        content: never;
+      };
+    };
+  };
+  /**
    * Login
    * @description Get an access token using a user's credentials.
    */
@@ -903,6 +991,43 @@ export interface operations {
     };
   };
   /**
+   * Change password
+   * @description Change the password of a user.
+   */
+  'auth.change_password': {
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ChangePasswordPost'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        content: never;
+      };
+      /** @description Bad Request */
+      400: {
+        content: never;
+      };
+      /** @description Forbidden */
+      403: {
+        content: never;
+      };
+      /** @description Not Found */
+      404: {
+        content: never;
+      };
+      /** @description Conflict */
+      409: {
+        content: never;
+      };
+      /** @description Internal Server Error */
+      500: {
+        content: never;
+      };
+    };
+  };
+  /**
    * Refresh access token
    * @description Get a new access token in exchange of a refresh token.
    */
@@ -913,6 +1038,80 @@ export interface operations {
         content: {
           'application/json': components['schemas']['LoginResponse'];
         };
+      };
+      /** @description Bad Request */
+      400: {
+        content: never;
+      };
+      /** @description Forbidden */
+      403: {
+        content: never;
+      };
+      /** @description Not Found */
+      404: {
+        content: never;
+      };
+      /** @description Conflict */
+      409: {
+        content: never;
+      };
+      /** @description Internal Server Error */
+      500: {
+        content: never;
+      };
+    };
+  };
+  /**
+   * Reset password
+   * @description Reset the password of a user.
+   */
+  'auth.reset_password': {
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ResetPasswordPost'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        content: never;
+      };
+      /** @description Bad Request */
+      400: {
+        content: never;
+      };
+      /** @description Forbidden */
+      403: {
+        content: never;
+      };
+      /** @description Not Found */
+      404: {
+        content: never;
+      };
+      /** @description Conflict */
+      409: {
+        content: never;
+      };
+      /** @description Internal Server Error */
+      500: {
+        content: never;
+      };
+    };
+  };
+  /**
+   * Email verification
+   * @description Verify the email of a user.
+   */
+  'auth.verify_email': {
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['EmailVerificationPost'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        content: never;
       };
       /** @description Bad Request */
       400: {
@@ -1206,6 +1405,48 @@ export interface operations {
         content: {
           'application/json': components['schemas']['EventWithPayload'];
         };
+      };
+      /** @description Bad Request */
+      400: {
+        content: never;
+      };
+      /** @description Forbidden */
+      403: {
+        content: never;
+      };
+      /** @description Not Found */
+      404: {
+        content: never;
+      };
+      /** @description Conflict */
+      409: {
+        content: never;
+      };
+      /** @description Internal Server Error */
+      500: {
+        content: never;
+      };
+    };
+  };
+  /**
+   * Replay an event
+   * @description Trigger existing subscriptions matching an existing event, which will result in webhook being send again
+   */
+  'events.replay': {
+    parameters: {
+      path: {
+        event_id: string;
+      };
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ReplayEvent'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        content: never;
       };
       /** @description Bad Request */
       400: {
@@ -1767,6 +2008,45 @@ export interface operations {
     responses: {
       /** @description Created */
       201: {
+        content: {
+          'application/json': components['schemas']['ServiceToken'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        content: never;
+      };
+      /** @description Forbidden */
+      403: {
+        content: never;
+      };
+      /** @description Not Found */
+      404: {
+        content: never;
+      };
+      /** @description Conflict */
+      409: {
+        content: never;
+      };
+      /** @description Internal Server Error */
+      500: {
+        content: never;
+      };
+    };
+  };
+  /** Get a service token */
+  'serviceToken.get': {
+    parameters: {
+      query: {
+        organization_id: string;
+      };
+      path: {
+        service_token_id: string;
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
         content: {
           'application/json': components['schemas']['ServiceToken'];
         };
