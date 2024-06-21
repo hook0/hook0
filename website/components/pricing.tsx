@@ -2,10 +2,10 @@
 
 import { Button } from "@nextui-org/react";
 import { useState } from "react";
+import Link from "next/link";
 
 import { cn } from "@/lib/utils";
 import { pricingPlans } from "@/app/data";
-import Link from "next/link";
 
 export const Pricing = () => {
   const plans = pricingPlans.map((category) => category.items);
@@ -18,8 +18,7 @@ export const Pricing = () => {
   }
 
   return (
-    <section id="pricing">
-      <div className="max-w-6xl px-4 py-8 mx-auto sm:py-24 sm:px-6 lg:px-8">
+    <section id="pricing" className="max-w-6xl px-4 py-8 mx-auto sm:py-24 sm:px-6 lg:px-8">
         <div className="sm:flex sm:flex-col sm:align-center">
           <h2 className="text-4xl font-bold text-center mt-16 mb-2 text-indigo-400">
             Hook0 Pricing
@@ -82,10 +81,13 @@ export const Pricing = () => {
                       </p>
                     </div>
                   )}
-                  <Link
-                    href={item.link}
-                  >
-                    <Button className="block w-full py-2 mt-8 text-sm font-semibold text-center text-white rounded-md hover:bg-indigo-800" variant="shadow">{item.link_text}</Button>
+                  <Link href={item.link}>
+                    <Button
+                      className="block w-full py-2 mt-8 text-sm font-semibold text-center text-white rounded-md hover:bg-indigo-800"
+                      variant="shadow"
+                    >
+                      {item.link_text}
+                    </Button>
                   </Link>
                   <hr className="my-6" />
                   <div className="space-y-2">
@@ -102,7 +104,6 @@ export const Pricing = () => {
               </div>
             ))}
         </div>
-      </div>
     </section>
   );
 };

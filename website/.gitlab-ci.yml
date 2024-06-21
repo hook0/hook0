@@ -10,15 +10,15 @@ website.build:
     - npm ci
     - npm run build
   cache:
-      key: ${CI_COMMIT_REF_SLUG}
-      policy: push
-      paths:
-        - .npm
-        - website/node_modules/
-        - website/.parcel-cache/
+    key: ${CI_COMMIT_REF_SLUG}
+    policy: push
+    paths:
+      - .npm
+      - website/node_modules/
+      - website/.parcel-cache/
   artifacts:
-      paths:
-        - website/dist
+    paths:
+      - website/dist
 
 .website-release-tmpl: &website-release-tmpl
   stage: release
@@ -33,8 +33,8 @@ website.build:
   script:
     - netlify deploy --site $NETLIFY_SITE_ID --auth $NETLIFY_AUTH_TOKEN --prod --dir=dist/
   environment:
-      name: production-website
-      url: https://www.hook0.com
+    name: production-website
+    url: https://www.hook0.com
   rules:
     - if: $CI_COMMIT_BRANCH == "master"
       changes:

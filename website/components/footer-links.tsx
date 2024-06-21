@@ -4,7 +4,7 @@ export const FooterLinks = () => {
   const isExternalLink = (link: string) => /^https?:/.test(link);
 
   return (
-    <div className="flex justify-center gap-6 md:gap-16 my-16">
+    <div className="flex justify-center gap-6 md:gap-16 mt-20 mb-12">
       {footerItems.map((info) => (
         <div key={info.category} className="flex flex-col">
           <h3 className="text-lg font-bold mb-4">{info.category}</h3>

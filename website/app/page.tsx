@@ -3,7 +3,8 @@ import { EverythingYouNeed } from "@/components/everything-you-need";
 import { Header } from "@/components/header";
 import { OutOfTheBox } from "@/components/out-of-the-box";
 import { UseCases } from "@/components/use-cases";
-import { Pricing } from "@/components/ui/pricing";
+import { Pricing } from "@/components/pricing";
+import { Faq } from "@/components/faq";
 
 export default function Home() {
   return (
@@ -14,6 +15,7 @@ export default function Home() {
       <Testimonials />
       <UseCases />
       <Pricing />
+      <Faq />
     </div>
   );
 }

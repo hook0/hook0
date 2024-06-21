@@ -693,3 +693,26 @@ export const pricingPlans = [
     ],
   },
 ];
+
+export const faq = [
+  {
+    question: "What are Webhooks as a Service?",
+    answer:
+      "We take everything that goes into a webhook service (retries, backoffs, endpoint monitoring, subscriber management, etc) and package it up into a platform that you can easily integrate with using our API.",
+  },
+  {
+    question: "How long does it take to integrate with Hook0?",
+    answer:
+      "Every setup is different, but a senior developer should be able to build out a working version within a day and be live in under a week.",
+  },
+  {
+    question: "How is this different than Zapier or Integromat?",
+    answer:
+      "Zapier is an automation tool that helps connect services together. Hook0 is a platform that gives your application the ability to send webhook events to your users.",
+  },
+  {
+    question: "We've already built webhooks, can we still use Hook0?",
+    answer:
+      "That is a great use case for using Hook0 since you've already validated that your users want webhooks. There is a good chance that what Hook0 offers is much more robust than your solution. If that is the case, then migrating your custom solution to Hook0 will allow you to focus on other priorities while offering a top notch webhook solution.",
+  },
+];
