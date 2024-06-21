@@ -9,7 +9,7 @@ import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import { push } from 'notivue';
 import { AxiosError, AxiosResponse } from 'axios';
 import { handleError, Problem } from '@/http.ts';
-import { beginResetPassword } from '@/pages/users/UsersServices.ts';
+import { beginResetPassword } from '@/pages/user/UserService';
 import { routes } from '@/routes.ts';
 
 const email = ref('');
