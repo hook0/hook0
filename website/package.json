@@ -3,12 +3,19 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
+    "preinstall": "rm -rf ./src/mediakit; cp -R -v $(pwd)/../mediakit ./src/mediakit && cp -v ./src/mediakit/logo/favicon.ico static/favicon.ico && npm run --silent update:oss-friends",
+    "update:oss-friends": "curl https://formbricks.com/api/oss-friends > ./oss-friends.json",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --ext .ts,.tsx -c .eslintrc.json --fix",
     "format": "prettier --write ."
   },
+  "contributors": [
+    "Francois-Guillaume Ribreau <npm@fgribreau.com> (http://fgribreau.com/)",
+    "David Sferruzza <david.sferruzza@gmail.com> (https://david.sferruzza.fr)"
+  ],
+  "license": "MIT",
   "dependencies": {
     "@nextui-org/button": "2.0.33",
     "@nextui-org/code": "2.0.28",
