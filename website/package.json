@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "preinstall": "rm -rf ./src/mediakit; cp -R -v $(pwd)/../mediakit ./src/mediakit && cp -v ./src/mediakit/logo/favicon.ico static/favicon.ico && npm run --silent update:oss-friends",
+    "preinstall": "rm -rf ./app/mediakit; cp -R -v $(pwd)/../mediakit ./app/mediakit && cp -v ./app/mediakit/logo/favicon.ico public/favicon.ico && npm run --silent update:oss-friends",
     "update:oss-friends": "curl https://formbricks.com/api/oss-friends > ./oss-friends.json",
     "dev": "next dev",
     "build": "next build",
