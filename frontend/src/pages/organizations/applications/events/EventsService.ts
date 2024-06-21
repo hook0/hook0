@@ -90,7 +90,6 @@ export function send_json_event(
 }
 
 export function replay(event_id: UUID, application_id: UUID): Promise<void> {
-  console.log('app_id', application_id);
   return http
     .post(`/events/${event_id}/replay`, {
       application_id,
