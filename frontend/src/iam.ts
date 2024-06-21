@@ -157,7 +157,12 @@ export async function refresh(): Promise<void> {
 
 export async function logout(): Promise<void> {
   if (state.value) {
-    await http.post('/auth/logout');
+    try {
+      await http.post('/auth/logout');
+    } catch (e) {
+      console.error(`Logout failed: ${JSON.stringify(e as Error)}`);
+    }
+
     if (refreshTimerId !== null) {
       clearTimeout(refreshTimerId);
     }
