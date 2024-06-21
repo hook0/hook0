@@ -32,8 +32,8 @@ impl Mail {
 
     pub fn subject(&self) -> String {
         match self {
-            Mail::VerifyUserEmail { .. } => "Please verify your email address".to_owned(),
-            Mail::ResetPassword { .. } => "Reset your password".to_owned(),
+            Mail::VerifyUserEmail { .. } => "[Hook0] Verify your email address".to_owned(),
+            Mail::ResetPassword { .. } => "[Hook0] Reset your password".to_owned(),
             // Mail::Welcome { .. } => "Welcome to our platform".to_owned(),
         }
     }
