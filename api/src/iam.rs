@@ -137,6 +137,7 @@ pub struct Hook0Claims {
 
 #[derive(Debug, Clone)]
 pub struct RootToken {
+    #[allow(dead_code)]
     pub biscuit: Biscuit,
     pub serialized_biscuit: String,
     pub revocation_id: Vec<u8>,

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RouteLocationNamedRaw, useRoute, RouterView } from 'vue-router';
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
 import Hook0Logo from '@/components/Hook0Logo.vue';
 import MenuItem from '@/components/MenuItem.vue';
@@ -12,6 +12,7 @@ import Hook0Icon from '@/components/Hook0Icon.vue';
 import { Notivue, Notification, NotificationProgress } from 'notivue';
 import Hook0Button from './components/Hook0Button.vue';
 import { getAccessToken } from '@/iam';
+import { InstanceConfig, getInstanceConfig } from './utils/biscuit_auth';
 
 const route = useRoute();
 
@@ -24,93 +25,108 @@ interface Route {
   href?: string;
 }
 
+let instanceConfig = ref<null | InstanceConfig>(null);
+
+onMounted(async () => {
+  instanceConfig.value = await getInstanceConfig();
+});
+
 const items = computed<Route[]>(() => {
+  const applicationSecretsCompatibility =
+    instanceConfig?.value?.application_secret_compatibility ?? true;
+
   if (route.params.organization_id && route.params.application_id) {
     return [
-      {
-        name: 'API Keys',
-        icon: 'key',
-        route: {
-          name: routes.ApplicationSecretsList,
-          params: {
-            organization_id: route.params.organization_id,
-            application_id: route.params.application_id,
+      applicationSecretsCompatibility
+        ? [
+            {
+              name: 'API keys',
+              icon: 'key',
+              route: {
+                name: routes.ApplicationSecretsList,
+                params: {
+                  organization_id: route.params.organization_id,
+                  application_id: route.params.application_id,
+                },
+              },
+            },
+          ]
+        : [],
+      [
+        {
+          name: 'Event Types',
+          icon: 'folder-tree',
+          route: {
+            name: routes.EventTypesList,
+            params: {
+              organization_id: route.params.organization_id,
+              application_id: route.params.application_id,
+            },
           },
         },
-      },
-      {
-        name: 'Event Types',
-        icon: 'folder-tree',
-        route: {
-          name: routes.EventTypesList,
-          params: {
-            organization_id: route.params.organization_id,
-            application_id: route.params.application_id,
+        {
+          name: 'Events',
+          icon: 'file-lines',
+          route: {
+            name: routes.EventsList,
+            params: {
+              organization_id: route.params.organization_id,
+              application_id: route.params.application_id,
+            },
           },
         },
-      },
-      {
-        name: 'Events',
-        icon: 'file-lines',
-        route: {
-          name: routes.EventsList,
-          params: {
-            organization_id: route.params.organization_id,
-            application_id: route.params.application_id,
+        {
+          name: 'Subscriptions',
+          icon: 'link',
+          route: {
+            name: routes.SubscriptionsList,
+            params: {
+              organization_id: route.params.organization_id,
+              application_id: route.params.application_id,
+            },
           },
         },
-      },
-      {
-        name: 'Subscriptions',
-        icon: 'link',
-        route: {
-          name: routes.SubscriptionsList,
-          params: {
-            organization_id: route.params.organization_id,
-            application_id: route.params.application_id,
+        {
+          name: 'Request Attempts',
+          icon: 'file-contract',
+          route: {
+            name: routes.LogsList,
+            params: {
+              organization_id: route.params.organization_id,
+              application_id: route.params.application_id,
+            },
           },
         },
-      },
-      {
-        name: 'Request Attempts',
-        icon: 'file-contract',
-        route: {
-          name: routes.LogsList,
-          params: {
-            organization_id: route.params.organization_id,
-            application_id: route.params.application_id,
+        {
+          name: 'Settings',
+          icon: 'sliders',
+          route: {
+            name: routes.ApplicationsDashboard,
+            params: {
+              organization_id: route.params.organization_id,
+              application_id: route.params.application_id,
+            },
           },
         },
-      },
-      {
-        name: 'Settings',
-        icon: 'sliders',
-        route: {
-          name: routes.ApplicationsDashboard,
-          params: {
-            organization_id: route.params.organization_id,
-            application_id: route.params.application_id,
-          },
+        {
+          name: 'API Documentation',
+          icon: 'gear',
+          href: 'https://documentation.hook0.com/',
         },
-      },
-      {
-        name: 'API Documentation',
-        icon: 'gear',
-        href: 'https://documentation.hook0.com/',
-      },
-    ];
+      ],
+    ].flat();
   } else if (route.params.organization_id) {
     return [
-      {
-        name: 'Services Tokens',
-        icon: 'key',
-        route: {
-          name: routes.ServicesTokenList,
-          params: {
-            organization_id: route.params.organization_id,
-          },
-        },
-      },
+      // {
+      //   name: 'Services Tokens',
+      //   icon: 'key',
+      //   route: {
+      //     name: routes.ServicesTokenList,
+      //     params: {
+      //       organization_id: route.params.organization_id,
+      //     },
+      //   },
+      // },
       {
         name: 'API Documentation',
         icon: 'book',

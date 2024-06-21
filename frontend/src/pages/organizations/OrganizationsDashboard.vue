@@ -196,6 +196,7 @@ onUpdated(() => {
 
     <ApplicationsList :burst="$route.params.organization_id"> </ApplicationsList>
 
+    <!--
     <Hook0Card v-if="!has_service_token">
       <Hook0CardHeader>
         <template #header>
@@ -228,5 +229,6 @@ onUpdated(() => {
         </Hook0Button>
       </Hook0CardFooter>
     </Hook0Card>
+    -->
   </div>
 </template>
