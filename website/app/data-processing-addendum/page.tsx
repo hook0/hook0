@@ -26,7 +26,7 @@ export default function DataProcessingAddendumPage() {
                         at{" "}
                         <a
                           className="text-indigo-400 underline"
-                          href="terms.ejs"
+                          href="/terms"
                         >
                           www.hook0.com/terms.html
                         </a>
