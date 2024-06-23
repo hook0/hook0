@@ -24,10 +24,7 @@ export default function DataProcessingAddendumPage() {
                         This GDPR Data Processing Addendum (“DPA”) forms part of
                         the Master Services Agreement or Terms of Use available
                         at{" "}
-                        <a
-                          className="text-indigo-400 underline"
-                          href="/terms"
-                        >
+                        <a className="text-indigo-400 underline" href="/terms">
                           www.hook0.com/terms.html
                         </a>
                         or such other location as the Terms of Use may be posted

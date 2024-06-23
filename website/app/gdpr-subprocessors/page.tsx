@@ -38,6 +38,7 @@ export default function GdprSubprocessorsPage() {
       purpose: "Hook0's customer subscription management",
     },
   ];
+
   return (
     <section id="gdpr-subprocessors">
       <div className="mt-40 relative py-16 overflow-hidden">
@@ -53,10 +54,10 @@ export default function GdprSubprocessorsPage() {
               <div className="section haze wf-section">
                 <div className="wrapper">
                   <div className="intro">
-                  <div className="mb-8 text-xl font-semibold">
+                    <div className="mb-8 text-xl font-semibold">
                       Last Update: November 14th, 2021
                     </div>
-                    <div className="divider"></div>
+                    <div className="divider" />
                   </div>
                   <div className="w-layout-grid main-grid">
                     <div className="text-slate-300">
@@ -65,11 +66,13 @@ export default function GdprSubprocessorsPage() {
                         providing to its customers the Application Services as
                         described in the Master Services Agreement or Terms of
                         Use available at{" "}
-                        <a href="/terms" className="text-indigo-500 underline">terms-of-service</a> or such other
-                        location as the Terms of Use may be posted from time to
-                        time (as applicable, the “Agreement”). Defined terms
-                        used herein shall have the same meaning as defined in
-                        the Agreement.
+                        <a className="text-indigo-500 underline" href="/terms">
+                          terms-of-service
+                        </a>{" "}
+                        or such other location as the Terms of Use may be posted
+                        from time to time (as applicable, the “Agreement”).
+                        Defined terms used herein shall have the same meaning as
+                        defined in the Agreement.
                       </p>
                       <p className="mb-4">
                         A subprocessor is a third party data processor engaged
@@ -85,7 +88,10 @@ export default function GdprSubprocessorsPage() {
                         provide our cloud infrastructure environment and storage
                         of our Customer Content:
                       </p>
-                      <Table aria-label="Hook0 subprocessors table" className="mb-6">
+                      <Table
+                        aria-label="Hook0 subprocessors table"
+                        className="mb-6"
+                      >
                         <TableHeader columns={columns}>
                           {(column) => (
                             <TableColumn key={column.key}>
@@ -119,7 +125,10 @@ export default function GdprSubprocessorsPage() {
                         customers who have not otherwise received notice of a
                         different effective date of this list.
                       </p>
-                      <Table aria-label="Hook0 subprocessors table" className="mb-6">
+                      <Table
+                        aria-label="Hook0 subprocessors table"
+                        className="mb-6"
+                      >
                         <TableHeader columns={columns}>
                           {(column) => (
                             <TableColumn key={column.key}>
