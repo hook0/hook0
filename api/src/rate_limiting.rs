@@ -3,12 +3,11 @@ use actix_governor::{
 };
 use actix_web::middleware::Condition;
 use actix_web::HttpMessage;
+use biscuit_auth::Biscuit;
 use governor::middleware::NoOpMiddleware;
 use ipnetwork::IpNetwork;
 use log::warn;
-use uuid::Uuid;
 
-use crate::iam::{AuthProof, Hook0Claims};
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Clone)]
@@ -132,7 +131,7 @@ impl KeyExtractor for UserIpKeyExtractor {
 pub struct TokenKeyExtractor;
 
 impl KeyExtractor for TokenKeyExtractor {
-    type Key = AuthProof;
+    type Key = Vec<Vec<u8>>;
     type KeyExtractionError = Hook0Problem;
 
     fn name(&self) -> &'static str {
@@ -144,29 +143,8 @@ impl KeyExtractor for TokenKeyExtractor {
         req: &actix_web::dev::ServiceRequest,
     ) -> Result<Self::Key, Self::KeyExtractionError> {
         req.extensions()
-            .get::<AuthProof>()
-            .map(|proof| proof.to_owned())
+            .get::<Biscuit>()
+            .map(|biscuit| biscuit.revocation_identifiers())
             .ok_or(Hook0Problem::InternalServerError)
-    }
-
-    fn key_name(&self, key: &Self::Key) -> Option<String> {
-        Some(match key {
-            AuthProof::Jwt {
-                claims:
-                    Hook0Claims {
-                        sub,
-                        groups: _,
-                        email: _,
-                        given_name: _,
-                        family_name: _,
-                    },
-            } => format!("jwt:{sub}"),
-            AuthProof::ApplicationSecret {
-                application_id,
-                name: _,
-                secret: _,
-            } => format!("application_secret:{application_id}"),
-            AuthProof::MasterApiKey => format!("master_api_key:{}", Uuid::new_v4()),
-        })
     }
 }

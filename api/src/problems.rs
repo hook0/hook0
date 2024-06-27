@@ -1,7 +1,7 @@
 use actix_web::error::JsonPayloadError;
 use actix_web::{HttpResponse, ResponseError};
 use http_api_problem::*;
-use log::error;
+use log::{error, warn};
 use paperclip::actix::api_v2_errors;
 use serde_json::{to_value, Value};
 use sqlx::postgres::PgDatabaseError;
@@ -28,6 +28,7 @@ pub enum Hook0Problem {
     OrganizationNameMissing,
     UserAlreadyExist,
     RegistrationDisabled,
+    PasswordTooShort(u8),
     OrganizationIsNotEmpty,
     InvitedUserDoesNotExist,
 
@@ -49,6 +50,11 @@ pub enum Hook0Problem {
     AuthInvalidAuthorizationHeader,
     AuthApplicationSecretLookupError,
     AuthInvalidApplicationSecret,
+    AuthBiscuitLookupError,
+    AuthInvalidBiscuit,
+    AuthFailedLogin,
+    AuthFailedRefresh,
+    AuthEmailExpired,
 
     // Quota errors
     TooManyMembersPerOrganization(QuotaValue),
@@ -89,6 +95,34 @@ impl From<sqlx::Error> for Hook0Problem {
                 Hook0Problem::InternalServerError
             }
         }
+    }
+}
+
+impl From<lettre::error::Error> for Hook0Problem {
+    fn from(err: lettre::error::Error) -> Hook0Problem {
+        warn!("{err}");
+        Hook0Problem::InternalServerError
+    }
+}
+
+impl From<lettre::transport::smtp::Error> for Hook0Problem {
+    fn from(err: lettre::transport::smtp::Error) -> Hook0Problem {
+        warn!("{err}");
+        Hook0Problem::InternalServerError
+    }
+}
+
+impl From<mrml::prelude::parser::Error> for Hook0Problem {
+    fn from(err: mrml::prelude::parser::Error) -> Hook0Problem {
+        warn!("{err}");
+        Hook0Problem::InternalServerError
+    }
+}
+
+impl From<mrml::prelude::render::Error> for Hook0Problem {
+    fn from(err: mrml::prelude::render::Error) -> Hook0Problem {
+        warn!("{err}");
+        Hook0Problem::InternalServerError
     }
 }
 
@@ -165,6 +199,16 @@ impl From<Hook0Problem> for Problem {
                 detail: "Registration was disabled by an administrator.".into(),
                 validation: None,
                 status: StatusCode::GONE,
+            },
+            Hook0Problem::PasswordTooShort(minimum_length) => {
+                let detail = format!("Password must be at least {minimum_length} characters long.");
+                Problem {
+                    id: Hook0Problem::PasswordTooShort(minimum_length),
+                    title: "Provided password is too short",
+                    detail: detail.into(),
+                    validation: None,
+                    status: StatusCode::BAD_REQUEST,
+                }
             },
             Hook0Problem::OrganizationIsNotEmpty => Problem {
                 id: Hook0Problem::OrganizationIsNotEmpty,
@@ -285,6 +329,43 @@ impl From<Hook0Problem> for Problem {
                 detail: "The provided application secret does not exist.".into(),
                 validation: None,
                 status: StatusCode::FORBIDDEN,
+            },
+            Hook0Problem::AuthBiscuitLookupError => Problem {
+                id: Hook0Problem::AuthBiscuitLookupError,
+                title: "Could not check database to verify if the provided Biscuit was revoked",
+                detail: "This is likely to be caused by database unavailability.".into(),
+                validation: None,
+                status: StatusCode::INTERNAL_SERVER_ERROR,
+            },
+            Hook0Problem::AuthInvalidBiscuit => Problem {
+                id: Hook0Problem::AuthInvalidBiscuit,
+                title: "Invalid Biscuit",
+                detail: "The provided authentication token (Biscuit) is not valid, was not created using the current private key or is expired.".into(),
+                validation: None,
+                status: StatusCode::FORBIDDEN,
+            },
+            Hook0Problem::AuthFailedLogin => Problem {
+                id: Hook0Problem::AuthFailedLogin,
+                title: "Login failed",
+                detail: "The provided credentials do not match ones of a valid user.".into(),
+                validation: None,
+                status: StatusCode::UNAUTHORIZED,
+            },
+            Hook0Problem::AuthFailedRefresh => Problem {
+                id: Hook0Problem::AuthFailedRefresh,
+                title: "Refreshing access token failed",
+                detail: "The provided refresh token is probably invalid or expired.".into(),
+                validation: None,
+                status: StatusCode::UNAUTHORIZED,
+            },
+            Hook0Problem::AuthEmailExpired => {
+                Problem {
+                    id: Hook0Problem::AuthEmailExpired,
+                    title: "Could not verify your link",
+                    detail: "The link you clicked might be expired. Please retry the whole process or contact support.".into(),
+                    validation: None,
+                    status: StatusCode::UNAUTHORIZED,
+                }
             },
 
             // Quota errors

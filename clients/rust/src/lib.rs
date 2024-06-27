@@ -33,13 +33,9 @@ impl Hook0Client {
     ///
     /// - `api_url` - Base API URL of a Hook0 instance (example: `https://app.hook0.com/api/v1`).
     /// - `application_id` - UUID of your Hook0 application.
-    /// - `application_secret` - Secret of your Hook0 application.
-    pub fn new(
-        api_url: Url,
-        application_id: Uuid,
-        application_secret: &Uuid,
-    ) -> Result<Self, Hook0ClientError> {
-        let authenticated_client = HeaderValue::from_str(&format!("Bearer {application_secret}"))
+    /// - `token` - Authentication token valid for your Hook0 application.
+    pub fn new(api_url: Url, application_id: Uuid, token: &str) -> Result<Self, Hook0ClientError> {
+        let authenticated_client = HeaderValue::from_str(&format!("Bearer {token}"))
             .map_err(|e| Hook0ClientError::AuthHeader(e).log_and_return())
             .map(|hv| HeaderMap::from_iter([(AUTHORIZATION, hv)]))
             .and_then(|headers| {
