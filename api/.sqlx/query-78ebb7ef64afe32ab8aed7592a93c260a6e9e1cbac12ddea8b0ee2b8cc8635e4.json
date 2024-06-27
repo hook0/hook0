@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT token__id AS token_id, name AS \"name!\", biscuit AS \"biscuit!\", created_at\n            FROM iam.token\n            WHERE organization__id = $1\n                AND type = 'service_access'\n                AND (expired_at IS NULL OR expired_at > statement_timestamp())\n            ORDER BY created_at ASC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "token_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "biscuit!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "78ebb7ef64afe32ab8aed7592a93c260a6e9e1cbac12ddea8b0ee2b8cc8635e4"
+}

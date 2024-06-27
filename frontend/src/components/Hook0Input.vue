@@ -4,6 +4,12 @@ import { onMounted, onUpdated, ref, useAttrs, useSlots } from 'vue';
 
 import Hook0Text from '@/components/Hook0Text.vue';
 
+interface Props {
+  autofocus?: boolean;
+  label?: string;
+}
+const props = defineProps<Props>();
+
 defineOptions({
   inheritAttrs: false,
 });
@@ -31,6 +37,10 @@ function _internalState() {
 
 onMounted(() => {
   _internalState();
+
+  if (props.autofocus ?? false) {
+    ipt.value?.focus();
+  }
 });
 
 onUpdated(() => {
@@ -40,6 +50,7 @@ onUpdated(() => {
 
 <template>
   <div :class="$attrs.class">
+    <label v-if="props.label" class="hook0-label">{{ props.label }}</label>
     <input
       ref="ipt"
       v-bind="{ ...omit(['class', 'style'], $props), ...$attrs }"
@@ -63,5 +74,10 @@ onUpdated(() => {
 
 .hook0-input[type='checkbox'] {
   @apply focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded;
+}
+
+.hook0-label {
+  @apply block text-sm font-medium text-gray-700;
+  margin-bottom: 0.5rem; // Space between input and label
 }
 </style>
