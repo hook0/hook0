@@ -10,6 +10,7 @@ interface Props {
   to?: RouteLocationRaw;
   href?: string;
   disabled?: boolean;
+  submit?: boolean;
 }
 const router = useRouter();
 const props = defineProps<Props>();
@@ -101,7 +102,26 @@ onUpdated(() => {
 </script>
 
 <template>
+  <button
+    v-if="submit"
+    class="hook0-button"
+    type="submit"
+    :class="{ loading: loadingStatus, 'hook0-button-split': hasSlot('right') || hasSlot('left') }"
+    :disabled="loadingStatus || disabled"
+  >
+    <div v-if="hasSlot('left') && !loadingStatus" class="hook0-button-left">
+      <slot name="left"></slot>
+    </div>
+    <div class="hook0-button-center">
+      <slot v-if="!loadingStatus"></slot>
+    </div>
+    <div v-if="hasSlot('right') || loadingStatus" class="hook0-button-right">
+      <Hook0Icon v-if="loadingStatus" name="spinner" spin class="animate-spin"></Hook0Icon>
+      <slot name="right"></slot>
+    </div>
+  </button>
   <a
+    v-else
     class="hook0-button"
     :class="{ loading: loadingStatus, 'hook0-button-split': hasSlot('right') || hasSlot('left') }"
     v-bind="omitOnClick({ ...$props, ...$attrs })"
