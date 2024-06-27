@@ -7,26 +7,42 @@ import OrganizationsDashboard from '@/pages/organizations/OrganizationsDashboard
 
 import ApiDocumentation from '@/pages/api/documentation/ApiDocumentation.vue';
 import Error404 from '@/pages/Error404.vue';
+import Login from '@/pages/LoginPage.vue';
+import Register from '@/pages/RegisterPage.vue';
 import EventTypesList from '@/pages/organizations/applications/event_types/EventTypesList.vue';
 import EventTypesNew from '@/pages/organizations/applications/event_types/EventTypesNew.vue';
 import Home from '@/Home.vue';
-//import ComingSoon from '@/pages/ComingSoon.vue';
-import UsersSettings from '@/pages/users/UsersSettings.vue';
+import UserSettings from '@/pages/user/UserSettings.vue';
 import SubscriptionsList from '@/pages/organizations/applications/subscriptions/SubscriptionsList.vue';
 import SubscriptionsEdit from '@/pages/organizations/applications/subscriptions/SubscriptionsEdit.vue';
 import LogList from '@/pages/organizations/applications/logs/LogList.vue';
 import ApplicationSecretsList from '@/pages/organizations/applications/application_secrets/ApplicationSecretsList.vue';
 import EventsList from '@/pages/organizations/applications/events/EventsList.vue';
 import EventsDetail from '@/pages/organizations/applications/events/EventsDetail.vue';
+import VerifyUser from '@/pages/user/VerifyEmail.vue';
+import BeginResetPassword from '@/pages/BeginResetPassword.vue';
+import ResetPassword from '@/pages/ResetPassword.vue';
+import ServicesTokenList from '@/pages/organizations/services_token/ServicesTokenList.vue';
+import ServiceTokenView from '@/pages/organizations/services_token/ServiceTokenView.vue';
 
 export type Hook0Routes = string;
 
 export const routes: Record<Hook0Routes, string> = {
   Home: 'Home',
 
+  Login: 'Login',
+  Register: 'Register',
+  VerifyEmail: 'VerifyEmail',
+  UserSettings: 'UserSettings',
+  BeginResetPassword: 'BeginResetPassword',
+  ResetPassword: 'ResetPassword',
+
   OrganizationsDashboard: 'OrganizationsDashboard',
   OrganizationsDetail: 'OrganizationsDetail',
   OrganizationsNew: 'OrganizationsNew',
+
+  ServicesTokenList: 'ServicesTokenList',
+  ServiceTokenView: 'ServiceTokenView',
 
   ApplicationsDashboard: 'ApplicationsDashboard',
   ApplicationsList: 'ApplicationsList',
@@ -49,7 +65,6 @@ export const routes: Record<Hook0Routes, string> = {
 
   WebhooksList: 'WebhooksList',
   LogsList: 'LogsList',
-  Settings: 'Settings',
   APIDocumentation: 'APIDocumentation',
   APIDocumentationForApplication: 'APIDocumentationForApplication',
   Error404: '404',
@@ -62,9 +77,60 @@ export default [
     component: Home,
   },
   {
+    name: routes.Login,
+    path: '/login',
+    component: Login,
+    meta: { requiresAuth: false },
+  },
+  {
+    name: routes.Register,
+    path: '/register',
+    component: Register,
+    meta: { requiresAuth: false },
+  },
+  {
+    name: routes.VerifyEmail,
+    path: '/verify-email',
+    component: VerifyUser,
+    meta: { requiresAuth: false },
+  },
+  {
+    name: routes.UserSettings,
+    path: '/settings',
+    component: UserSettings,
+  },
+  {
+    name: routes.BeginResetPassword,
+    path: '/begin-reset-password',
+    component: BeginResetPassword,
+    meta: {
+      requiresAuth: false,
+      redirectIfLoggedIn: false,
+    },
+  },
+  {
+    name: routes.ResetPassword,
+    path: '/reset-password',
+    component: ResetPassword,
+    meta: {
+      requiresAuth: false,
+      redirectIfLoggedIn: false,
+    },
+  },
+  {
     name: routes.OrganizationsNew,
     path: '/organizations/new',
     component: OrganizationsEdit,
+  },
+  {
+    name: routes.ServicesTokenList,
+    path: '/organizations/:organization_id/services_tokens',
+    component: ServicesTokenList,
+  },
+  {
+    name: routes.ServiceTokenView,
+    path: '/organizations/:organization_id/services_tokens/:service_token_id',
+    component: ServiceTokenView,
   },
   {
     name: routes.OrganizationsDetail,
@@ -152,12 +218,6 @@ export default [
     name: routes.APIDocumentationForApplication,
     path: '/organizations/:organization_id/applications/:application_id/documentation',
     component: ApiDocumentation,
-  },
-
-  {
-    name: routes.Settings,
-    path: '/settings',
-    component: UsersSettings,
   },
   {
     name: routes.APIDocumentation,

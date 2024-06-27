@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import { inject, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import Keycloak from 'keycloak-js';
 
-import { KeycloakTokenParsedAttributes, getToken, keycloakKey } from '@/iam';
+import { getUserInfo, logout as doLogout } from '@/iam';
 import { routes } from '@/routes';
 import Hook0Icon from '@/components/Hook0Icon.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
@@ -12,30 +10,19 @@ import Hook0Dropdown from '@/components/Hook0Dropdown.vue';
 import Hook0DropdownMenuItems from '@/components/Hook0DropdownMenuItems.vue';
 import Hook0DropdownMenuItemText from '@/components/Hook0DropdownMenuItemText.vue';
 import Hook0DropdownMenuItemLink from '@/components/Hook0DropdownMenuItemLink.vue';
-import Hook0Loader from '@/components/Hook0Loader.vue';
 import CrispChat from '@/components/CrispChat.vue';
-
-const $keycloak = inject(keycloakKey) as Keycloak;
 
 const router = useRouter();
 defineSlots<{
   default(): unknown;
 }>();
 
-const currentUser = ref<(Keycloak.KeycloakTokenParsed & KeycloakTokenParsedAttributes) | null>(
-  null
-);
+const currentUser = getUserInfo();
 
 async function logout() {
-  await $keycloak.logout();
-  await router.push('/');
+  await doLogout();
+  await router.push({ name: routes.Login });
 }
-
-onMounted(() => {
-  return getToken().then(() => {
-    currentUser.value = $keycloak.idTokenParsed as KeycloakTokenParsedAttributes;
-  });
-});
 </script>
 
 <template>
@@ -60,7 +47,7 @@ onMounted(() => {
           </Hook0DropdownMenuItemText>
         </Hook0DropdownMenuItems>
         <Hook0DropdownMenuItems>
-          <Hook0DropdownMenuItemLink @click="parent.route(routes.Settings)">
+          <Hook0DropdownMenuItemLink :to="{ name: routes.UserSettings }" @click="parent.close()">
             <Hook0Text>Settings</Hook0Text>
           </Hook0DropdownMenuItemLink>
         </Hook0DropdownMenuItems>
@@ -77,7 +64,6 @@ onMounted(() => {
         </Hook0DropdownMenuItems>
       </template>
     </Hook0Dropdown>
-    <Hook0Loader v-else></Hook0Loader>
   </div>
 
   <CrispChat v-if="currentUser" :email="currentUser.email" :name="currentUser.name" />
