@@ -1,0 +1,35 @@
+---
+
+base: 'http://localhost:8081/api/v1'
+iterations: 1000
+iterations: 1
+
+plan:
+  # - name: Fetch events
+  #   request:
+  #     headers:
+  #       Authorization: Bearer 9cc531a9-0394-4c25-958c-3b40bd94d93d
+  #     url: /events?application_id=00089a3d-a7ff-4c49-9c77-e25700ec0143
+  - name: Gen UUID
+    exec:
+      command: "uuidgen"
+    assign: id
+  - name: Post event
+    request:
+      headers:
+        Authorization: Bearer d426c1e1-7310-4b04-8698-0ea9068f898f
+        Content-Type: application/json
+      method: POST
+      url: /event
+      body: '{
+        "application_id": "dc8965e2-7fe4-4298-927c-e253e9c6f40d",
+        "event_id": "{{ id }}",
+        "event_type": "aa.aa.aa",
+        "occurred_at": "2023-11-01T14:38:14.720Z",
+        "payload": "{\"test\": true}",
+        "payload_content_type": "application/json",
+        "metadata": {},
+        "labels": {
+              "all": "yes"
+        }
+      }'
