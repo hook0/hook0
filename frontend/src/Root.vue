@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RouteLocationNamedRaw, useRoute, RouterView } from 'vue-router';
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
 import Hook0Logo from '@/components/Hook0Logo.vue';
 import MenuItem from '@/components/MenuItem.vue';
@@ -9,8 +9,14 @@ import { routes } from '@/routes';
 import Hook0Footer from '@/components/Hook0Footer.vue';
 import Hook0LoginMenu from '@/components/Hook0LoginMenu.vue';
 import Hook0Icon from '@/components/Hook0Icon.vue';
+import { Notivue, Notification, NotificationProgress } from 'notivue';
+import Hook0Button from './components/Hook0Button.vue';
+import { getAccessToken } from '@/iam';
+import { InstanceConfig, getInstanceConfig } from './utils/biscuit_auth';
 
 const route = useRoute();
+
+const is_logged_in = getAccessToken();
 
 interface Route {
   name: string;
@@ -19,78 +25,111 @@ interface Route {
   href?: string;
 }
 
+let instanceConfig = ref<null | InstanceConfig>(null);
+
+onMounted(async () => {
+  instanceConfig.value = await getInstanceConfig();
+});
+
 const items = computed<Route[]>(() => {
+  const applicationSecretsCompatibility =
+    instanceConfig?.value?.application_secret_compatibility ?? true;
+
   if (route.params.organization_id && route.params.application_id) {
     return [
-      {
-        name: 'API Keys',
-        icon: 'key',
-        route: {
-          name: routes.ApplicationSecretsList,
-          params: {
-            organization_id: route.params.organization_id,
-            application_id: route.params.application_id,
+      applicationSecretsCompatibility
+        ? [
+            {
+              name: 'API keys',
+              icon: 'key',
+              route: {
+                name: routes.ApplicationSecretsList,
+                params: {
+                  organization_id: route.params.organization_id,
+                  application_id: route.params.application_id,
+                },
+              },
+            },
+          ]
+        : [],
+      [
+        {
+          name: 'Event Types',
+          icon: 'folder-tree',
+          route: {
+            name: routes.EventTypesList,
+            params: {
+              organization_id: route.params.organization_id,
+              application_id: route.params.application_id,
+            },
           },
         },
-      },
-      {
-        name: 'Event Types',
-        icon: 'folder-tree',
-        route: {
-          name: routes.EventTypesList,
-          params: {
-            organization_id: route.params.organization_id,
-            application_id: route.params.application_id,
+        {
+          name: 'Events',
+          icon: 'file-lines',
+          route: {
+            name: routes.EventsList,
+            params: {
+              organization_id: route.params.organization_id,
+              application_id: route.params.application_id,
+            },
           },
         },
-      },
-      {
-        name: 'Events',
-        icon: 'file-lines',
-        route: {
-          name: routes.EventsList,
-          params: {
-            organization_id: route.params.organization_id,
-            application_id: route.params.application_id,
+        {
+          name: 'Subscriptions',
+          icon: 'link',
+          route: {
+            name: routes.SubscriptionsList,
+            params: {
+              organization_id: route.params.organization_id,
+              application_id: route.params.application_id,
+            },
           },
         },
-      },
-      {
-        name: 'Subscriptions',
-        icon: 'link',
-        route: {
-          name: routes.SubscriptionsList,
-          params: {
-            organization_id: route.params.organization_id,
-            application_id: route.params.application_id,
+        {
+          name: 'Request Attempts',
+          icon: 'file-contract',
+          route: {
+            name: routes.LogsList,
+            params: {
+              organization_id: route.params.organization_id,
+              application_id: route.params.application_id,
+            },
           },
         },
-      },
-      {
-        name: 'Request Attempts',
-        icon: 'file-contract',
-        route: {
-          name: routes.LogsList,
-          params: {
-            organization_id: route.params.organization_id,
-            application_id: route.params.application_id,
+        {
+          name: 'Settings',
+          icon: 'sliders',
+          route: {
+            name: routes.ApplicationsDashboard,
+            params: {
+              organization_id: route.params.organization_id,
+              application_id: route.params.application_id,
+            },
           },
         },
-      },
-      {
-        name: 'Settings',
-        icon: 'sliders',
-        route: {
-          name: routes.ApplicationsDashboard,
-          params: {
-            organization_id: route.params.organization_id,
-            application_id: route.params.application_id,
-          },
+        {
+          name: 'API Documentation',
+          icon: 'gear',
+          href: 'https://documentation.hook0.com/',
         },
-      },
+      ],
+    ].flat();
+  } else if (route.params.organization_id) {
+    return [
+      // {
+      //   name: 'Services Tokens',
+      //   icon: 'key',
+      //   route: {
+      //     name: routes.ServicesTokenList,
+      //     params: {
+      //       organization_id: route.params.organization_id,
+      //     },
+      //   },
+      // },
       {
         name: 'API Documentation',
-        icon: 'gear',
+        icon: 'book',
         href: 'https://documentation.hook0.com/',
       },
     ];
@@ -107,59 +146,65 @@ const items = computed<Route[]>(() => {
 </script>
 
 <template>
-  <div class="h-screen flex overflow-hidden bg-gray-100">
-    <div class="hidden md:flex md:flex-shrink-0">
-      <div class="flex flex-col w-64 bg-gray-800">
-        <div class="flex flex-col h-0 flex-1">
-          <div class="flex items-center h-16 flex-shrink-0 px-4">
-            <Hook0Logo></Hook0Logo>
-          </div>
-          <div class="flex flex-shrink-0 bg-gray-100">
-            <OrganizationSelector></OrganizationSelector>
-          </div>
-          <div class="flex-1 flex flex-col overflow-y-auto">
-            <nav class="flex-1 px-2 py-4 space-y-1">
-              <MenuItem
-                v-for="(item, index) in items"
-                :key="index"
-                :active="item.route ? item.route.name === $route.name : false"
-                :name="item.name"
-                :href="item.href"
-                :to="item.route"
-              >
-                <Hook0Icon class="mr-1" :name="item.icon"></Hook0Icon>
-              </MenuItem>
-            </nav>
+  <Notivue v-slot="item">
+    <Notification :item="item">
+      <NotificationProgress :item="item" />
+    </Notification>
+  </Notivue>
+  <div v-if="is_logged_in">
+    <div class="h-screen flex overflow-hidden bg-gray-100">
+      <div class="hidden md:flex md:flex-shrink-0">
+        <div class="flex flex-col w-64 bg-gray-800">
+          <div class="flex flex-col h-0 flex-1">
+            <div class="flex items-center h-16 flex-shrink-0 px-4">
+              <Hook0Button :to="{ name: routes.Home }"><Hook0Logo></Hook0Logo></Hook0Button>
+            </div>
+            <div class="flex flex-shrink-0 bg-gray-100">
+              <OrganizationSelector></OrganizationSelector>
+            </div>
+            <div class="flex-1 flex flex-col overflow-y-auto">
+              <nav class="flex-1 px-2 py-4 space-y-1">
+                <MenuItem
+                  v-for="(item, index) in items"
+                  :key="index"
+                  :active="item.route ? item.route.name === $route.name : false"
+                  :name="item.name"
+                  :href="item.href"
+                  :to="item.route"
+                >
+                  <Hook0Icon class="mr-1" :name="item.icon"></Hook0Icon>
+                </MenuItem>
+              </nav>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    <div class="flex flex-col w-0 flex-1 overflow-hidden">
-      <div class="relative z-10 flex-shrink-0 flex h-16 bg-white shadow">
-        <button
-          class="px-4 border-r border-gray-200 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 md:hidden"
-        >
-          <span class="sr-only">Open sidebar</span>
-          <!-- Heroicon name: menu-alt-2 -->
-          <svg
-            class="h-6 w-6"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            aria-hidden="true"
+      <div class="flex flex-col w-0 flex-1 overflow-hidden">
+        <div class="relative z-10 flex-shrink-0 flex h-16 bg-white shadow">
+          <button
+            class="px-4 border-r border-gray-200 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 md:hidden"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M4 6h16M4 12h16M4 18h7"
-            />
-          </svg>
-        </button>
-        <div class="flex-1 px-4 flex justify-between">
-          <div class="flex-1 flex">
-            <!---
+            <span class="sr-only">Open sidebar</span>
+            <!-- Heroicon name: menu-alt-2 -->
+            <svg
+              class="h-6 w-6"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 6h16M4 12h16M4 18h7"
+              />
+            </svg>
+          </button>
+          <div class="flex-1 px-4 flex justify-between">
+            <div class="flex-1 flex">
+              <!---
             <form class="w-full flex md:ml-0" action="#" method="GET">
               <label for="search_field" class="sr-only">Search</label>
               <div class="relative w-full text-gray-400 focus-within:text-gray-600">
@@ -188,22 +233,34 @@ const items = computed<Route[]>(() => {
                 />
               </div>
             </form>
-          --></div>
-          <div class="ml-4 flex items-center md:ml-6">
-            <!-- Profile dropdown -->
-            <div class="ml-3">
-              <Hook0LoginMenu></Hook0LoginMenu>
+          -->
+            </div>
+            <div class="ml-4 flex items-center md:ml-6">
+              <!-- Profile dropdown -->
+              <div class="ml-3">
+                <Hook0LoginMenu></Hook0LoginMenu>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <main class="flex-1 relative overflow-y-auto focus:outline-none" tabindex="0">
-        <div class="py-6 max-w-7xl mx-auto px-4 sm:px-6 md:px-8 h-96">
-          <RouterView></RouterView>
-          <Hook0Footer></Hook0Footer>
-        </div>
-      </main>
+        <main class="flex-1 relative overflow-y-auto focus:outline-none" tabindex="0">
+          <div class="py-6 max-w-7xl mx-auto px-4 sm:px-6 md:px-8 h-96">
+            <RouterView></RouterView>
+            <Hook0Footer></Hook0Footer>
+          </div>
+        </main>
+      </div>
+    </div>
+  </div>
+
+  <!-- If user not logged in -->
+  <div v-else class="h-screen flex flex-col justify-center items-center">
+    <div class="h-1/6 mb-6 w-full flex justify-center">
+      <img src="../public/logo.svg" />
+    </div>
+    <div class="w-full flex justify-center items-center">
+      <RouterView />
     </div>
   </div>
 </template>

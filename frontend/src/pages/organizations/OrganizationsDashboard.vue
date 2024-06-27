@@ -5,6 +5,7 @@ import { onMounted, onUpdated, ref } from 'vue';
 import Hook0Text from '@/components/Hook0Text.vue';
 import { Problem, UUID } from '@/http';
 import * as OrganizationService from '@/pages/organizations/OrganizationService';
+import * as ServiceTokenService from '@/pages/organizations/services_token/ServicesTokenService.ts';
 import { OrganizationInfo } from '@/pages/organizations/OrganizationService';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
@@ -12,7 +13,6 @@ import Hook0List from '@/components/Hook0List.vue';
 import Hook0ListItem from '@/components/Hook0ListItem.vue';
 import ApplicationsList from '@/pages/organizations/applications/ApplicationsList.vue';
 import { routes } from '@/routes';
-import { Alert } from '@/components/Hook0Alert';
 import { isPricingEnabled } from '@/pricing';
 import Hook0Icon from '@/components/Hook0Icon.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
@@ -21,10 +21,12 @@ import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
 import MembersList from '@/pages/organizations/MembersList.vue';
+import { push } from 'notivue';
 
 const route = useRoute();
 const pricingEnabled = isPricingEnabled();
 
+const has_service_token = ref(true);
 const organization_id = ref<UUID | null>(null);
 const organization = ref({
   name: '',
@@ -35,12 +37,6 @@ const organization = ref({
     events_per_day_limit: 0,
     days_of_events_retention_limit: 0,
   },
-});
-const alert = ref<Alert>({
-  visible: false,
-  type: 'alert',
-  title: '',
-  description: '',
 });
 
 function _load() {
@@ -54,16 +50,23 @@ function _load() {
         organization.value.quotas = org.quotas;
       })
       .catch(displayError);
+
+    ServiceTokenService.list(organization_id.value)
+      .then((tokens) => {
+        has_service_token.value = tokens.length > 0;
+      })
+      .catch(displayError);
   }
 }
 
 function displayError(err: Problem) {
   console.error(err);
-  alert.value.visible = true;
-
-  alert.value.type = err.status >= 500 ? 'alert' : 'warning';
-  alert.value.title = err.title;
-  alert.value.description = err.detail;
+  let options = {
+    title: err.title,
+    message: err.detail,
+    duration: 5000,
+  };
+  err.status >= 500 ? push.error(options) : push.warning(options);
 }
 
 onMounted(() => {
@@ -192,5 +195,40 @@ onUpdated(() => {
     </MembersList>
 
     <ApplicationsList :burst="$route.params.organization_id"> </ApplicationsList>
+
+    <!--
+    <Hook0Card v-if="!has_service_token">
+      <Hook0CardHeader>
+        <template #header>
+          <Hook0Icon name="key"></Hook0Icon>
+          Service Tokens
+        </template>
+      </Hook0CardHeader>
+
+      <Hook0CardContent>
+        <Hook0CardContentLines>
+          <Hook0CardContentLine type="full-width">
+            <template #content>
+              <Hook0Text>
+                Service tokens are used to authenticate your applications with Hook0. You can create
+                as many as you need.
+              </Hook0Text>
+            </template>
+          </Hook0CardContentLine>
+        </Hook0CardContentLines>
+      </Hook0CardContent>
+
+      <Hook0CardFooter>
+        <Hook0Button
+          class="primary"
+          :to="{
+            name: routes.ServicesTokenList,
+            params: { organization_id },
+          }"
+          >Create your first service token
+        </Hook0Button>
+      </Hook0CardFooter>
+    </Hook0Card>
+    -->
   </div>
 </template>

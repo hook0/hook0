@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { ColDef, ValueFormatterParams } from '@ag-grid-community/core';
-import { onMounted, onUpdated, ref, inject } from 'vue';
+import { onMounted, onUpdated, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import Keycloak from 'keycloak-js';
 
-import { KeycloakTokenParsedAttributes, getToken, keycloakKey } from '@/iam';
+import { getUserInfo } from '@/iam';
 import { Invitation, Members, User } from './MemberService';
 import * as MemberService from './MemberService';
 import Hook0Button from '@/components/Hook0Button.vue';
@@ -23,8 +22,7 @@ import Hook0Error from '@/components/Hook0Error.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import { Hook0SelectSingleOption } from '@/components/Hook0Select';
 import Hook0Select from '@/components/Hook0Select.vue';
-import { Alert } from '@/components/Hook0Alert';
-import Hook0Alert from '@/components/Hook0Alert.vue';
+import { push } from 'notivue';
 
 const route = useRoute();
 
@@ -90,16 +88,7 @@ const columnDefs: ColDef[] = [
   },
 ];
 
-const $keycloak = inject(keycloakKey) as Keycloak;
-const currentUser = ref<(Keycloak.KeycloakTokenParsed & KeycloakTokenParsedAttributes) | null>(
-  null
-);
-const alert = ref<Alert>({
-  visible: false,
-  type: 'alert',
-  title: '',
-  description: '',
-});
+const currentUser = getUserInfo();
 const members$ = ref<Promise<Members>>();
 const organization_id = ref<null | UUID>(null);
 
@@ -118,10 +107,7 @@ const roles: Hook0SelectSingleOption[] = [
   { label: 'Viewer', value: 'viewer' },
 ];
 
-function invite(e: Event) {
-  e.preventDefault();
-  e.stopImmediatePropagation();
-
+function invite() {
   if (organization_id.value && invitation$.value.email !== '' && invitation$.value.role != '') {
     MemberService.invite(organization_id.value, invitation$.value)
       .then(() => {
@@ -146,17 +132,15 @@ function _load() {
 
 function displayError(err: Problem) {
   console.error(err);
-  alert.value.visible = true;
-
-  alert.value.type = err.status >= 500 ? 'alert' : 'warning';
-  alert.value.title = err.title;
-  alert.value.description = err.detail;
+  let options = {
+    title: err.title,
+    message: err.detail,
+    duration: 5000,
+  };
+  err.status >= 500 ? push.error(options) : push.warning(options);
 }
 
-onMounted(async () => {
-  await getToken().then(() => {
-    currentUser.value = $keycloak.idTokenParsed as KeycloakTokenParsedAttributes;
-  });
+onMounted(() => {
   _load();
 });
 
@@ -204,14 +188,7 @@ onUpdated(() => {
           </Hook0CardContentLines>
         </Hook0CardContent>
 
-        <Hook0CardContent v-if="alert.visible">
-          <Hook0Alert
-            :type="alert.type"
-            :title="alert.title"
-            :description="alert.description"
-          ></Hook0Alert>
-        </Hook0CardContent>
-        <form @submit="invite">
+        <form @submit.prevent="invite">
           <Hook0CardFooter>
             <Hook0Input
               v-model="invitation$.email"
@@ -227,9 +204,8 @@ onUpdated(() => {
             />
             <Hook0Button
               class="primary"
-              type="submit"
+              submit
               :disabled="invitation$.email === '' || invitation$.role === ''"
-              @click="invite($event)"
               >Invite a user
             </Hook0Button>
           </Hook0CardFooter>

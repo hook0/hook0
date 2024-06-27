@@ -42,6 +42,55 @@ export interface paths {
      */
     delete: operations['applications.delete'];
   };
+  '/api/v1/auth/begin-reset-password': {
+    /**
+     * Begin reset password
+     * @description Send an email with a link to reset the password of a user.
+     */
+    post: operations['auth.begin_reset_password'];
+  };
+  '/api/v1/auth/login': {
+    /**
+     * Login
+     * @description Get an access token using a user's credentials.
+     */
+    post: operations['auth.login'];
+  };
+  '/api/v1/auth/logout': {
+    /**
+     * Logout
+     * @description Revoke all tokens associated to the current session.
+     */
+    post: operations['auth.logout'];
+  };
+  '/api/v1/auth/password': {
+    /**
+     * Change password
+     * @description Change the password of a user.
+     */
+    post: operations['auth.change_password'];
+  };
+  '/api/v1/auth/refresh': {
+    /**
+     * Refresh access token
+     * @description Get a new access token in exchange of a refresh token.
+     */
+    post: operations['auth.refresh'];
+  };
+  '/api/v1/auth/reset-password': {
+    /**
+     * Reset password
+     * @description Reset the password of a user.
+     */
+    post: operations['auth.reset_password'];
+  };
+  '/api/v1/auth/verify-email': {
+    /**
+     * Email verification
+     * @description Verify the email of a user.
+     */
+    post: operations['auth.verify_email'];
+  };
   '/api/v1/errors/': {
     /**
      * List errors
@@ -73,6 +122,20 @@ export interface paths {
     /** Get an event */
     get: operations['events.get'];
   };
+  '/api/v1/events/{event_id}/replay': {
+    /**
+     * Replay an event
+     * @description Trigger existing subscriptions matching an existing event, which will result in webhook being send again
+     */
+    post: operations['events.replay'];
+  };
+  '/api/v1/health/': {
+    /**
+     * Check instance health
+     * @description Get an object that shows if this instance is up.
+     */
+    get: operations['instance.health'];
+  };
   '/api/v1/instance/': {
     /**
      * Get instance configuration
@@ -85,7 +148,7 @@ export interface paths {
     get: operations['organizations.list'];
     /**
      * Create an organization
-     * @description Note that you will need to regenerate a JWT to be able to see/use the newly created organization.
+     * @description Note that you will need to regenerate an authentication token to be able to see/use the newly created organization.
      */
     post: operations['organizations.create'];
   };
@@ -117,7 +180,7 @@ export interface paths {
     get: operations['payload_content_types.list'];
   };
   '/api/v1/register/': {
-    /** Create a new user account and a new organization */
+    /** Create a new user account and its own personal organization */
     post: operations['register'];
   };
   '/api/v1/request_attempts/': {
@@ -130,6 +193,20 @@ export interface paths {
      * @description A response is produced when a request attempt is processed
      */
     get: operations['response.get'];
+  };
+  '/api/v1/service_token/': {
+    /** List service tokens */
+    get: operations['serviceToken.list'];
+    /** Create a new service token */
+    post: operations['serviceToken.create'];
+  };
+  '/api/v1/service_token/{service_token_id}': {
+    /** Get a service token */
+    get: operations['serviceToken.get'];
+    /** Edit a service token */
+    put: operations['serviceToken.edit'];
+    /** Delete a service token */
+    delete: operations['serviceToken.delete'];
   };
   '/api/v1/subscriptions/': {
     /**
@@ -196,9 +273,16 @@ export interface components {
       application_id: string;
       name?: string;
     };
+    BeginResetPasswordPost: {
+      email: string;
+    };
+    ChangePasswordPost: {
+      new_password: string;
+    };
+    EmailVerificationPost: {
+      token: string;
+    };
     Event: {
-      /** Format: uuid */
-      application_secret_token: string;
       /** Format: uuid */
       event_id: string;
       event_type_name: string;
@@ -239,8 +323,6 @@ export interface components {
     };
     EventWithPayload: {
       /** Format: uuid */
-      application_secret_token: string;
-      /** Format: uuid */
       event_id: string;
       event_type_name: string;
       ip: string;
@@ -253,6 +335,9 @@ export interface components {
       /** Format: date-time */
       received_at: string;
     };
+    HealthCheck: {
+      database: boolean;
+    };
     IngestedEvent: {
       /** Format: uuid */
       application_id: string;
@@ -262,11 +347,27 @@ export interface components {
       received_at: string;
     };
     InstanceConfig: {
+      application_secret_compatibility: boolean;
       auto_db_migration: boolean;
-      disable_registration: boolean;
-      keycloak_front_client_id: string;
-      keycloak_realm: string;
-      keycloak_url: string;
+      biscuit_public_key: string;
+      /** Format: int32 */
+      password_minimum_length: number;
+      registration_disabled: boolean;
+    };
+    LoginPost: {
+      email: string;
+      password: string;
+    };
+    LoginResponse: {
+      access_token: string;
+      /** Format: date-time */
+      access_token_expiration: string;
+      email: string;
+      first_name: string;
+      last_name: string;
+      refresh_token: string;
+      /** Format: date-time */
+      refresh_token_expiration: string;
     };
     Organization: {
       name: string;
@@ -325,8 +426,11 @@ export interface components {
       email: string;
       first_name: string;
       last_name: string;
-      organization_name: string;
       password: string;
+    };
+    ReplayEvent: {
+      /** Format: uuid */
+      application_id: string;
     };
     RequestAttempt: {
       /** Format: date-time */
@@ -354,6 +458,10 @@ export interface components {
       /** Format: date-time */
       succeeded_at?: string;
     };
+    ResetPasswordPost: {
+      new_password: string;
+      token: string;
+    };
     Response: {
       body?: string;
       /** Format: int32 */
@@ -368,6 +476,19 @@ export interface components {
     Revoke: {
       /** Format: uuid */
       user_id: string;
+    };
+    ServiceToken: {
+      biscuit: string;
+      /** Format: date-time */
+      created_at: string;
+      name: string;
+      /** Format: uuid */
+      token_id: string;
+    };
+    ServiceTokenPost: {
+      name: string;
+      /** Format: uuid */
+      organization_id: string;
     };
     Subscription: {
       /** Format: uuid */
@@ -411,6 +532,8 @@ export interface components {
   pathItems: never;
 }
 
+export type $defs = Record<string, never>;
+
 export type external = Record<string, never>;
 
 export interface operations {
@@ -429,15 +552,25 @@ export interface operations {
         };
       };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
     };
   };
   /** Create a new application secret */
@@ -455,15 +588,25 @@ export interface operations {
         };
       };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
     };
   };
   /** Update an application secret */
@@ -486,15 +629,25 @@ export interface operations {
         };
       };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
     };
   };
   /** Delete an application secret */
@@ -509,17 +662,29 @@ export interface operations {
     };
     responses: {
       /** @description No Content */
-      204: never;
+      204: {
+        content: never;
+      };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
     };
   };
   /** List applications */
@@ -537,15 +702,25 @@ export interface operations {
         };
       };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
     };
   };
   /**
@@ -566,15 +741,25 @@ export interface operations {
         };
       };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
     };
   };
   /**
@@ -595,15 +780,25 @@ export interface operations {
         };
       };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
     };
   };
   /**
@@ -629,15 +824,25 @@ export interface operations {
         };
       };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
     };
   };
   /**
@@ -652,17 +857,282 @@ export interface operations {
     };
     responses: {
       /** @description No Content */
-      204: never;
+      204: {
+        content: never;
+      };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
+    };
+  };
+  /**
+   * Begin reset password
+   * @description Send an email with a link to reset the password of a user.
+   */
+  'auth.begin_reset_password': {
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BeginResetPasswordPost'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        content: never;
+      };
+      /** @description Bad Request */
+      400: {
+        content: never;
+      };
+      /** @description Forbidden */
+      403: {
+        content: never;
+      };
+      /** @description Not Found */
+      404: {
+        content: never;
+      };
+      /** @description Conflict */
+      409: {
+        content: never;
+      };
+      /** @description Internal Server Error */
+      500: {
+        content: never;
+      };
+    };
+  };
+  /**
+   * Login
+   * @description Get an access token using a user's credentials.
+   */
+  'auth.login': {
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['LoginPost'];
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        content: {
+          'application/json': components['schemas']['LoginResponse'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        content: never;
+      };
+      /** @description Forbidden */
+      403: {
+        content: never;
+      };
+      /** @description Not Found */
+      404: {
+        content: never;
+      };
+      /** @description Conflict */
+      409: {
+        content: never;
+      };
+      /** @description Internal Server Error */
+      500: {
+        content: never;
+      };
+    };
+  };
+  /**
+   * Logout
+   * @description Revoke all tokens associated to the current session.
+   */
+  'auth.logout': {
+    responses: {
+      /** @description No Content */
+      204: {
+        content: never;
+      };
+      /** @description Bad Request */
+      400: {
+        content: never;
+      };
+      /** @description Forbidden */
+      403: {
+        content: never;
+      };
+      /** @description Not Found */
+      404: {
+        content: never;
+      };
+      /** @description Conflict */
+      409: {
+        content: never;
+      };
+      /** @description Internal Server Error */
+      500: {
+        content: never;
+      };
+    };
+  };
+  /**
+   * Change password
+   * @description Change the password of a user.
+   */
+  'auth.change_password': {
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ChangePasswordPost'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        content: never;
+      };
+      /** @description Bad Request */
+      400: {
+        content: never;
+      };
+      /** @description Forbidden */
+      403: {
+        content: never;
+      };
+      /** @description Not Found */
+      404: {
+        content: never;
+      };
+      /** @description Conflict */
+      409: {
+        content: never;
+      };
+      /** @description Internal Server Error */
+      500: {
+        content: never;
+      };
+    };
+  };
+  /**
+   * Refresh access token
+   * @description Get a new access token in exchange of a refresh token.
+   */
+  'auth.refresh': {
+    responses: {
+      /** @description Created */
+      201: {
+        content: {
+          'application/json': components['schemas']['LoginResponse'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        content: never;
+      };
+      /** @description Forbidden */
+      403: {
+        content: never;
+      };
+      /** @description Not Found */
+      404: {
+        content: never;
+      };
+      /** @description Conflict */
+      409: {
+        content: never;
+      };
+      /** @description Internal Server Error */
+      500: {
+        content: never;
+      };
+    };
+  };
+  /**
+   * Reset password
+   * @description Reset the password of a user.
+   */
+  'auth.reset_password': {
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ResetPasswordPost'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        content: never;
+      };
+      /** @description Bad Request */
+      400: {
+        content: never;
+      };
+      /** @description Forbidden */
+      403: {
+        content: never;
+      };
+      /** @description Not Found */
+      404: {
+        content: never;
+      };
+      /** @description Conflict */
+      409: {
+        content: never;
+      };
+      /** @description Internal Server Error */
+      500: {
+        content: never;
+      };
+    };
+  };
+  /**
+   * Email verification
+   * @description Verify the email of a user.
+   */
+  'auth.verify_email': {
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['EmailVerificationPost'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        content: never;
+      };
+      /** @description Bad Request */
+      400: {
+        content: never;
+      };
+      /** @description Forbidden */
+      403: {
+        content: never;
+      };
+      /** @description Not Found */
+      404: {
+        content: never;
+      };
+      /** @description Conflict */
+      409: {
+        content: never;
+      };
+      /** @description Internal Server Error */
+      500: {
+        content: never;
+      };
     };
   };
   /**
@@ -678,15 +1148,25 @@ export interface operations {
         };
       };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
     };
   };
   /** Ingest an event */
@@ -704,15 +1184,25 @@ export interface operations {
         };
       };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
     };
   };
   /** List event types */
@@ -730,15 +1220,25 @@ export interface operations {
         };
       };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
     };
   };
   /** Create a new event type */
@@ -756,15 +1256,25 @@ export interface operations {
         };
       };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
     };
   };
   /** Get an event type by its name */
@@ -785,15 +1295,25 @@ export interface operations {
         };
       };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
     };
   };
   /** Delete an event type */
@@ -808,17 +1328,29 @@ export interface operations {
     };
     responses: {
       /** @description No Content */
-      204: never;
+      204: {
+        content: never;
+      };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
     };
   };
   /** List latest events */
@@ -836,15 +1368,25 @@ export interface operations {
         };
       };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
     };
   };
   /** Get an event */
@@ -865,15 +1407,106 @@ export interface operations {
         };
       };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
+    };
+  };
+  /**
+   * Replay an event
+   * @description Trigger existing subscriptions matching an existing event, which will result in webhook being send again
+   */
+  'events.replay': {
+    parameters: {
+      path: {
+        event_id: string;
+      };
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ReplayEvent'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        content: never;
+      };
+      /** @description Bad Request */
+      400: {
+        content: never;
+      };
+      /** @description Forbidden */
+      403: {
+        content: never;
+      };
+      /** @description Not Found */
+      404: {
+        content: never;
+      };
+      /** @description Conflict */
+      409: {
+        content: never;
+      };
+      /** @description Internal Server Error */
+      500: {
+        content: never;
+      };
+    };
+  };
+  /**
+   * Check instance health
+   * @description Get an object that shows if this instance is up.
+   */
+  'instance.health': {
+    parameters: {
+      query?: {
+        key?: string;
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        content: {
+          'application/json': components['schemas']['HealthCheck'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        content: never;
+      };
+      /** @description Forbidden */
+      403: {
+        content: never;
+      };
+      /** @description Not Found */
+      404: {
+        content: never;
+      };
+      /** @description Conflict */
+      409: {
+        content: never;
+      };
+      /** @description Internal Server Error */
+      500: {
+        content: never;
+      };
     };
   };
   /**
@@ -889,15 +1522,25 @@ export interface operations {
         };
       };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
     };
   };
   /** List organizations */
@@ -910,20 +1553,30 @@ export interface operations {
         };
       };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
     };
   };
   /**
    * Create an organization
-   * @description Note that you will need to regenerate a JWT to be able to see/use the newly created organization.
+   * @description Note that you will need to regenerate an authentication token to be able to see/use the newly created organization.
    */
   'organizations.create': {
     requestBody: {
@@ -939,15 +1592,25 @@ export interface operations {
         };
       };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
     };
   };
   /** Get organization's info by its ID */
@@ -965,15 +1628,25 @@ export interface operations {
         };
       };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
     };
   };
   /**
@@ -999,15 +1672,25 @@ export interface operations {
         };
       };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
     };
   };
   /**
@@ -1022,17 +1705,29 @@ export interface operations {
     };
     responses: {
       /** @description No Content */
-      204: never;
+      204: {
+        content: never;
+      };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
     };
   };
   /** Invite a user to an organization */
@@ -1055,15 +1750,25 @@ export interface operations {
         };
       };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
     };
   };
   /** Revoke a user's access to an organization */
@@ -1086,15 +1791,25 @@ export interface operations {
         };
       };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
     };
   };
   /**
@@ -1110,18 +1825,28 @@ export interface operations {
         };
       };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
     };
   };
-  /** Create a new user account and a new organization */
+  /** Create a new user account and its own personal organization */
   register: {
     requestBody: {
       content: {
@@ -1136,15 +1861,25 @@ export interface operations {
         };
       };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
     };
   };
   /** List request attempts */
@@ -1164,15 +1899,25 @@ export interface operations {
         };
       };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
     };
   };
   /**
@@ -1196,15 +1941,214 @@ export interface operations {
         };
       };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
+    };
+  };
+  /** List service tokens */
+  'serviceToken.list': {
+    parameters: {
+      query: {
+        organization_id: string;
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        content: {
+          'application/json': components['schemas']['ServiceToken'][];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        content: never;
+      };
+      /** @description Forbidden */
+      403: {
+        content: never;
+      };
+      /** @description Not Found */
+      404: {
+        content: never;
+      };
+      /** @description Conflict */
+      409: {
+        content: never;
+      };
+      /** @description Internal Server Error */
+      500: {
+        content: never;
+      };
+    };
+  };
+  /** Create a new service token */
+  'serviceToken.create': {
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ServiceTokenPost'];
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        content: {
+          'application/json': components['schemas']['ServiceToken'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        content: never;
+      };
+      /** @description Forbidden */
+      403: {
+        content: never;
+      };
+      /** @description Not Found */
+      404: {
+        content: never;
+      };
+      /** @description Conflict */
+      409: {
+        content: never;
+      };
+      /** @description Internal Server Error */
+      500: {
+        content: never;
+      };
+    };
+  };
+  /** Get a service token */
+  'serviceToken.get': {
+    parameters: {
+      query: {
+        organization_id: string;
+      };
+      path: {
+        service_token_id: string;
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        content: {
+          'application/json': components['schemas']['ServiceToken'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        content: never;
+      };
+      /** @description Forbidden */
+      403: {
+        content: never;
+      };
+      /** @description Not Found */
+      404: {
+        content: never;
+      };
+      /** @description Conflict */
+      409: {
+        content: never;
+      };
+      /** @description Internal Server Error */
+      500: {
+        content: never;
+      };
+    };
+  };
+  /** Edit a service token */
+  'serviceToken.edit': {
+    parameters: {
+      path: {
+        service_token_id: string;
+      };
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ServiceTokenPost'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        content: {
+          'application/json': components['schemas']['ServiceToken'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        content: never;
+      };
+      /** @description Forbidden */
+      403: {
+        content: never;
+      };
+      /** @description Not Found */
+      404: {
+        content: never;
+      };
+      /** @description Conflict */
+      409: {
+        content: never;
+      };
+      /** @description Internal Server Error */
+      500: {
+        content: never;
+      };
+    };
+  };
+  /** Delete a service token */
+  'serviceToken.delete': {
+    parameters: {
+      query: {
+        organization_id: string;
+      };
+      path: {
+        service_token_id: string;
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        content: never;
+      };
+      /** @description Bad Request */
+      400: {
+        content: never;
+      };
+      /** @description Forbidden */
+      403: {
+        content: never;
+      };
+      /** @description Not Found */
+      404: {
+        content: never;
+      };
+      /** @description Conflict */
+      409: {
+        content: never;
+      };
+      /** @description Internal Server Error */
+      500: {
+        content: never;
+      };
     };
   };
   /**
@@ -1225,15 +2169,25 @@ export interface operations {
         };
       };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
     };
   };
   /**
@@ -1254,15 +2208,25 @@ export interface operations {
         };
       };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
     };
   };
   /** Get a subscription by its id */
@@ -1280,15 +2244,25 @@ export interface operations {
         };
       };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
     };
   };
   /** Update a subscription */
@@ -1311,15 +2285,25 @@ export interface operations {
         };
       };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
     };
   };
   /** Delete a subscription */
@@ -1334,17 +2318,29 @@ export interface operations {
     };
     responses: {
       /** @description No Content */
-      204: never;
+      204: {
+        content: never;
+      };
       /** @description Bad Request */
-      400: never;
+      400: {
+        content: never;
+      };
       /** @description Forbidden */
-      403: never;
+      403: {
+        content: never;
+      };
       /** @description Not Found */
-      404: never;
+      404: {
+        content: never;
+      };
       /** @description Conflict */
-      409: never;
+      409: {
+        content: never;
+      };
       /** @description Internal Server Error */
-      500: never;
+      500: {
+        content: never;
+      };
     };
   };
 }

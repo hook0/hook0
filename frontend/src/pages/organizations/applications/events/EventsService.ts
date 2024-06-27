@@ -62,3 +62,40 @@ export function list(application_id: UUID): Promise<Array<Event>> {
       (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
     );
 }
+
+export function send_json_event(
+  application_id: UUID,
+  event_id: UUID,
+  event_type: string,
+  labels: { [key: string]: string },
+  occurred_at: Date,
+  payload: string
+): Promise<void> {
+  const occurred_at_string = new Date(occurred_at).toISOString();
+
+  return http
+    .post('/event', {
+      application_id,
+      event_id,
+      event_type,
+      labels,
+      occurred_at: occurred_at_string,
+      payload_content_type: 'application/json',
+      payload,
+    })
+    .then(
+      () => {},
+      (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
+    );
+}
+
+export function replay(event_id: UUID, application_id: UUID): Promise<void> {
+  return http
+    .post(`/events/${event_id}/replay`, {
+      application_id,
+    })
+    .then(
+      () => {},
+      (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
+    );
+}
