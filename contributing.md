@@ -11,6 +11,20 @@ our way of saying: **Thank you!**
 > If you have _any_ questions along your contributor journey, please feel free to come chat with us on
 > [our Discord](https://www.hook0.com/community).
 
+```sh
+# Clone the repository
+git clone https://gitlab.com/hook0/hook0.git
+
+# Navigate to the project directory
+cd hook0
+
+# Install dependencies
+cargo build
+
+# Run the application
+cargo run
+```
+
 ## Code of Conduct
 
 **The Hook0 [Code of Conduct](CODE_OF_CONDUCT.md) is one of the ways
@@ -55,13 +69,15 @@ Issue: https://gitlab.com/hook0/hook0/-/issues
 ### Document the Project
 
 The [Hook0 Docs](https://documentation.hook0.com/) are living documents that can always be improved on. Notice any
-parts of the docs in dire need of some tender love and care? Feel free to Suggest Edits (link at the top right-hand corner on every documentation page)!
+parts of the docs in dire need of some tender love and care? Feel free to Suggest Edits (link at the top right-hand
+corner on every documentation page)!
 
 ### Helping Others
 
 The Hook0 community is growing quickly, which also means there's more and more people that have questions. Helping
 out your fellow developers by answering questions on [Discord](https://www.hook0.com/community) or
-[Gitlab issues](https://gitlab.com/hook0/hook0/-/issues/?sort=milestone_due_desc&state=opened&label_name%5B%5D=Community%3A%3Acontribution&first_page_size=20) is a great way to help the
+[Gitlab issues](https://gitlab.com/hook0/hook0/-/issues/?sort=milestone_due_desc&state=opened&label_name%5B%5D=Community%3A%3Acontribution&first_page_size=20)
+is a great way to help the
 project.
 
 ### Pull Requests
@@ -89,7 +105,8 @@ Feature Request Discussions that are deemed ready to be implemented with the dis
 "Accepted" and converted into an Issue, at which point the feature is ready to be implemented.
 
 New feature ideas reported directly to issues might be converted into a Discussion for further triaging at
-[the core team](https://gitlab.com/hook0/hook0/-/project_members)'s discretion first. This is often due to a lack of detail, or
+[the core team](https://gitlab.com/hook0/hook0/-/project_members)'s discretion first. This is often due to a lack of
+detail, or
 lack of proven interest.
 
 Each Pull Request that comes in is required to resolve [an open Issue](https://gitlab.com/hook0/hook0/-/issues) that
