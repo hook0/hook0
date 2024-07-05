@@ -9,7 +9,7 @@ function omitClass(props: Record<string, unknown>) {
 <template>
   <span
     v-bind="omitClass({ ...$props, ...$attrs })"
-    :class="['text'].concat($attrs.class as string[] ?? [])"
+    :class="['text'].concat(($attrs.class as string[]) ?? [])"
   >
     <slot></slot>
   </span>
