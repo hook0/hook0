@@ -26,7 +26,6 @@
   "scripts": {
     "preinstall": "cp -v ../mediakit/logo/favicon.ico ./public/favicon.ico && cp -v ../mediakit/logo/256x256.png ./public/256x256.png && cp -v ../mediakit/logo-scripts/raw.svg ./public/logo.svg",
     "//start:dev": "don't forget to first start the Rust API in order to then access to this frontend through the API http server",
-    "serve": "vue-cli-service serve --mode dev --watch",
     "build": "vite build",
     "dev": "vite",
     "check": "tsc --noEmit && vue-tsc --noEmit",
@@ -35,8 +34,8 @@
     "test:watch": "jest --maxWorkers=25%",
     "test:ci": "jest --runInBand --coverage --collectCoverage",
     "format": "prettier --write src/ ./*.{js,ts,json}",
-    "generate:types": "openapi-typescript http://localhost:8081/api/v1/swagger.json --output src/types.ts",
-    "generate:types:prod": "openapi-typescript https://app.hook0.com/api/v1/swagger.json --output src/types.ts"
+    "generate:types": "openapi-typescript http://localhost:8081/api/v1/swagger.json --output src/types.ts && npm run --silent format",
+    "generate:types:prod": "openapi-typescript https://app.hook0.com/api/v1/swagger.json --output src/types.ts && npm run --silent format"
   },
   "dependencies": {
     "@ag-grid-community/client-side-row-model": "^31.0.1",
@@ -104,6 +103,6 @@
     "webhook server"
   ],
   "volta": {
-    "node": "16.13.1"
+    "node": "20.15.0"
   }
 }
