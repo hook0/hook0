@@ -1,4 +1,5 @@
 ARG RUST_VERSION=1.79
+ARG FEATURES=
 
 FROM rust:${RUST_VERSION} as builder-rust
 WORKDIR /app
@@ -13,7 +14,7 @@ RUN --mount=type=bind,source=Cargo.toml,target=Cargo.toml \
     <<EOF
 set -e
 cd api || exit 1
-SQLX_OFFLINE=true cargo build --locked --release
+SQLX_OFFLINE=true cargo build --locked --release --no-default-features --features "${FEATURES}"
 cd .. || exit 1
 cp ./target/release/hook0-api /
 EOF
