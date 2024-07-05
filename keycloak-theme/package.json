@@ -14,7 +14,7 @@
   "author": "Francois-Guillaume Ribreau <npm@fgribreau.com> (https://fgribreau.com/)",
   "license": "MIT",
   "devDependencies": {
-    "@fullhuman/postcss-purgecss": "^5.0.0",
+    "@fullhuman/postcss-purgecss": "^6.0.0",
     "@parcel/transformer-image": "^2.8.0",
     "@parcel/transformer-sass": "^2.8.0",
     "@tailwindcss/forms": "^0.3.3",
