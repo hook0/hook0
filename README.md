@@ -47,7 +47,7 @@ vision: https://documentation.hook0.com/docs/what-is-hook0
 Hook0 is a real-time API and App dashboard for managing webhooks.
 
 - **Free & open-source**
-- **[JSON REST API](https://documentation.hook0.com/reference/applicationsecretsread)**
+- **[JSON REST API](https://documentation.hook0.com/reference/)**
 - **Fine-grained subscriptions**. Enable your users to subscribe to your events by setting up a webhook. They can choose
   which event types they want to receive.
 - **Auto request retry**. If Hook0 can't reach a webhook.
