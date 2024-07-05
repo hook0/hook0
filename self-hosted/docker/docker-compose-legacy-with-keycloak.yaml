@@ -1,11 +1,13 @@
 name: hook0
 
-# Keycloak-related services/volumes were remove because Keycloak is no longer required by Hook0.
-# If you have an instance that was created while Keycloak was required, use docker-compose-legacy-with-keycloak.yaml instead of this file.
+# This Docker Compose file only make sense if you already have a Hook0 instance that was created when Keycloak was required, which is no longer the case.
+# If you are creating a new instance, please use docker-compose.yaml
 
 volumes:
   postgres-data:
   mailpit-data:
+  postgres-keycloak-data:
+  keycloak-keys:
 
 services:
   postgres:
@@ -43,15 +45,69 @@ services:
       timeout: 1s
       interval: 5s
 
+  postgres-keycloak:
+    image: postgres:15
+    volumes:
+      - postgres-keycloak-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=keycloak
+    ports:
+      - "5433:5432"
+    networks:
+      - hook0
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d $${POSTGRES_DB}"]
+      timeout: 1s
+      interval: 5s
+
+  keycloak:
+    build:
+      context: ../..
+      dockerfile: self-hosted/docker/keycloak.Dockerfile
+    volumes:
+      - keycloak-keys:/opt/keycloak-keys
+    environment:
+      - KC_DB_URL=jdbc:postgresql://postgres-keycloak:5432/keycloak?user=postgres&password=postgres
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+      - KEYCLOAK_REALM=hook0
+    user: root
+    ports:
+      - "8080:8080"
+    networks:
+      - hook0
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail http://localhost:8080/health/live || exit 1"]
+      timeout: 3s
+      start_period: 40s
+      start_interval: 40s
+      interval: 5s
+    depends_on:
+      postgres-keycloak:
+        condition: service_healthy
+
   api:
     build:
       context: ../..
       dockerfile: self-hosted/docker/api.Dockerfile
+      args:
+        - FEATURES=migrate-users-from-keycloak,application-secret-compatibility
+    volumes:
+      - keycloak-keys:/opt/keycloak-keys:ro
     environment:
       - IP=0.0.0.0
       - PORT=8081
       - CORS_ALLOWED_ORIGINS=http://localhost:8001
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/hook0
+      - ENABLE_KEYCLOAK_MIGRATION=true
+      - ENABLE_APPLICATION_SECRET_COMPATIBILITY=true
+      - KEYCLOAK_URL=http://keycloak:8080/
+      - KEYCLOAK_REALM=hook0
+      - KEYCLOAK_CLIENT_ID=hook0-api
+      - KEYCLOAK_FRONT_CLIENT_ID=hook0
       - SMTP_CONNECTION_URL=smtp://mailpit:1025
       - EMAIL_SENDER_ADDRESS=sender@hook0.local
       - APP_URL=http://localhost:8001
@@ -66,6 +122,8 @@ services:
       timeout: 1s
       interval: 5s
     depends_on:
+      keycloak:
+        condition: service_healthy
       postgres:
         condition: service_healthy
       mailpit:
@@ -85,6 +143,8 @@ services:
       timeout: 1s
       interval: 5s
     depends_on:
+      keycloak:
+        condition: service_healthy
       api:
         condition: service_healthy
 
