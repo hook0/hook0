@@ -45,8 +45,8 @@ services:
 
   api:
     build:
-      context: ../..
-      dockerfile: self-hosted/docker/api.Dockerfile
+      context: .
+      dockerfile: api/Dockerfile
     environment:
       - IP=0.0.0.0
       - PORT=8081
@@ -73,8 +73,8 @@ services:
 
   frontend:
     build:
-      context: ../..
-      dockerfile: self-hosted/docker/frontend.Dockerfile
+      context: .
+      dockerfile: frontend/Dockerfile
     ports:
       - "8001:80"
     networks:
@@ -90,8 +90,8 @@ services:
 
   output-worker:
     build:
-      context: ../..
-      dockerfile: self-hosted/docker/output-worker.Dockerfile
+      context: .
+      dockerfile: output-worker/Dockerfile
     environment:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/hook0
       - WORKER_NAME=default
