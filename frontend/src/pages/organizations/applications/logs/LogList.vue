@@ -185,7 +185,8 @@ onUpdated(() => {
           <template #header>Request Attempts</template>
           <template #subtitle>
             Requests that Hook0 sent to
-            <Hook0Button :to="{ name: routes.SubscriptionsList }">subscriptions</Hook0Button>.
+            <Hook0Button :to="{ name: routes.SubscriptionsList }">subscriptions</Hook0Button>
+            .
           </template>
         </Hook0CardHeader>
 
@@ -204,7 +205,7 @@ onUpdated(() => {
               <template #content>
                 <Hook0Text class="center block" style="text-align: center"
                   >Hook0 did not send any requests. Did you setup a
-                  <Hook0Button :to="routes.SubscriptionsList">subscriptions</Hook0Button>
+                  <Hook0Button :to="{ name: routes.SubscriptionsList }">subscriptions</Hook0Button>
                   and
                   <a href="https://documentation.hook0.com/docs/getting-started" target="_blank"
                     >sent your first event</a
