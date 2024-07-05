@@ -9,7 +9,7 @@ RUN --mount=type=bind,source=mediakit,target=/mediakit \
 
 FROM nginx
 RUN rm -v /etc/nginx/nginx.conf
-COPY self-hosted/docker/frontend/nginx.conf /etc/nginx/
+COPY frontend/docker/nginx.conf /etc/nginx/
 COPY --from=build /app/dist /var/www/
 
 EXPOSE 80
