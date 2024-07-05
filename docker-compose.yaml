@@ -1,8 +1,5 @@
 name: hook0
 
-# Keycloak-related services/volumes were remove because Keycloak is no longer required by Hook0.
-# If you have an instance that was created while Keycloak was required, use docker-compose-legacy-with-keycloak.yaml instead of this file.
-
 volumes:
   postgres-data:
   mailpit-data:
@@ -81,7 +78,7 @@ services:
       - hook0
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl --fail http://localhost || exit 1"]
+      test: ["CMD-SHELL", "curl --fail --user-agent 'docker-compose-healthcheck' http://localhost || exit 1"]
       timeout: 1s
       interval: 5s
     depends_on:
