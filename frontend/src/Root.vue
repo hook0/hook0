@@ -157,7 +157,9 @@ const items = computed<Route[]>(() => {
         <div class="flex flex-col w-64 bg-gray-800">
           <div class="flex flex-col h-0 flex-1">
             <div class="flex items-center h-16 flex-shrink-0 px-4">
-              <Hook0Button :to="{ name: routes.Home }"><Hook0Logo></Hook0Logo></Hook0Button>
+              <Hook0Button :to="{ name: routes.Home }">
+                <Hook0Logo></Hook0Logo>
+              </Hook0Button>
             </div>
             <div class="flex flex-shrink-0 bg-gray-100">
               <OrganizationSelector></OrganizationSelector>
