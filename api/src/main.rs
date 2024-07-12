@@ -241,9 +241,13 @@ struct Config {
     #[clap(long, env, default_value = "false")]
     enable_unverified_users_cleanup: bool,
 
+    /// Duration (in second) to wait between unverified users cleanups
+    #[clap(long, env, default_value = "3600")]
+    unverified_users_cleanup_period_in_s: u64,
+
     /// Duration (in day) to wait before removing a unverified user
     #[clap(long, env, default_value = "7")]
-    unverified_users_cleanup_interval_in_days: u32,
+    unverified_users_cleanup_grace_period_in_days: u32,
 
     /// If true, unverified users will be reported and cleaned up; if false (default), they will only be reported
     #[clap(long, env, default_value = "false")]
@@ -436,8 +440,8 @@ async fn main() -> anyhow::Result<()> {
             actix_web::rt::spawn(async move {
                 unverified_users_cleanup::periodically_clean_up_unverified_users(
                     &clean_unverified_users_db,
-                    Duration::from_secs(config.old_events_cleanup_period_in_s),
-                    config.unverified_users_cleanup_interval_in_days,
+                    Duration::from_secs(config.unverified_users_cleanup_period_in_s),
+                    config.unverified_users_cleanup_grace_period_in_days,
                     config.unverified_users_cleanup_report_and_delete,
                 )
                 .await;
