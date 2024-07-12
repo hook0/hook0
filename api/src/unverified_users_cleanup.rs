@@ -11,13 +11,13 @@ const STARTUP_GRACE_PERIOD: Duration = Duration::from_secs(30);
 pub async fn periodically_clean_up_unverified_users(
     db: &PgPool,
     period: Duration,
-    interval_in_day: u32,
+    grace_period_in_day: u32,
     delete: bool,
 ) {
     sleep(STARTUP_GRACE_PERIOD).await;
 
     loop {
-        if let Err(e) = clean_up_unverified_users(db, interval_in_day, delete).await {
+        if let Err(e) = clean_up_unverified_users(db, grace_period_in_day, delete).await {
             error!("Could not clean up unverified users: {e}");
         }
 
@@ -27,13 +27,13 @@ pub async fn periodically_clean_up_unverified_users(
 
 async fn clean_up_unverified_users(
     db: &PgPool,
-    interval_in_day: u32,
+    grace_period_in_day: u32,
     delete: bool,
 ) -> anyhow::Result<()> {
     trace!("Cleaning up unverified users...");
     let start = Instant::now();
 
-    let days = TimeDelta::days(interval_in_day.into());
+    let days = TimeDelta::days(grace_period_in_day.into());
     let interval = PgInterval::try_from(days).map_err(|e| anyhow!("{e}"))?;
 
     let mut tx = db.begin().await?;
