@@ -554,7 +554,7 @@ async fn main() -> anyhow::Result<()> {
                 .add(("Referrer-Policy", "SAMEORIGIN"));
 
             let hsts_header = middleware::DefaultHeaders::new()
-                .add(("Strict-Transport-Security", "max-age=157680000"));
+                .add(("Strict-Transport-Security", "max-age=63072000"));
 
             let security_headers_condition =
                 middleware::Condition::new(config.enable_security_headers, security_headers);
