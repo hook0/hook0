@@ -721,7 +721,7 @@ async fn main() -> anyhow::Result<()> {
                                         ),
                                 ),
                             #[cfg(not(feature = "application-secret-compatibility"))]
-                            web::scope(""),
+                            web::resource("/"),
                         )
                         .service(
                             web::scope("/service_token")
