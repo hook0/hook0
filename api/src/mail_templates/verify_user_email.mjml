@@ -1,6 +1,6 @@
 <mjml>
     <mj-head>
-        <mj-title>Verify email</mj-title>
+        <mj-title>Verify your email</mj-title>
         <mj-style inline="inline">
             body {
                 margin: 0;
@@ -17,19 +17,6 @@
             p {
                 font-size: 16px;
             }
-            button {
-                background-color: #F45E43;
-                border: none;
-                padding: 15px 30px;
-                border-radius: 5px;
-                font-size: 20px;
-                cursor: pointer;
-                margin: 10px 0;
-            }
-            button a {
-                color: white;
-                text-decoration: none;
-            }
         </mj-style>
     </mj-head>
     <mj-body>
@@ -39,11 +26,14 @@
                 <mj-text align="center">
                     <h1>Welcome to Hook0!</h1>
                     <p>A Hook0 account was created with your email address. If this was you, click the link below to verify your email address and activate you account:</p>
-                    <button><a href="{ $url }">Verify email</a></button>
+                </mj-text>
+                <mj-button background-color="#f45e43" color="white" font-size="20px" border-radius="5px" href="{ $url }">Verify email</mj-button>
+                <mj-text align="center">
+                    <p><small><a href="{ $url }">{ $url }</a></small></p>
+                </mj-text>
+                <mj-text align="center">
                     <p>This link will expire within <strong>5 minutes</strong>.</p>
                     <p class="small">If you didn't create an account, do not click on the link and ignore this message.</p>
-                    <br>
-                    <h2>Thanks, Hook0</h2>
                 </mj-text>
             </mj-column>
         </mj-section>

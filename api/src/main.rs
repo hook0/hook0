@@ -278,7 +278,7 @@ struct Config {
     smtp_timeout_in_s: u64,
 
     /// URL of the Hook0 logo
-    #[clap(long, env, default_value = "https://hook0.com/256x256.png")]
+    #[clap(long, env, default_value = "https://app.hook0.com/256x256.png")]
     email_logo_url: Url,
 
     /// Frontend application URL (used for building links in emails)
