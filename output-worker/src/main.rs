@@ -64,6 +64,14 @@ struct Config {
     /// If set to false (default), webhooks that target IPs that are not globally reachable (like "127.0.0.1" for example) will fail
     #[clap(long, env, default_value = "false")]
     disable_target_ip_check: bool,
+
+    /// Timeout for establishing a connection to the target (if exceeded, request attempt will fail)
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "5s")]
+    connect_timeout: Duration,
+
+    /// Timeout for obtaining a HTTP response from the target, including connect phase (if exceeded, request attempt will fail)
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "15s")]
+    timeout: Duration,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -140,6 +148,11 @@ async fn main() -> anyhow::Result<()> {
         "Starting {} {worker_version} [{worker_name}]",
         crate_name!(),
     );
+    debug!(
+        "Webhook connect timeout is set to {:?}",
+        config.connect_timeout
+    );
+    debug!("Webhook total timeout is set to {:?}", config.timeout);
 
     debug!("Connecting to database...");
     let pool = PgPoolOptions::new()
