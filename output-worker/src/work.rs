@@ -15,8 +15,6 @@ use strum::VariantNames;
 use crate::{Config, RequestAttempt};
 
 const USER_AGENT: &str = concat!(crate_name!(), "/", crate_version!());
-const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
-const TIMEOUT: Duration = Duration::from_secs(15);
 
 #[derive(Debug, Clone, Copy, strum::Display, VariantNames)]
 pub enum ResponseError {
@@ -169,7 +167,7 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
                 Ok(url)
             }
         });
-    let c = mk_http_client();
+    let c = mk_http_client(config.connect_timeout, config.timeout);
     let hs = attempt.headers();
     let event_id = HeaderValue::from_str(attempt.event__id.to_string().as_str())
         .expect("Could not create a header value from the event ID UUID");
@@ -303,11 +301,11 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
     }
 }
 
-fn mk_http_client() -> reqwest::Result<Client> {
+fn mk_http_client(connect_timeout: Duration, timeout: Duration) -> reqwest::Result<Client> {
     Client::builder()
         .connection_verbose(true)
-        .connect_timeout(CONNECT_TIMEOUT)
-        .timeout(TIMEOUT)
+        .connect_timeout(connect_timeout)
+        .timeout(timeout)
         .user_agent(USER_AGENT)
         .tcp_keepalive(None)
         .build()
