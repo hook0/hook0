@@ -35,7 +35,6 @@ async function getAxios(
         : parseInt(import.meta.env.VITE_API_TIMEOUT, 10)
     ),
     headers,
-    withCredentials: !!import.meta.env.hasOwnProperty('FRONTEND_DEV_MODE'), // false in dev mode, true in staging/production mode
   });
 
   client.interceptors.response.use(identity, function (error: AxiosError) {
