@@ -1,10 +1,8 @@
-version: '3.8'
 name: hook0
 
 volumes:
   postgres-data:
-  postgres-keycloak-data:
-  keycloak-keys:
+  mailpit-data:
 
 services:
   postgres:
@@ -24,65 +22,37 @@ services:
       timeout: 1s
       interval: 5s
 
-  postgres-keycloak:
-    image: postgres:15
+  mailpit:
+    image: axllent/mailpit:v1.19
     volumes:
-      - postgres-keycloak-data:/var/lib/postgresql/data
+      - mailpit-data:/data
     environment:
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=keycloak
+      - MP_DATABASE=/data/mailpit.db
+      - POSTGRES_DB=hook0
     ports:
-      - "5433:5432"
+      - "8025:8025"
+      - "1025:1025"
     networks:
       - hook0
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d $${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider --user-agent 'docker-compose-healthcheck' http://localhost:8025/api/v1/info || exit 1"]
       timeout: 1s
       interval: 5s
 
-  keycloak:
-    build:
-      context: ../..
-      dockerfile: self-hosted/docker/keycloak.Dockerfile
-    volumes:
-      - keycloak-keys:/opt/keycloak-keys
-    environment:
-      - KC_DB_URL=jdbc:postgresql://postgres-keycloak:5432/keycloak?user=postgres&password=postgres
-      - KEYCLOAK_ADMIN=admin
-      - KEYCLOAK_ADMIN_PASSWORD=admin
-      - KEYCLOAK_REALM=hook0
-    user: root
-    ports:
-      - "8080:8080"
-    networks:
-      - hook0
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "curl --fail http://localhost:8080/health/live || exit 1"]
-      timeout: 3s
-      start_period: 40s
-      start_interval: 40s
-      interval: 5s
-    depends_on:
-      postgres-keycloak:
-        condition: service_healthy
-
   api:
     build:
-      context: ../..
-      dockerfile: self-hosted/docker/api.Dockerfile
-    volumes:
-      - keycloak-keys:/opt/keycloak-keys:ro
+      context: .
+      dockerfile: api/Dockerfile
     environment:
       - IP=0.0.0.0
       - PORT=8081
       - CORS_ALLOWED_ORIGINS=http://localhost:8001
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/hook0
-      - KEYCLOAK_URL=http://keycloak:8080/
-      - KEYCLOAK_REALM=hook0
-      - KEYCLOAK_CLIENT_ID=hook0-api
-      - KEYCLOAK_FRONT_CLIENT_ID=hook0
+      - SMTP_CONNECTION_URL=smtp://mailpit:1025
+      - EMAIL_SENDER_ADDRESS=sender@hook0.local
+      - APP_URL=http://localhost:8001
+      - BISCUIT_PRIVATE_KEY=bbea79cd66926b219b3219a3186decb36136d774dd7c35a8239e512090fa8854  # DO NOT USE THIS KEY IN PRODUCTION
     ports:
       - "8081:8081"
     networks:
@@ -93,36 +63,32 @@ services:
       timeout: 1s
       interval: 5s
     depends_on:
-      keycloak:
-        condition: service_healthy
       postgres:
+        condition: service_healthy
+      mailpit:
         condition: service_healthy
 
   frontend:
     build:
-      context: ../..
-      dockerfile: self-hosted/docker/frontend.Dockerfile
-    volumes:
-      - ./frontend/keycloak.json:/data/keycloak.json:ro
+      context: .
+      dockerfile: frontend/Dockerfile
     ports:
       - "8001:80"
     networks:
       - hook0
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl --fail http://localhost || exit 1"]
+      test: ["CMD-SHELL", "curl --fail --user-agent 'docker-compose-healthcheck' http://localhost || exit 1"]
       timeout: 1s
       interval: 5s
     depends_on:
-      keycloak:
-        condition: service_healthy
       api:
         condition: service_healthy
 
   output-worker:
     build:
-      context: ../..
-      dockerfile: self-hosted/docker/output-worker.Dockerfile
+      context: .
+      dockerfile: output-worker/Dockerfile
     environment:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/hook0
       - WORKER_NAME=default
