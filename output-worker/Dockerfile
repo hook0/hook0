@@ -1,4 +1,4 @@
-ARG RUST_VERSION=1.79
+ARG RUST_VERSION=1.80
 
 FROM rust:${RUST_VERSION} as builder-rust
 WORKDIR /app
