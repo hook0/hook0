@@ -23,7 +23,7 @@ services:
       interval: 5s
 
   mailpit:
-    image: axllent/mailpit:v1.19
+    image: axllent/mailpit:v1.20
     volumes:
       - mailpit-data:/data
     environment:
