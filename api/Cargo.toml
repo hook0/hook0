@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Core REST API of Hook0 — Open-Source Webhooks as a service for SaaS"
 edition = "2021"
 license = "SSPL-1.0"
-keywords = ["webhooks", "webhook", "webhook server", "events", "saas"]
+keywords = ["webhooks", "webhook", "webhook-server", "events", "saas"]
 
 [dependencies]
 actix = "0.13.5"
