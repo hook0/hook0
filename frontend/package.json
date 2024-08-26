@@ -4,7 +4,7 @@
   "description": "Hook0 Frontend - Webhook As a Service",
   "contributors": [
     "Francois-Guillaume Ribreau <npm@fgribreau.com> (http://fgribreau.com/)",
-    "David Sferruzza <david.sferruzza@gmail.com>"
+    "David Sferruzza <david@hook0.com>"
   ],
   "private": true,
   "license": "SSPL-1.0",
