@@ -2,6 +2,8 @@
 name = "hook0-api"
 version = "0.1.0"
 description = "Core REST API of Hook0 — Open-Source Webhooks as a service for SaaS"
+repository = "https://gitlab.com/hook0/hook0/-/tree/master/api"
+homepage = "https://www.hook0.com/"
 edition = "2021"
 license = "SSPL-1.0"
 keywords = ["webhooks", "webhook", "webhook-server", "events", "saas"]
@@ -21,7 +23,7 @@ chrono = { version = "0.4.38", features = ["serde"] }
 clap = { version = "4.5.16", features = ["derive", "env", "cargo", "wrap_help"] }
 futures-util = "0.3.30"
 governor = "0.6.3"
-hook0-client = { path = "../clients/rust" }
+hook0-client = { path = "../clients/rust", version = "0.1.0" }
 html2text = "0.12.5"
 http-api-problem = { version = "0.57.0", features = ["actix-web"] }
 ipnetwork = "0.20.0"
@@ -35,7 +37,7 @@ paperclip = { version = "0.8.2", default-features = false, features = ["actix4",
 regex = "1.10.6"
 reqwest = { version = "0.12.7", default-features = false, features = ["charset", "http2", "macos-system-configuration", "hickory-dns"] }
 sentry-actix = "0.34.0"
-sentry-integration = { path = "../sentry-integration" }
+hook0-sentry-integration = { path = "../sentry-integration", version = "0.1.0" }
 serde = "1.0.208"
 serde_json = "1.0.125"
 sqlx = { version = "0.7.4", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "migrate"] }
