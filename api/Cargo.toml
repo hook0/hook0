@@ -1,11 +1,10 @@
 [package]
 name = "hook0-api"
 version = "0.1.0"
-description = "Core API of Hook0"
-authors = ["David Sferruzza <david.sferruzza@gmail.com>", "François-Guillaume Ribreau <hook0@fgribreau.com>"]
+description = "Core REST API of Hook0 — Open-Source Webhooks as a service for SaaS"
 edition = "2021"
 license = "SSPL-1.0"
-keywords = ["webhooks", "webhook", "webhook server", "events"]
+keywords = ["webhooks", "webhook", "webhook server", "events", "saas"]
 
 [dependencies]
 actix = "0.13.5"
