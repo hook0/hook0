@@ -26,7 +26,8 @@ client.rust.semver-checks:
         - Cargo.*
   before_script:
     - rustc --version && cargo --version
-    - cargo install cargo-semver-checks --locked
+    - cargo install cargo-binstall
+    - cargo binstall cargo-semver-checks -y
   script:
     - pushd clients/rust
     - cargo semver-checks
