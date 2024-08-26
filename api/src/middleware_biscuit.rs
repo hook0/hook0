@@ -1,20 +1,19 @@
+use crate::iam::create_master_access_token;
+use crate::problems::Hook0Problem;
 use actix_web::body::BoxBody;
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
 use actix_web::{Error, HttpMessage};
 use anyhow::anyhow;
 use biscuit_auth::{Biscuit, PrivateKey};
 use futures_util::future::{ok, ready, Ready};
+use hook0_sentry_integration::set_user_from_token;
 use log::{debug, error, trace};
-use sentry_integration::set_user_from_token;
 use sqlx::{query_scalar, PgPool};
 use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
 use std::task::{Context, Poll};
 use uuid::Uuid;
-
-use crate::iam::create_master_access_token;
-use crate::problems::Hook0Problem;
 
 #[derive(Debug, Clone)]
 pub struct BiscuitAuth {
@@ -225,7 +224,7 @@ where
                                                                         "Auth with application secret succeeded (application ID = {})",
                                                                         application_secret.application_id
                                                                     );
-                                                                    sentry_integration::set_user_from_application_secret(
+                                                                    hook0_sentry_integration::set_user_from_application_secret(
                                                                         &application_secret
                                                                             .application_id
                                                                             .to_string(),

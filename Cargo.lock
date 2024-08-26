@@ -1543,6 +1543,7 @@ dependencies = [
  "futures-util",
  "governor",
  "hook0-client",
+ "hook0-sentry-integration",
  "html2text",
  "http-api-problem",
  "ipnetwork",
@@ -1556,7 +1557,6 @@ dependencies = [
  "regex",
  "reqwest",
  "sentry-actix",
- "sentry-integration",
  "serde",
  "serde_json",
  "sqlx",
@@ -1592,11 +1592,11 @@ dependencies = [
  "clap",
  "hex",
  "hmac",
+ "hook0-sentry-integration",
  "humantime",
  "itertools 0.13.0",
  "log",
  "reqwest",
- "sentry-integration",
  "serde",
  "serde_json",
  "sha2 0.10.8",
@@ -1604,6 +1604,15 @@ dependencies = [
  "strum 0.26.3",
  "tokio",
  "uuid 1.10.0",
+]
+
+[[package]]
+name = "hook0-sentry-integration"
+version = "0.1.0"
+dependencies = [
+ "env_logger",
+ "log",
+ "sentry",
 ]
 
 [[package]]
@@ -3308,15 +3317,6 @@ dependencies = [
  "sentry-types",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "sentry-integration"
-version = "0.1.0"
-dependencies = [
- "env_logger",
- "log",
- "sentry",
 ]
 
 [[package]]

@@ -15,3 +15,18 @@ client.rust.check:
     - cargo fmt --all -- --check
     - cargo clippy --all-targets --all-features -- -D warnings
     - cargo test
+
+client.rust.semver-checks:
+  stage: test
+  dependencies: []
+  image: rust:$RUST_VERSION
+  rules:
+    - changes:
+        - clients/rust/**/*
+        - Cargo.*
+  before_script:
+    - rustc --version && cargo --version
+    - cargo install cargo-semver-checks --locked
+  script:
+    - pushd clients/rust
+    - cargo semver-checks
