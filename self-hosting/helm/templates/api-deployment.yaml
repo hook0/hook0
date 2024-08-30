@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ .Values.api.name }}
+  name: {{ .Values.api.name }}
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: {{ .Values.api.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.api.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.api.name }}
+    spec:
+      containers:
+        - name: {{ .Values.api.name }}
+          image: {{ .Values.api.image.repository }}:{{ .Values.api.image.tag }}
+          env:
+            - name: APP_URL
+              value: {{ .Values.api.env.APP_URL }}
+            - name: BISCUIT_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.api.secretName }}
+                  key: biscuitPrivateKey
+            - name: CORS_ALLOWED_ORIGINS
+              value: {{ .Values.api.env.CORS_ALLOWED_ORIGINS }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.api.secretName }}
+                  key: databaseUrl
+            - name: EMAIL_SENDER_ADDRESS
+              value: {{ .Values.api.env.EMAIL_SENDER_ADDRESS }}
+            - name: IP
+              value: {{ .Values.api.env.IP }}
+            - name: PORT
+              value: {{ .Values.api.env.PORT }}
+            - name: SMTP_CONNECTION_URL
+              value: {{ .Values.api.env.SMTP_CONNECTION_URL }}
+          ports:
+            - containerPort: {{ .Values.api.env.PORT }}
+              protocol: TCP
+          livenessProbe:
+            exec:
+              command:
+                - curl --fail --user-agent 'docker-compose-healthcheck' http://localhost:${PORT}/api/v1/swagger.json || exit 1
+            periodSeconds: 5
+            timeoutSeconds: 1
+      restartPolicy: Always

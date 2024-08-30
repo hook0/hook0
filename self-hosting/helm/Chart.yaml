@@ -1,0 +1,17 @@
+name: hook0
+description: A Helm chart for deploying Hook0, an advanced webhook processing and event management service, on Kubernetes.
+version: 0.1.0
+apiVersion: v2
+keywords:
+  - webhook
+  - event-processing
+  - kubernetes
+  - hook0
+sources:
+  - https://github.com/hook0/hook0
+home: https://www.hook0.com
+maintainers:
+  - name: Hook0 Team
+    email: support@hook0.com
+icon: https://gitlab.com/hook0/hook0/-/raw/master/mediakit/logo/256x256.png
+appVersion: "1.0.0"

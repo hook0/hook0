@@ -1,0 +1,246 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    io.kompose.service: api
+  name: api
+  namespace: hook0
+spec:
+  ports:
+    - name: "8081"
+      port: 8081
+      targetPort: 8081
+  selector:
+    io.kompose.service: api
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    io.kompose.service: frontend
+  name: frontend
+  namespace: hook0
+spec:
+  ports:
+    - name: "8001"
+      port: 8001
+      targetPort: 80
+  selector:
+    io.kompose.service: frontend
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    io.kompose.service: mailpit
+  name: mailpit
+  namespace: hook0
+spec:
+  ports:
+    - name: "8025"
+      port: 8025
+      targetPort: 8025
+    - name: "1025"
+      port: 1025
+      targetPort: 1025
+  selector:
+    io.kompose.service: mailpit
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    io.kompose.service: postgres
+  name: postgres
+  namespace: hook0
+spec:
+  ports:
+    - name: "5432"
+      port: 5432
+      targetPort: 5432
+  selector:
+    io.kompose.service: postgres
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hook0
+  namespace: hook0
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: api
+  name: api
+  namespace: hook0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: api
+  template:
+    metadata:
+      labels:
+        io.kompose.service: api
+    spec:
+      containers:
+        - env:
+            - name: APP_URL
+              value: http://localhost:8001
+            - name: BISCUIT_PRIVATE_KEY
+              value: bbea79cd66926b219b3219a3186decb36136d774dd7c35a8239e512090fa8854
+            - name: CORS_ALLOWED_ORIGINS
+              value: http://localhost:8001
+            - name: DATABASE_URL
+              value: postgres://postgres:postgres@postgres:5432/hook0
+            - name: EMAIL_SENDER_ADDRESS
+              value: sender@hook0.local
+            - name: IP
+              value: 0.0.0.0
+            - name: PORT
+              value: "8081"
+            - name: SMTP_CONNECTION_URL
+              value: smtp://mailpit:1025
+          image: api
+          livenessProbe:
+            exec:
+              command:
+                - curl --fail --user-agent 'docker-compose-healthcheck' http://localhost:${PORT}/api/v1/swagger.json || exit 1
+            periodSeconds: 5
+            timeoutSeconds: 1
+          name: api
+          ports:
+            - containerPort: 8081
+              protocol: TCP
+      restartPolicy: Always
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: frontend
+  name: frontend
+  namespace: hook0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: frontend
+  template:
+    metadata:
+      labels:
+        io.kompose.service: frontend
+    spec:
+      containers:
+        - image: frontend
+          livenessProbe:
+            exec:
+              command:
+                - curl --fail --user-agent 'docker-compose-healthcheck' http://localhost || exit 1
+            periodSeconds: 5
+            timeoutSeconds: 1
+          name: frontend
+          ports:
+            - containerPort: 80
+              protocol: TCP
+      restartPolicy: Always
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: output-worker
+  name: output-worker
+  namespace: hook0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: output-worker
+  template:
+    metadata:
+      labels:
+        io.kompose.service: output-worker
+    spec:
+      containers:
+        - env:
+            - name: DATABASE_URL
+              value: postgres://postgres:postgres@postgres:5432/hook0
+            - name: DISABLE_TARGET_IP_CHECK
+              value: "true"
+            - name: WORKER_NAME
+              value: default
+          image: output-worker
+          name: output-worker
+      restartPolicy: Always
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: postgres
+  name: postgres
+  namespace: hook0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: postgres
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        io.kompose.service: postgres
+    spec:
+      containers:
+        - env:
+            - name: POSTGRES_DB
+              value: hook0
+            - name: POSTGRES_PASSWORD
+              value: postgres
+          image: postgres:15
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready -U postgres -d ${POSTGRES_DB}
+            periodSeconds: 5
+            timeoutSeconds: 1
+          name: postgres
+          ports:
+            - containerPort: 5432
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: postgres-data
+      restartPolicy: Always
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: postgres-data
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    io.kompose.service: postgres-data
+  name: postgres-data
+  namespace: hook0
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+
