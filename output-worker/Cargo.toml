@@ -20,8 +20,8 @@ itertools = "0.13.0"
 log = "0.4.22"
 reqwest = { version = "0.12.7", default-features = false, features = ["charset", "http2", "macos-system-configuration", "hickory-dns", "json"] }
 hook0-sentry-integration = { path = "../sentry-integration", version = "0.1.0" }
-serde = "1.0.208"
-serde_json = "1.0.125"
+serde = "1.0.209"
+serde_json = "1.0.127"
 sha2 = "0.10.8"
 sqlx = { version = "0.7.4", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "macros", "uuid", "chrono", "time", "json"] }
 strum = { version = "0.26.3", features = ["derive"] }
