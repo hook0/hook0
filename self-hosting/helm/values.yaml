@@ -1,0 +1,47 @@
+# Namespace for the Hook0 components
+namespace: hook0
+
+# API Service configuration
+api:
+  name: api
+  replicaCount: 2
+  image:
+    repository: your-docker-repo/hook0-api
+    tag: latest
+  env:
+    APP_URL: "https://api.yourdomain.com"
+    CORS_ALLOWED_ORIGINS: "https://yourdomain.com"
+    DATABASE_URL: "postgres://user:password@postgres:5432/hook0"
+    EMAIL_SENDER_ADDRESS: "noreply@yourdomain.com"
+    IP: "0.0.0.0"
+    PORT: "8081"
+    SMTP_CONNECTION_URL: "smtp://smtp.yourdomain.com:587"
+  secretName: hook0-api-secret
+
+# Frontend Service configuration
+frontend:
+  name: frontend
+  replicaCount: 2
+  image:
+    repository: your-docker-repo/hook0-frontend
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 80
+
+# PostgreSQL Service configuration
+postgres:
+  name: postgres
+  replicaCount: 1
+  image:
+    repository: postgres
+    tag: "15"
+  env:
+    POSTGRES_DB: hook0
+    POSTGRES_PASSWORD: "postgres"
+  secretName: hook0-postgres-secret
+  persistence:
+    enabled: true
+    claimName: postgres-data
+    size: 10Gi
+    storageClass: "standard"
