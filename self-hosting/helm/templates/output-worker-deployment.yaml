@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: output-worker
+  name: output-worker
+  namespace: hook0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: output-worker
+  template:
+    metadata:
+      labels:
+        io.kompose.service: output-worker
+    spec:
+      containers:
+        - env:
+            - name: DATABASE_URL
+              value: postgres://postgres:postgres@postgres:5432/hook0
+            - name: DISABLE_TARGET_IP_CHECK
+              value: "true"
+            - name: WORKER_NAME
+              value: default
+          image: output-worker
+          name: output-worker
+      restartPolicy: Always
