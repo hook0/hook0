@@ -14,7 +14,7 @@ export function create(event_type: EventTypePost): Promise<EventType> {
   );
 }
 
-export function remove(application_id: string, event_type_name: string): Promise<void> {
+export function deactivate(application_id: string, event_type_name: string): Promise<void> {
   return http
     .delete(`/event_types/${event_type_name}`, {
       params: {
