@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    UPDATE event.event_type\n                    SET deactivated_at = statement_timestamp()\n                    WHERE application__id = $1 AND event_type__name = $2\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "20d7d13de7ec9791d0795b1e08a2dff138b67e9db1b39c7f3fdb0b2212fcc788"
+}

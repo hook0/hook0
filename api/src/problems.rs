@@ -44,6 +44,7 @@ pub enum Hook0Problem {
     EventInvalidPayloadContentType,
     EventInvalidBase64Payload(String),
     EventInvalidJsonPayload(String),
+    EventInvalidEventType(String),
 
     // Auth errors
     AuthNoAuthorizationHeader,
@@ -295,6 +296,16 @@ impl From<Hook0Problem> for Problem {
                 Problem {
                     id: Hook0Problem::EventInvalidJsonPayload(e),
                     title: "Invalid event JSON payload",
+                    detail: detail.into(),
+                    validation: None,
+                    status: StatusCode::BAD_REQUEST,
+                }
+            },
+            Hook0Problem::EventInvalidEventType(et) => {
+                let detail = format!("Event type '{et}' does not exist or was deactivated. You should (re)create it.");
+                Problem {
+                    id: Hook0Problem::EventInvalidEventType(et),
+                    title: "Invalid event type",
                     detail: detail.into(),
                     validation: None,
                     status: StatusCode::BAD_REQUEST,
