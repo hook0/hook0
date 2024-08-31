@@ -364,6 +364,20 @@ pub async fn ingest(
     };
 
     if can_ingest {
+        // Check if event type exists and is active
+        query!(
+            "
+                SELECT true AS is_ok
+                FROM event.event_type
+                WHERE application__id = $1 AND event_type__name = $2 AND deactivated_at IS NULL
+            ",
+            application_id,
+            &body.event_type,
+        )
+        .fetch_one(&state.db)
+        .await
+        .map_err(|_| Hook0Problem::EventInvalidEventType(body.event_type.to_owned()))?;
+
         let content_type = PayloadContentType::from_str(&body.payload_content_type)?;
         let payload = content_type.validate_and_decode(&body.payload)?;
 
