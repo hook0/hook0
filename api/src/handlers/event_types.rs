@@ -118,6 +118,7 @@ pub async fn create(
             "
                 INSERT INTO event.event_type (application__id, service__name, resource_type__name, verb__name)
                 VALUES ($1, $2, $3, $4)
+                ON CONFLICT (application__id, event_type__name) DO UPDATE SET deactivated_at = NULL
                 RETURNING service__name AS service_name, resource_type__name AS resource_type_name, verb__name AS verb_name, event_type__name AS event_type_name
             ",
             &body.application_id,
@@ -188,7 +189,7 @@ pub async fn list(
             "
                 SELECT service__name AS service_name, resource_type__name AS resource_type_name, verb__name AS verb_name, event_type__name AS event_type_name
                 FROM event.event_type
-                WHERE application__id = $1
+                WHERE application__id = $1 AND deactivated_at IS NULL
                 ORDER BY event_type__name ASC
             ",
             &qs.application_id
@@ -234,7 +235,7 @@ pub async fn get(
             "
                 SELECT service__name AS service_name, resource_type__name AS resource_type_name, verb__name AS verb_name, event_type__name AS event_type_name
                 FROM event.event_type
-                WHERE application__id = $1 AND event_type__name = $2
+                WHERE application__id = $1 AND event_type__name = $2 AND deactivated_at IS NULL
             ",
             &qs.application_id,
             &event_type_name.into_inner(),
@@ -284,7 +285,7 @@ pub async fn delete(
             "
                 SELECT service__name AS service_name, resource_type__name AS resource_type_name, verb__name AS verb_name, event_type__name AS event_type_name
                 FROM event.event_type
-                WHERE application__id = $1 AND event_type__name = $2
+                WHERE application__id = $1 AND event_type__name = $2 AND deactivated_at IS NULL
             ",
             &application_id,
             &event_type_name.into_inner(),
@@ -297,7 +298,8 @@ pub async fn delete(
         Some(a) => {
             query!(
                 "
-                    DELETE FROM event.event_type
+                    UPDATE event.event_type
+                    SET deactivated_at = statement_timestamp()
                     WHERE application__id = $1 AND event_type__name = $2
                 ",
                 &application_id,
