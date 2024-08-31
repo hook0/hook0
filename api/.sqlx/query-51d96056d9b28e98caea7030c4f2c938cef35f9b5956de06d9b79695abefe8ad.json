@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT true AS is_ok\n                FROM event.event_type\n                WHERE application__id = $1 AND event_type__name = $2 AND deactivated_at IS NULL\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "is_ok",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "51d96056d9b28e98caea7030c4f2c938cef35f9b5956de06d9b79695abefe8ad"
+}
