@@ -42,15 +42,15 @@ const columnDefs: ColDef[] = [
   {
     suppressMovable: true,
     suppressSizeToFit: true,
-    width: 105,
+    width: 130,
     headerName: 'Options',
     cellRenderer: Hook0TableCellLink,
     cellRendererParams: {
-      value: 'Delete',
+      value: 'Deactivate',
       icon: 'trash',
       onClick: (row: EventType): void => {
-        if (confirm(`Are you sure to delete "${row.event_type_name}" event?`)) {
-          EventTypeService.remove(application_id.value as string, row.event_type_name)
+        if (confirm(`Are you sure to deactivate "${row.event_type_name}" event?`)) {
+          EventTypeService.deactivate(application_id.value as string, row.event_type_name)
             .then(() => {
               // @TODO notify user of success
               _forceLoad();
