@@ -37,6 +37,7 @@ pub enum Hook0Problem {
     InvalidRole,
 
     EventTypeAlreadyExist,
+    EventTypeDoesNotExist,
 
     UnauthorizedWorkers(Vec<String>),
 
@@ -44,7 +45,6 @@ pub enum Hook0Problem {
     EventInvalidPayloadContentType,
     EventInvalidBase64Payload(String),
     EventInvalidJsonPayload(String),
-    EventInvalidEventType(String),
 
     // Auth errors
     AuthNoAuthorizationHeader,
@@ -85,8 +85,16 @@ impl From<sqlx::Error> for Hook0Problem {
                     Some("application_name_chk") => Hook0Problem::ApplicationNameMissing,
                     Some("event_type_pkey") => Hook0Problem::EventTypeAlreadyExist,
                     Some("event_pkey") => Hook0Problem::EventAlreadyIngested,
-                    _ => {
-                        error!("Database error: {}", &pg_error);
+                    Some(
+                        "subscription__event_type_event_type__name_fkey"
+                        | "event_event_type__name_fkey",
+                    ) => Hook0Problem::EventTypeDoesNotExist,
+                    constraint => {
+                        error!(
+                            "Database error (failed constraint = {}): {}",
+                            constraint.unwrap_or("?"),
+                            &pg_error
+                        );
                         Hook0Problem::InternalServerError
                     }
                 }
@@ -252,6 +260,13 @@ impl From<Hook0Problem> for Problem {
                 validation: None,
                 status: StatusCode::CONFLICT,
             },
+            Hook0Problem::EventTypeDoesNotExist => Problem {
+                id: Hook0Problem::EventTypeDoesNotExist,
+                title: "Invalid event type",
+                detail: "Event type does not exist or was deactivated. You should (re)create it.".into(),
+                validation: None,
+                status: StatusCode::BAD_REQUEST,
+            },
 
             Hook0Problem::UnauthorizedWorkers(w) => {
                 let detail = format!("You do not have access to the following workers: {}", w.join(", "));
@@ -296,16 +311,6 @@ impl From<Hook0Problem> for Problem {
                 Problem {
                     id: Hook0Problem::EventInvalidJsonPayload(e),
                     title: "Invalid event JSON payload",
-                    detail: detail.into(),
-                    validation: None,
-                    status: StatusCode::BAD_REQUEST,
-                }
-            },
-            Hook0Problem::EventInvalidEventType(et) => {
-                let detail = format!("Event type '{et}' does not exist or was deactivated. You should (re)create it.");
-                Problem {
-                    id: Hook0Problem::EventInvalidEventType(et),
-                    title: "Invalid event type",
                     detail: detail.into(),
                     validation: None,
                     status: StatusCode::BAD_REQUEST,
