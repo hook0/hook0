@@ -6,7 +6,7 @@ use chrono::{DateTime, Utc};
 use log::{error, trace, warn};
 use paperclip::v2::schema::TypedData;
 use serde::{Deserialize, Serialize};
-use sqlx::{query_as, PgPool};
+use sqlx::{query_scalar, PgPool};
 use std::str::FromStr;
 use std::time::{Duration, SystemTime};
 use strum::{AsRefStr, EnumIter, EnumString, VariantNames};
@@ -20,25 +20,13 @@ const ORGA_GROUP_PREFIX: &str = "orga_";
 const ROLE_GROUP_PREFIX: &str = "role_";
 
 pub async fn get_owner_organization(db: &PgPool, application_id: &Uuid) -> Option<Uuid> {
-    struct Organization {
-        pub id: Uuid,
-    }
-
-    let org = query_as!(
-        Organization,
+    query_scalar!(
         "SELECT organization__id AS id FROM event.application WHERE application__id = $1",
         application_id
     )
-    .fetch_one(db)
-    .await;
-
-    match org {
-        Ok(Organization { id }) => Some(id),
-        Err(e) => {
-            error!("{e}");
-            None
-        }
-    }
+    .fetch_optional(db)
+    .await
+    .unwrap_or(None)
 }
 
 #[derive(
