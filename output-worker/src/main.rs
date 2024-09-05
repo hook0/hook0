@@ -118,8 +118,11 @@ impl RequestAttempt {
     }
 }
 
-/// How long to wait when there are no unprocessed items to pick
-const POLLING_SLEEP: Duration = Duration::from_secs(1);
+/// Minimum duration to wait when there are no unprocessed items to pick
+const MIN_POLLING_SLEEP: Duration = Duration::from_secs(1);
+
+/// Maximum duration to wait when there are no unprocessed items to pick
+const MAX_POLLING_SLEEP: Duration = Duration::from_secs(10);
 
 /// How long to wait before first fast retry
 const MINIMUM_FAST_RETRY_DELAY: Duration = Duration::from_secs(5);
@@ -226,6 +229,9 @@ async fn main() -> anyhow::Result<()> {
         let tx = heartbeat_tx.to_owned();
         let cfg = config.to_owned();
         tasks.spawn(async move {
+            // Start units progressively
+            sleep(Duration::from_millis(u64::from(unit_id) * 100)).await;
+
             loop {
                 let t = look_for_work(&cfg, unit_id, &p, &wn, &wv, &worker_type, tx.clone()).await;
                 if let Err(ref e) = t {
@@ -455,7 +461,7 @@ async fn look_for_work(
             // Commit transaction
             tx.commit().await?;
 
-            sleep(POLLING_SLEEP).await;
+            wait_because_no_work(unit_id).await;
         }
 
         // Send monitoring heartbeat if necessary
@@ -463,6 +469,21 @@ async fn look_for_work(
             tx.send(unit_id).await?;
         }
     }
+}
+
+async fn wait_because_no_work(unit_id: u8) {
+    // In order to reduce load on the database when there is no work to do, but simultaneously keep a low latency when some work becomes available,
+    // we wait a variable duration between checks:
+    // - for unit 0, we wait for a short duration, so that new work gets picked up fast
+    // - for units 1 and 2, we wait for a medium duration
+    // - for units > 3, we wait for a long duration, to avoid unnecessary stress on the database
+    // Note: units do not wait after finishing a task (they keep going as fast as possible), they wait only if there is no more work to do
+    let sleep_duration = match unit_id {
+        0 => MIN_POLLING_SLEEP,
+        1 | 2 => (MIN_POLLING_SLEEP + MAX_POLLING_SLEEP) / 2,
+        _ => MAX_POLLING_SLEEP,
+    };
+    sleep(sleep_duration).await;
 }
 
 async fn get_worker_type(worker_name: &str, conn: &PgPool) -> Result<WorkerType, sqlx::Error> {
