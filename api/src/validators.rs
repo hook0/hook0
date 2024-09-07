@@ -12,6 +12,11 @@ const EVENT_TYPES_MIN_SIZE: usize = 1;
 const EVENT_TYPES_MAX_SIZE: usize = 100;
 const EVENT_TYPES_NAME_MIN_LENGTH: usize = 1;
 const EVENT_TYPES_NAME_MAX_LENGTH: usize = 200;
+const SUBSCRIPTION_TARGET_HTTP_ALLOWED_METHODS: &[&str] =
+    &["GET", "PATCH", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"];
+const SUBSCRIPTION_TARGET_HTTP_URL_MAX_LENGTH: usize = 1000;
+const SUBSCRIPTION_TARGET_HTTP_HEADERS_MAX_SIZE: usize = 10;
+const SUBSCRIPTION_TARGET_HTTP_HEADERS_PROPERTY_MAX_LENGTH: usize = 500;
 
 const CODE_METADATA_SIZE: &str = "metadata-size";
 const CODE_METADATA_PROPERTY_TYPE: &str = "metadata-property-type";
@@ -21,6 +26,11 @@ const CODE_LABELS_PROPERTY_TYPE: &str = "labels-property-type";
 const CODE_LABELS_PROPERTY_LENGTH: &str = "labels-property-length";
 const CODE_EVENT_TYPES_SIZE: &str = "event-types-size";
 const CODE_EVENT_TYPES_NAME_LENGTH: &str = "event-types-name-length";
+const CODE_SUBSCRIPTION_TARGET_HTTP_METHOD: &str = "subscription-target-http-method";
+const CODE_SUBSCRIPTION_TARGET_HTTP_URL_LENGTH: &str = "subscription-target-http-url-length";
+const CODE_SUBSCRIPTION_TARGET_HTTP_HEADERS_SIZE: &str = "subscription-target-http-headers-size";
+const CODE_SUBSCRIPTION_TARGET_HTTP_HEADERS_PROPERTY_LENGTH: &str =
+    "subscription-target-http-headers-property-length";
 
 fn json_type(val: &Value) -> &'static str {
     match val {
@@ -170,6 +180,97 @@ pub fn event_types(val: &[String]) -> Result<(), ValidationError> {
                 message: Some(format!("Event types must have a length between {EVENT_TYPES_NAME_MIN_LENGTH} and {EVENT_TYPES_NAME_MAX_LENGTH} (invalid event types were spotted at the following indexes: {invalid})").into()),
                 params: HashMap::new(),
             })
+    } else {
+        Ok(())
+    }
+}
+
+pub fn subscription_target_http_method(val: &String) -> Result<(), ValidationError> {
+    if !SUBSCRIPTION_TARGET_HTTP_ALLOWED_METHODS.contains(&val.as_str()) {
+        Err(ValidationError {
+            code: CODE_SUBSCRIPTION_TARGET_HTTP_METHOD.into(),
+            message: Some(
+                format!(
+                    "HTTP method must be one of: {}",
+                    SUBSCRIPTION_TARGET_HTTP_ALLOWED_METHODS.to_vec().join(", ")
+                )
+                .into(),
+            ),
+            params: HashMap::from_iter([
+                ("value".into(), Value::String(val.to_owned())),
+                (
+                    "options".into(),
+                    Value::Array(
+                        SUBSCRIPTION_TARGET_HTTP_ALLOWED_METHODS
+                            .iter()
+                            .map(|m| Value::String(m.to_owned().to_owned()))
+                            .collect::<Vec<_>>(),
+                    ),
+                ),
+            ]),
+        })
+    } else {
+        Ok(())
+    }
+}
+
+pub fn subscription_target_http_url(val: &str) -> Result<(), ValidationError> {
+    if val.len() > SUBSCRIPTION_TARGET_HTTP_URL_MAX_LENGTH {
+        Err(ValidationError {
+            code: CODE_SUBSCRIPTION_TARGET_HTTP_URL_LENGTH.into(),
+            message: Some(
+                format!("HTTP URL must be smaller than {SUBSCRIPTION_TARGET_HTTP_URL_MAX_LENGTH} characters")
+                .into(),
+            ),
+            params: HashMap::from_iter([
+                ("length".into(), Value::Number(val.len().into())),
+                (
+                    "max".into(),
+                    Value::Number(SUBSCRIPTION_TARGET_HTTP_URL_MAX_LENGTH.into())
+                ),
+            ]),
+        })
+    } else {
+        Ok(())
+    }
+}
+
+pub fn subscription_target_http_method_headers(
+    val: &HashMap<String, String>,
+) -> Result<(), ValidationError> {
+    if val.len() > SUBSCRIPTION_TARGET_HTTP_HEADERS_MAX_SIZE {
+        return Err(ValidationError {
+            code: CODE_SUBSCRIPTION_TARGET_HTTP_HEADERS_SIZE.into(),
+            message: Some(
+                format!("Headers object cannot have more than {SUBSCRIPTION_TARGET_HTTP_HEADERS_MAX_SIZE} properties",)
+                    .into(),
+            ),
+            params: HashMap::from_iter([
+                ("max".into(), Value::Number(SUBSCRIPTION_TARGET_HTTP_HEADERS_MAX_SIZE.into()))
+            ]),
+        });
+    }
+
+    let mut invalid_length = vec![];
+
+    for (k, v) in val {
+        if k.len() > SUBSCRIPTION_TARGET_HTTP_HEADERS_PROPERTY_MAX_LENGTH
+            || v.len() > SUBSCRIPTION_TARGET_HTTP_HEADERS_PROPERTY_MAX_LENGTH
+        {
+            invalid_length.push(k.to_owned());
+        }
+    }
+
+    if !invalid_length.is_empty() {
+        let invalid = invalid_length.join(", ");
+        Err(ValidationError {
+            code: CODE_SUBSCRIPTION_TARGET_HTTP_HEADERS_PROPERTY_LENGTH.into(),
+            message: Some(format!("Headers properties and values must contains less than {METADATA_PROPERTY_MAX_LENGTH} characters (the following properties are out of range: {invalid})").into()),
+            params: HashMap::from_iter([
+                ("max".into(), Value::Number(SUBSCRIPTION_TARGET_HTTP_HEADERS_PROPERTY_MAX_LENGTH.into())),
+                ("invalid_properties".into(), Value::Array(invalid_length.into_iter().map(Value::String).collect::<Vec<_>>())),
+            ]),
+        })
     } else {
         Ok(())
     }

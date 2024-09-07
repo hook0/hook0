@@ -11,7 +11,7 @@ use sqlx::{query, query_as, query_scalar};
 use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
 use uuid::Uuid;
-use validator::Validate;
+use validator::{Validate, ValidationErrors};
 
 use crate::hook0_client::{
     EventSubscriptionCreated, EventSubscriptionRemoved, EventSubscriptionUpdated, Hook0ClientEvent,
@@ -19,6 +19,10 @@ use crate::hook0_client::{
 use crate::iam::{authorize_for_application, get_owner_organization, Action};
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
+use crate::validators::{
+    subscription_target_http_method, subscription_target_http_method_headers,
+    subscription_target_http_url,
+};
 
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct Subscription {
@@ -45,6 +49,41 @@ pub enum Target {
         url: HttpUrl,
         headers: HashMap<String, String>,
     },
+}
+
+impl Validate for Target {
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        match self {
+            Target::Http {
+                method,
+                url,
+                headers,
+            } => {
+                let mut errors = ValidationErrors::new();
+
+                let method_validation = subscription_target_http_method(method);
+                if let Err(e) = method_validation {
+                    errors.add("method", e)
+                }
+
+                let url_validation = subscription_target_http_url(url.as_str());
+                if let Err(e) = url_validation {
+                    errors.add("url", e)
+                }
+
+                let headers_validation = subscription_target_http_method_headers(headers);
+                if let Err(e) = headers_validation {
+                    errors.add("headers", e)
+                }
+
+                if errors.is_empty() {
+                    Ok(())
+                } else {
+                    Err(errors)
+                }
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -338,6 +377,7 @@ pub struct SubscriptionPost {
     label_key: String,
     #[validate(non_control_character, length(min = 1, max = 100))]
     label_value: String,
+    #[validate]
     target: Target,
     #[validate(length(min = 1, max = 20))]
     dedicated_workers: Option<Vec<String>>,
