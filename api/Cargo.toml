@@ -27,6 +27,7 @@ hook0-client = { path = "../clients/rust", version = "0.1.0" }
 hook0-sentry-integration = { path = "../sentry-integration", version = "0.1.0" }
 html2text = "0.12.5"
 http-api-problem = { version = "0.57.0", features = ["actix-web"] }
+humantime = "2.1.0"
 ipnetwork = "0.20.0"
 lazy_static = "1.5.0"
 lettre = { version = "0.11.8", default-features = false, features = ["builder", "smtp-transport", "pool", "tokio1-rustls-tls"] }
