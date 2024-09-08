@@ -2,8 +2,14 @@
 import { omit } from 'ramda';
 import { computed, onMounted, onUpdated, ref } from 'vue';
 
-import { Hook0SelectGroupedOption, Hook0SelectSingleOption } from '@/components/Hook0Select';
+import {
+  firstValue,
+  Hook0SelectGroupedOption,
+  Hook0SelectSingleOption,
+  isValidOption,
+} from '@/components/Hook0Select';
 
+const model = defineModel<null | string>();
 defineOptions({
   inheritAttrs: false,
 });
@@ -13,7 +19,6 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-const emit = defineEmits(['update:modelValue']);
 const simpleOptions = computed(() =>
   (props.options as Hook0SelectSingleOption[]).filter(isSimpleOption)
 );
@@ -27,10 +32,6 @@ function omitOptions($props: Record<string, unknown>) {
   return omit(['options'], $props);
 }
 
-function sendEvent() {
-  emit('update:modelValue', select.value?.value);
-}
-
 function isSimpleOption(option: Hook0SelectSingleOption) {
   return option.hasOwnProperty('value') && option.hasOwnProperty('label');
 }
@@ -39,12 +40,17 @@ function isGroupedOptions(option: Hook0SelectGroupedOption) {
   return Array.isArray(option.options) && option.options.every(isSimpleOption);
 }
 
-onMounted(() => {
-  sendEvent();
-});
+function initValue() {
+  if (!isValidOption(props.options, model.value)) {
+    model.value = firstValue(props.options);
+  }
+}
 
+onMounted(() => {
+  initValue();
+});
 onUpdated(() => {
-  sendEvent();
+  initValue();
 });
 </script>
 
@@ -52,8 +58,8 @@ onUpdated(() => {
   <select
     v-bind="{ ...omitOptions($props as unknown as Record<string, unknown>), ...$attrs }"
     ref="select"
+    v-model="model"
     class="hook0-select"
-    @input="sendEvent()"
   >
     <optgroup v-for="group in groupedOptions" :key="group.label" :label="group.label">
       <option v-for="option in group.options" :key="option.value" :value="option.value">
