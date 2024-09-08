@@ -50,7 +50,7 @@ onUpdated(() => {
 
 <template>
   <select
-    v-bind="{ ...omitOptions($props as unknown as Record<string, unknown>), ...$attrs }"
+    v-bind="{ ...omitOptions($props), ...$attrs }"
     ref="select"
     class="hook0-select"
     @input="sendEvent()"
