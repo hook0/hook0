@@ -23,7 +23,7 @@ const groupedOptions = computed(() =>
 
 const select = ref<null | HTMLSelectElement>(null);
 
-function omitOptions($props: Record<string, unknown>) {
+function omitOptions($props: Partial<Record<string, unknown>>) {
   return omit(['options'], $props);
 }
 
