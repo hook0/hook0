@@ -16,6 +16,7 @@ use std::str::FromStr;
 use std::time::Duration;
 use uuid::Uuid;
 
+mod expired_tokens_cleanup;
 mod extractor_user_ip;
 mod handlers;
 mod hook0_client;
@@ -237,6 +238,18 @@ struct Config {
     #[clap(long, env, default_value = "false")]
     old_events_cleanup_report_and_delete: bool,
 
+    /// Duration to wait between expired tokens cleanups
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "1h")]
+    expired_tokens_cleanup_period: Duration,
+
+    /// Duration to wait before actually deleting expired tokens (expired tokens cannot be used anyway, even if kept for some time)
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "7d")]
+    expired_tokens_cleanup_grace_period: Duration,
+
+    /// If true, expired tokens will be reported and cleaned up; if false (default), they will only be reported
+    #[clap(long, env, default_value = "false")]
+    expired_tokens_cleanup_report_and_delete: bool,
+
     /// If true, unverified users will be remove from database after a while
     #[clap(long, env, default_value = "false")]
     enable_unverified_users_cleanup: bool,
@@ -434,6 +447,31 @@ async fn main() -> anyhow::Result<()> {
             .await;
         });
 
+        // Spawn task to clean up old events
+        let cleanup_db = pool.clone();
+        actix_web::rt::spawn(async move {
+            old_events_cleanup::periodically_clean_up_old_events(
+                &cleanup_db,
+                Duration::from_secs(config.old_events_cleanup_period_in_s),
+                config.quota_global_days_of_events_retention_limit,
+                config.old_events_cleanup_grace_period_in_day,
+                config.old_events_cleanup_report_and_delete,
+            )
+            .await;
+        });
+
+        // Spawn task to clean up expired tokens
+        let cleanup_db = pool.clone();
+        actix_web::rt::spawn(async move {
+            expired_tokens_cleanup::periodically_clean_up_expired_tokens(
+                &cleanup_db,
+                config.expired_tokens_cleanup_period,
+                config.expired_tokens_cleanup_grace_period,
+                config.expired_tokens_cleanup_report_and_delete,
+            )
+            .await;
+        });
+
         // Spawn task to clean unverified users if enabled
         if config.enable_unverified_users_cleanup {
             let clean_unverified_users_db = pool.clone();
@@ -447,19 +485,6 @@ async fn main() -> anyhow::Result<()> {
                 .await;
             });
         }
-
-        // Spawn task to clean up old events
-        let cleanup_db = pool.clone();
-        actix_web::rt::spawn(async move {
-            old_events_cleanup::periodically_clean_up_old_events(
-                &cleanup_db,
-                Duration::from_secs(config.old_events_cleanup_period_in_s),
-                config.quota_global_days_of_events_retention_limit,
-                config.old_events_cleanup_grace_period_in_day,
-                config.old_events_cleanup_report_and_delete,
-            )
-            .await;
-        });
 
         // Create Mailer
         let mailer = mailer::Mailer::new(
