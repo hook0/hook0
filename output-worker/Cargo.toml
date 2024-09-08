@@ -12,7 +12,7 @@ keywords = ["webhooks", "webhook", "webhook-server", "events", "saas"]
 [dependencies]
 anyhow = "1.0.86"
 chrono = "0.4.38"
-clap = { version = "4.5.16", features = ["derive", "env", "cargo", "wrap_help"] }
+clap = { version = "4.5.17", features = ["derive", "env", "cargo", "wrap_help"] }
 hex = "0.4.3"
 hmac = "0.12.1"
 humantime = "2.1.0"
@@ -21,7 +21,7 @@ log = "0.4.22"
 reqwest = { version = "0.12.7", default-features = false, features = ["charset", "http2", "macos-system-configuration", "hickory-dns", "json"] }
 hook0-sentry-integration = { path = "../sentry-integration", version = "0.1.0" }
 serde = "1.0.209"
-serde_json = "1.0.127"
+serde_json = "1.0.128"
 sha2 = "0.10.8"
 sqlx = { version = "0.8.2", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "macros", "uuid", "chrono", "json"] }
 strum = { version = "0.26.3", features = ["derive"] }
