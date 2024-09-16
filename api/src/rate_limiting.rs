@@ -38,19 +38,19 @@ impl Hook0RateLimiters {
         let global = GovernorConfigBuilder::default()
             .key_extractor(GlobalKeyExtractor)
             .burst_size(api_rate_limiting_global_burst_size)
-            .per_millisecond(api_rate_limiting_global_replenish_period_in_ms)
+            .milliseconds_per_request(api_rate_limiting_global_replenish_period_in_ms)
             .finish()
             .expect("Could not build global rate limiter; check configuration");
         let ip = GovernorConfigBuilder::default()
             .key_extractor(UserIpKeyExtractor)
             .burst_size(api_rate_limiting_ip_burst_size)
-            .per_millisecond(api_rate_limiting_ip_replenish_period_in_ms)
+            .milliseconds_per_request(api_rate_limiting_ip_replenish_period_in_ms)
             .finish()
             .expect("Could not build per-IP rate limiter; check configuration");
         let token = GovernorConfigBuilder::default()
             .key_extractor(TokenKeyExtractor)
             .burst_size(api_rate_limiting_token_burst_size)
-            .per_millisecond(api_rate_limiting_token_replenish_period_in_ms)
+            .milliseconds_per_request(api_rate_limiting_token_replenish_period_in_ms)
             .finish()
             .expect("Could not build per-token rate limiter; check configuration");
 
