@@ -10,7 +10,7 @@ license = "SSPL-1.0"
 keywords = ["webhooks", "webhook", "webhook-server", "events", "saas"]
 
 [dependencies]
-anyhow = "1.0.87"
+anyhow = "1.0.89"
 chrono = "0.4.38"
 clap = { version = "4.5.17", features = ["derive", "env", "cargo", "wrap_help"] }
 hex = "0.4.3"
