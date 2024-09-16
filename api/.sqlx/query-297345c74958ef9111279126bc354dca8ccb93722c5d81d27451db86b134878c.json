@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            DELETE FROM iam.organization\n            WHERE created_at + $1 < statement_timestamp()\n                AND organization__id IN (\n                    SELECT o.organization__id\n                    FROM iam.organization AS o\n                    LEFT JOIN iam.user__organization AS uo ON uo.organization__id = o.organization__id\n                    WHERE uo.user__id IS NULL\n                )\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Interval"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "297345c74958ef9111279126bc354dca8ccb93722c5d81d27451db86b134878c"
+}
