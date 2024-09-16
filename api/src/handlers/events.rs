@@ -270,10 +270,10 @@ pub struct EventPost {
     payload: String,
     #[validate(non_control_character, length(min = 1, max = 100))]
     payload_content_type: String,
-    #[validate(custom = "crate::validators::metadata")]
+    #[validate(custom(function = "crate::validators::metadata"))]
     metadata: Option<HashMap<String, Value>>,
     occurred_at: DateTime<Utc>,
-    #[validate(custom = "crate::validators::labels")]
+    #[validate(custom(function = "crate::validators::labels"))]
     labels: HashMap<String, Value>,
 }
 
