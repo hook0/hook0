@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            DELETE FROM iam.user\n            WHERE email_verified_at IS NULL\n                AND created_at + $1 < statement_timestamp()\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Interval"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d431b4314e6bffb8d0ffd9a8e66f2024f12afeddc4740bb7cd877f8f07452f1d"
+}
