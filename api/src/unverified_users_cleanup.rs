@@ -1,5 +1,4 @@
 use actix::clock::sleep;
-use anyhow::anyhow;
 use chrono::TimeDelta;
 use log::{error, info, trace};
 use sqlx::postgres::types::PgInterval;
@@ -16,35 +15,53 @@ pub async fn periodically_clean_up_unverified_users(
 ) {
     sleep(STARTUP_GRACE_PERIOD).await;
 
-    loop {
-        if let Err(e) = clean_up_unverified_users(db, grace_period_in_day, delete).await {
-            error!("Could not clean up unverified users: {e}");
-        }
+    match PgInterval::try_from(TimeDelta::days(grace_period_in_day.into())) {
+        Ok(grace_period) => loop {
+            if let Err(e) = clean_up_unverified_users(db, &grace_period, delete).await {
+                error!("Could not clean up unverified users: {e}");
+            }
 
-        sleep(period).await;
+            sleep(period).await;
+        },
+        Err(e) => {
+            error!("Could not convert grace period ({grace_period_in_day:?}) to a PG interval: {e}")
+        }
     }
 }
 
 async fn clean_up_unverified_users(
     db: &PgPool,
-    grace_period_in_day: u32,
+    grace_period: &PgInterval,
     delete: bool,
 ) -> anyhow::Result<()> {
     trace!("Cleaning up unverified users...");
     let start = Instant::now();
 
-    let days = TimeDelta::days(grace_period_in_day.into());
-    let interval = PgInterval::try_from(days).map_err(|e| anyhow!("{e}"))?;
-
     let mut tx = db.begin().await?;
 
-    let result = query!(
+    let deleted_users = query!(
         "
             DELETE FROM iam.user
             WHERE email_verified_at IS NULL
-                AND created_at < NOW() - $1::interval
+                AND created_at + $1 < statement_timestamp()
         ",
-        interval,
+        grace_period,
+    )
+    .execute(&mut *tx)
+    .await?;
+
+    let deleted_unreachable_organizations = query!(
+        "
+            DELETE FROM iam.organization
+            WHERE created_at + $1 < statement_timestamp()
+                AND organization__id IN (
+                    SELECT o.organization__id
+                    FROM iam.organization AS o
+                    LEFT JOIN iam.user__organization AS uo ON uo.organization__id = o.organization__id
+                    WHERE uo.user__id IS NULL
+                )
+        ",
+        grace_period,
     )
     .execute(&mut *tx)
     .await?;
@@ -52,15 +69,17 @@ async fn clean_up_unverified_users(
     if delete {
         tx.commit().await?;
         info!(
-            "Cleaned up {} unverified users in {:?}",
-            result.rows_affected(),
+            "Cleaned up {} unverified users and {} unreachable organizations in {:?}",
+            deleted_users.rows_affected(),
+            deleted_unreachable_organizations.rows_affected(),
             start.elapsed()
         );
     } else {
         tx.rollback().await?;
         info!(
-            "Could clean up {} unverified users in {:?} (but transaction was rolled back)",
-            result.rows_affected(),
+            "Could clean up {} unverified users and {} unreachable organizations in {:?} (but transaction was rolled back)",
+            deleted_users.rows_affected(),
+            deleted_unreachable_organizations.rows_affected(),
             start.elapsed()
         );
     }
