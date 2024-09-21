@@ -15,7 +15,7 @@ include:
       when: manual
 
 
-api.check:
+api.test:
   stage: test
   dependencies: []
   image: rust:$RUST_VERSION
@@ -54,3 +54,65 @@ api.documentation:
   script:
     - npx --yes rdme@8.3.0 openapi --id=${README_IO_ID} --key=${README_IO_KEY} --update https://app.hook0.com/api/v1/swagger.json
 
+
+api.build:
+  stage: release
+  dependencies: ["api.test"]
+  environment:
+    name: production-api
+    url: https://app.hook0.com/api/v1
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+      changes:
+        - api/**
+        - Cargo.*
+  image: rust:$RUST_VERSION
+  services:
+    - docker:dind
+  script:
+    - pushd api
+    - echo "PKG_VERSION=$(awk -F ' = ' '$1 ~ /version/ { gsub(/["]/, "", $2); printf("%s",$2) }' Cargo.toml)" >> variables.env
+    - echo "PKG_REGISTRY_URL=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic" >> variables.env
+    - source variables.env
+    - echo $PKG_VERSION
+    - cargo install cross --git https://github.com/cross-rs/cross
+    - cargo build --release
+    - mkdir bin
+    - mv ../target/release/hook0-api bin/hook0-api-v${PKG_VERSION}
+    - ls -la bin/
+  artifacts:
+    reports:
+      dotenv: variables.env
+    paths:
+      - bin/
+
+api.release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - job: api.build
+      artifacts: true
+  environment:
+    name: production-api
+    url: https://app.hook0.com/api/v1
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: $CI_COMMIT_BRANCH == "master"
+      changes:
+        - api/**
+        - Cargo.*
+  script:
+    - >
+      release-cli create --name $PKG_VERSION --description Hook0 v$PKG_VERSION
+      --tag-name v$PKG_VERSION --ref $CI_COMMIT_SHA
+      --assets-link '{"name":"Hook0 v$PKG_VERSION","url":"${PKG_REGISTRY_URL}/x86_64-unknown-linux-gnu/v${PKG_VERSION}/hook0"}'
+
+api.doc:
+  stage: documentation
+  image: rust:$RUST_VERSION
+  script:
+    - cargo doc
+  artifacts:
+    paths:
+      - target/doc
