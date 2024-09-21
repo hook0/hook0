@@ -121,6 +121,8 @@ api.build:
 api.release:
   stage: release
   image: registry.gitlab.com/gitlab-org/release-cli:latest
+  extends:
+    - .only-master
   needs:
     - api.env-setup
     - job: api.build
@@ -131,10 +133,6 @@ api.release:
   rules:
     - if: $CI_COMMIT_TAG
       when: never
-    - if: $CI_COMMIT_BRANCH == "master"
-      changes:
-        - api/**
-        - Cargo.*
   script:
     - >
       release-cli create --name $PKG_VERSION --description Hook0 v$PKG_VERSION
