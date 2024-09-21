@@ -1,8 +1,8 @@
 use actix::clock::sleep;
 use chrono::TimeDelta;
-use log::{error, info, trace};
+use log::{debug, error, info, trace};
 use sqlx::postgres::types::PgInterval;
-use sqlx::{query, PgPool};
+use sqlx::{query, Acquire, PgPool, Postgres};
 use std::time::{Duration, Instant};
 
 const STARTUP_GRACE_PERIOD: Duration = Duration::from_secs(30);
@@ -39,7 +39,40 @@ async fn clean_up_unverified_users(
 
     let mut tx = db.begin().await?;
 
-    let deleted_users = query!(
+    let total_deleted_unverified_users = delete_unverified_users(&mut *tx, grace_period).await?;
+
+    let total_deleted_unreachable_organizations =
+        deleted_unreachable_organizations(&mut *tx, grace_period).await?;
+
+    if delete {
+        tx.commit().await?;
+
+        if total_deleted_unverified_users + total_deleted_unreachable_organizations > 0 {
+            debug!("Running vacuum analyze and reindexing...");
+            vacuum_analyze_and_reindex(db).await?;
+        }
+
+        info!(
+            "Cleaned up {total_deleted_unverified_users} unverified users and {total_deleted_unreachable_organizations} unreachable organizations in {:?}",
+            start.elapsed()
+        );
+    } else {
+        tx.rollback().await?;
+        info!(
+            "Could clean up {total_deleted_unverified_users} unverified users and {total_deleted_unreachable_organizations} unreachable organizations in {:?} (but transaction was rolled back)",
+            start.elapsed()
+        );
+    }
+    Ok(())
+}
+
+async fn delete_unverified_users<'a, A: Acquire<'a, Database = Postgres>>(
+    db: A,
+    grace_period: &PgInterval,
+) -> Result<u64, sqlx::Error> {
+    let mut db = db.acquire().await?;
+
+    let res = query!(
         "
             DELETE FROM iam.user
             WHERE email_verified_at IS NULL
@@ -47,10 +80,19 @@ async fn clean_up_unverified_users(
         ",
         grace_period,
     )
-    .execute(&mut *tx)
+    .execute(&mut *db)
     .await?;
 
-    let deleted_unreachable_organizations = query!(
+    Ok(res.rows_affected())
+}
+
+async fn deleted_unreachable_organizations<'a, A: Acquire<'a, Database = Postgres>>(
+    db: A,
+    grace_period: &PgInterval,
+) -> Result<u64, sqlx::Error> {
+    let mut db = db.acquire().await?;
+
+    let res = query!(
         "
             DELETE FROM iam.organization
             WHERE created_at + $1 < statement_timestamp()
@@ -65,25 +107,28 @@ async fn clean_up_unverified_users(
         ",
         grace_period,
     )
-    .execute(&mut *tx)
+    .execute(&mut *db)
     .await?;
 
-    if delete {
-        tx.commit().await?;
-        info!(
-            "Cleaned up {} unverified users and {} unreachable organizations in {:?}",
-            deleted_users.rows_affected(),
-            deleted_unreachable_organizations.rows_affected(),
-            start.elapsed()
-        );
-    } else {
-        tx.rollback().await?;
-        info!(
-            "Could clean up {} unverified users and {} unreachable organizations in {:?} (but transaction was rolled back)",
-            deleted_users.rows_affected(),
-            deleted_unreachable_organizations.rows_affected(),
-            start.elapsed()
-        );
-    }
+    Ok(res.rows_affected())
+}
+
+async fn vacuum_analyze_and_reindex<'a, A: Acquire<'a, Database = Postgres>>(
+    db: A,
+) -> Result<(), sqlx::Error> {
+    let mut db = db.acquire().await?;
+
+    query!("VACUUM ANALYZE iam.user, iam.organization")
+        .execute(&mut *db)
+        .await?;
+
+    query!("REINDEX TABLE CONCURRENTLY iam.user")
+        .execute(&mut *db)
+        .await?;
+
+    query!("REINDEX TABLE CONCURRENTLY iam.organization")
+        .execute(&mut *db)
+        .await?;
+
     Ok(())
 }
