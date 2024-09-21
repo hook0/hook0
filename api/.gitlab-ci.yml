@@ -145,7 +145,7 @@ api.doc:
   stage: documentation
   image: rust:$RUST_VERSION
   script:
-    - cargo doc
+    - cargo doc --all --no-deps --all-features
   artifacts:
     paths:
       - target/doc
