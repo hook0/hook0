@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "VACUUM ANALYZE iam.user, iam.organization",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "12f2a08197f2e91cab9fccb6f75bcab4d8e7d658f90510601f3ab27f3eb739d1"
+}

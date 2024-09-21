@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "REINDEX TABLE CONCURRENTLY iam.user",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "51f24d7472e9894852564dea57111283f9bd97aeaee9022858aa0774b9936ca8"
+}
