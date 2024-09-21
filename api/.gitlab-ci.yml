@@ -48,7 +48,6 @@ api.test:
 api.documentation:
   stage: documentation
   image: node:$NODE_VERSION
-  dependencies: []
   environment:
     name: production-api
     url: https://app.hook0.com/api/v1
@@ -76,7 +75,6 @@ api.env-setup:
 api.pkg-source:
   stage: package
   image: rust:$RUST_VERSION
-  dependencies: []
   extends:
     - .only-master
   needs:
@@ -94,8 +92,8 @@ api.build:
   stage: release
   extends:
     - .only-master
-  dependencies: ["api.test"]
   needs:
+    - api.test
     - api.env-setup
   environment:
     name: production-api
