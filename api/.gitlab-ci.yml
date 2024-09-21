@@ -14,6 +14,12 @@ include:
       app_id: $CLEVERCLOUD_PRODUCTION_APP_ID
       when: manual
 
+.only-master:
+  rules:
+    if: $CI_COMMIT_BRANCH == "master"
+      changes:
+        - api/**
+        - Cargo.*
 
 api.test:
   stage: test
@@ -41,39 +47,63 @@ api.test:
 
 api.documentation:
   stage: documentation
+  image: node:$NODE_VERSION
   dependencies: []
   environment:
     name: production-api
     url: https://app.hook0.com/api/v1
-  rules:
-    - if: $CI_COMMIT_BRANCH == "master"
-      changes:
-        - api/**
-        - Cargo.*
-  image: node:$NODE_VERSION
+  extends:
+    - .only-master
   script:
     - npx --yes rdme@8.3.0 openapi --id=${README_IO_ID} --key=${README_IO_KEY} --update https://app.hook0.com/api/v1/swagger.json
 
-
-api.build:
-  stage: release
-  dependencies: ["api.test"]
-  environment:
-    name: production-api
-    url: https://app.hook0.com/api/v1
-  rules:
-    - if: $CI_COMMIT_BRANCH == "master"
-      changes:
-        - api/**
-        - Cargo.*
+api.env-setup:
+  stage: package
+  extends:
+    - .only-master
   image: rust:$RUST_VERSION
-  services:
-    - docker:dind
   script:
     - pushd api
     - echo "PKG_VERSION=$(awk -F ' = ' '$1 ~ /version/ { gsub(/["]/, "", $2); printf("%s",$2) }' Cargo.toml)" >> variables.env
     - echo "PKG_REGISTRY_URL=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic" >> variables.env
-    - source variables.env
+  artifacts:
+    reports:
+      # propagates variables into the pipeline level
+      dotenv: variables.env
+
+## source packaging
+
+api.pkg-source:
+  stage: package
+  image: rust:$RUST_VERSION
+  dependencies: []
+  extends:
+    - .only-master
+  needs:
+    - api.env-setup
+  script:
+    - cargo package --no-verify
+    - CRATEFILE=$(basename target/package/xen-api-*.crate)
+    - mv target/package/${CRATEFILE} target/package/${CRATEFILE%.crate}.tar.gz
+  artifacts:
+    paths:
+      - target/package/*.tar.gz
+
+
+api.build:
+  stage: release
+  extends:
+    - .only-master
+  dependencies: ["api.test"]
+  needs:
+    - api.env-setup
+  environment:
+    name: production-api
+    url: https://app.hook0.com/api/v1
+  image: rust:$RUST_VERSION
+  services:
+    - docker:dind
+  script:
     - echo $PKG_VERSION
     - cargo install cross --git https://github.com/cross-rs/cross
     - cargo build --release
@@ -81,8 +111,6 @@ api.build:
     - mv ../target/release/hook0-api bin/hook0-api-v${PKG_VERSION}
     - ls -la bin/
   artifacts:
-    reports:
-      dotenv: variables.env
     paths:
       - bin/
 
@@ -90,6 +118,7 @@ api.release:
   stage: release
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   needs:
+    - api.env-setup
     - job: api.build
       artifacts: true
   environment:

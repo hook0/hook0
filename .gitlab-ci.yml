@@ -12,6 +12,7 @@ variables:
 stages:
   - build
   - test
+  - package
   - release
   - dast
   - documentation
