@@ -16,10 +16,10 @@ include:
 
 .only-master:
   rules:
-    if: $CI_COMMIT_BRANCH == "master"
-    changes:
-      - api/**
-      - Cargo.*
+    - if: $CI_COMMIT_BRANCH == "master"
+      changes:
+        - api/**
+        - Cargo.*
 
 api.test:
   stage: test
