@@ -58,7 +58,9 @@ async fn clean_up_unverified_users(
                     SELECT o.organization__id
                     FROM iam.organization AS o
                     LEFT JOIN iam.user__organization AS uo ON uo.organization__id = o.organization__id
+                    LEFT JOIN event.application AS a ON a.organization__id = o.organization__id
                     WHERE uo.user__id IS NULL
+                         AND a.application__id IS NULL
                 )
         ",
         grace_period,
