@@ -317,90 +317,97 @@ pub async fn get(
     .await
     .map_err(Hook0Problem::from)?;
 
-    let (name, plan_name, plan_label) = metadata
-        .map(|om| (om.name, om.plan_name, om.plan_label))
-        .unwrap_or_else(|| {
-            error!(
-                "Could not find organization {} in database",
-                &organization_id
-            );
-            (organization_id.to_string(), None, None)
-        });
-
-    let plan = match (plan_name, plan_label) {
-        (Some(name), Some(label)) => Some(OrganizationInfoPlan { name, label }),
-        _ => None,
-    };
-
-    #[derive(Debug, Clone)]
-    struct UserWithRole {
-        pub user_id: Uuid,
-        pub email: String,
-        pub first_name: String,
-        pub last_name: String,
-        pub role: String,
-    }
-    let users = query_as!(
-        UserWithRole,
-        r#"
-            SELECT u.user__id AS user_id, u.email, u.first_name, u.last_name, uo.role
-            FROM iam.user AS u
-            INNER JOIN iam.user__organization AS uo ON uo.user__id = u.user__id
-            WHERE uo.organization__id = $1
-        "#,
-        &organization_id
-    )
-    .fetch_all(&state.db)
-    .await
-    .map_err(Hook0Problem::from)?;
-
-    let org_users = users
-        .into_iter()
-        .flat_map(|u| {
-            if let Ok(role) = Role::from_str(&u.role) {
-                vec![OrganizationUser {
-                    user_id: u.user_id,
-                    email: u.email,
-                    first_name: u.first_name,
-                    last_name: u.last_name,
-                    role,
-                }]
-            } else {
-                vec![]
-            }
-        })
-        .collect::<Vec<_>>();
-
-    let quotas = OrganizationQuotas {
-        members_per_organization_limit: state
-            .quotas
-            .get_limit_for_organization(&state.db, Quota::MembersPerOrganization, &organization_id)
-            .await?,
-        applications_per_organization_limit: state
-            .quotas
-            .get_limit_for_organization(
-                &state.db,
-                Quota::ApplicationsPerOrganization,
-                &organization_id,
-            )
-            .await?,
-        events_per_day_limit: state
-            .quotas
-            .get_limit_for_organization(&state.db, Quota::EventsPerDay, &organization_id)
-            .await?,
-        days_of_events_retention_limit: state
-            .quotas
-            .get_limit_for_organization(&state.db, Quota::DaysOfEventsRetention, &organization_id)
-            .await?,
-    };
-
-    Ok(Json(OrganizationInfo {
-        organization_id,
+    if let Some(OrganizationMetadata {
         name,
-        plan,
-        users: org_users,
-        quotas,
-    }))
+        plan_name,
+        plan_label,
+    }) = metadata
+    {
+        let plan = match (plan_name, plan_label) {
+            (Some(name), Some(label)) => Some(OrganizationInfoPlan { name, label }),
+            _ => None,
+        };
+
+        #[derive(Debug, Clone)]
+        struct UserWithRole {
+            pub user_id: Uuid,
+            pub email: String,
+            pub first_name: String,
+            pub last_name: String,
+            pub role: String,
+        }
+        let users = query_as!(
+            UserWithRole,
+            r#"
+                SELECT u.user__id AS user_id, u.email, u.first_name, u.last_name, uo.role
+                FROM iam.user AS u
+                INNER JOIN iam.user__organization AS uo ON uo.user__id = u.user__id
+                WHERE uo.organization__id = $1
+            "#,
+            &organization_id
+        )
+        .fetch_all(&state.db)
+        .await
+        .map_err(Hook0Problem::from)?;
+
+        let org_users = users
+            .into_iter()
+            .flat_map(|u| {
+                if let Ok(role) = Role::from_str(&u.role) {
+                    vec![OrganizationUser {
+                        user_id: u.user_id,
+                        email: u.email,
+                        first_name: u.first_name,
+                        last_name: u.last_name,
+                        role,
+                    }]
+                } else {
+                    vec![]
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let quotas = OrganizationQuotas {
+            members_per_organization_limit: state
+                .quotas
+                .get_limit_for_organization(
+                    &state.db,
+                    Quota::MembersPerOrganization,
+                    &organization_id,
+                )
+                .await?,
+            applications_per_organization_limit: state
+                .quotas
+                .get_limit_for_organization(
+                    &state.db,
+                    Quota::ApplicationsPerOrganization,
+                    &organization_id,
+                )
+                .await?,
+            events_per_day_limit: state
+                .quotas
+                .get_limit_for_organization(&state.db, Quota::EventsPerDay, &organization_id)
+                .await?,
+            days_of_events_retention_limit: state
+                .quotas
+                .get_limit_for_organization(
+                    &state.db,
+                    Quota::DaysOfEventsRetention,
+                    &organization_id,
+                )
+                .await?,
+        };
+
+        Ok(Json(OrganizationInfo {
+            organization_id,
+            name,
+            plan,
+            users: org_users,
+            quotas,
+        }))
+    } else {
+        Err(Hook0Problem::NotFound)
+    }
 }
 
 #[api_v2_operation(
