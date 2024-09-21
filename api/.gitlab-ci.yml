@@ -20,6 +20,11 @@ include:
       changes:
         - api/**
         - Cargo.*
+    # only for bootstraping
+    - if: $CI_COMMIT_BRANCH == "feat-release"
+      changes:
+        - api/**
+        - Cargo.*
 
 api.test:
   stage: test
