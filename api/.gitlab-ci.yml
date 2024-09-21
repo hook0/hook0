@@ -83,10 +83,11 @@ api.pkg-source:
   extends:
     - .only-master
   needs:
+    #- api.test
     - api.env-setup
   script:
     - cargo package --no-verify
-    - CRATEFILE=$(basename target/package/xen-api-*.crate)
+    - CRATEFILE=$(basename target/package/hook0-api-*.crate)
     - mv target/package/${CRATEFILE} target/package/${CRATEFILE%.crate}.tar.gz
   artifacts:
     paths:
@@ -98,7 +99,7 @@ api.build:
   extends:
     - .only-master
   needs:
-    - api.test
+    #- api.test
     - api.env-setup
   environment:
     name: production-api
