@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "REINDEX TABLE CONCURRENTLY iam.organization",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "29627887d025f3db2ba3b3a6070d7bbe37f8f2bc0a29a173b8b468df0cf16729"
+}
