@@ -20,7 +20,7 @@ async-recursion = "1.1.1"
 base64 = "0.22.1"
 biscuit-auth = { version = "5.0.0", features = ["uuid"] }
 chrono = { version = "0.4.38", features = ["serde"] }
-clap = { version = "4.5.17", features = ["derive", "env", "cargo", "wrap_help"] }
+clap = { version = "4.5.18", features = ["derive", "env", "cargo", "wrap_help"] }
 futures-util = "0.3.30"
 governor = "0.6.3"
 hook0-client = { path = "../clients/rust", version = "0.1.0" }
@@ -43,7 +43,7 @@ serde = "1.0.210"
 serde_json = "1.0.128"
 sqlx = { version = "0.8.2", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "migrate"] }
 strum = { version = "0.26.3", features = ["derive"] }
-thiserror = "1.0.63"
+thiserror = "1.0.64"
 url = "2.5.2"
 uuid = { version = "1.10.0", features = ["serde", "v4"] }
 validator = { version = "0.18.1", features = ["derive", "unic"] }

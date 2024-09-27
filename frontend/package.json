@@ -52,7 +52,7 @@
     "axios": "^1.2.2",
     "codemirror": "^6.0.1",
     "crisp-sdk-web": "^1.0.21",
-    "date-fns": "^3.0.6",
+    "date-fns": "^4.1.0",
     "fp-ts": "^2.11.6",
     "lodash.debounce": "^4.0.8",
     "notivue": "^2.4.4",
