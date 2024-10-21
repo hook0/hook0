@@ -31,6 +31,7 @@ pub enum Hook0Problem {
     PasswordTooShort(u8),
     OrganizationIsNotEmpty,
     InvitedUserDoesNotExist,
+    InvitedUserAlreadyInOrganization,
 
     ApplicationNameMissing,
 
@@ -81,6 +82,8 @@ impl From<sqlx::Error> for Hook0Problem {
 
                 //let pg_error: PgDatabaseError = ex.into();
 
+                warn!("{:?}", &pg_error.constraint());
+
                 match pg_error.constraint() {
                     Some("application_name_chk") => Hook0Problem::ApplicationNameMissing,
                     Some("event_type_pkey") => Hook0Problem::EventTypeAlreadyExist,
@@ -89,6 +92,7 @@ impl From<sqlx::Error> for Hook0Problem {
                         "subscription__event_type_event_type__name_fkey"
                         | "event_event_type__name_fkey",
                     ) => Hook0Problem::EventTypeDoesNotExist,
+                    Some("user__organization_pkey") => Hook0Problem::InvitedUserAlreadyInOrganization,
                     constraint => {
                         error!(
                             "Database error (failed constraint = {}): {}",
@@ -232,6 +236,13 @@ impl From<Hook0Problem> for Problem {
                 detail: "The user you are trying to invite does not exist. Please make sure the user is already register in Hook0.".into(),
                 validation: None,
                 status: StatusCode::NOT_FOUND,
+            },
+            Hook0Problem::InvitedUserAlreadyInOrganization => Problem {
+                id: Hook0Problem::InvitedUserAlreadyInOrganization,
+                title: "Invited user is already in the organization",
+                detail: "The user you are trying to invite is already in the organization. Please make sure the user is not already in the organization.".into(),
+                validation: None,
+                status: StatusCode::CONFLICT,
             },
 
             Hook0Problem::ApplicationNameMissing => Problem {
