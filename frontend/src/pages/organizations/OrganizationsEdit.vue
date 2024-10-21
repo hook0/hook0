@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUpdated, ref } from 'vue';
+import { computed, onMounted, onUpdated, ref } from 'vue';
 
 import * as OrganizationService from './OrganizationService';
 import { OrganizationInfo } from './OrganizationService';
@@ -15,6 +15,7 @@ import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import { push } from 'notivue';
 import { routes } from '@/routes.ts';
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 
 const router = useRouter();
 const route = useRoute();
@@ -25,6 +26,12 @@ const organization_id = ref<UUID | null>(null);
 const organization = ref({
   name: '',
 });
+
+interface Props {
+  code?: string;
+}
+const props = defineProps<Props>();
+const code = computed(() => props.code ?? '');
 
 function _load() {
   if (organization_id.value !== route.params.organization_id) {
@@ -95,6 +102,21 @@ function displayError(err: Problem) {
   err.status >= 500 ? push.error(options) : push.warning(options);
 }
 
+async function copyToClipboard() {
+  try {
+    await navigator.clipboard.writeText(code.value);
+    push.success({
+      title: 'Copied!',
+      message: 'The organization id has been copied to the clipboard.',
+    });
+  } catch (err) {
+    push.error({
+      title: 'Error',
+      message: 'An error occurred while copying the organization id to the clipboard.',
+    });
+  }
+}
+
 onMounted(() => {
   _load();
 });
@@ -106,6 +128,25 @@ onUpdated(() => {
 
 <template>
   <div>
+    <Hook0Card v-if="!isNew">
+      <Hook0CardHeader>
+        <template #header> Informations </template>
+      </Hook0CardHeader>
+      <Hook0CardContent>
+        <Hook0CardContentLine>
+          <template #label> Organization ID </template>
+          <template #content>
+            <div class="relative flex items-center">
+              <span>{{ organization_id }}</span>
+              <button class="ml-2" @click="copyToClipboard">
+                <FontAwesomeIcon :icon="['fas', 'copy']" class="text-violet-500 font-bold" />
+              </button>
+            </div>
+          </template>
+        </Hook0CardContentLine>
+      </Hook0CardContent>
+    </Hook0Card>
+
     <form ref="form" @submit="upsert">
       <Hook0Card>
         <Hook0CardHeader>
