@@ -135,6 +135,13 @@ impl From<mrml::prelude::render::Error> for Hook0Problem {
     }
 }
 
+impl From<html2text::Error> for Hook0Problem {
+    fn from(err: html2text::Error) -> Hook0Problem {
+        warn!("{err}");
+        Hook0Problem::InternalServerError
+    }
+}
+
 impl From<Hook0Problem> for HttpApiProblem {
     fn from(hook0_problem: Hook0Problem) -> Self {
         let problem: Problem = hook0_problem.to_owned().into();
