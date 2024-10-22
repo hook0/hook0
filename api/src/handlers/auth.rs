@@ -224,10 +224,12 @@ async fn import_user_from_keycloak(
         .await?;
 
         for (organization_id, role) in &roles {
+            // The ON CONFLICT DO NOTHING part is because an organization may have been deleted with the user still in the corresponding Keycloak group
             query!(
                 "
                     INSERT INTO iam.user__organization (user__id, organization__id, role)
                     VALUES ($1, $2, $3)
+                    ON CONFLICT DO NOTHING
                 ",
                 &kc_user.id,
                 organization_id,
