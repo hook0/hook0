@@ -12,12 +12,12 @@ homepage = "https://www.hook0.com/"
 chrono = { version = "0.4.38", features = ["serde"] }
 lazy-regex = "3.2.0"
 log = "0.4.22"
-reqwest = { version = "0.12.7", default-features = false, features = ["hickory-dns", "json"] }
-serde = { version = "1.0.210", features = ["derive"] }
-serde_json = "1.0.128"
+reqwest = { version = "0.12.8", default-features = false, features = ["hickory-dns", "json"] }
+serde = { version = "1.0.211", features = ["derive"] }
+serde_json = "1.0.132"
 thiserror = "1.0.64"
 url = "2.5.2"
-uuid = { version = "1.10.0", features = ["serde", "v4"] }
+uuid = { version = "1.11.0", features = ["serde", "v4"] }
 
 [features]
 default = ["reqwest-rustls-tls-webpki-roots"]

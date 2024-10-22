@@ -87,7 +87,7 @@ impl Mailer {
         let parsed = mrml::parse(mjml)?;
         let rendered = parsed.render(&Default::default())?;
 
-        let text_mail = from_read(rendered.as_bytes(), 80);
+        let text_mail = from_read(rendered.as_bytes(), 80)?;
 
         let email = Message::builder()
             .from(self.sender.to_owned())
