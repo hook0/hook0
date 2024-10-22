@@ -26,6 +26,7 @@ interface Route {
 }
 
 let instanceConfig = ref<null | InstanceConfig>(null);
+let mobileSidebarOpened = ref(false);
 
 onMounted(async () => {
   instanceConfig.value = await getInstanceConfig();
@@ -143,6 +144,10 @@ const items = computed<Route[]>(() => {
     ];
   }
 });
+
+function toggleMobileSidebar() {
+  mobileSidebarOpened.value = !mobileSidebarOpened.value;
+}
 </script>
 
 <template>
@@ -153,8 +158,22 @@ const items = computed<Route[]>(() => {
   </Notivue>
   <div v-if="is_logged_in">
     <div class="h-screen flex overflow-hidden bg-gray-100">
-      <div class="hidden md:flex md:flex-shrink-0">
-        <div class="flex flex-col w-64 bg-gray-800">
+      <div
+        class="md:flex md:flex-shrink-0 transition-transform duration-300"
+        :class="{
+          'w-64': mobileSidebarOpened,
+          'w-0': !mobileSidebarOpened,
+        }"
+      >
+        <div
+          class="flex flex-col w-64 bg-gray-800"
+          :class="{
+            'opacity-0': !mobileSidebarOpened,
+            'opacity-100': mobileSidebarOpened,
+            'transition-opacity': mobileSidebarOpened,
+            'duration-500': mobileSidebarOpened,
+          }"
+        >
           <div class="flex flex-col h-0 flex-1">
             <div class="flex items-center h-16 flex-shrink-0 px-4">
               <Hook0Button :to="{ name: routes.Home }">
@@ -185,6 +204,7 @@ const items = computed<Route[]>(() => {
         <div class="relative z-10 flex-shrink-0 flex h-16 bg-white shadow">
           <button
             class="px-4 border-r border-gray-200 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 md:hidden"
+            @click="toggleMobileSidebar"
           >
             <span class="sr-only">Open sidebar</span>
             <!-- Heroicon name: menu-alt-2 -->
