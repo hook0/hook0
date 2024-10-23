@@ -112,7 +112,7 @@ async function copyToClipboard() {
   } catch (err) {
     push.error({
       title: 'Error',
-      message: 'An error occurred while copying the organization id to the clipboard.',
+      message: 'An error occurred while copying the organization ID to the clipboard.',
     });
   }
 }
