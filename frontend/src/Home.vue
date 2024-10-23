@@ -10,9 +10,16 @@ import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 <template>
   <Hook0Card>
     <Hook0CardHeader>
-      <template #header>Hello 👋</template>
+      <template #header>Welcome to Hook0 👋</template>
       <template #subtitle
-        >Hook0 API is complete and production ready but the UI is still a work in progress...
+        >If your are new, take a look at our
+        <a
+          href="https://documentation.hook0.com/docs/getting-started"
+          target="_blank"
+          class="underline"
+          >Getting Started</a
+        >
+        guide.
       </template>
     </Hook0CardHeader>
     <Hook0CardContent>
