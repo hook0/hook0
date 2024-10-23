@@ -107,7 +107,7 @@ async function copyToClipboard() {
     await navigator.clipboard.writeText(code.value);
     push.success({
       title: 'Copied!',
-      message: 'The organization id has been copied to the clipboard.',
+      message: 'The organization ID has been copied to the clipboard.',
     });
   } catch (err) {
     push.error({
