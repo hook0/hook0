@@ -159,14 +159,14 @@ function toggleMobileSidebar() {
   <div v-if="is_logged_in">
     <div class="h-screen flex overflow-hidden bg-gray-100">
       <div
-        class="md:flex md:flex-shrink-0 transition-transform duration-300"
+        class="md:flex md:flex-shrink-0 transition-transform duration-300 md:w-64"
         :class="{
           'w-64': mobileSidebarOpened,
           'w-0': !mobileSidebarOpened,
         }"
       >
         <div
-          class="flex flex-col w-64 bg-gray-800"
+          class="flex flex-col w-64 bg-gray-800 md:opacity-100"
           :class="{
             'opacity-0': !mobileSidebarOpened,
             'opacity-100': mobileSidebarOpened,
