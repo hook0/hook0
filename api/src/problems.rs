@@ -81,9 +81,6 @@ impl From<sqlx::Error> for Hook0Problem {
                 let pg_error: &PgDatabaseError = ex.try_downcast_ref::<PgDatabaseError>().unwrap();
 
                 //let pg_error: PgDatabaseError = ex.into();
-
-                warn!("{:?}", &pg_error.constraint());
-
                 match pg_error.constraint() {
                     Some("application_name_chk") => Hook0Problem::ApplicationNameMissing,
                     Some("event_type_pkey") => Hook0Problem::EventTypeAlreadyExist,
