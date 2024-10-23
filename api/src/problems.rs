@@ -240,7 +240,7 @@ impl From<Hook0Problem> for Problem {
             Hook0Problem::InvitedUserAlreadyInOrganization => Problem {
                 id: Hook0Problem::InvitedUserAlreadyInOrganization,
                 title: "Invited user is already in the organization",
-                detail: "The user you are trying to invite is already in the organization. Please make sure the user is not already in the organization.".into(),
+                detail: "The user you are trying to invite has already access to the organization.".into(),
                 validation: None,
                 status: StatusCode::CONFLICT,
             },
