@@ -89,7 +89,9 @@ impl From<sqlx::Error> for Hook0Problem {
                         "subscription__event_type_event_type__name_fkey"
                         | "event_event_type__name_fkey",
                     ) => Hook0Problem::EventTypeDoesNotExist,
-                    Some("user__organization_pkey") => Hook0Problem::InvitedUserAlreadyInOrganization,
+                    Some("user__organization_pkey") => {
+                        Hook0Problem::InvitedUserAlreadyInOrganization
+                    }
                     constraint => {
                         error!(
                             "Database error (failed constraint = {}): {}",
