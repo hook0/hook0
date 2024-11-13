@@ -9,11 +9,12 @@ import { routes } from '@/routes';
 import Hook0Footer from '@/components/Hook0Footer.vue';
 import Hook0LoginMenu from '@/components/Hook0LoginMenu.vue';
 import Hook0Icon from '@/components/Hook0Icon.vue';
-import { Notivue, Notification, NotificationProgress } from 'notivue';
+import { Notivue, Notification, NotificationProgress, push } from 'notivue';
 import Hook0Button from './components/Hook0Button.vue';
 import { getAccessToken } from '@/iam';
 import { InstanceConfig, getInstanceConfig } from './utils/biscuit_auth';
 import { UUID } from './http';
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 
 const route = useRoute();
 
@@ -31,6 +32,35 @@ let mobileSidebarOpened = ref(false);
 
 const organization_id = ref<UUID | null>(null);
 const application_id = ref<UUID | null>(null);
+
+async function copyToClipboard() {
+  try {
+    if (!organization_id.value) {
+      return push.error({
+        title: 'Error',
+        message: 'An error occurred while copying the organization ID to the clipboard.',
+      });
+    }
+    let message = 'The organization ID has been copied to the clipboard.';
+
+    if (application_id.value) {
+      await navigator.clipboard.writeText(organization_id.value + ' - ' + application_id.value);
+      message = 'The organization and application IDs have been copied to the clipboard.';
+    } else {
+      await navigator.clipboard.writeText(organization_id.value);
+    }
+
+    push.success({
+      title: 'Copied!',
+      message: message,
+    });
+  } catch (err) {
+    push.error({
+      title: 'Error',
+      message: 'An error occurred while copying the organization ID to the clipboard.',
+    });
+  }
+}
 
 function _load() {
   if (route.params.organization_id) {
@@ -250,6 +280,9 @@ function toggleMobileSidebar() {
                 <span v-if="organization_id">{{ organization_id }}</span>
                 <span v-if="organization_id && application_id"> - </span>
                 <span v-if="organization_id && application_id">{{ application_id }}</span>
+                <button v-if="organization_id" class="ml-2" @click="copyToClipboard">
+                  <FontAwesomeIcon :icon="['fas', 'copy']" class="text-violet-500 font-bold" />
+                </button>
               </p>
             </div>
           </div>
