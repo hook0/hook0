@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RouteLocationNamedRaw, useRoute, RouterView } from 'vue-router';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, onUpdated, ref } from 'vue';
 
 import Hook0Logo from '@/components/Hook0Logo.vue';
 import MenuItem from '@/components/MenuItem.vue';
@@ -13,6 +13,7 @@ import { Notivue, Notification, NotificationProgress } from 'notivue';
 import Hook0Button from './components/Hook0Button.vue';
 import { getAccessToken } from '@/iam';
 import { InstanceConfig, getInstanceConfig } from './utils/biscuit_auth';
+import { UUID } from './http';
 
 const route = useRoute();
 
@@ -28,8 +29,29 @@ interface Route {
 let instanceConfig = ref<null | InstanceConfig>(null);
 let mobileSidebarOpened = ref(false);
 
+const organization_id = ref<UUID | null>(null);
+const application_id = ref<UUID | null>(null);
+
+function _load() {
+  if (route.params.organization_id) {
+    organization_id.value = route.params.organization_id as UUID;
+  }
+
+  if (route.params.application_id) {
+    application_id.value = route.params.application_id as UUID;
+  }
+
+  console.log('organization_id', organization_id.value);
+  console.log('application_id', application_id.value);
+}
+
 onMounted(async () => {
   instanceConfig.value = await getInstanceConfig();
+  _load();
+});
+
+onUpdated(() => {
+  _load();
 });
 
 const items = computed<Route[]>(() => {
@@ -224,6 +246,17 @@ function toggleMobileSidebar() {
               />
             </svg>
           </button>
+
+          <div class="flex-1 flex justify-between items-center px-4 sm:px-6 lg:px-8">
+            <div class="flex-1 flex">
+              <p class="text-sm">
+                <span v-if="organization_id">{{ organization_id }}</span>
+                <span v-if="organization_id && application_id"> - </span>
+                <span v-if="organization_id && application_id">{{ application_id }}</span>
+              </p>
+            </div>
+          </div>
+
           <div class="flex-1 px-4 flex justify-between">
             <div class="flex-1 flex">
               <!---
