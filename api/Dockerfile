@@ -1,8 +1,8 @@
 ARG RUST_VERSION=1.82
-ARG FEATURES=""
 
 FROM rust:${RUST_VERSION} as builder-rust
 WORKDIR /app
+ARG FEATURES=""
 RUN --mount=type=bind,source=Cargo.toml,target=Cargo.toml \
     --mount=type=bind,source=Cargo.lock,target=Cargo.lock \
     --mount=type=bind,source=api,target=api \
