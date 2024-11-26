@@ -184,7 +184,7 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
             headers.insert("Content-Type", content_type);
             headers.insert("X-Event-Id", event_id);
             headers.insert("X-Event-Type", et);
-            headers.insert("X-Hook0-Signature", sig);
+            headers.insert(&config.signature_header_name, sig);
 
             debug!("Calling webhook...");
             trace!(

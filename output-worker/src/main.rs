@@ -4,7 +4,7 @@ mod work;
 use chrono::{DateTime, Utc};
 use clap::{crate_name, crate_version, Parser};
 use log::{debug, error, info, trace, warn};
-use reqwest::header::HeaderMap;
+use reqwest::header::{HeaderMap, HeaderName};
 use reqwest::Url;
 use sqlx::postgres::types::PgInterval;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
@@ -72,6 +72,10 @@ struct Config {
     /// Timeout for obtaining a HTTP response from the target, including connect phase (if exceeded, request attempt will fail)
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "15s")]
     timeout: Duration,
+
+    /// Signature Header name
+    #[clap(long, env, default_value = "X-Hook0-Signature")]
+    signature_header_name: HeaderName,
 }
 
 #[derive(Debug, Clone, Copy)]
