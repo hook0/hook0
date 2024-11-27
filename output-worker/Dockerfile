@@ -8,8 +8,8 @@ RUN --mount=type=bind,source=Cargo.toml,target=Cargo.toml \
     --mount=type=bind,source=clients/rust,target=clients/rust \
     --mount=type=bind,source=output-worker,target=output-worker \
     --mount=type=bind,source=sentry-integration,target=sentry-integration \
-    --mount=type=cache,target=/app/target/ \
-    --mount=type=cache,target=/usr/local/cargo/registry/ \
+    --mount=type=cache,sharing=private,target=/app/target/ \
+    --mount=type=cache,sharing=private,target=/usr/local/cargo/registry/ \
     <<EOF
 set -e
 cd output-worker || exit 1
@@ -18,7 +18,7 @@ cd .. || exit 1
 cp ./target/release/hook0-output-worker /
 EOF
 
-FROM debian:12
+FROM debian:12-slim
 ARG UID=10001
 RUN adduser \
     --disabled-password \
