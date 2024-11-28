@@ -73,7 +73,7 @@ struct Config {
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "15s")]
     timeout: Duration,
 
-    /// Signature Header name
+    /// Name of the header containing webhook's signature
     #[clap(long, env, default_value = "X-Hook0-Signature")]
     signature_header_name: HeaderName,
 }
