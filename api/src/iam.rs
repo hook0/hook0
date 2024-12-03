@@ -469,7 +469,7 @@ pub enum Action<'a> {
     },
 }
 
-impl<'a> Action<'a> {
+impl Action<'_> {
     fn action_name(&self) -> &'static str {
         match self {
             #[cfg(test)]

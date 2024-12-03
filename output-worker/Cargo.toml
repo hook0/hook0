@@ -10,22 +10,22 @@ license = "SSPL-1.0"
 keywords = ["webhooks", "webhook", "webhook-server", "events", "saas"]
 
 [dependencies]
-anyhow = "1.0.91"
+anyhow = "1.0.93"
 chrono = "0.4.38"
-clap = { version = "4.5.20", features = ["derive", "env", "cargo", "wrap_help"] }
+clap = { version = "4.5.21", features = ["derive", "env", "cargo", "wrap_help"] }
 hex = "0.4.3"
 hmac = "0.12.1"
 hook0-sentry-integration = { path = "../sentry-integration", version = "0.1.0" }
 humantime = "2.1.0"
 itertools = "0.13.0"
 log = "0.4.22"
-reqwest = { version = "0.12.8", default-features = false, features = ["charset", "http2", "macos-system-configuration", "hickory-dns", "json"] }
-serde = "1.0.213"
-serde_json = "1.0.132"
+reqwest = { version = "0.12.9", default-features = false, features = ["charset", "http2", "macos-system-configuration", "hickory-dns", "json"] }
+serde = "1.0.215"
+serde_json = "1.0.133"
 sha2 = "0.10.8"
 sqlx = { version = "0.8.2", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "macros", "uuid", "chrono", "json"] }
 strum = { version = "0.26.3", features = ["derive"] }
-tokio = { version = "1.41.0", features = ["rt-multi-thread", "macros", "time"] }
+tokio = { version = "1.41.1", features = ["rt-multi-thread", "macros", "time"] }
 uuid = { version = "1.11.0", features = ["v4"] }
 
 [features]
