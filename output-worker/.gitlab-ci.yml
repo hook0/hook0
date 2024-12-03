@@ -1,12 +1,12 @@
 include:
-  - component: $CI_SERVER_HOST/CleverCloud/clever-cloud-pipeline/deploy-to-prod@2.0.1
+  - component: $CI_SERVER_HOST/CleverCloud/clever-cloud-pipeline/deploy-to-prod@2.0.3
     inputs:
       stage: release
       environment: staging
       step_name: deploy output_worker to staging
       app_id: $CLEVERCLOUD_STAGING_OUTPUT_WORKER_ID
       when: manual
-  - component: $CI_SERVER_HOST/CleverCloud/clever-cloud-pipeline/deploy-to-prod@2.0.1
+  - component: $CI_SERVER_HOST/CleverCloud/clever-cloud-pipeline/deploy-to-prod@2.0.3
     inputs:
       stage: release
       environment: production
