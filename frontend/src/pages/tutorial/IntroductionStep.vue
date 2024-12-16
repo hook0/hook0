@@ -7,6 +7,7 @@ import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
+import Hook0ProgressBar from '@/components/Hook0ProgressBar.vue';
 import { ref } from 'vue';
 import FirstStep from '@/pages/tutorial/Step1CreateOrganization.vue';
 
@@ -20,7 +21,12 @@ function startTutorial() {
   <FirstStep v-if="isFirstStep" />
   <Hook0Card v-else>
     <Hook0CardHeader>
-      <template #header>Welcome to Hook0</template>
+      <template #header>
+        <div class="flex items-center justify-between">
+          Welcome to Hook0
+          <Hook0ProgressBar :value="1" :max="5" :next-value="2" class="w-1/3" />
+        </div>
+      </template>
       <template #subtitle
         >Hook0 is a platform that allows you to create and manage your applications and
         environments.
@@ -48,7 +54,7 @@ function startTutorial() {
     </Hook0CardContent>
     <Hook0CardFooter>
       <Hook0Button class="primary" type="button" @click="startTutorial"
-        >Start the tutorial ! 🎉🎉</Hook0Button
+        >First, create your organization ! 🎉🎉</Hook0Button
       >
     </Hook0CardFooter>
   </Hook0Card>
