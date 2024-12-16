@@ -133,9 +133,26 @@ onUpdated(() => {
         </Hook0CardContent>
 
         <Hook0CardFooter>
-          <Hook0Button class="secondary" type="button" @click="cancel()">Cancel</Hook0Button>
-          <Hook0Button class="primary" type="button" @click="upsert($event)"
+          <Hook0Button v-if="!tutorialMode" class="secondary" type="button" @click="cancel()"
+            >Cancel</Hook0Button
+          >
+          <Hook0Button
+            v-if="!tutorialMode"
+            class="primary"
+            type="button"
+            :disabled="!application.name"
+            @click="upsert($event)"
             >{{ isNew ? 'Create' : 'Update' }}
+          </Hook0Button>
+
+          <Hook0Button
+            v-else
+            class="primary"
+            type="button"
+            :disabled="!application.name"
+            tooltip="ℹ️ To continue, you need to add a name for your application."
+            @click="upsert($event)"
+            >Create Your First Application 🎉
           </Hook0Button>
         </Hook0CardFooter>
       </Hook0Card>

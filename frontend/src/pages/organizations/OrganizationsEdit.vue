@@ -138,7 +138,7 @@ onUpdated(() => {
               <Hook0Input
                 v-model="organization.name"
                 type="text"
-                placeholder="my awesome api - production"
+                placeholder="e.g., my-awesome-api-prod, staging-team, hook0-org"
                 required
               >
                 <template #helpText></template>
@@ -148,8 +148,26 @@ onUpdated(() => {
         </Hook0CardContent>
 
         <Hook0CardFooter>
-          <Hook0Button class="primary" type="button" :loading="loading" @click="upsert($event)"
+          <Hook0Button
+            v-if="!tutorialMode"
+            class="primary"
+            type="button"
+            :loading="loading"
+            :disabled="!organization.name"
+            @click="upsert($event)"
             >{{ isNew ? 'Create' : 'Update' }}
+          </Hook0Button>
+
+          <Hook0Button
+            v-else
+            class="primary"
+            :loading="loading"
+            :disabled="!organization.name"
+            tooltip="ℹ️ To continue, you need to add a name for your organization or select an existing one."
+            type="button"
+            @click="upsert($event)"
+          >
+            Create Your First Organization 🎉
           </Hook0Button>
         </Hook0CardFooter>
       </Hook0Card>

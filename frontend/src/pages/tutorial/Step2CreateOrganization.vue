@@ -80,10 +80,7 @@ onUpdated(() => {
   <Hook0Card>
     <Hook0CardHeader>
       <template #header>
-        <div class="flex items-center justify-between">
-          Step 1: Create your first organization
-          <Hook0ProgressBar :value="2" :max="5" :next-value="3" class="w-1/3" />
-        </div>
+        <div class="flex items-center justify-between">Step 2: Create your first organization</div>
       </template>
       <template #subtitle
         >Organizations are used to group your applications and environments. You can create multiple
@@ -93,9 +90,23 @@ onUpdated(() => {
     <Hook0CardContent>
       <Hook0CardContentLines>
         <Hook0CardContentLine v-if="!selected_organization_id" type="full-width">
-          <template v-if="!organizationId" #content>
+          <template #content>
+            <Hook0ProgressBar
+              actual="2"
+              :items="[
+                { description: 'Introduction' },
+                { description: 'Create Your Organization' },
+                { description: 'Create Your Application' },
+                { description: 'Create Your Event Type' },
+                { description: 'Configure Your Subscription' },
+                { description: 'Send Your First Event' },
+              ]"
+              class="mb-14"
+            />
             <OrganizationsEdit
+              v-if="!organizationId"
               :tutorial-mode="true"
+              class="mb-4"
               @tutorial-organization-created="goSecondStep($event)"
             />
           </template>
@@ -132,13 +143,9 @@ onUpdated(() => {
         </Promised>
       </Hook0CardContentLines>
     </Hook0CardContent>
-    <Hook0CardFooter>
-      <Hook0Button
-        class="primary"
-        type="button"
-        :disabled="!organizationId && !selected_organization_id"
-        @click="goSecondStep"
-        >Next</Hook0Button
+    <Hook0CardFooter v-if="organizationId || selected_organization_id">
+      <Hook0Button class="primary" type="button" @click="goSecondStep"
+        >🚀 Continue Step 3: Create Your Application</Hook0Button
       >
     </Hook0CardFooter>
   </Hook0Card>
