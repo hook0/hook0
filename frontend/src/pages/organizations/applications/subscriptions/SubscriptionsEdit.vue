@@ -452,8 +452,36 @@ onUpdated(() => {
           <Hook0Button v-if="!props.tutorialMode" class="secondary" type="button" @click="cancel2()"
             >Cancel</Hook0Button
           >
-          <Hook0Button class="primary" type="button" @click="upsert($event)"
+          <Hook0Button
+            v-if="!tutorialMode"
+            class="primary"
+            type="button"
+            :disabled="
+              !subscription.target.url ||
+              !subscription.description ||
+              !subscription.label_key ||
+              !subscription.label_value ||
+              !eventTypes.some((et) => et.selected)
+            "
+            tooltip="ℹ️ To continue, you need to fill in all required fields"
+            @click="upsert($event)"
             >{{ isNew ? 'Create' : 'Update' }}
+          </Hook0Button>
+
+          <Hook0Button
+            v-else
+            class="primary"
+            type="submit"
+            :disabled="
+              !subscription.target.url ||
+              !subscription.description ||
+              !subscription.label_key ||
+              !subscription.label_value ||
+              !eventTypes.some((et) => et.selected)
+            "
+            tooltip="ℹ️ To continue, you need to fill in all required fields"
+            @click="upsert($event)"
+            >Create Your First Subscription 🎉
           </Hook0Button>
         </Hook0CardFooter>
       </Hook0Card>

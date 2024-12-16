@@ -6,19 +6,18 @@ import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import { onMounted, ref } from 'vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
+import ApplicationsEdit from '@/pages/organizations/applications/ApplicationsEdit.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import { useRoute, useRouter } from 'vue-router';
 import Hook0Alert from '@/components/Hook0Alert.vue';
 import { Alert } from '@/components/Hook0Alert.ts';
 import { Problem, UUID } from '@/http.ts';
 import { routes } from '@/routes.ts';
-import SubscriptionsEdit from '@/pages/organizations/applications/subscriptions/SubscriptionsEdit.vue';
 import { push } from 'notivue';
+import Hook0ProgressBar from '@/components/Hook0ProgressBar.vue';
 
 const router = useRouter();
 const route = useRoute();
-
-const disabled_button = ref<boolean>(true);
 
 const alert = ref<Alert>({
   visible: false,
@@ -27,18 +26,17 @@ const alert = ref<Alert>({
   description: '',
 });
 
-const organizationId = ref<UUID | null>(null);
-const applicationId = ref<UUID | null>(null);
+const organization_id = ref<UUID | null>(null);
+const application_id = ref<UUID | null>(null);
 
 function _load() {
-  organizationId.value = route.params.organization_id as UUID;
-  applicationId.value = route.params.application_id as UUID;
-  if (!organizationId.value || !applicationId.value) {
+  organization_id.value = route.params.organization_id as UUID;
+  if (!organization_id.value) {
     displayError({
-      id: 'FieldsRequired',
+      id: 'OrganizationIdRequired',
       status: 400,
-      title: 'Organization ID and Application ID are required',
-      detail: 'Organization ID and Application ID are required to create an event type',
+      title: 'Organization ID is required',
+      detail: 'Organization ID is required to create an application',
     });
   }
 }
@@ -56,14 +54,14 @@ function cancel() {
   router.back();
 }
 
-function goFifthStep() {
-  if (organizationId.value && applicationId.value) {
-    disabled_button.value = false;
+function goThirdStep(applicationId: UUID) {
+  application_id.value = applicationId;
+  if (organization_id.value && application_id.value) {
     return router.push({
-      name: routes.TutorialStep5,
+      name: routes.TutorialStep3,
       params: {
-        organization_id: organizationId.value,
-        application_id: applicationId.value,
+        organization_id: organization_id.value,
+        application_id: application_id.value,
       },
     });
   } else {
@@ -91,32 +89,45 @@ onMounted(() => {
   </Hook0CardContent>
   <Hook0Card v-else>
     <Hook0CardHeader>
-      <template #header>Step 4: Create a subscription</template>
-      <template #subtitle>
-        Subscription are a way to choose what kind of events you are interested in (depending on
-        their event type and labels) and where to dispatch then as webhooks.
+      <template #header>Step 3: Create your first application</template>
+      <template #subtitle
+        >An application is an isolated environment in Hook0. It has its own event types, events,
+        subscriptions. You can create multiple applications to group your services based on your
+        needs.
       </template>
     </Hook0CardHeader>
     <Hook0CardContent>
       <Hook0CardContentLines>
         <Hook0CardContentLine type="full-width">
           <template #content>
-            <SubscriptionsEdit
-              v-if="organizationId && applicationId && disabled_button"
+            <Hook0ProgressBar
+              actual="3"
+              :items="[
+                { description: 'Introduction' },
+                { description: 'Create Your Organization' },
+                { description: 'Create Your Application' },
+                { description: 'Create Your Event Type' },
+                { description: 'Configure Your Subscription' },
+                { description: 'Send Your First Event' },
+              ]"
+              class="mb-14"
+            />
+            <ApplicationsEdit
+              v-if="organization_id && !application_id"
               :tutorial-mode="true"
-              @tutorial-subscription-created="goFifthStep"
+              @tutorial-application-created="goThirdStep($event)"
             />
           </template>
         </Hook0CardContentLine>
       </Hook0CardContentLines>
     </Hook0CardContent>
-    <Hook0CardFooter>
+    <Hook0CardFooter v-if="organization_id && application_id">
       <Hook0Button
         class="primary"
         type="button"
-        :disabled="!organizationId || !applicationId || disabled_button"
-        @click="goFifthStep"
-        >Next</Hook0Button
+        :disabled="!organization_id || !application_id"
+        @click="goThirdStep"
+        >🚀 Continue Step 4: Create Your First Event Type</Hook0Button
       >
     </Hook0CardFooter>
   </Hook0Card>
