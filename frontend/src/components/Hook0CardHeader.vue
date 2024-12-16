@@ -33,7 +33,7 @@ defineSlots<{
   }
 
   .hook0-card-header-left {
-    @apply ml-4 mt-4 w-full;
+    @apply ml-4 mt-4;
 
     .hook0-card-header-title {
       @apply text-lg leading-6 font-medium text-gray-900;

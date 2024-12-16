@@ -118,9 +118,24 @@ function displayError(err: Problem) {
           @click="$router.back()"
           >Cancel</Hook0Button
         >
-        <Hook0Button class="primary" type="button" @click="create($event)"
+        <Hook0Button
+          v-if="!tutorialMode"
+          class="primary"
+          type="button"
+          :disabled="!event_type.service || !event_type.resource_type || !event_type.verb"
+          @click="create($event)"
           >Create event type
         </Hook0Button>
+
+        <Hook0Button
+          v-else
+          class="primary"
+          type="submit"
+          :disabled="!event_type.service || !event_type.resource_type || !event_type.verb"
+          tooltip="ℹ️ To continue, you need to fill in all required fields"
+          @click="create($event)"
+          >Create Your First Event Type 🎉</Hook0Button
+        >
       </Hook0CardFooter>
     </Hook0Card>
 

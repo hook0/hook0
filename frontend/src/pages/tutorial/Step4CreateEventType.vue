@@ -14,6 +14,7 @@ import { Problem, UUID } from '@/http.ts';
 import { routes } from '@/routes.ts';
 import EventTypesNew from '@/pages/organizations/applications/event_types/EventTypesNew.vue';
 import { push } from 'notivue';
+import Hook0ProgressBar from '@/components/Hook0ProgressBar.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -91,13 +92,25 @@ onMounted(() => {
   </Hook0CardContent>
   <Hook0Card v-else>
     <Hook0CardHeader>
-      <template #header>Step 3: Create your first event type</template>
+      <template #header>Step 4: Create your first event type</template>
       <template #subtitle>Each event sent through a Hook0 must have an event type. </template>
     </Hook0CardHeader>
     <Hook0CardContent>
       <Hook0CardContentLines>
         <Hook0CardContentLine type="full-width">
           <template #content>
+            <Hook0ProgressBar
+              actual="4"
+              :items="[
+                { description: 'Introduction' },
+                { description: 'Create Your Organization' },
+                { description: 'Create Your Application' },
+                { description: 'Create Your Event Type' },
+                { description: 'Configure Your Subscription' },
+                { description: 'Send Your First Event' },
+              ]"
+              class="mb-14"
+            />
             <EventTypesNew
               v-if="organizationId && applicationId && disabled_button"
               :tutorial-mode="true"
@@ -107,13 +120,13 @@ onMounted(() => {
         </Hook0CardContentLine>
       </Hook0CardContentLines>
     </Hook0CardContent>
-    <Hook0CardFooter>
+    <Hook0CardFooter v-if="organizationId && applicationId && !disabled_button">
       <Hook0Button
         class="primary"
         type="button"
         :disabled="!organizationId || !applicationId || disabled_button"
         @click="goFourthStep"
-        >Next</Hook0Button
+        >🚀 Continue Step 5: Create Your Subscription</Hook0Button
       >
     </Hook0CardFooter>
   </Hook0Card>
