@@ -6,7 +6,6 @@ import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import { onMounted, ref } from 'vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
-import ApplicationsEdit from '@/pages/organizations/applications/ApplicationsEdit.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import { useRoute, useRouter } from 'vue-router';
 import Hook0Alert from '@/components/Hook0Alert.vue';
@@ -14,9 +13,13 @@ import { Alert } from '@/components/Hook0Alert.ts';
 import { Problem, UUID } from '@/http.ts';
 import { routes } from '@/routes.ts';
 import { push } from 'notivue';
+import EventsList from '@/pages/organizations/applications/events/EventsList.vue';
+import Hook0ProgressBar from '@/components/Hook0ProgressBar.vue';
 
 const router = useRouter();
 const route = useRoute();
+
+const disabled_button = ref<boolean>(true);
 
 const alert = ref<Alert>({
   visible: false,
@@ -25,17 +28,18 @@ const alert = ref<Alert>({
   description: '',
 });
 
-const organization_id = ref<UUID | null>(null);
-const application_id = ref<UUID | null>(null);
+const organizationId = ref<UUID | null>(null);
+const applicationId = ref<UUID | null>(null);
 
 function _load() {
-  organization_id.value = route.params.organization_id as UUID;
-  if (!organization_id.value) {
+  organizationId.value = route.params.organization_id as UUID;
+  applicationId.value = route.params.application_id as UUID;
+  if (!organizationId.value || !applicationId.value) {
     displayError({
-      id: 'OrganizationIdRequired',
+      id: 'FieldsRequired',
       status: 400,
-      title: 'Organization ID is required',
-      detail: 'Organization ID is required to create an application',
+      title: 'Organization ID and Application ID are required',
+      detail: 'Organization ID and Application ID are required to create an event type',
     });
   }
 }
@@ -53,23 +57,16 @@ function cancel() {
   router.back();
 }
 
-function goThirdStep(applicationId: UUID) {
-  application_id.value = applicationId;
-  if (organization_id.value && application_id.value) {
-    return router.push({
-      name: routes.TutorialStep3,
-      params: {
-        organization_id: organization_id.value,
-        application_id: application_id.value,
-      },
-    });
-  } else {
-    push.error({
-      title: 'Organization ID and Application ID are required',
-      message: 'Organization ID and Application ID are required to create an event type',
-      duration: 5000,
-    });
-  }
+function back_to_application() {
+  push.success({
+    title: 'Event sent',
+    message: 'Wow ! You just sent an event to your webhook ! 🎉🎉',
+    duration: 5000,
+  });
+  return router.push({
+    name: routes.ApplicationsDashboard,
+    params: { organization_id: organizationId.value, application_id: applicationId.value },
+  });
 }
 
 onMounted(() => {
@@ -88,33 +85,44 @@ onMounted(() => {
   </Hook0CardContent>
   <Hook0Card v-else>
     <Hook0CardHeader>
-      <template #header>Step 2: Create your first application</template>
-      <template #subtitle
-        >An application is an isolated environment in Hook0. It has its own event types, events,
-        subscriptions. You can create multiple applications to group your services based on your
-        needs.
+      <template #header>Step 6: Send an event</template>
+      <template #subtitle>
+        In this step, you will send a test event. You should make it match your subscription's event
+        type and label so that you receive a webhook!
       </template>
     </Hook0CardHeader>
     <Hook0CardContent>
       <Hook0CardContentLines>
         <Hook0CardContentLine type="full-width">
           <template #content>
-            <ApplicationsEdit
-              v-if="organization_id && !application_id"
+            <Hook0ProgressBar
+              actual="6"
+              :items="[
+                { description: 'Introduction' },
+                { description: 'Create Your Organization' },
+                { description: 'Create Your Application' },
+                { description: 'Create Your Event Type' },
+                { description: 'Configure Your Subscription' },
+                { description: 'Send Your First Event' },
+              ]"
+              class="mb-14"
+            />
+            <EventsList
+              v-if="organizationId && applicationId && disabled_button"
               :tutorial-mode="true"
-              @tutorial-application-created="goThirdStep($event)"
+              @tutorial-event-send="back_to_application"
             />
           </template>
         </Hook0CardContentLine>
       </Hook0CardContentLines>
     </Hook0CardContent>
-    <Hook0CardFooter>
+    <Hook0CardFooter v-if="!disabled_button">
       <Hook0Button
         class="primary"
         type="button"
-        :disabled="!organization_id || !application_id"
-        @click="goThirdStep"
-        >Next</Hook0Button
+        :disabled="disabled_button"
+        @click="back_to_application"
+        >🚀 Back To Application</Hook0Button
       >
     </Hook0CardFooter>
   </Hook0Card>
