@@ -12,8 +12,9 @@ import Hook0Alert from '@/components/Hook0Alert.vue';
 import { Alert } from '@/components/Hook0Alert.ts';
 import { Problem, UUID } from '@/http.ts';
 import { routes } from '@/routes.ts';
+import SubscriptionsEdit from '@/pages/organizations/applications/subscriptions/SubscriptionsEdit.vue';
 import { push } from 'notivue';
-import EventsList from '@/pages/organizations/applications/events/EventsList.vue';
+import Hook0ProgressBar from '@/components/Hook0ProgressBar.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -56,16 +57,23 @@ function cancel() {
   router.back();
 }
 
-function back_to_application() {
-  push.success({
-    title: 'Event sent',
-    message: 'Wow ! You just sent an event to your webhook ! 🎉🎉',
-    duration: 5000,
-  });
-  return router.push({
-    name: routes.ApplicationsDashboard,
-    params: { organization_id: organizationId.value, application_id: applicationId.value },
-  });
+function goFifthStep() {
+  if (organizationId.value && applicationId.value) {
+    disabled_button.value = false;
+    return router.push({
+      name: routes.TutorialStep5,
+      params: {
+        organization_id: organizationId.value,
+        application_id: applicationId.value,
+      },
+    });
+  } else {
+    push.error({
+      title: 'Organization ID and Application ID are required',
+      message: 'Organization ID and Application ID are required to create an event type',
+      duration: 5000,
+    });
+  }
 }
 
 onMounted(() => {
@@ -84,32 +92,44 @@ onMounted(() => {
   </Hook0CardContent>
   <Hook0Card v-else>
     <Hook0CardHeader>
-      <template #header>Step 5: Send an event</template>
+      <template #header>Step 5: Create a subscription</template>
       <template #subtitle>
-        In this step, you will send a test event. You should make it match your subscription's event
-        type and label so that you receive a webhook!
+        Subscription are a way to choose what kind of events you are interested in (depending on
+        their event type and labels) and where to dispatch then as webhooks.
       </template>
     </Hook0CardHeader>
     <Hook0CardContent>
       <Hook0CardContentLines>
         <Hook0CardContentLine type="full-width">
           <template #content>
-            <EventsList
+            <Hook0ProgressBar
+              actual="5"
+              :items="[
+                { description: 'Introduction' },
+                { description: 'Create Your Organization' },
+                { description: 'Create Your Application' },
+                { description: 'Create Your Event Type' },
+                { description: 'Configure Your Subscription' },
+                { description: 'Send Your First Event' },
+              ]"
+              class="mb-14"
+            />
+            <SubscriptionsEdit
               v-if="organizationId && applicationId && disabled_button"
               :tutorial-mode="true"
-              @tutorial-event-send="back_to_application"
+              @tutorial-subscription-created="goFifthStep"
             />
           </template>
         </Hook0CardContentLine>
       </Hook0CardContentLines>
     </Hook0CardContent>
-    <Hook0CardFooter>
+    <Hook0CardFooter v-if="organizationId && applicationId && !disabled_button">
       <Hook0Button
         class="primary"
         type="button"
-        :disabled="disabled_button"
-        @click="back_to_application"
-        >Back to application</Hook0Button
+        :disabled="!organizationId || !applicationId || disabled_button"
+        @click="goFifthStep"
+        >🚀 Continue Step 6: Send Your First Event</Hook0Button
       >
     </Hook0CardFooter>
   </Hook0Card>

@@ -315,7 +315,21 @@ onUpdated(() => {
             <Hook0Button v-if="!props.tutorialMode" class="secondary" @click="cancel_test"
               >Cancel</Hook0Button
             >
-            <Hook0Button class="primary" submit>Send event</Hook0Button>
+
+            <Hook0Button
+              v-if="!tutorialMode"
+              tooltip="ℹ️ To continue, you need to fill all fields"
+              class="primary"
+              submit
+              >Send event</Hook0Button
+            >
+            <Hook0Button
+              v-else
+              tooltip="ℹ️ To continue, you need to fill all fields"
+              class="primary"
+              submit
+              >Send Your First Event 🎉</Hook0Button
+            >
           </Hook0CardFooter>
         </form>
       </Hook0Card>
