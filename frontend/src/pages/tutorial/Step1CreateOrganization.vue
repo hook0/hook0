@@ -16,6 +16,7 @@ import { list } from '@/pages/organizations/OrganizationService.ts';
 import Hook0Loader from '@/components/Hook0Loader.vue';
 import Hook0Error from '@/components/Hook0Error.vue';
 import Hook0Select from '@/components/Hook0Select.vue';
+import Hook0ProgressBar from '@/components/Hook0ProgressBar.vue';
 
 const router = useRouter();
 
@@ -78,7 +79,12 @@ onUpdated(() => {
 <template>
   <Hook0Card>
     <Hook0CardHeader>
-      <template #header>Step 1: Create your first organization</template>
+      <template #header>
+        <div class="flex items-center justify-between">
+          Step 1: Create your first organization
+          <Hook0ProgressBar :value="2" :max="5" :next-value="3" class="w-1/3" />
+        </div>
+      </template>
       <template #subtitle
         >Organizations are used to group your applications and environments. You can create multiple
         organizations to separate your projects. Like production, staging, and development.
