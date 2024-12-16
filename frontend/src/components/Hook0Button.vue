@@ -11,6 +11,7 @@ interface Props {
   href?: string;
   disabled?: boolean;
   submit?: boolean;
+  tooltip?: string;
 }
 const router = useRouter();
 const props = defineProps<Props>();
@@ -108,6 +109,7 @@ onUpdated(() => {
     type="submit"
     :class="{ loading: loadingStatus, 'hook0-button-split': hasSlot('right') || hasSlot('left') }"
     :disabled="loadingStatus || disabled"
+    :title="props.tooltip"
   >
     <div v-if="hasSlot('left') && !loadingStatus" class="hook0-button-left">
       <slot name="left"></slot>
@@ -127,6 +129,7 @@ onUpdated(() => {
     v-bind="omitOnClick({ ...$props, ...$attrs })"
     :disabled="loadingStatus || disabled"
     :href="href"
+    :title="props.tooltip"
     @click="onClick($event)"
   >
     <div v-if="hasSlot('left') && !loadingStatus" class="hook0-button-left">
