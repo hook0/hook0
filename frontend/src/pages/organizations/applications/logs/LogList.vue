@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ColDef } from '@ag-grid-community/core';
+import { ColDef } from 'ag-grid-community';
 import { onMounted, onUpdated, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
@@ -75,6 +75,8 @@ const columnDefs: ColDef[] = [
         }
       },
     },
+    // This seems useless but triggers a warning if not set
+    valueFormatter: () => 'unreachable',
   },
   {
     field: 'event_id',

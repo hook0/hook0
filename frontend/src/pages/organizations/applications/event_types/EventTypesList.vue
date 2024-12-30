@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ColDef } from '@ag-grid-community/core';
+import { ColDef } from 'ag-grid-community';
 import { onMounted, onUpdated, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
