@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ICellRendererParams } from '@ag-grid-community/core';
+import { ICellRendererParams } from 'ag-grid-community';
 
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 
