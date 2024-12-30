@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ColDef, ValueFormatterParams, ValueGetterParams } from '@ag-grid-community/core';
+import { ColDef, ValueFormatterParams, ValueGetterParams } from 'ag-grid-community';
 import { onMounted, onUpdated, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
@@ -101,6 +101,8 @@ const columnDefs: ColDef[] = [
         return `${data.label_key}=${data.label_value}`;
       },
     },
+    // This seems useless but triggers a warning if not set
+    valueFormatter: () => 'unreachable',
   },
   {
     field: 'target',
@@ -120,6 +122,8 @@ const columnDefs: ColDef[] = [
         }
       },
     },
+    // This seems useless but triggers a warning if not set
+    valueFormatter: () => 'unreachable',
   },
   {
     suppressMovable: true,

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ICellRendererParams } from '@ag-grid-community/core';
+import { ICellRendererParams } from 'ag-grid-community';
 import { RouteLocation } from 'vue-router';
 
 import Hook0Icon from '@/components/Hook0Icon.vue';

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ColDef } from '@ag-grid-community/core';
+import { ColDef } from 'ag-grid-community';
 import { onMounted, onUpdated, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
@@ -45,7 +45,7 @@ interface Props {
 }
 
 defineProps<Props>();
-const columnDefs: ColDef[] = [
+const columnDefs: ColDef<Event>[] = [
   {
     field: 'event_id',
     headerName: 'Event ID',
@@ -101,6 +101,8 @@ const columnDefs: ColDef[] = [
           .join(' ');
       },
     },
+    // This seems useless but triggers a warning if not set
+    valueFormatter: () => 'unreachable',
   },
   {
     suppressMovable: true,
