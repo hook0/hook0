@@ -1,7 +1,15 @@
 <script setup lang="ts">
-import { AgGridVue } from '@ag-grid-community/vue3';
-import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model';
-import { AgGridEvent, ColDef, Module } from '@ag-grid-community/core';
+import { AgGridVue } from 'ag-grid-vue3';
+import {
+  ClientSideRowModelModule,
+  AgGridEvent,
+  ColDef,
+  Module,
+  ModuleRegistry,
+  ColumnAutoSizeModule,
+  ValidationModule,
+  themeAlpine,
+} from 'ag-grid-community';
 import { computed } from 'vue';
 
 defineOptions({
@@ -17,6 +25,7 @@ interface Props {
 const props = defineProps<Props>();
 const domLayout = 'autoHeight';
 const modules = [ClientSideRowModelModule];
+ModuleRegistry.registerModules([ValidationModule, ColumnAutoSizeModule]);
 
 const defaultColDef = {
   resizable: false,
@@ -28,11 +37,11 @@ const gridOptions = {
 type Context = Record<string, unknown>;
 const contextModule = computed<null | (Module & { context: Context })>(() => {
   return props.context
-    ? {
+    ? ({
         moduleName: 'context',
         version: ClientSideRowModelModule.version,
         context: props.context as Context,
-      }
+      } as unknown as Module & { context: Context })
     : null;
 });
 
@@ -52,6 +61,7 @@ function onFirstDataRendered(params: AgGridEvent<unknown>) {
     :suppress-horizontal-scroll="true"
     :suppress-cell-focus="true"
     :grid-options="gridOptions"
+    :theme="themeAlpine"
     @first-data-rendered="onFirstDataRendered"
   >
   </AgGridVue>
@@ -59,9 +69,6 @@ function onFirstDataRendered(params: AgGridEvent<unknown>) {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style lang="scss">
-@import '@ag-grid-community/styles/ag-grid.css';
-@import '@ag-grid-community/styles/ag-theme-alpine.css';
-
 .ag-theme-alpine .ag-root-wrapper {
   border: 0;
 }
