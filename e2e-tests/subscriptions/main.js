@@ -137,6 +137,6 @@ export default function () {
 
 function deleteApplication() {
   if (!config.deleteOnFail) return;
- 
+  
   console.log('Test failed, deleting application...');
 }
