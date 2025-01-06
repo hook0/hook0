@@ -1,12 +1,16 @@
 // options for k6
-const VUS = 1; // Number of virtual users
-const ITERATIONS = 1; // Number of iterations
-const MAX_DURATION = '1m'; // Duration before timeout the job
+const DEFAULTS = {
+  vus: 1, // Number of virtual users
+  iterations: 1, // Number of iterations
+  maxDuration: '1m', // Duration before timeout the job
+  deleteOnFail: false, // Delete the application if the test fails
+};
 
 export function getEnvironmentVariables() {
-  const vus = __ENV.VUS || VUS;
-  const iterations = __ENV.ITERATIONS || ITERATIONS;
-  const maxDuration = __ENV.MAX_DURATION || MAX_DURATION;
+  const vus = __ENV.VUS || DEFAULTS.vus;
+  const iterations = __ENV.ITERATIONS || DEFAULTS.iterations;
+  const maxDuration = __ENV.MAX_DURATION || DEFAULTS.maxDuration;
+  const deleteOnFail = __ENV.DELETE_ON_FAIL ? __ENV.DELETE_ON_FAIL : DEFAULTS.deleteOnFail;
 
   const hostname = __ENV.HOSTNAME ? __ENV.HOSTNAME : null;
   const targetUrl = __ENV.TARGET_URL ? __ENV.TARGET_URL : null;
@@ -14,10 +18,6 @@ export function getEnvironmentVariables() {
   const organizationId = __ENV.ORGANIZATION_ID ? __ENV.ORGANIZATION_ID : null;
 
   if (!hostname || !targetUrl || !serviceToken || !organizationId) {
-    console.log(hostname);
-    console.log(targetUrl);
-    console.log(serviceToken);
-    console.log(organizationId);
     throw new Error(
       'Missing environment variables HOSTNAME, TARGET_URL, SERVICE_TOKEN, ORGANIZATION_ID'
     );
@@ -31,5 +31,6 @@ export function getEnvironmentVariables() {
     targetUrl,
     serviceToken,
     organizationId,
+    deleteOnFail,
   };
 }

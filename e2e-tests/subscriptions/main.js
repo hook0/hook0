@@ -134,3 +134,9 @@ function scenario_1() {
 export default function () {
   scenario_1();
 }
+
+function deleteApplication() {
+  if (!config.deleteOnFail) return;
+ 
+  console.log('Test failed, deleting application...');
+}
