@@ -20,13 +20,15 @@ client.rust.semver-checks:
   stage: test
   dependencies: []
   image: rust:$RUST_VERSION
+  variables:
+    BINSTALL_DISABLE_TELEMETRY: "true"
   rules:
     - changes:
         - clients/rust/**/*
         - Cargo.*
   before_script:
     - rustc --version && cargo --version
-    - cargo install cargo-binstall
+    - curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
     - cargo binstall cargo-semver-checks -y
   script:
     - pushd clients/rust
