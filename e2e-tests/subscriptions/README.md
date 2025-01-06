@@ -2,11 +2,11 @@
 
 1. Clone the project
 2. Install dependencies
+
 ```bash
 # Install k6 (https://k6.io/docs/get-started/installation/)
 npm install
 ```
-
 
 ## 🔥 Launch the project
 
@@ -15,12 +15,10 @@ node setup.js # To delete the stored values from the database from the organizat
 k6 run main.js # To run the tests
 ```
 
-
 ## 📝 Description
 
 - `main.js` : Script to run the tests
 - `config.js` : Project configuration
-
 
 ## 🎯 Goals
 
@@ -30,12 +28,10 @@ k6 run main.js # To run the tests
 - Subscribe to the two subscriptions with one event per subscription (so in total three events)
 - Check if the events have been received
 
-
 ## 📚 Documentation
 
 - [K6](https://k6.io/docs/)
 - [Hook0](https://documentation.hook0.com/)
-
 
 ## ⚙️ Optional configuration
 
@@ -52,6 +48,7 @@ Or use environment variables with `k6 run main.js -e VAR1=VALUE1 -e VAR2=VALUE2 
     const organizationId = __ENV.ORGANIZATION_ID || DEFAULT_ORGANIZATION_ID;
 
 Configurable:
+
 - `VUS` : Number of virtual users
 - `ITERATIONS` : Number of iterations per virtual user
 - `MAX_DURATION` : Maximum duration of the test execution before it times out

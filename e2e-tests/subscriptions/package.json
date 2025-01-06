@@ -4,11 +4,15 @@
   "description": "",
   "main": "main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "format": "prettier --write ./ ./*.{js,json}"
   },
   "repository": {
     "type": "git",
     "url": "git@gitlab.com:hook0/hook0.git"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "prettier": "^3.4.2"
+  }
 }
