@@ -1,7 +1,7 @@
 import http from 'k6/http';
 import { check } from 'k6';
 
-export default function(baseUrl, organizationId, masterApiKey) {
+export default function(baseUrl, organizationId, serviceToken) {
     const url = `${baseUrl}api/v1/applications/`;
     const payload = JSON.stringify({
         name: 'test_k6',
@@ -9,7 +9,7 @@ export default function(baseUrl, organizationId, masterApiKey) {
     });
     const params = {
         headers: {
-            'Authorization': `Bearer ${masterApiKey}`,
+            'Authorization': `Bearer ${serviceToken}`,
             'accept': 'application/json',
             'content-type': 'application/json',
         },
