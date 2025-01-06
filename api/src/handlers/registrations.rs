@@ -30,7 +30,14 @@ pub struct RegistrationPost {
     last_name: String,
     #[validate(non_control_character, email, length(max = 100))]
     email: String,
-    #[validate(non_control_character, length(min = 10, max = 100, message = "Password must be at least 10 characters long and at most 100 characters long"))]
+    #[validate(
+        non_control_character,
+        length(
+            min = 10,
+            max = 100,
+            message = "Password must be at least 10 characters long and at most 100 characters long"
+        )
+    )]
     password: String,
 }
 
