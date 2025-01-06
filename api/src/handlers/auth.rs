@@ -27,7 +27,14 @@ use crate::problems::Hook0Problem;
 pub struct LoginPost {
     #[validate(non_control_character, length(min = 1, max = 100))]
     email: String,
-    #[validate(non_control_character, length(min = 1, max = 100))]
+    #[validate(
+        non_control_character,
+        length(
+            min = 10,
+            max = 100,
+            message = "Password must be at least 10 characters long and at most 100 characters long"
+        )
+    )]
     password: String,
 }
 
@@ -58,13 +65,27 @@ pub struct BeginResetPasswordPost {
 pub struct ResetPasswordPost {
     #[validate(non_control_character, length(min = 1, max = 1000))]
     token: String,
-    #[validate(non_control_character, length(min = 10, max = 100))]
+    #[validate(
+        non_control_character,
+        length(
+            min = 10,
+            max = 100,
+            message = "Password must be at least 10 characters long and at most 100 characters long"
+        )
+    )]
     new_password: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct ChangePasswordPost {
-    #[validate(non_control_character, length(min = 10, max = 100))]
+    #[validate(
+        non_control_character,
+        length(
+            min = 10,
+            max = 100,
+            message = "Password must be at least 10 characters long and at most 100 characters long"
+        )
+    )]
     new_password: String,
 }
 
