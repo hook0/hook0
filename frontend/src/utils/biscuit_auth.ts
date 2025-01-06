@@ -30,6 +30,7 @@ export function attenuateBiscuit(
     );
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const application_id_bytes = application_id ? parse(application_id) : null;
 
   if (application_id_bytes && expired_at) {
