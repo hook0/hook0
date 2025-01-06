@@ -2,10 +2,10 @@ import http from 'k6/http';
 import { check } from 'k6';
 import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 
-export default function (auth_token, base_url, application_id, event_type, labels) {
+export default function (service_token, base_url, application_id, event_type, labels) {
     let url = base_url + 'api/v1/event/';
     let headers = {
-        'Authorization': auth_token,
+        'Authorization': `Bearer ${service_token}`,
         'accept': 'application/json',
         'content-type': 'application/json'
     };
