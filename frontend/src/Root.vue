@@ -271,7 +271,7 @@ function toggleMobileSidebar() {
                 <span class="text-gray-600 px-3 py-2 text-sm">Org ID</span>
                 <button
                   v-if="organization_id"
-                  class="text-violet-500"
+                  class="text-indigo-600"
                   @click="copyToClipboard(organization_id)"
                 >
                   <FontAwesomeIcon :icon="['fas', 'copy']" />
@@ -282,7 +282,7 @@ function toggleMobileSidebar() {
                 <span class="text-gray-600 px-3 py-2 text-sm">App ID</span>
                 <button
                   v-if="application_id"
-                  class="text-violet-500"
+                  class="text-indigo-600"
                   @click="copyToClipboard(application_id)"
                 >
                   <FontAwesomeIcon :icon="['fas', 'copy']" />
@@ -294,16 +294,16 @@ function toggleMobileSidebar() {
           <div class="space-y-2 hidden ml-4 sm:block content-center items-center">
             <div class="flex items-center space-x-4">
               <div v-if="organization_id" class="flex items-center rounded overflow-hidden min-w-0">
-                <span class="bg-gray-100 text-gray-600 px-3 py-2 text-sm">Org ID</span>
+                <span class="bg-gray-100 text-gray-600 px-3 py-2 text-xs">Org ID</span>
                 <input
                   type="text"
                   :value="organization_id"
-                  class="flex-1 px-3 py-2 text-sm border-0 bg-gray-100 focus:ring-0 focus:outline-none w-auto"
+                  class="flex-1 px-3 py-2 text-xs border-0 bg-gray-100 focus:ring-0 focus:outline-none w-auto"
                   disabled
                 />
                 <button
                   v-if="organization_id"
-                  class="px-3 py-1.5 bg-violet-500 text-white hover:bg-violet-600"
+                  class="px-3 py-1 bg-indigo-600 text-white hover:bg-indigo-500"
                   @click="copyToClipboard(organization_id)"
                 >
                   <FontAwesomeIcon :icon="['fas', 'copy']" />
@@ -311,16 +311,16 @@ function toggleMobileSidebar() {
               </div>
 
               <div v-if="application_id" class="flex items-center rounded overflow-hidden min-w-0">
-                <span class="bg-gray-100 text-gray-600 px-3 py-2 text-sm">App ID</span>
+                <span class="bg-gray-100 text-gray-600 px-3 py-2 text-xs">App ID</span>
                 <input
                   type="text"
                   :value="application_id"
-                  class="flex-1 px-3 py-2 text-sm bg-gray-100 focus:ring-0 focus:outline-none border-0"
+                  class="flex-1 px-3 py-2 text-xs bg-gray-100 focus:ring-0 focus:outline-none border-0"
                   disabled
                 />
                 <button
                   v-if="application_id"
-                  class="px-3 py-1.5 bg-violet-500 text-white hover:bg-violet-600"
+                  class="px-3 py-1 bg-indigo-600 text-white hover:bg-indigo-500"
                   @click="copyToClipboard(application_id)"
                 >
                   <FontAwesomeIcon :icon="['fas', 'copy']" />
