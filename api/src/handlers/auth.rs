@@ -30,7 +30,7 @@ pub struct LoginPost {
     #[validate(
         non_control_character,
         length(
-            min = 10,
+            min = 1,
             max = 100,
             message = "Password must be at least 10 characters long and at most 100 characters long"
         )
