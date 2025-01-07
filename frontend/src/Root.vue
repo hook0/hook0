@@ -267,24 +267,24 @@ function toggleMobileSidebar() {
 
           <div class="flex items-center sm:hidden">
             <div class="flex rounded overflow-hidden min-w-0 space-x-2">
-              <div v-if="organization_id" class="flex items-center space-x-2">
+              <div
+                v-if="organization_id"
+                class="flex items-center space-x-2"
+                @click="copyToClipboard(organization_id)"
+              >
                 <span class="text-gray-600 px-3 py-2 text-sm">Org ID</span>
-                <button
-                  v-if="organization_id"
-                  class="text-indigo-600"
-                  @click="copyToClipboard(organization_id)"
-                >
+                <button v-if="organization_id" class="text-indigo-600">
                   <FontAwesomeIcon :icon="['fas', 'copy']" />
                 </button>
               </div>
 
-              <div v-if="application_id" class="flex items-center space-x-2">
+              <div
+                v-if="application_id"
+                class="flex items-center space-x-2"
+                @click="copyToClipboard(application_id)"
+              >
                 <span class="text-gray-600 px-3 py-2 text-sm">App ID</span>
-                <button
-                  v-if="application_id"
-                  class="text-indigo-600"
-                  @click="copyToClipboard(application_id)"
-                >
+                <button v-if="application_id" class="text-indigo-600">
                   <FontAwesomeIcon :icon="['fas', 'copy']" />
                 </button>
               </div>
