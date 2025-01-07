@@ -4,7 +4,8 @@
   "description": "",
   "main": "main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "start-server-and-test ../target/release/hook0-api http-get://localhost:8080/api/v1/instance 'npm run test:ci'",
+    "test:ci": "bash run-main-tests.sh",
     "format": "prettier --write ./ ./*.{js,json}"
   },
   "repository": {
@@ -14,5 +15,9 @@
   "private": true,
   "devDependencies": {
     "prettier": "^3.4.2"
+  },
+  "dependencies": {
+    "pg": "^8.13.1",
+    "start-server-and-test": "^2.0.9"
   }
 }
