@@ -206,7 +206,7 @@ function toggleMobileSidebar() {
         }"
       >
         <div
-          class="flex flex-col w-64 bg-gray-800 md:opacity-100"
+          class="flex flex-col w-64 bg-gray-800 md:opacity-100 h-full"
           :class="{
             'opacity-0': !mobileSidebarOpened,
             'opacity-100': mobileSidebarOpened,
