@@ -6,8 +6,7 @@ export default function (service_token, base_url, application_id, event_type, la
   let url = base_url + 'api/v1/event/';
   let headers = {
     Authorization: `Bearer ${service_token}`,
-    accept: 'application/json',
-    'content-type': 'application/json',
+    'Content-Type': 'application/json',
   };
   let payload = {
     labels: labels,

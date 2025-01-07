@@ -5,8 +5,7 @@ export default function (baseUrl, applicationId, serviceToken) {
     const params = {
         headers: {
             Authorization: `Bearer ${serviceToken}`,
-            accept: 'application/json',
-            'content-type': 'application/json',
+            'Content-Type': 'application/json',
         },
     };
     const response = http.request('DELETE', url, null, params);

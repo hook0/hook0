@@ -7,7 +7,7 @@ export default function (base_url, service_token, application_id, event_id) {
     {
       headers: {
         Authorization: `Bearer ${service_token}`,
-        accept: 'application/json',
+        'Content-Type': 'application/json',
       },
     }
   );

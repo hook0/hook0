@@ -13,8 +13,8 @@ export default function (baseUrl, service_token, application_id) {
 
   const params = {
     headers: {
-      'Content-Type': 'application/json',
       Authorization: `Bearer ${service_token}`,
+      'Content-Type': 'application/json',
     },
   };
 
