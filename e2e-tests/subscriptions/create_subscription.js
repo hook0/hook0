@@ -32,8 +32,7 @@ export default function (
   const params = {
     headers: {
       Authorization: `Bearer ${service_token}`,
-      accept: 'application/json',
-      'content-type': 'application/json',
+      'Content-Type': 'application/json',
     },
   };
 
