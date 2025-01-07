@@ -12,14 +12,14 @@ export function getEnvironmentVariables() {
   const maxDuration = __ENV.MAX_DURATION || DEFAULTS.maxDuration;
   const deleteOnFail = __ENV.DELETE_ON_FAIL ? __ENV.DELETE_ON_FAIL : DEFAULTS.deleteOnFail;
 
-  const hostname = __ENV.HOSTNAME ? __ENV.HOSTNAME : null;
+  const apiOrigin = __ENV.API_ORIGIN ? __ENV.API_ORIGIN : null;
   const targetUrl = __ENV.TARGET_URL ? __ENV.TARGET_URL : null;
   const serviceToken = __ENV.SERVICE_TOKEN ? __ENV.SERVICE_TOKEN : null;
   const organizationId = __ENV.ORGANIZATION_ID ? __ENV.ORGANIZATION_ID : null;
 
-  if (!hostname || !targetUrl || !serviceToken || !organizationId) {
+  if (!apiOrigin || !targetUrl || !serviceToken || !organizationId) {
     throw new Error(
-      'Missing environment variables HOSTNAME, TARGET_URL, SERVICE_TOKEN, ORGANIZATION_ID'
+      'Missing environment variables API_ORIGIN, TARGET_URL, SERVICE_TOKEN, ORGANIZATION_ID'
     );
   }
 
@@ -27,7 +27,7 @@ export function getEnvironmentVariables() {
     vus,
     iterations,
     maxDuration,
-    hostname,
+    apiOrigin: apiOrigin.endsWith('/') ? apiOrigin : `${apiOrigin}/`,
     targetUrl,
     serviceToken,
     organizationId,
