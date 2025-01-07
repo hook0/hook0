@@ -1,0 +1,16 @@
+e2e-ci.build:
+  stage: build
+  dependencies: []
+  image: rust:$RUST_VERSION
+  # rules:
+  #   - changes:
+  #       - api/**/*
+  #       - output-worker/**/*
+  #       - Cargo.*
+  script:
+    - rustc --version && cargo --version
+    - cargo build --release --no-default-features -F reqwest-rustls-tls-webpki-roots -F application-secret-compatibility
+  artifacts:
+    paths:
+      - target/release/hook0-api
+      - target/release/hook0-output-worker
