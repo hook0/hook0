@@ -42,7 +42,7 @@ Or use environment variables with `k6 run main.js -e VAR1=VALUE1 -e VAR2=VALUE2 
     const iterations = __ENV.ITERATIONS || ITERATIONS;
     const maxDuration = __ENV.MAX_DURATION || MAX_DURATION;
 
-    const hostname = __ENV.HOSTNAME || DEFAULT_HOSTNAME;
+    const apiOrigin = __ENV.API_ORIGIN || DEFAULT_API_ORIGIN;
     const targetUrl = __ENV.TARGET_URL || DEFAULT_TARGET_URL;
     const serviceToken = __ENV.SERVICE_TOKEN || DEFAULT_SERVICE_TOKEN;
     const organizationId = __ENV.ORGANIZATION_ID || DEFAULT_ORGANIZATION_ID;
@@ -52,7 +52,7 @@ Configurable:
 - `VUS` : Number of virtual users
 - `ITERATIONS` : Number of iterations per virtual user
 - `MAX_DURATION` : Maximum duration of the test execution before it times out
-- `HOSTNAME` : Domain name of the API
+- `API_ORIGIN` : Origin of the API (exemple: http://localhost:8081)
 - `TARGET_URL` : URL that will receive the webhook requests
 - `SERVICE_TOKEN` : Service Token is used for authenticated in your organization [this](https://documentation.hook0.com/docs/api-authentication) authentication method
 - `ORGANIZATION_ID` : Organization ID is used to identify the organization that the user belongs to [this](https://documentation.hook0.com/docs/api-authentication) authentication method
