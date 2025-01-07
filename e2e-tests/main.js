@@ -19,7 +19,7 @@ function isNotNull(value) {
 }
 
 function scenario_1() {
-  const h = config.hostname;
+  const h = config.apiOrigin;
   const s = config.serviceToken;
   const o = config.organizationId;
 
