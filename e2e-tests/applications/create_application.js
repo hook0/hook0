@@ -13,8 +13,7 @@ export default function (baseUrl, organizationId, serviceToken) {
   const params = {
     headers: {
       Authorization: `Bearer ${serviceToken}`,
-      accept: 'application/json',
-      'content-type': 'application/json',
+      'Content-Type': 'application/json',
     },
   };
 
