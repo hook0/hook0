@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RouteLocationNamedRaw, useRoute, RouterView } from 'vue-router';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, onUpdated, ref } from 'vue';
 
 import Hook0Logo from '@/components/Hook0Logo.vue';
 import MenuItem from '@/components/MenuItem.vue';
@@ -9,10 +9,12 @@ import { routes } from '@/routes';
 import Hook0Footer from '@/components/Hook0Footer.vue';
 import Hook0LoginMenu from '@/components/Hook0LoginMenu.vue';
 import Hook0Icon from '@/components/Hook0Icon.vue';
-import { Notivue, Notification, NotificationProgress } from 'notivue';
+import { Notivue, Notification, NotificationProgress, push } from 'notivue';
 import Hook0Button from './components/Hook0Button.vue';
 import { getAccessToken } from '@/iam';
 import { InstanceConfig, getInstanceConfig } from './utils/biscuit_auth';
+import { UUID } from './http';
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 
 const route = useRoute();
 
@@ -28,8 +30,46 @@ interface Route {
 let instanceConfig = ref<null | InstanceConfig>(null);
 let mobileSidebarOpened = ref(false);
 
+const organization_id = ref<UUID | null>(null);
+const application_id = ref<UUID | null>(null);
+
+async function copyToClipboard(id: UUID) {
+  try {
+    await navigator.clipboard.writeText(id);
+
+    push.success({
+      title: 'Copied!',
+      message: 'The ID has been copied to the clipboard.',
+    });
+  } catch (err) {
+    push.error({
+      title: 'Error',
+      message: 'An error occurred while copying to the clipboard.',
+    });
+  }
+}
+
+function _load() {
+  if (route.params.organization_id) {
+    organization_id.value = route.params.organization_id as UUID;
+  } else {
+    organization_id.value = null;
+  }
+
+  if (route.params.application_id) {
+    application_id.value = route.params.application_id as UUID;
+  } else {
+    application_id.value = null;
+  }
+}
+
 onMounted(async () => {
   instanceConfig.value = await getInstanceConfig();
+  _load();
+});
+
+onUpdated(() => {
+  _load();
 });
 
 const items = computed<Route[]>(() => {
@@ -166,7 +206,7 @@ function toggleMobileSidebar() {
         }"
       >
         <div
-          class="flex flex-col w-64 bg-gray-800 md:opacity-100"
+          class="flex flex-col w-64 bg-gray-800 md:opacity-100 h-full"
           :class="{
             'opacity-0': !mobileSidebarOpened,
             'opacity-100': mobileSidebarOpened,
@@ -224,6 +264,71 @@ function toggleMobileSidebar() {
               />
             </svg>
           </button>
+
+          <div class="flex items-center sm:hidden">
+            <div class="flex rounded overflow-hidden min-w-0 space-x-2">
+              <div
+                v-if="organization_id"
+                class="flex items-center space-x-2"
+                @click="copyToClipboard(organization_id)"
+              >
+                <span class="text-gray-600 px-3 py-2 text-sm">Org ID</span>
+                <button v-if="organization_id" class="text-indigo-600">
+                  <FontAwesomeIcon :icon="['fas', 'copy']" />
+                </button>
+              </div>
+
+              <div
+                v-if="application_id"
+                class="flex items-center space-x-2"
+                @click="copyToClipboard(application_id)"
+              >
+                <span class="text-gray-600 px-3 py-2 text-sm">App ID</span>
+                <button v-if="application_id" class="text-indigo-600">
+                  <FontAwesomeIcon :icon="['fas', 'copy']" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-2 hidden ml-4 sm:block content-center items-center">
+            <div class="flex items-center space-x-4">
+              <div v-if="organization_id" class="flex items-center rounded overflow-hidden min-w-0">
+                <span class="bg-gray-100 text-gray-600 px-3 py-2 text-xs">Org ID</span>
+                <input
+                  type="text"
+                  :value="organization_id"
+                  class="flex-1 px-3 py-2 text-xs border-0 bg-gray-100 focus:ring-0 focus:outline-none w-auto"
+                  disabled
+                />
+                <button
+                  v-if="organization_id"
+                  class="px-3 py-1 bg-indigo-600 text-white hover:bg-indigo-500"
+                  @click="copyToClipboard(organization_id)"
+                >
+                  <FontAwesomeIcon :icon="['fas', 'copy']" />
+                </button>
+              </div>
+
+              <div v-if="application_id" class="flex items-center rounded overflow-hidden min-w-0">
+                <span class="bg-gray-100 text-gray-600 px-3 py-2 text-xs">App ID</span>
+                <input
+                  type="text"
+                  :value="application_id"
+                  class="flex-1 px-3 py-2 text-xs bg-gray-100 focus:ring-0 focus:outline-none border-0"
+                  disabled
+                />
+                <button
+                  v-if="application_id"
+                  class="px-3 py-1 bg-indigo-600 text-white hover:bg-indigo-500"
+                  @click="copyToClipboard(application_id)"
+                >
+                  <FontAwesomeIcon :icon="['fas', 'copy']" />
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div class="flex-1 px-4 flex justify-between">
             <div class="flex-1 flex">
               <!---
