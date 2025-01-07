@@ -14,3 +14,44 @@ e2e-ci.build:
     paths:
       - target/release/hook0-api
       - target/release/hook0-output-worker
+
+e2e-ci.test:
+  stage: test
+  dependencies:
+    - e2e-ci.build
+  image: node:$NODE_VERSION
+  services:
+    - name: postgres:$PG_VERSION
+  variables:
+    ## postgres
+    POSTGRES_DB: postgres
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: postgres
+    ## e2e-tests variables
+    API_ORIGIN: 'http://localhost:8080'
+    TARGET_URL: 'http://localhost:3000'
+    ORGANIZATION_ID: '00000000-0000-0000-0000-000000000000'
+    VUS: 10
+    ITERATIONS: 1
+    DURATION: '1m'
+    ## API variables
+    MASTER_API_KEY: '00000000-0000-0000-0000-000000000000'
+    BISCUIT_PRIVATE_KEY: 'bee97db5398b2694cc2362918a2d9eed117b70f036e224407085ccb6800028fc'
+    DATABASE_URL: 'postgres://postgres:postgres@postgres:5432/postgres'
+    EMAIL_SENDER_ADDRESS: 'support@hook0.com'
+    SMTP_CONNECTION_URL: 'smtp://localhost:1025'
+    APP_URL: 'http://localhost:8080/'
+    DISABLE_SERVING_WEBAPP: true
+  before_script:
+    - apt-get update
+    - apt-get install -y dirmngr gnupg
+    - mkdir -p /root/.gnupg
+    - chmod 700 /root/.gnupg
+    - gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69 || true
+    - echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | tee /etc/apt/sources.list.d/k6.list
+    - apt-get update
+    - apt-get install k6 -y
+  script:
+    - pushd e2e-tests
+    - npm ci
+    - npm run test
