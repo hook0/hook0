@@ -98,6 +98,8 @@ const subscription = ref({
 });
 const eventTypes = ref<SelectableEventType[]>([]);
 
+const metadata = ref([] as Hook0KeyValueKeyValuePair[]);
+
 const httpTarget = ref({
   METHODS: 'GET,PATCH,POST,PUT,DELETE,OPTIONS,HEAD'.split(',').map(toOption),
   headers: [] as Hook0KeyValueKeyValuePair[], // K/V
@@ -129,6 +131,7 @@ function _load() {
           subscription.value.is_enabled = sub.is_enabled;
           subscription.value.label_key = sub.label_key;
           subscription.value.label_value = sub.label_value;
+          metadata.value = fromMap(sub.metadata);
           subscription.value.metadata = sub.metadata;
           subscription.value.dedicated_workers = sub.dedicated_workers;
 
@@ -183,6 +186,10 @@ function toMap(pairs: Hook0KeyValueKeyValuePair[]): Record<string, string> {
 function upsert(e: Event) {
   e.preventDefault();
   e.stopImmediatePropagation();
+
+  if (!subscription.value.metadata) {
+    subscription.value.metadata = toMap(metadata.value);
+  }
 
   if (isNew.value) {
     SubscriptionService.create({
@@ -414,10 +421,10 @@ onUpdated(() => {
           <template #label> Metadata </template>
           <template #content>
             <Hook0KeyValue
-              :value="subscription.metadata"
+              :value="metadata"
               key-placeholder="key"
               value-placeholder="value"
-              @update:model-value="subscription.metadata = $event"
+              @update:model-value="subscription.metadata = toMap($event)"
             ></Hook0KeyValue>
           </template>
         </Hook0CardContentLine>
