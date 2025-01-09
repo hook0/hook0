@@ -155,8 +155,18 @@ function displayError(err: Problem) {
             </template>
           </Hook0CardContentLine>
         </Hook0CardContent>
-        <Hook0CardFooter>
-          <Hook0Button class="primary" submit>Change password</Hook0Button>
+        <Hook0CardFooter class="!justify-between">
+          <div
+            class="flex items-center bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded"
+          >
+            <div>
+              <p class="font-bold">Warning</p>
+              <p>You will be disconnected from other browsers/devices.</p>
+            </div>
+          </div>
+          <Hook0Button class="primary" submit aria-label="Change Password" title="Change Password"
+            >Change password</Hook0Button
+          >
         </Hook0CardFooter>
       </form>
     </Hook0Card>

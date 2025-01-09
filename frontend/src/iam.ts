@@ -180,6 +180,12 @@ export function getRefreshToken(): ComputedRef<null | string> {
   return computed(() => state.value?.refreshToken ?? null);
 }
 
+export async function clearTokens(): Promise<void> {
+  state.value = null;
+  removeStateFromStorage();
+  await router.push({ name: routes.Login });
+}
+
 export interface UserInfo {
   email: string;
   firstName: string;

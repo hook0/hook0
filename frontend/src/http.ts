@@ -5,7 +5,8 @@ import { identity } from 'ramda';
 import featureFlags from '@/feature-flags';
 import type { components } from '@/types';
 import ProblemFactory from '@/utils/problemFactory';
-import { getAccessToken, getRefreshToken } from '@/iam';
+import { clearTokens, getAccessToken, getRefreshToken } from '@/iam';
+import { push } from 'notivue';
 
 type definitions = components['schemas'];
 
@@ -37,13 +38,30 @@ async function getAxios(
     headers,
   });
 
-  client.interceptors.response.use(identity, function (error: AxiosError) {
+  client.interceptors.response.use(identity, async function (error: AxiosError) {
     // Any status codes that falls outside the range of 2xx cause this function to trigger
 
     // convert timeouts axios's error to Problem
     if (isAxiosError(error) && String(error.message).includes('timeout of')) {
       return Promise.reject(new ProblemFactory(0, 'TimeoutExceeded', error.message, error.message));
     }
+
+    if (isAxiosError(error)) {
+      const problem = handleError(error as AxiosError<AxiosResponse<Problem>>);
+      if (problem.id === 'AuthInvalidBiscuit') {
+        push.error({
+          title: 'Error',
+          message: 'Your session has expired. Please log in again.',
+        });
+        await clearTokens();
+      }
+    }
+
+    // if (isAxiosError(error) && String(error.response?.data).includes('AuthInvalidBiscuit')) {
+    //   return Promise.reject(
+    //     new ProblemFactory(0, 'AuthInvalidBiscuit', error.message, error.message)
+    //   );
+    // }
 
     return Promise.reject(error);
   });
