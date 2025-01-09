@@ -131,7 +131,9 @@ impl Quotas {
                 }
                 Quota::EventsPerDay => self.global_events_per_day_limit,
                 Quota::DaysOfEventsRetention => self.global_days_of_events_retention_limit,
-                Quota::SubscriptionsPerApplication => self.global_subscriptions_per_application_limit,
+                Quota::SubscriptionsPerApplication => {
+                    self.global_subscriptions_per_application_limit
+                }
                 Quota::EventTypesPerApplication => self.global_event_types_per_application_limit,
             }))
         } else {
@@ -295,7 +297,9 @@ impl Quotas {
                 }
                 Quota::EventsPerDay => self.global_events_per_day_limit,
                 Quota::DaysOfEventsRetention => self.global_days_of_events_retention_limit,
-                Quota::SubscriptionsPerApplication => self.global_subscriptions_per_application_limit,
+                Quota::SubscriptionsPerApplication => {
+                    self.global_subscriptions_per_application_limit
+                }
                 Quota::EventTypesPerApplication => self.global_event_types_per_application_limit,
             }))
         } else {

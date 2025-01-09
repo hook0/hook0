@@ -100,9 +100,7 @@ pub async fn create(
     .fetch_one(&state.db)
     .await?;
     if quota_current.val >= quota_limit as i64 {
-        return Err(Hook0Problem::TooManyEventTypesPerApplication(
-            quota_limit,
-        ));
+        return Err(Hook0Problem::TooManyEventTypesPerApplication(quota_limit));
     }
 
     let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
