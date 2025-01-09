@@ -24,7 +24,7 @@ import MembersList from '@/pages/organizations/MembersList.vue';
 import { push } from 'notivue';
 
 const route = useRoute();
-const pricingEnabled = isPricingEnabled();
+const pricingEnabled = ref<boolean>(false);
 
 const has_service_token = ref(true);
 const organization_id = ref<UUID | null>(null);
@@ -69,7 +69,8 @@ function displayError(err: Problem) {
   err.status >= 500 ? push.error(options) : push.warning(options);
 }
 
-onMounted(() => {
+onMounted(async () => {
+  pricingEnabled.value = await isPricingEnabled();
   _load();
 });
 
