@@ -7,6 +7,8 @@ pub enum Quota {
     ApplicationsPerOrganization,
     EventsPerDay,
     DaysOfEventsRetention,
+    SubscriptionsPerApplication,
+    EventTypesPerApplication,
 }
 
 pub type QuotaValue = i32;
@@ -23,6 +25,8 @@ pub struct Quotas {
     global_applications_per_organization_limit: QuotaValue,
     global_events_per_day_limit: QuotaValue,
     global_days_of_events_retention_limit: QuotaValue,
+    global_subscriptions_per_application_limit: QuotaValue,
+    global_event_types_per_application_limit: QuotaValue,
 }
 
 impl Quotas {
@@ -32,6 +36,8 @@ impl Quotas {
         global_applications_per_organization_limit: QuotaValue,
         global_events_per_day_limit: QuotaValue,
         global_days_of_events_retention_limit: QuotaValue,
+        global_subscriptions_per_application_limit: QuotaValue,
+        global_event_types_per_application_limit: QuotaValue,
     ) -> Self {
         Self {
             enabled,
@@ -39,6 +45,8 @@ impl Quotas {
             global_applications_per_organization_limit,
             global_events_per_day_limit,
             global_days_of_events_retention_limit,
+            global_subscriptions_per_application_limit,
+            global_event_types_per_application_limit,
         }
     }
 
@@ -112,6 +120,8 @@ impl Quotas {
                     .fetch_optional(&mut *db)
                     .await
                 }
+                Quota::SubscriptionsPerApplication => Ok(None),
+                Quota::EventTypesPerApplication => Ok(None),
             }?
             .and_then(|r| r.val);
             Ok(plan_value.unwrap_or(match quota {
@@ -121,6 +131,8 @@ impl Quotas {
                 }
                 Quota::EventsPerDay => self.global_events_per_day_limit,
                 Quota::DaysOfEventsRetention => self.global_days_of_events_retention_limit,
+                Quota::SubscriptionsPerApplication => self.global_subscriptions_per_application_limit,
+                Quota::EventTypesPerApplication => self.global_event_types_per_application_limit,
             }))
         } else {
             Ok(QuotaValue::MAX)
@@ -171,6 +183,8 @@ impl Quotas {
                     .fetch_optional(&mut *db)
                     .await?
                 }
+                Quota::SubscriptionsPerApplication => None,
+                Quota::EventTypesPerApplication => None,
             };
             let plan_value = match app_value {
                 Some(QueryResult { val: Some(val) }) => Some(val),
@@ -238,7 +252,39 @@ impl Quotas {
                         )
                         .fetch_optional(&mut *db)
                         .await
-                    }
+                    },
+                    Quota::SubscriptionsPerApplication => {
+                        query_as!(
+                            QueryResult,
+                            "
+                                SELECT p.subscriptions_per_application_limit AS val
+                                FROM event.application AS a
+                                INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
+                                LEFT JOIN pricing.price AS pr ON pr.price__id = o.price__id
+                                LEFT JOIN pricing.plan AS p ON p.plan__id = pr.plan__id
+                                WHERE a.application__id = $1
+                            ",
+                            application_id,
+                        )
+                        .fetch_optional(&mut *db)
+                        .await
+                    },
+                    Quota::EventTypesPerApplication => {
+                        query_as!(
+                            QueryResult,
+                            "
+                                SELECT p.event_types_per_application_limit AS val
+                                FROM event.application AS a
+                                INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
+                                LEFT JOIN pricing.price AS pr ON pr.price__id = o.price__id
+                                LEFT JOIN pricing.plan AS p ON p.plan__id = pr.plan__id
+                                WHERE a.application__id = $1
+                            ",
+                            application_id,
+                        )
+                        .fetch_optional(&mut *db)
+                        .await
+                    },
                 }?
                 .and_then(|r| r.val),
             };
@@ -249,6 +295,8 @@ impl Quotas {
                 }
                 Quota::EventsPerDay => self.global_events_per_day_limit,
                 Quota::DaysOfEventsRetention => self.global_days_of_events_retention_limit,
+                Quota::SubscriptionsPerApplication => self.global_subscriptions_per_application_limit,
+                Quota::EventTypesPerApplication => self.global_event_types_per_application_limit,
             }))
         } else {
             Ok(QuotaValue::MAX)

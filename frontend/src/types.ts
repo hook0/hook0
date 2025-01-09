@@ -636,6 +636,8 @@ export interface components {
         days_of_events_retention_limit: number;
         /** Format: int32 */
         events_per_day_limit: number;
+        /** Format: int32 */
+        subscriptions_limit: number;
       };
     };
     ApplicationPost: {
@@ -734,6 +736,7 @@ export interface components {
       application_secret_compatibility: boolean;
       auto_db_migration: boolean;
       biscuit_public_key: string;
+      enable_quota_enforcement: boolean;
       /** Format: int32 */
       password_minimum_length: number;
       registration_disabled: boolean;
@@ -850,7 +853,9 @@ export interface components {
       body?: string;
       /** Format: int32 */
       elapsed_time_ms?: number;
-      headers?: Record<string, never>;
+      headers?: {
+        [key: string]: string;
+      };
       /** Format: int32 */
       http_code?: number;
       response_error_name?: string;
