@@ -19,6 +19,7 @@ use crate::hook0_client::{
 use crate::iam::{authorize_for_application, get_owner_organization, Action};
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
+use crate::quotas::{Quota, QuotaValue};
 use crate::validators::{
     subscription_target_http_method, subscription_target_http_method_headers,
     subscription_target_http_url,
@@ -123,6 +124,11 @@ where
     } else {
         Ok(HttpUrl(url))
     }
+}
+
+#[derive(Debug, Serialize, Apiv2Schema)]
+pub struct SubscriptionsQuotas {
+    subscriptions_limit_per_application: QuotaValue,
 }
 
 #[derive(Debug, Deserialize, Serialize, Apiv2Schema)]
@@ -420,6 +426,34 @@ pub async fn create(
     let organization_id = get_owner_organization(&state.db, &body.application_id)
         .await
         .unwrap_or(Uuid::nil());
+
+    let quota_limit = state
+        .quotas
+        .get_limit_for_organization(
+            &state.db,
+            Quota::SubscriptionsPerApplication,
+            &body.application_id,
+        )
+        .await?;
+    struct QueryResult {
+        val: i64,
+    }
+    let quota_current = query_as!(
+        QueryResult,
+        r#"
+            SELECT COUNT(application__id) AS "val!"
+            FROM webhook.subscription
+            WHERE application__id = $1
+        "#,
+        &body.application_id,
+    )
+    .fetch_one(&state.db)
+    .await?;
+    if quota_current.val >= quota_limit as i64 {
+        return Err(Hook0Problem::TooManySubscriptionsPerApplication(
+            quota_limit,
+        ));
+    }
 
     let metadata = match body.metadata.as_ref() {
         Some(m) => serde_json::to_value(m.clone())

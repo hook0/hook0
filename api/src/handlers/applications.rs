@@ -35,6 +35,7 @@ pub struct ApplicationInfo {
 pub struct ApplicationQuotas {
     events_per_day_limit: QuotaValue,
     days_of_events_retention_limit: QuotaValue,
+    subscriptions_limit: QuotaValue,
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
@@ -191,6 +192,14 @@ pub async fn get(
                     .get_limit_for_application(
                         &state.db,
                         Quota::DaysOfEventsRetention,
+                        &application_id,
+                    )
+                    .await?,
+                subscriptions_limit: state
+                    .quotas
+                    .get_limit_for_application(
+                        &state.db,
+                        Quota::SubscriptionsPerApplication,
                         &application_id,
                     )
                     .await?,

@@ -62,6 +62,8 @@ pub enum Hook0Problem {
     TooManyMembersPerOrganization(QuotaValue),
     TooManyApplicationsPerOrganization(QuotaValue),
     TooManyEventsToday(QuotaValue),
+    TooManySubscriptionsPerApplication(QuotaValue),
+    TooManyEventTypesPerApplication(QuotaValue),
 
     // Generic errors
     JsonPayload(JsonPayloadProblem),
@@ -427,6 +429,26 @@ impl From<Hook0Problem> for Problem {
                 Problem {
                     id: Hook0Problem::TooManyEventsToday(limit),
                     title: "Exceeded number of events that can be ingested in this organization today",
+                    detail: detail.into(),
+                    validation: None,
+                    status: StatusCode::TOO_MANY_REQUESTS,
+                }
+            },
+            Hook0Problem::TooManySubscriptionsPerApplication(limit) => {
+                let detail = format!("This application cannot have more than {limit} subscriptions. You might want to upgrade to a better plan.");
+                Problem {
+                    id: Hook0Problem::TooManySubscriptionsPerApplication(limit),
+                    title: "Exceeded number of subscriptions that can be created in this application",
+                    detail: detail.into(),
+                    validation: None,
+                    status: StatusCode::TOO_MANY_REQUESTS,
+                }
+            },
+            Hook0Problem::TooManyEventTypesPerApplication(limit) => {
+                let detail = format!("This application cannot have more than {limit} event types. You might want to upgrade to a better plan.");
+                Problem {
+                    id: Hook0Problem::TooManyEventTypesPerApplication(limit),
+                    title: "Exceeded number of event types that can be created in this application",
                     detail: detail.into(),
                     validation: None,
                     status: StatusCode::TOO_MANY_REQUESTS,
