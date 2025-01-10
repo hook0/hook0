@@ -636,8 +636,6 @@ export interface components {
         days_of_events_retention_limit: number;
         /** Format: int32 */
         events_per_day_limit: number;
-        /** Format: int32 */
-        subscriptions_limit: number;
       };
     };
     ApplicationPost: {
@@ -687,8 +685,12 @@ export interface components {
       /** Format: uuid */
       event_id: string;
       event_type: string;
-      labels: Record<string, never>;
-      metadata?: Record<string, never>;
+      labels: {
+        [key: string]: Record<string, never>;
+      };
+      metadata?: {
+        [key: string]: Record<string, never>;
+      };
       /** Format: date-time */
       occurred_at: string;
       payload: string;
@@ -736,9 +738,9 @@ export interface components {
       application_secret_compatibility: boolean;
       auto_db_migration: boolean;
       biscuit_public_key: string;
-      quota_enforcement: boolean;
       /** Format: int32 */
       password_minimum_length: number;
+      quota_enforcement: boolean;
       registration_disabled: boolean;
     };
     LoginPost: {
@@ -890,7 +892,9 @@ export interface components {
       is_enabled: boolean;
       label_key: string;
       label_value: string;
-      metadata: Record<string, never>;
+      metadata: {
+        [key: string]: Record<string, never>;
+      };
       /** Format: uuid */
       secret: string;
       /** Format: uuid */
@@ -906,7 +910,9 @@ export interface components {
       is_enabled: boolean;
       label_key: string;
       label_value: string;
-      metadata?: Record<string, never>;
+      metadata?: {
+        [key: string]: Record<string, never>;
+      };
       target: string;
     };
     UserInvitation: {

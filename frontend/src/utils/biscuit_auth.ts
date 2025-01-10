@@ -10,7 +10,6 @@ export type InstanceConfig = definitions['InstanceConfig'];
 let instanceConfigCache: InstanceConfig | null = null;
 
 export function getInstanceConfig(): Promise<InstanceConfig> {
-  console.log(!instanceConfigCache);
   if (instanceConfigCache) {
     return Promise.resolve(instanceConfigCache);
   }
