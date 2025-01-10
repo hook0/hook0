@@ -2,11 +2,12 @@ e2e-ci.build:
   stage: build
   dependencies: []
   image: rust:$RUST_VERSION
-  # rules:
-  #   - changes:
-  #       - api/**/*
-  #       - output-worker/**/*
-  #       - Cargo.*
+  rules:
+    - changes:
+        - e2e-tests/**/*
+        - api/**/*
+        - output-worker/**/*
+        - Cargo.*
   script:
     - rustc --version && cargo --version
     - cargo build --release --no-default-features -F reqwest-rustls-tls-webpki-roots -F application-secret-compatibility
@@ -44,14 +45,11 @@ e2e-ci.test:
     APP_URL: 'http://localhost:8080/'
     DISABLE_SERVING_WEBAPP: true
   before_script:
-    - apt-get update
-    - apt-get install -y dirmngr gnupg
-    - mkdir -p /root/.gnupg
-    - chmod 700 /root/.gnupg
+    - apt-get update && apt-get install dirmngr gnupg -y
+    - mkdir -p /root/.gnupg && chmod 700 /root/.gnupg
     - gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69 || true
     - echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | tee /etc/apt/sources.list.d/k6.list
-    - apt-get update
-    - apt-get install k6 -y
+    - apt-get update && apt-get install k6 -y
   script:
     - pushd e2e-tests
     - npm ci
