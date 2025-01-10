@@ -10,6 +10,6 @@ export default function (baseUrl, applicationId, serviceToken) {
   };
   const response = http.request('DELETE', url, null, params);
   if (response.status !== 204) {
-    console.error('Failed to delete application:', response.status, response.body);
+    throw new Error(`Failed to delete application: ${response.status} ${response.body}`);
   }
 }
