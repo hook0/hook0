@@ -17,6 +17,7 @@
     "prettier": "^3.4.2"
   },
   "dependencies": {
+    "@date-fns/tz": "^1.2.0",
     "pg": "^8.13.1",
     "start-server-and-test": "^2.0.9"
   }

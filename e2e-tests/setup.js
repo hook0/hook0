@@ -1,12 +1,13 @@
 const { Pool } = require('pg');
+import { TZDate } from "@date-fns/tz";
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
   throw new Error('[E2E-SETUP] Missing environment variable DATABASE_URL');
 }
 
-const date = new Date().toISOString().replace('Z', '+00:00');
-const organizationName = 'e2e-organization-' + date;
+const date = new TZDate();
+const organizationName = 'e2e-organization-' + date.toISOString();
 
 const organizationId = process.env.ORGANIZATION_ID;
 if (!organizationId) {
