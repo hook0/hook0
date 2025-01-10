@@ -21,6 +21,12 @@ e2e-ci.test:
   dependencies:
     - e2e-ci.build
   image: node:$NODE_VERSION
+  rules:
+    - changes:
+        - e2e-tests/**/*
+        - api/**/*
+        - output-worker/**/*
+        - Cargo.*
   services:
     - name: postgres:$PG_VERSION
   variables:
@@ -44,6 +50,7 @@ e2e-ci.test:
     SMTP_CONNECTION_URL: 'smtp://localhost:1025'
     APP_URL: 'http://localhost:8080/'
     DISABLE_SERVING_WEBAPP: true
+    DISABLE_TARGET_IP_CHECK: true
   before_script:
     - apt-get update && apt-get install dirmngr gnupg -y
     - mkdir -p /root/.gnupg && chmod 700 /root/.gnupg
