@@ -163,12 +163,7 @@ export async function logout(): Promise<void> {
       console.error(`Logout failed: ${JSON.stringify(e as Error)}`);
     }
 
-    if (refreshTimerId !== null) {
-      clearTimeout(refreshTimerId);
-    }
-    state.value = null;
-    removeStateFromStorage();
-    await router.push({ name: routes.Login });
+    await clearTokens();
   }
 }
 
@@ -178,6 +173,15 @@ export function getAccessToken(): ComputedRef<null | string> {
 
 export function getRefreshToken(): ComputedRef<null | string> {
   return computed(() => state.value?.refreshToken ?? null);
+}
+
+export async function clearTokens(): Promise<void> {
+  if (refreshTimerId !== null) {
+    clearTimeout(refreshTimerId);
+  }
+  state.value = null;
+  removeStateFromStorage();
+  await router.push({ name: routes.Login });
 }
 
 export interface UserInfo {
