@@ -57,12 +57,6 @@ async function getAxios(
       }
     }
 
-    // if (isAxiosError(error) && String(error.response?.data).includes('AuthInvalidBiscuit')) {
-    //   return Promise.reject(
-    //     new ProblemFactory(0, 'AuthInvalidBiscuit', error.message, error.message)
-    //   );
-    // }
-
     return Promise.reject(error);
   });
 
