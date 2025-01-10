@@ -161,7 +161,7 @@ function displayError(err: Problem) {
           >
             <div>
               <p class="font-bold">Warning</p>
-              <p>You will be disconnected from other browsers/devices.</p>
+              <p>You will be disconnected from all browsers/devices including the current one.</p>
             </div>
           </div>
           <Hook0Button class="primary" submit aria-label="Change Password" title="Change Password"
