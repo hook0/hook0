@@ -525,7 +525,7 @@ async fn get_worker_type(worker_name: &str, conn: &PgPool) -> Result<WorkerType,
     }
 }
 
-async fn compute_next_retry<'a>(
+async fn compute_next_retry(
     conn: &mut PgConnection,
     subscription_id: &Uuid,
     max_fast_retries: u32,
