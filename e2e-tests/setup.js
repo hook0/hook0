@@ -1,5 +1,5 @@
 const { Pool } = require('pg');
-import { TZDate } from "@date-fns/tz";
+const { TZDate } = require("@date-fns/tz");
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
