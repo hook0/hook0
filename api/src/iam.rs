@@ -1114,10 +1114,10 @@ pub fn authorize_refresh_token(
     })
 }
 
-pub async fn authorize_for_application<'a>(
+pub async fn authorize_for_application(
     db: &PgPool,
     biscuit: &Biscuit,
-    action: Action<'a>,
+    action: Action<'_>,
     max_authorization_time_in_ms: u64,
 ) -> Result<AuthorizedToken, String> {
     let application_id = action.application_id().ok_or_else(|| {
