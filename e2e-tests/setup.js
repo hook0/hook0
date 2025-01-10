@@ -19,8 +19,8 @@ const pool = new Pool({
 });
 
 pool.query(
-  'INSERT INTO iam.organization (organization__id, name, created_by) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING;',
-  [organizationId, organizationName, organizationId],
+  'INSERT INTO iam.organization (organization__id, name) VALUES ($1, $2) ON CONFLICT DO NOTHING;',
+  [organizationId, organizationName],
   (err, _res) => {
     if (err) {
       throw new Error('[E2E-SETUP] Insert organization failed. Error: ' + err);
