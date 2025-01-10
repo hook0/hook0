@@ -269,7 +269,7 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
             }
         }
         (_, Err(e), _, _) => {
-            error!("Target has an invalid URL: {}", &e);
+            warn!("Target has an invalid URL: {}", &e);
             Response {
                 response_error: Some(ResponseError::InvalidTarget),
                 http_code: None,
