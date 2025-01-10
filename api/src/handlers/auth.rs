@@ -742,6 +742,8 @@ async fn do_change_password<'a, A: Acquire<'a, Database = Postgres>>(
 
         let mut db = db.acquire().await?;
 
+        let mut tx = db.begin().await?;
+
         query!(
             "
                 UPDATE iam.user
@@ -751,8 +753,23 @@ async fn do_change_password<'a, A: Acquire<'a, Database = Postgres>>(
             password_hash.as_str(),
             &user_id,
         )
-        .execute(&mut *db)
+        .execute(&mut *tx)
         .await?;
+
+        query!(
+            "
+                UPDATE iam.token
+                SET expired_at = statement_timestamp()
+                WHERE user__id = $1
+                AND expired_at IS NULL
+                OR expired_at > statement_timestamp()
+            ",
+            &user_id,
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
 
         Ok(())
     } else {
