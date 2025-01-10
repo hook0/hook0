@@ -736,7 +736,7 @@ export interface components {
       application_secret_compatibility: boolean;
       auto_db_migration: boolean;
       biscuit_public_key: string;
-      enable_quota_enforcement: boolean;
+      quota_enforcement: boolean;
       /** Format: int32 */
       password_minimum_length: number;
       registration_disabled: boolean;

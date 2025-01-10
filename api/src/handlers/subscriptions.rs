@@ -19,7 +19,7 @@ use crate::hook0_client::{
 use crate::iam::{authorize_for_application, get_owner_organization, Action};
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
-use crate::quotas::{Quota, QuotaValue};
+use crate::quotas::Quota;
 use crate::validators::{
     subscription_target_http_method, subscription_target_http_method_headers,
     subscription_target_http_url,
@@ -124,11 +124,6 @@ where
     } else {
         Ok(HttpUrl(url))
     }
-}
-
-#[derive(Debug, Serialize, Apiv2Schema)]
-pub struct SubscriptionsQuotas {
-    subscriptions_limit_per_application: QuotaValue,
 }
 
 #[derive(Debug, Deserialize, Serialize, Apiv2Schema)]
@@ -435,13 +430,10 @@ pub async fn create(
             &body.application_id,
         )
         .await?;
-    struct QueryResult {
-        val: i64,
-    }
-    let quota_current = query_as!(
-        QueryResult,
+
+    let quota_current = query_scalar!(
         r#"
-            SELECT COUNT(application__id) AS "val!"
+            SELECT COUNT(subscription__id) AS "val!"
             FROM webhook.subscription
             WHERE application__id = $1
         "#,
@@ -449,7 +441,8 @@ pub async fn create(
     )
     .fetch_one(&state.db)
     .await?;
-    if quota_current.val >= quota_limit as i64 {
+
+    if quota_current >= i64::from(quota_limit) {
         return Err(Hook0Problem::TooManySubscriptionsPerApplication(
             quota_limit,
         ));
