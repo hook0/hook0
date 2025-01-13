@@ -159,6 +159,10 @@ function scenario_1() {
       'Expected to find 0 request attempts for event 3 | Found: ' + request_attempts_3.length
     );
   }
+
+  if (!config.keepTestApplication) {
+    delete_application(h, application_id, s);
+  }
 }
 
 export default function () {
