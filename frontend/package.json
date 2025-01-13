@@ -34,7 +34,7 @@
     "test:watch": "jest --maxWorkers=25%",
     "test:ci": "jest --runInBand --coverage --collectCoverage",
     "format": "prettier --write src/ ./*.{js,ts,json}",
-    "generate:types": "openapi-typescript http://localhost:8081/api/v1/swagger.json --output src/types.ts && npm run --silent format",
+    "generate:types": "openapi-typescript http://localhost:8080/api/v1/swagger.json --output src/types.ts && npm run --silent format",
     "generate:types:prod": "openapi-typescript https://app.hook0.com/api/v1/swagger.json --output src/types.ts && npm run --silent format"
   },
   "dependencies": {

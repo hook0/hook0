@@ -7,9 +7,18 @@ import { components } from '@/types.ts';
 type definitions = components['schemas'];
 export type InstanceConfig = definitions['InstanceConfig'];
 
+let instanceConfigCache: InstanceConfig | null = null;
+
 export function getInstanceConfig(): Promise<InstanceConfig> {
+  if (instanceConfigCache) {
+    return Promise.resolve(instanceConfigCache);
+  }
+
   return http.get('/instance', {}).then(
-    (res: AxiosResponse<InstanceConfig>) => res.data,
+    (res: AxiosResponse<InstanceConfig>) => {
+      instanceConfigCache = res.data;
+      return res.data;
+    },
     (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
   );
 }
