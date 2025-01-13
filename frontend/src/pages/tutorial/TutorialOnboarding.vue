@@ -8,18 +8,20 @@ import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0ProgressBar from '@/components/Hook0ProgressBar.vue';
-import { ref } from 'vue';
-import FirstStep from '@/pages/tutorial/Step2CreateOrganization.vue';
+import { useRouter } from 'vue-router';
+import { routes } from '@/routes.ts';
 
-const isFirstStep = ref(false);
+const router = useRouter();
+
 function startTutorial() {
-  isFirstStep.value = true;
+  return router.push({
+    name: routes.TutorialCreateOrganization,
+  });
 }
 </script>
 
 <template>
-  <FirstStep v-if="isFirstStep" />
-  <Hook0Card v-else>
+  <Hook0Card>
     <Hook0CardHeader>
       <template #header>Welcome to Hook0 🎉 - Let’s Get Started!</template>
       <template #subtitle>This tutorial will help you get started quickly with us.</template>
