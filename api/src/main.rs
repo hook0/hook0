@@ -227,7 +227,7 @@ struct Config {
     quota_global_subscriptions_per_application_limit: quotas::QuotaValue,
 
     /// Default limit of event types per application (can be overriden by a plan)
-    #[clap(long, env, default_value = "5")]
+    #[clap(long, env, default_value = "10")]
     quota_global_event_types_per_application_limit: quotas::QuotaValue,
 
     /// Duration (in second) to wait between materialized views refreshes
