@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT COUNT(application__id) AS \"val!\"\n            FROM event.event_type\n            WHERE application__id = $1\n        ",
+  "query": "\n            SELECT COUNT(*) AS \"val!\"\n            FROM event.event_type\n            WHERE application__id = $1\n        ",
   "describe": {
     "columns": [
       {
@@ -18,5 +18,5 @@
       null
     ]
   },
-  "hash": "9d7db372c749334c3ec1875cdcf22d3856e1ba17205a2fe4f483908572421307"
+  "hash": "85de50b5881ddf8c694d6c8ee6a37b70689074b812c6104b4039d261e7373367"
 }
