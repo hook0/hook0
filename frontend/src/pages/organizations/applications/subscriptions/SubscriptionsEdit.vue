@@ -171,8 +171,11 @@ function cancel2() {
   router.back();
 }
 
-function fromMap(headers: Record<string, string>): Hook0KeyValueKeyValuePair[] {
-  return Object.entries(headers).map(([key, value]) => ({ key, value }));
+function fromMap(headers: Record<string, unknown>): Hook0KeyValueKeyValuePair[] {
+  return Object.entries(headers).map(([key, value]) => ({
+    key,
+    value: typeof value === 'string' ? value : JSON.stringify(value),
+  }));
 }
 
 function toMap(pairs: Hook0KeyValueKeyValuePair[]): Record<string, string> {

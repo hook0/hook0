@@ -19,6 +19,7 @@ use crate::hook0_client::{
 use crate::iam::{authorize_for_application, get_owner_organization, Action};
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
+use crate::quotas::Quota;
 use crate::validators::{
     subscription_target_http_method, subscription_target_http_method_headers,
     subscription_target_http_url,
@@ -420,6 +421,32 @@ pub async fn create(
     let organization_id = get_owner_organization(&state.db, &body.application_id)
         .await
         .unwrap_or(Uuid::nil());
+
+    let quota_limit = state
+        .quotas
+        .get_limit_for_organization(
+            &state.db,
+            Quota::SubscriptionsPerApplication,
+            &body.application_id,
+        )
+        .await?;
+
+    let quota_current = query_scalar!(
+        r#"
+            SELECT COUNT(subscription__id) AS "val!"
+            FROM webhook.subscription
+            WHERE application__id = $1
+        "#,
+        &body.application_id,
+    )
+    .fetch_one(&state.db)
+    .await?;
+
+    if quota_current >= i64::from(quota_limit) {
+        return Err(Hook0Problem::TooManySubscriptionsPerApplication(
+            quota_limit,
+        ));
+    }
 
     let metadata = match body.metadata.as_ref() {
         Some(m) => serde_json::to_value(m.clone())
