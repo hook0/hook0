@@ -41,7 +41,7 @@ function startTutorial() {
               class="mb-14"
             />
             <img
-              src="../../../dist/assets/illustration-tutorial.png"
+              src="../../../public/illustration-tutorial.png"
               alt="Illustration"
               class="w-10/12 h-80 object-cover rounded-lg mx-auto block mb-4"
             />
