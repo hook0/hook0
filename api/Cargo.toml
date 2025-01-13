@@ -38,12 +38,12 @@ nom-regex = "0.2.0"
 paperclip = { version = "0.9.3", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
 regex = "1.11.0"
 reqwest = { version = "0.12.12", default-features = false, features = ["charset", "http2", "macos-system-configuration", "hickory-dns"] }
-sentry-actix = "0.35.0"
+sentry-actix = "0.36.0"
 serde = "1.0.217"
 serde_json = "1.0.135"
 sqlx = { version = "0.8.3", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "migrate"] }
 strum = { version = "0.26.3", features = ["derive"] }
-thiserror = "2.0.10"
+thiserror = "2.0.11"
 url = "2.5.4"
 uuid = { version = "1.11.0", features = ["serde", "v4"] }
 validator = { version = "0.19.0", features = ["derive", "unic"] }
