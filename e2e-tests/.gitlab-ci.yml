@@ -60,4 +60,5 @@ e2e-ci.test:
   script:
     - pushd e2e-tests
     - npm ci
+    - npm run check
     - npm run test
