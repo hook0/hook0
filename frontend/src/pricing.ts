@@ -1,3 +1,6 @@
-export function isPricingEnabled(): boolean {
-  return (import.meta.env.VITE_ENABLE_QUOTA_ENFORCEMENT ?? 'false').toLowerCase() === 'true';
+import { getInstanceConfig } from './utils/biscuit_auth';
+
+export async function isPricingEnabled(): Promise<boolean> {
+  const config = await getInstanceConfig();
+  return config.quota_enforcement;
 }

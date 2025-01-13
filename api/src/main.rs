@@ -222,6 +222,14 @@ struct Config {
     #[clap(long, env, default_value = "7")]
     quota_global_days_of_events_retention_limit: quotas::QuotaValue,
 
+    /// Default limit of subscriptions per application (can be overriden by a plan)
+    #[clap(long, env, default_value = "50")]
+    quota_global_subscriptions_per_application_limit: quotas::QuotaValue,
+
+    /// Default limit of event types per application (can be overriden by a plan)
+    #[clap(long, env, default_value = "10")]
+    quota_global_event_types_per_application_limit: quotas::QuotaValue,
+
     /// Duration (in second) to wait between materialized views refreshes
     #[clap(long, env, default_value = "60")]
     materialized_views_refresh_period_in_s: u64,
@@ -333,6 +341,7 @@ pub struct State {
     quotas: quotas::Quotas,
     health_check_key: Option<String>,
     max_authorization_time_in_ms: u64,
+    enable_quota_enforcement: bool,
 }
 
 #[actix_web::main]
@@ -424,6 +433,8 @@ async fn main() -> anyhow::Result<()> {
             config.quota_global_applications_per_organization_limit,
             config.quota_global_events_per_day_limit,
             config.quota_global_days_of_events_retention_limit,
+            config.quota_global_subscriptions_per_application_limit,
+            config.quota_global_event_types_per_application_limit,
         );
         if config.enable_quota_enforcement {
             info!("Quota enforcement is enabled");
@@ -530,6 +541,7 @@ async fn main() -> anyhow::Result<()> {
             quotas,
             health_check_key: config.health_check_key,
             max_authorization_time_in_ms: config.max_authorization_time_in_ms,
+            enable_quota_enforcement: config.enable_quota_enforcement,
         };
         let hook0_client_api_url = config.hook0_client_api_url;
 
