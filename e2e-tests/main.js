@@ -34,7 +34,7 @@ function scenario_1() {
 
   let event_type_1 = create_event_type(h, s, application_id);
   if (!isNotNull(event_type_1)) {
-    if (config.deleteOnFail) {
+    if (!config.keepTestApplication) {
       delete_application(h, application_id, s);
     }
     throw new Error('Failed to create event type 1');
@@ -42,7 +42,7 @@ function scenario_1() {
 
   let event_type_2 = create_event_type(h, s, application_id);
   if (!isNotNull(event_type_2)) {
-    if (config.deleteOnFail) {
+    if (!config.keepTestApplication) {
       delete_application(h, application_id, s);
     }
     throw new Error('Failed to create event type 2');
@@ -58,7 +58,7 @@ function scenario_1() {
     'yes'
   );
   if (!isNotNull(subscription_1)) {
-    if (config.deleteOnFail) {
+    if (!config.keepTestApplication) {
       delete_application(h, application_id, s);
     }
     throw new Error('Failed to create subscription');
@@ -77,7 +77,7 @@ function scenario_1() {
     'yes'
   );
   if (!isNotNull(subscription_2)) {
-    if (config.deleteOnFail) {
+    if (!config.keepTestApplication) {
       delete_application(h, application_id, s);
     }
     throw new Error('Failed to create subscription');
@@ -88,7 +88,7 @@ function scenario_1() {
 
   let event_1 = send_event(s, h, application_id, event_type_1, { [label_1_key]: label_1_value });
   if (!isNotNull(event_1)) {
-    if (config.deleteOnFail) {
+    if (!config.keepTestApplication) {
       delete_application(h, application_id, s);
     }
     throw new Error('Failed to create event 1');
@@ -96,7 +96,7 @@ function scenario_1() {
 
   let event_2 = send_event(s, h, application_id, event_type_2, { [label_2_key]: label_2_value });
   if (!isNotNull(event_2)) {
-    if (config.deleteOnFail) {
+    if (!config.keepTestApplication) {
       delete_application(h, application_id, s);
     }
     throw new Error('Failed to create event 2');
@@ -105,7 +105,7 @@ function scenario_1() {
   // Event 3 shouldn't be delivered
   let event_3 = send_event(s, h, application_id, event_type_1, { test: 'test' });
   if (!isNotNull(event_3)) {
-    if (config.deleteOnFail) {
+    if (!config.keepTestApplication) {
       delete_application(h, application_id, s);
     }
     throw new Error('Failed to create event 3');
@@ -113,13 +113,13 @@ function scenario_1() {
 
   let request_attempts_1 = list_request_attempt(h, s, application_id, event_1);
   if (!isNotNull(request_attempts_1)) {
-    if (config.deleteOnFail) {
+    if (!config.keepTestApplication) {
       delete_application(h, application_id, s);
     }
     throw new Error('Failed to list request attempts 1');
   }
   if (request_attempts_1.length !== 2) {
-    if (config.deleteOnFail) {
+    if (!config.keepTestApplication) {
       delete_application(h, application_id, s);
     }
     throw new Error(
@@ -129,13 +129,13 @@ function scenario_1() {
 
   let request_attempts_2 = list_request_attempt(h, s, application_id, event_2);
   if (!isNotNull(request_attempts_2)) {
-    if (config.deleteOnFail) {
+    if (!config.keepTestApplication) {
       delete_application(h, application_id, s);
     }
     throw new Error('Failed to list request attempts 2');
   }
   if (request_attempts_2.length !== 1) {
-    if (config.deleteOnFail) {
+    if (!config.keepTestApplication) {
       delete_application(h, application_id, s);
     }
     throw new Error(
@@ -146,13 +146,13 @@ function scenario_1() {
   // Event 3 shouldn't be received by any subscription so the length should be 0
   let request_attempts_3 = list_request_attempt(h, s, application_id, event_3);
   if (!isNotNull(request_attempts_3)) {
-    if (config.deleteOnFail) {
+    if (!config.keepTestApplication) {
       delete_application(h, application_id, s);
     }
     throw new Error('Failed to list request attempts 3');
   }
   if (request_attempts_3.length !== 0) {
-    if (config.deleteOnFail) {
+    if (!config.keepTestApplication) {
       delete_application(h, application_id, s);
     }
     throw new Error(
