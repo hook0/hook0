@@ -1,0 +1,1 @@
+drop index webhook.subscription_application__id_idx;
