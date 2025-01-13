@@ -39,8 +39,8 @@ const progressBarPercentage = () => {
                 index === 0
                   ? 1.5
                   : index === props.items.length - 1
-                  ? 98.5
-                  : (index / (props.items.length - 1)) * 100
+                    ? 98.5
+                    : (index / (props.items.length - 1)) * 100
               }%`,
             }"
             :class="{
