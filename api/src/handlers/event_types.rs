@@ -83,7 +83,7 @@ pub async fn create(
 
     let quota_current = query_scalar!(
         r#"
-            SELECT COUNT(application__id) AS "val!"
+            SELECT COUNT(*) AS "val!"
             FROM event.event_type
             WHERE application__id = $1
         "#,
