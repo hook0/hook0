@@ -58,7 +58,7 @@ function goThirdStep(applicationId: UUID) {
   application_id.value = applicationId;
   if (organization_id.value && application_id.value) {
     return router.push({
-      name: routes.TutorialStep3,
+      name: routes.TutorialCreateEventType,
       params: {
         organization_id: organization_id.value,
         application_id: application_id.value,

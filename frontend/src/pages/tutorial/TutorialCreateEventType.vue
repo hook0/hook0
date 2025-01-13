@@ -12,7 +12,7 @@ import Hook0Alert from '@/components/Hook0Alert.vue';
 import { Alert } from '@/components/Hook0Alert.ts';
 import { Problem, UUID } from '@/http.ts';
 import { routes } from '@/routes.ts';
-import SubscriptionsEdit from '@/pages/organizations/applications/subscriptions/SubscriptionsEdit.vue';
+import EventTypesNew from '@/pages/organizations/applications/event_types/EventTypesNew.vue';
 import { push } from 'notivue';
 import Hook0ProgressBar from '@/components/Hook0ProgressBar.vue';
 
@@ -57,11 +57,11 @@ function cancel() {
   router.back();
 }
 
-function goFifthStep() {
+function goFourthStep() {
   if (organizationId.value && applicationId.value) {
     disabled_button.value = false;
     return router.push({
-      name: routes.TutorialStep5,
+      name: routes.TutorialCreateSubscription,
       params: {
         organization_id: organizationId.value,
         application_id: applicationId.value,
@@ -70,7 +70,7 @@ function goFifthStep() {
   } else {
     push.error({
       title: 'Organization ID and Application ID are required',
-      message: 'Organization ID and Application ID are required to create an event type',
+      message: 'Something went wrong. Please try again. If the problem persists, contact support.',
       duration: 5000,
     });
   }
@@ -92,18 +92,15 @@ onMounted(() => {
   </Hook0CardContent>
   <Hook0Card v-else>
     <Hook0CardHeader>
-      <template #header>Step 5: Create a subscription</template>
-      <template #subtitle>
-        Subscription are a way to choose what kind of events you are interested in (depending on
-        their event type and labels) and where to dispatch then as webhooks.
-      </template>
+      <template #header>Step 4: Create your first event type</template>
+      <template #subtitle>Each event sent through a Hook0 must have an event type. </template>
     </Hook0CardHeader>
     <Hook0CardContent>
       <Hook0CardContentLines>
         <Hook0CardContentLine type="full-width">
           <template #content>
             <Hook0ProgressBar
-              actual="5"
+              actual="4"
               :items="[
                 { description: 'Introduction' },
                 { description: 'Create Your Organization' },
@@ -114,10 +111,10 @@ onMounted(() => {
               ]"
               class="mb-14"
             />
-            <SubscriptionsEdit
+            <EventTypesNew
               v-if="organizationId && applicationId && disabled_button"
               :tutorial-mode="true"
-              @tutorial-subscription-created="goFifthStep"
+              @tutorial-event-type-created="goFourthStep"
             />
           </template>
         </Hook0CardContentLine>
@@ -128,8 +125,8 @@ onMounted(() => {
         class="primary"
         type="button"
         :disabled="!organizationId || !applicationId || disabled_button"
-        @click="goFifthStep"
-        >🚀 Continue Step 6: Send Your First Event</Hook0Button
+        @click="goFourthStep"
+        >🚀 Continue Step 5: Create Your Subscription</Hook0Button
       >
     </Hook0CardFooter>
   </Hook0Card>
