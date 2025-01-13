@@ -28,12 +28,12 @@ const goSecondStep = (organization_id: UUID) => {
   organizationId.value = organization_id;
   if (selected_organization_id.value) {
     return router.push({
-      name: routes.TutorialStep2,
+      name: routes.TutorialCreateApplication,
       params: { organization_id: selected_organization_id.value },
     });
   } else if (organizationId.value) {
     return router.push({
-      name: routes.TutorialStep2,
+      name: routes.TutorialCreateApplication,
       params: { organization_id: organizationId.value },
     });
   } else {
