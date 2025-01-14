@@ -26,6 +26,9 @@ import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0Select from '@/components/Hook0Select.vue';
 import { push } from 'notivue';
 import { v4 as uuidv4 } from 'uuid';
+import { Codemirror } from 'vue-codemirror';
+import { json } from '@codemirror/lang-json';
+import { EditorView } from 'codemirror';
 
 interface Props {
   // cache-burst
@@ -47,7 +50,9 @@ const selected_event_type = ref<null | string>();
 const label_key = ref<null | string>('all');
 const label_value = ref<null | string>('yes');
 const occurred_at = ref<null | Date>();
-const payload = ref<null | string>('{"test": true}');
+const payload = ref<undefined | string>('{"test": true}');
+
+const extensions = [json(), EditorView.lineWrapping];
 
 const columnDefs: ColDef[] = [
   {
@@ -306,7 +311,13 @@ onUpdated(() => {
             <Hook0CardContentLine>
               <template #label> Payload </template>
               <template #content>
-                <Hook0Input v-model="payload" placeholder='{"test": true}'></Hook0Input>
+                <Codemirror
+                  v-model="payload"
+                  :autofocus="true"
+                  :indent-with-tab="true"
+                  :tab-size="2"
+                  :extensions="extensions"
+                />
               </template>
             </Hook0CardContentLine>
           </Hook0CardContent>
