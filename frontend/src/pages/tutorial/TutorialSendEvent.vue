@@ -70,7 +70,6 @@ function back_to_application() {
   });
   return router.push({
     name: routes.TutorialSuccess,
-    // params: { organization_id: organizationId.value, application_id: applicationId.value },
   });
 }
 
