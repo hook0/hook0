@@ -11,7 +11,7 @@ export function getEnvironmentVariables() {
   const iterations = __ENV.ITERATIONS || DEFAULTS.iterations;
   const maxDuration = __ENV.MAX_DURATION || DEFAULTS.maxDuration;
   const keepTestApplication = __ENV.KEEP_TEST_APPLICATION
-    ? __ENV.KEEP_TEST_APPLICATION
+    ? __ENV.KEEP_TEST_APPLICATION === "true"
     : DEFAULTS.keepTestApplication;
 
   const apiOrigin = __ENV.API_ORIGIN ? __ENV.API_ORIGIN : null;
