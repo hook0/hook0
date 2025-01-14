@@ -10,8 +10,8 @@ export const config = getEnvironmentVariables();
 
 export const options = {
   vus: config.vus,
-  duration: config.duration,
-  //maxDuration: config.maxDuration,
+  iterations: config.iterations,
+  duration: config.maxDuration,
   thresholds: {
     // the rate of successful checks should be at 100%
     checks: ['rate>=1.0'],
