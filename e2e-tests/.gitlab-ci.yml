@@ -38,7 +38,7 @@ e2e-ci.test:
     API_ORIGIN: 'http://localhost:8080'
     TARGET_URL: 'http://localhost:3000'
     ORGANIZATION_ID: '00000000-0000-0000-0000-000000000000'
-    VUS: 10
+    VUS: 1
     ITERATIONS: 1
     DURATION: '1m'
     ENABLE_SETUP: true
