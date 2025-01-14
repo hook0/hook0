@@ -36,6 +36,7 @@ e2e-ci.test:
     POSTGRES_PASSWORD: postgres
     ## e2e-tests variables
     API_ORIGIN: 'http://localhost:8080'
+    SERVICE_TOKEN: '00000000-0000-0000-0000-000000000000'
     TARGET_URL: 'http://localhost:3000'
     ORGANIZATION_ID: '00000000-0000-0000-0000-000000000000'
     VUS: 1
