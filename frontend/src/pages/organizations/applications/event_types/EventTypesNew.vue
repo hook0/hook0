@@ -42,11 +42,6 @@ function create(e: Event) {
 
   EventTypeService.create(event_type.value).then(async (_resp) => {
     if (props.tutorialMode) {
-      push.success({
-        title: 'Event type created',
-        message: 'You have successfully created your first event type',
-        duration: 5000,
-      });
       emit('tutorial-event-type-created');
     } else {
       await router.push({
@@ -144,7 +139,7 @@ function displayError(err: Problem) {
         <Hook0CardContentLine type="full-width">
           <template #content>
             <Hook0Text class="block"
-              >An event is something that has happened. In the past.</Hook0Text
+              >An event is something that has happened in your application. In the past.</Hook0Text
             >
             <Hook0Text class="mt-2">Event should be in the form of:</Hook0Text>
             <Hook0Text class="code"> &lt;service&gt;.&lt;resourceType&gt;.&lt;verb&gt; </Hook0Text>

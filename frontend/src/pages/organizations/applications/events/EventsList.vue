@@ -300,7 +300,7 @@ onUpdated(() => {
             <Hook0CardContentLine>
               <template #label> Occurred At </template>
               <template #content>
-                <input v-model="occurred_at" type="datetime-local" />
+                <Hook0Input v-model="occurred_at" type="datetime-local" />
               </template>
             </Hook0CardContentLine>
             <Hook0CardContentLine>

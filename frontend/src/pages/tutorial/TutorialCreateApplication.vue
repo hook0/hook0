@@ -15,6 +15,7 @@ import { Problem, UUID } from '@/http.ts';
 import { routes } from '@/routes.ts';
 import { push } from 'notivue';
 import Hook0ProgressBar from '@/components/Hook0ProgressBar.vue';
+import party from 'party-js';
 
 const router = useRouter();
 const route = useRoute();
@@ -57,6 +58,11 @@ function cancel() {
 function goThirdStep(applicationId: UUID) {
   application_id.value = applicationId;
   if (organization_id.value && application_id.value) {
+    party.confetti(party.Rect.fromScreen(), {
+      count: 80,
+      spread: 40,
+      size: party.variation.range(1.2, 1.6),
+    });
     return router.push({
       name: routes.TutorialCreateEventType,
       params: {
@@ -103,12 +109,12 @@ onMounted(() => {
             <Hook0ProgressBar
               actual="3"
               :items="[
-                { description: 'Introduction' },
-                { description: 'Create Your Organization' },
-                { description: 'Create Your Application' },
-                { description: 'Create Your Event Type' },
-                { description: 'Configure Your Subscription' },
-                { description: 'Send Your First Event' },
+                { icon: 'info-circle', description: 'Introduction' },
+                { icon: 'building', description: 'Organization' },
+                { icon: 'terminal', description: 'Application' },
+                { icon: 'list-check', description: 'Event Type' },
+                { icon: 'location-dot', description: 'Subscription' },
+                { icon: 'envelope', description: 'Event' },
               ]"
               class="mb-14"
             />

@@ -15,6 +15,7 @@ import { routes } from '@/routes.ts';
 import EventTypesNew from '@/pages/organizations/applications/event_types/EventTypesNew.vue';
 import { push } from 'notivue';
 import Hook0ProgressBar from '@/components/Hook0ProgressBar.vue';
+import party from 'party-js';
 
 const router = useRouter();
 const route = useRoute();
@@ -60,6 +61,16 @@ function cancel() {
 function goFourthStep() {
   if (organizationId.value && applicationId.value) {
     disabled_button.value = false;
+    push.success({
+      title: 'Event type created',
+      message: 'You can now create your first subscription. 🎉',
+      duration: 5000,
+    });
+    party.confetti(party.Rect.fromScreen(), {
+      count: 80,
+      spread: 40,
+      size: party.variation.range(1.2, 1.6),
+    });
     return router.push({
       name: routes.TutorialCreateSubscription,
       params: {
@@ -102,12 +113,12 @@ onMounted(() => {
             <Hook0ProgressBar
               actual="4"
               :items="[
-                { description: 'Introduction' },
-                { description: 'Create Your Organization' },
-                { description: 'Create Your Application' },
-                { description: 'Create Your Event Type' },
-                { description: 'Configure Your Subscription' },
-                { description: 'Send Your First Event' },
+                { icon: 'info-circle', description: 'Introduction' },
+                { icon: 'building', description: 'Organization' },
+                { icon: 'terminal', description: 'Application' },
+                { icon: 'list-check', description: 'Event Type' },
+                { icon: 'location-dot', description: 'Subscription' },
+                { icon: 'envelope', description: 'Event' },
               ]"
               class="mb-14"
             />

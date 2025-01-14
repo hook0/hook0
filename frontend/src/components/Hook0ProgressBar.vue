@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { defineProps } from 'vue';
+import Hook0Icon from './Hook0Icon.vue';
 
 interface ProgressBarItem {
+  icon?: string;
   description: string;
 }
 
@@ -66,6 +68,9 @@ const progressBarPercentage = () => {
             class="text-center"
             :class="{ 'font-bold text-indigo-600': Number(props.actual) >= index + 1 }"
           >
+            <template v-if="item.icon">
+              <Hook0Icon :name="item.icon"></Hook0Icon>
+            </template>
             {{ item.description }}
           </p>
         </div>
