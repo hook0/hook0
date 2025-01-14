@@ -123,4 +123,3 @@ function scenario_1() {
 export default function () {
   scenario_1();
 }
-
