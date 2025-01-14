@@ -1,7 +1,6 @@
 FROM grafana/k6:0.56.0
 
 USER root
-
 RUN apk add --no-cache bash
 
 USER k6
