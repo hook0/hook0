@@ -6,6 +6,9 @@ import { onMounted, onUnmounted, onUpdated, ref, watch } from 'vue';
 
 import * as OrganizationService from './organizations/OrganizationService';
 import * as ApplicationService from './organizations/applications/ApplicationService';
+import * as EventTypeService from './organizations/applications/event_types/EventTypeService';
+import * as SubscriptionService from './organizations/applications/subscriptions/SubscriptionService';
+import * as EventService from './organizations/applications/events/EventsService';
 import { UUID } from '@/http';
 import { Organization } from './organizations/OrganizationService';
 import { Application } from './organizations/applications/ApplicationService';
@@ -37,6 +40,7 @@ watch(
     if (newToken !== oldToken) {
       if (newToken) {
         applicationsPerOrganization.value = await getApplicationsPerOrganization();
+        await tutorialCheck();
       } else {
         applicationsPerOrganization.value = null;
       }
@@ -125,9 +129,66 @@ function _updateDropdown(params: RouteParams) {
   }
 }
 
+async function tutorialCheck() {
+  if (applicationsPerOrganization.value === null) {
+    return;
+  }
+
+  if (applicationsPerOrganization.value.length === 0) {
+    return router.push({
+      name: routes.TutorialOnboarding,
+    });
+  } else {
+    const firstOrg = applicationsPerOrganization.value[0];
+    if (firstOrg.applications.length === 0) {
+      return router.push({
+        name: routes.TutorialCreateApplication,
+        params: { organization_id: firstOrg.organization.organization_id },
+      });
+    }
+
+    const firstApp = firstOrg.applications[0];
+
+    const event_type = await EventTypeService.list(firstApp.application_id);
+    if (event_type.length === 0) {
+      return router.push({
+        name: routes.TutorialCreateEventType,
+        params: {
+          organization_id: firstOrg.organization.organization_id,
+          application_id: firstApp.application_id,
+        },
+      });
+    }
+
+    const subscriptions = await SubscriptionService.list(firstApp.application_id);
+    if (subscriptions.length === 0) {
+      return router.push({
+        name: routes.TutorialCreateSubscription,
+        params: {
+          organization_id: firstOrg.organization.organization_id,
+          application_id: firstApp.application_id,
+        },
+      });
+    }
+
+    const events = await EventService.list(firstApp.application_id);
+    console.log(events);
+    if (events.length === 0) {
+      return router.push({
+        name: routes.TutorialSendEvent,
+        params: {
+          organization_id: firstOrg.organization.organization_id,
+          application_id: firstApp.application_id,
+        },
+      });
+    }
+  }
+}
+
 onMounted(async () => {
   if (getAccessToken().value) {
     applicationsPerOrganization.value = await getApplicationsPerOrganization();
+    await tutorialCheck();
   }
 
   removeRouterGuard.value = router.afterEach(() => {
