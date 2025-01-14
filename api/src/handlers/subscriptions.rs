@@ -436,7 +436,7 @@ pub async fn create(
             SELECT COUNT(subscription__id) AS "val!"
             FROM webhook.subscription
             WHERE application__id = $1
-                and deleted_at IS NOT NULL
+                and deleted_at IS NULL
         "#,
         &body.application_id,
     )
