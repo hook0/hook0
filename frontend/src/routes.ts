@@ -30,6 +30,7 @@ import TutorialCreateApplication from '@/pages/tutorial/TutorialCreateApplicatio
 import TutorialCreateEventType from '@/pages/tutorial/TutorialCreateEventType.vue';
 import TutorialCreateSubscription from '@/pages/tutorial/TutorialCreateSubscription.vue';
 import TutorialSendEvent from '@/pages/tutorial/TutorialSendEvent.vue';
+import TutorialSuccess from './pages/tutorial/TutorialSuccess.vue';
 
 export type Hook0Routes = string;
 
@@ -42,6 +43,7 @@ export const routes: Record<Hook0Routes, string> = {
   TutorialCreateEventType: 'TutorialCreateEventType',
   TutorialCreateSubscription: 'TutorialCreateSubscription',
   TutorialSendEvent: 'TutorialSendEvent',
+  TutorialSuccess: 'TutorialSuccess',
 
   Login: 'Login',
   Register: 'Register',
@@ -123,6 +125,11 @@ export default [
     name: routes.TutorialSendEvent,
     path: '/tutorial/event/organizations/:organization_id/applications/:application_id',
     component: TutorialSendEvent,
+  },
+  {
+    name: routes.TutorialSuccess,
+    path: '/tutorial/success',
+    component: TutorialSuccess,
   },
   {
     name: routes.Login,

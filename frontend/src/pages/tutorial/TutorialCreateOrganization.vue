@@ -17,21 +17,50 @@ import Hook0Loader from '@/components/Hook0Loader.vue';
 import Hook0Error from '@/components/Hook0Error.vue';
 import Hook0Select from '@/components/Hook0Select.vue';
 import Hook0ProgressBar from '@/components/Hook0ProgressBar.vue';
+import Hook0Input from '@/components/Hook0Input.vue';
+import party from 'party-js';
 
 const router = useRouter();
+
+enum Sections {
+  CreateOrganization = 'create_organization',
+  SelectExistingOrganization = 'select_existing_organization',
+}
 
 const organizationId = ref<UUID | null>(null);
 const organizations_list = ref<Promise<Array<{ label: string; value: UUID }>>>(Promise.resolve([]));
 const selected_organization_id = ref<UUID | null>(null);
 
+const currentSection = ref<Sections | null>(null);
+
 const goSecondStep = (organization_id: UUID) => {
   organizationId.value = organization_id;
   if (selected_organization_id.value) {
+    push.success({
+      title: 'Organization selected',
+      message: 'You can now create your first application. 🎉',
+      duration: 5000,
+    });
+    party.confetti(party.Rect.fromScreen(), {
+      count: 80,
+      spread: 40,
+      size: party.variation.range(1.2, 1.6),
+    });
     return router.push({
       name: routes.TutorialCreateApplication,
       params: { organization_id: selected_organization_id.value },
     });
   } else if (organizationId.value) {
+    push.success({
+      title: 'Organization created',
+      message: 'You can now create your first application. 🎉',
+      duration: 5000,
+    });
+    party.confetti(party.Rect.fromScreen(), {
+      count: 80,
+      spread: 40,
+      size: party.variation.range(1.2, 1.6),
+    });
     return router.push({
       name: routes.TutorialCreateApplication,
       params: { organization_id: organizationId.value },
@@ -89,35 +118,85 @@ onUpdated(() => {
     </Hook0CardHeader>
     <Hook0CardContent>
       <Hook0CardContentLines>
-        <Hook0CardContentLine v-if="!selected_organization_id" type="full-width">
+        <Hook0CardContentLine type="full-width">
           <template #content>
             <Hook0ProgressBar
               actual="2"
               :items="[
-                { description: 'Introduction' },
-                { description: 'Create Your Organization' },
-                { description: 'Create Your Application' },
-                { description: 'Create Your Event Type' },
-                { description: 'Configure Your Subscription' },
-                { description: 'Send Your First Event' },
+                { icon: 'info-circle', description: 'Introduction' },
+                { icon: 'building', description: 'Organization' },
+                { icon: 'terminal', description: 'Application' },
+                { icon: 'list-check', description: 'Event Type' },
+                { icon: 'location-dot', description: 'Subscription' },
+                { icon: 'envelope', description: 'Event' },
               ]"
               class="mb-14"
             />
+            <Hook0Card v-if="!organizationId" class="mb-4">
+              <Hook0CardHeader>
+                <template #header
+                  >You must first create or select an existing organization to continue this
+                  tutorial.</template
+                >
+              </Hook0CardHeader>
+              <Hook0CardContent class="p-4 border space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2">
+                  <div
+                    class="flex items-center p-4 w-full border-b sm:border-b-0 sm:border-r cursor-pointer"
+                    @click="
+                      currentSection =
+                        currentSection === Sections.CreateOrganization
+                          ? null
+                          : Sections.CreateOrganization
+                    "
+                  >
+                    <Hook0Input
+                      id="section_create"
+                      type="checkbox"
+                      :value="currentSection === Sections.CreateOrganization"
+                      class="h-4 w-4 border-gray-300 rounded focus:ring-indigo-500"
+                    />
+                    <label for="section_create" class="ml-2 text-sm font-medium text-gray-700">
+                      Create a new organization
+                    </label>
+                  </div>
+                  <div
+                    class="flex items-center p-4 w-full border-t sm:border-t-0 sm:border-l cursor-pointer"
+                    @click="
+                      currentSection =
+                        currentSection === Sections.SelectExistingOrganization
+                          ? null
+                          : Sections.SelectExistingOrganization
+                    "
+                  >
+                    <Hook0Input
+                      id="section_select"
+                      type="checkbox"
+                      :value="currentSection === Sections.SelectExistingOrganization"
+                      class="h-4 w-4 border-gray-300 rounded focus:ring-indigo-500"
+                    />
+                    <label for="section_select" class="ml-2 text-sm font-medium text-gray-700">
+                      Select an existing organization already linked to your account
+                    </label>
+                  </div>
+                </div>
+              </Hook0CardContent>
+            </Hook0Card>
             <OrganizationsEdit
-              v-if="!organizationId"
+              v-if="!organizationId && currentSection === Sections.CreateOrganization"
               :tutorial-mode="true"
               class="mb-4"
               @tutorial-organization-created="goSecondStep($event)"
             />
           </template>
         </Hook0CardContentLine>
-        <Promised v-if="!organizationId" :promise="organizations_list">
-          <!-- Use the "pending" slot to display a loading message -->
+        <Promised
+          v-if="currentSection === Sections.SelectExistingOrganization"
+          :promise="organizations_list"
+        >
           <template #pending>
             <Hook0Loader></Hook0Loader>
           </template>
-
-          <!-- The default scoped slot will be used as the result -->
           <template #default="organizations">
             <Hook0Card>
               <Hook0CardContent>
@@ -135,8 +214,6 @@ onUpdated(() => {
               </Hook0CardContent>
             </Hook0Card>
           </template>
-
-          <!-- The "rejected" scoped slot will be used if there is an error -->
           <template #rejected="error">
             <Hook0Error :error="error"></Hook0Error>
           </template>
