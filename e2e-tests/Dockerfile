@@ -11,7 +11,8 @@ ENV ENABLE_SETUP=false \
     ITERATIONS=100 \
     DURATION=1m
 
-COPY . .
+COPY src/ ./src
+COPY run-main-tests.sh ./
 
 ENTRYPOINT ["/bin/sh", "-c"]
 CMD ["bash run-main-tests.sh"]
