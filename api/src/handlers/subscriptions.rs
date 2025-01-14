@@ -424,7 +424,7 @@ pub async fn create(
 
     let quota_limit = state
         .quotas
-        .get_limit_for_organization(
+        .get_limit_for_application(
             &state.db,
             Quota::SubscriptionsPerApplication,
             &body.application_id,
@@ -436,6 +436,7 @@ pub async fn create(
             SELECT COUNT(subscription__id) AS "val!"
             FROM webhook.subscription
             WHERE application__id = $1
+                and deleted_at IS NOT NULL
         "#,
         &body.application_id,
     )
