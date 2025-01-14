@@ -3,7 +3,7 @@
 set -euo pipefail
 
 if [ "${ENABLE_SETUP:-}" = "true" ]; then
-  node setup.js
+  node src/setup.js
 fi
 
 k6 run \
@@ -14,4 +14,4 @@ k6 run \
   -e "VUS=$VUS" \
   -e "ITERATIONS=$ITERATIONS" \
   -e "DURATION=$DURATION" \
-  main.js
+  src/main.js

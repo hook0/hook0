@@ -2,12 +2,12 @@
   "name": "e2e-tests",
   "version": "1.0.0",
   "description": "",
-  "main": "main.js",
+  "main": "src/main.js",
   "scripts": {
     "test": "start-server-and-test ../target/release/hook0-api http-get://localhost:8080/api/v1/instance 'npm run test:ci'",
     "test:ci": "bash run-main-tests.sh",
-    "format": "prettier --write ./ ./*.{js,json}",
-    "check": "prettier --check ./ ./*.{js,json}"
+    "format": "prettier --write ./src/**/*.{js,json}",
+    "check": "prettier --check ./src/**/*.{js,json}"
   },
   "repository": {
     "type": "git",
