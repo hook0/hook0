@@ -33,12 +33,12 @@ function startTutorial() {
             <Hook0ProgressBar
               actual="1"
               :items="[
-                { description: 'Introduction' },
-                { description: 'Create Your Organization' },
-                { description: 'Create Your Application' },
-                { description: 'Create Your Event Type' },
-                { description: 'Configure Your Subscription' },
-                { description: 'Send Your First Event' },
+                { icon: 'info-circle', description: 'Introduction' },
+                { icon: 'building', description: 'Organization' },
+                { icon: 'terminal', description: 'Application' },
+                { icon: 'list-check', description: 'Event Type' },
+                { icon: 'location-dot', description: 'Subscription' },
+                { icon: 'envelope', description: 'Event' },
               ]"
               class="mb-14"
             />

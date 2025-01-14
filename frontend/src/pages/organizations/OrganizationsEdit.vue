@@ -71,11 +71,6 @@ function upsert(e: Event) {
       })
         .then((org) => {
           if (props.tutorialMode) {
-            push.success({
-              title: 'Organization created',
-              message: 'You can now click on the next button to continue the tutorial.',
-              duration: 5000,
-            });
             emit('tutorial-organization-created', org.organization_id);
           } else {
             return reloadPageAndGoToOrganizationDetail(org.organization_id);
