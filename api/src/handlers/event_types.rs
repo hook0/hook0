@@ -74,7 +74,7 @@ pub async fn create(
 
     let quota_limit = state
         .quotas
-        .get_limit_for_organization(
+        .get_limit_for_application(
             &state.db,
             Quota::EventTypesPerApplication,
             &body.application_id,
@@ -86,6 +86,7 @@ pub async fn create(
             SELECT COUNT(*) AS "val!"
             FROM event.event_type
             WHERE application__id = $1
+                AND deactivated_at IS NULL
         "#,
         &body.application_id,
     )
