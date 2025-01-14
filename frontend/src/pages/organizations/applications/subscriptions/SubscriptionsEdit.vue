@@ -220,11 +220,6 @@ function upsert(e: Event) {
       event_types: EventTypeNamesFromSelectedEventTypes(eventTypes.value),
     }).then((_resp) => {
       if (props.tutorialMode) {
-        push.success({
-          title: 'Subscription created',
-          message: 'You have successfully created your first subscription',
-          duration: 5000,
-        });
         emit('tutorial-subscription-created');
       } else {
         cancel2();

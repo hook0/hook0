@@ -15,6 +15,7 @@ import { routes } from '@/routes.ts';
 import { push } from 'notivue';
 import EventsList from '@/pages/organizations/applications/events/EventsList.vue';
 import Hook0ProgressBar from '@/components/Hook0ProgressBar.vue';
+import party from 'party-js';
 
 const router = useRouter();
 const route = useRoute();
@@ -63,9 +64,13 @@ function back_to_application() {
     message: 'Wow ! You just sent an event to your webhook ! 🎉🎉',
     duration: 5000,
   });
+  party.sparkles(party.Rect.fromScreen(), {
+    count: 80,
+    size: party.variation.range(1.2, 1.6),
+  });
   return router.push({
-    name: routes.ApplicationsDashboard,
-    params: { organization_id: organizationId.value, application_id: applicationId.value },
+    name: routes.TutorialSuccess,
+    // params: { organization_id: organizationId.value, application_id: applicationId.value },
   });
 }
 
@@ -98,12 +103,12 @@ onMounted(() => {
             <Hook0ProgressBar
               actual="6"
               :items="[
-                { description: 'Introduction' },
-                { description: 'Create Your Organization' },
-                { description: 'Create Your Application' },
-                { description: 'Create Your Event Type' },
-                { description: 'Configure Your Subscription' },
-                { description: 'Send Your First Event' },
+                { icon: 'info-circle', description: 'Introduction' },
+                { icon: 'building', description: 'Organization' },
+                { icon: 'terminal', description: 'Application' },
+                { icon: 'list-check', description: 'Event Type' },
+                { icon: 'location-dot', description: 'Subscription' },
+                { icon: 'envelope', description: 'Event' },
               ]"
               class="mb-14"
             />
