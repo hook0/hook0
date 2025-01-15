@@ -68,7 +68,7 @@ const goSecondStep = (organization_id: UUID) => {
     });
   } else {
     push.error({
-      title: 'Organization id is required',
+      title: 'Organization ID is required',
       message: 'Something went wrong. Please try again. If the problem persists, contact support.',
       duration: 5000,
     });
