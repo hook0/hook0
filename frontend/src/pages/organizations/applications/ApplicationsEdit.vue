@@ -110,7 +110,7 @@ onUpdated(() => {
           <template v-if="isNew" #header> Create new application </template>
           <template v-else #header> Edit application </template>
           <template #subtitle>
-            An application emit events that are consumed by customers through webhooks
+            An application is an isolated environment that contains everything webhook-related.
           </template>
         </Hook0CardHeader>
         <Hook0CardContent>
