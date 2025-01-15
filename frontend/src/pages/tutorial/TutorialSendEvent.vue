@@ -16,6 +16,7 @@ import { push } from 'notivue';
 import EventsList from '@/pages/organizations/applications/events/EventsList.vue';
 import Hook0ProgressBar from '@/components/Hook0ProgressBar.vue';
 import party from 'party-js';
+import { progressItems } from '@/pages/tutorial/TutorialService';
 
 const router = useRouter();
 const route = useRoute();
@@ -89,7 +90,7 @@ onMounted(() => {
   </Hook0CardContent>
   <Hook0Card v-else>
     <Hook0CardHeader>
-      <template #header>Step 6: Send an event</template>
+      <template #header>Step 5: Send an event</template>
       <template #subtitle>
         In this step, you will send a test event. You should make it match your subscription's event
         type and label so that you receive a webhook!
@@ -99,18 +100,7 @@ onMounted(() => {
       <Hook0CardContentLines>
         <Hook0CardContentLine type="full-width">
           <template #content>
-            <Hook0ProgressBar
-              actual="6"
-              :items="[
-                { icon: 'info-circle', description: 'Introduction' },
-                { icon: 'building', description: 'Organization' },
-                { icon: 'terminal', description: 'Application' },
-                { icon: 'list-check', description: 'Event Type' },
-                { icon: 'location-dot', description: 'Subscription' },
-                { icon: 'envelope', description: 'Event' },
-              ]"
-              class="mb-14"
-            />
+            <Hook0ProgressBar actual="5" :items="progressItems" class="mb-14" />
             <EventsList
               v-if="organizationId && applicationId && disabled_button"
               :tutorial-mode="true"
