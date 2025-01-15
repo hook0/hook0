@@ -16,6 +16,7 @@ import { routes } from '@/routes.ts';
 import { push } from 'notivue';
 import Hook0ProgressBar from '@/components/Hook0ProgressBar.vue';
 import party from 'party-js';
+import { progressItems } from '@/pages/tutorial/TutorialService';
 
 const router = useRouter();
 const route = useRoute();
@@ -95,7 +96,7 @@ onMounted(() => {
   </Hook0CardContent>
   <Hook0Card v-else>
     <Hook0CardHeader>
-      <template #header>Step 3: Create your first application</template>
+      <template #header>Step 2: Create your first application</template>
       <template #subtitle
         >An application is an isolated environment in Hook0. It has its own event types, events,
         subscriptions. You can create multiple applications to group your services based on your
@@ -106,18 +107,7 @@ onMounted(() => {
       <Hook0CardContentLines>
         <Hook0CardContentLine type="full-width">
           <template #content>
-            <Hook0ProgressBar
-              actual="3"
-              :items="[
-                { icon: 'info-circle', description: 'Introduction' },
-                { icon: 'building', description: 'Organization' },
-                { icon: 'terminal', description: 'Application' },
-                { icon: 'list-check', description: 'Event Type' },
-                { icon: 'location-dot', description: 'Subscription' },
-                { icon: 'envelope', description: 'Event' },
-              ]"
-              class="mb-14"
-            />
+            <Hook0ProgressBar actual="2" :items="progressItems" class="mb-14" />
             <ApplicationsEdit
               v-if="organization_id && !application_id"
               :tutorial-mode="true"
@@ -133,7 +123,7 @@ onMounted(() => {
         type="button"
         :disabled="!organization_id || !application_id"
         @click="goThirdStep"
-        >🚀 Continue Step 4: Create Your First Event Type</Hook0Button
+        >🚀 Continue Step 3: Create Your First Event Type</Hook0Button
       >
     </Hook0CardFooter>
   </Hook0Card>

@@ -16,9 +16,10 @@ interface ProgressBarProps {
 const props = defineProps<ProgressBarProps>();
 
 const progressBarPercentage = () => {
-  return Number.isNaN(props.actual)
-    ? 0
-    : ((Number(props.actual) - 1) / (props.items.length - 1)) * 100;
+  if (Number(props.actual) === 0 || Number.isNaN(props.actual)) {
+    return 0;
+  }
+  return ((Number(props.actual) - 1) / (props.items.length - 1)) * 100;
 };
 </script>
 
