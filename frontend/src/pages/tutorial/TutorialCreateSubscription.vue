@@ -106,8 +106,8 @@ onMounted(() => {
     <Hook0CardHeader>
       <template #header>Step 4: Create a subscription</template>
       <template #subtitle>
-        Subscription are a way to choose what kind of events you are interested in (depending on
-        their event type and labels) and where to dispatch then as webhooks.
+        Subscriptions are a way to choose what kind of events you are interested in (depending on
+        their event type and labels) and where to dispatch them as webhooks.
       </template>
     </Hook0CardHeader>
     <Hook0CardContent>

@@ -105,7 +105,13 @@ onMounted(() => {
   <Hook0Card v-else>
     <Hook0CardHeader>
       <template #header>Step 3: Create your first event type</template>
-      <template #subtitle>Each event sent through a Hook0 must have an event type. </template>
+      <template #subtitle
+        >Event types are categories of events. For each subscription, you will then be able choose
+        among your declared event types to receive only the right events. Every webhook sent by
+        Hook0 will have its event type provided as a header so that applications that consume
+        webhooks may use it (for example, this is a good way to know which structure/schema should
+        be expected for the webhook's body).</template
+      >
     </Hook0CardHeader>
     <Hook0CardContent>
       <Hook0CardContentLines>
