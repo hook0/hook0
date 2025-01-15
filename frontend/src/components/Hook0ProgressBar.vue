@@ -58,13 +58,36 @@ const progressBarPercentage = () => {
       </div>
     </div>
     <div
-      class="mt-6 grid"
-      :class="`grid-cols-${
+      class="mt-6 sm:grid hidden"
+      :class="`sm:grid-cols-${
         props.items?.length || 5
       } justify-between text-sm font-medium text-gray-600 sm:flex`"
     >
       <template v-for="(item, index) in props.items" :key="index">
-        <div class="flex items-center justify-center">
+        <div
+          class="flex items-center"
+          :class="{
+            'justify-center': index > 0 && index < props.items.length - 1,
+            'justify-start': index === 0,
+            'justify-end': index === props.items.length - 1,
+          }"
+          :style="{
+            marginLeft: `${
+              props.items.length % 2 === 1 && index === Math.floor(props.items.length / 2)
+                ? 0
+                : index >= Math.ceil(props.items.length / 2)
+                  ? 50
+                  : 0
+            }%`,
+            marginRight: `${
+              props.items.length % 2 === 1 && index === Math.floor(props.items.length / 2)
+                ? 0
+                : index < Math.floor(props.items.length / 2)
+                  ? 50
+                  : 0
+            }%`,
+          }"
+        >
           <p
             class="text-center"
             :class="{ 'font-bold text-indigo-600': Number(props.actual) >= index + 1 }"

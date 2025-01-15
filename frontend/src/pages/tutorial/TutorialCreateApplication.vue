@@ -95,7 +95,7 @@ const goThirdStep = (application_id: UUID) => {
       name: routes.TutorialCreateEventType,
       params: {
         organization_id: organizationId.value,
-        application_id: applicationId.value,
+        application_id: selected_application_id.value,
       },
     });
   } else if (organizationId.value && applicationId.value) {
