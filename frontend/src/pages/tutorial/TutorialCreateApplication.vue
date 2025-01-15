@@ -99,8 +99,8 @@ onMounted(() => {
       <template #header>Step 2: Create your first application</template>
       <template #subtitle
         >An application is an isolated environment in Hook0. It has its own event types, events,
-        subscriptions. You can create multiple applications to group your services based on your
-        needs.
+        subscriptions and request attempts. If your plan allow it, you can create multiple
+        applications to isolate multiple environments or systems inside the same organization.
       </template>
     </Hook0CardHeader>
     <Hook0CardContent>
