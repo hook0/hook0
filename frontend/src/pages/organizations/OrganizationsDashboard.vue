@@ -22,6 +22,8 @@ import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
 import MembersList from '@/pages/organizations/MembersList.vue';
 import { push } from 'notivue';
+import Hook0TutorialWidget from '@/components/Hook0TutorialWidget.vue';
+import { Step } from '../tutorial/TutorialService';
 
 const route = useRoute();
 const pricingEnabled = ref<boolean>(false);
@@ -37,7 +39,15 @@ const organization = ref({
     events_per_day_limit: 0,
     days_of_events_retention_limit: 0,
   },
+  statisctis: {
+    applications: 0,
+    event_types: 0,
+    subscriptions: 0,
+    events: 0,
+  },
 });
+
+const widgetItems = ref<Step[]>([]);
 
 function _load() {
   if (organization_id.value !== route.params.organization_id) {
@@ -48,6 +58,36 @@ function _load() {
         organization.value.name = org.name;
         organization.value.plan = org.plan?.label || '';
         organization.value.quotas = org.quotas;
+        organization.value.statisctis = org.statistics;
+      })
+      .then(() => {
+        widgetItems.value = [
+          {
+            title: 'Create an application',
+            details: 'You can create as many applications as you need.',
+            isActive: organization.value.statisctis.applications > 0,
+            icon: 'rocket',
+          },
+          {
+            title: 'Create an event type',
+            details:
+              'Event types are categories of events. For each subscription, you will then be able choose among your declared event types to receive only the right events.',
+            isActive: organization.value.statisctis.event_types > 0,
+            icon: 'folder-tree',
+          },
+          {
+            title: 'Create a subscription',
+            details: 'You can create as many subscriptions as you need.',
+            isActive: organization.value.statisctis.subscriptions > 0,
+            icon: 'link',
+          },
+          {
+            title: 'Send an event',
+            details: 'You can send as many events as you need.',
+            isActive: organization.value.statisctis.events > 0,
+            icon: 'file-lines',
+          },
+        ];
       })
       .catch(displayError);
 
@@ -114,6 +154,15 @@ onUpdated(() => {
           </Hook0Button>
         </template>
       </Hook0CardHeader>
+      <Hook0CardContent>
+        <Hook0CardContentLines>
+          <Hook0CardContentLine type="full-width">
+            <template #content>
+              <Hook0TutorialWidget :steps="widgetItems" />
+            </template>
+          </Hook0CardContentLine>
+        </Hook0CardContentLines>
+      </Hook0CardContent>
     </Hook0Card>
 
     <Hook0Card v-if="pricingEnabled && !organization.plan">
