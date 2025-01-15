@@ -38,7 +38,7 @@ function _load() {
       id: 'OrganizationIdRequired',
       status: 400,
       title: 'Organization ID is required',
-      detail: 'Organization ID is required to create an application',
+      detail: 'Something went wrong. Please try again. If the problem persists, contact support.',
     });
   }
 }
@@ -74,7 +74,7 @@ function goThirdStep(applicationId: UUID) {
   } else {
     push.error({
       title: 'Organization ID and Application ID are required',
-      message: 'Organization ID and Application ID are required to create an event type',
+      message: 'Something went wrong. Please try again. If the problem persists, contact support.',
       duration: 5000,
     });
   }

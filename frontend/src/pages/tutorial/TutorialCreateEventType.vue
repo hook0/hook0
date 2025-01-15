@@ -41,7 +41,7 @@ function _load() {
       id: 'FieldsRequired',
       status: 400,
       title: 'Organization ID and Application ID are required',
-      detail: 'Organization ID and Application ID are required to create an event type',
+      detail: 'Something went wrong. Please try again. If the problem persists, contact support.',
     });
   }
 }
