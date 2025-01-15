@@ -172,7 +172,6 @@ async function tutorialCheck() {
     }
 
     const events = await EventService.list(firstApp.application_id);
-    console.log(events);
     if (events.length === 0) {
       return router.push({
         name: routes.TutorialSendEvent,
