@@ -136,7 +136,7 @@ async function tutorialCheck() {
 
   if (applicationsPerOrganization.value.length === 0) {
     return router.push({
-      name: routes.TutorialOnboarding,
+      name: routes.Tutorial,
     });
   } else {
     const firstOrg = applicationsPerOrganization.value[0];
