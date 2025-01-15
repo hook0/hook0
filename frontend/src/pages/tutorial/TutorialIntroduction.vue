@@ -24,7 +24,7 @@ function startTutorial() {
   <Hook0Card>
     <Hook0CardHeader>
       <template #header>Welcome to Hook0 🎉 - Let’s Get Started!</template>
-      <template #subtitle>This tutorial will help you get started quickly with us.</template>
+      <template #subtitle>This tutorial will help you get started quickly with Hook0.</template>
     </Hook0CardHeader>
     <Hook0CardContent>
       <Hook0CardContentLines>
