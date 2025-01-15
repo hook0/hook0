@@ -41,7 +41,7 @@ function _load() {
       id: 'FieldsRequired',
       status: 400,
       title: 'Organization ID and Application ID are required',
-      detail: 'Organization ID and Application ID are required to create an event type',
+      detail: 'Something went wrong. Please try again. If the problem persists, contact support.',
     });
   }
 }
@@ -82,7 +82,7 @@ function goFifthStep() {
   } else {
     push.error({
       title: 'Organization ID and Application ID are required',
-      message: 'Organization ID and Application ID are required to create an event type',
+      message: 'Something went wrong. Please try again. If the problem persists, contact support.',
       duration: 5000,
     });
   }
