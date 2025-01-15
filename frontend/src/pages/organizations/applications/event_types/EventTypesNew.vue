@@ -141,7 +141,7 @@ function displayError(err: Problem) {
             <Hook0Text class="block"
               >An event is something that has happened in your application. In the past.</Hook0Text
             >
-            <Hook0Text class="mt-2">Event should be in the form of:</Hook0Text>
+            <Hook0Text class="mt-2">Event types should be in the form of:</Hook0Text>
             <Hook0Text class="code"> &lt;service&gt;.&lt;resourceType&gt;.&lt;verb&gt; </Hook0Text>
           </template>
         </Hook0CardContentLine>
