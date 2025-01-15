@@ -7,3 +7,11 @@ export const progressItems = ref([
   { icon: 'link', description: 'Subscription' },
   { icon: 'file-lines', description: 'Event' },
 ]);
+
+export interface Step {
+  title: string;
+  details: string;
+  isActive: boolean;
+  icon?: string;
+  action?: () => void;
+}
