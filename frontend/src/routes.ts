@@ -24,7 +24,7 @@ import BeginResetPassword from '@/pages/BeginResetPassword.vue';
 import ResetPassword from '@/pages/ResetPassword.vue';
 import ServicesTokenList from '@/pages/organizations/services_token/ServicesTokenList.vue';
 import ServiceTokenView from '@/pages/organizations/services_token/ServiceTokenView.vue';
-import TutorialOnboarding from '@/pages/tutorial/TutorialOnboarding.vue';
+import TutorialIntroduction from '@/pages/tutorial/TutorialIntroduction.vue';
 import TutorialCreateOrganization from '@/pages/tutorial/TutorialCreateOrganization.vue';
 import TutorialCreateApplication from '@/pages/tutorial/TutorialCreateApplication.vue';
 import TutorialCreateEventType from '@/pages/tutorial/TutorialCreateEventType.vue';
@@ -37,7 +37,7 @@ export type Hook0Routes = string;
 export const routes: Record<Hook0Routes, string> = {
   Home: 'Home',
 
-  TutorialOnboarding: 'TutorialOnboarding',
+  Tutorial: 'Tutorial',
   TutorialCreateOrganization: 'TutorialCreateOrganization',
   TutorialCreateApplication: 'TutorialCreateApplication',
   TutorialCreateEventType: 'TutorialCreateEventType',
@@ -94,12 +94,7 @@ export default [
   {
     name: routes.Tutorial,
     path: '/tutorial/onboarding',
-    component: TutorialOnboarding,
-  },
-  {
-    name: routes.TutorialOnboarding,
-    path: '/tutorial/onboarding',
-    component: TutorialOnboarding,
+    component: TutorialIntroduction,
   },
   {
     name: routes.TutorialCreateOrganization,
