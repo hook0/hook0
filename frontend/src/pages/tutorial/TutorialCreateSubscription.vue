@@ -16,6 +16,7 @@ import SubscriptionsEdit from '@/pages/organizations/applications/subscriptions/
 import { push } from 'notivue';
 import Hook0ProgressBar from '@/components/Hook0ProgressBar.vue';
 import party from 'party-js';
+import { progressItems } from '@/pages/tutorial/TutorialService';
 
 const router = useRouter();
 const route = useRoute();
@@ -103,7 +104,7 @@ onMounted(() => {
   </Hook0CardContent>
   <Hook0Card v-else>
     <Hook0CardHeader>
-      <template #header>Step 5: Create a subscription</template>
+      <template #header>Step 4: Create a subscription</template>
       <template #subtitle>
         Subscription are a way to choose what kind of events you are interested in (depending on
         their event type and labels) and where to dispatch then as webhooks.
@@ -113,18 +114,7 @@ onMounted(() => {
       <Hook0CardContentLines>
         <Hook0CardContentLine type="full-width">
           <template #content>
-            <Hook0ProgressBar
-              actual="5"
-              :items="[
-                { icon: 'info-circle', description: 'Introduction' },
-                { icon: 'building', description: 'Organization' },
-                { icon: 'terminal', description: 'Application' },
-                { icon: 'list-check', description: 'Event Type' },
-                { icon: 'location-dot', description: 'Subscription' },
-                { icon: 'envelope', description: 'Event' },
-              ]"
-              class="mb-14"
-            />
+            <Hook0ProgressBar actual="4" :items="progressItems" class="mb-14" />
             <SubscriptionsEdit
               v-if="organizationId && applicationId && disabled_button"
               :tutorial-mode="true"

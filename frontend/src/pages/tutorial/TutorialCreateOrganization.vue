@@ -19,6 +19,7 @@ import Hook0Select from '@/components/Hook0Select.vue';
 import Hook0ProgressBar from '@/components/Hook0ProgressBar.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import party from 'party-js';
+import { progressItems } from '@/pages/tutorial/TutorialService';
 
 const router = useRouter();
 
@@ -109,7 +110,7 @@ onUpdated(() => {
   <Hook0Card>
     <Hook0CardHeader>
       <template #header>
-        <div class="flex items-center justify-between">Step 2: Create your first organization</div>
+        <div class="flex items-center justify-between">Step 1: Create your first organization</div>
       </template>
       <template #subtitle
         >Organizations are used to invite your team members and give them access to applications,
@@ -121,18 +122,7 @@ onUpdated(() => {
       <Hook0CardContentLines>
         <Hook0CardContentLine type="full-width">
           <template #content>
-            <Hook0ProgressBar
-              actual="2"
-              :items="[
-                { icon: 'info-circle', description: 'Introduction' },
-                { icon: 'building', description: 'Organization' },
-                { icon: 'terminal', description: 'Application' },
-                { icon: 'list-check', description: 'Event Type' },
-                { icon: 'location-dot', description: 'Subscription' },
-                { icon: 'envelope', description: 'Event' },
-              ]"
-              class="mb-14"
-            />
+            <Hook0ProgressBar actual="1" :items="progressItems" class="mb-14" />
             <Hook0Card v-if="!organizationId" class="mb-4">
               <Hook0CardHeader>
                 <template #header>First, let's choose an organization!</template>
@@ -220,7 +210,7 @@ onUpdated(() => {
     </Hook0CardContent>
     <Hook0CardFooter v-if="organizationId || selected_organization_id">
       <Hook0Button class="primary" type="button" @click="goSecondStep"
-        >🚀 Continue Step 3: Create Your Application</Hook0Button
+        >🚀 Continue Step 2: Create Your Application</Hook0Button
       >
     </Hook0CardFooter>
   </Hook0Card>

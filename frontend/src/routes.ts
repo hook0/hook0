@@ -93,7 +93,7 @@ export default [
   },
   {
     name: routes.Tutorial,
-    path: '/tutorial/onboarding',
+    path: '/tutorial',
     component: TutorialIntroduction,
   },
   {
