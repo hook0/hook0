@@ -112,8 +112,9 @@ onUpdated(() => {
         <div class="flex items-center justify-between">Step 2: Create your first organization</div>
       </template>
       <template #subtitle
-        >Organizations are used to group your applications and environments. You can create multiple
-        organizations to separate your projects. Like production, staging, and development.
+        >Organizations are used to invite your team members and give them access to applications,
+        where everything webhook-related happens. If you purchase a plan, it will be applied to an
+        organization and not to a user nor an application.
       </template>
     </Hook0CardHeader>
     <Hook0CardContent>
