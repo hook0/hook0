@@ -37,6 +37,7 @@ pub struct OrganizationInfo {
     pub plan: Option<OrganizationInfoPlan>,
     pub users: Vec<OrganizationUser>,
     pub quotas: OrganizationQuotas,
+    pub statistics: OrganizationStatistics,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -51,6 +52,14 @@ pub struct OrganizationQuotas {
     pub applications_per_organization_limit: QuotaValue,
     pub events_per_day_limit: QuotaValue,
     pub days_of_events_retention_limit: QuotaValue,
+}
+
+#[derive(Debug, Serialize, Apiv2Schema)]
+pub struct OrganizationStatistics {
+    pub applications: i64,
+    pub event_types: i64,
+    pub subscriptions: i64,
+    pub events: i64,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -264,6 +273,12 @@ pub async fn create(
                 role: Role::Editor,
             }],
             quotas,
+            statistics: OrganizationStatistics {
+                applications: 0,
+                event_types: 0,
+                subscriptions: 0,
+                events: 0,
+            },
         }))
     } else {
         Err(Hook0Problem::Forbidden)
@@ -398,12 +413,59 @@ pub async fn get(
                 .await?,
         };
 
+        let statistics = OrganizationStatistics {
+            applications: query_scalar!(
+                "SELECT COUNT(*) FROM event.application WHERE organization__id = $1",
+                &organization_id
+            )
+            .fetch_one(&state.db)
+            .await?
+            .unwrap_or(0),
+            event_types: query_scalar!(
+                "SELECT COUNT(e.application__id) AS val
+                FROM iam.organization o
+                JOIN event.application a
+                ON a.organization__id = $1
+                JOIN event.event_type e
+                ON a.application__id = e.application__id;",
+                &organization_id
+            )
+            .fetch_one(&state.db)
+            .await?
+            .unwrap_or(0),
+            subscriptions: query_scalar!(
+                "SELECT COUNT(s.subscription__id) AS val
+                FROM iam.organization o
+                JOIN event.application a
+                ON a.organization__id = $1
+                JOIN webhook.subscription s
+                ON a.application__id = s.application__id;",
+                &organization_id
+            )
+            .fetch_one(&state.db)
+            .await?
+            .unwrap_or(0),
+            events: query_scalar!(
+                "SELECT COUNT(e.event__id) AS val
+                FROM iam.organization o
+                JOIN event.application a
+                ON a.organization__id = $1
+                JOIN event.event e
+                ON a.application__id = e.application__id;",
+                &organization_id
+            )
+            .fetch_one(&state.db)
+            .await?
+            .unwrap_or(0),
+        };
+
         Ok(Json(OrganizationInfo {
             organization_id,
             name,
             plan,
             users: org_users,
             quotas,
+            statistics,
         }))
     } else {
         Err(Hook0Problem::NotFound)
