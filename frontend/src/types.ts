@@ -786,6 +786,16 @@ export interface components {
         /** Format: int32 */
         members_per_organization_limit: number;
       };
+      statistics: {
+        /** Format: int64 */
+        applications: number;
+        /** Format: int64 */
+        event_types: number;
+        /** Format: int64 */
+        events: number;
+        /** Format: int64 */
+        subscriptions: number;
+      };
       users: {
         email: string;
         first_name: string;

@@ -47,6 +47,7 @@ import {
   faEye,
   faPen,
   faCopy,
+  faCircle,
 } from '@fortawesome/free-solid-svg-icons';
 import { faToggleOn } from '@fortawesome/free-solid-svg-icons/faToggleOn';
 import { faToggleOff } from '@fortawesome/free-solid-svg-icons/faToggleOff';
@@ -112,6 +113,7 @@ library.add(
   faEye,
   faPen,
   faCopy,
+  faCircle,
 
   //RequestAttemptStatus
   faCheck,
