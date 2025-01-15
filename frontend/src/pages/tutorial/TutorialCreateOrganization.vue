@@ -134,10 +134,7 @@ onUpdated(() => {
             />
             <Hook0Card v-if="!organizationId" class="mb-4">
               <Hook0CardHeader>
-                <template #header
-                  >You must first create or select an existing organization to continue this
-                  tutorial.</template
-                >
+                <template #header>First, let's choose an organization!</template>
               </Hook0CardHeader>
               <Hook0CardContent class="p-4 border space-y-4">
                 <div class="grid grid-cols-1 sm:grid-cols-2">
