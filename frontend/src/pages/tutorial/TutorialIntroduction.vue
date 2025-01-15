@@ -10,6 +10,7 @@ import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0ProgressBar from '@/components/Hook0ProgressBar.vue';
 import { useRouter } from 'vue-router';
 import { routes } from '@/routes.ts';
+import { progressItems } from '@/pages/tutorial/TutorialService';
 
 const router = useRouter();
 
@@ -30,18 +31,7 @@ function startTutorial() {
       <Hook0CardContentLines>
         <Hook0CardContentLine type="full-width">
           <template #content>
-            <Hook0ProgressBar
-              actual="1"
-              :items="[
-                { icon: 'info-circle', description: 'Introduction' },
-                { icon: 'building', description: 'Organization' },
-                { icon: 'terminal', description: 'Application' },
-                { icon: 'list-check', description: 'Event Type' },
-                { icon: 'location-dot', description: 'Subscription' },
-                { icon: 'envelope', description: 'Event' },
-              ]"
-              class="mb-14"
-            />
+            <Hook0ProgressBar actual="0" :items="progressItems" class="mb-14" />
             <img
               src="/illustration-tutorial.png"
               alt="Illustration"
@@ -67,7 +57,7 @@ function startTutorial() {
     </Hook0CardContent>
     <Hook0CardFooter>
       <Hook0Button class="primary shadow-md" type="button" @click="startTutorial"
-        >🚀 Start Step 2: Create Your Organization</Hook0Button
+        >🚀 Start Step 1: Create Your Organization</Hook0Button
       >
     </Hook0CardFooter>
   </Hook0Card>
