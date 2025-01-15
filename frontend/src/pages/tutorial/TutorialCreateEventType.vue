@@ -16,6 +16,7 @@ import EventTypesNew from '@/pages/organizations/applications/event_types/EventT
 import { push } from 'notivue';
 import Hook0ProgressBar from '@/components/Hook0ProgressBar.vue';
 import party from 'party-js';
+import { progressItems } from '@/pages/tutorial/TutorialService';
 
 const router = useRouter();
 const route = useRoute();
@@ -103,25 +104,14 @@ onMounted(() => {
   </Hook0CardContent>
   <Hook0Card v-else>
     <Hook0CardHeader>
-      <template #header>Step 4: Create your first event type</template>
+      <template #header>Step 3: Create your first event type</template>
       <template #subtitle>Each event sent through a Hook0 must have an event type. </template>
     </Hook0CardHeader>
     <Hook0CardContent>
       <Hook0CardContentLines>
         <Hook0CardContentLine type="full-width">
           <template #content>
-            <Hook0ProgressBar
-              actual="4"
-              :items="[
-                { icon: 'info-circle', description: 'Introduction' },
-                { icon: 'building', description: 'Organization' },
-                { icon: 'terminal', description: 'Application' },
-                { icon: 'list-check', description: 'Event Type' },
-                { icon: 'location-dot', description: 'Subscription' },
-                { icon: 'envelope', description: 'Event' },
-              ]"
-              class="mb-14"
-            />
+            <Hook0ProgressBar actual="3" :items="progressItems" class="mb-14" />
             <EventTypesNew
               v-if="organizationId && applicationId && disabled_button"
               :tutorial-mode="true"
@@ -137,7 +127,7 @@ onMounted(() => {
         type="button"
         :disabled="!organizationId || !applicationId || disabled_button"
         @click="goFourthStep"
-        >🚀 Continue Step 5: Create Your Subscription</Hook0Button
+        >🚀 Continue Step 4: Create Your Subscription</Hook0Button
       >
     </Hook0CardFooter>
   </Hook0Card>
