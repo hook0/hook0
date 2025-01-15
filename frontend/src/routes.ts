@@ -123,7 +123,7 @@ export default [
   },
   {
     name: routes.TutorialSuccess,
-    path: '/tutorial/success',
+    path: '/tutorial/success/organizations/:organization_id/applications/:application_id',
     component: TutorialSuccess,
   },
   {
