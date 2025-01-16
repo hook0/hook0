@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COUNT(application__id) AS val\n                    FROM webhook.subscription\n                    WHERE application__id = $1\n                    AND deleted_at IS NULL;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "val",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "c4f74a59e1a742aafe59f381a5e3e8261ebe4f39d9d04a246b877c8327c40ddd"
+}
