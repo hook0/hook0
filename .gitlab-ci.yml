@@ -27,6 +27,7 @@ include:
   - local: 'output-worker/.gitlab-ci.yml'
   - local: 'sentry-integration/.gitlab-ci.yml'
   - local: 'website/.gitlab-ci.yml'
+  - local: 'e2e-tests/.gitlab-ci.yml'
 
 osv_dependency_scan:
   stage: test
