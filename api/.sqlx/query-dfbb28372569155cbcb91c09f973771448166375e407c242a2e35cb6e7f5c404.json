@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COUNT(application__id) AS val\n                    FROM event.event_type\n                    WHERE application__id = $1\n                    AND deactivated_at IS NULL;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "val",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "dfbb28372569155cbcb91c09f973771448166375e407c242a2e35cb6e7f5c404"
+}
