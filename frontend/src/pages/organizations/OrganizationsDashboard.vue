@@ -52,15 +52,6 @@ const organization = ref({
 
 const widgetItems = ref<Step[]>([]);
 
-function isTutorialFinished(): boolean {
-  return (
-    organization.value.statisctis.applications > 0 &&
-    organization.value.statisctis.event_types > 0 &&
-    organization.value.statisctis.subscriptions > 0 &&
-    organization.value.statisctis.events > 0
-  );
-}
-
 function _load() {
   if (organization_id.value !== route.params.organization_id) {
     organization_id.value = route.params.organization_id as UUID;
@@ -74,6 +65,15 @@ function _load() {
       })
       .then(() => {
         if (!organization_id.value) {
+          return;
+        }
+
+        if (
+          organization.value.statisctis.applications > 0 &&
+          organization.value.statisctis.event_types > 0 &&
+          organization.value.statisctis.subscriptions > 0 &&
+          organization.value.statisctis.events > 0
+        ) {
           return;
         }
 
@@ -230,7 +230,7 @@ onUpdated(() => {
           </Hook0Button>
         </template>
       </Hook0CardHeader>
-      <Hook0CardContent v-if="!isTutorialFinished">
+      <Hook0CardContent v-if="widgetItems.length > 0">
         <Hook0CardContentLines>
           <Hook0CardContentLine type="full-width">
             <template #content>
