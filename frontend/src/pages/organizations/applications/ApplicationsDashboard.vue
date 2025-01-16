@@ -20,6 +20,7 @@ import Hook0TutorialWidget from '@/components/Hook0TutorialWidget.vue';
 import { Step } from '@/pages/tutorial/TutorialService';
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
+import Hook0CardContent from '@/components/Hook0CardContent.vue';
 
 const route = useRoute();
 
@@ -37,61 +38,67 @@ const application = ref({
 const widgetItems = ref<Step[]>([]);
 
 function _load() {
-  if (application_id.value !== route.params.application_id) {
-    application_id.value = route.params.application_id as UUID;
+  application_id.value = route.params.application_id as UUID;
 
-    ApplicationService.get(application_id.value)
-      .then((app: Application) => {
-        application.value.name = app.name;
-        application.value.organization_id = app.organization_id;
-        application.value.statisctis = app.statistics;
-      })
-      .then(() => {
-        widgetItems.value = [
-          {
-            title: 'Create an event type',
-            details:
-              'Event types are categories of events. For each subscription, you will then be able choose among your declared event types to receive only the right events.',
-            isActive: application.value.statisctis.event_types > 0,
-            icon: 'folder-tree',
-            route: {
-              name: routes.TutorialCreateEventType,
-              params: {
-                organization_id: application.value.organization_id,
-                application_id: application_id.value,
-              },
+  ApplicationService.get(application_id.value)
+    .then((app: Application) => {
+      application.value.name = app.name;
+      application.value.organization_id = app.organization_id;
+      application.value.statisctis = app.statistics;
+    })
+    .then(() => {
+      if (
+        application.value.statisctis.event_types > 0 &&
+        application.value.statisctis.subscriptions > 0 &&
+        application.value.statisctis.events > 0
+      ) {
+        return;
+      }
+
+      widgetItems.value = [
+        {
+          title: 'Create an event type',
+          details:
+            'Event types are categories of events. For each subscription, you will then be able choose among your declared event types to receive only the right events.',
+          isActive: application.value.statisctis.event_types > 0,
+          icon: 'folder-tree',
+          route: {
+            name: routes.TutorialCreateEventType,
+            params: {
+              organization_id: application.value.organization_id,
+              application_id: application_id.value,
             },
           },
-          {
-            title: 'Create a subscription',
-            details: 'You can create as many subscriptions as you need.',
-            isActive: application.value.statisctis.subscriptions > 0,
-            icon: 'link',
-            route: {
-              name: routes.TutorialCreateSubscription,
-              params: {
-                organization_id: application.value.organization_id,
-                application_id: application_id.value,
-              },
+        },
+        {
+          title: 'Create a subscription',
+          details: 'You can create as many subscriptions as you need.',
+          isActive: application.value.statisctis.subscriptions > 0,
+          icon: 'link',
+          route: {
+            name: routes.TutorialCreateSubscription,
+            params: {
+              organization_id: application.value.organization_id,
+              application_id: application_id.value,
             },
           },
-          {
-            title: 'Send an event',
-            details: 'You can send as many events as you need.',
-            isActive: application.value.statisctis.events > 0,
-            icon: 'file-lines',
-            route: {
-              name: routes.TutorialSendEvent,
-              params: {
-                organization_id: application.value.organization_id,
-                application_id: application_id.value,
-              },
+        },
+        {
+          title: 'Send an event',
+          details: 'You can send as many events as you need.',
+          isActive: application.value.statisctis.events > 0,
+          icon: 'file-lines',
+          route: {
+            name: routes.TutorialSendEvent,
+            params: {
+              organization_id: application.value.organization_id,
+              application_id: application_id.value,
             },
           },
-        ];
-      })
-      .catch(displayError);
-  }
+        },
+      ];
+    })
+    .catch(displayError);
 }
 
 function displayError(err: Problem) {
@@ -140,7 +147,7 @@ onUpdated(() => {
           </Hook0Button>
         </template>
       </Hook0CardHeader>
-      <Hook0CardContent>
+      <Hook0CardContent v-if="widgetItems.length > 0">
         <Hook0CardContentLines>
           <Hook0CardContentLine type="full-width">
             <template #content>
@@ -151,7 +158,7 @@ onUpdated(() => {
       </Hook0CardContent>
     </Hook0Card>
     <EventTypesList :burst="$route.params.application_id"></EventTypesList>
-    <EventsList :burst="$route.params.application_id"></EventsList>
+    <EventsList :burst="$route.params.application_id" @event-sended="_load()"></EventsList>
     <SubscriptionsList :burst="$route.params.application_id"></SubscriptionsList>
     <LogList :burst="$route.params.application_id"></LogList>
   </div>
