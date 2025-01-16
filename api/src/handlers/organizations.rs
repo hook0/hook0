@@ -424,10 +424,8 @@ pub async fn get(
             event_types: query_scalar!(
                 "SELECT COUNT(e.application__id) AS val
                 FROM iam.organization o
-                JOIN event.application a
-                ON a.organization__id = $1
-                JOIN event.event_type e
-                ON a.application__id = e.application__id;",
+                JOIN event.application a ON a.organization__id = $1
+                JOIN event.event_type e ON a.application__id = e.application__id;",
                 &organization_id
             )
             .fetch_one(&state.db)
@@ -436,10 +434,8 @@ pub async fn get(
             subscriptions: query_scalar!(
                 "SELECT COUNT(s.subscription__id) AS val
                 FROM iam.organization o
-                JOIN event.application a
-                ON a.organization__id = $1
-                JOIN webhook.subscription s
-                ON a.application__id = s.application__id;",
+                JOIN event.application a ON a.organization__id = $1
+                JOIN webhook.subscription s ON a.application__id = s.application__id;",
                 &organization_id
             )
             .fetch_one(&state.db)
@@ -448,10 +444,8 @@ pub async fn get(
             events: query_scalar!(
                 "SELECT COUNT(e.event__id) AS val
                 FROM iam.organization o
-                JOIN event.application a
-                ON a.organization__id = $1
-                JOIN event.event e
-                ON a.application__id = e.application__id;",
+                JOIN event.application a ON a.organization__id = $1
+                JOIN event.event e ON a.application__id = e.application__id;",
                 &organization_id
             )
             .fetch_one(&state.db)
