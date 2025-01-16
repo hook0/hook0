@@ -34,15 +34,6 @@ const props = defineProps<Props>();
 
 const emit = defineEmits(['tutorial-organization-created']);
 
-function reloadPageAndGoToOrganizationDetail(organization_id: string) {
-  return router.push({
-    name: routes.OrganizationsDashboard,
-    params: {
-      organization_id: organization_id,
-    },
-  });
-}
-
 function _load() {
   if (organization_id.value !== route.params.organization_id) {
     organization_id.value = route.params.organization_id as UUID;
@@ -73,7 +64,15 @@ function upsert(e: Event) {
           if (props.tutorialMode) {
             emit('tutorial-organization-created', org.organization_id);
           } else {
-            return reloadPageAndGoToOrganizationDetail(org.organization_id);
+            push.success({
+              title: 'Organization created',
+              message: `Organization ${organization.value.name} has been created successfully`,
+              duration: 5000,
+            });
+            return router.push({
+              name: routes.TutorialCreateApplication,
+              params: { organization_id: org.organization_id },
+            });
           }
         })
         .catch(displayError)

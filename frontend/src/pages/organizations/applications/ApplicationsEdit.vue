@@ -14,6 +14,7 @@ import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import { push } from 'notivue';
+import { routes } from '@/routes';
 
 const router = useRouter();
 const route = useRoute();
@@ -63,7 +64,18 @@ function upsert(e: Event) {
       if (props.tutorialMode) {
         emit('tutorial-application-created', _resp.application_id);
       } else {
-        cancel();
+        push.success({
+          title: 'Application created',
+          message: `Application ${application.value.name} has been created successfully`,
+          duration: 5000,
+        });
+        return router.push({
+          name: routes.TutorialCreateEventType,
+          params: {
+            organization_id: route.params.organization_id,
+            application_id: _resp.application_id,
+          },
+        });
       }
     }, displayError);
     return;
