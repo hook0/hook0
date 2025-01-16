@@ -28,7 +28,7 @@ const isLastStep = (index: number) => {
       <li v-for="(step, index) in props.steps" :key="step.title" class="relative pb-10">
         <div
           class="absolute left-4 top-4 -ml-px mt-0.5 h-full w-0.5"
-          :class="[step.isActive ? 'bg-indigo-600' : isLastStep(index) ? '' : 'bg-gray-300']"
+          :class="[isLastStep(index) ? '' : step.isActive ? 'bg-indigo-600' : 'bg-gray-300']"
         ></div>
         <component :is="isNextStep(index) && step.route ? Hook0Button : 'div'" :to="step.route">
           <div class="relative flex items-start">

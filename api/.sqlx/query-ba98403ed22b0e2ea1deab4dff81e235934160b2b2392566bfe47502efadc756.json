@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COUNT(event__id) AS val\n                    FROM event.event\n                    WHERE application__id = $1;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "val",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "ba98403ed22b0e2ea1deab4dff81e235934160b2b2392566bfe47502efadc756"
+}
