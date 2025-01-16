@@ -7,10 +7,8 @@ import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
-import Hook0ProgressBar from '@/components/Hook0ProgressBar.vue';
 import { useRouter } from 'vue-router';
 import { routes } from '@/routes.ts';
-import { progressItems } from '@/pages/tutorial/TutorialService';
 
 const router = useRouter();
 
@@ -31,7 +29,6 @@ function startTutorial() {
       <Hook0CardContentLines>
         <Hook0CardContentLine type="full-width">
           <template #content>
-            <Hook0ProgressBar actual="0" :items="progressItems" class="mb-14" />
             <img
               src="/illustration-tutorial.png"
               alt="Illustration"

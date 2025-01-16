@@ -1,104 +1,72 @@
 <script setup lang="ts">
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { defineProps } from 'vue';
-import Hook0Icon from './Hook0Icon.vue';
 
 interface ProgressBarItem {
   icon?: string;
-  description: string;
+  title: string;
 }
 
 interface ProgressBarProps {
-  title?: string;
   actual: string;
   items: ProgressBarItem[];
 }
 
 const props = defineProps<ProgressBarProps>();
-
-const progressBarPercentage = () => {
-  if (Number(props.actual) === 0 || Number.isNaN(props.actual)) {
-    return 0;
-  }
-  return ((Number(props.actual) - 1) / (props.items.length - 1)) * 100;
-};
 </script>
 
 <template>
-  <div>
-    <p v-if="props.title" class="text-sm font-medium text-gray-900">
-      {{ props.title }}
-    </p>
-    <div class="mt-6 relative" aria-hidden="true">
-      <div class="overflow-hidden rounded-full bg-gray-300 h-4 relative">
+  <div class="bg-gray-200 h-1 flex items-center justify-between">
+    <template v-for="(item, index) in props.items" :key="index">
+      <div class="flex items-center">
         <div
-          class="h-4 rounded-full bg-indigo-500 transition-all duration-300"
-          :style="{ width: progressBarPercentage() + '%' }"
-        ></div>
-        <template v-for="(_item, index) in props.items" :key="index">
-          <div
-            class="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center rounded-full border-4 bg-white shadow-lg transition-all duration-300"
-            :style="{
-              left: `${
-                index === 0
-                  ? 1.5
-                  : index === props.items.length - 1
-                    ? 98.5
-                    : (index / (props.items.length - 1)) * 100
-              }%`,
-            }"
-            :class="{
-              'border-indigo-500 bg-indigo-100 text-indigo-600 scale-110':
-                Number(props.actual) === index + 1,
-              'border-gray-300 text-gray-500': Number(props.actual) !== index + 1,
-            }"
-          >
-            <span class="text-lg font-bold">{{ index + 1 }}</span>
-          </div>
-        </template>
-      </div>
-    </div>
-    <div
-      class="mt-6 sm:grid hidden"
-      :class="`sm:grid-cols-${
-        props.items?.length || 5
-      } justify-between text-sm font-medium text-gray-600 sm:flex`"
-    >
-      <template v-for="(item, index) in props.items" :key="index">
-        <div
-          class="flex items-center"
-          :class="{
-            'justify-center': index > 0 && index < props.items.length - 1,
-            'justify-start': index === 0,
-            'justify-end': index === props.items.length - 1,
-          }"
-          :style="{
-            marginLeft: `${
-              props.items.length % 2 === 1 && index === Math.floor(props.items.length / 2)
-                ? 0
-                : index >= Math.ceil(props.items.length / 2)
-                  ? 50
-                  : 0
-            }%`,
-            marginRight: `${
-              props.items.length % 2 === 1 && index === Math.floor(props.items.length / 2)
-                ? 0
-                : index < Math.floor(props.items.length / 2)
-                  ? 50
-                  : 0
-            }%`,
-          }"
+          v-if="index + 1 < Number(props.actual)"
+          class="bg-indigo-600 h-10 w-10 rounded-full shadow flex items-center justify-center"
         >
-          <p
-            class="text-center"
-            :class="{ 'font-bold text-indigo-600': Number(props.actual) >= index + 1 }"
-          >
-            <template v-if="item.icon">
-              <Hook0Icon :name="item.icon"></Hook0Icon>
-            </template>
-            {{ item.description }}
-          </p>
+          <FontAwesomeIcon :icon="['fas', 'check']" color="white" size="lg"></FontAwesomeIcon>
         </div>
-      </template>
-    </div>
+        <div
+          v-else-if="index + 1 === Number(props.actual)"
+          class="bg-white h-10 w-10 rounded-full shadow flex items-center justify-center border-2 border-indigo-600"
+        >
+          <FontAwesomeIcon
+            :icon="['fas', 'circle']"
+            size="sm"
+            class="text-indigo-600"
+          ></FontAwesomeIcon>
+        </div>
+        <div v-else class="bg-white h-10 w-10 rounded-full border-2 border-gray-300"></div>
+
+        <div
+          v-if="index + 1 === Number(props.actual)"
+          class="mt-20 mb-2 hidden lg:block"
+          :class="index !== 0 ? '-ml-24' : '-ml-14'"
+        >
+          <div class="relative bg-white shadow-lg px-2 py-1 rounded">
+            <div class="flex items-center">
+              <FontAwesomeIcon
+                v-if="item.icon"
+                :icon="['fas', item.icon]"
+                size="sm"
+                class="text-indigo-600"
+              ></FontAwesomeIcon>
+              <p class="ml-2 text-indigo-600 font-bold">
+                ({{ index + 1 }}/{{ props.items.length }})
+                {{ item.title }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        v-if="index < props.items.length - 1"
+        class="flex-grow h-1"
+        :class="{
+          'bg-indigo-600': index + 1 < Number(props.actual),
+          'bg-gray-200': index + 1 >= Number(props.actual),
+        }"
+      ></div>
+    </template>
   </div>
 </template>
