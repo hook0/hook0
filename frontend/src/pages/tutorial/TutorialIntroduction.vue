@@ -53,6 +53,9 @@ function startTutorial() {
       </Hook0CardContentLines>
     </Hook0CardContent>
     <Hook0CardFooter>
+      <Hook0Button class="secondary" type="button" @click="router.push({ name: routes.Home })"
+        >Skip</Hook0Button
+      >
       <Hook0Button class="primary shadow-md" type="button" @click="startTutorial"
         >🚀 Start Step 1: Create Your Organization</Hook0Button
       >

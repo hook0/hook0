@@ -114,8 +114,20 @@ onMounted(() => {
         </Hook0CardContentLine>
       </Hook0CardContentLines>
     </Hook0CardContent>
-    <Hook0CardFooter v-if="!disabled_button">
+    <Hook0CardFooter>
       <Hook0Button
+        class="secondary"
+        type="button"
+        @click="
+          router.push({
+            name: routes.ApplicationsDashboard,
+            params: { organization_id: organizationId, application_id: applicationId },
+          })
+        "
+        >Skip</Hook0Button
+      >
+      <Hook0Button
+        v-if="!disabled_button"
         class="primary"
         type="button"
         :disabled="disabled_button"

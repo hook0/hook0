@@ -194,8 +194,16 @@ onMounted(() => {
         </template>
       </Promised>
     </Hook0CardContent>
-    <Hook0CardFooter v-if="organizationId || selected_organization_id">
-      <Hook0Button class="primary" type="button" @click="goSecondStep">
+    <Hook0CardFooter>
+      <Hook0Button class="secondary" type="button" @click="router.push({ name: routes.Home })"
+        >Skip</Hook0Button
+      >
+      <Hook0Button
+        v-if="organizationId || selected_organization_id"
+        class="primary"
+        type="button"
+        @click="goSecondStep"
+      >
         🚀 Continue Step 2: Create Your Application
       </Hook0Button>
     </Hook0CardFooter>
