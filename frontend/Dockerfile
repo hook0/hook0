@@ -1,7 +1,7 @@
 ARG NODE_VERSION=20
 ARG CADDY_VERSION=2.9
 
-FROM node:${NODE_VERSION} as build
+FROM node:${NODE_VERSION} AS build
 WORKDIR /app
 ENV API_ENDPOINT http://localhost:8081/api/v1
 COPY frontend/ ./
