@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { Step } from '@/pages/tutorial/TutorialService';
+import Hook0Button from './Hook0Button.vue';
 
 interface Props {
   steps: Step[];
@@ -15,43 +16,63 @@ const isNextStep = (index: number) => {
   }
   return !props.steps[index].isActive;
 };
+
+const isLastStep = (index: number) => {
+  return index === props.steps.length - 1;
+};
 </script>
 
 <template>
-  <div class="px-4">
-    <ol class="relative text-gray-500 border-s border-gray-200">
-      <li
-        v-for="(step, index) in props.steps"
-        :key="step.title"
-        class="mb-10 ms-8"
-        :class="isNextStep(index) ? 'cursor-pointer' : ''"
-        @click="isNextStep(index) && step.action"
-      >
-        <span
-          :class="[
-            'absolute flex items-center justify-center w-8 h-8 rounded-full -start-4 ring-4 ring-white',
-            step.isActive ? 'bg-green-200' : isNextStep(index) ? 'bg-blue-200' : 'bg-gray-100',
-          ]"
-        >
-          <FontAwesomeIcon v-if="step.icon && !step.isActive" :icon="['fas', step.icon]" />
-          <FontAwesomeIcon
-            v-else-if="step.isActive"
-            :icon="['fas', 'check']"
-            class="text-green-500"
-          />
-          <FontAwesomeIcon v-else :icon="['fas', 'circle']" size="xs" class="text-gray-400" />
-        </span>
-        <h3 class="font-medium leading-tight">
-          {{ step.title }}
-          <span
-            v-if="isNextStep(index)"
-            class="ml-2 inline-flex items-center rounded-md bg-indigo-200 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10"
-            title="Plan: Developer"
-            >Next step</span
-          >
-        </h3>
-        <p class="text-sm">{{ step.details }}</p>
+  <nav aria-label="Progress">
+    <ol role="list" class="overflow-hidden">
+      <li v-for="(step, index) in props.steps" :key="step.title" class="relative pb-10">
+        <div
+          class="absolute left-4 top-4 -ml-px mt-0.5 h-full w-0.5"
+          :class="[step.isActive ? 'bg-indigo-600' : isLastStep(index) ? '' : 'bg-gray-300']"
+        ></div>
+        <component :is="isNextStep(index) && step.route ? Hook0Button : 'div'" :to="step.route">
+          <div class="relative flex items-start">
+            <span class="flex h-9 items-center">
+              <span
+                class="relative z-10 flex size-8 items-center justify-center rounded-full"
+                :class="[
+                  step.isActive ? 'bg-indigo-600' : 'border-2',
+                  step.isActive
+                    ? ''
+                    : isNextStep(index)
+                      ? 'border-indigo-600 bg-white'
+                      : 'border-gray-300 bg-white',
+                ]"
+              >
+                <span v-if="step.isActive">
+                  <FontAwesomeIcon :icon="['fas', 'check']" color="white" size="lg" />
+                </span>
+                <span
+                  v-else
+                  class="size-2.5 rounded-full"
+                  :class="isNextStep(index) ? 'bg-indigo-600' : 'bg-transparent'"
+                >
+                </span>
+              </span>
+            </span>
+            <span class="ml-4 flex min-w-0 flex-col">
+              <span
+                class="text-sm font-medium"
+                :class="
+                  step.isActive
+                    ? 'text-gray-800'
+                    : isNextStep(index)
+                      ? 'text-indigo-600 font-semibold'
+                      : 'text-gray-500'
+                "
+              >
+                {{ step.title }}
+              </span>
+              <span class="text-sm text-gray-500">{{ step.details }}</span>
+            </span>
+          </div>
+        </component>
       </li>
     </ol>
-  </div>
+  </nav>
 </template>
