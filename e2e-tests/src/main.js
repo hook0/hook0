@@ -110,13 +110,19 @@ function scenario_1() {
         'Expected to find 0 request attempts for event 3 | Found: ' + request_attempts_3.length
       );
     }
+
+    if (application_id && !config.keepTestApplication) {
+      // TODO: wait for the request attempts to be successful instead of waiting 3s
+      setTimeout(() => {
+        delete_application(h, application_id, s);
+      }, 3000);
+    }
   } catch (error) {
     console.error(error.message);
-    throw error;
-  } finally {
     if (application_id && !config.keepTestApplication) {
       delete_application(h, application_id, s);
     }
+    throw error;
   }
 }
 
