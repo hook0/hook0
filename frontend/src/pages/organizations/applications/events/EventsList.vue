@@ -38,7 +38,7 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const emit = defineEmits(['tutorial-event-send']);
+const emit = defineEmits(['tutorial-event-send', 'event-sended']);
 
 const route = useRoute();
 
@@ -207,6 +207,7 @@ function send_test_event() {
           duration: 5000,
         });
         _forceLoad();
+        emit('event-sended');
       }
     })
     .catch(displayError);
