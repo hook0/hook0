@@ -624,6 +624,14 @@ export interface components {
       name: string;
       /** Format: uuid */
       organization_id: string;
+      statistics: {
+        /** Format: int64 */
+        event_types: number;
+        /** Format: int64 */
+        events: number;
+        /** Format: int64 */
+        subscriptions: number;
+      };
     };
     ApplicationInfo: {
       /** Format: uuid */
@@ -636,6 +644,14 @@ export interface components {
         days_of_events_retention_limit: number;
         /** Format: int32 */
         events_per_day_limit: number;
+      };
+      statistics: {
+        /** Format: int64 */
+        event_types: number;
+        /** Format: int64 */
+        events: number;
+        /** Format: int64 */
+        subscriptions: number;
       };
     };
     ApplicationPost: {
