@@ -425,7 +425,8 @@ pub async fn get(
                 "SELECT COUNT(e.application__id) AS val
                 FROM iam.organization o
                 JOIN event.application a ON a.organization__id = $1
-                JOIN event.event_type e ON a.application__id = e.application__id;",
+                JOIN event.event_type e ON a.application__id = e.application__id
+                AND e.deactivated_at IS NULL;",
                 &organization_id
             )
             .fetch_one(&state.db)
@@ -435,7 +436,8 @@ pub async fn get(
                 "SELECT COUNT(s.subscription__id) AS val
                 FROM iam.organization o
                 JOIN event.application a ON a.organization__id = $1
-                JOIN webhook.subscription s ON a.application__id = s.application__id;",
+                JOIN webhook.subscription s ON a.application__id = s.application__id
+                AND s.deleted_at IS NULL;",
                 &organization_id
             )
             .fetch_one(&state.db)
