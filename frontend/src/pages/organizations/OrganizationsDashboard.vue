@@ -130,6 +130,28 @@ function _load() {
                   },
                 }
               );
+            } else {
+              widgetItems.value.push(
+                {
+                  title: 'Create an event type',
+                  details:
+                    'Event types are categories of events. For each subscription, you will then be able choose among your declared event types to receive only the right events.',
+                  isActive: organization.value.statisctis.event_types > 0,
+                  icon: 'folder-tree',
+                },
+                {
+                  title: 'Create a subscription',
+                  details: 'You can create as many subscriptions as you need.',
+                  isActive: organization.value.statisctis.subscriptions > 0,
+                  icon: 'link',
+                },
+                {
+                  title: 'Send an event',
+                  details: 'You can send as many events as you need.',
+                  isActive: organization.value.statisctis.events > 0,
+                  icon: 'file-lines',
+                }
+              );
             }
           })
           .catch(displayError);
