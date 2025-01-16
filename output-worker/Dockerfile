@@ -1,6 +1,6 @@
 ARG RUST_VERSION=1.84
 
-FROM rust:${RUST_VERSION} as builder-rust
+FROM rust:${RUST_VERSION} AS builder-rust
 WORKDIR /app
 RUN --mount=type=bind,source=Cargo.toml,target=Cargo.toml \
     --mount=type=bind,source=Cargo.lock,target=Cargo.lock \
