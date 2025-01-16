@@ -208,7 +208,8 @@ pub async fn get(
                 event_types: query_scalar!(
                     "SELECT COUNT(application__id) AS val
                     FROM event.event_type
-                    WHERE application__id = $1;",
+                    WHERE application__id = $1
+                    AND deactivated_at IS NULL;",
                     &application_id
                 )
                 .fetch_one(&state.db)
@@ -217,7 +218,8 @@ pub async fn get(
                 subscriptions: query_scalar!(
                     "SELECT COUNT(application__id) AS val
                     FROM webhook.subscription
-                    WHERE application__id = $1;",
+                    WHERE application__id = $1
+                    AND deleted_at IS NULL;",
                     &application_id
                 )
                 .fetch_one(&state.db)
