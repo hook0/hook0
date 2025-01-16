@@ -232,8 +232,24 @@ onMounted(() => {
         </template>
       </Promised>
     </Hook0CardContent>
-    <Hook0CardFooter v-if="organizationId && (applicationId || selected_application_id)">
-      <Hook0Button class="primary" type="button" @click="goThirdStep">
+    <Hook0CardFooter>
+      <Hook0Button
+        class="secondary"
+        type="button"
+        @click="
+          router.push({
+            name: routes.OrganizationsDashboard,
+            params: { organization_id: organizationId },
+          })
+        "
+        >Skip</Hook0Button
+      >
+      <Hook0Button
+        v-if="organizationId && (applicationId || selected_application_id)"
+        class="primary"
+        type="button"
+        @click="goThirdStep"
+      >
         🚀 Continue Step 3: Create Your First Event Type
       </Hook0Button>
     </Hook0CardFooter>

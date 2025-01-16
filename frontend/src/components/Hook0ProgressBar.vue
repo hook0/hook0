@@ -16,9 +16,9 @@ const props = defineProps<ProgressBarProps>();
 </script>
 
 <template>
-  <div class="bg-gray-200 h-1 flex items-center justify-between">
+  <div class="flex items-center w-11/12 mx-auto">
     <template v-for="(item, index) in props.items" :key="index">
-      <div class="flex items-center">
+      <div class="flex items-center relative">
         <div
           v-if="index + 1 < Number(props.actual)"
           class="bg-indigo-600 h-10 w-10 rounded-full shadow flex items-center justify-center"
@@ -38,33 +38,28 @@ const props = defineProps<ProgressBarProps>();
         <div v-else class="bg-white h-10 w-10 rounded-full border-2 border-gray-300"></div>
 
         <div
-          v-if="index + 1 === Number(props.actual)"
-          class="mt-20 mb-2 hidden lg:block"
-          :class="index !== 0 ? '-ml-24' : '-ml-14'"
+          class="hidden lg:flex absolute top-12 left-1/2 -translate-x-1/2 items-center w-max bg-white shadow rounded"
         >
-          <div class="relative bg-white shadow-lg px-2 py-1 rounded">
-            <div class="flex items-center">
-              <FontAwesomeIcon
-                v-if="item.icon"
-                :icon="['fas', item.icon]"
-                size="sm"
-                class="text-indigo-600"
-              ></FontAwesomeIcon>
-              <p class="ml-2 text-indigo-600 font-bold">
-                ({{ index + 1 }}/{{ props.items.length }})
-                {{ item.title }}
-              </p>
-            </div>
+          <div class="flex items-center px-3 py-1">
+            <FontAwesomeIcon
+              v-if="item.icon"
+              :icon="['fas', item.icon]"
+              size="sm"
+              class="text-indigo-600"
+            ></FontAwesomeIcon>
+            <p class="ml-2 text-indigo-600 font-bold">
+              ({{ index + 1 }}/{{ props.items.length }}) {{ item.title }}
+            </p>
           </div>
         </div>
       </div>
 
       <div
         v-if="index < props.items.length - 1"
-        class="flex-grow h-1"
+        class="flex-1 h-1"
         :class="{
           'bg-indigo-600': index + 1 < Number(props.actual),
-          'bg-gray-200': index + 1 >= Number(props.actual),
+          'bg-gray-300': index + 1 >= Number(props.actual),
         }"
       ></div>
     </template>
