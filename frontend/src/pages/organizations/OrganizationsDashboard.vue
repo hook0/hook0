@@ -5,6 +5,7 @@ import { onMounted, onUpdated, ref } from 'vue';
 import Hook0Text from '@/components/Hook0Text.vue';
 import { Problem, UUID } from '@/http';
 import * as OrganizationService from '@/pages/organizations/OrganizationService';
+import * as ApplicationService from '@/pages/organizations/applications/ApplicationService';
 import * as ServiceTokenService from '@/pages/organizations/services_token/ServicesTokenService.ts';
 import { OrganizationInfo } from '@/pages/organizations/OrganizationService';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
@@ -23,13 +24,15 @@ import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
 import MembersList from '@/pages/organizations/MembersList.vue';
 import { push } from 'notivue';
 import Hook0TutorialWidget from '@/components/Hook0TutorialWidget.vue';
-import { Step } from '../tutorial/TutorialService';
+import { Step } from '@/pages/tutorial/TutorialService';
+import { Application } from '@/pages/organizations/applications/ApplicationService';
 
 const route = useRoute();
 const pricingEnabled = ref<boolean>(false);
 
 const has_service_token = ref(true);
 const organization_id = ref<UUID | null>(null);
+const applications$ = ref<Application[]>([]);
 const organization = ref({
   name: '',
   plan: '',
@@ -61,33 +64,75 @@ function _load() {
         organization.value.statisctis = org.statistics;
       })
       .then(() => {
+        if (!organization_id.value) {
+          return;
+        }
+
         widgetItems.value = [
           {
             title: 'Create an application',
             details: 'You can create as many applications as you need.',
             isActive: organization.value.statisctis.applications > 0,
             icon: 'rocket',
-          },
-          {
-            title: 'Create an event type',
-            details:
-              'Event types are categories of events. For each subscription, you will then be able choose among your declared event types to receive only the right events.',
-            isActive: organization.value.statisctis.event_types > 0,
-            icon: 'folder-tree',
-          },
-          {
-            title: 'Create a subscription',
-            details: 'You can create as many subscriptions as you need.',
-            isActive: organization.value.statisctis.subscriptions > 0,
-            icon: 'link',
-          },
-          {
-            title: 'Send an event',
-            details: 'You can send as many events as you need.',
-            isActive: organization.value.statisctis.events > 0,
-            icon: 'file-lines',
+            route: {
+              name: routes.TutorialCreateApplication,
+              params: {
+                organization_id: organization_id.value,
+              },
+            },
           },
         ];
+
+        ApplicationService.list(organization_id.value)
+          .then((applications) => {
+            applications$.value = applications;
+
+            if (applications.length > 0) {
+              widgetItems.value.push(
+                {
+                  title: 'Create an event type',
+                  details:
+                    'Event types are categories of events. For each subscription, you will then be able choose among your declared event types to receive only the right events.',
+                  isActive: organization.value.statisctis.event_types > 0,
+                  icon: 'folder-tree',
+                  route: {
+                    name: routes.TutorialCreateEventType,
+                    params: {
+                      organization_id: organization_id.value,
+                      application_id: applications$.value[0].application_id,
+                    },
+                  },
+                },
+                {
+                  title: 'Create a subscription',
+                  details: 'You can create as many subscriptions as you need.',
+                  isActive: organization.value.statisctis.subscriptions > 0,
+                  icon: 'link',
+                  route: {
+                    name: routes.TutorialCreateSubscription,
+                    params: {
+                      organization_id: organization_id.value,
+                      application_id: applications$.value[0].application_id,
+                    },
+                  },
+                },
+                {
+                  title: 'Send an event',
+                  details: 'You can send as many events as you need.',
+                  isActive: organization.value.statisctis.events > 0,
+                  icon: 'file-lines',
+                  route: {
+                    name: routes.TutorialSendEvent,
+                    params: {
+                      organization_id: organization_id.value,
+                      application_id: applications$.value[0].application_id,
+                    },
+                  },
+                }
+              );
+            }
+          })
+          .catch(displayError);
       })
       .catch(displayError);
 

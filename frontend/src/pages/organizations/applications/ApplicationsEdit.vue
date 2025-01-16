@@ -61,12 +61,6 @@ function upsert(e: Event) {
       organization_id: route.params.organization_id as string,
     }).then((_resp) => {
       if (props.tutorialMode) {
-        push.success({
-          title: 'Application created',
-          message:
-            'Your application has been created successfully. You can pass to the next step. 🎉',
-          duration: 5000,
-        });
         emit('tutorial-application-created', _resp.application_id);
       } else {
         cancel();
