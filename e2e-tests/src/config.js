@@ -3,14 +3,16 @@ const DEFAULTS = {
   vus: 1, // Number of virtual users
   iterations: 1, // Number of iterations
   maxDuration: '1m', // Duration before timeout the job
-  deleteOnFail: false, // Delete the application if the test fails
+  keepTestApplication: false, // Delete the application after the test
 };
 
 export function getEnvironmentVariables() {
   const vus = __ENV.VUS || DEFAULTS.vus;
   const iterations = __ENV.ITERATIONS || DEFAULTS.iterations;
   const maxDuration = __ENV.MAX_DURATION || DEFAULTS.maxDuration;
-  const deleteOnFail = __ENV.DELETE_ON_FAIL ? __ENV.DELETE_ON_FAIL : DEFAULTS.deleteOnFail;
+  const keepTestApplication = __ENV.KEEP_TEST_APPLICATION
+    ? __ENV.KEEP_TEST_APPLICATION === 'true'
+    : DEFAULTS.keepTestApplication;
 
   const apiOrigin = __ENV.API_ORIGIN ? __ENV.API_ORIGIN : null;
   const targetUrl = __ENV.TARGET_URL ? __ENV.TARGET_URL : null;
@@ -31,6 +33,6 @@ export function getEnvironmentVariables() {
     targetUrl,
     serviceToken,
     organizationId,
-    deleteOnFail,
+    keepTestApplication,
   };
 }
