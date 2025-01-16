@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COUNT(e.event__id) AS val\n                FROM iam.organization o\n                JOIN event.application a ON a.organization__id = $1\n                JOIN event.event e ON a.application__id = e.application__id;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "val",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "e2bfd9c5d284767cf3abd4f88d56d7f2f94ba9dc8f1b0f239aafe4df0be25af9"
+}
