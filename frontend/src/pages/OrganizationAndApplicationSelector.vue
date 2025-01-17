@@ -17,6 +17,10 @@ import Hook0Dropdown from '@/components/Hook0Dropdown.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0Icon from '@/components/Hook0Icon.vue';
 import { getAccessToken } from '@/iam';
+import Hook0Card from '@/components/Hook0Card.vue';
+import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
+import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
+import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 
 type ApplicationsPerOrganization = {
   organization: Organization;
@@ -30,6 +34,10 @@ const applicationsPerOrganization = ref<null | ApplicationsPerOrganization[]>(nu
 const organization_name = ref('');
 const application_name = ref('');
 const removeRouterGuard = ref<null | (() => void)>(null);
+
+const props = defineProps<{
+  treeStructure: boolean;
+}>();
 
 watch(
   () => getAccessToken().value,
@@ -150,7 +158,7 @@ onUnmounted(() => {
 
 <template>
   <Hook0Dropdown
-    v-if="applicationsPerOrganization !== null"
+    v-if="applicationsPerOrganization !== null && !props.treeStructure"
     class="container darkmode"
     justify="left"
   >
@@ -211,6 +219,86 @@ onUnmounted(() => {
       </Hook0DropdownMenuItemLink>
     </template>
   </Hook0Dropdown>
+  <template v-else>
+    <div class="flex flex-col justify-between p-4">
+      <div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div
+            v-for="(organizationGroup, index) in applicationsPerOrganization"
+            :key="index"
+            class="flex flex-col mb-2"
+          >
+            <Hook0Card>
+              <Hook0CardHeader>
+                <template #header>
+                  <Hook0Button
+                    class="flex items-center text-lg"
+                    @click="
+                      router.push({
+                        name: routes.OrganizationsDashboard,
+                        params: { organization_id: organizationGroup.organization.organization_id },
+                      })
+                    "
+                  >
+                    <Hook0Icon name="sitemap"></Hook0Icon>
+                    <Hook0Text class="ml-1">{{ organizationGroup.organization.name }}</Hook0Text>
+                  </Hook0Button>
+                </template>
+                <template #subtitle> </template>
+              </Hook0CardHeader>
+              <Hook0CardContentLines>
+                <Hook0CardContentLine type="full-width">
+                  <template v-if="organizationGroup.applications.length > 0" #content>
+                    <Hook0Button
+                      v-for="(application, appIndex) in organizationGroup.applications"
+                      :key="appIndex"
+                      class="flex items-center"
+                      @click="
+                        router.push({
+                          name: routes.ApplicationsDashboard,
+                          params: {
+                            application_id: application.application_id,
+                            organization_id: organizationGroup.organization.organization_id,
+                          },
+                        })
+                      "
+                    >
+                      <Hook0Icon name="rocket"></Hook0Icon>
+                      <Hook0Text class="ml-1">{{ application.name }}</Hook0Text>
+                    </Hook0Button>
+                  </template>
+                  <template v-else #content>
+                    <div class="flex flex-col items-center">
+                      <Hook0Text class="text-gray-500 mb-2">No applications found</Hook0Text>
+                      <Hook0Button
+                        @click="
+                          router.push({
+                            name: routes.ApplicationsNew,
+                            params: {
+                              organization_id: organizationGroup.organization.organization_id,
+                            },
+                          })
+                        "
+                      >
+                        <Hook0Icon name="plus"></Hook0Icon>
+                        <Hook0Text class="ml-1">Create New Application</Hook0Text>
+                      </Hook0Button>
+                    </div>
+                  </template>
+                </Hook0CardContentLine>
+              </Hook0CardContentLines>
+            </Hook0Card>
+          </div>
+        </div>
+      </div>
+      <div class="flex justify-end">
+        <Hook0Button class="primary" @click="router.push({ name: routes.OrganizationsNew })">
+          <Hook0Icon name="plus"></Hook0Icon>
+          <Hook0Text class="ml-1">New Organization</Hook0Text>
+        </Hook0Button>
+      </div>
+    </div>
+  </template>
 </template>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
