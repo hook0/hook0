@@ -624,19 +624,27 @@ export interface components {
       name: string;
       /** Format: uuid */
       organization_id: string;
-      statistics: {
-        /** Format: int64 */
-        event_types: number;
-        /** Format: int64 */
-        events: number;
-        /** Format: int64 */
-        subscriptions: number;
+      onboarding_steps: {
+        /** @enum {string} */
+        event: 'ToDo' | 'Done';
+        /** @enum {string} */
+        event_type: 'ToDo' | 'Done';
+        /** @enum {string} */
+        subscription: 'ToDo' | 'Done';
       };
     };
     ApplicationInfo: {
       /** Format: uuid */
       application_id: string;
       name: string;
+      onboarding_steps: {
+        /** @enum {string} */
+        event: 'ToDo' | 'Done';
+        /** @enum {string} */
+        event_type: 'ToDo' | 'Done';
+        /** @enum {string} */
+        subscription: 'ToDo' | 'Done';
+      };
       /** Format: uuid */
       organization_id: string;
       quotas: {
@@ -644,14 +652,6 @@ export interface components {
         days_of_events_retention_limit: number;
         /** Format: int32 */
         events_per_day_limit: number;
-      };
-      statistics: {
-        /** Format: int64 */
-        event_types: number;
-        /** Format: int64 */
-        events: number;
-        /** Format: int64 */
-        subscriptions: number;
       };
     };
     ApplicationPost: {
@@ -786,6 +786,16 @@ export interface components {
     };
     OrganizationInfo: {
       name: string;
+      onboarding_steps: {
+        /** @enum {string} */
+        application: 'ToDo' | 'Done';
+        /** @enum {string} */
+        event: 'ToDo' | 'Done';
+        /** @enum {string} */
+        event_type: 'ToDo' | 'Done';
+        /** @enum {string} */
+        subscription: 'ToDo' | 'Done';
+      };
       /** Format: uuid */
       organization_id: string;
       plan?: {
@@ -801,16 +811,6 @@ export interface components {
         events_per_day_limit: number;
         /** Format: int32 */
         members_per_organization_limit: number;
-      };
-      statistics: {
-        /** Format: int64 */
-        applications: number;
-        /** Format: int64 */
-        event_types: number;
-        /** Format: int64 */
-        events: number;
-        /** Format: int64 */
-        subscriptions: number;
       };
       users: {
         email: string;
