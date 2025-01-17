@@ -169,7 +169,7 @@ onUnmounted(() => {
     </template>
 
     <template #dropdown="parent">
-      <div>
+      <div class="max-h-96 overflow-y-scroll">
         <div v-for="(organizationGroup, index) in applicationsPerOrganization" :key="index">
           <Hook0DropdownMenuItemLink
             class="flex justify-between darkmode"
