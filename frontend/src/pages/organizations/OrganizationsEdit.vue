@@ -132,7 +132,7 @@ onUpdated(() => {
               <Hook0Input
                 v-model="organization.name"
                 type="text"
-                placeholder="e.g., my-awesome-api-prod, staging-team, hook0-org"
+                placeholder="My Awesome Product"
                 required
               >
                 <template #helpText></template>
