@@ -4,7 +4,7 @@ use log::error;
 use paperclip::actix::web::{Data, Json, Path, Query};
 use paperclip::actix::{api_v2_operation, Apiv2Schema, CreatedJson, NoContent};
 use serde::{Deserialize, Serialize};
-use sqlx::{query, query_as, query_scalar};
+use sqlx::{query, query_as};
 use uuid::Uuid;
 use validator::Validate;
 
@@ -29,7 +29,7 @@ pub struct ApplicationInfo {
     organization_id: Uuid,
     name: String,
     quotas: ApplicationQuotas,
-    statistics: ApplicationStatistics,
+    onboarding_steps: OnboardingSteps,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -39,10 +39,26 @@ pub struct ApplicationQuotas {
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
-pub struct ApplicationStatistics {
-    pub event_types: i64,
-    pub subscriptions: i64,
-    pub events: i64,
+pub struct OnboardingSteps {
+    event_type: OnboardingStepStatus,
+    subscription: OnboardingStepStatus,
+    event: OnboardingStepStatus,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Apiv2Schema)]
+enum OnboardingStepStatus {
+    ToDo,
+    Done,
+}
+
+impl From<bool> for OnboardingStepStatus {
+    fn from(val: bool) -> Self {
+        if val {
+            Self::Done
+        } else {
+            Self::ToDo
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
@@ -204,44 +220,25 @@ pub async fn get(
                     .await?,
             };
 
-            let statistics = ApplicationStatistics {
-                event_types: query_scalar!(
-                    "SELECT COUNT(application__id) AS val
-                    FROM event.event_type
-                    WHERE application__id = $1
-                    AND deactivated_at IS NULL;",
+            let onboarding_steps = query_as!(
+                    OnboardingSteps,
+                    r#"
+                        SELECT
+                            EXISTS(SELECT 1 FROM event.event_type WHERE application__id = $1) AS "event_type!",
+                            EXISTS(SELECT 1 FROM webhook.subscription WHERE application__id = $1) AS "subscription!",
+                            EXISTS(SELECT 1 FROM event.event WHERE application__id = $1) AS "event!"
+                    "#,
                     &application_id
                 )
                 .fetch_one(&state.db)
-                .await?
-                .unwrap_or(0),
-                subscriptions: query_scalar!(
-                    "SELECT COUNT(application__id) AS val
-                    FROM webhook.subscription
-                    WHERE application__id = $1
-                    AND deleted_at IS NULL;",
-                    &application_id
-                )
-                .fetch_one(&state.db)
-                .await?
-                .unwrap_or(0),
-                events: query_scalar!(
-                    "SELECT COUNT(event__id) AS val
-                    FROM event.event
-                    WHERE application__id = $1;",
-                    &application_id
-                )
-                .fetch_one(&state.db)
-                .await?
-                .unwrap_or(0),
-            };
+                .await?;
 
             Ok(Json(ApplicationInfo {
                 application_id: a.application_id,
                 organization_id: a.organization_id,
                 name: a.name,
                 quotas,
-                statistics,
+                onboarding_steps,
             }))
         }
         None => Err(Hook0Problem::NotFound),
