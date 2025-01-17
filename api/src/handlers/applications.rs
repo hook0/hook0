@@ -224,8 +224,8 @@ pub async fn get(
                     OnboardingSteps,
                     r#"
                         SELECT
-                            EXISTS(SELECT 1 FROM event.event_type WHERE application__id = $1) AS "event_type!",
-                            EXISTS(SELECT 1 FROM webhook.subscription WHERE application__id = $1) AS "subscription!",
+                            EXISTS(SELECT 1 FROM event.event_type WHERE application__id = $1 AND deactivated_at IS NULL) AS "event_type!",
+                            EXISTS(SELECT 1 FROM webhook.subscription WHERE application__id = $1 AND deleted_at IS NULL) AS "subscription!",
                             EXISTS(SELECT 1 FROM event.event WHERE application__id = $1) AS "event!"
                     "#,
                     &application_id
