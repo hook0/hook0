@@ -24,14 +24,19 @@ import Hook0CardContent from '@/components/Hook0CardContent.vue';
 
 const route = useRoute();
 
+enum OnboardingStepStatus {
+  ToDo = 'ToDo',
+  Done = 'Done',
+}
+
 const application_id = ref<UUID | null>(null);
 const application = ref({
   name: '',
   organization_id: '',
-  statisctis: {
-    event_types: 0,
-    subscriptions: 0,
-    events: 0,
+  onboarding_steps: {
+    event_type: OnboardingStepStatus.ToDo,
+    subscription: OnboardingStepStatus.ToDo,
+    event: OnboardingStepStatus.ToDo,
   },
 });
 
@@ -44,13 +49,24 @@ function _load() {
     .then((app: Application) => {
       application.value.name = app.name;
       application.value.organization_id = app.organization_id;
-      application.value.statisctis = app.statistics;
+      application.value.onboarding_steps.event_type =
+        app.onboarding_steps.event_type === 'Done'
+          ? OnboardingStepStatus.Done
+          : OnboardingStepStatus.ToDo;
+      application.value.onboarding_steps.subscription =
+        app.onboarding_steps.subscription === 'Done'
+          ? OnboardingStepStatus.Done
+          : OnboardingStepStatus.ToDo;
+      application.value.onboarding_steps.event =
+        app.onboarding_steps.event === 'Done'
+          ? OnboardingStepStatus.Done
+          : OnboardingStepStatus.ToDo;
     })
     .then(() => {
       if (
-        application.value.statisctis.event_types > 0 &&
-        application.value.statisctis.subscriptions > 0 &&
-        application.value.statisctis.events > 0
+        application.value.onboarding_steps.event_type === OnboardingStepStatus.Done &&
+        application.value.onboarding_steps.subscription === OnboardingStepStatus.Done &&
+        application.value.onboarding_steps.event === OnboardingStepStatus.Done
       ) {
         return;
       }
@@ -60,7 +76,7 @@ function _load() {
           title: 'Create an event type',
           details:
             'Event types are categories of events. For each subscription, you will then be able choose among your declared event types to receive only the right events.',
-          isActive: application.value.statisctis.event_types > 0,
+          isActive: application.value.onboarding_steps.event_type === OnboardingStepStatus.Done,
           icon: 'folder-tree',
           route: {
             name: routes.TutorialCreateEventType,
@@ -73,7 +89,7 @@ function _load() {
         {
           title: 'Create a subscription',
           details: 'You can create as many subscriptions as you need.',
-          isActive: application.value.statisctis.subscriptions > 0,
+          isActive: application.value.onboarding_steps.subscription === OnboardingStepStatus.Done,
           icon: 'link',
           route: {
             name: routes.TutorialCreateSubscription,
@@ -86,7 +102,7 @@ function _load() {
         {
           title: 'Send an event',
           details: 'You can send as many events as you need.',
-          isActive: application.value.statisctis.events > 0,
+          isActive: application.value.onboarding_steps.event === OnboardingStepStatus.Done,
           icon: 'file-lines',
           route: {
             name: routes.TutorialSendEvent,

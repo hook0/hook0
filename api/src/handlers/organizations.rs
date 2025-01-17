@@ -37,7 +37,7 @@ pub struct OrganizationInfo {
     pub plan: Option<OrganizationInfoPlan>,
     pub users: Vec<OrganizationUser>,
     pub quotas: OrganizationQuotas,
-    pub statistics: OrganizationStatistics,
+    pub onboarding_steps: OnboardingSteps,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -55,11 +55,27 @@ pub struct OrganizationQuotas {
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
-pub struct OrganizationStatistics {
-    pub applications: i64,
-    pub event_types: i64,
-    pub subscriptions: i64,
-    pub events: i64,
+pub struct OnboardingSteps {
+    application: OnboardingStepStatus,
+    event_type: OnboardingStepStatus,
+    subscription: OnboardingStepStatus,
+    event: OnboardingStepStatus,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Apiv2Schema)]
+enum OnboardingStepStatus {
+    ToDo,
+    Done,
+}
+
+impl From<bool> for OnboardingStepStatus {
+    fn from(val: bool) -> Self {
+        if val {
+            Self::Done
+        } else {
+            Self::ToDo
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -273,11 +289,11 @@ pub async fn create(
                 role: Role::Editor,
             }],
             quotas,
-            statistics: OrganizationStatistics {
-                applications: 0,
-                event_types: 0,
-                subscriptions: 0,
-                events: 0,
+            onboarding_steps: OnboardingSteps {
+                application: OnboardingStepStatus::ToDo,
+                event_type: OnboardingStepStatus::ToDo,
+                subscription: OnboardingStepStatus::ToDo,
+                event: OnboardingStepStatus::ToDo,
             },
         }))
     } else {
@@ -413,46 +429,58 @@ pub async fn get(
                 .await?,
         };
 
-        let statistics = OrganizationStatistics {
-            applications: query_scalar!(
-                "SELECT COUNT(*) FROM event.application WHERE organization__id = $1",
-                &organization_id
+        struct AppId {
+            application_id: Uuid,
+        }
+
+        let apps = query_as!(
+            AppId,
+            "
+                SELECT application__id AS application_id
+                FROM event.application
+                WHERE organization__id = $1
+            ",
+            organization_id,
+        )
+        .fetch_all(&state.db)
+        .await?
+        .iter()
+        .map(|app_id| app_id.application_id)
+        .collect::<Vec<_>>();
+
+        let onboarding_steps = if apps.is_empty() {
+            OnboardingSteps {
+                application: OnboardingStepStatus::ToDo,
+                event_type: OnboardingStepStatus::ToDo,
+                subscription: OnboardingStepStatus::ToDo,
+                event: OnboardingStepStatus::ToDo,
+            }
+        } else {
+            struct OnboardingStepsWithoutApplication {
+                event_type: OnboardingStepStatus,
+                subscription: OnboardingStepStatus,
+                event: OnboardingStepStatus,
+            }
+
+            let existance_results = query_as!(
+                OnboardingStepsWithoutApplication,
+                r#"
+                    SELECT
+                        EXISTS(SELECT 1 FROM event.event_type WHERE application__id = ANY($1)) AS "event_type!",
+                        EXISTS(SELECT 1 FROM webhook.subscription WHERE application__id = ANY($1)) AS "subscription!",
+                        EXISTS(SELECT 1 FROM event.event WHERE application__id = ANY($1)) AS "event!"
+                "#,
+                &apps,
             )
             .fetch_one(&state.db)
-            .await?
-            .unwrap_or(0),
-            event_types: query_scalar!(
-                "SELECT COUNT(e.application__id) AS val
-                FROM iam.organization o
-                JOIN event.application a ON a.organization__id = $1
-                JOIN event.event_type e ON a.application__id = e.application__id
-                AND e.deactivated_at IS NULL;",
-                &organization_id
-            )
-            .fetch_one(&state.db)
-            .await?
-            .unwrap_or(0),
-            subscriptions: query_scalar!(
-                "SELECT COUNT(s.subscription__id) AS val
-                FROM iam.organization o
-                JOIN event.application a ON a.organization__id = $1
-                JOIN webhook.subscription s ON a.application__id = s.application__id
-                AND s.deleted_at IS NULL;",
-                &organization_id
-            )
-            .fetch_one(&state.db)
-            .await?
-            .unwrap_or(0),
-            events: query_scalar!(
-                "SELECT COUNT(e.event__id) AS val
-                FROM iam.organization o
-                JOIN event.application a ON a.organization__id = $1
-                JOIN event.event e ON a.application__id = e.application__id;",
-                &organization_id
-            )
-            .fetch_one(&state.db)
-            .await?
-            .unwrap_or(0),
+            .await?;
+
+            OnboardingSteps {
+                application: OnboardingStepStatus::Done,
+                event_type: existance_results.event_type,
+                subscription: existance_results.subscription,
+                event: existance_results.event,
+            }
         };
 
         Ok(Json(OrganizationInfo {
@@ -461,7 +489,7 @@ pub async fn get(
             plan,
             users: org_users,
             quotas,
-            statistics,
+            onboarding_steps,
         }))
     } else {
         Err(Hook0Problem::NotFound)

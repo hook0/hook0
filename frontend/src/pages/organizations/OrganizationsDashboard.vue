@@ -30,6 +30,11 @@ import { Application } from '@/pages/organizations/applications/ApplicationServi
 const route = useRoute();
 const pricingEnabled = ref<boolean>(false);
 
+enum OnboardingStepStatus {
+  ToDo = 'ToDo',
+  Done = 'Done',
+}
+
 const has_service_token = ref(true);
 const organization_id = ref<UUID | null>(null);
 const applications$ = ref<Application[]>([]);
@@ -42,11 +47,11 @@ const organization = ref({
     events_per_day_limit: 0,
     days_of_events_retention_limit: 0,
   },
-  statisctis: {
-    applications: 0,
-    event_types: 0,
-    subscriptions: 0,
-    events: 0,
+  onboarding_steps: {
+    application: OnboardingStepStatus.ToDo,
+    event_type: OnboardingStepStatus.ToDo,
+    subscription: OnboardingStepStatus.ToDo,
+    event: OnboardingStepStatus.ToDo,
   },
 });
 
@@ -61,7 +66,22 @@ function _load() {
         organization.value.name = org.name;
         organization.value.plan = org.plan?.label || '';
         organization.value.quotas = org.quotas;
-        organization.value.statisctis = org.statistics;
+        organization.value.onboarding_steps.application =
+          org.onboarding_steps.application === 'Done'
+            ? OnboardingStepStatus.Done
+            : OnboardingStepStatus.ToDo;
+        organization.value.onboarding_steps.event_type =
+          org.onboarding_steps.event_type === 'Done'
+            ? OnboardingStepStatus.Done
+            : OnboardingStepStatus.ToDo;
+        organization.value.onboarding_steps.subscription =
+          org.onboarding_steps.subscription === 'Done'
+            ? OnboardingStepStatus.Done
+            : OnboardingStepStatus.ToDo;
+        organization.value.onboarding_steps.event =
+          org.onboarding_steps.event === 'Done'
+            ? OnboardingStepStatus.Done
+            : OnboardingStepStatus.ToDo;
       })
       .then(() => {
         if (!organization_id.value) {
@@ -69,10 +89,10 @@ function _load() {
         }
 
         if (
-          organization.value.statisctis.applications > 0 &&
-          organization.value.statisctis.event_types > 0 &&
-          organization.value.statisctis.subscriptions > 0 &&
-          organization.value.statisctis.events > 0
+          organization.value.onboarding_steps.application === OnboardingStepStatus.Done &&
+          organization.value.onboarding_steps.event_type === OnboardingStepStatus.Done &&
+          organization.value.onboarding_steps.subscription === OnboardingStepStatus.Done &&
+          organization.value.onboarding_steps.event === OnboardingStepStatus.Done
         ) {
           return;
         }
@@ -81,7 +101,7 @@ function _load() {
           {
             title: 'Create an application',
             details: 'You can create as many applications as you need.',
-            isActive: organization.value.statisctis.applications > 0,
+            isActive: organization.value.onboarding_steps.application === OnboardingStepStatus.Done,
             icon: 'rocket',
             route: {
               name: routes.TutorialCreateApplication,
@@ -102,7 +122,8 @@ function _load() {
                   title: 'Create an event type',
                   details:
                     'Event types are categories of events. For each subscription, you will then be able choose among your declared event types to receive only the right events.',
-                  isActive: organization.value.statisctis.event_types > 0,
+                  isActive:
+                    organization.value.onboarding_steps.event_type === OnboardingStepStatus.Done,
                   icon: 'folder-tree',
                   route: {
                     name: routes.TutorialCreateEventType,
@@ -115,7 +136,8 @@ function _load() {
                 {
                   title: 'Create a subscription',
                   details: 'You can create as many subscriptions as you need.',
-                  isActive: organization.value.statisctis.subscriptions > 0,
+                  isActive:
+                    organization.value.onboarding_steps.subscription === OnboardingStepStatus.Done,
                   icon: 'link',
                   route: {
                     name: routes.TutorialCreateSubscription,
@@ -128,7 +150,7 @@ function _load() {
                 {
                   title: 'Send an event',
                   details: 'You can send as many events as you need.',
-                  isActive: organization.value.statisctis.events > 0,
+                  isActive: organization.value.onboarding_steps.event === OnboardingStepStatus.Done,
                   icon: 'file-lines',
                   route: {
                     name: routes.TutorialSendEvent,
@@ -145,19 +167,21 @@ function _load() {
                   title: 'Create an event type',
                   details:
                     'Event types are categories of events. For each subscription, you will then be able choose among your declared event types to receive only the right events.',
-                  isActive: organization.value.statisctis.event_types > 0,
+                  isActive:
+                    organization.value.onboarding_steps.event_type === OnboardingStepStatus.Done,
                   icon: 'folder-tree',
                 },
                 {
                   title: 'Create a subscription',
                   details: 'You can create as many subscriptions as you need.',
-                  isActive: organization.value.statisctis.subscriptions > 0,
+                  isActive:
+                    organization.value.onboarding_steps.subscription === OnboardingStepStatus.Done,
                   icon: 'link',
                 },
                 {
                   title: 'Send an event',
                   details: 'You can send as many events as you need.',
-                  isActive: organization.value.statisctis.events > 0,
+                  isActive: organization.value.onboarding_steps.event === OnboardingStepStatus.Done,
                   icon: 'file-lines',
                 }
               );
