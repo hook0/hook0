@@ -73,7 +73,15 @@ pub async fn create(
 
     let token_id = Uuid::new_v4();
 
-    match create_service_access_token(&state.biscuit_private_key, token_id, organization_id) {
+    match create_service_access_token(
+        &state.biscuit_private_key,
+        token_id,
+        organization_id,
+        vec![
+            ("application_id".to_owned(), serde_json::Value::String("test".to_owned())),
+            ("organization_id".to_owned(), serde_json::Value::String(organization_id.to_string())),
+        ],
+    ) {
         Ok(RootToken {
             serialized_biscuit,
             revocation_id,

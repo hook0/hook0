@@ -202,6 +202,16 @@ where
                                                             &biscuit_private_key,
                                                             Uuid::nil(),
                                                             application_secret.organization_id,
+                                                            vec![
+                                                                (
+                                                                    "organization_id".to_owned(),
+                                                                    application_secret.organization_id.to_string().into()
+                                                                ),
+                                                                (
+                                                                    "application_id".to_owned(),
+                                                                    application_secret.application_id.to_string().into()
+                                                                ),
+                                                            ],
                                                         )
                                                         .and_then(|root_token| {
                                                             use biscuit_auth::builder_ext::BuilderExt;

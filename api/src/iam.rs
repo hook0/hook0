@@ -6,6 +6,7 @@ use chrono::{DateTime, Utc};
 use log::{error, trace, warn};
 use paperclip::v2::schema::TypedData;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use sqlx::{query_scalar, PgPool};
 use std::str::FromStr;
 use std::time::{Duration, SystemTime};
@@ -233,11 +234,12 @@ pub fn create_service_access_token(
     private_key: &PrivateKey,
     token_id: Uuid,
     organization_id: Uuid,
+    labels: Vec<(String, Value)>,
 ) -> Result<RootToken, biscuit_auth::error::Token> {
     let keypair = KeyPair::from(private_key);
     let created_at = SystemTime::now();
 
-    let biscuit = biscuit!(
+    let mut biscuit = biscuit!(
         r#"
             type("service_access");
             version({SERVICE_ACCESS_TOKEN_VERSION});
@@ -245,8 +247,20 @@ pub fn create_service_access_token(
             created_at({created_at});
             organization_id({organization_id});
         "#,
-    )
-    .build(&keypair)?;
+    );
+
+    for (key, value) in labels {
+        let value = match value {
+            Value::String(s) => s,
+            Value::Number(n) => n.to_string(),
+            Value::Bool(b) => b.to_string(),
+            Value::Null => "null".to_owned(),
+            _ => continue,
+        };
+        biscuit.add_fact(fact!("label({key}, {value})"))?;
+    }
+
+    let biscuit = biscuit.build(&keypair)?;
     let serialized_biscuit = biscuit.to_base64()?;
     let revocation_id = biscuit
         .revocation_identifiers()
@@ -1167,7 +1181,7 @@ mod tests {
         let token_id = Uuid::new_v4();
         let organization_id = Uuid::new_v4();
         let RootToken { biscuit, .. } =
-            create_service_access_token(&keypair.private(), token_id, organization_id).unwrap();
+            create_service_access_token(&keypair.private(), token_id, organization_id, vec![]).unwrap();
 
         assert_eq!(
             dbg!(authorize(
@@ -1189,7 +1203,7 @@ mod tests {
         let token_id = Uuid::new_v4();
         let organization_id = Uuid::new_v4();
         let RootToken { biscuit, .. } =
-            create_service_access_token(&keypair.private(), token_id, organization_id).unwrap();
+            create_service_access_token(&keypair.private(), token_id, organization_id, vec![]).unwrap();
 
         let not_yet_expired_biscuit = biscuit
             .append({
@@ -1229,7 +1243,7 @@ mod tests {
         let token_id = Uuid::new_v4();
         let organization_id = Uuid::new_v4();
         let RootToken { biscuit, .. } =
-            create_service_access_token(&keypair.private(), token_id, organization_id).unwrap();
+            create_service_access_token(&keypair.private(), token_id, organization_id, vec![]).unwrap();
 
         let other_organization_id = Uuid::new_v4();
         assert!(dbg!(authorize(
@@ -1249,7 +1263,7 @@ mod tests {
         let organization_id = Uuid::new_v4();
         let application_id = Uuid::new_v4();
         let RootToken { biscuit, .. } =
-            create_service_access_token(&keypair.private(), token_id, organization_id).unwrap();
+            create_service_access_token(&keypair.private(), token_id, organization_id, vec![]).unwrap();
 
         let application_restricted_biscuit = biscuit
             .append(block!("check if application_id({application_id})"))
@@ -1303,7 +1317,7 @@ mod tests {
         let token_id = Uuid::new_v4();
         let organization_id = Uuid::new_v4();
         let RootToken { biscuit, .. } =
-            create_service_access_token(&keypair.private(), token_id, organization_id).unwrap();
+            create_service_access_token(&keypair.private(), token_id, organization_id, vec![]).unwrap();
 
         assert!(dbg!(authorize(
             &biscuit,
