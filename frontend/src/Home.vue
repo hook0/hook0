@@ -5,6 +5,7 @@ import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
+import OrganizationSelector from '@/pages/OrganizationAndApplicationSelector.vue';
 </script>
 
 <template>
@@ -31,6 +32,7 @@ import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
               <Hook0Text class="bold">organization</Hook0Text>
               on the left selector and then creating your first application.
             </Hook0Text>
+            <OrganizationSelector :tree-structure="true" />
           </template>
         </Hook0CardContentLine>
       </Hook0CardContentLines>
