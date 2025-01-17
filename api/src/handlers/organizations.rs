@@ -429,59 +429,24 @@ pub async fn get(
                 .await?,
         };
 
-        struct AppId {
-            application_id: Uuid,
-        }
-
-        let apps = query_as!(
-            AppId,
-            "
-                SELECT application__id AS application_id
-                FROM event.application
-                WHERE organization__id = $1
-            ",
-            organization_id,
+        let onboarding_steps = query_as!(
+            OnboardingSteps,
+            r#"
+                WITH application_ids as (
+                    SELECT ARRAY_AGG(application__id) as applications_ids FROM event.application WHERE organization__id = $1
+                )
+                SELECT
+                    CARDINALITY(application_ids.applications_ids) >= 1 as "application!",
+                    EXISTS(SELECT 1 FROM event.event_type WHERE application__id = ANY(application_ids.applications_ids) AND deactivated_at IS NULL) AS "event_type!",
+                    EXISTS(SELECT 1 FROM webhook.subscription WHERE application__id = ANY(application_ids.applications_ids) AND deleted_at IS NULL) AS "subscription!",
+                    EXISTS(SELECT 1 FROM event.event WHERE application__id = ANY(application_ids.applications_ids)) AS "event!"
+                FROM application_ids
+            "#,
+            &organization_id
         )
-        .fetch_all(&state.db)
-        .await?
-        .iter()
-        .map(|app_id| app_id.application_id)
-        .collect::<Vec<_>>();
-
-        let onboarding_steps = if apps.is_empty() {
-            OnboardingSteps {
-                application: OnboardingStepStatus::ToDo,
-                event_type: OnboardingStepStatus::ToDo,
-                subscription: OnboardingStepStatus::ToDo,
-                event: OnboardingStepStatus::ToDo,
-            }
-        } else {
-            struct OnboardingStepsWithoutApplication {
-                event_type: OnboardingStepStatus,
-                subscription: OnboardingStepStatus,
-                event: OnboardingStepStatus,
-            }
-
-            let existance_results = query_as!(
-                OnboardingStepsWithoutApplication,
-                r#"
-                    SELECT
-                        EXISTS(SELECT 1 FROM event.event_type WHERE application__id = ANY($1)) AS "event_type!",
-                        EXISTS(SELECT 1 FROM webhook.subscription WHERE application__id = ANY($1)) AS "subscription!",
-                        EXISTS(SELECT 1 FROM event.event WHERE application__id = ANY($1)) AS "event!"
-                "#,
-                &apps,
-            )
-            .fetch_one(&state.db)
-            .await?;
-
-            OnboardingSteps {
-                application: OnboardingStepStatus::Done,
-                event_type: existance_results.event_type,
-                subscription: existance_results.subscription,
-                event: existance_results.event,
-            }
-        };
+        .fetch_one(&state.db)
+        .await
+        .map_err(Hook0Problem::from)?;
 
         Ok(Json(OrganizationInfo {
             organization_id,
