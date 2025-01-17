@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                WITH application_ids as (\n                    SELECT ARRAY_AGG(application__id) as applications_ids FROM event.application WHERE organization__id = $1\n                )\n                SELECT\n                    CARDINALITY(application_ids.applications_ids) >= 1 as \"application!\",\n                    EXISTS(SELECT 1 FROM event.event_type WHERE application__id = ANY(application_ids.applications_ids) AND deactivated_at IS NULL) AS \"event_type!\",\n                    EXISTS(SELECT 1 FROM webhook.subscription WHERE application__id = ANY(application_ids.applications_ids) AND deleted_at IS NULL) AS \"subscription!\",\n                    EXISTS(SELECT 1 FROM event.event WHERE application__id = ANY(application_ids.applications_ids)) AS \"event!\"\n                FROM application_ids\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "application!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 1,
+        "name": "event_type!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 2,
+        "name": "subscription!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "event!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "9b6c1ef57caf70db45720855061ab5e5f8b368875b44149a60d5f1251c3caae3"
+}
