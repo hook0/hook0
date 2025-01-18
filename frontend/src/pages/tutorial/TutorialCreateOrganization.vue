@@ -174,9 +174,7 @@ onMounted(() => {
               <Hook0CardContent>
                 <Hook0CardContentLines>
                   <Hook0CardContentLine type="full-width">
-                    <template #label>
-                      You can also select an existing organization to continue the tutorial.
-                    </template>
+                    <template #label>Please select an organization:</template>
                     <template #content>
                       <Hook0Select
                         v-model="selected_organization_id"
