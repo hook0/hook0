@@ -104,7 +104,7 @@ onMounted(() => {
       <Hook0CardContentLines>
         <Hook0CardContentLine type="full-width">
           <template #content>
-            <Hook0ProgressBar actual="5" :items="progressItems" class="mb-20" />
+            <Hook0ProgressBar :current="5" :items="progressItems" class="mb-20" />
             <EventsList
               v-if="organizationId && applicationId && disabled_button"
               :tutorial-mode="true"
