@@ -108,7 +108,7 @@ onMounted(() => {
             <EventsList
               v-if="organizationId && applicationId && disabled_button"
               :tutorial-mode="true"
-              @tutorial-event-send="back_to_application"
+              @tutorial-event-sent="back_to_application"
             />
           </template>
         </Hook0CardContentLine>
