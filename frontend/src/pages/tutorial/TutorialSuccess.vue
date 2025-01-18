@@ -98,10 +98,10 @@ onMounted(() => {
             <Hook0Text>
               To share your feedback or suggestions, visit our
               <Hook0Button
-                href="https://github.com/hook0/hook0/discussions"
+                href="https://documentation.hook0.com/discuss"
                 target="_blank"
                 class="underline"
-                >GitHub Discussions</Hook0Button
+                >discussions</Hook0Button
               >. Stay updated through our
               <Hook0Button
                 href="https://documentation.hook0.com/changelog"

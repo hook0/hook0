@@ -113,7 +113,7 @@ onUpdated(() => {
         <Hook0Card>
           <Hook0CardHeader>
             <template #header>Labels</template>
-            <template #subtitle> </template>
+            <template #subtitle></template>
           </Hook0CardHeader>
           <Hook0CardContent>
             <Hook0CardContentLine v-for="(value, key) in event.labels" :key="key">
@@ -128,7 +128,7 @@ onUpdated(() => {
         <Hook0Card>
           <Hook0CardHeader>
             <template #header> Payload </template>
-            <template #subtitle> </template>
+            <template #subtitle></template>
           </Hook0CardHeader>
           <Hook0CardContent>
             <Hook0CardContentLine>

@@ -69,10 +69,6 @@ onUpdated(() => {
           <Hook0Icon name="rocket"></Hook0Icon>
           Application
           <Hook0Text class="bold">{{ application.name }}</Hook0Text>
-          dashboard
-        </template>
-        <template #subtitle>
-          here Hook0 will display metrics about webhooks & events usage
         </template>
         <template #actions>
           <Hook0Button

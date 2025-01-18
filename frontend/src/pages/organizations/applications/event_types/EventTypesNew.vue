@@ -66,8 +66,8 @@ function displayError(err: Problem) {
   <form ref="form" @submit="create">
     <Hook0Card>
       <Hook0CardHeader>
-        <template #header> Create new event type </template>
-        <template #subtitle> Each event sent through a webhook must have an event type. </template>
+        <template #header>Create new event type</template>
+        <template #subtitle>Each event sent through a webhook must have an event type.</template>
       </Hook0CardHeader>
 
       <Hook0CardContentLine>
