@@ -25,16 +25,16 @@ import Hook0Alert from '@/components/Hook0Alert.vue';
 const router = useRouter();
 const route = useRoute();
 
-enum Sections {
-  CreateApplication = 'create_application',
-  SelectExistingApplication = 'select_existing_application',
+const enum Section {
+  CreateApplication,
+  SelectExistingApplication,
 }
 
 const organizationId = ref<UUID | null>(null);
 const applicationId = ref<UUID | null>(null);
 const applications_list = ref<Promise<Array<{ label: string; value: UUID }>>>(Promise.resolve([]));
 const selected_application_id = ref<UUID | null>(null);
-const currentSection = ref<Sections | null>(null);
+const currentSection = ref<Section | null>(null);
 
 const alert = ref<Alert>({
   visible: false,
@@ -55,6 +55,12 @@ function _load() {
   }
 
   applications_list.value = list(organizationId.value)
+    .then((applications) => {
+      if (applications.length <= 0) {
+        currentSection.value = Section.CreateApplication;
+      }
+      return applications;
+    })
     .then((applications) => [
       { label: '', value: '' },
       ...applications.map((a) => ({ label: a.name, value: a.application_id })),
@@ -146,61 +152,71 @@ onMounted(() => {
       </template>
       <template #subtitle>
         An application is an isolated environment in Hook0. It has its own event types, events,
-        subscriptions and request attempts. If your plan allow it, you can create multiple
-        applications to isolate multiple environments or systems inside the same organization.
+        subscriptions and request attempts. If your plan allows it, you can create multiple
+        applications in order to isolate multiple environments or systems inside the same
+        organization.
       </template>
     </Hook0CardHeader>
     <Hook0CardContent>
       <Hook0CardContentLine type="full-width">
         <template #content>
           <Hook0ProgressBar :current="2" :items="progressItems" class="mb-20" />
-          <Hook0Card v-if="organizationId && !applicationId" class="mb-4">
-            <Hook0CardHeader>
-              <template #header>First, let's choose an application!</template>
-            </Hook0CardHeader>
-            <Hook0CardContent class="p-4 border space-y-4">
-              <div class="grid grid-cols-1 sm:grid-cols-2">
-                <label
-                  class="flex items-center p-4 w-full border-b sm:border-b-0 sm:border-r cursor-pointer"
-                >
-                  <input
-                    v-model="currentSection"
-                    type="radio"
-                    name="application_selection"
-                    :value="Sections.CreateApplication"
-                    class="h-4 w-4 border-gray-300 rounded focus:ring-indigo-500"
-                  />
-                  <span class="ml-2 text-sm font-medium text-gray-700">
-                    Create a new application
-                  </span>
-                </label>
-                <label
-                  class="flex items-center p-4 w-full border-t sm:border-t-0 sm:border-l cursor-pointer"
-                >
-                  <input
-                    v-model="currentSection"
-                    type="radio"
-                    name="application_selection"
-                    :value="Sections.SelectExistingApplication"
-                    class="h-4 w-4 border-gray-300 rounded focus:ring-indigo-500"
-                  />
-                  <span class="ml-2 text-sm font-medium text-gray-700">
-                    Select an existing application already linked to your account
-                  </span>
-                </label>
-              </div>
-            </Hook0CardContent>
-          </Hook0Card>
-          <ApplicationsEdit
-            v-if="organizationId && currentSection === Sections.CreateApplication"
-            :tutorial-mode="true"
-            class="mt-12"
-            @tutorial-application-created="goThirdStep($event)"
-          />
+          <Promised v-if="organizationId" :promise="applications_list">
+            <template #pending>
+              <Hook0Loader></Hook0Loader>
+            </template>
+            <template #default="applications">
+              <Hook0Card
+                v-if="organizationId && !applicationId && applications.length > 1"
+                class="mb-4"
+              >
+                <Hook0CardHeader>
+                  <template #header>Let's choose an application!</template>
+                </Hook0CardHeader>
+                <Hook0CardContent class="p-4 border space-y-4">
+                  <div class="grid grid-cols-1 sm:grid-cols-2">
+                    <label
+                      class="flex items-center p-4 w-full border-b sm:border-b-0 sm:border-r cursor-pointer"
+                    >
+                      <input
+                        v-model="currentSection"
+                        type="radio"
+                        name="application_selection"
+                        :value="Section.CreateApplication"
+                        class="h-4 w-4 border-gray-300 rounded focus:ring-indigo-500"
+                      />
+                      <span class="ml-2 text-sm font-medium text-gray-700">
+                        Create a new application
+                      </span>
+                    </label>
+                    <label
+                      class="flex items-center p-4 w-full border-t sm:border-t-0 sm:border-l cursor-pointer"
+                    >
+                      <input
+                        v-model="currentSection"
+                        type="radio"
+                        name="application_selection"
+                        :value="Section.SelectExistingApplication"
+                        class="h-4 w-4 border-gray-300 rounded focus:ring-indigo-500"
+                      />
+                      <span class="ml-2 text-sm font-medium text-gray-700">
+                        Select an existing application
+                      </span>
+                    </label>
+                  </div>
+                </Hook0CardContent>
+              </Hook0Card>
+              <ApplicationsEdit
+                v-if="organizationId && currentSection === Section.CreateApplication"
+                :tutorial-mode="true"
+                class="mt-12"
+                @tutorial-application-created="goThirdStep($event)"
+              /> </template
+          ></Promised>
         </template>
       </Hook0CardContentLine>
       <Promised
-        v-if="organizationId && currentSection === Sections.SelectExistingApplication"
+        v-if="organizationId && currentSection === Section.SelectExistingApplication"
         :promise="applications_list"
       >
         <template #pending>

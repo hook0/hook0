@@ -123,7 +123,7 @@ onUpdated(() => {
         <Hook0CardHeader>
           <template v-if="isNew" #header> Create new organization </template>
           <template v-else #header> Edit organization </template>
-          <template #subtitle> An organization holds your team members </template>
+          <template #subtitle>An organization holds your team members and plan.</template>
         </Hook0CardHeader>
         <Hook0CardContent>
           <Hook0CardContentLine>

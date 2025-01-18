@@ -110,8 +110,8 @@ onUpdated(() => {
 <template>
   <Hook0Card>
     <Hook0CardHeader>
-      <template #header> Hook0 API Documentation </template>
-      <template #subtitle> Automate everything! </template>
+      <template #header>Hook0 API Documentation</template>
+      <template #subtitle>Automate everything!</template>
     </Hook0CardHeader>
     <Hook0CardContent>
       <div ref="container">

@@ -34,20 +34,27 @@ function startTutorial() {
               alt="Illustration"
               class="w-10/12 h-80 object-cover rounded-lg mx-auto block mb-4"
             />
-            <p class="text-center text-gray-600 mb-14">
-              Discover Hook0's: easily create and manage organizations, applications, event types,
-              and webhooks.
+            <p>
+              <Hook0Text class="text-lg"> In this tutorial, you will be creating: </Hook0Text>
             </p>
-            <Hook0Text class="text-lg">
-              Hook0 helps you easily manage applications and APIs with our intuitive tools. Prefer
-              APIs? Explore our
-              <Hook0Button
-                target="_blank"
-                href="https://documentation.hook0.com/docs/getting-started"
-                >comprehensive documentation</Hook0Button
-              >
-              to configure everything programmatically.
-            </Hook0Text>
+            <ul class="list-disc">
+              <li class="ml-4">an organization</li>
+              <li class="ml-4">an application</li>
+              <li class="ml-4">an event type</li>
+              <li class="ml-4">a subscription</li>
+              <li class="ml-4">an event</li>
+            </ul>
+            <p class="mt-5">
+              <Hook0Text class="text-lg">
+                Note that you can skip this, and do it by yourself
+                <Hook0Button
+                  target="_blank"
+                  href="https://documentation.hook0.com/docs/getting-started"
+                  >programmatically</Hook0Button
+                >
+                or using our UI.
+              </Hook0Text>
+            </p>
           </template>
         </Hook0CardContentLine>
       </Hook0CardContentLines>

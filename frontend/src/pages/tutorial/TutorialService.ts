@@ -41,7 +41,7 @@ function tutorialAppRoute(organization_id: string) {
 function applicationStep(organization_id: string, isActive: boolean): Step {
   return {
     title: 'Create an application',
-    details: 'You can create as many applications as you need.',
+    details: 'Isolated environment that contains everything webhook-related.',
     isActive,
     icon: 'rocket',
     route: {
@@ -60,8 +60,7 @@ function eventTypeStep(
 ): Step {
   return {
     title: 'Create an event type',
-    details:
-      'Event types are categories of events. For each subscription, you will then be able choose among your declared event types to receive only the right events.',
+    details: 'Category of events you can pick or not when subscribing.',
     isActive,
     icon: 'folder-tree',
     route:
@@ -84,7 +83,7 @@ function subscriptionStep(
 ): Step {
   return {
     title: 'Create a subscription',
-    details: 'You can create as many subscriptions as you need.',
+    details: 'Filter events and choose where you want them dispatched as webhooks.',
     isActive,
     icon: 'link',
     route:
@@ -107,7 +106,7 @@ function eventStep(
 ): Step {
   return {
     title: 'Send an event',
-    details: 'You can send as many events as you need.',
+    details: 'Something that happened in your application and could end up as a webhook.',
     isActive,
     icon: 'file-lines',
     route:

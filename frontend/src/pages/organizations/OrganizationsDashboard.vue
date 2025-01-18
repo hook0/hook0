@@ -107,7 +107,6 @@ onUpdated(() => {
             >
           </template>
         </template>
-        <template #subtitle> </template>
         <template #actions>
           <Hook0Button
             :to="{
