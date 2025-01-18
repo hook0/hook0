@@ -114,7 +114,7 @@ onMounted(() => {
       <Hook0CardContentLines>
         <Hook0CardContentLine type="full-width">
           <template #content>
-            <Hook0ProgressBar actual="4" :items="progressItems" class="mb-20" />
+            <Hook0ProgressBar :current="4" :items="progressItems" class="mb-20" />
             <SubscriptionsEdit
               v-if="organizationId && applicationId && disabled_button"
               :tutorial-mode="true"
