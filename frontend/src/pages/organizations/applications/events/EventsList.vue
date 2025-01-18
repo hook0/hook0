@@ -38,7 +38,7 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const emit = defineEmits(['tutorial-event-send', 'event-sended']);
+const emit = defineEmits(['tutorial-event-sent', 'event-sent']);
 
 const route = useRoute();
 
@@ -198,7 +198,7 @@ function send_test_event() {
   )
     .then(() => {
       if (props.tutorialMode) {
-        emit('tutorial-event-send');
+        emit('tutorial-event-sent');
       } else {
         show_event_form.value = false;
         push.success({
@@ -207,7 +207,7 @@ function send_test_event() {
           duration: 5000,
         });
         _forceLoad();
-        emit('event-sended');
+        emit('event-sent');
       }
     })
     .catch(displayError);

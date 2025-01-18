@@ -99,7 +99,7 @@ onUpdated(() => {
       </Hook0CardContent>
     </Hook0Card>
     <EventTypesList :burst="$route.params.application_id"></EventTypesList>
-    <EventsList :burst="$route.params.application_id" @event-sended="_load()"></EventsList>
+    <EventsList :burst="$route.params.application_id" @event-sent="_load()"></EventsList>
     <SubscriptionsList :burst="$route.params.application_id"></SubscriptionsList>
     <LogList :burst="$route.params.application_id"></LogList>
   </div>
