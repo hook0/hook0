@@ -40,7 +40,7 @@ pub async fn get_organization_onboarding_steps<'a, A: Acquire<'a, Database = Pos
                 SELECT ARRAY_AGG(application__id) as applications_ids FROM event.application WHERE organization__id = $1
             )
             SELECT
-                CARDINALITY(application_ids.applications_ids) >= 1 as "application!",
+                COALESCE(CARDINALITY(application_ids.applications_ids), 0) >= 1 as "application!",
                 EXISTS(SELECT 1 FROM event.event_type WHERE application__id = ANY(application_ids.applications_ids) AND deactivated_at IS NULL) AS "event_type!",
                 EXISTS(SELECT 1 FROM webhook.subscription WHERE application__id = ANY(application_ids.applications_ids) AND deleted_at IS NULL) AS "subscription!",
                 EXISTS(SELECT 1 FROM event.event WHERE application__id = ANY(application_ids.applications_ids)) AS "event!"
