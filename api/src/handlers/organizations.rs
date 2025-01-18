@@ -18,6 +18,9 @@ use crate::iam::{
     authorize, authorize_only_user, Action, AuthorizeServiceToken, AuthorizedToken,
     AuthorizedUserToken, Role,
 };
+use crate::onboarding::{
+    get_organization_onboarding_steps, OnboardingStepStatus, OrganizationOnboardingSteps,
+};
 use crate::openapi::{OaBiscuit, OaBiscuitUserAccess};
 use crate::problems::Hook0Problem;
 use crate::quotas::{Quota, QuotaValue};
@@ -37,7 +40,7 @@ pub struct OrganizationInfo {
     pub plan: Option<OrganizationInfoPlan>,
     pub users: Vec<OrganizationUser>,
     pub quotas: OrganizationQuotas,
-    pub onboarding_steps: OnboardingSteps,
+    pub onboarding_steps: OrganizationOnboardingSteps,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -52,30 +55,6 @@ pub struct OrganizationQuotas {
     pub applications_per_organization_limit: QuotaValue,
     pub events_per_day_limit: QuotaValue,
     pub days_of_events_retention_limit: QuotaValue,
-}
-
-#[derive(Debug, Serialize, Apiv2Schema)]
-pub struct OnboardingSteps {
-    application: OnboardingStepStatus,
-    event_type: OnboardingStepStatus,
-    subscription: OnboardingStepStatus,
-    event: OnboardingStepStatus,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Apiv2Schema)]
-enum OnboardingStepStatus {
-    ToDo,
-    Done,
-}
-
-impl From<bool> for OnboardingStepStatus {
-    fn from(val: bool) -> Self {
-        if val {
-            Self::Done
-        } else {
-            Self::ToDo
-        }
-    }
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -289,7 +268,7 @@ pub async fn create(
                 role: Role::Editor,
             }],
             quotas,
-            onboarding_steps: OnboardingSteps {
+            onboarding_steps: OrganizationOnboardingSteps {
                 application: OnboardingStepStatus::ToDo,
                 event_type: OnboardingStepStatus::ToDo,
                 subscription: OnboardingStepStatus::ToDo,
@@ -429,24 +408,8 @@ pub async fn get(
                 .await?,
         };
 
-        let onboarding_steps = query_as!(
-            OnboardingSteps,
-            r#"
-                WITH application_ids as (
-                    SELECT ARRAY_AGG(application__id) as applications_ids FROM event.application WHERE organization__id = $1
-                )
-                SELECT
-                    CARDINALITY(application_ids.applications_ids) >= 1 as "application!",
-                    EXISTS(SELECT 1 FROM event.event_type WHERE application__id = ANY(application_ids.applications_ids) AND deactivated_at IS NULL) AS "event_type!",
-                    EXISTS(SELECT 1 FROM webhook.subscription WHERE application__id = ANY(application_ids.applications_ids) AND deleted_at IS NULL) AS "subscription!",
-                    EXISTS(SELECT 1 FROM event.event WHERE application__id = ANY(application_ids.applications_ids)) AS "event!"
-                FROM application_ids
-            "#,
-            &organization_id
-        )
-        .fetch_one(&state.db)
-        .await
-        .map_err(Hook0Problem::from)?;
+        let onboarding_steps =
+            get_organization_onboarding_steps(&state.db, &organization_id).await?;
 
         Ok(Json(OrganizationInfo {
             organization_id,
