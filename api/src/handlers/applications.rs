@@ -12,6 +12,7 @@ use crate::hook0_client::{
     EventApplicationCreated, EventApplicationRemoved, EventApplicationUpdated, Hook0ClientEvent,
 };
 use crate::iam::{authorize, authorize_for_application, get_owner_organization, Action};
+use crate::onboarding::{get_application_onboarding_steps, ApplicationOnboardingSteps};
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
 use crate::quotas::{Quota, QuotaValue};
@@ -29,36 +30,13 @@ pub struct ApplicationInfo {
     organization_id: Uuid,
     name: String,
     quotas: ApplicationQuotas,
-    onboarding_steps: OnboardingSteps,
+    onboarding_steps: ApplicationOnboardingSteps,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct ApplicationQuotas {
     events_per_day_limit: QuotaValue,
     days_of_events_retention_limit: QuotaValue,
-}
-
-#[derive(Debug, Serialize, Apiv2Schema)]
-pub struct OnboardingSteps {
-    event_type: OnboardingStepStatus,
-    subscription: OnboardingStepStatus,
-    event: OnboardingStepStatus,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Apiv2Schema)]
-enum OnboardingStepStatus {
-    ToDo,
-    Done,
-}
-
-impl From<bool> for OnboardingStepStatus {
-    fn from(val: bool) -> Self {
-        if val {
-            Self::Done
-        } else {
-            Self::ToDo
-        }
-    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
@@ -220,18 +198,8 @@ pub async fn get(
                     .await?,
             };
 
-            let onboarding_steps = query_as!(
-                    OnboardingSteps,
-                    r#"
-                        SELECT
-                            EXISTS(SELECT 1 FROM event.event_type WHERE application__id = $1 AND deactivated_at IS NULL) AS "event_type!",
-                            EXISTS(SELECT 1 FROM webhook.subscription WHERE application__id = $1 AND deleted_at IS NULL) AS "subscription!",
-                            EXISTS(SELECT 1 FROM event.event WHERE application__id = $1) AS "event!"
-                    "#,
-                    &application_id
-                )
-                .fetch_one(&state.db)
-                .await?;
+            let onboarding_steps =
+                get_application_onboarding_steps(&state.db, &application_id).await?;
 
             Ok(Json(ApplicationInfo {
                 application_id: a.application_id,
