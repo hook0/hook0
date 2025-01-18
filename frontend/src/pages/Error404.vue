@@ -7,7 +7,7 @@ import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
   <Hook0Card>
     <Hook0CardHeader>
       <template #header>404 Not Found</template>
-      <template #subtitle>Oops! </template>
+      <template #subtitle>Oops!</template>
     </Hook0CardHeader>
   </Hook0Card>
 </template>
