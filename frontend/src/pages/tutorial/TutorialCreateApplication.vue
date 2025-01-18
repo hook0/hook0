@@ -153,7 +153,7 @@ onMounted(() => {
     <Hook0CardContent>
       <Hook0CardContentLine type="full-width">
         <template #content>
-          <Hook0ProgressBar actual="2" :items="progressItems" class="mb-20" />
+          <Hook0ProgressBar :current="2" :items="progressItems" class="mb-20" />
           <Hook0Card v-if="organizationId && !applicationId" class="mb-4">
             <Hook0CardHeader>
               <template #header>First, let's choose an application!</template>

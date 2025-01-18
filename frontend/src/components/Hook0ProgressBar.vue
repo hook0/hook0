@@ -8,7 +8,7 @@ interface ProgressBarItem {
 }
 
 interface ProgressBarProps {
-  actual: string;
+  current: number;
   items: ProgressBarItem[];
 }
 
@@ -20,13 +20,13 @@ const props = defineProps<ProgressBarProps>();
     <template v-for="(item, index) in props.items" :key="index">
       <div class="flex items-center relative">
         <div
-          v-if="index + 1 < Number(props.actual)"
+          v-if="index + 1 < props.current"
           class="bg-indigo-600 h-10 w-10 rounded-full shadow flex items-center justify-center"
         >
           <FontAwesomeIcon :icon="['fas', 'check']" color="white" size="lg"></FontAwesomeIcon>
         </div>
         <div
-          v-else-if="index + 1 === Number(props.actual)"
+          v-else-if="index + 1 === props.current"
           class="bg-white h-10 w-10 rounded-full shadow flex items-center justify-center border-2 border-indigo-600"
         >
           <FontAwesomeIcon
@@ -58,8 +58,8 @@ const props = defineProps<ProgressBarProps>();
         v-if="index < props.items.length - 1"
         class="flex-1 h-1"
         :class="{
-          'bg-indigo-600': index + 1 < Number(props.actual),
-          'bg-gray-300': index + 1 >= Number(props.actual),
+          'bg-indigo-600': index + 1 < props.current,
+          'bg-gray-300': index + 1 >= props.current,
         }"
       ></div>
     </template>
