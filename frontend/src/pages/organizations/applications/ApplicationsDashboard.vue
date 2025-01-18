@@ -5,7 +5,7 @@ import { onMounted, onUpdated, ref } from 'vue';
 import Hook0Text from '@/components/Hook0Text.vue';
 import { Problem, UUID } from '@/http';
 import * as ApplicationService from './ApplicationService';
-import { Application } from './ApplicationService';
+import { ApplicationInfo } from './ApplicationService';
 import { routes } from '@/routes';
 import EventTypesList from '@/pages/organizations/applications/event_types/EventTypesList.vue';
 import EventsList from '@/pages/organizations/applications/events/EventsList.vue';
@@ -17,27 +17,16 @@ import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import { push } from 'notivue';
 import Hook0TutorialWidget from '@/components/Hook0TutorialWidget.vue';
-import { Step } from '@/pages/tutorial/TutorialService';
+import { applicationSteps, Step } from '@/pages/tutorial/TutorialService';
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 
 const route = useRoute();
 
-enum OnboardingStepStatus {
-  ToDo = 'ToDo',
-  Done = 'Done',
-}
-
 const application_id = ref<UUID | null>(null);
 const application = ref({
   name: '',
-  organization_id: '',
-  onboarding_steps: {
-    event_type: OnboardingStepStatus.ToDo,
-    subscription: OnboardingStepStatus.ToDo,
-    event: OnboardingStepStatus.ToDo,
-  },
 });
 
 const widgetItems = ref<Step[]>([]);
@@ -46,73 +35,9 @@ function _load() {
   application_id.value = route.params.application_id as UUID;
 
   ApplicationService.get(application_id.value)
-    .then((app: Application) => {
+    .then((app: ApplicationInfo) => {
       application.value.name = app.name;
-      application.value.organization_id = app.organization_id;
-      application.value.onboarding_steps.event_type =
-        app.onboarding_steps.event_type === 'Done'
-          ? OnboardingStepStatus.Done
-          : OnboardingStepStatus.ToDo;
-      application.value.onboarding_steps.subscription =
-        app.onboarding_steps.subscription === 'Done'
-          ? OnboardingStepStatus.Done
-          : OnboardingStepStatus.ToDo;
-      application.value.onboarding_steps.event =
-        app.onboarding_steps.event === 'Done'
-          ? OnboardingStepStatus.Done
-          : OnboardingStepStatus.ToDo;
-    })
-    .then(() => {
-      if (
-        application.value.onboarding_steps.event_type === OnboardingStepStatus.Done &&
-        application.value.onboarding_steps.subscription === OnboardingStepStatus.Done &&
-        application.value.onboarding_steps.event === OnboardingStepStatus.Done
-      ) {
-        return;
-      }
-
-      widgetItems.value = [
-        {
-          title: 'Create an event type',
-          details:
-            'Event types are categories of events. For each subscription, you will then be able choose among your declared event types to receive only the right events.',
-          isActive: application.value.onboarding_steps.event_type === OnboardingStepStatus.Done,
-          icon: 'folder-tree',
-          route: {
-            name: routes.TutorialCreateEventType,
-            params: {
-              organization_id: application.value.organization_id,
-              application_id: application_id.value,
-            },
-          },
-        },
-        {
-          title: 'Create a subscription',
-          details: 'You can create as many subscriptions as you need.',
-          isActive: application.value.onboarding_steps.subscription === OnboardingStepStatus.Done,
-          icon: 'link',
-          route: {
-            name: routes.TutorialCreateSubscription,
-            params: {
-              organization_id: application.value.organization_id,
-              application_id: application_id.value,
-            },
-          },
-        },
-        {
-          title: 'Send an event',
-          details: 'You can send as many events as you need.',
-          isActive: application.value.onboarding_steps.event === OnboardingStepStatus.Done,
-          icon: 'file-lines',
-          route: {
-            name: routes.TutorialSendEvent,
-            params: {
-              organization_id: application.value.organization_id,
-              application_id: application_id.value,
-            },
-          },
-        },
-      ];
+      widgetItems.value = applicationSteps(app);
     })
     .catch(displayError);
 }

@@ -624,14 +624,6 @@ export interface components {
       name: string;
       /** Format: uuid */
       organization_id: string;
-      onboarding_steps: {
-        /** @enum {string} */
-        event: 'ToDo' | 'Done';
-        /** @enum {string} */
-        event_type: 'ToDo' | 'Done';
-        /** @enum {string} */
-        subscription: 'ToDo' | 'Done';
-      };
     };
     ApplicationInfo: {
       /** Format: uuid */
