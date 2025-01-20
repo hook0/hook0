@@ -21,6 +21,7 @@ import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
+import { isPricingEnabled } from '@/pricing';
 
 type ApplicationsPerOrganization = {
   organization: Organization;
@@ -30,13 +31,15 @@ type ApplicationsPerOrganization = {
 const router = useRouter();
 const route = useRoute();
 
+const pricingEnabled = ref<boolean>(false);
+
 const applicationsPerOrganization = ref<null | ApplicationsPerOrganization[]>(null);
 const organization_name = ref('');
 const application_name = ref('');
 const removeRouterGuard = ref<null | (() => void)>(null);
 
 const props = defineProps<{
-  treeStructure: boolean;
+  displayAdCards: boolean;
 }>();
 
 watch(
@@ -142,6 +145,8 @@ onMounted(async () => {
     return _updateDropdown(route.params);
   });
 
+  pricingEnabled.value = await isPricingEnabled();
+
   return _updateDropdown(route.params);
 });
 
@@ -157,8 +162,101 @@ onUnmounted(() => {
 </script>
 
 <template>
+  <template v-if="applicationsPerOrganization !== null && props.displayAdCards">
+    <div class="flex flex-col justify-between p-4">
+      <div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-fr">
+          <div
+            v-for="(organizationGroup, index) in applicationsPerOrganization"
+            :key="index"
+            class="flex flex-col mb-2"
+          >
+            <Hook0Card class="h-full">
+              <Hook0CardHeader>
+                <template #header>
+                  <Hook0Button
+                    class="flex items-center text-lg"
+                    @click="
+                      router.push({
+                        name: routes.OrganizationsDashboard,
+                        params: { organization_id: organizationGroup.organization.organization_id },
+                      })
+                    "
+                  >
+                    <Hook0Icon name="sitemap"></Hook0Icon>
+                    <Hook0Text class="ml-1">{{ organizationGroup.organization.name }}</Hook0Text>
+                    <template v-if="pricingEnabled">
+                      <span
+                        v-if="organizationGroup.organization.plan"
+                        class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10"
+                        :title="'Plan: ' + organizationGroup.organization.plan"
+                        >{{ organizationGroup.organization.plan }}</span
+                      >
+                      <span
+                        v-else
+                        class="ml-2 inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10"
+                        title="Plan: Developer"
+                        >Developer</span
+                      >
+                    </template>
+                  </Hook0Button>
+                </template>
+                <template #subtitle> </template>
+              </Hook0CardHeader>
+              <Hook0CardContentLines>
+                <Hook0CardContentLine type="full-width">
+                  <template v-if="organizationGroup.applications.length > 0" #content>
+                    <Hook0Button
+                      v-for="(application, appIndex) in organizationGroup.applications"
+                      :key="appIndex"
+                      class="flex items-center"
+                      @click="
+                        router.push({
+                          name: routes.ApplicationsDashboard,
+                          params: {
+                            application_id: application.application_id,
+                            organization_id: organizationGroup.organization.organization_id,
+                          },
+                        })
+                      "
+                    >
+                      <Hook0Text class="ml-1">{{ application.name }}</Hook0Text>
+                    </Hook0Button>
+                  </template>
+                  <template v-else #content>
+                    <div class="flex flex-col items-center">
+                      <Hook0Text class="text-gray-500 mb-2">No applications found</Hook0Text>
+                      <Hook0Button
+                        @click="
+                          router.push({
+                            name: routes.ApplicationsNew,
+                            params: {
+                              organization_id: organizationGroup.organization.organization_id,
+                            },
+                          })
+                        "
+                      >
+                        <Hook0Icon name="plus"></Hook0Icon>
+                        <Hook0Text class="ml-1">Create New Application</Hook0Text>
+                      </Hook0Button>
+                    </div>
+                  </template>
+                </Hook0CardContentLine>
+              </Hook0CardContentLines>
+            </Hook0Card>
+          </div>
+        </div>
+      </div>
+      <div class="flex justify-end">
+        <Hook0Button class="primary" @click="router.push({ name: routes.OrganizationsNew })">
+          <Hook0Icon name="plus"></Hook0Icon>
+          <Hook0Text class="ml-1">New Organization</Hook0Text>
+        </Hook0Button>
+      </div>
+    </div>
+  </template>
   <Hook0Dropdown
-    v-if="applicationsPerOrganization !== null && !props.treeStructure"
+    v-else-if="applicationsPerOrganization !== null && !props.displayAdCards"
     class="container darkmode"
     justify="left"
   >
@@ -219,86 +317,6 @@ onUnmounted(() => {
       </Hook0DropdownMenuItemLink>
     </template>
   </Hook0Dropdown>
-  <template v-else>
-    <div class="flex flex-col justify-between p-4">
-      <div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div
-            v-for="(organizationGroup, index) in applicationsPerOrganization"
-            :key="index"
-            class="flex flex-col mb-2"
-          >
-            <Hook0Card>
-              <Hook0CardHeader>
-                <template #header>
-                  <Hook0Button
-                    class="flex items-center text-lg"
-                    @click="
-                      router.push({
-                        name: routes.OrganizationsDashboard,
-                        params: { organization_id: organizationGroup.organization.organization_id },
-                      })
-                    "
-                  >
-                    <Hook0Icon name="sitemap"></Hook0Icon>
-                    <Hook0Text class="ml-1">{{ organizationGroup.organization.name }}</Hook0Text>
-                  </Hook0Button>
-                </template>
-                <template #subtitle> </template>
-              </Hook0CardHeader>
-              <Hook0CardContentLines>
-                <Hook0CardContentLine type="full-width">
-                  <template v-if="organizationGroup.applications.length > 0" #content>
-                    <Hook0Button
-                      v-for="(application, appIndex) in organizationGroup.applications"
-                      :key="appIndex"
-                      class="flex items-center"
-                      @click="
-                        router.push({
-                          name: routes.ApplicationsDashboard,
-                          params: {
-                            application_id: application.application_id,
-                            organization_id: organizationGroup.organization.organization_id,
-                          },
-                        })
-                      "
-                    >
-                      <Hook0Icon name="rocket"></Hook0Icon>
-                      <Hook0Text class="ml-1">{{ application.name }}</Hook0Text>
-                    </Hook0Button>
-                  </template>
-                  <template v-else #content>
-                    <div class="flex flex-col items-center">
-                      <Hook0Text class="text-gray-500 mb-2">No applications found</Hook0Text>
-                      <Hook0Button
-                        @click="
-                          router.push({
-                            name: routes.ApplicationsNew,
-                            params: {
-                              organization_id: organizationGroup.organization.organization_id,
-                            },
-                          })
-                        "
-                      >
-                        <Hook0Icon name="plus"></Hook0Icon>
-                        <Hook0Text class="ml-1">Create New Application</Hook0Text>
-                      </Hook0Button>
-                    </div>
-                  </template>
-                </Hook0CardContentLine>
-              </Hook0CardContentLines>
-            </Hook0Card>
-          </div>
-        </div>
-      </div>
-      <div class="flex justify-end">
-        <Hook0Button class="primary" @click="router.push({ name: routes.OrganizationsNew })">
-          <Hook0Icon name="plus"></Hook0Icon>
-          <Hook0Text class="ml-1">New Organization</Hook0Text>
-        </Hook0Button>
-      </div>
-    </div>
-  </template>
 </template>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
