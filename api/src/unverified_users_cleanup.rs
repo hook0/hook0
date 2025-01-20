@@ -104,6 +104,7 @@ async fn deleted_unreachable_organizations<'a, A: Acquire<'a, Database = Postgre
                     WHERE uo.user__id IS NULL
                          AND a.application__id IS NULL
                 )
+                AND price__id IS NULL
         ",
         grace_period,
     )
