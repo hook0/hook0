@@ -187,8 +187,7 @@ onUpdated(() => {
           <template #header>Request Attempts</template>
           <template #subtitle>
             Requests that Hook0 sent to
-            <Hook0Button :to="{ name: routes.SubscriptionsList }">subscriptions</Hook0Button>
-            .
+            <Hook0Button :to="{ name: routes.SubscriptionsList }">subscriptions</Hook0Button>.
           </template>
         </Hook0CardHeader>
 

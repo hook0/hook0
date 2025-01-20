@@ -123,8 +123,8 @@ function displayError(err: Problem) {
     <Hook0Card v-if="currentUser">
       <form @submit.prevent="changePassword">
         <Hook0CardHeader>
-          <template #header> Change password </template>
-          <template #subtitle> Set a new password to your user account. </template>
+          <template #header>Change password</template>
+          <template #subtitle>Set a new password to your user account.</template>
         </Hook0CardHeader>
         <Hook0CardContent>
           <Hook0CardContentLine>
@@ -190,7 +190,7 @@ function displayError(err: Problem) {
     <Hook0Card v-else>
       <Hook0CardHeader>
         <template #header>Not logged in</template>
-        <template #subtitle>You are not logged in. Please log in to view your settings. </template>
+        <template #subtitle>You are not logged in. Please log in to view your settings.</template>
       </Hook0CardHeader>
     </Hook0Card>
   </div>
