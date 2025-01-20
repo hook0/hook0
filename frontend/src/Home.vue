@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import Hook0Text from '@/components/Hook0Text.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
@@ -27,12 +26,7 @@ import OrganizationSelector from '@/pages/OrganizationAndApplicationSelector.vue
       <Hook0CardContentLines>
         <Hook0CardContentLine type="full-width">
           <template #content>
-            <Hook0Text
-              >Start your journey by selecting your
-              <Hook0Text class="bold">organization</Hook0Text>
-              on the left selector and then creating your first application.
-            </Hook0Text>
-            <OrganizationSelector :tree-structure="true" />
+            <OrganizationSelector :display-ad-cards="true" />
           </template>
         </Hook0CardContentLine>
       </Hook0CardContentLines>
