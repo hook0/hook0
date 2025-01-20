@@ -24,11 +24,26 @@ import BeginResetPassword from '@/pages/BeginResetPassword.vue';
 import ResetPassword from '@/pages/ResetPassword.vue';
 import ServicesTokenList from '@/pages/organizations/services_token/ServicesTokenList.vue';
 import ServiceTokenView from '@/pages/organizations/services_token/ServiceTokenView.vue';
+import TutorialIntroduction from '@/pages/tutorial/TutorialIntroduction.vue';
+import TutorialCreateOrganization from '@/pages/tutorial/TutorialCreateOrganization.vue';
+import TutorialCreateApplication from '@/pages/tutorial/TutorialCreateApplication.vue';
+import TutorialCreateEventType from '@/pages/tutorial/TutorialCreateEventType.vue';
+import TutorialCreateSubscription from '@/pages/tutorial/TutorialCreateSubscription.vue';
+import TutorialSendEvent from '@/pages/tutorial/TutorialSendEvent.vue';
+import TutorialSuccess from './pages/tutorial/TutorialSuccess.vue';
 
 export type Hook0Routes = string;
 
 export const routes: Record<Hook0Routes, string> = {
   Home: 'Home',
+
+  Tutorial: 'Tutorial',
+  TutorialCreateOrganization: 'TutorialCreateOrganization',
+  TutorialCreateApplication: 'TutorialCreateApplication',
+  TutorialCreateEventType: 'TutorialCreateEventType',
+  TutorialCreateSubscription: 'TutorialCreateSubscription',
+  TutorialSendEvent: 'TutorialSendEvent',
+  TutorialSuccess: 'TutorialSuccess',
 
   Login: 'Login',
   Register: 'Register',
@@ -75,6 +90,41 @@ export default [
     name: routes.Home,
     path: '/',
     component: Home,
+  },
+  {
+    name: routes.Tutorial,
+    path: '/tutorial',
+    component: TutorialIntroduction,
+  },
+  {
+    name: routes.TutorialCreateOrganization,
+    path: '/tutorial/organization',
+    component: TutorialCreateOrganization,
+  },
+  {
+    name: routes.TutorialCreateApplication,
+    path: '/tutorial/application/organizations/:organization_id',
+    component: TutorialCreateApplication,
+  },
+  {
+    name: routes.TutorialCreateEventType,
+    path: '/tutorial/event_type/organizations/:organization_id/applications/:application_id',
+    component: TutorialCreateEventType,
+  },
+  {
+    name: routes.TutorialCreateSubscription,
+    path: '/tutorial/subscription/organizations/:organization_id/applications/:application_id',
+    component: TutorialCreateSubscription,
+  },
+  {
+    name: routes.TutorialSendEvent,
+    path: '/tutorial/event/organizations/:organization_id/applications/:application_id',
+    component: TutorialSendEvent,
+  },
+  {
+    name: routes.TutorialSuccess,
+    path: '/tutorial/success/organizations/:organization_id/applications/:application_id',
+    component: TutorialSuccess,
   },
   {
     name: routes.Login,
