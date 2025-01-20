@@ -22,6 +22,8 @@ import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
 import MembersList from '@/pages/organizations/MembersList.vue';
 import { push } from 'notivue';
+import Hook0TutorialWidget from '@/components/Hook0TutorialWidget.vue';
+import { organizationSteps, Step } from '@/pages/tutorial/TutorialService';
 
 const route = useRoute();
 const pricingEnabled = ref<boolean>(false);
@@ -39,6 +41,8 @@ const organization = ref({
   },
 });
 
+const widgetItems = ref<Step[]>([]);
+
 function _load() {
   if (organization_id.value !== route.params.organization_id) {
     organization_id.value = route.params.organization_id as UUID;
@@ -48,6 +52,7 @@ function _load() {
         organization.value.name = org.name;
         organization.value.plan = org.plan?.label || '';
         organization.value.quotas = org.quotas;
+        widgetItems.value = organizationSteps(org);
       })
       .catch(displayError);
 
@@ -102,7 +107,6 @@ onUpdated(() => {
             >
           </template>
         </template>
-        <template #subtitle> </template>
         <template #actions>
           <Hook0Button
             :to="{
@@ -114,6 +118,15 @@ onUpdated(() => {
           </Hook0Button>
         </template>
       </Hook0CardHeader>
+      <Hook0CardContent v-if="widgetItems.length > 0">
+        <Hook0CardContentLines>
+          <Hook0CardContentLine type="full-width">
+            <template #content>
+              <Hook0TutorialWidget :steps="widgetItems" />
+            </template>
+          </Hook0CardContentLine>
+        </Hook0CardContentLines>
+      </Hook0CardContent>
     </Hook0Card>
 
     <Hook0Card v-if="pricingEnabled && !organization.plan">

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ColDef } from 'ag-grid-community';
-import { onMounted, onUpdated, ref } from 'vue';
+import { onMounted, onUpdated, ref, defineEmits, defineProps } from 'vue';
 import { useRoute } from 'vue-router';
 
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
@@ -26,6 +26,19 @@ import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0Select from '@/components/Hook0Select.vue';
 import { push } from 'notivue';
 import { v4 as uuidv4 } from 'uuid';
+import { Codemirror } from 'vue-codemirror';
+import { json } from '@codemirror/lang-json';
+import { EditorView } from 'codemirror';
+
+interface Props {
+  // cache-burst
+  burst?: string | string[];
+  tutorialMode?: boolean;
+}
+
+const props = defineProps<Props>();
+
+const emit = defineEmits(['tutorial-event-sent', 'event-sent']);
 
 const route = useRoute();
 
@@ -37,15 +50,11 @@ const selected_event_type = ref<null | string>();
 const label_key = ref<null | string>('all');
 const label_value = ref<null | string>('yes');
 const occurred_at = ref<null | Date>();
-const payload = ref<null | string>('{"test": true}');
+const payload = ref<undefined | string>('{"test": true}');
 
-interface Props {
-  // cache-burst
-  burst?: string | string[];
-}
+const extensions = [json(), EditorView.lineWrapping];
 
-defineProps<Props>();
-const columnDefs: ColDef<Event>[] = [
+const columnDefs: ColDef[] = [
   {
     field: 'event_id',
     headerName: 'Event ID',
@@ -143,6 +152,10 @@ function _forceLoad() {
       displayError(error as Problem);
       return [];
     });
+
+  if (props.tutorialMode) {
+    display_event_form();
+  }
 }
 
 function _load() {
@@ -184,13 +197,18 @@ function send_test_event() {
     payload.value
   )
     .then(() => {
-      show_event_form.value = false;
-      push.success({
-        title: 'Test event sent',
-        message: 'The test event was sent successfully',
-        duration: 5000,
-      });
-      _forceLoad();
+      if (props.tutorialMode) {
+        emit('tutorial-event-sent');
+      } else {
+        show_event_form.value = false;
+        push.success({
+          title: 'Test event sent',
+          message: 'The test event was sent successfully',
+          duration: 5000,
+        });
+        _forceLoad();
+        emit('event-sent');
+      }
     })
     .catch(displayError);
 }
@@ -288,20 +306,42 @@ onUpdated(() => {
             <Hook0CardContentLine>
               <template #label> Occurred At </template>
               <template #content>
-                <input v-model="occurred_at" type="datetime-local" />
+                <Hook0Input v-model="occurred_at" type="datetime-local" />
               </template>
             </Hook0CardContentLine>
             <Hook0CardContentLine>
               <template #label> Payload </template>
               <template #content>
-                <Hook0Input v-model="payload" placeholder='{"test": true}'></Hook0Input>
+                <Codemirror
+                  v-model="payload"
+                  :autofocus="true"
+                  :indent-with-tab="true"
+                  :tab-size="2"
+                  :extensions="extensions"
+                />
               </template>
             </Hook0CardContentLine>
           </Hook0CardContent>
 
           <Hook0CardFooter>
-            <Hook0Button class="secondary" @click="cancel_test">Cancel</Hook0Button>
-            <Hook0Button class="primary" submit>Send test event</Hook0Button>
+            <Hook0Button v-if="!props.tutorialMode" class="secondary" @click="cancel_test"
+              >Cancel</Hook0Button
+            >
+
+            <Hook0Button
+              v-if="!tutorialMode"
+              tooltip="ℹ️ To continue, you need to fill all fields"
+              class="primary"
+              submit
+              >Send event</Hook0Button
+            >
+            <Hook0Button
+              v-else
+              tooltip="ℹ️ To continue, you need to fill all fields"
+              class="primary"
+              submit
+              >Send Your First Event 🎉</Hook0Button
+            >
           </Hook0CardFooter>
         </form>
       </Hook0Card>

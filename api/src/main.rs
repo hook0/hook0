@@ -26,6 +26,7 @@ mod materialized_views;
 mod middleware_biscuit;
 mod middleware_get_user_ip;
 mod old_events_cleanup;
+mod onboarding;
 mod openapi;
 mod problems;
 mod quotas;

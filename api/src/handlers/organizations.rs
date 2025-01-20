@@ -18,6 +18,9 @@ use crate::iam::{
     authorize, authorize_only_user, Action, AuthorizeServiceToken, AuthorizedToken,
     AuthorizedUserToken, Role,
 };
+use crate::onboarding::{
+    get_organization_onboarding_steps, OnboardingStepStatus, OrganizationOnboardingSteps,
+};
 use crate::openapi::{OaBiscuit, OaBiscuitUserAccess};
 use crate::problems::Hook0Problem;
 use crate::quotas::{Quota, QuotaValue};
@@ -37,6 +40,7 @@ pub struct OrganizationInfo {
     pub plan: Option<OrganizationInfoPlan>,
     pub users: Vec<OrganizationUser>,
     pub quotas: OrganizationQuotas,
+    pub onboarding_steps: OrganizationOnboardingSteps,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -264,6 +268,12 @@ pub async fn create(
                 role: Role::Editor,
             }],
             quotas,
+            onboarding_steps: OrganizationOnboardingSteps {
+                application: OnboardingStepStatus::ToDo,
+                event_type: OnboardingStepStatus::ToDo,
+                subscription: OnboardingStepStatus::ToDo,
+                event: OnboardingStepStatus::ToDo,
+            },
         }))
     } else {
         Err(Hook0Problem::Forbidden)
@@ -398,12 +408,16 @@ pub async fn get(
                 .await?,
         };
 
+        let onboarding_steps =
+            get_organization_onboarding_steps(&state.db, &organization_id).await?;
+
         Ok(Json(OrganizationInfo {
             organization_id,
             name,
             plan,
             users: org_users,
             quotas,
+            onboarding_steps,
         }))
     } else {
         Err(Hook0Problem::NotFound)

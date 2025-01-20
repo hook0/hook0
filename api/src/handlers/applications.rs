@@ -12,6 +12,7 @@ use crate::hook0_client::{
     EventApplicationCreated, EventApplicationRemoved, EventApplicationUpdated, Hook0ClientEvent,
 };
 use crate::iam::{authorize, authorize_for_application, get_owner_organization, Action};
+use crate::onboarding::{get_application_onboarding_steps, ApplicationOnboardingSteps};
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
 use crate::quotas::{Quota, QuotaValue};
@@ -29,6 +30,7 @@ pub struct ApplicationInfo {
     organization_id: Uuid,
     name: String,
     quotas: ApplicationQuotas,
+    onboarding_steps: ApplicationOnboardingSteps,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -196,11 +198,15 @@ pub async fn get(
                     .await?,
             };
 
+            let onboarding_steps =
+                get_application_onboarding_steps(&state.db, &application_id).await?;
+
             Ok(Json(ApplicationInfo {
                 application_id: a.application_id,
                 organization_id: a.organization_id,
                 name: a.name,
                 quotas,
+                onboarding_steps,
             }))
         }
         None => Err(Hook0Problem::NotFound),

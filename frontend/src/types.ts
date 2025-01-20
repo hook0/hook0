@@ -629,6 +629,14 @@ export interface components {
       /** Format: uuid */
       application_id: string;
       name: string;
+      onboarding_steps: {
+        /** @enum {string} */
+        event: 'ToDo' | 'Done';
+        /** @enum {string} */
+        event_type: 'ToDo' | 'Done';
+        /** @enum {string} */
+        subscription: 'ToDo' | 'Done';
+      };
       /** Format: uuid */
       organization_id: string;
       quotas: {
@@ -770,6 +778,16 @@ export interface components {
     };
     OrganizationInfo: {
       name: string;
+      onboarding_steps: {
+        /** @enum {string} */
+        application: 'ToDo' | 'Done';
+        /** @enum {string} */
+        event: 'ToDo' | 'Done';
+        /** @enum {string} */
+        event_type: 'ToDo' | 'Done';
+        /** @enum {string} */
+        subscription: 'ToDo' | 'Done';
+      };
       /** Format: uuid */
       organization_id: string;
       plan?: {
