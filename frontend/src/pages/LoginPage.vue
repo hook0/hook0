@@ -13,6 +13,8 @@ import { AxiosError, AxiosResponse } from 'axios';
 import { useRouter } from 'vue-router';
 import { routes } from '@/routes.ts';
 import { push } from 'notivue';
+import * as OrganizationService from './organizations/OrganizationService';
+import * as ApplicationService from './organizations/applications/ApplicationService';
 
 const router = useRouter();
 
@@ -21,13 +23,28 @@ const password = ref<string>('');
 
 async function submit() {
   await login(email.value, password.value)
-    .then(() => {
+    .then(async () => {
       push.success({
         title: 'Success',
         message: 'You have successfully logged in.',
         duration: 5000,
       });
-      return router.push({ name: routes.Home });
+
+      const organizations = await OrganizationService.list();
+
+      if (organizations.length < 1) {
+        return router.push({ name: routes.Tutorial });
+      } else if (organizations.length === 1) {
+        let applications = await ApplicationService.list(organizations[0].organization_id);
+
+        if (applications.length < 1) {
+          return router.push({ name: routes.Tutorial });
+        } else {
+          return router.push({ name: routes.Home });
+        }
+      } else {
+        return router.push({ name: routes.Home });
+      }
     })
     .catch((err: AxiosError<AxiosResponse<Problem>>) => {
       let problem = handleError(err);

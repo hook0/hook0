@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { defineProps, ref } from 'vue';
 
 import { Problem, UUID } from '@/http';
 import { routes } from '@/routes';
@@ -21,6 +21,13 @@ import { push } from 'notivue';
 const router = useRouter();
 const route = useRoute();
 
+interface Props {
+  tutorialMode?: boolean;
+}
+
+const props = defineProps<Props>();
+const emit = defineEmits(['tutorial-event-type-created']);
+
 const event_type = ref<EventTypePost>({
   application_id: '',
   service: '',
@@ -34,9 +41,13 @@ function create(e: Event) {
   event_type.value.application_id = route.params.application_id as UUID;
 
   EventTypeService.create(event_type.value).then(async (_resp) => {
-    await router.push({
-      name: routes.EventTypesList,
-    });
+    if (props.tutorialMode) {
+      emit('tutorial-event-type-created');
+    } else {
+      await router.push({
+        name: routes.EventTypesList,
+      });
+    }
   }, displayError);
 }
 
@@ -55,8 +66,8 @@ function displayError(err: Problem) {
   <form ref="form" @submit="create">
     <Hook0Card>
       <Hook0CardHeader>
-        <template #header> Create new event type </template>
-        <template #subtitle> Each event sent through a webhook must have an event type. </template>
+        <template #header>Create new event type</template>
+        <template #subtitle>Each event sent through a webhook must have an event type.</template>
       </Hook0CardHeader>
 
       <Hook0CardContentLine>
@@ -95,10 +106,31 @@ function displayError(err: Problem) {
         </template>
       </Hook0CardContentLine>
       <Hook0CardFooter>
-        <Hook0Button class="secondary" type="button" @click="$router.back()">Cancel</Hook0Button>
-        <Hook0Button class="primary" type="button" @click="create($event)"
+        <Hook0Button
+          v-if="!props.tutorialMode"
+          class="secondary"
+          type="button"
+          @click="$router.back()"
+          >Cancel</Hook0Button
+        >
+        <Hook0Button
+          v-if="!tutorialMode"
+          class="primary"
+          type="button"
+          :disabled="!event_type.service || !event_type.resource_type || !event_type.verb"
+          @click="create($event)"
           >Create event type
         </Hook0Button>
+
+        <Hook0Button
+          v-else
+          class="primary"
+          type="submit"
+          :disabled="!event_type.service || !event_type.resource_type || !event_type.verb"
+          tooltip="ℹ️ To continue, you need to fill in all required fields"
+          @click="create($event)"
+          >Create Your First Event Type 🎉</Hook0Button
+        >
       </Hook0CardFooter>
     </Hook0Card>
 
@@ -107,9 +139,9 @@ function displayError(err: Problem) {
         <Hook0CardContentLine type="full-width">
           <template #content>
             <Hook0Text class="block"
-              >An event is something that has happened. In the past.</Hook0Text
+              >An event is something that has happened in your application. In the past.</Hook0Text
             >
-            <Hook0Text class="mt-2">Event should be in the form of:</Hook0Text>
+            <Hook0Text class="mt-2">Event types should be in the form of:</Hook0Text>
             <Hook0Text class="code"> &lt;service&gt;.&lt;resourceType&gt;.&lt;verb&gt; </Hook0Text>
           </template>
         </Hook0CardContentLine>
