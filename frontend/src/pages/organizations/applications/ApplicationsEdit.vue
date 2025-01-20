@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router';
-import { onMounted, onUpdated, ref } from 'vue';
+import { onMounted, onUpdated, ref, defineProps, defineEmits } from 'vue';
 
 import { Problem, UUID } from '@/http';
 import * as ApplicationService from './ApplicationService';
@@ -14,6 +14,7 @@ import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import { push } from 'notivue';
+import { routes } from '@/routes';
 
 const router = useRouter();
 const route = useRoute();
@@ -23,6 +24,14 @@ const application_id = ref<UUID | null>(null);
 const application = ref({
   name: '',
 });
+
+interface Props {
+  tutorialMode?: boolean;
+}
+
+const props = defineProps<Props>();
+
+const emit = defineEmits(['tutorial-application-created']);
 
 function _load() {
   if (application_id.value !== route.params.application_id) {
@@ -52,7 +61,22 @@ function upsert(e: Event) {
       name: application.value.name,
       organization_id: route.params.organization_id as string,
     }).then((_resp) => {
-      cancel();
+      if (props.tutorialMode) {
+        emit('tutorial-application-created', _resp.application_id);
+      } else {
+        push.success({
+          title: 'Application created',
+          message: `Application ${application.value.name} has been created successfully`,
+          duration: 5000,
+        });
+        return router.push({
+          name: routes.TutorialCreateEventType,
+          params: {
+            organization_id: route.params.organization_id,
+            application_id: _resp.application_id,
+          },
+        });
+      }
     }, displayError);
     return;
   }
@@ -92,7 +116,7 @@ onUpdated(() => {
           <template v-if="isNew" #header> Create new application </template>
           <template v-else #header> Edit application </template>
           <template #subtitle>
-            An application emit events that are consumed by customers through webhooks
+            An application is an isolated environment that contains everything webhook-related.
           </template>
         </Hook0CardHeader>
         <Hook0CardContent>
@@ -115,9 +139,26 @@ onUpdated(() => {
         </Hook0CardContent>
 
         <Hook0CardFooter>
-          <Hook0Button class="secondary" type="button" @click="cancel()">Cancel</Hook0Button>
-          <Hook0Button class="primary" type="button" @click="upsert($event)"
+          <Hook0Button v-if="!tutorialMode" class="secondary" type="button" @click="cancel()"
+            >Cancel</Hook0Button
+          >
+          <Hook0Button
+            v-if="!tutorialMode"
+            class="primary"
+            type="button"
+            :disabled="!application.name"
+            @click="upsert($event)"
             >{{ isNew ? 'Create' : 'Update' }}
+          </Hook0Button>
+
+          <Hook0Button
+            v-else
+            class="primary"
+            type="button"
+            :disabled="!application.name"
+            tooltip="ℹ️ To continue, you need to add a name for your application."
+            @click="upsert($event)"
+            >Create Your First Application 🎉
           </Hook0Button>
         </Hook0CardFooter>
       </Hook0Card>

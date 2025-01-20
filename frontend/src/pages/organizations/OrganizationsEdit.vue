@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUpdated, ref } from 'vue';
+import { onMounted, onUpdated, ref, defineProps, defineEmits } from 'vue';
 
 import * as OrganizationService from './OrganizationService';
 import { OrganizationInfo } from './OrganizationService';
@@ -25,6 +25,14 @@ const organization_id = ref<UUID | null>(null);
 const organization = ref({
   name: '',
 });
+
+interface Props {
+  tutorialMode?: boolean;
+}
+
+const props = defineProps<Props>();
+
+const emit = defineEmits(['tutorial-organization-created']);
 
 function _load() {
   if (organization_id.value !== route.params.organization_id) {
@@ -53,15 +61,19 @@ function upsert(e: Event) {
         name: organization.value.name,
       })
         .then((org) => {
-          push.success({
-            title: 'Organization created',
-            message: `Organization ${org.name} has been created`,
-            duration: 5000,
-          });
-          return router.push({
-            name: routes.OrganizationsDashboard,
-            params: { organization_id: org.organization_id },
-          });
+          if (props.tutorialMode) {
+            emit('tutorial-organization-created', org.organization_id);
+          } else {
+            push.success({
+              title: 'Organization created',
+              message: `Organization ${organization.value.name} has been created successfully`,
+              duration: 5000,
+            });
+            return router.push({
+              name: routes.TutorialCreateApplication,
+              params: { organization_id: org.organization_id },
+            });
+          }
         })
         .catch(displayError)
     : // update
@@ -111,7 +123,7 @@ onUpdated(() => {
         <Hook0CardHeader>
           <template v-if="isNew" #header> Create new organization </template>
           <template v-else #header> Edit organization </template>
-          <template #subtitle> An organization holds your team members </template>
+          <template #subtitle>An organization holds your team members and plan.</template>
         </Hook0CardHeader>
         <Hook0CardContent>
           <Hook0CardContentLine>
@@ -120,7 +132,7 @@ onUpdated(() => {
               <Hook0Input
                 v-model="organization.name"
                 type="text"
-                placeholder="my awesome api - production"
+                placeholder="My Awesome Product"
                 required
               >
                 <template #helpText></template>
@@ -130,9 +142,26 @@ onUpdated(() => {
         </Hook0CardContent>
 
         <Hook0CardFooter>
-          <Hook0Button class="secondary" type="button" @click="$router.back()">Cancel</Hook0Button>
-          <Hook0Button class="primary" type="button" :loading="loading" @click="upsert($event)"
+          <Hook0Button
+            v-if="!tutorialMode"
+            class="primary"
+            type="button"
+            :loading="loading"
+            :disabled="!organization.name"
+            @click="upsert($event)"
             >{{ isNew ? 'Create' : 'Update' }}
+          </Hook0Button>
+
+          <Hook0Button
+            v-else
+            class="primary"
+            :loading="loading"
+            :disabled="!organization.name"
+            tooltip="ℹ️ To continue, you need to add a name for your organization or select an existing one."
+            type="button"
+            @click="upsert($event)"
+          >
+            Create Your First Organization 🎉
           </Hook0Button>
         </Hook0CardFooter>
       </Hook0Card>
