@@ -39,7 +39,7 @@ const application_name = ref('');
 const removeRouterGuard = ref<null | (() => void)>(null);
 
 const props = defineProps<{
-  displayAdCards: boolean;
+  displayAsCards: boolean;
 }>();
 
 watch(
@@ -162,7 +162,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <template v-if="applicationsPerOrganization !== null && props.displayAdCards">
+  <template v-if="applicationsPerOrganization !== null && props.displayAsCards">
     <div class="flex flex-col justify-between p-4">
       <div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-fr">
@@ -189,8 +189,8 @@ onUnmounted(() => {
                       <span
                         v-if="organizationGroup.organization.plan"
                         class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10"
-                        :title="'Plan: ' + organizationGroup.organization.plan"
-                        >{{ organizationGroup.organization.plan }}</span
+                        :title="'Plan: ' + organizationGroup.organization.plan?.label || ''"
+                        >{{ organizationGroup.organization.plan?.label || '' }}</span
                       >
                       <span
                         v-else
@@ -225,7 +225,7 @@ onUnmounted(() => {
                   </template>
                   <template v-else #content>
                     <div class="flex flex-col items-center">
-                      <Hook0Text class="text-gray-500 mb-2">No applications found</Hook0Text>
+                      <Hook0Text class="text-gray-500 mb-2">No application found</Hook0Text>
                       <Hook0Button
                         @click="
                           router.push({
@@ -256,7 +256,7 @@ onUnmounted(() => {
     </div>
   </template>
   <Hook0Dropdown
-    v-else-if="applicationsPerOrganization !== null && !props.displayAdCards"
+    v-else-if="applicationsPerOrganization !== null && !props.displayAsCards"
     class="container darkmode"
     justify="left"
   >
