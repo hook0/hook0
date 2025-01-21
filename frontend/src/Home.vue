@@ -26,7 +26,7 @@ import OrganizationSelector from '@/pages/OrganizationAndApplicationSelector.vue
       <Hook0CardContentLines>
         <Hook0CardContentLine type="full-width">
           <template #content>
-            <OrganizationSelector :display-ad-cards="true" />
+            <OrganizationSelector :display-as-cards="true" />
           </template>
         </Hook0CardContentLine>
       </Hook0CardContentLines>

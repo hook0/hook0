@@ -221,7 +221,7 @@ function toggleMobileSidebar() {
               </Hook0Button>
             </div>
             <div class="flex flex-shrink-0 bg-gray-100">
-              <OrganizationSelector :display-ad-cards="false"></OrganizationSelector>
+              <OrganizationSelector :display-as-cards="false"></OrganizationSelector>
             </div>
             <div class="flex-1 flex flex-col overflow-y-auto">
               <nav class="flex-1 px-2 py-4 space-y-1">
