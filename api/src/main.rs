@@ -310,6 +310,14 @@ struct Config {
     /// Maximum duration (in millisecond) that can be spent running Biscuit's authorizer
     #[clap(long, env, default_value = "10")]
     max_authorization_time_in_ms: u64,
+
+    /// Matomo URL
+    #[clap(long, env)]
+    matomo_url: Option<Url>,
+
+    /// Matomo site ID
+    #[clap(long, env)]
+    matomo_site_id: Option<u16>,
 }
 
 fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
@@ -343,6 +351,8 @@ pub struct State {
     health_check_key: Option<String>,
     max_authorization_time_in_ms: u64,
     enable_quota_enforcement: bool,
+    matomo_url: Option<Url>,
+    matomo_site_id: Option<u16>,
 }
 
 #[actix_web::main]
@@ -543,6 +553,8 @@ async fn main() -> anyhow::Result<()> {
             health_check_key: config.health_check_key,
             max_authorization_time_in_ms: config.max_authorization_time_in_ms,
             enable_quota_enforcement: config.enable_quota_enforcement,
+            matomo_url: config.matomo_url,
+            matomo_site_id: config.matomo_site_id,
         };
         let hook0_client_api_url = config.hook0_client_api_url;
 
