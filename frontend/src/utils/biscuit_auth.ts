@@ -7,20 +7,24 @@ import { components } from '@/types.ts';
 type definitions = components['schemas'];
 export type InstanceConfig = definitions['InstanceConfig'];
 
-let instanceConfigCache: InstanceConfig | null = null;
+let instanceConfigCache: Promise<InstanceConfig> | null = null;
 
 export function getInstanceConfig(): Promise<InstanceConfig> {
   if (instanceConfigCache) {
-    return Promise.resolve(instanceConfigCache);
+    return instanceConfigCache;
+  } else {
+    const promise = http.get('/instance', {}).then(
+      (res: AxiosResponse<InstanceConfig>) => {
+        return res.data;
+      },
+      (err: AxiosError<AxiosResponse<Problem>>) => {
+        instanceConfigCache = null;
+        return Promise.reject(handleError(err));
+      }
+    );
+    instanceConfigCache = promise;
+    return promise;
   }
-
-  return http.get('/instance', {}).then(
-    (res: AxiosResponse<InstanceConfig>) => {
-      instanceConfigCache = res.data;
-      return res.data;
-    },
-    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
-  );
 }
 
 export function attenuateBiscuit(
