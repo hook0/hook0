@@ -61,6 +61,7 @@
     "vue": "^3.0.0",
     "vue-click-outside-element": "^3.1.2",
     "vue-codemirror": "^6.1.1",
+    "vue-matomo": "^4.2.0",
     "vue-promised": "^2.0.2",
     "vue-router": "^4.0.6"
   },
