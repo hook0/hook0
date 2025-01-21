@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import Hook0Text from '@/components/Hook0Text.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
+import OrganizationSelector from '@/pages/OrganizationAndApplicationSelector.vue';
 </script>
 
 <template>
@@ -26,11 +26,7 @@ import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
       <Hook0CardContentLines>
         <Hook0CardContentLine type="full-width">
           <template #content>
-            <Hook0Text
-              >Start your journey by selecting your
-              <Hook0Text class="bold">organization</Hook0Text>
-              on the left selector and then creating your first application.
-            </Hook0Text>
+            <OrganizationSelector :display-as-cards="true" />
           </template>
         </Hook0CardContentLine>
       </Hook0CardContentLines>
