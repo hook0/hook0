@@ -7,11 +7,12 @@ import { differenceInMilliseconds, subMinutes } from 'date-fns';
 import { routes } from '@/routes.ts';
 import formbricks from '@formbricks/js';
 import { getInstanceConfig } from '@/utils/biscuit_auth';
+import { initializeFormbricks } from './utils/formbricks';
 
 type definitions = components['schemas'];
 type LoginResponse = definitions['LoginResponse'];
 
-interface State {
+export interface State {
   accessToken: string;
   accessTokenExpiration: Date;
   refreshToken: string;
@@ -27,7 +28,7 @@ const localStorageKey = 'auth';
 const state = ref<null | State>(null);
 let refreshTimerId: null | number = null;
 
-export function readStateFromStorage(): State | null {
+export async function readStateFromStorage(): Promise<State | null> {
   const data = window.localStorage.getItem(localStorageKey);
 
   if (data !== null) {
@@ -49,11 +50,13 @@ export function readStateFromStorage(): State | null {
       if (refreshTokenExpirationDate <= new Date()) {
         return null;
       } else {
-        return {
+        const state: State = {
           ...parsed,
           accessTokenExpiration: accessTokenExpirationDate,
           refreshTokenExpiration: refreshTokenExpirationDate,
         };
+        await initializeFormbricks(state);
+        return state;
       }
     } else {
       return null;
@@ -187,6 +190,7 @@ export async function clearTokens(): Promise<void> {
   }
   state.value = null;
   removeStateFromStorage();
+  await formbricks.logout();
   await router.push({ name: routes.Login });
 }
 
@@ -213,8 +217,8 @@ export function getUserInfo(): ComputedRef<null | UserInfo> {
 }
 
 export const AuthPlugin: Plugin = {
-  install(_app: App, _options: unknown) {
-    const storedState = readStateFromStorage();
+  async install(_app: App, _options: unknown) {
+    const storedState = await readStateFromStorage();
     if (storedState !== null) {
       state.value = storedState;
       scheduleAutoRefresh().catch(console.error);
