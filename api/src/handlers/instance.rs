@@ -14,6 +14,13 @@ pub struct InstanceConfig {
     auto_db_migration: bool,
     application_secret_compatibility: bool,
     quota_enforcement: bool,
+    matomo: Option<MatomoConfig>,
+}
+
+#[derive(Debug, Serialize, Apiv2Schema)]
+pub struct MatomoConfig {
+    url: String,
+    site_id: u16,
 }
 
 /// Get instance configuration
@@ -26,6 +33,16 @@ pub struct InstanceConfig {
     tags("Hook0")
 )]
 pub async fn get(state: Data<crate::State>) -> Result<Json<InstanceConfig>, Hook0Problem> {
+    let matomo =
+        if let (Some(url), Some(site_id)) = (state.matomo_url.as_ref(), state.matomo_site_id) {
+            Some(MatomoConfig {
+                url: url.to_string(),
+                site_id,
+            })
+        } else {
+            None
+        };
+
     Ok(Json(InstanceConfig {
         biscuit_public_key: state.biscuit_private_key.public().to_bytes_hex(),
         registration_disabled: state.registration_disabled,
@@ -33,6 +50,7 @@ pub async fn get(state: Data<crate::State>) -> Result<Json<InstanceConfig>, Hook
         auto_db_migration: state.auto_db_migration,
         application_secret_compatibility: state.application_secret_compatibility,
         quota_enforcement: state.enable_quota_enforcement,
+        matomo,
     }))
 }
 

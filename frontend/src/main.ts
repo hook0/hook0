@@ -5,8 +5,9 @@ import './tailwind.css';
 import { createApp } from 'vue';
 import router from './router';
 import { Promised } from 'vue-promised';
-import { AuthPlugin } from './iam';
+import VueMatomo from 'vue-matomo';
 
+import { AuthPlugin } from './iam';
 import Root from './Root.vue';
 
 // FontAwesome
@@ -82,6 +83,20 @@ const notivue = createNotivue({
 });
 
 app.use(notivue);
+
+import { getInstanceConfig } from './utils/biscuit_auth';
+void getInstanceConfig().then((config) => {
+  if (config.matomo) {
+    app.use(VueMatomo, {
+      host: config.matomo.url,
+      siteId: config.matomo.site_id,
+      router,
+      disableCookies: true,
+      enableHeartBeatTimer: true,
+      heartBeatTimerInterval: 15,
+    });
+  }
+});
 
 // font-awesome
 // Add here
