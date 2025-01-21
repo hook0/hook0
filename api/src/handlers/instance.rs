@@ -36,7 +36,7 @@ pub async fn get(state: Data<crate::State>) -> Result<Json<InstanceConfig>, Hook
     let matomo =
         if let (Some(url), Some(site_id)) = (state.matomo_url.as_ref(), state.matomo_site_id) {
             Some(MatomoConfig {
-                url: url.to_string(),
+                url: url.to_string().trim_end_matches('/').to_owned(),
                 site_id,
             })
         } else {
