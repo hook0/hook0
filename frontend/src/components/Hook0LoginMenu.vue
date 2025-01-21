@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router';
-
 import { getUserInfo, logout as doLogout } from '@/iam';
 import { routes } from '@/routes';
 import Hook0Icon from '@/components/Hook0Icon.vue';
@@ -12,16 +10,10 @@ import Hook0DropdownMenuItemText from '@/components/Hook0DropdownMenuItemText.vu
 import Hook0DropdownMenuItemLink from '@/components/Hook0DropdownMenuItemLink.vue';
 import CrispChat from '@/components/CrispChat.vue';
 
-const router = useRouter();
-defineSlots<{
-  default(): unknown;
-}>();
-
 const currentUser = getUserInfo();
 
 async function logout() {
   await doLogout();
-  await router.push({ name: routes.Login });
 }
 </script>
 

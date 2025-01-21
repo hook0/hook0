@@ -28,7 +28,7 @@ const localStorageKey = 'auth';
 const state = ref<null | State>(null);
 let refreshTimerId: null | number = null;
 
-export async function readStateFromStorage(): Promise<State | null> {
+export function readStateFromStorage(): State | null {
   const data = window.localStorage.getItem(localStorageKey);
 
   if (data !== null) {
@@ -55,7 +55,6 @@ export async function readStateFromStorage(): Promise<State | null> {
           accessTokenExpiration: accessTokenExpirationDate,
           refreshTokenExpiration: refreshTokenExpirationDate,
         };
-        await initializeFormbricks(state);
         return state;
       }
     } else {
@@ -126,6 +125,8 @@ export async function login(email: string, password: string): Promise<void> {
   };
   if (state.value) {
     writeStateToStorage(state.value);
+    await formbricks.reset();
+    await initializeFormbricks(state.value);
     await scheduleAutoRefresh();
   }
 }
@@ -190,7 +191,7 @@ export async function clearTokens(): Promise<void> {
   }
   state.value = null;
   removeStateFromStorage();
-  await formbricks.logout();
+  await formbricks.logout().catch(console.error);
   await router.push({ name: routes.Login });
 }
 
@@ -217,14 +218,16 @@ export function getUserInfo(): ComputedRef<null | UserInfo> {
 }
 
 export const AuthPlugin: Plugin = {
-  async install(_app: App, _options: unknown) {
-    const storedState = await readStateFromStorage();
+  install(_app: App, _options: unknown) {
+    const storedState = readStateFromStorage();
     if (storedState !== null) {
       state.value = storedState;
       scheduleAutoRefresh().catch(console.error);
+      initializeFormbricks(storedState).catch(console.error);
     } else {
       removeStateFromStorage();
     }
+
     router.beforeEach(async (to, _from) => {
       const instanceConfig = await getInstanceConfig();
       // If the route requires authentication, the user is logged in and the route is not a tutorial, track the event
@@ -233,12 +236,15 @@ export const AuthPlugin: Plugin = {
         instanceConfig.formbricks_api_host &&
         instanceConfig.formbricks_environment_id
       ) {
+        console.log(to);
         if (
           (to.meta?.requiresAuth ?? true) &&
           state.value !== null &&
           !(to.meta?.tutorial ?? false)
         ) {
-          await formbricks.track('display_registration_form');
+          await formbricks.track('display_registration_form').catch((e) => {
+            console.error(`Formbricks track failed: ${e}`);
+          });
         }
       }
 

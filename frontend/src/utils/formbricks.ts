@@ -11,16 +11,17 @@ export async function initializeFormbricks(storedState: State) {
       instanceConfig.formbricks_environment_id
     ) {
       if (storedState && storedState.userId) {
-        //await formbricks.reset();
         await formbricks
           .init({
             apiHost: instanceConfig.formbricks_api_host,
-            environmentId: instanceConfig.formbricks_environment_id,
+            environmentId: 'cm669w0ca0002l703bc2n76qc',
             userId: storedState.userId,
           })
           .catch((e) => {
             console.warn(`Formbricks initialization failed: ${e}`);
           });
+      } else {
+        console.error('Formbricks initialization failed: storedState.userId is missing');
       }
     }
   }
