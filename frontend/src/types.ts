@@ -746,6 +746,11 @@ export interface components {
       application_secret_compatibility: boolean;
       auto_db_migration: boolean;
       biscuit_public_key: string;
+      matomo?: {
+        /** Format: int32 */
+        site_id: number;
+        url: string;
+      };
       /** Format: int32 */
       password_minimum_length: number;
       quota_enforcement: boolean;
