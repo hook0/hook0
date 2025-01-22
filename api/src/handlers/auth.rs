@@ -147,7 +147,7 @@ pub async fn login(
                 Err(Hook0Problem::AuthFailedLogin)
             }
         } else {
-            Err(Hook0Problem::AuthFailedLogin)
+            Err(Hook0Problem::AuthEmailNotVerified)
         }
     } else {
         #[cfg(feature = "migrate-users-from-keycloak")]
