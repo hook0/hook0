@@ -1,1 +1,1 @@
-alter table application drop column deleted_at;
+alter table event.application drop column deleted_at;
