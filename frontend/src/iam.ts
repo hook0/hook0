@@ -5,9 +5,9 @@ import type { components } from '@/types';
 import router from '@/router';
 import { differenceInMilliseconds, subMinutes } from 'date-fns';
 import { routes } from '@/routes.ts';
-import formbricks from '@formbricks/js';
 import { getInstanceConfig } from '@/utils/biscuit_auth';
 import { initializeFormbricks } from './utils/formbricks';
+import formbricks from '@formbricks/js';
 
 type definitions = components['schemas'];
 type LoginResponse = definitions['LoginResponse'];
@@ -125,7 +125,6 @@ export async function login(email: string, password: string): Promise<void> {
   };
   if (state.value) {
     writeStateToStorage(state.value);
-    await formbricks.reset();
     await initializeFormbricks(state.value);
     await scheduleAutoRefresh();
   }
@@ -191,7 +190,7 @@ export async function clearTokens(): Promise<void> {
   }
   state.value = null;
   removeStateFromStorage();
-  await formbricks.logout().catch(console.error);
+  window.localStorage.removeItem('formbricks-js');
   await router.push({ name: routes.Login });
 }
 
@@ -236,7 +235,6 @@ export const AuthPlugin: Plugin = {
         instanceConfig.formbricks_api_host &&
         instanceConfig.formbricks_environment_id
       ) {
-        console.log(to);
         if (
           (to.meta?.requiresAuth ?? true) &&
           state.value !== null &&

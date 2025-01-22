@@ -32,12 +32,4 @@ import OrganizationSelector from '@/pages/OrganizationAndApplicationSelector.vue
       </Hook0CardContentLines>
     </Hook0CardContent>
   </Hook0Card>
-  <div style="position: relative; height: 80dvh; overflow: auto">
-    <iframe
-      src="https://app.formbricks.com/s/tmwfw3podrijadonp1czk6mq?embed=true"
-      frameborder="0"
-      style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; border: 0"
-    >
-    </iframe>
-  </div>
 </template>

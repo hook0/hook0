@@ -11,10 +11,15 @@ export async function initializeFormbricks(storedState: State) {
       instanceConfig.formbricks_environment_id
     ) {
       if (storedState && storedState.userId) {
+        await formbricks.reset().catch((e) => {
+          console.warn(`Formbricks reset failed: ${e}`);
+        });
         await formbricks
           .init({
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             apiHost: instanceConfig.formbricks_api_host,
-            environmentId: 'cm669w0ca0002l703bc2n76qc',
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            environmentId: instanceConfig.formbricks_environment_id,
             userId: storedState.userId,
           })
           .catch((e) => {
