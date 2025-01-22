@@ -16,6 +16,7 @@ use std::str::FromStr;
 use std::time::Duration;
 use uuid::Uuid;
 
+mod deleted_applications_cleanup;
 mod expired_tokens_cleanup;
 mod extractor_user_ip;
 mod handlers;
@@ -33,7 +34,6 @@ mod quotas;
 mod rate_limiting;
 mod unverified_users_cleanup;
 mod validators;
-mod deleted_applications_cleanup;
 
 #[cfg(feature = "migrate-users-from-keycloak")]
 mod keycloak_api;

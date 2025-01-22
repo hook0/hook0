@@ -37,7 +37,8 @@ async fn clean_up_deleted_applications(
 
     let mut tx = db.begin().await?;
 
-    let total_deleted_deleted_applications = delete_deleted_applications(&mut *tx, grace_period).await?;
+    let total_deleted_deleted_applications =
+        delete_deleted_applications(&mut *tx, grace_period).await?;
 
     tx.commit().await?;
 
