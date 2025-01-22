@@ -390,7 +390,7 @@ impl From<Hook0Problem> for Problem {
             Hook0Problem::AuthEmailNotVerified => Problem {
                 id: Hook0Problem::AuthEmailNotVerified,
                 title: "Email not verified",
-                detail: "The provided email has not been verified yet.".into(),
+                detail: "Your email has not been verified yet. Please check your inbox.".into(),
                 validation: None,
                 status: StatusCode::UNAUTHORIZED,
             },
