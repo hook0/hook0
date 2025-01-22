@@ -129,25 +129,25 @@ pub async fn login(
     .map_err(Hook0Problem::from)?;
 
     if let Some(user) = user_lookup {
-        if user.email_verified_at.is_some() {
-            let password_hash = PasswordHash::new(&user.password_hash).map_err(|e| {
-                error!(
-                    "Password hash of user {} is not in the right format: {e}",
-                    &user.user_id
-                );
-                Hook0Problem::InternalServerError
-            })?;
+        let password_hash = PasswordHash::new(&user.password_hash).map_err(|e| {
+            error!(
+                "Password hash of user {} is not in the right format: {e}",
+                &user.user_id
+            );
+            Hook0Problem::InternalServerError
+        })?;
 
-            if Argon2::default()
-                .verify_password(body.password.as_bytes(), &password_hash)
-                .is_ok()
-            {
+        if Argon2::default()
+            .verify_password(body.password.as_bytes(), &password_hash)
+            .is_ok()
+        {
+            if user.email_verified_at.is_some() {
                 do_login(&state.db, &state.biscuit_private_key, user, None).await
             } else {
-                Err(Hook0Problem::AuthFailedLogin)
+                Err(Hook0Problem::AuthEmailNotVerified)
             }
         } else {
-            Err(Hook0Problem::AuthEmailNotVerified)
+            Err(Hook0Problem::AuthFailedLogin)
         }
     } else {
         #[cfg(feature = "migrate-users-from-keycloak")]
