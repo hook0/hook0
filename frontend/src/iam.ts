@@ -5,6 +5,8 @@ import type { components } from '@/types';
 import router from '@/router';
 import { differenceInMilliseconds, subMinutes } from 'date-fns';
 import { routes } from '@/routes.ts';
+import formbricks from '@formbricks/js';
+import { getInstanceConfig } from '@/utils/biscuit_auth';
 
 type definitions = components['schemas'];
 type LoginResponse = definitions['LoginResponse'];
@@ -14,6 +16,7 @@ interface State {
   accessTokenExpiration: Date;
   refreshToken: string;
   refreshTokenExpiration: Date;
+  userId: string;
   email: string;
   firstName: string;
   lastName: string;
@@ -24,7 +27,7 @@ const localStorageKey = 'auth';
 const state = ref<null | State>(null);
 let refreshTimerId: null | number = null;
 
-function readStateFromStorage(): State | null {
+export function readStateFromStorage(): State | null {
   const data = window.localStorage.getItem(localStorageKey);
 
   if (data !== null) {
@@ -33,6 +36,7 @@ function readStateFromStorage(): State | null {
       accessTokenExpiration: string;
       refreshToken: string;
       refreshTokenExpiration: string;
+      userId: string;
       email: string;
       firstName: string;
       lastName: string;
@@ -112,6 +116,7 @@ export async function login(email: string, password: string): Promise<void> {
     accessTokenExpiration: new Date(res.data.access_token_expiration),
     refreshToken: res.data.refresh_token,
     refreshTokenExpiration: new Date(res.data.refresh_token_expiration),
+    userId: res.data.user_id,
     email: res.data.email,
     firstName: res.data.first_name,
     lastName: res.data.last_name,
@@ -144,6 +149,7 @@ export async function refresh(): Promise<void> {
       accessTokenExpiration: new Date(res.data.access_token_expiration),
       refreshToken: res.data.refresh_token,
       refreshTokenExpiration: new Date(res.data.refresh_token_expiration),
+      userId: res.data.user_id,
       email: res.data.email,
       firstName: res.data.first_name,
       lastName: res.data.last_name,
@@ -215,7 +221,23 @@ export const AuthPlugin: Plugin = {
     } else {
       removeStateFromStorage();
     }
-    router.beforeEach((to, _from) => {
+    router.beforeEach(async (to, _from) => {
+      const instanceConfig = await getInstanceConfig();
+      // If the route requires authentication, the user is logged in and the route is not a tutorial, track the event
+      if (
+        instanceConfig &&
+        instanceConfig.formbricks_api_host &&
+        instanceConfig.formbricks_environment_id
+      ) {
+        if (
+          (to.meta?.requiresAuth ?? true) &&
+          state.value !== null &&
+          !(to.meta?.tutorial ?? false)
+        ) {
+          await formbricks.track('display_registration_form');
+        }
+      }
+
       // If the route requires authentication and the user is not logged in, redirect to the login page
       if ((to.meta?.requiresAuth ?? true) && state.value === null) {
         return { name: routes.Login };

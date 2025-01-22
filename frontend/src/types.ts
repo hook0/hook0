@@ -751,6 +751,8 @@ export interface components {
         site_id: number;
         url: string;
       };
+      formbricks_api_host: string;
+      formbricks_environment_id?: string;
       /** Format: int32 */
       password_minimum_length: number;
       quota_enforcement: boolean;
@@ -770,6 +772,8 @@ export interface components {
       refresh_token: string;
       /** Format: date-time */
       refresh_token_expiration: string;
+      /** Format: uuid */
+      user_id: string;
     };
     Organization: {
       name: string;

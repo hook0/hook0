@@ -15,6 +15,8 @@ pub struct InstanceConfig {
     application_secret_compatibility: bool,
     quota_enforcement: bool,
     matomo: Option<MatomoConfig>,
+    formbricks_api_host: String,
+    formbricks_environment_id: Option<String>,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -51,6 +53,8 @@ pub async fn get(state: Data<crate::State>) -> Result<Json<InstanceConfig>, Hook
         application_secret_compatibility: state.application_secret_compatibility,
         quota_enforcement: state.enable_quota_enforcement,
         matomo,
+        formbricks_api_host: state.formbricks_api_host.to_owned(),
+        formbricks_environment_id: state.formbricks_environment_id.clone(),
     }))
 }
 
