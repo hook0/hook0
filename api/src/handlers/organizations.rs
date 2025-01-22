@@ -682,7 +682,6 @@ pub async fn delete(
         return Err(Hook0Problem::Forbidden);
     }
 
-    // TODO: Demande à David ce qu'il faut faire ici (suppression cascade ?)
     let organization_is_empty = query!(
         "
             SELECT application__id
