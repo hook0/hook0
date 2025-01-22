@@ -55,6 +55,7 @@ pub enum Hook0Problem {
     AuthBiscuitLookupError,
     AuthInvalidBiscuit,
     AuthFailedLogin,
+    AuthEmailNotVerified,
     AuthFailedRefresh,
     AuthEmailExpired,
 
@@ -383,6 +384,13 @@ impl From<Hook0Problem> for Problem {
                 id: Hook0Problem::AuthFailedLogin,
                 title: "Login failed",
                 detail: "The provided credentials do not match ones of a valid user.".into(),
+                validation: None,
+                status: StatusCode::UNAUTHORIZED,
+            },
+            Hook0Problem::AuthEmailNotVerified => Problem {
+                id: Hook0Problem::AuthEmailNotVerified,
+                title: "Email not verified",
+                detail: "The provided email has not been verified yet.".into(),
                 validation: None,
                 status: StatusCode::UNAUTHORIZED,
             },
