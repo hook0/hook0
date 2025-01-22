@@ -33,6 +33,7 @@ mod quotas;
 mod rate_limiting;
 mod unverified_users_cleanup;
 mod validators;
+mod deleted_applications_cleanup;
 
 #[cfg(feature = "migrate-users-from-keycloak")]
 mod keycloak_api;
@@ -275,6 +276,18 @@ struct Config {
     #[clap(long, env, default_value = "false")]
     unverified_users_cleanup_report_and_delete: bool,
 
+    /// If true, deleted applications will be removed from database after a while
+    #[clap(long, env, default_value = "false")]
+    enable_deleted_applications_cleanup: bool,
+
+    /// Duration (in second) to wait between deleted applications cleanups
+    #[clap(long, env, default_value = "3600")]
+    deleted_applications_cleanup_period_in_s: u64,
+
+    /// Duration (in day) to wait before removing a deleted application
+    #[clap(long, env, default_value = "30")]
+    deleted_applications_cleanup_grace_period_in_days: u32,
+
     /// If true, the secured HTTP headers will be enabled
     #[clap(long, env, default_value = "true")]
     enable_security_headers: bool,
@@ -513,6 +526,18 @@ async fn main() -> anyhow::Result<()> {
                     Duration::from_secs(config.unverified_users_cleanup_period_in_s),
                     config.unverified_users_cleanup_grace_period_in_days,
                     config.unverified_users_cleanup_report_and_delete,
+                )
+                .await;
+            });
+        }
+
+        if config.enable_deleted_applications_cleanup {
+            let clean_deleted_applications_db = pool.clone();
+            actix_web::rt::spawn(async move {
+                deleted_applications_cleanup::periodically_clean_up_deleted_applications(
+                    &clean_deleted_applications_db,
+                    Duration::from_secs(config.deleted_applications_cleanup_period_in_s),
+                    config.deleted_applications_cleanup_grace_period_in_days,
                 )
                 .await;
             });
