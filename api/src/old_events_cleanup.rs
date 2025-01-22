@@ -98,6 +98,7 @@ async fn delete_old_events<'a, A: Acquire<'a, Database = Postgres>>(
 ) -> Result<u64, sqlx::Error> {
     let mut db = db.acquire().await?;
 
+    // TODO: Check this query
     let res = query!(
         "
             WITH retention AS (

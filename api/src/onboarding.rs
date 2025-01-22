@@ -37,7 +37,7 @@ pub async fn get_organization_onboarding_steps<'a, A: Acquire<'a, Database = Pos
         OrganizationOnboardingSteps,
         r#"
             WITH application_ids as (
-                SELECT ARRAY_AGG(application__id) as applications_ids FROM event.application WHERE organization__id = $1
+                SELECT ARRAY_AGG(application__id) as applications_ids FROM event.application WHERE organization__id = $1 AND deleted_at IS NULL
             )
             SELECT
                 COALESCE(CARDINALITY(application_ids.applications_ids), 0) >= 1 as "application!",
@@ -59,6 +59,7 @@ pub struct ApplicationOnboardingSteps {
     pub event: OnboardingStepStatus,
 }
 
+// TODO: Demander à David si qlq chose à faire ici
 pub async fn get_application_onboarding_steps<'a, A: Acquire<'a, Database = Postgres>>(
     db: A,
     application_id: &Uuid,
