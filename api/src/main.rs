@@ -217,7 +217,7 @@ struct Config {
     quota_global_applications_per_organization_limit: quotas::QuotaValue,
 
     /// Default limit of events per day (can be overriden by a plan)
-    #[clap(long, env, default_value = "100")]
+    #[clap(long, env, default_value = "1")]
     quota_global_events_per_day_limit: quotas::QuotaValue,
 
     /// Default limit of day of event's retention (can be overriden by a plan)
@@ -231,6 +231,10 @@ struct Config {
     /// Default limit of event types per application (can be overriden by a plan)
     #[clap(long, env, default_value = "10")]
     quota_global_event_types_per_application_limit: quotas::QuotaValue,
+
+    /// Default delay (in hours) between sending quota notifications
+    #[clap(long, env, default_value = "24")]
+    quota_notification_delay_in_hours: u8,
 
     /// Duration (in second) to wait between materialized views refreshes
     #[clap(long, env, default_value = "60")]
@@ -339,6 +343,10 @@ struct Config {
     /// Formbricks API environment ID
     #[clap(long, env)]
     formbricks_environment_id: Option<String>,
+
+    /// Website url
+    #[clap(long, env, default_value = "https://hook0.com")]
+    website_url: String,
 }
 
 fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
@@ -469,6 +477,7 @@ async fn main() -> anyhow::Result<()> {
             config.quota_global_days_of_events_retention_limit,
             config.quota_global_subscriptions_per_application_limit,
             config.quota_global_event_types_per_application_limit,
+            config.quota_notification_delay_in_hours as f64,
         );
         if config.enable_quota_enforcement {
             info!("Quota enforcement is enabled");
@@ -551,6 +560,7 @@ async fn main() -> anyhow::Result<()> {
             config.email_sender_name,
             config.email_sender_address,
             config.email_logo_url,
+            config.website_url,
         )
         .await
         .expect("Could not initialize mailer; check SMTP configuration");
