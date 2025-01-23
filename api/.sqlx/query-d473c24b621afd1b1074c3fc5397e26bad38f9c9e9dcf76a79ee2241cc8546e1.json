@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT 1\n                FROM pricing.quota_notifications\n                WHERE organization__id = $1\n                    AND type = $2\n                    AND name = $3\n                    AND executed_at > now() - interval '1 hour' * $4\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "?column?",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Float8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "d473c24b621afd1b1074c3fc5397e26bad38f9c9e9dcf76a79ee2241cc8546e1"
+}
