@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT u.first_name, u.last_name, u.email\n                FROM iam.user u\n                JOIN iam.user__organization ou ON u.user__id = ou.user__id\n                WHERE ou.organization__id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "first_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "last_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "email",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "ad499d68f3a305fa77fd2c65a06043f4f3ece185aaffabbd05e8591fc000a4c3"
+}

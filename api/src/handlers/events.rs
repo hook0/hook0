@@ -19,7 +19,7 @@ use crate::extractor_user_ip::UserIp;
 use crate::iam::{authorize_for_application, Action};
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
-use crate::quotas::Quota;
+use crate::quotas::{Quota, QuotaNotificationType};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, IntoStaticStr, VariantNames)]
 pub enum PayloadContentType {
@@ -339,27 +339,28 @@ pub async fn ingest(
     .await
     .map_err(Hook0Problem::from)?
     .is_some();
+
     let events_per_days_limit = state
         .quotas
         .get_limit_for_application(&state.db, Quota::EventsPerDay, &application_id)
         .await?;
 
+    let current_events_per_day = query_scalar!(
+        r#"
+            SELECT COALESCE(amount, 0) AS "amount!"
+            FROM event.events_per_day
+            WHERE application__id = $1 AND date = current_date
+        "#,
+        application_id
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(Hook0Problem::from)?
+    .unwrap_or(0);
+
     let can_ingest = if can_exceed_events_per_day_quota {
         true
     } else {
-        let current_events_per_day = query_scalar!(
-            r#"
-                SELECT COALESCE(amount, 0) AS "amount!"
-                FROM event.events_per_day
-                WHERE application__id = $1 AND date = current_date
-            "#,
-            application_id
-        )
-        .fetch_optional(&state.db)
-        .await
-        .map_err(Hook0Problem::from)?
-        .unwrap_or(0);
-
         current_events_per_day < events_per_days_limit
     };
 
@@ -390,6 +391,23 @@ pub async fn ingest(
 
         Ok(CreatedJson(event))
     } else {
+        let informations = format!(
+            "You have reached the maximum number of events per day: <strong>{}</strong>/<strong>{}</strong>",
+            current_events_per_day, events_per_days_limit
+        );
+
+        state
+            .quotas
+            .send_application_email_notification(
+                &state.db,
+                &state.mailer,
+                &state.app_url,
+                Quota::EventsPerDay,
+                QuotaNotificationType::Reached,
+                application_id,
+                informations,
+            )
+            .await?;
         Err(Hook0Problem::TooManyEventsToday(events_per_days_limit))
     }
 }
