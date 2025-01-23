@@ -674,6 +674,10 @@ async fn main() -> anyhow::Result<()> {
                         .service(web::scope("/instance").service(
                             web::resource("").route(web::get().to(handlers::instance::get)),
                         ))
+                        .service(
+                            web::scope("/quotas")
+                                .service(web::resource("").route(web::get().to(quotas::get))),
+                        )
                         .service(web::scope("/health").service(
                             web::resource("").route(web::get().to(handlers::instance::health)),
                         ))
