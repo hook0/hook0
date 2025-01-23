@@ -12,7 +12,7 @@ import formbricks from '@formbricks/js';
 type definitions = components['schemas'];
 type LoginResponse = definitions['LoginResponse'];
 
-export interface State {
+interface State {
   accessToken: string;
   accessTokenExpiration: Date;
   refreshToken: string;
@@ -28,7 +28,7 @@ const localStorageKey = 'auth';
 const state = ref<null | State>(null);
 let refreshTimerId: null | number = null;
 
-export function readStateFromStorage(): State | null {
+function readStateFromStorage(): State | null {
   const data = window.localStorage.getItem(localStorageKey);
 
   if (data !== null) {
@@ -190,7 +190,7 @@ export async function clearTokens(): Promise<void> {
   }
   state.value = null;
   removeStateFromStorage();
-  window.localStorage.removeItem('formbricks-js');
+  window.localStorage.removeItem('formbricks-js'); // This is because formbricks.logout() does not seem to work correctly
   await router.push({ name: routes.Login });
 }
 
@@ -223,7 +223,7 @@ export const AuthPlugin: Plugin = {
       state.value = storedState;
       scheduleAutoRefresh().catch(console.error);
       if (storedState.userId) {
-        initializeFormbricks(storedState.userId).catch(console.error);
+        initializeFormbricks(storedState.userId).catch(console.warn);
       }
     } else {
       removeStateFromStorage();
