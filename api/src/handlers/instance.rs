@@ -50,13 +50,10 @@ pub async fn get(state: Data<crate::State>) -> Result<Json<InstanceConfig>, Hook
             None
         };
 
-    let formbricks = if let (Some(api_host), Some(environment_id)) = (
-        state.formbricks_api_host.as_ref(),
-        state.formbricks_environment_id.as_ref(),
-    ) {
+    let formbricks = if let Some(environment_id) = state.formbricks_environment_id.as_ref() {
         Some(FormbricksConfig {
-            api_host: api_host.to_string().trim_end_matches('/').to_owned(),
-            environment_id: environment_id.to_string(),
+            api_host: state.formbricks_api_host.to_owned(),
+            environment_id: environment_id.to_owned(),
         })
     } else {
         None

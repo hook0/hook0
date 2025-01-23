@@ -361,7 +361,7 @@ pub struct State {
     enable_quota_enforcement: bool,
     matomo_url: Option<Url>,
     matomo_site_id: Option<u16>,
-    formbricks_api_host: Option<String>,
+    formbricks_api_host: String,
     formbricks_environment_id: Option<String>,
 }
 
@@ -565,7 +565,7 @@ async fn main() -> anyhow::Result<()> {
             enable_quota_enforcement: config.enable_quota_enforcement,
             matomo_url: config.matomo_url,
             matomo_site_id: config.matomo_site_id,
-            formbricks_api_host: Option::from(config.formbricks_api_host),
+            formbricks_api_host: config.formbricks_api_host,
             formbricks_environment_id: config.formbricks_environment_id,
         };
         let hook0_client_api_url = config.hook0_client_api_url;
