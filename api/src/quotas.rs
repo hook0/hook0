@@ -1,5 +1,12 @@
+use actix_web::web::Data;
 use sqlx::{query_as, Acquire, Postgres};
 use uuid::Uuid;
+
+use paperclip::actix::web::Json;
+use paperclip::actix::{api_v2_operation, Apiv2Schema};
+use serde::Serialize;
+
+use crate::problems::Hook0Problem;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Quota {
@@ -18,7 +25,7 @@ struct QueryResult {
     val: Option<QuotaValue>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Apiv2Schema, Copy)]
 pub struct Quotas {
     enabled: bool,
     global_members_per_organization_limit: QuotaValue,
@@ -306,4 +313,16 @@ impl Quotas {
             Ok(QuotaValue::MAX)
         }
     }
+}
+
+#[api_v2_operation(
+    summary = "Get quotas",
+    description = "Get the current quotas limitations on the instance.",
+    operation_id = "quotas.get",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Hook0")
+)]
+pub async fn get(state: Data<crate::State>) -> Result<Json<Quotas>, Hook0Problem> {
+    Ok(Json(state.quotas))
 }
