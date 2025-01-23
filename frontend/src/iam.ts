@@ -125,7 +125,7 @@ export async function login(email: string, password: string): Promise<void> {
   };
   if (state.value) {
     writeStateToStorage(state.value);
-    await initializeFormbricks(state.value);
+    await initializeFormbricks(state.value.userId);
     await scheduleAutoRefresh();
   }
 }
@@ -222,7 +222,9 @@ export const AuthPlugin: Plugin = {
     if (storedState !== null) {
       state.value = storedState;
       scheduleAutoRefresh().catch(console.error);
-      initializeFormbricks(storedState).catch(console.error);
+      if (storedState.userId) {
+        initializeFormbricks(storedState.userId).catch(console.error);
+      }
     } else {
       removeStateFromStorage();
     }
@@ -232,8 +234,9 @@ export const AuthPlugin: Plugin = {
       // If the route requires authentication, the user is logged in and the route is not a tutorial, track the event
       if (
         instanceConfig &&
-        instanceConfig.formbricks_api_host &&
-        instanceConfig.formbricks_environment_id
+        instanceConfig.formbricks &&
+        instanceConfig.formbricks.api_host &&
+        instanceConfig.formbricks.environment_id
       ) {
         if (
           (to.meta?.requiresAuth ?? true) &&
@@ -241,7 +244,7 @@ export const AuthPlugin: Plugin = {
           !(to.meta?.tutorial ?? false)
         ) {
           await formbricks.track('display_registration_form').catch((e) => {
-            console.error(`Formbricks track failed: ${e}`);
+            console.warn(`Formbricks track failed: ${e}`);
           });
         }
       }

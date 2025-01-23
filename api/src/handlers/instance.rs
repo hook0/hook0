@@ -15,14 +15,19 @@ pub struct InstanceConfig {
     application_secret_compatibility: bool,
     quota_enforcement: bool,
     matomo: Option<MatomoConfig>,
-    formbricks_api_host: String,
-    formbricks_environment_id: Option<String>,
+    formbricks: Option<FormbricksConfig>,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct MatomoConfig {
     url: String,
     site_id: u16,
+}
+
+#[derive(Debug, Serialize, Apiv2Schema)]
+pub struct FormbricksConfig {
+    api_host: String,
+    environment_id: String,
 }
 
 /// Get instance configuration
@@ -45,6 +50,18 @@ pub async fn get(state: Data<crate::State>) -> Result<Json<InstanceConfig>, Hook
             None
         };
 
+    let formbricks = if let (Some(api_host), Some(environment_id)) = (
+        state.formbricks_api_host.as_ref(),
+        state.formbricks_environment_id.as_ref(),
+    ) {
+        Some(FormbricksConfig {
+            api_host: api_host.to_string().trim_end_matches('/').to_owned(),
+            environment_id: environment_id.to_string(),
+        })
+    } else {
+        None
+    };
+
     Ok(Json(InstanceConfig {
         biscuit_public_key: state.biscuit_private_key.public().to_bytes_hex(),
         registration_disabled: state.registration_disabled,
@@ -53,8 +70,7 @@ pub async fn get(state: Data<crate::State>) -> Result<Json<InstanceConfig>, Hook
         application_secret_compatibility: state.application_secret_compatibility,
         quota_enforcement: state.enable_quota_enforcement,
         matomo,
-        formbricks_api_host: state.formbricks_api_host.to_owned(),
-        formbricks_environment_id: state.formbricks_environment_id.clone(),
+        formbricks,
     }))
 }
 
