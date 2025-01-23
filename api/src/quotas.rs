@@ -1,12 +1,20 @@
 use actix_web::web::Data;
-use sqlx::{query_as, Acquire, Postgres};
-use uuid::Uuid;
 
 use paperclip::actix::web::Json;
 use paperclip::actix::{api_v2_operation, Apiv2Schema};
 use serde::Serialize;
 
-use crate::problems::Hook0Problem;
+use crate::{
+    mailer::{Mail, Mailer},
+    problems::Hook0Problem,
+};
+
+use std::str::FromStr;
+
+use lettre::{message::Mailbox, Address};
+use log::error;
+use sqlx::{query, query_as, query_scalar, Acquire, PgPool, Postgres};
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Quota {
@@ -16,6 +24,45 @@ pub enum Quota {
     DaysOfEventsRetention,
     SubscriptionsPerApplication,
     EventTypesPerApplication,
+}
+
+impl Quota {
+    fn get_display_name(&self) -> String {
+        match self {
+            Quota::MembersPerOrganization => "Members per organization".to_string(),
+            Quota::ApplicationsPerOrganization => "Applications per organization".to_string(),
+            Quota::EventsPerDay => "Events per day".to_string(),
+            Quota::DaysOfEventsRetention => "Days of events retention".to_string(),
+            Quota::SubscriptionsPerApplication => "Subscriptions per application".to_string(),
+            Quota::EventTypesPerApplication => "Event types per application".to_string(),
+        }
+    }
+
+    fn get_name(&self) -> String {
+        match self {
+            Quota::MembersPerOrganization => "members_per_organization".to_string(),
+            Quota::ApplicationsPerOrganization => "applications_per_organization".to_string(),
+            Quota::EventsPerDay => "events_per_day".to_string(),
+            Quota::DaysOfEventsRetention => "days_of_events_retention".to_string(),
+            Quota::SubscriptionsPerApplication => "subscriptions_per_application".to_string(),
+            Quota::EventTypesPerApplication => "event_types_per_application".to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum QuotaNotificationType {
+    // Warning,
+    Reached,
+}
+
+impl ToString for QuotaNotificationType {
+    fn to_string(&self) -> String {
+        match self {
+            // QuotaNotificationType::Warning => "warning".to_string(),
+            QuotaNotificationType::Reached => "reached".to_string(),
+        }
+    }
 }
 
 pub type QuotaValue = i32;
@@ -34,6 +81,7 @@ pub struct Quotas {
     global_days_of_events_retention_limit: QuotaValue,
     global_subscriptions_per_application_limit: QuotaValue,
     global_event_types_per_application_limit: QuotaValue,
+    pub quota_notification_delay_in_hours: f64,
 }
 
 impl Quotas {
@@ -45,6 +93,7 @@ impl Quotas {
         global_days_of_events_retention_limit: QuotaValue,
         global_subscriptions_per_application_limit: QuotaValue,
         global_event_types_per_application_limit: QuotaValue,
+        quota_notification_delay_in_hours: f64,
     ) -> Self {
         Self {
             enabled,
@@ -54,6 +103,7 @@ impl Quotas {
             global_days_of_events_retention_limit,
             global_subscriptions_per_application_limit,
             global_event_types_per_application_limit,
+            quota_notification_delay_in_hours,
         }
     }
 
@@ -312,6 +362,164 @@ impl Quotas {
         } else {
             Ok(QuotaValue::MAX)
         }
+    }
+
+    pub async fn send_organization_email_notification(
+        &self,
+        db: &PgPool,
+        mailer: &Mailer,
+        app_url: &str,
+        quota: Quota,
+        notification_type: QuotaNotificationType,
+        organization_id: &Uuid,
+        application_id: Option<Uuid>,
+        informations: String,
+        entity_type: String,
+    ) -> Result<(), Hook0Problem> {
+        let can_send_notification = query_scalar!(
+            r#"
+                SELECT 1
+                FROM pricing.quota_notifications
+                WHERE organization__id = $1
+                    AND type = $2
+                    AND name = $3
+                    AND executed_at > now() - interval '1 hour' * $4
+            "#,
+            organization_id,
+            notification_type.to_string(),
+            quota.get_name(),
+            self.quota_notification_delay_in_hours,
+        )
+        .fetch_optional(db)
+        .await?
+        .is_none();
+
+        if !can_send_notification {
+            return Ok(());
+        }
+
+        struct User {
+            first_name: String,
+            last_name: String,
+            email: String,
+        }
+
+        let emails_from_organization: Vec<User> = query_as!(
+            User,
+            r#"
+                SELECT u.first_name, u.last_name, u.email
+                FROM iam.user u
+                JOIN iam.user__organization ou ON u.user__id = ou.user__id
+                WHERE ou.organization__id = $1
+            "#,
+            organization_id,
+        )
+        .fetch_all(db)
+        .await
+        .map_err(Hook0Problem::from)?
+        .into_iter()
+        .map(|u| User {
+            first_name: u.first_name,
+            last_name: u.last_name,
+            email: u.email,
+        })
+        .collect::<Vec<_>>();
+
+        for user in emails_from_organization {
+            let recipient_address = match Address::from_str(&user.email) {
+                Ok(address) => address,
+                Err(e) => {
+                    error!("Error trying to parse email address: {e}");
+                    continue;
+                }
+            };
+
+            let recipient = Mailbox::new(
+                Some(format!("{} {}", user.first_name, user.last_name)),
+                recipient_address,
+            );
+
+            let entity_url = match application_id {
+                Some(application_id) => format!("{app_url}/organizations/{organization_id}/applications/{application_id}/dashboard"),
+                None => format!("{app_url}/organizations/{organization_id}/dashboard"),
+            };
+
+            if let Err(e) = mailer
+                .send_mail(
+                    match notification_type {
+                        // QuotaNotificationType::Warning => Mail::QuotaWarning {
+                        //     quota_name: quota.get_display_name(),
+                        //     pricing_url_hash: "/#pricing".to_owned(),
+                        //     informations: "Informations".to_owned(),
+                        // },
+                        QuotaNotificationType::Reached => Mail::QuotaReached {
+                            quota_name: quota.get_display_name(),
+                            pricing_url_hash: "/#pricing".to_owned(),
+                            informations: informations.to_owned(),
+                            entity_type: entity_type.to_owned(),
+                            entity_url: entity_url.to_owned(),
+                        },
+                    },
+                    recipient,
+                )
+                .await
+            {
+                error!("Error trying to send email: {e}");
+            } else {
+                query!(
+                    r#"
+                        INSERT INTO pricing.quota_notifications
+                            (organization__id, type, name)
+                        VALUES
+                            ($1, $2, $3)
+                    "#,
+                    organization_id,
+                    notification_type.to_string(),
+                    quota.get_name(),
+                )
+                .execute(db)
+                .await
+                .map_err(Hook0Problem::from)?;
+            }
+        }
+
+        Ok(())
+    }
+
+    pub async fn send_application_email_notification(
+        &self,
+        db: &PgPool,
+        mailer: &Mailer,
+        app_url: &str,
+        quota: Quota,
+        notification_type: QuotaNotificationType,
+        application_id: Uuid,
+        informations: String,
+    ) -> Result<(), Hook0Problem> {
+        let organization_id = query_scalar!(
+            r#"
+                SELECT organization__id
+                FROM event.application
+                WHERE application__id = $1
+            "#,
+            application_id,
+        )
+        .fetch_one(db)
+        .await
+        .map_err(Hook0Problem::from)?;
+
+        self.send_organization_email_notification(
+            db,
+            mailer,
+            app_url,
+            quota,
+            notification_type,
+            &organization_id,
+            Some(application_id),
+            informations,
+            "Application".to_owned(),
+        )
+        .await
     }
 }
 
