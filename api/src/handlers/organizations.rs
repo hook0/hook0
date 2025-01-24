@@ -40,7 +40,15 @@ pub struct OrganizationInfo {
     pub plan: Option<OrganizationInfoPlan>,
     pub users: Vec<OrganizationUser>,
     pub quotas: OrganizationQuotas,
+    pub consumption: OrganizationConsumption,
     pub onboarding_steps: OrganizationOnboardingSteps,
+}
+
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
+pub struct OrganizationConsumption {
+    pub members: Option<i64>,
+    pub applications: Option<i64>,
+    pub events_per_day: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -268,6 +276,11 @@ pub async fn create(
                 role: Role::Editor,
             }],
             quotas,
+            consumption: OrganizationConsumption {
+                members: Some(1),
+                applications: Some(1),
+                events_per_day: Some(0),
+            },
             onboarding_steps: OrganizationOnboardingSteps {
                 application: OnboardingStepStatus::ToDo,
                 event_type: OnboardingStepStatus::ToDo,
@@ -408,6 +421,27 @@ pub async fn get(
                 .await?,
         };
 
+        // TODO: when soft deleting merged, merge this branch to master to add a.deleted_at IS NULL
+        let consumption = query_as!(
+            OrganizationConsumption,
+            r#"
+                SELECT
+                    COALESCE(COUNT(DISTINCT uo.user__id), 0) AS members,
+                    COALESCE(COUNT(DISTINCT a.application__id), 0) AS applications,
+                    COALESCE(SUM(e.amount), 0) AS events_per_day
+                FROM
+                    iam.user__organization AS uo
+                    LEFT JOIN event.application AS a ON uo.organization__id = a.organization__id
+                    LEFT JOIN event.events_per_day AS e ON a.application__id = e.application__id
+                WHERE
+                    uo.organization__id = $1
+            "#,
+            &organization_id
+        )
+        .fetch_one(&state.db)
+        .await
+        .map_err(Hook0Problem::from)?;
+
         let onboarding_steps =
             get_organization_onboarding_steps(&state.db, &organization_id).await?;
 
@@ -417,6 +451,7 @@ pub async fn get(
             plan,
             users: org_users,
             quotas,
+            consumption,
             onboarding_steps,
         }))
     } else {
