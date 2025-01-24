@@ -233,8 +233,8 @@ struct Config {
     quota_global_event_types_per_application_limit: quotas::QuotaValue,
 
     /// Default delay (in hours) between sending quota notifications
-    #[clap(long, env, default_value = "24")]
-    quota_notification_delay_in_hours: u8,
+    #[clap(long, env, default_value = "1d")]
+    quota_notification_period: humantime::Duration,
 
     /// Duration (in second) to wait between materialized views refreshes
     #[clap(long, env, default_value = "60")]
@@ -477,7 +477,7 @@ async fn main() -> anyhow::Result<()> {
             config.quota_global_days_of_events_retention_limit,
             config.quota_global_subscriptions_per_application_limit,
             config.quota_global_event_types_per_application_limit,
-            config.quota_notification_delay_in_hours as f64,
+            config.quota_notification_period,
         );
         if config.enable_quota_enforcement {
             info!("Quota enforcement is enabled");
