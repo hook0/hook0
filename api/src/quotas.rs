@@ -14,6 +14,7 @@ use std::str::FromStr;
 use lettre::{message::Mailbox, Address};
 use log::error;
 use sqlx::{query, query_as, query_scalar, Acquire, PgPool, Postgres};
+use strum::Display;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -50,19 +51,10 @@ impl Quota {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
 pub enum QuotaNotificationType {
     // Warning,
     Reached,
-}
-
-impl ToString for QuotaNotificationType {
-    fn to_string(&self) -> String {
-        match self {
-            // QuotaNotificationType::Warning => "warning".to_string(),
-            QuotaNotificationType::Reached => "reached".to_string(),
-        }
-    }
 }
 
 pub type QuotaValue = i32;
@@ -376,9 +368,9 @@ impl Quotas {
         informations: String,
         entity_type: String,
     ) -> Result<(), Hook0Problem> {
-        let can_send_notification = query_scalar!(
+        let can_send_notification = query!(
             r#"
-                SELECT 1
+                SELECT 1 AS ONE
                 FROM pricing.quota_notifications
                 WHERE organization__id = $1
                     AND type = $2
@@ -394,92 +386,99 @@ impl Quotas {
         .await?
         .is_none();
 
-        if !can_send_notification {
-            return Ok(());
-        }
+        if can_send_notification {
+            struct User {
+                first_name: String,
+                last_name: String,
+                email: String,
+            }
 
-        struct User {
-            first_name: String,
-            last_name: String,
-            email: String,
-        }
+            let emails_from_organization = query_as!(
+                User,
+                r#"
+                    SELECT u.first_name, u.last_name, u.email
+                    FROM iam.user u
+                    INNER JOIN iam.user__organization ou ON u.user__id = ou.user__id
+                    WHERE ou.organization__id = $1
+                "#,
+                organization_id,
+            )
+            .fetch_all(db)
+            .await
+            .map_err(Hook0Problem::from)?
+            .into_iter()
+            .collect::<Vec<_>>();
 
-        let emails_from_organization: Vec<User> = query_as!(
-            User,
-            r#"
-                SELECT u.first_name, u.last_name, u.email
-                FROM iam.user u
-                JOIN iam.user__organization ou ON u.user__id = ou.user__id
-                WHERE ou.organization__id = $1
-            "#,
-            organization_id,
-        )
-        .fetch_all(db)
-        .await
-        .map_err(Hook0Problem::from)?
-        .into_iter()
-        .map(|u| User {
-            first_name: u.first_name,
-            last_name: u.last_name,
-            email: u.email,
-        })
-        .collect::<Vec<_>>();
+            let mut tx = db.begin().await?;
 
-        for user in emails_from_organization {
-            let recipient_address = match Address::from_str(&user.email) {
-                Ok(address) => address,
-                Err(e) => {
-                    error!("Error trying to parse email address: {e}");
-                    continue;
+            query!(
+                r#"
+                    INSERT INTO pricing.quota_notifications
+                        (organization__id, type, name)
+                    VALUES
+                        ($1, $2, $3)
+                "#,
+                organization_id,
+                notification_type.to_string(),
+                quota.get_name(),
+            )
+            .execute(&mut *tx)
+            .await
+            .map_err(Hook0Problem::from)?;
+
+            let result: Result<(), Hook0Problem> = async {
+                for user in emails_from_organization {
+                    let recipient_address = match Address::from_str(&user.email) {
+                        Ok(address) => address,
+                        Err(e) => {
+                            error!("Error trying to parse email address: {e}");
+                            continue;
+                        }
+                    };
+
+                    let recipient = Mailbox::new(
+                        Some(format!("{} {}", user.first_name, user.last_name)),
+                        recipient_address,
+                    );
+
+                    let entity_url = match application_id {
+                        Some(application_id) => format!("{app_url}/organizations/{organization_id}/applications/{application_id}/dashboard"),
+                        None => format!("{app_url}/organizations/{organization_id}/dashboard"),
+                    };
+
+                    if let Err(e) = mailer
+                        .send_mail(
+                            match notification_type {
+                                // QuotaNotificationType::Warning => Mail::QuotaWarning {
+                                //     quota_name: quota.get_display_name(),
+                                //     pricing_url_hash: "/#pricing".to_owned(),
+                                //     informations: "Informations".to_owned(),
+                                // },
+                                QuotaNotificationType::Reached => Mail::QuotaReached {
+                                    quota_name: quota.get_display_name(),
+                                    pricing_url_hash: "/#pricing".to_owned(),
+                                    informations: informations.to_owned(),
+                                    entity_type: entity_type.to_owned(),
+                                    entity_url: entity_url.to_owned(),
+                                },
+                            },
+                            recipient,
+                        )
+                        .await
+                    {
+                        error!("Error trying to send email: {e}");
+                    }
                 }
-            };
 
-            let recipient = Mailbox::new(
-                Some(format!("{} {}", user.first_name, user.last_name)),
-                recipient_address,
-            );
+                Ok(())
+            }
+            .await;
 
-            let entity_url = match application_id {
-                Some(application_id) => format!("{app_url}/organizations/{organization_id}/applications/{application_id}/dashboard"),
-                None => format!("{app_url}/organizations/{organization_id}/dashboard"),
-            };
-
-            if let Err(e) = mailer
-                .send_mail(
-                    match notification_type {
-                        // QuotaNotificationType::Warning => Mail::QuotaWarning {
-                        //     quota_name: quota.get_display_name(),
-                        //     pricing_url_hash: "/#pricing".to_owned(),
-                        //     informations: "Informations".to_owned(),
-                        // },
-                        QuotaNotificationType::Reached => Mail::QuotaReached {
-                            quota_name: quota.get_display_name(),
-                            pricing_url_hash: "/#pricing".to_owned(),
-                            informations: informations.to_owned(),
-                            entity_type: entity_type.to_owned(),
-                            entity_url: entity_url.to_owned(),
-                        },
-                    },
-                    recipient,
-                )
-                .await
-            {
+            if let Err(e) = result {
                 error!("Error trying to send email: {e}");
+                tx.rollback().await?;
             } else {
-                query!(
-                    r#"
-                        INSERT INTO pricing.quota_notifications
-                            (organization__id, type, name)
-                        VALUES
-                            ($1, $2, $3)
-                    "#,
-                    organization_id,
-                    notification_type.to_string(),
-                    quota.get_name(),
-                )
-                .execute(db)
-                .await
-                .map_err(Hook0Problem::from)?;
+                tx.commit().await?;
             }
         }
 
