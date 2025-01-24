@@ -73,7 +73,7 @@ pub struct Quotas {
     global_days_of_events_retention_limit: QuotaValue,
     global_subscriptions_per_application_limit: QuotaValue,
     global_event_types_per_application_limit: QuotaValue,
-    pub quota_notification_delay_in_hours: f64,
+    pub quota_notification_period: humantime::Duration,
 }
 
 impl Quotas {
@@ -85,7 +85,7 @@ impl Quotas {
         global_days_of_events_retention_limit: QuotaValue,
         global_subscriptions_per_application_limit: QuotaValue,
         global_event_types_per_application_limit: QuotaValue,
-        quota_notification_delay_in_hours: f64,
+        quota_notification_period: humantime::Duration,
     ) -> Self {
         Self {
             enabled,
@@ -95,7 +95,7 @@ impl Quotas {
             global_days_of_events_retention_limit,
             global_subscriptions_per_application_limit,
             global_event_types_per_application_limit,
-            quota_notification_delay_in_hours,
+            quota_notification_period,
         }
     }
 
@@ -368,6 +368,7 @@ impl Quotas {
         informations: String,
         entity_type: String,
     ) -> Result<(), Hook0Problem> {
+        let quota_notification_period_in_second = self.quota_notification_period.as_secs_f64();
         let can_send_notification = query!(
             r#"
                 SELECT 1 AS ONE
@@ -380,7 +381,7 @@ impl Quotas {
             organization_id,
             notification_type.to_string(),
             quota.get_name(),
-            self.quota_notification_delay_in_hours,
+            quota_notification_period_in_second,
         )
         .fetch_optional(db)
         .await?
