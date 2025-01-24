@@ -344,9 +344,9 @@ struct Config {
     #[clap(long, env)]
     formbricks_environment_id: Option<String>,
 
-    /// Website url
+    /// Website URL
     #[clap(long, env, default_value = "https://hook0.com")]
-    website_url: String,
+    website_url: Url,
 }
 
 fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
