@@ -345,18 +345,22 @@ pub async fn ingest(
         .get_limit_for_application(&state.db, Quota::EventsPerDay, &application_id)
         .await?;
 
-    let current_events_per_day = query_scalar!(
-        r#"
-            SELECT COALESCE(amount, 0) AS "amount!"
-            FROM event.events_per_day
-            WHERE application__id = $1 AND date = current_date
-        "#,
-        application_id
-    )
-    .fetch_optional(&state.db)
-    .await
-    .map_err(Hook0Problem::from)?
-    .unwrap_or(0);
+    let current_events_per_day = if can_exceed_events_per_day_quota {
+        0
+    } else {
+        query_scalar!(
+            r#"
+                SELECT COALESCE(amount, 0) AS "amount!"
+                FROM event.events_per_day
+                WHERE application__id = $1 AND date = current_date
+            "#,
+            application_id
+        )
+        .fetch_optional(&state.db)
+        .await
+        .map_err(Hook0Problem::from)?
+        .unwrap_or(0)
+    };
 
     let can_ingest = if can_exceed_events_per_day_quota {
         true
