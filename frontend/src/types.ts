@@ -649,6 +649,10 @@ export interface components {
     ApplicationInfo: {
       /** Format: uuid */
       application_id: string;
+      consumption: {
+        /** Format: int32 */
+        events_per_day?: number;
+      };
       name: string;
       onboarding_steps: {
         /** @enum {string} */
@@ -814,6 +818,14 @@ export interface components {
       user_id: string;
     };
     OrganizationInfo: {
+      consumption: {
+        /** Format: int64 */
+        applications?: number;
+        /** Format: int64 */
+        events_per_day?: number;
+        /** Format: int64 */
+        members?: number;
+      };
       name: string;
       onboarding_steps: {
         /** @enum {string} */
