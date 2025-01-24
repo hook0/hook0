@@ -13,7 +13,7 @@ pub struct Mailer {
     transport: AsyncSmtpTransport<Tokio1Executor>,
     sender: Mailbox,
     logo_url: Url,
-    website_url: String,
+    website_url: Url,
 }
 
 pub enum Mail {
@@ -85,7 +85,7 @@ impl Mailer {
         sender_name: String,
         sender_address: Address,
         logo_url: Url,
-        website_url: String,
+        website_url: Url,
     ) -> Result<Mailer, lettre::transport::smtp::Error> {
         let transport = AsyncSmtpTransport::<Tokio1Executor>::from_url(smtp_connection_url)?
             .timeout(Some(smtp_timeout))
@@ -116,7 +116,7 @@ impl Mailer {
 
         mjml = mjml.replace("{ $logo_url }", self.logo_url.as_str());
         mjml = mjml.replace("{ $website_url }", self.website_url.as_str());
-        mjml = mjml.replace("{ $app_url }", self.website_url.as_str()); // TODO: replace with real app_url
+        mjml = mjml.replace("{ $app_url }", self.website_url.as_str());
 
         let parsed = mrml::parse(mjml)?;
         let rendered = parsed.render(&Default::default())?;

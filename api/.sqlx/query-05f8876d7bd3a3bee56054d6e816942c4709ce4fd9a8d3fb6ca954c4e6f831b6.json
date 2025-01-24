@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT COALESCE(amount, 0) AS \"amount!\"\n                FROM event.events_per_day\n                WHERE application__id = $1 AND date = current_date\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "amount!",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "05f8876d7bd3a3bee56054d6e816942c4709ce4fd9a8d3fb6ca954c4e6f831b6"
+}
