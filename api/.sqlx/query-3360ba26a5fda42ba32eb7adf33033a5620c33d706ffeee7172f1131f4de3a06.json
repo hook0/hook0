@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    SELECT COALESCE(amount, 0) as events_per_day\n                    FROM event.events_per_day\n                    WHERE application__id = $1\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "events_per_day",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "3360ba26a5fda42ba32eb7adf33033a5620c33d706ffeee7172f1131f4de3a06"
+}
