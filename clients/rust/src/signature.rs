@@ -1,7 +1,10 @@
 use hmac::{Hmac, Mac};
 use lazy_regex::regex_captures;
+use log::trace;
 use sha2::Sha256;
 use std::str::FromStr;
+
+use crate::Hook0ClientError;
 
 pub struct Signature {
     pub timestamp: i64,
@@ -11,19 +14,20 @@ pub struct Signature {
 impl Signature {
     const PAYLOAD_SEPARATOR: &'static [u8] = b".";
 
-    pub fn parse(signature: &str) -> Result<Self, ()> {
+    pub fn parse(signature: &str) -> Result<Self, Hook0ClientError> {
         let captures = regex_captures!("^t=([0-9]+),v0=([a-f0-9]+)$"i, signature);
         if let Some((_, timestamp, v0)) = captures {
             Ok(Self {
-                timestamp: i64::from_str(timestamp).map_err(|_| ())?,
+                timestamp: i64::from_str(timestamp)
+                    .map_err(|_| Hook0ClientError::SignatureParseError(timestamp.to_owned()))?,
                 v0: v0.to_owned(),
             })
         } else {
-            Err(())
+            Err(Hook0ClientError::SignatureParseError(signature.to_owned()))
         }
     }
 
-    pub fn compare(&self, payload: &[u8], secret: &str) -> bool {
+    pub fn verify(&self, payload: &[u8], secret: &str) -> bool {
         let timestamp_str = self.timestamp.to_string();
         let timestamp_str_bytes = timestamp_str.as_bytes();
 
@@ -35,7 +39,10 @@ impl Signature {
 
         match hex::decode(&self.v0) {
             Ok(decoded_signature) => mac.verify_slice(&decoded_signature).is_ok(),
-            Err(_) => false, // If decoding fails, the signature is invalid
+            Err(_) => {
+                trace!("Failed to decode signature: {}", self.v0);
+                false
+            }
         }
     }
 }
@@ -54,46 +61,52 @@ mod tests {
     }
 
     #[test]
-    fn parsing_failed_signature() {
+    fn parsing_invalid_signature() {
         let signature = Signature::parse("t=error,v0=def");
         assert!(signature.is_err());
     }
 
     #[test]
-    fn comparison_successful() {
+    fn verification_successful() {
         let signature = Signature {
             timestamp: 1636936200,
             v0: "1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98".to_owned(),
         };
         let payload = "hello !".as_bytes();
         let secret = "secret";
-        assert!(signature.compare(payload, secret));
+        assert!(signature.verify(payload, secret));
     }
 
     #[test]
-    fn comparison_failed() {
+    fn verification_failed() {
         let signature = Signature {
             timestamp: 1636936200,
             v0: "1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98".to_owned(),
         };
         let payload = "hello !".as_bytes();
         let secret = "another secret";
-        assert!(!signature.compare(payload, secret));
+        assert!(!signature.verify(payload, secret));
     }
 
     #[test]
-    fn parsing_and_comparison_successful() {
-        let signature = Signature::parse("t=1636936200,v0=1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98").unwrap();
+    fn parsing_and_verification_successful() {
+        let signature = Signature::parse(
+            "t=1636936200,v0=1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98",
+        )
+        .unwrap();
         let payload = "hello !".as_bytes();
         let secret = "secret";
-        assert!(signature.compare(payload, secret));
+        assert!(signature.verify(payload, secret));
     }
 
     #[test]
-    fn parsing_and_comparison_failed() {
-        let signature = Signature::parse("t=1636936200,v0=1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98").unwrap();
+    fn parsing_and_verification_failed() {
+        let signature = Signature::parse(
+            "t=1636936200,v0=1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98",
+        )
+        .unwrap();
         let payload = "hello !".as_bytes();
         let secret = "another secret";
-        assert!(!signature.compare(payload, secret));
+        assert!(!signature.verify(payload, secret));
     }
 }
