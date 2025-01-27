@@ -9,7 +9,7 @@ use crate::{
     problems::Hook0Problem,
 };
 
-use std::str::FromStr;
+use std::{str::FromStr, time::Duration};
 
 use lettre::{message::Mailbox, Address};
 use log::error;
@@ -73,7 +73,7 @@ pub struct Quotas {
     global_days_of_events_retention_limit: QuotaValue,
     global_subscriptions_per_application_limit: QuotaValue,
     global_event_types_per_application_limit: QuotaValue,
-    pub quota_notification_period: humantime::Duration,
+    pub quota_notification_period: Duration,
 }
 
 impl Quotas {
@@ -85,7 +85,7 @@ impl Quotas {
         global_days_of_events_retention_limit: QuotaValue,
         global_subscriptions_per_application_limit: QuotaValue,
         global_event_types_per_application_limit: QuotaValue,
-        quota_notification_period: humantime::Duration,
+        quota_notification_period: Duration,
     ) -> Self {
         Self {
             enabled,
