@@ -4,7 +4,7 @@
 //! This is the Rust client for Hook0.
 //! It makes it easier to send events from a Rust application to a Hook0 instance.
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 use lazy_regex::regex_captures;
 use log::{debug, error, trace};
 use reqwest::header::{HeaderMap, HeaderValue, InvalidHeaderValue, AUTHORIZATION};
@@ -17,6 +17,8 @@ use std::fmt::Display;
 use std::str::FromStr;
 use url::ParseError;
 use uuid::Uuid;
+
+mod signature;
 
 /// The Hook0 client
 ///
@@ -192,6 +194,46 @@ impl Hook0Client {
 
         Ok(added_event_types)
     }
+
+    /// Verifies the signature of a webhook
+    ///
+    /// - `headers` - The headers from the webhook request (including X-Hook0-Signature).
+    /// - `payload` - The raw body of the webhook request.
+    /// - `secret` - The signing secret used to validate the signature.
+    /// - `tolerance` - The maximum allowed time difference (in seconds) for the timestamp.
+    pub fn verifying_webhook_signature(
+        &self,
+        headers: &HeaderMap,
+        payload: &[u8],
+        secret: &str,
+        tolerance: Duration,
+    ) -> Result<(), Hook0ClientError> {
+        let sig_value = headers
+            .get("X-Hook0-Signature")
+            .ok_or(Hook0ClientError::MissingSignature)?;
+
+        let parsed_sig = signature::Signature::parse(sig_value.clone())
+            .map_err(|_| Hook0ClientError::InvalidSignature)?;
+
+        if !parsed_sig.compare(payload, secret) {
+            return Err(Hook0ClientError::InvalidSignature);
+        } else {
+            let now = Utc::now();
+
+            let signed_at = DateTime::from_timestamp(parsed_sig.timestamp, 0);
+
+            match signed_at {
+                Some(signed_at) => {
+                    if (now - signed_at) > tolerance {
+                        return Err(Hook0ClientError::ToleranceRefused);
+                    } else {
+                        Ok(())
+                    }
+                }
+                None => Err(Hook0ClientError::InvalidSignature),
+            }
+        }
+    }
 }
 
 /// A structured event type
@@ -331,6 +373,18 @@ pub enum Hook0ClientError {
         /// Error as reported by Reqwest
         error: reqwest::Error,
     },
+
+    /// The webhook signature is missing
+    #[error("Missing signature")]
+    MissingSignature,
+
+    /// The webhook signature is invalid
+    #[error("Invalid signature")]
+    InvalidSignature,
+
+    /// Tolerance refused
+    #[error("Tolerance refused")]
+    ToleranceRefused,
 }
 
 impl Hook0ClientError {
