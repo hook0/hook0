@@ -47,18 +47,16 @@ async fn handle_webhook(
     println!("Payload: {payload}");
 
     if let Some(signature) = signature {
-        let signature = signature.to_str().unwrap();
+        let signature: &str = signature.to_str().unwrap();
         let tolerance = Duration::seconds(300);
 
-        match client
-            .verifying_webhook_signature(signature, &body, SUBSCRIPTION_SECRET, tolerance)
-        {
+        match client.verifying_webhook_signature(signature, &body, SUBSCRIPTION_SECRET, tolerance) {
             Ok(_) => println!("Signature verification successful!"),
             Err(Hook0ClientError::InvalidSignature) => {
                 println!("Signature verification failed: Invalid signature.")
             }
-            Err(Hook0ClientError::ToleranceRefused) => {
-                println!("Signature verification failed: Tolerance refused.")
+            Err(Hook0ClientError::ExpiredWebhook) => {
+                println!("Signature verification failed: Webhook expired.")
             }
             Err(err) => println!("Signature verification failed: {err}"),
         }
