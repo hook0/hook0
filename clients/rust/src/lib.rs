@@ -197,22 +197,21 @@ impl Hook0Client {
 
     /// Verifies the signature of a webhook
     ///
-    /// - `headers` - The headers from the webhook request (including X-Hook0-Signature).
+    /// - `signature` - The value of the `X-Hook0-Signature` header.
     /// - `payload` - The raw body of the webhook request.
-    /// - `secret` - The signing secret used to validate the signature.
-    /// - `tolerance` - The maximum allowed time difference (in seconds) for the timestamp.
+    /// - `subscription_secret` - The signing secret used to validate the signature.
+    /// - `tolerance` - The maximum allowed time difference for the timestamp (5 minutes is a good tradeoff between flexibility and protecting against replay attacks).
     pub fn verifying_webhook_signature(
         &self,
         signature: &str,
         payload: &[u8],
-        secret: &str,
+        subscription_secret: &str,
         tolerance: Duration,
     ) -> Result<(), Hook0ClientError> {
-
         let parsed_sig = signature::Signature::parse(signature)
             .map_err(|_| Hook0ClientError::InvalidSignature)?;
 
-        if !parsed_sig.compare(payload, secret) {
+        if !parsed_sig.verify(payload, subscription_secret) {
             Err(Hook0ClientError::InvalidSignature)
         } else {
             let now = Utc::now();
@@ -222,11 +221,11 @@ impl Hook0Client {
             match signed_at {
                 Some(signed_at) => {
                     if (now - signed_at) > tolerance {
-                        Err(Hook0ClientError::ToleranceRefused)
+                        Err(Hook0ClientError::ExpiredWebhook)
                     } else {
                         Ok(())
                     }
-                },
+                }
                 None => Err(Hook0ClientError::InvalidSignature),
             }
         }
@@ -379,9 +378,13 @@ pub enum Hook0ClientError {
     #[error("Invalid signature")]
     InvalidSignature,
 
-    /// Tolerance refused
-    #[error("Tolerance refused")]
-    ToleranceRefused,
+    /// The webhook has expired because it was sent too long ago compared to the tolerance
+    #[error("The webhook has expired because it was sent too long ago compared to the tolerance")]
+    ExpiredWebhook,
+
+    /// Signature parse error
+    #[error("Signature parse error: {0}")]
+    SignatureParseError(String),
 }
 
 impl Hook0ClientError {
