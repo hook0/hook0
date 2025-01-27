@@ -9,6 +9,7 @@ keywords = ["webhooks", "webhook", "webhook-server", "events", "saas"]
 homepage = "https://www.hook0.com/"
 
 [dependencies]
+actix-web = "4.9.0"
 chrono = { version = "0.4.39", features = ["serde"] }
 hex = "0.4.3"
 hmac = "0.12.1"
