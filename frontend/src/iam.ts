@@ -243,7 +243,7 @@ export const AuthPlugin: Plugin = {
           state.value !== null &&
           !(to.meta?.tutorial ?? false)
         ) {
-          await formbricks.track('display_registration_form').catch((e) => {
+          await formbricks.track('route_changed').catch((e) => {
             console.warn(`Formbricks track failed: ${e}`);
           });
         }
