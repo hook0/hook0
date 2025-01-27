@@ -203,20 +203,17 @@ impl Hook0Client {
     /// - `tolerance` - The maximum allowed time difference (in seconds) for the timestamp.
     pub fn verifying_webhook_signature(
         &self,
-        headers: &HeaderMap,
+        signature: &str,
         payload: &[u8],
         secret: &str,
         tolerance: Duration,
     ) -> Result<(), Hook0ClientError> {
-        let sig_value = headers
-            .get("X-Hook0-Signature")
-            .ok_or(Hook0ClientError::MissingSignature)?;
 
-        let parsed_sig = signature::Signature::parse(sig_value.clone())
+        let parsed_sig = signature::Signature::parse(signature)
             .map_err(|_| Hook0ClientError::InvalidSignature)?;
 
         if !parsed_sig.compare(payload, secret) {
-            return Err(Hook0ClientError::InvalidSignature);
+            Err(Hook0ClientError::InvalidSignature)
         } else {
             let now = Utc::now();
 
@@ -225,11 +222,11 @@ impl Hook0Client {
             match signed_at {
                 Some(signed_at) => {
                     if (now - signed_at) > tolerance {
-                        return Err(Hook0ClientError::ToleranceRefused);
+                        Err(Hook0ClientError::ToleranceRefused)
                     } else {
                         Ok(())
                     }
-                }
+                },
                 None => Err(Hook0ClientError::InvalidSignature),
             }
         }

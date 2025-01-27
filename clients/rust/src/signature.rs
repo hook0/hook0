@@ -1,6 +1,5 @@
 use hmac::{Hmac, Mac};
 use lazy_regex::regex_captures;
-use reqwest::header::HeaderValue;
 use sha2::Sha256;
 use std::str::FromStr;
 
@@ -12,9 +11,8 @@ pub struct Signature {
 impl Signature {
     const PAYLOAD_SEPARATOR: &'static [u8] = b".";
 
-    pub fn parse(value: HeaderValue) -> Result<Self, ()> {
-        let value_str = value.to_str().map_err(|_| ())?;
-        let captures = regex_captures!("^t=([0-9]+),v0=([a-f0-9]+)$"i, value_str);
+    pub fn parse(signature: &str) -> Result<Self, ()> {
+        let captures = regex_captures!("^t=([0-9]+),v0=([a-f0-9]+)$"i, signature);
         if let Some((_, timestamp, v0)) = captures {
             Ok(Self {
                 timestamp: i64::from_str(timestamp).map_err(|_| ())?,
@@ -48,16 +46,16 @@ mod tests {
 
     #[test]
     fn parsing_successful_signature() {
-        let header_value = HeaderValue::from_str("t=123,v0=abc").unwrap();
-        let signature = Signature::parse(header_value).unwrap();
+        let signature = Signature::parse("t=123,v0=abc");
+        assert!(signature.is_ok());
+        let signature = signature.unwrap();
         assert_eq!(signature.timestamp, 123);
         assert_eq!(signature.v0, "abc");
     }
 
     #[test]
     fn parsing_failed_signature() {
-        let header_value = HeaderValue::from_str("t=error,v0=def").unwrap();
-        let signature = Signature::parse(header_value);
+        let signature = Signature::parse("t=error,v0=def");
         assert!(signature.is_err());
     }
 
@@ -85,11 +83,7 @@ mod tests {
 
     #[test]
     fn parsing_and_comparison_successful() {
-        let header_value = HeaderValue::from_str(
-            "t=1636936200,v0=1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98",
-        )
-        .unwrap();
-        let signature = Signature::parse(header_value).unwrap();
+        let signature = Signature::parse("t=1636936200,v0=1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98").unwrap();
         let payload = "hello !".as_bytes();
         let secret = "secret";
         assert!(signature.compare(payload, secret));
@@ -97,11 +91,7 @@ mod tests {
 
     #[test]
     fn parsing_and_comparison_failed() {
-        let header_value = HeaderValue::from_str(
-            "t=1636936200,v0=1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98",
-        )
-        .unwrap();
-        let signature = Signature::parse(header_value).unwrap();
+        let signature = Signature::parse("t=1636936200,v0=1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98").unwrap();
         let payload = "hello !".as_bytes();
         let secret = "another secret";
         assert!(!signature.compare(payload, secret));
