@@ -3,7 +3,7 @@ CREATE TABLE pricing.quota_notifications (
     application__id uuid,
     organization__id uuid,
     name text not null,
-    type text check (type in ('reached', 'warning')) not null,
+    type text check (type in ('Reached', 'Warning')) not null,
     executed_at timestamptz not null default now(),
     constraint quota_notification_at_least_one_id_chk check (
         (application__id is not null and organization__id is null) or

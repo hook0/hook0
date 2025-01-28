@@ -5,7 +5,7 @@ use paperclip::actix::{api_v2_operation, Apiv2Schema};
 use serde::Serialize;
 
 use crate::{
-    mailer::{Mail, Mailer},
+    mailer::Mail,
     problems::Hook0Problem,
 };
 
@@ -13,7 +13,7 @@ use std::{str::FromStr, time::Duration};
 
 use lettre::{message::Mailbox, Address};
 use log::error;
-use sqlx::{query, query_as, query_scalar, Acquire, PgPool, Postgres};
+use sqlx::{query, query_as, query_scalar, Acquire, Postgres};
 use strum::Display;
 use uuid::Uuid;
 
@@ -28,17 +28,6 @@ pub enum Quota {
 }
 
 impl Quota {
-    fn get_display_name(&self) -> String {
-        match self {
-            Quota::MembersPerOrganization => "Members per organization".to_string(),
-            Quota::ApplicationsPerOrganization => "Applications per organization".to_string(),
-            Quota::EventsPerDay => "Events per day".to_string(),
-            Quota::DaysOfEventsRetention => "Days of events retention".to_string(),
-            Quota::SubscriptionsPerApplication => "Subscriptions per application".to_string(),
-            Quota::EventTypesPerApplication => "Event types per application".to_string(),
-        }
-    }
-
     fn get_name(&self) -> String {
         match self {
             Quota::MembersPerOrganization => "members_per_organization".to_string(),
@@ -358,15 +347,12 @@ impl Quotas {
 
     pub async fn send_organization_email_notification(
         &self,
-        db: &PgPool,
-        mailer: &Mailer,
-        app_url: &str,
+        state: &Data<crate::State>,
         quota: Quota,
         notification_type: QuotaNotificationType,
         organization_id: &Uuid,
         application_id: Option<Uuid>,
-        informations: String,
-        entity_type: String,
+        mail: Mail,
     ) -> Result<(), Hook0Problem> {
         let quota_notification_period_in_second = self.quota_notification_period.as_secs_f64();
         let can_send_notification = query!(
@@ -383,7 +369,7 @@ impl Quotas {
             quota.get_name(),
             quota_notification_period_in_second,
         )
-        .fetch_optional(db)
+        .fetch_optional(&state.db)
         .await?
         .is_none();
 
@@ -404,13 +390,13 @@ impl Quotas {
                 "#,
                 organization_id,
             )
-            .fetch_all(db)
+            .fetch_all(&state.db)
             .await
             .map_err(Hook0Problem::from)?
             .into_iter()
             .collect::<Vec<_>>();
 
-            let mut tx = db.begin().await?;
+            let mut tx = state.db.begin().await?;
 
             query!(
                 r#"
@@ -442,27 +428,20 @@ impl Quotas {
                         recipient_address,
                     );
 
-                    let entity_url = match application_id {
-                        Some(application_id) => format!("{app_url}/organizations/{organization_id}/applications/{application_id}/dashboard"),
-                        None => format!("{app_url}/organizations/{organization_id}/dashboard"),
+                    let entity_hash = match application_id {
+                        Some(application_id) => format!("/organizations/{organization_id}/applications/{application_id}/dashboard"),
+                        None => format!("/organizations/{organization_id}/dashboard"),
                     };
 
-                    if let Err(e) = mailer
+                    let mut mail = mail.clone();
+                    if mail.add_variable("entity_hash".to_owned(), entity_hash).is_err() {
+                        error!("Error trying to add variable: entity_hash");
+                        continue;
+                    };
+
+                    if let Err(e) = &state.mailer
                         .send_mail(
-                            match notification_type {
-                                // QuotaNotificationType::Warning => Mail::QuotaWarning {
-                                //     quota_name: quota.get_display_name(),
-                                //     pricing_url_hash: "/#pricing".to_owned(),
-                                //     informations: "Informations".to_owned(),
-                                // },
-                                QuotaNotificationType::Reached => Mail::QuotaReached {
-                                    quota_name: quota.get_display_name(),
-                                    pricing_url_hash: "/#pricing".to_owned(),
-                                    informations: informations.to_owned(),
-                                    entity_type: entity_type.to_owned(),
-                                    entity_url: entity_url.to_owned(),
-                                },
-                            },
+                            mail,
                             recipient,
                         )
                         .await
@@ -488,13 +467,11 @@ impl Quotas {
 
     pub async fn send_application_email_notification(
         &self,
-        db: &PgPool,
-        mailer: &Mailer,
-        app_url: &str,
+        state: &Data<crate::State>,
         quota: Quota,
         notification_type: QuotaNotificationType,
         application_id: Uuid,
-        informations: String,
+        mail: Mail,
     ) -> Result<(), Hook0Problem> {
         let organization_id = query_scalar!(
             r#"
@@ -504,20 +481,17 @@ impl Quotas {
             "#,
             application_id,
         )
-        .fetch_one(db)
+        .fetch_one(&state.db)
         .await
         .map_err(Hook0Problem::from)?;
 
         self.send_organization_email_notification(
-            db,
-            mailer,
-            app_url,
+            state,
             quota,
             notification_type,
             &organization_id,
             Some(application_id),
-            informations,
-            "Application".to_owned(),
+            mail,
         )
         .await
     }
