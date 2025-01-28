@@ -236,7 +236,7 @@ struct Config {
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "1d")]
     quota_notification_period: Duration,
 
-    /// Default threshold (in %) of events per day at which to send a notification
+    /// Default threshold (in %) of events per day at which to send a warning notification
     #[clap(long, env, default_value = "80")]
     quota_notification_events_per_day_threshold: u8,
 
