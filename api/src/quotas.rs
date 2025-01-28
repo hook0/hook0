@@ -2,7 +2,7 @@ use actix_web::web::Data;
 
 use paperclip::actix::web::Json;
 use paperclip::actix::{api_v2_operation, Apiv2Schema};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     mailer::Mail,
@@ -42,7 +42,7 @@ impl Quota {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
 pub enum QuotaNotificationType {
-    // Warning,
+    Warning,
     Reached,
 }
 
@@ -54,36 +54,27 @@ struct QueryResult {
 }
 
 #[derive(Debug, Clone, Serialize, Apiv2Schema, Copy)]
+pub struct QuotaLimits {
+    pub global_members_per_organization_limit: QuotaValue,
+    pub global_applications_per_organization_limit: QuotaValue,
+    pub global_events_per_day_limit: QuotaValue,
+    pub global_days_of_events_retention_limit: QuotaValue,
+    pub global_subscriptions_per_application_limit: QuotaValue,
+    pub global_event_types_per_application_limit: QuotaValue,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct Quotas {
     enabled: bool,
-    global_members_per_organization_limit: QuotaValue,
-    global_applications_per_organization_limit: QuotaValue,
-    global_events_per_day_limit: QuotaValue,
-    global_days_of_events_retention_limit: QuotaValue,
-    global_subscriptions_per_application_limit: QuotaValue,
-    global_event_types_per_application_limit: QuotaValue,
+    limits: QuotaLimits,
     pub quota_notification_period: Duration,
 }
 
 impl Quotas {
-    pub fn new(
-        enabled: bool,
-        global_members_per_organization_limit: QuotaValue,
-        global_applications_per_organization_limit: QuotaValue,
-        global_events_per_day_limit: QuotaValue,
-        global_days_of_events_retention_limit: QuotaValue,
-        global_subscriptions_per_application_limit: QuotaValue,
-        global_event_types_per_application_limit: QuotaValue,
-        quota_notification_period: Duration,
-    ) -> Self {
+    pub fn new(enabled: bool, limits: QuotaLimits, quota_notification_period: Duration) -> Self {
         Self {
             enabled,
-            global_members_per_organization_limit,
-            global_applications_per_organization_limit,
-            global_events_per_day_limit,
-            global_days_of_events_retention_limit,
-            global_subscriptions_per_application_limit,
-            global_event_types_per_application_limit,
+            limits,
             quota_notification_period,
         }
     }
@@ -163,16 +154,18 @@ impl Quotas {
             }?
             .and_then(|r| r.val);
             Ok(plan_value.unwrap_or(match quota {
-                Quota::MembersPerOrganization => self.global_members_per_organization_limit,
+                Quota::MembersPerOrganization => self.limits.global_members_per_organization_limit,
                 Quota::ApplicationsPerOrganization => {
-                    self.global_applications_per_organization_limit
+                    self.limits.global_applications_per_organization_limit
                 }
-                Quota::EventsPerDay => self.global_events_per_day_limit,
-                Quota::DaysOfEventsRetention => self.global_days_of_events_retention_limit,
+                Quota::EventsPerDay => self.limits.global_events_per_day_limit,
+                Quota::DaysOfEventsRetention => self.limits.global_days_of_events_retention_limit,
                 Quota::SubscriptionsPerApplication => {
-                    self.global_subscriptions_per_application_limit
+                    self.limits.global_subscriptions_per_application_limit
                 }
-                Quota::EventTypesPerApplication => self.global_event_types_per_application_limit,
+                Quota::EventTypesPerApplication => {
+                    self.limits.global_event_types_per_application_limit
+                }
             }))
         } else {
             Ok(QuotaValue::MAX)
@@ -329,16 +322,18 @@ impl Quotas {
                 .and_then(|r| r.val),
             };
             Ok(plan_value.unwrap_or(match quota {
-                Quota::MembersPerOrganization => self.global_members_per_organization_limit,
+                Quota::MembersPerOrganization => self.limits.global_members_per_organization_limit,
                 Quota::ApplicationsPerOrganization => {
-                    self.global_applications_per_organization_limit
+                    self.limits.global_applications_per_organization_limit
                 }
-                Quota::EventsPerDay => self.global_events_per_day_limit,
-                Quota::DaysOfEventsRetention => self.global_days_of_events_retention_limit,
+                Quota::EventsPerDay => self.limits.global_events_per_day_limit,
+                Quota::DaysOfEventsRetention => self.limits.global_days_of_events_retention_limit,
                 Quota::SubscriptionsPerApplication => {
-                    self.global_subscriptions_per_application_limit
+                    self.limits.global_subscriptions_per_application_limit
                 }
-                Quota::EventTypesPerApplication => self.global_event_types_per_application_limit,
+                Quota::EventTypesPerApplication => {
+                    self.limits.global_event_types_per_application_limit
+                }
             }))
         } else {
             Ok(QuotaValue::MAX)
@@ -434,10 +429,7 @@ impl Quotas {
                     };
 
                     let mut mail = mail.clone();
-                    if mail.add_variable("entity_hash".to_owned(), entity_hash).is_err() {
-                        error!("Error trying to add variable: entity_hash");
-                        continue;
-                    };
+                    mail.add_variable("entity_hash".to_owned(), entity_hash);
 
                     if let Err(e) = &state.mailer
                         .send_mail(

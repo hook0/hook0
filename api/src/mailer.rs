@@ -26,7 +26,13 @@ pub enum Mail {
         url: String,
     },
     // Welcome { name: String },
-    // QuotaWarning { quota_name: String, pricing_url_hash: String, informations: String },
+    QuotaEventsPerDayWarning {
+        pricing_url_hash: String,
+        actual_consumption_percent: i32,
+        current_events_per_day: i32,
+        events_per_days_limit: i32,
+        extra_variables: Vec<(String, String)>,
+    },
     QuotaEventsPerDayReached {
         pricing_url_hash: String,
         current_events_per_day: i32,
@@ -41,7 +47,9 @@ impl Mail {
             Mail::VerifyUserEmail { .. } => include_str!("mail_templates/verify_user_email.mjml"),
             Mail::ResetPassword { .. } => include_str!("mail_templates/reset_password.mjml"),
             // Mail::Welcome { .. } => include_str!("mail_templates/welcome.mjml"),
-            // Mail::QuotaWarning { .. } => include_str!("mail_templates/quota_warning.mjml"),
+            Mail::QuotaEventsPerDayWarning { .. } => {
+                include_str!("mail_templates/quotas/events_per_day_warning.mjml")
+            }
             Mail::QuotaEventsPerDayReached { .. } => {
                 include_str!("mail_templates/quotas/events_per_day_reached.mjml")
             }
@@ -53,7 +61,7 @@ impl Mail {
             Mail::VerifyUserEmail { .. } => "[Hook0] Verify your email address".to_owned(),
             Mail::ResetPassword { .. } => "[Hook0] Reset your password".to_owned(),
             // Mail::Welcome { .. } => "Welcome to our platform".to_owned(),
-            // Mail::QuotaWarning { .. } => "[Hook0] Quota at 90%".to_owned(),
+            Mail::QuotaEventsPerDayWarning { .. } => "[Hook0] Quota warning".to_owned(),
             Mail::QuotaEventsPerDayReached { .. } => "[Hook0] Quota reached".to_owned(),
         }
     }
@@ -63,7 +71,31 @@ impl Mail {
             Mail::VerifyUserEmail { url } => vec![("url".to_owned(), url.to_owned())],
             Mail::ResetPassword { url } => vec![("url".to_owned(), url.to_owned())],
             // Mail::Welcome { name } => vec![("name".to_owned(), name.to_owned())],
-            // Mail::QuotaWarning { quota_name, pricing_url_hash, informations } => vec![("quota_name".to_owned(), quota_name.to_owned()), ("pricing_url_hash".to_owned(), pricing_url_hash.to_owned()), ("informations".to_owned(), informations.to_owned())],
+            Mail::QuotaEventsPerDayWarning {
+                pricing_url_hash,
+                actual_consumption_percent,
+                current_events_per_day,
+                events_per_days_limit,
+                extra_variables,
+            } => {
+                let mut vars = vec![
+                    ("pricing_url_hash".to_owned(), pricing_url_hash.to_owned()),
+                    (
+                        "actual_consumption_percent".to_owned(),
+                        actual_consumption_percent.to_string(),
+                    ),
+                    (
+                        "current_events_per_day".to_owned(),
+                        current_events_per_day.to_string(),
+                    ),
+                    (
+                        "events_per_days_limit".to_owned(),
+                        events_per_days_limit.to_string(),
+                    ),
+                ];
+                vars.extend(extra_variables.clone());
+                vars
+            }
             Mail::QuotaEventsPerDayReached {
                 pricing_url_hash,
                 current_events_per_day,
@@ -87,15 +119,19 @@ impl Mail {
         }
     }
 
-    pub fn add_variable(&mut self, key: String, value: String) -> Result<(), String> {
+    pub fn add_variable(&mut self, key: String, value: String) {
         match self {
+            Mail::QuotaEventsPerDayWarning {
+                extra_variables, ..
+            } => {
+                extra_variables.push((key, value));
+            }
             Mail::QuotaEventsPerDayReached {
                 extra_variables, ..
             } => {
                 extra_variables.push((key, value));
-                Ok(())
             }
-            _ => Err("Cannot add variables to this mail type".to_owned()),
+            _ => {}
         }
     }
 }
