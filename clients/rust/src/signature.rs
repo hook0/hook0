@@ -18,12 +18,13 @@ impl Signature {
         let captures = regex_captures!("^t=([0-9]+),v0=([a-f0-9]+)$"i, signature);
         if let Some((_, timestamp, v0)) = captures {
             Ok(Self {
-                timestamp: i64::from_str(timestamp)
-                    .map_err(|_| Hook0ClientError::SignatureParseError(timestamp.to_owned()))?,
+                timestamp: i64::from_str(timestamp).map_err(|_| {
+                    Hook0ClientError::TimestampParsingInSignature(timestamp.to_owned())
+                })?,
                 v0: v0.to_owned(),
             })
         } else {
-            Err(Hook0ClientError::SignatureParseError(signature.to_owned()))
+            Err(Hook0ClientError::SignatureParsing(signature.to_owned()))
         }
     }
 
@@ -100,7 +101,7 @@ mod tests {
     }
 
     #[test]
-    fn parsing_and_verification_failed() {
+    fn parsing_successful_and_verification_failed() {
         let signature = Signature::parse(
             "t=1636936200,v0=1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98",
         )
