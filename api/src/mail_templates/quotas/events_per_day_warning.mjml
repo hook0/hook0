@@ -50,7 +50,7 @@
                 <mj-image src="{ $logo_url }" alt="Hook0" width="120px" />
                 <mj-text align="center">
                     <h1>Quota Warning</h1>
-                    <p>Your account is approaching the quota limit for <strong>Events per day</strong> and is currently at <strong>{ $actual_consumption_percent }%</strong>. To ensure uninterrupted service, please consider an upgrade.</p>
+                    <p>Your account is approaching the quota limit for <strong>events per day</strong> and is currently at <strong>{ $actual_consumption_percent }%</strong>. To ensure uninterrupted service, please consider an upgrade.</p>
                 </mj-text>
                 <mj-text align="center">
                     <h2>Details:</h2>
