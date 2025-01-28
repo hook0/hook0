@@ -212,6 +212,7 @@ pub async fn get(
                     SELECT COALESCE(amount, 0) as events_per_day
                     FROM event.events_per_day
                     WHERE application__id = $1
+                    AND date = CURRENT_DATE
                 ",
                 &application_id,
             )
