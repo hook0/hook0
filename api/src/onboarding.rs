@@ -59,7 +59,6 @@ pub struct ApplicationOnboardingSteps {
     pub event: OnboardingStepStatus,
 }
 
-// TODO: Demander à David si qlq chose à faire ici
 pub async fn get_application_onboarding_steps<'a, A: Acquire<'a, Database = Postgres>>(
     db: A,
     application_id: &Uuid,

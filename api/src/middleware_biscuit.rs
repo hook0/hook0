@@ -189,8 +189,8 @@ where
                                                         FROM event.application_secret AS s
                                                         INNER JOIN event.application AS a ON a.application__id = s.application__id
                                                         WHERE s.token = $1
-                                                            and s.deleted_at IS NULL
-                                                            and a.deleted_at IS NULL
+                                                            AND s.deleted_at IS NULL
+                                                            AND a.deleted_at IS NULL
                                                     ",
                                                     application_secret_token,
                                                 )

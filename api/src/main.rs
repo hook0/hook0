@@ -280,13 +280,13 @@ struct Config {
     #[clap(long, env, default_value = "false")]
     enable_deleted_applications_cleanup: bool,
 
-    /// Duration (in second) to wait between deleted applications cleanups
-    #[clap(long, env, default_value = "3600")]
-    deleted_applications_cleanup_period_in_s: u64,
+    /// Duration to wait between deleted applications cleanups
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "1d")]
+    deleted_applications_cleanup_period: Duration,
 
-    /// Duration (in day) to wait before removing a deleted application
-    #[clap(long, env, default_value = "30")]
-    deleted_applications_cleanup_grace_period_in_days: u32,
+    /// Duration to wait before removing a deleted application
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "30d")]
+    deleted_applications_cleanup_grace_period: Duration,
 
     /// If true, the secured HTTP headers will be enabled
     #[clap(long, env, default_value = "true")]
@@ -536,8 +536,8 @@ async fn main() -> anyhow::Result<()> {
             actix_web::rt::spawn(async move {
                 deleted_applications_cleanup::periodically_clean_up_deleted_applications(
                     &clean_deleted_applications_db,
-                    Duration::from_secs(config.deleted_applications_cleanup_period_in_s),
-                    config.deleted_applications_cleanup_grace_period_in_days,
+                    config.deleted_applications_cleanup_period,
+                    config.deleted_applications_cleanup_grace_period,
                 )
                 .await;
             });
