@@ -217,7 +217,7 @@ struct Config {
     quota_global_applications_per_organization_limit: quotas::QuotaValue,
 
     /// Default limit of events per day (can be overriden by a plan)
-    #[clap(long, env, default_value = "100")]
+    #[clap(long, env, default_value = "1")]
     quota_global_events_per_day_limit: quotas::QuotaValue,
 
     /// Default limit of day of event's retention (can be overriden by a plan)
@@ -561,6 +561,7 @@ async fn main() -> anyhow::Result<()> {
             config.email_sender_address,
             config.email_logo_url,
             config.website_url,
+            config.app_url.clone(),
         )
         .await
         .expect("Could not initialize mailer; check SMTP configuration");
