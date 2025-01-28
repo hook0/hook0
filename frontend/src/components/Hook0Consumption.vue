@@ -6,6 +6,7 @@ import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0Text from '@/components/Hook0Text.vue';
 import Hook0Icon from '@/components/Hook0Icon.vue';
+import Hook0SimpleProgressBar from '@/components/Hook0SimpleProgressBar.vue';
 
 export interface ComsumptionQuota {
   icon?: string;
@@ -40,13 +41,22 @@ const props = defineProps<Props>();
           type="full-width"
         >
           <template #content>
-            <Hook0Icon v-if="quota.icon" :name="quota.icon" class="mr-1" />
-            <Hook0Text class="text-md">
-              <strong>{{ quota.name }}</strong
-              >: {{ quota.comsumption }} / {{ quota.quota }} ({{
-                Math.round((quota.comsumption / quota.quota) * 100)
-              }}%)
-            </Hook0Text>
+            <div class="flex items-center w-full flex-col sm:flex-row">
+              <div class="w-full sm:w-1/3 mb-2 sm:mb-0">
+                <Hook0Icon v-if="quota.icon" :name="quota.icon" class="mr-1" />
+                <Hook0Text class="text-md">
+                  <strong>{{ quota.name }}</strong
+                  >: {{ quota.comsumption }} / {{ quota.quota }} ({{
+                    Math.round((quota.comsumption / quota.quota) * 100)
+                  }}%)
+                </Hook0Text>
+              </div>
+              <div class="w-full sm:w-2/3">
+                <Hook0SimpleProgressBar
+                  :percentage="Math.floor((quota.comsumption / quota.quota) * 100)"
+                />
+              </div>
+            </div>
           </template>
         </Hook0CardContentLine>
       </Hook0CardContentLines>
