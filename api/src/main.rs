@@ -217,7 +217,7 @@ struct Config {
     quota_global_applications_per_organization_limit: quotas::QuotaValue,
 
     /// Default limit of events per day (can be overriden by a plan)
-    #[clap(long, env, default_value = "1")]
+    #[clap(long, env, default_value = "10")]
     quota_global_events_per_day_limit: quotas::QuotaValue,
 
     /// Default limit of day of event's retention (can be overriden by a plan)
@@ -235,6 +235,10 @@ struct Config {
     /// Default delay (in hours) between sending quota notifications
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "1d")]
     quota_notification_period: Duration,
+
+    /// Default threshold (in %) of events per day at which to send a notification
+    #[clap(long, env, default_value = "80")]
+    quota_notification_events_per_day_threshold: u8,
 
     /// Duration (in second) to wait between materialized views refreshes
     #[clap(long, env, default_value = "60")]
@@ -384,6 +388,7 @@ pub struct State {
     matomo_site_id: Option<u16>,
     formbricks_api_host: String,
     formbricks_environment_id: Option<String>,
+    quota_notification_events_per_day_threshold: u8,
 }
 
 #[actix_web::main]
@@ -468,17 +473,28 @@ async fn main() -> anyhow::Result<()> {
             });
         }
 
+        // Create an instance of QuotaLimits
+        let quota_limits = quotas::QuotaLimits {
+            global_members_per_organization_limit: config
+                .quota_global_members_per_organization_limit,
+            global_applications_per_organization_limit: config
+                .quota_global_applications_per_organization_limit,
+            global_events_per_day_limit: config.quota_global_events_per_day_limit,
+            global_days_of_events_retention_limit: config
+                .quota_global_days_of_events_retention_limit,
+            global_subscriptions_per_application_limit: config
+                .quota_global_subscriptions_per_application_limit,
+            global_event_types_per_application_limit: config
+                .quota_global_event_types_per_application_limit,
+        };
+
         // Initialize quotas manager
         let quotas = quotas::Quotas::new(
             config.enable_quota_enforcement,
-            config.quota_global_members_per_organization_limit,
-            config.quota_global_applications_per_organization_limit,
-            config.quota_global_events_per_day_limit,
-            config.quota_global_days_of_events_retention_limit,
-            config.quota_global_subscriptions_per_application_limit,
-            config.quota_global_event_types_per_application_limit,
+            quota_limits,
             config.quota_notification_period,
         );
+
         if config.enable_quota_enforcement {
             info!("Quota enforcement is enabled");
         } else {
@@ -604,6 +620,8 @@ async fn main() -> anyhow::Result<()> {
             matomo_site_id: config.matomo_site_id,
             formbricks_api_host: config.formbricks_api_host,
             formbricks_environment_id: config.formbricks_environment_id,
+            quota_notification_events_per_day_threshold: config
+                .quota_notification_events_per_day_threshold,
         };
         let hook0_client_api_url = config.hook0_client_api_url;
 
