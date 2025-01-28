@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                    SELECT u.first_name, u.last_name, u.email\n                    FROM iam.user u\n                    INNER JOIN iam.user__organization ou ON u.user__id = ou.user__id\n                    WHERE ou.organization__id = $1\n                ",
+  "query": "\n                            SELECT u.first_name, u.last_name, u.email\n                            FROM iam.user u\n                            INNER JOIN iam.user__organization ou ON u.user__id = ou.user__id\n                            WHERE ou.organization__id = $1\n                        ",
   "describe": {
     "columns": [
       {
@@ -30,5 +30,5 @@
       false
     ]
   },
-  "hash": "1b48e32b6965a387e6d0c6ef8626ec3fc8b4648bc51355a187823ca28eea461a"
+  "hash": "18bcd9edcc93b5b7390ca67247dc0b00af687d8eff8888ed6f3578e594b13dfd"
 }

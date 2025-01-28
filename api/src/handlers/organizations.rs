@@ -432,7 +432,7 @@ pub async fn get(
                 FROM
                     iam.user__organization AS uo
                     LEFT JOIN event.application AS a ON uo.organization__id = a.organization__id
-                    LEFT JOIN event.events_per_day AS e ON a.application__id = e.application__id
+                    LEFT JOIN event.events_per_day AS e ON a.application__id = e.application__id AND e.date = CURRENT_DATE
                 WHERE
                     uo.organization__id = $1
             "#,
