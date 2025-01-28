@@ -50,18 +50,18 @@
                 <mj-image src="{ $logo_url }" alt="Hook0" width="120px" />
                 <mj-text align="center">
                     <h1>Quota Reached</h1>
-                    <p>Your account has hit the quota limit for <strong>{ $quota_name }</strong>. To keep things running smoothly, please consider an upgrade.</p>
+                    <p>Your account has hit the quota limit for <strong>Events per day</strong>. To keep things running smoothly, please consider an upgrade.</p>
                     <p>Hook0 will now deny further events you may send until your quota is reset tomorrow.</p>
                 </mj-text>
                 <mj-text align="center">
                     <h2>Details:</h2>
-                    <p>{ $informations }</p>
+                    <p>You have reached the maximum number of events per day: <strong>{ $current_events_per_day }</strong>/<strong>{ $events_per_days_limit }</strong></p>
                 </mj-text>
-                <mj-button background-color="#007bff" color="white" class="button" href="{ $app_url }{ $entity_hash }">View { $entity_type }</mj-button>
+                <mj-button background-color="#007bff" color="white" class="button" href="{ $app_url }{ $entity_hash }">View Application</mj-button>
                 <mj-text align="center">
                     <p>To continue enjoying Hook0 services without interruption, please upgrade your plan.</p>
                 </mj-text>
-                <mj-button background-color="#28a745" color="white" class="button" href="{ $website_url }{ $url_hash }">Upgrade Plan</mj-button>
+                <mj-button background-color="#28a745" color="white" class="button" href="{ $website_url }{ $pricing_url_hash }">Upgrade Plan</mj-button>
                 <mj-text align="center">
                     <p class="small">Questions? Reach out to our support team at <a href="mailto:support@hook0.com">support@hook0.com</a>.</p>
                 </mj-text>
