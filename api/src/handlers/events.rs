@@ -17,6 +17,7 @@ use validator::Validate;
 
 use crate::extractor_user_ip::UserIp;
 use crate::iam::{authorize_for_application, Action};
+use crate::mailer::Mail;
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
 use crate::quotas::{Quota, QuotaNotificationType};
@@ -395,21 +396,20 @@ pub async fn ingest(
 
         Ok(CreatedJson(event))
     } else {
-        let informations = format!(
-            "You have reached the maximum number of events per day: <strong>{}</strong>/<strong>{}</strong>",
-            current_events_per_day, events_per_days_limit
-        );
-
+        let mail = Mail::QuotaEventsPerDayReached {
+            pricing_url_hash: "#pricing".to_owned(),
+            current_events_per_day,
+            events_per_days_limit,
+            extra_variables: Vec::new(),
+        };
         state
             .quotas
             .send_application_email_notification(
-                &state.db,
-                &state.mailer,
-                &state.app_url,
+                &state,
                 Quota::EventsPerDay,
                 QuotaNotificationType::Reached,
                 application_id,
-                informations,
+                mail,
             )
             .await?;
         Err(Hook0Problem::TooManyEventsToday(events_per_days_limit))
