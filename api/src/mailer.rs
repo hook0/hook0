@@ -14,8 +14,10 @@ pub struct Mailer {
     sender: Mailbox,
     logo_url: Url,
     website_url: Url,
+    app_url: String,
 }
 
+#[derive(Debug, Clone)]
 pub enum Mail {
     VerifyUserEmail {
         url: String,
@@ -25,12 +27,11 @@ pub enum Mail {
     },
     // Welcome { name: String },
     // QuotaWarning { quota_name: String, pricing_url_hash: String, informations: String },
-    QuotaReached {
-        quota_name: String,
+    QuotaEventsPerDayReached {
         pricing_url_hash: String,
-        informations: String,
-        entity_type: String,
-        entity_url: String,
+        current_events_per_day: i32,
+        events_per_days_limit: i32,
+        extra_variables: Vec<(String, String)>,
     },
 }
 
@@ -41,7 +42,9 @@ impl Mail {
             Mail::ResetPassword { .. } => include_str!("mail_templates/reset_password.mjml"),
             // Mail::Welcome { .. } => include_str!("mail_templates/welcome.mjml"),
             // Mail::QuotaWarning { .. } => include_str!("mail_templates/quota_warning.mjml"),
-            Mail::QuotaReached { .. } => include_str!("mail_templates/quotas_reached.mjml"),
+            Mail::QuotaEventsPerDayReached { .. } => {
+                include_str!("mail_templates/quotas/events_per_day_reached.mjml")
+            }
         }
     }
 
@@ -51,7 +54,7 @@ impl Mail {
             Mail::ResetPassword { .. } => "[Hook0] Reset your password".to_owned(),
             // Mail::Welcome { .. } => "Welcome to our platform".to_owned(),
             // Mail::QuotaWarning { .. } => "[Hook0] Quota at 90%".to_owned(),
-            Mail::QuotaReached { .. } => "[Hook0] Quota reached".to_owned(),
+            Mail::QuotaEventsPerDayReached { .. } => "[Hook0] Quota reached".to_owned(),
         }
     }
 
@@ -61,19 +64,38 @@ impl Mail {
             Mail::ResetPassword { url } => vec![("url".to_owned(), url.to_owned())],
             // Mail::Welcome { name } => vec![("name".to_owned(), name.to_owned())],
             // Mail::QuotaWarning { quota_name, pricing_url_hash, informations } => vec![("quota_name".to_owned(), quota_name.to_owned()), ("pricing_url_hash".to_owned(), pricing_url_hash.to_owned()), ("informations".to_owned(), informations.to_owned())],
-            Mail::QuotaReached {
-                quota_name,
+            Mail::QuotaEventsPerDayReached {
                 pricing_url_hash,
-                informations,
-                entity_type,
-                entity_url,
-            } => vec![
-                ("quota_name".to_owned(), quota_name.to_owned()),
-                ("pricing_url_hash".to_owned(), pricing_url_hash.to_owned()),
-                ("informations".to_owned(), informations.to_owned()),
-                ("entity_type".to_owned(), entity_type.to_owned()),
-                ("entity_url".to_owned(), entity_url.to_owned()),
-            ],
+                current_events_per_day,
+                events_per_days_limit,
+                extra_variables,
+            } => {
+                let mut vars = vec![
+                    ("pricing_url_hash".to_owned(), pricing_url_hash.to_owned()),
+                    (
+                        "current_events_per_day".to_owned(),
+                        current_events_per_day.to_string(),
+                    ),
+                    (
+                        "events_per_days_limit".to_owned(),
+                        events_per_days_limit.to_string(),
+                    ),
+                ];
+                vars.extend(extra_variables.clone());
+                vars
+            }
+        }
+    }
+
+    pub fn add_variable(&mut self, key: String, value: String) -> Result<(), String> {
+        match self {
+            Mail::QuotaEventsPerDayReached {
+                extra_variables, ..
+            } => {
+                extra_variables.push((key, value));
+                Ok(())
+            }
+            _ => Err("Cannot add variables to this mail type".to_owned()),
         }
     }
 }
@@ -86,6 +108,7 @@ impl Mailer {
         sender_address: Address,
         logo_url: Url,
         website_url: Url,
+        app_url: String,
     ) -> Result<Mailer, lettre::transport::smtp::Error> {
         let transport = AsyncSmtpTransport::<Tokio1Executor>::from_url(smtp_connection_url)?
             .timeout(Some(smtp_timeout))
@@ -104,6 +127,7 @@ impl Mailer {
             sender,
             logo_url,
             website_url,
+            app_url,
         })
     }
 
@@ -116,7 +140,7 @@ impl Mailer {
 
         mjml = mjml.replace("{ $logo_url }", self.logo_url.as_str());
         mjml = mjml.replace("{ $website_url }", self.website_url.as_str());
-        mjml = mjml.replace("{ $app_url }", self.website_url.as_str());
+        mjml = mjml.replace("{ $app_url }", self.app_url.as_str());
 
         let parsed = mrml::parse(mjml)?;
         let rendered = parsed.render(&Default::default())?;
