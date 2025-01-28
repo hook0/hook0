@@ -50,7 +50,7 @@
                 <mj-image src="{ $logo_url }" alt="Hook0" width="120px" />
                 <mj-text align="center">
                     <h1>Quota Reached</h1>
-                    <p>Your account has hit the quota limit for <strong>Events per day</strong>. To keep things running smoothly, please consider an upgrade.</p>
+                    <p>Your account has hit the quota limit for <strong>events per day</strong>. To keep things running smoothly, please consider an upgrade.</p>
                     <p>Hook0 will now deny further events you may send until your quota is reset tomorrow.</p>
                 </mj-text>
                 <mj-text align="center">
