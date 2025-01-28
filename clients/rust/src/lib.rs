@@ -4,7 +4,7 @@
 //! This is the Rust client for Hook0.
 //! It makes it easier to send events from a Rust application to a Hook0 instance.
 
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Duration, OutOfRangeError, Utc};
 use lazy_regex::regex_captures;
 use log::{debug, error, trace};
 use reqwest::header::{HeaderMap, HeaderValue, InvalidHeaderValue, AUTHORIZATION};
@@ -194,40 +194,49 @@ impl Hook0Client {
 
         Ok(added_event_types)
     }
+}
 
-    /// Verifies the signature of a webhook
-    ///
-    /// - `signature` - The value of the `X-Hook0-Signature` header.
-    /// - `payload` - The raw body of the webhook request.
-    /// - `subscription_secret` - The signing secret used to validate the signature.
-    /// - `tolerance` - The maximum allowed time difference for the timestamp (5 minutes is a good tradeoff between flexibility and protecting against replay attacks).
-    pub fn verifying_webhook_signature(
-        &self,
-        signature: &str,
-        payload: &[u8],
-        subscription_secret: &str,
-        tolerance: Duration,
-    ) -> Result<(), Hook0ClientError> {
-        let parsed_sig = signature::Signature::parse(signature)
-            .map_err(|_| Hook0ClientError::InvalidSignature)?;
+/// Verifies the signature of a webhook
+///
+/// - `signature` - The value of the `X-Hook0-Signature` header.
+/// - `payload` - The raw body of the webhook request.
+/// - `subscription_secret` - The signing secret used to validate the signature.
+/// - `tolerance` - The maximum allowed time difference for the timestamp (5 minutes is a good trade-off between flexibility and protecting against replay attacks).
+pub fn verify_webhook_signature(
+    signature: &str,
+    payload: &[u8],
+    subscription_secret: &str,
+    tolerance: std::time::Duration,
+) -> Result<(), Hook0ClientError> {
+    let parsed_sig =
+        signature::Signature::parse(signature).map_err(|_| Hook0ClientError::InvalidSignature)?;
 
-        if !parsed_sig.verify(payload, subscription_secret) {
-            Err(Hook0ClientError::InvalidSignature)
-        } else {
-            let now = Utc::now();
+    if !parsed_sig.verify(payload, subscription_secret) {
+        Err(Hook0ClientError::InvalidSignature)
+    } else {
+        let now = Utc::now();
 
-            let signed_at = DateTime::from_timestamp(parsed_sig.timestamp, 0);
+        let signed_at = DateTime::from_timestamp(parsed_sig.timestamp, 0);
 
-            match signed_at {
-                Some(signed_at) => {
-                    if (now - signed_at) > tolerance {
-                        Err(Hook0ClientError::ExpiredWebhook)
-                    } else {
-                        Ok(())
+        match signed_at {
+            Some(signed_at) => {
+                let tolerance = Duration::from_std(tolerance);
+                match tolerance {
+                    Ok(tolerance) => {
+                        if (now - signed_at) > tolerance {
+                            Err(Hook0ClientError::ExpiredWebhook {
+                                signed_at,
+                                tolerance,
+                                current_time: now,
+                            })
+                        } else {
+                            Ok(())
+                        }
                     }
+                    Err(e) => Err(Hook0ClientError::InvalidTolerance(e)),
                 }
-                None => Err(Hook0ClientError::InvalidSignature),
             }
+            None => Err(Hook0ClientError::InvalidSignature),
         }
     }
 }
@@ -370,21 +379,34 @@ pub enum Hook0ClientError {
         error: reqwest::Error,
     },
 
-    /// The webhook signature is missing
-    #[error("Missing signature")]
-    MissingSignature,
-
     /// The webhook signature is invalid
     #[error("Invalid signature")]
     InvalidSignature,
 
-    /// The webhook has expired because it was sent too long ago compared to the tolerance
-    #[error("The webhook has expired because it was sent too long ago compared to the tolerance")]
-    ExpiredWebhook,
+    /// The webhook has expired because it was sent too long ago
+    #[error("The webhook has expired because it was sent too long ago (signed_at={signed_at}, tolerance={tolerance}, current_time={current_time})")]
+    ExpiredWebhook {
+        /// Timestamp when the webhook was signed
+        signed_at: DateTime<Utc>,
 
-    /// Signature parse error
-    #[error("Signature parse error: {0}")]
-    SignatureParseError(String),
+        /// Maximum allowed time difference for the timestamp (5 minutes is a good trade-off between flexibility and protecting against replay attacks)
+        tolerance: Duration,
+
+        /// Current time
+        current_time: DateTime<Utc>,
+    },
+
+    /// Could not parse signature
+    #[error("Could not parse signature: {0}")]
+    SignatureParsing(String),
+
+    /// Could not parse timestamp in signature
+    #[error("Could not parse timestamp in signature: {0}")]
+    TimestampParsingInSignature(String),
+
+    /// Invalid tolerance Duration
+    #[error("Invalid tolerance Duration: {0}")]
+    InvalidTolerance(OutOfRangeError),
 }
 
 impl Hook0ClientError {

@@ -9,7 +9,6 @@ keywords = ["webhooks", "webhook", "webhook-server", "events", "saas"]
 homepage = "https://www.hook0.com/"
 
 [dependencies]
-actix-web = "4.9.0"
 chrono = { version = "0.4.39", features = ["serde"] }
 hex = "0.4.3"
 hmac = "0.12.1"
@@ -22,6 +21,9 @@ sha2 = "0.10.8"
 thiserror = "2.0.11"
 url = "2.5.4"
 uuid = { version = "1.12.1", features = ["serde", "v4"] }
+
+[dev-dependencies]
+actix-web = { version = "4.9.0", default-features = false, features = ["macros"] }
 
 [features]
 default = ["reqwest-rustls-tls-webpki-roots"]

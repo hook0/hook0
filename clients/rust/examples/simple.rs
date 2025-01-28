@@ -1,24 +1,15 @@
-use chrono::Duration;
-use hook0_client::{Hook0Client, Hook0ClientError};
+use std::time::Duration;
 
-const API_URL: &str = "http://localhost:8080";
-const APPLICATION_ID: &str = "7cab1450-5820-471e-9396-4ee87384d535";
-const SUBSCRIPTION_SECRET: &str = "ebc17f0b-566e-4d02-be72-df8ec3a6d16c"; // Replace with your actual signing secret
+use hook0_client::Hook0ClientError;
 
 const SIGNATURE: &str =
     "t=1737981303,v0=fb1010dc3b7b6a3b0c0be62e4acd5b0d2771acd94ba9ae6894a9711262f1a3ac";
 const PAYLOAD: &str = "{\"test\": true}";
-const TOLERANCE: Duration = Duration::seconds(300); // 5-minute tolerance for the timestamp
+const SUBSCRIPTION_SECRET: &str = "ebc17f0b-566e-4d02-be72-df8ec3a6d16c"; // Replace with your actual signing secret
+const TOLERANCE: Duration = Duration::from_secs(300); // 5-minute tolerance for the timestamp
 
 fn main() {
-    let client = Hook0Client::new(
-        API_URL.parse().unwrap(), // Replace with your URL
-        APPLICATION_ID.parse().unwrap(),
-        SUBSCRIPTION_SECRET,
-    )
-    .unwrap();
-
-    match client.verifying_webhook_signature(
+    match hook0_client::verify_webhook_signature(
         SIGNATURE,
         PAYLOAD.as_bytes(),
         SUBSCRIPTION_SECRET,
@@ -28,8 +19,21 @@ fn main() {
         Err(Hook0ClientError::InvalidSignature) => {
             println!("Signature verification failed: Invalid signature.")
         }
-        Err(Hook0ClientError::ExpiredWebhook) => {
-            println!("Signature verification failed: Webhook expired.")
+        Err(Hook0ClientError::ExpiredWebhook {
+            signed_at,
+            tolerance,
+            current_time,
+        }) => {
+            println!("Signature verification failed: The webhook has expired because it was sent too long ago (signed_at={signed_at}, tolerance={tolerance}, current_time={current_time})")
+        }
+        Err(Hook0ClientError::SignatureParsing(signature)) => {
+            println!("Signature verification failed: Could not parse signature: {signature}")
+        }
+        Err(Hook0ClientError::TimestampParsingInSignature(timestamp)) => {
+            println!("Signature verification failed: Could not parse timestamp in signature: {timestamp}")
+        }
+        Err(Hook0ClientError::InvalidTolerance(err)) => {
+            println!("Signature verification failed: Invalid tolerance: {err}")
         }
         Err(err) => println!("Signature verification failed: {err}"),
     }
