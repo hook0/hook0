@@ -492,6 +492,19 @@ async fn main() -> anyhow::Result<()> {
             .await;
         });
 
+        // Spawn task to clean up soft deleted applications
+        if config.enable_soft_deleted_applications_cleanup {
+            let clean_soft_deleted_applications_db = pool.clone();
+            actix_web::rt::spawn(async move {
+                soft_deleted_applications_cleanup::periodically_clean_up_soft_deleted_applications(
+                    &clean_soft_deleted_applications_db,
+                    config.soft_deleted_applications_cleanup_period,
+                    config.soft_deleted_applications_cleanup_grace_period,
+                )
+                .await;
+            });
+        }
+
         // Spawn task to clean up old events
         let cleanup_db = pool.clone();
         actix_web::rt::spawn(async move {
@@ -526,18 +539,6 @@ async fn main() -> anyhow::Result<()> {
                     Duration::from_secs(config.unverified_users_cleanup_period_in_s),
                     config.unverified_users_cleanup_grace_period_in_days,
                     config.unverified_users_cleanup_report_and_delete,
-                )
-                .await;
-            });
-        }
-
-        if config.enable_soft_deleted_applications_cleanup {
-            let clean_soft_deleted_applications_db = pool.clone();
-            actix_web::rt::spawn(async move {
-                soft_deleted_applications_cleanup::periodically_clean_up_soft_deleted_applications(
-                    &clean_soft_deleted_applications_db,
-                    config.soft_deleted_applications_cleanup_period,
-                    config.soft_deleted_applications_cleanup_grace_period,
                 )
                 .await;
             });

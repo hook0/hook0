@@ -4,7 +4,7 @@ use sqlx::postgres::types::PgInterval;
 use sqlx::{query, Acquire, PgPool, Postgres};
 use std::time::{Duration, Instant};
 
-const STARTUP_GRACE_PERIOD: Duration = Duration::from_secs(30);
+const STARTUP_GRACE_PERIOD: Duration = Duration::from_secs(20);
 
 pub async fn periodically_clean_up_soft_deleted_applications(
     db: &PgPool,
