@@ -3,7 +3,7 @@ use log::{debug, error, info, trace};
 use sqlx::{query, Acquire, PgPool, Postgres};
 use std::time::{Duration, Instant};
 
-const STARTUP_GRACE_PERIOD: Duration = Duration::from_secs(20);
+const STARTUP_GRACE_PERIOD: Duration = Duration::from_secs(30);
 
 pub async fn periodically_clean_up_old_events(
     db: &PgPool,
