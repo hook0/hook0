@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 
 const STARTUP_GRACE_PERIOD: Duration = Duration::from_secs(30);
 
-pub async fn periodically_clean_up_deleted_applications(
+pub async fn periodically_clean_up_soft_deleted_applications(
     db: &PgPool,
     period: Duration,
     grace_period: Duration,
@@ -15,7 +15,7 @@ pub async fn periodically_clean_up_deleted_applications(
 
     match PgInterval::try_from(grace_period) {
         Ok(grace_period) => loop {
-            if let Err(e) = clean_up_deleted_applications(db, &grace_period).await {
+            if let Err(e) = clean_up_soft_deleted_applications(db, &grace_period).await {
                 error!("Could not clean up deleted applications: {e}");
             }
 
@@ -27,7 +27,7 @@ pub async fn periodically_clean_up_deleted_applications(
     }
 }
 
-async fn clean_up_deleted_applications(
+async fn clean_up_soft_deleted_applications(
     db: &PgPool,
     grace_period: &PgInterval,
 ) -> anyhow::Result<()> {
@@ -36,24 +36,24 @@ async fn clean_up_deleted_applications(
 
     let mut tx = db.begin().await?;
 
-    let total_deleted_deleted_applications =
-        purge_soft_deleted_applications(&mut *tx, grace_period).await?;
+    let total_deleted_soft_deleted_applications =
+        purge_soft_soft_deleted_applications(&mut *tx, grace_period).await?;
 
     tx.commit().await?;
 
-    if total_deleted_deleted_applications > 0 {
+    if total_deleted_soft_deleted_applications > 0 {
         debug!("Running vacuum analyze and reindexing...");
         vacuum_analyze_and_reindex(db).await?;
     }
 
     info!(
-        "Cleaned up {total_deleted_deleted_applications} deleted applications in {:?}",
+        "Cleaned up {total_deleted_soft_deleted_applications} deleted applications in {:?}",
         start.elapsed()
     );
     Ok(())
 }
 
-async fn purge_soft_deleted_applications<'a, A: Acquire<'a, Database = Postgres>>(
+async fn purge_soft_soft_deleted_applications<'a, A: Acquire<'a, Database = Postgres>>(
     db: A,
     grace_period: &PgInterval,
 ) -> Result<u64, sqlx::Error> {

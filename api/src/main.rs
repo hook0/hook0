@@ -16,7 +16,6 @@ use std::str::FromStr;
 use std::time::Duration;
 use uuid::Uuid;
 
-mod deleted_applications_cleanup;
 mod expired_tokens_cleanup;
 mod extractor_user_ip;
 mod handlers;
@@ -32,6 +31,7 @@ mod openapi;
 mod problems;
 mod quotas;
 mod rate_limiting;
+mod soft_deleted_applications_cleanup;
 mod unverified_users_cleanup;
 mod validators;
 
@@ -278,15 +278,15 @@ struct Config {
 
     /// If true, deleted applications will be removed from database after a while, otherwise removed applications will stay in database forever.
     #[clap(long, env, default_value = "false")]
-    enable_deleted_applications_cleanup: bool,
+    enable_soft_deleted_applications_cleanup: bool,
 
     /// Duration to wait between soft-delete applications cleanups
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "1d")]
-    deleted_applications_cleanup_period: Duration,
+    soft_deleted_applications_cleanup_period: Duration,
 
     /// Duration to wait before removing a self-deleted application
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "30d")]
-    deleted_applications_cleanup_grace_period: Duration,
+    soft_deleted_applications_cleanup_grace_period: Duration,
 
     /// If true, the secured HTTP headers will be enabled
     #[clap(long, env, default_value = "true")]
@@ -531,13 +531,13 @@ async fn main() -> anyhow::Result<()> {
             });
         }
 
-        if config.enable_deleted_applications_cleanup {
-            let clean_deleted_applications_db = pool.clone();
+        if config.enable_soft_deleted_applications_cleanup {
+            let clean_soft_deleted_applications_db = pool.clone();
             actix_web::rt::spawn(async move {
-                deleted_applications_cleanup::periodically_clean_up_deleted_applications(
-                    &clean_deleted_applications_db,
-                    config.deleted_applications_cleanup_period,
-                    config.deleted_applications_cleanup_grace_period,
+                soft_deleted_applications_cleanup::periodically_clean_up_soft_deleted_applications(
+                    &clean_soft_deleted_applications_db,
+                    config.soft_deleted_applications_cleanup_period,
+                    config.soft_deleted_applications_cleanup_grace_period,
                 )
                 .await;
             });
