@@ -5,6 +5,9 @@ import type { components } from '@/types';
 import router from '@/router';
 import { differenceInMilliseconds, subMinutes } from 'date-fns';
 import { routes } from '@/routes.ts';
+import { getInstanceConfig } from '@/utils/biscuit_auth';
+import { initializeFormbricks } from './utils/formbricks';
+import formbricks from '@formbricks/js';
 
 type definitions = components['schemas'];
 type LoginResponse = definitions['LoginResponse'];
@@ -14,6 +17,7 @@ interface State {
   accessTokenExpiration: Date;
   refreshToken: string;
   refreshTokenExpiration: Date;
+  userId: string;
   email: string;
   firstName: string;
   lastName: string;
@@ -33,6 +37,7 @@ function readStateFromStorage(): State | null {
       accessTokenExpiration: string;
       refreshToken: string;
       refreshTokenExpiration: string;
+      userId: string;
       email: string;
       firstName: string;
       lastName: string;
@@ -45,11 +50,12 @@ function readStateFromStorage(): State | null {
       if (refreshTokenExpirationDate <= new Date()) {
         return null;
       } else {
-        return {
+        const state: State = {
           ...parsed,
           accessTokenExpiration: accessTokenExpirationDate,
           refreshTokenExpiration: refreshTokenExpirationDate,
         };
+        return state;
       }
     } else {
       return null;
@@ -112,12 +118,14 @@ export async function login(email: string, password: string): Promise<void> {
     accessTokenExpiration: new Date(res.data.access_token_expiration),
     refreshToken: res.data.refresh_token,
     refreshTokenExpiration: new Date(res.data.refresh_token_expiration),
+    userId: res.data.user_id,
     email: res.data.email,
     firstName: res.data.first_name,
     lastName: res.data.last_name,
   };
   if (state.value) {
     writeStateToStorage(state.value);
+    await initializeFormbricks(state.value.userId);
     await scheduleAutoRefresh();
   }
 }
@@ -144,6 +152,7 @@ export async function refresh(): Promise<void> {
       accessTokenExpiration: new Date(res.data.access_token_expiration),
       refreshToken: res.data.refresh_token,
       refreshTokenExpiration: new Date(res.data.refresh_token_expiration),
+      userId: res.data.user_id,
       email: res.data.email,
       firstName: res.data.first_name,
       lastName: res.data.last_name,
@@ -181,6 +190,7 @@ export async function clearTokens(): Promise<void> {
   }
   state.value = null;
   removeStateFromStorage();
+  window.localStorage.removeItem('formbricks-js'); // This is because formbricks.logout() does not seem to work correctly
   await router.push({ name: routes.Login });
 }
 
@@ -212,10 +222,33 @@ export const AuthPlugin: Plugin = {
     if (storedState !== null) {
       state.value = storedState;
       scheduleAutoRefresh().catch(console.error);
+      if (storedState.userId) {
+        initializeFormbricks(storedState.userId).catch(console.warn);
+      }
     } else {
       removeStateFromStorage();
     }
-    router.beforeEach((to, _from) => {
+
+    router.beforeEach(async (to, _from) => {
+      const instanceConfig = await getInstanceConfig();
+      // If the route requires authentication, the user is logged in and the route is not a tutorial, track the event
+      if (
+        instanceConfig &&
+        instanceConfig.formbricks &&
+        instanceConfig.formbricks.api_host &&
+        instanceConfig.formbricks.environment_id
+      ) {
+        if (
+          (to.meta?.requiresAuth ?? true) &&
+          state.value !== null &&
+          !(to.meta?.tutorial ?? false)
+        ) {
+          await formbricks.track('route_changed').catch((e) => {
+            console.warn(`Formbricks track failed: ${e}`);
+          });
+        }
+      }
+
       // If the route requires authentication and the user is not logged in, redirect to the login page
       if ((to.meta?.requiresAuth ?? true) && state.value === null) {
         return { name: routes.Login };

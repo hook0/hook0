@@ -318,6 +318,14 @@ struct Config {
     /// Matomo site ID
     #[clap(long, env)]
     matomo_site_id: Option<u16>,
+
+    /// Formbricks API host
+    #[clap(long, env, default_value = "https://app.formbricks.com")]
+    formbricks_api_host: String,
+
+    /// Formbricks API environment ID
+    #[clap(long, env)]
+    formbricks_environment_id: Option<String>,
 }
 
 fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
@@ -353,6 +361,8 @@ pub struct State {
     enable_quota_enforcement: bool,
     matomo_url: Option<Url>,
     matomo_site_id: Option<u16>,
+    formbricks_api_host: String,
+    formbricks_environment_id: Option<String>,
 }
 
 #[actix_web::main]
@@ -555,6 +565,8 @@ async fn main() -> anyhow::Result<()> {
             enable_quota_enforcement: config.enable_quota_enforcement,
             matomo_url: config.matomo_url,
             matomo_site_id: config.matomo_site_id,
+            formbricks_api_host: config.formbricks_api_host,
+            formbricks_environment_id: config.formbricks_environment_id,
         };
         let hook0_client_api_url = config.hook0_client_api_url;
 
