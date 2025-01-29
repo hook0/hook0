@@ -329,8 +329,12 @@ pub async fn get(state: Data<crate::State>) -> Result<Json<Quotas>, Hook0Problem
 
 #[cfg(test)]
 mod tests {
-    use actix_web::{test, web::{self, Json}, App};
     use crate::{problems::Hook0Problem, quotas::Quotas};
+    use actix_web::{
+        test,
+        web::{self, Json},
+        App,
+    };
 
     #[derive(Clone)]
     struct MockState {
@@ -355,7 +359,6 @@ mod tests {
 
     #[actix_web::test]
     async fn test_get_quota_successfull() {
-
         let app = test::init_service(
             App::new()
                 .app_data(web::Data::new(MOCK_STATE.clone()))
@@ -369,4 +372,3 @@ mod tests {
         assert_eq!(resp, MOCK_STATE.quotas);
     }
 }
-
