@@ -1,0 +1,56 @@
+# Hook0 Rust Client
+
+This is the Rust SDK for Hook0, an open-source webhooks-as-a-service platform designed for SaaS applications.
+
+## Features
+
+- **Upsert Event Types**: Easily manage event types with upsert operations.
+- **Send Events**: Send events to Hook0.
+- **Verifying Webhook Signatures**: Ensure the authenticity and integrity of incoming webhooks.
+
+## Examples
+
+### Actix-web Example
+
+The `examples/actix-web.rs` file demonstrates how to set up a simple Actix-web server to handle webhooks signature verification.
+
+```rust
+use actix_web::{web, App, HttpServer};
+
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+    HttpServer::new(|| App::new().route("/webhook", web::post().to(handle_webhook)))
+        .bind("127.0.0.1:8081")?
+        .run()
+        .await
+}
+```
+
+This example sets up a server listening on `127.0.0.1:8081` and handles incoming POST requests to the `/webhook` route.
+
+## Getting Started
+
+To use the Hook0 Rust client in your project, make a `cargo add hook0-client` in your project.
+Or you can add the following to your `Cargo.toml`:
+
+```toml
+[dependencies]
+hook0-client = "hook0-client-version"
+```
+
+### Enabling Features
+
+The client supports several optional features:
+
+- `reqwest-rustls-tls-webpki-roots`: Use Rustls with WebPKI roots for TLS.
+- `hook0-webhook-consumer`: Enable webhook consumer functionality.
+Consumer features is for verifying and processing webhooks from Hook0.
+- `hook0-webhook-producer`: Enable webhook producer functionality.
+Producer features is for upsert event types and send events to Hook0.
+
+## Authors
+
+- David Sferruzza - [david@hook0.com](mailto:david@hook0.com)
+- François-Guillaume Ribreau - [fg@hook0.com](mailto:fg@hook0.com)
+
+For more information, visit our [homepage](https://www.hook0.com/), join our [Discord community](https://www.hook0.com/community) or contact us at [support@hook0.com](mailto:support@hook0.com)
