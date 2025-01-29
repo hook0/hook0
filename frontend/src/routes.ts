@@ -95,31 +95,37 @@ export default [
     name: routes.Tutorial,
     path: '/tutorial',
     component: TutorialIntroduction,
+    meta: { tutorial: true },
   },
   {
     name: routes.TutorialCreateOrganization,
     path: '/tutorial/organization',
     component: TutorialCreateOrganization,
+    meta: { tutorial: true },
   },
   {
     name: routes.TutorialCreateApplication,
     path: '/tutorial/application/organizations/:organization_id',
     component: TutorialCreateApplication,
+    meta: { tutorial: true },
   },
   {
     name: routes.TutorialCreateEventType,
     path: '/tutorial/event_type/organizations/:organization_id/applications/:application_id',
     component: TutorialCreateEventType,
+    meta: { tutorial: true },
   },
   {
     name: routes.TutorialCreateSubscription,
     path: '/tutorial/subscription/organizations/:organization_id/applications/:application_id',
     component: TutorialCreateSubscription,
+    meta: { tutorial: true },
   },
   {
     name: routes.TutorialSendEvent,
     path: '/tutorial/event/organizations/:organization_id/applications/:application_id',
     component: TutorialSendEvent,
+    meta: { tutorial: true },
   },
   {
     name: routes.TutorialSuccess,
