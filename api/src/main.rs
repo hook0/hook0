@@ -276,15 +276,15 @@ struct Config {
     #[clap(long, env, default_value = "false")]
     unverified_users_cleanup_report_and_delete: bool,
 
-    /// If true, deleted applications will be removed from database after a while
+    /// If true, deleted applications will be removed from database after a while, otherwise removed applications will stay in database forever.
     #[clap(long, env, default_value = "false")]
     enable_deleted_applications_cleanup: bool,
 
-    /// Duration to wait between deleted applications cleanups
+    /// Duration to wait between soft-delete applications cleanups
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "1d")]
     deleted_applications_cleanup_period: Duration,
 
-    /// Duration to wait before removing a deleted application
+    /// Duration to wait before removing a self-deleted application
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "30d")]
     deleted_applications_cleanup_grace_period: Duration,
 
