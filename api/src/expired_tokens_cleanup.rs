@@ -4,7 +4,7 @@ use sqlx::postgres::types::PgInterval;
 use sqlx::{query, Acquire, PgPool, Postgres};
 use std::time::{Duration, Instant};
 
-const STARTUP_GRACE_PERIOD: Duration = Duration::from_secs(25);
+const STARTUP_GRACE_PERIOD: Duration = Duration::from_secs(35);
 
 pub async fn periodically_clean_up_expired_tokens(
     db: &PgPool,

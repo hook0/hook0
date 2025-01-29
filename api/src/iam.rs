@@ -21,7 +21,7 @@ const ROLE_GROUP_PREFIX: &str = "role_";
 
 pub async fn get_owner_organization(db: &PgPool, application_id: &Uuid) -> Option<Uuid> {
     query_scalar!(
-        "SELECT organization__id AS id FROM event.application WHERE application__id = $1",
+        "SELECT organization__id AS id FROM event.application WHERE application__id = $1 AND deleted_at IS NULL",
         application_id
     )
     .fetch_optional(db)
