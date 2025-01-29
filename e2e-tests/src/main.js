@@ -5,6 +5,7 @@ import create_subscription from './subscriptions/create_subscription.js';
 import send_event from './events/send_event.js';
 import list_request_attempt from './events/list_request_attempt.js';
 import delete_application from './applications/delete_application.js';
+import get_quota from './unauthentified/quotas.js';
 
 export const config = getEnvironmentVariables();
 
@@ -109,6 +110,11 @@ function scenario_1() {
       throw new Error(
         'Expected to find 0 request attempts for event 3 | Found: ' + request_attempts_3.length
       );
+    }
+
+    let validation_quota = get_quota(h);
+    if (!validation_quota) {
+      throw new Error('Failed to verify quota response');
     }
 
     if (application_id && !config.keepTestApplication) {
