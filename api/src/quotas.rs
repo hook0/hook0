@@ -2,12 +2,9 @@ use actix_web::web::Data;
 
 use paperclip::actix::web::Json;
 use paperclip::actix::{api_v2_operation, Apiv2Schema};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
-use crate::{
-    mailer::Mail,
-    problems::Hook0Problem,
-};
+use crate::{mailer::Mail, problems::Hook0Problem};
 
 use std::{str::FromStr, time::Duration};
 
@@ -63,11 +60,17 @@ pub struct QuotaLimits {
     pub global_event_types_per_application_limit: QuotaValue,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Copy)]
 pub struct Quotas {
     enabled: bool,
     limits: QuotaLimits,
     pub quota_notification_period: Duration,
+}
+
+#[derive(Debug, Clone, Serialize, Copy, Apiv2Schema)]
+pub struct QuotasResponse {
+    enabled: bool,
+    limits: QuotaLimits,
 }
 
 impl Quotas {
@@ -501,6 +504,9 @@ impl Quotas {
     produces = "application/json",
     tags("Hook0")
 )]
-pub async fn get(state: Data<crate::State>) -> Result<Json<Quotas>, Hook0Problem> {
-    Ok(Json(state.quotas))
+pub async fn get(state: Data<crate::State>) -> Result<Json<QuotasResponse>, Hook0Problem> {
+    Ok(Json(QuotasResponse {
+        enabled: state.quotas.enabled,
+        limits: state.quotas.limits,
+    }))
 }
