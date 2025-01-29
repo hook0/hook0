@@ -4,22 +4,39 @@
 //! This is the Rust client for Hook0.
 //! It makes it easier to send events from a Rust application to a Hook0 instance.
 
-use chrono::{DateTime, Duration, OutOfRangeError, Utc};
+use chrono::{DateTime, Utc};
+
+#[cfg(feature = "hook0-webhook-producer")]
 use lazy_regex::regex_captures;
+#[cfg(feature = "hook0-webhook-producer")]
 use log::{debug, error, trace};
+#[cfg(feature = "hook0-webhook-producer")]
 use reqwest::header::{HeaderMap, HeaderValue, InvalidHeaderValue, AUTHORIZATION};
+#[cfg(feature = "hook0-webhook-producer")]
 use reqwest::{Client, Url};
+#[cfg(feature = "hook0-webhook-producer")]
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "hook0-webhook-producer")]
 use serde_json::{Map, Value};
+#[cfg(feature = "hook0-webhook-producer")]
 use std::borrow::Cow;
+#[cfg(feature = "hook0-webhook-producer")]
 use std::collections::HashSet;
+#[cfg(feature = "hook0-webhook-producer")]
 use std::fmt::Display;
+#[cfg(feature = "hook0-webhook-producer")]
 use std::str::FromStr;
+#[cfg(feature = "hook0-webhook-producer")]
 use url::ParseError;
+#[cfg(feature = "hook0-webhook-producer")]
 use uuid::Uuid;
 
+#[cfg(feature = "hook0-webhook-consumer")]
+use chrono::{Duration, OutOfRangeError};
+#[cfg(feature = "hook0-webhook-consumer")]
 mod signature;
 
+#[cfg(feature = "hook0-webhook-producer")]
 /// The Hook0 client
 ///
 /// This struct is supposed to be initialized once and shared/reused wherever you need to send events in your app.
@@ -30,6 +47,7 @@ pub struct Hook0Client {
     application_id: Uuid,
 }
 
+#[cfg(feature = "hook0-webhook-producer")]
 impl Hook0Client {
     /// Initialize a client
     ///
@@ -196,6 +214,7 @@ impl Hook0Client {
     }
 }
 
+#[cfg(feature = "hook0-webhook-consumer")]
 /// Verifies the signature of a webhook
 ///
 /// - `signature` - The value of the `X-Hook0-Signature` header.
@@ -241,6 +260,7 @@ pub fn verify_webhook_signature(
     }
 }
 
+#[cfg(feature = "hook0-webhook-producer")]
 /// A structured event type
 #[derive(Debug, Serialize, PartialEq, Eq)]
 pub struct EventType {
@@ -249,6 +269,7 @@ pub struct EventType {
     verb: String,
 }
 
+#[cfg(feature = "hook0-webhook-producer")]
 impl FromStr for EventType {
     type Err = ();
 
@@ -266,12 +287,14 @@ impl FromStr for EventType {
     }
 }
 
+#[cfg(feature = "hook0-webhook-producer")]
 impl Display for EventType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}.{}.{}", self.service, self.resource_type, self.verb)
     }
 }
 
+#[cfg(feature = "hook0-webhook-producer")]
 /// An event that can be sent to Hook0
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Event<'a> {
@@ -291,6 +314,7 @@ pub struct Event<'a> {
     pub labels: Vec<(String, Value)>,
 }
 
+#[cfg(feature = "hook0-webhook-producer")]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 struct FullEvent<'a> {
     pub application_id: Uuid,
@@ -303,6 +327,7 @@ struct FullEvent<'a> {
     pub labels: Map<String, Value>,
 }
 
+#[cfg(feature = "hook0-webhook-producer")]
 impl<'a> FullEvent<'a> {
     pub fn from_event(event: &'a Event, application_id: &Uuid) -> Self {
         let event_id = event
@@ -330,24 +355,28 @@ impl<'a> FullEvent<'a> {
 /// Every error Hook0 client can encounter
 #[derive(Debug, thiserror::Error)]
 pub enum Hook0ClientError {
+    #[cfg(feature = "hook0-webhook-producer")]
     /// Cannot build a structurally-valid `Authorization` header
     ///
     /// _This is an internal error that is unlikely to happen._
     #[error("Could not build auth header: {0}")]
     AuthHeader(InvalidHeaderValue),
 
+    #[cfg(feature = "hook0-webhook-producer")]
     /// Cannot build a Reqwest HTTP client
     ///
     /// _This is an internal error that is unlikely to happen._
     #[error("Could not build reqwest HTTP client: {0}")]
     ReqwestClient(reqwest::Error),
 
+    #[cfg(feature = "hook0-webhook-producer")]
     /// Cannot build a structurally-valid endpoint URL
     ///
     /// _This is an internal error that is unlikely to happen._
     #[error("Could not create a valid URL to request Hook0's API: {0}")]
     Url(ParseError),
 
+    #[cfg(feature = "hook0-webhook-producer")]
     /// Something went wrong when sending an event to Hook0
     #[error("Sending event {event_id} failed: {error} [body={}]", body.as_deref().unwrap_or(""))]
     EventSending {
@@ -361,14 +390,17 @@ pub enum Hook0ClientError {
         body: Option<String>,
     },
 
+    #[cfg(feature = "hook0-webhook-producer")]
     /// Provided event type does not have a valid syntax
     #[error("Provided event type '{0}' does not have a valid syntax (service.resource_type.verb)")]
     InvalidEventType(String),
 
+    #[cfg(feature = "hook0-webhook-producer")]
     /// Something went wrong when trying to fetch the list of available event types
     #[error("Getting available event types failed: {0}")]
     GetAvailableEventTypes(reqwest::Error),
 
+    #[cfg(feature = "hook0-webhook-producer")]
     /// Something went wrong when creating an event type
     #[error("Creating event type '{event_type_name}' failed: {error}")]
     CreatingEventType {
@@ -379,10 +411,12 @@ pub enum Hook0ClientError {
         error: reqwest::Error,
     },
 
+    #[cfg(feature = "hook0-webhook-consumer")]
     /// The webhook signature is invalid
     #[error("Invalid signature")]
     InvalidSignature,
 
+    #[cfg(feature = "hook0-webhook-consumer")]
     /// The webhook has expired because it was sent too long ago
     #[error("The webhook has expired because it was sent too long ago (signed_at={signed_at}, tolerance={tolerance}, current_time={current_time})")]
     ExpiredWebhook {
@@ -396,19 +430,23 @@ pub enum Hook0ClientError {
         current_time: DateTime<Utc>,
     },
 
+    #[cfg(feature = "hook0-webhook-consumer")]
     /// Could not parse signature
     #[error("Could not parse signature: {0}")]
     SignatureParsing(String),
 
+    #[cfg(feature = "hook0-webhook-consumer")]
     /// Could not parse timestamp in signature
     #[error("Could not parse timestamp in signature: {0}")]
     TimestampParsingInSignature(String),
 
+    #[cfg(feature = "hook0-webhook-consumer")]
     /// Invalid tolerance Duration
     #[error("Invalid tolerance Duration: {0}")]
     InvalidTolerance(OutOfRangeError),
 }
 
+#[cfg(feature = "hook0-webhook-producer")]
 impl Hook0ClientError {
     /// Log the error (using the log crate) and return it as a result of this function's call
     pub fn log_and_return(self) -> Self {
@@ -417,6 +455,7 @@ impl Hook0ClientError {
     }
 }
 
+#[cfg(feature = "hook0-webhook-producer")]
 fn append_url_segments(base_url: &Url, segments: &[&str]) -> Result<Url, url::ParseError> {
     const SEP: &str = "/";
     let segments_str = segments.join(SEP);
@@ -426,6 +465,7 @@ fn append_url_segments(base_url: &Url, segments: &[&str]) -> Result<Url, url::Pa
     Ok(url)
 }
 
+#[cfg(feature = "hook0-webhook-producer")]
 #[cfg(test)]
 mod tests {
     use super::*;
