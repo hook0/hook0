@@ -23,17 +23,27 @@ export default function (baseUrl) {
   if (
     !check(json, {
       'quotas.enabled': () => typeof json.enabled === 'boolean',
-      'quotas.global_members_per_organization_limit': () => typeof json.global_members_per_organization_limit === 'number' && json.global_members_per_organization_limit > 0,
-      'quotas.global_applications_per_organization_limit': () => typeof json.global_applications_per_organization_limit === 'number' && json.global_applications_per_organization_limit > 0,
-      'quotas.global_events_per_day_limit': () => typeof json.global_events_per_day_limit === 'number' && json.global_events_per_day_limit > 0,
-      'quotas.global_days_of_events_retention_limit': () => typeof json.global_days_of_events_retention_limit === 'number' && json.global_days_of_events_retention_limit > 0,
-      'quotas.global_subscriptions_per_application_limit': () => typeof json.global_subscriptions_per_application_limit === 'number' && json.global_subscriptions_per_application_limit > 0,
-      'quotas.global_event_types_per_application_limit': () => typeof json.global_event_types_per_application_limit === 'number' && json.global_event_types_per_application_limit > 0,
+      'quotas.global_members_per_organization_limit': () =>
+        typeof json.global_members_per_organization_limit === 'number' &&
+        json.global_members_per_organization_limit > 0,
+      'quotas.global_applications_per_organization_limit': () =>
+        typeof json.global_applications_per_organization_limit === 'number' &&
+        json.global_applications_per_organization_limit > 0,
+      'quotas.global_events_per_day_limit': () =>
+        typeof json.global_events_per_day_limit === 'number' &&
+        json.global_events_per_day_limit > 0,
+      'quotas.global_days_of_events_retention_limit': () =>
+        typeof json.global_days_of_events_retention_limit === 'number' &&
+        json.global_days_of_events_retention_limit > 0,
+      'quotas.global_subscriptions_per_application_limit': () =>
+        typeof json.global_subscriptions_per_application_limit === 'number' &&
+        json.global_subscriptions_per_application_limit > 0,
+      'quotas.global_event_types_per_application_limit': () =>
+        typeof json.global_event_types_per_application_limit === 'number' &&
+        json.global_event_types_per_application_limit > 0,
     })
   ) {
-    throw new Error(
-      `Unexpected response: ${JSON.stringify(json)}`
-    );
+    throw new Error(`Unexpected response: ${JSON.stringify(json)}`);
   }
 
   return true;
