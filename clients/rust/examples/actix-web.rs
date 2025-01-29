@@ -57,7 +57,6 @@ async fn handle_webhook(req: HttpRequest, body: web::Bytes) -> impl Responder {
             Err(Hook0ClientError::InvalidTolerance(err)) => {
                 println!("Signature verification failed: Invalid tolerance: {err}")
             }
-            Err(err) => println!("Signature verification failed: {err}"),
         }
     }
 
