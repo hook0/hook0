@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT application__id AS application_id, organization__id AS organization_id, name\n            FROM event.application\n            WHERE application__id = $1\n        ",
+  "query": "\n            SELECT application__id AS application_id, organization__id AS organization_id, name\n            FROM event.application\n            WHERE application__id = $1\n            AND deleted_at IS NULL\n        ",
   "describe": {
     "columns": [
       {
@@ -30,5 +30,5 @@
       false
     ]
   },
-  "hash": "9ff1f54dc2b8e90b5b42e1578aa58aaba13d41a41821ba4961064142b53bc74a"
+  "hash": "294a2c9ef968601c3d842cd5b93c30fcbc2901a6bdea62bbf03a04da236c86f0"
 }

@@ -235,7 +235,7 @@ impl From<Hook0Problem> for Problem {
             Hook0Problem::OrganizationIsNotEmpty => Problem {
                 id: Hook0Problem::OrganizationIsNotEmpty,
                 title: "Organization is not empty",
-                detail: "Organizations that contain at least an application cannot be deleted; applications must be deleted first.".into(),
+                detail: "Organizations that contain at least an application cannot be deleted; applications must be deleted first. If you believe this is a mistake, please contact the Hook0 support team.".into(),
                 validation: None,
                 status: StatusCode::CONFLICT,
             },
