@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            DELETE FROM event.application\n            WHERE deleted_at IS NOT NULL\n                AND deleted_at + $1 < statement_timestamp()\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Interval"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "be124264d71146993535a71eb878fe620ad707f2bdd54b83ae0d3186ad8ead75"
+}

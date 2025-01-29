@@ -31,6 +31,7 @@ mod openapi;
 mod problems;
 mod quotas;
 mod rate_limiting;
+mod soft_deleted_applications_cleanup;
 mod unverified_users_cleanup;
 mod validators;
 
@@ -275,6 +276,18 @@ struct Config {
     #[clap(long, env, default_value = "false")]
     unverified_users_cleanup_report_and_delete: bool,
 
+    /// If true, deleted applications will be removed from database after a while, otherwise removed applications will stay in database forever.
+    #[clap(long, env, default_value = "false")]
+    enable_soft_deleted_applications_cleanup: bool,
+
+    /// Duration to wait between soft-delete applications cleanups
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "1d")]
+    soft_deleted_applications_cleanup_period: Duration,
+
+    /// Duration to wait before removing a self-deleted application
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "30d")]
+    soft_deleted_applications_cleanup_grace_period: Duration,
+
     /// If true, the secured HTTP headers will be enabled
     #[clap(long, env, default_value = "true")]
     enable_security_headers: bool,
@@ -478,6 +491,19 @@ async fn main() -> anyhow::Result<()> {
             )
             .await;
         });
+
+        // Spawn task to clean up soft deleted applications
+        if config.enable_soft_deleted_applications_cleanup {
+            let clean_soft_deleted_applications_db = pool.clone();
+            actix_web::rt::spawn(async move {
+                soft_deleted_applications_cleanup::periodically_clean_up_soft_deleted_applications(
+                    &clean_soft_deleted_applications_db,
+                    config.soft_deleted_applications_cleanup_period,
+                    config.soft_deleted_applications_cleanup_grace_period,
+                )
+                .await;
+            });
+        }
 
         // Spawn task to clean up old events
         let cleanup_db = pool.clone();
