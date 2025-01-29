@@ -1,3 +1,4 @@
+// TODO: Demande à David ce qu'il faut faire ici (join app + where deleted_at is null ?)
 use actix_web::web::ReqData;
 use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};

@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "REINDEX TABLE CONCURRENTLY event.application",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "d3c7ca16ad7944914fa30c963a1e857e8a6368c894f93bfff5d307552665dcd5"
+}
