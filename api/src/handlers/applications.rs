@@ -97,6 +97,7 @@ pub async fn create(
             SELECT COUNT(application__id) AS "val!"
             FROM event.application
             WHERE organization__id = $1
+            AND deleted_at IS NULL
         "#,
         &body.organization_id,
     )
@@ -174,6 +175,7 @@ pub async fn get(
             SELECT application__id AS application_id, organization__id AS organization_id, name
             FROM event.application
             WHERE application__id = $1
+            AND deleted_at IS NULL
         ",
         &application_id,
     )
@@ -240,7 +242,7 @@ pub async fn list(
 
     let applications = query_as!(
             Application,
-            "SELECT application__id AS application_id, organization__id AS organization_id, name FROM event.application WHERE organization__id = $1",
+            "SELECT application__id AS application_id, organization__id AS organization_id, name FROM event.application WHERE organization__id = $1 AND deleted_at IS NULL",
             &qs.organization_id
         )
         .fetch_all(&state.db)
@@ -288,6 +290,7 @@ pub async fn edit(
             "
                 UPDATE event.application
                 SET name = $1 WHERE application__id = $2
+                AND deleted_at IS NULL
                 RETURNING application__id AS application_id, organization__id AS organization_id, name
             ",
             body.name,
@@ -356,6 +359,7 @@ pub async fn delete(
             SELECT application__id AS application_id, organization__id AS organization_id, name
             FROM event.application
             WHERE application__id = $1
+            AND deleted_at IS NULL
         ",
         application_id.into_inner()
     )
@@ -366,7 +370,7 @@ pub async fn delete(
     match application {
         Some(a) => {
             query!(
-                "DELETE FROM event.application WHERE application__id = $1",
+                "UPDATE event.application SET deleted_at = NOW() WHERE application__id = $1",
                 a.application_id
             )
             .execute(&state.db)
