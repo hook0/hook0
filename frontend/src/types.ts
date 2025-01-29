@@ -746,6 +746,10 @@ export interface components {
       application_secret_compatibility: boolean;
       auto_db_migration: boolean;
       biscuit_public_key: string;
+      formbricks?: {
+        api_host: string;
+        environment_id: string;
+      };
       matomo?: {
         /** Format: int32 */
         site_id: number;
@@ -770,6 +774,8 @@ export interface components {
       refresh_token: string;
       /** Format: date-time */
       refresh_token_expiration: string;
+      /** Format: uuid */
+      user_id: string;
     };
     Organization: {
       name: string;
