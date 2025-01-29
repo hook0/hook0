@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use paperclip::actix::web::Json;
 use paperclip::actix::{api_v2_operation, Apiv2Schema};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::problems::Hook0Problem;
 
@@ -25,7 +25,7 @@ struct QueryResult {
     val: Option<QuotaValue>,
 }
 
-#[derive(Debug, Clone, Serialize, Apiv2Schema, Copy)]
+#[derive(Debug, Clone, Serialize, Deserialize, Apiv2Schema, Copy, PartialEq, Eq)]
 pub struct Quotas {
     enabled: bool,
     global_members_per_organization_limit: QuotaValue,
@@ -326,3 +326,47 @@ impl Quotas {
 pub async fn get(state: Data<crate::State>) -> Result<Json<Quotas>, Hook0Problem> {
     Ok(Json(state.quotas))
 }
+
+#[cfg(test)]
+mod tests {
+    use actix_web::{test, web::{self, Json}, App};
+    use crate::{problems::Hook0Problem, quotas::Quotas};
+
+    #[derive(Clone)]
+    struct MockState {
+        quotas: Quotas,
+    }
+
+    async fn mock_get_quota(state: web::Data<MockState>) -> Result<Json<Quotas>, Hook0Problem> {
+        Ok(Json(state.quotas))
+    }
+
+    const MOCK_STATE: MockState = MockState {
+        quotas: Quotas {
+            enabled: true,
+            global_members_per_organization_limit: 10,
+            global_applications_per_organization_limit: 10,
+            global_events_per_day_limit: 10,
+            global_days_of_events_retention_limit: 10,
+            global_subscriptions_per_application_limit: 10,
+            global_event_types_per_application_limit: 10,
+        },
+    };
+
+    #[actix_web::test]
+    async fn test_get_quota_successfull() {
+
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(MOCK_STATE.clone()))
+                .route("/quotas", web::get().to(mock_get_quota)),
+        )
+        .await;
+
+        let req = test::TestRequest::get().uri("/quotas").to_request();
+        let resp: Quotas = test::call_and_read_body_json(&app, req).await;
+
+        assert_eq!(resp, MOCK_STATE.quotas);
+    }
+}
+
