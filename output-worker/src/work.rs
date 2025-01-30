@@ -308,6 +308,7 @@ fn mk_http_client(connect_timeout: Duration, timeout: Duration) -> reqwest::Resu
         .timeout(timeout)
         .user_agent(USER_AGENT)
         .tcp_keepalive(None)
+        .hickory_dns(false)
         .build()
 }
 
