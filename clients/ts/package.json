@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "main": "dist/index.js",
   "scripts": {
-    "test": "tsc src/test.ts",
-    "test:jest": "jest",
+    "build": "tsc",
+    "ci": "jest",
     "format": "prettier --write ./src/**/*.{ts,json}",
     "check": "prettier --check ./src/**/*.{ts,json}"
   },
@@ -17,6 +17,7 @@
   "description": "TypeScript SDK for Hook0 Open-Source Webhooks as a service for SaaS",
   "homepage": "https://hook0.com/",
   "dependencies": {
+    "@types/crypto-js": "^4.2.2",
     "prettier": "^3.4.2",
     "url": "^0.11.4",
     "uuid": "^11.0.5"
