@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE iam.user__organization\n            SET role = $1\n            WHERE user__id = $2\n                AND organization__id = $3\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b7e26944e3bb0cad1f4f87c045f36cd28024c1cf20756cd7fa4e544076cf9096"
+}
