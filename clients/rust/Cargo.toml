@@ -26,13 +26,13 @@ uuid = { version = "1.12.1", features = ["serde", "v4"] }
 actix-web = { version = "4.9.0", default-features = false, features = ["macros"] }
 
 [features]
-default = ["reqwest-rustls-tls-webpki-roots", "hook0-webhook-producer"]
+default = ["reqwest-rustls-tls-webpki-roots", "producer"]
 reqwest-rustls-tls-webpki-roots = ["reqwest/rustls-tls-webpki-roots"]
 reqwest-rustls-tls-native-roots = ["reqwest/rustls-tls-native-roots"]
-hook0-webhook-consumer = []
-hook0-webhook-producer = []
+consumer = []
+producer = []
 
 [[example]]
 name = "actix-web"
 path = "examples/actix-web.rs"
-required-features = ["hook0-webhook-consumer"]
+required-features = ["consumer"]
