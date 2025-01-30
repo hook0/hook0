@@ -92,6 +92,10 @@ class Hook0Client {
    * @returns Promise resolving to array of added event types
    */
   async upsertEventTypes(eventTypes: string[]): Promise<string[]> {
+    if (eventTypes.length === 0) {
+      return [];
+    }
+
     const structuredEventTypes = eventTypes.map((str) => {
       const eventType = EventType.fromString(str);
       if (eventType instanceof Hook0ClientError) {
