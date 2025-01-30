@@ -43,9 +43,9 @@ hook0-client = "hook0-client-version"
 The client supports several optional features:
 
 - `reqwest-rustls-tls-webpki-roots`: Use Rustls with WebPKI roots for TLS.
-- `hook0-webhook-consumer`: Enable webhook consumer functionality.
+- `consumer`: Enable webhook consumer functionality.
 Consumer features is for verifying and processing webhooks from Hook0.
-- `hook0-webhook-producer`: Enable webhook producer functionality.
+- `producer`: Enable webhook producer functionality.
 Producer features is for upsert event types and send events to Hook0.
 
 ## Authors
