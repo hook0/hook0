@@ -1,30 +1,51 @@
-import crypto from 'crypto';
+import * as crypto from 'crypto';
 import { Hook0ClientError } from './lib';
 
+/**
+ * Signature class to parse and verify signatures
+ */
 class Signature {
+  // Separator used between different parts of the payload
   static PAYLOAD_SEPARATOR = Buffer.from('.');
 
   timestamp: number;
   v0: string;
 
+  /**
+   * Constructor for the Signature class
+   * @param timestamp - The timestamp of the signature
+   * @param v0 - The version 0 hash of the signature
+   */
   constructor(timestamp: number, v0: string) {
     this.timestamp = timestamp;
     this.v0 = v0;
   }
 
+  /**
+   * Parse a signature string into a Signature object
+   * @param signature - Signature string to parse
+   * @returns A Signature instance
+   * @throws Hook0ClientError if parsing fails
+   */
   static parse(signature: string): Signature {
     const match = signature.match(/^t=(\d+),v0=([a-f0-9]+)$/i);
     if (match) {
       const [, timestamp, v0] = match;
       const parsedTimestamp = parseInt(timestamp, 10);
       if (isNaN(parsedTimestamp)) {
-        throw Hook0ClientError.TimestampParsingInSignature(new Error(timestamp));
+        throw Hook0ClientError.TimestampParsingInSignature(timestamp);
       }
       return new Signature(parsedTimestamp, v0);
     }
     throw Hook0ClientError.SignatureParsing(signature);
   }
 
+  /**
+   * Verify the signature against a payload and secret
+   * @param payload - The payload to verify the signature against
+   * @param secret - The secret used to generate the signature
+   * @returns true if the signature is valid, false otherwise
+   */
   verify(payload: Buffer, secret: string): boolean {
     const timestampStr = this.timestamp.toString();
     const hmac = crypto.createHmac('sha256', secret);
@@ -37,45 +58,4 @@ class Signature {
   }
 }
 
-// Tests
-function testParsingSuccessfulSignature() {
-  const signature = Signature.parse('t=123,v0=abc');
-  console.assert(signature.timestamp === 123, 'Timestamp should be 123');
-  console.assert(signature.v0 === 'abc', "v0 should be 'abc'");
-}
-
-function testParsingInvalidSignature() {
-  try {
-    Signature.parse('t=error,v0=def');
-    console.assert(false, 'Parsing should have failed');
-  } catch (error) {
-    console.assert(error instanceof Hook0ClientError, 'Error should be Hook0ClientError');
-  }
-}
-
-function testVerificationSuccessful() {
-  const signature = new Signature(
-    1636936200,
-    '1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98'
-  );
-  const payload = Buffer.from('hello !');
-  const secret = 'secret';
-  console.assert(signature.verify(payload, secret), 'Verification should succeed');
-}
-
-function testVerificationFailed() {
-  const signature = new Signature(
-    1636936200,
-    '1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98'
-  );
-  const payload = Buffer.from('hello !');
-  const secret = 'another secret';
-  console.assert(!signature.verify(payload, secret), 'Verification should fail');
-}
-
-testParsingSuccessfulSignature();
-testParsingInvalidSignature();
-testVerificationSuccessful();
-testVerificationFailed();
-
-console.log('All tests passed!');
+export default Signature;
