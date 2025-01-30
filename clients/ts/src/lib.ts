@@ -29,6 +29,22 @@ class Hook0ClientError extends Error {
   static GetAvailableEventTypes(error: any): Hook0ClientError {
     return new Hook0ClientError(`Getting available event types failed: ${error}`);
   }
+
+  /**
+   * Error when parsing a signature fails
+   * @param signature - Invalid signature
+   */
+  static SignatureParsing(signature: string): Hook0ClientError {
+    return new Hook0ClientError(`Could not parse signature: ${signature}`);
+  }
+
+  /**
+   * Error when parsing a timestamp in a signature fails
+   * @param timestamp - Invalid timestamp
+   */
+  static TimestampParsingInSignature(timestamp: string): Hook0ClientError {
+    return new Hook0ClientError(`Could not parse timestamp in signature: ${timestamp}`);
+  }
 }
 
 /**
