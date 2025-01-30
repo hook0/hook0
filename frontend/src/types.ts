@@ -450,9 +450,10 @@ export interface paths {
       cookie?: never;
     };
     get?: never;
+    /** Edit an user's role in an organization */
+    put: operations['organizations.edit_role'];
     /** Invite a user to an organization */
-    put: operations['organizations.invite'];
-    post?: never;
+    post: operations['organizations.invite'];
     /** Revoke a user's access to an organization */
     delete: operations['organizations.revoke'];
     options?: never;
@@ -472,6 +473,26 @@ export interface paths {
      * @description List of every possible content types that can be used in event payloads.
      */
     get: operations['payload_content_types.list'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/quotas/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get quotas
+     * @description Get the current quotas limitations on the instance.
+     */
+    get: operations['quotas.get'];
     put?: never;
     post?: never;
     delete?: never;
@@ -787,6 +808,11 @@ export interface components {
       };
       role: string;
     };
+    OrganizationEditRole: {
+      role: string;
+      /** Format: uuid */
+      user_id: string;
+    };
     OrganizationInfo: {
       name: string;
       onboarding_steps: {
@@ -833,6 +859,21 @@ export interface components {
       /** Format: int32 */
       status: number;
       title: string;
+    };
+    Quotas: {
+      enabled: boolean;
+      /** Format: int32 */
+      global_applications_per_organization_limit: number;
+      /** Format: int32 */
+      global_days_of_events_retention_limit: number;
+      /** Format: int32 */
+      global_event_types_per_application_limit: number;
+      /** Format: int32 */
+      global_events_per_day_limit: number;
+      /** Format: int32 */
+      global_members_per_organization_limit: number;
+      /** Format: int32 */
+      global_subscriptions_per_application_limit: number;
     };
     Registration: {
       /** Format: uuid */
@@ -2795,6 +2836,67 @@ export interface operations {
       };
     };
   };
+  'organizations.edit_role': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        organization_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['OrganizationEditRole'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['OrganizationEditRole'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   'organizations.invite': {
     parameters: {
       query?: never;
@@ -2933,6 +3035,61 @@ export interface operations {
         };
         content: {
           'application/json': string[];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  'quotas.get': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Quotas'];
         };
       };
       /** @description Bad Request */
