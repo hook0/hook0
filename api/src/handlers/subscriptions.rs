@@ -126,9 +126,11 @@ where
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Apiv2Schema)]
+#[derive(Deserialize, Apiv2Schema)]
 pub struct Qs {
-    application_id: Uuid,
+    pub application_id: Uuid,
+    pub label_key: Option<String>,
+    pub label_value: Option<String>,
 }
 
 #[api_v2_operation(
@@ -150,6 +152,8 @@ pub async fn list(
         &biscuit,
         Action::SubscriptionList {
             application_id: &qs.application_id,
+            label_key: qs.label_key.as_deref(),
+            label_value: qs.label_value.as_deref(),
         },
         state.max_authorization_time_in_ms,
     )
@@ -190,7 +194,10 @@ pub async fn list(
                 LEFT JOIN webhook.subscription__event_type AS set ON set.subscription__id = s.subscription__id
                 LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
                 LEFT JOIN infrastructure.worker AS w ON w.worker__id = sw.worker__id
-                WHERE s.application__id = $1 AND deleted_at IS NULL
+                WHERE s.application__id = $1
+                AND deleted_at IS NULL
+                AND ($2::text IS NULL OR s.label_key = $2)
+                AND ($3::text IS NULL OR s.label_value = $3)
                 GROUP BY s.subscription__id
                 ORDER BY s.created_at ASC
             ), targets AS (
@@ -205,15 +212,17 @@ pub async fn list(
             SELECT subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.label_key AS "label_key!", subs.label_value AS "label_value!", subs.created_at AS "created_at!", subs.event_types, targets.target_json, subs.dedicated_workers
             FROM subs
             INNER JOIN targets ON subs.target__id = targets.target__id
-        "#, // Column aliases ending with "!" are there because sqlx does not seem to infer correctly that these columns' types are not options
+        "#,
         &qs.application_id,
+        qs.label_key.as_deref(),
+        qs.label_value.as_deref(),
     )
-        .fetch_all(&state.db)
-        .await
-        .map_err(|e| {
-            error!("{}", &e);
-            Hook0Problem::InternalServerError
-        })?;
+    .fetch_all(&state.db)
+    .await
+    .map_err(|e| {
+        error!("{}", &e);
+        Hook0Problem::InternalServerError
+    })?;
 
     let subscriptions = raw_subscriptions
         .iter()

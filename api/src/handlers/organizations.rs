@@ -97,9 +97,9 @@ pub async fn list(
             AuthorizedToken::User(AuthorizedUserToken { organizations, .. }) => {
                 (organizations, false)
             }
-            AuthorizedToken::Service(AuthorizeServiceToken { organization_id }) => {
-                (vec![(organization_id, Role::Editor)], false)
-            }
+            AuthorizedToken::Service(AuthorizeServiceToken {
+                organization_id, ..
+            }) => (vec![(organization_id, Role::Editor)], false),
             AuthorizedToken::Master => (vec![], true),
         };
 

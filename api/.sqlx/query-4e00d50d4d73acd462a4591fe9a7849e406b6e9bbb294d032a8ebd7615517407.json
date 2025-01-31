@@ -1,0 +1,84 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH subs AS (\n                SELECT\n                    s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.label_key, s.label_value, s.target__id, s.created_at,\n                    CASE WHEN length((array_agg(set.event_type__name))[1]) > 0\n                        THEN array_agg(set.event_type__name)\n                        ELSE ARRAY[]::text[] END AS event_types,\n                    CASE WHEN length((array_agg(w.name))[1]) > 0\n                        THEN array_agg(w.name)\n                        ELSE ARRAY[]::text[] END AS dedicated_workers\n                FROM webhook.subscription AS s\n                LEFT JOIN webhook.subscription__event_type AS set ON set.subscription__id = s.subscription__id\n                LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id\n                LEFT JOIN infrastructure.worker AS w ON w.worker__id = sw.worker__id\n                WHERE s.application__id = $1\n                AND deleted_at IS NULL\n                AND ($2::text IS NULL OR s.label_key = $2)\n                AND ($3::text IS NULL OR s.label_value = $3)\n                GROUP BY s.subscription__id\n                ORDER BY s.created_at ASC\n            ), targets AS (\n                SELECT target__id, jsonb_build_object(\n                    'type', replace(tableoid::regclass::text, 'webhook.target_', ''),\n                    'method', method,\n                    'url', url,\n                    'headers', headers\n                ) AS target_json FROM webhook.target_http\n                WHERE target__id IN (SELECT target__id FROM subs)\n            )\n            SELECT subs.subscription__id AS \"subscription__id!\", subs.is_enabled AS \"is_enabled!\", subs.description, subs.secret AS \"secret!\", subs.metadata AS \"metadata!\", subs.label_key AS \"label_key!\", subs.label_value AS \"label_value!\", subs.created_at AS \"created_at!\", subs.event_types, targets.target_json, subs.dedicated_workers\n            FROM subs\n            INNER JOIN targets ON subs.target__id = targets.target__id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "subscription__id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "is_enabled!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "secret!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "metadata!",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 5,
+        "name": "label_key!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "label_value!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "event_types",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 9,
+        "name": "target_json",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 10,
+        "name": "dedicated_workers",
+        "type_info": "TextArray"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "4e00d50d4d73acd462a4591fe9a7849e406b6e9bbb294d032a8ebd7615517407"
+}
