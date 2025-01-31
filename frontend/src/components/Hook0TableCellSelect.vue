@@ -56,7 +56,7 @@ function onChange(event: Event) {
         typeof params.colDef?.cellRendererParams?.options === 'function'
           ? params.colDef?.cellRendererParams.options(params.data)
           : (params.colDef?.cellRendererParams?.options ?? []),
-      value:
+      modelValue:
         params.colDef?.cellRendererParams?.value &&
         typeof params.colDef?.cellRendererParams?.value === 'function'
           ? params.colDef?.cellRendererParams?.value(params.data)
@@ -65,11 +65,12 @@ function onChange(event: Event) {
       class: $attrs.class,
     }"
   />
-  <div v-else>
+  <div v-else class="border-gray-300 border rounded-md pl-3 pr-10 text-gray-400">
     {{
       params.colDef?.cellRendererParams?.value &&
       typeof params.colDef?.cellRendererParams?.value === 'function'
-        ? params.colDef?.cellRendererParams?.value(params.data)
+        ? params.colDef?.cellRendererParams?.value(params.data).charAt(0).toUpperCase() +
+          params.colDef?.cellRendererParams?.value(params.data).slice(1)
         : undefined
     }}
   </div>
