@@ -429,6 +429,8 @@ pub enum Action<'a> {
     //
     SubscriptionList {
         application_id: &'a Uuid,
+        label_key: Option<&'a str>,
+        label_value: Option<&'a str>,
     },
     SubscriptionCreate {
         application_id: &'a Uuid,
@@ -1182,7 +1184,7 @@ mod tests {
                 MAX_DURATION_TIME_IN_MS
             )),
             Ok(AuthorizedToken::Service(AuthorizeServiceToken {
-                organization_id
+                organization_id,
             }))
         );
     }
