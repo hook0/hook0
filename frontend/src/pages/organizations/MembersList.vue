@@ -56,6 +56,8 @@ const columnDefs: ColDef[] = [
   {
     field: 'role',
     suppressMovable: true,
+    sortable: true,
+    resizable: true,
     width: 60,
     headerName: 'Role',
     cellRenderer: Hook0TableCellSelect,
