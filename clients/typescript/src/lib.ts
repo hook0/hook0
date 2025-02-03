@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { URL } from 'url';
-import Signature from './signature';
+import { Signature } from './index';
 
 /**
  * Custom error class for Hook0Client
@@ -349,7 +349,7 @@ class EventType {
  * @param currentTime - The current time (used to check the timestamp).
  * @returns Resolves if the signature is valid, otherwise throws an error.
  */
-export function verifyWebhookSignatureWithCurrentTime(
+function verifyWebhookSignatureWithCurrentTime(
   signature: string,
   payload: Buffer,
   subscriptionSecret: string,
@@ -381,7 +381,7 @@ export function verifyWebhookSignatureWithCurrentTime(
  * @param tolerance - The maximum allowed time difference for the timestamp (in seconds).
  * @returns Resolves if the signature is valid, otherwise throws an error.
  */
-export function verifyWebhookSignature(
+function verifyWebhookSignature(
   signature: string,
   payload: Buffer,
   subscriptionSecret: string,
@@ -396,4 +396,4 @@ export function verifyWebhookSignature(
   );
 }
 
-export { Hook0ClientError, Hook0Client, Event, EventType };
+export { Hook0ClientError, Hook0Client, Event, EventType, verifyWebhookSignature, verifyWebhookSignatureWithCurrentTime };
