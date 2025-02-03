@@ -17,9 +17,10 @@ use validator::Validate;
 
 use crate::extractor_user_ip::UserIp;
 use crate::iam::{authorize_for_application, Action};
+use crate::mailer::Mail;
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
-use crate::quotas::Quota;
+use crate::quotas::{Quota, QuotaNotificationType};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, IntoStaticStr, VariantNames)]
 pub enum PayloadContentType {
@@ -339,15 +340,16 @@ pub async fn ingest(
     .await
     .map_err(Hook0Problem::from)?
     .is_some();
+
     let events_per_days_limit = state
         .quotas
         .get_limit_for_application(&state.db, Quota::EventsPerDay, &application_id)
         .await?;
 
-    let can_ingest = if can_exceed_events_per_day_quota {
-        true
+    let current_events_per_day = if can_exceed_events_per_day_quota {
+        0
     } else {
-        let current_events_per_day = query_scalar!(
+        query_scalar!(
             r#"
                 SELECT COALESCE(amount, 0) AS "amount!"
                 FROM event.events_per_day
@@ -358,12 +360,42 @@ pub async fn ingest(
         .fetch_optional(&state.db)
         .await
         .map_err(Hook0Problem::from)?
-        .unwrap_or(0);
+        .unwrap_or(0)
+    };
 
+    let can_ingest = if can_exceed_events_per_day_quota {
+        true
+    } else {
         current_events_per_day < events_per_days_limit
     };
 
     if can_ingest {
+        if state.enable_quota_based_email_notifications {
+            let actual_consumption_percent = 100 * current_events_per_day / events_per_days_limit;
+
+            if actual_consumption_percent
+                > i32::from(state.quota_notification_events_per_day_threshold)
+            {
+                let mail = Mail::QuotaEventsPerDayWarning {
+                    pricing_url_hash: "#pricing".to_owned(),
+                    actual_consumption_percent,
+                    current_events_per_day,
+                    events_per_days_limit,
+                    extra_variables: Vec::new(),
+                };
+                state
+                    .quotas
+                    .send_application_email_notification(
+                        &state,
+                        Quota::EventsPerDay,
+                        QuotaNotificationType::Warning,
+                        application_id,
+                        mail,
+                    )
+                    .await?;
+            }
+        }
+
         let content_type = PayloadContentType::from_str(&body.payload_content_type)?;
         let payload = content_type.validate_and_decode(&body.payload)?;
 
@@ -390,6 +422,24 @@ pub async fn ingest(
 
         Ok(CreatedJson(event))
     } else {
+        if state.enable_quota_based_email_notifications {
+            let mail = Mail::QuotaEventsPerDayReached {
+                pricing_url_hash: "#pricing".to_owned(),
+                current_events_per_day,
+                events_per_days_limit,
+                extra_variables: Vec::new(),
+            };
+            state
+                .quotas
+                .send_application_email_notification(
+                    &state,
+                    Quota::EventsPerDay,
+                    QuotaNotificationType::Reached,
+                    application_id,
+                    mail,
+                )
+                .await?;
+        }
         Err(Hook0Problem::TooManyEventsToday(events_per_days_limit))
     }
 }

@@ -232,6 +232,14 @@ struct Config {
     #[clap(long, env, default_value = "10")]
     quota_global_event_types_per_application_limit: quotas::QuotaValue,
 
+    /// Default threshold (in %) of events per day at which to send a warning notification
+    #[clap(long, env, default_value = "80")]
+    quota_notification_events_per_day_threshold: u8,
+
+    /// Set to true to enable quota-based email notifications
+    #[clap(long, env, default_value = "false")]
+    enable_quota_based_email_notifications: bool,
+
     /// Duration (in second) to wait between materialized views refreshes
     #[clap(long, env, default_value = "60")]
     materialized_views_refresh_period_in_s: u64,
@@ -318,7 +326,7 @@ struct Config {
 
     /// Frontend application URL (used for building links in emails)
     #[clap(long, env)]
-    app_url: String,
+    app_url: Url,
 
     /// Maximum duration (in millisecond) that can be spent running Biscuit's authorizer
     #[clap(long, env, default_value = "10")]
@@ -339,6 +347,10 @@ struct Config {
     /// Formbricks API environment ID
     #[clap(long, env)]
     formbricks_environment_id: Option<String>,
+
+    /// Website URL
+    #[clap(long, env, default_value = "https://hook0.com")]
+    website_url: Url,
 }
 
 fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
@@ -352,7 +364,7 @@ pub struct State {
     db: PgPool,
     biscuit_private_key: PrivateKey,
     mailer: mailer::Mailer,
-    app_url: String,
+    app_url: Url,
     #[cfg(feature = "migrate-users-from-keycloak")]
     enable_keycloak_migration: bool,
     #[cfg(feature = "migrate-users-from-keycloak")]
@@ -376,6 +388,8 @@ pub struct State {
     matomo_site_id: Option<u16>,
     formbricks_api_host: String,
     formbricks_environment_id: Option<String>,
+    quota_notification_events_per_day_threshold: u8,
+    enable_quota_based_email_notifications: bool,
 }
 
 #[actix_web::main]
@@ -460,16 +474,24 @@ async fn main() -> anyhow::Result<()> {
             });
         }
 
+        // Create an instance of QuotaLimits
+        let quota_limits = quotas::QuotaLimits {
+            global_members_per_organization_limit: config
+                .quota_global_members_per_organization_limit,
+            global_applications_per_organization_limit: config
+                .quota_global_applications_per_organization_limit,
+            global_events_per_day_limit: config.quota_global_events_per_day_limit,
+            global_days_of_events_retention_limit: config
+                .quota_global_days_of_events_retention_limit,
+            global_subscriptions_per_application_limit: config
+                .quota_global_subscriptions_per_application_limit,
+            global_event_types_per_application_limit: config
+                .quota_global_event_types_per_application_limit,
+        };
+
         // Initialize quotas manager
-        let quotas = quotas::Quotas::new(
-            config.enable_quota_enforcement,
-            config.quota_global_members_per_organization_limit,
-            config.quota_global_applications_per_organization_limit,
-            config.quota_global_events_per_day_limit,
-            config.quota_global_days_of_events_retention_limit,
-            config.quota_global_subscriptions_per_application_limit,
-            config.quota_global_event_types_per_application_limit,
-        );
+        let quotas = quotas::Quotas::new(config.enable_quota_enforcement, quota_limits);
+
         if config.enable_quota_enforcement {
             info!("Quota enforcement is enabled");
         } else {
@@ -551,6 +573,8 @@ async fn main() -> anyhow::Result<()> {
             config.email_sender_name,
             config.email_sender_address,
             config.email_logo_url,
+            config.website_url,
+            config.app_url.clone(),
         )
         .await
         .expect("Could not initialize mailer; check SMTP configuration");
@@ -593,6 +617,9 @@ async fn main() -> anyhow::Result<()> {
             matomo_site_id: config.matomo_site_id,
             formbricks_api_host: config.formbricks_api_host,
             formbricks_environment_id: config.formbricks_environment_id,
+            quota_notification_events_per_day_threshold: config
+                .quota_notification_events_per_day_threshold,
+            enable_quota_based_email_notifications: config.enable_quota_based_email_notifications,
         };
         let hook0_client_api_url = config.hook0_client_api_url;
 

@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT 1 AS ONE\n                FROM pricing.quota_notifications\n                WHERE organization__id = $1\n                    AND type = $2\n                    AND name = $3\n                    AND DATE(executed_at) = CURRENT_DATE\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "one",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "f5d4b14c4b162cf8a913420ae38442965e793f8d57957b862ee47817c157a084"
+}
