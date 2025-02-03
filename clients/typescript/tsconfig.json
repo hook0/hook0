@@ -1,16 +1,12 @@
 {
   "compilerOptions": {
-    "module": "ES2022",
-    "moduleResolution": "node",
+    "module": "commonjs",
+    "target": "es2019",
     "declaration": true,
-    "removeComments": true,
-    "allowSyntheticDefaultImports": true,
-    "target": "ES2022",
-    "sourceMap": false,
-    "outDir": "./dist",
-    "baseUrl": "./",
-    "incremental": true
+    "outDir": "./dist"
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "test", "lib", "**/*spec.ts"]
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": ["node_modules", "src/tests/**/*"]
 }

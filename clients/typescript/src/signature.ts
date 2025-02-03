@@ -1,5 +1,5 @@
 import * as crypto from 'crypto';
-import { Hook0ClientError } from './lib';
+import { Hook0ClientError } from './index';
 
 /**
  * Signature class to parse and verify signatures
@@ -66,4 +66,4 @@ class Signature {
   }
 }
 
-export default Signature;
+export { Signature };

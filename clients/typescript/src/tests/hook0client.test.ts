@@ -1,4 +1,4 @@
-import { Hook0Client, Event } from '../lib';
+import { Hook0Client, Event } from '../index';
 
 describe('Hook0Client', () => {
   let client: Hook0Client;

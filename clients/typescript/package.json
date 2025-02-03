@@ -2,6 +2,10 @@
   "name": "hook0-client",
   "version": "0.1.0",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "/dist"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "jest",
@@ -19,7 +23,6 @@
   "homepage": "https://hook0.com/",
   "dependencies": {
     "@types/crypto-js": "^4.2.2",
-    "@types/uuid": "^10.0.0",
     "url": "^0.11.4",
     "uuid": "^11.0.5"
   },
