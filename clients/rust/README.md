@@ -30,7 +30,7 @@ This example starts a server listening on `127.0.0.1:8081` and handles incoming 
 
 ## Getting Started
 
-To use the Hook0 Rust client in your project, make a `cargo add hook0-client` in your project.
+To use the Hook0 client in your Rust project, run `cargo add hook0-client` in your project.
 Or you can add the following to your `Cargo.toml`:
 
 ```toml
