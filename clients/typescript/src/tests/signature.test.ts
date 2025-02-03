@@ -1,5 +1,4 @@
-import Signature from '../signature';
-import { verifyWebhookSignature, verifyWebhookSignatureWithCurrentTime } from '../lib';
+import { Signature, verifyWebhookSignature, verifyWebhookSignatureWithCurrentTime } from '../index';
 
 describe('Signature', () => {
   test('should successfully parse a valid signature', () => {

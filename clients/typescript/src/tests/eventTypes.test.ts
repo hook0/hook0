@@ -1,4 +1,4 @@
-import { EventType, Hook0ClientError } from '../lib';
+import { EventType, Hook0ClientError } from '../index';
 
 describe('EventType', () => {
   it('should create an EventType instance', () => {
