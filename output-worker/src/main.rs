@@ -307,7 +307,7 @@ async fn look_for_work(
                         LEFT JOIN iam.organization__worker AS ow ON ow.organization__id = o.organization__id AND ow.default = true
                         INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
                         INNER JOIN event.event AS e ON e.event__id = ra.event__id
-                        WHERE ra.succeeded_at IS NULL AND ra.failed_at IS NULL AND (ra.delay_until IS NULL OR ra.delay_until <= statement_timestamp()) AND (COALESCE(sw.worker__id, ow.worker__id) IS NULL OR COALESCE(sw.worker__id, ow.worker__id) = $1)
+                        WHERE ra.succeeded_at IS NULL AND ra.failed_at IS NULL AND (ra.delay_until IS NULL OR ra.delay_until <= statement_timestamp()) AND (COALESCE(sw.worker__id, ow.worker__id) = $1)
                         ORDER BY ra.created_at ASC
                         LIMIT 1
                         FOR UPDATE OF ra
