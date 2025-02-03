@@ -662,7 +662,7 @@ pub struct OrganizationEditRole {
 }
 
 #[api_v2_operation(
-    summary = "Edit an user's role in an organization",
+    summary = "Edit a user's role in an organization",
     description = "",
     operation_id = "organizations.edit_role",
     consumes = "application/json",
