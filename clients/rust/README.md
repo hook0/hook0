@@ -26,7 +26,7 @@ async fn main() -> std::io::Result<()> {
 }
 ```
 
-This example sets up a server listening on `127.0.0.1:8081` and handles incoming POST requests to the `/webhook` route.
+This example starts a server listening on `127.0.0.1:8081` and handles incoming POST requests to the `/webhook` route. It checks webhooks signatures of incoming HTTP requests and displays information in the standard output.
 
 ## Getting Started
 
