@@ -655,6 +655,61 @@ pub async fn revoke(
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
+pub struct OrganizationEditRole {
+    user_id: Uuid,
+    role: String,
+}
+
+#[api_v2_operation(
+    summary = "Edit a user's role in an organization",
+    description = "",
+    operation_id = "organizations.edit_role",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Organizations Management")
+)]
+pub async fn edit_role(
+    state: Data<crate::State>,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
+    organization_id: Path<Uuid>,
+    body: Json<OrganizationEditRole>,
+) -> Result<Json<OrganizationEditRole>, Hook0Problem> {
+    let organization_id = organization_id.into_inner();
+
+    if let Ok(token) = authorize(
+        &biscuit,
+        Some(organization_id),
+        Action::OrganizationEditRole,
+        state.max_authorization_time_in_ms,
+    ) {
+        if let AuthorizedToken::User(user_token) = token {
+            if user_token.user_id == body.user_id {
+                return Err(Hook0Problem::Forbidden);
+            }
+        }
+
+        query!(
+            "
+                UPDATE iam.user__organization
+                SET role = $1
+                WHERE user__id = $2
+                    AND organization__id = $3
+            ",
+            &body.role,
+            &body.user_id,
+            &organization_id,
+        )
+        .execute(&state.db)
+        .await?;
+
+        Ok(body)
+    } else {
+        Err(Hook0Problem::Forbidden)
+    }
+}
+
 #[api_v2_operation(
     summary = "Delete an organization",
     description = "Note that you will need to regenerate a JWT to be able to make the deleted organization go away.",

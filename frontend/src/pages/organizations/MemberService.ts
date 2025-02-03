@@ -26,7 +26,7 @@ export async function get(organization_id: UUID): Promise<Members> {
 }
 
 export async function invite(organization_id: UUID, invitation: Invitation): Promise<void> {
-  return http.put(`/organizations/${organization_id}/invite`, invitation).then(
+  return http.post(`/organizations/${organization_id}/invite`, invitation).then(
     (res: AxiosResponse<void>) => res.data,
     (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
   );
@@ -34,6 +34,13 @@ export async function invite(organization_id: UUID, invitation: Invitation): Pro
 
 export function revoke(organization_id: UUID, user_id: UUID): Promise<void> {
   return http.delete(`/organizations/${organization_id}/invite`, { data: { user_id } }).then(
+    (res: AxiosResponse<void>) => res.data,
+    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
+  );
+}
+
+export function edit_role(organization_id: UUID, user_id: UUID, role: string): Promise<void> {
+  return http.put(`/organizations/${organization_id}/invite`, { user_id, role }).then(
     (res: AxiosResponse<void>) => res.data,
     (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
   );
