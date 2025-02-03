@@ -36,7 +36,7 @@ pub struct ApplicationInfo {
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
 pub struct ApplicationConsumption {
-    pub events_per_day: Option<i32>,
+    events_per_day: Option<i32>,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
