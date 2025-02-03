@@ -30,7 +30,13 @@ pub struct ApplicationInfo {
     organization_id: Uuid,
     name: String,
     quotas: ApplicationQuotas,
+    consumption: ApplicationConsumption,
     onboarding_steps: ApplicationOnboardingSteps,
+}
+
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
+pub struct ApplicationConsumption {
+    events_per_day: Option<i32>,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -200,6 +206,23 @@ pub async fn get(
                     .await?,
             };
 
+            let consumption = query_as!(
+                ApplicationConsumption,
+                "
+                    SELECT COALESCE(amount, 0) as events_per_day
+                    FROM event.events_per_day
+                    WHERE application__id = $1
+                    AND date = CURRENT_DATE
+                ",
+                &application_id,
+            )
+            .fetch_optional(&state.db)
+            .await
+            .map_err(Hook0Problem::from)?
+            .unwrap_or(ApplicationConsumption {
+                events_per_day: Some(0),
+            });
+
             let onboarding_steps =
                 get_application_onboarding_steps(&state.db, &application_id).await?;
 
@@ -208,6 +231,7 @@ pub async fn get(
                 organization_id: a.organization_id,
                 name: a.name,
                 quotas,
+                consumption,
                 onboarding_steps,
             }))
         }
