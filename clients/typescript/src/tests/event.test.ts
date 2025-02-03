@@ -1,4 +1,4 @@
-import { Event } from '../lib';
+import { Event } from '../index';
 
 describe('Event', () => {
   test('should create an Event instance without optional parameters', () => {
