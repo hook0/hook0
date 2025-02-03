@@ -34,6 +34,8 @@ use uuid::Uuid;
 #[cfg(feature = "consumer")]
 use chrono::{Duration, OutOfRangeError};
 #[cfg(feature = "consumer")]
+use std::time::Duration as StdDuration;
+#[cfg(feature = "consumer")]
 mod signature;
 
 #[cfg(feature = "producer")]
@@ -221,11 +223,13 @@ impl Hook0Client {
 /// - `payload` - The raw body of the webhook request.
 /// - `subscription_secret` - The signing secret used to validate the signature.
 /// - `tolerance` - The maximum allowed time difference for the timestamp (5 minutes is a good trade-off between flexibility and protecting against replay attacks).
-pub fn verify_webhook_signature(
+/// - `current_time` - The current time (used to check the timestamp).
+pub fn verify_webhook_signature_with_current_time(
     signature: &str,
     payload: &[u8],
     subscription_secret: &str,
-    tolerance: std::time::Duration,
+    tolerance: StdDuration,
+    current_time: DateTime<Utc>,
 ) -> Result<(), Hook0ClientError> {
     let parsed_sig =
         signature::Signature::parse(signature).map_err(|_| Hook0ClientError::InvalidSignature)?;
@@ -233,8 +237,6 @@ pub fn verify_webhook_signature(
     if !parsed_sig.verify(payload, subscription_secret) {
         Err(Hook0ClientError::InvalidSignature)
     } else {
-        let now = Utc::now();
-
         let signed_at = DateTime::from_timestamp(parsed_sig.timestamp, 0);
 
         match signed_at {
@@ -242,11 +244,11 @@ pub fn verify_webhook_signature(
                 let tolerance = Duration::from_std(tolerance);
                 match tolerance {
                     Ok(tolerance) => {
-                        if (now - signed_at) > tolerance {
+                        if (current_time - signed_at) > tolerance {
                             Err(Hook0ClientError::ExpiredWebhook {
                                 signed_at,
                                 tolerance,
-                                current_time: now,
+                                current_time,
                             })
                         } else {
                             Ok(())
@@ -258,6 +260,28 @@ pub fn verify_webhook_signature(
             None => Err(Hook0ClientError::InvalidSignature),
         }
     }
+}
+
+#[cfg(feature = "consumer")]
+/// Verifies the signature of a webhook
+///
+/// - `signature` - The value of the `X-Hook0-Signature` header.
+/// - `payload` - The raw body of the webhook request.
+/// - `subscription_secret` - The signing secret used to validate the signature.
+/// - `tolerance` - The maximum allowed time difference for the timestamp (5 minutes is a good trade-off between flexibility and protecting against replay attacks).
+pub fn verify_webhook_signature(
+    signature: &str,
+    payload: &[u8],
+    subscription_secret: &str,
+    tolerance: StdDuration,
+) -> Result<(), Hook0ClientError> {
+    verify_webhook_signature_with_current_time(
+        signature,
+        payload,
+        subscription_secret,
+        tolerance,
+        Utc::now(),
+    )
 }
 
 #[cfg(feature = "producer")]
@@ -420,10 +444,10 @@ pub enum Hook0ClientError {
     /// The webhook has expired because it was sent too long ago
     #[error("The webhook has expired because it was sent too long ago (signed_at={signed_at}, tolerance={tolerance}, current_time={current_time})")]
     ExpiredWebhook {
-        /// Timestamp when the webhook was signed
+        /// Timestamp of the moment the webhook was signed
         signed_at: DateTime<Utc>,
 
-        /// Maximum allowed time difference for the timestamp (5 minutes is a good trade-off between flexibility and protecting against replay attacks)
+        /// Maximum difference between the signature timestamp and the current time for the webhook to be considered valid
         tolerance: Duration,
 
         /// Current time
@@ -495,5 +519,44 @@ mod tests {
     #[test]
     fn parsing_invalid_event_type() {
         assert_eq!(EventType::from_str("test.test"), Err(()))
+    }
+
+    #[test]
+    fn verifying_valid_signature() {
+        let signature =
+            "t=1636936200,v0=1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98";
+        let payload = "hello !".as_bytes();
+        let subscription_secret = "secret";
+        let tolerance = StdDuration::from_secs((i64::MAX / 1000) as u64);
+
+        assert!(
+            verify_webhook_signature(signature, payload, subscription_secret, tolerance).is_ok()
+        );
+    }
+
+    #[test]
+    fn verifying_valid_signature_with_current_time() {
+        let signature =
+            "t=1636936200,v0=1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98";
+        let payload = "hello !".as_bytes();
+        let subscription_secret = "secret";
+        let tolerance = StdDuration::from_secs((i64::MAX / 1000) as u64);
+
+        assert!(
+            verify_webhook_signature(signature, payload, subscription_secret, tolerance).is_ok()
+        );
+    }
+
+    #[test]
+    fn verifying_expired_signature() {
+        let signature =
+            "t=1636936200,v0=1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98";
+        let payload = "hello !".as_bytes();
+        let subscription_secret = "secret";
+        let tolerance = StdDuration::from_secs(300);
+
+        assert!(
+            verify_webhook_signature(signature, payload, subscription_secret, tolerance).is_err()
+        );
     }
 }

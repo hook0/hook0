@@ -10,27 +10,27 @@ homepage = "https://www.hook0.com/"
 
 [dependencies]
 chrono = { version = "0.4.39", features = ["serde"] }
-hex = "0.4.3"
-hmac = "0.12.1"
-lazy-regex = "3.4.1"
-log = "0.4.25"
-reqwest = { version = "0.12.12", default-features = false, features = ["hickory-dns", "json"] }
-serde = { version = "1.0.217", features = ["derive"] }
-serde_json = "1.0.138"
-sha2 = "0.10.8"
-thiserror = "2.0.11"
-url = "2.5.4"
-uuid = { version = "1.12.1", features = ["serde", "v4"] }
+hex = { version = "0.4.3", optional = true }
+hmac = { version = "0.12.1", optional = true }
+lazy-regex = { version = "3.4.1" }
+log = { version = "0.4.25" }
+reqwest = { version = "0.12.12", default-features = false, features = ["hickory-dns", "json"], optional = true }
+serde = { version = "1.0.217", features = ["derive"], optional = true }
+serde_json = { version = "1.0.138", optional = true }
+sha2 = { version = "0.10.8", optional = true }
+thiserror = { version = "2.0.11" }
+url = { version = "2.5.4", optional = true }
+uuid = { version = "1.12.0", features = ["serde", "v4"], optional = true }
 
 [dev-dependencies]
 actix-web = { version = "4.9.0", default-features = false, features = ["macros"] }
 
 [features]
-default = ["reqwest-rustls-tls-webpki-roots", "producer"]
+default = ["reqwest-rustls-tls-webpki-roots", "producer", "consumer"]
 reqwest-rustls-tls-webpki-roots = ["reqwest/rustls-tls-webpki-roots"]
 reqwest-rustls-tls-native-roots = ["reqwest/rustls-tls-native-roots"]
-consumer = []
-producer = []
+consumer = ["hex", "hmac", "sha2"]
+producer = ["reqwest", "serde", "serde_json", "url", "uuid"]
 
 [[example]]
 name = "actix-web"
