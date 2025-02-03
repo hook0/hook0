@@ -64,7 +64,6 @@ pub struct QuotaLimits {
 pub struct Quotas {
     enabled: bool,
     limits: QuotaLimits,
-    pub quota_notification_period: Duration,
 }
 
 #[derive(Debug, Clone, Serialize, Copy, Apiv2Schema)]
@@ -74,12 +73,8 @@ pub struct QuotasResponse {
 }
 
 impl Quotas {
-    pub fn new(enabled: bool, limits: QuotaLimits, quota_notification_period: Duration) -> Self {
-        Self {
-            enabled,
-            limits,
-            quota_notification_period,
-        }
+    pub fn new(enabled: bool, limits: QuotaLimits) -> Self {
+        Self { enabled, limits }
     }
 
     pub async fn get_limit_for_organization<'a, A: Acquire<'a, Database = Postgres>>(
@@ -352,7 +347,7 @@ impl Quotas {
         application_id: Option<Uuid>,
         mail: Mail,
     ) -> Result<(), Hook0Problem> {
-        match PgInterval::try_from(self.quota_notification_period) {
+        match PgInterval::try_from(Duration::from_secs(86400)) {
             Ok(quota_notification_period) => {
                 let can_send_notification = query!(
                     r#"
