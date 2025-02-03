@@ -396,4 +396,11 @@ function verifyWebhookSignature(
   );
 }
 
-export { Hook0ClientError, Hook0Client, Event, EventType, verifyWebhookSignature, verifyWebhookSignatureWithCurrentTime };
+export {
+  Hook0ClientError,
+  Hook0Client,
+  Event,
+  EventType,
+  verifyWebhookSignature,
+  verifyWebhookSignatureWithCurrentTime,
+};
