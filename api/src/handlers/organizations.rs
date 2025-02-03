@@ -278,7 +278,7 @@ pub async fn create(
             quotas,
             consumption: OrganizationConsumption {
                 members: Some(1),
-                applications: Some(1),
+                applications: Some(0),
                 events_per_day: Some(0),
             },
             onboarding_steps: OrganizationOnboardingSteps {
