@@ -218,14 +218,10 @@ pub async fn get(
             )
             .fetch_optional(&state.db)
             .await
-            .map_err(Hook0Problem::from)?;
-
-            let consumption = match consumption {
-                Some(c) => c,
-                None => ApplicationConsumption {
-                    events_per_day: Some(0),
-                },
-            };
+            .map_err(Hook0Problem::from)?
+            .unwrap_or(ApplicationConsumption {
+                events_per_day: Some(0),
+            });
 
             let onboarding_steps =
                 get_application_onboarding_steps(&state.db, &application_id).await?;

@@ -421,7 +421,6 @@ pub async fn get(
                 .await?,
         };
 
-        // TODO: when soft deleting merged, merge this branch to master to add a.deleted_at IS NULL
         let consumption = query_as!(
             OrganizationConsumption,
             r#"
@@ -431,7 +430,7 @@ pub async fn get(
                     COALESCE(SUM(e.amount), 0) AS events_per_day
                 FROM
                     iam.user__organization AS uo
-                    LEFT JOIN event.application AS a ON uo.organization__id = a.organization__id
+                    LEFT JOIN event.application AS a ON uo.organization__id = a.organization__id AND a.deleted_at IS NULL
                     LEFT JOIN event.events_per_day AS e ON a.application__id = e.application__id AND e.date = CURRENT_DATE
                 WHERE
                     uo.organization__id = $1
