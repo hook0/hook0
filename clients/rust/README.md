@@ -4,7 +4,7 @@ This is the Rust SDK for Hook0, an open-source webhooks-as-a-service platform de
 
 ## Features
 
-- **Upsert Event Types**: Easily manage event types with upsert operations.
+- **Upsert Event Types**: Make sure event types you use in your application's events are created in Hook0.
 - **Send Events**: Send events to Hook0.
 - **Verifying Webhook Signatures**: Ensure the authenticity and integrity of incoming webhooks.
 
