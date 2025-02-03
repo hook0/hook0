@@ -46,9 +46,9 @@ pub struct OrganizationInfo {
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
 pub struct OrganizationConsumption {
-    pub members: Option<i64>,
-    pub applications: Option<i64>,
-    pub events_per_day: Option<i64>,
+    members: Option<i64>,
+    applications: Option<i64>,
+    events_per_day: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]

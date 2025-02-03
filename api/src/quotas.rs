@@ -1,18 +1,16 @@
 use actix_web::web::Data;
-
+use lettre::{message::Mailbox, Address};
+use log::error;
 use paperclip::actix::web::Json;
 use paperclip::actix::{api_v2_operation, Apiv2Schema};
 use serde::Serialize;
-
-use crate::{mailer::Mail, problems::Hook0Problem};
-
-use std::{str::FromStr, time::Duration};
-
-use lettre::{message::Mailbox, Address};
-use log::error;
-use sqlx::{postgres::types::PgInterval, query, query_as, query_scalar, Acquire, Postgres};
+use sqlx::{query, query_as, query_scalar, Acquire, Postgres};
+use std::str::FromStr;
 use strum::Display;
 use uuid::Uuid;
+
+use crate::mailer::Mail;
+use crate::problems::Hook0Problem;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Quota {
@@ -347,116 +345,110 @@ impl Quotas {
         application_id: Option<Uuid>,
         mail: Mail,
     ) -> Result<(), Hook0Problem> {
-        match PgInterval::try_from(Duration::from_secs(86400)) {
-            Ok(quota_notification_period) => {
-                let can_send_notification = query!(
-                    r#"
-                        SELECT 1 AS ONE
-                        FROM pricing.quota_notifications
-                        WHERE organization__id = $1
-                            AND type = $2
-                            AND name = $3
-                            AND executed_at > now() - $4::interval
-                    "#,
-                    organization_id,
-                    notification_type.to_string(),
-                    quota.get_name(),
-                    quota_notification_period,
-                )
-                .fetch_optional(&state.db)
-                .await?
-                .is_none();
+        let can_send_notification = query!(
+            r#"
+                SELECT 1 AS ONE
+                FROM pricing.quota_notifications
+                WHERE organization__id = $1
+                    AND type = $2
+                    AND name = $3
+                    AND DATE(executed_at) = CURRENT_DATE
+            "#,
+            organization_id,
+            notification_type.to_string(),
+            quota.get_name(),
+        )
+        .fetch_optional(&state.db)
+        .await?
+        .is_none();
 
-                if can_send_notification {
-                    struct User {
-                        first_name: String,
-                        last_name: String,
-                        email: String,
-                    }
+        if can_send_notification {
+            struct User {
+                first_name: String,
+                last_name: String,
+                email: String,
+            }
 
-                    let emails_from_organization = query_as!(
-                        User,
-                        r#"
-                            SELECT u.first_name, u.last_name, u.email
-                            FROM iam.user u
-                            INNER JOIN iam.user__organization ou ON u.user__id = ou.user__id
-                            WHERE ou.organization__id = $1
-                        "#,
-                        organization_id,
-                    )
-                    .fetch_all(&state.db)
-                    .await
-                    .map_err(Hook0Problem::from)?
-                    .into_iter()
-                    .collect::<Vec<_>>();
+            let emails_from_organization = query_as!(
+                User,
+                r#"
+                    SELECT u.first_name, u.last_name, u.email
+                    FROM iam.user u
+                    INNER JOIN iam.user__organization ou ON u.user__id = ou.user__id
+                    WHERE ou.organization__id = $1
+                "#,
+                organization_id,
+            )
+            .fetch_all(&state.db)
+            .await
+            .map_err(Hook0Problem::from)?
+            .into_iter()
+            .collect::<Vec<_>>();
 
-                    let mut tx = state.db.begin().await?;
+            let mut tx = state.db.begin().await?;
 
-                    query!(
-                        r#"
-                            INSERT INTO pricing.quota_notifications
-                                (organization__id, type, name)
-                            VALUES
-                                ($1, $2, $3)
-                        "#,
-                        organization_id,
-                        notification_type.to_string(),
-                        quota.get_name(),
-                    )
-                    .execute(&mut *tx)
-                    .await
-                    .map_err(Hook0Problem::from)?;
+            query!(
+                r#"
+                    INSERT INTO pricing.quota_notifications
+                        (organization__id, type, name)
+                    VALUES
+                        ($1, $2, $3)
+                "#,
+                organization_id,
+                notification_type.to_string(),
+                quota.get_name(),
+            )
+            .execute(&mut *tx)
+            .await
+            .map_err(Hook0Problem::from)?;
 
-                    let email_sending_result: Result<(), Hook0Problem> = async {
-                        for user in emails_from_organization {
-                            let recipient_address = match Address::from_str(&user.email) {
-                                Ok(address) => address,
-                                Err(e) => {
-                                    error!("Error trying to parse email address: {e}");
-                                    continue;
-                                }
-                            };
-
-                            let recipient = Mailbox::new(
-                                Some(format!("{} {}", user.first_name, user.last_name)),
-                                recipient_address,
-                            );
-
-                            let entity_hash = match application_id {
-                                Some(application_id) => format!("/organizations/{organization_id}/applications/{application_id}/dashboard"),
-                                None => format!("/organizations/{organization_id}/dashboard"),
-                            };
-
-                            let mut mail = mail.clone();
-                            mail.add_variable("entity_hash".to_owned(), entity_hash);
-
-                            if let Err(e) = &state.mailer
-                                .send_mail(
-                                    mail,
-                                    recipient,
-                                )
-                                .await
-                            {
-                                error!("Error trying to send email: {e}");
-                            }
+            let email_sending_result: Result<(), Hook0Problem> = async {
+                for user in emails_from_organization {
+                    let recipient_address = match Address::from_str(&user.email) {
+                        Ok(address) => address,
+                        Err(e) => {
+                            error!("Error trying to parse email address: {e}");
+                            continue;
                         }
+                    };
 
-                        Ok(())
-                    }
-                    .await;
+                    let recipient = Mailbox::new(
+                        Some(format!("{} {}", user.first_name, user.last_name)),
+                        recipient_address,
+                    );
 
-                    if let Err(e) = email_sending_result {
+                    let entity_hash = match application_id {
+                        Some(application_id) => format!("/organizations/{organization_id}/applications/{application_id}/dashboard"),
+                        None => format!("/organizations/{organization_id}/dashboard"),
+                    };
+
+                    let mut mail = mail.clone();
+                    mail.add_variable("entity_hash".to_owned(), entity_hash);
+
+                    if let Err(e) = &state.mailer
+                        .send_mail(
+                            mail,
+                            recipient,
+                        )
+                        .await
+                    {
                         error!("Error trying to send email: {e}");
-                        tx.rollback().await?;
-                    } else {
-                        tx.commit().await?;
                     }
                 }
 
                 Ok(())
             }
-            Err(_) => Err(Hook0Problem::InternalServerError),
+            .await;
+
+            if let Err(e) = email_sending_result {
+                error!("Error trying to send email: {e}");
+                tx.rollback().await?;
+            } else {
+                tx.commit().await?;
+            }
         }
+
+        Ok(())
     }
 
     pub async fn send_application_email_notification(

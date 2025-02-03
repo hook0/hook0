@@ -370,27 +370,30 @@ pub async fn ingest(
     };
 
     if can_ingest {
-        let actual_consumption_percent = 100 * current_events_per_day / events_per_days_limit;
+        if state.enable_quota_based_email_notifications {
+            let actual_consumption_percent = 100 * current_events_per_day / events_per_days_limit;
 
-        if actual_consumption_percent > i32::from(state.quota_notification_events_per_day_threshold)
-        {
-            let mail = Mail::QuotaEventsPerDayWarning {
-                pricing_url_hash: "#pricing".to_owned(),
-                actual_consumption_percent,
-                current_events_per_day,
-                events_per_days_limit,
-                extra_variables: Vec::new(),
-            };
-            state
-                .quotas
-                .send_application_email_notification(
-                    &state,
-                    Quota::EventsPerDay,
-                    QuotaNotificationType::Warning,
-                    application_id,
-                    mail,
-                )
-                .await?;
+            if actual_consumption_percent
+                > i32::from(state.quota_notification_events_per_day_threshold)
+            {
+                let mail = Mail::QuotaEventsPerDayWarning {
+                    pricing_url_hash: "#pricing".to_owned(),
+                    actual_consumption_percent,
+                    current_events_per_day,
+                    events_per_days_limit,
+                    extra_variables: Vec::new(),
+                };
+                state
+                    .quotas
+                    .send_application_email_notification(
+                        &state,
+                        Quota::EventsPerDay,
+                        QuotaNotificationType::Warning,
+                        application_id,
+                        mail,
+                    )
+                    .await?;
+            }
         }
 
         let content_type = PayloadContentType::from_str(&body.payload_content_type)?;
@@ -419,22 +422,24 @@ pub async fn ingest(
 
         Ok(CreatedJson(event))
     } else {
-        let mail = Mail::QuotaEventsPerDayReached {
-            pricing_url_hash: "#pricing".to_owned(),
-            current_events_per_day,
-            events_per_days_limit,
-            extra_variables: Vec::new(),
-        };
-        state
-            .quotas
-            .send_application_email_notification(
-                &state,
-                Quota::EventsPerDay,
-                QuotaNotificationType::Reached,
-                application_id,
-                mail,
-            )
-            .await?;
+        if state.enable_quota_based_email_notifications {
+            let mail = Mail::QuotaEventsPerDayReached {
+                pricing_url_hash: "#pricing".to_owned(),
+                current_events_per_day,
+                events_per_days_limit,
+                extra_variables: Vec::new(),
+            };
+            state
+                .quotas
+                .send_application_email_notification(
+                    &state,
+                    Quota::EventsPerDay,
+                    QuotaNotificationType::Reached,
+                    application_id,
+                    mail,
+                )
+                .await?;
+        }
         Err(Hook0Problem::TooManyEventsToday(events_per_days_limit))
     }
 }

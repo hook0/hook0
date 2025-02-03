@@ -236,6 +236,10 @@ struct Config {
     #[clap(long, env, default_value = "80")]
     quota_notification_events_per_day_threshold: u8,
 
+    /// Set to true to enable quota-based email notifications
+    #[clap(long, env, default_value = "false")]
+    enable_quota_based_email_notifications: bool,
+
     /// Duration (in second) to wait between materialized views refreshes
     #[clap(long, env, default_value = "60")]
     materialized_views_refresh_period_in_s: u64,
@@ -385,6 +389,7 @@ pub struct State {
     formbricks_api_host: String,
     formbricks_environment_id: Option<String>,
     quota_notification_events_per_day_threshold: u8,
+    enable_quota_based_email_notifications: bool,
 }
 
 #[actix_web::main]
@@ -614,6 +619,7 @@ async fn main() -> anyhow::Result<()> {
             formbricks_environment_id: config.formbricks_environment_id,
             quota_notification_events_per_day_threshold: config
                 .quota_notification_events_per_day_threshold,
+            enable_quota_based_email_notifications: config.enable_quota_based_email_notifications,
         };
         let hook0_client_api_url = config.hook0_client_api_url;
 
