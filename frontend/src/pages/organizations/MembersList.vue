@@ -23,6 +23,7 @@ import Hook0Input from '@/components/Hook0Input.vue';
 import { Hook0SelectSingleOption } from '@/components/Hook0Select';
 import Hook0Select from '@/components/Hook0Select.vue';
 import { push } from 'notivue';
+import Hook0TableCellSelect from '@/components/Hook0TableCellSelect.vue';
 
 const route = useRoute();
 
@@ -59,6 +60,42 @@ const columnDefs: ColDef[] = [
     resizable: true,
     width: 60,
     headerName: 'Role',
+    cellRenderer: Hook0TableCellSelect,
+    cellRendererParams: {
+      options: [
+        { label: 'Viewer', value: 'viewer' },
+        { label: 'Editor', value: 'editor' },
+      ],
+      value: (row: User) => row.role,
+      disabled(row: User) {
+        return currentUser.value && row.email == currentUser.value.email;
+      },
+      onChange: (role: string, row: User) => {
+        if (
+          organization_id.value &&
+          confirm(`Are you sure to change ${row.email}'s role to ${role}?`)
+        ) {
+          if (row.role !== role) {
+            MemberService.edit_role(organization_id.value, row.user_id, role)
+              .then(() => {
+                push.success({
+                  title: 'Success',
+                  message: `Role of ${row.email} has been updated to ${role}.`,
+                  duration: 5000,
+                });
+                _forceLoad();
+              })
+              .catch(displayError);
+          } else {
+            push.warning({
+              title: 'Warning',
+              message: `Role of ${row.email} is already ${role}.`,
+              duration: 5000,
+            });
+          }
+        }
+      },
+    },
   },
   {
     width: 105,

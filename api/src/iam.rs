@@ -372,6 +372,7 @@ pub enum Action<'a> {
     OrganizationEdit,
     OrganizationInvite,
     OrganizationRevoke,
+    OrganizationEditRole,
     OrganizationDelete,
     //
     ServiceTokenList,
@@ -488,6 +489,7 @@ impl Action<'_> {
             Self::OrganizationEdit => "organization:edit",
             Self::OrganizationInvite => "organization:invite",
             Self::OrganizationRevoke => "organization:revoke",
+            Self::OrganizationEditRole => "organization:edit_role",
             Self::OrganizationDelete => "organization:delete",
             //
             Self::ServiceTokenList => "service_token:list",
@@ -553,6 +555,7 @@ impl Action<'_> {
             Self::OrganizationEdit => vec![],
             Self::OrganizationInvite => vec![],
             Self::OrganizationRevoke => vec![],
+            Self::OrganizationEditRole => vec![],
             Self::OrganizationDelete => vec![],
             //
             Self::ServiceTokenList => vec![],
@@ -634,6 +637,7 @@ impl Action<'_> {
             Self::OrganizationEdit => None,
             Self::OrganizationInvite => None,
             Self::OrganizationRevoke => None,
+            Self::OrganizationEditRole => None,
             Self::OrganizationDelete => None,
             //
             Self::ServiceTokenList => None,
@@ -697,6 +701,7 @@ impl Action<'_> {
             Self::OrganizationEdit => vec![],
             Self::OrganizationInvite => vec![],
             Self::OrganizationRevoke => vec![],
+            Self::OrganizationEditRole => vec![],
             Self::OrganizationDelete => vec![],
             //
             Self::ServiceTokenList => vec![],

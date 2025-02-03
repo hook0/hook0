@@ -758,11 +758,15 @@ async fn main() -> anyhow::Result<()> {
                                         .service(
                                             web::resource("/invite")
                                                 .route(
-                                                    web::put().to(handlers::organizations::invite),
+                                                    web::post().to(handlers::organizations::invite),
                                                 )
                                                 .route(
                                                     web::delete()
                                                         .to(handlers::organizations::revoke),
+                                                )
+                                                .route(
+                                                    web::put()
+                                                        .to(handlers::organizations::edit_role),
                                                 ),
                                         ),
                                 ),
@@ -770,7 +774,7 @@ async fn main() -> anyhow::Result<()> {
                         .service(
                             web::scope("/applications")
                                 .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
-                                .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first/ Middleware order is counter intuitive: this is executed first
+                                .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first
                                 .service(
                                     web::resource("")
                                         .route(web::get().to(handlers::applications::list))
