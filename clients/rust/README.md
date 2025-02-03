@@ -12,7 +12,7 @@ This is the Rust SDK for Hook0, an open-source webhooks-as-a-service platform de
 
 ### Actix-web Example
 
-The `examples/actix-web.rs` file demonstrates how to set up a simple Actix-web server to handle webhooks signature verification.
+The `examples/actix-web.rs` file demonstrates how to set up a simple [Actix Web](https://actix.rs/) server to handle webhooks signature verification.
 
 ```rust
 use actix_web::{web, App, HttpServer};
