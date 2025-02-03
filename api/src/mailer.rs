@@ -14,7 +14,7 @@ pub struct Mailer {
     sender: Mailbox,
     logo_url: Url,
     website_url: Url,
-    app_url: String,
+    app_url: Url,
 }
 
 #[derive(Debug, Clone)]
@@ -144,7 +144,7 @@ impl Mailer {
         sender_address: Address,
         logo_url: Url,
         website_url: Url,
-        app_url: String,
+        app_url: Url,
     ) -> Result<Mailer, lettre::transport::smtp::Error> {
         let transport = AsyncSmtpTransport::<Tokio1Executor>::from_url(smtp_connection_url)?
             .timeout(Some(smtp_timeout))

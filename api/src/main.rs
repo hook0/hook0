@@ -326,7 +326,7 @@ struct Config {
 
     /// Frontend application URL (used for building links in emails)
     #[clap(long, env)]
-    app_url: String,
+    app_url: Url,
 
     /// Maximum duration (in millisecond) that can be spent running Biscuit's authorizer
     #[clap(long, env, default_value = "10")]
@@ -364,7 +364,7 @@ pub struct State {
     db: PgPool,
     biscuit_private_key: PrivateKey,
     mailer: mailer::Mailer,
-    app_url: String,
+    app_url: Url,
     #[cfg(feature = "migrate-users-from-keycloak")]
     enable_keycloak_migration: bool,
     #[cfg(feature = "migrate-users-from-keycloak")]
