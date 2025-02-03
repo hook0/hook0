@@ -1,0 +1,30 @@
+clients.typescript.build:
+  stage: build
+  dependencies: []
+  rules:
+    - changes:
+        - clients/typescript/**/*
+  image: node:$NODE_VERSION
+  script:
+    - pushd clients/typescript/
+    - npm test
+    - npm run build
+  artifacts:
+    name: "$CI_BUILD_NAME"
+    paths:
+      - clients/typescript/node_modules/
+      - clients/typescript/dist/
+
+clients.typescript.check:
+  stage: test
+  dependencies:
+    - clients.typescript.build
+  rules:
+    - changes:
+        - clients/typescript/**/*
+  image: node:$NODE_VERSION
+  script:
+    - pushd clients/typescript/
+    - npm run check
+    - npm run lint
+    - npm run test

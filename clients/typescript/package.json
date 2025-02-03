@@ -1,0 +1,37 @@
+{
+  "name": "hook0-client",
+  "version": "0.1.0",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "lint": "eslint .",
+    "format": "prettier --write ./src/**/*.{ts,json}",
+    "check": "prettier --check ./src/**/*.{ts,json}"
+  },
+  "keywords": [],
+  "authors": [
+    "David Sferruzza <david@hook0.com>",
+    "François-Guillaume Ribreau <fg@hook0.com>"
+  ],
+  "license": "SSPL-1.0",
+  "description": "TypeScript SDK for Hook0 Open-Source Webhooks as a service for SaaS",
+  "homepage": "https://hook0.com/",
+  "dependencies": {
+    "@types/crypto-js": "^4.2.2",
+    "@types/uuid": "^10.0.0",
+    "url": "^0.11.4",
+    "uuid": "^11.0.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.19.0",
+    "@types/jest": "^29.5.14",
+    "eslint": "^9.19.0",
+    "jest": "^29.7.0",
+    "prettier": "^3.4.2",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.22.0"
+  }
+}
