@@ -126,11 +126,11 @@ where
     }
 }
 
-#[derive(Deserialize, Apiv2Schema)]
+#[derive(Debug, Deserialize, Apiv2Schema)]
 pub struct Qs {
-    pub application_id: Uuid,
-    pub label_key: Option<String>,
-    pub label_value: Option<String>,
+    application_id: Uuid,
+    label_key: Option<String>,
+    label_value: Option<String>,
 }
 
 #[api_v2_operation(
@@ -183,33 +183,62 @@ pub async fn list(
         r#"
             WITH subs AS (
                 SELECT
-                    s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.label_key, s.label_value, s.target__id, s.created_at,
-                    CASE WHEN length((array_agg(set.event_type__name))[1]) > 0
+                    s.subscription__id,
+                    s.is_enabled,
+                    s.description,
+                    s.secret,
+                    s.metadata,
+                    s.label_key,
+                    s.label_value,
+                    s.target__id,
+                    s.created_at,
+                    CASE
+                        WHEN length((array_agg(set.event_type__name))[1]) > 0
                         THEN array_agg(set.event_type__name)
-                        ELSE ARRAY[]::text[] END AS event_types,
-                    CASE WHEN length((array_agg(w.name))[1]) > 0
+                        ELSE ARRAY[]::text[]
+                    END AS event_types,
+                    CASE
+                        WHEN length((array_agg(w.name))[1]) > 0
                         THEN array_agg(w.name)
-                        ELSE ARRAY[]::text[] END AS dedicated_workers
+                        ELSE ARRAY[]::text[]
+                    END AS dedicated_workers
                 FROM webhook.subscription AS s
                 LEFT JOIN webhook.subscription__event_type AS set ON set.subscription__id = s.subscription__id
                 LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
                 LEFT JOIN infrastructure.worker AS w ON w.worker__id = sw.worker__id
-                WHERE s.application__id = $1
-                AND deleted_at IS NULL
-                AND ($2::text IS NULL OR s.label_key = $2)
-                AND ($3::text IS NULL OR s.label_value = $3)
+                WHERE
+                    s.application__id = $1
+                    AND deleted_at IS NULL
+                    AND ($2::text IS NULL OR s.label_key = $2)
+                    AND ($3::text IS NULL OR s.label_value = $3)
                 GROUP BY s.subscription__id
                 ORDER BY s.created_at ASC
-            ), targets AS (
-                SELECT target__id, jsonb_build_object(
-                    'type', replace(tableoid::regclass::text, 'webhook.target_', ''),
-                    'method', method,
-                    'url', url,
-                    'headers', headers
-                ) AS target_json FROM webhook.target_http
-                WHERE target__id IN (SELECT target__id FROM subs)
+            ),
+            targets AS (
+                SELECT
+                    target__id,
+                    jsonb_build_object(
+                        'type', replace(tableoid::regclass::text, 'webhook.target_', ''),
+                        'method', method,
+                        'url', url,
+                        'headers', headers
+                    ) AS target_json
+                FROM webhook.target_http
+                WHERE
+                    target__id IN (SELECT target__id FROM subs)
             )
-            SELECT subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.label_key AS "label_key!", subs.label_value AS "label_value!", subs.created_at AS "created_at!", subs.event_types, targets.target_json, subs.dedicated_workers
+            SELECT
+                subs.subscription__id AS "subscription__id!",
+                subs.is_enabled AS "is_enabled!",
+                subs.description,
+                subs.secret AS "secret!",
+                subs.metadata AS "metadata!",
+                subs.label_key AS "label_key!",
+                subs.label_value AS "label_value!",
+                subs.created_at AS "created_at!",
+                subs.event_types,
+                targets.target_json,
+                subs.dedicated_workers
             FROM subs
             INNER JOIN targets ON subs.target__id = targets.target__id
         "#,
