@@ -4,7 +4,6 @@ import { onMounted, onUpdated, ref, defineProps, defineEmits } from 'vue';
 
 import { Problem, UUID } from '@/http';
 import * as ApplicationService from './ApplicationService';
-import { Application } from './ApplicationService';
 import ApplicationsRemove from '@/pages/organizations/applications/ApplicationsRemove.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
@@ -15,6 +14,7 @@ import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import { push } from 'notivue';
 import { routes } from '@/routes';
+import Hook0Consumption, { ComsumptionQuota } from '@/components/Hook0Consumption.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -33,6 +33,8 @@ const props = defineProps<Props>();
 
 const emit = defineEmits(['tutorial-application-created']);
 
+const consumptions = ref<ComsumptionQuota[]>([]);
+
 function _load() {
   if (application_id.value !== route.params.application_id) {
     application_id.value = route.params.application_id as UUID;
@@ -40,8 +42,16 @@ function _load() {
 
     if (!isNew.value) {
       ApplicationService.get(application_id.value)
-        .then((app: Application) => {
+        .then((app: ApplicationService.ApplicationInfo) => {
           application.value.name = app.name;
+          consumptions.value = [
+            {
+              icon: 'file-lines',
+              name: 'Events per day',
+              comsumption: app.consumption.events_per_day || 0,
+              quota: app.quotas.events_per_day_limit,
+            },
+          ];
         })
         .catch(displayError);
     }
@@ -163,6 +173,13 @@ onUpdated(() => {
         </Hook0CardFooter>
       </Hook0Card>
     </form>
+
+    <Hook0Consumption
+      v-if="!isNew && application_id"
+      :title="`Consumption of application ${application.name}`"
+      entity-type="application"
+      :consomptions="consumptions"
+    />
 
     <ApplicationsRemove
       v-if="!isNew && application_id"
