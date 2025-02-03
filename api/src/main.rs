@@ -232,10 +232,6 @@ struct Config {
     #[clap(long, env, default_value = "10")]
     quota_global_event_types_per_application_limit: quotas::QuotaValue,
 
-    /// Default delay (in hours) between sending quota notifications
-    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "1d")]
-    quota_notification_period: Duration,
-
     /// Default threshold (in %) of events per day at which to send a warning notification
     #[clap(long, env, default_value = "80")]
     quota_notification_events_per_day_threshold: u8,
@@ -489,11 +485,7 @@ async fn main() -> anyhow::Result<()> {
         };
 
         // Initialize quotas manager
-        let quotas = quotas::Quotas::new(
-            config.enable_quota_enforcement,
-            quota_limits,
-            config.quota_notification_period,
-        );
+        let quotas = quotas::Quotas::new(config.enable_quota_enforcement, quota_limits);
 
         if config.enable_quota_enforcement {
             info!("Quota enforcement is enabled");
