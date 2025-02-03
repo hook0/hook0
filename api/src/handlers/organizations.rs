@@ -678,32 +678,36 @@ pub async fn edit_role(
 ) -> Result<Json<OrganizationEditRole>, Hook0Problem> {
     let organization_id = organization_id.into_inner();
 
-    if authorize(
+    if let Ok(token) = authorize(
         &biscuit,
         Some(organization_id),
         Action::OrganizationEditRole,
         state.max_authorization_time_in_ms,
-    )
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
+    ) {
+        if let AuthorizedToken::User(user_token) = token {
+            if user_token.user_id == body.user_id {
+                return Err(Hook0Problem::Forbidden);
+            }
+        }
+
+        query!(
+            "
+                UPDATE iam.user__organization
+                SET role = $1
+                WHERE user__id = $2
+                    AND organization__id = $3
+            ",
+            &body.role,
+            &body.user_id,
+            &organization_id,
+        )
+        .execute(&state.db)
+        .await?;
+
+        Ok(body)
+    } else {
+        Err(Hook0Problem::Forbidden)
     }
-
-    query!(
-        "
-            UPDATE iam.user__organization
-            SET role = $1
-            WHERE user__id = $2
-                AND organization__id = $3
-        ",
-        &body.role,
-        &body.user_id,
-        &organization_id,
-    )
-    .execute(&state.db)
-    .await?;
-
-    Ok(body)
 }
 
 #[api_v2_operation(
