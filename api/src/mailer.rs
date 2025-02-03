@@ -61,8 +61,8 @@ impl Mail {
             Mail::VerifyUserEmail { .. } => "[Hook0] Verify your email address".to_owned(),
             Mail::ResetPassword { .. } => "[Hook0] Reset your password".to_owned(),
             // Mail::Welcome { .. } => "Welcome to our platform".to_owned(),
-            Mail::QuotaEventsPerDayWarning { .. } => "[Hook0] Quota warning".to_owned(),
-            Mail::QuotaEventsPerDayReached { .. } => "[Hook0] Quota reached".to_owned(),
+            Mail::QuotaEventsPerDayWarning { .. } => "[Hook0] Quota Warning".to_owned(),
+            Mail::QuotaEventsPerDayReached { .. } => "[Hook0] Quota Reached".to_owned(),
         }
     }
 
