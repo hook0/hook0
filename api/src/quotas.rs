@@ -412,7 +412,7 @@ impl Quotas {
                     .await
                     .map_err(Hook0Problem::from)?;
 
-                    let result: Result<(), Hook0Problem> = async {
+                    let email_sending_result: Result<(), Hook0Problem> = async {
                         for user in emails_from_organization {
                             let recipient_address = match Address::from_str(&user.email) {
                                 Ok(address) => address,
@@ -450,7 +450,7 @@ impl Quotas {
                     }
                     .await;
 
-                    if let Err(e) = result {
+                    if let Err(e) = email_sending_result {
                         error!("Error trying to send email: {e}");
                         tx.rollback().await?;
                     } else {
