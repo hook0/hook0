@@ -241,7 +241,7 @@ pub async fn list(
                 subs.dedicated_workers
             FROM subs
             INNER JOIN targets ON subs.target__id = targets.target__id
-        "#,
+        "#, // Column aliases ending with "!" are there because sqlx does not seem to infer correctly that these columns' types are not options
         &qs.application_id,
         qs.label_key.as_deref(),
         qs.label_value.as_deref(),
