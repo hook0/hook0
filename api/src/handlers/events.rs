@@ -157,7 +157,7 @@ pub async fn list(
     let labels = if let (Some(label_key), Some(label_value)) =
         (qs.label_key.as_deref(), qs.label_value.as_deref())
     {
-        Some(json!({ label_key: label_value }).to_string())
+        Some(json!({ label_key: label_value }))
     } else {
         None
     };
@@ -168,7 +168,7 @@ pub async fn list(
                 SELECT event__id, event_type__name, payload_content_type, ip, metadata, occurred_at, received_at, labels
                 FROM event.event
                 WHERE application__id = $1
-                AND ($2::text IS NULL OR labels @> $2::jsonb)
+                AND ($2::jsonb IS NULL OR labels @> $2)
                 ORDER BY received_at DESC
                 LIMIT 100
             ",
@@ -260,7 +260,7 @@ pub async fn get(
     let labels = if let (Some(label_key), Some(label_value)) =
         (qs.label_key.as_deref(), qs.label_value.as_deref())
     {
-        Some(json!({ label_key: label_value }).to_string())
+        Some(json!({ label_key: label_value }))
     } else {
         None
     };
@@ -271,7 +271,7 @@ pub async fn get(
                 SELECT event__id, event_type__name, payload, payload_content_type, ip, metadata, occurred_at, received_at, labels
                 FROM event.event
                 WHERE application__id = $1 AND event__id = $2
-                AND ($3::text IS NULL OR labels @> $3::jsonb)
+                AND ($3::jsonb IS NULL OR labels @> $3)
             ",
             &qs.application_id,
             &event_id.into_inner(),
@@ -517,7 +517,7 @@ pub async fn replay(
     let labels = if let (Some(label_key), Some(label_value)) =
         (qs.label_key.as_deref(), qs.label_value.as_deref())
     {
-        Some(json!({ label_key: label_value }).to_string())
+        Some(json!({ label_key: label_value }))
     } else {
         None
     };
@@ -527,7 +527,7 @@ pub async fn replay(
             UPDATE event.event
             SET dispatched_at = NULL
             WHERE event__id = $1
-            AND ($3::text IS NULL OR labels @> $3::jsonb)
+            AND ($3::jsonb IS NULL OR labels @> $3)
             AND application__id = $2
         ",
         event_uuid,
