@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT event__id, event_type__name, payload, payload_content_type, ip, metadata, occurred_at, received_at, labels\n                FROM event.event\n                WHERE application__id = $1 AND event__id = $2\n                AND ($3::text IS NULL OR labels @> $3::jsonb)\n            ",
+  "query": "\n                SELECT event__id, event_type__name, payload, payload_content_type, ip, metadata, occurred_at, received_at, labels\n                FROM event.event\n                WHERE application__id = $1 AND event__id = $2\n                AND ($3::jsonb IS NULL OR labels @> $3)\n            ",
   "describe": {
     "columns": [
       {
@@ -53,7 +53,7 @@
       "Left": [
         "Uuid",
         "Uuid",
-        "Text"
+        "Jsonb"
       ]
     },
     "nullable": [
@@ -68,5 +68,5 @@
       false
     ]
   },
-  "hash": "fc72015289e3abff2c000714247513f48afccadf9b317929a16a2572445b43eb"
+  "hash": "1ae72f80f405994154a15aa63a7007ea58dcd874c37fafff3bcd1451c84a8244"
 }

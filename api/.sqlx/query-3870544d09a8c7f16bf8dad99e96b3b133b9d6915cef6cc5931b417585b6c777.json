@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT event__id, event_type__name, payload_content_type, ip, metadata, occurred_at, received_at, labels\n                FROM event.event\n                WHERE application__id = $1\n                AND ($2::text IS NULL OR labels @> $2::jsonb)\n                ORDER BY received_at DESC\n                LIMIT 100\n            ",
+  "query": "\n                SELECT event__id, event_type__name, payload_content_type, ip, metadata, occurred_at, received_at, labels\n                FROM event.event\n                WHERE application__id = $1\n                AND ($2::jsonb IS NULL OR labels @> $2)\n                ORDER BY received_at DESC\n                LIMIT 100\n            ",
   "describe": {
     "columns": [
       {
@@ -47,7 +47,7 @@
     "parameters": {
       "Left": [
         "Uuid",
-        "Text"
+        "Jsonb"
       ]
     },
     "nullable": [
@@ -61,5 +61,5 @@
       false
     ]
   },
-  "hash": "c7f921fc4284cc85edb9e460a082a811bf2b282cf091d2d3db9234a76b86399f"
+  "hash": "3870544d09a8c7f16bf8dad99e96b3b133b9d6915cef6cc5931b417585b6c777"
 }
