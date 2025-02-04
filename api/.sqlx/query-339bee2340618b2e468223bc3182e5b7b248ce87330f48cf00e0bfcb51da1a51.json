@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE event.event\n            SET dispatched_at = NULL\n            WHERE event__id = $1\n            AND application__id = $2\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "339bee2340618b2e468223bc3182e5b7b248ce87330f48cf00e0bfcb51da1a51"
+}

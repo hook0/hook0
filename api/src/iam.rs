@@ -471,8 +471,6 @@ pub enum Action<'a> {
     },
     EventReplay {
         application_id: &'a Uuid,
-        label_key: Option<&'a str>,
-        label_value: Option<&'a str>,
     },
     //
     RequestAttemptList {
