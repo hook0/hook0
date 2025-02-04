@@ -475,12 +475,6 @@ pub struct ReplayEvent {
     application_id: Uuid,
 }
 
-#[derive(Debug, Deserialize, Apiv2Schema)]
-pub struct EventWithoutApplicationQs {
-    label_key: Option<String>,
-    label_value: Option<String>,
-}
-
 #[api_v2_operation(
     summary = "Replay an event",
     description = "Trigger existing subscriptions matching an existing event, which will result in webhook being send again",
@@ -494,7 +488,6 @@ pub async fn replay(
     biscuit: ReqData<Biscuit>,
     event_id: Path<Uuid>,
     body: Json<ReplayEvent>,
-    qs: Query<EventWithoutApplicationQs>,
 ) -> Result<NoContent, Hook0Problem> {
     let event_uuid = event_id.into_inner();
 
@@ -503,8 +496,6 @@ pub async fn replay(
         &biscuit,
         Action::EventReplay {
             application_id: &body.application_id,
-            label_key: qs.label_key.as_deref(),
-            label_value: qs.label_value.as_deref(),
         },
         state.max_authorization_time_in_ms,
     )
@@ -514,25 +505,15 @@ pub async fn replay(
         return Err(Hook0Problem::Forbidden);
     }
 
-    let labels = if let (Some(label_key), Some(label_value)) =
-        (qs.label_key.as_deref(), qs.label_value.as_deref())
-    {
-        Some(json!({ label_key: label_value }))
-    } else {
-        None
-    };
-
     let replayed = query!(
         "
             UPDATE event.event
             SET dispatched_at = NULL
             WHERE event__id = $1
-            AND ($3::jsonb IS NULL OR labels @> $3)
             AND application__id = $2
         ",
         event_uuid,
         body.application_id,
-        labels,
     )
     .execute(&state.db)
     .await
