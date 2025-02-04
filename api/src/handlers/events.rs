@@ -80,6 +80,8 @@ pub async fn payload_content_types() -> Result<Json<Vec<&'static str>>, Hook0Pro
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
 pub struct Qs {
     application_id: Uuid,
+    label_key: Option<String>,
+    label_value: Option<String>,
 }
 
 #[derive(Debug)]
@@ -141,6 +143,8 @@ pub async fn list(
         &biscuit,
         Action::EventList {
             application_id: &qs.application_id,
+            label_key: qs.label_key.as_deref(),
+            label_value: qs.label_value.as_deref(),
         },
         state.max_authorization_time_in_ms,
     )
@@ -150,16 +154,26 @@ pub async fn list(
         return Err(Hook0Problem::Forbidden);
     }
 
+    let labels = if let (Some(label_key), Some(label_value)) =
+        (qs.label_key.as_deref(), qs.label_value.as_deref())
+    {
+        Some(json!({ label_key: label_value }).to_string())
+    } else {
+        None
+    };
+
     let raw_events = query_as!(
             EventRaw,
             "
                 SELECT event__id, event_type__name, payload_content_type, ip, metadata, occurred_at, received_at, labels
                 FROM event.event
                 WHERE application__id = $1
+                AND ($2::text IS NULL OR labels @> $2::jsonb)
                 ORDER BY received_at DESC
                 LIMIT 100
             ",
             &qs.application_id,
+            labels,
         )
         .fetch_all(&state.db)
         .await
@@ -232,6 +246,8 @@ pub async fn get(
         &biscuit,
         Action::EventGet {
             application_id: &qs.application_id,
+            label_key: qs.label_key.as_deref(),
+            label_value: qs.label_value.as_deref(),
         },
         state.max_authorization_time_in_ms,
     )
@@ -241,15 +257,25 @@ pub async fn get(
         return Err(Hook0Problem::Forbidden);
     }
 
+    let labels = if let (Some(label_key), Some(label_value)) =
+        (qs.label_key.as_deref(), qs.label_value.as_deref())
+    {
+        Some(json!({ label_key: label_value }).to_string())
+    } else {
+        None
+    };
+
     let raw_event = query_as!(
             EventWithPayloadRaw,
             "
                 SELECT event__id, event_type__name, payload, payload_content_type, ip, metadata, occurred_at, received_at, labels
                 FROM event.event
                 WHERE application__id = $1 AND event__id = $2
+                AND ($3::text IS NULL OR labels @> $3::jsonb)
             ",
             &qs.application_id,
             &event_id.into_inner(),
+            labels,
         )
         .fetch_optional(&state.db)
         .await
@@ -449,6 +475,12 @@ pub struct ReplayEvent {
     application_id: Uuid,
 }
 
+#[derive(Debug, Deserialize, Apiv2Schema)]
+pub struct EventWithoutApplicationQs {
+    label_key: Option<String>,
+    label_value: Option<String>,
+}
+
 #[api_v2_operation(
     summary = "Replay an event",
     description = "Trigger existing subscriptions matching an existing event, which will result in webhook being send again",
@@ -462,6 +494,7 @@ pub async fn replay(
     biscuit: ReqData<Biscuit>,
     event_id: Path<Uuid>,
     body: Json<ReplayEvent>,
+    qs: Query<EventWithoutApplicationQs>,
 ) -> Result<NoContent, Hook0Problem> {
     let event_uuid = event_id.into_inner();
 
@@ -470,6 +503,8 @@ pub async fn replay(
         &biscuit,
         Action::EventReplay {
             application_id: &body.application_id,
+            label_key: qs.label_key.as_deref(),
+            label_value: qs.label_value.as_deref(),
         },
         state.max_authorization_time_in_ms,
     )
@@ -479,15 +514,25 @@ pub async fn replay(
         return Err(Hook0Problem::Forbidden);
     }
 
+    let labels = if let (Some(label_key), Some(label_value)) =
+        (qs.label_key.as_deref(), qs.label_value.as_deref())
+    {
+        Some(json!({ label_key: label_value }).to_string())
+    } else {
+        None
+    };
+
     let replayed = query!(
         "
             UPDATE event.event
             SET dispatched_at = NULL
             WHERE event__id = $1
+            AND ($3::text IS NULL OR labels @> $3::jsonb)
             AND application__id = $2
         ",
         event_uuid,
         body.application_id,
+        labels,
     )
     .execute(&state.db)
     .await

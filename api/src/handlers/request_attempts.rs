@@ -94,6 +94,8 @@ pub struct Qs {
     application_id: Uuid,
     event_id: Option<Uuid>,
     subscription_id: Option<Uuid>,
+    label_key: Option<String>,
+    label_value: Option<String>,
 }
 
 #[api_v2_operation(
@@ -115,6 +117,8 @@ pub async fn list(
         &biscuit,
         Action::RequestAttemptList {
             application_id: &qs.application_id,
+            label_key: qs.label_key.as_deref(),
+            label_value: qs.label_value.as_deref(),
         },
         state.max_authorization_time_in_ms,
     )
@@ -147,10 +151,14 @@ pub async fn list(
                     FROM webhook.request_attempt AS ra
                     INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
                     WHERE s.application__id = $1
+                        AND ($2::text IS NULL OR s.label_key = $2)
+                        AND ($3::text IS NULL OR s.label_value = $3)
                     ORDER BY ra.created_at DESC
                     LIMIT 50
                 ",
                 &qs.application_id,
+                qs.label_key.as_deref(),
+                qs.label_value.as_deref(),
             )
             .fetch_all(&state.db)
             .await
@@ -164,11 +172,15 @@ pub async fn list(
                     FROM webhook.request_attempt AS ra
                     INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
                     WHERE s.application__id = $1 AND ra.event__id = $2
+                    AND ($3::text IS NULL OR s.label_key = $3)
+                    AND ($4::text IS NULL OR s.label_value = $4)
                     ORDER BY ra.created_at DESC
                     LIMIT 50
                 ",
                 &qs.application_id,
                 eid,
+                qs.label_key.as_deref(),
+                qs.label_value.as_deref(),
             )
             .fetch_all(&state.db)
             .await
@@ -182,11 +194,15 @@ pub async fn list(
                     FROM webhook.request_attempt AS ra
                     INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
                     WHERE s.application__id = $1 AND s.subscription__id = $2
+                    AND ($3::text IS NULL OR s.label_key = $3)
+                    AND ($4::text IS NULL OR s.label_value = $4)
                     ORDER BY ra.created_at DESC
                     LIMIT 50
                 ",
                 &qs.application_id,
                 sid,
+                qs.label_key.as_deref(),
+                qs.label_value.as_deref(),
             )
             .fetch_all(&state.db)
             .await
@@ -200,12 +216,16 @@ pub async fn list(
                     FROM webhook.request_attempt AS ra
                     INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
                     WHERE s.application__id = $1 AND ra.event__id = $2 AND s.subscription__id = $3
+                    AND ($4::text IS NULL OR s.label_key = $4)
+                    AND ($5::text IS NULL OR s.label_value = $5)
                     ORDER BY ra.created_at DESC
                     LIMIT 50
                 ",
                 &qs.application_id,
                 eid,
                 sid,
+                qs.label_key.as_deref(),
+                qs.label_value.as_deref(),
             )
             .fetch_all(&state.db)
             .await

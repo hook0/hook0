@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT subscription__id\n            FROM webhook.subscription\n            WHERE application__id = $1 AND subscription__id = $2\n            AND ($3::text IS NULL OR label_key = $3)\n            AND ($4::text IS NULL OR label_value = $4)\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "subscription__id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "1f837093e141c13204b5b7365b9381369d59d134f548758a5579c6870aac249f"
+}
