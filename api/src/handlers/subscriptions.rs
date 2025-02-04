@@ -133,6 +133,12 @@ pub struct Qs {
     label_value: Option<String>,
 }
 
+#[derive(Debug, Deserialize, Apiv2Schema)]
+pub struct SubscriptionWithoutApplicationQs {
+    label_key: Option<String>,
+    label_value: Option<String>,
+}
+
 #[api_v2_operation(
     summary = "List subscriptions",
     description = "List all subscriptions created by customers against the application events",
@@ -288,6 +294,7 @@ pub async fn get(
     _: OaBiscuit,
     biscuit: ReqData<Biscuit>,
     subscription_id: Path<Uuid>,
+    qs: Query<SubscriptionWithoutApplicationQs>,
 ) -> Result<Json<Subscription>, Hook0Problem> {
     let subscription_id = subscription_id.into_inner();
 
@@ -314,6 +321,8 @@ pub async fn get(
         Action::SubscriptionGet {
             application_id: &application_id,
             subscription_id: &subscription_id,
+            label_key: qs.label_key.as_deref(),
+            label_value: qs.label_value.as_deref(),
         },
         state.max_authorization_time_in_ms,
     )
@@ -356,6 +365,8 @@ pub async fn get(
                 LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
                 LEFT JOIN infrastructure.worker AS w ON w.worker__id = sw.worker__id
                 WHERE s.application__id = $1 AND s.subscription__id = $2
+                AND ($3::text IS NULL OR s.label_key = $3)
+                AND ($4::text IS NULL OR s.label_value = $4)
                 GROUP BY s.subscription__id
                 ORDER BY s.created_at ASC
             ), targets AS (
@@ -374,6 +385,8 @@ pub async fn get(
         "#, // Column aliases ending with "!" are there because sqlx does not seem to infer correctly that these columns' types are not options
         &application_id,
         &subscription_id,
+        qs.label_key.as_deref(),
+        qs.label_value.as_deref(),
     )
         .fetch_optional(&state.db)
         .await
@@ -669,6 +682,7 @@ pub async fn edit(
     biscuit: ReqData<Biscuit>,
     subscription_id: Path<Uuid>,
     body: Json<SubscriptionPost>,
+    qs: Query<SubscriptionWithoutApplicationQs>,
 ) -> Result<Json<Subscription>, Hook0Problem> {
     if authorize_for_application(
         &state.db,
@@ -676,6 +690,8 @@ pub async fn edit(
         Action::SubscriptionEdit {
             application_id: &body.application_id,
             subscription_id: &subscription_id,
+            label_key: qs.label_key.as_deref(),
+            label_value: qs.label_value.as_deref(),
         },
         state.max_authorization_time_in_ms,
     )
@@ -719,6 +735,8 @@ pub async fn edit(
                     UPDATE webhook.subscription
                     SET is_enabled = $1, description = $2, metadata = $3, label_key = $4, label_value = $5
                     WHERE subscription__id = $6 AND application__id = $7 AND deleted_at IS NULL
+                    AND ($8::text IS NULL OR label_key = $8)
+                    AND ($9::text IS NULL OR label_value = $9)
                     RETURNING subscription__id, is_enabled, description, secret, metadata, label_key, label_value, target__id, created_at
                 ",
                 &body.is_enabled, // updatable
@@ -727,7 +745,9 @@ pub async fn edit(
                 &body.label_key, // updatable
                 &body.label_value, // updatable
                 &subscription_id.into_inner(), // read-only
-                &body.application_id // read-only
+                &body.application_id, // read-only
+                qs.label_key.as_deref(),
+                qs.label_value.as_deref(),
             )
         .fetch_optional(&mut *tx)
         .await
@@ -924,6 +944,8 @@ pub async fn delete(
         Action::SubscriptionDelete {
             application_id: &qs.application_id,
             subscription_id: &subscription_id,
+            label_key: qs.label_key.as_deref(),
+            label_value: qs.label_value.as_deref(),
         },
         state.max_authorization_time_in_ms,
     )
@@ -945,9 +967,13 @@ pub async fn delete(
             SELECT subscription__id
             FROM webhook.subscription
             WHERE application__id = $1 AND subscription__id = $2
+            AND ($3::text IS NULL OR label_key = $3)
+            AND ($4::text IS NULL OR label_value = $4)
         ",
         &application_id,
-        &subscription_id.into_inner()
+        &subscription_id.into_inner(),
+        qs.label_key.as_deref(),
+        qs.label_value.as_deref(),
     )
     .fetch_optional(&state.db)
     .await

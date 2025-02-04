@@ -440,35 +440,51 @@ pub enum Action<'a> {
     SubscriptionGet {
         application_id: &'a Uuid,
         subscription_id: &'a Uuid,
+        label_key: Option<&'a str>,
+        label_value: Option<&'a str>,
     },
     SubscriptionEdit {
         application_id: &'a Uuid,
         subscription_id: &'a Uuid,
+        label_key: Option<&'a str>,
+        label_value: Option<&'a str>,
     },
     SubscriptionDelete {
         application_id: &'a Uuid,
         subscription_id: &'a Uuid,
+        label_key: Option<&'a str>,
+        label_value: Option<&'a str>,
     },
     //
     EventList {
         application_id: &'a Uuid,
+        label_key: Option<&'a str>,
+        label_value: Option<&'a str>,
     },
     EventGet {
         application_id: &'a Uuid,
+        label_key: Option<&'a str>,
+        label_value: Option<&'a str>,
     },
     EventIngest {
         application_id: &'a Uuid,
     },
     EventReplay {
         application_id: &'a Uuid,
+        label_key: Option<&'a str>,
+        label_value: Option<&'a str>,
     },
     //
     RequestAttemptList {
         application_id: &'a Uuid,
+        label_key: Option<&'a str>,
+        label_value: Option<&'a str>,
     },
     //
     ResponseGet {
         application_id: &'a Uuid,
+        label_key: Option<&'a str>,
+        label_value: Option<&'a str>,
     },
 }
 

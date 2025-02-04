@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT r.response__id, r.response_error__name, r.http_code, r.headers, r.body, r.elapsed_time_ms\n            FROM webhook.response AS r\n            INNER JOIN webhook.request_attempt AS ra ON ra.response__id = r.response__id\n            INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id\n            WHERE s.application__id = $1 AND r.response__id = $2\n        ",
+  "query": "\n            SELECT r.response__id, r.response_error__name, r.http_code, r.headers, r.body, r.elapsed_time_ms\n            FROM webhook.response AS r\n            INNER JOIN webhook.request_attempt AS ra ON ra.response__id = r.response__id\n            INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id\n            WHERE s.application__id = $1 AND r.response__id = $2\n            AND ($3::text IS NULL OR s.label_key = $3)\n            AND ($4::text IS NULL OR s.label_value = $4)\n        ",
   "describe": {
     "columns": [
       {
@@ -37,7 +37,9 @@
     "parameters": {
       "Left": [
         "Uuid",
-        "Uuid"
+        "Uuid",
+        "Text",
+        "Text"
       ]
     },
     "nullable": [
@@ -49,5 +51,5 @@
       true
     ]
   },
-  "hash": "75c3aa82e6a7fd6d7ef407b312670fa722dca1e941b8d9c5c2cc18d165d11e6b"
+  "hash": "d3a202b4e8dfbf07708deff7af7abba6225687db9f124ac2dbcfb36d90f1b743"
 }

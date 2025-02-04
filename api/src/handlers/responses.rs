@@ -26,6 +26,8 @@ pub struct Response {
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
 pub struct Qs {
     application_id: Uuid,
+    label_key: Option<String>,
+    label_value: Option<String>,
 }
 
 #[api_v2_operation(
@@ -48,6 +50,8 @@ pub async fn get(
         &biscuit,
         Action::ResponseGet {
             application_id: &qs.application_id,
+            label_key: qs.label_key.as_deref(),
+            label_value: qs.label_value.as_deref(),
         },
         state.max_authorization_time_in_ms,
     )
@@ -75,9 +79,13 @@ pub async fn get(
             INNER JOIN webhook.request_attempt AS ra ON ra.response__id = r.response__id
             INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
             WHERE s.application__id = $1 AND r.response__id = $2
+            AND ($3::text IS NULL OR s.label_key = $3)
+            AND ($4::text IS NULL OR s.label_value = $4)
         ",
         &qs.application_id,
         &response_id.into_inner(),
+        qs.label_key.as_deref(),
+        qs.label_value.as_deref(),
     )
     .fetch_optional(&state.db)
     .await
