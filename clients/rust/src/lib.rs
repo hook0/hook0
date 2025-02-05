@@ -4,20 +4,50 @@
 //! This is the Rust client for Hook0.
 //! It makes it easier to send events from a Rust application to a Hook0 instance.
 
+#[cfg(all(
+    not(feature = "reqwest-rustls-tls-webpki-roots"),
+    not(feature = "reqwest-rustls-tls-native-roots")
+))]
+compile_error!("at least one of feature \"reqwest-rustls-tls-webpki-roots\" and feature \"reqwest-rustls-tls-native-roots\" must be enabled");
+
+#[cfg(all(not(feature = "producer"), not(feature = "consumer")))]
+compile_error!("at least one of feature \"producer\" and feature \"consumer\" must be enabled");
+
 use chrono::{DateTime, Utc};
+
+#[cfg(feature = "producer")]
 use lazy_regex::regex_captures;
+#[cfg(feature = "producer")]
 use log::{debug, error, trace};
+#[cfg(feature = "producer")]
 use reqwest::header::{HeaderMap, HeaderValue, InvalidHeaderValue, AUTHORIZATION};
+#[cfg(feature = "producer")]
 use reqwest::{Client, Url};
+#[cfg(feature = "producer")]
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "producer")]
 use serde_json::{Map, Value};
+#[cfg(feature = "producer")]
 use std::borrow::Cow;
+#[cfg(feature = "producer")]
 use std::collections::HashSet;
+#[cfg(feature = "producer")]
 use std::fmt::Display;
+#[cfg(feature = "producer")]
 use std::str::FromStr;
+#[cfg(feature = "producer")]
 use url::ParseError;
+#[cfg(feature = "producer")]
 use uuid::Uuid;
 
+#[cfg(feature = "consumer")]
+use chrono::{Duration, OutOfRangeError};
+#[cfg(feature = "consumer")]
+use std::time::Duration as StdDuration;
+#[cfg(feature = "consumer")]
+mod signature;
+
+#[cfg(feature = "producer")]
 /// The Hook0 client
 ///
 /// This struct is supposed to be initialized once and shared/reused wherever you need to send events in your app.
@@ -28,6 +58,7 @@ pub struct Hook0Client {
     application_id: Uuid,
 }
 
+#[cfg(feature = "producer")]
 impl Hook0Client {
     /// Initialize a client
     ///
@@ -194,14 +225,84 @@ impl Hook0Client {
     }
 }
 
+#[cfg(feature = "consumer")]
+/// Verifies the signature of a webhook
+///
+/// - `signature` - The value of the `X-Hook0-Signature` header.
+/// - `payload` - The raw body of the webhook request.
+/// - `subscription_secret` - The signing secret used to validate the signature.
+/// - `tolerance` - The maximum allowed time difference for the timestamp (5 minutes is a good trade-off between flexibility and protecting against replay attacks).
+/// - `current_time` - The current time (used to check the timestamp).
+pub fn verify_webhook_signature_with_current_time(
+    signature: &str,
+    payload: &[u8],
+    subscription_secret: &str,
+    tolerance: StdDuration,
+    current_time: DateTime<Utc>,
+) -> Result<(), Hook0ClientError> {
+    let parsed_sig =
+        signature::Signature::parse(signature).map_err(|_| Hook0ClientError::InvalidSignature)?;
+
+    if !parsed_sig.verify(payload, subscription_secret) {
+        Err(Hook0ClientError::InvalidSignature)
+    } else {
+        let signed_at = DateTime::from_timestamp(parsed_sig.timestamp, 0);
+
+        match signed_at {
+            Some(signed_at) => {
+                let tolerance = Duration::from_std(tolerance);
+                match tolerance {
+                    Ok(tolerance) => {
+                        if (current_time - signed_at) > tolerance {
+                            Err(Hook0ClientError::ExpiredWebhook {
+                                signed_at,
+                                tolerance,
+                                current_time,
+                            })
+                        } else {
+                            Ok(())
+                        }
+                    }
+                    Err(e) => Err(Hook0ClientError::InvalidTolerance(e)),
+                }
+            }
+            None => Err(Hook0ClientError::InvalidSignature),
+        }
+    }
+}
+
+#[cfg(feature = "consumer")]
+/// Verifies the signature of a webhook
+///
+/// - `signature` - The value of the `X-Hook0-Signature` header.
+/// - `payload` - The raw body of the webhook request.
+/// - `subscription_secret` - The signing secret used to validate the signature.
+/// - `tolerance` - The maximum allowed time difference for the timestamp (5 minutes is a good trade-off between flexibility and protecting against replay attacks).
+pub fn verify_webhook_signature(
+    signature: &str,
+    payload: &[u8],
+    subscription_secret: &str,
+    tolerance: StdDuration,
+) -> Result<(), Hook0ClientError> {
+    verify_webhook_signature_with_current_time(
+        signature,
+        payload,
+        subscription_secret,
+        tolerance,
+        Utc::now(),
+    )
+}
+
+#[cfg(feature = "producer")]
 /// A structured event type
 #[derive(Debug, Serialize, PartialEq, Eq)]
-pub struct EventType {
+struct EventType {
     service: String,
     resource_type: String,
     verb: String,
 }
 
+#[cfg(feature = "producer")]
 impl FromStr for EventType {
     type Err = ();
 
@@ -219,12 +320,14 @@ impl FromStr for EventType {
     }
 }
 
+#[cfg(feature = "producer")]
 impl Display for EventType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}.{}.{}", self.service, self.resource_type, self.verb)
     }
 }
 
+#[cfg(feature = "producer")]
 /// An event that can be sent to Hook0
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Event<'a> {
@@ -244,6 +347,7 @@ pub struct Event<'a> {
     pub labels: Vec<(String, Value)>,
 }
 
+#[cfg(feature = "producer")]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 struct FullEvent<'a> {
     pub application_id: Uuid,
@@ -256,6 +360,7 @@ struct FullEvent<'a> {
     pub labels: Map<String, Value>,
 }
 
+#[cfg(feature = "producer")]
 impl<'a> FullEvent<'a> {
     pub fn from_event(event: &'a Event, application_id: &Uuid) -> Self {
         let event_id = event
@@ -283,24 +388,28 @@ impl<'a> FullEvent<'a> {
 /// Every error Hook0 client can encounter
 #[derive(Debug, thiserror::Error)]
 pub enum Hook0ClientError {
+    #[cfg(feature = "producer")]
     /// Cannot build a structurally-valid `Authorization` header
     ///
     /// _This is an internal error that is unlikely to happen._
     #[error("Could not build auth header: {0}")]
     AuthHeader(InvalidHeaderValue),
 
+    #[cfg(feature = "producer")]
     /// Cannot build a Reqwest HTTP client
     ///
     /// _This is an internal error that is unlikely to happen._
     #[error("Could not build reqwest HTTP client: {0}")]
     ReqwestClient(reqwest::Error),
 
+    #[cfg(feature = "producer")]
     /// Cannot build a structurally-valid endpoint URL
     ///
     /// _This is an internal error that is unlikely to happen._
     #[error("Could not create a valid URL to request Hook0's API: {0}")]
     Url(ParseError),
 
+    #[cfg(feature = "producer")]
     /// Something went wrong when sending an event to Hook0
     #[error("Sending event {event_id} failed: {error} [body={}]", body.as_deref().unwrap_or(""))]
     EventSending {
@@ -314,14 +423,17 @@ pub enum Hook0ClientError {
         body: Option<String>,
     },
 
+    #[cfg(feature = "producer")]
     /// Provided event type does not have a valid syntax
     #[error("Provided event type '{0}' does not have a valid syntax (service.resource_type.verb)")]
     InvalidEventType(String),
 
+    #[cfg(feature = "producer")]
     /// Something went wrong when trying to fetch the list of available event types
     #[error("Getting available event types failed: {0}")]
     GetAvailableEventTypes(reqwest::Error),
 
+    #[cfg(feature = "producer")]
     /// Something went wrong when creating an event type
     #[error("Creating event type '{event_type_name}' failed: {error}")]
     CreatingEventType {
@@ -331,8 +443,43 @@ pub enum Hook0ClientError {
         /// Error as reported by Reqwest
         error: reqwest::Error,
     },
+
+    #[cfg(feature = "consumer")]
+    /// The webhook signature is invalid
+    #[error("Invalid signature")]
+    InvalidSignature,
+
+    #[cfg(feature = "consumer")]
+    /// The webhook has expired because it was sent too long ago
+    #[error("The webhook has expired because it was sent too long ago (signed_at={signed_at}, tolerance={tolerance}, current_time={current_time})")]
+    ExpiredWebhook {
+        /// Timestamp of the moment the webhook was signed
+        signed_at: DateTime<Utc>,
+
+        /// Maximum difference between the signature timestamp and the current time for the webhook to be considered valid
+        tolerance: Duration,
+
+        /// Current time
+        current_time: DateTime<Utc>,
+    },
+
+    #[cfg(feature = "consumer")]
+    /// Could not parse signature
+    #[error("Could not parse signature: {0}")]
+    SignatureParsing(String),
+
+    #[cfg(feature = "consumer")]
+    /// Could not parse timestamp in signature
+    #[error("Could not parse timestamp in signature: {0}")]
+    TimestampParsingInSignature(String),
+
+    #[cfg(feature = "consumer")]
+    /// Invalid tolerance Duration
+    #[error("Invalid tolerance Duration: {0}")]
+    InvalidTolerance(OutOfRangeError),
 }
 
+#[cfg(feature = "producer")]
 impl Hook0ClientError {
     /// Log the error (using the log crate) and return it as a result of this function's call
     pub fn log_and_return(self) -> Self {
@@ -341,6 +488,7 @@ impl Hook0ClientError {
     }
 }
 
+#[cfg(feature = "producer")]
 fn append_url_segments(base_url: &Url, segments: &[&str]) -> Result<Url, url::ParseError> {
     const SEP: &str = "/";
     let segments_str = segments.join(SEP);
@@ -354,6 +502,7 @@ fn append_url_segments(base_url: &Url, segments: &[&str]) -> Result<Url, url::Pa
 mod tests {
     use super::*;
 
+    #[cfg(feature = "producer")]
     #[test]
     fn displaying_event_type() {
         let et = EventType {
@@ -365,6 +514,7 @@ mod tests {
         assert_eq!(et.to_string(), "service.resource.verb")
     }
 
+    #[cfg(feature = "producer")]
     #[test]
     fn parsing_valid_event_type() {
         let et = EventType {
@@ -376,8 +526,51 @@ mod tests {
         assert_eq!(EventType::from_str(&et.to_string()), Ok(et))
     }
 
+    #[cfg(feature = "producer")]
     #[test]
     fn parsing_invalid_event_type() {
         assert_eq!(EventType::from_str("test.test"), Err(()))
+    }
+
+    #[cfg(feature = "consumer")]
+    #[test]
+    fn verifying_valid_signature() {
+        let signature =
+            "t=1636936200,v0=1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98";
+        let payload = "hello !".as_bytes();
+        let subscription_secret = "secret";
+        let tolerance = StdDuration::from_secs((i64::MAX / 1000) as u64);
+
+        assert!(
+            verify_webhook_signature(signature, payload, subscription_secret, tolerance).is_ok()
+        );
+    }
+
+    #[cfg(feature = "consumer")]
+    #[test]
+    fn verifying_valid_signature_with_current_time() {
+        let signature =
+            "t=1636936200,v0=1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98";
+        let payload = "hello !".as_bytes();
+        let subscription_secret = "secret";
+        let tolerance = StdDuration::from_secs((i64::MAX / 1000) as u64);
+
+        assert!(
+            verify_webhook_signature(signature, payload, subscription_secret, tolerance).is_ok()
+        );
+    }
+
+    #[cfg(feature = "consumer")]
+    #[test]
+    fn verifying_expired_signature() {
+        let signature =
+            "t=1636936200,v0=1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98";
+        let payload = "hello !".as_bytes();
+        let subscription_secret = "secret";
+        let tolerance = StdDuration::from_secs(300);
+
+        assert!(
+            verify_webhook_signature(signature, payload, subscription_secret, tolerance).is_err()
+        );
     }
 }
