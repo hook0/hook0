@@ -14,7 +14,11 @@ client.rust.check:
     - pushd clients/rust
     - cargo fmt --all -- --check
     - cargo clippy --all-targets --all-features -- -D warnings
-    - cargo test
+    - cargo test --all-targets --all-features
+    - cargo clippy --all-targets --no-default-features --features reqwest-rustls-tls-webpki-roots,consumer -- -D warnings
+    - cargo test --all-targets --no-default-features --features reqwest-rustls-tls-webpki-roots,consumer
+    - cargo clippy --all-targets --no-default-features --features reqwest-rustls-tls-webpki-roots,producer -- -D warnings
+    - cargo test --all-targets --no-default-features --features reqwest-rustls-tls-webpki-roots,producer
 
 client.rust.semver-checks:
   stage: test
