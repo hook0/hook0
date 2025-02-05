@@ -1,11 +1,11 @@
-import create_application from '../handlers/applications/create_application.js';
-import create_service_token from '../handlers/service_token/create_service_token.js';
+import create_application from '../services/applications/create_application.js';
+import create_service_token from '../services/service_token/create_service_token.js';
 import list_subscription, {
   list_subscriptions_fail,
-} from '../handlers/subscriptions/list_subscription.js';
-import attenuate_dashboard_service_token from '../handlers/service_token/attenuate/dashboard.js';
+} from '../services/subscriptions/list_subscription.js';
+import attenuate_dashboard_service_token from '../services/service_token/attenuate/dashboard.js';
 import { isNotNull } from '../utils/function.js';
-import delete_application from '../handlers/applications/delete_application.js';
+import delete_application from '../services/applications/delete_application.js';
 
 export function scenario_2(config) {
   const h = config.apiOrigin;
@@ -69,7 +69,18 @@ export function scenario_2(config) {
     );
     if (!isNotNull(list_subscriptions_without_labels_fail)) {
       throw new Error(
-        `${scenario_name} Failed to fail list subscriptions attenuated service token and no labels`
+        `${scenario_name} Expected failure when listing subscriptions with attenuated service token and no labels`
+      );
+    }
+
+    let list_subscriptions_with_different_labels_fail = list_subscriptions_fail(
+      h,
+      attenuated_service_token,
+      `?application_id=${application_id}&label_key=other_label&label_value=other_label`
+    );
+    if (!isNotNull(list_subscriptions_with_different_labels_fail)) {
+      throw new Error(
+        `${scenario_name} Expected failure when listing subscriptions with attenuated service token and different labels`
       );
     }
 
