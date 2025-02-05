@@ -23,6 +23,7 @@ include:
   - template: Security/Secret-Detection.gitlab-ci.yml
   - local: 'api/.gitlab-ci.yml'
   - local: 'clients/rust/.gitlab-ci.yml'
+  - local: 'clients/typescript/.gitlab-ci.yml'
   - local: 'frontend/.gitlab-ci.yml'
   - local: 'output-worker/.gitlab-ci.yml'
   - local: 'sentry-integration/.gitlab-ci.yml'
