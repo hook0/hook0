@@ -1,6 +1,6 @@
 # Hook0 TypeScript Client
 
-This is the TypeScript SDK for Hook0, an open-source webhooks-as-a-service platform designed for SaaS applications.
+This is the TypeScript/JavaScript SDK for Hook0, an open source Webhooks-as-a-Service platform designed for SaaS applications.
 
 ## What is Hook0?
 
