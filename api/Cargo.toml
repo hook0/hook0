@@ -23,7 +23,7 @@ chrono = { version = "0.4.39", features = ["serde"] }
 clap = { version = "4.5.28", features = ["derive", "env", "cargo", "wrap_help"] }
 futures-util = "0.3.30"
 governor = "0.8.0"
-hook0-client = { path = "../clients/rust", version = "0.2.0" }
+hook0-client = { path = "../clients/rust", version = "0.2.0", default-features = false, features = ["producer"] }
 hook0-sentry-integration = { path = "../sentry-integration", version = "0.1.0" }
 html2text = "0.13.6"
 http-api-problem = { version = "0.57.0", features = ["actix-web"] }
