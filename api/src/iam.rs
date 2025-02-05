@@ -514,7 +514,8 @@ impl Action<'_> {
             Self::ServiceTokenGet => "service_token:get",
             Self::ServiceTokenEdit { .. } => "service_token:edit",
             Self::ServiceTokenDelete { .. } => "service_token:delete",
-            Self::ServiceTokenAttenuateDashboard => "service_token:attenuate_dashboard",
+            //
+            Self::ServiceTokenAttenuateDashboard => "service_token_management:attenuate_dashboard",
             //
             Self::ApplicationList { .. } => "application:list",
             Self::ApplicationCreate { .. } => "application:create",
@@ -581,6 +582,7 @@ impl Action<'_> {
             Self::ServiceTokenGet => vec![],
             Self::ServiceTokenEdit { .. } => vec![],
             Self::ServiceTokenDelete { .. } => vec![],
+            //
             Self::ServiceTokenAttenuateDashboard => vec![],
             //
             Self::ApplicationList { .. } => vec![Role::Viewer],
@@ -666,6 +668,7 @@ impl Action<'_> {
             Self::ServiceTokenGet => None,
             Self::ServiceTokenEdit { .. } => None,
             Self::ServiceTokenDelete { .. } => None,
+            //
             Self::ServiceTokenAttenuateDashboard => None,
             //
             Self::ApplicationList => None,
@@ -737,6 +740,7 @@ impl Action<'_> {
                 "service_token_id({service_token_id})",
                 service_token_id = *service_token_id
             )],
+            //
             Self::ServiceTokenAttenuateDashboard => vec![],
             //
             Self::ApplicationList => vec![],
@@ -1012,7 +1016,7 @@ pub fn authorize(
     });
     authorizer.add_token(biscuit)?;
     let result = authorizer.authorize();
-    warn!("Authorizer state:\n{}", authorizer.print_world());
+    trace!("Authorizer state:\n{}", authorizer.print_world());
     result?;
 
     let raw_type: Vec<(String,)> = authorizer.query(rule!("data($id) <- type($id)"))?;

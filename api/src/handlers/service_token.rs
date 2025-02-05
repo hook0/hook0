@@ -390,24 +390,24 @@ pub struct ServiceTokenPutQs {
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
-pub struct AttenuatedBiscuit {
+pub struct DashboardsAttenuatedBiscuit {
     biscuit: String,
 }
 
 #[api_v2_operation(
-    summary = "Attenuate a service token",
+    summary = "Attenuate a service token for the dashboards usage",
     description = "",
-    operation_id = "serviceToken.attenuate",
+    operation_id = "serviceTokenManagement.attenuate",
     consumes = "application/json",
     produces = "application/json",
     tags("Organization Management")
 )]
-pub async fn attenuate_dashboard(
+pub async fn attenuate_dashboards(
     state: Data<crate::State>,
     _: OaBiscuit,
     biscuit: ReqData<Biscuit>,
     qs: Query<ServiceTokenPutQs>,
-) -> Result<Json<AttenuatedBiscuit>, Hook0Problem> {
+) -> Result<Json<DashboardsAttenuatedBiscuit>, Hook0Problem> {
     if authorize_only_service_token(
         &biscuit,
         None,
@@ -445,7 +445,7 @@ pub async fn attenuate_dashboard(
         Hook0Problem::InternalServerError
     })?;
 
-    Ok(Json(AttenuatedBiscuit {
+    Ok(Json(DashboardsAttenuatedBiscuit {
         biscuit: serialized_biscuit,
     }))
 }

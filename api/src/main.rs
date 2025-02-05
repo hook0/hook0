@@ -860,11 +860,14 @@ async fn main() -> anyhow::Result<()> {
                                         .route(web::get().to(handlers::service_token::list))
                                         .route(web::post().to(handlers::service_token::create)),
                                 )
-                                .service(web::scope("/attenuate").service(
-                                    web::resource("/dashboard").route(
-                                        web::put().to(handlers::service_token::attenuate_dashboard),
+                                .service(
+                                    web::scope("/attenuate").service(
+                                        web::resource("/dashboard").route(
+                                            web::put()
+                                                .to(handlers::service_token::attenuate_dashboards),
+                                        ),
                                     ),
-                                ))
+                                )
                                 .service(
                                     web::resource("/{service_token_id}")
                                         .route(web::get().to(handlers::service_token::get))
