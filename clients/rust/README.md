@@ -1,6 +1,6 @@
 # Hook0 Rust Client
 
-This is the Rust SDK for Hook0, an open-source webhooks-as-a-service platform designed for SaaS applications.
+This is the Rust SDK for Hook0, an open source Webhooks-as-a-Service platform designed for SaaS applications.
 
 ## What is Hook0?
 
@@ -25,12 +25,7 @@ This example starts a server listening on `127.0.0.1:8081` and handles incoming 
 ## Getting Started
 
 To use the Hook0 client in your Rust project, run `cargo add hook0-client` in your project.
-You can also manually add the following to your `Cargo.toml`:
-
-```toml
-[dependencies]
-hook0-client = "0.2.0"
-```
+You can also manually add the following to your `Cargo.toml`.
 
 ### Enabling Features
 
