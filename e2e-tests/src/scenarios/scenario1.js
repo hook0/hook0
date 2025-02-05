@@ -1,10 +1,10 @@
-import create_application from '../handlers/applications/create_application.js';
-import create_event_type from '../handlers/event_types/create_event_type.js';
-import create_subscription from '../handlers/subscriptions/create_subscription.js';
-import send_event from '../handlers/events/send_event.js';
-import list_request_attempt from '../handlers/events/list_request_attempt.js';
-import delete_application from '../handlers/applications/delete_application.js';
-import get_quota from '../handlers/unauthentified/quotas.js';
+import create_application from '../services/applications/create_application.js';
+import create_event_type from '../services/event_types/create_event_type.js';
+import create_subscription from '../services/subscriptions/create_subscription.js';
+import send_event from '../services/events/send_event.js';
+import list_request_attempt from '../services/events/list_request_attempt.js';
+import delete_application from '../services/applications/delete_application.js';
+import get_quota from '../services/unauthentified/quotas.js';
 import { isNotNull } from '../utils/function.js';
 
 export function scenario_1(config) {

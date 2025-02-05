@@ -15,11 +15,9 @@
   },
   "private": true,
   "devDependencies": {
-    "@types/k6": "^0.54.2",
     "prettier": "^3.4.2"
   },
   "dependencies": {
-    "@biscuit-auth/biscuit-wasm": "0.4.0",
     "@date-fns/tz": "^1.2.0",
     "pg": "^8.13.1",
     "start-server-and-test": "^2.0.9"
