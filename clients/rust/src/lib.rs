@@ -489,11 +489,11 @@ fn append_url_segments(base_url: &Url, segments: &[&str]) -> Result<Url, url::Pa
     Ok(url)
 }
 
-#[cfg(feature = "producer")]
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    #[cfg(feature = "producer")]
     #[test]
     fn displaying_event_type() {
         let et = EventType {
@@ -505,6 +505,7 @@ mod tests {
         assert_eq!(et.to_string(), "service.resource.verb")
     }
 
+    #[cfg(feature = "producer")]
     #[test]
     fn parsing_valid_event_type() {
         let et = EventType {
@@ -516,11 +517,13 @@ mod tests {
         assert_eq!(EventType::from_str(&et.to_string()), Ok(et))
     }
 
+    #[cfg(feature = "producer")]
     #[test]
     fn parsing_invalid_event_type() {
         assert_eq!(EventType::from_str("test.test"), Err(()))
     }
 
+    #[cfg(feature = "consumer")]
     #[test]
     fn verifying_valid_signature() {
         let signature =
@@ -534,6 +537,7 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "consumer")]
     #[test]
     fn verifying_valid_signature_with_current_time() {
         let signature =
@@ -547,6 +551,7 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "consumer")]
     #[test]
     fn verifying_expired_signature() {
         let signature =
