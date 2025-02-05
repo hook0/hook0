@@ -1,4 +1,5 @@
 use actix_web::web::ReqData;
+use biscuit_auth::macros::block;
 use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};
 use log::error;
@@ -9,7 +10,7 @@ use sqlx::{query, query_as};
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::iam::{authorize, Action, RootToken};
+use crate::iam::{authorize, authorize_only_service_token, Action, RootToken};
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
 use crate::{
@@ -379,4 +380,72 @@ pub async fn get(
         Some(a) => Ok(Json(a)),
         None => Err(Hook0Problem::NotFound),
     }
+}
+
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
+pub struct ServiceTokenPutQs {
+    application_id: Uuid,
+    label_key: String,
+    label_value: String,
+}
+
+#[derive(Debug, Serialize, Apiv2Schema)]
+pub struct AttenuatedBiscuit {
+    biscuit: String,
+}
+
+#[api_v2_operation(
+    summary = "Attenuate a service token",
+    description = "",
+    operation_id = "serviceToken.attenuate",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Organization Management")
+)]
+pub async fn attenuate_dashboard(
+    state: Data<crate::State>,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
+    qs: Query<ServiceTokenPutQs>,
+) -> Result<Json<AttenuatedBiscuit>, Hook0Problem> {
+    if authorize_only_service_token(
+        &biscuit,
+        None,
+        Action::ServiceTokenAttenuateDashboard,
+        state.max_authorization_time_in_ms,
+    )
+    .is_err()
+    {
+        return Err(Hook0Problem::Forbidden);
+    }
+
+    let application_id = qs.application_id;
+    let label_key = qs.label_key.to_owned();
+    let label_value = qs.label_value.to_owned();
+
+    let builder = block!(
+        r#"
+            whitelisted_actions(["subscription:list", "subscription:create", "subscription:get", "subscription:edit", "event:list", "event:get", "request_attempt:list", "response:get"]);
+            whitelist_action($a) <- action($a), whitelisted_actions($wa), $wa.contains($a);
+            check if whitelist_action($a);
+
+            check if application_id({application_id});
+            check if label_key({label_key});
+            check if label_value({label_value});
+        "#,
+    );
+
+    let attenuated_biscuit = biscuit.append(builder).map_err(|e| {
+        error!("Could not attenuate a Biscuit (service access token): {e}");
+        Hook0Problem::InternalServerError
+    })?;
+
+    let serialized_biscuit = attenuated_biscuit.to_base64().map_err(|e| {
+        error!("Could not serialize a Biscuit (service access token): {e}");
+        Hook0Problem::InternalServerError
+    })?;
+
+    Ok(Json(AttenuatedBiscuit {
+        biscuit: serialized_biscuit,
+    }))
 }

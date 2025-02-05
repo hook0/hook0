@@ -384,6 +384,7 @@ pub enum Action<'a> {
     ServiceTokenDelete {
         service_token_id: &'a Uuid,
     },
+    ServiceTokenAttenuateDashboard,
     //
     ApplicationList,
     ApplicationCreate,
@@ -513,6 +514,7 @@ impl Action<'_> {
             Self::ServiceTokenGet => "service_token:get",
             Self::ServiceTokenEdit { .. } => "service_token:edit",
             Self::ServiceTokenDelete { .. } => "service_token:delete",
+            Self::ServiceTokenAttenuateDashboard => "service_token:attenuate_dashboard",
             //
             Self::ApplicationList { .. } => "application:list",
             Self::ApplicationCreate { .. } => "application:create",
@@ -579,6 +581,7 @@ impl Action<'_> {
             Self::ServiceTokenGet => vec![],
             Self::ServiceTokenEdit { .. } => vec![],
             Self::ServiceTokenDelete { .. } => vec![],
+            Self::ServiceTokenAttenuateDashboard => vec![],
             //
             Self::ApplicationList { .. } => vec![Role::Viewer],
             Self::ApplicationCreate { .. } => vec![],
@@ -631,6 +634,8 @@ impl Action<'_> {
             Self::OrganizationList => true,
             Self::OrganizationCreate => true,
             //
+            Self::ServiceTokenAttenuateDashboard => true,
+            //
             _ => false,
         }
     }
@@ -661,6 +666,7 @@ impl Action<'_> {
             Self::ServiceTokenGet => None,
             Self::ServiceTokenEdit { .. } => None,
             Self::ServiceTokenDelete { .. } => None,
+            Self::ServiceTokenAttenuateDashboard => None,
             //
             Self::ApplicationList => None,
             Self::ApplicationCreate => None,
@@ -731,6 +737,7 @@ impl Action<'_> {
                 "service_token_id({service_token_id})",
                 service_token_id = *service_token_id
             )],
+            Self::ServiceTokenAttenuateDashboard => vec![],
             //
             Self::ApplicationList => vec![],
             Self::ApplicationCreate => vec![],
@@ -752,7 +759,20 @@ impl Action<'_> {
             Self::EventTypeGet { .. } => vec![],
             Self::EventTypeDelete { .. } => vec![],
             //
-            Self::SubscriptionList { .. } => vec![],
+            Self::SubscriptionList {
+                label_key,
+                label_value,
+                ..
+            } => {
+                let mut facts = Vec::new();
+                if let Some(label_key) = label_key {
+                    facts.push(fact!("label_key({label_key})"))
+                }
+                if let Some(label_value) = label_value {
+                    facts.push(fact!("label_value({label_value})"))
+                }
+                facts
+            }
             Self::SubscriptionCreate {
                 label_key,
                 label_value,
@@ -762,32 +782,126 @@ impl Action<'_> {
                 fact!("label_value({label_value})", label_value = label_value),
             ],
             Self::SubscriptionGet {
-                subscription_id, ..
-            } => vec![fact!(
-                "subscription_id({subscription_id})",
-                subscription_id = *subscription_id
-            )],
+                subscription_id,
+                label_key,
+                label_value,
+                ..
+            } => {
+                let mut facts = Vec::new();
+                if let Some(label_key) = label_key {
+                    facts.push(fact!("label_key({label_key})"))
+                }
+                if let Some(label_value) = label_value {
+                    facts.push(fact!("label_value({label_value})"))
+                }
+
+                facts.push(fact!(
+                    "subscription_id({subscription_id})",
+                    subscription_id = *subscription_id
+                ));
+                facts
+            }
             Self::SubscriptionEdit {
-                subscription_id, ..
-            } => vec![fact!(
-                "subscription_id({subscription_id})",
-                subscription_id = *subscription_id
-            )],
+                subscription_id,
+                label_key,
+                label_value,
+                ..
+            } => {
+                let mut facts = Vec::new();
+                if let Some(label_key) = label_key {
+                    facts.push(fact!("label_key({label_key})"))
+                }
+                if let Some(label_value) = label_value {
+                    facts.push(fact!("label_value({label_value})"))
+                }
+
+                facts.push(fact!(
+                    "subscription_id({subscription_id})",
+                    subscription_id = *subscription_id
+                ));
+                facts
+            }
             Self::SubscriptionDelete {
-                subscription_id, ..
-            } => vec![fact!(
-                "subscription_id({subscription_id})",
-                subscription_id = *subscription_id
-            )],
+                subscription_id,
+                label_key,
+                label_value,
+                ..
+            } => {
+                let mut facts = Vec::new();
+                if let Some(label_key) = label_key {
+                    facts.push(fact!("label_key({label_key})"))
+                }
+                if let Some(label_value) = label_value {
+                    facts.push(fact!("label_value({label_value})"))
+                }
+
+                facts.push(fact!(
+                    "subscription_id({subscription_id})",
+                    subscription_id = *subscription_id
+                ));
+                facts
+            }
             //
-            Self::EventList { .. } => vec![],
-            Self::EventGet { .. } => vec![],
+            Self::EventList {
+                label_key,
+                label_value,
+                ..
+            } => {
+                let mut facts = Vec::new();
+                if let Some(label_key) = label_key {
+                    facts.push(fact!("label_key({label_key})"))
+                }
+                if let Some(label_value) = label_value {
+                    facts.push(fact!("label_value({label_value})"))
+                }
+                facts
+            }
+            Self::EventGet {
+                label_key,
+                label_value,
+                ..
+            } => {
+                let mut facts = Vec::new();
+                if let Some(label_key) = label_key {
+                    facts.push(fact!("label_key({label_key})"))
+                }
+                if let Some(label_value) = label_value {
+                    facts.push(fact!("label_value({label_value})"))
+                }
+                facts
+            }
             Self::EventIngest { .. } => vec![],
             Self::EventReplay { .. } => vec![],
             //
-            Self::RequestAttemptList { .. } => vec![],
+            Self::RequestAttemptList {
+                label_key,
+                label_value,
+                ..
+            } => {
+                let mut facts = Vec::new();
+                if let Some(label_key) = label_key {
+                    facts.push(fact!("label_key({label_key})"))
+                }
+                if let Some(label_value) = label_value {
+                    facts.push(fact!("label_value({label_value})"))
+                }
+                facts
+            }
             //
-            Self::ResponseGet { .. } => vec![],
+            Self::ResponseGet {
+                label_key,
+                label_value,
+                ..
+            } => {
+                let mut facts = Vec::new();
+                if let Some(label_key) = label_key {
+                    facts.push(fact!("label_key({label_key})"))
+                }
+                if let Some(label_value) = label_value {
+                    facts.push(fact!("label_value({label_value})"))
+                }
+                facts
+            }
         };
 
         facts.push(fact!("action({action})", action = self.action_name()));
@@ -898,7 +1012,7 @@ pub fn authorize(
     });
     authorizer.add_token(biscuit)?;
     let result = authorizer.authorize();
-    trace!("Authorizer state:\n{}", authorizer.print_world());
+    warn!("Authorizer state:\n{}", authorizer.print_world());
     result?;
 
     let raw_type: Vec<(String,)> = authorizer.query(rule!("data($id) <- type($id)"))?;
@@ -1005,6 +1119,27 @@ pub fn authorize_only_user(
         Ok(AuthorizedToken::User(aut)) => Ok(aut),
         Ok(_) => {
             trace!("Authorization was denied because a user_access token was required");
+            Err(biscuit_auth::error::Token::InternalError)
+        }
+        Err(e) => Err(e),
+    }
+}
+
+pub fn authorize_only_service_token(
+    biscuit: &Biscuit,
+    organization_id: Option<Uuid>,
+    action: Action,
+    max_authorization_time_in_ms: u64,
+) -> Result<AuthorizeServiceToken, biscuit_auth::error::Token> {
+    match authorize(
+        biscuit,
+        organization_id,
+        action,
+        max_authorization_time_in_ms,
+    ) {
+        Ok(AuthorizedToken::Service(aut)) => Ok(aut),
+        Ok(_) => {
+            trace!("Authorization was denied because a service_access token was required");
             Err(biscuit_auth::error::Token::InternalError)
         }
         Err(e) => Err(e),
