@@ -4,7 +4,7 @@ This is the TypeScript SDK for Hook0, an open-source webhooks-as-a-service platf
 
 ## What is Hook0?
 
-**Hook0** is a product that helps any software system (such as Software-as-a-Service applications) to expose webhooks to their end users.
+**Hook0** is an open source product that helps any software system (such as Software-as-a-Service applications) to expose webhooks to their end users.
 
 Want to know more? Check out our [detailed documentation](https://documentation.hook0.com/docs/what-is-hook0) or visit our [website](https://hook0.com).
 
