@@ -296,7 +296,7 @@ pub fn verify_webhook_signature(
 #[cfg(feature = "producer")]
 /// A structured event type
 #[derive(Debug, Serialize, PartialEq, Eq)]
-pub struct EventType {
+struct EventType {
     service: String,
     resource_type: String,
     verb: String,
