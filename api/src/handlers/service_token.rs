@@ -383,14 +383,14 @@ pub async fn get(
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
-pub struct ServiceTokenPutQs {
+pub struct AttenuateDashboardQs {
     application_id: Uuid,
     label_key: String,
     label_value: String,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
-pub struct DashboardsAttenuatedBiscuit {
+pub struct AttenuatedBiscuit {
     biscuit: String,
 }
 
@@ -406,8 +406,8 @@ pub async fn attenuate_dashboards(
     state: Data<crate::State>,
     _: OaBiscuit,
     biscuit: ReqData<Biscuit>,
-    qs: Query<ServiceTokenPutQs>,
-) -> Result<Json<DashboardsAttenuatedBiscuit>, Hook0Problem> {
+    qs: Query<AttenuateDashboardQs>,
+) -> Result<Json<AttenuatedBiscuit>, Hook0Problem> {
     if authorize_only_service_token(
         &biscuit,
         None,
@@ -425,7 +425,7 @@ pub async fn attenuate_dashboards(
 
     let builder = block!(
         r#"
-            whitelisted_actions(["subscription:list", "subscription:create", "subscription:get", "subscription:edit", "event:list", "event:get", "request_attempt:list", "response:get"]);
+            whitelisted_actions(["subscription:list", "subscription:create", "subscription:get", "subscription:edit", "subscription:delete", "event:list", "event:get", "request_attempt:list", "response:get"]);
             whitelist_action($a) <- action($a), whitelisted_actions($wa), $wa.contains($a);
             check if whitelist_action($a);
 
@@ -445,7 +445,7 @@ pub async fn attenuate_dashboards(
         Hook0Problem::InternalServerError
     })?;
 
-    Ok(Json(DashboardsAttenuatedBiscuit {
+    Ok(Json(AttenuatedBiscuit {
         biscuit: serialized_biscuit,
     }))
 }
