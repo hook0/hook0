@@ -1,5 +1,9 @@
 # Hook0 Rust Client
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE.md)
+[![Latest Version](https://img.shields.io/crates/v/hook0-client)](https://crates.io/crates/hook0-client)
+[![Documentation](https://img.shields.io/docsrs/hook0-client)](https://docs.rs/hook0-client)
+
 This is the Rust SDK for [Hook0](https://www.hook0.com), an open source Webhooks-as-a-Service platform designed for SaaS applications.
 
 ## Features
