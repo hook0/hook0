@@ -26,6 +26,4 @@ clients.typescript.check:
   image: node:$NODE_VERSION
   script:
     - pushd clients/typescript/
-    - npm run check
-    - npm run lint
-    - npm run test
+    - npm run check-full
