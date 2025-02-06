@@ -9,5 +9,6 @@ interface ImportMeta {
     readonly VITE_KEYCLOAK_FRONT_CLIENT_ID: string;
     readonly VITE_FEATURES_KEYCLOAK?: string;
     readonly VITE_CRISP_WEBSITE_ID?: string;
+    readonly VITE_SENTRY_DSN?: string;
   };
 }

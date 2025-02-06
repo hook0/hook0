@@ -45,6 +45,7 @@
     "@fortawesome/fontawesome-svg-core": "^6.2.0",
     "@fortawesome/free-solid-svg-icons": "^6.0.0",
     "@fortawesome/vue-fontawesome": "^3.0.0-5",
+    "@sentry/vue": "^8.54.0",
     "@tailwindcss/forms": "^0.5.3",
     "ag-grid-community": "^33.0.3",
     "ag-grid-vue3": "^33.0.3",
