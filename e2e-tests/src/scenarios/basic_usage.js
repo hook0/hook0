@@ -7,7 +7,7 @@ import delete_application from '../services/applications/delete_application.js';
 import get_quota from '../services/unauthentified/quotas.js';
 import { isNotNull } from '../utils/function.js';
 
-export function scenario_1(config) {
+export function basic_usage(config) {
   const h = config.apiOrigin;
   const s = config.serviceToken;
   const o = config.organizationId;

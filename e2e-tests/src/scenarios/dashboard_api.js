@@ -7,7 +7,7 @@ import attenuate_dashboard_service_token from '../services/service_token/attenua
 import { isNotNull } from '../utils/function.js';
 import delete_application from '../services/applications/delete_application.js';
 
-export function scenario_2(config) {
+export function dashboard_api(config) {
   const h = config.apiOrigin;
   const s = config.serviceToken;
   const o = config.organizationId;

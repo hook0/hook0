@@ -1,6 +1,6 @@
 import { getEnvironmentVariables } from './config.js';
-import { scenario_1 } from './scenarios/scenario1.js';
-import { scenario_2 } from './scenarios/scenario2.js';
+import { basic_usage } from './scenarios/basic_usage.js';
+import { dashboard_api } from './scenarios/dashboard_api.js';
 
 const config = getEnvironmentVariables();
 
@@ -15,6 +15,6 @@ export const options = {
 };
 
 export default function () {
-  scenario_1(config);
-  scenario_2(config);
+  basic_usage(config);
+  dashboard_api(config);
 }
