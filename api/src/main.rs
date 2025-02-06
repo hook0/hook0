@@ -641,6 +641,8 @@ async fn main() -> anyhow::Result<()> {
                         http::header::ACCEPT,
                         http::header::AUTHORIZATION,
                         http::header::CONTENT_TYPE,
+                        http::header::HeaderName::from_static("baggage"),
+                        http::header::HeaderName::from_static("sentry-trace"),
                     ])
                     .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
                     .max_age(3600);
