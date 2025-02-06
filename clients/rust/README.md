@@ -41,3 +41,10 @@ Want to know more? Check out our [detailed documentation](https://documentation.
 - François-Guillaume Ribreau - [fg@hook0.com](mailto:fg@hook0.com)
 
 For more information, visit our [homepage](https://www.hook0.com/), join our [Discord community](https://www.hook0.com/community) or contact us at [support@hook0.com](mailto:support@hook0.com)
+
+### LICENSE  
+Hook0 Rust SDK is free and open-source. It is released under the [MIT License](./LICENSE.md).  
+
+This license grants you the freedom to use, modify, distribute, and sublicense the SDK with minimal restrictions. You may use it in both open-source and commercial projects, as long as you include the original copyright notice.  
+
+For more details, refer to the full [LICENSE.md](./LICENSE.md) file.
