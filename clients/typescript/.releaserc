@@ -1,0 +1,77 @@
+{
+  "branches": ["master"],
+  "plugins": [
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "preset": "conventionalcommits",
+        "releaseRules": [
+          { "type": "BREAKING CHANGE", "scope": "clients.typescript", "release": "major" },
+          { "type": "BREAKING CHANGE", "scope": "clients/typescript", "release": "major" },
+          { "type": "feat", "scope": "clients.typescript", "release": "minor" },
+          { "type": "feat", "scope": "clients/typescript", "release": "minor" },
+          { "type": "fix", "scope": "clients.typescript", "release": "patch" },
+          { "type": "fix", "scope": "clients/typescript", "release": "patch" },
+          { "type": "refactor", "scope": "clients.typescript", "release": "patch" },
+          { "type": "refactor", "scope": "clients/typescript", "release": "patch" },
+          { "type": "perf", "scope": "clients.typescript", "release": "patch" },
+          { "type": "perf", "scope": "clients/typescript", "release": "patch" },
+          { "type": "style", "scope": "clients.typescript", "release": "patch" },
+          { "type": "style", "scope": "clients/typescript", "release": "patch" },
+          { "type": "docs", "scope": "clients.typescript", "release": "patch" },
+          { "type": "docs", "scope": "clients/typescript", "release": "patch" },
+          { "type": "test", "scope": "clients.typescript", "release": "patch" },
+          { "type": "test", "scope": "clients/typescript", "release": "patch" },
+          { "type": "docs", "scope": "clients.typescript", "release": "patch" },
+          { "type": "docs", "scope": "clients/typescript", "release": "patch" },
+          { "type": "build", "scope": "clients.typescript", "release": "patch" },
+          { "type": "build", "scope": "clients/typescript", "release": "patch" },
+          { "type": "ops", "scope": "clients.typescript", "release": "patch" },
+          { "type": "ops", "scope": "clients/typescript", "release": "patch" },
+          { "type": "chore", "scope": "clients.typescript", "release": "patch" },
+          { "type": "chore", "scope": "clients/typescript", "release": "patch" }
+        ]
+      }
+    ],
+    [
+      "@semantic-release/release-notes-generator",
+      {
+        "preset": "conventionalcommits",
+        "presetConfig": {
+          "types": [
+            { "type": "BREAKING CHANGE", "scope": "clients.typescript", "section": "Breaking Changes" },
+            { "type": "BREAKING CHANGE", "scope": "clients/typescript", "section": "BREAKING CHANGE" },
+            { "type": "feat", "scope": "clients.typescript", "section": "Features" },
+            { "type": "feat", "scope": "clients/typescript", "section": "Feature" },
+            { "type": "fix", "scope": "clients.typescript", "section": "Bug Fixes" },
+            { "type": "fix", "scope": "clients/typescript", "section": "Bug Fix" },
+            { "type": "refactor", "scope": "clients.typescript", "section": "Refactor" },
+            { "type": "refactor", "scope": "clients/typescript", "section": "Refactor" },
+            { "type": "perf", "scope": "clients.typescript", "section": "Performance Improvements" },
+            { "type": "perf", "scope": "clients/typescript", "section": "Performance Improvements" },
+            { "type": "style", "scope": "clients.typescript", "section": "Style" },
+            { "type": "style", "scope": "clients/typescript", "section": "Style" },
+            { "type": "docs", "scope": "clients.typescript", "section": "Documentation" },
+            { "type": "docs", "scope": "clients/typescript", "section": "Documentation" },
+            { "type": "test", "scope": "clients.typescript", "section": "Tests" },
+            { "type": "test", "scope": "clients/typescript", "section": "Tests" },
+            { "type": "docs", "scope": "clients.typescript", "section": "Documentation" },
+            { "type": "docs", "scope": "clients/typescript", "section": "Documentation" },
+            { "type": "build", "scope": "clients.typescript", "section": "Build System" },
+            { "type": "build", "scope": "clients/typescript", "section": "Build System" },
+            { "type": "ops", "scope": "clients.typescript", "section": "Ops & Infrastructure" },
+            { "type": "ops", "scope": "clients/typescript", "section": "Ops & Infrastructure" },
+            { "type": "chore", "scope": "clients.typescript", "section": "Chores & Misc" },
+            { "type": "chore", "scope": "clients/typescript", "section": "Chores & Misc" }
+          ]
+        }
+      }
+    ],
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "CHANGELOG.md"
+      }
+    ]
+  ]
+}
