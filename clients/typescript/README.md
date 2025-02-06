@@ -1,5 +1,9 @@
 # Hook0 TypeScript/JavaScript Client
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE.md)
+[![Latest Version](https://img.shields.io/npm/v/hook0-client)](https://www.npmjs.com/package/hook0-client)
+[![Documentation](https://img.shields.io/badge/docs-documentation-blue)](https://documentation.hook0.com/docs/sdk-javascript-typescript)
+
 This is the TypeScript/JavaScript SDK for [Hook0](https://www.hook0.com), an open source Webhooks-as-a-Service platform designed for SaaS applications.
 
 ## Features
