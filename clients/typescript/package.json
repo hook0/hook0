@@ -2,6 +2,10 @@
   "name": "hook0-client",
   "version": "1.0.0",
   "main": "dist/index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hook0/hook0.git"
+  },
   "types": "dist/index.d.ts",
   "files": [
     "/dist"
@@ -16,7 +20,8 @@
     "release-major": "npm run --silent check-full && npm run --silent build && npm-release major",
     "release-minor": "npm run --silent check-full && npm run --silent build && npm-release minor",
     "release-patch": "npm run --silent check-full && npm run --silent build && npm-release patch",
-    "generate:docs": "typedoc"
+    "docs:build": "npm run --silent build && npm run --silent docs:typedoc:build",
+    "docs:typedoc:build": "typedoc"
   },
   "keywords": [],
   "authors": [
@@ -41,6 +46,7 @@
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
     "typedoc": "^0.27.6",
+    "typedoc-plugin-markdown": "^4.4.1",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.22.0"
   }

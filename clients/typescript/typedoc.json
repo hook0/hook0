@@ -1,8 +1,16 @@
 {
-  "entryPoints": ["src/index.ts"],
+  "entryPoints": ["src"],
   "out": "docs",
   "includeVersion": true,
-  "excludeExternals": true,
   "excludePrivate": true,
-  "excludeProtected": true
+  "excludeProtected": true,
+  "excludeExternals": true,
+  "hideGenerator": true,
+  "name": "hook0-client",
+  "readme": "README.md",
+  "githubPages": false,
+  "plugin": ["typedoc-plugin-markdown"],
+  "sidebarLinks": {
+    "GitHub": "https://github.com/hook0/hook0.git"
+  }
 }
