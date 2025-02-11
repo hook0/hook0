@@ -13,7 +13,7 @@ import Hook0List from '@/components/Hook0List.vue';
 import Hook0ListItem from '@/components/Hook0ListItem.vue';
 import ApplicationsList from '@/pages/organizations/applications/ApplicationsList.vue';
 import { routes } from '@/routes';
-import { isPricingEnabled } from '@/pricing';
+import { getSupportEmailAddress, isPricingEnabled } from '@/instance';
 import Hook0Icon from '@/components/Hook0Icon.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
@@ -27,6 +27,7 @@ import { organizationSteps, Step } from '@/pages/tutorial/TutorialService';
 
 const route = useRoute();
 const pricingEnabled = ref<boolean>(false);
+const support_email_address = ref<string>('');
 
 const has_service_token = ref(true);
 const organization_id = ref<UUID | null>(null);
@@ -76,6 +77,7 @@ function displayError(err: Problem) {
 
 onMounted(async () => {
   pricingEnabled.value = await isPricingEnabled();
+  support_email_address.value = await getSupportEmailAddress();
   _load();
 });
 
@@ -196,7 +198,7 @@ onUpdated(() => {
           target="_blank"
           >Available plans</Hook0Button
         >
-        <Hook0Button class="primary" type="button" href="mailto:support@hook0.com"
+        <Hook0Button class="primary" type="button" :href="`mailto:${support_email_address}`"
           >Subscribe to a better plan
         </Hook0Button>
       </Hook0CardFooter>
