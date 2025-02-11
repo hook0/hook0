@@ -15,6 +15,15 @@ pub struct Mailer {
     logo_url: Url,
     website_url: Url,
     app_url: Url,
+    support_email_address: Address,
+}
+
+#[derive(Debug, Clone)]
+pub struct MailerSmtpConfig {
+    pub smtp_connection_url: String,
+    pub smtp_timeout: Duration,
+    pub sender_name: String,
+    pub sender_address: Address,
 }
 
 #[derive(Debug, Clone)]
@@ -140,6 +149,7 @@ impl Mail {
         logo_url: &Url,
         website_url: &Url,
         app_url: &Url,
+        support_email_address: &Address,
     ) -> Result<String, Hook0Problem> {
         let template = self.template();
         let mut mjml = template.to_owned();
@@ -150,6 +160,7 @@ impl Mail {
         mjml = mjml.replace("{ $logo_url }", logo_url.as_str());
         mjml = mjml.replace("{ $website_url }", website_url.as_str());
         mjml = mjml.replace("{ $app_url }", app_url.as_str());
+        mjml = mjml.replace("{ $support_email_address }", support_email_address.as_ref());
 
         let parsed = mrml::parse(mjml)?;
         let rendered = parsed.element.render(&Default::default())?;
@@ -160,18 +171,17 @@ impl Mail {
 
 impl Mailer {
     pub async fn new(
-        smtp_connection_url: &str,
-        smtp_timeout: Duration,
-        sender_name: String,
-        sender_address: Address,
+        smtp_config: MailerSmtpConfig,
         logo_url: Url,
         website_url: Url,
         app_url: Url,
+        support_email_address: Address,
     ) -> Result<Mailer, lettre::transport::smtp::Error> {
-        let transport = AsyncSmtpTransport::<Tokio1Executor>::from_url(smtp_connection_url)?
-            .timeout(Some(smtp_timeout))
-            .build();
-        let sender = Mailbox::new(Some(sender_name), sender_address);
+        let transport =
+            AsyncSmtpTransport::<Tokio1Executor>::from_url(&smtp_config.smtp_connection_url)?
+                .timeout(Some(smtp_config.smtp_timeout))
+                .build();
+        let sender = Mailbox::new(Some(smtp_config.sender_name), smtp_config.sender_address);
 
         let test = transport.test_connection().await;
         match test {
@@ -186,11 +196,17 @@ impl Mailer {
             logo_url,
             website_url,
             app_url,
+            support_email_address,
         })
     }
 
     pub async fn send_mail(&self, mail: Mail, recipient: Mailbox) -> Result<(), Hook0Problem> {
-        let rendered = mail.render(&self.logo_url, &self.website_url, &self.app_url)?;
+        let rendered = mail.render(
+            &self.logo_url,
+            &self.website_url,
+            &self.app_url,
+            &self.support_email_address,
+        )?;
         let text_mail = from_read(rendered.as_bytes(), 80)?;
 
         let email = Message::builder()
@@ -215,6 +231,7 @@ mod tests {
         let logo_url = Url::from_str("http://localhost/logo").unwrap();
         let website_url = Url::from_str("http://localhost/website").unwrap();
         let app_url = Url::from_str("http://localhost/app").unwrap();
+        let support_email_address = Address::new("test", "hook0.com").unwrap();
 
         let mails = [
             Mail::VerifyUserEmail {
@@ -239,7 +256,10 @@ mod tests {
         ];
 
         for m in mails {
-            assert!(m.render(&logo_url, &website_url, &app_url).is_ok());
+            assert!(
+                m.render(&logo_url, &website_url, &app_url, &support_email_address)
+                    .is_ok()
+            );
         }
     }
 }
