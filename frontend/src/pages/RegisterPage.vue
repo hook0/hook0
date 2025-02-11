@@ -22,13 +22,7 @@ const password = ref<string>('');
 async function submit() {
   await register(email.value, firstName.value, lastName.value, password.value)
     .then(() => {
-      push.success({
-        title: 'Success',
-        message:
-          "You're successfully registered. You need to confirm your email address before using Hook0. Check your mailbox!",
-        duration: 5000,
-      });
-      return router.push({ name: routes.Login });
+      return router.push({ name: routes.CheckEmail });
     })
     .catch((err: AxiosError<AxiosResponse<Problem>>) => {
       let problem = handleError(err);
