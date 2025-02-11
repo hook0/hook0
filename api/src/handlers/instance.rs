@@ -16,6 +16,7 @@ pub struct InstanceConfig {
     quota_enforcement: bool,
     matomo: Option<MatomoConfig>,
     formbricks: Option<FormbricksConfig>,
+    support_email_address: String,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -68,6 +69,7 @@ pub async fn get(state: Data<crate::State>) -> Result<Json<InstanceConfig>, Hook
         quota_enforcement: state.enable_quota_enforcement,
         matomo,
         formbricks,
+        support_email_address: state.support_email_address.to_string(),
     }))
 }
 
