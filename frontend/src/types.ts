@@ -450,7 +450,7 @@ export interface paths {
       cookie?: never;
     };
     get?: never;
-    /** Edit an user's role in an organization */
+    /** Edit a user's role in an organization */
     put: operations['organizations.edit_role'];
     /** Invite a user to an organization */
     post: operations['organizations.invite'];
@@ -784,6 +784,7 @@ export interface components {
       password_minimum_length: number;
       quota_enforcement: boolean;
       registration_disabled: boolean;
+      support_email_address: string;
     };
     LoginPost: {
       email: string;
@@ -872,20 +873,22 @@ export interface components {
       status: number;
       title: string;
     };
-    Quotas: {
+    QuotasResponse: {
       enabled: boolean;
-      /** Format: int32 */
-      global_applications_per_organization_limit: number;
-      /** Format: int32 */
-      global_days_of_events_retention_limit: number;
-      /** Format: int32 */
-      global_event_types_per_application_limit: number;
-      /** Format: int32 */
-      global_events_per_day_limit: number;
-      /** Format: int32 */
-      global_members_per_organization_limit: number;
-      /** Format: int32 */
-      global_subscriptions_per_application_limit: number;
+      limits: {
+        /** Format: int32 */
+        global_applications_per_organization_limit: number;
+        /** Format: int32 */
+        global_days_of_events_retention_limit: number;
+        /** Format: int32 */
+        global_event_types_per_application_limit: number;
+        /** Format: int32 */
+        global_events_per_day_limit: number;
+        /** Format: int32 */
+        global_members_per_organization_limit: number;
+        /** Format: int32 */
+        global_subscriptions_per_application_limit: number;
+      };
     };
     Registration: {
       /** Format: uuid */
@@ -3101,7 +3104,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['Quotas'];
+          'application/json': components['schemas']['QuotasResponse'];
         };
       };
       /** @description Bad Request */
