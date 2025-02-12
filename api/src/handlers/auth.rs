@@ -601,7 +601,7 @@ pub async fn begin_reset_password(
             .send_mail(
                 Mail::ResetPassword {
                     url: format!(
-                        "{}/reset-password?token={}",
+                        "{}reset-password?token={}",
                         state.app_url, &biscuit_token.serialized_biscuit
                     ),
                 },
