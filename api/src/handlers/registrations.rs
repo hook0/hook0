@@ -140,7 +140,7 @@ pub async fn register(
                 .send_mail(
                     Mail::VerifyUserEmail {
                         url: format!(
-                            "{}/verify-email?token={}",
+                            "{}verify-email?token={}",
                             state.app_url, &verification_token.serialized_biscuit
                         ),
                     },
