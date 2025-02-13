@@ -33,7 +33,7 @@ client.rust.semver-checks:
   before_script:
     - rustc --version && cargo --version
     - curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
-    - cargo binstall cargo-semver-checks -y
+    - cargo binstall --target x86_64-unknown-linux-musl --no-confirm cargo-semver-checks
   script:
     - pushd clients/rust
     - cargo semver-checks
