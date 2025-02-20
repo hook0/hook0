@@ -2,7 +2,7 @@ mod monitoring;
 mod work;
 
 use chrono::{DateTime, Utc};
-use clap::{Parser, crate_name, crate_version};
+use clap::{Parser, ValueEnum, crate_name, crate_version};
 use log::{debug, error, info, trace, warn};
 use reqwest::Url;
 use reqwest::header::{HeaderMap, HeaderName};
@@ -21,6 +21,12 @@ use tokio::time::sleep;
 use uuid::Uuid;
 
 use work::*;
+
+#[derive(Debug, Clone, ValueEnum, PartialEq, Eq)]
+enum SignatureVersion {
+    V0,
+    V1,
+}
 
 #[derive(Debug, Clone, Parser)]
 #[clap(author, about, version)]
@@ -76,6 +82,10 @@ struct Config {
     /// Name of the header containing webhook's signature
     #[clap(long, env, default_value = "X-Hook0-Signature")]
     signature_header_name: HeaderName,
+
+    /// A comma separated list of enabled signature versions
+    #[clap(long, env, default_value = "v1", value_delimiter = ',')]
+    enabled_signature_versions: Vec<SignatureVersion>,
 }
 
 #[derive(Debug, Clone, Copy)]
