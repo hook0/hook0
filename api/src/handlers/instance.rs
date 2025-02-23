@@ -1,6 +1,6 @@
 use actix_web::web::Query;
 use paperclip::actix::web::{Data, Json};
-use paperclip::actix::{api_v2_operation, Apiv2Schema};
+use paperclip::actix::{Apiv2Schema, api_v2_operation};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 

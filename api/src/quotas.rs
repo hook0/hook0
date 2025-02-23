@@ -1,10 +1,10 @@
 use actix_web::web::Data;
-use lettre::{message::Mailbox, Address};
+use lettre::{Address, message::Mailbox};
 use log::error;
 use paperclip::actix::web::Json;
-use paperclip::actix::{api_v2_operation, Apiv2Schema};
+use paperclip::actix::{Apiv2Schema, api_v2_operation};
 use serde::Serialize;
-use sqlx::{query, query_as, query_scalar, Acquire, Postgres};
+use sqlx::{Acquire, Postgres, query, query_as, query_scalar};
 use std::str::FromStr;
 use strum::Display;
 use uuid::Uuid;

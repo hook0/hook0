@@ -2,14 +2,14 @@ use actix_web::web::ReqData;
 use biscuit_auth::Biscuit;
 use log::warn;
 use paperclip::actix::web::{Data, Json, Path, Query};
-use paperclip::actix::{api_v2_operation, Apiv2Schema};
+use paperclip::actix::{Apiv2Schema, api_v2_operation};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::query_as;
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use crate::iam::{authorize_for_application, Action};
+use crate::iam::{Action, authorize_for_application};
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
 

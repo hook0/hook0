@@ -1,13 +1,13 @@
 use actix_web::web::ReqData;
-use base64::engine::general_purpose::STANDARD as Base64;
 use base64::Engine;
+use base64::engine::general_purpose::STANDARD as Base64;
 use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};
 use ipnetwork::IpNetwork;
 use paperclip::actix::web::{Data, Json, Path, Query};
-use paperclip::actix::{api_v2_operation, Apiv2Schema, CreatedJson, NoContent};
+use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sqlx::{query, query_as, query_scalar};
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -16,7 +16,7 @@ use uuid::Uuid;
 use validator::Validate;
 
 use crate::extractor_user_ip::UserIp;
-use crate::iam::{authorize_for_application, Action};
+use crate::iam::{Action, authorize_for_application};
 use crate::mailer::Mail;
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
