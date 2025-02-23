@@ -1588,8 +1588,6 @@ dependencies = [
  "lettre",
  "log",
  "mrml",
- "nom",
- "nom-regex",
  "paperclip",
  "regex",
  "reqwest",
@@ -2422,16 +2420,6 @@ checksum = "d273983c5a657a70a3e8f2a01329822f3b8c8172b73826411a55751e404a0a4a"
 dependencies = [
  "memchr",
  "minimal-lexical",
-]
-
-[[package]]
-name = "nom-regex"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72e5c7731c4c1370b61604ed52a2475e861aac9e08dec9f23903d4ddfdc91c18"
-dependencies = [
- "nom",
- "regex",
 ]
 
 [[package]]
