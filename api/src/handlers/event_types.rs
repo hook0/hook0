@@ -3,14 +3,14 @@ use biscuit_auth::Biscuit;
 use chrono::Utc;
 use log::error;
 use paperclip::actix::web::{Data, Json, Path, Query};
-use paperclip::actix::{api_v2_operation, Apiv2Schema, CreatedJson, NoContent};
+use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
 use serde::{Deserialize, Serialize};
 use sqlx::{query, query_as, query_scalar};
 use uuid::Uuid;
 use validator::Validate;
 
 use crate::hook0_client::{EventEventTypeCreated, EventEventTypeRemoved, Hook0ClientEvent};
-use crate::iam::{authorize_for_application, get_owner_organization, Action};
+use crate::iam::{Action, authorize_for_application, get_owner_organization};
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
 use crate::quotas::Quota;

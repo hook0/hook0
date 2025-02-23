@@ -2,20 +2,20 @@ mod monitoring;
 mod work;
 
 use chrono::{DateTime, Utc};
-use clap::{crate_name, crate_version, Parser};
+use clap::{Parser, crate_name, crate_version};
 use log::{debug, error, info, trace, warn};
-use reqwest::header::{HeaderMap, HeaderName};
 use reqwest::Url;
+use reqwest::header::{HeaderMap, HeaderName};
 use sqlx::postgres::types::PgInterval;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-use sqlx::{query, query_as, PgConnection, PgPool};
+use sqlx::{PgConnection, PgPool, query, query_as};
 use std::cmp::min;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::str::FromStr;
 use std::time::Duration;
 use strum::VariantNames;
-use tokio::sync::mpsc::{channel, Sender};
+use tokio::sync::mpsc::{Sender, channel};
 use tokio::task::JoinSet;
 use tokio::time::sleep;
 use uuid::Uuid;
@@ -174,7 +174,9 @@ async fn main() -> anyhow::Result<()> {
     let worker_type = get_worker_type(&worker_name, &pool).await?;
 
     if config.disable_target_ip_check {
-        warn!("Webhook's target IP check is disabled: this allows the worker to send HTTP requests that target local IP addresses (for example: loopback, LAN, ...); THIS MAY BE A SECURITY ISSUE IN PRODUCTION")
+        warn!(
+            "Webhook's target IP check is disabled: this allows the worker to send HTTP requests that target local IP addresses (for example: loopback, LAN, ...); THIS MAY BE A SECURITY ISSUE IN PRODUCTION"
+        )
     }
 
     info!("Upserting response error names");
@@ -520,7 +522,9 @@ async fn get_worker_type(worker_name: &str, conn: &PgPool) -> Result<WorkerType,
         info!("Worker is running as '{worker_name}' which is {worker_type}",);
         Ok(worker_type)
     } else {
-        warn!("Worker name '{worker_name}' was not found in database; worker is running as a public worker");
+        warn!(
+            "Worker name '{worker_name}' was not found in database; worker is running as a public worker"
+        );
         Ok(WorkerType::Public { worker_id: None })
     }
 }

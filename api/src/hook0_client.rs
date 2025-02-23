@@ -7,7 +7,7 @@ use hook0_client::{Hook0Client, Hook0ClientError};
 use log::{error, info, trace, warn};
 use reqwest::Url;
 use serde::Serialize;
-use serde_json::{to_string, to_value, Value};
+use serde_json::{Value, to_string, to_value};
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::time::Duration;
@@ -55,7 +55,9 @@ pub fn initialize(
                 Some(client)
             }
             Err(_e) => {
-                warn!("Could not initialize a Hook0 client that will receive events from this Hook0 instance");
+                warn!(
+                    "Could not initialize a Hook0 client that will receive events from this Hook0 instance"
+                );
                 None
             }
         },
