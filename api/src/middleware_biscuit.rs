@@ -5,10 +5,10 @@ use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
 use actix_web::{Error, HttpMessage};
 use anyhow::anyhow;
 use biscuit_auth::{Biscuit, PrivateKey};
-use futures_util::future::{ok, ready, Ready};
+use futures_util::future::{Ready, ok, ready};
 use hook0_sentry_integration::set_user_from_token;
 use log::{debug, error, trace};
-use sqlx::{query_scalar, PgPool};
+use sqlx::{PgPool, query_scalar};
 use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
@@ -128,7 +128,9 @@ where
                                         }
                                         Ok(None) => {
                                             let e = Hook0Problem::AuthInvalidBiscuit;
-                                            debug!("{e} (root token was not found in database or was expired)");
+                                            debug!(
+                                                "{e} (root token was not found in database or was expired)"
+                                            );
                                             Ok(req.error_response(e))
                                         }
                                         Err(err) => {
@@ -223,7 +225,8 @@ where
                                                                 {
                                                                     debug!(
                                                                         "Auth with application secret succeeded (application ID = {})",
-                                                                        application_secret.application_id
+                                                                        application_secret
+                                                                            .application_id
                                                                     );
                                                                     hook0_sentry_integration::set_user_from_application_secret(
                                                                         &application_secret
@@ -237,7 +240,9 @@ where
                                                                 srv.call(req).await
                                                             }
                                                             Err(e) => {
-                                                                error!("Error while creating service access Biscuit from application secret: {e}");
+                                                                error!(
+                                                                    "Error while creating service access Biscuit from application secret: {e}"
+                                                                );
                                                                 let res =
                                                                     Hook0Problem::InternalServerError;
                                                                 Ok(req.error_response(res))
@@ -250,7 +255,9 @@ where
                                                         Ok(req.error_response(e))
                                                     }
                                                     Err(e) => {
-                                                        error!("Error while searching for an application scret: {e}");
+                                                        error!(
+                                                            "Error while searching for an application scret: {e}"
+                                                        );
                                                         let res = Hook0Problem::InternalServerError;
                                                         Ok(req.error_response(res))
                                                     }

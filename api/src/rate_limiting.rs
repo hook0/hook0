@@ -1,8 +1,8 @@
 use actix_governor::{
     GlobalKeyExtractor, Governor, GovernorConfig, GovernorConfigBuilder, KeyExtractor,
 };
-use actix_web::middleware::Condition;
 use actix_web::HttpMessage;
+use actix_web::middleware::Condition;
 use biscuit_auth::Biscuit;
 use governor::middleware::NoOpMiddleware;
 use ipnetwork::IpNetwork;

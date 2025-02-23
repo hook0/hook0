@@ -1,6 +1,6 @@
 use actix::clock::sleep;
 use log::{debug, error, trace};
-use sqlx::{query, PgPool};
+use sqlx::{PgPool, query};
 use std::time::{Duration, Instant};
 
 const STARTUP_GRACE_PERIOD: Duration = Duration::from_secs(10);

@@ -1,5 +1,5 @@
 use log::{error, trace};
-use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
+use reqwest::header::{AUTHORIZATION, HeaderMap, HeaderValue};
 use reqwest::{Client, Url};
 use serde::Deserialize;
 use uuid::Uuid;

@@ -2,13 +2,13 @@ use actix_web::web::ReqData;
 use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};
 use paperclip::actix::web::{Data, Json, Query};
-use paperclip::actix::{api_v2_operation, Apiv2Schema};
+use paperclip::actix::{Apiv2Schema, api_v2_operation};
 use serde::{Deserialize, Serialize};
 use sqlx::query_as;
 use std::cmp::max;
 use uuid::Uuid;
 
-use crate::iam::{authorize_for_application, Action};
+use crate::iam::{Action, authorize_for_application};
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
 

@@ -1,6 +1,6 @@
 use paperclip::actix::Apiv2Schema;
 use serde::Serialize;
-use sqlx::{query_as, Acquire, Postgres};
+use sqlx::{Acquire, Postgres, query_as};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Apiv2Schema)]
@@ -11,11 +11,7 @@ pub enum OnboardingStepStatus {
 
 impl From<bool> for OnboardingStepStatus {
     fn from(val: bool) -> Self {
-        if val {
-            Self::Done
-        } else {
-            Self::ToDo
-        }
+        if val { Self::Done } else { Self::ToDo }
     }
 }
 

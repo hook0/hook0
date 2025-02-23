@@ -3,13 +3,13 @@ use actix::Arbiter;
 use actix_cors::Cors;
 use actix_files::{Files, NamedFile};
 use actix_web::middleware::{Compat, Logger, NormalizePath};
-use actix_web::{http, middleware, App, HttpServer};
+use actix_web::{App, HttpServer, http, middleware};
 use biscuit_auth::{KeyPair, PrivateKey};
 use clap::builder::{BoolValueParser, TypedValueParser};
-use clap::{crate_name, ArgGroup, Parser};
+use clap::{ArgGroup, Parser, crate_name};
 use lettre::Address;
 use log::{debug, info, trace, warn};
-use paperclip::actix::{web, OpenApiExt};
+use paperclip::actix::{OpenApiExt, web};
 use reqwest::Url;
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 use std::str::FromStr;
@@ -414,7 +414,9 @@ async fn main() -> anyhow::Result<()> {
             .map(|str| str.trim().to_owned())
             .collect::<Vec<_>>();
         if reverse_proxy_ips.is_empty() {
-            warn!("No trusted reverse proxy IPs were set; if this is a production instance this is a problem");
+            warn!(
+                "No trusted reverse proxy IPs were set; if this is a production instance this is a problem"
+            );
         } else {
             debug!(
                 "The following IPs will be considered as trusted reverse proxies: {}",
@@ -501,7 +503,9 @@ async fn main() -> anyhow::Result<()> {
         // Prepare master API key
         let master_api_key = config.master_api_key;
         if master_api_key.is_some() {
-            warn!("The master API key is defined in the current configuration; THIS MAY BE A SECURITY ISSUE IN PRODUCTION");
+            warn!(
+                "The master API key is defined in the current configuration; THIS MAY BE A SECURITY ISSUE IN PRODUCTION"
+            );
         }
 
         // Spawn task to refresh materialized views
@@ -947,7 +951,10 @@ async fn main() -> anyhow::Result<()> {
         .map_err(|e| e.into())
     } else {
         let keypair = KeyPair::new();
-        println!("The BISCUIT_PRIVATE_KEY environnement variable is required for authentication and authorization. You can use this randomly generated value: {}", keypair.private().to_bytes_hex());
+        println!(
+            "The BISCUIT_PRIVATE_KEY environnement variable is required for authentication and authorization. You can use this randomly generated value: {}",
+            keypair.private().to_bytes_hex()
+        );
         std::process::exit(1);
     }
 }

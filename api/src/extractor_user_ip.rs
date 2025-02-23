@@ -1,5 +1,5 @@
 use actix_web::{FromRequest, HttpMessage, ResponseError};
-use futures_util::future::{ready, Ready};
+use futures_util::future::{Ready, ready};
 use ipnetwork::IpNetwork;
 use paperclip::actix::OperationModifier;
 use paperclip::v2::schema::Apiv2Schema;

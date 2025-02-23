@@ -2,7 +2,7 @@ use actix::clock::sleep;
 use chrono::TimeDelta;
 use log::{debug, error, info, trace};
 use sqlx::postgres::types::PgInterval;
-use sqlx::{query, Acquire, PgPool, Postgres};
+use sqlx::{Acquire, PgPool, Postgres, query};
 use std::time::{Duration, Instant};
 
 const STARTUP_GRACE_PERIOD: Duration = Duration::from_secs(40);

@@ -1,7 +1,7 @@
 use actix_web::body::BoxBody;
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
 use actix_web::{Error, HttpMessage, HttpResponse};
-use futures_util::future::{ok, ready, Ready};
+use futures_util::future::{Ready, ok, ready};
 use ipnetwork::{IpNetwork, IpNetworkError};
 use log::{debug, error, trace};
 use std::future::Future;

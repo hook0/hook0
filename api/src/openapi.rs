@@ -1,4 +1,4 @@
-use actix::fut::{ready, Ready};
+use actix::fut::{Ready, ready};
 use actix_web::{Error, FromRequest, HttpRequest};
 use clap::{crate_description, crate_version};
 use paperclip::actix::Apiv2Security;

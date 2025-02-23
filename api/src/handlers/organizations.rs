@@ -3,7 +3,7 @@ use biscuit_auth::Biscuit;
 use chrono::Utc;
 use log::error;
 use paperclip::actix::web::{Data, Json, Path};
-use paperclip::actix::{api_v2_operation, Apiv2Schema, NoContent};
+use paperclip::actix::{Apiv2Schema, NoContent, api_v2_operation};
 use serde::{Deserialize, Serialize};
 use sqlx::{query, query_as, query_scalar};
 use std::str::FromStr;
@@ -15,11 +15,11 @@ use crate::hook0_client::{
     EventOrganizationRevoked, EventOrganizationUpdated, Hook0ClientEvent,
 };
 use crate::iam::{
-    authorize, authorize_only_user, Action, AuthorizeServiceToken, AuthorizedToken,
-    AuthorizedUserToken, Role,
+    Action, AuthorizeServiceToken, AuthorizedToken, AuthorizedUserToken, Role, authorize,
+    authorize_only_user,
 };
 use crate::onboarding::{
-    get_organization_onboarding_steps, OnboardingStepStatus, OrganizationOnboardingSteps,
+    OnboardingStepStatus, OrganizationOnboardingSteps, get_organization_onboarding_steps,
 };
 use crate::openapi::{OaBiscuit, OaBiscuitUserAccess};
 use crate::problems::Hook0Problem;
