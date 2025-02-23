@@ -1,6 +1,6 @@
 use actix::clock::sleep;
 use log::{debug, error, info, trace};
-use sqlx::{query, Acquire, PgPool, Postgres};
+use sqlx::{Acquire, PgPool, Postgres, query};
 use std::time::{Duration, Instant};
 
 const STARTUP_GRACE_PERIOD: Duration = Duration::from_secs(30);
@@ -63,10 +63,16 @@ async fn clean_up_old_events_and_responses(
             vacuum_analyze_and_reindex(db).await?;
         }
 
-        info!("Cleaned up {total_deleted_events} old events and {total_dangling_responses} dangling responses in {:?}", start.elapsed());
+        info!(
+            "Cleaned up {total_deleted_events} old events and {total_dangling_responses} dangling responses in {:?}",
+            start.elapsed()
+        );
     } else {
         tx.rollback().await?;
-        info!("Could clean up {total_deleted_events} old events and {total_dangling_responses} dangling responses in {:?} (but transaction was rolled back)", start.elapsed());
+        info!(
+            "Could clean up {total_deleted_events} old events and {total_dangling_responses} dangling responses in {:?} (but transaction was rolled back)",
+            start.elapsed()
+        );
     }
     Ok(())
 }

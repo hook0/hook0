@@ -1,18 +1,18 @@
-use argon2::password_hash::rand_core::OsRng;
 use argon2::password_hash::SaltString;
+use argon2::password_hash::rand_core::OsRng;
 use argon2::{Argon2, PasswordHasher};
-use lettre::message::Mailbox;
 use lettre::Address;
+use lettre::message::Mailbox;
 use log::{error, warn};
 use paperclip::actix::web::{Data, Json};
-use paperclip::actix::{api_v2_operation, Apiv2Schema, CreatedJson};
+use paperclip::actix::{Apiv2Schema, CreatedJson, api_v2_operation};
 use serde::{Deserialize, Serialize};
 use sqlx::query;
 use std::str::FromStr;
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::iam::{create_email_verification_token, Role};
+use crate::iam::{Role, create_email_verification_token};
 use crate::mailer::Mail;
 use crate::problems::Hook0Problem;
 

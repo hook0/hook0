@@ -3,10 +3,10 @@ use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};
 use log::error;
 use paperclip::actix::web::{Data, Json, Path, Query};
-use paperclip::actix::{api_v2_operation, Apiv2Schema, CreatedJson, NoContent};
+use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
 use reqwest::Url;
 use serde::{Deserialize, Deserializer, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sqlx::{query, query_as, query_scalar};
 use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
@@ -16,7 +16,7 @@ use validator::{Validate, ValidationErrors};
 use crate::hook0_client::{
     EventSubscriptionCreated, EventSubscriptionRemoved, EventSubscriptionUpdated, Hook0ClientEvent,
 };
-use crate::iam::{authorize_for_application, get_owner_organization, Action};
+use crate::iam::{Action, authorize_for_application, get_owner_organization};
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
 use crate::quotas::Quota;
@@ -985,10 +985,12 @@ mod tests {
             "headers": {},
             "url": url,
         });
-        assert!(from_value::<Target>(input)
-            .unwrap_err()
-            .to_string()
-            .contains("scheme"));
+        assert!(
+            from_value::<Target>(input)
+                .unwrap_err()
+                .to_string()
+                .contains("scheme")
+        );
     }
 
     #[test]
@@ -1000,9 +1002,11 @@ mod tests {
             "headers": {},
             "url": url,
         });
-        assert!(from_value::<Target>(input)
-            .unwrap_err()
-            .to_string()
-            .contains("host"));
+        assert!(
+            from_value::<Target>(input)
+                .unwrap_err()
+                .to_string()
+                .contains("host")
+        );
     }
 }

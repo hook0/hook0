@@ -6,7 +6,7 @@ use chrono::{DateTime, Utc};
 use log::{error, trace, warn};
 use paperclip::v2::schema::TypedData;
 use serde::{Deserialize, Serialize};
-use sqlx::{query_scalar, PgPool};
+use sqlx::{PgPool, query_scalar};
 use std::str::FromStr;
 use std::time::{Duration, SystemTime};
 use strum::{AsRefStr, EnumIter, EnumString, VariantNames};
@@ -865,7 +865,10 @@ pub fn authorize(
         // If no organization ID was provided, we double-check that the action we used allows this
         // This is not supposed to happen, that is why we display a big error and fail if it does
         if !action.can_work_without_organization() {
-            error!("Action '{}' cannot be used without providing an organization ID. This is probably a bug.", action.action_name());
+            error!(
+                "Action '{}' cannot be used without providing an organization ID. This is probably a bug.",
+                action.action_name()
+            );
             return Err(biscuit_auth::error::Token::InternalError);
         }
     }
@@ -1211,20 +1214,24 @@ mod tests {
             })
             .unwrap();
 
-        assert!(dbg!(authorize(
-            &not_yet_expired_biscuit,
-            Some(organization_id),
-            Action::TestSimple,
-            MAX_DURATION_TIME_IN_MS
-        ))
-        .is_ok());
-        assert!(dbg!(authorize(
-            &expired_biscuit,
-            Some(organization_id),
-            Action::TestSimple,
-            MAX_DURATION_TIME_IN_MS
-        ))
-        .is_err());
+        assert!(
+            dbg!(authorize(
+                &not_yet_expired_biscuit,
+                Some(organization_id),
+                Action::TestSimple,
+                MAX_DURATION_TIME_IN_MS
+            ))
+            .is_ok()
+        );
+        assert!(
+            dbg!(authorize(
+                &expired_biscuit,
+                Some(organization_id),
+                Action::TestSimple,
+                MAX_DURATION_TIME_IN_MS
+            ))
+            .is_err()
+        );
     }
 
     #[test_log::test]
@@ -1237,13 +1244,15 @@ mod tests {
             create_service_access_token(&keypair.private(), token_id, organization_id).unwrap();
 
         let other_organization_id = Uuid::new_v4();
-        assert!(dbg!(authorize(
-            &biscuit,
-            Some(other_organization_id),
-            Action::TestSimple,
-            MAX_DURATION_TIME_IN_MS
-        ))
-        .is_err());
+        assert!(
+            dbg!(authorize(
+                &biscuit,
+                Some(other_organization_id),
+                Action::TestSimple,
+                MAX_DURATION_TIME_IN_MS
+            ))
+            .is_err()
+        );
     }
 
     #[test_log::test]
@@ -1264,41 +1273,49 @@ mod tests {
             .append(block!("check if application_id({other_application_id})"))
             .unwrap();
 
-        assert!(dbg!(authorize(
-            &biscuit,
-            Some(organization_id),
-            Action::TestWithApplication {
-                application_id: &application_id
-            },
-            MAX_DURATION_TIME_IN_MS
-        ))
-        .is_ok());
-        assert!(dbg!(authorize(
-            &application_restricted_biscuit,
-            Some(organization_id),
-            Action::TestWithApplication {
-                application_id: &application_id
-            },
-            MAX_DURATION_TIME_IN_MS
-        ))
-        .is_ok());
-        assert!(dbg!(authorize(
-            &wrong_application_restricted_biscuit,
-            Some(organization_id),
-            Action::TestWithApplication {
-                application_id: &application_id
-            },
-            MAX_DURATION_TIME_IN_MS
-        ))
-        .is_err());
+        assert!(
+            dbg!(authorize(
+                &biscuit,
+                Some(organization_id),
+                Action::TestWithApplication {
+                    application_id: &application_id
+                },
+                MAX_DURATION_TIME_IN_MS
+            ))
+            .is_ok()
+        );
+        assert!(
+            dbg!(authorize(
+                &application_restricted_biscuit,
+                Some(organization_id),
+                Action::TestWithApplication {
+                    application_id: &application_id
+                },
+                MAX_DURATION_TIME_IN_MS
+            ))
+            .is_ok()
+        );
+        assert!(
+            dbg!(authorize(
+                &wrong_application_restricted_biscuit,
+                Some(organization_id),
+                Action::TestWithApplication {
+                    application_id: &application_id
+                },
+                MAX_DURATION_TIME_IN_MS
+            ))
+            .is_err()
+        );
         // Using an application-restricted Biscuit on an organization-only endpoint
-        assert!(dbg!(authorize(
-            &application_restricted_biscuit,
-            Some(organization_id),
-            Action::TestSimple,
-            MAX_DURATION_TIME_IN_MS
-        ))
-        .is_err());
+        assert!(
+            dbg!(authorize(
+                &application_restricted_biscuit,
+                Some(organization_id),
+                Action::TestSimple,
+                MAX_DURATION_TIME_IN_MS
+            ))
+            .is_err()
+        );
     }
 
     #[test_log::test]
@@ -1310,20 +1327,24 @@ mod tests {
         let RootToken { biscuit, .. } =
             create_service_access_token(&keypair.private(), token_id, organization_id).unwrap();
 
-        assert!(dbg!(authorize(
-            &biscuit,
-            None,
-            Action::TestSimple,
-            MAX_DURATION_TIME_IN_MS
-        ))
-        .is_err());
-        assert!(dbg!(authorize(
-            &biscuit,
-            None,
-            Action::TestNoOrganization,
-            MAX_DURATION_TIME_IN_MS
-        ))
-        .is_ok());
+        assert!(
+            dbg!(authorize(
+                &biscuit,
+                None,
+                Action::TestSimple,
+                MAX_DURATION_TIME_IN_MS
+            ))
+            .is_err()
+        );
+        assert!(
+            dbg!(authorize(
+                &biscuit,
+                None,
+                Action::TestNoOrganization,
+                MAX_DURATION_TIME_IN_MS
+            ))
+            .is_ok()
+        );
     }
 
     #[test_log::test]
@@ -1391,54 +1412,66 @@ mod tests {
         )
         .unwrap();
 
-        assert!(dbg!(authorize(
-            &biscuit,
-            Some(organization_id1),
-            Action::TestSimple,
-            MAX_DURATION_TIME_IN_MS
-        ))
-        .is_ok());
-        assert!(dbg!(authorize(
-            &biscuit,
-            Some(organization_id2),
-            Action::TestSimple,
-            MAX_DURATION_TIME_IN_MS
-        ))
-        .is_ok());
-        assert!(dbg!(authorize(
-            &biscuit,
-            Some(organization_id3),
-            Action::TestSimple,
-            MAX_DURATION_TIME_IN_MS
-        ))
-        .is_err());
-        assert!(dbg!(authorize(
-            &biscuit,
-            Some(organization_id1),
-            Action::TestWithApplication {
-                application_id: &Uuid::new_v4()
-            },
-            MAX_DURATION_TIME_IN_MS
-        ))
-        .is_ok());
-        assert!(dbg!(authorize(
-            &biscuit,
-            Some(organization_id2),
-            Action::TestWithApplication {
-                application_id: &Uuid::new_v4()
-            },
-            MAX_DURATION_TIME_IN_MS
-        ))
-        .is_err());
-        assert!(dbg!(authorize(
-            &biscuit,
-            Some(organization_id3),
-            Action::TestWithApplication {
-                application_id: &Uuid::new_v4()
-            },
-            MAX_DURATION_TIME_IN_MS
-        ))
-        .is_err());
+        assert!(
+            dbg!(authorize(
+                &biscuit,
+                Some(organization_id1),
+                Action::TestSimple,
+                MAX_DURATION_TIME_IN_MS
+            ))
+            .is_ok()
+        );
+        assert!(
+            dbg!(authorize(
+                &biscuit,
+                Some(organization_id2),
+                Action::TestSimple,
+                MAX_DURATION_TIME_IN_MS
+            ))
+            .is_ok()
+        );
+        assert!(
+            dbg!(authorize(
+                &biscuit,
+                Some(organization_id3),
+                Action::TestSimple,
+                MAX_DURATION_TIME_IN_MS
+            ))
+            .is_err()
+        );
+        assert!(
+            dbg!(authorize(
+                &biscuit,
+                Some(organization_id1),
+                Action::TestWithApplication {
+                    application_id: &Uuid::new_v4()
+                },
+                MAX_DURATION_TIME_IN_MS
+            ))
+            .is_ok()
+        );
+        assert!(
+            dbg!(authorize(
+                &biscuit,
+                Some(organization_id2),
+                Action::TestWithApplication {
+                    application_id: &Uuid::new_v4()
+                },
+                MAX_DURATION_TIME_IN_MS
+            ))
+            .is_err()
+        );
+        assert!(
+            dbg!(authorize(
+                &biscuit,
+                Some(organization_id3),
+                Action::TestWithApplication {
+                    application_id: &Uuid::new_v4()
+                },
+                MAX_DURATION_TIME_IN_MS
+            ))
+            .is_err()
+        );
     }
 
     #[test_log::test]

@@ -5,7 +5,7 @@
 
 use log::{info, warn};
 use sentry::protocol::Value;
-use sentry::{configure_scope, ClientInitGuard, User};
+use sentry::{ClientInitGuard, User, configure_scope};
 use std::collections::BTreeMap;
 
 /// Initialise a logger with default level at INFO

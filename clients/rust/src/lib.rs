@@ -8,7 +8,9 @@
     not(feature = "reqwest-rustls-tls-webpki-roots"),
     not(feature = "reqwest-rustls-tls-native-roots")
 ))]
-compile_error!("at least one of feature \"reqwest-rustls-tls-webpki-roots\" and feature \"reqwest-rustls-tls-native-roots\" must be enabled");
+compile_error!(
+    "at least one of feature \"reqwest-rustls-tls-webpki-roots\" and feature \"reqwest-rustls-tls-native-roots\" must be enabled"
+);
 
 #[cfg(all(not(feature = "producer"), not(feature = "consumer")))]
 compile_error!("at least one of feature \"producer\" and feature \"consumer\" must be enabled");
@@ -20,7 +22,7 @@ use lazy_regex::regex_captures;
 #[cfg(feature = "producer")]
 use log::{debug, error, trace};
 #[cfg(feature = "producer")]
-use reqwest::header::{HeaderMap, HeaderValue, InvalidHeaderValue, AUTHORIZATION};
+use reqwest::header::{AUTHORIZATION, HeaderMap, HeaderValue, InvalidHeaderValue};
 #[cfg(feature = "producer")]
 use reqwest::{Client, Url};
 #[cfg(feature = "producer")]
@@ -451,7 +453,9 @@ pub enum Hook0ClientError {
 
     #[cfg(feature = "consumer")]
     /// The webhook has expired because it was sent too long ago
-    #[error("The webhook has expired because it was sent too long ago (signed_at={signed_at}, tolerance={tolerance}, current_time={current_time})")]
+    #[error(
+        "The webhook has expired because it was sent too long ago (signed_at={signed_at}, tolerance={tolerance}, current_time={current_time})"
+    )]
     ExpiredWebhook {
         /// Timestamp of the moment the webhook was signed
         signed_at: DateTime<Utc>,

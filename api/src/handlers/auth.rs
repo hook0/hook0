@@ -3,21 +3,21 @@ use argon2::password_hash::PasswordHashString;
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use biscuit_auth::{Biscuit, PrivateKey};
 use chrono::{DateTime, Utc};
-use lettre::message::Mailbox;
 use lettre::Address;
+use lettre::message::Mailbox;
 use log::{debug, error};
 use paperclip::actix::web::{Data, Json};
-use paperclip::actix::{api_v2_operation, Apiv2Schema, CreatedJson, NoContent};
+use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
 use serde::{Deserialize, Serialize};
-use sqlx::{query, query_as, query_scalar, Acquire, Postgres};
+use sqlx::{Acquire, Postgres, query, query_as, query_scalar};
 use std::str::FromStr;
 use uuid::Uuid;
 use validator::Validate;
 
 use crate::iam::{
-    authorize_email_verification, authorize_only_user, authorize_refresh_token,
+    Action, authorize_email_verification, authorize_only_user, authorize_refresh_token,
     authorize_reset_password, create_refresh_token, create_reset_password_token,
-    create_user_access_token, Action,
+    create_user_access_token,
 };
 use crate::mailer::Mail;
 use crate::openapi::{OaBiscuitRefresh, OaBiscuitUserAccess};

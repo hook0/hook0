@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use actix_web::{web, App, HttpRequest, HttpServer, Responder};
+use actix_web::{App, HttpRequest, HttpServer, Responder, web};
 use hook0_client::Hook0ClientError;
 
 const SUBSCRIPTION_SECRET: &str = "ebc17f0b-566e-4d02-be72-df8ec3a6d16c";
@@ -46,13 +46,17 @@ async fn handle_webhook(req: HttpRequest, body: web::Bytes) -> impl Responder {
                 tolerance,
                 current_time,
             }) => {
-                println!("Signature verification failed: The webhook has expired because it was sent too long ago (signed_at={signed_at}, tolerance={tolerance}, current_time={current_time})")
+                println!(
+                    "Signature verification failed: The webhook has expired because it was sent too long ago (signed_at={signed_at}, tolerance={tolerance}, current_time={current_time})"
+                )
             }
             Err(Hook0ClientError::SignatureParsing(signature)) => {
                 println!("Signature verification failed: Could not parse signature: {signature}")
             }
             Err(Hook0ClientError::TimestampParsingInSignature(timestamp)) => {
-                println!("Signature verification failed: Could not parse timestamp in signature: {timestamp}")
+                println!(
+                    "Signature verification failed: Could not parse timestamp in signature: {timestamp}"
+                )
             }
             Err(Hook0ClientError::InvalidTolerance(err)) => {
                 println!("Signature verification failed: Invalid tolerance: {err}")
