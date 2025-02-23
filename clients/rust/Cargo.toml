@@ -13,14 +13,14 @@ chrono = { version = "0.4.39", features = ["serde"] }
 hex = { version = "0.4.3", optional = true }
 hmac = { version = "0.12.1", optional = true }
 lazy-regex = "3.4.1"
-log = "0.4.25"
+log = "0.4.26"
 reqwest = { version = "0.12.12", default-features = false, features = ["hickory-dns", "json"], optional = true }
-serde = { version = "1.0.217", features = ["derive"], optional = true }
-serde_json = { version = "1.0.138", optional = true }
+serde = { version = "1.0.218", features = ["derive"], optional = true }
+serde_json = { version = "1.0.139", optional = true }
 sha2 = { version = "0.10.8", optional = true }
 thiserror = "2.0.11"
 url = { version = "2.5.4", optional = true }
-uuid = { version = "1.12.0", features = ["serde", "v4"], optional = true }
+uuid = { version = "1.14.0", features = ["serde", "v4"], optional = true }
 
 [dev-dependencies]
 actix-web = { version = "4.9.0", default-features = false, features = ["macros"] }

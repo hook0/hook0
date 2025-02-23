@@ -10,23 +10,23 @@ license = "SSPL-1.0"
 keywords = ["webhooks", "webhook", "webhook-server", "events", "saas"]
 
 [dependencies]
-anyhow = "1.0.95"
+anyhow = "1.0.96"
 chrono = "0.4.39"
-clap = { version = "4.5.28", features = ["derive", "env", "cargo", "wrap_help"] }
+clap = { version = "4.5.30", features = ["derive", "env", "cargo", "wrap_help"] }
 hex = "0.4.3"
 hmac = "0.12.1"
 hook0-sentry-integration = { path = "../sentry-integration", version = "0.1.0" }
 humantime = "2.1.0"
 itertools = "0.14.0"
-log = "0.4.25"
+log = "0.4.26"
 reqwest = { version = "0.12.12", default-features = false, features = ["charset", "http2", "macos-system-configuration", "hickory-dns", "json"] }
-serde = "1.0.217"
-serde_json = "1.0.138"
+serde = "1.0.218"
+serde_json = "1.0.139"
 sha2 = "0.10.8"
 sqlx = { version = "0.8.3", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "macros", "uuid", "chrono", "json"] }
-strum = { version = "0.26.3", features = ["derive"] }
+strum = { version = "0.27.1", features = ["derive"] }
 tokio = { version = "1.43.0", features = ["rt-multi-thread", "macros", "time"] }
-uuid = { version = "1.12.1", features = ["v4"] }
+uuid = { version = "1.14.0", features = ["v4"] }
 
 [features]
 default = ["reqwest-rustls-tls-webpki-roots"]
