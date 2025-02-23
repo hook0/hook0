@@ -3,13 +3,11 @@ use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
 use actix_web::{Error, HttpMessage, HttpResponse};
 use futures_util::future::{ok, ready, Ready};
 use ipnetwork::{IpNetwork, IpNetworkError};
-use lazy_static::lazy_static;
 use log::{debug, error, trace};
-use regex::Regex;
 use std::future::Future;
+use std::net::SocketAddr;
 use std::pin::Pin;
 use std::rc::Rc;
-use std::str::FromStr;
 use std::task::{Context, Poll};
 
 #[derive(Debug, Clone)]
@@ -82,8 +80,6 @@ where
 pub enum GetUserIpError {
     #[error("cannot extract IP address from request")]
     NoIpInRequest,
-    #[error("cannot separate IP address from port: {0}")]
-    IpPortSeparation(String),
     #[error("cannot parse IP address: {0}")]
     Ip(#[from] IpNetworkError),
 }
@@ -116,32 +112,10 @@ fn extract_ip(
 }
 
 fn parse_ip(ip_port_str: &str) -> Result<IpNetwork, GetUserIpError> {
-    use nom::branch::alt;
-    use nom::combinator::map_res;
-    use nom::IResult;
-    use nom_regex::str::re_capture;
-
-    fn parser(input: &str) -> IResult<&str, &str> {
-        lazy_static! {
-            static ref RE_V4: Regex = Regex::new(r"^([^:]+)(?:[:]\d+)?$").unwrap();
-            static ref RE_V6: Regex = Regex::new(r"^\[(.+)\](?:[:]\d+)?$").unwrap();
-        }
-
-        let v4 = map_res(re_capture(RE_V4.to_owned()), |captures| {
-            captures.get(1).copied().ok_or_else(|| "".to_owned())
-        });
-        let v6 = map_res(re_capture(RE_V6.to_owned()), |captures| {
-            captures.get(1).copied().ok_or_else(|| "".to_owned())
-        });
-        let mut p = alt((v6, v4));
-
-        p(input)
-    }
-
-    let ip_str = parser(ip_port_str)
-        .map_err(|e| GetUserIpError::IpPortSeparation(e.to_string()))?
-        .1;
-    let ip = IpNetwork::from_str(ip_str)?;
+    let ip = ip_port_str
+        .parse::<SocketAddr>()
+        .map(|sa| IpNetwork::from(sa.ip()))
+        .or_else(|_| ip_port_str.parse::<IpNetwork>())?;
     Ok(ip)
 }
 
@@ -154,54 +128,54 @@ mod tests {
     #[test]
     fn parse_ip_v4_valid() {
         let expected = IpNetwork::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 32).unwrap();
-        assert_eq!(parse_ip("127.0.0.1:1234"), Ok(expected))
+        assert_eq!(dbg!(parse_ip("127.0.0.1:1234")), Ok(expected))
     }
 
     #[test]
     fn parse_ip_v4_invalid_separation() {
         let input = "127.0.0.1:1234:5678";
-        assert!(matches!(
-            parse_ip(input),
-            Err(GetUserIpError::IpPortSeparation(_))
-        ))
+        assert!(matches!(parse_ip(input), Err(GetUserIpError::Ip(_))))
     }
 
     #[test]
     fn parse_ip_v4_invalid_ip() {
         let input = "127.0.0.1234:5678";
-        assert!(matches!(parse_ip(input), Err(GetUserIpError::Ip(_))))
+        assert!(matches!(dbg!(parse_ip(input)), Err(GetUserIpError::Ip(_))))
     }
 
     #[test]
     fn parse_ip_v4_no_port() {
         let expected = IpNetwork::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 32).unwrap();
-        assert_eq!(parse_ip("127.0.0.1"), Ok(expected))
+        assert_eq!(dbg!(parse_ip("127.0.0.1")), Ok(expected))
     }
 
     #[test]
     fn parse_ip_v6_valid() {
         let expected = IpNetwork::new(IpAddr::V6(Ipv6Addr::LOCALHOST), 128).unwrap();
-        assert_eq!(parse_ip("[0:0:0:0:0:0:0:1]:1234"), Ok(expected))
+        assert_eq!(dbg!(parse_ip("[0:0:0:0:0:0:0:1]:1234")), Ok(expected))
+    }
+
+    #[test]
+    fn parse_ip_v6_no_brackets() {
+        let expected = IpNetwork::new(IpAddr::V6(Ipv6Addr::LOCALHOST), 128).unwrap();
+        assert_eq!(dbg!(parse_ip("::1")), Ok(expected))
     }
 
     #[test]
     fn parse_ip_v6_invalid_separation() {
         let input = "[::1]:1234:5678";
-        assert!(matches!(
-            parse_ip(input),
-            Err(GetUserIpError::IpPortSeparation(_))
-        ))
+        assert!(matches!(dbg!(parse_ip(input)), Err(GetUserIpError::Ip(_))))
     }
 
     #[test]
     fn parse_ip_v6_invalid_ip() {
         let input = "[::lol]:5678";
-        assert!(matches!(parse_ip(input), Err(GetUserIpError::Ip(_))))
+        assert!(matches!(dbg!(parse_ip(input)), Err(GetUserIpError::Ip(_))))
     }
 
     #[test]
     fn parse_ip_v6_no_port() {
         let expected = IpNetwork::new(IpAddr::V6(Ipv6Addr::LOCALHOST), 128).unwrap();
-        assert_eq!(parse_ip("[0:0:0:0:0:0:0:1]"), Ok(expected))
+        assert_eq!(dbg!(parse_ip("0:0:0:0:0:0:0:1")), Ok(expected))
     }
 }
