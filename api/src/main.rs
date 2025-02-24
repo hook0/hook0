@@ -7,12 +7,12 @@ use actix_web::{App, HttpServer, http, middleware};
 use biscuit_auth::{KeyPair, PrivateKey};
 use clap::builder::{BoolValueParser, TypedValueParser};
 use clap::{ArgGroup, Parser, crate_name};
+use ipnetwork::IpNetwork;
 use lettre::Address;
 use log::{debug, info, trace, warn};
 use paperclip::actix::{OpenApiExt, web};
 use reqwest::Url;
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
-use std::net::IpAddr;
 use std::str::FromStr;
 use std::time::Duration;
 use uuid::Uuid;
@@ -59,13 +59,13 @@ struct Config {
     #[clap(long, env, default_value = "8080")]
     port: String,
 
-    /// A comma-separated list of trusted IP addresses that are allowed to set "X-Forwarded-For" and "Forwarded" headers
+    /// A comma-separated list of trusted IP addresses (e.g. `192.168.1.1`) or CIDRs (e.g. `192.168.0.0/16`) that are allowed to set "X-Forwarded-For" and "Forwarded" headers
     #[clap(long, env, use_value_delimiter = true, group = "reverse_proxy")]
-    reverse_proxy_ips: Vec<IpAddr>,
+    reverse_proxy_ips: Vec<IpNetwork>,
 
-    /// A comma-separated list of trusted IP addresses that are allowed to set "X-Forwarded-For" and "Forwarded" headers
+    /// A comma-separated list of trusted IP addresses (e.g. `192.168.1.1`) or CIDRs (e.g. `192.168.0.0/16`) that are allowed to set "X-Forwarded-For" and "Forwarded" headers
     #[clap(long, env, use_value_delimiter = true, group = "reverse_proxy")]
-    cc_reverse_proxy_ips: Vec<IpAddr>,
+    cc_reverse_proxy_ips: Vec<IpNetwork>,
 
     /// Optional Sentry DSN for error reporting
     #[clap(long, env)]

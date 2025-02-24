@@ -2,6 +2,7 @@ use actix_web::body::BoxBody;
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
 use actix_web::{Error, HttpMessage, HttpResponse};
 use futures_util::future::{Ready, ok, ready};
+use ipnetwork::IpNetwork;
 use log::{debug, error, trace};
 use std::future::Future;
 use std::net::{AddrParseError, IpAddr, SocketAddr};
@@ -11,7 +12,7 @@ use std::task::{Context, Poll};
 
 #[derive(Debug, Clone)]
 pub struct GetUserIp {
-    pub reverse_proxy_ips: Vec<IpAddr>,
+    pub reverse_proxy_ips: Vec<IpNetwork>,
 }
 
 impl<S> Transform<S, ServiceRequest> for GetUserIp
@@ -37,7 +38,7 @@ where
 #[derive(Debug, Clone)]
 pub struct GetUserIpMiddleware<S> {
     service: Rc<S>,
-    reverse_proxy_ips: Vec<IpAddr>,
+    reverse_proxy_ips: Vec<IpNetwork>,
 }
 
 impl<S> Service<ServiceRequest> for GetUserIpMiddleware<S>
@@ -85,13 +86,16 @@ pub enum GetUserIpError {
 
 fn extract_ip(
     req: &ServiceRequest,
-    reverse_proxy_ips: &[IpAddr],
+    reverse_proxy_ips: &[IpNetwork],
 ) -> Result<IpAddr, GetUserIpError> {
     let connection_info = req.connection_info();
     let peer_ip = req.peer_addr().ok_or(GetUserIpError::NoIpInRequest)?.ip();
 
     // Check if the IP of the direct peer is trusted
-    let ip_port_str = if reverse_proxy_ips.contains(&peer_ip) {
+    let ip_port_str = if reverse_proxy_ips
+        .iter()
+        .any(|whitelisted_cidr| whitelisted_cidr.contains(peer_ip))
+    {
         // If yes, we can get user's IP from "X-Forwarded-For" or "Forwarded" headers
         connection_info
             .realip_remote_addr()
@@ -183,7 +187,7 @@ mod tests {
     }
 
     fn test_app(
-        reverse_proxy_ips: Vec<IpAddr>,
+        reverse_proxy_ips: Vec<IpNetwork>,
     ) -> App<
         impl ServiceFactory<
             ServiceRequest,
@@ -234,7 +238,7 @@ mod tests {
 
     #[actix_web::test]
     async fn get_user_ip_v4_peer_trusted_forwarded_for() {
-        let reverse_proxy_ips = vec![IpAddr::V4(Ipv4Addr::new(192, 168, 0, 1))];
+        let reverse_proxy_ips = vec![IpNetwork::from(IpAddr::V4(Ipv4Addr::new(192, 168, 0, 1)))];
         let app = init_service(test_app(reverse_proxy_ips)).await;
         let peer = (IpAddr::V4(Ipv4Addr::new(192, 168, 0, 1)), 1234).into();
         let req = TestRequest::default()
@@ -252,9 +256,9 @@ mod tests {
 
     #[actix_web::test]
     async fn get_user_ip_v6_peer_trusted_forwarded_for() {
-        let reverse_proxy_ips = vec![IpAddr::V6(Ipv6Addr::new(
+        let reverse_proxy_ips = vec![IpNetwork::from(IpAddr::V6(Ipv6Addr::new(
             0, 0, 0, 0, 0, 0xffff, 0xc00a, 0x2ff,
-        ))];
+        )))];
         let app = init_service(test_app(reverse_proxy_ips)).await;
         let peer = (
             IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0xc00a, 0x2ff)),
@@ -276,7 +280,7 @@ mod tests {
 
     #[actix_web::test]
     async fn get_user_ip_v4_peer_untrusted_forwarded_for() {
-        let reverse_proxy_ips = vec![IpAddr::V4(Ipv4Addr::new(192, 168, 0, 1))];
+        let reverse_proxy_ips = vec![IpNetwork::from(IpAddr::V4(Ipv4Addr::new(192, 168, 0, 1)))];
         let app = init_service(test_app(reverse_proxy_ips)).await;
         let peer = (IpAddr::V4(Ipv4Addr::new(192, 168, 0, 2)), 1234).into();
         let req = TestRequest::default()
@@ -294,9 +298,9 @@ mod tests {
 
     #[actix_web::test]
     async fn get_user_ip_v6_peer_untrusted_forwarded_for() {
-        let reverse_proxy_ips = vec![IpAddr::V6(Ipv6Addr::new(
+        let reverse_proxy_ips = vec![IpNetwork::from(IpAddr::V6(Ipv6Addr::new(
             0, 0, 0, 0, 0, 0xffff, 0xc00a, 0x2ff,
-        ))];
+        )))];
         let app = init_service(test_app(reverse_proxy_ips)).await;
         let peer = (
             IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0xc00a, 0x2fe)),
@@ -314,5 +318,49 @@ mod tests {
         let body = String::from_utf8(read_body(res).await.to_vec()).unwrap();
         let user_ip = IpAddr::from_str(&body).unwrap();
         assert_eq!(user_ip, expected)
+    }
+
+    #[actix_web::test]
+    async fn get_user_ip() {
+        let reverse_proxy_ips = vec![
+            IpNetwork::from(IpAddr::V6(Ipv6Addr::new(
+                0, 0, 0, 0, 0, 0xffff, 0xc00a, 0x2ff,
+            ))),
+            IpNetwork::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 8).unwrap(),
+        ];
+        let app = init_service(test_app(reverse_proxy_ips)).await;
+
+        let tests = [
+            (
+                SocketAddr::from((
+                    IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0xc00a, 0x2ff)),
+                    1234,
+                )),
+                "::ffff:192.10.2.1",
+                IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0xc00a, 0x201)),
+            ),
+            (
+                SocketAddr::from((IpAddr::V4(Ipv4Addr::new(127, 0, 1, 200)), 1234)),
+                "10.10.10.10",
+                IpAddr::V4(Ipv4Addr::new(10, 10, 10, 10)),
+            ),
+            (
+                SocketAddr::from((IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)), 1234)),
+                "10.10.10.10",
+                IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)),
+            ),
+        ];
+        for (peer, forwarded_for, expected) in tests {
+            let req = TestRequest::default()
+                .peer_addr(peer)
+                .insert_header((FORWARDED_FOR_HEADER, forwarded_for))
+                .to_request();
+
+            let res = call_service(&app, req).await;
+            assert_eq!(res.status(), 200);
+            let body = String::from_utf8(read_body(res).await.to_vec()).unwrap();
+            let user_ip = IpAddr::from_str(&body).unwrap();
+            assert_eq!(user_ip, expected)
+        }
     }
 }
