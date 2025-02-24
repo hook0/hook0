@@ -12,6 +12,7 @@ use log::{debug, info, trace, warn};
 use paperclip::actix::{OpenApiExt, web};
 use reqwest::Url;
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
+use std::net::IpAddr;
 use std::str::FromStr;
 use std::time::Duration;
 use uuid::Uuid;
@@ -43,6 +44,7 @@ const WEBAPP_INDEX_FILE: &str = "index.html";
 
 #[derive(Debug, Clone, Parser)]
 #[clap(author, about, version, name = APP_TITLE)]
+#[clap(group(ArgGroup::new("reverse_proxy").multiple(false)))]
 #[clap(group(
     ArgGroup::new("client")
         .multiple(true)
@@ -58,8 +60,12 @@ struct Config {
     port: String,
 
     /// A comma-separated list of trusted IP addresses that are allowed to set "X-Forwarded-For" and "Forwarded" headers
-    #[clap(long, env = "CC_REVERSE_PROXY_IPS", use_value_delimiter = true)]
-    reverse_proxy_ips: Vec<String>,
+    #[clap(long, env, use_value_delimiter = true, group = "reverse_proxy")]
+    reverse_proxy_ips: Vec<IpAddr>,
+
+    /// A comma-separated list of trusted IP addresses that are allowed to set "X-Forwarded-For" and "Forwarded" headers
+    #[clap(long, env, use_value_delimiter = true, group = "reverse_proxy")]
+    cc_reverse_proxy_ips: Vec<IpAddr>,
 
     /// Optional Sentry DSN for error reporting
     #[clap(long, env)]
@@ -408,11 +414,11 @@ async fn main() -> anyhow::Result<()> {
         trace!("Starting {}", APP_TITLE);
 
         // Prepare trusted reverse proxies IPs
-        let reverse_proxy_ips = config
-            .reverse_proxy_ips
-            .iter()
-            .map(|str| str.trim().to_owned())
-            .collect::<Vec<_>>();
+        let reverse_proxy_ips = if config.reverse_proxy_ips.is_empty() {
+            config.cc_reverse_proxy_ips
+        } else {
+            config.reverse_proxy_ips
+        };
         if reverse_proxy_ips.is_empty() {
             warn!(
                 "No trusted reverse proxy IPs were set; if this is a production instance this is a problem"
@@ -420,7 +426,11 @@ async fn main() -> anyhow::Result<()> {
         } else {
             debug!(
                 "The following IPs will be considered as trusted reverse proxies: {}",
-                &reverse_proxy_ips.join(", ")
+                reverse_proxy_ips
+                    .iter()
+                    .map(|ip| ip.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
             );
         }
 
