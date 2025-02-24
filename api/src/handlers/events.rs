@@ -3,11 +3,11 @@ use base64::Engine;
 use base64::engine::general_purpose::STANDARD as Base64;
 use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};
-use ipnetwork::IpNetwork;
 use paperclip::actix::web::{Data, Json, Path, Query};
 use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+use sqlx::types::ipnetwork::IpNetwork;
 use sqlx::{query, query_as, query_scalar};
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -411,7 +411,7 @@ pub async fn ingest(
                 &body.event_type,
                 &payload,
                 &body.payload_content_type,
-                ip.into_inner(),
+                IpNetwork::from(ip.into_inner()),
                 metadata,
                 &body.occurred_at,
                 labels,

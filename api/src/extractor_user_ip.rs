@@ -1,25 +1,25 @@
 use actix_web::{FromRequest, HttpMessage, ResponseError};
 use futures_util::future::{Ready, ready};
-use ipnetwork::IpNetwork;
 use paperclip::actix::OperationModifier;
 use paperclip::v2::schema::Apiv2Schema;
 use std::fmt::Display;
+use std::net::IpAddr;
 use std::ops::Deref;
 
 #[derive(Debug, Clone)]
 /// Extractor for user's IP address
-pub struct UserIp(IpNetwork);
+pub struct UserIp(pub IpAddr);
 
 impl UserIp {
-    pub fn into_inner(self) -> IpNetwork {
+    pub fn into_inner(self) -> IpAddr {
         self.0
     }
 }
 
 impl Deref for UserIp {
-    type Target = IpNetwork;
+    type Target = IpAddr;
 
-    fn deref(&self) -> &IpNetwork {
+    fn deref(&self) -> &IpAddr {
         &self.0
     }
 }
@@ -35,7 +35,7 @@ impl FromRequest for UserIp {
     ) -> Self::Future {
         ready(
             req.extensions()
-                .get::<IpNetwork>()
+                .get::<IpAddr>()
                 .ok_or(UserIpExtractorError)
                 .map(|ip| Self(*ip)),
         )
