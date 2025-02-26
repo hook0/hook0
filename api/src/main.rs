@@ -67,6 +67,10 @@ struct Config {
     #[clap(long, env, use_value_delimiter = true, group = "reverse_proxy")]
     cc_reverse_proxy_ips: Vec<IpNetwork>,
 
+    /// Set to true if your instance is served behind Cloudflare's proxies in order to determine the correct user IP for each request
+    #[clap(long, env, default_value = "false")]
+    behind_cloudflare: bool,
+
     /// Optional Sentry DSN for error reporting
     #[clap(long, env)]
     sentry_dsn: Option<String>,
@@ -413,26 +417,35 @@ async fn main() -> anyhow::Result<()> {
 
         trace!("Starting {}", APP_TITLE);
 
-        // Prepare trusted reverse proxies IPs
-        let reverse_proxy_ips = if config.reverse_proxy_ips.is_empty() {
+        // Prepare trusted reverse proxies CIDRs
+        let reverse_proxy_cidrs = if config.reverse_proxy_ips.is_empty() {
             config.cc_reverse_proxy_ips
         } else {
             config.reverse_proxy_ips
         };
-        if reverse_proxy_ips.is_empty() {
+        if reverse_proxy_cidrs.is_empty() {
             warn!(
-                "No trusted reverse proxy IPs were set; if this is a production instance this is a problem"
+                "No trusted reverse proxy CIDRs were set; if this is a production instance this is a problem"
             );
         } else {
             debug!(
-                "The following IPs will be considered as trusted reverse proxies: {}",
-                reverse_proxy_ips
+                "The following CIDRs will be considered as trusted reverse proxies: {}",
+                reverse_proxy_cidrs
                     .iter()
                     .map(|ip| ip.to_string())
                     .collect::<Vec<_>>()
                     .join(", ")
             );
         }
+        info!(
+            "{} reverse proxy CIDRs are trusted{}",
+            reverse_proxy_cidrs.len(),
+            if config.behind_cloudflare {
+                " (in addition to Cloudflare's)"
+            } else {
+                ""
+            }
+        );
 
         // Prepare rate limiting configuration
         let rate_limiters = rate_limiting::Hook0RateLimiters::new(
@@ -645,7 +658,8 @@ async fn main() -> anyhow::Result<()> {
 
             // Prepare user IP extraction middleware
             let get_user_ip = middleware_get_user_ip::GetUserIp {
-                reverse_proxy_ips: reverse_proxy_ips.clone(),
+                reverse_proxy_cidrs: reverse_proxy_cidrs.clone(),
+                behind_cloudflare: config.behind_cloudflare,
             };
 
             // Prepare CORS configuration
