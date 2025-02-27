@@ -182,12 +182,21 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
             headers.insert("X-Event-Id", event_id);
             headers.insert("X-Event-Type", et);
 
-            let sig = Signature::new(&attempt.secret.to_string(), &attempt.payload, Utc::now(), &headers)
-                .to_header_value(
-                    config.enabled_signature_versions.contains(&SignatureVersion::V0),
-                    config.enabled_signature_versions.contains(&SignatureVersion::V1),
-                )
-                .expect("Could not create a header value from signature");
+            let sig = Signature::new(
+                &attempt.secret.to_string(),
+                &attempt.payload,
+                Utc::now(),
+                &headers,
+            )
+            .to_header_value(
+                config
+                    .enabled_signature_versions
+                    .contains(&SignatureVersion::V0),
+                config
+                    .enabled_signature_versions
+                    .contains(&SignatureVersion::V1),
+            )
+            .expect("Could not create a header value from signature");
 
             headers.insert(&config.signature_header_name, sig);
 
@@ -328,7 +337,12 @@ impl Signature {
     const SIGNATURE_PART_ASSIGNATOR: &'static str = "=";
     const SIGNATURE_PART_SEPARATOR: &'static str = ",";
 
-    pub fn new(secret: &str, payload: &[u8], signed_at: DateTime<Utc>, headers: &HeaderMap) -> Self {
+    pub fn new(
+        secret: &str,
+        payload: &[u8],
+        signed_at: DateTime<Utc>,
+        headers: &HeaderMap,
+    ) -> Self {
         let timestamp = signed_at.timestamp();
         let timestamp_str = timestamp.to_string();
         let timestamp_str_bytes = timestamp_str.as_bytes();
@@ -343,8 +357,8 @@ impl Signature {
         mac_v0.update(payload);
         let v0 = mac_v0.finalize().into_bytes().encode_hex::<String>();
 
-
-        let header_names = headers.keys()
+        let header_names = headers
+            .keys()
             .map(|key| key.as_str())
             .collect::<Vec<_>>()
             .join(" ");
@@ -353,18 +367,24 @@ impl Signature {
         mac_v1.update(Self::PAYLOAD_SEPARATOR);
 
         mac_v1.update(
-            headers.values()
+            headers
+                .values()
                 .map(|value| value.to_str().expect("Invalid header values"))
                 .collect::<Vec<_>>()
                 .join(std::str::from_utf8(Self::PAYLOAD_SEPARATOR).expect("Invalid UTF-8"))
-                .as_bytes()
+                .as_bytes(),
         );
         mac_v1.update(Self::PAYLOAD_SEPARATOR);
 
         mac_v1.update(payload);
         let v1 = mac_v1.finalize().into_bytes().encode_hex::<String>();
 
-        Self { timestamp, headers: header_names, v0, v1 }
+        Self {
+            timestamp,
+            headers: header_names,
+            v0,
+            v1,
+        }
     }
 
     pub fn value(&self, v0_enabled: bool, v1_enabled: bool) -> String {
@@ -389,7 +409,11 @@ impl Signature {
         .collect::<String>()
     }
 
-    pub fn to_header_value(&self, v0_enabled: bool, v1_enabled: bool) -> Result<HeaderValue, InvalidHeaderValue> {
+    pub fn to_header_value(
+        &self,
+        v0_enabled: bool,
+        v1_enabled: bool,
+    ) -> Result<HeaderValue, InvalidHeaderValue> {
         HeaderValue::from_str(&self.value(v0_enabled, v1_enabled))
     }
 }
@@ -419,8 +443,15 @@ mod tests {
         let payload = "hello !";
         let secret = "secret";
         let mut headers = HeaderMap::new();
-        headers.insert("X-Event-Id", HeaderValue::from_str("1a01cb48-5142-4d9b-8f90-d20cca61f0ee").expect("Invalid header values"));
-        headers.insert("X-Event-Type", HeaderValue::from_str("service.resource.verb").expect("Invalid header values"));
+        headers.insert(
+            "X-Event-Id",
+            HeaderValue::from_str("1a01cb48-5142-4d9b-8f90-d20cca61f0ee")
+                .expect("Invalid header values"),
+        );
+        headers.insert(
+            "X-Event-Type",
+            HeaderValue::from_str("service.resource.verb").expect("Invalid header values"),
+        );
 
         let sig = Signature::new(secret, payload.as_bytes(), signed_at, &headers);
         assert_eq!(
@@ -435,8 +466,15 @@ mod tests {
         let payload = "hello !";
         let secret = "secret";
         let mut headers = HeaderMap::new();
-        headers.insert("X-Event-Id", HeaderValue::from_str("1a01cb48-5142-4d9b-8f90-d20cca61f0ee").expect("Invalid header values"));
-        headers.insert("X-Event-Type", HeaderValue::from_str("service.resource.verb").expect("Invalid header values"));
+        headers.insert(
+            "X-Event-Id",
+            HeaderValue::from_str("1a01cb48-5142-4d9b-8f90-d20cca61f0ee")
+                .expect("Invalid header values"),
+        );
+        headers.insert(
+            "X-Event-Type",
+            HeaderValue::from_str("service.resource.verb").expect("Invalid header values"),
+        );
 
         let sig = Signature::new(secret, payload.as_bytes(), signed_at, &headers);
         assert_eq!(
