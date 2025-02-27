@@ -22,7 +22,7 @@ use uuid::Uuid;
 
 use work::*;
 
-#[derive(Debug, Clone, ValueEnum, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
 enum SignatureVersion {
     V0,
     V1,
@@ -83,7 +83,7 @@ struct Config {
     #[clap(long, env, default_value = "X-Hook0-Signature")]
     signature_header_name: HeaderName,
 
-    /// A comma separated list of enabled signature versions
+    /// A comma-separated list of enabled signature versions
     #[clap(long, env, default_value = "v1", value_delimiter = ',')]
     enabled_signature_versions: Vec<SignatureVersion>,
 }
