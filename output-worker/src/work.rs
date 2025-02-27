@@ -333,9 +333,11 @@ struct Signature {
 }
 
 impl Signature {
-    const PAYLOAD_SEPARATOR: &'static [u8] = b".";
+    const PAYLOAD_SEPARATOR: &'static str = ".";
+    const PAYLOAD_SEPARATOR_BYTES: &'static [u8] = Self::PAYLOAD_SEPARATOR.as_bytes();
     const SIGNATURE_PART_ASSIGNATOR: &'static str = "=";
     const SIGNATURE_PART_SEPARATOR: &'static str = ",";
+    const SIGNATURE_PART_HEADER_NAMES_SEPARATOR: &'static str = " ";
 
     pub fn new(
         secret: &str,
@@ -347,34 +349,48 @@ impl Signature {
         let timestamp_str = timestamp.to_string();
         let timestamp_str_bytes = timestamp_str.as_bytes();
 
+        let sorted_headers_with_lowercased_names = {
+            let mut hs = headers
+                .iter()
+                .map(|(k, v)| {
+                    (
+                        k.as_str().to_lowercase(),
+                        v.to_str().expect("Invalid header values"),
+                    )
+                })
+                .collect::<Vec<_>>();
+            hs.sort_by_key(|e| e.0.to_owned());
+            hs
+        };
+
         type HmacSha256 = Hmac<Sha256>;
         let mut mac_v0 = HmacSha256::new_from_slice(secret.as_bytes()).unwrap(); // MAC can take key of any size; this should never fail
         mac_v0.update(timestamp_str_bytes);
-        mac_v0.update(Self::PAYLOAD_SEPARATOR);
+        mac_v0.update(Self::PAYLOAD_SEPARATOR_BYTES);
 
         let mut mac_v1 = mac_v0.clone();
 
         mac_v0.update(payload);
         let v0 = mac_v0.finalize().into_bytes().encode_hex::<String>();
 
-        let header_names = headers
-            .keys()
-            .map(|key| key.as_str())
+        let header_names = sorted_headers_with_lowercased_names
+            .iter()
+            .map(|(k, _v)| k.as_str())
             .collect::<Vec<_>>()
-            .join(" ");
+            .join(Self::SIGNATURE_PART_HEADER_NAMES_SEPARATOR);
 
         mac_v1.update(header_names.as_bytes());
-        mac_v1.update(Self::PAYLOAD_SEPARATOR);
+        mac_v1.update(Self::PAYLOAD_SEPARATOR_BYTES);
 
         mac_v1.update(
-            headers
-                .values()
-                .map(|value| value.to_str().expect("Invalid header values"))
+            sorted_headers_with_lowercased_names
+                .iter()
+                .map(|(_k, v)| *v)
                 .collect::<Vec<_>>()
-                .join(std::str::from_utf8(Self::PAYLOAD_SEPARATOR).expect("Invalid UTF-8"))
+                .join(Self::PAYLOAD_SEPARATOR)
                 .as_bytes(),
         );
-        mac_v1.update(Self::PAYLOAD_SEPARATOR);
+        mac_v1.update(Self::PAYLOAD_SEPARATOR_BYTES);
 
         mac_v1.update(payload);
         let v1 = mac_v1.finalize().into_bytes().encode_hex::<String>();
@@ -443,14 +459,15 @@ mod tests {
         let payload = "hello !";
         let secret = "secret";
         let mut headers = HeaderMap::new();
+        // Signature must be consistant and ignore header name's case and order
+        headers.insert(
+            "X-EVENT-TYPE",
+            HeaderValue::from_str("service.resource.verb").expect("Invalid header values"),
+        );
         headers.insert(
             "X-Event-Id",
             HeaderValue::from_str("1a01cb48-5142-4d9b-8f90-d20cca61f0ee")
                 .expect("Invalid header values"),
-        );
-        headers.insert(
-            "X-Event-Type",
-            HeaderValue::from_str("service.resource.verb").expect("Invalid header values"),
         );
 
         let sig = Signature::new(secret, payload.as_bytes(), signed_at, &headers);
