@@ -20,10 +20,10 @@ pub struct Mailer {
 #[derive(Debug, Clone)]
 pub enum Mail {
     VerifyUserEmail {
-        url: String,
+        url: Url,
     },
     ResetPassword {
-        url: String,
+        url: Url,
     },
     // Welcome { name: String },
     QuotaEventsPerDayWarning {
@@ -68,8 +68,8 @@ impl Mail {
 
     pub fn variables(&self) -> Vec<(String, String)> {
         match self {
-            Mail::VerifyUserEmail { url } => vec![("url".to_owned(), url.to_owned())],
-            Mail::ResetPassword { url } => vec![("url".to_owned(), url.to_owned())],
+            Mail::VerifyUserEmail { url } => vec![("url".to_owned(), url.to_string())],
+            Mail::ResetPassword { url } => vec![("url".to_owned(), url.to_string())],
             // Mail::Welcome { name } => vec![("name".to_owned(), name.to_owned())],
             Mail::QuotaEventsPerDayWarning {
                 pricing_url_hash,
@@ -134,6 +134,28 @@ impl Mail {
             _ => {}
         }
     }
+
+    pub fn render(
+        &self,
+        logo_url: &Url,
+        website_url: &Url,
+        app_url: &Url,
+    ) -> Result<String, Hook0Problem> {
+        let template = self.template();
+        let mut mjml = template.to_owned();
+        for (key, value) in self.variables() {
+            mjml = mjml.replace(&format!("{{ ${key} }}"), &value);
+        }
+
+        mjml = mjml.replace("{ $logo_url }", logo_url.as_str());
+        mjml = mjml.replace("{ $website_url }", website_url.as_str());
+        mjml = mjml.replace("{ $app_url }", app_url.as_str());
+
+        let parsed = mrml::parse(mjml)?;
+        let rendered = parsed.element.render(&Default::default())?;
+
+        Ok(rendered)
+    }
 }
 
 impl Mailer {
@@ -168,19 +190,7 @@ impl Mailer {
     }
 
     pub async fn send_mail(&self, mail: Mail, recipient: Mailbox) -> Result<(), Hook0Problem> {
-        let template = mail.template();
-        let mut mjml = template.to_owned();
-        for (key, value) in mail.variables() {
-            mjml = mjml.replace(&format!("{{ ${key} }}"), &value);
-        }
-
-        mjml = mjml.replace("{ $logo_url }", self.logo_url.as_str());
-        mjml = mjml.replace("{ $website_url }", self.website_url.as_str());
-        mjml = mjml.replace("{ $app_url }", self.app_url.as_str());
-
-        let parsed = mrml::parse(mjml)?;
-        let rendered = parsed.render(&Default::default())?;
-
+        let rendered = mail.render(&self.logo_url, &self.website_url, &self.app_url)?;
         let text_mail = from_read(rendered.as_bytes(), 80)?;
 
         let email = Message::builder()
@@ -191,5 +201,45 @@ impl Mailer {
 
         self.transport.send(email).await?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::str::FromStr;
+
+    use super::*;
+
+    #[test]
+    fn mrml_rendering() {
+        let logo_url = Url::from_str("http://localhost/logo").unwrap();
+        let website_url = Url::from_str("http://localhost/website").unwrap();
+        let app_url = Url::from_str("http://localhost/app").unwrap();
+
+        let mails = [
+            Mail::VerifyUserEmail {
+                url: Url::from_str("http://localhost/verify").unwrap(),
+            },
+            Mail::ResetPassword {
+                url: Url::from_str("http://localhost/verify").unwrap(),
+            },
+            Mail::QuotaEventsPerDayWarning {
+                pricing_url_hash: "test".to_owned(),
+                actual_consumption_percent: 0,
+                current_events_per_day: 0,
+                events_per_days_limit: 0,
+                extra_variables: vec![("test".to_owned(), "test".to_owned())],
+            },
+            Mail::QuotaEventsPerDayReached {
+                pricing_url_hash: "test".to_owned(),
+                current_events_per_day: 0,
+                events_per_days_limit: 0,
+                extra_variables: vec![("test".to_owned(), "test".to_owned())],
+            },
+        ];
+
+        for m in mails {
+            assert!(m.render(&logo_url, &website_url, &app_url).is_ok());
+        }
     }
 }
