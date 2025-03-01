@@ -5,8 +5,8 @@ use actix_web::HttpMessage;
 use actix_web::middleware::Condition;
 use biscuit_auth::Biscuit;
 use governor::middleware::NoOpMiddleware;
-use ipnetwork::IpNetwork;
 use log::warn;
+use std::net::IpAddr;
 
 use crate::problems::Hook0Problem;
 
@@ -105,7 +105,7 @@ impl Hook0RateLimiters {
 pub struct UserIpKeyExtractor;
 
 impl KeyExtractor for UserIpKeyExtractor {
-    type Key = IpNetwork;
+    type Key = IpAddr;
     type KeyExtractionError = Hook0Problem;
 
     fn name(&self) -> &'static str {
@@ -117,7 +117,7 @@ impl KeyExtractor for UserIpKeyExtractor {
         req: &actix_web::dev::ServiceRequest,
     ) -> Result<Self::Key, Self::KeyExtractionError> {
         req.extensions()
-            .get::<IpNetwork>()
+            .get::<IpAddr>()
             .copied()
             .ok_or(Hook0Problem::InternalServerError)
     }
