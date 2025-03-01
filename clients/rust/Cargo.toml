@@ -12,7 +12,8 @@ homepage = "https://www.hook0.com/"
 chrono = { version = "0.4.39", features = ["serde"] }
 hex = { version = "0.4.3", optional = true }
 hmac = { version = "0.12.1", optional = true }
-lazy-regex = "3.4.1"
+http = { version = "1.2.0", optional = true }
+lazy-regex = { version = "3.4.1", optional = true }
 log = "0.4.26"
 reqwest = { version = "0.12.12", default-features = false, features = ["hickory-dns", "json"], optional = true }
 serde = { version = "1.0.218", features = ["derive"], optional = true }
@@ -24,13 +25,14 @@ uuid = { version = "1.14.0", features = ["serde", "v4"], optional = true }
 
 [dev-dependencies]
 actix-web = { version = "4.9.0", default-features = false, features = ["macros"] }
+env_logger = "0.11.6"
 
 [features]
 default = ["reqwest-rustls-tls-webpki-roots", "producer", "consumer"]
 reqwest-rustls-tls-webpki-roots = ["reqwest/rustls-tls-webpki-roots"]
 reqwest-rustls-tls-native-roots = ["reqwest/rustls-tls-native-roots"]
-consumer = ["hex", "hmac", "sha2"]
-producer = ["reqwest", "serde", "serde_json", "url", "uuid"]
+consumer = ["hex", "hmac", "http", "sha2"]
+producer = ["lazy-regex", "reqwest", "serde", "serde_json", "url", "uuid"]
 
 [[example]]
 name = "actix-web"

@@ -22,7 +22,7 @@ use lazy_regex::regex_captures;
 #[cfg(feature = "producer")]
 use log::{debug, error, trace};
 #[cfg(feature = "producer")]
-use reqwest::header::{AUTHORIZATION, HeaderMap, HeaderValue, InvalidHeaderValue};
+use reqwest::header::{AUTHORIZATION, InvalidHeaderValue};
 #[cfg(feature = "producer")]
 use reqwest::{Client, Url};
 #[cfg(feature = "producer")]
@@ -68,15 +68,16 @@ impl Hook0Client {
     /// - `application_id` - UUID of your Hook0 application.
     /// - `token` - Authentication token valid for your Hook0 application.
     pub fn new(api_url: Url, application_id: Uuid, token: &str) -> Result<Self, Hook0ClientError> {
-        let authenticated_client = HeaderValue::from_str(&format!("Bearer {token}"))
-            .map_err(|e| Hook0ClientError::AuthHeader(e).log_and_return())
-            .map(|hv| HeaderMap::from_iter([(AUTHORIZATION, hv)]))
-            .and_then(|headers| {
-                Client::builder()
-                    .default_headers(headers)
-                    .build()
-                    .map_err(|e| Hook0ClientError::ReqwestClient(e).log_and_return())
-            })?;
+        let authenticated_client =
+            reqwest::header::HeaderValue::from_str(&format!("Bearer {token}"))
+                .map_err(|e| Hook0ClientError::AuthHeader(e).log_and_return())
+                .map(|hv| reqwest::header::HeaderMap::from_iter([(AUTHORIZATION, hv)]))
+                .and_then(|headers| {
+                    Client::builder()
+                        .default_headers(headers)
+                        .build()
+                        .map_err(|e| Hook0ClientError::ReqwestClient(e).log_and_return())
+                })?;
 
         Ok(Self {
             api_url,
@@ -232,12 +233,14 @@ impl Hook0Client {
 ///
 /// - `signature` - The value of the `X-Hook0-Signature` header.
 /// - `payload` - The raw body of the webhook request.
+/// - `headers` - Headers of the webhook request.
 /// - `subscription_secret` - The signing secret used to validate the signature.
 /// - `tolerance` - The maximum allowed time difference for the timestamp (5 minutes is a good trade-off between flexibility and protecting against replay attacks).
 /// - `current_time` - The current time (used to check the timestamp).
-pub fn verify_webhook_signature_with_current_time(
+pub fn verify_webhook_signature_with_current_time<HK: AsRef<[u8]>, HV: AsRef<[u8]>>(
     signature: &str,
     payload: &[u8],
+    headers: &[(HK, HV)],
     subscription_secret: &str,
     tolerance: StdDuration,
     current_time: DateTime<Utc>,
@@ -245,7 +248,38 @@ pub fn verify_webhook_signature_with_current_time(
     let parsed_sig =
         signature::Signature::parse(signature).map_err(|_| Hook0ClientError::InvalidSignature)?;
 
-    if !parsed_sig.verify(payload, subscription_secret) {
+    let headers_with_parsed_name = headers
+        .iter()
+        .map(|(k, v)| {
+            let name = http::HeaderName::from_bytes(k.as_ref()).map_err(|error| {
+                Hook0ClientError::InvalidHeaderName {
+                    header_name: String::from_utf8_lossy(k.as_ref()).into_owned(),
+                    error,
+                }
+            });
+            name.map(|n| (n, v))
+        })
+        .collect::<Result<std::collections::HashMap<_, _>, _>>()?;
+    let headers_vec = parsed_sig
+        .h
+        .iter()
+        .map(|expected| {
+            headers_with_parsed_name
+                .get(expected)
+                .ok_or_else(|| Hook0ClientError::MissingHeader(expected.to_owned()))
+                .and_then(|v| {
+                    String::from_utf8(v.as_ref().to_vec()).map_err(|error| {
+                        Hook0ClientError::InvalidHeaderValue {
+                            header_name: expected.to_owned(),
+                            header_value: String::from_utf8_lossy(v.as_ref()).into_owned(),
+                            error,
+                        }
+                    })
+                })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    if !parsed_sig.verify(payload, &headers_vec, subscription_secret) {
         Err(Hook0ClientError::InvalidSignature)
     } else {
         let signed_at = DateTime::from_timestamp(parsed_sig.timestamp, 0);
@@ -278,17 +312,20 @@ pub fn verify_webhook_signature_with_current_time(
 ///
 /// - `signature` - The value of the `X-Hook0-Signature` header.
 /// - `payload` - The raw body of the webhook request.
+/// - `headers` - Headers of the webhook request.
 /// - `subscription_secret` - The signing secret used to validate the signature.
 /// - `tolerance` - The maximum allowed time difference for the timestamp (5 minutes is a good trade-off between flexibility and protecting against replay attacks).
-pub fn verify_webhook_signature(
+pub fn verify_webhook_signature<HK: AsRef<[u8]>, HV: AsRef<[u8]>>(
     signature: &str,
     payload: &[u8],
+    headers: &[(HK, HV)],
     subscription_secret: &str,
     tolerance: StdDuration,
 ) -> Result<(), Hook0ClientError> {
     verify_webhook_signature_with_current_time(
         signature,
         payload,
+        headers,
         subscription_secret,
         tolerance,
         Utc::now(),
@@ -468,14 +505,83 @@ pub enum Hook0ClientError {
     },
 
     #[cfg(feature = "consumer")]
-    /// Could not parse signature
-    #[error("Could not parse signature: {0}")]
-    SignatureParsing(String),
+    /// Could not parse signature header
+    #[error("Could not parse signature header: {0}")]
+    SignatureHeaderParsing(String),
 
     #[cfg(feature = "consumer")]
     /// Could not parse timestamp in signature
-    #[error("Could not parse timestamp in signature: {0}")]
-    TimestampParsingInSignature(String),
+    #[error("Could not parse timestamp `{timestamp}` in signature: {error}")]
+    TimestampParsing {
+        /// Invalid timestamp value
+        timestamp: String,
+
+        /// Timestamp parsing error
+        error: std::num::ParseIntError,
+    },
+
+    #[cfg(feature = "consumer")]
+    /// Could not parse v0 signature
+    #[error("Could not parse v0 signature `{signature}`: {error}")]
+    V0SignatureParsing {
+        /// Invalid signature value
+        signature: String,
+
+        /// Signature parsing error
+        error: hex::FromHexError,
+    },
+
+    #[cfg(feature = "consumer")]
+    /// Could not parse header names (`h` field)
+    #[error("Could not parse header name `{header}` in `h` field: {error}")]
+    HeaderNameParsing {
+        /// Invalid header name
+        header: String,
+
+        /// Header name parsing error
+        error: http::header::InvalidHeaderName,
+    },
+
+    #[cfg(feature = "consumer")]
+    /// Could not parse v1 signature
+    #[error("Could not parse v1 signature `{signature}`: {error}")]
+    V1SignatureParsing {
+        /// Invalid signature value
+        signature: String,
+
+        /// Signature parsing error
+        error: hex::FromHexError,
+    },
+
+    #[cfg(feature = "consumer")]
+    /// A header present in the webhook's signature was not provided with a value
+    #[error("The `{0}` header present in the webhook's signature was not provided with a value")]
+    MissingHeader(http::HeaderName),
+
+    #[cfg(feature = "consumer")]
+    /// Provided header has an invalid name
+    #[error("Provided `{header_name}` has an invalid header name: {error}")]
+    InvalidHeaderName {
+        /// Invalid header name
+        header_name: String,
+
+        /// Header name parsing error
+        error: http::header::InvalidHeaderName,
+    },
+
+    #[cfg(feature = "consumer")]
+    /// Provided header has an invalid value
+    #[error("Provided `{header_name}` has an invalid header value `{header_value}`: {error}")]
+    InvalidHeaderValue {
+        /// Header name
+        header_name: http::HeaderName,
+
+        /// Invalid header value
+        header_value: String,
+
+        /// Header value parsing error
+        error: std::string::FromUtf8Error,
+    },
 
     #[cfg(feature = "consumer")]
     /// Invalid tolerance Duration
@@ -538,7 +644,7 @@ mod tests {
 
     #[cfg(feature = "consumer")]
     #[test]
-    fn verifying_valid_signature() {
+    fn verifying_valid_signature_v0() {
         let signature =
             "t=1636936200,v0=1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98";
         let payload = "hello !".as_bytes();
@@ -546,13 +652,20 @@ mod tests {
         let tolerance = StdDuration::from_secs((i64::MAX / 1000) as u64);
 
         assert!(
-            verify_webhook_signature(signature, payload, subscription_secret, tolerance).is_ok()
+            verify_webhook_signature::<&str, &str>(
+                signature,
+                payload,
+                &[],
+                subscription_secret,
+                tolerance
+            )
+            .is_ok()
         );
     }
 
     #[cfg(feature = "consumer")]
     #[test]
-    fn verifying_valid_signature_with_current_time() {
+    fn verifying_valid_signature_v0_with_current_time() {
         let signature =
             "t=1636936200,v0=1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98";
         let payload = "hello !".as_bytes();
@@ -560,13 +673,20 @@ mod tests {
         let tolerance = StdDuration::from_secs((i64::MAX / 1000) as u64);
 
         assert!(
-            verify_webhook_signature(signature, payload, subscription_secret, tolerance).is_ok()
+            verify_webhook_signature::<&str, &str>(
+                signature,
+                payload,
+                &[],
+                subscription_secret,
+                tolerance
+            )
+            .is_ok()
         );
     }
 
     #[cfg(feature = "consumer")]
     #[test]
-    fn verifying_expired_signature() {
+    fn verifying_expired_signature_v0() {
         let signature =
             "t=1636936200,v0=1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98";
         let payload = "hello !".as_bytes();
@@ -574,7 +694,14 @@ mod tests {
         let tolerance = StdDuration::from_secs(300);
 
         assert!(
-            verify_webhook_signature(signature, payload, subscription_secret, tolerance).is_err()
+            verify_webhook_signature::<&str, &str>(
+                signature,
+                payload,
+                &[],
+                subscription_secret,
+                tolerance
+            )
+            .is_err()
         );
     }
 }
