@@ -335,7 +335,7 @@ struct Signature {
 impl Signature {
     const PAYLOAD_SEPARATOR: &'static str = ".";
     const PAYLOAD_SEPARATOR_BYTES: &'static [u8] = Self::PAYLOAD_SEPARATOR.as_bytes();
-    const SIGNATURE_PART_ASSIGNATOR: &'static str = "=";
+    const SIGNATURE_PART_ASSIGNATOR: char = '=';
     const SIGNATURE_PART_SEPARATOR: &'static str = ",";
     const SIGNATURE_PART_HEADER_NAMES_SEPARATOR: &'static str = " ";
 

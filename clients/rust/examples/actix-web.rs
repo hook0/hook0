@@ -1,20 +1,40 @@
+use actix_web::web::Data;
+use actix_web::{App, HttpRequest, HttpServer, Responder, web};
+use std::env;
 use std::time::Duration;
 
-use actix_web::{App, HttpRequest, HttpServer, Responder, web};
 use hook0_client::Hook0ClientError;
-
-const SUBSCRIPTION_SECRET: &str = "ebc17f0b-566e-4d02-be72-df8ec3a6d16c";
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    HttpServer::new(move || App::new().route("/webhook", web::post().to(handle_webhook)))
-        .bind("127.0.0.1:8081")?
-        .workers(1)
-        .run()
-        .await
+    env_logger::init();
+
+    let ip = env::var("IP").unwrap_or_else(|_| "127.0.0.1".to_owned());
+    let port = env::var("PORT")
+        .ok()
+        .and_then(|str| str.parse::<u16>().ok())
+        .unwrap_or(8082);
+
+    let subscription_secret = env::var("SUBSCRIPTION_SECRET")
+        .expect("You must define a SUBSCRIPTION_SECRET environment variable");
+
+    println!("Waiting webhooks as POST on http://{ip}:{port}/webhook");
+    HttpServer::new(move || {
+        App::new()
+            .route("/webhook", web::post().to(handle_webhook))
+            .app_data(Data::new(subscription_secret.to_owned()))
+    })
+    .bind((ip, port))?
+    .workers(1)
+    .run()
+    .await
 }
 
-async fn handle_webhook(req: HttpRequest, body: web::Bytes) -> impl Responder {
+async fn handle_webhook(
+    subscription_secret: Data<String>,
+    req: HttpRequest,
+    body: web::Bytes,
+) -> impl Responder {
     let content_type = req.headers().get("Content-Type");
     let event_id = req.headers().get("X-Event-Id");
     let event_type = req.headers().get("X-Event-Type");
@@ -34,7 +54,8 @@ async fn handle_webhook(req: HttpRequest, body: web::Bytes) -> impl Responder {
         match hook0_client::verify_webhook_signature(
             signature,
             &body,
-            SUBSCRIPTION_SECRET,
+            &req.headers().iter().collect::<Vec<_>>(),
+            subscription_secret.into_inner().as_str(),
             tolerance,
         ) {
             Ok(_) => println!("Signature verification successful!"),
@@ -50,18 +71,6 @@ async fn handle_webhook(req: HttpRequest, body: web::Bytes) -> impl Responder {
                     "Signature verification failed: The webhook has expired because it was sent too long ago (signed_at={signed_at}, tolerance={tolerance}, current_time={current_time})"
                 )
             }
-            Err(Hook0ClientError::SignatureParsing(signature)) => {
-                println!("Signature verification failed: Could not parse signature: {signature}")
-            }
-            Err(Hook0ClientError::TimestampParsingInSignature(timestamp)) => {
-                println!(
-                    "Signature verification failed: Could not parse timestamp in signature: {timestamp}"
-                )
-            }
-            Err(Hook0ClientError::InvalidTolerance(err)) => {
-                println!("Signature verification failed: Invalid tolerance: {err}")
-            }
-            #[allow(unreachable_patterns)]
             Err(e) => {
                 println!("Signature verification failed: {e}")
             }
