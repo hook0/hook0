@@ -7,6 +7,7 @@ use actix_web::{App, HttpServer, http, middleware};
 use biscuit_auth::{KeyPair, PrivateKey};
 use clap::builder::{BoolValueParser, TypedValueParser};
 use clap::{ArgGroup, Parser, crate_name};
+use ipnetwork::IpNetwork;
 use lettre::Address;
 use log::{debug, info, trace, warn};
 use paperclip::actix::{OpenApiExt, web};
@@ -43,6 +44,7 @@ const WEBAPP_INDEX_FILE: &str = "index.html";
 
 #[derive(Debug, Clone, Parser)]
 #[clap(author, about, version, name = APP_TITLE)]
+#[clap(group(ArgGroup::new("reverse_proxy").multiple(false)))]
 #[clap(group(
     ArgGroup::new("client")
         .multiple(true)
@@ -57,9 +59,17 @@ struct Config {
     #[clap(long, env, default_value = "8080")]
     port: String,
 
-    /// A comma-separated list of trusted IP addresses that are allowed to set "X-Forwarded-For" and "Forwarded" headers
-    #[clap(long, env = "CC_REVERSE_PROXY_IPS", use_value_delimiter = true)]
-    reverse_proxy_ips: Vec<String>,
+    /// A comma-separated list of trusted IP addresses (e.g. `192.168.1.1`) or CIDRs (e.g. `192.168.0.0/16`) that are allowed to set "X-Forwarded-For" and "Forwarded" headers
+    #[clap(long, env, use_value_delimiter = true, group = "reverse_proxy")]
+    reverse_proxy_ips: Vec<IpNetwork>,
+
+    /// A comma-separated list of trusted IP addresses (e.g. `192.168.1.1`) or CIDRs (e.g. `192.168.0.0/16`) that are allowed to set "X-Forwarded-For" and "Forwarded" headers
+    #[clap(long, env, use_value_delimiter = true, group = "reverse_proxy")]
+    cc_reverse_proxy_ips: Vec<IpNetwork>,
+
+    /// Set to true if your instance is served behind Cloudflare's proxies in order to determine the correct user IP for each request
+    #[clap(long, env, default_value = "false")]
+    behind_cloudflare: bool,
 
     /// Optional Sentry DSN for error reporting
     #[clap(long, env)]
@@ -407,22 +417,35 @@ async fn main() -> anyhow::Result<()> {
 
         trace!("Starting {}", APP_TITLE);
 
-        // Prepare trusted reverse proxies IPs
-        let reverse_proxy_ips = config
-            .reverse_proxy_ips
-            .iter()
-            .map(|str| str.trim().to_owned())
-            .collect::<Vec<_>>();
-        if reverse_proxy_ips.is_empty() {
+        // Prepare trusted reverse proxies CIDRs
+        let reverse_proxy_cidrs = if config.reverse_proxy_ips.is_empty() {
+            config.cc_reverse_proxy_ips
+        } else {
+            config.reverse_proxy_ips
+        };
+        if reverse_proxy_cidrs.is_empty() {
             warn!(
-                "No trusted reverse proxy IPs were set; if this is a production instance this is a problem"
+                "No trusted reverse proxy CIDRs were set; if this is a production instance this is a problem"
             );
         } else {
             debug!(
-                "The following IPs will be considered as trusted reverse proxies: {}",
-                &reverse_proxy_ips.join(", ")
+                "The following CIDRs will be considered as trusted reverse proxies: {}",
+                reverse_proxy_cidrs
+                    .iter()
+                    .map(|ip| ip.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
             );
         }
+        info!(
+            "{} reverse proxy CIDRs are trusted{}",
+            reverse_proxy_cidrs.len(),
+            if config.behind_cloudflare {
+                " (in addition to Cloudflare's)"
+            } else {
+                ""
+            }
+        );
 
         // Prepare rate limiting configuration
         let rate_limiters = rate_limiting::Hook0RateLimiters::new(
@@ -635,7 +658,8 @@ async fn main() -> anyhow::Result<()> {
 
             // Prepare user IP extraction middleware
             let get_user_ip = middleware_get_user_ip::GetUserIp {
-                reverse_proxy_ips: reverse_proxy_ips.clone(),
+                reverse_proxy_cidrs: reverse_proxy_cidrs.clone(),
+                behind_cloudflare: config.behind_cloudflare,
             };
 
             // Prepare CORS configuration
