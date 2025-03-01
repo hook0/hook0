@@ -595,18 +595,19 @@ pub async fn begin_reset_password(
             Some(format!("{} {}", user.first_name, user.last_name)),
             address,
         );
+        let url = {
+            let mut url = state
+                .app_url
+                .join("reset-password")
+                .map_err(|_| Hook0Problem::InternalServerError)?;
+            url.query_pairs_mut()
+                .append_pair("token", &biscuit_token.serialized_biscuit);
+            url
+        };
 
         match state
             .mailer
-            .send_mail(
-                Mail::ResetPassword {
-                    url: format!(
-                        "{}reset-password?token={}",
-                        state.app_url, &biscuit_token.serialized_biscuit
-                    ),
-                },
-                recipient,
-            )
+            .send_mail(Mail::ResetPassword { url }, recipient)
             .await
         {
             Ok(_) => Ok(NoContent),
