@@ -19,10 +19,10 @@ argon2 = "0.5.3"
 async-recursion = "1.1.1"
 base64 = "0.22.1"
 biscuit-auth = { version = "5.0.0", features = ["uuid"] }
-chrono = { version = "0.4.39", features = ["serde"] }
-clap = { version = "4.5.30", features = ["derive", "env", "cargo", "wrap_help"] }
-futures-util = "0.3.30"
-governor = "0.8.0"
+chrono = { version = "0.4.40", features = ["serde"] }
+clap = { version = "4.5.31", features = ["derive", "env", "cargo", "wrap_help"] }
+futures-util = "0.3.31"
+governor = "0.8.1"
 hook0-client = { path = "../clients/rust", version = "0.2.0", default-features = false, features = ["producer"] }
 hook0-sentry-integration = { path = "../sentry-integration", version = "0.1.0" }
 html2text = "0.14.0"
@@ -32,9 +32,9 @@ ipnetwork = "0.21.1"
 lazy_static = "1.5.0"
 lettre = { version = "0.11.14", default-features = false, features = ["builder", "smtp-transport", "pool", "tokio1-rustls-tls"] }
 log = "0.4.26"
-mrml = "4.0.0"
-paperclip = { version = "0.9.3", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
-regex = "1.11.0"
+mrml = "5.0.0"
+paperclip = { version = "0.9.4", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
+regex = "1.11.1"
 reqwest = { version = "0.12.12", default-features = false, features = ["charset", "http2", "macos-system-configuration", "hickory-dns"] }
 sentry-actix = "0.36.0"
 serde = "1.0.218"
@@ -43,7 +43,7 @@ sqlx = { version = "0.8.3", default-features = false, features = ["runtime-tokio
 strum = { version = "0.27.1", features = ["derive"] }
 thiserror = "2.0.11"
 url = "2.5.4"
-uuid = { version = "1.14.0", features = ["serde", "v4"] }
+uuid = { version = "1.15.1", features = ["serde", "v4"] }
 validator = { version = "0.20.0", features = ["derive", "unic"] }
 
 [dev-dependencies]

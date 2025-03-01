@@ -11,8 +11,8 @@ keywords = ["webhooks", "webhook", "webhook-server", "events", "saas"]
 
 [dependencies]
 anyhow = "1.0.96"
-chrono = "0.4.39"
-clap = { version = "4.5.30", features = ["derive", "env", "cargo", "wrap_help"] }
+chrono = "0.4.40"
+clap = { version = "4.5.31", features = ["derive", "env", "cargo", "wrap_help"] }
 hex = "0.4.3"
 hmac = "0.12.1"
 hook0-sentry-integration = { path = "../sentry-integration", version = "0.1.0" }
@@ -26,7 +26,7 @@ sha2 = "0.10.8"
 sqlx = { version = "0.8.3", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "macros", "uuid", "chrono", "json"] }
 strum = { version = "0.27.1", features = ["derive"] }
 tokio = { version = "1.43.0", features = ["rt-multi-thread", "macros", "time"] }
-uuid = { version = "1.14.0", features = ["v4"] }
+uuid = { version = "1.15.1", features = ["v4"] }
 
 [features]
 default = ["reqwest-rustls-tls-webpki-roots"]

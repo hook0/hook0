@@ -135,17 +135,18 @@ pub async fn register(
                 Some(format!("{} {}", body.first_name, body.last_name)),
                 recipient_address,
             );
+            let url = {
+                let mut url = state
+                    .app_url
+                    .join("verify-email")
+                    .map_err(|_| Hook0Problem::InternalServerError)?;
+                url.query_pairs_mut()
+                    .append_pair("token", &verification_token.serialized_biscuit);
+                url
+            };
             state
                 .mailer
-                .send_mail(
-                    Mail::VerifyUserEmail {
-                        url: format!(
-                            "{}verify-email?token={}",
-                            state.app_url, &verification_token.serialized_biscuit
-                        ),
-                    },
-                    recipient,
-                )
+                .send_mail(Mail::VerifyUserEmail { url }, recipient)
                 .await
                 .map_err(|e| {
                     warn!("Could not send verification email: {e}");
