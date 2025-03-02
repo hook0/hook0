@@ -1,3 +1,5 @@
+import { describe, expect, test } from '@jest/globals';
+
 import { Signature, verifyWebhookSignature, verifyWebhookSignatureWithCurrentTime } from '../index';
 
 describe('Signature', () => {
@@ -59,7 +61,7 @@ describe('Signature', () => {
       't=1636936200,v0=1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98';
     const payload = Buffer.from('hello !');
     const secret = 'secret';
-    const currentTime = 1636936200;
+    const currentTime = new Date(1636936200 * 1000);
 
     expect(
       verifyWebhookSignatureWithCurrentTime(signature, payload, secret, 300, currentTime)
@@ -71,7 +73,7 @@ describe('Signature', () => {
       't=1636936200,v0=1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98';
     const payload = Buffer.from('hello !');
     const secret = 'secret';
-    const currentTime = 1636936501;
+    const currentTime = new Date(1636936501 * 1000);
 
     expect(() =>
       verifyWebhookSignatureWithCurrentTime(signature, payload, secret, 300, currentTime)
