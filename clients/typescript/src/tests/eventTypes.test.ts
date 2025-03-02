@@ -1,3 +1,5 @@
+import { describe, expect, it } from '@jest/globals';
+
 import { EventType, Hook0ClientError } from '../index';
 
 describe('EventType', () => {

@@ -10,8 +10,8 @@
     "build": "tsc",
     "test": "jest",
     "lint": "eslint .",
-    "format": "prettier --write ./src/**.ts",
-    "check": "prettier --check ./src/**.ts",
+    "format": "prettier --write ./src/{*,**/*}.ts",
+    "check": "prettier --check ./src/{*,**/*}.ts",
     "check-full": "npm run --silent check && npm run --silent lint && npm run --silent test",
     "release-major": "npm run --silent check-full && npm run --silent build && npm-release major",
     "release-minor": "npm run --silent check-full && npm run --silent build && npm-release minor",
@@ -26,18 +26,18 @@
   "description": "TypeScript SDK for Hook0 Open-Source Webhooks as a service for SaaS",
   "homepage": "https://hook0.com/",
   "dependencies": {
-    "@types/crypto-js": "^4.2.2",
     "url": "^0.11.4",
     "uuid": "^11.0.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",
-    "@types/jest": "^29.5.14",
+    "@jest/globals": "^29.7.0",
+    "@types/crypto-js": "^4.2.2",
     "eslint": "^9.19.0",
     "jest": "^29.7.0",
     "npm-release": "^1.0.0",
     "prettier": "^3.4.2",
-    "ts-jest": "^29.2.5",
+    "ts-jest": "^29.2.6",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.22.0"
