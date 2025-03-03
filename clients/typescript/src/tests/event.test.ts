@@ -11,11 +11,11 @@ describe('Event', () => {
       { production: 'true' }
     );
     expect(event).toBeInstanceOf(Event);
-    expect(event.eventType).toBe('billing.invoice.paid');
-    expect(event.payload).toBe(
+    expect(event.eventType).toStrictEqual('billing.invoice.paid');
+    expect(event.payload).toStrictEqual(
       '{"user_id": "00000000-0000-0000-0000-000000000000", "amount": 100}'
     );
-    expect(event.payloadContentType).toBe('application/json');
+    expect(event.payloadContentType).toStrictEqual('application/json');
     expect(event.labels).toEqual({ production: 'true' });
     expect(event.metadata).toBeUndefined();
     expect(event.occurredAt).toBeUndefined();
@@ -33,14 +33,14 @@ describe('Event', () => {
       '00000000-0000-0000-0000-000000000000'
     );
     expect(event).toBeInstanceOf(Event);
-    expect(event.eventType).toBe('auth.user.create');
-    expect(event.payload).toBe(
+    expect(event.eventType).toStrictEqual('auth.user.create');
+    expect(event.payload).toStrictEqual(
       '{"user_id": "00000000-0000-0000-0000-000000000000", "email": "test@example.com"}'
     );
-    expect(event.payloadContentType).toBe('application/json');
+    expect(event.payloadContentType).toStrictEqual('application/json');
     expect(event.labels).toEqual({ production: 'true' });
     expect(event.metadata).toEqual({ production: 'true' });
     expect(event.occurredAt).toBeInstanceOf(Date);
-    expect(event.eventId).toBe('00000000-0000-0000-0000-000000000000');
+    expect(event.eventId).toStrictEqual('00000000-0000-0000-0000-000000000000');
   });
 });

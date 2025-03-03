@@ -79,7 +79,7 @@ describe('Hook0Client', () => {
     const eventId = await client.sendEvent(event);
 
     expect(eventId).toBeDefined();
-    expect(eventId).toBe('00000000-0000-0000-0000-000000000000');
+    expect(eventId).toStrictEqual('00000000-0000-0000-0000-000000000000');
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
