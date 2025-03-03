@@ -350,6 +350,7 @@ export class EventType {
 export function verifyWebhookSignatureWithCurrentTime(
   signature: string,
   payload: Buffer,
+  headers: Headers,
   subscriptionSecret: string,
   tolerance: number,
   currentTime: Date
@@ -359,7 +360,7 @@ export function verifyWebhookSignatureWithCurrentTime(
     throw Hook0ClientError.SignatureParsing(signature);
   }
 
-  const expectedSignature = parsedSig.verify(payload, subscriptionSecret);
+  const expectedSignature = parsedSig.verify(payload, headers, subscriptionSecret);
   if (!expectedSignature) {
     throw Hook0ClientError.InvalidSignature(signature);
   }
@@ -382,12 +383,14 @@ export function verifyWebhookSignatureWithCurrentTime(
 export function verifyWebhookSignature(
   signature: string,
   payload: Buffer,
+  headers: Headers,
   subscriptionSecret: string,
   tolerance: number
 ): boolean | Hook0ClientError {
   return verifyWebhookSignatureWithCurrentTime(
     signature,
     payload,
+    headers,
     subscriptionSecret,
     tolerance,
     new Date()
