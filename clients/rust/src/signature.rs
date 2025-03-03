@@ -100,29 +100,30 @@ impl Signature {
         let timestamp_str_bytes = timestamp_str.as_bytes();
 
         type HmacSha256 = Hmac<Sha256>;
+        let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).unwrap(); // MAC can take key of any size; this should never fail
+        mac.update(timestamp_str_bytes);
+        mac.update(Self::PAYLOAD_SEPARATOR_BYTES);
 
         if let Some(v1) = self.v1.as_ref() {
             trace!("Verifying v1 signature...");
-            let header_values = ordered_header_values.join(Self::PAYLOAD_SEPARATOR);
 
-            let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).unwrap(); // MAC can take key of any size; this should never fail
-            mac.update(timestamp_str_bytes);
-            mac.update(Self::PAYLOAD_SEPARATOR_BYTES);
             mac.update(
                 self.h
                     .join(Self::SIGNATURE_PART_HEADER_NAMES_SEPARATOR)
                     .as_bytes(),
             );
             mac.update(Self::PAYLOAD_SEPARATOR_BYTES);
-            mac.update(header_values.as_bytes());
+            mac.update(
+                ordered_header_values
+                    .join(Self::PAYLOAD_SEPARATOR)
+                    .as_bytes(),
+            );
             mac.update(Self::PAYLOAD_SEPARATOR_BYTES);
             mac.update(payload);
             mac.verify_slice(v1).is_ok()
         } else if let Some(v0) = self.v0.as_ref() {
             trace!("Verifying v0 signature...");
-            let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).unwrap(); // MAC can take key of any size; this should never fail
-            mac.update(timestamp_str_bytes);
-            mac.update(Self::PAYLOAD_SEPARATOR_BYTES);
+
             mac.update(payload);
             mac.verify_slice(v0).is_ok()
         } else {
