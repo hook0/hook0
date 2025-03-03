@@ -143,7 +143,9 @@ export class Hook0Client {
       return eventType;
     });
 
-    console.debug('Getting the list of available event types');
+    if (this.debug) {
+      console.debug('Getting the list of available event types');
+    }
     const eventTypesUrl = new URL('event_types', this.apiUrl);
     const response = await fetch(
       `${eventTypesUrl.toString()}?application_id=${this.applicationId}`,
