@@ -237,10 +237,13 @@ impl Hook0Client {
 /// - `subscription_secret` - The signing secret used to validate the signature.
 /// - `tolerance` - The maximum allowed time difference for the timestamp (5 minutes is a good trade-off between flexibility and protecting against replay attacks).
 /// - `current_time` - The current time (used to check the timestamp).
-pub fn verify_webhook_signature_with_current_time<HK: AsRef<[u8]>, HV: AsRef<[u8]>>(
+pub fn verify_webhook_signature_with_current_time<
+    HeaderKey: AsRef<[u8]>,
+    HeaderValue: AsRef<[u8]>,
+>(
     signature: &str,
     payload: &[u8],
-    headers: &[(HK, HV)],
+    headers: &[(HeaderKey, HeaderValue)],
     subscription_secret: &str,
     tolerance: StdDuration,
     current_time: DateTime<Utc>,
@@ -315,10 +318,10 @@ pub fn verify_webhook_signature_with_current_time<HK: AsRef<[u8]>, HV: AsRef<[u8
 /// - `headers` - Headers of the webhook request.
 /// - `subscription_secret` - The signing secret used to validate the signature.
 /// - `tolerance` - The maximum allowed time difference for the timestamp (5 minutes is a good trade-off between flexibility and protecting against replay attacks).
-pub fn verify_webhook_signature<HK: AsRef<[u8]>, HV: AsRef<[u8]>>(
+pub fn verify_webhook_signature<HeaderKey: AsRef<[u8]>, HeaderValue: AsRef<[u8]>>(
     signature: &str,
     payload: &[u8],
-    headers: &[(HK, HV)],
+    headers: &[(HeaderKey, HeaderValue)],
     subscription_secret: &str,
     tolerance: StdDuration,
 ) -> Result<(), Hook0ClientError> {
