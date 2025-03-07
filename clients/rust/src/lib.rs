@@ -704,4 +704,46 @@ mod tests {
             .is_err()
         );
     }
+
+    #[cfg(feature = "consumer")]
+    #[test]
+    fn verifying_valid_signature_v1() {
+        let signature = "t=1636936200,h=x-test x-test2,v1=493c35f05443fdb74cb99fd4f00e0e7653c2ab6b24fbc97f4a7bd4d56b31758a";
+        let payload = "hello !".as_bytes();
+        let header_values = [("x-test", "val1"), ("x-test2", "val2")];
+        let subscription_secret = "secret";
+        let tolerance = StdDuration::from_secs((i64::MAX / 1000) as u64);
+
+        assert!(
+            verify_webhook_signature::<&str, &str>(
+                signature,
+                payload,
+                &header_values,
+                subscription_secret,
+                tolerance
+            )
+            .is_ok()
+        );
+    }
+
+    #[cfg(feature = "consumer")]
+    #[test]
+    fn verifying_valid_signature_v1_with_current_time() {
+        let signature = "t=1636936200,h=x-test x-test2,v1=493c35f05443fdb74cb99fd4f00e0e7653c2ab6b24fbc97f4a7bd4d56b31758a";
+        let payload = "hello !".as_bytes();
+        let header_values = [("x-test", "val1"), ("x-test2", "val2")];
+        let subscription_secret = "secret";
+        let tolerance = StdDuration::from_secs((i64::MAX / 1000) as u64);
+
+        assert!(
+            verify_webhook_signature::<&str, &str>(
+                signature,
+                payload,
+                &header_values,
+                subscription_secret,
+                tolerance
+            )
+            .is_ok()
+        );
+    }
 }
