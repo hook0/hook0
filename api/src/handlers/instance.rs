@@ -16,6 +16,7 @@ pub struct InstanceConfig {
     quota_enforcement: bool,
     matomo: Option<MatomoConfig>,
     formbricks: Option<FormbricksConfig>,
+    turnstile_site_key: Option<String>,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -68,6 +69,7 @@ pub async fn get(state: Data<crate::State>) -> Result<Json<InstanceConfig>, Hook
         quota_enforcement: state.enable_quota_enforcement,
         matomo,
         formbricks,
+        turnstile_site_key: state.turnstile_site_key.to_owned(),
     }))
 }
 

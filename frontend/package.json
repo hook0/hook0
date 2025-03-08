@@ -64,7 +64,8 @@
     "vue-codemirror": "^6.1.1",
     "vue-matomo": "^4.2.0",
     "vue-promised": "^2.0.2",
-    "vue-router": "^4.0.6"
+    "vue-router": "^4.0.6",
+    "vue-turnstile": "^1.0.11"
   },
   "devDependencies": {
     "@babel/eslint-parser": "^7.16.3",

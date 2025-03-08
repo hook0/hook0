@@ -50,6 +50,11 @@ const WEBAPP_INDEX_FILE: &str = "index.html";
         .multiple(true)
         .requires_all(&["hook0_client_api_url", "hook0_client_application_id", "hook0_client_token"]),
 ))]
+#[clap(group(
+    ArgGroup::new("turnstile")
+        .multiple(true)
+        .requires_all(&["turnstile_site_key", "turnstile_secret_key"]),
+))]
 struct Config {
     /// IP address on which to start the HTTP server
     #[clap(long, env, default_value = "127.0.0.1")]
@@ -361,6 +366,14 @@ struct Config {
     /// Website URL
     #[clap(long, env, default_value = "https://hook0.com")]
     website_url: Url,
+
+    /// Cloudflare Turnstile site key (enables Turnstile for user registration)
+    #[clap(long, env, group = "turnstile")]
+    turnstile_site_key: Option<String>,
+
+    /// Cloudflare Turnstile secret key (enables Turnstile for user registration)
+    #[clap(long, env, group = "turnstile")]
+    turnstile_secret_key: Option<String>,
 }
 
 fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
@@ -400,6 +413,8 @@ pub struct State {
     formbricks_environment_id: Option<String>,
     quota_notification_events_per_day_threshold: u8,
     enable_quota_based_email_notifications: bool,
+    turnstile_site_key: Option<String>,
+    turnstile_secret_key: Option<String>,
 }
 
 #[actix_web::main]
@@ -647,6 +662,8 @@ async fn main() -> anyhow::Result<()> {
             quota_notification_events_per_day_threshold: config
                 .quota_notification_events_per_day_threshold,
             enable_quota_based_email_notifications: config.enable_quota_based_email_notifications,
+            turnstile_site_key: config.turnstile_site_key,
+            turnstile_secret_key: config.turnstile_secret_key,
         };
         let hook0_client_api_url = config.hook0_client_api_url;
 
