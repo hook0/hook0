@@ -3,18 +3,24 @@ use argon2::password_hash::rand_core::OsRng;
 use argon2::{Argon2, PasswordHasher};
 use lettre::Address;
 use lettre::message::Mailbox;
-use log::{error, warn};
+use log::{debug, error, warn};
 use paperclip::actix::web::{Data, Json};
 use paperclip::actix::{Apiv2Schema, CreatedJson, api_v2_operation};
+use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use sqlx::query;
 use std::str::FromStr;
 use uuid::Uuid;
 use validator::Validate;
 
+use crate::extractor_user_ip::UserIp;
 use crate::iam::{Role, create_email_verification_token};
 use crate::mailer::Mail;
 use crate::problems::Hook0Problem;
+
+const TURNSTILE_VERIFICATION_URL: &str =
+    "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct Registration {
@@ -39,6 +45,7 @@ pub struct RegistrationPost {
         )
     )]
     password: String,
+    turnstile_token: Option<String>,
 }
 
 #[api_v2_operation(
@@ -51,6 +58,7 @@ pub struct RegistrationPost {
 )]
 pub async fn register(
     state: Data<crate::State>,
+    ip: UserIp,
     body: Json<RegistrationPost>,
 ) -> Result<CreatedJson<Registration>, Hook0Problem> {
     if state.registration_disabled {
@@ -59,6 +67,39 @@ pub async fn register(
 
     if let Err(e) = body.validate() {
         return Err(Hook0Problem::Validation(e));
+    }
+
+    if let Some(secret_key) = state.turnstile_secret_key.as_deref() {
+        if let Some(token) = body.turnstile_token.as_deref() {
+            #[derive(Debug, Clone, Deserialize)]
+            struct SiteVerifyResponse {
+                success: bool,
+            }
+
+            let site_verify_response = Client::new()
+                .post(TURNSTILE_VERIFICATION_URL)
+                .json(&json!({
+                    "secret": secret_key,
+                    "response": token,
+                    "remoteip": ip.to_string(),
+                }))
+                .send()
+                .await
+                .map_err(|_| Hook0Problem::Forbidden)?
+                .error_for_status()
+                .map_err(|_| Hook0Problem::Forbidden)?
+                .json::<SiteVerifyResponse>()
+                .await
+                .map_err(|_| Hook0Problem::Forbidden)?;
+
+            if site_verify_response.success {
+                debug!("Request was successfully verified using Cloudflare Turnstile");
+            } else {
+                return Err(Hook0Problem::Forbidden);
+            }
+        } else {
+            return Err(Hook0Problem::Forbidden);
+        }
     }
 
     let recipient_address = Address::from_str(&body.email).map_err(|e| {
