@@ -785,6 +785,7 @@ export interface components {
       quota_enforcement: boolean;
       registration_disabled: boolean;
       support_email_address: string;
+      turnstile_site_key?: string;
     };
     LoginPost: {
       email: string;
@@ -901,6 +902,7 @@ export interface components {
       first_name: string;
       last_name: string;
       password: string;
+      turnstile_token?: string;
     };
     ReplayEvent: {
       /** Format: uuid */
