@@ -12,7 +12,7 @@ use std::str::FromStr;
 use std::time::{Duration, Instant};
 use strum::VariantNames;
 
-use crate::{Config, RequestAttempt};
+use crate::{Config, RequestAttempt, SignatureVersion};
 
 const USER_AGENT: &str = concat!(crate_name!(), "/", crate_version!());
 
@@ -175,15 +175,29 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
         .expect("Could not create a header value from the event type");
     let content_type = HeaderValue::from_str(attempt.payload_content_type.as_str())
         .expect("Could not create a header value from the event content type");
-    let sig = Signature::new(&attempt.secret.to_string(), &attempt.payload, Utc::now())
-        .to_header_value()
-        .expect("Could not create a header value from the event ID UUID");
 
     match (m, u, c, hs) {
         (Ok(method), Ok(url), Ok(client), Ok(mut headers)) => {
             headers.insert("Content-Type", content_type);
             headers.insert("X-Event-Id", event_id);
             headers.insert("X-Event-Type", et);
+
+            let sig = Signature::new(
+                &attempt.secret.to_string(),
+                &attempt.payload,
+                Utc::now(),
+                &headers,
+            )
+            .to_header_value(
+                config
+                    .enabled_signature_versions
+                    .contains(&SignatureVersion::V0),
+                config
+                    .enabled_signature_versions
+                    .contains(&SignatureVersion::V1),
+            )
+            .expect("Could not create a header value from signature");
+
             headers.insert(&config.signature_header_name, sig);
 
             debug!("Calling webhook...");
@@ -313,32 +327,94 @@ fn mk_http_client(connect_timeout: Duration, timeout: Duration) -> reqwest::Resu
 
 struct Signature {
     pub timestamp: i64,
+    pub headers: String,
     pub v0: String,
+    pub v1: String,
 }
 
 impl Signature {
-    const PAYLOAD_SEPARATOR: &'static [u8] = b".";
-    const SIGNATURE_PART_ASSIGNATOR: &'static str = "=";
+    const PAYLOAD_SEPARATOR: &'static str = ".";
+    const PAYLOAD_SEPARATOR_BYTES: &'static [u8] = Self::PAYLOAD_SEPARATOR.as_bytes();
+    const SIGNATURE_PART_ASSIGNATOR: char = '=';
     const SIGNATURE_PART_SEPARATOR: &'static str = ",";
+    const SIGNATURE_PART_HEADER_NAMES_SEPARATOR: &'static str = " ";
 
-    pub fn new(secret: &str, payload: &[u8], signed_at: DateTime<Utc>) -> Self {
+    pub fn new(
+        secret: &str,
+        payload: &[u8],
+        signed_at: DateTime<Utc>,
+        headers: &HeaderMap,
+    ) -> Self {
         let timestamp = signed_at.timestamp();
         let timestamp_str = timestamp.to_string();
         let timestamp_str_bytes = timestamp_str.as_bytes();
 
-        type HmacSha256 = Hmac<Sha256>;
-        let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).unwrap(); // MAC can take key of any size; this should never fail
-        mac.update(timestamp_str_bytes);
-        mac.update(Self::PAYLOAD_SEPARATOR);
-        mac.update(payload);
-        let v0 = mac.finalize().into_bytes().encode_hex::<String>();
+        let sorted_headers_with_lowercased_names = {
+            let mut hs = headers
+                .iter()
+                .map(|(k, v)| {
+                    (
+                        k.as_str().to_lowercase(),
+                        v.to_str().expect("Invalid header values"),
+                    )
+                })
+                .collect::<Vec<_>>();
+            hs.sort_by_key(|e| e.0.to_owned());
+            hs
+        };
 
-        Self { timestamp, v0 }
+        type HmacSha256 = Hmac<Sha256>;
+        let mut mac_v0 = HmacSha256::new_from_slice(secret.as_bytes()).unwrap(); // MAC can take key of any size; this should never fail
+        mac_v0.update(timestamp_str_bytes);
+        mac_v0.update(Self::PAYLOAD_SEPARATOR_BYTES);
+
+        let mut mac_v1 = mac_v0.clone();
+
+        mac_v0.update(payload);
+        let v0 = mac_v0.finalize().into_bytes().encode_hex::<String>();
+
+        let header_names = sorted_headers_with_lowercased_names
+            .iter()
+            .map(|(k, _v)| k.as_str())
+            .collect::<Vec<_>>()
+            .join(Self::SIGNATURE_PART_HEADER_NAMES_SEPARATOR);
+
+        mac_v1.update(header_names.as_bytes());
+        mac_v1.update(Self::PAYLOAD_SEPARATOR_BYTES);
+
+        mac_v1.update(
+            sorted_headers_with_lowercased_names
+                .iter()
+                .map(|(_k, v)| *v)
+                .collect::<Vec<_>>()
+                .join(Self::PAYLOAD_SEPARATOR)
+                .as_bytes(),
+        );
+        mac_v1.update(Self::PAYLOAD_SEPARATOR_BYTES);
+
+        mac_v1.update(payload);
+        let v1 = mac_v1.finalize().into_bytes().encode_hex::<String>();
+
+        Self {
+            timestamp,
+            headers: header_names,
+            v0,
+            v1,
+        }
     }
 
-    pub fn value(&self) -> String {
+    pub fn value(&self, v0_enabled: bool, v1_enabled: bool) -> String {
         let timestamp_str = self.timestamp.to_string();
-        let parts = &[("t", timestamp_str.as_str()), ("v0", self.v0.as_str())];
+        let mut parts = vec![("t", timestamp_str.as_str())];
+
+        if v0_enabled {
+            parts.push(("v0", self.v0.as_str()));
+        }
+
+        if v1_enabled {
+            parts.push(("h", self.headers.as_str()));
+            parts.push(("v1", self.v1.as_str()));
+        }
 
         itertools::Itertools::intersperse(
             parts
@@ -349,8 +425,12 @@ impl Signature {
         .collect::<String>()
     }
 
-    pub fn to_header_value(&self) -> Result<HeaderValue, InvalidHeaderValue> {
-        HeaderValue::from_str(&self.value())
+    pub fn to_header_value(
+        &self,
+        v0_enabled: bool,
+        v1_enabled: bool,
+    ) -> Result<HeaderValue, InvalidHeaderValue> {
+        HeaderValue::from_str(&self.value(v0_enabled, v1_enabled))
     }
 }
 
@@ -361,15 +441,62 @@ mod tests {
     use chrono::prelude::*;
 
     #[test]
-    fn create_signature() {
+    fn create_signature_v0() {
         let signed_at = Utc.with_ymd_and_hms(2021, 11, 15, 0, 30, 0).unwrap();
         let payload = "hello !";
         let secret = "secret";
 
-        let sig = Signature::new(secret, payload.as_bytes(), signed_at);
+        let sig = Signature::new(secret, payload.as_bytes(), signed_at, &HeaderMap::new());
         assert_eq!(
-            sig.value(),
+            sig.value(true, false),
             "t=1636936200,v0=1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98"
+        );
+    }
+
+    #[test]
+    fn create_signature_v1() {
+        let signed_at = Utc.with_ymd_and_hms(2021, 11, 15, 0, 30, 0).unwrap();
+        let payload = "hello !";
+        let secret = "secret";
+        let mut headers = HeaderMap::new();
+        // Signature must be consistant and ignore header name's case and order
+        headers.insert(
+            "X-EVENT-TYPE",
+            HeaderValue::from_str("service.resource.verb").expect("Invalid header values"),
+        );
+        headers.insert(
+            "X-Event-Id",
+            HeaderValue::from_str("1a01cb48-5142-4d9b-8f90-d20cca61f0ee")
+                .expect("Invalid header values"),
+        );
+
+        let sig = Signature::new(secret, payload.as_bytes(), signed_at, &headers);
+        assert_eq!(
+            sig.value(false, true),
+            "t=1636936200,h=x-event-id x-event-type,v1=bc521546ba5de381b12f135782d2008b028c3065c191760b12b76850a8fc8f51"
+        );
+    }
+
+    #[test]
+    fn create_signature_v0_and_v1() {
+        let signed_at = Utc.with_ymd_and_hms(2021, 11, 15, 0, 30, 0).unwrap();
+        let payload = "hello !";
+        let secret = "secret";
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "X-Event-Id",
+            HeaderValue::from_str("1a01cb48-5142-4d9b-8f90-d20cca61f0ee")
+                .expect("Invalid header values"),
+        );
+        headers.insert(
+            "X-Event-Type",
+            HeaderValue::from_str("service.resource.verb").expect("Invalid header values"),
+        );
+
+        let sig = Signature::new(secret, payload.as_bytes(), signed_at, &headers);
+        assert_eq!(
+            sig.value(true, true),
+            "t=1636936200,v0=1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98,h=x-event-id x-event-type,v1=bc521546ba5de381b12f135782d2008b028c3065c191760b12b76850a8fc8f51"
         );
     }
 }
