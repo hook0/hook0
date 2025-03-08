@@ -17,7 +17,7 @@ pub struct InstanceConfig {
     matomo: Option<MatomoConfig>,
     formbricks: Option<FormbricksConfig>,
     support_email_address: String,
-    turnstile_site_key: Option<String>,
+    cloudflare_turnstile_site_key: Option<String>,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -71,7 +71,7 @@ pub async fn get(state: Data<crate::State>) -> Result<Json<InstanceConfig>, Hook
         matomo,
         formbricks,
         support_email_address: state.support_email_address.to_string(),
-        turnstile_site_key: state.turnstile_site_key.to_owned(),
+        cloudflare_turnstile_site_key: state.cloudflare_turnstile_site_key.to_owned(),
     }))
 }
 

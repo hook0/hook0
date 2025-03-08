@@ -26,8 +26,8 @@ const turnstile_token = ref<string>('');
 
 onMounted(async () => {
   const instanceConfig = await getInstanceConfig();
-  if (instanceConfig.turnstile_site_key) {
-    turnstile_site_key.value = instanceConfig.turnstile_site_key;
+  if (instanceConfig.cloudflare_turnstile_site_key) {
+    turnstile_site_key.value = instanceConfig.cloudflare_turnstile_site_key;
   }
 });
 
