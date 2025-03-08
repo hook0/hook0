@@ -134,13 +134,15 @@ export async function register(
   email: string,
   firstName: string,
   lastName: string,
-  password: string
+  password: string,
+  turnstile_token?: string
 ): Promise<void> {
   return http.unauthenticated.post('/register', {
     email,
     first_name: firstName,
     last_name: lastName,
     password,
+    turnstile_token,
   });
 }
 
