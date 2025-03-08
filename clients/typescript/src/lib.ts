@@ -5,7 +5,7 @@ import { Signature } from './index';
 /**
  * Custom error class for Hook0Client
  */
-class Hook0ClientError extends Error {
+export class Hook0ClientError extends Error {
   /**
    * Error when sending an event fails
    * @param eventId - ID of the event
@@ -57,15 +57,11 @@ class Hook0ClientError extends Error {
 
   /**
    * Error when a webhook has expired because it was sent too long ago
-   * @param signed_at - Timestamp when the webhook was signed
-   * @param tolerance - Maximum difference between the signature timestamp and the current time for the webhook to be considered valid
+   * @param signed_at - Datetime of webhook signature
+   * @param tolerance - Maximum difference (in seconds) between the signature datetime and the current datetime for the webhook to be considered valid
    * @param current_time - Current time
    */
-  static ExpiredWebhook(
-    signed_at: Date,
-    tolerance: number,
-    current_time: number
-  ): Hook0ClientError {
+  static ExpiredWebhook(signed_at: Date, tolerance: number, current_time: Date): Hook0ClientError {
     return new Hook0ClientError(
       `The webhook has expired because it was sent too long ago (signed_at=${signed_at}, tolerance=${tolerance}, current_time=${current_time})`
     );
@@ -75,7 +71,7 @@ class Hook0ClientError extends Error {
 /**
  * Client class to interact with Hook0 API
  */
-class Hook0Client {
+export class Hook0Client {
   private headers: { headers: { Authorization: string } };
   private apiUrl: URL;
   private applicationId: string;
@@ -147,7 +143,9 @@ class Hook0Client {
       return eventType;
     });
 
-    console.debug('Getting the list of available event types');
+    if (this.debug) {
+      console.debug('Getting the list of available event types');
+    }
     const eventTypesUrl = new URL('event_types', this.apiUrl);
     const response = await fetch(
       `${eventTypesUrl.toString()}?application_id=${this.applicationId}`,
@@ -213,7 +211,7 @@ class Hook0Client {
 /**
  * Represents an event
  */
-class Event {
+export class Event {
   /**
    * Constructor for Event
    * @param eventType - Event type
@@ -258,7 +256,7 @@ class FullEvent {
     public payload: string,
     public payloadContentType: string,
     public metadata?: Record<string, string>,
-    public occurredAt?: Date,
+    public occurredAt: Date = new Date(),
     public labels: Record<string, string> = {},
     eventId?: string
   ) {
@@ -278,7 +276,7 @@ class FullEvent {
       event.payload,
       event.payloadContentType,
       event.metadata,
-      event.occurredAt || new Date(),
+      event.occurredAt,
       event.labels,
       event.eventId
     );
@@ -296,7 +294,7 @@ class FullEvent {
       payload: this.payload,
       payload_content_type: this.payloadContentType,
       metadata: this.metadata,
-      occurred_at: this.occurredAt ? this.occurredAt.toISOString() : new Date().toISOString(),
+      occurred_at: this.occurredAt,
       labels: this.labels,
     };
   }
@@ -305,7 +303,7 @@ class FullEvent {
 /**
  * Represents an event type
  */
-class EventType {
+export class EventType {
   service: string;
   resourceType: string;
   verb: string;
@@ -349,24 +347,25 @@ class EventType {
  * @param currentTime - The current time (used to check the timestamp).
  * @returns Resolves if the signature is valid, otherwise throws an error.
  */
-function verifyWebhookSignatureWithCurrentTime(
+export function verifyWebhookSignatureWithCurrentTime(
   signature: string,
   payload: Buffer,
+  headers: Headers,
   subscriptionSecret: string,
   tolerance: number,
-  currentTime: number
+  currentTime: Date
 ): boolean | Hook0ClientError {
   const parsedSig = Signature.parse(signature);
   if (!parsedSig) {
     throw Hook0ClientError.SignatureParsing(signature);
   }
 
-  const expectedSignature = parsedSig.verify(payload, subscriptionSecret);
+  const expectedSignature = parsedSig.verify(payload, headers, subscriptionSecret);
   if (!expectedSignature) {
     throw Hook0ClientError.InvalidSignature(signature);
   }
 
-  if (Math.abs(currentTime - parsedSig.timestamp) > tolerance) {
+  if (Math.abs(Math.floor(currentTime.getTime() / 1000) - parsedSig.timestamp) > tolerance) {
     throw Hook0ClientError.ExpiredWebhook(new Date(parsedSig.timestamp), tolerance, currentTime);
   }
 
@@ -381,26 +380,19 @@ function verifyWebhookSignatureWithCurrentTime(
  * @param tolerance - The maximum allowed time difference for the timestamp (in seconds).
  * @returns Resolves if the signature is valid, otherwise throws an error.
  */
-function verifyWebhookSignature(
+export function verifyWebhookSignature(
   signature: string,
   payload: Buffer,
+  headers: Headers,
   subscriptionSecret: string,
   tolerance: number
 ): boolean | Hook0ClientError {
   return verifyWebhookSignatureWithCurrentTime(
     signature,
     payload,
+    headers,
     subscriptionSecret,
     tolerance,
-    Date.now()
+    new Date()
   );
 }
-
-export {
-  Hook0ClientError,
-  Hook0Client,
-  Event,
-  EventType,
-  verifyWebhookSignature,
-  verifyWebhookSignatureWithCurrentTime,
-};
