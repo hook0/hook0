@@ -1615,8 +1615,10 @@ version = "0.2.0"
 dependencies = [
  "actix-web",
  "chrono",
+ "env_logger",
  "hex",
  "hmac",
+ "http 1.2.0",
  "lazy-regex",
  "log",
  "reqwest",
