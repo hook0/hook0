@@ -771,6 +771,7 @@ export interface components {
       application_secret_compatibility: boolean;
       auto_db_migration: boolean;
       biscuit_public_key: string;
+      cloudflare_turnstile_site_key?: string;
       formbricks?: {
         api_host: string;
         environment_id: string;
@@ -784,7 +785,6 @@ export interface components {
       password_minimum_length: number;
       quota_enforcement: boolean;
       registration_disabled: boolean;
-      turnstile_site_key?: string;
     };
     LoginPost: {
       email: string;
@@ -901,6 +901,7 @@ export interface components {
       first_name: string;
       last_name: string;
       password: string;
+      turnstile_token?: string;
     };
     ReplayEvent: {
       /** Format: uuid */
