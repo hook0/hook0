@@ -63,7 +63,7 @@
                 </mj-text>
                 <mj-button background-color="#28a745" color="white" class="button" href="{ $website_url }{ $pricing_url_hash }">Upgrade Plan</mj-button>
                 <mj-text align="center">
-                    <p class="small">Questions? Reach out to our support team at <a href="mailto:support@hook0.com">support@hook0.com</a>.</p>
+                    <p class="small">Questions? Reach out to our support team at <a href="mailto:{ $support_email_address }">{ $support_email_address }</a>.</p>
                 </mj-text>
             </mj-column>
         </mj-section>
