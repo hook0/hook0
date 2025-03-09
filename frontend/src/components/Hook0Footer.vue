@@ -1,5 +1,13 @@
 <script setup lang="ts">
 import Hook0Button from '@/components/Hook0Button.vue';
+import { getSupportEmailAddress } from '@/instance';
+import { onMounted, ref } from 'vue';
+
+const support_email_address = ref<string | null>(null);
+
+onMounted(async () => {
+  support_email_address.value = await getSupportEmailAddress();
+});
 </script>
 
 <template>
@@ -7,7 +15,9 @@ import Hook0Button from '@/components/Hook0Button.vue';
     <div class="footer-container">
       <nav class="footer-items" aria-label="Footer">
         <div class="footer-item">
-          <Hook0Button href="mailto:support@hook0.com"> Contact us </Hook0Button>
+          <Hook0Button v-if="support_email_address" :href="`mailto:${support_email_address}`">
+            Contact us
+          </Hook0Button>
           -
           <Hook0Button href="https://gitlab.com/hook0/hook0/-/issues/new">
             Report issue
