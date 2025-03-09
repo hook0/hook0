@@ -21,7 +21,7 @@ import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
-import { isPricingEnabled } from '@/pricing';
+import { isPricingEnabled } from '@/instance';
 
 type ApplicationsPerOrganization = {
   organization: Organization;

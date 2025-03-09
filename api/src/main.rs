@@ -361,6 +361,10 @@ struct Config {
     /// Website URL
     #[clap(long, env, default_value = "https://hook0.com")]
     website_url: Url,
+
+    /// Support email address
+    #[clap(long, env, default_value = "support@hook0.com")]
+    support_email_address: Address,
 }
 
 fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
@@ -400,6 +404,7 @@ pub struct State {
     formbricks_environment_id: Option<String>,
     quota_notification_events_per_day_threshold: u8,
     enable_quota_based_email_notifications: bool,
+    support_email_address: Address,
 }
 
 #[actix_web::main]
@@ -594,14 +599,18 @@ async fn main() -> anyhow::Result<()> {
         }
 
         // Create Mailer
+        let smtp_config = mailer::MailerSmtpConfig {
+            smtp_connection_url: config.smtp_connection_url,
+            smtp_timeout: Duration::from_secs(config.smtp_timeout_in_s),
+            sender_name: config.email_sender_name,
+            sender_address: config.email_sender_address,
+        };
         let mailer = mailer::Mailer::new(
-            &config.smtp_connection_url,
-            Duration::from_secs(config.smtp_timeout_in_s),
-            config.email_sender_name,
-            config.email_sender_address,
+            smtp_config,
             config.email_logo_url,
             config.website_url,
             config.app_url.clone(),
+            config.support_email_address.clone(),
         )
         .await
         .expect("Could not initialize mailer; check SMTP configuration");
@@ -647,6 +656,7 @@ async fn main() -> anyhow::Result<()> {
             quota_notification_events_per_day_threshold: config
                 .quota_notification_events_per_day_threshold,
             enable_quota_based_email_notifications: config.enable_quota_based_email_notifications,
+            support_email_address: config.support_email_address,
         };
         let hook0_client_api_url = config.hook0_client_api_url;
 
