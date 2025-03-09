@@ -598,14 +598,13 @@ async fn main() -> anyhow::Result<()> {
             });
         }
 
+        // Create Mailer
         let smtp_config = mailer::MailerSmtpConfig {
             smtp_connection_url: config.smtp_connection_url,
             smtp_timeout: Duration::from_secs(config.smtp_timeout_in_s),
             sender_name: config.email_sender_name,
             sender_address: config.email_sender_address,
         };
-
-        // Create Mailer
         let mailer = mailer::Mailer::new(
             smtp_config,
             config.email_logo_url,

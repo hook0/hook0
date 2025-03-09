@@ -27,7 +27,7 @@ import { organizationSteps, Step } from '@/pages/tutorial/TutorialService';
 
 const route = useRoute();
 const pricingEnabled = ref<boolean>(false);
-const support_email_address = ref<string>('');
+const support_email_address = ref<string | null>(null);
 
 const has_service_token = ref(true);
 const organization_id = ref<UUID | null>(null);
@@ -198,7 +198,11 @@ onUpdated(() => {
           target="_blank"
           >Available plans</Hook0Button
         >
-        <Hook0Button class="primary" type="button" :href="`mailto:${support_email_address}`"
+        <Hook0Button
+          v-if="support_email_address"
+          class="primary"
+          type="button"
+          :href="`mailto:${support_email_address}`"
           >Subscribe to a better plan
         </Hook0Button>
       </Hook0CardFooter>
