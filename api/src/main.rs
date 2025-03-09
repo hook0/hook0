@@ -363,7 +363,7 @@ struct Config {
     website_url: Url,
 
     /// Support email address
-    #[clap(long, env)]
+    #[clap(long, env, default_value = "support@hook0.com")]
     support_email_address: Address,
 }
 
