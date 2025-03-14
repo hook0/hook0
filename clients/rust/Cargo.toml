@@ -12,20 +12,20 @@ homepage = "https://www.hook0.com/"
 chrono = { version = "0.4.40", features = ["serde"] }
 hex = { version = "0.4.3", optional = true }
 hmac = { version = "0.12.1", optional = true }
-http = { version = "1.2.0", optional = true }
+http = { version = "1.3.1", optional = true }
 lazy-regex = { version = "3.4.1", optional = true }
 log = "0.4.26"
-reqwest = { version = "0.12.12", default-features = false, features = ["hickory-dns", "json"], optional = true }
-serde = { version = "1.0.218", features = ["derive"], optional = true }
+reqwest = { version = "0.12.14", default-features = false, features = ["hickory-dns", "json"], optional = true }
+serde = { version = "1.0.219", features = ["derive"], optional = true }
 serde_json = { version = "1.0.140", optional = true }
 sha2 = { version = "0.10.8", optional = true }
 thiserror = "2.0.12"
 url = { version = "2.5.4", optional = true }
-uuid = { version = "1.15.1", features = ["serde", "v4"], optional = true }
+uuid = { version = "1.16.0", features = ["serde", "v4"], optional = true }
 
 [dev-dependencies]
-actix-web = { version = "4.9.0", default-features = false, features = ["macros"] }
-env_logger = "0.11.6"
+actix-web = { version = "4.10.2", default-features = false, features = ["macros"] }
+env_logger = "0.11.7"
 
 [features]
 default = ["reqwest-rustls-tls-webpki-roots", "producer", "consumer"]
