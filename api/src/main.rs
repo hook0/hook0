@@ -17,6 +17,7 @@ use std::str::FromStr;
 use std::time::Duration;
 use uuid::Uuid;
 
+mod cloudflare_turnstile;
 mod expired_tokens_cleanup;
 mod extractor_user_ip;
 mod handlers;
@@ -49,6 +50,11 @@ const WEBAPP_INDEX_FILE: &str = "index.html";
     ArgGroup::new("client")
         .multiple(true)
         .requires_all(&["hook0_client_api_url", "hook0_client_application_id", "hook0_client_token"]),
+))]
+#[clap(group(
+    ArgGroup::new("cloudflare_turnstile")
+        .multiple(true)
+        .requires_all(&["cloudflare_turnstile_site_key", "cloudflare_turnstile_secret_key"]),
 ))]
 struct Config {
     /// IP address on which to start the HTTP server
@@ -365,6 +371,14 @@ struct Config {
     /// Support email address
     #[clap(long, env, default_value = "support@hook0.com")]
     support_email_address: Address,
+
+    /// Cloudflare Turnstile site key (enables Turnstile for user registration)
+    #[clap(long, env, group = "cloudflare_turnstile")]
+    cloudflare_turnstile_site_key: Option<String>,
+
+    /// Cloudflare Turnstile secret key (enables Turnstile for user registration)
+    #[clap(long, env, group = "cloudflare_turnstile")]
+    cloudflare_turnstile_secret_key: Option<String>,
 }
 
 fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
@@ -405,6 +419,8 @@ pub struct State {
     quota_notification_events_per_day_threshold: u8,
     enable_quota_based_email_notifications: bool,
     support_email_address: Address,
+    cloudflare_turnstile_site_key: Option<String>,
+    cloudflare_turnstile_secret_key: Option<String>,
 }
 
 #[actix_web::main]
@@ -657,6 +673,8 @@ async fn main() -> anyhow::Result<()> {
                 .quota_notification_events_per_day_threshold,
             enable_quota_based_email_notifications: config.enable_quota_based_email_notifications,
             support_email_address: config.support_email_address,
+            cloudflare_turnstile_site_key: config.cloudflare_turnstile_site_key,
+            cloudflare_turnstile_secret_key: config.cloudflare_turnstile_secret_key,
         };
         let hook0_client_api_url = config.hook0_client_api_url;
 
