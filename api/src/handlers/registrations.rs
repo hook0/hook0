@@ -12,6 +12,7 @@ use std::str::FromStr;
 use uuid::Uuid;
 use validator::Validate;
 
+use crate::extractor_user_ip::UserIp;
 use crate::iam::{Role, create_email_verification_token};
 use crate::mailer::Mail;
 use crate::problems::Hook0Problem;
@@ -39,6 +40,7 @@ pub struct RegistrationPost {
         )
     )]
     password: String,
+    turnstile_token: Option<String>,
 }
 
 #[api_v2_operation(
@@ -51,6 +53,7 @@ pub struct RegistrationPost {
 )]
 pub async fn register(
     state: Data<crate::State>,
+    ip: UserIp,
     body: Json<RegistrationPost>,
 ) -> Result<CreatedJson<Registration>, Hook0Problem> {
     if state.registration_disabled {
@@ -59,6 +62,11 @@ pub async fn register(
 
     if let Err(e) = body.validate() {
         return Err(Hook0Problem::Validation(e));
+    }
+
+    if let Some(secret_key) = state.cloudflare_turnstile_secret_key.as_deref() {
+        crate::cloudflare_turnstile::verify(secret_key, body.turnstile_token.as_deref(), &ip)
+            .await?;
     }
 
     let recipient_address = Address::from_str(&body.email).map_err(|e| {

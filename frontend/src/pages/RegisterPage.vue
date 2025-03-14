@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 
 import { register } from '@/iam';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -13,14 +13,32 @@ import { handleError, Problem } from '@/http.ts';
 import { push } from 'notivue';
 import { routes } from '@/routes.ts';
 import router from '@/router.ts';
+import VueTurnstile from 'vue-turnstile';
+import { getInstanceConfig } from '@/utils/biscuit_auth';
 
 const email = ref<string>('');
 const firstName = ref<string>('');
 const lastName = ref<string>('');
 const password = ref<string>('');
 
+const turnstile_site_key = ref<null | string>(null);
+const turnstile_token = ref<string>('');
+
+onMounted(async () => {
+  const instanceConfig = await getInstanceConfig();
+  if (instanceConfig.cloudflare_turnstile_site_key) {
+    turnstile_site_key.value = instanceConfig.cloudflare_turnstile_site_key;
+  }
+});
+
 async function submit() {
-  await register(email.value, firstName.value, lastName.value, password.value)
+  await register(
+    email.value,
+    firstName.value,
+    lastName.value,
+    password.value,
+    turnstile_token.value !== '' ? turnstile_token.value : undefined
+  )
     .then(() => {
       push.success({
         title: 'Success',
@@ -98,6 +116,14 @@ async function submit() {
           </Hook0Input>
         </Hook0CardContent>
         <Hook0CardFooter>
+          <div v-if="turnstile_site_key">
+            <VueTurnstile
+              v-model="turnstile_token"
+              :site-key="turnstile_site_key"
+              size="flexible"
+              action="registration"
+            />
+          </div>
           <Hook0Button class="secondary" :to="{ name: routes.Login }">Sign in</Hook0Button>
           <Hook0Button class="primary" submit>Register</Hook0Button>
         </Hook0CardFooter>
