@@ -58,7 +58,7 @@
                                     </div>
                                 </div>
 
-
+                                <div id="turnstile-container" class="mt-4 sm:mt-3.5"></div>
 
                                 <button name="button" type="submit" id="signup_submit" class="mt-6 px-4 w-full h-10 font-medium rounded-md text-white bg-green-500 hover:bg-green-600 focus:ring-2 focus:ring-offset-2 focus:ring-green-600 transition-colors focus:outline-none">
                                     Sign Up
@@ -110,10 +110,69 @@
                                 </div>
                             </div>
 
-                            <script>
+                            <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"></script>
+                            <script defer>
                                 (function () {
+                                    const api_base_url = 'https://app.hook0.com/api/v1';
+
+                                    let turnstileToken = null;
+                                    fetch(`${api_base_url}/instance`)
+                                        .then((r) => r.json().then(data => ([r, data])))
+                                        .then(([response, data]) => {
+                                            if ([400, 409].includes(response.status) && response.headers.get('content-type') === 'application/problem+json') {
+                                                displayProblem(data);
+                                                return;
+                                            } else if (response.status !== 200) {
+                                                // fallback on global catch
+                                                throw new Error('Unknown error: ' + JSON.stringify(data));
+                                            }
+
+                                            if (typeof data.cloudflare_turnstile_site_key === 'string') {
+                                                submit.disabled = true;
+                                                turnstile.ready(function () {
+                                                    console.log("ready");
+                                                    turnstile.render('#turnstile-container', {
+                                                        sitekey: data.cloudflare_turnstile_site_key,
+                                                        size: 'flexible',
+                                                        callback: function (token) {
+                                                            turnstileToken = token;
+                                                            submit.disabled = false;
+                                                        },
+                                                    });
+                                                });
+                                            }
+                                        })
+                                        .catch(err => {
+                                            displayProblem({
+                                                title: 'Error',
+                                                detail: `Could not load Hook0 config: ${err.message} If this error persists, please contact support.`,
+                                                type: 'unknown'
+                                            });
+                                        });
+
                                     const submit = document.getElementById('signup_submit');
                                     const [signup_form, success_form, error_form] = document.querySelectorAll('.js-signup-form');
+
+                                    function $set(kind, data) {
+                                        Object.entries(data).forEach(([k, v]) => {
+                                            const el = document.querySelector(`[data-${kind}="${k}"]`);
+                                            if (!el) {
+                                                return;
+                                            }
+                                            el.innerText = v;
+                                        })
+                                    }
+
+                                    /**
+                                     * @param {object} data
+                                     * @property {string} title
+                                     * @property {string} type
+                                     * @property {string} detail
+                                     */
+                                    function displayProblem(data) {
+                                        error_form.classList.remove('hidden');
+                                        $set('problem', data);
+                                    }
 
                                     signup_form.addEventListener('submit', (e) => {
                                         e.preventDefault();
@@ -125,46 +184,24 @@
                                         const first_name = document.getElementById('first_name').value;
                                         const last_name = document.getElementById('last_name').value;
 
-                                        /**
-                                         * @param {object} data
-                                         * @property {string} title
-                                         * @property {string} type
-                                         * @property {string} detail
-                                         */
-                                        function displayProblem(data) {
-                                            error_form.classList.remove('hidden');
-                                            $set('problem', data);
-                                        }
-
                                         function displaySuccess(data) {
                                             success_form.classList.remove('hidden');
                                             signup_form.classList.add('hidden');
                                             $set('success', data);
                                         }
 
-                                        function $set(kind, data) {
-                                            Object.entries(data).forEach(([k, v]) => {
-                                                const el = document.querySelector(`[data-${kind}="${k}"]`);
-                                                if (!el) {
-                                                    return;
-                                                }
-                                                el.innerText = v;
-                                            })
-                                        }
-
-                                        fetch('https://app.hook0.com/api/v1/register', {
+                                        fetch(`${api_base_url}/register`, {
                                             redirect: 'error',
                                             method: 'POST',
                                             headers: {
                                                 'Content-type': 'application/json'
                                             },
-                                            body: JSON.stringify({
+                                            body: JSON.stringify(Object.assign({
                                                 "email": email,
                                                 "first_name": first_name,
                                                 "last_name": last_name,
                                                 "password": user_password,
-                                                "organization_name": email.replace('@', '-').replace(/[^a-z]/, '')
-                                            }),
+                                            }, turnstileToken === null ? {} : { turnstile_token: turnstileToken })),
                                             mode: 'cors',
                                             cache: 'default'
                                         }).then((r) => r.json().then(data => ([r, data])))
