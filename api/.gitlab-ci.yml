@@ -52,4 +52,4 @@ api.documentation:
         - Cargo.*
   image: node:$NODE_VERSION
   script:
-    - npx --yes rdme@8.3.0 openapi --id=${README_IO_ID} --key=${README_IO_KEY} --update https://app.hook0.com/api/v1/swagger.json
+    - npx --yes rdme@9.1.1 openapi --id=${README_IO_ID} --key=${README_IO_KEY} --update https://app.hook0.com/api/v1/swagger.json
