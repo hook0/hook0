@@ -2,11 +2,7 @@
 import { ref } from 'vue';
 
 import { login } from '@/iam';
-import Hook0Card from '@/components/Hook0Card.vue';
-import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
-import Hook0CardContent from '@/components/Hook0CardContent.vue';
-import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import { handleError, Problem } from '@/http.ts';
 import { AxiosError, AxiosResponse } from 'axios';
@@ -64,43 +60,43 @@ function displayError(err: Problem) {
 </script>
 
 <template>
-  <form @submit.prevent="submit">
-    <Hook0Card class="shadow-2xl">
-      <Hook0CardHeader>
-        <template #header> Login </template>
-        <template #subtitle>
-          <div class="text-sm text-gray-500">Please enter your email and password to login.</div>
-        </template>
-      </Hook0CardHeader>
-      <Hook0CardContent>
-        <Hook0Input
-          v-model="email"
-          type="email"
-          class="w-11/12 mx-auto mb-4 mt-4"
-          placeholder="johndoe@example.com"
-          required
-          autofocus
-          label="Email"
-        >
-        </Hook0Input>
+  <h2 class="text-center lg:text-left lg:text-4xl text-3xl font-extrabold text-[#142850]">
+    Welcome Back to Hook0!
+  </h2>
+  <form class="mt-6" @submit.prevent="submit">
+    <Hook0Input
+      v-model="email"
+      type="email"
+      required
+      label="Email"
+      class="mt-2 sm:mt-1.5"
+      placeholder="johndoe@example.com"
+      autofocus
+    />
+    <Hook0Input
+      id="password"
+      v-model="password"
+      type="password"
+      required
+      label="Password"
+      class="mt-2 sm:mt-1.5"
+      placeholder="*********"
+    />
 
-        <Hook0Input
-          v-model="password"
-          type="password"
-          class="w-11/12 mx-auto"
-          placeholder="*********"
-          required
-          label="Password"
-        >
-        </Hook0Input>
-      </Hook0CardContent>
-      <Hook0CardFooter>
-        <Hook0Button class="secondary" :to="{ name: routes.BeginResetPassword }"
-          >Forgot password?</Hook0Button
-        >
-        <Hook0Button class="secondary" :to="{ name: routes.Register }">Sign up</Hook0Button>
-        <Hook0Button class="primary" submit>Login</Hook0Button>
-      </Hook0CardFooter>
-    </Hook0Card>
+    <div class="flex items-center mt-2">
+      <Hook0Button :to="{ name: routes.BeginResetPassword }"> Forgot password? </Hook0Button>
+    </div>
+
+    <Hook0Button class="primary w-full mt-6 justify-center" submit>Login</Hook0Button>
+
+    <div class="other-links pt-3 text-sm">
+      Don't have an account?
+      <Hook0Button
+        class="rounded font-medium focus:ring-2 transition-colors duration-75 focus:outline-none"
+        :to="{ name: routes.Register }"
+      >
+        Sign up
+      </Hook0Button>
+    </div>
   </form>
 </template>

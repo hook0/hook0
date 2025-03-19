@@ -2,11 +2,7 @@
 import { onMounted, ref } from 'vue';
 
 import { register } from '@/iam';
-import Hook0Card from '@/components/Hook0Card.vue';
-import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
-import Hook0CardContent from '@/components/Hook0CardContent.vue';
-import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import { AxiosError, AxiosResponse } from 'axios';
 import { handleError, Problem } from '@/http.ts';
@@ -20,6 +16,7 @@ const email = ref<string>('');
 const firstName = ref<string>('');
 const lastName = ref<string>('');
 const password = ref<string>('');
+const acceptTerms = ref<boolean>(false);
 
 const turnstile_site_key = ref<null | string>(null);
 const turnstile_token = ref<string>('');
@@ -32,6 +29,10 @@ onMounted(async () => {
 });
 
 async function submit() {
+  if (!acceptTerms.value) {
+    push.warning({ title: 'Warning', message: 'You must accept the terms of service.' });
+    return;
+  }
   await register(
     email.value,
     firstName.value,
@@ -61,73 +62,56 @@ async function submit() {
 </script>
 
 <template>
-  <div>
-    <form @submit.prevent="submit">
-      <Hook0Card class="shadow-2xl">
-        <Hook0CardHeader>
-          <template #header> Register </template>
-          <template #subtitle>
-            <div class="text-sm text-gray-500">
-              Welcome to Hook0. Please enter your information to register and start using our
-              services.
-            </div>
-          </template>
-        </Hook0CardHeader>
-        <Hook0CardContent>
-          <Hook0Input
-            v-model="email"
-            type="email"
-            class="w-11/12 mx-auto mb-4 mt-4"
-            placeholder="johndoe@example.com"
-            required
-            autofocus
-            label="Email"
-          >
-          </Hook0Input>
+  <h2 class="text-center lg:text-left lg:text-4xl text-3xl font-extrabold text-[#142850]">
+    Set up your Free Webhooks account
+  </h2>
+  <form class="mt-6" @submit.prevent="submit">
+    <Hook0Input
+      v-model="firstName"
+      type="text"
+      required
+      label="First Name"
+      class="mt-2 sm:mt-1.5"
+    />
+    <Hook0Input v-model="lastName" type="text" required label="Last Name" class="mt-2 sm:mt-1.5" />
+    <Hook0Input v-model="email" type="email" required label="Email" class="mt-2 sm:mt-1.5" />
+    <Hook0Input
+      v-model="password"
+      type="password"
+      required
+      label="Password"
+      class="mt-2 sm:mt-1.5"
+    />
 
-          <Hook0Input
-            v-model="firstName"
-            type="text"
-            class="w-11/12 mx-auto mb-4"
-            placeholder="John"
-            required
-            label="First Name"
-          >
-          </Hook0Input>
+    <div class="flex items-center mt-2">
+      <Hook0Input v-model="acceptTerms" type="checkbox" class="h-4 w-4" tabindex="9" required />
+      <label class="ml-2 text-sm">
+        I accept Hook0
+        <Hook0Button target="_blank" href="https://hook0.com/terms" class="font-medium"
+          >terms of service</Hook0Button
+        >.
+      </label>
+    </div>
 
-          <Hook0Input
-            v-model="lastName"
-            type="text"
-            class="w-11/12 mx-auto mb-4"
-            placeholder="Doe"
-            required
-            label="Last Name"
-          >
-          </Hook0Input>
+    <div v-if="turnstile_site_key" class="mt-4">
+      <VueTurnstile
+        v-model="turnstile_token"
+        :site-key="turnstile_site_key"
+        size="flexible"
+        action="registration"
+      />
+    </div>
 
-          <Hook0Input
-            v-model="password"
-            type="password"
-            class="w-11/12 mx-auto mb-4"
-            placeholder="************"
-            required
-            label="Password"
-          >
-          </Hook0Input>
-        </Hook0CardContent>
-        <Hook0CardFooter>
-          <div v-if="turnstile_site_key">
-            <VueTurnstile
-              v-model="turnstile_token"
-              :site-key="turnstile_site_key"
-              size="flexible"
-              action="registration"
-            />
-          </div>
-          <Hook0Button class="secondary" :to="{ name: routes.Login }">Sign in</Hook0Button>
-          <Hook0Button class="primary" submit>Register</Hook0Button>
-        </Hook0CardFooter>
-      </Hook0Card>
-    </form>
-  </div>
+    <Hook0Button class="primary w-full mt-6 justify-center" submit>Sign Up</Hook0Button>
+
+    <div class="other-links pt-3 text-sm">
+      Already have an account?
+      <Hook0Button
+        class="rounded font-medium focus:ring-2 transition-colors duration-75 focus:outline-none"
+        :to="{ name: routes.Login }"
+      >
+        Sign in
+      </Hook0Button>
+    </div>
+  </form>
 </template>

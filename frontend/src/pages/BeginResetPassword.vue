@@ -1,11 +1,7 @@
 <script setup lang="ts">
-import Hook0Card from '@/components/Hook0Card.vue';
-import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
-import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import { ref } from 'vue';
 import Hook0Button from '@/components/Hook0Button.vue';
-import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import { push } from 'notivue';
 import { AxiosError, AxiosResponse } from 'axios';
 import { handleError, Problem } from '@/http.ts';
@@ -41,33 +37,26 @@ function displayError(err: Problem) {
 </script>
 
 <template>
-  <form @submit.prevent="submit">
-    <Hook0Card>
-      <Hook0CardHeader>
-        <template #header>Reset your account's password</template>
-        <template #subtitle>
-          <div class="text-sm text-gray-500">
-            You will receive an email with a verification link that will allow you to set a new
-            pasword.
-          </div>
-        </template>
-      </Hook0CardHeader>
-      <Hook0CardContent>
-        <Hook0Input
-          v-model="email"
-          type="email"
-          class="w-11/12 mx-auto mb-4 mt-4"
-          placeholder="johndoe@example.com"
-          required
-          autofocus
-          label="Email"
-        >
-        </Hook0Input>
-      </Hook0CardContent>
-      <Hook0CardFooter>
-        <Hook0Button class="secondary" :to="{ name: routes.Login }">Back to login</Hook0Button>
-        <Hook0Button class="primary" submit>Send verification email</Hook0Button>
-      </Hook0CardFooter>
-    </Hook0Card>
+  <h2 class="text-center lg:text-left lg:text-4xl text-3xl font-extrabold text-[#142850]">
+    Ask for a password reset
+  </h2>
+  <form class="mt-6" @submit.prevent="submit">
+    <Hook0Input
+      v-model="email"
+      type="email"
+      class="mt-2 sm:mt-1.5"
+      placeholder="johndoe@example.com"
+      required
+      autofocus
+      label="Email"
+    />
+
+    <div class="flex items-center mt-2">
+      <Hook0Button :to="{ name: routes.Login }">Back to login</Hook0Button>
+    </div>
+
+    <Hook0Button class="primary w-full mt-6 justify-center" submit
+      >Send verification email</Hook0Button
+    >
   </form>
 </template>

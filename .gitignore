@@ -19,3 +19,6 @@ api/.clever.json
 
 # docker-compose
 .data
+
+# DS_Store
+**/.DS_Store

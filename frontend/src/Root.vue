@@ -382,12 +382,179 @@ function toggleMobileSidebar() {
   </div>
 
   <!-- If user not logged in -->
-  <div v-else class="h-screen flex flex-col justify-center items-center">
-    <div class="h-1/6 mb-6 w-full flex justify-center">
-      <img src="/logo.svg" />
-    </div>
-    <div class="w-full flex justify-center items-center">
-      <RouterView />
+  <div v-else>
+    <div class="mt-8">
+      <main>
+        <div class="">
+          <div class="mx-auto max-w-7xl lg:px-8">
+            <div class="mb-4 h-32 w-full flex justify-center lg:mb-6">
+              <img src="/logo.svg" alt="Logo" />
+            </div>
+            <div class="lg:flex lg:items-center max-w-7xl mx-auto w-full">
+              <div class="flex-1 w-full flex justify-center px-4 sm:px-6 lg:px-2">
+                <div class="max-w-lg w-full pb-12">
+                  <RouterView />
+                </div>
+              </div>
+
+              <div
+                class="flex-1 px-4 py-6 lg:p-0 max-w-2xl mx-auto lg:mx-0 lg:max-w-none lg:ml-20 lg:grid grid-cols-2 rounded-xl"
+              >
+                <div class="p-6 lg:border-r lg:border-b hover:bg-gray-100">
+                  <div class="flex items-center text-lg font-medium text-gray-500">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-5 w-5"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clip-rule="evenodd"
+                      ></path>
+                    </svg>
+                    <span class="ml-2 text-gray-800">Go To Market Faster</span>
+                  </div>
+                  <p class="mt-2 tracking-tight leading-relaxed text-gray-600 text-sm">
+                    Our out of the box solution gives you a robust webhook platform in a fraction of
+                    the time.
+                  </p>
+                </div>
+
+                <div class="p-6 lg:border-b hover:bg-gray-100">
+                  <div class="flex items-center text-lg font-medium text-gray-500">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-5 w-5"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clip-rule="evenodd"
+                      ></path>
+                    </svg>
+                    <span class="ml-2 text-gray-800">Test Webhook Payloads</span>
+                  </div>
+                  <p class="mt-2 tracking-tight leading-relaxed text-gray-600 text-sm">
+                    Make testing your integration easier by triggering mock payloads to simulate
+                    webhook messages.
+                  </p>
+                </div>
+
+                <div class="p-6 lg:border-r hover:bg-gray-100">
+                  <div class="flex items-center text-lg font-medium text-gray-500">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-5 w-5"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clip-rule="evenodd"
+                      ></path>
+                    </svg>
+                    <span class="ml-2 text-gray-800">View and Search Logs</span>
+                  </div>
+                  <p class="mt-2 tracking-tight leading-relaxed text-gray-600 text-sm">
+                    Help debug your integration by searching through webhook attempts and payloads.
+                  </p>
+                </div>
+
+                <div class="p-6 hover:bg-gray-100">
+                  <div class="flex items-center text-lg font-medium text-gray-500">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-5 w-5"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clip-rule="evenodd"
+                      ></path>
+                    </svg>
+                    <span class="ml-2 text-gray-800">Manage Your Integration</span>
+                  </div>
+                  <p class="mt-2 tracking-tight leading-relaxed text-gray-600 text-sm">
+                    Our self-serve portal lets you build your own endpoints and subscribe to any or
+                    all events.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white py-12 sm:py-16">
+          <div class="mx-auto max-w-7xl px-6 lg:px-8">
+            <div class="grid grid-cols-1 items-center gap-x-8 gap-y-16 lg:grid-cols-2">
+              <div class="mx-auto w-full max-w-xl lg:mx-0">
+                <h2 class="text-3xl font-bold tracking-tight text-gray-900">
+                  Trusted by the most innovative teams
+                </h2>
+                <p class="mt-6 text-lg leading-8 text-gray-600">
+                  These teams chose Hook0 over competitors because Hook0 is the only fully
+                  open-source project that also offers production-ready SaaS support. They gain a
+                  competitive advantage by embracing extensibility, reversibility, and
+                  future-proofness in their integration strategies.
+                </p>
+              </div>
+              <div
+                class="mx-auto grid w-full max-w-xl grid-cols-2 items-center gap-y-12 sm:gap-y-14 lg:mx-0 lg:max-w-none lg:pl-8"
+              >
+                <img
+                  class="max-h-12 w-full object-contain object-center"
+                  src="/customers/adobe.svg"
+                  alt="Adobe"
+                  width="158"
+                  height="48"
+                />
+                <img
+                  class="max-h-12 w-full object-contain object-center"
+                  src="/customers/atandt.svg"
+                  alt="AT&T"
+                  width="158"
+                  height="48"
+                />
+                <img
+                  class="max-h-12 w-full object-contain object-center"
+                  src="/customers/ibm.svg"
+                  alt="IBM"
+                  width="158"
+                  height="48"
+                />
+                <img
+                  class="max-h-12 w-full object-contain object-center"
+                  src="/customers/zoom.svg"
+                  alt="Zoom"
+                  width="158"
+                  height="48"
+                />
+                <img
+                  class="max-h-12 w-full object-contain object-center"
+                  src="/customers/tui.svg"
+                  alt="TUI"
+                  width="158"
+                  height="48"
+                />
+                <img
+                  class="max-h-12 w-full object-contain object-center"
+                  src="/customers/linkedin.svg"
+                  alt="LinkedIn"
+                  width="158"
+                  height="48"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
   </div>
 </template>
