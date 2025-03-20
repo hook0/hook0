@@ -76,7 +76,7 @@ pub struct OrganizationUser {
 
 #[api_v2_operation(
     summary = "List organizations",
-    description = "",
+    description = "Retrieves all organizations the current API token has access to, with the associated roles.",
     operation_id = "organizations.list",
     consumes = "application/json",
     produces = "application/json",
@@ -166,7 +166,7 @@ pub struct OrganizationPost {
 
 #[api_v2_operation(
     summary = "Create an organization",
-    description = "Note that you will need to regenerate an authentication token to be able to see/use the newly created organization.",
+    description = "Create a new organization. An organization contains applications, members and optionaly a plan. Note that you will need to regenerate an authentication token to be able to see/use the newly created organization.",
     operation_id = "organizations.create",
     consumes = "application/json",
     produces = "application/json",
@@ -295,7 +295,7 @@ pub async fn create(
 
 #[api_v2_operation(
     summary = "Get organization's info by its ID",
-    description = "",
+    description = "Retrieves details about a specific organization, including quotas and consumption statistics.",
     operation_id = "organizations.get",
     consumes = "application/json",
     produces = "application/json",
@@ -527,7 +527,7 @@ pub struct UserInvitation {
 
 #[api_v2_operation(
     summary = "Invite a user to an organization",
-    description = "",
+    description = "Give permission to a user to access an organization you have write access to. The user must already have a Hook0 account otherwise this will fail.",
     operation_id = "organizations.invite",
     consumes = "application/json",
     produces = "application/json",
@@ -616,7 +616,7 @@ pub struct Revoke {
 
 #[api_v2_operation(
     summary = "Revoke a user's access to an organization",
-    description = "",
+    description = "Remove permission of a user to access an organization you have write access to.",
     operation_id = "organizations.revoke",
     consumes = "application/json",
     produces = "application/json",
@@ -697,7 +697,7 @@ pub struct OrganizationEditRole {
 
 #[api_v2_operation(
     summary = "Edit a user's role in an organization",
-    description = "",
+    description = "Change the role of a user that has already access to an organization you have write access to.",
     operation_id = "organizations.edit_role",
     consumes = "application/json",
     produces = "application/json",
@@ -746,7 +746,7 @@ pub async fn edit_role(
 
 #[api_v2_operation(
     summary = "Delete an organization",
-    description = "Note that you will need to regenerate a JWT to be able to make the deleted organization go away.",
+    description = "Remove an organization you have write access to. Organization must not contain any application otherwise this will fail.",
     operation_id = "organizations.delete",
     consumes = "application/json",
     produces = "application/json",

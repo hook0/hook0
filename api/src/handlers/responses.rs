@@ -30,7 +30,7 @@ pub struct Qs {
 
 #[api_v2_operation(
     summary = "Get a response by its ID",
-    description = "A response is produced when a request attempt is processed",
+    description = "A response is produced when a request attempt is processed. Response IDs can be obtained from request attempts details.",
     operation_id = "response.get",
     consumes = "application/json",
     produces = "application/json",

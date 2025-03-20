@@ -39,7 +39,7 @@ pub struct ApplicationSecretPost {
 
 #[api_v2_operation(
     summary = "Create a new application secret",
-    description = "",
+    description = "Generates a new API token for an application.",
     operation_id = "applicationSecrets.create",
     consumes = "application/json",
     produces = "application/json",
@@ -106,7 +106,7 @@ pub async fn create(
 
 #[api_v2_operation(
     summary = "List application secrets",
-    description = "",
+    description = "Retrieves all active API tokens for a given application.",
     operation_id = "applicationSecrets.read",
     consumes = "application/json",
     produces = "application/json",
@@ -151,7 +151,7 @@ pub async fn list(
 
 #[api_v2_operation(
     summary = "Update an application secret",
-    description = "",
+    description = "Updates the name of an existing API token.",
     operation_id = "applicationSecrets.update",
     consumes = "application/json",
     produces = "application/json",
@@ -225,7 +225,7 @@ pub async fn edit(
 
 #[api_v2_operation(
     summary = "Delete an application secret",
-    description = "",
+    description = "Marks an API token as revoked, preventing any further use. This operation is irreversible.",
     operation_id = "applicationSecrets.delete",
     consumes = "application/json",
     produces = "application/json",
