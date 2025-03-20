@@ -42,7 +42,7 @@ pub struct ServiceTokenPost {
 
 #[api_v2_operation(
     summary = "Create a new service token",
-    description = "",
+    description = "Creates a new organization-wide API key (service token) that allows external applications to send API requests to Hook0. The token can be attenuated to limit its scope for better security.",
     operation_id = "serviceToken.create",
     consumes = "application/json",
     produces = "application/json",
@@ -122,7 +122,7 @@ pub async fn create(
 
 #[api_v2_operation(
     summary = "List service tokens",
-    description = "",
+    description = "Retrieves all active service tokens for a given organization. Expired or revoked tokens are not included in the response.",
     operation_id = "serviceToken.list",
     consumes = "application/json",
     produces = "application/json",
@@ -168,7 +168,7 @@ pub async fn list(
 
 #[api_v2_operation(
     summary = "Edit a service token",
-    description = "",
+    description = "Updates the name of an existing service token. The token must belong to the specified organization and still be active (not expired or revoked).",
     operation_id = "serviceToken.edit",
     consumes = "application/json",
     produces = "application/json",
@@ -245,7 +245,7 @@ pub async fn edit(
 
 #[api_v2_operation(
     summary = "Delete a service token",
-    description = "",
+    description = "Marks a service token as expired, effectively revoking its access. This operation is irreversible.",
     operation_id = "serviceToken.delete",
     consumes = "application/json",
     produces = "application/json",
@@ -331,7 +331,7 @@ pub async fn delete(
 
 #[api_v2_operation(
     summary = "Get a service token",
-    description = "",
+    description = "Retrieves details of a specific service token if it belongs to the specified organization and is still active.",
     operation_id = "serviceToken.get",
     consumes = "application/json",
     produces = "application/json",
