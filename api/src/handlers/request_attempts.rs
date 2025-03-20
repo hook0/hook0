@@ -98,7 +98,7 @@ pub struct Qs {
 
 #[api_v2_operation(
     summary = "List request attempts",
-    description = "",
+    description = "Retrieves the most recent attempts to deliver events to subscriptions for a given application. Request attempts track the status and history of event deliveries, including retries and failures.",
     operation_id = "requestAttempts.read",
     consumes = "application/json",
     produces = "application/json",
