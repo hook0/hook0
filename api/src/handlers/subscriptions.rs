@@ -133,7 +133,7 @@ pub struct Qs {
 
 #[api_v2_operation(
     summary = "List subscriptions",
-    description = "List all subscriptions created by customers against the application events",
+    description = "Retrieves all active event subscriptions for a given application. A subscription defines how and where event notifications will be sent.",
     operation_id = "subscriptions.list",
     consumes = "application/json",
     produces = "application/json",
@@ -239,7 +239,7 @@ pub async fn list(
 
 #[api_v2_operation(
     summary = "Get a subscription by its id",
-    description = "",
+    description = "Retrieves details of a specific subscription if it belongs to the specified application and has not been deleted.",
     operation_id = "subscriptions.get",
     consumes = "application/json",
     produces = "application/json",
@@ -386,7 +386,7 @@ pub struct SubscriptionPost {
 
 #[api_v2_operation(
     summary = "Create a new subscription",
-    description = "A subscription let your customers subscribe to events. Events will be sent through the defined medium inside the subscription (e.g. HTTP POST request) as a webhook.",
+    description = "Creates a new event subscription for an application. This allows clients to receive event notifications via a webhook or another defined target.",
     operation_id = "subscriptions.create",
     consumes = "application/json",
     produces = "application/json",
@@ -619,7 +619,7 @@ pub async fn create(
 
 #[api_v2_operation(
     summary = "Update a subscription",
-    description = "",
+    description = "Modifies an existing subscription, including its event types, target configuration, or metadata. The subscription must belong to the specified application.",
     operation_id = "subscriptions.update",
     consumes = "application/json",
     produces = "application/json",
@@ -867,7 +867,7 @@ pub async fn edit(
 
 #[api_v2_operation(
     summary = "Delete a subscription",
-    description = "",
+    description = "Marks a subscription as deleted, preventing any further event notifications from being sent. This operation is irreversible.",
     operation_id = "subscriptions.delete",
     consumes = "application/json",
     produces = "application/json",

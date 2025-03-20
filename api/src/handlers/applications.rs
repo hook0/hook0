@@ -59,7 +59,7 @@ pub struct ApplicationPost {
 
 #[api_v2_operation(
     summary = "Create a new application",
-    description = "An application emit events that are consumed by customers through webhooks",
+    description = "Registers a new application within an organization. An application emits events that customers can subscribe to using webhooks.",
     operation_id = "applications.create",
     consumes = "application/json",
     produces = "application/json",
@@ -147,7 +147,7 @@ pub async fn create(
 
 #[api_v2_operation(
     summary = "Get an application by its ID",
-    description = "An application emit events that are consumed by customers through webhooks",
+    description = "Retrieves details about a specific application, including quotas and consumption statistics.",
     operation_id = "applications.get",
     consumes = "application/json",
     produces = "application/json",
@@ -241,7 +241,7 @@ pub async fn get(
 
 #[api_v2_operation(
     summary = "List applications",
-    description = "",
+    description = "Retrieves all applications.",
     operation_id = "applications.list",
     consumes = "application/json",
     produces = "application/json",
@@ -278,7 +278,7 @@ pub async fn list(
 
 #[api_v2_operation(
     summary = "Edit an application",
-    description = "Change the name of an application",
+    description = "Updates the name of an existing application.",
     operation_id = "applications.update",
     consumes = "application/json",
     produces = "application/json",
@@ -351,7 +351,7 @@ pub async fn edit(
 
 #[api_v2_operation(
     summary = "Delete an application",
-    description = "Delete an application, further events won't be sent, active webhook subscriptions will also be deleted.",
+    description = "Marks an application as deleted. No more events will be emitted, and all active webhook subscriptions will be removed.",
     operation_id = "applications.delete",
     consumes = "application/json",
     produces = "application/json",
