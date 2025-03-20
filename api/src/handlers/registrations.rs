@@ -45,7 +45,7 @@ pub struct RegistrationPost {
 
 #[api_v2_operation(
     summary = "Create a new user account and its own personal organization",
-    description = "",
+    description = "If instance has Cloudflare Turnstile enabled (see response of /instance endpoint), the `turnstile_token` field is mandatory.",
     operation_id = "register",
     consumes = "application/json",
     produces = "application/json",

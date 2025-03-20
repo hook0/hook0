@@ -124,7 +124,7 @@ pub struct Event {
 
 #[api_v2_operation(
     summary = "List latest events",
-    description = "",
+    description = "Retrieves the last 100 ingested events for a given application.",
     operation_id = "events.list",
     consumes = "application/json",
     produces = "application/json",
@@ -214,7 +214,7 @@ pub struct EventWithPayload {
 
 #[api_v2_operation(
     summary = "Get an event",
-    description = "",
+    description = "Retrieves details of a specific event if it belongs to the specified application.",
     operation_id = "events.get",
     consumes = "application/json",
     produces = "application/json",
@@ -287,7 +287,7 @@ pub struct IngestedEvent {
 
 #[api_v2_operation(
     summary = "Ingest an event",
-    description = "",
+    description = "Send an event to your Hook0 application. Matching subscriptions will be triggered, if any.",
     operation_id = "events.ingest",
     consumes = "application/json",
     produces = "application/json",
@@ -451,7 +451,7 @@ pub struct ReplayEvent {
 
 #[api_v2_operation(
     summary = "Replay an event",
-    description = "Trigger existing subscriptions matching an existing event, which will result in webhook being send again",
+    description = "Trigger existing subscriptions matching an existing event, which will result in webhook being send again.",
     operation_id = "events.replay",
     consumes = "application/json",
     tags("Events Management")

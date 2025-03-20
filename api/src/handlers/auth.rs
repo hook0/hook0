@@ -106,7 +106,7 @@ struct UserLookup {
     operation_id = "auth.login",
     consumes = "application/json",
     produces = "application/json",
-    tags("Authentication")
+    tags("User Authentication")
 )]
 pub async fn login(
     state: Data<crate::State>,
@@ -401,7 +401,7 @@ async fn do_login<'a, A: Acquire<'a, Database = Postgres>>(
     operation_id = "auth.refresh",
     consumes = "application/json",
     produces = "application/json",
-    tags("Authentication")
+    tags("User Authentication")
 )]
 pub async fn refresh(
     state: Data<crate::State>,
@@ -457,7 +457,7 @@ pub async fn refresh(
     operation_id = "auth.logout",
     consumes = "application/json",
     produces = "application/json",
-    tags("Authentication")
+    tags("User Authentication")
 )]
 pub async fn logout(
     state: Data<crate::State>,
@@ -497,7 +497,7 @@ pub async fn logout(
     operation_id = "auth.verify_email",
     consumes = "application/json",
     produces = "application/json",
-    tags("Authentication")
+    tags("User Authentication")
 )]
 pub async fn verify_email(
     state: Data<crate::State>,
@@ -549,7 +549,7 @@ pub async fn verify_email(
     operation_id = "auth.begin_reset_password",
     consumes = "application/json",
     produces = "application/json",
-    tags("Authentication")
+    tags("User Authentication")
 )]
 pub async fn begin_reset_password(
     state: Data<crate::State>,
@@ -627,7 +627,7 @@ pub async fn begin_reset_password(
     operation_id = "auth.reset_password",
     consumes = "application/json",
     produces = "application/json",
-    tags("Authentication")
+    tags("User Authentication")
 )]
 pub async fn reset_password(
     state: Data<crate::State>,
@@ -697,7 +697,7 @@ pub async fn reset_password(
     operation_id = "auth.change_password",
     consumes = "application/json",
     produces = "application/json",
-    tags("Authentication")
+    tags("User Authentication")
 )]
 pub async fn change_password(
     state: Data<crate::State>,
