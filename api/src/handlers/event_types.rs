@@ -42,7 +42,7 @@ pub struct EventTypePost {
 
 #[api_v2_operation(
     summary = "Create a new event type",
-    description = "",
+    description = "Defines a new event type for an application. Event types help categorize and structure emitted events, making them easier to manage and subscribe to.",
     operation_id = "eventTypes.create",
     consumes = "application/json",
     produces = "application/json",
@@ -184,7 +184,7 @@ pub async fn create(
 
 #[api_v2_operation(
     summary = "List event types",
-    description = "",
+    description = "Retrieves all active event types registered for a given application. Each event type is uniquely identified by its service, resource type, and verb.",
     operation_id = "eventTypes.list",
     consumes = "application/json",
     produces = "application/json",
@@ -229,7 +229,7 @@ pub async fn list(
 
 #[api_v2_operation(
     summary = "Get an event type by its name",
-    description = "",
+    description = "Retrieves details of a specific event type if it exists within the given application. Event types define the structure of emitted events.",
     operation_id = "eventTypes.get",
     consumes = "application/json",
     produces = "application/json",
@@ -278,7 +278,7 @@ pub async fn get(
 
 #[api_v2_operation(
     summary = "Delete an event type",
-    description = "",
+    description = "Marks an event type as deactivated, preventing it from being used for new event emissions. Existing events using this type remain unaffected.",
     operation_id = "eventTypes.delete",
     consumes = "application/json",
     produces = "application/json",
