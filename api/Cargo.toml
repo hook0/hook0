@@ -35,7 +35,7 @@ log = "0.4.26"
 mrml = "5.0.0"
 paperclip = { version = "0.9.5", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
 regex = "1.11.1"
-reqwest = { version = "0.12.14", default-features = false, features = ["charset", "http2", "macos-system-configuration", "hickory-dns"] }
+reqwest = { version = "0.12.15", default-features = false, features = ["charset", "http2", "macos-system-configuration", "hickory-dns"] }
 sentry-actix = "0.36.0"
 serde = "1.0.219"
 serde_json = "1.0.140"
