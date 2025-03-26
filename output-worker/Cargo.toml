@@ -18,7 +18,7 @@ hmac = "0.12.1"
 hook0-sentry-integration = { path = "../sentry-integration", version = "0.1.0" }
 humantime = "2.2.0"
 itertools = "0.14.0"
-log = "0.4.26"
+log = "0.4.27"
 reqwest = { version = "0.12.15", default-features = false, features = ["charset", "http2", "macos-system-configuration", "hickory-dns", "json"] }
 serde = "1.0.219"
 serde_json = "1.0.140"
