@@ -4,11 +4,13 @@ use chrono::{DateTime, Utc};
 use log::error;
 use paperclip::actix::web::{Data, Json, Path, Query};
 use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
+use paperclip::v2::models::{DataType, DataTypeFormat, DefaultSchemaRaw};
+use paperclip::v2::schema::Apiv2Schema;
 use reqwest::Url;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{Value, json};
 use sqlx::{query, query_as, query_scalar};
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::ops::Deref;
 use uuid::Uuid;
 use validator::{Validate, ValidationErrors};
@@ -41,7 +43,7 @@ pub struct Subscription {
     pub dedicated_workers: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Apiv2Schema)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum Target {
     Http {
@@ -50,6 +52,47 @@ pub enum Target {
         url: HttpUrl,
         headers: HashMap<String, String>,
     },
+}
+
+// This implementation is manual because paperclip could not handle the Target enum automatically and exposed it as a string in the generated OpenAPI document
+impl Apiv2Schema for Target {
+    fn raw_schema() -> DefaultSchemaRaw {
+        let type_ = DefaultSchemaRaw {
+            data_type: Some(DataType::String),
+            example: Some(Value::String("http".to_owned())),
+            ..Default::default()
+        };
+        let method = DefaultSchemaRaw {
+            data_type: Some(DataType::String),
+            ..Default::default()
+        };
+        let url = DefaultSchemaRaw {
+            data_type: Some(DataType::String),
+            format: Some(DataTypeFormat::Url),
+            ..Default::default()
+        };
+        let headers = DefaultSchemaRaw {
+            data_type: Some(DataType::Object),
+            ..Default::default()
+        };
+
+        DefaultSchemaRaw {
+            data_type: Some(DataType::Object),
+            properties: BTreeMap::from_iter([
+                ("type".to_owned(), Box::new(type_)),
+                ("method".to_owned(), Box::new(method)),
+                ("url".to_owned(), Box::new(url)),
+                ("headers".to_owned(), Box::new(headers)),
+            ]),
+            required: BTreeSet::from_iter([
+                "type".to_owned(),
+                "method".to_owned(),
+                "url".to_owned(),
+                "headers".to_owned(),
+            ]),
+            ..Default::default()
+        }
+    }
 }
 
 impl Validate for Target {
