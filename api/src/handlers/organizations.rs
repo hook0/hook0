@@ -160,7 +160,7 @@ pub async fn list(
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct OrganizationPost {
-    #[validate(non_control_character, length(min = 1, max = 50))]
+    #[validate(non_control_character, length(min = 2, max = 50))]
     name: String,
 }
 
