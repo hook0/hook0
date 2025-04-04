@@ -282,6 +282,22 @@ onUpdated(() => {
           </template>
         </Hook0CardHeader>
         <Hook0CardContent>
+          <Hook0CardContentLine>
+            <template #label>Subscription description</template>
+            <template #content>
+              <Hook0Input
+                v-model="subscription.description"
+                type="text"
+                placeholder="my awesome api - production"
+                required
+              >
+                <template #helpText>
+                  Describe what your subscription will do so you can distinguish it from others.
+                </template>
+              </Hook0Input>
+            </template>
+          </Hook0CardContentLine>
+
           <Hook0CardContentLine v-if="!isNew">
             <template #label>
               Subscription secret
@@ -313,11 +329,12 @@ onUpdated(() => {
 
           <Hook0CardContentLine>
             <template #label>
-              Endpoint HTTP verb and url
+              Endpoint HTTP verb and URL
 
               <Hook0Text class="helpText mt-2 block">
-                “Endpoint HTTP verb” defines the type of request (e.g., GET, POST) to interact with
-                the server, while “URL” is the web address where the request is sent.
+                When this subscription is triggered by an event, Hook0 will send a webhook to this
+                endpoint.
+                <br />
               </Hook0Text>
             </template>
             <template #content>
@@ -336,6 +353,16 @@ onUpdated(() => {
                 >
                 </Hook0Input>
               </div>
+              <div class="flex flex-row mt-1">
+                <Hook0Text class="helpText">
+                  If you just want to run some tests, you can go to
+                  <Hook0Button href="https://webhook.site" target="_blank"
+                    >Webhook.site</Hook0Button
+                  >
+                  to obtain a unique URL. Keep the page open and use the unique URL here with any
+                  HTTP verb!
+                </Hook0Text>
+              </div>
             </template>
           </Hook0CardContentLine>
 
@@ -348,20 +375,6 @@ onUpdated(() => {
                 value-placeholder="value"
                 @update:model-value="subscription.target.headers = toMap($event)"
               ></Hook0KeyValue>
-            </template>
-          </Hook0CardContentLine>
-
-          <Hook0CardContentLine>
-            <template #label> Subscription description </template>
-            <template #content>
-              <Hook0Input
-                v-model="subscription.description"
-                type="text"
-                placeholder="my awesome api - production"
-                required
-              >
-                <template #helpText>Describe what your subscription will do </template>
-              </Hook0Input>
             </template>
           </Hook0CardContentLine>
 
