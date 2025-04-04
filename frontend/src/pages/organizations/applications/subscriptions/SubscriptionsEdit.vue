@@ -312,7 +312,14 @@ onUpdated(() => {
           </Hook0CardContentLine>
 
           <Hook0CardContentLine>
-            <template #label> Endpoint HTTP verb and url </template>
+            <template #label>
+              Endpoint HTTP verb and url
+
+              <Hook0Text class="helpText mt-2 block">
+                “Endpoint HTTP verb” defines the type of request (e.g., GET, POST) to interact with
+                the server, while “URL” is the web address where the request is sent.
+              </Hook0Text>
+            </template>
             <template #content>
               <div class="flex flex-row">
                 <Hook0Select
