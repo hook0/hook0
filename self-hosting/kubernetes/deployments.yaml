@@ -209,7 +209,7 @@ spec:
               value: hook0
             - name: POSTGRES_PASSWORD
               value: postgres
-          image: postgres:15
+          image: postgres:17
           livenessProbe:
             exec:
               command:
@@ -243,4 +243,3 @@ spec:
   resources:
     requests:
       storage: 100Mi
-
