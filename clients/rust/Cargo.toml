@@ -25,7 +25,7 @@ uuid = { version = "1.16.0", features = ["serde", "v4"], optional = true }
 
 [dev-dependencies]
 actix-web = { version = "4.10.2", default-features = false, features = ["macros"] }
-env_logger = "0.11.7"
+env_logger = "0.11.8"
 
 [features]
 default = ["reqwest-rustls-tls-webpki-roots", "producer", "consumer"]
