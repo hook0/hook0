@@ -12,7 +12,7 @@ keywords = ["webhooks", "webhook", "webhook-server", "events", "saas"]
 [dependencies]
 anyhow = "1.0.97"
 chrono = "0.4.40"
-clap = { version = "4.5.32", features = ["derive", "env", "cargo", "wrap_help"] }
+clap = { version = "4.5.35", features = ["derive", "env", "cargo", "wrap_help"] }
 hex = "0.4.3"
 hmac = "0.12.1"
 hook0-sentry-integration = { path = "../sentry-integration", version = "0.1.0" }
