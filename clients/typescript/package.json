@@ -12,11 +12,7 @@
     "lint": "eslint .",
     "format": "prettier --write ./src/**.ts",
     "check": "prettier --check ./src/**.ts",
-    "semantic-release": "npm run --silent check-full && npm run --silent build && semantic-release",
-    "check-full": "npm run --silent check && npm run --silent lint && npm run --silent test",
-    "release-major": "npm run --silent check-full && npm run --silent build && npm-release major",
-    "release-minor": "npm run --silent check-full && npm run --silent build && npm-release minor",
-    "release-patch": "npm run --silent check-full && npm run --silent build && npm-release patch"
+    "semantic-release": "semantic-release"
   },
   "keywords": [],
   "authors": [
@@ -33,14 +29,21 @@
     "uuid": "^11.0.5"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.8.0",
+    "@commitlint/config-conventional": "^19.8.0",
     "@eslint/js": "^9.19.0",
     "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/commit-analyzer": "^13.0.1",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/gitlab": "^13.2.4",
+    "@semantic-release/npm": "^12.0.1",
+    "@semantic-release/release-notes-generator": "^14.0.3",
     "@types/jest": "^29.5.14",
     "eslint": "^9.19.0",
     "jest": "^29.7.0",
     "npm-release": "^1.0.0",
     "prettier": "^3.4.2",
-    "semantic-release": "^24.2.1",
+    "semantic-release": "^24.2.3",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3",
