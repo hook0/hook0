@@ -1,5 +1,5 @@
 variables:
-  PG_VERSION: "15"
+  PG_VERSION: "17"
   RUST_VERSION: "1.86"
   NODE_VERSION: "22"
   POSTGRES_DB: hook0-ci
