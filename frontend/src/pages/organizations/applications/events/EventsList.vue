@@ -29,6 +29,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { Codemirror } from 'vue-codemirror';
 import { json } from '@codemirror/lang-json';
 import { EditorView } from 'codemirror';
+import Hook0KeyValue from '@/components/Hook0KeyValue.vue';
+import { Hook0KeyValueKeyValuePair } from '@/components/Hook0KeyValue';
 
 interface Props {
   // cache-burst
@@ -47,8 +49,7 @@ const show_event_form = ref<boolean>(false);
 const event_type$ = ref<Promise<Array<{ label: string; value: string }>>>(Promise.resolve([]));
 
 const selected_event_type = ref<null | string>();
-const label_key = ref<null | string>('all');
-const label_value = ref<null | string>('yes');
+const labels = ref<Hook0KeyValueKeyValuePair[]>([{ key: 'all', value: 'yes' }]);
 const occurred_at = ref<null | Date>();
 const payload = ref<undefined | string>('{"test": true}');
 
@@ -171,8 +172,7 @@ function display_event_form() {
 function send_test_event() {
   if (
     !selected_event_type.value ||
-    !label_key.value ||
-    !label_value.value ||
+    labels.value.length <= 0 ||
     !occurred_at.value ||
     !payload.value
   ) {
@@ -184,15 +184,11 @@ function send_test_event() {
     return;
   }
 
-  let labels = {
-    [label_key.value]: label_value.value,
-  };
-
   EventsService.send_json_event(
     application_id.value as UUID,
     uuidv4(),
     selected_event_type.value,
-    labels,
+    toMap(labels.value),
     occurred_at.value,
     payload.value
   )
@@ -234,6 +230,14 @@ onMounted(() => {
 onUpdated(() => {
   _load();
 });
+
+function toMap(pairs: Hook0KeyValueKeyValuePair[]): Record<string, string> {
+  return pairs.reduce((m, { key, value }) => {
+    // @ts-ignore
+    m[key] = value;
+    return m;
+  }, {});
+}
 </script>
 
 <template>
@@ -269,7 +273,7 @@ onUpdated(() => {
             </Hook0CardContentLine>
             <Hook0CardContentLine>
               <template #label>
-                Subscription labels
+                Event labels
 
                 <Hook0Text class="helpText mt-2 block">
                   Hook0 will only forward events to subscriptions that have the same
@@ -282,25 +286,11 @@ onUpdated(() => {
                 <Hook0Text class="helpText mt-2 block"> </Hook0Text>
               </template>
               <template #content>
-                <div class="flex flex-row">
-                  <Hook0Input
-                    v-model="label_key"
-                    type="text"
-                    class="w-full"
-                    placeholder="label_key"
-                    required
-                  >
-                  </Hook0Input>
-
-                  <Hook0Input
-                    v-model="label_value"
-                    type="text"
-                    class="w-full ml-1"
-                    placeholder="label_value"
-                    required
-                  >
-                  </Hook0Input>
-                </div>
+                <Hook0KeyValue
+                  :value="labels"
+                  key-placeholder="label_key"
+                  value-placeholder="label_value"
+                ></Hook0KeyValue>
               </template>
             </Hook0CardContentLine>
             <Hook0CardContentLine>
