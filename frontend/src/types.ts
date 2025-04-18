@@ -11,10 +11,16 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** List application secrets */
+    /**
+     * List application secrets
+     * @description Retrieves all active API tokens for a given application.
+     */
     get: operations['applicationSecrets.read'];
     put?: never;
-    /** Create a new application secret */
+    /**
+     * Create a new application secret
+     * @description Generates a new API token for an application.
+     */
     post: operations['applicationSecrets.create'];
     delete?: never;
     options?: never;
@@ -30,10 +36,16 @@ export interface paths {
       cookie?: never;
     };
     get?: never;
-    /** Update an application secret */
+    /**
+     * Update an application secret
+     * @description Updates the name of an existing API token.
+     */
     put: operations['applicationSecrets.update'];
     post?: never;
-    /** Delete an application secret */
+    /**
+     * Delete an application secret
+     * @description Marks an API token as revoked, preventing any further use. This operation is irreversible.
+     */
     delete: operations['applicationSecrets.delete'];
     options?: never;
     head?: never;
@@ -47,12 +59,15 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** List applications */
+    /**
+     * List applications
+     * @description Retrieves all applications.
+     */
     get: operations['applications.list'];
     put?: never;
     /**
      * Create a new application
-     * @description An application emit events that are consumed by customers through webhooks
+     * @description Registers a new application within an organization. An application emits events that customers can subscribe to using webhooks.
      */
     post: operations['applications.create'];
     delete?: never;
@@ -70,18 +85,18 @@ export interface paths {
     };
     /**
      * Get an application by its ID
-     * @description An application emit events that are consumed by customers through webhooks
+     * @description Retrieves details about a specific application, including quotas and consumption statistics.
      */
     get: operations['applications.get'];
     /**
      * Edit an application
-     * @description Change the name of an application
+     * @description Updates the name of an existing application.
      */
     put: operations['applications.update'];
     post?: never;
     /**
      * Delete an application
-     * @description Delete an application, further events won't be sent, active webhook subscriptions will also be deleted.
+     * @description Marks an application as deleted. No more events will be emitted, and all active webhook subscriptions will be removed.
      */
     delete: operations['applications.delete'];
     options?: never;
@@ -258,7 +273,10 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Ingest an event */
+    /**
+     * Ingest an event
+     * @description Send an event to your Hook0 application. Matching subscriptions will be triggered, if any.
+     */
     post: operations['events.ingest'];
     delete?: never;
     options?: never;
@@ -273,10 +291,16 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** List event types */
+    /**
+     * List event types
+     * @description Retrieves all active event types registered for a given application. Each event type is uniquely identified by its service, resource type, and verb.
+     */
     get: operations['eventTypes.list'];
     put?: never;
-    /** Create a new event type */
+    /**
+     * Create a new event type
+     * @description Defines a new event type for an application. Event types help categorize and structure emitted events, making them easier to manage and subscribe to.
+     */
     post: operations['eventTypes.create'];
     delete?: never;
     options?: never;
@@ -291,11 +315,17 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Get an event type by its name */
+    /**
+     * Get an event type by its name
+     * @description Retrieves details of a specific event type if it exists within the given application. Event types define the structure of emitted events.
+     */
     get: operations['eventTypes.get'];
     put?: never;
     post?: never;
-    /** Delete an event type */
+    /**
+     * Delete an event type
+     * @description Marks an event type as deactivated, preventing it from being used for new event emissions. Existing events using this type remain unaffected.
+     */
     delete: operations['eventTypes.delete'];
     options?: never;
     head?: never;
@@ -309,7 +339,10 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** List latest events */
+    /**
+     * List latest events
+     * @description Retrieves the last 100 ingested events for a given application.
+     */
     get: operations['events.list'];
     put?: never;
     post?: never;
@@ -326,7 +359,10 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Get an event */
+    /**
+     * Get an event
+     * @description Retrieves details of a specific event if it belongs to the specified application.
+     */
     get: operations['events.get'];
     put?: never;
     post?: never;
@@ -347,7 +383,7 @@ export interface paths {
     put?: never;
     /**
      * Replay an event
-     * @description Trigger existing subscriptions matching an existing event, which will result in webhook being send again
+     * @description Trigger existing subscriptions matching an existing event, which will result in webhook being send again.
      */
     post: operations['events.replay'];
     delete?: never;
@@ -403,12 +439,15 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** List organizations */
+    /**
+     * List organizations
+     * @description Retrieves all organizations the current API token has access to, with the associated roles.
+     */
     get: operations['organizations.list'];
     put?: never;
     /**
      * Create an organization
-     * @description Note that you will need to regenerate an authentication token to be able to see/use the newly created organization.
+     * @description Create a new organization. An organization contains applications, members and optionaly a plan. Note that you will need to regenerate an authentication token to be able to see/use the newly created organization.
      */
     post: operations['organizations.create'];
     delete?: never;
@@ -424,7 +463,10 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Get organization's info by its ID */
+    /**
+     * Get organization's info by its ID
+     * @description Retrieves details about a specific organization, including quotas and consumption statistics.
+     */
     get: operations['organizations.get'];
     /**
      * Edit an organization
@@ -434,7 +476,7 @@ export interface paths {
     post?: never;
     /**
      * Delete an organization
-     * @description Note that you will need to regenerate a JWT to be able to make the deleted organization go away.
+     * @description Remove an organization you have write access to. Organization must not contain any application otherwise this will fail.
      */
     delete: operations['organizations.delete'];
     options?: never;
@@ -450,11 +492,20 @@ export interface paths {
       cookie?: never;
     };
     get?: never;
-    /** Edit a user's role in an organization */
+    /**
+     * Edit a user's role in an organization
+     * @description Change the role of a user that has already access to an organization you have write access to.
+     */
     put: operations['organizations.edit_role'];
-    /** Invite a user to an organization */
+    /**
+     * Invite a user to an organization
+     * @description Give permission to a user to access an organization you have write access to. The user must already have a Hook0 account otherwise this will fail.
+     */
     post: operations['organizations.invite'];
-    /** Revoke a user's access to an organization */
+    /**
+     * Revoke a user's access to an organization
+     * @description Remove permission of a user to access an organization you have write access to.
+     */
     delete: operations['organizations.revoke'];
     options?: never;
     head?: never;
@@ -510,7 +561,10 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Create a new user account and its own personal organization */
+    /**
+     * Create a new user account and its own personal organization
+     * @description If instance has Cloudflare Turnstile enabled (see response of /instance endpoint), the `turnstile_token` field is mandatory.
+     */
     post: operations['register'];
     delete?: never;
     options?: never;
@@ -525,7 +579,10 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** List request attempts */
+    /**
+     * List request attempts
+     * @description Retrieves the most recent attempts to deliver events to subscriptions for a given application. Request attempts track the status and history of event deliveries, including retries and failures.
+     */
     get: operations['requestAttempts.read'];
     put?: never;
     post?: never;
@@ -544,7 +601,7 @@ export interface paths {
     };
     /**
      * Get a response by its ID
-     * @description A response is produced when a request attempt is processed
+     * @description A response is produced when a request attempt is processed. Response IDs can be obtained from request attempts details.
      */
     get: operations['response.get'];
     put?: never;
@@ -562,10 +619,16 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** List service tokens */
+    /**
+     * List service tokens
+     * @description Retrieves all active service tokens for a given organization. Expired or revoked tokens are not included in the response.
+     */
     get: operations['serviceToken.list'];
     put?: never;
-    /** Create a new service token */
+    /**
+     * Create a new service token
+     * @description Creates a new organization-wide API key (service token) that allows external applications to send API requests to Hook0. The token can be attenuated to limit its scope for better security.
+     */
     post: operations['serviceToken.create'];
     delete?: never;
     options?: never;
@@ -580,12 +643,21 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Get a service token */
+    /**
+     * Get a service token
+     * @description Retrieves details of a specific service token if it belongs to the specified organization and is still active.
+     */
     get: operations['serviceToken.get'];
-    /** Edit a service token */
+    /**
+     * Edit a service token
+     * @description Updates the name of an existing service token. The token must belong to the specified organization and still be active (not expired or revoked).
+     */
     put: operations['serviceToken.edit'];
     post?: never;
-    /** Delete a service token */
+    /**
+     * Delete a service token
+     * @description Marks a service token as expired, effectively revoking its access. This operation is irreversible.
+     */
     delete: operations['serviceToken.delete'];
     options?: never;
     head?: never;
@@ -601,13 +673,13 @@ export interface paths {
     };
     /**
      * List subscriptions
-     * @description List all subscriptions created by customers against the application events
+     * @description Retrieves all active event subscriptions for a given application. A subscription defines how and where event notifications will be sent.
      */
     get: operations['subscriptions.list'];
     put?: never;
     /**
      * Create a new subscription
-     * @description A subscription let your customers subscribe to events. Events will be sent through the defined medium inside the subscription (e.g. HTTP POST request) as a webhook.
+     * @description Creates a new event subscription for an application. This allows clients to receive event notifications via a webhook or another defined target.
      */
     post: operations['subscriptions.create'];
     delete?: never;
@@ -623,12 +695,21 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Get a subscription by its id */
+    /**
+     * Get a subscription by its id
+     * @description Retrieves details of a specific subscription if it belongs to the specified application and has not been deleted.
+     */
     get: operations['subscriptions.get'];
-    /** Update a subscription */
+    /**
+     * Update a subscription
+     * @description Modifies an existing subscription, including its event types, target configuration, or metadata. The subscription must belong to the specified application.
+     */
     put: operations['subscriptions.update'];
     post?: never;
-    /** Delete a subscription */
+    /**
+     * Delete a subscription
+     * @description Marks a subscription as deleted, preventing any further event notifications from being sent. This operation is irreversible.
+     */
     delete: operations['subscriptions.delete'];
     options?: never;
     head?: never;
@@ -986,7 +1067,14 @@ export interface components {
       secret: string;
       /** Format: uuid */
       subscription_id: string;
-      target: string;
+      target: {
+        headers: Record<string, never>;
+        method: string;
+        /** @example http */
+        type: string;
+        /** Format: url */
+        url: string;
+      };
     };
     SubscriptionPost: {
       /** Format: uuid */
@@ -1000,7 +1088,14 @@ export interface components {
       metadata?: {
         [key: string]: Record<string, never>;
       };
-      target: string;
+      target: {
+        headers: Record<string, never>;
+        method: string;
+        /** @example http */
+        type: string;
+        /** Format: url */
+        url: string;
+      };
     };
     UserInvitation: {
       email: string;

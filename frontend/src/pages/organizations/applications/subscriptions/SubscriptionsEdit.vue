@@ -5,7 +5,7 @@ import { head } from 'ramda';
 
 import { Problem, UUID } from '@/http';
 import * as SubscriptionService from './SubscriptionService';
-import { Subscription, Target } from './SubscriptionService';
+import { Subscription } from './SubscriptionService';
 import { routes } from '@/routes';
 import SubscriptionsRemove from './SubscriptionsRemove.vue';
 import * as EventTypeService from '../event_types/EventTypeService';
@@ -102,7 +102,7 @@ const subscription = ref({
     method: '',
     url: '',
     headers: {},
-  } as Target,
+  },
 });
 const eventTypes = ref<SelectableEventType[]>([]);
 
@@ -143,11 +143,8 @@ function _load() {
           subscription.value.metadata = sub.metadata;
           subscription.value.dedicated_workers = sub.dedicated_workers;
 
-          // currently PaperClip does not handle our "enum Target" on Rust-side and yield a string
-          subscription.value.target = sub.target as unknown as Target;
-          httpTarget.value.headers = fromMap(
-            (subscription.value.target as unknown as Target).headers
-          );
+          subscription.value.target = sub.target;
+          httpTarget.value.headers = fromMap(subscription.value.target.headers);
         })
       : Promise.resolve()
     )
