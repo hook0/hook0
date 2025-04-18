@@ -16,7 +16,7 @@ import Hook0Text from '@/components/Hook0Text.vue';
 import { routes } from '@/routes';
 import Hook0Button from '@/components/Hook0Button.vue';
 import * as SubscriptionService from './SubscriptionService';
-import { Subscription, SubscriptionFixed } from './SubscriptionService';
+import { Subscription } from './SubscriptionService';
 import Hook0Loader from '@/components/Hook0Loader.vue';
 import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
 import Hook0Error from '@/components/Hook0Error.vue';
@@ -41,7 +41,7 @@ const columnDefs: ColDef[] = [
     cellRendererParams: {
       value: (subscription: Subscription) => (subscription.is_enabled ? 'Enabled' : 'Disabled'),
       icon: (subscription: Subscription) => (subscription.is_enabled ? 'toggle-on' : 'toggle-off'),
-      onClick: (row: SubscriptionFixed): void => {
+      onClick: (row: Subscription): void => {
         SubscriptionService.toggleEnable(row.subscription_id, row)
           .then(() => {
             // @TODO notify user of success
