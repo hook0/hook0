@@ -41,7 +41,7 @@
     "@biscuit-auth/biscuit-wasm": "^0.5.0",
     "@codemirror/lang-json": "^6.0.1",
     "@codemirror/theme-one-dark": "^6.1.0",
-    "@formbricks/js": "^3.0.2",
+    "@formbricks/js": "^4.1.0",
     "@fortawesome/fontawesome-svg-core": "^6.2.0",
     "@fortawesome/free-solid-svg-icons": "^6.0.0",
     "@fortawesome/vue-fontawesome": "^3.0.0-5",
@@ -89,10 +89,10 @@
     "ts-jest": "^29.1.1",
     "typescript": "5.6.*",
     "vite": "^5.4.11",
-    "vite-plugin-checker": "^0.8.0",
+    "vite-plugin-checker": "^0.9.1",
     "vite-plugin-top-level-await": "^1.4.1",
     "vite-plugin-wasm": "^3.3.0",
-    "vue-tsc": "^2.1.0"
+    "vue-tsc": "^2.2.8"
   },
   "keywords": [
     "webhook",
