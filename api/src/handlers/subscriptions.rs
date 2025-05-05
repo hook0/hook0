@@ -50,9 +50,13 @@ pub enum Target {
         method: String,
         #[serde(deserialize_with = "deserialize_http_url")]
         url: HttpUrl,
-        headers: HashMap<String, String>,
+        headers: HeaderMap,
     },
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, derive_more::Into)]
+#[into(owned, ref)]
+pub struct HeaderMap(#[serde(with = "http_serde::header_map")] pub reqwest::header::HeaderMap);
 
 // This implementation is manual because paperclip could not handle the Target enum automatically and exposed it as a string in the generated OpenAPI document
 impl Apiv2Schema for Target {
@@ -115,7 +119,7 @@ impl Validate for Target {
                     errors.add("url", e)
                 }
 
-                let headers_validation = subscription_target_http_method_headers(headers);
+                let headers_validation = subscription_target_http_method_headers(headers.into());
                 if let Err(e) = headers_validation {
                     errors.add("headers", e)
                 }
@@ -1014,7 +1018,7 @@ mod tests {
         let expected = Target::Http {
             method: "GET".to_owned(),
             url: HttpUrl(Url::parse(url).unwrap()),
-            headers: HashMap::new(),
+            headers: HeaderMap(reqwest::header::HeaderMap::new()),
         };
         assert_eq!(from_value::<Target>(input).unwrap(), expected);
     }
