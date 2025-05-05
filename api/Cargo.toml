@@ -19,8 +19,8 @@ argon2 = "0.5.3"
 async-recursion = "1.1.1"
 base64 = "0.22.1"
 biscuit-auth = { version = "5.0.0", features = ["uuid"] }
-chrono = { version = "0.4.40", features = ["serde"] }
-clap = { version = "4.5.36", features = ["derive", "env", "cargo", "wrap_help"] }
+chrono = { version = "0.4.41", features = ["serde"] }
+clap = { version = "4.5.37", features = ["derive", "env", "cargo", "wrap_help"] }
 futures-util = "0.3.31"
 governor = "0.8.1"
 hook0-client = { path = "../clients/rust", version = "0.2.0", default-features = false, features = ["producer"] }
