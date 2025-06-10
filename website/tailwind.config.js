@@ -8,7 +8,7 @@ delete colors.coolGray;
 delete colors.blueGray;
 
 module.exports = {
-  content: ['./**/*.html', 'src/**/*.ejs', 'src/**/*.svg'],
+  content: ['src/**/*.ejs', 'src/**/*.svg'],
   theme: {
     extend: {},
     colors: colors,
