@@ -8,7 +8,7 @@
     "preinstall": "rm -rf ./src/mediakit; cp -R -v $(pwd)/../mediakit ./src/mediakit && cp -v ./src/mediakit/logo/favicon.ico static/favicon.ico && npm run --silent update:oss-friends",
     "update:oss-friends": "curl https://formbricks.com/api/oss-friends > ./oss-friends.json",
     "serve": "npx nodemon -w ./data -w . -i dist/ -i src/ --ext .js,.json,.ejs --exec 'npm run build:dev && npx serve dist'",
-    "build:dev": "parcel build src/*.ejs --no-optimize --no-cache",
+    "build:dev": "parcel build src/*.ejs --no-cache",
     "build": "parcel build src/*.ejs --public-url=https://www.hook0.com"
   },
   "contributors": [
