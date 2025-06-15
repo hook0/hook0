@@ -45,11 +45,13 @@
                     <% locals.features.filter(f => !f.primary).forEach(({description, title, wip}, i, arr) => { %>
                         <div class="relative">
                             <dt>
-                                <% if (wip) { %>
-                                    <%- include('../svg/clock.svg') %>
-                                <% } else { %>
-                                    <%- include('../svg/check-green-features.svg') %>
-                                <% } %>
+                                <span>
+                                  <% if (wip) { %>
+                                      <%- include('../svg/clock.svg') %>
+                                  <% } else { %>
+                                      <%- include('../svg/check-green-features.svg') %>
+                                  <% } %>
+                                </span>
 
                                 <p class="ml-9 text-lg leading-6 font-medium text-gray-900"><%= title %></p>
                             </dt>
