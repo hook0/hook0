@@ -436,7 +436,7 @@ async fn main() -> anyhow::Result<()> {
             &config.sentry_traces_sample_rate,
         );
 
-        trace!("Starting {}", APP_TITLE);
+        trace!("Starting {APP_TITLE}");
 
         // Prepare trusted reverse proxies CIDRs
         let reverse_proxy_cidrs = if config.reverse_proxy_ips.is_empty() {
