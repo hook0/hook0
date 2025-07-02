@@ -70,10 +70,7 @@ impl KeycloakApi {
         }
         const OPERATION: &str = "getting an access token from Keycloak";
 
-        trace!(
-            "Requesting an access token to Keycloak (client_id = {})",
-            client_id
-        );
+        trace!("Requesting an access token to Keycloak (client_id = {client_id})");
 
         let res = Client::new()
             .post(url)
@@ -113,10 +110,7 @@ impl KeycloakApi {
             })?;
         let api_url = append_url_segments(keycloak_url, &["admin", "realms", keycloak_realm])
             .map_err(|e| {
-                error!(
-                    "Could not create a valid URL to request Keycloak's API: {}",
-                    &e
-                );
+                error!("Could not create a valid URL to request Keycloak's API: {e}");
                 Hook0Problem::InternalServerError
             })?;
 
