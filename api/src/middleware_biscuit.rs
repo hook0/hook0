@@ -117,8 +117,7 @@ where
                                         Ok(Some(token_id)) => {
                                             {
                                                 debug!(
-                                                    "Auth with Biscuit succeeded (token ID = {})",
-                                                    token_id
+                                                    "Auth with Biscuit succeeded (token ID = {token_id})"
                                                 );
                                                 set_user_from_token(&token_id.to_string());
                                                 let mut extensions = req.extensions_mut();
