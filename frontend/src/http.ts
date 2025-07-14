@@ -4,7 +4,6 @@ import { identity } from 'ramda';
 
 import featureFlags from '@/feature-flags';
 import type { components } from '@/types';
-import ProblemFactory from '@/utils/problemFactory';
 import { clearTokens, getAccessToken, getRefreshToken } from '@/iam';
 import { push } from 'notivue';
 
@@ -40,11 +39,6 @@ async function getAxios(
 
   client.interceptors.response.use(identity, async function (error: AxiosError) {
     // Any status codes that falls outside the range of 2xx cause this function to trigger
-
-    // convert timeouts axios's error to Problem
-    if (isAxiosError(error) && String(error.message).includes('timeout of')) {
-      return Promise.reject(new ProblemFactory(0, 'TimeoutExceeded', error.message, error.message));
-    }
 
     if (isAxiosError(error)) {
       const problem = handleError(error as AxiosError<AxiosResponse<Problem>>);
@@ -138,6 +132,21 @@ export type UUID = string;
 export type Problem = definitions['Problem'];
 
 export function handleError(err: AxiosError<AxiosResponse<Problem>>): Problem {
+  // convert timeouts axios's error to Problem
+  if (
+    typeof err.code === 'string' &&
+    err.code === 'ECONNABORTED' &&
+    typeof err.message === 'string' &&
+    err.message.includes('timeout of')
+  ) {
+    return {
+      id: 'TimeoutExceeded',
+      status: 499,
+      title: 'Timeout Exceeded',
+      detail: String(err.message).charAt(0).toUpperCase() + String(err.message).slice(1),
+    };
+  }
+
   if (err.response?.data && typeof err.response.data === 'object') {
     const problem = err.response.data as unknown as Problem;
     if (
@@ -149,6 +158,7 @@ export function handleError(err: AxiosError<AxiosResponse<Problem>>): Problem {
       return problem;
     }
   }
+
   return {
     id: 'unknown',
     title: 'Unknown Error',
