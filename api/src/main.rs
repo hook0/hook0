@@ -382,7 +382,7 @@ struct Config {
 }
 
 fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
-    PrivateKey::from_bytes_hex(input)
+    PrivateKey::from_bytes_hex(input, biscuit_auth::Algorithm::Ed25519)
         .map_err(|e| format!("Value of BISCUIT_PRIVATE_KEY is invalid ({e}). Re-run this app without the environment variable set to get a randomly generated key."))
 }
 
