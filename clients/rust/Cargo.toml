@@ -17,7 +17,7 @@ lazy-regex = { version = "3.4.1", optional = true }
 log = "0.4.27"
 reqwest = { version = "0.12.22", default-features = false, features = ["hickory-dns", "json"], optional = true }
 serde = { version = "1.0.219", features = ["derive"], optional = true }
-serde_json = { version = "1.0.140", optional = true }
+serde_json = { version = "1.0.142", optional = true }
 sha2 = { version = "0.10.9", optional = true }
 thiserror = "2.0.12"
 url = { version = "2.5.4", optional = true }
