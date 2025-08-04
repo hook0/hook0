@@ -207,15 +207,15 @@ where
                                                         )
                                                         .and_then(|root_token| {
                                                             use biscuit_auth::builder_ext::BuilderExt;
-                                                            let biscuit = root_token.biscuit.append({
-                                                                let mut block = biscuit_auth::builder::BlockBuilder::new();
-                                                                block.add_check(biscuit_auth::macros::check!(
-                                                                    "check if application_id({application_id})",
-                                                                    application_id = application_secret.application_id
+                                                            let biscuit = root_token.biscuit.append(
+                                                                biscuit_auth::builder::BlockBuilder::new().check(
+                                                                    biscuit_auth::macros::check!(
+                                                                        "check if application_id({application_id})",
+                                                                        application_id = application_secret.application_id
+                                                                    )
+                                                                )?.check_expiration_date(
+                                                                    std::time::SystemTime::now() + std::time::Duration::from_secs(1)
                                                                 ))?;
-                                                                block.check_expiration_date(std::time::SystemTime::now() + std::time::Duration::from_secs(1));
-                                                                block
-                                                            })?;
                                                             Ok(biscuit)
                                                         });
 
