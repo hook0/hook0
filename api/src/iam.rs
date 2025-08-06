@@ -1,4 +1,4 @@
-use biscuit_auth::builder::Fact;
+use biscuit_auth::builder::{Fact, MapKey, Term};
 use biscuit_auth::builder_ext::AuthorizerExt;
 use biscuit_auth::macros::{authorizer, authorizer_merge, biscuit, fact, rule};
 use biscuit_auth::{AuthorizerLimits, Biscuit, KeyPair, PrivateKey};
@@ -6,7 +6,9 @@ use chrono::{DateTime, Utc};
 use log::{error, trace, warn};
 use paperclip::v2::schema::TypedData;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use sqlx::{PgPool, query_scalar};
+use std::collections::{BTreeMap, HashMap};
 use std::str::FromStr;
 use std::time::{Duration, SystemTime};
 use strum::{AsRefStr, EnumIter, EnumString, VariantNames};
@@ -432,8 +434,7 @@ pub enum Action<'a> {
     },
     SubscriptionCreate {
         application_id: &'a Uuid,
-        label_key: &'a str,
-        label_value: &'a str,
+        labels: &'a HashMap<String, Value>,
     },
     SubscriptionGet {
         application_id: &'a Uuid,
@@ -737,14 +738,17 @@ impl Action<'_> {
             Self::EventTypeDelete { .. } => vec![],
             //
             Self::SubscriptionList { .. } => vec![],
-            Self::SubscriptionCreate {
-                label_key,
-                label_value,
-                ..
-            } => vec![
-                fact!("label_key({label_key})", label_key = label_key),
-                fact!("label_value({label_value})", label_value = label_value),
-            ],
+            Self::SubscriptionCreate { labels, .. } => vec![Fact::new(
+                "labels".to_owned(),
+                vec![Term::Map(BTreeMap::from_iter(labels.iter().map(
+                    |(k, v)| {
+                        (
+                            MapKey::Str(k.to_owned()),
+                            Term::Str(v.as_str().unwrap_or("").to_owned()),
+                        )
+                    },
+                )))],
+            )],
             Self::SubscriptionGet {
                 subscription_id, ..
             } => vec![fact!(
