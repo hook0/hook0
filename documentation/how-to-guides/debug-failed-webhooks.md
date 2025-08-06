@@ -67,11 +67,11 @@ Look for these key details:
 
 ```bash
 # Get all request attempts for an event
-curl "https://api.hook0.com/api/v1/events/{event-id}/request_attempts" \
+curl "https://app.hook0.com/api/v1/events/{event-id}/request_attempts" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE"
 
 # Get specific request attempt details
-curl "https://api.hook0.com/api/v1/request_attempts/{attempt-id}" \
+curl "https://app.hook0.com/api/v1/request_attempts/{attempt-id}" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE"
 ```
 
@@ -79,7 +79,7 @@ curl "https://api.hook0.com/api/v1/request_attempts/{attempt-id}" \
 
 ```bash
 # Get only failed attempts for a subscription
-curl "https://api.hook0.com/api/v1/applications/{app-id}/subscriptions/{sub-id}/request_attempts?status=failed" \
+curl "https://app.hook0.com/api/v1/subscriptions/{sub-id}/request_attempts?status=failed" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE"
 ```
 
@@ -184,7 +184,7 @@ debugSignature(
 **Diagnosis:**
 ```bash
 # Monitor request patterns
-curl "https://api.hook0.com/api/v1/applications/{app-id}/subscriptions/{sub-id}/request_attempts" \
+curl "https://app.hook0.com/api/v1/subscriptions/{sub-id}/request_attempts" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" | \
   jq '.[] | select(.status_code == 429)'
 ```
@@ -345,7 +345,7 @@ async function getFailureRate(subscriptionId, hours = 24) {
   const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
   
   const response = await fetch(
-    `https://api.hook0.com/api/v1/applications/${APP_ID}/subscriptions/${subscriptionId}/request_attempts?since=${since}`,
+    `https://app.hook0.com/api/v1/applications/${APP_ID}/subscriptions/${subscriptionId}/request_attempts?since=${since}`,
     {
       headers: {
         'Authorization': `Bearer ${HOOK0_TOKEN}`
@@ -437,11 +437,11 @@ ${JSON.stringify(stats.attempts.filter(a => a.status_code >= 400), null, 2)}
 
 ```bash
 # Get failed events
-curl "https://api.hook0.com/api/v1/applications/{app-id}/events?status=failed" \
+curl "https://app.hook0.com/api/v1/events?status=failed" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE"
 
 # Retry specific event (if supported)
-curl -X POST "https://api.hook0.com/api/v1/events/{event-id}/retry" \
+curl -X POST "https://app.hook0.com/api/v1/events/{event-id}/replay" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE"
 ```
 
@@ -454,7 +454,7 @@ async function retryFailedEvents(subscriptionId, maxAge = 24) {
   
   // Get failed attempts
   const response = await fetch(
-    `https://api.hook0.com/api/v1/applications/${APP_ID}/subscriptions/${subscriptionId}/request_attempts?status=failed&since=${since}`,
+    `https://app.hook0.com/api/v1/applications/${APP_ID}/subscriptions/${subscriptionId}/request_attempts?status=failed&since=${since}`,
     {
       headers: { 'Authorization': `Bearer ${HOOK0_TOKEN}` }
     }
@@ -468,7 +468,7 @@ async function retryFailedEvents(subscriptionId, maxAge = 24) {
   for (const eventId of uniqueEvents) {
     try {
       const retryResponse = await fetch(
-        `https://api.hook0.com/api/v1/events/${eventId}/retry`,
+        `https://app.hook0.com/api/v1/events/${eventId}/retry`,
         {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${HOOK0_TOKEN}` }

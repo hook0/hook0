@@ -42,7 +42,7 @@ HOST=0.0.0.0
 REQUEST_TIMEOUT=30000
 
 # CORS settings
-CORS_ORIGINS=https://app.hook0.com,https://dashboard.hook0.com
+CORS_ORIGINS=https://app.hook0.com,https://your-frontend.com
 CORS_CREDENTIALS=true
 
 # Rate limiting
@@ -251,7 +251,7 @@ server:
   cors:
     origins:
       - "https://app.hook0.com"
-      - "https://dashboard.hook0.com"
+      - "https://your-frontend.com"
     credentials: true
 
 database:
@@ -753,4 +753,4 @@ Hook0 uses JSON Schema to validate configuration:
 - Use Infrastructure as Code when possible
 - Backup configuration files regularly
 
-For more advanced configuration options and deployment scenarios, see our [Self-hosting Guide](../tutorials/self-hosting-docker.md) and [Performance Optimization](../how-to-guides/high-volume-processing.md) guides.
+For more advanced configuration options and deployment scenarios, see our [Self-hosting Guide](../tutorials/self-hosting-docker.md) and [Security Best Practices](../how-to-guides/secure-webhook-endpoints.md) guides.

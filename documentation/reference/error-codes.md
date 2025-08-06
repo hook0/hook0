@@ -794,7 +794,7 @@ function logError(error, context = {}) {
 
 ### Getting Help
 
-1. **Check Status Page**: Visit [status.hook0.com](https://status.hook0.com)
+1. **Check System Status**: Monitor your Hook0 instance health
 2. **Review Documentation**: Ensure you're following API guidelines
 3. **Contact Support**: Include the `request_id` from error responses
 4. **Community**: Join our Discord for community support

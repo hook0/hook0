@@ -265,7 +265,7 @@ Add additional authentication headers to your subscriptions:
 ### Create Subscription with Custom Headers
 
 ```bash
-curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/subscriptions" \
+curl -X POST "https://app.hook0.com/api/v1/subscriptions" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{

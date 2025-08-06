@@ -1,0 +1,4 @@
+# Docusaurus
+/build
+.docusaurus
+.cache-loader

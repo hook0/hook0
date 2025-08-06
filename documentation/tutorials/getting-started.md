@@ -7,6 +7,7 @@ This tutorial will guide you through setting up your first Hook0 project, creati
 - A Hook0 account (sign up at [hook0.com](https://www.hook0.com/))
 - Basic understanding of HTTP APIs
 - cURL or similar HTTP client
+- Familiarity with [Hook0 Core Concepts](../explanation/what-is-hook0.md#core-concepts)
 
 ## Step 1: Create Your Organization
 
@@ -19,7 +20,7 @@ When you first sign up for Hook0, you'll need to create an organization. This se
    - Add a description (optional)
    - Select your region
 
-Your organization URL will be: `https://console.hook0.com/organizations/{org-id}`
+Your organization URL will be: `https://app.hook0.com/organizations/{org-id}`
 
 ## Step 2: Create Your First Application
 
@@ -75,7 +76,7 @@ Event types define the structure of events your application can send.
 ### Using the API
 
 ```bash
-curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/event_types" \
+curl -X POST "https://app.hook0.com/api/v1/event_types" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
@@ -96,7 +97,7 @@ For this tutorial, we'll use [webhook.site](https://webhook.site) to create a te
 ### Create the Subscription
 
 ```bash
-curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/subscriptions" \
+curl -X POST "https://app.hook0.com/api/v1/subscriptions" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
@@ -120,7 +121,7 @@ You'll receive a subscription ID: `sub_abcdef1234567890`
 Now let's trigger a webhook by sending an event to Hook0:
 
 ```bash
-curl -X POST "https://api.hook0.com/api/v1/events" \
+curl -X POST "https://app.hook0.com/api/v1/event" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
@@ -180,7 +181,7 @@ Hook0 signs all webhook deliveries with HMAC-SHA256. Let's verify the signature:
 ### Get Your Subscription Secret
 
 ```bash
-curl "https://api.hook0.com/api/v1/applications/{app-id}/subscriptions/{sub-id}" \
+curl "https://app.hook0.com/api/v1/subscriptions/{sub-id}" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE"
 ```
 

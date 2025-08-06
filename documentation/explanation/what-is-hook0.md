@@ -1,6 +1,7 @@
 # What is Hook0?
 
-Hook0 is an open-source webhook server that solves the fundamental challenge of reliable event delivery between distributed systems. It acts as a reliable intermediary that receives events from your applications and delivers them to configured webhook endpoints.
+Hook0 is an open-source webhook server (WaaS) that solves the fundamental challenge of reliable event delivery between distributed systems. 
+It acts as a reliable intermediary that receives events from your applications and delivers them to configured webhook endpoints.
 
 ## The Problem Hook0 Solves
 
@@ -93,18 +94,9 @@ Track all events and their delivery status for compliance requirements.
 ### Third-Party Integrations
 Connect your application to external services like Slack, Discord, or custom systems.
 
-## Architecture Overview
-
-Hook0 consists of three main components:
-
-1. **API Server**: Handles event ingestion and management operations
-2. **Worker Process**: Processes webhook deliveries and retries
-3. **Web Dashboard**: Provides monitoring and configuration interface
-
-The system uses PostgreSQL for persistence and can be deployed on-premises or in the cloud.
 
 ## Next Steps
 
 - [Getting Started Tutorial](../tutorials/getting-started.md)
-- [Webhook Architecture Deep Dive](./webhook-architecture.md)
+- [System Architecture](./hook0-architecture.md) - Detailed technical architecture
 - [API Reference](../reference/api-reference.md)

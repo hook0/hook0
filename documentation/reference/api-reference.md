@@ -2,20 +2,97 @@
 
 Hook0 provides a comprehensive REST API for managing webhooks, events, and integrations. This reference covers all endpoints, request/response formats, and authentication methods.
 
+:::tip Interactive API Explorer
+For a fully interactive experience with request/response examples, try our API in the [Hook0 App](https://app.hook0.com) or use our [Postman Collection](https://www.postman.com/hook0-team/workspace/hook0-api).
+:::
+
 ## Base URL
 
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+<Tabs>
+  <TabItem value="production" label="Production" default>
+
 ```
-Production: https://api.hook0.com/api/v1
-Staging: https://api-staging.hook0.com/api/v1
+https://app.hook0.com/api/v1
 ```
+
+  </TabItem>
+  <TabItem value="staging" label="Staging">
+
+```
+https://staging.hook0.com/api/v1
+```
+
+  </TabItem>
+  <TabItem value="self-hosted" label="Self-hosted">
+
+```
+https://your-domain.com/api/v1
+```
+
+  </TabItem>
+</Tabs>
 
 ## Authentication
 
 Hook0 uses Biscuit tokens for API authentication. Include your token in the Authorization header:
 
+<Tabs>
+  <TabItem value="http" label="HTTP" default>
+
 ```http
 Authorization: Bearer biscuit:YOUR_TOKEN_HERE
 ```
+
+  </TabItem>
+  <TabItem value="curl" label="cURL">
+
+```bash
+curl -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
+     https://app.hook0.com/api/v1/events
+```
+
+  </TabItem>
+  <TabItem value="javascript" label="JavaScript">
+
+```javascript
+const response = await fetch('https://app.hook0.com/api/v1/events', {
+  headers: {
+    'Authorization': 'Bearer biscuit:YOUR_TOKEN_HERE',
+    'Content-Type': 'application/json'
+  }
+});
+```
+
+  </TabItem>
+  <TabItem value="python" label="Python">
+
+```python
+import requests
+
+headers = {
+    'Authorization': 'Bearer biscuit:YOUR_TOKEN_HERE',
+    'Content-Type': 'application/json'
+}
+response = requests.get('https://app.hook0.com/api/v1/events', headers=headers)
+```
+
+  </TabItem>
+  <TabItem value="rust" label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("https://app.hook0.com/api/v1/events")
+    .header("Authorization", "Bearer biscuit:YOUR_TOKEN_HERE")
+    .send()
+    .await?;
+```
+
+  </TabItem>
+</Tabs>
 
 ### Token Types
 
@@ -304,7 +381,7 @@ DELETE /api/v1/applications/{app_id}
 ### List Event Types
 
 ```http
-GET /api/v1/applications/{app_id}/event_types
+GET /api/v1/event_types
 ```
 
 **Response:**
@@ -329,25 +406,23 @@ GET /api/v1/applications/{app_id}/event_types
 ### Get Event Type
 
 ```http
-GET /api/v1/applications/{app_id}/event_types/{event_type_id}
+GET /api/v1/event_types/{event_type_id}
 ```
 
 ### Create Event Type
 
 ```http
-POST /api/v1/applications/{app_id}/event_types
+POST /api/v1/event_types
 Content-Type: application/json
 ```
 
 **Request:**
 ```json
 {
-  "name": "order.completed",
-  "description": "Order has been completed and is ready for fulfillment",
-  "metadata": {
-    "category": "order_lifecycle",
-    "priority": "high"
-  }
+  "application_id": "app_1234567890",
+  "service": "order",
+  "resource_type": "purchase",
+  "verb": "completed"
 }
 ```
 
@@ -356,14 +431,14 @@ Content-Type: application/json
 ### Update Event Type
 
 ```http
-PUT /api/v1/applications/{app_id}/event_types/{event_type_id}
+PUT /api/v1/event_types/{event_type_id}
 Content-Type: application/json
 ```
 
 ### Deactivate Event Type
 
 ```http
-PUT /api/v1/applications/{app_id}/event_types/{event_type_id}
+PUT /api/v1/event_types/{event_type_id}
 Content-Type: application/json
 ```
 
@@ -379,21 +454,19 @@ Content-Type: application/json
 ### Send Event
 
 ```http
-POST /api/v1/events
+POST /api/v1/event
 Content-Type: application/json
 ```
 
 **Request:**
 ```json
 {
+  "application_id": "app_1234567890",
+  "event_id": "550e8400-e29b-41d4-a716-446655440000",
   "event_type": "user.created",
-  "payload": {
-    "user_id": "user_123",
-    "email": "john.doe@example.com",
-    "name": "John Doe",
-    "plan": "pro",
-    "created_at": "2024-01-15T10:30:00Z"
-  },
+  "payload": "{\"user_id\":\"user_123\",\"email\":\"john.doe@example.com\",\"name\":\"John Doe\",\"plan\":\"pro\",\"created_at\":\"2024-01-15T10:30:00Z\"}",
+  "payload_content_type": "application/json",
+  "occurred_at": "2024-01-15T10:30:00Z",
   "labels": {
     "environment": "production",
     "source": "api",
@@ -411,48 +484,9 @@ Content-Type: application/json
 }
 ```
 
-### Send Multiple Events (Batch)
-
-```http
-POST /api/v1/events/batch
-Content-Type: application/json
-```
-
-**Request:**
-```json
-{
-  "events": [
-    {
-      "event_type": "user.created",
-      "payload": { "user_id": "user_123" },
-      "labels": { "source": "batch" }
-    },
-    {
-      "event_type": "user.updated",
-      "payload": { "user_id": "user_124" },
-      "labels": { "source": "batch" }
-    }
-  ]
-}
-```
-
-**Response:** `201 Created`
-```json
-{
-  "events": [
-    {
-      "event_id": "evt_1234567890",
-      "status": "accepted"
-    },
-    {
-      "event_id": "evt_1234567891",
-      "status": "accepted"
-    }
-  ],
-  "total_accepted": 2,
-  "total_rejected": 0
-}
-```
+:::note Batch Events Not Available
+The batch events endpoint is not currently implemented. Please send events individually using the single event endpoint above.
+:::
 
 ### List Events
 
@@ -527,7 +561,7 @@ GET /api/v1/events/{event_id}
 ### List Subscriptions
 
 ```http
-GET /api/v1/applications/{app_id}/subscriptions
+GET /api/v1/subscriptions
 ```
 
 **Response:**
@@ -562,21 +596,25 @@ GET /api/v1/applications/{app_id}/subscriptions
 ### Get Subscription
 
 ```http
-GET /api/v1/applications/{app_id}/subscriptions/{sub_id}
+GET /api/v1/subscriptions/{sub_id}
 ```
 
 ### Create Subscription
 
 ```http
-POST /api/v1/applications/{app_id}/subscriptions
+POST /api/v1/subscriptions
 Content-Type: application/json
 ```
 
 **Request:**
 ```json
 {
+  "application_id": "app_1234567890",
+  "is_enabled": true,
   "description": "Order notifications to shipping service",
-  "event_types": ["order.created", "order.completed"],
+  "event_types": ["order.purchase.created", "order.purchase.completed"],
+  "label_key": "environment",
+  "label_value": "production",
   "target": {
     "type": "http",
     "method": "POST",
@@ -618,7 +656,7 @@ Content-Type: application/json
 ### Update Subscription
 
 ```http
-PUT /api/v1/applications/{app_id}/subscriptions/{sub_id}
+PUT /api/v1/subscriptions/{sub_id}
 Content-Type: application/json
 ```
 
@@ -634,7 +672,7 @@ Content-Type: application/json
 ### Delete Subscription
 
 ```http
-DELETE /api/v1/applications/{app_id}/subscriptions/{sub_id}
+DELETE /api/v1/subscriptions/{sub_id}
 ```
 
 **Response:** `204 No Content`
@@ -689,10 +727,10 @@ GET /api/v1/events/{event_id}/request_attempts
 GET /api/v1/request_attempts/{attempt_id}
 ```
 
-### Retry Failed Attempt
+### Replay Event
 
 ```http
-POST /api/v1/events/{event_id}/retry
+POST /api/v1/events/{event_id}/replay
 Content-Type: application/json
 ```
 
@@ -706,8 +744,8 @@ Content-Type: application/json
 **Response:** `202 Accepted`
 ```json
 {
-  "message": "Retry queued for processing",
-  "retry_id": "retry_1234567890"
+  "message": "Event replay queued for processing",
+  "replay_id": "replay_1234567890"
 }
 ```
 
@@ -790,76 +828,9 @@ Content-Type: application/json
 DELETE /api/v1/service_tokens/{token_id}
 ```
 
-## Quotas and Usage
-
-### Get Organization Quotas
-
-```http
-GET /api/v1/organizations/{org_id}/quotas
-```
-
-**Response:**
-```json
-{
-  "quotas": {
-    "events_per_month": 100000,
-    "applications": 10,
-    "subscriptions_per_application": 50,
-    "service_tokens": 20
-  },
-  "usage": {
-    "events_this_month": 45000,
-    "applications": 3,
-    "subscriptions": 15,
-    "service_tokens": 5
-  },
-  "usage_percentage": {
-    "events_per_month": 45.0,
-    "applications": 30.0,
-    "subscriptions": 30.0,
-    "service_tokens": 25.0
-  },
-  "reset_date": "2024-02-01T00:00:00Z"
-}
-```
-
-### Get Application Usage
-
-```http
-GET /api/v1/applications/{app_id}/usage
-```
-
-**Parameters:**
-- `period`: `day`, `week`, `month`, `year` (default: `month`)
-- `since`: ISO 8601 timestamp
-- `until`: ISO 8601 timestamp
-
-**Response:**
-```json
-{
-  "period": "month",
-  "since": "2024-01-01T00:00:00Z",
-  "until": "2024-01-31T23:59:59Z",
-  "events": {
-    "total": 15000,
-    "by_type": {
-      "user.created": 5000,
-      "user.updated": 7000,
-      "user.deleted": 3000
-    },
-    "by_day": [
-      { "date": "2024-01-01", "count": 450 },
-      { "date": "2024-01-02", "count": 520 }
-    ]
-  },
-  "deliveries": {
-    "total_attempts": 45000,
-    "successful": 43500,
-    "failed": 1500,
-    "success_rate": 96.67
-  }
-}
-```
+:::note Quotas and Usage Endpoints Not Available
+The quotas and usage tracking endpoints are not currently implemented. Usage information is available in the organization details endpoint.
+:::
 
 ## Webhook Payload Format
 
@@ -912,111 +883,167 @@ function verifySignature(payload, signature, secret) {
 }
 ```
 
-## WebSocket API
-
-Hook0 provides a WebSocket API for real-time event streaming:
-
-```javascript
-const ws = new WebSocket('wss://api.hook0.com/ws');
-
-ws.on('open', () => {
-  // Authenticate
-  ws.send(JSON.stringify({
-    type: 'auth',
-    token: 'biscuit:YOUR_TOKEN_HERE'
-  }));
-  
-  // Subscribe to events
-  ws.send(JSON.stringify({
-    type: 'subscribe',
-    application_id: 'app_1234567890',
-    event_types: ['user.created', 'user.updated']
-  }));
-});
-
-ws.on('message', (data) => {
-  const message = JSON.parse(data);
-  
-  if (message.type === 'event') {
-    console.log('Real-time event:', message.data);
-  }
-});
-```
+:::note WebSocket API Not Available
+Real-time event streaming via WebSocket is not currently implemented. Please use the REST API endpoints for event management.
+:::
 
 ## SDKs and Libraries
 
-Hook0 provides official SDKs for popular programming languages:
+Hook0 provides official SDKs for popular programming languages. Choose your preferred language:
 
-### JavaScript/TypeScript
+<Tabs>
+  <TabItem value="javascript" label="JavaScript/TypeScript" default>
 
+**Installation**
 ```bash
 npm install @hook0/sdk
 ```
 
+**Usage**
 ```javascript
 import { Hook0 } from '@hook0/sdk';
 
 const hook0 = new Hook0({
   token: 'biscuit:YOUR_TOKEN_HERE',
-  baseURL: 'https://api.hook0.com'
+  baseURL: 'https://app.hook0.com'
 });
 
 // Send an event
 await hook0.events.send({
   event_type: 'user.created',
-  payload: { user_id: 'user_123' }
+  payload: { 
+    user_id: 'user_123',
+    email: 'john@example.com'
+  }
+});
+
+// List applications
+const apps = await hook0.applications.list();
+    
+    // Create a subscription
+    await hook0.subscriptions.create('app_123', {
+      description: 'User events webhook',
+      event_types: ['user.created', 'user.updated'],
+      target: {
+        type: 'http',
+        method: 'POST',
+        url: 'https://your-app.com/webhooks'
+      }
 });
 ```
 
-### Rust
+  </TabItem>
+  <TabItem value="rust" label="Rust">
 
+**Installation**
 ```toml
 [dependencies]
 hook0 = "0.1"
+tokio = { version = "1", features = ["full"] }
+serde_json = "1.0"
 ```
 
+**Usage**
 ```rust
 use hook0::{Hook0Client, Event};
+use serde_json::json;
 
-let client = Hook0Client::new("biscuit:YOUR_TOKEN_HERE");
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = Hook0Client::new("biscuit:YOUR_TOKEN_HERE");
 
-let event = Event {
-    event_type: "user.created".to_string(),
-    payload: serde_json::json!({
-        "user_id": "user_123"
-    }),
-    labels: None,
-};
+    // Send an event
+    let event = Event {
+        event_type: "user.created".to_string(),
+        payload: json!({
+            "user_id": "user_123",
+            "email": "john@example.com"
+        }),
+        labels: Some(json!({
+            "environment": "production"
+        })),
+    };
 
-client.send_event(event).await?;
+    client.send_event(event).await?;
+
+    // List applications
+    let apps = client.applications().list().await?;
+    
+    Ok(())
+}
 ```
 
-### Python (Community)
+  </TabItem>
+  <TabItem value="curl" label="cURL">
+    **Send an Event**
+    ```bash
+    curl -X POST https://app.hook0.com/api/v1/event \
+      -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "event_type": "user.created",
+        "payload": {
+          "user_id": "user_123",
+          "email": "john@example.com"
+        },
+        "labels": {
+          "environment": "production"
+        }
+      }'
+    ```
+    
+    **List Applications**
+    ```bash
+    curl -X GET https://app.hook0.com/api/v1/applications \
+      -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE"
+    ```
+    
+    **Create Subscription**
+    ```bash
+    curl -X POST https://app.hook0.com/api/v1/applications/app_123/subscriptions \
+      -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "description": "User events webhook",
+        "event_types": ["user.created", "user.updated"],
+        "target": {
+          "type": "http",
+          "method": "POST", 
+          "url": "https://your-app.com/webhooks"
+        }
+      }'
+    ```
 
-```bash
-pip install hook0-python
-```
+  </TabItem>
+</Tabs>
 
-```python
-from hook0 import Hook0Client
+:::note Additional SDKs Coming Soon
+Official SDKs for Python, Go, and other languages are planned for future releases. Currently, TypeScript/JavaScript and Rust SDKs are available.
+:::
 
-client = Hook0Client(token="biscuit:YOUR_TOKEN_HERE")
+## OpenAPI Specification
 
-client.send_event(
-    event_type="user.created",
-    payload={"user_id": "user_123"}
-)
-```
+The complete OpenAPI 3.0 specification for the Hook0 API is available at:
+
+- **Production**: `https://app.hook0.com/api/v1/swagger.json`
+- **Self-hosted**: `https://your-domain.com/api/v1/swagger.json`
+
+You can use this specification to:
+- Generate client SDKs for any language
+- Import into API testing tools like Postman or Insomnia
+- Integrate with API documentation tools
+- Set up automated API testing
+
+For the complete OpenAPI specification, visit `https://app.hook0.com/api/v1/swagger.json`.
 
 ## API Limits and Guidelines
 
 ### Request Size Limits
 - **Event payload**: 1MB maximum
-- **Batch events**: 100 events per request, 10MB total
 - **Request body**: 10MB maximum
 
 ### Performance Guidelines
-- Use batch endpoints for sending multiple events
+- Send events individually (batch endpoint not yet available)
 - Implement exponential backoff for retries
 - Cache application and subscription data
 - Use pagination for large result sets
@@ -1030,4 +1057,4 @@ client.send_event(
 
 ---
 
-For more examples and advanced usage, see our [SDK Documentation](./sdk/) and [Integration Guides](../how-to-guides/).
+For more examples and advanced usage, see our [SDK Documentation](sdk/) and [Integration Guides](../how-to-guides/index.md).

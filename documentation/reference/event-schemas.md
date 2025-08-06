@@ -688,4 +688,4 @@ Hook0 supports JSON Schema validation for event payloads:
 - Explain business context and use cases
 - Include validation rules and constraints
 
-For more information on implementing these schemas in your applications, see our [Integration Guides](../how-to-guides/) and [SDK Documentation](./sdk/).
+For more information on implementing these schemas in your applications, see our [Integration Guides](../how-to-guides/index.md) and [SDK Documentation](sdk/).

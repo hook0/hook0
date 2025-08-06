@@ -11,11 +11,13 @@ This tutorial guides you through setting up a complete Hook0 installation using 
 
 ## Architecture Overview
 
-Hook0 consists of three main services:
+Hook0 consists of three main services that need to be deployed:
 - **API Server**: Handles event ingestion and management
 - **Worker Process**: Processes webhook deliveries
 - **Web Dashboard**: Provides the management interface
 - **PostgreSQL**: Database for persistence
+
+For a detailed explanation of the architecture, see [Hook0 Architecture Overview](../explanation/what-is-hook0.md#architecture-overview).
 
 ## Step 1: Prepare Your Environment
 
@@ -687,8 +689,8 @@ ufw enable
 
 ## Next Steps
 
-- [Managing High-Volume Event Processing](../how-to-guides/high-volume-processing.md)
-- [Monitoring Webhook Performance](../how-to-guides/monitor-performance.md)
+- [Debugging Failed Webhooks](../how-to-guides/debug-failed-webhooks.md)
+- [Securing Webhook Endpoints](../how-to-guides/secure-webhook-endpoints.md)
 - [Configuration Reference](../reference/configuration.md)
 
 ## Troubleshooting

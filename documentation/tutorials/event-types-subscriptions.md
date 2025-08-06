@@ -87,30 +87,28 @@ Before creating event types, plan your event structure:
 ### Basic Event Type Creation
 
 ```bash
-curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/event_types" \
+curl -X POST "https://app.hook0.com/api/v1/event_types" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "user.created",
-    "description": "User account created successfully"
+    "application_id": "{app-id}",
+    "service": "user",
+    "resource_type": "account",
+    "verb": "created"
   }'
 ```
 
 ### Event Type with Detailed Metadata
 
 ```bash
-curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/event_types" \
+curl -X POST "https://app.hook0.com/api/v1/event_types" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "order.payment.processed",
-    "description": "Payment processed successfully for an order",
-    "metadata": {
-      "category": "payment",
-      "severity": "high",
-      "retention_days": 365,
-      "schema_version": "1.0"
-    }
+    "application_id": "{app-id}",
+    "service": "order",
+    "resource_type": "payment",
+    "verb": "processed"
   }'
 ```
 
@@ -122,39 +120,47 @@ Let's create a comprehensive set of event types for a SaaS application:
 
 ```bash
 # User registration
-curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/event_types" \
+curl -X POST "https://app.hook0.com/api/v1/event_types" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "user.registered",
-    "description": "New user completed registration process"
+    "application_id": "{app-id}",
+    "service": "user",
+    "resource_type": "account",
+    "verb": "registered"
   }'
 
 # Email verification
-curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/event_types" \
+curl -X POST "https://app.hook0.com/api/v1/event_types" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "user.email.verified",
-    "description": "User verified their email address"
+    "application_id": "{app-id}",
+    "service": "user",
+    "resource_type": "email",
+    "verb": "verified"
   }'
 
 # Profile updates
-curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/event_types" \
+curl -X POST "https://app.hook0.com/api/v1/event_types" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "user.profile.updated",
-    "description": "User profile information changed"
+    "application_id": "{app-id}",
+    "service": "user",
+    "resource_type": "profile",
+    "verb": "updated"
   }'
 
 # Account deactivation
-curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/event_types" \
+curl -X POST "https://app.hook0.com/api/v1/event_types" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "user.deactivated",
-    "description": "User account was deactivated"
+    "application_id": "{app-id}",
+    "service": "user",
+    "resource_type": "account",
+    "verb": "deactivated"
   }'
 ```
 
@@ -162,39 +168,47 @@ curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/event_types" \
 
 ```bash
 # Subscription created
-curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/event_types" \
+curl -X POST "https://app.hook0.com/api/v1/event_types" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "subscription.created",
-    "description": "New subscription plan activated"
+    "application_id": "{app-id}",
+    "service": "subscription",
+    "resource_type": "plan",
+    "verb": "created"
   }'
 
 # Subscription upgraded
-curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/event_types" \
+curl -X POST "https://app.hook0.com/api/v1/event_types" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "subscription.upgraded",
-    "description": "Subscription plan upgraded to higher tier"
+    "application_id": "{app-id}",
+    "service": "subscription",
+    "resource_type": "plan",
+    "verb": "upgraded"
   }'
 
 # Payment failed
-curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/event_types" \
+curl -X POST "https://app.hook0.com/api/v1/event_types" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "subscription.payment.failed",
-    "description": "Subscription payment failed"
+    "application_id": "{app-id}",
+    "service": "subscription",
+    "resource_type": "payment",
+    "verb": "failed"
   }'
 
 # Subscription cancelled
-curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/event_types" \
+curl -X POST "https://app.hook0.com/api/v1/event_types" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "subscription.cancelled",
-    "description": "Subscription was cancelled by user or system"
+    "application_id": "{app-id}",
+    "service": "subscription",
+    "resource_type": "plan",
+    "verb": "cancelled"
   }'
 ```
 
@@ -205,12 +219,16 @@ curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/event_types" \
 Simple subscription for one specific event:
 
 ```bash
-curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/subscriptions" \
+curl -X POST "https://app.hook0.com/api/v1/subscriptions" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
-    "event_types": ["user.registered"],
+    "application_id": "{app-id}",
+    "is_enabled": true,
+    "event_types": ["user.account.registered"],
     "description": "Welcome email trigger",
+    "label_key": "environment",
+    "label_value": "production",
     "target": {
       "type": "http",
       "method": "POST",
@@ -228,16 +246,20 @@ curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/subscriptions" 
 Subscribe to multiple related events:
 
 ```bash
-curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/subscriptions" \
+curl -X POST "https://app.hook0.com/api/v1/subscriptions" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
+    "application_id": "{app-id}",
+    "is_enabled": true,
     "event_types": [
-      "user.registered",
+      "user.account.registered",
       "user.email.verified", 
       "user.profile.updated"
     ],
     "description": "CRM system user sync",
+    "label_key": "environment",
+    "label_value": "production",
     "target": {
       "type": "http",
       "method": "POST",
@@ -255,17 +277,21 @@ curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/subscriptions" 
 Subscribe to all events matching a pattern:
 
 ```bash
-curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/subscriptions" \
+curl -X POST "https://app.hook0.com/api/v1/subscriptions" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
+    "application_id": "{app-id}",
+    "is_enabled": true,
     "event_types": [
-      "user.registered",
+      "user.account.registered",
       "user.email.verified",
       "user.profile.updated",
-      "user.deactivated"
+      "user.account.deactivated"
     ],
     "description": "Analytics tracking for all user events",
+    "label_key": "environment",
+    "label_value": "production",
     "target": {
       "type": "http",
       "method": "POST",
@@ -283,15 +309,19 @@ curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/subscriptions" 
 High-priority events with special handling:
 
 ```bash
-curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/subscriptions" \
+curl -X POST "https://app.hook0.com/api/v1/subscriptions" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
+    "application_id": "{app-id}",
+    "is_enabled": true,
     "event_types": [
       "subscription.payment.failed",
-      "user.deactivated"
+      "user.account.deactivated"
     ],
     "description": "Alert system for critical events",
+    "label_key": "environment",
+    "label_value": "production",
     "target": {
       "type": "http",
       "method": "POST",
@@ -310,12 +340,16 @@ curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/subscriptions" 
 ### Custom Headers and Authentication
 
 ```bash
-curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/subscriptions" \
+curl -X POST "https://app.hook0.com/api/v1/subscriptions" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
-    "event_types": ["subscription.created"],
+    "application_id": "{app-id}",
+    "is_enabled": true,
+    "event_types": ["subscription.plan.created"],
     "description": "Billing system integration",
+    "label_key": "environment",
+    "label_value": "production",
     "target": {
       "type": "http",
       "method": "POST",
@@ -340,12 +374,16 @@ curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/subscriptions" 
 Add metadata to organize subscriptions:
 
 ```bash
-curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/subscriptions" \
+curl -X POST "https://app.hook0.com/api/v1/subscriptions" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
-    "event_types": ["user.registered", "user.deactivated"],
+    "application_id": "{app-id}",
+    "is_enabled": true,
+    "event_types": ["user.account.registered", "user.account.deactivated"],
     "description": "Marketing automation system",
+    "label_key": "department",
+    "label_value": "marketing",
     "target": {
       "type": "http",
       "method": "POST",
@@ -354,8 +392,7 @@ curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/subscriptions" 
         "Content-Type": "application/json"
       }
     },
-    "labels": {
-      "department": "marketing",
+    "metadata": {
       "system": "automation", 
       "criticality": "medium"
     }
@@ -369,9 +406,11 @@ Create a testing script to validate your event types:
 ```javascript
 // test-events.js
 const fetch = require('node-fetch');
+const { v4: uuidv4 } = require('uuid');
 
 const HOOK0_TOKEN = 'biscuit:YOUR_TOKEN_HERE';
-const HOOK0_API = 'https://api.hook0.com/api/v1/events';
+const HOOK0_API = 'https://app.hook0.com/api/v1/event';
+const APPLICATION_ID = '{app-id}';
 
 async function sendTestEvent(eventType, payload) {
   try {
@@ -382,8 +421,12 @@ async function sendTestEvent(eventType, payload) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
+        application_id: APPLICATION_ID,
+        event_id: uuidv4(),
         event_type: eventType,
-        payload,
+        payload: JSON.stringify(payload),
+        payload_content_type: 'application/json',
+        occurred_at: new Date().toISOString(),
         labels: {
           environment: 'test',
           source: 'event-testing'
@@ -468,19 +511,19 @@ node test-events.js
 
 ### List All Event Types
 ```bash
-curl "https://api.hook0.com/api/v1/applications/{app-id}/event_types" \
+curl "https://app.hook0.com/api/v1/event_types" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE"
 ```
 
 ### List All Subscriptions  
 ```bash
-curl "https://api.hook0.com/api/v1/applications/{app-id}/subscriptions" \
+curl "https://app.hook0.com/api/v1/subscriptions" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE"
 ```
 
 ### Get Subscription Details
 ```bash
-curl "https://api.hook0.com/api/v1/applications/{app-id}/subscriptions/{sub-id}" \
+curl "https://app.hook0.com/api/v1/subscriptions/{sub-id}" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE"
 ```
 
@@ -488,7 +531,7 @@ curl "https://api.hook0.com/api/v1/applications/{app-id}/subscriptions/{sub-id}"
 
 ### Update Event Type Description
 ```bash
-curl -X PUT "https://api.hook0.com/api/v1/applications/{app-id}/event_types/{event-type-id}" \
+curl -X PUT "https://app.hook0.com/api/v1/event_types/{event-type-id}" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
@@ -502,7 +545,7 @@ curl -X PUT "https://api.hook0.com/api/v1/applications/{app-id}/event_types/{eve
 
 ### Update Subscription Configuration
 ```bash
-curl -X PUT "https://api.hook0.com/api/v1/applications/{app-id}/subscriptions/{sub-id}" \
+curl -X PUT "https://app.hook0.com/api/v1/subscriptions/{sub-id}" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
@@ -524,7 +567,7 @@ curl -X PUT "https://api.hook0.com/api/v1/applications/{app-id}/subscriptions/{s
 
 ### Deactivate Event Type
 ```bash
-curl -X PUT "https://api.hook0.com/api/v1/applications/{app-id}/event_types/{event-type-id}" \
+curl -X PUT "https://app.hook0.com/api/v1/event_types/{event-type-id}" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
@@ -534,7 +577,7 @@ curl -X PUT "https://api.hook0.com/api/v1/applications/{app-id}/event_types/{eve
 
 ### Disable Subscription
 ```bash
-curl -X PUT "https://api.hook0.com/api/v1/applications/{app-id}/subscriptions/{sub-id}" \
+curl -X PUT "https://app.hook0.com/api/v1/subscriptions/{sub-id}" \
   -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{

@@ -1,4 +1,4 @@
-# Webhook Architecture
+# Hook0 Architecture
 
 This document explains Hook0's webhook architecture, design decisions, and how different components work together to provide reliable event delivery.
 
@@ -46,43 +46,7 @@ Hook0 follows a modular architecture with clear separation of concerns:
 
 ## Event Flow
 
-### 1. Event Ingestion
-```rust
-POST /events
-{
-  "event_type": "user.created",
-  "payload": { "user_id": 123, "email": "user@example.com" }
-}
-```
-
-The API server:
-- Validates the event type exists
-- Checks payload against schema (if defined)
-- Enforces quota limits
-- Stores event in database
-- Returns event ID
-
-### 2. Event Processing
-The worker process:
-- Polls database for pending events
-- Finds matching subscriptions based on event type
-- Creates delivery tasks for each subscription
-- Queues tasks for processing
-
-### 3. Webhook Delivery
-For each delivery task:
-- Constructs HTTP request with proper headers
-- Includes webhook signature for authentication
-- Makes HTTP request to target URL
-- Records response and status
-- Schedules retry if needed
-
-### 4. Retry Logic
-Hook0 implements exponential backoff:
-- First retry: 30 seconds
-- Second retry: 1 minute
-- Third retry: 2 minutes
-- And so on, up to maximum retry attempts
+Hook0 processes events through a well-defined pipeline. For detailed information about the event lifecycle, retry mechanisms, and delivery logic, see the [Event Processing Model](./event-processing.md).
 
 ## Data Model
 
@@ -114,73 +78,12 @@ Subscriptions define:
 - Custom metadata
 - Retry configuration
 
-## Security Architecture
-
-### Authentication
-Hook0 uses [Biscuit tokens](https://github.com/biscuit-auth/biscuit) for authentication:
-- Cryptographically secure
-- Supports fine-grained permissions
-- Stateless token validation
-- Token attenuation for limited access
-
-### Webhook Signatures
-All webhook deliveries include HMAC-SHA256 signatures:
-- Computed using subscription secret
-- Includes full request body
-- Allows recipients to verify authenticity
-
-### Access Control
-- Organization-level isolation
-- Application-scoped permissions
-- User role management
-- Service token support for API access
-
-## Scalability Considerations
-
-### Horizontal Scaling
-- Multiple API server instances behind load balancer
-- Multiple worker processes for increased throughput
-- Database connection pooling
-- Stateless architecture enables easy scaling
-
-### Performance Optimizations
-- Efficient database queries with proper indexing
-- Batch processing of webhook deliveries
-- Connection reuse for HTTP requests
-- Configurable worker concurrency
-
-### Resource Management
-- Configurable quotas per organization
-- Rate limiting at multiple levels
-- Memory-efficient event processing
-- Automatic cleanup of old events
-
-## Reliability Features
-
-### Durability
-- All events persisted to PostgreSQL
-- Atomic transactions for consistency
-- Database migrations for schema evolution
-
-### Observability
-- Comprehensive logging throughout system
-- Metrics collection for monitoring
-- Request/response tracking
-- Performance metrics
-
-### Error Handling
-- Graceful degradation on failures
-- Circuit breaker patterns
-- Dead letter queues
-- Detailed error reporting
-
 ## Design Decisions
 
 ### Why Rust?
 - Memory safety without garbage collection
 - Excellent performance characteristics
 - Strong type system prevents common bugs
-- Great ecosystem for web services
 
 ### Why PostgreSQL?
 - ACID compliance for reliability

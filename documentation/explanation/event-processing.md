@@ -8,7 +8,7 @@ Hook0's event processing model is designed for reliability, scalability, and obs
 Events begin their lifecycle when applications send them to Hook0:
 
 ```http
-POST /api/v1/events
+POST /api/v1/event
 Authorization: Bearer <biscuit-token>
 Content-Type: application/json
 
@@ -44,99 +44,26 @@ Upon successful validation, events are stored with:
 
 ### 2. Subscription Matching
 
-When an event is stored, Hook0 identifies matching subscriptions:
-
-#### Matching Logic
-```sql
-SELECT * FROM subscriptions 
-WHERE application_id = $1 
-  AND is_enabled = true
-  AND $2 = ANY(event_types)  -- event_type matching
-  AND deleted_at IS NULL
-```
-
-#### Event Type Patterns
-Subscriptions can match:
+When an event is stored, Hook0 identifies matching subscriptions. Subscriptions can match:
 - **Exact types**: `user.created`
-- **Wildcard patterns**: `user.*` (if supported)
 - **Multiple types**: `["user.created", "user.updated"]`
 
 ### 3. Delivery Task Creation
 
-For each matching subscription, Hook0 creates a delivery task:
-
-```rust
-struct DeliveryTask {
-    id: Uuid,
-    event_id: Uuid,
-    subscription_id: Uuid,
-    attempt_number: u32,
-    scheduled_at: DateTime<Utc>,
-    status: DeliveryStatus,
-}
-```
+For each matching subscription, Hook0 creates a delivery task.
 
 #### Initial Scheduling
 - First delivery attempt: immediate
 - Subsequent retries: exponential backoff
 - Maximum retry limit: configurable per subscription
 
-### 4. Worker Processing
+### 4. Webhook Delivery
 
-The worker process continuously polls for pending delivery tasks:
+For each delivery task, the worker send the HTTP request.
 
-#### Task Selection
-```sql
-SELECT * FROM delivery_tasks
-WHERE scheduled_at <= NOW()
-  AND status = 'pending'
-ORDER BY scheduled_at ASC
-LIMIT 100
-```
+### 5. Response Handling
 
-#### Concurrency Control
-- Configurable worker threads
-- Task locking to prevent duplicates
-- Graceful shutdown handling
-
-### 5. Webhook Delivery
-
-For each delivery task, the worker:
-
-#### HTTP Request Construction
-```rust
-// Construct webhook payload
-let webhook_payload = WebhookPayload {
-    event_id: event.id,
-    event_type: event.event_type,
-    payload: event.payload,
-    timestamp: event.created_at,
-    labels: event.labels,
-};
-
-// Add signature header
-let signature = hmac_sha256(&subscription.secret, &payload_json);
-let headers = vec![
-    ("Hook0-Signature", format!("sha256={}", signature)),
-    ("Hook0-Event-Type", event.event_type.clone()),
-    ("User-Agent", "Hook0/1.0"),
-];
-```
-
-#### Request Execution
-```rust
-let response = http_client
-    .request(subscription.target.method.clone(), &subscription.target.url)
-    .headers(headers)
-    .json(&webhook_payload)
-    .timeout(Duration::from_secs(30))
-    .send()
-    .await;
-```
-
-### 6. Response Handling
-
-Hook0 categorizes responses to determine next actions:
+Hook0 categorizes HTTP responses to determine next actions:
 
 #### Success Responses (2xx)
 - Mark delivery as successful
@@ -153,20 +80,10 @@ Hook0 categorizes responses to determine next actions:
 - Increment attempt counter
 - Eventually move to dead letter queue
 
-#### Retry Schedule
-```rust
-fn calculate_retry_delay(attempt: u32) -> Duration {
-    let base_delay = Duration::from_secs(30);
-    let max_delay = Duration::from_hours(24);
-    
-    let delay = base_delay * 2_u32.pow(attempt.saturating_sub(1));
-    std::cmp::min(delay, max_delay)
-}
-```
 
-### 7. Request Attempt Tracking
+### 6. Request Attempt Tracking
 
-Every delivery attempt is recorded:
+Every delivery attempt is recorded for logging.
 
 ```rust
 struct RequestAttempt {
@@ -189,104 +106,8 @@ struct RequestAttempt {
 - **Timeout**: Request exceeded timeout limit
 - **Cancelled**: Delivery cancelled by user
 
-## Advanced Features
-
-### Dead Letter Queues
-Events that exceed maximum retry attempts are moved to dead letter queues:
-- Preserved for manual inspection
-- Can be manually re-queued
-- Configurable retention period
-
-### Event Ordering
-Hook0 provides configurable ordering guarantees:
-- **At-least-once**: Default delivery guarantee
-- **Order preservation**: Optional per-subscription ordering
-- **Idempotency**: Event IDs for deduplication
-
-### Payload Transformation
-Subscriptions can define payload transformations:
-- Field filtering
-- Format conversion
-- Custom headers
-- Template-based payloads
-
-### Conditional Delivery
-Advanced filtering based on:
-- Payload content
-- Event labels
-- Custom predicates
-- Time-based conditions
-
-## Performance Characteristics
-
-### Throughput
-- **Event ingestion**: 10,000+ events/second
-- **Webhook delivery**: 1,000+ concurrent requests
-- **Database queries**: Optimized with proper indexing
-
-### Latency
-- **Ingestion to storage**: < 10ms
-- **First delivery attempt**: < 100ms
-- **End-to-end delivery**: Depends on target response time
-
-### Resource Usage
-- **Memory**: Scales with concurrent workers
-- **CPU**: Efficient async processing
-- **Network**: Connection pooling and reuse
-
-## Monitoring & Observability
-
-### Metrics Collected
-- Event ingestion rate
-- Delivery success/failure rates
-- Response time percentiles
-- Queue depths and processing delays
-
-### Logging
-- Structured logging with correlation IDs
-- Error details and stack traces  
-- Performance metrics
-- Security audit logs
-
-### Health Checks
-- Database connectivity
-- Worker process status
-- Queue health monitoring
-- External dependency checks
-
-## Failure Scenarios
-
-### Database Outages
-- Events cached in memory temporarily
-- Graceful degradation with backpressure
-- Automatic recovery when database returns
-
-### Target Endpoint Failures
-- Exponential backoff prevents thundering herd
-- Circuit breaker patterns for chronic failures
-- Dead letter queues for permanent failures
-
-### Worker Process Failures
-- Tasks automatically recovered by other workers
-- No event loss due to persistent storage
-- Monitoring alerts on worker health
-
-## Configuration Options
-
-### Global Settings
-- Maximum retry attempts
-- Retry delay configuration
-- Worker concurrency limits
-- Timeout values
-
-### Per-Subscription Settings
-- Custom retry strategies
-- Payload transformation rules
-- Authentication headers
-- Rate limiting
 
 ## Next Steps
 
 - [Security Model](./security-model.md)
-- [Scaling and Performance](./scaling-performance.md)
 - [Debugging Failed Webhooks](../how-to-guides/debug-failed-webhooks.md)

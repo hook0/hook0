@@ -1,533 +1,551 @@
-# Building Your First Webhook Integration
+# Building Your First Webhook System with Hook0
 
-This tutorial walks you through building a complete webhook integration between a simple e-commerce application and external services using Hook0. You'll learn how to handle different event types and build robust webhook receivers.
+This tutorial demonstrates how to integrate Hook0 into your SaaS platform to provide webhook capabilities to your customers. We'll use curl commands to illustrate the API flow, making it easy to understand and implement in any programming language.
 
 ## What You'll Build
 
-A mini e-commerce system that:
-- Sends events when orders are created, updated, and completed
-- Notifies a shipping service when orders are ready
-- Updates a customer communication system
-- Handles webhook retries and failures
+A complete webhook delivery system that:
+- Sends events from your SaaS to Hook0
+- Enables customer subscriptions to specific events  
+- Handles automatic delivery, retries, and monitoring
+- Supports multi-tenant filtering with labels
 
 ## Prerequisites
 
-- Completed [Getting Started](./getting-started.md) tutorial
-- Node.js installed (for webhook receiver examples)
-- Basic understanding of REST APIs
+- Hook0 account with API token (Biscuit format)
+- Application ID from Hook0
+- Basic understanding of REST APIs and webhooks
 
-## Project Overview
+## Architecture Overview
 
 ```
-E-commerce App → Hook0 → Shipping Service
-                     → Email Service  
-                     → Analytics Service
+Your SaaS → Hook0 → Customer Endpoints
+   ↓         ↓
+Events    Delivery
+          Management
 ```
 
-## Step 1: Set Up the Project Structure
+Your SaaS sends events to Hook0, which manages all webhook complexity including delivery, retries, signature verification, and monitoring.
 
-Create a new application for this tutorial:
+## Understanding the API Flow
+
+The integration follows this logical sequence:
+1. **Create Event Types** - Define what events your SaaS can emit
+2. **Send Events** - Push events to Hook0 when actions occur
+3. **Create Subscriptions** - Enable customers to receive webhooks
+4. **Monitor Delivery** - Track webhook success and failures
+
+Let's walk through each step with practical examples.
+
+## Step 1: Define Your Event Types
+
+Hook0 uses a three-part structure for event types: `service.resource_type.verb`. This provides clear semantics and enables powerful filtering.
+
+### Why Define Event Types First?
+Event types act as a contract between your SaaS and customer webhooks. They must be created before you can send events or create subscriptions.
+
+### Creating a User Created Event Type
 
 ```bash
-curl -X POST "https://api.hook0.com/api/v1/applications" \
-  -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
+curl -X POST "https://app.hook0.com/api/v1/event_types" \
+  -H "Authorization: Bearer biscuit:YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "E-commerce Tutorial",
-    "description": "Complete webhook integration example"
+    "application_id": "YOUR_APP_ID",
+    "service": "users",
+    "resource_type": "account", 
+    "verb": "created"
   }'
 ```
 
-## Step 2: Define Event Types
-
-Create event types for different order lifecycle events:
-
-### Order Created Event
-```bash
-curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/event_types" \
-  -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "order.created",
-    "description": "New order placed by customer"
-  }'
-```
-
-### Order Updated Event
-```bash
-curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/event_types" \
-  -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "order.updated",
-    "description": "Order details modified"
-  }'
-```
-
-### Order Completed Event
-```bash
-curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/event_types" \
-  -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "order.completed",
-    "description": "Order ready for shipping"
-  }'
-```
-
-## Step 3: Create Webhook Receivers
-
-Let's build webhook receivers for each service. First, create a simple Node.js server:
-
-### Basic Webhook Server
-
-```javascript
-// webhook-server.js
-const express = require('express');
-const crypto = require('crypto');
-const app = express();
-
-// Middleware to capture raw body for signature verification
-app.use('/webhooks', express.raw({ type: 'application/json' }));
-
-// Signature verification middleware
-function verifySignature(secret) {
-  return (req, res, next) => {
-    const signature = req.headers['hook0-signature'];
-    if (!signature) {
-      return res.status(401).json({ error: 'Missing signature' });
-    }
-
-    const expectedSignature = crypto
-      .createHmac('sha256', secret)
-      .update(req.body)
-      .digest('hex');
-
-    if (signature !== `sha256=${expectedSignature}`) {
-      return res.status(401).json({ error: 'Invalid signature' });
-    }
-
-    // Parse JSON after verification
-    req.body = JSON.parse(req.body);
-    next();
-  };
+**Response:**
+```json
+{
+  "event_type_id": "evt_123",
+  "name": "users.account.created",
+  "created_at": "2024-01-15T10:00:00Z"
 }
-
-// Shipping service webhook
-app.post('/webhooks/shipping', verifySignature('SHIPPING_SECRET'), (req, res) => {
-  const { event_type, payload } = req.body;
-  
-  console.log(`Shipping webhook received: ${event_type}`);
-  
-  if (event_type === 'order.completed') {
-    // Process shipping logic
-    console.log(`Creating shipment for order ${payload.order_id}`);
-    
-    // Simulate shipping API call
-    const trackingNumber = `TRACK-${Date.now()}`;
-    console.log(`Tracking number assigned: ${trackingNumber}`);
-  }
-  
-  res.json({ status: 'processed' });
-});
-
-// Email service webhook  
-app.post('/webhooks/email', verifySignature('EMAIL_SECRET'), (req, res) => {
-  const { event_type, payload } = req.body;
-  
-  console.log(`Email webhook received: ${event_type}`);
-  
-  switch (event_type) {
-    case 'order.created':
-      console.log(`Sending order confirmation to ${payload.customer_email}`);
-      break;
-    case 'order.updated':
-      console.log(`Sending order update to ${payload.customer_email}`);
-      break;
-    case 'order.completed':
-      console.log(`Sending shipping notification to ${payload.customer_email}`);
-      break;
-  }
-  
-  res.json({ status: 'email_queued' });
-});
-
-// Analytics service webhook
-app.post('/webhooks/analytics', verifySignature('ANALYTICS_SECRET'), (req, res) => {
-  const { event_type, payload, labels } = req.body;
-  
-  console.log(`Analytics webhook received: ${event_type}`);
-  
-  // Track different metrics based on event type
-  const metrics = {
-    'order.created': { metric: 'orders_created', value: 1 },
-    'order.updated': { metric: 'orders_updated', value: 1 },
-    'order.completed': { metric: 'orders_completed', value: payload.total_amount }
-  };
-  
-  const metric = metrics[event_type];
-  if (metric) {
-    console.log(`Recording metric: ${metric.metric} = ${metric.value}`);
-  }
-  
-  res.json({ status: 'recorded' });
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Webhook server running on port ${PORT}`);
-});
 ```
 
-### Install Dependencies
+### Creating an Order Completed Event Type
 
 ```bash
-npm init -y
-npm install express
-```
-
-### Run the Server
-
-```bash
-node webhook-server.js
-```
-
-## Step 4: Create Subscriptions
-
-Now create subscriptions for each service. For testing, you can use ngrok to expose your local server:
-
-```bash
-# Install ngrok if you haven't already
-ngrok http 3000
-```
-
-Use the ngrok URL for your subscriptions:
-
-### Shipping Service Subscription
-```bash
-curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/subscriptions" \
-  -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
+curl -X POST "https://app.hook0.com/api/v1/event_types" \
+  -H "Authorization: Bearer biscuit:YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "event_types": ["order.completed"],
-    "description": "Shipping service notifications",
-    "target": {
-      "type": "http",
-      "method": "POST",
-      "url": "https://your-ngrok-url.ngrok.io/webhooks/shipping",
-      "headers": {
-        "Content-Type": "application/json"
-      }
+    "application_id": "YOUR_APP_ID",
+    "service": "orders",
+    "resource_type": "purchase",
+    "verb": "completed"
+  }'
+```
+
+## Step 2: Send Events to Hook0
+
+Once event types are defined, your SaaS can start sending events. The `/api/v1/event` endpoint (singular) accepts individual events.
+
+### Why This Order?
+You must create event types before sending events. Hook0 validates that the event type exists before accepting the event.
+
+### Sending a User Created Event
+
+When a user signs up in your SaaS:
+
+```bash
+curl -X POST "https://app.hook0.com/api/v1/event" \
+  -H "Authorization: Bearer biscuit:YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "application_id": "YOUR_APP_ID",
+    "event_id": "550e8400-e29b-41d4-a716-446655440000",
+    "event_type": "users.account.created",
+    "payload": "{\"user_id\": \"usr_789\", \"email\": \"john@example.com\", \"plan\": \"premium\"}",
+    "payload_content_type": "application/json",
+    "occurred_at": "2024-01-15T10:30:00Z",
+    "labels": {
+      "tenant_id": "customer_123",
+      "environment": "production",
+      "region": "us-east-1"
     }
   }'
 ```
 
-### Email Service Subscription
+**Key Points:**
+- `event_id`: Use a UUID for idempotency
+- `payload`: Must be a JSON string (not an object)
+- `labels`: Critical for multi-tenant filtering
+- `tenant_id` label: Ensures events only go to the right customer
+
+### Sending an Order Completed Event
+
+When an order is fulfilled:
+
 ```bash
-curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/subscriptions" \
-  -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
+curl -X POST "https://app.hook0.com/api/v1/event" \
+  -H "Authorization: Bearer biscuit:YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "event_types": ["order.created", "order.updated", "order.completed"],
-    "description": "Email service notifications",
-    "target": {
-      "type": "http",
-      "method": "POST", 
-      "url": "https://your-ngrok-url.ngrok.io/webhooks/email",
-      "headers": {
-        "Content-Type": "application/json"
-      }
+    "application_id": "YOUR_APP_ID",
+    "event_id": "660e8400-e29b-41d4-a716-446655440001",
+    "event_type": "orders.purchase.completed",
+    "payload": "{\"order_id\": \"ord_456\", \"amount\": 299.99, \"items\": 3}",
+    "payload_content_type": "application/json",
+    "occurred_at": "2024-01-15T11:00:00Z",
+    "labels": {
+      "tenant_id": "customer_123",
+      "priority": "high",
+      "environment": "production"
     }
   }'
 ```
 
-### Analytics Service Subscription
+## Step 3: Create Customer Subscriptions
+
+Subscriptions define where and how webhooks are delivered. Each subscription filters events based on labels, ensuring customers only receive their own events.
+
+### Why Labels Matter for Multi-Tenancy
+The `label_key` and `label_value` create a filter. Only events with matching labels are delivered to that subscription. This is how Hook0 supports multi-tenant SaaS platforms.
+
+### Creating a Subscription for a Customer
+
 ```bash
-curl -X POST "https://api.hook0.com/api/v1/applications/{app-id}/subscriptions" \
-  -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
+curl -X POST "https://app.hook0.com/api/v1/subscriptions" \
+  -H "Authorization: Bearer biscuit:YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "event_types": ["order.created", "order.updated", "order.completed"],
-    "description": "Analytics tracking",
-    "target": {
-      "type": "http",
-      "method": "POST",
-      "url": "https://your-ngrok-url.ngrok.io/webhooks/analytics", 
-      "headers": {
-        "Content-Type": "application/json"
-      }
-    }
-  }'
-```
-
-Note the subscription IDs returned - you'll need them to get the secrets.
-
-## Step 5: Get Subscription Secrets
-
-Get the secrets for signature verification:
-
-```bash
-# Get shipping subscription secret
-curl "https://api.hook0.com/api/v1/applications/{app-id}/subscriptions/{shipping-sub-id}" \
-  -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE"
-
-# Get email subscription secret  
-curl "https://api.hook0.com/api/v1/applications/{app-id}/subscriptions/{email-sub-id}" \
-  -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE"
-
-# Get analytics subscription secret
-curl "https://api.hook0.com/api/v1/applications/{app-id}/subscriptions/{analytics-sub-id}" \
-  -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE"
-```
-
-Update your webhook server with the actual secrets from the responses.
-
-## Step 6: Simulate E-commerce Events
-
-Create a script to simulate your e-commerce application:
-
-```javascript
-// ecommerce-simulator.js
-const fetch = require('node-fetch');
-
-const HOOK0_TOKEN = 'biscuit:YOUR_TOKEN_HERE';
-const HOOK0_API = 'https://api.hook0.com/api/v1/events';
-
-async function sendEvent(eventType, payload, labels = {}) {
-  const response = await fetch(HOOK0_API, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${HOOK0_TOKEN}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      event_type: eventType,
-      payload,
-      labels
-    })
-  });
-  
-  const result = await response.json();
-  console.log(`Sent ${eventType}:`, result);
-  return result;
-}
-
-// Simulate order lifecycle
-async function simulateOrder() {
-  const orderId = `order_${Date.now()}`;
-  const customerEmail = 'customer@example.com';
-  
-  console.log('=== Starting Order Simulation ===');
-  
-  // 1. Order Created
-  await sendEvent('order.created', {
-    order_id: orderId,
-    customer_email: customerEmail,
-    items: [
-      { sku: 'SHIRT-001', quantity: 2, price: 29.99 },
-      { sku: 'PANTS-002', quantity: 1, price: 59.99 }
+    "application_id": "YOUR_APP_ID",
+    "is_enabled": true,
+    "event_types": [
+      "users.account.created",
+      "orders.purchase.completed"
     ],
-    total_amount: 119.97,
-    currency: 'USD',
-    created_at: new Date().toISOString()
-  }, {
-    environment: 'tutorial',
-    source: 'web_checkout'
-  });
-  
-  // Wait a bit
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  
-  // 2. Order Updated (address change)
-  await sendEvent('order.updated', {
-    order_id: orderId,
-    customer_email: customerEmail,
-    changes: ['shipping_address'],
-    shipping_address: {
-      street: '123 New Street',
-      city: 'New City',
-      state: 'NY',
-      zip: '10001'
+    "description": "Webhook for Customer ABC Corp",
+    "label_key": "tenant_id",
+    "label_value": "customer_123",
+    "target": {
+      "type": "http",
+      "method": "POST",
+      "url": "https://customer-abc.com/webhooks/hook0",
+      "headers": {
+        "Content-Type": "application/json",
+        "X-Customer-Id": "customer_123"
+      }
     },
-    updated_at: new Date().toISOString()
-  }, {
-    environment: 'tutorial',
-    change_type: 'shipping_address'
-  });
-  
-  // Wait a bit more
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  
-  // 3. Order Completed (payment processed, ready to ship)
-  await sendEvent('order.completed', {
-    order_id: orderId,
-    customer_email: customerEmail,
-    payment_status: 'completed',
-    total_amount: 119.97,
-    currency: 'USD',
-    completed_at: new Date().toISOString()
-  }, {
-    environment: 'tutorial',
-    payment_method: 'credit_card'
-  });
-  
-  console.log('=== Order Simulation Complete ===');
+    "metadata": {
+      "customer_name": "ABC Corp",
+      "created_by": "api",
+      "plan": "enterprise"
+    }
+  }'
+```
+
+**Response:**
+```json
+{
+  "subscription_id": "sub_789",
+  "secret": "whsec_abcd1234...",
+  "created_at": "2024-01-15T10:00:00Z"
+}
+```
+
+**Important:** Save the `secret` - customers need it to verify webhook signatures.
+
+### How Multi-Tenant Filtering Works
+
+```
+Event sent with labels:          Subscription filter:
+{                                {
+  "tenant_id": "customer_123" →    "label_key": "tenant_id",
+  "environment": "production"      "label_value": "customer_123"
+}                                }
+                                 ✅ Match! Webhook delivered
+
+Event sent with labels:          Subscription filter:
+{                                {
+  "tenant_id": "customer_456" →    "label_key": "tenant_id",
+  "environment": "production"      "label_value": "customer_123"
+}                                }
+                                 ❌ No match! Webhook NOT delivered
+```
+
+## Step 4: Monitor Webhook Deliveries
+
+Hook0 provides comprehensive monitoring to track webhook success and failures.
+
+### List Recent Events
+
+See what events have been sent:
+
+```bash
+curl -X GET "https://app.hook0.com/api/v1/events?application_id=YOUR_APP_ID&limit=10" \
+  -H "Authorization: Bearer biscuit:YOUR_TOKEN"
+```
+
+**Response:**
+```json
+{
+  "events": [
+    {
+      "event_id": "550e8400-e29b-41d4-a716-446655440000",
+      "event_type": "users.account.created",
+      "labels": {"tenant_id": "customer_123"},
+      "occurred_at": "2024-01-15T10:30:00Z",
+      "delivery_status": "delivered"
+    }
+  ]
+}
+```
+
+### Check Delivery Attempts
+
+Monitor webhook delivery attempts and their status:
+
+```bash
+curl -X GET "https://app.hook0.com/api/v1/request_attempts?application_id=YOUR_APP_ID" \
+  -H "Authorization: Bearer biscuit:YOUR_TOKEN"
+```
+
+**Response:**
+```json
+{
+  "attempts": [
+    {
+      "attempt_id": "att_001",
+      "event_id": "550e8400-e29b-41d4-a716-446655440000",
+      "subscription_id": "sub_789",
+      "status": "success",
+      "response_status_code": 200,
+      "attempted_at": "2024-01-15T10:30:05Z",
+      "labels": {"tenant_id": "customer_123"}
+    }
+  ]
+}
+```
+
+### Replay Failed Events
+
+If a webhook fails, you can replay it:
+
+```bash
+curl -X POST "https://app.hook0.com/api/v1/events/{EVENT_ID}/replay" \
+  -H "Authorization: Bearer biscuit:YOUR_TOKEN" \
+  -H "Content-Type: application/json"
+```
+
+## Advanced Patterns
+
+### Bulk Event Processing
+
+When you need to send multiple events (e.g., batch import), send them individually but with correlation:
+
+```bash
+# Event 1 of batch
+curl -X POST "https://app.hook0.com/api/v1/event" \
+  -H "Authorization: Bearer biscuit:YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "application_id": "YOUR_APP_ID",
+    "event_id": "batch-001-item-1",
+    "event_type": "inventory.item.updated",
+    "payload": "{\"sku\": \"PROD-001\", \"quantity\": 50}",
+    "labels": {
+      "tenant_id": "customer_123",
+      "batch_id": "batch-001",
+      "batch_size": "100"
+    }
+  }'
+
+# Event 2 of batch  
+curl -X POST "https://app.hook0.com/api/v1/event" \
+  -H "Authorization: Bearer biscuit:YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "application_id": "YOUR_APP_ID",
+    "event_id": "batch-001-item-2",
+    "event_type": "inventory.item.updated",
+    "payload": "{\"sku\": \"PROD-002\", \"quantity\": 75}",
+    "labels": {
+      "tenant_id": "customer_123",
+      "batch_id": "batch-001",
+      "batch_size": "100"
+    }
+  }'
+```
+
+### Environment-Based Filtering
+
+Use labels to separate environments:
+
+```bash
+# Production event
+curl -X POST "https://app.hook0.com/api/v1/event" \
+  -d '{
+    "labels": {
+      "tenant_id": "customer_123",
+      "environment": "production"
+    }
+  }'
+
+# Staging subscription (won't receive production events)
+curl -X POST "https://app.hook0.com/api/v1/subscriptions" \
+  -d '{
+    "label_key": "environment",
+    "label_value": "staging"
+  }'
+```
+
+### Priority-Based Routing
+
+Use labels for priority handling:
+
+```bash
+# High-priority event
+curl -X POST "https://app.hook0.com/api/v1/event" \
+  -d '{
+    "event_type": "payment.processed",
+    "payload": "{\"amount\": 10000}",
+    "labels": {
+      "tenant_id": "customer_123",
+      "priority": "high",
+      "amount_tier": "enterprise"
+    }
+  }'
+```
+
+## Complete Integration Example
+
+Here's a practical example showing the complete flow from event creation to webhook delivery:
+
+```bash
+# Step 1: Create event type (one-time setup)
+curl -X POST "https://app.hook0.com/api/v1/event_types" \
+  -H "Authorization: Bearer biscuit:YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "application_id": "app_xyz",
+    "service": "billing",
+    "resource_type": "invoice",
+    "verb": "paid"
+  }'
+
+# Step 2: Customer creates subscription (via your API or UI)
+curl -X POST "https://app.hook0.com/api/v1/subscriptions" \
+  -H "Authorization: Bearer biscuit:YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "application_id": "app_xyz",
+    "event_types": ["billing.invoice.paid"],
+    "label_key": "tenant_id",
+    "label_value": "customer_789",
+    "target": {
+      "type": "http",
+      "url": "https://customer.com/webhooks"
+    }
+  }'
+# Returns: {"subscription_id": "sub_123", "secret": "whsec_..."}
+
+# Step 3: Send event when invoice is paid
+curl -X POST "https://app.hook0.com/api/v1/event" \
+  -H "Authorization: Bearer biscuit:YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "application_id": "app_xyz",
+    "event_id": "evt_unique_123",
+    "event_type": "billing.invoice.paid",
+    "payload": "{\"invoice_id\": \"inv_456\", \"amount\": 1500.00}",
+    "labels": {
+      "tenant_id": "customer_789"
+    }
+  }'
+
+# Step 4: Hook0 automatically delivers to customer webhook!
+# Customer receives POST to https://customer.com/webhooks with signature
+```
+
+## Implementation Patterns in Different Languages
+
+While we've used curl for clarity, here's how to implement the same patterns in various languages:
+
+### Python
+```python
+import requests
+import uuid
+import json
+
+# Send event
+event = {
+    "application_id": "YOUR_APP_ID",
+    "event_id": str(uuid.uuid4()),
+    "event_type": "users.account.created",
+    "payload": json.dumps({"user_id": "usr_123"}),
+    "labels": {"tenant_id": "customer_123"}
 }
 
-// Run simulation
-simulateOrder().catch(console.error);
+response = requests.post(
+    "https://app.hook0.com/api/v1/event",
+    headers={"Authorization": "Bearer biscuit:YOUR_TOKEN"},
+    json=event
+)
 ```
 
-Install node-fetch:
+### Go
+```go
+// Send event
+event := map[string]interface{}{
+    "application_id": "YOUR_APP_ID",
+    "event_id": uuid.New().String(),
+    "event_type": "users.account.created",
+    "payload": `{"user_id": "usr_123"}`,
+    "labels": map[string]string{
+        "tenant_id": "customer_123",
+    },
+}
+
+jsonData, _ := json.Marshal(event)
+req, _ := http.NewRequest("POST", 
+    "https://app.hook0.com/api/v1/event", 
+    bytes.NewBuffer(jsonData))
+req.Header.Set("Authorization", "Bearer biscuit:YOUR_TOKEN")
+```
+
+### Ruby
+```ruby
+require 'net/http'
+require 'json'
+require 'securerandom'
+
+# Send event
+event = {
+  application_id: "YOUR_APP_ID",
+  event_id: SecureRandom.uuid,
+  event_type: "users.account.created",
+  payload: {user_id: "usr_123"}.to_json,
+  labels: {tenant_id: "customer_123"}
+}
+
+uri = URI('https://app.hook0.com/api/v1/event')
+http = Net::HTTP.new(uri.host, uri.port)
+http.use_ssl = true
+
+request = Net::HTTP::Post.new(uri)
+request['Authorization'] = 'Bearer biscuit:YOUR_TOKEN'
+request['Content-Type'] = 'application/json'
+request.body = event.to_json
+
+response = http.request(request)
+```
+
+## Best Practices
+
+### 1. Event Design
+- **Use semantic naming**: `service.resource.verb` structure
+- **Include context**: Add relevant data to help consumers
+- **Be consistent**: Same structure across all events
+- **Version carefully**: Plan for schema evolution
+
+### 2. Label Strategy
+- **tenant_id**: Always include for multi-tenancy
+- **environment**: Separate prod/staging/dev
+- **priority**: Enable priority-based processing
+- **region**: Support geographic filtering
+
+### 3. Error Handling
+- **Idempotency**: Use unique event_ids to prevent duplicates
+- **Retry logic**: Implement exponential backoff
+- **Circuit breaker**: Fail fast when Hook0 is down
+- **Local queue**: Buffer events during outages
+
+### 4. Security
+- **Never log tokens**: Keep authentication secure
+- **Validate signatures**: Customers should verify webhooks
+- **Encrypt sensitive data**: Don't send PII in plaintext
+- **Rate limit**: Protect against abuse
+
+## Troubleshooting Common Issues
+
+### Event Not Delivered
 ```bash
-npm install node-fetch@2
+# Check if event was received
+curl -X GET "https://app.hook0.com/api/v1/events?application_id=YOUR_APP_ID" \
+  -H "Authorization: Bearer biscuit:YOUR_TOKEN"
+
+# Check subscription filters
+curl -X GET "https://app.hook0.com/api/v1/subscriptions?application_id=YOUR_APP_ID" \
+  -H "Authorization: Bearer biscuit:YOUR_TOKEN"
+# Verify label_key and label_value match your events
 ```
 
-Run the simulation:
+### 401 Unauthorized
 ```bash
-node ecommerce-simulator.js
+# Verify token format (must include "biscuit:" prefix)
+curl -H "Authorization: Bearer biscuit:YOUR_TOKEN"  # ✅ Correct
+curl -H "Authorization: Bearer YOUR_TOKEN"         # ❌ Wrong
 ```
 
-## Step 7: Monitor the Integration
+### Event Type Not Found
+```bash
+# List existing event types
+curl -X GET "https://app.hook0.com/api/v1/event_types?application_id=YOUR_APP_ID" \
+  -H "Authorization: Bearer biscuit:YOUR_TOKEN"
 
-### Check Your Webhook Server
-You should see logs like:
-```
-Email webhook received: order.created
-Sending order confirmation to customer@example.com
-Analytics webhook received: order.created  
-Recording metric: orders_created = 1
-Email webhook received: order.updated
-Sending order update to customer@example.com
-Analytics webhook received: order.updated
-Recording metric: orders_updated = 1
-Shipping webhook received: order.completed
-Creating shipment for order order_1641234567890
-Tracking number assigned: TRACK-1641234567891
+# Create missing event type before sending events
 ```
 
-### Check Hook0 Dashboard
-1. Navigate to Events in your application
-2. You should see 3 events with delivery details
-3. Check Request Attempts to see delivery status
-4. Review any failed deliveries and retry information
+## Summary
 
-## Step 8: Handle Failures Gracefully
+You've learned how to:
+1. **Create event types** using the three-part structure
+2. **Send events** with proper labeling for multi-tenancy
+3. **Create subscriptions** with label-based filtering
+4. **Monitor deliveries** and handle failures
+5. **Implement patterns** for bulk processing and priority routing
 
-Add error handling to your webhook receivers:
-
-```javascript
-// Enhanced webhook handler with error handling
-app.post('/webhooks/shipping', verifySignature('SHIPPING_SECRET'), async (req, res) => {
-  try {
-    const { event_type, payload } = req.body;
-    
-    if (event_type === 'order.completed') {
-      // Simulate potential failure
-      if (Math.random() < 0.2) { // 20% failure rate
-        throw new Error('Shipping service temporarily unavailable');
-      }
-      
-      console.log(`Creating shipment for order ${payload.order_id}`);
-      
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const trackingNumber = `TRACK-${Date.now()}`;
-      console.log(`Tracking number assigned: ${trackingNumber}`);
-    }
-    
-    res.json({ status: 'processed' });
-  } catch (error) {
-    console.error('Shipping webhook error:', error.message);
-    // Return 500 to trigger Hook0 retry
-    res.status(500).json({ error: error.message });
-  }
-});
-```
-
-## Step 9: Implement Idempotency
-
-Add idempotency to handle duplicate events:
-
-```javascript
-// In-memory store for processed events (use Redis in production)
-const processedEvents = new Set();
-
-app.post('/webhooks/analytics', verifySignature('ANALYTICS_SECRET'), (req, res) => {
-  const { event_id, event_type, payload } = req.body;
-  
-  // Check if we've already processed this event
-  if (processedEvents.has(event_id)) {
-    console.log(`Duplicate event ignored: ${event_id}`);
-    return res.json({ status: 'already_processed' });
-  }
-  
-  try {
-    console.log(`Analytics webhook received: ${event_type}`);
-    
-    // Process the event
-    const metrics = {
-      'order.created': { metric: 'orders_created', value: 1 },
-      'order.updated': { metric: 'orders_updated', value: 1 },
-      'order.completed': { metric: 'orders_completed', value: payload.total_amount }
-    };
-    
-    const metric = metrics[event_type];
-    if (metric) {
-      console.log(`Recording metric: ${metric.metric} = ${metric.value}`);
-    }
-    
-    // Mark as processed
-    processedEvents.add(event_id);
-    
-    res.json({ status: 'recorded' });
-  } catch (error) {
-    console.error('Analytics webhook error:', error.message);
-    res.status(500).json({ error: error.message });
-  }
-});
-```
-
-## What You've Learned
-
-✅ Built a complete webhook integration for an e-commerce system  
-✅ Created multiple event types for different business events  
-✅ Set up multiple webhook receivers with proper signature verification  
-✅ Handled webhook failures and retries gracefully  
-✅ Implemented idempotency to handle duplicate events  
-✅ Monitored webhook deliveries through Hook0 dashboard  
-
-## Best Practices Demonstrated
-
-- **Signature Verification**: Always verify webhook signatures
-- **Error Handling**: Return appropriate HTTP status codes
-- **Idempotency**: Handle duplicate events gracefully
-- **Monitoring**: Log webhook processing for debugging
-- **Structured Payloads**: Use consistent event payload schemas
+The key insight is that Hook0's label system enables powerful multi-tenant webhook delivery while keeping the integration simple. By following this flow - define types, send events, create subscriptions, monitor results - you can build a robust webhook system for your SaaS platform.
 
 ## Next Steps
 
-- [Setting up Event Types and Subscriptions](./event-types-subscriptions.md)
-- [Implementing Webhook Authentication](./webhook-authentication.md)
-- [Debugging Failed Webhook Deliveries](../how-to-guides/debug-failed-webhooks.md)
-
-## Production Considerations
-
-### Security
-- Use HTTPS endpoints in production
-- Store secrets securely (environment variables, key management)
-- Implement rate limiting on webhook endpoints
-- Add authentication beyond signatures if needed
-
-### Reliability
-- Use persistent storage for idempotency tracking
-- Implement proper error logging and alerting
-- Set up monitoring for webhook endpoint health
-- Consider implementing circuit breakers for external calls
-
-### Performance
-- Process webhooks asynchronously if possible
-- Batch database operations
-- Use connection pooling
-- Monitor webhook processing times
+- [Event Types and Subscriptions Deep Dive](./event-types-subscriptions.md)
+- [Webhook Authentication and Security](./webhook-authentication.md)
+- [Debugging Failed Webhooks](../how-to-guides/debug-failed-webhooks.md)
+- [GitLab-Style Webhook Migration](../how-to-guides/gitlab-webhook-migration.md)

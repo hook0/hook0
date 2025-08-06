@@ -340,6 +340,5 @@ Content-Security-Policy: default-src 'self'
 
 ## Next Steps
 
-- [Scaling and Performance](./scaling-performance.md)
 - [Securing Webhook Endpoints](../how-to-guides/secure-webhook-endpoints.md)
 - [API Reference](../reference/api-reference.md)
