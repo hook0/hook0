@@ -94,8 +94,7 @@ const subscription = ref({
   event_types: [] as string[],
   dedicated_workers: [] as string[],
   is_enabled: true,
-  label_key: '',
-  label_value: '',
+  labels: {}, // K/V as object
   metadata: {}, // K/V as object
   target: {
     type: 'http',
@@ -106,6 +105,7 @@ const subscription = ref({
 });
 const eventTypes = ref<SelectableEventType[]>([]);
 
+const labels = ref([] as Hook0KeyValueKeyValuePair[]);
 const metadata = ref([] as Hook0KeyValueKeyValuePair[]);
 
 const httpTarget = ref({
@@ -137,8 +137,8 @@ function _load() {
           subscription.value.event_types = sub.event_types;
 
           subscription.value.is_enabled = sub.is_enabled;
-          subscription.value.label_key = sub.label_key;
-          subscription.value.label_value = sub.label_value;
+          labels.value = fromMap(sub.labels);
+          subscription.value.labels = sub.labels;
           metadata.value = fromMap(sub.metadata);
           subscription.value.metadata = sub.metadata;
           subscription.value.dedicated_workers = sub.dedicated_workers;
@@ -211,8 +211,7 @@ function upsert(e: Event) {
       },
       description: subscription.value.description,
       metadata: subscription.value.metadata,
-      label_value: subscription.value.label_value,
-      label_key: subscription.value.label_key,
+      labels: subscription.value.labels,
       is_enabled: subscription.value.is_enabled,
       event_types: EventTypeNamesFromSelectedEventTypes(eventTypes.value),
     }).then((_resp) => {
@@ -234,8 +233,7 @@ function upsert(e: Event) {
     },
     description: subscription.value.description,
     metadata: subscription.value.metadata,
-    label_value: subscription.value.label_value,
-    label_key: subscription.value.label_key,
+    labels: subscription.value.labels,
     is_enabled: subscription.value.is_enabled,
     event_types: EventTypeNamesFromSelectedEventTypes(eventTypes.value),
     dedicated_workers:
@@ -380,35 +378,21 @@ onUpdated(() => {
               Subscription labels
 
               <Hook0Text class="helpText mt-2 block">
-                Hook0 will only forward events to subscriptions that have the same
-                <Hook0Text class="code">label_key</Hook0Text>
-                and
-                <Hook0Text class="code">label_value</Hook0Text>
-                as specified in the event.
+                Hook0 will only forward events to subscriptions that have the same labels as
+                specified in the event. If you specify multiple labels here, events will need to
+                have <em>at least</em> the same labels to trigger this subscription (but they can
+                have more).
               </Hook0Text>
 
               <Hook0Text class="helpText mt-2 block"> </Hook0Text>
             </template>
             <template #content>
-              <div class="flex flex-row">
-                <Hook0Input
-                  v-model="subscription.label_key"
-                  type="text"
-                  class="w-full"
-                  placeholder="label_key"
-                  required
-                >
-                </Hook0Input>
-
-                <Hook0Input
-                  v-model="subscription.label_value"
-                  type="text"
-                  class="w-full ml-1"
-                  placeholder="label_value"
-                  required
-                >
-                </Hook0Input>
-              </div>
+              <Hook0KeyValue
+                :value="labels"
+                key-placeholder="Label key"
+                value-placeholder="Label value"
+                @update:model-value="subscription.labels = toMap($event)"
+              ></Hook0KeyValue>
             </template>
           </Hook0CardContentLine>
 
@@ -471,8 +455,7 @@ onUpdated(() => {
             :disabled="
               !subscription.target.url ||
               !subscription.description ||
-              !subscription.label_key ||
-              !subscription.label_value ||
+              Object.keys(subscription.labels).length <= 0 ||
               !eventTypes.some((et) => et.selected)
             "
             tooltip="ℹ️ To continue, you need to fill in all required fields"
@@ -487,8 +470,7 @@ onUpdated(() => {
             :disabled="
               !subscription.target.url ||
               !subscription.description ||
-              !subscription.label_key ||
-              !subscription.label_value ||
+              Object.keys(subscription.labels).length <= 0 ||
               !eventTypes.some((et) => et.selected)
             "
             tooltip="ℹ️ To continue, you need to fill in all required fields"
