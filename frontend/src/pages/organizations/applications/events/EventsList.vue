@@ -276,11 +276,10 @@ function toMap(pairs: Hook0KeyValueKeyValuePair[]): Record<string, string> {
                 Event labels
 
                 <Hook0Text class="helpText mt-2 block">
-                  Hook0 will only forward events to subscriptions that have the same
-                  <Hook0Text class="code">label_key</Hook0Text>
-                  and
-                  <Hook0Text class="code">label_value</Hook0Text>
-                  as specified in the event.
+                  Hook0 will only forward events to subscriptions which labels are all part of the
+                  event's labels. Events can have extra labels and still trigger a subscription, but
+                  subscriptions cannot have labels that are not part of the event or they won't be
+                  triggered by it.
                 </Hook0Text>
 
                 <Hook0Text class="helpText mt-2 block"> </Hook0Text>
@@ -288,8 +287,8 @@ function toMap(pairs: Hook0KeyValueKeyValuePair[]): Record<string, string> {
               <template #content>
                 <Hook0KeyValue
                   :value="labels"
-                  key-placeholder="label_key"
-                  value-placeholder="label_value"
+                  key-placeholder="Label key"
+                  value-placeholder="Label value"
                 ></Hook0KeyValue>
               </template>
             </Hook0CardContentLine>
