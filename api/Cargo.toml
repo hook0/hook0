@@ -52,7 +52,7 @@ validator = { version = "0.20.0", features = ["derive", "unic"] }
 test-log = { version = "0.2.18", features = ["unstable"] }
 
 [features]
-default = ["reqwest-rustls-tls-webpki-roots", "migrate-users-from-keycloak", "application-secret-compatibility"]
+default = ["reqwest-rustls-tls-webpki-roots", "application-secret-compatibility"]
 reqwest-rustls-tls-webpki-roots = ["reqwest/rustls-tls-webpki-roots", "hook0-client/reqwest-rustls-tls-webpki-roots"]
 reqwest-rustls-tls-native-roots = ["reqwest/rustls-tls-native-roots", "hook0-client/reqwest-rustls-tls-native-roots"]
 migrate-users-from-keycloak = []
