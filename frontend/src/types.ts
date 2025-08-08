@@ -1058,8 +1058,13 @@ export interface components {
       description?: string;
       event_types: string[];
       is_enabled: boolean;
+      /** @description _Kept for backward compatibility, you should use `labels`_ */
       label_key: string;
+      /** @description _Kept for backward compatibility, you should use `labels`_ */
       label_value: string;
+      labels: {
+        [key: string]: string;
+      };
       metadata: {
         [key: string]: Record<string, never>;
       };
@@ -1083,8 +1088,13 @@ export interface components {
       description?: string;
       event_types: string[];
       is_enabled: boolean;
-      label_key: string;
-      label_value: string;
+      /** @description _Kept for backward compatibility, you should use `labels`_ */
+      label_key?: string;
+      /** @description _Kept for backward compatibility, you should use `labels`_ */
+      label_value?: string;
+      labels?: {
+        [key: string]: Record<string, never>;
+      };
       metadata?: {
         [key: string]: Record<string, never>;
       };
