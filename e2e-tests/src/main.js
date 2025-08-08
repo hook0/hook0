@@ -2,6 +2,7 @@ import { getEnvironmentVariables } from './config.js';
 import create_application from './applications/create_application.js';
 import create_event_type from './event_types/create_event_type.js';
 import create_subscription from './subscriptions/create_subscription.js';
+import create_subscription_legacy from './subscriptions/create_subscription_legacy.js';
 import send_event from './events/send_event.js';
 import list_request_attempt from './events/list_request_attempt.js';
 import delete_application from './applications/delete_application.js';
@@ -46,7 +47,7 @@ function scenario_1() {
       throw new Error('Failed to create event type 2');
     }
 
-    let subscription_1 = create_subscription(
+    let subscription_1 = create_subscription_legacy(
       h,
       s,
       application_id,
@@ -59,7 +60,7 @@ function scenario_1() {
       throw new Error('Failed to create subscription 1');
     }
 
-    let subscription_2 = create_subscription(
+    let subscription_2 = create_subscription_legacy(
       h,
       s,
       application_id,
@@ -70,6 +71,18 @@ function scenario_1() {
     );
     if (!isNotNull(subscription_2)) {
       throw new Error('Failed to create subscription 2');
+    }
+
+    let subscription_3 = create_subscription(
+      h,
+      s,
+      application_id,
+      [event_type_1],
+      config.targetUrl,
+      { all: 'yes', other_label: '42' }
+    );
+    if (!isNotNull(subscription_3)) {
+      throw new Error('Failed to create subscription 3');
     }
 
     let event_1 = send_event(s, h, application_id, event_type_1, {
@@ -91,6 +104,14 @@ function scenario_1() {
       throw new Error('Failed to create event 3');
     }
 
+    let event_4 = send_event(s, h, application_id, event_type_1, {
+      ...subscription_3.labels,
+      unused_label: 'test',
+    });
+    if (!isNotNull(event_4)) {
+      throw new Error('Failed to create event 4');
+    }
+
     let request_attempts_1 = list_request_attempt(h, s, application_id, event_1);
     if (!isNotNull(request_attempts_1) || request_attempts_1.length !== 2) {
       throw new Error(
@@ -109,6 +130,13 @@ function scenario_1() {
     if (!isNotNull(request_attempts_3) || request_attempts_3.length !== 0) {
       throw new Error(
         'Expected to find 0 request attempts for event 3 | Found: ' + request_attempts_3.length
+      );
+    }
+
+    let request_attempts_4 = list_request_attempt(h, s, application_id, event_4);
+    if (!isNotNull(request_attempts_4) || request_attempts_4.length !== 3) {
+      throw new Error(
+        'Expected to find 3 request attempts for event 4 | Found: ' + request_attempts_4.length
       );
     }
 

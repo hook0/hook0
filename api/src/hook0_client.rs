@@ -747,8 +747,7 @@ pub struct EventSubscriptionCreated {
     pub event_types: Vec<String>,
     pub description: Option<String>,
     pub metadata: HashMap<String, Value>,
-    pub label_key: String,
-    pub label_value: String,
+    pub labels: HashMap<String, String>,
     pub target: Target,
     pub created_at: DateTime<Utc>,
 }
@@ -791,8 +790,7 @@ pub struct EventSubscriptionUpdated {
     pub event_types: Vec<String>,
     pub description: Option<String>,
     pub metadata: HashMap<String, Value>,
-    pub label_key: String,
-    pub label_value: String,
+    pub labels: HashMap<String, String>,
     pub target: Target,
     pub created_at: DateTime<Utc>,
 }
