@@ -718,10 +718,10 @@ pub async fn edit_role(
         Action::OrganizationEditRole,
         state.max_authorization_time_in_ms,
     ) {
-        if let AuthorizedToken::User(user_token) = token {
-            if user_token.user_id == body.user_id {
-                return Err(Hook0Problem::Forbidden);
-            }
+        if let AuthorizedToken::User(user_token) = token
+            && user_token.user_id == body.user_id
+        {
+            return Err(Hook0Problem::Forbidden);
         }
 
         query!(
