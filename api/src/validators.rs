@@ -6,6 +6,7 @@ use validator::ValidationError;
 const METADATA_MAX_SIZE: usize = 50;
 const METADATA_PROPERTY_MIN_LENGTH: usize = 1;
 const METADATA_PROPERTY_MAX_LENGTH: usize = 50;
+const LABELS_MIN_SIZE: usize = 1;
 const LABELS_MAX_SIZE: usize = 10;
 const LABELS_PROPERTY_MIN_LENGTH: usize = 1;
 const LABELS_PROPERTY_MAX_LENGTH: usize = 50;
@@ -97,6 +98,15 @@ pub fn metadata(val: &HashMap<String, Value>) -> Result<(), ValidationError> {
 }
 
 pub fn labels(val: &HashMap<String, Value>) -> Result<(), ValidationError> {
+    if val.len() < LABELS_MIN_SIZE {
+        return Err(ValidationError {
+            code: CODE_LABELS_SIZE.into(),
+            message: Some(
+                format!("Labels object must have at least {LABELS_MIN_SIZE} properties",).into(),
+            ),
+            params: HashMap::new(),
+        });
+    }
     if val.len() > LABELS_MAX_SIZE {
         return Err(ValidationError {
             code: CODE_LABELS_SIZE.into(),
@@ -392,7 +402,12 @@ mod tests {
     #[test]
     fn labels_empty() {
         let val = HashMap::new();
-        assert!(labels(&val).is_ok())
+        let output = labels(&val);
+        assert!(output.is_err());
+        assert_eq!(
+            output.err().map(|e| e.code).unwrap_or_else(|| "".into()),
+            CODE_LABELS_SIZE
+        )
     }
 
     #[test]

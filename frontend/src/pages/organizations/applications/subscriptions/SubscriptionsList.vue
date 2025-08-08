@@ -91,14 +91,18 @@ const columnDefs: ColDef[] = [
     },
   },
   {
+    field: 'labels',
     suppressMovable: true,
     sortable: true,
     resizable: true,
-    headerName: 'Label',
+    width: 100,
+    headerName: 'Labels',
     cellRenderer: Hook0TableCellCode,
     cellRendererParams: {
-      value: (data: Subscription) => {
-        return `${data.label_key}=${data.label_value}`;
+      value(row: Subscription) {
+        return Object.entries(row.labels as Record<string, string>)
+          .map(([key, value]) => `${key}=${value}`)
+          .join(' ');
       },
     },
     // This seems useless but triggers a warning if not set

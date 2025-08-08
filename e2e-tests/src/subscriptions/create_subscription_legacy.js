@@ -1,17 +1,26 @@
 import http from 'k6/http';
 import { check } from 'k6';
 
-export default function (baseUrl, service_token, application_id, event_types, target_url, labels) {
+export default function (
+  baseUrl,
+  service_token,
+  application_id,
+  event_types,
+  target_url,
+  label_key,
+  label_value
+) {
   const url = `${baseUrl}/api/v1/subscriptions/`;
   const payload = {
     is_enabled: true,
     metadata: {
       test_k6: 'true',
     },
-    application_id,
+    application_id: application_id,
     description: 'Ceci est un test réalisé avec k6',
-    labels,
-    event_types,
+    label_key: label_key,
+    label_value: label_value,
+    event_types: event_types,
     target: {
       type: 'http',
       method: 'POST',
@@ -34,8 +43,7 @@ export default function (baseUrl, service_token, application_id, event_types, ta
         r.status === 201 &&
         r.body &&
         r.body.includes('created_at') &&
-        r.body.includes('subscription_id') &&
-        r.body.includes('labels'),
+        r.body.includes('subscription_id'),
     })
   ) {
     return null;
