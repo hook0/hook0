@@ -35,7 +35,7 @@ pub struct Subscription {
     pub event_types: Vec<String>,
     pub description: Option<String>,
     pub secret: Uuid,
-    pub metadata: HashMap<String, Value>,
+    pub metadata: HashMap<String, String>,
     /// _Kept for backward compatibility, you should use `labels`_
     pub label_key: String,
     /// _Kept for backward compatibility, you should use `labels`_
@@ -443,7 +443,7 @@ pub struct SubscriptionPost {
     #[validate(length(min = 1, max = 100))]
     description: Option<String>,
     #[validate(custom(function = "crate::validators::metadata"))]
-    metadata: Option<HashMap<String, Value>>,
+    metadata: Option<HashMap<String, String>>,
     /// _Kept for backward compatibility, you should use `labels`_
     #[validate(non_control_character, length(min = 1, max = 100))]
     label_key: Option<String>,
@@ -451,7 +451,7 @@ pub struct SubscriptionPost {
     #[validate(non_control_character, length(min = 1, max = 100))]
     label_value: Option<String>,
     #[validate(custom(function = "crate::validators::labels"))]
-    labels: Option<HashMap<String, Value>>,
+    labels: Option<HashMap<String, String>>,
     #[validate(nested)]
     target: Target,
     #[validate(length(min = 1, max = 20))]
@@ -474,10 +474,7 @@ pub async fn create(
 ) -> Result<CreatedJson<Subscription>, Hook0Problem> {
     let labels = match (&body.labels, &body.label_key, &body.label_value) {
         (Some(l), _, _) => Ok(l.to_owned()),
-        (None, Some(k), Some(v)) => Ok(HashMap::from_iter([(
-            k.to_owned(),
-            Value::String(v.to_owned()),
-        )])),
+        (None, Some(k), Some(v)) => Ok(HashMap::from_iter([(k.to_owned(), v.to_owned())])),
         _ => Err(Hook0Problem::LabelsAmbiguity),
     }?;
 
@@ -723,10 +720,7 @@ pub async fn edit(
 ) -> Result<Json<Subscription>, Hook0Problem> {
     let labels = match (&body.labels, &body.label_key, &body.label_value) {
         (Some(l), _, _) => Ok(l.to_owned()),
-        (None, Some(k), Some(v)) => Ok(HashMap::from_iter([(
-            k.to_owned(),
-            Value::String(v.to_owned()),
-        )])),
+        (None, Some(k), Some(v)) => Ok(HashMap::from_iter([(k.to_owned(), v.to_owned())])),
         _ => Err(Hook0Problem::LabelsAmbiguity),
     }?;
 

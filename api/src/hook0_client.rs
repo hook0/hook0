@@ -7,7 +7,7 @@ use hook0_client::{Hook0Client, Hook0ClientError};
 use log::{error, info, trace, warn};
 use reqwest::Url;
 use serde::Serialize;
-use serde_json::{Value, to_string, to_value};
+use serde_json::to_string;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::time::Duration;
@@ -146,7 +146,7 @@ impl Hook0ClientEvent {
                 payload_content_type: "application/json",
                 metadata: Some(vec![(
                     "hook0_version".to_owned(),
-                    to_value(crate_version!()).unwrap(),
+                    crate_version!().to_owned(),
                 )]),
                 occurred_at,
                 labels: event.labels(),
@@ -187,7 +187,7 @@ impl Hook0ClientEvent {
 
 trait Event: std::fmt::Debug + Clone + Serialize {
     fn event_type(&self) -> &'static str;
-    fn labels(&self) -> Vec<(String, Value)>;
+    fn labels(&self) -> Vec<(String, String)>;
 }
 
 const INSTANCE_LABEL: &str = "instance";
@@ -208,11 +208,8 @@ impl Event for EventOrganizationCreated {
         "api.organization.created"
     }
 
-    fn labels(&self) -> Vec<(String, Value)> {
-        vec![(
-            INSTANCE_LABEL.to_owned(),
-            Value::String(INSTANCE_VALUE.to_owned()),
-        )]
+    fn labels(&self) -> Vec<(String, String)> {
+        vec![(INSTANCE_LABEL.to_owned(), INSTANCE_VALUE.to_owned())]
     }
 }
 
@@ -233,15 +230,12 @@ impl Event for EventOrganizationUpdated {
         "api.organization.updated"
     }
 
-    fn labels(&self) -> Vec<(String, Value)> {
+    fn labels(&self) -> Vec<(String, String)> {
         vec![
-            (
-                INSTANCE_LABEL.to_owned(),
-                Value::String(INSTANCE_VALUE.to_owned()),
-            ),
+            (INSTANCE_LABEL.to_owned(), INSTANCE_VALUE.to_owned()),
             (
                 ORGANIZATION_LABEL.to_owned(),
-                Value::String(self.organization_id.to_string()),
+                self.organization_id.to_string(),
             ),
         ]
     }
@@ -266,15 +260,12 @@ impl Event for EventOrganizationInvited {
         "api.organization.invited"
     }
 
-    fn labels(&self) -> Vec<(String, Value)> {
+    fn labels(&self) -> Vec<(String, String)> {
         vec![
-            (
-                INSTANCE_LABEL.to_owned(),
-                Value::String(INSTANCE_VALUE.to_owned()),
-            ),
+            (INSTANCE_LABEL.to_owned(), INSTANCE_VALUE.to_owned()),
             (
                 ORGANIZATION_LABEL.to_owned(),
-                Value::String(self.organization_id.to_string()),
+                self.organization_id.to_string(),
             ),
         ]
     }
@@ -297,15 +288,12 @@ impl Event for EventOrganizationRevoked {
         "api.organization.revoked"
     }
 
-    fn labels(&self) -> Vec<(String, Value)> {
+    fn labels(&self) -> Vec<(String, String)> {
         vec![
-            (
-                INSTANCE_LABEL.to_owned(),
-                Value::String(INSTANCE_VALUE.to_owned()),
-            ),
+            (INSTANCE_LABEL.to_owned(), INSTANCE_VALUE.to_owned()),
             (
                 ORGANIZATION_LABEL.to_owned(),
-                Value::String(self.organization_id.to_string()),
+                self.organization_id.to_string(),
             ),
         ]
     }
@@ -327,15 +315,12 @@ impl Event for EventOrganizationRemoved {
         "api.organization.removed"
     }
 
-    fn labels(&self) -> Vec<(String, Value)> {
+    fn labels(&self) -> Vec<(String, String)> {
         vec![
-            (
-                INSTANCE_LABEL.to_owned(),
-                Value::String(INSTANCE_VALUE.to_owned()),
-            ),
+            (INSTANCE_LABEL.to_owned(), INSTANCE_VALUE.to_owned()),
             (
                 ORGANIZATION_LABEL.to_owned(),
-                Value::String(self.organization_id.to_string()),
+                self.organization_id.to_string(),
             ),
         ]
     }
@@ -359,19 +344,16 @@ impl Event for EventApplicationCreated {
         "api.application.created"
     }
 
-    fn labels(&self) -> Vec<(String, Value)> {
+    fn labels(&self) -> Vec<(String, String)> {
         vec![
-            (
-                INSTANCE_LABEL.to_owned(),
-                Value::String(INSTANCE_VALUE.to_owned()),
-            ),
+            (INSTANCE_LABEL.to_owned(), INSTANCE_VALUE.to_owned()),
             (
                 ORGANIZATION_LABEL.to_owned(),
-                Value::String(self.organization_id.to_string()),
+                self.organization_id.to_string(),
             ),
             (
                 APPLICATION_LABEL.to_owned(),
-                to_value(self.application_id).unwrap(),
+                self.application_id.to_string(),
             ),
         ]
     }
@@ -395,19 +377,16 @@ impl Event for EventApplicationUpdated {
         "api.application.updated"
     }
 
-    fn labels(&self) -> Vec<(String, Value)> {
+    fn labels(&self) -> Vec<(String, String)> {
         vec![
-            (
-                INSTANCE_LABEL.to_owned(),
-                Value::String(INSTANCE_VALUE.to_owned()),
-            ),
+            (INSTANCE_LABEL.to_owned(), INSTANCE_VALUE.to_owned()),
             (
                 ORGANIZATION_LABEL.to_owned(),
-                Value::String(self.organization_id.to_string()),
+                self.organization_id.to_string(),
             ),
             (
                 APPLICATION_LABEL.to_owned(),
-                to_value(self.application_id).unwrap(),
+                self.application_id.to_string(),
             ),
         ]
     }
@@ -431,19 +410,16 @@ impl Event for EventApplicationRemoved {
         "api.application.removed"
     }
 
-    fn labels(&self) -> Vec<(String, Value)> {
+    fn labels(&self) -> Vec<(String, String)> {
         vec![
-            (
-                INSTANCE_LABEL.to_owned(),
-                Value::String(INSTANCE_VALUE.to_owned()),
-            ),
+            (INSTANCE_LABEL.to_owned(), INSTANCE_VALUE.to_owned()),
             (
                 ORGANIZATION_LABEL.to_owned(),
-                Value::String(self.organization_id.to_string()),
+                self.organization_id.to_string(),
             ),
             (
                 APPLICATION_LABEL.to_owned(),
-                to_value(self.application_id).unwrap(),
+                self.application_id.to_string(),
             ),
         ]
     }
@@ -468,19 +444,16 @@ impl Event for EventApplicationSecretCreated {
         "api.application_secret.created"
     }
 
-    fn labels(&self) -> Vec<(String, Value)> {
+    fn labels(&self) -> Vec<(String, String)> {
         vec![
-            (
-                INSTANCE_LABEL.to_owned(),
-                Value::String(INSTANCE_VALUE.to_owned()),
-            ),
+            (INSTANCE_LABEL.to_owned(), INSTANCE_VALUE.to_owned()),
             (
                 ORGANIZATION_LABEL.to_owned(),
-                Value::String(self.organization_id.to_string()),
+                self.organization_id.to_string(),
             ),
             (
                 APPLICATION_LABEL.to_owned(),
-                to_value(self.application_id).unwrap(),
+                self.application_id.to_string(),
             ),
         ]
     }
@@ -504,19 +477,16 @@ impl Event for EventApplicationSecretUpdated {
         "api.application_secret.updated"
     }
 
-    fn labels(&self) -> Vec<(String, Value)> {
+    fn labels(&self) -> Vec<(String, String)> {
         vec![
-            (
-                INSTANCE_LABEL.to_owned(),
-                Value::String(INSTANCE_VALUE.to_owned()),
-            ),
+            (INSTANCE_LABEL.to_owned(), INSTANCE_VALUE.to_owned()),
             (
                 ORGANIZATION_LABEL.to_owned(),
-                Value::String(self.organization_id.to_string()),
+                self.organization_id.to_string(),
             ),
             (
                 APPLICATION_LABEL.to_owned(),
-                to_value(self.application_id).unwrap(),
+                self.application_id.to_string(),
             ),
         ]
     }
@@ -541,19 +511,16 @@ impl Event for EventApplicationSecretRemoved {
         "api.application_secret.removed"
     }
 
-    fn labels(&self) -> Vec<(String, Value)> {
+    fn labels(&self) -> Vec<(String, String)> {
         vec![
-            (
-                INSTANCE_LABEL.to_owned(),
-                Value::String(INSTANCE_VALUE.to_owned()),
-            ),
+            (INSTANCE_LABEL.to_owned(), INSTANCE_VALUE.to_owned()),
             (
                 ORGANIZATION_LABEL.to_owned(),
-                Value::String(self.organization_id.to_string()),
+                self.organization_id.to_string(),
             ),
             (
                 APPLICATION_LABEL.to_owned(),
-                to_value(self.application_id).unwrap(),
+                self.application_id.to_string(),
             ),
         ]
     }
@@ -578,15 +545,12 @@ impl Event for EventServiceTokenCreated {
         "api.service_token.created"
     }
 
-    fn labels(&self) -> Vec<(String, Value)> {
+    fn labels(&self) -> Vec<(String, String)> {
         vec![
-            (
-                INSTANCE_LABEL.to_owned(),
-                Value::String(INSTANCE_VALUE.to_owned()),
-            ),
+            (INSTANCE_LABEL.to_owned(), INSTANCE_VALUE.to_owned()),
             (
                 ORGANIZATION_LABEL.to_owned(),
-                Value::String(self.organization_id.to_string()),
+                self.organization_id.to_string(),
             ),
         ]
     }
@@ -610,15 +574,12 @@ impl Event for EventServiceTokenUpdated {
         "api.service_token.updated"
     }
 
-    fn labels(&self) -> Vec<(String, Value)> {
+    fn labels(&self) -> Vec<(String, String)> {
         vec![
-            (
-                INSTANCE_LABEL.to_owned(),
-                Value::String(INSTANCE_VALUE.to_owned()),
-            ),
+            (INSTANCE_LABEL.to_owned(), INSTANCE_VALUE.to_owned()),
             (
                 ORGANIZATION_LABEL.to_owned(),
-                Value::String(self.organization_id.to_string()),
+                self.organization_id.to_string(),
             ),
         ]
     }
@@ -642,15 +603,12 @@ impl Event for EventServiceTokenRemoved {
         "api.service_token.removed"
     }
 
-    fn labels(&self) -> Vec<(String, Value)> {
+    fn labels(&self) -> Vec<(String, String)> {
         vec![
-            (
-                INSTANCE_LABEL.to_owned(),
-                Value::String(INSTANCE_VALUE.to_owned()),
-            ),
+            (INSTANCE_LABEL.to_owned(), INSTANCE_VALUE.to_owned()),
             (
                 ORGANIZATION_LABEL.to_owned(),
-                Value::String(self.organization_id.to_string()),
+                self.organization_id.to_string(),
             ),
         ]
     }
@@ -678,19 +636,16 @@ impl Event for EventEventTypeCreated {
         "api.event_type.created"
     }
 
-    fn labels(&self) -> Vec<(String, Value)> {
+    fn labels(&self) -> Vec<(String, String)> {
         vec![
-            (
-                INSTANCE_LABEL.to_owned(),
-                Value::String(INSTANCE_VALUE.to_owned()),
-            ),
+            (INSTANCE_LABEL.to_owned(), INSTANCE_VALUE.to_owned()),
             (
                 ORGANIZATION_LABEL.to_owned(),
-                Value::String(self.organization_id.to_string()),
+                self.organization_id.to_string(),
             ),
             (
                 APPLICATION_LABEL.to_owned(),
-                to_value(self.application_id).unwrap(),
+                self.application_id.to_string(),
             ),
         ]
     }
@@ -714,19 +669,16 @@ impl Event for EventEventTypeRemoved {
         "api.event_type.removed"
     }
 
-    fn labels(&self) -> Vec<(String, Value)> {
+    fn labels(&self) -> Vec<(String, String)> {
         vec![
-            (
-                INSTANCE_LABEL.to_owned(),
-                Value::String(INSTANCE_VALUE.to_owned()),
-            ),
+            (INSTANCE_LABEL.to_owned(), INSTANCE_VALUE.to_owned()),
             (
                 ORGANIZATION_LABEL.to_owned(),
-                Value::String(self.organization_id.to_string()),
+                self.organization_id.to_string(),
             ),
             (
                 APPLICATION_LABEL.to_owned(),
-                to_value(self.application_id).unwrap(),
+                self.application_id.to_string(),
             ),
         ]
     }
@@ -746,7 +698,7 @@ pub struct EventSubscriptionCreated {
     pub is_enabled: bool,
     pub event_types: Vec<String>,
     pub description: Option<String>,
-    pub metadata: HashMap<String, Value>,
+    pub metadata: HashMap<String, String>,
     pub labels: HashMap<String, String>,
     pub target: Target,
     pub created_at: DateTime<Utc>,
@@ -757,19 +709,16 @@ impl Event for EventSubscriptionCreated {
         "api.subscription.created"
     }
 
-    fn labels(&self) -> Vec<(String, Value)> {
+    fn labels(&self) -> Vec<(String, String)> {
         vec![
-            (
-                INSTANCE_LABEL.to_owned(),
-                Value::String(INSTANCE_VALUE.to_owned()),
-            ),
+            (INSTANCE_LABEL.to_owned(), INSTANCE_VALUE.to_owned()),
             (
                 ORGANIZATION_LABEL.to_owned(),
-                Value::String(self.organization_id.to_string()),
+                self.organization_id.to_string(),
             ),
             (
                 APPLICATION_LABEL.to_owned(),
-                to_value(self.application_id).unwrap(),
+                self.application_id.to_string(),
             ),
         ]
     }
@@ -789,7 +738,7 @@ pub struct EventSubscriptionUpdated {
     pub is_enabled: bool,
     pub event_types: Vec<String>,
     pub description: Option<String>,
-    pub metadata: HashMap<String, Value>,
+    pub metadata: HashMap<String, String>,
     pub labels: HashMap<String, String>,
     pub target: Target,
     pub created_at: DateTime<Utc>,
@@ -800,19 +749,16 @@ impl Event for EventSubscriptionUpdated {
         "api.subscription.updated"
     }
 
-    fn labels(&self) -> Vec<(String, Value)> {
+    fn labels(&self) -> Vec<(String, String)> {
         vec![
-            (
-                INSTANCE_LABEL.to_owned(),
-                Value::String(INSTANCE_VALUE.to_owned()),
-            ),
+            (INSTANCE_LABEL.to_owned(), INSTANCE_VALUE.to_owned()),
             (
                 ORGANIZATION_LABEL.to_owned(),
-                Value::String(self.organization_id.to_string()),
+                self.organization_id.to_string(),
             ),
             (
                 APPLICATION_LABEL.to_owned(),
-                to_value(self.application_id).unwrap(),
+                self.application_id.to_string(),
             ),
         ]
     }
@@ -836,19 +782,16 @@ impl Event for EventSubscriptionRemoved {
         "api.subscription.removed"
     }
 
-    fn labels(&self) -> Vec<(String, Value)> {
+    fn labels(&self) -> Vec<(String, String)> {
         vec![
-            (
-                INSTANCE_LABEL.to_owned(),
-                Value::String(INSTANCE_VALUE.to_owned()),
-            ),
+            (INSTANCE_LABEL.to_owned(), INSTANCE_VALUE.to_owned()),
             (
                 ORGANIZATION_LABEL.to_owned(),
-                Value::String(self.organization_id.to_string()),
+                self.organization_id.to_string(),
             ),
             (
                 APPLICATION_LABEL.to_owned(),
-                to_value(self.application_id).unwrap(),
+                self.application_id.to_string(),
             ),
         ]
     }

@@ -800,10 +800,10 @@ export interface components {
       event_id: string;
       event_type: string;
       labels: {
-        [key: string]: Record<string, never>;
+        [key: string]: string;
       };
       metadata?: {
-        [key: string]: Record<string, never>;
+        [key: string]: string;
       };
       /** Format: date-time */
       occurred_at: string;
@@ -1066,7 +1066,7 @@ export interface components {
         [key: string]: string;
       };
       metadata: {
-        [key: string]: Record<string, never>;
+        [key: string]: string;
       };
       /** Format: uuid */
       secret: string;
@@ -1093,10 +1093,10 @@ export interface components {
       /** @description _Kept for backward compatibility, you should use `labels`_ */
       label_value?: string;
       labels?: {
-        [key: string]: Record<string, never>;
+        [key: string]: string;
       };
       metadata?: {
-        [key: string]: Record<string, never>;
+        [key: string]: string;
       };
       target: {
         headers: Record<string, never>;
