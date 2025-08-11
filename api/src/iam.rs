@@ -6,7 +6,6 @@ use chrono::{DateTime, Utc};
 use log::{error, trace, warn};
 use paperclip::v2::schema::TypedData;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use sqlx::{PgPool, query_scalar};
 use std::collections::{BTreeMap, HashMap};
 use std::str::FromStr;
@@ -434,7 +433,7 @@ pub enum Action<'a> {
     },
     SubscriptionCreate {
         application_id: &'a Uuid,
-        labels: &'a HashMap<String, Value>,
+        labels: &'a HashMap<String, String>,
     },
     SubscriptionGet {
         application_id: &'a Uuid,
@@ -741,12 +740,7 @@ impl Action<'_> {
             Self::SubscriptionCreate { labels, .. } => vec![Fact::new(
                 "labels".to_owned(),
                 vec![Term::Map(BTreeMap::from_iter(labels.iter().map(
-                    |(k, v)| {
-                        (
-                            MapKey::Str(k.to_owned()),
-                            Term::Str(v.as_str().unwrap_or("").to_owned()),
-                        )
-                    },
+                    |(k, v)| (MapKey::Str(k.to_owned()), Term::Str(v.to_owned())),
                 )))],
             )],
             Self::SubscriptionGet {
