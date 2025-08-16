@@ -1,0 +1,71 @@
+---
+id: request-attempts-read
+title: "List request attempts"
+description: "Retrieves the most recent attempts to deliver events to subscriptions for a given application. Request attempts track the status and history of event deliveries, including retries and failures."
+sidebar_label: "List request attempts"
+hide_title: true
+hide_table_of_contents: true
+api: eJzdVsFuGzcQ/RViLkmAjWQn6aF7swOnNdzGheWiB0NQKO5Iy2iX3JCzQtXFAv2IfmG/pBhyJa+0SiKjRQvUB1sWZ+Y9Dt88sgGSSw/pA0zquVdOV6St8eJHaeQSSzQE0wQy3C1BCndITuMavaAcRWk9CYcKDQlJhGVFXpAVGRZ6jU7gGk38xu8hLKwTUiz1Go2QVVVoJXlhJO7wU42+X8xJtQpYniTVXkiTiVx7sm4j7CIibPE0+kRoo4o602YpXOAaUxZSF7VDP4IEbIUu4F1nkIKLkBcd4sihzCCBSjpZIqHjBjWgefOfanQbSMDIEiGFHvOZ5hwupR1mkJKrMQGvciwlpA3QpuIMT06bJSSwsK6UBCnUtc6gTcDTpuAIXoA2OQ4YNhuh/unS/fP5mwhTboSvrPHoOf3V2Rn/2dfR7Q0koKwhVlna9Hs5/ug5pBkykM5J5qwJS9/73s4/oiI+NMdnSzoCK4eSMJtJ+uIuMkn4knSJvJUMC7mZ1YZ0cXrS7lxOaRYr8YmkKq1WT0zpVD3rBulUctuDOz2e3GambG363LQhXKLrJ2hDr19FrfAYD4vzUk+DXz/dPT19pdpp22n7E/wwKDANRZVCzJ50GAdle6pM+hN95MT2+7vr3UGnpgmQpjCAd3teBi3/JPDm2ABeymzrthBiXg9j3lk311mGJka8GUa8tyTe2dpkMeLbYcRbaxaFVgHkm2NErg2hM7IQE3R8Z1w5Z13omkdVO02bYMBz7VWtCdKHKTtMiZRbtu8lBmlIyiGFsaz0eH0+PuilH3PPQvno5rUrIIWcqPLpeCyrapRbuzobKRv9a4s8YQeKctvhP7pRpW8w2BFvI0eZBcl3hnpRU26d/i1YGhxeo7yKhjrHE7Xn+0qKywgiyK7QiOe1x3D1RVWJD5coHTpxf3tz9f7DC+5ox2rmcOHQ5/8mO7sQDCWeddjPnsK39uhmUin0/j/h3MM/gXfLjBY2MO0m7XvWi7j46XpA5K11KO6uJve8yogx9M/f/xC3FZqXE1s7heIXnLPmvJBeSMHi1CowEBMpJ5AAizVWPBudj87CPWA9lTLYXdeTH3R4gO0/mg4pNY8X7f/i/daphfBXGleF1MGewkg3nRE8sJS4h+dDY+X2sGfm1rObQNPMpcefXdG2/HV8F7FJZNrLecGmvZCFxy809fld5+8vxOforXBz7MW4lkXNweFdNgCMSb074pTw4UvuMWvK/zjNacFIk+2Q8X5j+oVSWFEva/Ay27Pf767uIQFZ04H3rMIcdx+4+nbJbHq1D0c6UuDfvMGjKU0TXaJtd/Fx6bMZOx+J0Xwe07Zt/wJ9ZH/0
+sidebar_class_name: "get api-method"
+info_path: api/hook-0-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"List request attempts"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/request_attempts/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieves the most recent attempts to deliver events to subscriptions for a given application. Request attempts track the status and history of event deliveries, including retries and failures.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"query","name":"application_id","required":true,"schema":{"type":"string","format":"uuid"},"style":"form"},{"in":"query","name":"event_id","schema":{"type":"string","format":"uuid"},"style":"form"},{"in":"query","name":"subscription_id","schema":{"type":"string","format":"uuid"},"style":"form"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"created_at":{"type":"string","format":"date-time"},"delay_until":{"type":"string","format":"date-time"},"event_id":{"type":"string","format":"uuid"},"failed_at":{"type":"string","format":"date-time"},"picked_at":{"type":"string","format":"date-time"},"request_attempt_id":{"type":"string","format":"uuid"},"response_id":{"type":"string","format":"uuid"},"retry_count":{"type":"integer","format":"int32"},"status":{"type":"string"},"subscription":{"type":"object","properties":{"description":{"type":"string"},"subscription_id":{"type":"string","format":"uuid"}},"required":["subscription_id"]},"succeeded_at":{"type":"string","format":"date-time"}},"required":["created_at","event_id","request_attempt_id","retry_count","status","subscription"],"title":"RequestAttempt"}}}}},"400":{"description":"Bad Request"},"403":{"description":"Forbidden"},"404":{"description":"Not Found"},"409":{"description":"Conflict"},"500":{"description":"Internal Server Error"}}}
+>
+  
+</StatusCodes>
+
+
+      

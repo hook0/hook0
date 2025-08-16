@@ -1,0 +1,71 @@
+---
+id: events-get
+title: "Get an event"
+description: "Retrieves details of a specific event if it belongs to the specified application."
+sidebar_label: "Get an event"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVttu20YQ/ZXFvCQBGElu3YfyzQ6U1DAaB5aLPBiCMiJH4sbkLr07FKoSBPoR/cJ+STG71MWSHCRA2r7otmdnDs/OOasWGJce0nsYr8iwV7+iwSVVZBimCeTkM6dr1tZACrfETtOKvMqJUZde2YVC5WvK9EJniqSE0gulWc2ptGbpFVvFBW0wlCus61JnKCUHkICtyYUvVzmkECr4wZIYEqjRYUVMTvi1oIVCjVxAAgYr2sBnOocEHD022lEOKbuGEvBZQRVC2gKva8F6dtosIYGFdRUypNA0OocuAc/rMiB0VZcEXdL3emzIrXfN9oh/t5ayAN1UavnaGk9etv8wGsnbU/FvriGBzBqWo0nbfTrDz14g7TEDO/9MWdDSidCsY4Otbl/DNYIFNotKHO7pEtD1yZ9LnFPpj/l0CVTEmCOfINslYLOscY7yGfIXKebI9Jp1JYcGNa5Liyeeabc26/WbRcAJoKOM9OqbOnf7k3C/P5OHygWdtqo8fcwd/2fYPuU2TYA1hxkKxv2oufjQF+g64XR+aoguMVe39NiQDzqfj348xry1bq7znExEnB8j3ltWb21j8oj4+RjxxppFqeNh/nSKyJVhcgZLNSG3IqfGzlkXtPSUNU7zOnh+rn3WaIb0fiouqYgLKzmxCQguIIUh1nq4OhvG8Bi2mxPoQKpJ+RggjSshhYK59ulwiHU9KKx9GA0yGz246TwRF0WjbPtvRwFrfU2SCiEiCsKc3C4jLhourNN/BFvCYX7KKhnuXasar81SobqMTRTbBzLqZeMpRGacNfXpktCRU3c31+P3n16Joj2rmaOFI1/8l+zsQkkr9aLv/eJb+Dae3AyzjLz/Xzjv9f8K3hJrZmED095qv8i8qIsPV0dE3lhH6nY8uZNV6Rihf//5l7qpybye2MZlpD7SXGbOK/RycZJb6SwwUBPECSQgwxorjgZng1HILuu5wpDvvSbviBWaeN0eMml3d8S/cl/3h8b0Ow/rEnVIieCstvfjvZyoPMrZJgIl69JtLk4TKKwXT0PbztHTb67sOvk5Xrhi1Vx7nJcSqAssPX3hGV/e9tn7Sj3H7oHWp67vFZaNgIP3V+i0dPz+3TdTbtb7PTestqp00y7ZDL9wiMsXWUY17208uvWfxOK78R0kgA0fZMJD8Ff/QaqfJHVotUhBXuUv0cktbRvd23VbfFx6dsfW3xEtGk27rvsHmIeaiQ==
+sidebar_class_name: "get api-method"
+info_path: api/hook-0-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get an event"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/events/{event_id}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieves details of a specific event if it belongs to the specified application.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"event_id","required":true,"schema":{"type":"string","format":"uuid"},"style":"simple"},{"in":"query","name":"application_id","required":true,"schema":{"type":"string","format":"uuid"},"style":"form"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"event_id":{"type":"string","format":"uuid"},"event_type_name":{"type":"string"},"ip":{"type":"string"},"labels":{"type":"object"},"metadata":{"type":"object"},"occurred_at":{"type":"string","format":"date-time"},"payload":{"type":"string"},"payload_content_type":{"type":"string"},"received_at":{"type":"string","format":"date-time"}},"required":["event_id","event_type_name","ip","labels","occurred_at","payload","payload_content_type","received_at"],"title":"EventWithPayload"}}}},"400":{"description":"Bad Request"},"403":{"description":"Forbidden"},"404":{"description":"Not Found"},"409":{"description":"Conflict"},"500":{"description":"Internal Server Error"}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -1,0 +1,63 @@
+---
+id: instance-get
+title: "Get instance configuration"
+description: "Get an object that shows how this instance is configured."
+sidebar_label: "Get instance configuration"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9VlFv20YM/isHvnQDNNtpu4f5LSnSLgjQDHWGPQSGejrRFhvp7nLHS5YaAvYj9gv3Swbq7MyZFSTDgD5Z1n1HfiQ/ktoA63WE+RX87Nz1DJYF1BhNIM/kLMzhA7LSVrnqCxpW3GhWsXF3UTXuTnFDUZGNrK1BRVEZZ1e0TgHrCRTgPAYtds5qmMMON1kjQwEBo3c2YoT5Bl7PZvLz2PXFORRgnGW0LKfa+5bMYHD6JQpkA9E02Gl54nuPMIdMFArwQdwzZQd7d8uIJiCXxnVeM1XUEt/vWaica1Fb6AvQiV1ZV2VH6xzIOKyiaBJx6VPVkimvcd9c5EB2LTDTulSvWh2w5BRsZGqxjMT45I2VC10VyFzHl0RIZeMijxpCe0vB2Q4tl1SPQHopyE2igLWI4cHYwdVlX0Cn2XXueUpDbI/ckWVcY4Acmub86s1r4ZhC+zyxnckMFzJex3jnQl12ZKlLXdmiXXPzQqc3ybEu0a5cMNhthXZY4YBripw1UNYUddViPQ6NyXsXuMROU1vqug4Y40sy/oxAx9Q4Kr2nUzIW7lOxPRXIsgAmbiWSs21DvxuaHvpeYno71sknulaf8CZhZBgwbw4x712oqK7RZsTbQ8RHx+q9S7bOiJ8OEcKkJTM4+XGMyJllDFa3aoHhFoM6DcGFoRYdcuNkTOXp5LVICKba0/T2aLqbXVPJy3BVZuYmaxYaZh/n06n2ftLIGJ0Y10G/FKxJgfh+IWMqN8W2YnuK0J7Oh7qRUGxQ14NYre7k9Dhx4wJ93VX8cUByipa3ylEpkl0rrU6yE8XuGq36LkVU3KDK+lefT1AHDOry4vz04+fv90dYwFXA2HxLdm6lxJV6tfX96r/wTRFDqY153GPfjvOe/xfw7oXRKk/ObRMNa1cd/3J2QOSdC6g+nS4u5VQ8Zuhff/ypLjzaHxYuBYPqN6xEc1HpqLQScZIZGKiF1gsoQMSaLc4mR5OZZM+7yJ0ettk2J7LmHxb5bouPJmjzz0r+Xx8H21Ix/s5T32qyezsgd9+whiSAo6GS2RAUIDMob7or2GwqHfHX0Pa9vL5JGO5hfrUs4FYHklEm//piJwJp2mHbwrEx6KXVb3Wbsmj+9XkhDfwwFj6cXkLf/w1/rzW8
+sidebar_class_name: "get api-method"
+info_path: api/hook-0-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get instance configuration"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/instance/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get an object that shows how this instance is configured.
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"application_secret_compatibility":{"type":"boolean"},"auto_db_migration":{"type":"boolean"},"biscuit_public_key":{"type":"string"},"cloudflare_turnstile_site_key":{"type":"string"},"formbricks":{"type":"object","properties":{"api_host":{"type":"string"},"environment_id":{"type":"string"}},"required":["api_host","environment_id"]},"matomo":{"type":"object","properties":{"site_id":{"type":"integer","format":"int32"},"url":{"type":"string"}},"required":["site_id","url"]},"password_minimum_length":{"type":"integer","format":"int32"},"quota_enforcement":{"type":"boolean"},"registration_disabled":{"type":"boolean"},"support_email_address":{"type":"string"}},"required":["application_secret_compatibility","auto_db_migration","biscuit_public_key","password_minimum_length","quota_enforcement","registration_disabled","support_email_address"],"title":"InstanceConfig"}}}},"400":{"description":"Bad Request"},"403":{"description":"Forbidden"},"404":{"description":"Not Found"},"409":{"description":"Conflict"},"500":{"description":"Internal Server Error"}}}
+>
+  
+</StatusCodes>
+
+
+      

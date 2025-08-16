@@ -1,0 +1,71 @@
+---
+id: events-list
+title: "List latest events"
+description: "Retrieves the last 100 ingested events for a given application."
+sidebar_label: "List latest events"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVcFu20YQ/ZXFXJIAjCS37qG82YHSGm7jwnLRgyEoI3Ikbkzu0ruzQlWCQD+iX9gvKWaXtmVJDhKgaHWwZO6bmTeP82Y7YFx7yG9huiHDXv2MBtfUkGGYZ1CSL5xuWVsDOVwTO00b8oorUjV6VieTidJmTZ6pVJRSrKxTqNZ6Q0Zh29a6QEkwggxsSy7+c1FCDgk/qrVnyKBFhw0xOaHTgZaK94HcFjIw2BDksJNtoUvIwNF90I5KyNkFysAXFTUIeQe8bSXCs9NmDRmsrGuQIYcQdAl9Bp63tSDkAPq55PKtNZ68hH8zmcjX8/6vLiGDwhoWdfJul874kxdId8gAnUNpQTM1fue5XX6iIvbtRBXWqXDURJr7kh4SWGCLpNB+TJ+Bbo8+rnFJ9RE+fQYNMZbIePTQFkVwjsoF8mcplsj0lnVDEtTitrZYLgbtFinqCCtHBenNV2Xvd6fg9km/Q3WiFo+dP2/lBY7PGc0zYM1xaqJboJdPBqfHhuUcS3VN94F81O108u0h5r11S12WZBLi9BDxwbJ6b4MpE+L7Q8Q7a1a1Ti/nu2NELgyTM1irGbkNOTV1zrqom6ciOM3b6Lel9kXQDPntXNzQEFdWTLqmpA5XkMMYWz3enIyTc8cgOSRpsmxwNeRQMbc+H4+xbUeVtXeTUWGTwx7qzcQjadwfqz75pdWXFA0j5CvCktzTBjgLXFmn/4img/0FJadkePCkCl6btUJ1noootndk1OvgKS6wNE3q4zmhI6duri6nHz6+ER0HVgtHK0e++i/Z2ZWSUurVUPvV1/ANntwCi4K8/18479T/At6ynMzKRqaDrX6UeVFnv1wcEHlnHanr6exGTqVigv7951/qqiXzdmaDK0j9RkuZOa/QK1QynLqIDNQMcQYZyLCmjJPRyWgSt5P13GDc3oMmP2nPqkYmz8Olts+ne7oH/oVrcXhRTL/zuK1Rx30Q3dQNzruVtyj0Tx4Wm1CSjVRZL6aFrluip19d3ffyON2c4spSe1zWsh1XWHv6TCOvr4dF+ka9ROqOtsfu4Q3WQcDR5ht0WirGVZI9DJxQSdFnRUEt70Qd3KPPFtAP0xvIAAPv+fAuzvTwQ7I/HJntTu798U4U5G+fvRDSdckxff+IT0cvRjx6KqFFqnnf9/8AJhYy6Q==
+sidebar_class_name: "get api-method"
+info_path: api/hook-0-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"List latest events"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/events/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieves the last 100 ingested events for a given application.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"query","name":"application_id","required":true,"schema":{"type":"string","format":"uuid"},"style":"form"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"event_id":{"type":"string","format":"uuid"},"event_type_name":{"type":"string"},"ip":{"type":"string"},"labels":{"type":"object"},"metadata":{"type":"object"},"occurred_at":{"type":"string","format":"date-time"},"payload_content_type":{"type":"string"},"received_at":{"type":"string","format":"date-time"}},"required":["event_id","event_type_name","ip","labels","occurred_at","payload_content_type","received_at"],"title":"Event"}}}}},"400":{"description":"Bad Request"},"403":{"description":"Forbidden"},"404":{"description":"Not Found"},"409":{"description":"Conflict"},"500":{"description":"Internal Server Error"}}}
+>
+  
+</StatusCodes>
+
+
+      

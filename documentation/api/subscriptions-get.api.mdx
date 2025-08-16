@@ -1,0 +1,71 @@
+---
+id: subscriptions-get
+title: "Get a subscription by its id"
+description: "Retrieves details of a specific subscription if it belongs to the specified application and has not been deleted."
+sidebar_label: "Get a subscription by its id"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVs1u20YQfpXFXJIAjCS37qG82YGTGkbjwHLRgyHIQ+5I3IjcpXeHSlSBQB+iT9gnKXYp0RQpu84luUiC9puZb2e/+dkC49JBfAfTKnGpVSUro534HTUuqSDNMItAUnsEMdwQW0VrckISo8qdMAuBwpWUqoVKhet4EmohFIuEcqOXTrARnNEeSlJgWeYqxQBFLUWGTmjjDUgLSTkxyRFEYEqyAXUpIYZuBDdaEkMEJVosiMn622xBeaYlcgYRaCyoZzVXEiKw9FApSxJithVF4NKMCoR4C7wpgwlbpZcQwcLYAhliqColoY7A8SYPCFWUOUE9895cabQj5x38NJn4r8PMXV9BBKnR7PMab6Fz+/Fn5yHbIQeTfKY03ND6LLBqAnRs/WVewjm1hExyjvwsXCLTW1YFeRtJ0kchOf9i7CpktzVFa3EDESimwg1d1nVPOQNABLQmzXP/9zc6Vm5OGpOculdPjMkJtXecY0L5fEWb4SvMr6hksTBWJJiuvqCVIjVFiawSlSveRGJjKuEyU+VSVI7EfXDm7ucQDW/QBFpjXtF3CeWOSQOlVD4k5p8ORDLMW0GMEvmowP7Hyw7nvThKLT2vorZQelX3EhtGuzxw/0QNZITyUJJ7juGimTkSrt4ndgv0FUPxxpAxl8cyXtn8ecI2D/l4bCR3LamWws5v423Wh/fq+KBKj5XfYc0cFEJX9YfCbLXTEUD7isM3al9gFgErDinqzgeoa3+N02M97hyluKGHilx4htPJz0PMe2MTJSXpBnE6RHw0LN6bSssG8esQ8c7oRa6at/7lGJFLzWQ15mJKdk1WXFhr7F69lVW8CYMiUS6tFEN8N/NNfC8b2E8VziCGMZZqvD4ZHwye8baXtzrk1AdrZlBQT9CWi8djLMtRZsxqMkpNEQbGnsfUt/xG0S2bx15YqqvwnmGiNeJ6nGlnFWfGqr+CfqA/qf0pad4P2MopvRQozpsggs2KtHjt+46fyo2qxf05oSUrbq+vLj7ev/H53bGaW1pYctn3ZGcWwocSr3axX30L38qRnWOaknM/hHMn/gt4+6mmFyYw3RXdb14v4uzT5YDIO2NJ3FxMb/2pj9hA//37H3Fdkn47NZVNSfxJidecE+j8ikZ2rdLAQEwRpxCBF2vjcTI6GU189krjuMAwr3c5+UDsrbt7XbIRip0IzaI35NsF54dsirtHZvrK4zJHpTt9vKlm33OVv/pJr/X59hj3e+Esgsw43x9gu03Q0R82r2v/90NF1veQWQRrtMr34FD2UrndYrLA3NEz+Xl9sxsEb8RTzPea1V6wuy0DIIKw2Qwadz2ro72iPZUGdZamVHLHfrB3HnS+Dxe3fhmouFfozVjZ/fDej3Lr109DwX/W0RMm221TknXd4pujJy3aom3QPlWzuq7/A293buk=
+sidebar_class_name: "get api-method"
+info_path: api/hook-0-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get a subscription by its id"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/subscriptions/{subscription_id}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieves details of a specific subscription if it belongs to the specified application and has not been deleted.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"subscription_id","required":true,"schema":{"type":"string","format":"uuid"},"style":"simple"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"application_id":{"type":"string","format":"uuid"},"created_at":{"type":"string","format":"date-time"},"dedicated_workers":{"type":"array","items":{"type":"string"}},"description":{"type":"string"},"event_types":{"type":"array","items":{"type":"string"}},"is_enabled":{"type":"boolean"},"label_key":{"description":"_Kept for backward compatibility, you should use `labels`_","type":"string"},"label_value":{"description":"_Kept for backward compatibility, you should use `labels`_","type":"string"},"labels":{"type":"object","additionalProperties":{"type":"string"}},"metadata":{"type":"object","additionalProperties":{"type":"object"}},"secret":{"type":"string","format":"uuid"},"subscription_id":{"type":"string","format":"uuid"},"target":{"type":"object","properties":{"headers":{"type":"object"},"method":{"type":"string"},"type":{"example":"http","type":"string"},"url":{"type":"string","format":"url"}},"required":["headers","method","type","url"]}},"required":["application_id","created_at","dedicated_workers","event_types","is_enabled","label_key","label_value","labels","metadata","secret","subscription_id","target"],"title":"Subscription"}}}},"400":{"description":"Bad Request"},"403":{"description":"Forbidden"},"404":{"description":"Not Found"},"409":{"description":"Conflict"},"500":{"description":"Internal Server Error"}}}
+>
+  
+</StatusCodes>
+
+
+      

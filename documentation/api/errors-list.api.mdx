@@ -1,0 +1,63 @@
+---
+id: errors-list
+title: "List errors"
+description: "List of every possible errors that Hook0 can return. Each error is in RFC7807 problem format."
+sidebar_label: "List errors"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVE1vG0cM/SsEL2mBrSR/FGn3Fhtya7iIA8tBD4aQjGYp7dirmTGHK1QVFuiP6C/sLwk4u3EV24fkkESXFYZv+N6Qj9yhmFXC8gZ/D+FugvMCK0qWXRQXPJb4h0sCYQm0Id5CDCm5RUNAzIETSG0E8k2wxgOTtOxHMDW27iHgEjgPV2enL3+ZvITIYdHQGpaB10ZGWGCIxEa5zisssU87alwSLJApxeATJSx3eDiZ6OdTdZcXWKANXsiLRk2MjbM53/g2KWSHyda0NvpPtpGwRMNstligE1qnvfOwuCWrvJFVlbieuCIxrtnDJWHnV9gV6Kpnj5MYafczOy+0IsYC+4f3R0eHChYnDT2TptP337eOqdL2DCoy5wPDx9vzhzT4pq8wdvor8Pi5qp2YCq7ovqUkmDFHTzFngReuqsj3iOOniNdB4Cy0vuoRvz5FnAa/bJzNJD8/J+TcC7E3DcyIN8Qw1fbnp69J6qCOWFHuiJEaSxyb6Mabg3Fvk7EWIl9UA++w5QZLrEViKsdjE+OoVmeObFhjN1esbdnJdqaG6Hu7cMm2TvbNEd0FZXeowJpMlfvmzVqjr1qpA7u/s8Pw8axolLwMBoQ2Ob8CAyc9CUi4Iw8/tIlAahpmAN6fkGFiuL68mL5+/6PWalD1jmnJlOpvqS4sQangxcD94kv0ton4nbGWUvoumvf4P0O3zq9fhqx0GJ5+k716c/5EyGlggqvp7FqjythD//vnX7iM5H+ahZYtwZ+0UM8lMAkMqDmdzQpgZswMC1Sz9hkno4PRRKsXQ5K1yatqqEneub3HHwvZ/b/tvvpqHvon9JeMY2NcXgV5yHbDQN5oc/VVB1jgg2BdR3VIovHdbmESveWm6/T4viXeYnkzL3Bj2JmFlv1m3hUffaFzfEdbbb21FHX2N6Zpex892u060w974rfpNXbdB7v4T6U=
+sidebar_class_name: "get api-method"
+info_path: api/hook-0-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"List errors"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/errors/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+List of every possible errors that Hook0 can return. Each error is in RFC7807 problem format.
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"detail":{"type":"string"},"id":{"type":"string"},"status":{"type":"integer","format":"int32"},"title":{"type":"string"}},"required":["detail","id","status","title"],"title":"Problem"}}}}},"400":{"description":"Bad Request"},"403":{"description":"Forbidden"},"404":{"description":"Not Found"},"409":{"description":"Conflict"},"500":{"description":"Internal Server Error"}}}
+>
+  
+</StatusCodes>
+
+
+      

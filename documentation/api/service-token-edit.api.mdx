@@ -1,0 +1,71 @@
+---
+id: service-token-edit
+title: "Edit a service token"
+description: "Updates the name of an existing service token. The token must belong to the specified organization and still be active (not expired or revoked)."
+sidebar_label: "Edit a service token"
+hide_title: true
+hide_table_of_contents: true
+api: eJzNVttu20YQ/ZXFvMQGVpKvSsM323BQw2hiWDL6IAjOiByKG5O7zO7SsUIQ6Ef0C/slxSwpWZbktAGKti82xZ2ZPXM45+zW4HHuIJrAiOyjikmMzQNpJ35BjXMqSHuYSkjIxVaVXhkNEdyVCXpywmckNBYkTCpQC3pSzis9F64r5blUX4yz7lEUlfNiRrnRc+FNyHclxSpVlAhj56jVN+RNBOpEOK/yXMxIYOzVI4k9bbygp1LZEC0sPZoHSvb7IMGUZEPmVQIRdABCK31KlAcJJVosyJPlbmtQ3EiJPgMJ3MNz1n3Aeq8SkGDpS8XbQeRtRRJcnFGBENXgF2XI8VbpOUhIjS3QQwRVpRJoJDi/yEOEKsqcoJm21cj5c5MsuERstGd+oxqwLHMVhwYGnx2TXG/vZWafKQ6tWG7XK3K82qLfRNRIWCeU2/lr1M16x5O28nadqQSvfGhutEb0jXEempc1mLXwwpVGuxbv0cEB/3s5Uh+vQf5ThMyUiyvld3ISW0JPyT3uWF6jg+e751VBnPMqwatB+WFmlxBfAJJLwld1X2GaWW4knOwi8hwTcdvOGYSY4+2Y98bOVJJwIY442Y74YLx4byqdtBHvtiMujE5zFYdNTncBudKerMZcMHKy4tJaYwMRjuLKKr8IOlx9rMmUJVKQzwxLuKxa0foMIhhgqQaPh4MXCh3Um4JtQAYRLzVe2RwiyLwvXTQYYFn2M2MeDvqxKYIel0BGPFivzQ6W6poWIFvHyAgTss+ecVb5zNhOHLBplLxK2neDLCrH7ojivN2kM8W9ylGwwnZkxKdzQktWjD9eX374tM8Ed6juLaWWXPZvojOp4K3Em27vNz+Ct3Jk7zGOybn/BPPa/n8DdyOBreb22aUvnzCY98pln/W9Za5wnOJPp+nwpHf69vBt7+R0eNSbHadx7yh+NzxOh0NMccjkKJ2awEan7J95JsXZzdVWsxfGkri9HI15lbtqQ//47XfxsSTdG5nKxiR+pRnPtRPoBK4O39RYMUIcgQQWRFvxoH/YP2AQpXG+QL3W2WWi/Fp6YHIT0dqZ9X+8BHTz5enJD8ocVfC3YAJ15yQTHj5m5LCzipV9gIRo6wIwlZDxqRZNoK5n6OjO5k3Dr79UZNnAphIe0Sqc8aec1JAox88JRCnmjr7D395tdx7si9egL/WiWSyPmFf8CyQ80GLXdaWZNnIpJ8bShl20O/bGXOy5zNYB28hlxlkcU+m/G7vu1Dd3Y5Aw6y41hUk4xeJXvj7h1xaxCQQEEwjvashRzyucc2xbkuWHld8wt4dgFN0DN7WTk03PaPvgv9zVzpS6bm2oaVbx7dKrGSujaqP5E02bpvkTX/jeEg==
+sidebar_class_name: "put api-method"
+info_path: api/hook-0-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Edit a service token"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"put"}
+  path={"/api/v1/service_token/{service_token_id}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Updates the name of an existing service token. The token must belong to the specified organization and still be active (not expired or revoked).
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"service_token_id","required":true,"schema":{"type":"string","format":"uuid"},"style":"simple"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"name":{"type":"string"},"organization_id":{"type":"string","format":"uuid"}},"required":["name","organization_id"],"title":"ServiceTokenPost"}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"biscuit":{"type":"string"},"created_at":{"type":"string","format":"date-time"},"name":{"type":"string"},"token_id":{"type":"string","format":"uuid"}},"required":["biscuit","created_at","name","token_id"],"title":"ServiceToken"}}}},"400":{"description":"Bad Request"},"403":{"description":"Forbidden"},"404":{"description":"Not Found"},"409":{"description":"Conflict"},"500":{"description":"Internal Server Error"}}}
+>
+  
+</StatusCodes>
+
+
+      

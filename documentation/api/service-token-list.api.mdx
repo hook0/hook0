@@ -1,0 +1,71 @@
+---
+id: service-token-list
+title: "List service tokens"
+description: "Retrieves all active service tokens for a given organization. Expired or revoked tokens are not included in the response."
+sidebar_label: "List service tokens"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVdtu20YQ/ZXFvCQBGElu04fyzQ6U1nAbF5aLPhiCMiJH4kbULj07FKIQBPoR/cJ+STFLSpEluZeXRg+SwJ3L2cNzZhoQXAZIH2BCvLEZmXu/IhfMz+hwSWtyAtMEcgoZ20qsd5DCHQlb2lAwWJYGM7EbMqHPly5/4dmgWdoNOeN5ic5+Rk0fmPGnyjLlxrNh2vgV5bscZDLOi7EuK+uccmOdkYIMU6i8CzSABHxFHAtd55BC3zRiHpQ2CCRQIeOahFiv1YBVxI818RYScLgmSOEQ0MzmkADTY62oIBWuKYGQFbRGSBuQbaUpQdi6JSSw8LxGgRTq2ubQJhBkW2qEHkA71Vod3KDp34xG+vOUwNsbSCDzTpTetAGsqtJmEc7wY9CQ5hQBMqPewQqtw8FzP/9IWbw4Kzliu8ZzG7LayukV2gQyJhTKZ3jm+OCGOQq9FrsmzemoO1Msvjxl8Z/Jag+JfthDfAKo73RQd5qAWIkcTw7eN7T6SeDNOYavMDd39FhTEIgx357GvPM8t3mulTTizWnEey/mna9d3kV8fxrx1rtFabPY5LtzQK6dEDssjUInNmNmz5GJQFnNVrZRpfu39TBVCa1JCq8CX1InaSkghSFWdri5GPaqn0WGhpBEG+z0XnMJKRQiVUiHQ6yqQeH9ajTIfKfOXduJ6us5qWBlbyiKTe9QEObEX+xzWUvhufcPHE8HPSUnvZ5NHaxbGjRXXZPO6+ZlHSh6u1OI+XBFyMTm/vZm/P7DK6WzRzVjWjCF4v9E5xdGW5kXfe8X/wVvHYhnmGUUwlfBfND/X+BuFdHCR6S9yX5UvZjLX65PgLz1TOZuPLnXU+3Yhf75+x/mtiL3euJrzsj8RnPVXDAYDO4Xg26ECeIEElCxdhVHg4vBSNmrfJA1xsnXc/KTDXK0VY4BNV+G6FddSv07Fvokw6pEGydKNGLTe/dBBaA3v+jtuvcvJKATrvBB3Q9NM8dAv3LZtvq4W1zq69wGnJc6OBdYBvobJl7e9TP2lXkO24q2Z9fgBstao+Ok2CBbbRmHUrLTrGLp0i+zjCo5yDpZY09G2Q/je0gAazmy8iraov+j1XdHbntQ+9ghHQT9bpNnUpqmM13b7uO7o2cz9rbsopWradu2fwHq1SOJ
+sidebar_class_name: "get api-method"
+info_path: api/hook-0-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"List service tokens"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/service_token/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieves all active service tokens for a given organization. Expired or revoked tokens are not included in the response.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"query","name":"organization_id","required":true,"schema":{"type":"string","format":"uuid"},"style":"form"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"biscuit":{"type":"string"},"created_at":{"type":"string","format":"date-time"},"name":{"type":"string"},"token_id":{"type":"string","format":"uuid"}},"required":["biscuit","created_at","name","token_id"],"title":"ServiceToken"}}}}},"400":{"description":"Bad Request"},"403":{"description":"Forbidden"},"404":{"description":"Not Found"},"409":{"description":"Conflict"},"500":{"description":"Internal Server Error"}}}
+>
+  
+</StatusCodes>
+
+
+      

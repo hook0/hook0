@@ -1,0 +1,71 @@
+---
+id: event-types-delete
+title: "Delete an event type"
+description: "Marks an event type as deactivated, preventing it from being used for new event emissions. Existing events using this type remain unaffected."
+sidebar_label: "Delete an event type"
+hide_title: true
+hide_table_of_contents: true
+api: eJzNVcGO2zYQ/RViLkkA1fa26aG6ZTcOukiTFOstelgYzlgarQhLJJdDunEFAfmIfGG+JBhRu+t4naIBiiYX2xKHfI8z7z13EPCaIb+C+ZZMYPUKDV5TSybAMoOSuPDaBW0N5PAK/YYVGkVSq8LOkUJWJWER9BYDlZlyfljU5lrpoCpvW7UmeYpMpaqsV4b+Gg+gVjNra3ii5u80D5so0YgsD6HWnGA8taiNigariopA5QQysI48CrfzEnIYdl7uHPGkpIYCQQYOPbYUyMsVO9ByC4ehhgwMtnS7ayUYq+FNBp5uovZUQh58pAy4qKlFyDuQKsiBg9fmGvoMOOya4Y1uXUPQZyPETSS/u8dA5xpdDExXuvwKiAwq61sMkEOMutyHlAXol3IWO2uYWLb/OHsqX5+P7bVVZ9YEGWmfwdPZ7GHJKZbqgm4i8Vjz08OaF9avdVmSSRVHgYJ6YaMpU8UvDyvOrKkaXQwgPx8jcm4CeYONWpDfkldz762HXi5ORfQ67IZBrjUXUQfIr5bSg5ZCbUUDe4MPNeQwRaen25Pp/ZR52h2MvAc5XNCSSKJvIIc6BMf5dIrOTWprN7NJYVPDb4ksZGip7Xd07gaITr8kkcCgh5qwJH8viGcx1NbrvwdJwKHNZFUslBQzWgHVaQJRwW7IqMeRSYWaVFKIentK6Mmryzcv56/fPpEGj6xWnipPXP+f7GyVbPtoxH70NXwjk19hURDzN+G8h/8vePfCqLIDUx0Gb/4qelHPfj9/QOTMelIX88WlrApiKv34/oN648j8sLDRF6T+pLVojiVdUYk4dTEwUAvEBWQgYk0nziYnk5l0z1kOLRrhMfbk+WCGz/P6kFEHxRgN31+8j4MP9C5MXYN6CJ7Bnd3o7ytRhbTjBLK9JGfIID8M9mUGtWWJDOi6NTL94Zu+l9cprcX6pWZcN5LLFTZM/9CrxxdjhD9RX2K6od2x7N9iE6V4yJItei2I/z36rWvMbh/zltVhc/plv5eiz+e/zS/nkAHGcBAbm8GC4w8hfRTn0I0JVD7lL/Lolq5LBu/7u/q09MUddxGQquXay77vPwFUTgjZ
+sidebar_class_name: "delete api-method"
+info_path: api/hook-0-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Delete an event type"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"delete"}
+  path={"/api/v1/event_types/{event_type_name}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Marks an event type as deactivated, preventing it from being used for new event emissions. Existing events using this type remain unaffected.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"event_type_name","required":true,"schema":{"type":"string"},"style":"simple"},{"in":"query","name":"application_id","required":true,"schema":{"type":"string","format":"uuid"},"style":"form"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"204":{"description":"No Content"},"400":{"description":"Bad Request"},"403":{"description":"Forbidden"},"404":{"description":"Not Found"},"409":{"description":"Conflict"},"500":{"description":"Internal Server Error"}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -1,0 +1,71 @@
+---
+id: event-types-create
+title: "Create a new event type"
+description: "Defines a new event type for an application. Event types help categorize and structure emitted events, making them easier to manage and subscribe to."
+sidebar_label: "Create a new event type"
+hide_title: true
+hide_table_of_contents: true
+api: eJzNVttu20YQ/ZXFvKQFqItvSsM3O1XQIGhsWC76YAjOkByKG5O7zO5SjkoQ6Ef0C/slxezSskzJRQsUbV8kgjuXM2dmzrIFhysL8S3M16ScFT+iwhVVpBwsI8jIpkbWTmoFMXxPuVRkBQpFD4LYQbhNTSLXRqASWNelTJGtx2K+PbaioLIWKTpaaSN/IYEqE9aZJnWNIUGVdI6yENBGosJ7qVbCFVQJQivJCKdF5YEF1yZhWAkJp8cQga7J+KzvM4jBh7nhvOPUEDqCCAx9aci6C51tIG4h1cpxhXELO5gnny2X2YJNC6qQnxg+xKCTz5Q6iKA2nMtJsgPfO5nt2FtnpFpBBLk2FTqIoWlkBh0DsboxKd0Fy6FHF4Els5bp4bM1meTAQRcKlIYy7uQA1jDpU4o+4DICJ13JEeeP3F1p66B7HtmZhkIJtVY2UHA8PeK/53Py1tPOmf8hon1LPfo7hdVhbp4V+bJZX/vLBkzJS6cDooewDoIYpNxNcIh4Jr2L4HQ63ef1AjNxHSYZvM3Jvs07bRKZZaSCxem+xUftxDvdqCxYvDnQP63yUqY+ydkhIO+VI6OwFAsyazJibow2nh5LaWOk20B820IibdpIB/HtsltGUJErNG9ozcMVQY2ugBgmWMvJ+mjyxKad9KyRsT5QY0qIoXCutvFkgnU9LrS+n45TXQFHfsy64HkKI7PNvW0i1vIDbSACySUUhBkZiCC0Gs4bV7A4+QGFofLxKSnXz69oLAsUiouQRDh9T0p801hi1RJh68WnC0JDRtxcfph//PQts9mjujOUG7LFv4lO50GrX/W5X/0dvI0lc4dpStb+J5h38v8F3F0ErDDXT6I//4pVXdIh0YaTHL87y2eno7PXR69Hp2ez41Fykqej4/TN7CSfzTDH2Z6I7mj8VrCfXgWd3hEVqXLtievX/QceX3F+9X6Pl7fakLieL274lAkIpr//+pu4rEmNFh6E+JkSXgErkK/jHoK/hxeIiwDBhojT8dF4yiB47Sr0wtu3KAj13n0+BLVzYf5vvwH6rjj66iZ1idLrn9eNthcavhglM3ME0Y50W4iAlbhgUYpvoW0TtPSTKbuOX39pyLCaLSNYo5GYcP9ul130OO+sT/e0CbLJJI1uAoVrLJuwJYOLr4sePc7TlGr3p7a7unl1ubiBCJL+K6bSGfsYfODxxAeIwX8MsbdfU/+uhRLVqsEV24aYvCDYuIH83PtV7h+4qscjtdlBONzqUAj/clkHXdo2CEXXbe3D0YseWykJ1tzMZdd1fwA8QrAP
+sidebar_class_name: "post api-method"
+info_path: api/hook-0-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Create a new event type"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/api/v1/event_types/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Defines a new event type for an application. Event types help categorize and structure emitted events, making them easier to manage and subscribe to.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"application_id":{"type":"string","format":"uuid"},"resource_type":{"type":"string"},"service":{"type":"string"},"verb":{"type":"string"}},"required":["application_id","resource_type","service","verb"],"title":"EventTypePost"}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"201":{"description":"Created","content":{"application/json":{"schema":{"type":"object","properties":{"event_type_name":{"type":"string"},"resource_type_name":{"type":"string"},"service_name":{"type":"string"},"verb_name":{"type":"string"}},"required":["event_type_name","resource_type_name","service_name","verb_name"],"title":"EventType"}}}},"400":{"description":"Bad Request"},"403":{"description":"Forbidden"},"404":{"description":"Not Found"},"409":{"description":"Conflict"},"500":{"description":"Internal Server Error"}}}
+>
+  
+</StatusCodes>
+
+
+      

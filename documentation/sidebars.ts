@@ -1,18 +1,8 @@
-/**
- * Creating a sidebar enables you to:
- - create an ordered group of docs
- - render a sidebar for each doc of that group
- - provide next/previous navigation
+import type { SidebarsConfig } from '@docusaurus/plugin-content-docs';
 
- The sidebars can be generated from the filesystem, or explicitly defined here.
+import apiReference from './api/sidebar';
 
- Create as many sidebars as you want.
- */
-
-// @ts-check
-
-/** @type {import('@docusaurus/plugin-content-docs').SidebarsConfig} */
-const sidebars = {
+const sidebars: SidebarsConfig = {
   tutorialSidebar: [
     {
       type: 'doc',
@@ -22,10 +12,7 @@ const sidebars = {
     {
       type: 'category',
       label: 'Getting Started',
-      items: [
-        'explanation/what-is-hook0',
-        'tutorials/getting-started',
-      ],
+      items: ['explanation/what-is-hook0', 'tutorials/getting-started'],
     },
     {
       type: 'category',
@@ -65,6 +52,15 @@ const sidebars = {
       items: [
         'reference/api-reference',
         {
+          type: 'category',
+          label: 'API Reference',
+          link: {
+            type: 'generated-index',
+            title: 'Hook0 API',
+          },
+          items: apiReference,
+        },
+        {
           type: 'link',
           label: 'Interactive API',
           href: 'https://app.hook0.com/api/v1/docs',
@@ -79,10 +75,7 @@ const sidebars = {
             type: 'doc',
             id: 'reference/sdk/index',
           },
-          items: [
-            'reference/sdk/javascript',
-            'reference/sdk/rust',
-          ],
+          items: ['reference/sdk/javascript', 'reference/sdk/rust'],
         },
       ],
     },

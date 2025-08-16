@@ -1,0 +1,63 @@
+---
+id: organizations-list
+title: "List organizations"
+description: "Retrieves all organizations the current API token has access to, with the associated roles."
+sidebar_label: "List organizations"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVcFu20YQ/ZXFXJICrCQ36aG8xYHTGm7iwnKQgyA4o+VI3JjapWeHalWCQD8iX5gvCWZJO5Zko+mhCQ8kwX0z83bnzWMLgqsI+QzOeYXe/Y3igo/mNXpc0Zq8wDyDgqJlV+sS5HBBwo42FA1WlQk7cVKSsQ0zeTEv/jg1Eq7JmxKjQWspRiMhM386KRMSYwzWoVBhOFQUR5BBqIlTstMCctjJPqpcFMiAKdbBR4qQt/DTZKKPXYrnZ5CBDV50A3kLWNeVsynL+ENUSAvRlrRGfZNtTZADMuMWMnBC63jve1h8IKt1a1Zy4vrCHtd0DxWFnV9Bl+1wvnLFISaDZeA1CuTQNK7QmLpC/+8lK1xQ9WDNR8h0elg3jWMqtMd9/ICe62KoviIswQ/3NYTPMxAnmmdHQ9DplcHzh/pzjIW5oJuGokDCPDvEvAq8cEVBvkc8P0S8CWJehcYXPeKXQ8TL4JeVs6nIzw8ROfVC7LEyU+INsTlhDpwOIJJt2MkW8lkLCxdt4wTy2bybZ7AmKYPKc0WpSSgl5DDG2o03R+MdzY5BU2numDI1XEEOpUgd8/EY63pUhnA9GdmwBk19W3aq6uy7flf8i1Jrd0ZJqrqHkrAgvm1rDi8aKQPftmF/enWVvAzTYJro/MqgOe6LDAP7tImUJrQXqnl/TMjE5vL87OTN+x/0OAdWV0xLplh+S3ZhabSUeTLUfvJf+DaR+Ko3o+/C+V79r+DdKaNlSEyHIftN9aLmekDkZWAyFyfTy2S9YWl66Kd/PprzmvyP09CwJfOOFqq5aNSVjYrT2cTATBGnkIGKtc84GR2NJsmfQpR1b1HDmfzuouya/z6f9osD/8//jKGJQn/JuK7QJctIk9YOwznTDuvWjvaMTFmrhZUh6nhD2y4w0luuuk4/3zTEagHzDDbIDhfagpla56ARnelr2qoMrKVa7WCDVdNrau+ns2Mdv55cQgbYyN7oXCcZDi+a/XbJb+/l3ldkT0HvXfZISNv2Iu+6O3y/9GjE3Rj0aD3Wedd1nwFhA9AL
+sidebar_class_name: "get api-method"
+info_path: api/hook-0-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"List organizations"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/organizations/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieves all organizations the current API token has access to, with the associated roles.
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"name":{"type":"string"},"organization_id":{"type":"string","format":"uuid"},"plan":{"type":"object","properties":{"label":{"type":"string"},"name":{"type":"string"}},"required":["label","name"]},"role":{"type":"string"}},"required":["name","organization_id","role"],"title":"Organization"}}}}},"400":{"description":"Bad Request"},"403":{"description":"Forbidden"},"404":{"description":"Not Found"},"409":{"description":"Conflict"},"500":{"description":"Internal Server Error"}}}
+>
+  
+</StatusCodes>
+
+
+      

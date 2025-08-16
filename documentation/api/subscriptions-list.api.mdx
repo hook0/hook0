@@ -1,0 +1,71 @@
+---
+id: subscriptions-list
+title: "List subscriptions"
+description: "Retrieves all active event subscriptions for a given application. A subscription defines how and where event notifications will be sent."
+sidebar_label: "List subscriptions"
+hide_title: true
+hide_table_of_contents: true
+api: eJzNVs1u20YQfpXFXJIAjCS37qG62YHTGm7jwHLRgyHIQ+5I3JjapXeXchSBQB+iT9gnKWaXkklRdp0e0vpgG5y/b2a/+dmAx4WD8Q1MqtRlVpVeGe3Er6hxQUvSHqYJSNqJYAxX5K2iFTmBRSEw82pFglakvXAdJ3NjBYqFWpEWWJaFypAFA3HSURSS5kqTE7l5EKileMjJbj1q49W8MXTiQRWFSEk40n4ACZiSbBCdSxhDJ/qgUM5DAiVaXJIny1luQHEG9xXZNSSgcUkwhha2mZKQgKX7SlmSMPa2ogRcltMSYbwBvy7Zwnmr9AISmBu7RA9jqColoU7A+XXBGiyAesq+XGm0I8fm341G/Kdbz8sLSCAz2nO1x5s2nOEnxyqbPgK0FjkF5WnpWt9N+omykLfl4ngVA++l+JJMMkvoSc7QP6su0dNbr5bENpIkRyE5ezD2LtT8HxE3Lut6j2c9hQQCJWb8+SsdKzcjjWlB7dRTYwpCzY4LTKmY3dG6/zqzCyp9oHKK2d0DWikysyzRq1QVyq8TsTaVcLmpCikqR+I2OHO3M0j6GcRAKywq+iahDlIDpVQcEouPHZL067YkjxI9/gsvjR57cZRZep5Fu/ZptfBLierRLjrun+iBnFB2KbnFGBLNzYFw9bawG6DPuCxDb+fel4cqXtniecC2CPV4HC83O1A7CI3f6G26r94bVa0uPdR+3Z7pNEKb9V1i7rjTIsDuFftvtHuBaQJe+VCi9jaBmn8SOD40/E5Riiu6r8iFdzgefd/XeW9sqqQkHTWO+xofjBfvTaVl1Pixr/HO6Hmh4mP/cAjIufZkNRZiQnZFVpxZa+yWvpVVfh32R6pcVikP45spT/ctb2BBcdn4HMYwxFINV0fDzkIahhqy77iJAlsCl9x4OMSyHOTG3I0GmYmLYxt2wqM/MngX/HH2leoivF/Ya5FMj4vtpPK5sepL4Avs73GWkvYNnUTllF4IFKcxiPDmjrR4zXPG5yQii8XtKaElK64vL84+3L7hcjaoZpbmllz+LdGZueBQ4lUT+9XX4K0c2RlmGTn3n2BuxX8Bbt5iem4C0qbJfma+iJOP5z0g74wlcXU2uWYpR4yqf/3xp7gsSb+dmMpmJH6nlDnnBDqBgsmpsoBATBAnkACTNXocDY4GI65eaZxfYtjPTU1+UW7v8tvHs3k8b/5P12Pz4p4++2FZoNKtIR47mQeu4joc7c09TpHnXW4czwLYbFJ09Jst6po/xwOTu1wq19wdcywcPVOY11fNnH8jnsIWDpT+DmjOCQhjY4VWccQwoZItgRlKtD7JMip9y6p3bnbm2k9n17zrK7/X13FrNP+w961Ir1u+99slQuDfdfKEyWYTO7Cud/pR9KTFrkejNpdqWtf13/t7dBE=
+sidebar_class_name: "get api-method"
+info_path: api/hook-0-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"List subscriptions"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/subscriptions/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieves all active event subscriptions for a given application. A subscription defines how and where event notifications will be sent.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"query","name":"application_id","required":true,"schema":{"type":"string","format":"uuid"},"style":"form"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"application_id":{"type":"string","format":"uuid"},"created_at":{"type":"string","format":"date-time"},"dedicated_workers":{"type":"array","items":{"type":"string"}},"description":{"type":"string"},"event_types":{"type":"array","items":{"type":"string"}},"is_enabled":{"type":"boolean"},"label_key":{"description":"_Kept for backward compatibility, you should use `labels`_","type":"string"},"label_value":{"description":"_Kept for backward compatibility, you should use `labels`_","type":"string"},"labels":{"type":"object","additionalProperties":{"type":"string"}},"metadata":{"type":"object","additionalProperties":{"type":"object"}},"secret":{"type":"string","format":"uuid"},"subscription_id":{"type":"string","format":"uuid"},"target":{"type":"object","properties":{"headers":{"type":"object"},"method":{"type":"string"},"type":{"example":"http","type":"string"},"url":{"type":"string","format":"url"}},"required":["headers","method","type","url"]}},"required":["application_id","created_at","dedicated_workers","event_types","is_enabled","label_key","label_value","labels","metadata","secret","subscription_id","target"],"title":"Subscription"}}}}},"400":{"description":"Bad Request"},"403":{"description":"Forbidden"},"404":{"description":"Not Found"},"409":{"description":"Conflict"},"500":{"description":"Internal Server Error"}}}
+>
+  
+</StatusCodes>
+
+
+      

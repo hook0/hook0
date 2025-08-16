@@ -1,0 +1,71 @@
+---
+id: service-token-get
+title: "Get a service token"
+description: "Retrieves details of a specific service token if it belongs to the specified organization and is still active."
+sidebar_label: "Get a service token"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVttuGzcQ/RViXpIAG0lu04fumx04qWE0LiwXeTAEZ8Sd1TJekTQ5K1RdLNCP6Bf2S4LhrmRZknsBgvRFFszDOYeHc4ZqgXERIb+FKYWV0aRu3D3ZqH5GiwtakmWYZVBQ1MF4Ns5CDtfEwdCKoiqI0dRRuVKhip60KY1WcSjFUkqZUhlWc6qdXUTFTnFFGywVyoUFWvM7Sm2FtlAmqsimrhVqNisaQQbOU0iAiwJyGMonoaMFMWTgMeCSmIIcpQUjKj1yBRlYXNLjpruk6c4UkEGgh8YEKiDn0FAGUVe0RMhb4LVPezgYu4AMSheWyJBD05gCugwir+uEMEtfE3TZwPnQUFg/ku6e7atxygJ0M6kVvbORomz/bjKRP08v6uoSMtDOslxj3gJ6Xxud5Iw/R4G0hwrc/DPpZGoQ39n0BHMTdWP4UGqXgQ6ETMUdHlneOUmBTK/ZLMWwwaIjxbY39M+mdLuG3m4lPhE0MO3UnWXAhpOX051Wgq6Tgm+OGXmGhbqmh4YiQ8J8f4h558LcFIUUEsSbQ8QHx+qda2zRI348RLx1tqyNTiQ/HBNyYZmCxVqJcgrqPAQXkhGRdBMMr1MAtpd1O5NOWRJXTqKzSQtXkMMYvRmvTsZPojFu95PSQZbSswlXE2rIoWL2MR+P0ftR5dz9ZKRd35YbIVNprOd6B725JElKik1FWFB4zM1pw5ULQ3Bgf/zIKlkeGlk10diFQnXWkwxT52UTKU2avmXUpzPCQEHdXF2ef/j0SgweVN0FKgPF6luqc6USKvVi4H7xX/Q2kcIdak0x/i+ad/j/he5OFJUuKR1S95P0izr95eJAyFsXSF2fT29kVRh76F9//KmuPNnXU9cETeojzaXnosIo787w3JQuqCniFDKQZu0rTkYno4m4513kJaaRN3jynnhndzrkvqD2cXp++1dvuFim33jsazRpsKT0tUOEb+XW5bgnQ0a3uYUM8oMnb5ZB5aJMBWjbOUb6NdRdJ//u3y1Jd2EizmuZpyXWkf7Gj5fXw+h9pZ4Te0/ro6/gCutG0GlerDAYofz69Jtk2PUu50bWgT3drMs2wREtPexUa/K8U+DgEX0yYd+f30AG2PDePLlP2Ry+SPWj4vZj2kuQT/mJcXRL2/bJ77otvl96dsd2NvRo8WrWdd0Xh01ycw==
+sidebar_class_name: "get api-method"
+info_path: api/hook-0-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get a service token"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/service_token/{service_token_id}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieves details of a specific service token if it belongs to the specified organization and is still active.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"service_token_id","required":true,"schema":{"type":"string","format":"uuid"},"style":"simple"},{"in":"query","name":"organization_id","required":true,"schema":{"type":"string","format":"uuid"},"style":"form"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"biscuit":{"type":"string"},"created_at":{"type":"string","format":"date-time"},"name":{"type":"string"},"token_id":{"type":"string","format":"uuid"}},"required":["biscuit","created_at","name","token_id"],"title":"ServiceToken"}}}},"400":{"description":"Bad Request"},"403":{"description":"Forbidden"},"404":{"description":"Not Found"},"409":{"description":"Conflict"},"500":{"description":"Internal Server Error"}}}
+>
+  
+</StatusCodes>
+
+
+      

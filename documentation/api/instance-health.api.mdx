@@ -1,0 +1,71 @@
+---
+id: instance-health
+title: "Check instance health"
+description: "Get an object that shows if this instance is up."
+sidebar_label: "Check instance health"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVE1vEzEQ/SvWXABpSVIoB/bWVumHKrWoKeJQRe3EO8m62diuPRsI0Ur8CH4hvwSNN0lT0gNwgNNq7We/55k3bwmMkwj5DZw6N+3BMIOCog7Gs3EWcjghVmiVG92TZsUlsoql+xyVGSsuTVTGRkarSZmoat+BDJyngHL8rIAc1vudkrDiEjLwGHBGTEF4l2CE5qGmsIAMLM4IcpiS/ERd0gwhXwIvvCxHDsZOoMkg8qKSlbELM2iGGQSK3tlIUeBvej35PH3J5TlkoJ1lsiy76H1ldBLavY8CWe4ytu8W0UGexaYlKJBxhJG2kCPnKkILTSNiHmoTqJC6bqDDDNhwUn2aSnFUkp5C08iJ/ecUH2KhruihpsiQMG93MccujExRkG0R+7uIC8fq2NW2aBHvdxFHzo4roxPJu+eEnFmmYLFSAwpzCqofggvppTPi0kmbJ5SqhFxCDl30pjvf67Yt70or08G24XWoIIeS2ce820XvO6V4r6Nd28pIug6GFwNpRlvvkYm6NrxVbvTmPJkk2ackLCg8+ueg5tIF8zV1F371tOyS5VXzVR2NnShUhy2JYjclq17WkRSXpMRiyOrukDBQUNeX5/2Lu1dSq5Wq20DjQLH8l+rcWAmVerHifvEneutI4Ra1phj/i+Yt/t/Q3YiisUtK1/MjflEHH852hBy5QOqqP7iWXWFsoT++fVeXnuzrgauDJvWJRuK5qDAqVGJOo5MCNUAcQAZi1vbGXmev05PqeRd5hikmVjVJA/wYgJuAeyJp+Zg5fxOmq+YwfeGur9CkOU8TtFxN2410TiTvQQYbDRI3pYss+8ulBNDHUDWNLLdZK5NYmIijSnJqjFWkLOXuOn3nWNVCnWZyjsEIFPKbYZOt3SF3tEcOtCbPW6d20lVu2aTFSf8amuYnxO4ztw==
+sidebar_class_name: "get api-method"
+info_path: api/hook-0-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Check instance health"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/health/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get an object that shows if this instance is up.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"query","name":"key","schema":{"type":"string"},"style":"form"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"database":{"type":"boolean"}},"required":["database"],"title":"HealthCheck"}}}},"400":{"description":"Bad Request"},"403":{"description":"Forbidden"},"404":{"description":"Not Found"},"409":{"description":"Conflict"},"500":{"description":"Internal Server Error"}}}
+>
+  
+</StatusCodes>
+
+
+      

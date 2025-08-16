@@ -1,0 +1,71 @@
+---
+id: organizations-get
+title: "Get organization's info by its ID"
+description: "Retrieves details about a specific organization, including quotas and consumption statistics."
+sidebar_label: "Get organization's info by its ID"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFV9tu20YQ/ZXFvDgBWMlO3ALlmx07qWE0LiwXfTAEZUmOpI3JXXp3VohKEOhH5AvzJcUsKZuipFhC0fbFlr1zOTN7zsyqApIzB/E93NiZ1OpPScpoJ36VWs6wQE0wjiBDl1pV8hHEcItkFS7QiQxJqtwJmRhPQgpXYqqmKhWmEywSSqe5z5SeiUdvSDohdSZSo50vQkzhSJJypFI3gAhMiTZ4XmUQQzeUG8yQIIJSWlkgoWXkFShGVUqaQwRaFtjzmqgMIrD46JXFDGKyHiNw6RwLCXEFtCzZxZFVegYRTI0tJEEM3qsM6ggcLfNgoYoyR6jHHM2VRjt0HODN8TH/Wu/SzTVEkBpN3MO4AlmWuUoDoOFnxybVJgaTfMY0VGi5C6SaBJ1evWzcSeQ61koTztB261OafjrlAnGBmtykRDvJ5HJPpwKLJNzAHtZ1vbqZfrvrCIxOjLTMj4kjLN1BJW67QNS+YErfmQsDEVwYjTBelXmww6Sx3t/L+aRDhH396i5F79dKXCFfA9TLw4n7pN+H22Uu9+BULhPMt17ejlvtVdP4t9YMtRkEh5E58HOtxlwVil4k4Ns3DDSTSzcx00nLdYsszEODrAvlINdWLv+kiN0U2Rn2xbp31PQiXr5E79b1L62VS4hAERZ73C0WUm0n1VRZR5OdAyOX3zu1Jt9+wHD3k0Wv0Q3QNVhdEG3K5wTjuh+hO8BbFWyZe5sKfhLKqtnjCEhR2EbdhX2lp4anbB3B6bZldC4zcYuPHh1BsHm7afPe2ERlGerG4nTT4qMh8d54nTUWP29avDN6mqs0JPlxG5ArTWi1zMUI7QKtuLTW2NBwh6m3ipZhoyfKpZ5VcT/mbVsgzQ0/Blbrn+YQw1CWarg4Ga69EIZVr4f1kEdlyNa8FrzNIYY5Ueni4VCW5WBuzMPxIDVFWO0rICNezg1Tn+A8U71U1xi4zlXNUWZBse3r48zT3NgWA/TfT3zKGmykK7zjl5EU500SQeYBtXjlHQqao2ioKT6do7Roxd3N9eXHT6+5wS2qicWpRTf/L9GZqeBU4qjNfXQI3iATmabo3P+CuZN/D9w1I5qagLRV3i/MF3H229UGkHfGori9HN3xKWdsTL/99VXclKh/GBlvUxR/YMKcc4LfwoLJqdKAQIykHEEETNYm4vHgZHAcFrVxVDS7uu3JB6S1h/aRE4xUJEuhyImriz686vk9+q8/4ttbJfxCwzKXKkyVIL2q1S8vMMW1nvQGH0+7eHMS8uybG8dDAaoqkQ5/t3ld878fPVoeHOMIFtIqmfA13VeQKcefM4inMnf4nXa8um2n9WuxC/yKp5pJupC5578gggdcbvnCUfOCbFnMUBqrszTFkjr+G98K1sbdh8s7iEB66on7IQil/cDRt2Lra6aBwD/raIdLVTUyrOsn++Zop8eTUBtrbhWvv78Bvdr5ww==
+sidebar_class_name: "get api-method"
+info_path: api/hook-0-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get organization's info by its ID"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/organizations/{organization_id}/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieves details about a specific organization, including quotas and consumption statistics.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"organization_id","required":true,"schema":{"type":"string","format":"uuid"},"style":"simple"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"consumption":{"type":"object","properties":{"applications":{"type":"integer","format":"int64"},"events_per_day":{"type":"integer","format":"int64"},"members":{"type":"integer","format":"int64"}}},"name":{"type":"string"},"onboarding_steps":{"type":"object","properties":{"application":{"type":"string","enum":["ToDo","Done"]},"event":{"type":"string","enum":["ToDo","Done"]},"event_type":{"type":"string","enum":["ToDo","Done"]},"subscription":{"type":"string","enum":["ToDo","Done"]}},"required":["application","event","event_type","subscription"]},"organization_id":{"type":"string","format":"uuid"},"plan":{"type":"object","properties":{"label":{"type":"string"},"name":{"type":"string"}},"required":["label","name"]},"quotas":{"type":"object","properties":{"applications_per_organization_limit":{"type":"integer","format":"int32"},"days_of_events_retention_limit":{"type":"integer","format":"int32"},"events_per_day_limit":{"type":"integer","format":"int32"},"members_per_organization_limit":{"type":"integer","format":"int32"}},"required":["applications_per_organization_limit","days_of_events_retention_limit","events_per_day_limit","members_per_organization_limit"]},"users":{"type":"array","items":{"type":"object","properties":{"email":{"type":"string"},"first_name":{"type":"string"},"last_name":{"type":"string"},"role":{"type":"string"},"user_id":{"type":"string","format":"uuid"}},"required":["email","first_name","last_name","role","user_id"]}}},"required":["consumption","name","onboarding_steps","organization_id","quotas","users"],"title":"OrganizationInfo"}}}},"400":{"description":"Bad Request"},"403":{"description":"Forbidden"},"404":{"description":"Not Found"},"409":{"description":"Conflict"},"500":{"description":"Internal Server Error"}}}
+>
+  
+</StatusCodes>
+
+
+      

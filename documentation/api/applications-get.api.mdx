@@ -1,0 +1,71 @@
+---
+id: applications-get
+title: "Get an application by its ID"
+description: "Retrieves details about a specific application, including quotas and consumption statistics."
+sidebar_label: "Get an application by its ID"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVk1v20YQ/SuLuSQBtpKdpIfyZsdOahiNC8tFD4agrMiRuDG5S+/MClUJAv0R/YX9JcWQtEJJdi0f2l4kSpyPxzdvHrcGNkuC5BZOqqqwqWHrHamfjDNLLNExTDVkSGmwldyCBK6Rg8UVksqQjS1ImbmPrIyiClO7sKky32ppZV1axMy6pbqPng0p4zKVekexbEsqYsOW2KY0Ag2+wtBmXmSQwKASjZbIoKEywZTIGAR2DVYwVYZz0OBMidtJM5uBhoD30QbMIOEQUQOlOZYGkhp4XUkGcbBuCRoWPpSGIYEYbQaNBuJ10UbYsioQmqlUo8o7QpICb4+O5GuboqtL0JB6x0JgUg8Bjb+ShNT7GPz8K6btAwbhgG3XYOdhDsE8IPf5+rhCxzSrMMwysx7EW8e4xDBsYB2/ewtN0zxQvQum0eDd3Jsg854RY0UHInjswdDFUqR54888aDjzDmHa6C5h1kUfnkVxPpjRoXnNUD23PdYtCDuVpZUPS+Ps7y8aWrccz7OVmTXN/GLWzy2giEz6FLa0fND89M7QX5C6Q8czYJ5otMfq3sIOFdxr7RFl7RO9oXGqgS23mzswtgu38CLfRsP7x/b21GTqGu8jEkMb824/5qMPc5tl6LqI9/sRnz2rjz66rIv4YT/ig3eLwqZtk+8fA3LhGIMzhZpgWGFQ5yH40LJPmMZged1639xSGmVyt1MxphI59+KaD0bJOSQwNpUdr47HQysd19uUN6LitlVnqjEUkEDOXFEylsxR7v3d0Sj1ZWuBDygmYmKdLjdYNioylb3ENejOonM0WSup3qRPIuc+9LOD3ZeM3BUpdQhVJHl/GHXaNVHs79Cp15FQcY6qU6n6coomYFA3V5fnn7+8EXZ7VLOAi4CU/5fo/EJJK/Wq7/3qJXgjYZiZNEWi/wXzoP8BuBtBtPAt0n7rfhS9qJOfL/aAfPAB1fX55EbuSscu9K8//lRXFbrvJj6GFNWvOBfNkZITgxJx2rRFoCbGTECDiLWreDQ6Hh0Je5UnLk3r7j0nn5CVccMDiZqvlWVSF2e7yOpvr+x/+5DTz5PxNx5XhbGtmbRLV/drK6Zo5SmPQW+dgkBDsuOXUw25J7EBqOu5IfwlFE0jf99HDGIVUw0rE6yZy2xua8gsyXUGycIUhP9AxOvr3qffqKdwP4jTiTJXpojyCzTc4Xr/MNbI+7FXriDpgk7SFCsepO+dmLb87dP5jbASeWeh79rl6C+k+qPQdvekgyCfjX4ipa671WuaTXx368mMzXJ20cLUtGmavwHAivW/
+sidebar_class_name: "get api-method"
+info_path: api/hook-0-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get an application by its ID"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/applications/{application_id}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieves details about a specific application, including quotas and consumption statistics.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"application_id","required":true,"schema":{"type":"string","format":"uuid"},"style":"simple"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"application_id":{"type":"string","format":"uuid"},"consumption":{"type":"object","properties":{"events_per_day":{"type":"integer","format":"int32"}}},"name":{"type":"string"},"onboarding_steps":{"type":"object","properties":{"event":{"type":"string","enum":["ToDo","Done"]},"event_type":{"type":"string","enum":["ToDo","Done"]},"subscription":{"type":"string","enum":["ToDo","Done"]}},"required":["event","event_type","subscription"]},"organization_id":{"type":"string","format":"uuid"},"quotas":{"type":"object","properties":{"days_of_events_retention_limit":{"type":"integer","format":"int32"},"events_per_day_limit":{"type":"integer","format":"int32"}},"required":["days_of_events_retention_limit","events_per_day_limit"]}},"required":["application_id","consumption","name","onboarding_steps","organization_id","quotas"],"title":"ApplicationInfo"}}}},"400":{"description":"Bad Request"},"403":{"description":"Forbidden"},"404":{"description":"Not Found"},"409":{"description":"Conflict"},"500":{"description":"Internal Server Error"}}}
+>
+  
+</StatusCodes>
+
+
+      
