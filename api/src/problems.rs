@@ -150,6 +150,26 @@ impl From<html2text::Error> for Hook0Problem {
     }
 }
 
+impl From<validator::ValidationErrors> for Hook0Problem {
+    fn from(err: validator::ValidationErrors) -> Hook0Problem {
+        Hook0Problem::Validation(err)
+    }
+}
+
+impl From<lettre::address::AddressError> for Hook0Problem {
+    fn from(err: lettre::address::AddressError) -> Hook0Problem {
+        warn!("{err}");
+        Hook0Problem::InternalServerError
+    }
+}
+
+impl From<hook0_client::Hook0ClientError> for Hook0Problem {
+    fn from(err: hook0_client::Hook0ClientError) -> Hook0Problem {
+        warn!("{err}");
+        Hook0Problem::InternalServerError
+    }
+}
+
 impl From<Hook0Problem> for HttpApiProblem {
     fn from(hook0_problem: Hook0Problem) -> Self {
         let problem: Problem = hook0_problem.to_owned().into();

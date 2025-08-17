@@ -14,6 +14,8 @@ use std::time::{Duration, SystemTime};
 use strum::{AsRefStr, EnumIter, EnumString, VariantNames};
 use uuid::Uuid;
 
+use crate::problems::Hook0Problem;
+
 #[cfg(feature = "migrate-users-from-keycloak")]
 const GROUP_SEP: &str = "/";
 #[cfg(feature = "migrate-users-from-keycloak")]
@@ -469,6 +471,11 @@ pub enum Action<'a> {
     ResponseGet {
         application_id: &'a Uuid,
     },
+    //
+    RetryScheduleList,
+    RetryScheduleCreate,
+    RetryScheduleRead,
+    RetryScheduleWrite,
 }
 
 impl Action<'_> {
@@ -533,6 +540,11 @@ impl Action<'_> {
             Self::RequestAttemptList { .. } => "request_attempt:list",
             //
             Self::ResponseGet { .. } => "response:get",
+            //
+            Self::RetryScheduleList => "retry_schedule:list",
+            Self::RetryScheduleCreate => "retry_schedule:create",
+            Self::RetryScheduleRead => "retry_schedule:read",
+            Self::RetryScheduleWrite => "retry_schedule:write",
         }
     }
 
@@ -599,6 +611,11 @@ impl Action<'_> {
             Self::RequestAttemptList { .. } => vec![Role::Viewer],
             //
             Self::ResponseGet { .. } => vec![Role::Viewer],
+            //
+            Self::RetryScheduleList => vec![Role::Viewer],
+            Self::RetryScheduleCreate => vec![Role::Editor],
+            Self::RetryScheduleRead => vec![Role::Viewer],
+            Self::RetryScheduleWrite => vec![Role::Editor],
         };
 
         roles.append(&mut per_action_roles);
@@ -681,6 +698,11 @@ impl Action<'_> {
             Self::RequestAttemptList { application_id, .. } => Some(**application_id),
             //
             Self::ResponseGet { application_id, .. } => Some(**application_id),
+            //
+            Self::RetryScheduleList => None,
+            Self::RetryScheduleCreate => None,
+            Self::RetryScheduleRead => None,
+            Self::RetryScheduleWrite => None,
         }
     }
 
@@ -776,6 +798,11 @@ impl Action<'_> {
             Self::RequestAttemptList { .. } => vec![],
             //
             Self::ResponseGet { .. } => vec![],
+            //
+            Self::RetryScheduleList => vec![],
+            Self::RetryScheduleCreate => vec![],
+            Self::RetryScheduleRead => vec![],
+            Self::RetryScheduleWrite => vec![],
         };
 
         facts.push(fact!("action({action})", action = self.action_name()));
@@ -1124,6 +1151,15 @@ pub fn authorize_refresh_token(
         session_id,
         user_id,
     })
+}
+
+pub fn authorize_for_organization(
+    biscuit: &Biscuit,
+    organization_id: &Uuid,
+    action: Action<'_>,
+) -> Result<AuthorizedToken, Hook0Problem> {
+    authorize(biscuit, Some(*organization_id), action, 100)
+        .map_err(|_e| Hook0Problem::Forbidden)
 }
 
 pub async fn authorize_for_application(

@@ -218,6 +218,27 @@ impl Mailer {
         self.transport.send(email).await?;
         Ok(())
     }
+
+    /// Send a plain text email
+    pub async fn send_text_email(
+        &self,
+        recipient_email: &str,
+        subject: &str,
+        body: &str,
+    ) -> Result<(), Hook0Problem> {
+        use std::str::FromStr;
+        
+        let recipient = Mailbox::new(None, Address::from_str(recipient_email)?);
+        
+        let email = Message::builder()
+            .from(self.sender.to_owned())
+            .to(recipient)
+            .subject(subject)
+            .body(body.to_owned())?;
+
+        self.transport.send(email).await?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]

@@ -8,6 +8,7 @@ pub mod organizations;
 pub mod registrations;
 pub mod request_attempts;
 pub mod responses;
+pub mod retry_schedules;
 pub mod service_token;
 pub mod subscriptions;
 

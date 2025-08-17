@@ -37,6 +37,10 @@ pub const EVENT_TYPES: &[&str] = &[
     "api.subscription.created",
     "api.subscription.updated",
     "api.subscription.removed",
+    "api.endpoint.disabled",
+    "api.endpoint.warning",
+    "api.endpoint.recovered",
+    "api.message.attempt.exhausted",
 ];
 
 pub fn initialize(
@@ -131,6 +135,36 @@ pub enum Hook0ClientEvent {
     SubscriptionCreated(EventSubscriptionCreated),
     SubscriptionUpdated(EventSubscriptionUpdated),
     SubscriptionRemoved(EventSubscriptionRemoved),
+    EndpointDisabled {
+        organization_id: Uuid,
+        application_id: Uuid,
+        subscription_id: Uuid,
+        endpoint_url: String,
+        disabled_at: DateTime<Utc>,
+        failure_count: i64,
+    },
+    EndpointWarning {
+        organization_id: Uuid,
+        application_id: Uuid,
+        subscription_id: Uuid,
+        endpoint_url: String,
+        failing_since: DateTime<Utc>,
+        failure_count: i64,
+    },
+    EndpointRecovered {
+        organization_id: Uuid,
+        application_id: Uuid,
+        subscription_id: Uuid,
+        endpoint_url: String,
+        recovered_at: DateTime<Utc>,
+    },
+    MessageAttemptExhausted {
+        organization_id: Uuid,
+        application_id: Uuid,
+        subscription_id: Uuid,
+        message_id: Uuid,
+        attempts: i32,
+    },
 }
 
 impl Hook0ClientEvent {
@@ -181,19 +215,175 @@ impl Hook0ClientEvent {
             }
             Self::SubscriptionUpdated(e) => to_event(e, None),
             Self::SubscriptionRemoved(e) => to_event(e, None),
+            Self::EndpointDisabled { .. } => {
+                // Create a temporary event for endpoint disabled
+                #[derive(Debug, Clone, Serialize)]
+                struct EndpointDisabledEvent {
+                    organization_id: Uuid,
+                    application_id: Uuid,
+                    subscription_id: Uuid,
+                    endpoint_url: String,
+                    disabled_at: DateTime<Utc>,
+                    failure_count: i64,
+                }
+                
+                impl Event for EndpointDisabledEvent {
+                    fn event_type(&self) -> &'static str {
+                        "api.endpoint.disabled"
+                    }
+                    
+                    fn labels(&self) -> Vec<(String, Value)> {
+                        vec![
+                            (INSTANCE_LABEL.to_owned(), Value::String(INSTANCE_VALUE.to_owned())),
+                            (ORGANIZATION_LABEL.to_owned(), Value::String(self.organization_id.to_string())),
+                            (APPLICATION_LABEL.to_owned(), Value::String(self.application_id.to_string())),
+                        ]
+                    }
+                }
+                
+                if let Self::EndpointDisabled { organization_id, application_id, subscription_id, endpoint_url, disabled_at, failure_count } = self {
+                    let event = EndpointDisabledEvent {
+                        organization_id: organization_id,
+                        application_id: application_id,
+                        subscription_id: subscription_id,
+                        endpoint_url: endpoint_url.clone(),
+                        disabled_at: disabled_at,
+                        failure_count: failure_count,
+                    };
+                    to_event(event, Some(disabled_at))
+                } else {
+                    unreachable!()
+                }
+            }
+            Self::EndpointWarning { .. } => {
+                // Create a temporary event for endpoint warning
+                #[derive(Debug, Clone, Serialize)]
+                struct EndpointWarningEvent {
+                    organization_id: Uuid,
+                    application_id: Uuid,
+                    subscription_id: Uuid,
+                    endpoint_url: String,
+                    failing_since: DateTime<Utc>,
+                    failure_count: i64,
+                }
+                
+                impl Event for EndpointWarningEvent {
+                    fn event_type(&self) -> &'static str {
+                        "api.endpoint.warning"
+                    }
+                    
+                    fn labels(&self) -> Vec<(String, Value)> {
+                        vec![
+                            (INSTANCE_LABEL.to_owned(), Value::String(INSTANCE_VALUE.to_owned())),
+                            (ORGANIZATION_LABEL.to_owned(), Value::String(self.organization_id.to_string())),
+                            (APPLICATION_LABEL.to_owned(), Value::String(self.application_id.to_string())),
+                        ]
+                    }
+                }
+                
+                if let Self::EndpointWarning { organization_id, application_id, subscription_id, endpoint_url, failing_since, failure_count } = self {
+                    let event = EndpointWarningEvent {
+                        organization_id: organization_id,
+                        application_id: application_id,
+                        subscription_id: subscription_id,
+                        endpoint_url: endpoint_url.clone(),
+                        failing_since: failing_since,
+                        failure_count: failure_count,
+                    };
+                    to_event(event, Some(failing_since))
+                } else {
+                    unreachable!()
+                }
+            }
+            Self::EndpointRecovered { .. } => {
+                // Create a temporary event for endpoint recovered
+                #[derive(Debug, Clone, Serialize)]
+                struct EndpointRecoveredEvent {
+                    organization_id: Uuid,
+                    application_id: Uuid,
+                    subscription_id: Uuid,
+                    endpoint_url: String,
+                    recovered_at: DateTime<Utc>,
+                }
+                
+                impl Event for EndpointRecoveredEvent {
+                    fn event_type(&self) -> &'static str {
+                        "api.endpoint.recovered"
+                    }
+                    
+                    fn labels(&self) -> Vec<(String, Value)> {
+                        vec![
+                            (INSTANCE_LABEL.to_owned(), Value::String(INSTANCE_VALUE.to_owned())),
+                            (ORGANIZATION_LABEL.to_owned(), Value::String(self.organization_id.to_string())),
+                            (APPLICATION_LABEL.to_owned(), Value::String(self.application_id.to_string())),
+                        ]
+                    }
+                }
+                
+                if let Self::EndpointRecovered { organization_id, application_id, subscription_id, endpoint_url, recovered_at } = self {
+                    let event = EndpointRecoveredEvent {
+                        organization_id: organization_id,
+                        application_id: application_id,
+                        subscription_id: subscription_id,
+                        endpoint_url: endpoint_url.clone(),
+                        recovered_at: recovered_at,
+                    };
+                    to_event(event, Some(recovered_at))
+                } else {
+                    unreachable!()
+                }
+            }
+            Self::MessageAttemptExhausted { .. } => {
+                // Create a temporary event for message attempt exhausted
+                #[derive(Debug, Clone, Serialize)]
+                struct MessageAttemptExhaustedEvent {
+                    organization_id: Uuid,
+                    application_id: Uuid,
+                    subscription_id: Uuid,
+                    message_id: Uuid,
+                    attempts: i32,
+                }
+                
+                impl Event for MessageAttemptExhaustedEvent {
+                    fn event_type(&self) -> &'static str {
+                        "api.message.attempt.exhausted"
+                    }
+                    
+                    fn labels(&self) -> Vec<(String, Value)> {
+                        vec![
+                            (INSTANCE_LABEL.to_owned(), Value::String(INSTANCE_VALUE.to_owned())),
+                            (ORGANIZATION_LABEL.to_owned(), Value::String(self.organization_id.to_string())),
+                            (APPLICATION_LABEL.to_owned(), Value::String(self.application_id.to_string())),
+                        ]
+                    }
+                }
+                
+                if let Self::MessageAttemptExhausted { organization_id, application_id, subscription_id, message_id, attempts } = self {
+                    let event = MessageAttemptExhaustedEvent {
+                        organization_id: organization_id,
+                        application_id: application_id,
+                        subscription_id: subscription_id,
+                        message_id: message_id,
+                        attempts: attempts,
+                    };
+                    to_event(event, None)
+                } else {
+                    unreachable!()
+                }
+            }
         }
     }
 }
 
-trait Event: std::fmt::Debug + Clone + Serialize {
+pub trait Event: std::fmt::Debug + Clone + Serialize {
     fn event_type(&self) -> &'static str;
     fn labels(&self) -> Vec<(String, Value)>;
 }
 
-const INSTANCE_LABEL: &str = "instance";
-const INSTANCE_VALUE: &str = "1";
-const ORGANIZATION_LABEL: &str = "organization";
-const APPLICATION_LABEL: &str = "application";
+pub const INSTANCE_LABEL: &str = "instance";
+pub const INSTANCE_VALUE: &str = "1";
+pub const ORGANIZATION_LABEL: &str = "organization";
+pub const APPLICATION_LABEL: &str = "application";
 
 #[derive(Debug, Clone, Serialize)]
 pub struct EventOrganizationCreated {

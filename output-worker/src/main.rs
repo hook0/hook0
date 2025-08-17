@@ -6,8 +6,8 @@ use clap::{Parser, ValueEnum, crate_name, crate_version};
 use log::{debug, error, info, trace, warn};
 use reqwest::Url;
 use reqwest::header::{HeaderMap, HeaderName};
-use sqlx::postgres::types::PgInterval;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use sqlx::postgres::types::PgInterval;
 use sqlx::{PgConnection, PgPool, query, query_as};
 use std::cmp::min;
 use std::collections::HashMap;
@@ -411,6 +411,21 @@ async fn look_for_work(
                 .execute(&mut *tx)
                 .await?;
 
+                // Reset failure tracking for the subscription
+                query!(
+                    r#"
+                    UPDATE webhook.subscription
+                    SET 
+                        last_failure_at = NULL,
+                        consecutive_failures = 0,
+                        first_failure_at = NULL
+                    WHERE subscription__id = $1
+                    "#,
+                    attempt.subscription__id
+                )
+                .execute(&mut *tx)
+                .await?;
+
                 info!(
                     "[unit={unit_id}] Request attempt {} was completed sucessfully",
                     &attempt.request_attempt__id
@@ -424,6 +439,21 @@ async fn look_for_work(
                 query!(
                     "UPDATE webhook.request_attempt SET failed_at = statement_timestamp() WHERE request_attempt__id = $1",
                     attempt.request_attempt__id
+                )
+                .execute(&mut *tx)
+                .await?;
+
+                // Update failure tracking for the subscription
+                query!(
+                    r#"
+                    UPDATE webhook.subscription
+                    SET 
+                        last_failure_at = NOW(),
+                        consecutive_failures = consecutive_failures + 1,
+                        first_failure_at = COALESCE(first_failure_at, NOW())
+                    WHERE subscription__id = $1
+                    "#,
+                    attempt.subscription__id
                 )
                 .execute(&mut *tx)
                 .await?;
@@ -546,27 +576,106 @@ async fn compute_next_retry(
     max_slow_retries: u32,
     retry_count: i16,
 ) -> Result<Option<Duration>, sqlx::Error> {
+    // Fetch subscription with retry schedule if configured
     let sub = query!(
-        "
-            SELECT true AS whatever
-            FROM webhook.subscription
-            WHERE subscription__id = $1 AND deleted_at IS NULL AND is_enabled
-        ",
+        r#"
+            SELECT 
+                s.is_enabled,
+                s.deleted_at,
+                rs.strategy as "strategy?",
+                rs.intervals as "intervals?",
+                rs.max_attempts as "max_attempts?"
+            FROM webhook.subscription s
+            LEFT JOIN webhook.retry_schedule rs ON s.retry_schedule__id = rs.retry_schedule__id
+            WHERE s.subscription__id = $1
+        "#,
         subscription_id
     )
     .fetch_optional(conn)
     .await?;
 
-    if sub.is_some() {
-        Ok(compute_next_retry_duration(
-            max_fast_retries,
-            max_slow_retries,
-            retry_count,
-        ))
+    if let Some(sub) = sub {
+        // Check if subscription is enabled and not deleted
+        if !sub.is_enabled || sub.deleted_at.is_some() {
+            // If the subscription was disabled or soft-deleted, we do not want to schedule a next attempt
+            return Ok(None);
+        }
+
+        // Check if we have a custom retry schedule (from LEFT JOIN with retry_schedule table)
+        if let (Some(strategy), Some(intervals), Some(max_attempts)) = 
+            (sub.strategy, sub.intervals, sub.max_attempts) {
+            // Use custom retry schedule
+            Ok(compute_next_retry_with_schedule(
+                &strategy,
+                &intervals,
+                max_attempts,
+                retry_count,
+            ))
+        } else {
+            // Use default retry schedule
+            Ok(compute_next_retry_duration(
+                max_fast_retries,
+                max_slow_retries,
+                retry_count,
+            ))
+        }
     } else {
-        // If the subscription was disabled or soft-deleted, we do not want to schedule a next attempt
+        // Subscription not found
         Ok(None)
     }
+}
+
+fn compute_next_retry_with_schedule(
+    strategy: &str,
+    intervals: &[i32],
+    max_attempts: i32,
+    retry_count: i16,
+) -> Option<Duration> {
+    if retry_count >= max_attempts as i16 {
+        return None;
+    }
+    
+    let delay_seconds = match strategy {
+        "exponential" => {
+            // Use provided intervals or calculate exponentially
+            if let Some(&interval) = intervals.get(retry_count as usize) {
+                interval
+            } else if let Some(&last) = intervals.last() {
+                // Use the last interval for attempts beyond the array
+                last
+            } else {
+                // Fallback to default exponential calculation
+                let base_delay = 5;
+                let max_delay = 36000; // 10 hours
+                std::cmp::min(base_delay * 2_i32.pow(retry_count as u32), max_delay)
+            }
+        }
+        "linear" => {
+            // Use the first interval for all retries or a default
+            intervals.first().copied().unwrap_or(300) // Default 5 minutes
+        }
+        "custom" => {
+            // Use the exact interval from the array
+            if let Some(&interval) = intervals.get(retry_count as usize) {
+                interval
+            } else if let Some(&last) = intervals.last() {
+                // Use the last interval for attempts beyond the array
+                last
+            } else {
+                return None;
+            }
+        }
+        _ => {
+            // Unknown strategy, fallback to exponential
+            if let Some(&interval) = intervals.get(retry_count as usize) {
+                interval
+            } else {
+                300 // Default 5 minutes
+            }
+        }
+    };
+    
+    Some(Duration::from_secs(delay_seconds as u64))
 }
 
 fn compute_next_retry_duration(

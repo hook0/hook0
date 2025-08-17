@@ -1,5 +1,6 @@
 use ::hook0_client::Hook0Client;
 use actix::Arbiter;
+use actix::clock::sleep;
 use actix_cors::Cors;
 use actix_files::{Files, NamedFile};
 use actix_web::middleware::{Compat, Logger, NormalizePath};
@@ -14,10 +15,12 @@ use paperclip::actix::{OpenApiExt, web};
 use reqwest::Url;
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 use std::str::FromStr;
+use std::sync::Arc;
 use std::time::Duration;
 use uuid::Uuid;
 
 mod cloudflare_turnstile;
+mod endpoint_health_monitor;
 mod expired_tokens_cleanup;
 mod extractor_user_ip;
 mod handlers;
@@ -30,6 +33,7 @@ mod middleware_get_user_ip;
 mod old_events_cleanup;
 mod onboarding;
 mod openapi;
+mod operational_webhooks;
 mod problems;
 mod quotas;
 mod rate_limiting;
@@ -336,6 +340,22 @@ struct Config {
     #[clap(long, env, default_value = "5")]
     smtp_timeout_in_s: u64,
 
+    /// Enable automatic deactivation of failing endpoints
+    #[clap(long, env, default_value = "true")]
+    disable_failing_endpoints: bool,
+
+    /// Days before sending warning notification for failing endpoints
+    #[clap(long, env, default_value = "3")]
+    endpoint_warning_days: i64,
+
+    /// Days before automatic deactivation of failing endpoints
+    #[clap(long, env, default_value = "5")]
+    endpoint_disable_days: i64,
+
+    /// Duration (in second) to wait between endpoint health checks
+    #[clap(long, env, default_value = "3600")]
+    endpoint_health_check_period_in_s: u64,
+
     /// URL of the Hook0 logo
     #[clap(long, env, default_value = "https://app.hook0.com/256x256.png")]
     email_logo_url: Url,
@@ -600,6 +620,7 @@ async fn main() -> anyhow::Result<()> {
             .await;
         });
 
+
         // Spawn task to clean unverified users if enabled
         if config.enable_unverified_users_cleanup {
             let clean_unverified_users_db = pool.clone();
@@ -630,6 +651,36 @@ async fn main() -> anyhow::Result<()> {
         )
         .await
         .expect("Could not initialize mailer; check SMTP configuration");
+
+        // Spawn task to monitor endpoint health
+        if config.disable_failing_endpoints {
+            let health_db = pool.clone();
+            let health_mailer = std::sync::Arc::new(mailer.clone());
+            let health_hook0_client = hook0_client.as_ref().map(|c| Arc::new(c.clone()));
+            let health_config = endpoint_health_monitor::EndpointHealthConfig {
+                disable_failing_endpoints: config.disable_failing_endpoints,
+                warning_days: config.endpoint_warning_days,
+                disable_days: config.endpoint_disable_days,
+                min_failures_to_track: 10,
+            };
+            
+            actix_web::rt::spawn(async move {
+                let monitor = endpoint_health_monitor::EndpointHealthMonitor::new(
+                    health_db,
+                    health_mailer,
+                    health_hook0_client,
+                    health_config,
+                );
+                
+                let period = Duration::from_secs(config.endpoint_health_check_period_in_s);
+                loop {
+                    if let Err(e) = monitor.check_failing_endpoints().await {
+                        log::error!("Endpoint health check failed: {:?}", e);
+                    }
+                    sleep(period).await;
+                }
+            });
+        }
 
         // Initialize state
         let initial_state = State {
@@ -851,7 +902,23 @@ async fn main() -> anyhow::Result<()> {
                                                     web::put()
                                                         .to(handlers::organizations::edit_role),
                                                 ),
-                                        ),
+                                        )
+                                ),
+                        )
+                        .service(
+                            web::scope("/retry-schedules")
+                                .wrap(Compat::new(rate_limiters.token()))
+                                .wrap(biscuit_auth.clone())
+                                .service(
+                                    web::resource("")
+                                        .route(web::get().to(handlers::retry_schedules::list))
+                                        .route(web::post().to(handlers::retry_schedules::create)),
+                                )
+                                .service(
+                                    web::resource("/{schedule_id}")
+                                        .route(web::get().to(handlers::retry_schedules::get))
+                                        .route(web::put().to(handlers::retry_schedules::update))
+                                        .route(web::delete().to(handlers::retry_schedules::delete)),
                                 ),
                         )
                         .service(
