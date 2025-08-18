@@ -28,11 +28,9 @@ use reqwest::{Client, Url};
 #[cfg(feature = "producer")]
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "producer")]
-use serde_json::{Map, Value};
-#[cfg(feature = "producer")]
 use std::borrow::Cow;
 #[cfg(feature = "producer")]
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 #[cfg(feature = "producer")]
 use std::fmt::Display;
 #[cfg(feature = "producer")]
@@ -382,11 +380,11 @@ pub struct Event<'a> {
     /// Content type of the payload
     pub payload_content_type: &'a str,
     /// Optional key-value metadata
-    pub metadata: Option<Vec<(String, Value)>>,
+    pub metadata: Option<Vec<(String, String)>>,
     /// Datetime of when the event occurred (current time will be used if nothing is provided)
     pub occurred_at: Option<DateTime<Utc>>,
     /// Labels that Hook0 will use to route the event
-    pub labels: Vec<(String, Value)>,
+    pub labels: Vec<(String, String)>,
 }
 
 #[cfg(feature = "producer")]
@@ -397,9 +395,9 @@ struct FullEvent<'a> {
     pub event_type: &'a str,
     pub payload: &'a str,
     pub payload_content_type: &'a str,
-    pub metadata: Option<Map<String, Value>>,
+    pub metadata: Option<HashMap<String, String>>,
     pub occurred_at: DateTime<Utc>,
-    pub labels: Map<String, Value>,
+    pub labels: HashMap<String, String>,
 }
 
 #[cfg(feature = "producer")]
@@ -420,9 +418,9 @@ impl<'a> FullEvent<'a> {
             metadata: event
                 .metadata
                 .as_ref()
-                .map(|items| Map::from_iter(items.iter().cloned())),
+                .map(|items| HashMap::from_iter(items.iter().cloned())),
             occurred_at,
-            labels: Map::from_iter(event.labels.iter().cloned()),
+            labels: HashMap::from_iter(event.labels.iter().cloned()),
         }
     }
 }
