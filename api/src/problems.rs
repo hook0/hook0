@@ -47,6 +47,8 @@ pub enum Hook0Problem {
     EventInvalidBase64Payload(String),
     EventInvalidJsonPayload(String),
 
+    LabelsAmbiguity,
+
     // Auth errors
     AuthNoAuthorizationHeader,
     AuthInvalidAuthorizationHeader,
@@ -335,6 +337,13 @@ impl From<Hook0Problem> for Problem {
                     validation: None,
                     status: StatusCode::BAD_REQUEST,
                 }
+            },
+            Hook0Problem::LabelsAmbiguity => Problem {
+                id: Hook0Problem::LabelsAmbiguity,
+                title: "Ambiguous labels specification",
+                detail: "You must specify either the `labels` property as an object with a least one property (recommended) or separated `label_key` and `label_value` properties as strings (legacy), but not both.".into(),
+                validation: None,
+                status: StatusCode::BAD_REQUEST,
             },
 
             // Auth error

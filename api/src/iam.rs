@@ -1,4 +1,4 @@
-use biscuit_auth::builder::Fact;
+use biscuit_auth::builder::{Fact, MapKey, Term};
 use biscuit_auth::builder_ext::AuthorizerExt;
 use biscuit_auth::macros::{authorizer, authorizer_merge, biscuit, fact, rule};
 use biscuit_auth::{AuthorizerLimits, Biscuit, KeyPair, PrivateKey};
@@ -6,7 +6,9 @@ use chrono::{DateTime, Utc};
 use log::{error, trace, warn};
 use paperclip::v2::schema::TypedData;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use sqlx::{PgPool, query_scalar};
+use std::collections::{BTreeMap, HashMap};
 use std::str::FromStr;
 use std::time::{Duration, SystemTime};
 use strum::{AsRefStr, EnumIter, EnumString, VariantNames};
@@ -167,7 +169,7 @@ pub fn create_user_access_token(
             "#,
         );
         for (organization_id, role) in roles {
-            biscuit.add_fact(fact!("organization_role({organization_id}, {role})"))?;
+            biscuit = biscuit.fact(fact!("organization_role({organization_id}, {role})"))?;
         }
         biscuit.build(&keypair)?
     };
@@ -432,8 +434,7 @@ pub enum Action<'a> {
     },
     SubscriptionCreate {
         application_id: &'a Uuid,
-        label_key: &'a str,
-        label_value: &'a str,
+        labels: &'a HashMap<String, Value>,
     },
     SubscriptionGet {
         application_id: &'a Uuid,
@@ -737,14 +738,17 @@ impl Action<'_> {
             Self::EventTypeDelete { .. } => vec![],
             //
             Self::SubscriptionList { .. } => vec![],
-            Self::SubscriptionCreate {
-                label_key,
-                label_value,
-                ..
-            } => vec![
-                fact!("label_key({label_key})", label_key = label_key),
-                fact!("label_value({label_value})", label_value = label_value),
-            ],
+            Self::SubscriptionCreate { labels, .. } => vec![Fact::new(
+                "labels".to_owned(),
+                vec![Term::Map(BTreeMap::from_iter(labels.iter().map(
+                    |(k, v)| {
+                        (
+                            MapKey::Str(k.to_owned()),
+                            Term::Str(v.as_str().unwrap_or("").to_owned()),
+                        )
+                    },
+                )))],
+            )],
             Self::SubscriptionGet {
                 subscription_id, ..
             } => vec![fact!(
@@ -846,8 +850,8 @@ pub fn authorize(
     );
 
     if let Some(organization_id) = organization_id {
-        authorizer_merge!(
-            &mut authorizer,
+        authorizer = authorizer_merge!(
+            authorizer,
             r#"
                 organization_id($id) <- type("user_access"), organization_role($id, $r), $id == {organization_id};
                 organization_id({organization_id}) <- type("master_access");
@@ -873,17 +877,17 @@ pub fn authorize(
         }
     }
 
-    authorizer.set_time();
+    authorizer = authorizer.time();
     for fact in action.generate_facts() {
-        authorizer.add_fact(fact)?;
+        authorizer = authorizer.fact(fact)?;
     }
-    authorizer.add_allow_all();
+    authorizer = authorizer.allow_all();
 
-    authorizer.set_limits(AuthorizerLimits {
+    authorizer = authorizer.set_limits(AuthorizerLimits {
         max_time: Duration::from_millis(max_authorization_time_in_ms),
         ..Default::default()
     });
-    authorizer.add_token(biscuit)?;
+    let mut authorizer = authorizer.build(biscuit)?;
     let result = authorizer.authorize();
     trace!("Authorizer state:\n{}", authorizer.print_world());
     result?;
@@ -1011,14 +1015,14 @@ pub fn authorize_email_verification(
             deny if expired($t);
         "#
     );
-    authorizer.set_time();
-    authorizer.add_allow_all();
+    authorizer = authorizer.time();
+    authorizer = authorizer.allow_all();
 
-    authorizer.set_limits(AuthorizerLimits {
+    authorizer = authorizer.set_limits(AuthorizerLimits {
         max_time: Duration::from_secs(1800),
         ..Default::default()
     });
-    authorizer.add_token(biscuit)?;
+    let mut authorizer = authorizer.build(biscuit)?;
     let result = authorizer.authorize();
     trace!("Authorizer state:\n{}", authorizer.print_world());
     result?;
@@ -1045,14 +1049,14 @@ pub fn authorize_reset_password(
             deny if expired($t);
         "#
     );
-    authorizer.set_time();
-    authorizer.add_allow_all();
+    authorizer = authorizer.time();
+    authorizer = authorizer.allow_all();
 
-    authorizer.set_limits(AuthorizerLimits {
+    authorizer = authorizer.set_limits(AuthorizerLimits {
         max_time: Duration::from_secs(1800),
         ..Default::default()
     });
-    authorizer.add_token(biscuit)?;
+    let mut authorizer = authorizer.build(biscuit)?;
     let result = authorizer.authorize();
     trace!("Authorizer state:\n{}", authorizer.print_world());
     result?;
@@ -1086,14 +1090,14 @@ pub fn authorize_refresh_token(
             deny if expired($t);
         "#
     );
-    authorizer.set_time();
-    authorizer.add_allow_all();
+    authorizer = authorizer.time();
+    authorizer = authorizer.allow_all();
 
-    authorizer.set_limits(AuthorizerLimits {
+    authorizer = authorizer.set_limits(AuthorizerLimits {
         max_time: Duration::from_millis(5),
         ..Default::default()
     });
-    authorizer.add_token(biscuit)?;
+    let mut authorizer = authorizer.build(biscuit)?;
     let result = authorizer.authorize();
     trace!("Authorizer state:\n{}", authorizer.print_world());
     result?;
@@ -1200,18 +1204,16 @@ mod tests {
             create_service_access_token(&keypair.private(), token_id, organization_id).unwrap();
 
         let not_yet_expired_biscuit = biscuit
-            .append({
-                let mut block = BlockBuilder::new();
-                block.check_expiration_date(SystemTime::now() + Duration::from_secs(1));
-                block
-            })
+            .append(
+                BlockBuilder::new()
+                    .check_expiration_date(SystemTime::now() + Duration::from_secs(1)),
+            )
             .unwrap();
         let expired_biscuit = biscuit
-            .append({
-                let mut block = BlockBuilder::new();
-                block.check_expiration_date(SystemTime::now() - Duration::from_secs(1));
-                block
-            })
+            .append(
+                BlockBuilder::new()
+                    .check_expiration_date(SystemTime::now() - Duration::from_secs(1)),
+            )
             .unwrap();
 
         assert!(
@@ -1502,18 +1504,16 @@ mod tests {
             create_refresh_token(&keypair.private(), token_id, session_id, user_id).unwrap();
 
         let not_yet_expired_biscuit = biscuit
-            .append({
-                let mut block = BlockBuilder::new();
-                block.check_expiration_date(SystemTime::now() + Duration::from_secs(1));
-                block
-            })
+            .append(
+                BlockBuilder::new()
+                    .check_expiration_date(SystemTime::now() + Duration::from_secs(1)),
+            )
             .unwrap();
         let expired_biscuit = biscuit
-            .append({
-                let mut block = BlockBuilder::new();
-                block.check_expiration_date(SystemTime::now() - Duration::from_secs(1));
-                block
-            })
+            .append(
+                BlockBuilder::new()
+                    .check_expiration_date(SystemTime::now() - Duration::from_secs(1)),
+            )
             .unwrap();
 
         assert!(dbg!(authorize_refresh_token(&not_yet_expired_biscuit)).is_ok());

@@ -1,3 +1,4 @@
+use reqwest::header::HeaderMap;
 use serde_json::Value;
 use std::collections::HashMap;
 use validator::ValidationError;
@@ -5,6 +6,7 @@ use validator::ValidationError;
 const METADATA_MAX_SIZE: usize = 50;
 const METADATA_PROPERTY_MIN_LENGTH: usize = 1;
 const METADATA_PROPERTY_MAX_LENGTH: usize = 50;
+const LABELS_MIN_SIZE: usize = 1;
 const LABELS_MAX_SIZE: usize = 10;
 const LABELS_PROPERTY_MIN_LENGTH: usize = 1;
 const LABELS_PROPERTY_MAX_LENGTH: usize = 50;
@@ -96,6 +98,15 @@ pub fn metadata(val: &HashMap<String, Value>) -> Result<(), ValidationError> {
 }
 
 pub fn labels(val: &HashMap<String, Value>) -> Result<(), ValidationError> {
+    if val.len() < LABELS_MIN_SIZE {
+        return Err(ValidationError {
+            code: CODE_LABELS_SIZE.into(),
+            message: Some(
+                format!("Labels object must have at least {LABELS_MIN_SIZE} properties",).into(),
+            ),
+            params: HashMap::new(),
+        });
+    }
     if val.len() > LABELS_MAX_SIZE {
         return Err(ValidationError {
             code: CODE_LABELS_SIZE.into(),
@@ -235,9 +246,7 @@ pub fn subscription_target_http_url(val: &str) -> Result<(), ValidationError> {
     }
 }
 
-pub fn subscription_target_http_method_headers(
-    val: &HashMap<String, String>,
-) -> Result<(), ValidationError> {
+pub fn subscription_target_http_method_headers(val: &HeaderMap) -> Result<(), ValidationError> {
     if val.len() > SUBSCRIPTION_TARGET_HTTP_HEADERS_MAX_SIZE {
         return Err(ValidationError {
             code: CODE_SUBSCRIPTION_TARGET_HTTP_HEADERS_SIZE.into(),
@@ -254,7 +263,7 @@ pub fn subscription_target_http_method_headers(
     let mut invalid_length = vec![];
 
     for (k, v) in val {
-        if k.len() > SUBSCRIPTION_TARGET_HTTP_HEADERS_PROPERTY_MAX_LENGTH
+        if k.as_str().len() > SUBSCRIPTION_TARGET_HTTP_HEADERS_PROPERTY_MAX_LENGTH
             || v.len() > SUBSCRIPTION_TARGET_HTTP_HEADERS_PROPERTY_MAX_LENGTH
         {
             invalid_length.push(k.to_owned());
@@ -268,7 +277,7 @@ pub fn subscription_target_http_method_headers(
             message: Some(format!("Headers properties and values must contains less than {METADATA_PROPERTY_MAX_LENGTH} characters (the following properties are out of range: {invalid})").into()),
             params: HashMap::from_iter([
                 ("max".into(), Value::Number(SUBSCRIPTION_TARGET_HTTP_HEADERS_PROPERTY_MAX_LENGTH.into())),
-                ("invalid_properties".into(), Value::Array(invalid_length.into_iter().map(Value::String).collect::<Vec<_>>())),
+                ("invalid_properties".into(), Value::Array(invalid_length.into_iter().map(|v| Value::String(v.as_str().to_owned())).collect::<Vec<_>>())),
             ]),
         })
     } else {
@@ -393,7 +402,12 @@ mod tests {
     #[test]
     fn labels_empty() {
         let val = HashMap::new();
-        assert!(labels(&val).is_ok())
+        let output = labels(&val);
+        assert!(output.is_err());
+        assert_eq!(
+            output.err().map(|e| e.code).unwrap_or_else(|| "".into()),
+            CODE_LABELS_SIZE
+        )
     }
 
     #[test]

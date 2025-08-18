@@ -382,7 +382,7 @@ struct Config {
 }
 
 fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
-    PrivateKey::from_bytes_hex(input)
+    PrivateKey::from_bytes_hex(input, biscuit_auth::Algorithm::Ed25519)
         .map_err(|e| format!("Value of BISCUIT_PRIVATE_KEY is invalid ({e}). Re-run this app without the environment variable set to get a randomly generated key."))
 }
 
@@ -436,7 +436,7 @@ async fn main() -> anyhow::Result<()> {
             &config.sentry_traces_sample_rate,
         );
 
-        trace!("Starting {}", APP_TITLE);
+        trace!("Starting {APP_TITLE}");
 
         // Prepare trusted reverse proxies CIDRs
         let reverse_proxy_cidrs = if config.reverse_proxy_ips.is_empty() {
