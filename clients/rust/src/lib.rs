@@ -374,13 +374,13 @@ impl Display for EventType {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Event<'a> {
     /// Unique ID of the event (a UUIDv4 will be generated if nothing is provided)
-    pub event_id: &'a Option<&'a Uuid>,
+    pub event_id: Option<Uuid>,
     /// Type of the event (as configured in your Hook0 application)
-    pub event_type: &'a str,
+    pub event_type: String,
     /// Payload
     pub payload: Cow<'a, str>,
     /// Content type of the payload
-    pub payload_content_type: &'a str,
+    pub payload_content_type: String,
     /// Optional key-value metadata
     pub metadata: Option<Vec<(String, Value)>>,
     /// Datetime of when the event occurred (current time will be used if nothing is provided)
@@ -407,16 +407,15 @@ impl<'a> FullEvent<'a> {
     pub fn from_event(event: &'a Event, application_id: &Uuid) -> Self {
         let event_id = event
             .event_id
-            .map(|uuid| uuid.to_owned())
             .unwrap_or_else(Uuid::new_v4);
         let occurred_at = event.occurred_at.unwrap_or_else(Utc::now);
 
         Self {
             application_id: application_id.to_owned(),
             event_id,
-            event_type: event.event_type,
+            event_type: event.event_type.as_str(),
             payload: event.payload.as_ref(),
-            payload_content_type: event.payload_content_type,
+            payload_content_type: event.payload_content_type.as_str(),
             metadata: event
                 .metadata
                 .as_ref()
