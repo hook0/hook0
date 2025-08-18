@@ -21,10 +21,8 @@ const SUBSCRIPTION_TARGET_HTTP_HEADERS_MAX_SIZE: usize = 10;
 const SUBSCRIPTION_TARGET_HTTP_HEADERS_PROPERTY_MAX_LENGTH: usize = 500;
 
 const CODE_METADATA_SIZE: &str = "metadata-size";
-const CODE_METADATA_PROPERTY_TYPE: &str = "metadata-property-type";
 const CODE_METADATA_PROPERTY_LENGTH: &str = "metadata-property-length";
 const CODE_LABELS_SIZE: &str = "labels-size";
-const CODE_LABELS_PROPERTY_TYPE: &str = "labels-property-type";
 const CODE_LABELS_PROPERTY_LENGTH: &str = "labels-property-length";
 const CODE_EVENT_TYPES_SIZE: &str = "event-types-size";
 const CODE_EVENT_TYPES_NAME_LENGTH: &str = "event-types-name-length";
@@ -34,18 +32,7 @@ const CODE_SUBSCRIPTION_TARGET_HTTP_HEADERS_SIZE: &str = "subscription-target-ht
 const CODE_SUBSCRIPTION_TARGET_HTTP_HEADERS_PROPERTY_LENGTH: &str =
     "subscription-target-http-headers-property-length";
 
-fn json_type(val: &Value) -> &'static str {
-    match val {
-        Value::Array(_) => "array",
-        Value::Bool(_) => "boolean",
-        Value::Null => "null",
-        Value::Number(_) => "number",
-        Value::Object(_) => "object",
-        Value::String(_) => "string",
-    }
-}
-
-pub fn metadata(val: &HashMap<String, Value>) -> Result<(), ValidationError> {
+pub fn metadata(val: &HashMap<String, String>) -> Result<(), ValidationError> {
     if val.len() > METADATA_MAX_SIZE {
         return Err(ValidationError {
             code: CODE_METADATA_SIZE.into(),
@@ -57,35 +44,17 @@ pub fn metadata(val: &HashMap<String, Value>) -> Result<(), ValidationError> {
         });
     }
 
-    let mut invalid_properties = vec![];
     let mut invalid_length = vec![];
 
     for (k, v) in val {
-        if !v.is_string() {
-            invalid_properties.push((k, json_type(v)));
-        } else if !(METADATA_PROPERTY_MIN_LENGTH..=METADATA_PROPERTY_MAX_LENGTH).contains(&k.len())
-            || !(METADATA_PROPERTY_MIN_LENGTH..=METADATA_PROPERTY_MAX_LENGTH).contains(
-                &v.as_str()
-                    .map(|s| s.len())
-                    .unwrap_or(METADATA_PROPERTY_MIN_LENGTH),
-            )
+        if !(METADATA_PROPERTY_MIN_LENGTH..=METADATA_PROPERTY_MAX_LENGTH).contains(&k.len())
+            || !(METADATA_PROPERTY_MIN_LENGTH..=METADATA_PROPERTY_MAX_LENGTH).contains(&v.len())
         {
             invalid_length.push(k.to_owned());
         }
     }
 
-    if !invalid_properties.is_empty() {
-        let invalid = invalid_properties
-            .iter()
-            .map(|(k, t)| format!("'{k}' → {t}"))
-            .collect::<Vec<_>>()
-            .join(", ");
-        Err(ValidationError {
-            code: CODE_METADATA_PROPERTY_TYPE.into(),
-            message: Some(format!("Metadata values must be of type string (found the following invalid properties: {invalid})").into()),
-            params: HashMap::new(),
-        })
-    } else if !invalid_length.is_empty() {
+    if !invalid_length.is_empty() {
         let invalid = invalid_length.join(", ");
         Err(ValidationError {
             code: CODE_METADATA_PROPERTY_LENGTH.into(),
@@ -97,7 +66,7 @@ pub fn metadata(val: &HashMap<String, Value>) -> Result<(), ValidationError> {
     }
 }
 
-pub fn labels(val: &HashMap<String, Value>) -> Result<(), ValidationError> {
+pub fn labels(val: &HashMap<String, String>) -> Result<(), ValidationError> {
     if val.len() < LABELS_MIN_SIZE {
         return Err(ValidationError {
             code: CODE_LABELS_SIZE.into(),
@@ -117,35 +86,17 @@ pub fn labels(val: &HashMap<String, Value>) -> Result<(), ValidationError> {
         });
     }
 
-    let mut invalid_properties = vec![];
     let mut invalid_length = vec![];
 
     for (k, v) in val {
-        if !v.is_string() {
-            invalid_properties.push((k, json_type(v)));
-        } else if !(LABELS_PROPERTY_MIN_LENGTH..=LABELS_PROPERTY_MAX_LENGTH).contains(&k.len())
-            || !(LABELS_PROPERTY_MIN_LENGTH..=LABELS_PROPERTY_MAX_LENGTH).contains(
-                &v.as_str()
-                    .map(|s| s.len())
-                    .unwrap_or(LABELS_PROPERTY_MIN_LENGTH),
-            )
+        if !(LABELS_PROPERTY_MIN_LENGTH..=LABELS_PROPERTY_MAX_LENGTH).contains(&k.len())
+            || !(LABELS_PROPERTY_MIN_LENGTH..=LABELS_PROPERTY_MAX_LENGTH).contains(&v.len())
         {
             invalid_length.push(k.to_owned());
         }
     }
 
-    if !invalid_properties.is_empty() {
-        let invalid = invalid_properties
-            .iter()
-            .map(|(k, t)| format!("'{k}' → {t}"))
-            .collect::<Vec<_>>()
-            .join(", ");
-        Err(ValidationError {
-            code: CODE_LABELS_PROPERTY_TYPE.into(),
-            message: Some(format!("Labels values must be of type string (found the following invalid properties: {invalid})").into()),
-            params: HashMap::new(),
-        })
-    } else if !invalid_length.is_empty() {
+    if !invalid_length.is_empty() {
         let invalid = invalid_length.join(", ");
         Err(ValidationError {
             code: CODE_LABELS_PROPERTY_LENGTH.into(),
@@ -289,14 +240,12 @@ pub fn subscription_target_http_method_headers(val: &HeaderMap) -> Result<(), Va
 mod tests {
     use super::*;
 
-    use serde_json::json;
-
     #[test]
     fn metadata_valid() {
         let val = HashMap::from_iter([
-            ("key1".to_owned(), json!("val1")),
-            ("key2".to_owned(), json!("val2")),
-            ("key3".to_owned(), json!("val3")),
+            ("key1".to_owned(), "val1".to_owned()),
+            ("key2".to_owned(), "val2".to_owned()),
+            ("key3".to_owned(), "val3".to_owned()),
         ]);
         assert!(metadata(&val).is_ok())
     }
@@ -312,7 +261,7 @@ mod tests {
         let length = METADATA_PROPERTY_MAX_LENGTH + 1;
         let mut val = HashMap::with_capacity(length);
         for i in 0..length {
-            val.insert(format!("test-{i}"), json!("test"));
+            val.insert(format!("test-{i}"), "test".to_owned());
         }
         let output = metadata(&val);
         assert!(output.is_err());
@@ -323,23 +272,8 @@ mod tests {
     }
 
     #[test]
-    fn metadata_invalid_property_types() {
-        let val = HashMap::from_iter([
-            ("key1".to_owned(), json!(1)),
-            ("key2".to_owned(), json!("val2")),
-            ("key3".to_owned(), json!(true)),
-        ]);
-        let output = metadata(&val);
-        assert!(output.is_err());
-        assert_eq!(
-            output.err().map(|e| e.code).unwrap_or_else(|| "".into()),
-            CODE_METADATA_PROPERTY_TYPE
-        );
-    }
-
-    #[test]
     fn metadata_invalid_property_length1() {
-        let val = HashMap::from_iter([("".to_owned(), json!("val"))]);
+        let val = HashMap::from_iter([("".to_owned(), "val".to_owned())]);
         let output = metadata(&val);
         assert!(output.is_err());
         assert_eq!(
@@ -350,7 +284,7 @@ mod tests {
 
     #[test]
     fn metadata_invalid_property_length2() {
-        let val = HashMap::from_iter([("key".to_owned(), json!(""))]);
+        let val = HashMap::from_iter([("key".to_owned(), "".to_owned())]);
         let output = metadata(&val);
         assert!(output.is_err());
         assert_eq!(
@@ -365,7 +299,7 @@ mod tests {
         for _ in 0..=METADATA_PROPERTY_MAX_LENGTH {
             str.push('_');
         }
-        let val = HashMap::from_iter([(str, json!("val"))]);
+        let val = HashMap::from_iter([(str, "val".to_owned())]);
         let output = metadata(&val);
         assert!(output.is_err());
         assert_eq!(
@@ -380,7 +314,7 @@ mod tests {
         for _ in 0..=METADATA_PROPERTY_MAX_LENGTH {
             str.push('_');
         }
-        let val = HashMap::from_iter([("key".to_owned(), Value::String(str))]);
+        let val = HashMap::from_iter([("key".to_owned(), str)]);
         let output = metadata(&val);
         assert!(output.is_err());
         assert_eq!(
@@ -392,9 +326,9 @@ mod tests {
     #[test]
     fn labels_valid() {
         let val = HashMap::from_iter([
-            ("key1".to_owned(), json!("val1")),
-            ("key2".to_owned(), json!("val2")),
-            ("key3".to_owned(), json!("val3")),
+            ("key1".to_owned(), "val1".to_owned()),
+            ("key2".to_owned(), "val2".to_owned()),
+            ("key3".to_owned(), "val3".to_owned()),
         ]);
         assert!(labels(&val).is_ok())
     }
@@ -415,7 +349,7 @@ mod tests {
         let length = LABELS_PROPERTY_MAX_LENGTH + 1;
         let mut val = HashMap::with_capacity(length);
         for i in 0..length {
-            val.insert(format!("test-{i}"), json!("test"));
+            val.insert(format!("test-{i}"), "test".to_owned());
         }
         let output = labels(&val);
         assert!(output.is_err());
@@ -426,23 +360,8 @@ mod tests {
     }
 
     #[test]
-    fn labels_invalid_property_types() {
-        let val = HashMap::from_iter([
-            ("key1".to_owned(), json!(1)),
-            ("key2".to_owned(), json!("val2")),
-            ("key3".to_owned(), json!(true)),
-        ]);
-        let output = labels(&val);
-        assert!(output.is_err());
-        assert_eq!(
-            output.err().map(|e| e.code).unwrap_or_else(|| "".into()),
-            CODE_LABELS_PROPERTY_TYPE
-        );
-    }
-
-    #[test]
     fn labels_invalid_property_length1() {
-        let val = HashMap::from_iter([("".to_owned(), json!("val"))]);
+        let val = HashMap::from_iter([("".to_owned(), "val".to_owned())]);
         let output = labels(&val);
         assert!(output.is_err());
         assert_eq!(
@@ -453,7 +372,7 @@ mod tests {
 
     #[test]
     fn labels_invalid_property_length2() {
-        let val = HashMap::from_iter([("key".to_owned(), json!(""))]);
+        let val = HashMap::from_iter([("key".to_owned(), "".to_owned())]);
         let output = labels(&val);
         assert!(output.is_err());
         assert_eq!(
@@ -468,7 +387,7 @@ mod tests {
         for _ in 0..=LABELS_PROPERTY_MAX_LENGTH {
             str.push('_');
         }
-        let val = HashMap::from_iter([(str, json!("val"))]);
+        let val = HashMap::from_iter([(str, "val".to_owned())]);
         let output = labels(&val);
         assert!(output.is_err());
         assert_eq!(
@@ -483,7 +402,7 @@ mod tests {
         for _ in 0..=LABELS_PROPERTY_MAX_LENGTH {
             str.push('_');
         }
-        let val = HashMap::from_iter([("key".to_owned(), Value::String(str))]);
+        let val = HashMap::from_iter([("key".to_owned(), str)]);
         let output = labels(&val);
         assert!(output.is_err());
         assert_eq!(

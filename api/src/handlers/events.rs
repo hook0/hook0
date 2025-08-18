@@ -272,10 +272,10 @@ pub struct EventPost {
     #[validate(non_control_character, length(min = 1, max = 100))]
     payload_content_type: String,
     #[validate(custom(function = "crate::validators::metadata"))]
-    metadata: Option<HashMap<String, Value>>,
+    metadata: Option<HashMap<String, String>>,
     occurred_at: DateTime<Utc>,
     #[validate(custom(function = "crate::validators::labels"))]
-    labels: HashMap<String, Value>,
+    labels: HashMap<String, String>,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]

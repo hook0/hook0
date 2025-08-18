@@ -56,14 +56,8 @@ export function toggleEnable(
     description: subscription.description,
     metadata: subscription.metadata,
 
-    labels: convertLabels(subscription.labels),
+    labels: subscription.labels,
   });
-}
-
-function convertLabels(labels: { [key: string]: string }): {
-  [key: string]: Record<string, never>;
-} {
-  return labels as unknown as { [key: string]: Record<string, never> };
 }
 
 export function list(application_id: UUID): Promise<Array<Subscription>> {
