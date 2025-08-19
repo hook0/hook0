@@ -1,0 +1,71 @@
+---
+id: applications-delete
+title: "Delete an application"
+description: "Marks an application as deleted. No more events will be emitted, and all active webhook subscriptions will be removed."
+sidebar_label: "Delete an application"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVU1v20YQ/SuDuSQBNpLcJIfwZjsKaiRxAstFD4bgjLgjcyFyl94PJQpBoD+iv7C/pBiSlmXJLtpLc5Eo7cy+NzNvHhuMdBMwu8Ljui5NTtE4G+ATWbrhim3EuULNIfemliPM8BP5VQCyQPcZQAE0lxxZj+DcQeU8A6/ZxgDfTFnCgoErEyNrBWQ1UFkC5dGsGb7xonBuBSEttjD3WZ4rt2Y9QoWuZt+hnWnMcAc9jHpsVFiTp4oje6mpQSOEa4oFKrRU8cO8a6NRoefbZDxrzKJPrDDkBVeEWYNxU0tGiN7YG1S4dL6iiBmmZDS2CkPclF2EqeqSsZ3LbaF2NnCQC36ZvJavh/07d3DqbJTetgpfTyaHISek4YJvE4ch5tVhzHvnF0Zrtn3Eo0AR3rtkdR/x9jDi1NllafIO5M1jRM5sZG+phBn7NXuYeu88tlI658mbuOnavDAhTyZidjWXHlQcCycz2hlLLDDDMdVmvD4a785u3DycSItyuaD1I0y+xAyLGOuQjSVzJGqZjHJXdQ2/IzKTsfVt39LZjpBq84E3qHpBFEya/b0kjlMsnDc/Ogq4r3c5ZRvvlJ6CsTdAcNKDQHQrtvA8BYZYMPQaga8nTJ49XH7+MD3/+kIaPLC69rz0HIr/k51bgkDBswH72X/hmwL7a8pzDuGncN7B/xe8W2G0dB1TE7vt/FX0Asdfzg6InIpNXUxnl3IqiH3oX3/8CZ9rti9nLvmc4ffeoYK4HIGI0+QdA5gRzVChiLW/cTI6Gk2ke7ULsSIrPIaevOuWYc849yk1mA/e8BONdhhx5O9xXJdkOovp9rAZNvlK5i+FH6F64MSoMNtz2LnCwgUxB2yaBQX+zZdtK3/fJvZiIHOFa/KGFjKuqwa1CfKsMVtSGfgfWvT8YjDvF/AU7zu9WhHrmsokv1DhijeHb4N23u7Y17vpx+nlVCpMcW9fV532hwfh/CjM/hr0mPLZqidSmqbfrLbdxvdHT2Zsd6+Plqrnbdv+DQpxsaA=
+sidebar_class_name: "delete api-method"
+info_path: api/hook-0-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Delete an application"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"delete"}
+  path={"/api/v1/applications/{application_id}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Marks an application as deleted. No more events will be emitted, and all active webhook subscriptions will be removed.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"application_id","required":true,"schema":{"type":"string","format":"uuid"},"style":"simple"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"204":{"description":"No Content"},"400":{"description":"Bad Request"},"403":{"description":"Forbidden"},"404":{"description":"Not Found"},"409":{"description":"Conflict"},"500":{"description":"Internal Server Error"}}}
+>
+  
+</StatusCodes>
+
+
+      

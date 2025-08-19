@@ -1,0 +1,71 @@
+---
+id: event-types-list
+title: "List event types"
+description: "Retrieves all active event types registered for a given application. Each event type is uniquely identified by its service, resource type, and verb."
+sidebar_label: "List event types"
+hide_title: true
+hide_table_of_contents: true
+api: eJzNVdtu20YQ/ZXFvCQBWElu04fyzQ6U1nAbF5aDPhiCsiJH4sbULj2zK1QhCPQj+oX9kmB2KZuRrF5e2upBErhzOXN45mwLXq8Z8juYbtF6Vj9pq9e4QethnkGJXJBpvHEWcrhBTwa3yErXtdKFN1tUKHnK7xpkRbg27JGwVCtHSqu12aJVumlqU2ipMlJTXVSDJGVYBWseAtY7ZUq03qwMlmq5U8azYqStKTBThOwCFRiTMqVtqbZIyxFk4BqkWPyyhBxi6VuBM6oNe8ig0aQ36JFkzhaMjPIQkHaQgdUbhBwGCBemhAwIH4IhLCH3FDADLircaMhbkP6QA3sydg0ZrBxttIccQjAldBmw39USIQfQzaUWN84ysqR/PZnIz5fEXl9BBoWzXmjP2yGc8UeWkPYYgSbSMoLxuOHBc7f8iEWcm4QZb1LjyMtCYhZp6MNRuog0kvwXYf1LOR0gb+bUaTck9+4I1rMgDloOG8wz8MZHwqf7Nw+dfDJ4/RzXF7pUN/gQkD3EmG+OY946WpqyRJsiXh9HvHNevXXBliniu+OIN86ualPEJt8+B+TSeiSrazVD2iKpKZGjyA9jEcj4XZTr0nARjIf8bi5i2qCvnOh8jUnbvoIcxrox4+3Z+IlNHves7WUfqIYcKu8bzsdj3TSjyrn7yahwSaX7pjPRWZLMY+snzTXmCqPoZIIKdYn0tEXnwVeOzKcoXDh0DzmV9U66VoGNXSutLlIT5d09WvUyMCpfoUprpT5coCYkdXt9NX334ZWQ2aNaEK4Iufo30blV8qwXfe8X/wRvYKSFLgpk/k8wD/r/DdydIFq5iLTfrx9EL+r858sjIG8cobqZzm7lVDqm0D9++11dN2i/miXr/gWXojlWmpXeW3u8KWZaz9Jac6o4GZ2NJsJe49hvdHTAnpMfDfvhrXOIpn1y0v/rjdW/e4+/+nFTaxN9Ji5o22/0nQhDGDmDbOCRMqxYXuVYHAHadqkZ31PddfI43Wqy7aVhvazFYle6ZvwTil7e9G78Sp1Cdo+75+7Ira6DBEf72Goy0jH6VLYXskBJ2edFgY0fZB3dcV+42/fTW8hAB3+w3/dxV/o/Un1/ZHeD2odrkyDId5edSGnbtIld9xifjk5mPO5qihaq5l3XfQaXUTdP
+sidebar_class_name: "get api-method"
+info_path: api/hook-0-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"List event types"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/event_types/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieves all active event types registered for a given application. Each event type is uniquely identified by its service, resource type, and verb.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"query","name":"application_id","required":true,"schema":{"type":"string","format":"uuid"},"style":"form"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"event_type_name":{"type":"string"},"resource_type_name":{"type":"string"},"service_name":{"type":"string"},"verb_name":{"type":"string"}},"required":["event_type_name","resource_type_name","service_name","verb_name"],"title":"EventType"}}}}},"400":{"description":"Bad Request"},"403":{"description":"Forbidden"},"404":{"description":"Not Found"},"409":{"description":"Conflict"},"500":{"description":"Internal Server Error"}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -1,0 +1,71 @@
+---
+id: event-types-get
+title: "Get an event type by its name"
+description: "Retrieves details of a specific event type if it exists within the given application. Event types define the structure of emitted events."
+sidebar_label: "Get an event type by its name"
+hide_title: true
+hide_table_of_contents: true
+api: eJzNVsFu20YQ/ZXFXJIArCS36aG82YGSGkbjwnLRgyEoK3Iobkzt0jtDNSpBoB/RL+yXFLNLybQkpw1QtL1IAnd23uPbeW/VAusVQXoH0w1aJvWDtnqFa7QM8wRypMybmo2zkMINsje4QVI5sjYVKVcorajGzBQmUygtFG9rVKZQhhV+MsSkfjFcGqu4RLUyG7RK13VlMi1tR2q63yV9C2MxVBL7JuPGo4Dg2jBjHhFoBAm4Gn1ocJlDCuH5rbQYrZAhgVp7vUZGL+/WghH6teYSErB6jbstC4FdhCcJeHxojMccUvYNJkBZiWsNaQtSBSkQe2NX0CVAvK3CE7OuK4Qu6SEeGvTbR4zBey5M/gUQCRTOrzVDCk1j8iGkLEA3l15UO0tIsv3ryUS+np7X9RUkkDnLcpppO6Qz/khS0h4zcMuPmAUJvWjMJgIcynVKFY/kGp/hX5QR+o3JPlOwQb98brUbinh38hSPSBxADgHmCbDhIOx0N0PQdQLz+pSkFzpXN/jQIDGEmm+Oa946vzR5jjZWvD6ueO9YvXWNzWPFd8cVb5wtKpMFkG9PEbm0jN7qSs3Qb9CrqffOB3kIs8Yb3obBXxrKGsOQ3s1lZtbIpRPD7FzCJaQw1rUZb87Gj2LSuD1QtutV3Dmq8RWkUDLXlI7Huq5HpXP3k1Hm4nTuWMxkvuII7bnsD1XX5grFL8E8Jeoc/aN7zhsunTe/hoGFwzCSVbTcz7NqyNiV0uoigih292jVy4ZimkQ7qQ8XqD16dXt9NX3/4ZWo27NaeCw8UvlvsnNFDMsXPfaLL+HbEPqFzjIk+k84D/D/Bu9OGBUuMO399r3Mizr/8fKIyBvnUd1MZ7eyKoix9I/fflfXNdqvZsHg6mdcysyR0iS3ULS4MFAzrWfR5hQ7TkZno4moVzvitQ7J12vyDllpO7y7lltlmFSfFU+otY9x+r+6DfvTZ/zE47rSJkRPsGjbm/xORkM0OYNkkJoECaSHITpPoHQkoQFtu9SEP/mq6+RxvN/E/7khvawkhAtdEX5Gp5c3fV6/Us8xvcftqdtyo6tGikOgbLQ3gvjPo++sY7dDzB2rQ3G6eZfsjCVUYtV5lmHNg/1Hd+2T+H03vYUEdMMHeXMfvNv/kO4nuR3aOFKQT/kjcnJL28Zk6Lp9fVx6dsc+O2K1SDXvuu5PKZWFaQ==
+sidebar_class_name: "get api-method"
+info_path: api/hook-0-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get an event type by its name"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/event_types/{event_type_name}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieves details of a specific event type if it exists within the given application. Event types define the structure of emitted events.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"event_type_name","required":true,"schema":{"type":"string"},"style":"simple"},{"in":"query","name":"application_id","required":true,"schema":{"type":"string","format":"uuid"},"style":"form"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"event_type_name":{"type":"string"},"resource_type_name":{"type":"string"},"service_name":{"type":"string"},"verb_name":{"type":"string"}},"required":["event_type_name","resource_type_name","service_name","verb_name"],"title":"EventType"}}}},"400":{"description":"Bad Request"},"403":{"description":"Forbidden"},"404":{"description":"Not Found"},"409":{"description":"Conflict"},"500":{"description":"Internal Server Error"}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -1,0 +1,71 @@
+---
+id: subscriptions-update
+title: "Update a subscription"
+description: "Modifies an existing subscription, including its event types, target configuration, or metadata. The subscription must belong to the specified application."
+sidebar_label: "Update a subscription"
+hide_title: true
+hide_table_of_contents: true
+api: eJztWNtu20YQ/ZXFvCQBKMmOL2n4ZgcOGhhJDMtGHwxBHpJDaWOSy+wu7agCgX5Ev7BfUswuJVGk4iRokRRtXwyDOzM7lzNnZrUEizMD4Q2Mq8jEWpZWqsKIt1jgjHIqLEwCSGh9BCG8VYlMJRmBhaBP0lhZzIRpqQdCFnFWJfxdWiPongor7KIkEwiLekZWxKpI5azS6BWUFjlZTNDiUFzNacueyCtjRUSZKmbCKmH5vKSYvUgElmUmY2dnCAGokrzRNwmE0DZjhlWZoCUIoESNOVnSHPoSJIdVop1DAAXm1FGcygQC0PSxkpoSCK2uKAATzylHCJfAkbGK1bKYQQCp0jlaCKGqZAJ1AMYuMich8zIjqCfeGhl7qpIFm4hVYTnZ4RJa8Yw+GM74sn+Xij5QbDkSzQFbSaajy05/jW8JJaxByfRB6TuXkbUWao0LCEBayk3fWl13oNETCMDVfupq/22GpZlSgVFG7TAipTLCgg1nGFE2vSOXvm2ATs+ptCJVWkQY3z2gTkSs8hKtjGQm7SIQC1UJM1dVlojKkLh1xsztFIJ+BP6ie8wq+i5XmV1lxiSRfCVmF1sF35bjvK3a6K9Z8V36ZcDNCZNtzKyMOE/magcI61XkS6BP6DoihLm15a6UVDp7HMY6cw5vuvNm7dTahcautzbpineaZhuzW0Bc52USgJXWOd7mzQtlOH11lyzcB1OqwvisPd/b60Pp/TkEP5AHYk2OBdA+Ks4EOrAyp/+541/CHa28/T3cYSjW9DiK1oOxM2W/Ruc/TU2tLt3Vfo9y1wb128BcY6cFgHUV+zX6EgkyAdYBHO7iuFNMxKXffMDJHPRlXisdySShwksc9iXeKSteq6pIvMTLvsQrVaSZ9LU+2uXIm8KSLjATY9L3pMWZ1kqv0FtpaRduMYykiStpIbyZ8NK2gg2UlcMbb4whjLCUo/v90dauOVp28la7nPJlfud06HHYMuFohGU5nCt1tzeMVe4WxJUfY6Z8j+i1NxsuLOW5q6fbYD24NjvsSWXnSstfHX6gu8bzKRW2gZeoDK/rKE79JcKqOyrEU+Yd3rc9qsXtKaEmLa7en5+9u33G+W28mmpKNZn59/ROpe5VIZ40dz/5Fn8rQ3qKcUzG/BCfW/d/hd91ALwEXG6eDWcrguqPezhI8aej9PhwcPRi/8Xg8Oj4+SA6SOPB8/jl8UF6fIwpHu8kkPBmRWS9Z9+a4LbGclu+PXb9G6k1aDf6W0Ox85lLsT2Ithh/w+ktEt+YaGrYELbvsPZaUKTKlbphrZ+54cTJxZteJV8pTeLybHzFp1wyL/rHb7+L9yUVg7GqdEziF4q4aY1AI1Bwd8vYlVCMEccQAHe7t7g33B/uMfxKZWyObuFpQHXtXqVsoM2ivfVovRr+wx/gTREsfbKjMkNZtGalZ0yea5Kzs98ZLzyCwu68mQQw5706vIHlMkJD1zqra/78sSLNPD0J4B61ZOQ5ak2kaVCYYmbokUw+vWyG7TPxOc9XvFAwKaxACwE0oO44W0/qYMUa7IqXeuUvHFz5Ub+y0tvw62ClcRLHVNpHZdvz6OL6CgKImh8TcpWwisYH/tkCH7zDqklxuPTflpBhMatwxrLeJDcJVrbD4X5jaP7hoHampEuNPg7+y1HtVFkuPdvW9VreH31WY83HXporNKnr+k9g54cJ
+sidebar_class_name: "put api-method"
+info_path: api/hook-0-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Update a subscription"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"put"}
+  path={"/api/v1/subscriptions/{subscription_id}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Modifies an existing subscription, including its event types, target configuration, or metadata. The subscription must belong to the specified application.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"subscription_id","required":true,"schema":{"type":"string","format":"uuid"},"style":"simple"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"application_id":{"type":"string","format":"uuid"},"dedicated_workers":{"type":"array","items":{"type":"string"}},"description":{"type":"string"},"event_types":{"type":"array","items":{"type":"string"}},"is_enabled":{"type":"boolean"},"label_key":{"description":"_Kept for backward compatibility, you should use `labels`_","type":"string"},"label_value":{"description":"_Kept for backward compatibility, you should use `labels`_","type":"string"},"labels":{"type":"object","additionalProperties":{"type":"object"}},"metadata":{"type":"object","additionalProperties":{"type":"object"}},"target":{"type":"object","properties":{"headers":{"type":"object"},"method":{"type":"string"},"type":{"example":"http","type":"string"},"url":{"type":"string","format":"url"}},"required":["headers","method","type","url"]}},"required":["application_id","event_types","is_enabled","target"],"title":"SubscriptionPost"}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"application_id":{"type":"string","format":"uuid"},"created_at":{"type":"string","format":"date-time"},"dedicated_workers":{"type":"array","items":{"type":"string"}},"description":{"type":"string"},"event_types":{"type":"array","items":{"type":"string"}},"is_enabled":{"type":"boolean"},"label_key":{"description":"_Kept for backward compatibility, you should use `labels`_","type":"string"},"label_value":{"description":"_Kept for backward compatibility, you should use `labels`_","type":"string"},"labels":{"type":"object","additionalProperties":{"type":"string"}},"metadata":{"type":"object","additionalProperties":{"type":"object"}},"secret":{"type":"string","format":"uuid"},"subscription_id":{"type":"string","format":"uuid"},"target":{"type":"object","properties":{"headers":{"type":"object"},"method":{"type":"string"},"type":{"example":"http","type":"string"},"url":{"type":"string","format":"url"}},"required":["headers","method","type","url"]}},"required":["application_id","created_at","dedicated_workers","event_types","is_enabled","label_key","label_value","labels","metadata","secret","subscription_id","target"],"title":"Subscription"}}}},"400":{"description":"Bad Request"},"403":{"description":"Forbidden"},"404":{"description":"Not Found"},"409":{"description":"Conflict"},"500":{"description":"Internal Server Error"}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -1,0 +1,71 @@
+---
+id: subscriptions-delete
+title: "Delete a subscription"
+description: "Marks a subscription as deleted, preventing any further event notifications from being sent. This operation is irreversible."
+sidebar_label: "Delete a subscription"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVdGO2zYQ/JXFviQBVNvXpg/VW+7ioIc0SXG+IA8H40JLqxNhieQtSaOuIKAf0S/slxRL6RxH5xQtEDQvtiEONcPlzLjDoO485je4ihtfsHZBW+PhjTLqjloyAdcZlnRYwhzfKN56UOCPdoDyUFJDgcoMHNOOTNDmDpTZQxU51MSQHoKxQVe6UANPxbaFDQnUkwkzuK61B+uIEwC0B83yOvZ609AMMzwsXpaY47EIPxskYIZOsWopEMvZOtSi26lQY4ZGtTTZeKtLzJDpPmqmEvPAkTL0RU2twrzDsHdpS2Bt7jDDynKrAuYYoy6xz9CHfZMQunUNYZ+NlPeReP+JUznXjEf/apSygP1a3uWdNZ68bP9+8Vy+Pr+4txYurAlyqX2GzxeLx5BzVcIV3UfyI+aHx5hXlje6LMkMiJNEAV7ZaMoB8dNjxIU1VaOLRPLjKSGXJhAb1cCKeEcMS2bL2MvBqYiswz5d7Eb7IuqA+c1aZtBSqK3Y4sgIocYc58rp+e5s/pld5t3EBD3K64VvsE3kBnOsQ3A+n8+Vc7Pa2u1iVthh5A9SVnJtw+APgg5XqJx+TWKC5IiaVEn8yRIvYqgt69+TKXAaNVmVJA2egehTpuB8IIFgt2TgafQEoSYYPAIfz0kxMVy/e718+/GZjHhUdctUMfn6/1RnKxAqeDJyP/kveqMnvlVFQd5/E81H/P9Cdy+KKpuU6pDS+bP4BV78evlIyIVlgqvl6lpWhXGA/vXHn/DOkfluZSMXBB9oI57zUrAKxJy6SApgpdQKM0zVmN64mJ3NFjI9Z31olREd40xepjhMOnsqqcNibIdv3vHjRQf6Lcxdo3SqmpTGbkz0jbhAjn8mmT1ONWaYT8t9nWFtvdQEdt1GeXrPTd/L46GhJeyl9mrTSBdXqvH0D8N5ejXW9jP4ktYt7U/1/U41UcCpPXaKtTB+ffaHnJj9MeeDqulw+nV/1Jwvl78sr5eYoYphUhTbFLrxh4g+yTPN30Aqn/K3eHJL1w2R7vsDflj64o5D6Ae0HHvd9/3fMGsJvA==
+sidebar_class_name: "delete api-method"
+info_path: api/hook-0-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Delete a subscription"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"delete"}
+  path={"/api/v1/subscriptions/{subscription_id}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Marks a subscription as deleted, preventing any further event notifications from being sent. This operation is irreversible.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"subscription_id","required":true,"schema":{"type":"string","format":"uuid"},"style":"simple"},{"in":"query","name":"application_id","required":true,"schema":{"type":"string","format":"uuid"},"style":"form"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"204":{"description":"No Content"},"400":{"description":"Bad Request"},"403":{"description":"Forbidden"},"404":{"description":"Not Found"},"409":{"description":"Conflict"},"500":{"description":"Internal Server Error"}}}
+>
+  
+</StatusCodes>
+
+
+      

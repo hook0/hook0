@@ -1,0 +1,71 @@
+---
+id: organizations-delete
+title: "Delete an organization"
+description: "Remove an organization you have write access to. Organization must not contain any application otherwise this will fail."
+sidebar_label: "Delete an organization"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVcFu20YQ/ZXBXJIArCS36aG8xY6CGmnjwnLRgyE4I3IkLkzurndn5aoEgX5EvzBfEgxJu4pkF+2luUiU9u2+tzPvDVsU2kTMr/EibMiaP0iMsxF+JksbbtgKLjMsORbBeF3CHC+5cVsGsuD29sDOJahoy3AfjDBQUXCMIG4C+0dDk6KAdQKFs0LGAtkdkPe1KQaAk4rDvYkMUpkI96auYU2mnmCGznPoUecl5rhPHycl1yyMGXoK1LBw0Hu1aFSzJ6kwQ0sNH2y8MSVmGPgumcAl5hISZxiLihvCvEXZed0SJRi7wQzXLjQkmGNKpsQuwyi7ukeYxteM3VJPi97ZyFEP+Hb2Wr++rOEHB2fOita3y/D1bHYMOaUSLvkucRwx3x1j3rmwMmXJdkA8SSTwziVbDogfjhFnzq5rU/Qk3z8l5NwKB0s1LDhsOcA8BBew06tzkYKRXV/nlYlFMoL59VJr0LBUTru01xepMMcpeTPdnky/6N60PehJN0U9XwmHNqZQY46ViI/5dEreTyrnbmeTwjV9zR+0LLRzQ+UfFT12kbx5zzvMBlNUTCWHv23xJknlwqgBD22vq2zlwaYpGrsBgtOBBMTdsoWXqfctw2AT+HjKFDjA1cX7+YePr7TGo6qbwOvAsfo/1bk1KBW8GLlf/Be9KXK4GVL9VTTv8f8L3Z0qWrteqZE+oD+qX+DNL+dHQs5cYLicL650VRkH6Kc//4ILz/abhUuhYPiNV+q5CBSBQM1pil4BLIgWmKGadThxNjmZzLR63kVpyKqOsSZv+zwcjs9DTS0W43z4qgN37LLw7zL1NZl+0PRRbMc8X6sF9O4nOp/3M40Z5seTVt8nlYs6J7BtVxT511B3nf59lzjoLFlmuKVgaKVtu26xNFGfS8zXVEf+h0q9vBzn+Ct4TvyDb62adkt10l+Y4S3vnngzdMtub5S9nf80v5pjhpTkILi3fQjGBxX9JM9hHgZS/eyyZ7a07RCxrnvED0vP7ngM4YDWay+7rvsMnUm6mA==
+sidebar_class_name: "delete api-method"
+info_path: api/hook-0-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Delete an organization"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"delete"}
+  path={"/api/v1/organizations/{organization_id}/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Remove an organization you have write access to. Organization must not contain any application otherwise this will fail.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"organization_id","required":true,"schema":{"type":"string","format":"uuid"},"style":"simple"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"204":{"description":"No Content"},"400":{"description":"Bad Request"},"403":{"description":"Forbidden"},"404":{"description":"Not Found"},"409":{"description":"Conflict"},"500":{"description":"Internal Server Error"}}}
+>
+  
+</StatusCodes>
+
+
+      

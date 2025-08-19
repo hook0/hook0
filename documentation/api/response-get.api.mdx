@@ -1,0 +1,71 @@
+---
+id: response-get
+title: "Get a response by its ID"
+description: "A response is produced when a request attempt is processed. Response IDs can be obtained from request attempts details."
+sidebar_label: "Get a response by its ID"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVsFuGzcQ/RViLkmArSQn6aF7sxMnNYzGgeWiB0NQuMuRlvEuyZBDt+pigX5Ev7BfUgx3Ja8lpU2BoLnIgvmG73Fm3oxaILkOkN/CPBah9NqRtiaIn6SRa2zQECwyULg7ghxOhcfgrAkodBDOWxVLVOLXCo2QwuOniIGEJMLG0QApMQRUE3G9jbx4HUQpjShQ2IKkNqjEyttmPz4IhSR1HSaQgXXoJau4UJDDVsVkjQQZOOllg4Sen9OCZqmfIvoNZGBkg5CDdK7WZbphqRVkwGTao4KcfMQMQllhIyFvgTaOIwJ5bdaQwcr6RhLkEKNW0GUQaFMzgg+gywZCJ6l64Nsq/GpkQTeuRugW2e7uwBc8n834z+M6XV1CBqU1xFXM2/Hrpx8DQ9pDDbb4iGVKp+dsk+4JCqs2h0q7DLCWLqBakm5w2YQRRhvCNfrxc7ShF885qkKpUqEOeaVSmiXK+v0jBXvMfAmRW5ZW4ReS7qqB3lu/7Gt05Enjqv17cbpxYW8fBS8yIE2pcNu+h67jiJfH6nUmlbjuux8S5sUh5o31hVYKTY94eYh4Z0m8sdGoHvHDIeKVNatal4nk+2NCLgyhN7IWc/T36MU55yu9NGAZvaZNclihQxk1QX674IZskCrLvtzakSrIYSqdnt6fTHftOm1HKeqA72SS3rTR15CnwoZ8OpXOTSpr72aT0jap6bf8c27boTO3KnaVkk5fIrs+ObJvtQdPnkaqrNe/Jx/AwWyLVKGhwSYiBm3WQoqznkSQvUMjnsaAgioUfSuID2coPXpxc3V5/u7DM87roGrpceUxVP+nOrsSTCWeDNxP/oveGNAvZcnj+ptoHvF/ge6OFa1sUjoY7UfuF3H6/uJAyCvrUVyfz2/4lBl76F9//CmuHJrv5jb6EsUvWHDPBSGDkIKbU5dJgZhLOYcMuFn7G2eTk8mMs+dsoEamgTrk5C1S2oXDtis2QlMQF6/3VbUPA/ob7tWhzIS/0dTVUqfpkrzYDj6+5R7gx5/AePVkkO8NvMoGngjQtoUM+LOvu47/3S9itrjSQRY1D8uVrAP+Qz6eXg9z9Zn4nMY73Bxb6/eyjgxOM+Nees2MX5996w6zGXNuVY0T0y12Sy/J6BGnZYmORrEHG/rRXH17fsP7MdLeOLlL1hy+8O1Hde27tJfAn/zj5WhI2/bG77odvj/6bMRuNPRoTtOi67q/AWSxkfY=
+sidebar_class_name: "get api-method"
+info_path: api/hook-0-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get a response by its ID"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/responses/{response_id}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+A response is produced when a request attempt is processed. Response IDs can be obtained from request attempts details.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"query","name":"application_id","required":true,"schema":{"type":"string","format":"uuid"},"style":"form"},{"in":"path","name":"response_id","required":true,"schema":{"type":"string","format":"uuid"},"style":"simple"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"body":{"type":"string"},"elapsed_time_ms":{"type":"integer","format":"int32"},"headers":{"type":"object","additionalProperties":{"type":"string"}},"http_code":{"type":"integer","format":"int32"},"response_error_name":{"type":"string"},"response_id":{"type":"string","format":"uuid"}},"required":["response_id"],"title":"Response"}}}},"400":{"description":"Bad Request"},"403":{"description":"Forbidden"},"404":{"description":"Not Found"},"409":{"description":"Conflict"},"500":{"description":"Internal Server Error"}}}
+>
+  
+</StatusCodes>
+
+
+      

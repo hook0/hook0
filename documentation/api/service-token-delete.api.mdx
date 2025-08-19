@@ -1,0 +1,71 @@
+---
+id: service-token-delete
+title: "Delete a service token"
+description: "Marks a service token as expired, effectively revoking its access. This operation is irreversible."
+sidebar_label: "Delete a service token"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVdtu00AQ/ZXVvFAkk6RcHvAbLUFUXNUE8VBF7cQex6s4u+7sbkSwLPERfCFfgmbtpiUJCCQEL0mUnfE5O3POcQMeFw7SC5gQr3VGamqXZJx6gwYXtCLjYZZATi5jXXttDaTwBnnpFCrXt3hpUegUfao1U54oKgrKvF5TtVFMa7vUZqG0dwqzjJwbqGmpnbI1McozlXZKM9Oa2Ol5RQNIYHt4lkMKPVQkN8ipIk+QQI2MK/LEcoMGtJCr0ZeQgMEV3fZdRoqXOocEmK6DsITUc6AEXFbSCiFtwG/q2ONZmwUkUFheoYcUQtA5tAk4v6lihV7VFUGb9JjXgXhzC2p5gUZ/juz/GqYcQDuTZ7naGkdO2h+OHsvXj/t5a9WpNV521ybweDTaLznBXJ3TdSDX1zzar3lhea7znExXcRDIqxc2mLyreLpfcWpNUeksgjw5ROTMeGKDlRL9Easxs2Vo5eKUBdZ+E1c71y4L2kN6MZMZrMiXVnRxRwq+hBSGWOvh+nj4w96Hza4MWkiiNG6UE7iCFErva5cOh1jXg9La5WiQ2W7mN1wmsrdu8ltG2x1irV+RyCBqoiTMiW9F8Sz40nKvCti1lJyS8Trr/BCcGAbVSQfSO+woOFK+JNWJRF2dEDKxmr57NX57dV9m3LO6ZCqYXPkv2dlCCZS612Pf+xO+wRFfduHwXzjfwf8N3q0wKmxkqn2050vRi3r2/myPyKllUufjyVROBbEr/fblq3pXk3kwsYEzUh9pLppzkqO30VpYVhPECSQQwzE+cTQ4HoxkerV1foVGePQzeR79sJvNu5wayPp8+Edh3u/T0yc/rCvUMVKi6ZreuReybLnlcW/NrV0hgXQvxmcJlNZJHkDTzNHRB67aVv7uslhMnWuH80pCt8DK0S9mcHTe5/N99TOyS9ocTPY1VkGqY0yskbVA/n34G0OYzV3MG1p742ln7Z2QfD5+PZ6OIQEMficSltFe/Q9hfRBo12kdqnzKK/BgS9N05m3bbX139NOOrb27arn3rG3b74Lk9ns=
+sidebar_class_name: "delete api-method"
+info_path: api/hook-0-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Delete a service token"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"delete"}
+  path={"/api/v1/service_token/{service_token_id}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Marks a service token as expired, effectively revoking its access. This operation is irreversible.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"service_token_id","required":true,"schema":{"type":"string","format":"uuid"},"style":"simple"},{"in":"query","name":"organization_id","required":true,"schema":{"type":"string","format":"uuid"},"style":"form"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"204":{"description":"No Content"},"400":{"description":"Bad Request"},"403":{"description":"Forbidden"},"404":{"description":"Not Found"},"409":{"description":"Conflict"},"500":{"description":"Internal Server Error"}}}
+>
+  
+</StatusCodes>
+
+
+      

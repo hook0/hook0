@@ -1,0 +1,63 @@
+---
+id: quotas-get
+title: "Get quotas"
+description: "Get the current quotas limitations on the instance."
+sidebar_label: "Get quotas"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVttuEzEQ/RVrXgBpSdILD+xbW7WlqtRCU8RDFG293knW7a7t2N6IEK3ER/CFfAkae1vSpIK2IHhKYh/PHM+cM84SPJ86SEfwTuubAYwTKNAJK42XWkEKx+iZL5GJxlpUns0a7bljlayl54RxTKuAkMp5rgT2IAFt0IbdkwJSiGd6U/SQgEVntHLoIF3C9mBAH/dTnp9CAkIrj8rTLjemkiKE6187gizBiRJrTt/8wiCkoPNrFBTfWEruZUyAiucVFivAXOsKuYI2gXAJ9/sg00rnvMpWeLjMoM20nXIlv4SVLARbiSWVxylaSGCibc19XNrZpsRdwIIvXKYnGc5ReZdZpBs/M1aIkRE+clsh++xwMVLBF8+JUGOdo/07hXJNfieQP7leS/KbNdKSIkZP6etje/aEfvy61o+t45NqNF6vwK097rwwTsBLX1EZPwTXXnR2hbalw7sPGXafF+wCZw06DwGzs4k50jaXRYEqInY3EWfasyPdqCIi3m4iDrSaVFKEJG8eInKiPFrFKzZEO0fLDq3VNrS9Rl9qmkVxCBnuS0ihz43sz7f6cUD1IQEXDtJAXEJjK0ih9N64tN/nxvRKmpE9oWtox4QVjZV+MaRZFCdFLp1o7omRG3mKC0hAEsESeRGUqXhNu3uNL7XtOgrrs5d2SV2xh6xxUk0ZZ/sxCfP6BhV72TgM8zeKnV3tI7do2eX56eHZ1SuqVccqszix6Mp/yU5PGKViL7rcL57Ct3GkYiHQuf/CeSX/I3i3xGiiA9POQuFNZXvvTzaIHGiL7OJweEm7lDFCv3/9xs4NqtdD3ViB7BPmpDnHuGOckTilCAzYkPMhJEBijREHva3egKpntPM1D69kVxN6w6PE13ksf76zz3zpu6Z4/Oz7puIy+Ds4Z9m5bEQdI6pbkMAdDZo0pXae9pfLnDv8aKu2peVZg3YB6WicwJxbSROKfrXJbbPJnDe4oH4KgYYMPedVE8Wx9l+BjHpn/uPDS2jbHwc2Jqc=
+sidebar_class_name: "get api-method"
+info_path: api/hook-0-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get quotas"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/quotas/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get the current quotas limitations on the instance.
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"enabled":{"type":"boolean"},"limits":{"type":"object","properties":{"global_applications_per_organization_limit":{"type":"integer","format":"int32"},"global_days_of_events_retention_limit":{"type":"integer","format":"int32"},"global_event_types_per_application_limit":{"type":"integer","format":"int32"},"global_events_per_day_limit":{"type":"integer","format":"int32"},"global_members_per_organization_limit":{"type":"integer","format":"int32"},"global_subscriptions_per_application_limit":{"type":"integer","format":"int32"}},"required":["global_applications_per_organization_limit","global_days_of_events_retention_limit","global_event_types_per_application_limit","global_events_per_day_limit","global_members_per_organization_limit","global_subscriptions_per_application_limit"]}},"required":["enabled","limits"],"title":"QuotasResponse"}}}},"400":{"description":"Bad Request"},"403":{"description":"Forbidden"},"404":{"description":"Not Found"},"409":{"description":"Conflict"},"500":{"description":"Internal Server Error"}}}
+>
+  
+</StatusCodes>
+
+
+      

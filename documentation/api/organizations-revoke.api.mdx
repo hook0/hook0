@@ -1,0 +1,71 @@
+---
+id: organizations-revoke
+title: "Revoke a user's access to an organization"
+description: "Remove permission of a user to access an organization you have write access to."
+sidebar_label: "Revoke a user's access to an organization"
+hide_title: true
+hide_table_of_contents: true
+api: eJzNVttu20YQ/ZXFvDgBVhfflIZvtqughtu4kFz0QRCSETkUNyZ3md2lHJUg0I/oF+ZLguFStiwpafvQy4tEcedyZvbMGdXgcekgmsGtXaJWv6FXRjvxE2pcUkHaw1xCQi62quQjiGBChVmRKMkWyjlltDCpQFE5ssIbgXFMzgnUwmyFFGtTiQxXJB6s8rSx8qYPEkxJtrW6TiCCbTfXt7Qy9wQSSrRYkCfLcGtQDKVEn4EEjQXtOL5TCUiw9LFSlhKIvK1IgoszKhCiGvy6ZBfnrdJLkJAaW6CHCKpKJdBIcH6dtxaqKHOCZh6ikfOXJllziNhozw2KasCyzFXcJh58cNylej+XWXyg2HMllgv2ihyfct8Y7Z+DarYLmj06ziV45Vuwk9Cs5rkp196+cKXRLmQ9GQ756/nN3t6A/H+X1Ug4O4T8EhMxCdcDrc3pvs0bYxcqSUgHi7N9i7fGizem0kmweL1vcWV0mqu4TXJ+CMi19mQ15mJKdkVWjK01tq3RUVxZ5dctexfKxZXyEM3mzKyCfGaY+wnl5APbfQYRDLBUg9Xx4NlMDOodpjcDpVeq9XNt2jAilc0hgsz70kWDAZZlPzPmftiPTdHyeYNoylcabu0R1+OtYaluaA0yDFxGmJB9GrmLymfGdkhgVyn4lLTvKCQqp/RSoLgMSYQ396TFi8qR8BmJQAvx/pLQkhV3tzfjt+9fcqc7VO8spZZc9m+iM6ngVOKoy330d/C2VA5K959g3sr/F3A3EnjIJ08qN/6ErfhtjzOcpvjdeTo6652/On7VOzsfnfQWp2ncO4lfj07T0QhTHHETlE5NW3U3xD8w98TFz9d7RV0ZS2Iynt7xKaMPpp9//0PclqR7U1PZmMSvtGD+OoFOoGCiq7itRkwRpyCBiR8iDvvH/SGDKI3zBbbC1fU3aEm3r47c0yLa3Vi7MLcE/x9YgR03PH3ygzJH1YpUO8B1pwUzJg5Xecwbc1sPQEK0v/s6SZhLyIxjpYG6XqCjX2zeNPz6Y0WW1WguYYVW4YKvaVZDohw/JxClmDv6RhteTDrdfim+VsKG85oJv8K84l8g4Z7WBzZ2M2/kZiIYSrC6Cgl7dxzrKcredmrkxuMijqn037TdVt3vxz+O78YgYdGt9sIk7GXxgf9E4EPAbMrQ7qgO72rIUS8rXLJtiMpDhJXfkaj7dty7B67rYFd2Jz+Uwp9c2EGXug5i0jSP9uHoqx6PchOs+ZLmTdN8AUWScI0=
+sidebar_class_name: "delete api-method"
+info_path: api/hook-0-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Revoke a user's access to an organization"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"delete"}
+  path={"/api/v1/organizations/{organization_id}/invite"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Remove permission of a user to access an organization you have write access to.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"organization_id","required":true,"schema":{"type":"string","format":"uuid"},"style":"simple"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"user_id":{"type":"string","format":"uuid"}},"required":["user_id"],"title":"Revoke"}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"user_id":{"type":"string","format":"uuid"}},"required":["user_id"],"title":"Revoke"}}}},"400":{"description":"Bad Request"},"403":{"description":"Forbidden"},"404":{"description":"Not Found"},"409":{"description":"Conflict"},"500":{"description":"Internal Server Error"}}}
+>
+  
+</StatusCodes>
+
+
+      

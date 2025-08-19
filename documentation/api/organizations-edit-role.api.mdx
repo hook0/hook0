@@ -1,0 +1,71 @@
+---
+id: organizations-edit-role
+title: "Edit a user's role in an organization"
+description: "Change the role of a user that has already access to an organization you have write access to."
+sidebar_label: "Edit a user's role in an organization"
+hide_title: true
+hide_table_of_contents: true
+api: eJzdVttuGzcQ/RViXpwA1MU3pdk323BQw2gcSA76YAjOaHdWy3hFbkiuHHWxQD+iX9gvKYZcy7KkpO1DW6AvuixnOOcM5xxuAx7nDpI7uLFz1OoX9MpoJ35CjXNakPYwlZCRS62qeAkSuChQz0n4goQ1JQmTCxS1Iyt8gV4U6ASWljBbCUxTck54I1ALs1FBrEwtClySeLTK03NgHySYimyIusoggc0016dM+XsuCxIqtLggT5YJNKAYXIW+AAkaF7SVe68ykGDpS60sZZB4W5MElxa0QEga8KuKU5y3Ss9BQm7sAj0kUNcqg1aC86syRKhFVRK007gbOX9ushVvkRrtuWVJA1hVpUpD4cFnx31rdmuZ2WdKPTOxzNkrcrwa6O0gaiVwk5nGn6NtN5neQdewp/ypBK98ILN57JeZ8mOObF/mc6fCA1cZ7SLGo+GQv15Oxs01yP9TE1oJJ/t4nmMmxvHoIcQc78a8M3amsox0jDjZjXhvvHhnap3FiLe7ERdG56VKQ5HTfUCutCersRQTskuy4tJaYwNxR2ltlV8FZcyUS2vlIbmb8tQuyBeGpVXVoe8smQQGWKnB8nDwQm+DZktC7UDppfLcSBdqRu3VtoQECu8rlwwGWFX9wpiHYT81iyCUJzgTPv14wGtQ63PESl3TCmRUckGYkX3W8lntC2M7JLBtSrxK2nfTJmqn9FygOI9FhDcPpMWr2kXfioMiPp0TWrLi9ub68v2n19zmDtW9pdySK/5NdCYXXEocdLUP/g7eMNXRRf8TzBv1/wLuVgL7wfjZPi+/YnDVtfKfVb0WPBzn+MNpPjrpnb45fNM7OR0d9WbHedo7St+OjvPRCHMccVOUzk3oQqfvH3kWxdmHqx2SF8aSGF9ObnmV2cTQ33/9TdxUpHsTU9uUxM8043l2gu82wYOv0sBOTBAnIIGFEHcc9g/7QwZRGecXGDyv6zdbS3dVHrh4dyq9fTNuQ9y4Vf75m7cbG09f/aAqUQXzCtpuOpu445liwod8UW9aBUhIdu/bzi2mEgrj2IGgaWbo6KMt25Yff6nJsktNJSzRKpzxid01kCnHvzNIciwdfacrr8adyb8W36LwJAfNWlhiWfM/kPBAqz1vCe20lU9iYSgx6iIW7N3yXs+77NxxrXzKOEtTqvx3Yzfd+MPHW5Aw694lFibjFIuP/NaCjxGwqWKvWSb8rIES9bzGOcfGLVlcWPst63oINtD9YFJ7W7LtCJEHfzKrvSlNE02mbdfxcembGWsbitF8QtO2bf8Adbidbw==
+sidebar_class_name: "put api-method"
+info_path: api/hook-0-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Edit a user's role in an organization"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"put"}
+  path={"/api/v1/organizations/{organization_id}/invite"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Change the role of a user that has already access to an organization you have write access to.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"organization_id","required":true,"schema":{"type":"string","format":"uuid"},"style":"simple"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"role":{"type":"string"},"user_id":{"type":"string","format":"uuid"}},"required":["role","user_id"],"title":"OrganizationEditRole"}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"role":{"type":"string"},"user_id":{"type":"string","format":"uuid"}},"required":["role","user_id"],"title":"OrganizationEditRole"}}}},"400":{"description":"Bad Request"},"403":{"description":"Forbidden"},"404":{"description":"Not Found"},"409":{"description":"Conflict"},"500":{"description":"Internal Server Error"}}}
+>
+  
+</StatusCodes>
+
+
+      

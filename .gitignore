@@ -19,3 +19,8 @@ api/.clever.json
 
 # docker-compose
 .data
+
+
+# docs
+/build
+.docusaurus

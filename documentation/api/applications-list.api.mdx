@@ -1,0 +1,71 @@
+---
+id: applications-list
+title: "List applications"
+description: "Retrieves all applications."
+sidebar_label: "List applications"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVdtuE0kQ/ZVWvQDSYDtcHnbeEhQgChAUB/EQWaE9U/Y0GXdPqqstvKOR+Ai+cL9kVd2TZGInC/sCfvBl+lSdU+VT1S2wXnrIz2G/aWpTaDbOevVeW73EFVqGWQYl+oJMI0eQwykyGVyjV7qulR6EjSAD1yDFX0cl5HDntDaeIYNGk14hIwltC0ZyXgWkDWRg9QohB0dLbc3fMe7ClJAB4VUwhCXkTAEz8EWFKw15C7xpJMQzGbuEDBaOVpohhxBMCV0Gnje1IOQAupnk8o2zHr2EP5tM5ONuiSfHkEHhLEsD8nZYxvirF0i7q0ATaanBMK784Lmbf8UiFk7SHDaJeJBTSvyVSlJ3toFdttOvnyfrhi093xbTU+0mnmXAhmM7B36BTl4ZvLivlwe6VKd4FdAzRMzzXcxrR3NTlmgT4sUu4oNj9doFWybEX7uIV84ualNEkpf3CTmyjGR1raZIayR1SOQodsJjEcjwJvpxbnwRDEN+PhOzrJArJ1ZeYjIvV5DDWDdmvN4bD/09BskkqZOxA9WQQ8Xc+HwsyFHl3OVkVLhkw2vWqRgpeeKG+9ZUjTnG6CopoUJdIt3OyX7gylH//8D2oMopWu71qeCNXSqtDhKJYneJVj0OHhVXqJJB1JcD1ISkzk6ODz98eSLd7FVdEC4IffU71bmFEir1qOd+9H/0Bo90oYsCvf8jmgf8v6C7E0ULF5X2I/ZW/KL2Px7tCHnlCNXp4fRMToUxQf/5/kOdNGifTl2gAtVnnIvnvNJeaSXmNEVUoKZaTyEDMWvKOBntjSbSvcZ5Xum44vqevDOe7+z5bTnt7a78ye3Q/weM33jc1NrEgY+D0vajJbvIiLI9yGCLVNZP5bzMJrTtXHv8RHXXyeN0gcjYlcbreS1rbaFrj/8h9fFpvwGfqIekXeLm3utoresg6DjIa01GKOPKyK4tJVpS+H5RYMODqJ3r5M6ieXN4JqUH3pq0y+ja/otkvz6ym0HubQMnCfLeZQ+EtG2aia67waejByNupiahpVezruv+BSCG1qM=
+sidebar_class_name: "get api-method"
+info_path: api/hook-0-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"List applications"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/applications/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieves all applications.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"query","name":"organization_id","required":true,"schema":{"type":"string","format":"uuid"},"style":"form"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"application_id":{"type":"string","format":"uuid"},"name":{"type":"string"},"organization_id":{"type":"string","format":"uuid"}},"required":["application_id","name","organization_id"],"title":"Application"}}}}},"400":{"description":"Bad Request"},"403":{"description":"Forbidden"},"404":{"description":"Not Found"},"409":{"description":"Conflict"},"500":{"description":"Internal Server Error"}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -1,0 +1,71 @@
+---
+id: events-ingest
+title: "Ingest an event"
+description: "Send an event to your Hook0 application. Matching subscriptions will be triggered, if any."
+sidebar_label: "Ingest an event"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVttu20YQ/ZXFvKQFqKstOeabHTioESQ2LAcFagjOkByKG1O7zO5SjiIQ6Ef0C/MlxezKMiXLQfzQFn2xBe7ZmTO3M7sChzML8Q2cLUg5K96jwhnNSTmYRpCRTY2snNQKYpiQygQqQQwVToulro34Teu7vsCqKmWKjOyK9+jSQqqZsHWyMWDFvSxLkZBwRs5mZCiLhMwFqmUXItAVGX/9PIMYvAvblWpG1kEEhr7UZN2pzpYQryDVyjHFeAUtx73PlnmuwKYFzZF/uWVFEINOPlPKdirDfpwku3P3VmYtvHVGqhlEkGszRwcx1LXMoIkCsZeBA2wX3kRQYkKl3UcTs0wyKywvtwhv45omgjk5zNDtDfbnreg0rY2h7BbdDwPL0FHHyTkx/QqXpcY9mXg8u10X6rkcNKGy0lDGPbhTj1a2t3K5ydw28UdGz/ifRuCkK5mA7/ZLbTn8LRLO1OQ/2EorG/I17A/43/YwvDGEjtjX/6QZDaUkFy+q8QvK07beyvO5H2DKfL45100Eh/3+03SeYiauwpCDxxw8xbzVJpFZRiogDp8iPmgn3upaZQFxvKdsWuWlTL2T0T4i58qRUViKCZkFGXFmjDY+FZbS2ki3hPhmBYm0aS0dxDfTZurHsNAsXJW2oRNdATH0sJK9xaDnE9UDtsFGrTdRmxJiKJyrbNzrYVV1C5bSbqrnwDYf/E24gUKPbLxu6oeVfEdLiEAy+YIwIwMRKJzz6UntCm3kN18z2NVzPiXl1iUVtWXJRnEanAin70iJX2pLwhUkQoOIT6eEhoy4vnh39uHTr5zHNatbQ7khW/yb7HQu2JV4tfb96iV8a0vmFtOUrP1POLf8/wTvJgKWlKvHTXj2FedVSfvEAw5yfD3Kx4ed0dHgqHM4Gg87yUGedobp8fggH48xx3F7gl94Y1c9NqtseyXtrhYY9oeHnf5RZ3h8PRjFo0E8fN3tHw3+aIl3y+r+LdJaM1Ll2pduLTfhLXJyef6kMm+0IXF1NrnmUy5BgH7/8y9xUZHqTHRtUhK/U8JDaAVagYKnVaa+JGKCOIEIeHqDxX530O37Xaetm6PX+nWTBNXbPJV2ybTeL//sm2qdL0dfXa8qUXrh9LKzWisUi7rksAYPpYUIWMAL1rH4BlarBC19NGXT8OcvNRkWwGkECzQSE077zbSJHgaFhe2OlkFpOcbOdVjZCyzrMF47K7KJHm6cpClV7ofYttReXkyuIYJk/Sac64zvGLzndYT3EIN/Vvo8McB/W0GJalbjjLHBJk8W1m5Ht+68Bqx/cFQPR2rZYrgrByEQ/sth7b2yWgWFaZoNPhw9e2OjQQHNZZw2TfM3GyYB1g==
+sidebar_class_name: "post api-method"
+info_path: api/hook-0-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Ingest an event"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/api/v1/event/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Send an event to your Hook0 application. Matching subscriptions will be triggered, if any.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"application_id":{"type":"string","format":"uuid"},"event_id":{"type":"string","format":"uuid"},"event_type":{"type":"string"},"labels":{"type":"object","additionalProperties":{"type":"object"}},"metadata":{"type":"object","additionalProperties":{"type":"object"}},"occurred_at":{"type":"string","format":"date-time"},"payload":{"type":"string"},"payload_content_type":{"type":"string"}},"required":["application_id","event_id","event_type","labels","occurred_at","payload","payload_content_type"],"title":"EventPost"}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"201":{"description":"Created","content":{"application/json":{"schema":{"type":"object","properties":{"application_id":{"type":"string","format":"uuid"},"event_id":{"type":"string","format":"uuid"},"received_at":{"type":"string","format":"date-time"}},"required":["application_id","event_id","received_at"],"title":"IngestedEvent"}}}},"400":{"description":"Bad Request"},"403":{"description":"Forbidden"},"404":{"description":"Not Found"},"409":{"description":"Conflict"},"500":{"description":"Internal Server Error"}}}
+>
+  
+</StatusCodes>
+
+
+      
