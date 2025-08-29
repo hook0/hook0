@@ -1,0 +1,270 @@
+use aes_gcm::{
+    aead::{Aead, AeadCore, KeyInit, OsRng},
+    Aes256Gcm, Key, Nonce,
+};
+use anyhow::{anyhow, Result};
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
+use ring::rand::{SecureRandom, SystemRandom};
+use sqlx::PgPool;
+use std::env;
+use uuid::Uuid;
+
+use super::config::EncryptedSecret;
+
+/// Service for encrypting and decrypting secrets
+pub struct SecretEncryption {
+    master_key: Vec<u8>,
+    db_pool: PgPool,
+}
+
+impl SecretEncryption {
+    /// Create a new SecretEncryption service
+    pub fn new(db_pool: PgPool) -> Result<Self> {
+        // Get master key from environment
+        let master_key_b64 = env::var("HOOK0_ENCRYPTION_KEY")
+            .map_err(|_| anyhow!("HOOK0_ENCRYPTION_KEY environment variable not set"))?;
+        
+        let master_key = BASE64
+            .decode(&master_key_b64)
+            .map_err(|e| anyhow!("Failed to decode master key: {}", e))?;
+        
+        if master_key.len() != 32 {
+            return Err(anyhow!("Master key must be 32 bytes (256 bits)"));
+        }
+        
+        Ok(Self {
+            master_key,
+            db_pool,
+        })
+    }
+    
+    /// Generate a new encryption key for production use
+    pub fn generate_master_key() -> String {
+        let rng = SystemRandom::new();
+        let mut key = vec![0u8; 32];
+        rng.fill(&mut key).expect("Failed to generate random key");
+        BASE64.encode(&key)
+    }
+    
+    /// Encrypt a secret value
+    pub fn encrypt(&self, plaintext: &str) -> Result<(String, String)> {
+        let key = Key::<Aes256Gcm>::from_slice(&self.master_key);
+        let cipher = Aes256Gcm::new(key);
+        
+        // Generate random nonce
+        let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
+        
+        // Encrypt the plaintext
+        let ciphertext = cipher
+            .encrypt(&nonce, plaintext.as_bytes())
+            .map_err(|e| anyhow!("Encryption failed: {}", e))?;
+        
+        // Encode both nonce and ciphertext as base64
+        let nonce_b64 = BASE64.encode(&nonce);
+        let ciphertext_b64 = BASE64.encode(&ciphertext);
+        
+        Ok((ciphertext_b64, nonce_b64))
+    }
+    
+    /// Decrypt a secret value
+    pub fn decrypt(&self, ciphertext_b64: &str, nonce_b64: &str) -> Result<String> {
+        let key = Key::<Aes256Gcm>::from_slice(&self.master_key);
+        let cipher = Aes256Gcm::new(key);
+        
+        // Decode from base64
+        let nonce_bytes = BASE64
+            .decode(nonce_b64)
+            .map_err(|e| anyhow!("Failed to decode nonce: {}", e))?;
+        
+        let ciphertext = BASE64
+            .decode(ciphertext_b64)
+            .map_err(|e| anyhow!("Failed to decode ciphertext: {}", e))?;
+        
+        // Create nonce from bytes
+        let nonce = Nonce::from_slice(&nonce_bytes);
+        
+        // Decrypt
+        let plaintext = cipher
+            .decrypt(nonce, ciphertext.as_ref())
+            .map_err(|e| anyhow!("Decryption failed: {}", e))?;
+        
+        String::from_utf8(plaintext)
+            .map_err(|e| anyhow!("Failed to convert decrypted bytes to string: {}", e))
+    }
+    
+    /// Resolve a secret value (handles both env:// and encrypted values)
+    pub async fn resolve_secret(&self, value: &str, application_id: &Uuid) -> Result<String> {
+        if value.starts_with("env://") {
+            // Environment variable reference
+            let var_name = &value[6..];
+            env::var(var_name)
+                .map_err(|e| anyhow!("Failed to get environment variable {}: {}", var_name, e))
+        } else if value.starts_with("encrypted://") {
+            // Encrypted value stored in database
+            let secret_name = &value[12..];
+            self.get_encrypted_secret(application_id, secret_name).await
+        } else {
+            // Plain text value (for non-sensitive config)
+            Ok(value.to_string())
+        }
+    }
+    
+    /// Store an encrypted secret in the database
+    pub async fn store_encrypted_secret(
+        &self,
+        application_id: &Uuid,
+        name: &str,
+        value: &str,
+        metadata: Option<serde_json::Value>,
+    ) -> Result<Uuid> {
+        let (encrypted_value, nonce) = self.encrypt(value)?;
+        
+        let result = sqlx::query!(
+            r#"
+            INSERT INTO auth.encrypted_secret (
+                application__id,
+                name,
+                encrypted_value,
+                nonce,
+                metadata
+            ) VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT (application__id, name)
+            DO UPDATE SET
+                encrypted_value = EXCLUDED.encrypted_value,
+                nonce = EXCLUDED.nonce,
+                metadata = EXCLUDED.metadata,
+                updated_at = NOW(),
+                rotated_at = NOW()
+            RETURNING encrypted_secret__id
+            "#,
+            application_id,
+            name,
+            encrypted_value,
+            nonce,
+            metadata
+        )
+        .fetch_one(&self.db_pool)
+        .await?;
+        
+        Ok(result.encrypted_secret__id)
+    }
+    
+    /// Get and decrypt a secret from the database
+    pub async fn get_encrypted_secret(
+        &self,
+        application_id: &Uuid,
+        name: &str,
+    ) -> Result<String> {
+        let secret = sqlx::query_as!(
+            EncryptedSecret,
+            r#"
+            SELECT 
+                encrypted_secret__id,
+                application__id,
+                name,
+                encrypted_value,
+                nonce,
+                metadata,
+                created_at,
+                updated_at,
+                rotated_at
+            FROM auth.encrypted_secret
+            WHERE application__id = $1 AND name = $2
+            "#,
+            application_id,
+            name
+        )
+        .fetch_one(&self.db_pool)
+        .await
+        .map_err(|e| anyhow!("Secret not found: {}", e))?;
+        
+        self.decrypt(&secret.encrypted_value, &secret.nonce)
+    }
+    
+    /// Rotate a secret (update with new value)
+    pub async fn rotate_secret(
+        &self,
+        application_id: &Uuid,
+        name: &str,
+        new_value: &str,
+    ) -> Result<()> {
+        let (encrypted_value, nonce) = self.encrypt(new_value)?;
+        
+        sqlx::query!(
+            r#"
+            UPDATE auth.encrypted_secret
+            SET 
+                encrypted_value = $3,
+                nonce = $4,
+                updated_at = NOW(),
+                rotated_at = NOW()
+            WHERE application__id = $1 AND name = $2
+            "#,
+            application_id,
+            name,
+            encrypted_value,
+            nonce
+        )
+        .execute(&self.db_pool)
+        .await?;
+        
+        Ok(())
+    }
+    
+    /// Delete a secret
+    pub async fn delete_secret(
+        &self,
+        application_id: &Uuid,
+        name: &str,
+    ) -> Result<()> {
+        sqlx::query!(
+            r#"
+            DELETE FROM auth.encrypted_secret
+            WHERE application__id = $1 AND name = $2
+            "#,
+            application_id,
+            name
+        )
+        .execute(&self.db_pool)
+        .await?;
+        
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_encrypt_decrypt() {
+        // Set up test environment
+        env::set_var("HOOK0_ENCRYPTION_KEY", SecretEncryption::generate_master_key());
+        
+        let db_pool = PgPool::new(""); // Mock pool for testing
+        let encryption = SecretEncryption::new(db_pool).unwrap();
+        
+        let plaintext = "my-secret-value";
+        let (ciphertext, nonce) = encryption.encrypt(plaintext).unwrap();
+        
+        // Verify encryption produced different output
+        assert_ne!(plaintext, ciphertext);
+        
+        // Verify decryption works
+        let decrypted = encryption.decrypt(&ciphertext, &nonce).unwrap();
+        assert_eq!(plaintext, decrypted);
+    }
+    
+    #[test]
+    fn test_generate_master_key() {
+        let key1 = SecretEncryption::generate_master_key();
+        let key2 = SecretEncryption::generate_master_key();
+        
+        // Keys should be different
+        assert_ne!(key1, key2);
+        
+        // Keys should be valid base64
+        let decoded = BASE64.decode(&key1).unwrap();
+        assert_eq!(decoded.len(), 32);
+    }
+}

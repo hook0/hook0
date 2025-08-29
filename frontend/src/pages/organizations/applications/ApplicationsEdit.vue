@@ -5,6 +5,7 @@ import { onMounted, onUpdated, ref, defineProps, defineEmits } from 'vue';
 import { Problem, UUID } from '@/http';
 import * as ApplicationService from './ApplicationService';
 import ApplicationsRemove from '@/pages/organizations/applications/ApplicationsRemove.vue';
+import AuthenticationConfig from '@/pages/organizations/applications/authentication/AuthenticationConfig.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
@@ -173,6 +174,13 @@ onUpdated(() => {
         </Hook0CardFooter>
       </Hook0Card>
     </form>
+
+    <!-- Authentication Configuration Section -->
+    <AuthenticationConfig
+      v-if="!isNew && !tutorialMode && application_id"
+      :application-id="application_id"
+      class="mt-6"
+    />
 
     <Hook0Consumption
       v-if="!isNew && application_id"

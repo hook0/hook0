@@ -16,7 +16,9 @@ use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 use std::str::FromStr;
 use std::time::Duration;
 use uuid::Uuid;
+use authentication::AuthenticationService;
 
+mod authentication;
 mod cloudflare_turnstile;
 mod expired_tokens_cleanup;
 mod extractor_user_ip;
@@ -420,6 +422,7 @@ pub struct State {
     enable_quota_based_email_notifications: bool,
     support_email_address: Address,
     cloudflare_turnstile_site_key: Option<String>,
+    auth_service: Option<AuthenticationService>,
     cloudflare_turnstile_secret_key: Option<String>,
 }
 
@@ -631,6 +634,9 @@ async fn main() -> anyhow::Result<()> {
         .await
         .expect("Could not initialize mailer; check SMTP configuration");
 
+        // Initialize authentication service
+        let auth_service = AuthenticationService::new(pool.clone()).ok();
+
         // Initialize state
         let initial_state = State {
             db: pool,
@@ -672,6 +678,7 @@ async fn main() -> anyhow::Result<()> {
             quota_notification_events_per_day_threshold: config
                 .quota_notification_events_per_day_threshold,
             enable_quota_based_email_notifications: config.enable_quota_based_email_notifications,
+            auth_service,
             support_email_address: config.support_email_address,
             cloudflare_turnstile_site_key: config.cloudflare_turnstile_site_key,
             cloudflare_turnstile_secret_key: config.cloudflare_turnstile_secret_key,

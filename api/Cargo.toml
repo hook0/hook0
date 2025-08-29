@@ -14,9 +14,11 @@ actix-cors = "0.7.1"
 actix-files = "0.6.6"
 actix-governor = { version = "0.8.0", features = ["log"] }
 actix-web = "4.11.0"
+aes-gcm = "0.10"
 anyhow = "1.0.99"
 argon2 = "0.5.3"
 async-recursion = "1.1.1"
+async-trait = "0.1"
 base64 = "0.22.1"
 biscuit-auth = { version = "6.0.0", features = ["uuid"] }
 chrono = { version = "0.4.41", features = ["serde"] }
@@ -38,12 +40,14 @@ mrml = "5.0.0"
 paperclip = { version = "0.9.5", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
 regex = "1.11.1"
 reqwest = { version = "0.12.23", default-features = false, features = ["charset", "http2", "macos-system-configuration", "hickory-dns"] }
+ring = "0.17"
 sentry-actix = "0.42.0"
 serde = "1.0.219"
 serde_json = "1.0.142"
 sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "migrate"] }
 strum = { version = "0.27.2", features = ["derive"] }
 thiserror = "2.0.15"
+tokio = { version = "1", features = ["sync", "rt", "macros"] }
 url = "2.5.4"
 uuid = { version = "1.18.0", features = ["serde", "v4"] }
 validator = { version = "0.20.0", features = ["derive", "unic"] }

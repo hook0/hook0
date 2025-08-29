@@ -1,5 +1,6 @@
 pub mod applications;
 pub mod auth;
+pub mod authentication;
 pub mod errors;
 pub mod event_types;
 pub mod events;

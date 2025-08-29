@@ -1,0 +1,263 @@
+use actix_web::web::ReqData;
+use biscuit_auth::Biscuit;
+use log::error;
+use paperclip::actix::web::{Data, Json, Path};
+use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+use validator::Validate;
+
+use crate::authentication::{
+    AuthenticationService,
+    config::{AuthenticationConfigRequest, AuthenticationType},
+};
+use crate::iam::{Action, authorize_for_application, authorize_for_subscription};
+use crate::openapi::OaBiscuit;
+use crate::problems::Hook0Problem;
+
+#[derive(Debug, Serialize, Apiv2Schema)]
+pub struct AuthenticationConfigResponse {
+    pub authentication_config_id: Uuid,
+    pub application_id: Uuid,
+    pub subscription_id: Option<Uuid>,
+    pub auth_type: AuthenticationType,
+    pub config: serde_json::Value,
+    pub is_active: bool,
+}
+
+#[derive(Debug, Deserialize, Apiv2Schema)]
+pub struct ApplicationPath {
+    pub application_id: Uuid,
+}
+
+#[derive(Debug, Deserialize, Apiv2Schema)]
+pub struct SubscriptionPath {
+    pub subscription_id: Uuid,
+}
+
+/// Configure authentication for an application
+#[api_v2_operation(
+    summary = "Configure default authentication for an application",
+    description = "Sets the default authentication configuration that will be used for all subscriptions of this application unless overridden",
+    operation_id = "authentication.configure_application",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Authentication Management")
+)]
+pub async fn configure_application_authentication(
+    state: Data<crate::State>,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
+    path: Path<ApplicationPath>,
+    body: Json<AuthenticationConfigRequest>,
+) -> Result<CreatedJson<AuthenticationConfigResponse>, Hook0Problem> {
+    // Check authorization
+    authorize_for_application(
+        &biscuit,
+        &path.application_id,
+        Action::ApplicationUpdate,
+        &state.db,
+        state.max_authorization_time_in_ms,
+    )
+    .await?;
+    
+    // Validate the request
+    if let Err(e) = body.validate() {
+        return Err(Hook0Problem::Validation(e));
+    }
+    
+    // Get user ID from biscuit
+    let user_id = crate::iam::get_user_id(&biscuit)?;
+    
+    // Save configuration
+    let auth_service = state.auth_service.as_ref()
+        .ok_or_else(|| Hook0Problem::InternalServerError("Authentication service not configured".to_string()))?;
+    
+    let config_id = auth_service
+        .save_authentication_config(
+            path.application_id,
+            None,
+            body.into_inner(),
+            user_id,
+        )
+        .await
+        .map_err(|e| {
+            error!("Failed to save authentication config: {}", e);
+            Hook0Problem::InternalServerError("Failed to save authentication configuration".to_string())
+        })?;
+    
+    Ok(CreatedJson(AuthenticationConfigResponse {
+        authentication_config_id: config_id,
+        application_id: path.application_id,
+        subscription_id: None,
+        auth_type: body.auth_type.clone(),
+        config: body.config.clone(),
+        is_active: true,
+    }))
+}
+
+/// Configure authentication for a subscription
+#[api_v2_operation(
+    summary = "Configure authentication override for a subscription",
+    description = "Sets a specific authentication configuration for this subscription, overriding the application default",
+    operation_id = "authentication.configure_subscription",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Authentication Management")
+)]
+pub async fn configure_subscription_authentication(
+    state: Data<crate::State>,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
+    path: Path<SubscriptionPath>,
+    body: Json<AuthenticationConfigRequest>,
+) -> Result<CreatedJson<AuthenticationConfigResponse>, Hook0Problem> {
+    // Check authorization
+    authorize_for_subscription(
+        &biscuit,
+        &path.subscription_id,
+        Action::SubscriptionUpdate,
+        &state.db,
+        state.max_authorization_time_in_ms,
+    )
+    .await?;
+    
+    // Validate the request
+    if let Err(e) = body.validate() {
+        return Err(Hook0Problem::Validation(e));
+    }
+    
+    // Get user ID from biscuit
+    let user_id = crate::iam::get_user_id(&biscuit)?;
+    
+    // Get application ID for this subscription
+    let subscription = sqlx::query!(
+        r#"
+        SELECT application__id 
+        FROM webhook.subscription 
+        WHERE subscription__id = $1
+        "#,
+        path.subscription_id
+    )
+    .fetch_one(&state.db)
+    .await
+    .map_err(|_| Hook0Problem::NotFound("Subscription not found".to_string()))?;
+    
+    // Save configuration
+    let auth_service = state.auth_service.as_ref()
+        .ok_or_else(|| Hook0Problem::InternalServerError("Authentication service not configured".to_string()))?;
+    
+    let config_id = auth_service
+        .save_authentication_config(
+            subscription.application__id,
+            Some(path.subscription_id),
+            body.into_inner(),
+            user_id,
+        )
+        .await
+        .map_err(|e| {
+            error!("Failed to save authentication config: {}", e);
+            Hook0Problem::InternalServerError("Failed to save authentication configuration".to_string())
+        })?;
+    
+    Ok(CreatedJson(AuthenticationConfigResponse {
+        authentication_config_id: config_id,
+        application_id: subscription.application__id,
+        subscription_id: Some(path.subscription_id),
+        auth_type: body.auth_type.clone(),
+        config: body.config.clone(),
+        is_active: true,
+    }))
+}
+
+/// Delete authentication configuration for an application
+#[api_v2_operation(
+    summary = "Remove authentication configuration for an application",
+    description = "Removes the default authentication configuration for an application",
+    operation_id = "authentication.delete_application",
+    tags("Authentication Management")
+)]
+pub async fn delete_application_authentication(
+    state: Data<crate::State>,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
+    path: Path<ApplicationPath>,
+) -> Result<NoContent, Hook0Problem> {
+    // Check authorization
+    authorize_for_application(
+        &biscuit,
+        &path.application_id,
+        Action::ApplicationUpdate,
+        &state.db,
+        state.max_authorization_time_in_ms,
+    )
+    .await?;
+    
+    // Delete configuration
+    let auth_service = state.auth_service.as_ref()
+        .ok_or_else(|| Hook0Problem::InternalServerError("Authentication service not configured".to_string()))?;
+    
+    auth_service
+        .delete_authentication_config(path.application_id, None)
+        .await
+        .map_err(|e| {
+            error!("Failed to delete authentication config: {}", e);
+            Hook0Problem::InternalServerError("Failed to delete authentication configuration".to_string())
+        })?;
+    
+    Ok(NoContent)
+}
+
+/// Delete authentication configuration for a subscription
+#[api_v2_operation(
+    summary = "Remove authentication override for a subscription",
+    description = "Removes the authentication override for a subscription, reverting to application default",
+    operation_id = "authentication.delete_subscription",
+    tags("Authentication Management")
+)]
+pub async fn delete_subscription_authentication(
+    state: Data<crate::State>,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
+    path: Path<SubscriptionPath>,
+) -> Result<NoContent, Hook0Problem> {
+    // Check authorization
+    authorize_for_subscription(
+        &biscuit,
+        &path.subscription_id,
+        Action::SubscriptionUpdate,
+        &state.db,
+        state.max_authorization_time_in_ms,
+    )
+    .await?;
+    
+    // Get application ID for this subscription
+    let subscription = sqlx::query!(
+        r#"
+        SELECT application__id 
+        FROM webhook.subscription 
+        WHERE subscription__id = $1
+        "#,
+        path.subscription_id
+    )
+    .fetch_one(&state.db)
+    .await
+    .map_err(|_| Hook0Problem::NotFound("Subscription not found".to_string()))?;
+    
+    // Delete configuration
+    let auth_service = state.auth_service.as_ref()
+        .ok_or_else(|| Hook0Problem::InternalServerError("Authentication service not configured".to_string()))?;
+    
+    auth_service
+        .delete_authentication_config(
+            subscription.application__id,
+            Some(path.subscription_id),
+        )
+        .await
+        .map_err(|e| {
+            error!("Failed to delete authentication config: {}", e);
+            Hook0Problem::InternalServerError("Failed to delete authentication configuration".to_string())
+        })?;
+    
+    Ok(NoContent)
+}

@@ -8,6 +8,7 @@ import * as SubscriptionService from './SubscriptionService';
 import { Subscription } from './SubscriptionService';
 import { routes } from '@/routes';
 import SubscriptionsRemove from './SubscriptionsRemove.vue';
+import AuthenticationConfig from '../authentication/AuthenticationConfig.vue';
 import * as EventTypeService from '../event_types/EventTypeService';
 import { EventType } from '../event_types/EventTypeService';
 import Hook0Loader from '@/components/Hook0Loader.vue';
@@ -480,6 +481,18 @@ onUpdated(() => {
         </Hook0CardFooter>
       </Hook0Card>
     </form>
+
+    <!-- Authentication Override Section -->
+    <AuthenticationConfig
+      v-if="!isNew && !tutorialMode && subscription_id"
+      :subscription-id="subscription_id"
+      :application-id="
+        Array.isArray(route.params.application_id)
+          ? route.params.application_id[0]
+          : route.params.application_id
+      "
+      class="mt-6"
+    />
 
     <SubscriptionsRemove
       v-if="!isNew && subscription_id"
