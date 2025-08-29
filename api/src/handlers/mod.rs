@@ -4,6 +4,7 @@ pub mod errors;
 pub mod event_types;
 pub mod events;
 pub mod instance;
+pub mod operational_webhooks;
 pub mod organizations;
 pub mod registrations;
 pub mod request_attempts;

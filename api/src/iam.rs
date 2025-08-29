@@ -468,6 +468,13 @@ pub enum Action<'a> {
     ResponseGet {
         application_id: &'a Uuid,
     },
+    //
+    OperationalWebhookList,
+    OperationalWebhookCreate,
+    OperationalWebhookGet,
+    OperationalWebhookUpdate,
+    OperationalWebhookDelete,
+    OperationalWebhookStats,
 }
 
 impl Action<'_> {
@@ -532,6 +539,13 @@ impl Action<'_> {
             Self::RequestAttemptList { .. } => "request_attempt:list",
             //
             Self::ResponseGet { .. } => "response:get",
+            //
+            Self::OperationalWebhookList => "operational_webhook:list",
+            Self::OperationalWebhookCreate => "operational_webhook:create",
+            Self::OperationalWebhookGet => "operational_webhook:get",
+            Self::OperationalWebhookUpdate => "operational_webhook:update",
+            Self::OperationalWebhookDelete => "operational_webhook:delete",
+            Self::OperationalWebhookStats => "operational_webhook:stats",
         }
     }
 
@@ -598,6 +612,13 @@ impl Action<'_> {
             Self::RequestAttemptList { .. } => vec![Role::Viewer],
             //
             Self::ResponseGet { .. } => vec![Role::Viewer],
+            //
+            Self::OperationalWebhookList => vec![Role::Viewer],
+            Self::OperationalWebhookCreate => vec![],
+            Self::OperationalWebhookGet => vec![Role::Viewer],
+            Self::OperationalWebhookUpdate => vec![],
+            Self::OperationalWebhookDelete => vec![],
+            Self::OperationalWebhookStats => vec![Role::Viewer],
         };
 
         roles.append(&mut per_action_roles);

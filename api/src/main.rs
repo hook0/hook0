@@ -30,6 +30,8 @@ mod middleware_get_user_ip;
 mod old_events_cleanup;
 mod onboarding;
 mod openapi;
+mod operational_webhooks_delivery;
+mod operational_webhooks_worker;
 mod problems;
 mod quotas;
 mod rate_limiting;
@@ -614,6 +616,10 @@ async fn main() -> anyhow::Result<()> {
             });
         }
 
+        // Spawn operational webhook worker
+        let operational_webhook_db = pool.clone();
+        operational_webhooks_worker::spawn_operational_webhook_worker(operational_webhook_db);
+
         // Create Mailer
         let smtp_config = mailer::MailerSmtpConfig {
             smtp_connection_url: config.smtp_connection_url,
@@ -981,6 +987,30 @@ async fn main() -> anyhow::Result<()> {
                                 .service(
                                     web::resource("/{response_id}")
                                         .route(web::get().to(handlers::responses::get)),
+                                ),
+                        )
+                        .service(
+                            web::scope("/operational_webhooks")
+                                .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
+                                .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first
+                                .service(
+                                    web::resource("")
+                                        .route(web::get().to(handlers::operational_webhooks::list))
+                                        .route(web::post().to(handlers::operational_webhooks::create)),
+                                )
+                                .service(
+                                    web::resource("/event_types")
+                                        .route(web::get().to(handlers::operational_webhooks::event_types)),
+                                )
+                                .service(
+                                    web::resource("/stats")
+                                        .route(web::get().to(handlers::operational_webhooks::stats)),
+                                )
+                                .service(
+                                    web::resource("/{operational_endpoint_id}")
+                                        .route(web::get().to(handlers::operational_webhooks::get))
+                                        .route(web::put().to(handlers::operational_webhooks::update))
+                                        .route(web::delete().to(handlers::operational_webhooks::delete)),
                                 ),
                         ),
                 );
