@@ -1,3 +1,4 @@
+#![recursion_limit = "256"]
 use ::hook0_client::Hook0Client;
 use actix::Arbiter;
 use actix_cors::Cors;
