@@ -44,6 +44,33 @@ pub struct Subscription {
     pub target: Target,
     pub created_at: DateTime<Utc>,
     pub dedicated_workers: Vec<String>,
+    pub retry_config: RetryConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Apiv2Schema, Validate)]
+pub struct RetryConfig {
+    #[validate(range(min = 0, max = 100))]
+    pub max_fast_retries: u32,
+    #[validate(range(min = 0, max = 100))]
+    pub max_slow_retries: u32,
+    #[validate(range(min = 1, max = 3600))]
+    pub fast_retry_delay_seconds: u32,
+    #[validate(range(min = 1, max = 86400))]
+    pub max_fast_retry_delay_seconds: u32,
+    #[validate(range(min = 60, max = 604800))]
+    pub slow_retry_delay_seconds: u32,
+}
+
+impl Default for RetryConfig {
+    fn default() -> Self {
+        Self {
+            max_fast_retries: 30,
+            max_slow_retries: 30,
+            fast_retry_delay_seconds: 5,
+            max_fast_retry_delay_seconds: 300,
+            slow_retry_delay_seconds: 3600,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
@@ -221,6 +248,7 @@ pub async fn list(
         target_json: Option<Value>,
         created_at: DateTime<Utc>,
         dedicated_workers: Option<Vec<String>>,
+        retry_config: Value,
     }
 
     let raw_subscriptions = query_as!(
@@ -228,7 +256,7 @@ pub async fn list(
         r#"
             WITH subs AS (
                 SELECT
-                    s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.target__id, s.created_at,
+                    s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.target__id, s.created_at, s.retry_config,
                     CASE WHEN length((array_agg(set.event_type__name))[1]) > 0
                         THEN array_agg(set.event_type__name)
                         ELSE ARRAY[]::text[] END AS event_types,
@@ -251,7 +279,7 @@ pub async fn list(
                 ) AS target_json FROM webhook.target_http
                 WHERE target__id IN (SELECT target__id FROM subs)
             )
-            SELECT subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.labels AS "labels!", subs.created_at AS "created_at!", subs.event_types, targets.target_json, subs.dedicated_workers
+            SELECT subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.labels AS "labels!", subs.created_at AS "created_at!", subs.event_types, targets.target_json, subs.dedicated_workers, subs.retry_config AS "retry_config!"
             FROM subs
             INNER JOIN targets ON subs.target__id = targets.target__id
         "#, // Column aliases ending with "!" are there because sqlx does not seem to infer correctly that these columns' types are not options
@@ -290,6 +318,7 @@ pub async fn list(
                     .expect("Could not parse subscription target"),
                 created_at: s.created_at,
                 dedicated_workers: s.dedicated_workers.unwrap_or_default(),
+                retry_config: serde_json::from_value(s.retry_config).unwrap_or_else(|_| RetryConfig::default()),
             }
         })
         .collect::<Vec<_>>();
@@ -358,6 +387,7 @@ pub async fn get(
         target_json: Option<Value>,
         created_at: DateTime<Utc>,
         dedicated_workers: Option<Vec<String>>,
+        retry_config: Value,
     }
 
     let raw_subscription = query_as!(
@@ -365,7 +395,7 @@ pub async fn get(
         r#"
             WITH subs AS (
                 SELECT
-                    s.application__id, s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.target__id, s.created_at,
+                    s.application__id, s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.target__id, s.created_at, s.retry_config,
                     CASE WHEN length((array_agg(set.event_type__name))[1]) > 0
                         THEN array_agg(set.event_type__name)
                         ELSE ARRAY[]::text[] END AS event_types,
@@ -388,7 +418,7 @@ pub async fn get(
                 ) AS target_json FROM webhook.target_http
                 WHERE target__id IN (SELECT target__id FROM subs)
             )
-            SELECT subs.application__id AS "application__id!", subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.labels AS "labels!", subs.created_at AS "created_at!", subs.event_types, targets.target_json, subs.dedicated_workers
+            SELECT subs.application__id AS "application__id!", subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.labels AS "labels!", subs.created_at AS "created_at!", subs.event_types, targets.target_json, subs.dedicated_workers, subs.retry_config AS "retry_config!"
             FROM subs
             INNER JOIN targets ON subs.target__id = targets.target__id
             LIMIT 1
@@ -428,6 +458,7 @@ pub async fn get(
                     .expect("Could not parse subscription target"),
                 created_at: s.created_at,
                 dedicated_workers: s.dedicated_workers.unwrap_or_default(),
+                retry_config: serde_json::from_value(s.retry_config).unwrap_or_else(|_| RetryConfig::default()),
             }))
         }
         None => Err(Hook0Problem::NotFound),
@@ -456,6 +487,8 @@ pub struct SubscriptionPost {
     target: Target,
     #[validate(length(min = 1, max = 20))]
     dedicated_workers: Option<Vec<String>>,
+    #[validate(nested)]
+    retry_config: Option<RetryConfig>,
 }
 
 #[api_v2_operation(
@@ -536,6 +569,13 @@ pub async fn create(
         None => json!({}),
     };
 
+    let retry_config = match body.retry_config.as_ref() {
+        Some(rc) => serde_json::to_value(rc.clone())
+            .expect("could not serialize retry config into JSON"),
+        None => serde_json::to_value(RetryConfig::default())
+            .expect("could not serialize default retry config into JSON"),
+    };
+
     let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
 
     #[allow(non_snake_case)]
@@ -548,19 +588,21 @@ pub async fn create(
         labels: Value,
         target__id: Uuid,
         created_at: DateTime<Utc>,
+        retry_config: Value,
     }
     let subscription = query_as!(
             RawSubscription,
             "
-                INSERT INTO webhook.subscription (subscription__id, application__id, is_enabled, description, secret, metadata, labels, target__id, created_at)
-                VALUES (public.gen_random_uuid(), $1, $2, $3, public.gen_random_uuid(), $4, $5, public.gen_random_uuid(), statement_timestamp())
-                RETURNING subscription__id, is_enabled, description, secret, metadata, labels, target__id, created_at
+                INSERT INTO webhook.subscription (subscription__id, application__id, is_enabled, description, secret, metadata, labels, target__id, created_at, retry_config)
+                VALUES (public.gen_random_uuid(), $1, $2, $3, public.gen_random_uuid(), $4, $5, public.gen_random_uuid(), statement_timestamp(), $6)
+                RETURNING subscription__id, is_enabled, description, secret, metadata, labels, target__id, created_at, retry_config
             ",
             &body.application_id,
             &body.is_enabled,
             body.description,
             metadata,
             labels,
+            retry_config,
         )
             .fetch_one(&mut *tx)
             .await
@@ -676,6 +718,7 @@ pub async fn create(
         target: body.target.clone(),
         created_at: subscription.created_at,
         dedicated_workers: body.dedicated_workers.clone().unwrap_or_default(),
+        retry_config: serde_json::from_value(subscription.retry_config).unwrap_or_else(|_| RetryConfig::default()),
     };
 
     if let Some(hook0_client) = state.hook0_client.as_ref() {
@@ -755,6 +798,13 @@ pub async fn edit(
         None => json!({}),
     };
 
+    let retry_config = match body.retry_config.as_ref() {
+        Some(rc) => serde_json::to_value(rc.clone())
+            .expect("could not serialize retry config into JSON"),
+        None => serde_json::to_value(RetryConfig::default())
+            .expect("could not serialize default retry config into JSON"),
+    };
+
     let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
 
     #[allow(non_snake_case)]
@@ -767,19 +817,21 @@ pub async fn edit(
         labels: Value,
         target__id: Uuid,
         created_at: DateTime<Utc>,
+        retry_config: Value,
     }
     let subscription = query_as!(
                 RawSubscription,
                 "
                     UPDATE webhook.subscription
-                    SET is_enabled = $1, description = $2, metadata = $3, labels = $4
-                    WHERE subscription__id = $5 AND application__id = $6 AND deleted_at IS NULL
-                    RETURNING subscription__id, is_enabled, description, secret, metadata, labels, target__id, created_at
+                    SET is_enabled = $1, description = $2, metadata = $3, labels = $4, retry_config = $5
+                    WHERE subscription__id = $6 AND application__id = $7 AND deleted_at IS NULL
+                    RETURNING subscription__id, is_enabled, description, secret, metadata, labels, target__id, created_at, retry_config
                 ",
                 &body.is_enabled, // updatable
                 body.description, // updatable
                 metadata, // updatable (our validator layer ensure this will never fail)
                 labels, // updatable
+                retry_config, // updatable
                 &subscription_id.into_inner(), // read-only
                 &body.application_id // read-only
             )
@@ -934,6 +986,7 @@ pub async fn edit(
                 target: body.target.clone(),
                 created_at: s.created_at,
                 dedicated_workers: body.dedicated_workers.clone().unwrap_or_default(),
+                retry_config: serde_json::from_value(s.retry_config).unwrap_or_else(|_| RetryConfig::default()),
             };
 
             if let Some(hook0_client) = state.hook0_client.as_ref() {

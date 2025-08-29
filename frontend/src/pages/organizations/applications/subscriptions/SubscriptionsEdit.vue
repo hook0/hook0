@@ -102,6 +102,13 @@ const subscription = ref({
     url: '',
     headers: {},
   },
+  retry_config: {
+    max_fast_retries: 30,
+    max_slow_retries: 30,
+    fast_retry_delay_seconds: 5,
+    max_fast_retry_delay_seconds: 300,
+    slow_retry_delay_seconds: 3600,
+  },
 });
 const eventTypes = ref<SelectableEventType[]>([]);
 
@@ -145,6 +152,11 @@ function _load() {
 
           subscription.value.target = sub.target;
           httpTarget.value.headers = fromMap(subscription.value.target.headers);
+
+          // Load retry config if present
+          if (sub.retry_config) {
+            subscription.value.retry_config = sub.retry_config;
+          }
         })
       : Promise.resolve()
     )
@@ -214,6 +226,7 @@ function upsert(e: Event) {
       labels: subscription.value.labels,
       is_enabled: subscription.value.is_enabled,
       event_types: EventTypeNamesFromSelectedEventTypes(eventTypes.value),
+      retry_config: subscription.value.retry_config,
     }).then((_resp) => {
       if (props.tutorialMode) {
         emit('tutorial-subscription-created');
@@ -241,6 +254,7 @@ function upsert(e: Event) {
         ? subscription.value.dedicated_workers
         : undefined,
     application_id: route.params.application_id as string,
+    retry_config: subscription.value.retry_config,
   }).then((_resp) => {
     cancel2();
   }, displayError);
@@ -442,6 +456,94 @@ onUpdated(() => {
               value-placeholder="value"
               @update:model-value="subscription.metadata = toMap($event)"
             ></Hook0KeyValue>
+          </template>
+        </Hook0CardContentLine>
+
+        <Hook0CardContentLine>
+          <template #label>
+            Retry Configuration
+
+            <Hook0Text class="helpText mt-2 block">
+              Configure how Hook0 should retry failed webhook deliveries.
+            </Hook0Text>
+          </template>
+          <template #content>
+            <div class="space-y-4">
+              <div>
+                <label class="text-sm font-medium text-gray-700">Max Fast Retries</label>
+                <Hook0Input
+                  v-model.number="subscription.retry_config.max_fast_retries"
+                  type="number"
+                  min="0"
+                  max="100"
+                  class="w-32"
+                >
+                  <template #helpText>
+                    Number of fast retries (exponential backoff) before switching to slow retries.
+                  </template>
+                </Hook0Input>
+              </div>
+
+              <div>
+                <label class="text-sm font-medium text-gray-700">Max Slow Retries</label>
+                <Hook0Input
+                  v-model.number="subscription.retry_config.max_slow_retries"
+                  type="number"
+                  min="0"
+                  max="100"
+                  class="w-32"
+                >
+                  <template #helpText>
+                    Number of slow retries (fixed interval) before giving up.
+                  </template>
+                </Hook0Input>
+              </div>
+
+              <div>
+                <label class="text-sm font-medium text-gray-700">Fast Retry Delay (seconds)</label>
+                <Hook0Input
+                  v-model.number="subscription.retry_config.fast_retry_delay_seconds"
+                  type="number"
+                  min="1"
+                  max="3600"
+                  class="w-32"
+                >
+                  <template #helpText>
+                    Initial delay in seconds for fast retries (will increase exponentially).
+                  </template>
+                </Hook0Input>
+              </div>
+
+              <div>
+                <label class="text-sm font-medium text-gray-700">Max Fast Retry Delay (seconds)</label>
+                <Hook0Input
+                  v-model.number="subscription.retry_config.max_fast_retry_delay_seconds"
+                  type="number"
+                  min="1"
+                  max="86400"
+                  class="w-32"
+                >
+                  <template #helpText>
+                    Maximum delay in seconds for fast retries.
+                  </template>
+                </Hook0Input>
+              </div>
+
+              <div>
+                <label class="text-sm font-medium text-gray-700">Slow Retry Delay (seconds)</label>
+                <Hook0Input
+                  v-model.number="subscription.retry_config.slow_retry_delay_seconds"
+                  type="number"
+                  min="60"
+                  max="604800"
+                  class="w-32"
+                >
+                  <template #helpText>
+                    Fixed delay in seconds between slow retries.
+                  </template>
+                </Hook0Input>
+              </div>
+            </div>
           </template>
         </Hook0CardContentLine>
         <Hook0CardFooter>
