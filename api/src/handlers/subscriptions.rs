@@ -318,7 +318,8 @@ pub async fn list(
                     .expect("Could not parse subscription target"),
                 created_at: s.created_at,
                 dedicated_workers: s.dedicated_workers.unwrap_or_default(),
-                retry_config: serde_json::from_value(s.retry_config).unwrap_or_else(|_| RetryConfig::default()),
+                retry_config: serde_json::from_value(s.retry_config)
+                    .unwrap_or_else(|_| RetryConfig::default()),
             }
         })
         .collect::<Vec<_>>();
@@ -458,7 +459,8 @@ pub async fn get(
                     .expect("Could not parse subscription target"),
                 created_at: s.created_at,
                 dedicated_workers: s.dedicated_workers.unwrap_or_default(),
-                retry_config: serde_json::from_value(s.retry_config).unwrap_or_else(|_| RetryConfig::default()),
+                retry_config: serde_json::from_value(s.retry_config)
+                    .unwrap_or_else(|_| RetryConfig::default()),
             }))
         }
         None => Err(Hook0Problem::NotFound),
@@ -570,8 +572,9 @@ pub async fn create(
     };
 
     let retry_config = match body.retry_config.as_ref() {
-        Some(rc) => serde_json::to_value(rc.clone())
-            .expect("could not serialize retry config into JSON"),
+        Some(rc) => {
+            serde_json::to_value(rc.clone()).expect("could not serialize retry config into JSON")
+        }
         None => serde_json::to_value(RetryConfig::default())
             .expect("could not serialize default retry config into JSON"),
     };
@@ -718,7 +721,8 @@ pub async fn create(
         target: body.target.clone(),
         created_at: subscription.created_at,
         dedicated_workers: body.dedicated_workers.clone().unwrap_or_default(),
-        retry_config: serde_json::from_value(subscription.retry_config).unwrap_or_else(|_| RetryConfig::default()),
+        retry_config: serde_json::from_value(subscription.retry_config)
+            .unwrap_or_else(|_| RetryConfig::default()),
     };
 
     if let Some(hook0_client) = state.hook0_client.as_ref() {
@@ -799,8 +803,9 @@ pub async fn edit(
     };
 
     let retry_config = match body.retry_config.as_ref() {
-        Some(rc) => serde_json::to_value(rc.clone())
-            .expect("could not serialize retry config into JSON"),
+        Some(rc) => {
+            serde_json::to_value(rc.clone()).expect("could not serialize retry config into JSON")
+        }
         None => serde_json::to_value(RetryConfig::default())
             .expect("could not serialize default retry config into JSON"),
     };
@@ -986,7 +991,8 @@ pub async fn edit(
                 target: body.target.clone(),
                 created_at: s.created_at,
                 dedicated_workers: body.dedicated_workers.clone().unwrap_or_default(),
-                retry_config: serde_json::from_value(s.retry_config).unwrap_or_else(|_| RetryConfig::default()),
+                retry_config: serde_json::from_value(s.retry_config)
+                    .unwrap_or_else(|_| RetryConfig::default()),
             };
 
             if let Some(hook0_client) = state.hook0_client.as_ref() {

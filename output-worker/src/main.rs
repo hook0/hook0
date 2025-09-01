@@ -541,7 +541,7 @@ async fn compute_next_retry(
     struct SubRetryConfig {
         retry_config: serde_json::Value,
     }
-    
+
     let sub = query_as!(
         SubRetryConfig,
         "
@@ -576,7 +576,7 @@ async fn compute_next_retry(
             .as_u64()
             .map(|v| v as u32)
             .unwrap_or(3600);
-            
+
         Ok(compute_next_retry_duration_with_config(
             max_fast_retries,
             max_slow_retries,
@@ -603,10 +603,7 @@ fn compute_next_retry_duration_with_config(
         if count < max_fast_retries {
             let base_delay = Duration::from_secs(fast_retry_delay_seconds as u64);
             let max_delay = Duration::from_secs(max_fast_retry_delay_seconds as u64);
-            Some(min(
-                base_delay * count,
-                max_delay,
-            ))
+            Some(min(base_delay * count, max_delay))
         } else if count < max_fast_retries + max_slow_retries {
             Some(Duration::from_secs(slow_retry_delay_seconds as u64))
         } else {
@@ -623,56 +620,56 @@ mod tests {
     fn test_compute_next_retry_duration_with_config() {
         // Test first fast retry
         let duration = compute_next_retry_duration_with_config(
-            30, // max_fast_retries
-            30, // max_slow_retries
-            5,  // fast_retry_delay_seconds
-            300, // max_fast_retry_delay_seconds
+            30,   // max_fast_retries
+            30,   // max_slow_retries
+            5,    // fast_retry_delay_seconds
+            300,  // max_fast_retry_delay_seconds
             3600, // slow_retry_delay_seconds
-            0,  // retry_count
+            0,    // retry_count
         );
         assert_eq!(duration, Some(Duration::from_secs(0))); // 5 * 0 = 0
 
         // Test second fast retry
         let duration = compute_next_retry_duration_with_config(
-            30, // max_fast_retries
-            30, // max_slow_retries
-            5,  // fast_retry_delay_seconds
-            300, // max_fast_retry_delay_seconds
+            30,   // max_fast_retries
+            30,   // max_slow_retries
+            5,    // fast_retry_delay_seconds
+            300,  // max_fast_retry_delay_seconds
             3600, // slow_retry_delay_seconds
-            1,  // retry_count
+            1,    // retry_count
         );
         assert_eq!(duration, Some(Duration::from_secs(5))); // 5 * 1 = 5
 
         // Test max fast retry delay
         let duration = compute_next_retry_duration_with_config(
-            30, // max_fast_retries
-            30, // max_slow_retries
-            5,  // fast_retry_delay_seconds
-            300, // max_fast_retry_delay_seconds
+            30,   // max_fast_retries
+            30,   // max_slow_retries
+            5,    // fast_retry_delay_seconds
+            300,  // max_fast_retry_delay_seconds
             3600, // slow_retry_delay_seconds
-            29,  // retry_count (still in fast retries)
+            29,   // retry_count (still in fast retries)
         );
         assert_eq!(duration, Some(Duration::from_secs(145))); // 5 * 29 = 145 (< 300)
 
         // Test slow retry
         let duration = compute_next_retry_duration_with_config(
-            30, // max_fast_retries
-            30, // max_slow_retries
-            5,  // fast_retry_delay_seconds
-            300, // max_fast_retry_delay_seconds
+            30,   // max_fast_retries
+            30,   // max_slow_retries
+            5,    // fast_retry_delay_seconds
+            300,  // max_fast_retry_delay_seconds
             3600, // slow_retry_delay_seconds
-            30,  // retry_count (exactly at boundary)
+            30,   // retry_count (exactly at boundary)
         );
         assert_eq!(duration, Some(Duration::from_secs(3600))); // slow retry delay
 
         // Test exhausted retries
         let duration = compute_next_retry_duration_with_config(
-            30, // max_fast_retries
-            30, // max_slow_retries
-            5,  // fast_retry_delay_seconds
-            300, // max_fast_retry_delay_seconds
+            30,   // max_fast_retries
+            30,   // max_slow_retries
+            5,    // fast_retry_delay_seconds
+            300,  // max_fast_retry_delay_seconds
             3600, // slow_retry_delay_seconds
-            60,  // retry_count (exceeds max)
+            60,   // retry_count (exceeds max)
         );
         assert_eq!(duration, None); // no more retries
     }
@@ -681,34 +678,34 @@ mod tests {
     fn test_custom_retry_config() {
         // Test with custom configuration - fewer retries
         let duration = compute_next_retry_duration_with_config(
-            5,  // max_fast_retries
-            10, // max_slow_retries
-            10, // fast_retry_delay_seconds
-            600, // max_fast_retry_delay_seconds
+            5,    // max_fast_retries
+            10,   // max_slow_retries
+            10,   // fast_retry_delay_seconds
+            600,  // max_fast_retry_delay_seconds
             7200, // slow_retry_delay_seconds
-            0,  // retry_count
+            0,    // retry_count
         );
         assert_eq!(duration, Some(Duration::from_secs(0)));
 
         // Test transition to slow retries at custom boundary
         let duration = compute_next_retry_duration_with_config(
-            5,  // max_fast_retries
-            10, // max_slow_retries
-            10, // fast_retry_delay_seconds
-            600, // max_fast_retry_delay_seconds
+            5,    // max_fast_retries
+            10,   // max_slow_retries
+            10,   // fast_retry_delay_seconds
+            600,  // max_fast_retry_delay_seconds
             7200, // slow_retry_delay_seconds
-            5,  // retry_count (at transition)
+            5,    // retry_count (at transition)
         );
         assert_eq!(duration, Some(Duration::from_secs(7200))); // slow retry
 
         // Test exhausted with custom limits
         let duration = compute_next_retry_duration_with_config(
-            5,  // max_fast_retries
-            10, // max_slow_retries
-            10, // fast_retry_delay_seconds
-            600, // max_fast_retry_delay_seconds
+            5,    // max_fast_retries
+            10,   // max_slow_retries
+            10,   // fast_retry_delay_seconds
+            600,  // max_fast_retry_delay_seconds
             7200, // slow_retry_delay_seconds
-            15,  // retry_count (exceeds 5+10)
+            15,   // retry_count (exceeds 5+10)
         );
         assert_eq!(duration, None); // no more retries
     }
