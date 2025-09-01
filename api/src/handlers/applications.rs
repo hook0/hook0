@@ -404,7 +404,7 @@ pub async fn edit(
         let config_json =
             serde_json::to_value(retry_config).expect("could not serialize retry config into JSON");
         query_parts.push(format!("retry_config = ${}", param_counter));
-        params.push((config_json, param_counter));
+        params.push((config_json.to_string(), param_counter));
         param_counter += 1;
     }
 
@@ -536,10 +536,18 @@ pub async fn delete(
         return Err(Hook0Problem::Forbidden);
     }
 
-    let application = query_as!(
-        Application,
+    #[allow(non_snake_case)]
+    struct RawApplication {
+        application__id: Uuid,
+        organization__id: Uuid,
+        name: String,
+        retry_config: Value,
+    }
+
+    let raw_application = query_as!(
+        RawApplication,
         "
-            SELECT application__id AS application_id, organization__id AS organization_id, name
+            SELECT application__id, organization__id, name, retry_config
             FROM event.application
             WHERE application__id = $1
             AND deleted_at IS NULL
@@ -550,8 +558,15 @@ pub async fn delete(
     .await
     .map_err(Hook0Problem::from)?;
 
-    match application {
-        Some(a) => {
+    match raw_application {
+        Some(raw) => {
+            let a = Application {
+                application_id: raw.application__id,
+                organization_id: raw.organization__id,
+                name: raw.name.clone(),
+                retry_config: serde_json::from_value(raw.retry_config).expect("could not deserialize retry config from JSON"),
+            };
+            
             query!(
                 "UPDATE event.application SET deleted_at = NOW() WHERE application__id = $1",
                 a.application_id

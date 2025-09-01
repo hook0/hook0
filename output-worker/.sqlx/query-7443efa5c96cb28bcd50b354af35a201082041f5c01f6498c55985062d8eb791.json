@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                s.retry_config as subscription_retry_config,\n                a.retry_config as application_retry_config\n            FROM webhook.subscription s\n            JOIN event.application a ON a.application__id = s.application__id\n            WHERE s.subscription__id = $1 \n            AND s.deleted_at IS NULL \n            AND s.is_enabled\n            AND a.deleted_at IS NULL\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "subscription_retry_config",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 1,
+        "name": "application_retry_config",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "7443efa5c96cb28bcd50b354af35a201082041f5c01f6498c55985062d8eb791"
+}
