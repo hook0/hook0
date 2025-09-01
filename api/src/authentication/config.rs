@@ -43,13 +43,19 @@ impl AuthenticationType {
 
 /// Authentication configuration stored in the database
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize, Apiv2Schema)]
-#[allow(clippy::non_snake_case)]
-#[allow(non_snake_case)]
 pub struct AuthenticationConfig {
-    pub authentication_config__id: Uuid,
-    pub application__id: Uuid,
-    pub subscription__id: Option<Uuid>,
-    pub authentication_type__id: Uuid,
+    #[sqlx(rename = "authentication_config__id")]
+    #[serde(rename = "authentication_config__id")]
+    pub authentication_config_id: Uuid,
+    #[sqlx(rename = "application__id")]
+    #[serde(rename = "application__id")]
+    pub application_id: Uuid,
+    #[sqlx(rename = "subscription__id")]
+    #[serde(rename = "subscription__id")]
+    pub subscription_id: Option<Uuid>,
+    #[sqlx(rename = "authentication_type__id")]
+    #[serde(rename = "authentication_type__id")]
+    pub authentication_type_id: Uuid,
     pub config: serde_json::Value,
     pub is_active: bool,
     pub created_at: DateTime<Utc>,
@@ -161,11 +167,13 @@ pub struct CustomAuthConfig {
 
 /// Encrypted secret stored in the database
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize, Apiv2Schema)]
-#[allow(clippy::non_snake_case)]
-#[allow(non_snake_case)]
 pub struct EncryptedSecret {
-    pub encrypted_secret__id: Uuid,
-    pub application__id: Uuid,
+    #[sqlx(rename = "encrypted_secret__id")]
+    #[serde(rename = "encrypted_secret__id")]
+    pub encrypted_secret_id: Uuid,
+    #[sqlx(rename = "application__id")]
+    #[serde(rename = "application__id")]
+    pub application_id: Uuid,
     pub name: String,
     pub encrypted_value: String,
     pub nonce: String,
@@ -177,11 +185,13 @@ pub struct EncryptedSecret {
 
 /// OAuth token cache entry
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
-#[allow(clippy::non_snake_case)]
-#[allow(non_snake_case)]
 pub struct OAuthTokenCache {
-    pub oauth_token_cache__id: Uuid,
-    pub authentication_config__id: Uuid,
+    #[sqlx(rename = "oauth_token_cache__id")]
+    #[serde(rename = "oauth_token_cache__id")]
+    pub oauth_token_cache_id: Uuid,
+    #[sqlx(rename = "authentication_config__id")]
+    #[serde(rename = "authentication_config__id")]
+    pub authentication_config_id: Uuid,
     pub access_token: String,
     pub refresh_token: Option<String>,
     pub expires_at: DateTime<Utc>,
@@ -191,12 +201,16 @@ pub struct OAuthTokenCache {
 
 /// Authentication audit log entry
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
-#[allow(clippy::non_snake_case)]
-#[allow(non_snake_case)]
 pub struct AuthenticationAuditLog {
-    pub authentication_audit_log__id: Uuid,
-    pub subscription__id: Option<Uuid>,
-    pub request_attempt__id: Option<Uuid>,
+    #[sqlx(rename = "authentication_audit_log__id")]
+    #[serde(rename = "authentication_audit_log__id")]
+    pub authentication_audit_log_id: Uuid,
+    #[sqlx(rename = "subscription__id")]
+    #[serde(rename = "subscription__id")]
+    pub subscription_id: Option<Uuid>,
+    #[sqlx(rename = "request_attempt__id")]
+    #[serde(rename = "request_attempt__id")]
+    pub request_attempt_id: Option<Uuid>,
     pub authentication_type: String,
     pub is_success: bool,
     pub error_message: Option<String>,

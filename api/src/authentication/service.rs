@@ -164,7 +164,7 @@ impl AuthenticationService {
             WHERE authentication_type__id = $1
             "#,
         )
-        .bind(config.authentication_type__id)
+        .bind(config.authentication_type_id)
         .fetch_one(&self.db_pool)
         .await?;
 
@@ -177,7 +177,7 @@ impl AuthenticationService {
                 Box::new(
                     OAuth2Provider::new(
                         oauth_config,
-                        config.authentication_config__id,
+                        config.authentication_config_id,
                         application_id,
                         self.db_pool.clone(),
                         self.encryption.clone(),
@@ -210,7 +210,7 @@ impl AuthenticationService {
                 // Create and cache a special HTTP client for certificate auth
                 let client = create_client_with_certificates(&provider)?;
                 let mut clients = self.http_clients.write().await;
-                clients.insert(config.authentication_config__id, client);
+                clients.insert(config.authentication_config_id, client);
 
                 Box::new(provider)
             }
@@ -248,7 +248,7 @@ impl AuthenticationService {
             .await?
         {
             let clients = self.http_clients.read().await;
-            if let Some(client) = clients.get(&config.authentication_config__id) {
+            if let Some(client) = clients.get(&config.authentication_config_id) {
                 return Ok(Some(client.clone()));
             }
         }
