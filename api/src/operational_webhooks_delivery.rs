@@ -341,3 +341,73 @@ impl OperationalWebhookDelivery {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::{Utc, TimeZone};
+    use uuid::Uuid;
+
+    #[test]
+    fn test_webhook_signature_generation() {
+        let secret = Uuid::new_v4();
+        let timestamp = Utc.timestamp_opt(1234567890, 0).unwrap();
+        let payload = b"test payload content";
+
+        // Generate signature
+        let signature = OperationalWebhookDelivery::generate_signature(&secret, &timestamp, payload);
+
+        // The signature should start with "v1,"
+        assert!(signature.starts_with("v1,"));
+        
+        // The signature should be deterministic
+        let signature2 = OperationalWebhookDelivery::generate_signature(&secret, &timestamp, payload);
+        assert_eq!(signature, signature2);
+    }
+
+    #[test]
+    fn test_webhook_signature_with_different_payloads() {
+        let secret = Uuid::new_v4();
+        let timestamp = Utc.timestamp_opt(1234567890, 0).unwrap();
+        
+        let payload1 = b"payload one";
+        let payload2 = b"payload two";
+
+        // Generate signatures for different payloads
+        let signature1 = OperationalWebhookDelivery::generate_signature(&secret, &timestamp, payload1);
+        let signature2 = OperationalWebhookDelivery::generate_signature(&secret, &timestamp, payload2);
+
+        // Signatures should be different for different payloads
+        assert_ne!(signature1, signature2);
+    }
+
+    #[test]
+    fn test_webhook_signature_with_different_timestamps() {
+        let secret = Uuid::new_v4();
+        let timestamp1 = Utc.timestamp_opt(1234567890, 0).unwrap();
+        let timestamp2 = Utc.timestamp_opt(1234567891, 0).unwrap();
+        let payload = b"test payload";
+
+        // Generate signatures for different timestamps
+        let signature1 = OperationalWebhookDelivery::generate_signature(&secret, &timestamp1, payload);
+        let signature2 = OperationalWebhookDelivery::generate_signature(&secret, &timestamp2, payload);
+
+        // Signatures should be different for different timestamps
+        assert_ne!(signature1, signature2);
+    }
+
+    #[test]
+    fn test_webhook_signature_with_different_secrets() {
+        let secret1 = Uuid::new_v4();
+        let secret2 = Uuid::new_v4();
+        let timestamp = Utc.timestamp_opt(1234567890, 0).unwrap();
+        let payload = b"test payload";
+
+        // Generate signatures for different secrets
+        let signature1 = OperationalWebhookDelivery::generate_signature(&secret1, &timestamp, payload);
+        let signature2 = OperationalWebhookDelivery::generate_signature(&secret2, &timestamp, payload);
+
+        // Signatures should be different for different secrets
+        assert_ne!(signature1, signature2);
+    }
+}
