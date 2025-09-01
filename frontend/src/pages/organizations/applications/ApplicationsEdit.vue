@@ -162,7 +162,7 @@ onUpdated(() => {
           <Hook0CardContentLine>
             <template #label> Retry Configuration </template>
             <template #content>
-              <div style="font-weight: bold; margin-bottom: 15px;">
+              <div style="font-weight: bold; margin-bottom: 15px">
                 Default retry settings for all subscriptions in this application
               </div>
             </template>
@@ -212,9 +212,7 @@ onUpdated(() => {
                 max="3600"
                 required
               >
-                <template #helpText>
-                  Initial delay for fast retries in seconds (1-3600)
-                </template>
+                <template #helpText>Initial delay for fast retries in seconds (1-3600)</template>
               </Hook0Input>
             </template>
           </Hook0CardContentLine>

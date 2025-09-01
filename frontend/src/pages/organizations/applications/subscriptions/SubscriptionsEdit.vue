@@ -464,7 +464,8 @@ onUpdated(() => {
             Retry Configuration (Optional)
 
             <Hook0Text class="helpText mt-2 block">
-              Override application defaults for this subscription. Leave empty to use application-level retry settings.
+              Override application defaults for this subscription. Leave empty to use
+              application-level retry settings.
             </Hook0Text>
           </template>
           <template #content>
