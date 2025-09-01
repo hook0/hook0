@@ -186,7 +186,7 @@ pub async fn create(
     db: Data<sqlx::PgPool>,
     Json(payload): Json<CreateOperationalEndpoint>,
 ) -> Result<CreatedJson<OperationalEndpoint>, Hook0Problem> {
-    payload.validate().map_err(|e| Hook0Problem::Validation(e.into()))?;
+    payload.validate().map_err(Hook0Problem::Validation)?;
 
     authorize_for_application(db.as_ref(), &biscuit, Action::OperationalWebhookCreate { application_id: &payload.application_id }, 5000).await.map_err(|e| {
         error!("Authorization failed: {e}");
@@ -334,7 +334,7 @@ pub async fn update(
     path: Path<Uuid>,
     Json(payload): Json<UpdateOperationalEndpoint>,
 ) -> Result<Json<OperationalEndpoint>, Hook0Problem> {
-    payload.validate().map_err(|e| Hook0Problem::Validation(e.into()))?;
+    payload.validate().map_err(Hook0Problem::Validation)?;
     
     let endpoint_id = path.into_inner();
 

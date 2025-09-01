@@ -165,16 +165,10 @@ impl OperationalWebhookDelivery {
             headers.insert("webhook-signature", HeaderValue::from_str(&signature)?);
 
             // Add custom headers from endpoint configuration
-            if !attempt.headers.is_null() {
-                if let Some(headers_obj) = attempt.headers.as_object() {
-                    for (key, value) in headers_obj {
-                        if let Some(val_str) = value.as_str() {
-                            if let Ok(header_name) = HeaderName::from_bytes(key.as_bytes()) {
-                                if let Ok(header_value) = HeaderValue::from_str(val_str) {
-                                    headers.insert(header_name, header_value);
-                                }
-                            }
-                        }
+            if !attempt.headers.is_null() && let Some(headers_obj) = attempt.headers.as_object() {
+                for (key, value) in headers_obj {
+                    if let Some(val_str) = value.as_str() && let Ok(header_name) = HeaderName::from_bytes(key.as_bytes()) && let Ok(header_value) = HeaderValue::from_str(val_str) {
+                        headers.insert(header_name, header_value);
                     }
                 }
             }
@@ -198,7 +192,7 @@ impl OperationalWebhookDelivery {
                     )?;
                     let response_body = response.text().await.unwrap_or_default();
 
-                    let status = if status_code >= 200 && status_code < 300 {
+                    let status = if (200..300).contains(&status_code) {
                         "success"
                     } else {
                         "failed"
