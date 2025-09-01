@@ -248,7 +248,7 @@ pub async fn list(
         target_json: Option<Value>,
         created_at: DateTime<Utc>,
         dedicated_workers: Option<Vec<String>>,
-        retry_config: Value,
+        retry_config: Option<Value>,
     }
 
     let raw_subscriptions = query_as!(
@@ -318,8 +318,10 @@ pub async fn list(
                     .expect("Could not parse subscription target"),
                 created_at: s.created_at,
                 dedicated_workers: s.dedicated_workers.unwrap_or_default(),
-                retry_config: serde_json::from_value(s.retry_config)
-                    .unwrap_or_else(|_| RetryConfig::default()),
+                retry_config: s
+                    .retry_config
+                    .and_then(|rc| serde_json::from_value(rc).ok())
+                    .unwrap_or_else(|| RetryConfig::default()),
             }
         })
         .collect::<Vec<_>>();
@@ -388,7 +390,7 @@ pub async fn get(
         target_json: Option<Value>,
         created_at: DateTime<Utc>,
         dedicated_workers: Option<Vec<String>>,
-        retry_config: Value,
+        retry_config: Option<Value>,
     }
 
     let raw_subscription = query_as!(
@@ -459,8 +461,10 @@ pub async fn get(
                     .expect("Could not parse subscription target"),
                 created_at: s.created_at,
                 dedicated_workers: s.dedicated_workers.unwrap_or_default(),
-                retry_config: serde_json::from_value(s.retry_config)
-                    .unwrap_or_else(|_| RetryConfig::default()),
+                retry_config: s
+                    .retry_config
+                    .and_then(|rc| serde_json::from_value(rc).ok())
+                    .unwrap_or_else(|| RetryConfig::default()),
             }))
         }
         None => Err(Hook0Problem::NotFound),
@@ -571,13 +575,10 @@ pub async fn create(
         None => json!({}),
     };
 
-    let retry_config = match body.retry_config.as_ref() {
-        Some(rc) => {
-            serde_json::to_value(rc.clone()).expect("could not serialize retry config into JSON")
-        }
-        None => serde_json::to_value(RetryConfig::default())
-            .expect("could not serialize default retry config into JSON"),
-    };
+    // Keep retry_config as NULL if not provided (to use application defaults)
+    let retry_config = body.retry_config.as_ref().map(|rc| {
+        serde_json::to_value(rc.clone()).expect("could not serialize retry config into JSON")
+    });
 
     let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
 
@@ -591,7 +592,7 @@ pub async fn create(
         labels: Value,
         target__id: Uuid,
         created_at: DateTime<Utc>,
-        retry_config: Value,
+        retry_config: Option<Value>,
     }
     let subscription = query_as!(
             RawSubscription,
@@ -721,8 +722,10 @@ pub async fn create(
         target: body.target.clone(),
         created_at: subscription.created_at,
         dedicated_workers: body.dedicated_workers.clone().unwrap_or_default(),
-        retry_config: serde_json::from_value(subscription.retry_config)
-            .unwrap_or_else(|_| RetryConfig::default()),
+        retry_config: subscription
+            .retry_config
+            .and_then(|rc| serde_json::from_value(rc).ok())
+            .unwrap_or_else(|| RetryConfig::default()),
     };
 
     if let Some(hook0_client) = state.hook0_client.as_ref() {
@@ -802,13 +805,10 @@ pub async fn edit(
         None => json!({}),
     };
 
-    let retry_config = match body.retry_config.as_ref() {
-        Some(rc) => {
-            serde_json::to_value(rc.clone()).expect("could not serialize retry config into JSON")
-        }
-        None => serde_json::to_value(RetryConfig::default())
-            .expect("could not serialize default retry config into JSON"),
-    };
+    // Keep retry_config as NULL if not provided (to use application defaults)
+    let retry_config = body.retry_config.as_ref().map(|rc| {
+        serde_json::to_value(rc.clone()).expect("could not serialize retry config into JSON")
+    });
 
     let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
 
@@ -822,7 +822,7 @@ pub async fn edit(
         labels: Value,
         target__id: Uuid,
         created_at: DateTime<Utc>,
-        retry_config: Value,
+        retry_config: Option<Value>,
     }
     let subscription = query_as!(
                 RawSubscription,
@@ -991,8 +991,10 @@ pub async fn edit(
                 target: body.target.clone(),
                 created_at: s.created_at,
                 dedicated_workers: body.dedicated_workers.clone().unwrap_or_default(),
-                retry_config: serde_json::from_value(s.retry_config)
-                    .unwrap_or_else(|_| RetryConfig::default()),
+                retry_config: s
+                    .retry_config
+                    .and_then(|rc| serde_json::from_value(rc).ok())
+                    .unwrap_or_else(|| RetryConfig::default()),
             };
 
             if let Some(hook0_client) = state.hook0_client.as_ref() {

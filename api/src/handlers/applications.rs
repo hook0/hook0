@@ -4,10 +4,12 @@ use log::error;
 use paperclip::actix::web::{Data, Json, Path, Query};
 use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use sqlx::{query, query_as};
 use uuid::Uuid;
 use validator::Validate;
 
+use crate::handlers::subscriptions::RetryConfig;
 use crate::hook0_client::{
     EventApplicationCreated, EventApplicationRemoved, EventApplicationUpdated, Hook0ClientEvent,
 };
@@ -22,6 +24,7 @@ pub struct Application {
     application_id: Uuid,
     organization_id: Uuid,
     name: String,
+    retry_config: RetryConfig,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -29,6 +32,7 @@ pub struct ApplicationInfo {
     application_id: Uuid,
     organization_id: Uuid,
     name: String,
+    retry_config: RetryConfig,
     quotas: ApplicationQuotas,
     consumption: ApplicationConsumption,
     onboarding_steps: ApplicationOnboardingSteps,
@@ -55,6 +59,16 @@ pub struct ApplicationPost {
     organization_id: Uuid,
     #[validate(non_control_character, length(min = 2, max = 50))]
     name: String,
+    #[validate(nested)]
+    retry_config: Option<RetryConfig>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
+pub struct ApplicationPut {
+    #[validate(non_control_character, length(min = 2, max = 50))]
+    name: Option<String>,
+    #[validate(nested)]
+    retry_config: Option<RetryConfig>,
 }
 
 #[api_v2_operation(
@@ -115,17 +129,45 @@ pub async fn create(
         ));
     }
 
-    let application = query_as!(
-            Application,
-            "
-                INSERT INTO event.application (organization__id, name) VALUES ($1, $2)
-                RETURNING application__id AS application_id, organization__id AS organization_id, name
+    let retry_config = match body.retry_config.as_ref() {
+        Some(rc) => {
+            serde_json::to_value(rc.clone()).expect("could not serialize retry config into JSON")
+        }
+        None => serde_json::to_value(RetryConfig::default())
+            .expect("could not serialize default retry config into JSON"),
+    };
+
+    // First, we need to use a raw query because of the retry_config JSON
+    #[allow(non_snake_case)]
+    struct RawApplication {
+        application__id: Uuid,
+        organization__id: Uuid,
+        name: String,
+        retry_config: Value,
+    }
+
+    let raw_app = query_as!(
+        RawApplication,
+        "
+                INSERT INTO event.application (organization__id, name, retry_config) 
+                VALUES ($1, $2, $3)
+                RETURNING application__id, organization__id, name, retry_config
             ",
-            body.organization_id, body.name,
-        )
-        .fetch_one(&state.db)
-        .await
-        .map_err(Hook0Problem::from)?;
+        body.organization_id,
+        body.name,
+        retry_config,
+    )
+    .fetch_one(&state.db)
+    .await
+    .map_err(Hook0Problem::from)?;
+
+    let application = Application {
+        application_id: raw_app.application__id,
+        organization_id: raw_app.organization__id,
+        name: raw_app.name,
+        retry_config: serde_json::from_value(raw_app.retry_config)
+            .unwrap_or_else(|_| RetryConfig::default()),
+    };
 
     if let Some(hook0_client) = state.hook0_client.as_ref() {
         let hook0_client_event: Hook0ClientEvent = EventApplicationCreated {
@@ -175,10 +217,18 @@ pub async fn get(
 
     let application_id = application_id.into_inner();
 
-    let application = query_as!(
-        Application,
+    #[allow(non_snake_case)]
+    struct RawApplication {
+        application__id: Uuid,
+        organization__id: Uuid,
+        name: String,
+        retry_config: Value,
+    }
+
+    let raw_app = query_as!(
+        RawApplication,
         "
-            SELECT application__id AS application_id, organization__id AS organization_id, name
+            SELECT application__id, organization__id, name, retry_config
             FROM event.application
             WHERE application__id = $1
             AND deleted_at IS NULL
@@ -188,6 +238,14 @@ pub async fn get(
     .fetch_optional(&state.db)
     .await
     .map_err(Hook0Problem::from)?;
+
+    let application = raw_app.map(|a| Application {
+        application_id: a.application__id,
+        organization_id: a.organization__id,
+        name: a.name,
+        retry_config: serde_json::from_value(a.retry_config)
+            .unwrap_or_else(|_| RetryConfig::default()),
+    });
 
     match application {
         Some(a) => {
@@ -230,6 +288,7 @@ pub async fn get(
                 application_id: a.application_id,
                 organization_id: a.organization_id,
                 name: a.name,
+                retry_config: a.retry_config,
                 quotas,
                 consumption,
                 onboarding_steps,
@@ -264,14 +323,33 @@ pub async fn list(
         return Err(Hook0Problem::Forbidden);
     }
 
-    let applications = query_as!(
-            Application,
-            "SELECT application__id AS application_id, organization__id AS organization_id, name FROM event.application WHERE organization__id = $1 AND deleted_at IS NULL",
+    #[allow(non_snake_case)]
+    struct RawApplication {
+        application__id: Uuid,
+        organization__id: Uuid,
+        name: String,
+        retry_config: Value,
+    }
+
+    let raw_apps = query_as!(
+            RawApplication,
+            "SELECT application__id, organization__id, name, retry_config FROM event.application WHERE organization__id = $1 AND deleted_at IS NULL",
             &qs.organization_id
         )
         .fetch_all(&state.db)
         .await
         .map_err(Hook0Problem::from)?;
+
+    let applications: Vec<Application> = raw_apps
+        .into_iter()
+        .map(|a| Application {
+            application_id: a.application__id,
+            organization_id: a.organization__id,
+            name: a.name,
+            retry_config: serde_json::from_value(a.retry_config)
+                .unwrap_or_else(|_| RetryConfig::default()),
+        })
+        .collect();
 
     Ok(Json(applications))
 }
@@ -289,7 +367,7 @@ pub async fn edit(
     _: OaBiscuit,
     biscuit: ReqData<Biscuit>,
     application_id: Path<Uuid>,
-    body: Json<ApplicationPost>,
+    body: Json<ApplicationPut>,
 ) -> Result<Json<Application>, Hook0Problem> {
     if authorize_for_application(
         &state.db,
@@ -309,20 +387,101 @@ pub async fn edit(
         return Err(Hook0Problem::Validation(e));
     }
 
-    let application = query_as!(
-            Application,
+    let application_id = application_id.into_inner();
+
+    // Build update query dynamically based on what fields are provided
+    let mut query_parts = Vec::new();
+    let mut params = Vec::new();
+    let mut param_counter = 1;
+
+    if let Some(name) = &body.name {
+        query_parts.push(format!("name = ${}", param_counter));
+        params.push((name.clone(), param_counter));
+        param_counter += 1;
+    }
+
+    if let Some(retry_config) = &body.retry_config {
+        let config_json =
+            serde_json::to_value(retry_config).expect("could not serialize retry config into JSON");
+        query_parts.push(format!("retry_config = ${}", param_counter));
+        params.push((config_json, param_counter));
+        param_counter += 1;
+    }
+
+    if query_parts.is_empty() {
+        // No fields to update
+        return Err(Hook0Problem::Validation(validator::ValidationErrors::new()));
+    }
+
+    #[allow(non_snake_case)]
+    struct RawApplication {
+        application__id: Uuid,
+        organization__id: Uuid,
+        name: String,
+        retry_config: Value,
+    }
+
+    // For simplicity, we'll fetch the current state and update it
+    let raw_app = if body.name.is_some() && body.retry_config.is_some() {
+        query_as!(
+            RawApplication,
             "
                 UPDATE event.application
-                SET name = $1 WHERE application__id = $2
+                SET name = $1, retry_config = $2
+                WHERE application__id = $3
                 AND deleted_at IS NULL
-                RETURNING application__id AS application_id, organization__id AS organization_id, name
+                RETURNING application__id, organization__id, name, retry_config
             ",
-            body.name,
-            application_id.into_inner()
+            body.name.as_ref().unwrap(),
+            serde_json::to_value(body.retry_config.as_ref().unwrap()).unwrap(),
+            application_id
         )
         .fetch_optional(&state.db)
         .await
-        .map_err(Hook0Problem::from)?;
+        .map_err(Hook0Problem::from)?
+    } else if body.name.is_some() {
+        query_as!(
+            RawApplication,
+            "
+                UPDATE event.application
+                SET name = $1
+                WHERE application__id = $2
+                AND deleted_at IS NULL
+                RETURNING application__id, organization__id, name, retry_config
+            ",
+            body.name.as_ref().unwrap(),
+            application_id
+        )
+        .fetch_optional(&state.db)
+        .await
+        .map_err(Hook0Problem::from)?
+    } else if body.retry_config.is_some() {
+        query_as!(
+            RawApplication,
+            "
+                UPDATE event.application
+                SET retry_config = $1
+                WHERE application__id = $2
+                AND deleted_at IS NULL
+                RETURNING application__id, organization__id, name, retry_config
+            ",
+            serde_json::to_value(body.retry_config.as_ref().unwrap()).unwrap(),
+            application_id
+        )
+        .fetch_optional(&state.db)
+        .await
+        .map_err(Hook0Problem::from)?
+    } else {
+        None
+    };
+
+    let application = raw_app.map(|a| Application {
+        application_id: a.application__id,
+        organization_id: a.organization__id,
+        name: a.name,
+        retry_config: serde_json::from_value(a.retry_config)
+            .unwrap_or_else(|_| RetryConfig::default()),
+    });
 
     match application {
         Some(a) => {

@@ -23,6 +23,13 @@ const isNew = ref(true);
 const application_id = ref<UUID | null>(null);
 const application = ref({
   name: '',
+  retry_config: {
+    max_fast_retries: 30,
+    max_slow_retries: 30,
+    fast_retry_delay_seconds: 5,
+    max_fast_retry_delay_seconds: 300,
+    slow_retry_delay_seconds: 3600,
+  },
 });
 
 interface Props {
@@ -44,6 +51,9 @@ function _load() {
       ApplicationService.get(application_id.value)
         .then((app: ApplicationService.ApplicationInfo) => {
           application.value.name = app.name;
+          if (app.retry_config) {
+            application.value.retry_config = app.retry_config;
+          }
           consumptions.value = [
             {
               icon: 'file-lines',
@@ -70,6 +80,7 @@ function upsert(e: Event) {
     ApplicationService.create({
       name: application.value.name,
       organization_id: route.params.organization_id as string,
+      retry_config: application.value.retry_config,
     }).then((_resp) => {
       if (props.tutorialMode) {
         emit('tutorial-application-created', _resp.application_id);
@@ -93,7 +104,7 @@ function upsert(e: Event) {
 
   ApplicationService.update(application_id.value as UUID, {
     name: application.value.name,
-    organization_id: route.params.organization_id as string,
+    retry_config: application.value.retry_config,
   }).then((_resp) => {
     cancel();
   }, displayError);
@@ -142,6 +153,101 @@ onUpdated(() => {
                 <template #helpText
                   >Name of your company's product or API. Don't forget also to specify the
                   environment, for example: "facebook-production"
+                </template>
+              </Hook0Input>
+            </template>
+          </Hook0CardContentLine>
+
+          <!-- Retry Configuration Section -->
+          <Hook0CardContentLine>
+            <template #label> Retry Configuration </template>
+            <template #content>
+              <div style="font-weight: bold; margin-bottom: 15px;">
+                Default retry settings for all subscriptions in this application
+              </div>
+            </template>
+          </Hook0CardContentLine>
+
+          <Hook0CardContentLine>
+            <template #label> Max Fast Retries </template>
+            <template #content>
+              <Hook0Input
+                v-model.number="application.retry_config.max_fast_retries"
+                type="number"
+                min="0"
+                max="100"
+                required
+              >
+                <template #helpText>
+                  Maximum number of fast retries with exponential backoff (0-100)
+                </template>
+              </Hook0Input>
+            </template>
+          </Hook0CardContentLine>
+
+          <Hook0CardContentLine>
+            <template #label> Max Slow Retries </template>
+            <template #content>
+              <Hook0Input
+                v-model.number="application.retry_config.max_slow_retries"
+                type="number"
+                min="0"
+                max="100"
+                required
+              >
+                <template #helpText>
+                  Maximum number of slow retries with fixed delay (0-100)
+                </template>
+              </Hook0Input>
+            </template>
+          </Hook0CardContentLine>
+
+          <Hook0CardContentLine>
+            <template #label> Fast Retry Initial Delay (seconds) </template>
+            <template #content>
+              <Hook0Input
+                v-model.number="application.retry_config.fast_retry_delay_seconds"
+                type="number"
+                min="1"
+                max="3600"
+                required
+              >
+                <template #helpText>
+                  Initial delay for fast retries in seconds (1-3600)
+                </template>
+              </Hook0Input>
+            </template>
+          </Hook0CardContentLine>
+
+          <Hook0CardContentLine>
+            <template #label> Max Fast Retry Delay (seconds) </template>
+            <template #content>
+              <Hook0Input
+                v-model.number="application.retry_config.max_fast_retry_delay_seconds"
+                type="number"
+                min="1"
+                max="86400"
+                required
+              >
+                <template #helpText>
+                  Maximum delay for exponential backoff in seconds (1-86400)
+                </template>
+              </Hook0Input>
+            </template>
+          </Hook0CardContentLine>
+
+          <Hook0CardContentLine>
+            <template #label> Slow Retry Delay (seconds) </template>
+            <template #content>
+              <Hook0Input
+                v-model.number="application.retry_config.slow_retry_delay_seconds"
+                type="number"
+                min="60"
+                max="604800"
+                required
+              >
+                <template #helpText>
+                  Fixed delay between slow retries in seconds (60-604800)
                 </template>
               </Hook0Input>
             </template>

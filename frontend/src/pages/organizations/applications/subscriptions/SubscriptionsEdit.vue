@@ -461,10 +461,10 @@ onUpdated(() => {
 
         <Hook0CardContentLine>
           <template #label>
-            Retry Configuration
+            Retry Configuration (Optional)
 
             <Hook0Text class="helpText mt-2 block">
-              Configure how Hook0 should retry failed webhook deliveries.
+              Override application defaults for this subscription. Leave empty to use application-level retry settings.
             </Hook0Text>
           </template>
           <template #content>

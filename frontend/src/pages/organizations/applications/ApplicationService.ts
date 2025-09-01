@@ -8,6 +8,7 @@ type definitions = components['schemas'];
 export type Application = definitions['Application'];
 export type ApplicationInfo = definitions['ApplicationInfo'];
 export type ApplicationPost = definitions['ApplicationPost'];
+export type ApplicationPut = definitions['ApplicationPut'];
 
 export function create(application: ApplicationPost): Promise<Application> {
   return http
@@ -42,7 +43,7 @@ export function get(application_id: UUID): Promise<ApplicationInfo> {
   );
 }
 
-export function update(application_id: UUID, application: ApplicationPost): Promise<Application> {
+export function update(application_id: UUID, application: ApplicationPut): Promise<Application> {
   return http
     .put(`/applications/${application_id}`, application)
     .then(

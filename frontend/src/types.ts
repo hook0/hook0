@@ -726,6 +726,13 @@ export interface components {
       name: string;
       /** Format: uuid */
       organization_id: string;
+      retry_config: {
+        max_fast_retries: number;
+        max_slow_retries: number;
+        fast_retry_delay_seconds: number;
+        max_fast_retry_delay_seconds: number;
+        slow_retry_delay_seconds: number;
+      };
     };
     ApplicationInfo: {
       /** Format: uuid */
@@ -735,6 +742,13 @@ export interface components {
         events_per_day?: number;
       };
       name: string;
+      retry_config: {
+        max_fast_retries: number;
+        max_slow_retries: number;
+        fast_retry_delay_seconds: number;
+        max_fast_retry_delay_seconds: number;
+        slow_retry_delay_seconds: number;
+      };
       onboarding_steps: {
         /** @enum {string} */
         event: 'ToDo' | 'Done';
@@ -756,6 +770,23 @@ export interface components {
       name: string;
       /** Format: uuid */
       organization_id: string;
+      retry_config?: {
+        max_fast_retries: number;
+        max_slow_retries: number;
+        fast_retry_delay_seconds: number;
+        max_fast_retry_delay_seconds: number;
+        slow_retry_delay_seconds: number;
+      };
+    };
+    ApplicationPut: {
+      name?: string;
+      retry_config?: {
+        max_fast_retries: number;
+        max_slow_retries: number;
+        fast_retry_delay_seconds: number;
+        max_fast_retry_delay_seconds: number;
+        slow_retry_delay_seconds: number;
+      };
     };
     ApplicationSecret: {
       /** Format: date-time */

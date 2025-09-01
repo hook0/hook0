@@ -539,15 +539,23 @@ async fn compute_next_retry(
 ) -> Result<Option<Duration>, sqlx::Error> {
     #[allow(non_snake_case)]
     struct SubRetryConfig {
-        retry_config: serde_json::Value,
+        subscription_retry_config: Option<serde_json::Value>,
+        application_retry_config: serde_json::Value,
     }
 
+    // Fetch retry config from subscription (may be NULL) and application (always has a value)
     let sub = query_as!(
         SubRetryConfig,
         "
-            SELECT retry_config
-            FROM webhook.subscription
-            WHERE subscription__id = $1 AND deleted_at IS NULL AND is_enabled
+            SELECT 
+                s.retry_config as subscription_retry_config,
+                a.retry_config as application_retry_config
+            FROM webhook.subscription s
+            JOIN event.application a ON a.application__id = s.application__id
+            WHERE s.subscription__id = $1 
+            AND s.deleted_at IS NULL 
+            AND s.is_enabled
+            AND a.deleted_at IS NULL
         ",
         subscription_id
     )
@@ -555,24 +563,30 @@ async fn compute_next_retry(
     .await?;
 
     if let Some(sub) = sub {
-        // Parse retry config from the subscription
-        let max_fast_retries = sub.retry_config["max_fast_retries"]
+        // Use subscription retry config if available, otherwise fall back to application defaults
+        let retry_config = sub
+            .subscription_retry_config
+            .as_ref()
+            .unwrap_or(&sub.application_retry_config);
+
+        // Parse retry config (either from subscription override or application defaults)
+        let max_fast_retries = retry_config["max_fast_retries"]
             .as_u64()
             .map(|v| v as u32)
             .unwrap_or(default_max_fast_retries);
-        let max_slow_retries = sub.retry_config["max_slow_retries"]
+        let max_slow_retries = retry_config["max_slow_retries"]
             .as_u64()
             .map(|v| v as u32)
             .unwrap_or(default_max_slow_retries);
-        let fast_retry_delay_seconds = sub.retry_config["fast_retry_delay_seconds"]
+        let fast_retry_delay_seconds = retry_config["fast_retry_delay_seconds"]
             .as_u64()
             .map(|v| v as u32)
             .unwrap_or(5);
-        let max_fast_retry_delay_seconds = sub.retry_config["max_fast_retry_delay_seconds"]
+        let max_fast_retry_delay_seconds = retry_config["max_fast_retry_delay_seconds"]
             .as_u64()
             .map(|v| v as u32)
             .unwrap_or(300);
-        let slow_retry_delay_seconds = sub.retry_config["slow_retry_delay_seconds"]
+        let slow_retry_delay_seconds = retry_config["slow_retry_delay_seconds"]
             .as_u64()
             .map(|v| v as u32)
             .unwrap_or(3600);
@@ -708,5 +722,67 @@ mod tests {
             15,   // retry_count (exceeds 5+10)
         );
         assert_eq!(duration, None); // no more retries
+    }
+
+    #[test]
+    fn test_application_level_retry_defaults() {
+        // Test that application defaults are used properly
+        let duration = compute_next_retry_duration_with_config(
+            20,   // max_fast_retries (application default)
+            40,   // max_slow_retries (application default)
+            10,   // fast_retry_delay_seconds (application default)
+            600,  // max_fast_retry_delay_seconds (application default)
+            1800, // slow_retry_delay_seconds (application default)
+            0,    // retry_count
+        );
+        assert_eq!(duration, Some(Duration::from_secs(0)));
+
+        // Test fast retry with application defaults
+        let duration = compute_next_retry_duration_with_config(
+            20,   // max_fast_retries
+            40,   // max_slow_retries
+            10,   // fast_retry_delay_seconds
+            600,  // max_fast_retry_delay_seconds
+            1800, // slow_retry_delay_seconds
+            10,   // retry_count
+        );
+        assert_eq!(duration, Some(Duration::from_secs(100))); // 10 * 10 = 100
+
+        // Test slow retry with application defaults
+        let duration = compute_next_retry_duration_with_config(
+            20,   // max_fast_retries
+            40,   // max_slow_retries
+            10,   // fast_retry_delay_seconds
+            600,  // max_fast_retry_delay_seconds
+            1800, // slow_retry_delay_seconds
+            20,   // retry_count (transition to slow)
+        );
+        assert_eq!(duration, Some(Duration::from_secs(1800))); // slow retry delay
+    }
+
+    #[test]
+    fn test_subscription_override_priority() {
+        // Test subscription override taking precedence over application defaults
+        // This represents a subscription with custom aggressive retry settings
+        let duration = compute_next_retry_duration_with_config(
+            100, // max_fast_retries (subscription override - very aggressive)
+            50,  // max_slow_retries (subscription override)
+            2,   // fast_retry_delay_seconds (subscription override - very fast)
+            120, // max_fast_retry_delay_seconds (subscription override)
+            600, // slow_retry_delay_seconds (subscription override - 10 minutes)
+            50,  // retry_count
+        );
+        assert_eq!(duration, Some(Duration::from_secs(100))); // 2 * 50 = 100 (< 120)
+
+        // Test transition to slow retries with subscription override
+        let duration = compute_next_retry_duration_with_config(
+            100, // max_fast_retries
+            50,  // max_slow_retries
+            2,   // fast_retry_delay_seconds
+            120, // max_fast_retry_delay_seconds
+            600, // slow_retry_delay_seconds
+            100, // retry_count (exactly at transition)
+        );
+        assert_eq!(duration, Some(Duration::from_secs(600))); // slow retry with override
     }
 }
