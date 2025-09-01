@@ -515,7 +515,9 @@ onUpdated(() => {
               </div>
 
               <div>
-                <label class="text-sm font-medium text-gray-700">Max Fast Retry Delay (seconds)</label>
+                <label class="text-sm font-medium text-gray-700"
+                  >Max Fast Retry Delay (seconds)</label
+                >
                 <Hook0Input
                   v-model.number="subscription.retry_config.max_fast_retry_delay_seconds"
                   type="number"
@@ -523,9 +525,7 @@ onUpdated(() => {
                   max="86400"
                   class="w-32"
                 >
-                  <template #helpText>
-                    Maximum delay in seconds for fast retries.
-                  </template>
+                  <template #helpText> Maximum delay in seconds for fast retries. </template>
                 </Hook0Input>
               </div>
 
@@ -538,9 +538,7 @@ onUpdated(() => {
                   max="604800"
                   class="w-32"
                 >
-                  <template #helpText>
-                    Fixed delay in seconds between slow retries.
-                  </template>
+                  <template #helpText> Fixed delay in seconds between slow retries. </template>
                 </Hook0Input>
               </div>
             </div>

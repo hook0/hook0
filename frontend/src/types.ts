@@ -1068,6 +1068,13 @@ export interface components {
       metadata: {
         [key: string]: string;
       };
+      retry_config?: {
+        max_fast_retries: number;
+        max_slow_retries: number;
+        fast_retry_delay_seconds: number;
+        max_fast_retry_delay_seconds: number;
+        slow_retry_delay_seconds: number;
+      };
       /** Format: uuid */
       secret: string;
       /** Format: uuid */
@@ -1097,6 +1104,13 @@ export interface components {
       };
       metadata?: {
         [key: string]: string;
+      };
+      retry_config?: {
+        max_fast_retries: number;
+        max_slow_retries: number;
+        fast_retry_delay_seconds: number;
+        max_fast_retry_delay_seconds: number;
+        slow_retry_delay_seconds: number;
       };
       target: {
         headers: Record<string, never>;
