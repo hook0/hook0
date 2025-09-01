@@ -201,12 +201,12 @@ impl OAuth2Provider {
             .form(&params);
 
         // Add custom headers if specified
-        if let Some(headers) = &self.config.custom_headers {
-            if let Some(headers_obj) = headers.as_object() {
-                for (key, value) in headers_obj {
-                    if let Some(value_str) = value.as_str() {
-                        request = request.header(key, value_str);
-                    }
+        if let Some(headers) = &self.config.custom_headers
+            && let Some(headers_obj) = headers.as_object()
+        {
+            for (key, value) in headers_obj {
+                if let Some(value_str) = value.as_str() {
+                    request = request.header(key, value_str);
                 }
             }
         }
@@ -257,12 +257,12 @@ impl OAuth2Provider {
             .form(&params);
 
         // Add custom headers if specified
-        if let Some(headers) = &self.config.custom_headers {
-            if let Some(headers_obj) = headers.as_object() {
-                for (key, value) in headers_obj {
-                    if let Some(value_str) = value.as_str() {
-                        request = request.header(key, value_str);
-                    }
+        if let Some(headers) = &self.config.custom_headers
+            && let Some(headers_obj) = headers.as_object()
+        {
+            for (key, value) in headers_obj {
+                if let Some(value_str) = value.as_str() {
+                    request = request.header(key, value_str);
                 }
             }
         }

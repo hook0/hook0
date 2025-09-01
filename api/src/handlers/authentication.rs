@@ -7,9 +7,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::authentication::{
-    config::{AuthenticationConfigRequest, AuthenticationType},
-};
+use crate::authentication::config::{AuthenticationConfigRequest, AuthenticationType};
 use crate::iam::{Action, AuthorizedToken, authorize_for_application};
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
@@ -80,7 +78,7 @@ pub async fn configure_application_authentication(
     let auth_service = state
         .auth_service
         .as_ref()
-        .ok_or_else(|| Hook0Problem::InternalServerError)?;
+        .ok_or(Hook0Problem::InternalServerError)?;
 
     let body_data = body.into_inner();
     let auth_type = body_data.auth_type.clone();
@@ -133,7 +131,7 @@ pub async fn configure_subscription_authentication(
     .fetch_optional(&state.db)
     .await
     .map_err(|_| Hook0Problem::InternalServerError)?
-    .ok_or_else(|| Hook0Problem::NotFound)?;
+    .ok_or(Hook0Problem::NotFound)?;
 
     // Check authorization
     let _auth_token = authorize_for_application(
@@ -176,7 +174,7 @@ pub async fn configure_subscription_authentication(
     let auth_service = state
         .auth_service
         .as_ref()
-        .ok_or_else(|| Hook0Problem::InternalServerError)?;
+        .ok_or(Hook0Problem::InternalServerError)?;
 
     let body_data = body.into_inner();
     let auth_type = body_data.auth_type.clone();
@@ -234,7 +232,7 @@ pub async fn delete_application_authentication(
     let auth_service = state
         .auth_service
         .as_ref()
-        .ok_or_else(|| Hook0Problem::InternalServerError)?;
+        .ok_or(Hook0Problem::InternalServerError)?;
 
     auth_service
         .delete_authentication_config(path.application_id, None)
@@ -268,7 +266,7 @@ pub async fn delete_subscription_authentication(
     .fetch_optional(&state.db)
     .await
     .map_err(|_| Hook0Problem::InternalServerError)?
-    .ok_or_else(|| Hook0Problem::NotFound)?;
+    .ok_or(Hook0Problem::NotFound)?;
 
     // Check authorization
     let _auth_token = authorize_for_application(
@@ -300,7 +298,7 @@ pub async fn delete_subscription_authentication(
     let auth_service = state
         .auth_service
         .as_ref()
-        .ok_or_else(|| Hook0Problem::InternalServerError)?;
+        .ok_or(Hook0Problem::InternalServerError)?;
 
     auth_service
         .delete_authentication_config(subscription.0, Some(path.subscription_id))

@@ -21,12 +21,14 @@ use super::{
     },
 };
 
+type ProviderMap = HashMap<Uuid, Arc<Box<dyn AuthenticationProvider>>>;
+
 /// Main authentication service
 #[allow(dead_code)]
 pub struct AuthenticationService {
     db_pool: PgPool,
     encryption: Arc<SecretEncryption>,
-    providers: Arc<RwLock<HashMap<Uuid, Arc<Box<dyn AuthenticationProvider>>>>>,
+    providers: Arc<RwLock<ProviderMap>>,
     http_clients: Arc<RwLock<HashMap<Uuid, Client>>>,
 }
 

@@ -103,7 +103,7 @@ async function save() {
   // Validate configuration
   const errors = AuthenticationService.validateAuthenticationConfig(
     authenticationType.value,
-    authConfig.value
+    authConfig.value as Record<string, unknown>
   );
   if (errors.length > 0) {
     push.warning({

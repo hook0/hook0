@@ -166,7 +166,10 @@ export function getSecretDisplayValue(value: string): string {
   return value;
 }
 
-export function validateAuthenticationConfig(type: AuthenticationType, config: Record<string, unknown>): string[] {
+export function validateAuthenticationConfig(
+  type: AuthenticationType,
+  config: Record<string, unknown>
+): string[] {
   const errors: string[] = [];
 
   switch (type) {

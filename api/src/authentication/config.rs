@@ -43,6 +43,7 @@ impl AuthenticationType {
 
 /// Authentication configuration stored in the database
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize, Apiv2Schema)]
+#[allow(clippy::non_snake_case)]
 #[allow(non_snake_case)]
 pub struct AuthenticationConfig {
     pub authentication_config__id: Uuid,
@@ -160,6 +161,7 @@ pub struct CustomAuthConfig {
 
 /// Encrypted secret stored in the database
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize, Apiv2Schema)]
+#[allow(clippy::non_snake_case)]
 #[allow(non_snake_case)]
 pub struct EncryptedSecret {
     pub encrypted_secret__id: Uuid,
@@ -175,6 +177,7 @@ pub struct EncryptedSecret {
 
 /// OAuth token cache entry
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
+#[allow(clippy::non_snake_case)]
 #[allow(non_snake_case)]
 pub struct OAuthTokenCache {
     pub oauth_token_cache__id: Uuid,
@@ -188,6 +191,7 @@ pub struct OAuthTokenCache {
 
 /// Authentication audit log entry
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
+#[allow(clippy::non_snake_case)]
 #[allow(non_snake_case)]
 pub struct AuthenticationAuditLog {
     pub authentication_audit_log__id: Uuid,
