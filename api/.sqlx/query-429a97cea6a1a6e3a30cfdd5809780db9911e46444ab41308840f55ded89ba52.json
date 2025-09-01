@@ -1,0 +1,82 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT \n            operational_endpoint__id,\n            application__id,\n            url,\n            description,\n            headers,\n            secret,\n            is_enabled,\n            filter_types,\n            rate_limit,\n            created_at,\n            updated_at\n        FROM webhook.operational_endpoint\n        WHERE operational_endpoint__id = $1\n          AND deleted_at IS NULL\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "operational_endpoint__id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "application__id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "headers",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 5,
+        "name": "secret",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 6,
+        "name": "is_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "filter_types",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 8,
+        "name": "rate_limit",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "429a97cea6a1a6e3a30cfdd5809780db9911e46444ab41308840f55ded89ba52"
+}

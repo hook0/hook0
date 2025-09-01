@@ -62,20 +62,31 @@ impl OperationalWebhookWorker {
         // Get failed attempts that are ready for retry
         let failed_attempts = sqlx::query!(
             r#"
+            WITH attempt_counts AS (
+                SELECT 
+                    oa.operational_attempt__id,
+                    oa.operational_event__id,
+                    oa.operational_endpoint__id,
+                    oa.created_at,
+                    oa.attempted_at,
+                    COUNT(prev.operational_attempt__id) as previous_attempts
+                FROM webhook.operational_attempt oa
+                LEFT JOIN webhook.operational_attempt prev ON 
+                    prev.operational_event__id = oa.operational_event__id 
+                    AND prev.operational_endpoint__id = oa.operational_endpoint__id
+                    AND prev.created_at < oa.created_at
+                WHERE oa.status = 'failed'
+                GROUP BY oa.operational_attempt__id, oa.operational_event__id, 
+                         oa.operational_endpoint__id, oa.created_at, oa.attempted_at
+            )
             SELECT 
-                oa.operational_attempt__id,
-                oa.operational_event__id,
-                oa.created_at,
-                COUNT(prev.operational_attempt__id) as previous_attempts
-            FROM webhook.operational_attempt oa
-            LEFT JOIN webhook.operational_attempt prev ON 
-                prev.operational_event__id = oa.operational_event__id 
-                AND prev.operational_endpoint__id = oa.operational_endpoint__id
-                AND prev.created_at < oa.created_at
-            WHERE oa.status = 'failed'
-              AND oa.attempted_at < NOW() - INTERVAL '1 minute' * POWER(2, LEAST(COUNT(prev.operational_attempt__id), 5))
-            GROUP BY oa.operational_attempt__id, oa.operational_event__id, oa.created_at
-            HAVING COUNT(prev.operational_attempt__id) < 5
+                operational_attempt__id,
+                operational_event__id,
+                created_at,
+                previous_attempts
+            FROM attempt_counts
+            WHERE previous_attempts < 5
+              AND attempted_at < NOW() - INTERVAL '1 minute' * POWER(2, LEAST(previous_attempts::int, 5))
             LIMIT 50
             "#
         )
@@ -154,7 +165,7 @@ impl OperationalWebhookWorker {
         .fetch_all(&self.db)
         .await?;
 
-        for stat in stats {
+        for stat in &stats {
             // Insert or update statistics
             sqlx::query!(
                 r#"
@@ -235,7 +246,7 @@ impl OperationalWebhookWorker {
             
             info!(
                 "Message attempts exhausted for event {} to endpoint {} after {} attempts",
-                row.operational_event__id, row.operational_endpoint__id, row.attempt_count
+                row.operational_event__id, row.operational_endpoint__id, row.attempt_count.unwrap_or(0)
             );
         }
         

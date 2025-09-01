@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                UPDATE webhook.operational_attempt\n                SET status = 'pending'\n                WHERE operational_attempt__id = $1\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5a69091f333889f0931e45cec93fe905466b4bda5f52796989c4409ec92fd6b5"
+}

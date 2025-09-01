@@ -1,0 +1,68 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                oa.operational_attempt__id,\n                oa.operational_event__id,\n                oa.operational_endpoint__id,\n                oe.url,\n                oe.headers,\n                oe.secret,\n                ev.event_type__name,\n                ev.payload,\n                ev.occurred_at\n            FROM webhook.operational_attempt oa\n            JOIN webhook.operational_endpoint oe ON oe.operational_endpoint__id = oa.operational_endpoint__id\n            JOIN webhook.operational_event ev ON ev.operational_event__id = oa.operational_event__id\n            WHERE oa.status = 'pending'\n              AND oe.is_enabled = true\n              AND oe.deleted_at IS NULL\n            LIMIT 100\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "operational_attempt__id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "operational_event__id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "operational_endpoint__id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "headers",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 5,
+        "name": "secret",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 6,
+        "name": "event_type__name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "payload",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 8,
+        "name": "occurred_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "39b8ed3074306191223e054dd9678420b5f0206410945467ecb94ea00b096e80"
+}

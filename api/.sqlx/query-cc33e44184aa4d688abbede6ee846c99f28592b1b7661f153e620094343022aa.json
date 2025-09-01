@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO webhook.message_stats (\n                    application__id,\n                    subscription__id,\n                    period_start,\n                    period_end,\n                    total_messages,\n                    successful_messages,\n                    failed_messages,\n                    pending_messages,\n                    avg_delivery_time_ms\n                )\n                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n                ON CONFLICT (application__id, subscription__id, period_start, period_end)\n                DO UPDATE SET\n                    total_messages = EXCLUDED.total_messages,\n                    successful_messages = EXCLUDED.successful_messages,\n                    failed_messages = EXCLUDED.failed_messages,\n                    pending_messages = EXCLUDED.pending_messages,\n                    avg_delivery_time_ms = EXCLUDED.avg_delivery_time_ms\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cc33e44184aa4d688abbede6ee846c99f28592b1b7661f153e620094343022aa"
+}

@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                        UPDATE webhook.operational_attempt\n                        SET status = $1,\n                            response_status_code = $2,\n                            response_headers = $3,\n                            response_body = $4,\n                            attempted_at = statement_timestamp()\n                        WHERE operational_attempt__id = $5\n                        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int4",
+        "Jsonb",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7aa9c4e7a43609c5f5dd034b4f1871d2727a2172b47dd6eb87d1fad812ad91cc"
+}

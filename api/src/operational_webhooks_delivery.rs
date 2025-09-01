@@ -2,7 +2,7 @@ use base64::Engine;
 use chrono::{DateTime, Utc};
 use hmac::{Hmac, Mac};
 use log::{error, info, warn};
-use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
+use reqwest::header::{HeaderMap, HeaderName, HeaderValue, CONTENT_TYPE};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::Sha256;
@@ -164,13 +164,16 @@ impl OperationalWebhookDelivery {
             headers.insert("webhook-signature", HeaderValue::from_str(&signature)?);
 
             // Add custom headers from endpoint configuration
-            if let Some(custom_headers) = attempt.headers {
-                for (key, value) in custom_headers.as_object().unwrap_or(&serde_json::Map::new()) {
-                    if let Some(val_str) = value.as_str() {
-                        headers.insert(
-                            key.parse()?,
-                            HeaderValue::from_str(val_str)?,
-                        );
+            if !attempt.headers.is_null() {
+                if let Some(headers_obj) = attempt.headers.as_object() {
+                    for (key, value) in headers_obj {
+                        if let Some(val_str) = value.as_str() {
+                            if let Ok(header_name) = HeaderName::from_bytes(key.as_bytes()) {
+                                if let Ok(header_value) = HeaderValue::from_str(val_str) {
+                                    headers.insert(header_name, header_value);
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -269,7 +272,7 @@ impl OperationalWebhookDelivery {
     async fn handle_delivery_failure(
         &self,
         endpoint_id: Uuid,
-        event_id: Uuid,
+        _event_id: Uuid,
     ) -> Result<(), Box<dyn std::error::Error>> {
         // Update consecutive failure count
         let result = query!(

@@ -1,0 +1,59 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                s.application__id,\n                s.subscription__id,\n                COUNT(ra.request_attempt__id) as total_messages,\n                COUNT(CASE WHEN ra.succeeded_at IS NOT NULL THEN 1 END) as successful_messages,\n                COUNT(CASE WHEN ra.failed_at IS NOT NULL THEN 1 END) as failed_messages,\n                COUNT(CASE WHEN ra.succeeded_at IS NULL AND ra.failed_at IS NULL THEN 1 END) as pending_messages,\n                AVG(EXTRACT(EPOCH FROM (COALESCE(ra.succeeded_at, ra.failed_at) - ra.created_at)) * 1000)::integer as avg_delivery_time_ms\n            FROM webhook.subscription s\n            LEFT JOIN webhook.request_attempt ra ON ra.subscription__id = s.subscription__id\n            WHERE ra.created_at >= $1 AND ra.created_at < $2\n            GROUP BY s.application__id, s.subscription__id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "application__id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "subscription__id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "total_messages",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "successful_messages",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "failed_messages",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "pending_messages",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "avg_delivery_time_ms",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "c435f4a8e639b921a8b7326a34507f5dd01c7b2b9c10404c698709186da3f22c"
+}

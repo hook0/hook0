@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH attempt_counts AS (\n                SELECT \n                    oa.operational_attempt__id,\n                    oa.operational_event__id,\n                    oa.operational_endpoint__id,\n                    oa.created_at,\n                    oa.attempted_at,\n                    COUNT(prev.operational_attempt__id) as previous_attempts\n                FROM webhook.operational_attempt oa\n                LEFT JOIN webhook.operational_attempt prev ON \n                    prev.operational_event__id = oa.operational_event__id \n                    AND prev.operational_endpoint__id = oa.operational_endpoint__id\n                    AND prev.created_at < oa.created_at\n                WHERE oa.status = 'failed'\n                GROUP BY oa.operational_attempt__id, oa.operational_event__id, \n                         oa.operational_endpoint__id, oa.created_at, oa.attempted_at\n            )\n            SELECT \n                operational_attempt__id,\n                operational_event__id,\n                created_at,\n                previous_attempts\n            FROM attempt_counts\n            WHERE previous_attempts < 5\n              AND attempted_at < NOW() - INTERVAL '1 minute' * POWER(2, LEAST(previous_attempts::int, 5))\n            LIMIT 50\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "operational_attempt__id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "operational_event__id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "previous_attempts",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "1f29cf3293fbad38402587fa3e67db0a9677de8cc9f3db3c2466571c59fbf921"
+}
