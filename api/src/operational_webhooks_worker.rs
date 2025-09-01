@@ -17,7 +17,7 @@ impl OperationalWebhookWorker {
     pub fn new(db: PgPool, interval_seconds: u64) -> Self {
         let delivery = OperationalWebhookDelivery::new(db.clone());
         let interval = Duration::from_secs(interval_seconds);
-        
+
         Self {
             db,
             delivery,
@@ -27,13 +27,16 @@ impl OperationalWebhookWorker {
 
     /// Start the background worker
     pub async fn start(self) {
-        info!("Starting operational webhook worker with interval {:?}", self.interval);
-        
+        info!(
+            "Starting operational webhook worker with interval {:?}",
+            self.interval
+        );
+
         let mut interval = time::interval(self.interval);
-        
+
         loop {
             interval.tick().await;
-            
+
             if let Err(e) = self.process_batch().await {
                 error!("Error processing operational webhooks: {}", e);
             }
@@ -44,16 +47,16 @@ impl OperationalWebhookWorker {
     async fn process_batch(&self) -> Result<(), Box<dyn std::error::Error>> {
         // Process pending deliveries
         self.delivery.process_pending_deliveries().await?;
-        
+
         // Retry failed attempts with exponential backoff
         self.retry_failed_attempts().await?;
-        
+
         // Clean up old operational events
         self.cleanup_old_events().await?;
-        
+
         // Update message statistics
         self.update_statistics().await?;
-        
+
         Ok(())
     }
 
@@ -105,7 +108,7 @@ impl OperationalWebhookWorker {
             )
             .execute(&self.db)
             .await?;
-            
+
             info!(
                 "Retrying operational webhook attempt {} (attempt #{})",
                 attempt.operational_attempt__id,
@@ -119,7 +122,7 @@ impl OperationalWebhookWorker {
     /// Clean up old operational events (older than 30 days)
     async fn cleanup_old_events(&self) -> Result<(), Box<dyn std::error::Error>> {
         let cutoff_date = Utc::now() - ChronoDuration::days(30);
-        
+
         let deleted = sqlx::query!(
             r#"
             DELETE FROM webhook.operational_event
@@ -129,11 +132,14 @@ impl OperationalWebhookWorker {
         )
         .execute(&self.db)
         .await?;
-        
+
         if deleted.rows_affected() > 0 {
-            info!("Cleaned up {} old operational events", deleted.rows_affected());
+            info!(
+                "Cleaned up {} old operational events",
+                deleted.rows_affected()
+            );
         }
-        
+
         Ok(())
     }
 
@@ -142,7 +148,7 @@ impl OperationalWebhookWorker {
         // Calculate statistics for the last hour
         let period_start = Utc::now() - ChronoDuration::hours(1);
         let period_end = Utc::now();
-        
+
         // Aggregate statistics per application and subscription
         let stats = sqlx::query!(
             r#"
@@ -202,9 +208,12 @@ impl OperationalWebhookWorker {
             .execute(&self.db)
             .await?;
         }
-        
-        info!("Updated message statistics for {} subscriptions", stats.len());
-        
+
+        info!(
+            "Updated message statistics for {} subscriptions",
+            stats.len()
+        );
+
         Ok(())
     }
 
@@ -244,13 +253,15 @@ impl OperationalWebhookWorker {
             )
             .fetch_one(&self.db)
             .await?;
-            
+
             info!(
                 "Message attempts exhausted for event {} to endpoint {} after {} attempts",
-                row.operational_event__id, row.operational_endpoint__id, row.attempt_count.unwrap_or(0)
+                row.operational_event__id,
+                row.operational_endpoint__id,
+                row.attempt_count.unwrap_or(0)
             );
         }
-        
+
         Ok(())
     }
 }

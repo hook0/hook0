@@ -997,21 +997,28 @@ async fn main() -> anyhow::Result<()> {
                                 .service(
                                     web::resource("")
                                         .route(web::get().to(handlers::operational_webhooks::list))
-                                        .route(web::post().to(handlers::operational_webhooks::create)),
+                                        .route(
+                                            web::post().to(handlers::operational_webhooks::create),
+                                        ),
                                 )
+                                .service(web::resource("/event_types").route(
+                                    web::get().to(handlers::operational_webhooks::event_types),
+                                ))
                                 .service(
-                                    web::resource("/event_types")
-                                        .route(web::get().to(handlers::operational_webhooks::event_types)),
-                                )
-                                .service(
-                                    web::resource("/stats")
-                                        .route(web::get().to(handlers::operational_webhooks::stats)),
+                                    web::resource("/stats").route(
+                                        web::get().to(handlers::operational_webhooks::stats),
+                                    ),
                                 )
                                 .service(
                                     web::resource("/{operational_endpoint_id}")
                                         .route(web::get().to(handlers::operational_webhooks::get))
-                                        .route(web::put().to(handlers::operational_webhooks::update))
-                                        .route(web::delete().to(handlers::operational_webhooks::delete)),
+                                        .route(
+                                            web::put().to(handlers::operational_webhooks::update),
+                                        )
+                                        .route(
+                                            web::delete()
+                                                .to(handlers::operational_webhooks::delete),
+                                        ),
                                 ),
                         ),
                 );

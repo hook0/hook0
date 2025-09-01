@@ -719,7 +719,8 @@ impl Action<'_> {
             Self::OperationalWebhookGet { application_id, .. } => Some(**application_id),
             Self::OperationalWebhookUpdate { application_id, .. } => Some(**application_id),
             Self::OperationalWebhookDelete { application_id, .. } => Some(**application_id),
-            Self::OperationalWebhookStats { application_id, .. } => Some(**application_id),        }
+            Self::OperationalWebhookStats { application_id, .. } => Some(**application_id),
+        }
     }
 
     pub fn generate_facts(self) -> Vec<Fact> {

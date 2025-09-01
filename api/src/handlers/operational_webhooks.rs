@@ -6,7 +6,7 @@ use paperclip::actix::web::{Data, Json, Path, Query};
 use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use sqlx::{query, query_scalar, Row};
+use sqlx::{Row, query, query_scalar};
 use std::collections::HashMap;
 use uuid::Uuid;
 use validator::Validate;
@@ -106,7 +106,7 @@ pub async fn list(
     query: Query<ListQuery>,
 ) -> Result<Json<Vec<OperationalEndpoint>>, Hook0Problem> {
     let limit = query.limit.unwrap_or(100).min(100);
-    
+
     let mut sql_query = sqlx::QueryBuilder::new(
         r#"
         SELECT 
@@ -123,11 +123,20 @@ pub async fn list(
             updated_at
         FROM webhook.operational_endpoint
         WHERE deleted_at IS NULL
-        "#
+        "#,
     );
 
     if let Some(app_id) = query.application_id {
-        authorize_for_application(db.as_ref(), &biscuit, Action::OperationalWebhookList { application_id: &app_id }, 5000).await.map_err(|e| {
+        authorize_for_application(
+            db.as_ref(),
+            &biscuit,
+            Action::OperationalWebhookList {
+                application_id: &app_id,
+            },
+            5000,
+        )
+        .await
+        .map_err(|e| {
             error!("Authorization failed: {e}");
             Hook0Problem::Forbidden
         })?;
@@ -144,14 +153,11 @@ pub async fn list(
     sql_query.push_bind(limit);
 
     let endpoints_query = sql_query.build();
-    let rows = endpoints_query
-        .fetch_all(db.as_ref())
-        .await
-        .map_err(|e| {
-            error!("Failed to list operational endpoints: {e}");
-            Hook0Problem::InternalServerError
-        })?;
-    
+    let rows = endpoints_query.fetch_all(db.as_ref()).await.map_err(|e| {
+        error!("Failed to list operational endpoints: {e}");
+        Hook0Problem::InternalServerError
+    })?;
+
     let endpoints: Vec<OperationalEndpoint> = rows
         .into_iter()
         .map(|row| OperationalEndpoint {
@@ -188,14 +194,23 @@ pub async fn create(
 ) -> Result<CreatedJson<OperationalEndpoint>, Hook0Problem> {
     payload.validate().map_err(Hook0Problem::Validation)?;
 
-    authorize_for_application(db.as_ref(), &biscuit, Action::OperationalWebhookCreate { application_id: &payload.application_id }, 5000).await.map_err(|e| {
+    authorize_for_application(
+        db.as_ref(),
+        &biscuit,
+        Action::OperationalWebhookCreate {
+            application_id: &payload.application_id,
+        },
+        5000,
+    )
+    .await
+    .map_err(|e| {
         error!("Authorization failed: {e}");
         Hook0Problem::Forbidden
     })?;
 
-    let headers_json = serde_json::to_value(&payload.headers)
-        .map_err(|_| Hook0Problem::InternalServerError)?;
-    
+    let headers_json =
+        serde_json::to_value(&payload.headers).map_err(|_| Hook0Problem::InternalServerError)?;
+
     let filter_types_json = serde_json::to_value(&payload.filter_types)
         .map_err(|_| Hook0Problem::InternalServerError)?;
 
@@ -311,7 +326,16 @@ pub async fn get(
         updated_at: row.updated_at,
     };
 
-    authorize_for_application(db.as_ref(), &biscuit, Action::OperationalWebhookGet { application_id: &endpoint.application_id }, 5000).await.map_err(|e| {
+    authorize_for_application(
+        db.as_ref(),
+        &biscuit,
+        Action::OperationalWebhookGet {
+            application_id: &endpoint.application_id,
+        },
+        5000,
+    )
+    .await
+    .map_err(|e| {
         error!("Authorization failed: {e}");
         Hook0Problem::Forbidden
     })?;
@@ -335,7 +359,7 @@ pub async fn update(
     Json(payload): Json<UpdateOperationalEndpoint>,
 ) -> Result<Json<OperationalEndpoint>, Hook0Problem> {
     payload.validate().map_err(Hook0Problem::Validation)?;
-    
+
     let endpoint_id = path.into_inner();
 
     // First, get the endpoint to check authorization
@@ -356,7 +380,16 @@ pub async fn update(
     })?
     .ok_or(Hook0Problem::NotFound)?;
 
-    authorize_for_application(db.as_ref(), &biscuit, Action::OperationalWebhookUpdate { application_id: &existing }, 5000).await.map_err(|e| {
+    authorize_for_application(
+        db.as_ref(),
+        &biscuit,
+        Action::OperationalWebhookUpdate {
+            application_id: &existing,
+        },
+        5000,
+    )
+    .await
+    .map_err(|e| {
         error!("Authorization failed: {e}");
         Hook0Problem::Forbidden
     })?;
@@ -496,7 +529,16 @@ pub async fn delete(
     })?
     .ok_or(Hook0Problem::NotFound)?;
 
-    authorize_for_application(db.as_ref(), &biscuit, Action::OperationalWebhookDelete { application_id: &existing }, 5000).await.map_err(|e| {
+    authorize_for_application(
+        db.as_ref(),
+        &biscuit,
+        Action::OperationalWebhookDelete {
+            application_id: &existing,
+        },
+        5000,
+    )
+    .await
+    .map_err(|e| {
         error!("Authorization failed: {e}");
         Hook0Problem::Forbidden
     })?;
@@ -576,7 +618,7 @@ pub async fn stats(
     query: Query<ListQuery>,
 ) -> Result<Json<Vec<MessageStats>>, Hook0Problem> {
     let limit = query.limit.unwrap_or(100).min(100);
-    
+
     let mut sql_query = sqlx::QueryBuilder::new(
         r#"
         SELECT 
@@ -591,11 +633,20 @@ pub async fn stats(
             avg_delivery_time_ms
         FROM webhook.message_stats
         WHERE 1=1
-        "#
+        "#,
     );
 
     if let Some(app_id) = query.application_id {
-        authorize_for_application(db.as_ref(), &biscuit, Action::OperationalWebhookStats { application_id: &app_id }, 5000).await.map_err(|e| {
+        authorize_for_application(
+            db.as_ref(),
+            &biscuit,
+            Action::OperationalWebhookStats {
+                application_id: &app_id,
+            },
+            5000,
+        )
+        .await
+        .map_err(|e| {
             error!("Authorization failed: {e}");
             Hook0Problem::Forbidden
         })?;
@@ -607,14 +658,11 @@ pub async fn stats(
     sql_query.push_bind(limit);
 
     let stats_query = sql_query.build();
-    let rows = stats_query
-        .fetch_all(db.as_ref())
-        .await
-        .map_err(|e| {
-            error!("Failed to get message stats: {e}");
-            Hook0Problem::InternalServerError
-        })?;
-    
+    let rows = stats_query.fetch_all(db.as_ref()).await.map_err(|e| {
+        error!("Failed to get message stats: {e}");
+        Hook0Problem::InternalServerError
+    })?;
+
     let stats: Vec<MessageStats> = rows
         .into_iter()
         .map(|row| MessageStats {

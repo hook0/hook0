@@ -2,11 +2,11 @@ use base64::Engine;
 use chrono::{DateTime, Utc};
 use hmac::{Hmac, Mac};
 use log::{error, info, warn};
-use reqwest::header::{HeaderMap, HeaderName, HeaderValue, CONTENT_TYPE};
+use reqwest::header::{CONTENT_TYPE, HeaderMap, HeaderName, HeaderValue};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::Sha256;
-use sqlx::{query, PgPool};
+use sqlx::{PgPool, query};
 use std::time::Duration;
 use uuid::Uuid;
 
@@ -47,21 +47,17 @@ impl OperationalWebhookDelivery {
     }
 
     /// Generate webhook signature similar to Svix's signing mechanism
-    pub fn generate_signature(
-        secret: &Uuid,
-        timestamp: &DateTime<Utc>,
-        payload: &[u8],
-    ) -> String {
+    pub fn generate_signature(secret: &Uuid, timestamp: &DateTime<Utc>, payload: &[u8]) -> String {
         let timestamp_str = timestamp.timestamp().to_string();
         let signed_content = format!("{}.{}", timestamp_str, String::from_utf8_lossy(payload));
-        
-        let mut mac = HmacSha256::new_from_slice(secret.as_bytes())
-            .expect("HMAC can take key of any size");
+
+        let mut mac =
+            HmacSha256::new_from_slice(secret.as_bytes()).expect("HMAC can take key of any size");
         mac.update(signed_content.as_bytes());
-        
+
         let result = mac.finalize();
         let signature = base64::engine::general_purpose::STANDARD.encode(result.into_bytes());
-        
+
         // Return signature in format: v1,<signature>
         format!("v1,{}", signature)
     }
@@ -89,28 +85,29 @@ impl OperationalWebhookDelivery {
 
         // Parse signature header (format: v1,<signature1> v1,<signature2>)
         let signatures: Vec<&str> = signature_header.split(' ').collect();
-        
+
         for sig in signatures {
             if !sig.starts_with("v1,") {
                 continue;
             }
-            
+
             let signature = &sig[3..];
             let signed_content = format!("{}.{}", timestamp, String::from_utf8_lossy(payload));
-            
+
             let mut mac = match HmacSha256::new_from_slice(secret.as_bytes()) {
                 Ok(m) => m,
                 Err(_) => return false,
             };
             mac.update(signed_content.as_bytes());
-            
-            let expected = base64::engine::general_purpose::STANDARD.encode(mac.finalize().into_bytes());
-            
+
+            let expected =
+                base64::engine::general_purpose::STANDARD.encode(mac.finalize().into_bytes());
+
             if signature == expected {
                 return true;
             }
         }
-        
+
         false
     }
 
@@ -149,32 +146,41 @@ impl OperationalWebhookDelivery {
             };
 
             let payload_bytes = serde_json::to_vec(&payload)?;
-            
+
             // Generate signature
-            let signature = Self::generate_signature(
-                &attempt.secret,
-                &attempt.occurred_at,
-                &payload_bytes,
-            );
+            let signature =
+                Self::generate_signature(&attempt.secret, &attempt.occurred_at, &payload_bytes);
 
             // Build headers
             let mut headers = HeaderMap::new();
             headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
-            headers.insert("webhook-id", HeaderValue::from_str(&attempt.operational_event__id.to_string())?);
-            headers.insert("webhook-timestamp", HeaderValue::from_str(&attempt.occurred_at.timestamp().to_string())?);
+            headers.insert(
+                "webhook-id",
+                HeaderValue::from_str(&attempt.operational_event__id.to_string())?,
+            );
+            headers.insert(
+                "webhook-timestamp",
+                HeaderValue::from_str(&attempt.occurred_at.timestamp().to_string())?,
+            );
             headers.insert("webhook-signature", HeaderValue::from_str(&signature)?);
 
             // Add custom headers from endpoint configuration
-            if !attempt.headers.is_null() && let Some(headers_obj) = attempt.headers.as_object() {
+            if !attempt.headers.is_null()
+                && let Some(headers_obj) = attempt.headers.as_object()
+            {
                 for (key, value) in headers_obj {
-                    if let Some(val_str) = value.as_str() && let Ok(header_name) = HeaderName::from_bytes(key.as_bytes()) && let Ok(header_value) = HeaderValue::from_str(val_str) {
+                    if let Some(val_str) = value.as_str()
+                        && let Ok(header_name) = HeaderName::from_bytes(key.as_bytes())
+                        && let Ok(header_value) = HeaderValue::from_str(val_str)
+                    {
                         headers.insert(header_name, header_value);
                     }
                 }
             }
 
             // Send webhook
-            let result = self.client
+            let result = self
+                .client
                 .post(&attempt.url)
                 .headers(headers.clone())
                 .body(payload_bytes)
@@ -185,10 +191,11 @@ impl OperationalWebhookDelivery {
                 Ok(response) => {
                     let status_code = response.status().as_u16() as i32;
                     let response_headers = serde_json::to_value(
-                        response.headers()
+                        response
+                            .headers()
                             .iter()
                             .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or("").to_string()))
-                            .collect::<std::collections::HashMap<_, _>>()
+                            .collect::<std::collections::HashMap<_, _>>(),
                     )?;
                     let response_body = response.text().await.unwrap_or_default();
 
@@ -228,7 +235,8 @@ impl OperationalWebhookDelivery {
                         self.handle_delivery_failure(
                             attempt.operational_endpoint__id,
                             attempt.operational_event__id,
-                        ).await?;
+                        )
+                        .await?;
                     }
                 }
                 Err(e) => {
@@ -255,7 +263,8 @@ impl OperationalWebhookDelivery {
                     self.handle_delivery_failure(
                         attempt.operational_endpoint__id,
                         attempt.operational_event__id,
-                    ).await?;
+                    )
+                    .await?;
                 }
             }
         }
@@ -313,7 +322,10 @@ impl OperationalWebhookDelivery {
                 .fetch_one(&self.db)
                 .await?;
 
-                warn!("Auto-disabled endpoint {} after {} consecutive failures", endpoint_id, row.consecutive_failures);
+                warn!(
+                    "Auto-disabled endpoint {} after {} consecutive failures",
+                    endpoint_id, row.consecutive_failures
+                );
             }
         }
 
@@ -322,7 +334,10 @@ impl OperationalWebhookDelivery {
 
     /// Reset consecutive failures on successful delivery
     #[allow(dead_code)]
-    pub async fn reset_failure_count(&self, endpoint_id: Uuid) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn reset_failure_count(
+        &self,
+        endpoint_id: Uuid,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         query!(
             r#"
             UPDATE webhook.subscription
@@ -341,7 +356,7 @@ impl OperationalWebhookDelivery {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::{Utc, TimeZone};
+    use chrono::{TimeZone, Utc};
     use uuid::Uuid;
 
     #[test]
@@ -351,13 +366,15 @@ mod tests {
         let payload = b"test payload content";
 
         // Generate signature
-        let signature = OperationalWebhookDelivery::generate_signature(&secret, &timestamp, payload);
+        let signature =
+            OperationalWebhookDelivery::generate_signature(&secret, &timestamp, payload);
 
         // The signature should start with "v1,"
         assert!(signature.starts_with("v1,"));
-        
+
         // The signature should be deterministic
-        let signature2 = OperationalWebhookDelivery::generate_signature(&secret, &timestamp, payload);
+        let signature2 =
+            OperationalWebhookDelivery::generate_signature(&secret, &timestamp, payload);
         assert_eq!(signature, signature2);
     }
 
@@ -365,13 +382,15 @@ mod tests {
     fn test_webhook_signature_with_different_payloads() {
         let secret = Uuid::new_v4();
         let timestamp = Utc.timestamp_opt(1234567890, 0).unwrap();
-        
+
         let payload1 = b"payload one";
         let payload2 = b"payload two";
 
         // Generate signatures for different payloads
-        let signature1 = OperationalWebhookDelivery::generate_signature(&secret, &timestamp, payload1);
-        let signature2 = OperationalWebhookDelivery::generate_signature(&secret, &timestamp, payload2);
+        let signature1 =
+            OperationalWebhookDelivery::generate_signature(&secret, &timestamp, payload1);
+        let signature2 =
+            OperationalWebhookDelivery::generate_signature(&secret, &timestamp, payload2);
 
         // Signatures should be different for different payloads
         assert_ne!(signature1, signature2);
@@ -385,8 +404,10 @@ mod tests {
         let payload = b"test payload";
 
         // Generate signatures for different timestamps
-        let signature1 = OperationalWebhookDelivery::generate_signature(&secret, &timestamp1, payload);
-        let signature2 = OperationalWebhookDelivery::generate_signature(&secret, &timestamp2, payload);
+        let signature1 =
+            OperationalWebhookDelivery::generate_signature(&secret, &timestamp1, payload);
+        let signature2 =
+            OperationalWebhookDelivery::generate_signature(&secret, &timestamp2, payload);
 
         // Signatures should be different for different timestamps
         assert_ne!(signature1, signature2);
@@ -400,8 +421,10 @@ mod tests {
         let payload = b"test payload";
 
         // Generate signatures for different secrets
-        let signature1 = OperationalWebhookDelivery::generate_signature(&secret1, &timestamp, payload);
-        let signature2 = OperationalWebhookDelivery::generate_signature(&secret2, &timestamp, payload);
+        let signature1 =
+            OperationalWebhookDelivery::generate_signature(&secret1, &timestamp, payload);
+        let signature2 =
+            OperationalWebhookDelivery::generate_signature(&secret2, &timestamp, payload);
 
         // Signatures should be different for different secrets
         assert_ne!(signature1, signature2);
