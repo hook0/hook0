@@ -1,6 +1,6 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use async_trait::async_trait;
-use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
+use base64::{Engine, engine::general_purpose::STANDARD as BASE64};
 use reqwest::Request;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -42,12 +42,12 @@ impl AuthenticationProvider for BasicAuthProvider {
             .encryption
             .resolve_secret(&self.config.password, &self.application_id)
             .await?;
-        
+
         // Create Basic auth header value
         let credentials = format!("{}:{}", self.config.username, password);
         let encoded = BASE64.encode(credentials.as_bytes());
         let header_value = format!("Basic {}", encoded);
-        
+
         // Add the Authorization header
         request.headers_mut().insert(
             "Authorization",
@@ -55,15 +55,15 @@ impl AuthenticationProvider for BasicAuthProvider {
                 .parse()
                 .map_err(|e| anyhow!("Invalid header value: {}", e))?,
         );
-        
+
         Ok(())
     }
-    
+
     async fn refresh_if_needed(&self) -> Result<()> {
         // Basic auth doesn't need refresh
         Ok(())
     }
-    
+
     fn get_type(&self) -> AuthenticationType {
         AuthenticationType::Basic
     }

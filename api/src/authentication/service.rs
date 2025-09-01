@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use reqwest::{Client, Request};
 use sqlx::PgPool;
 use std::collections::HashMap;
@@ -8,16 +8,16 @@ use uuid::Uuid;
 
 use super::{
     config::{
-        AuthenticationConfig, AuthenticationConfigRequest, AuthenticationType,
-        BasicAuthConfig, BearerTokenConfig, CertificateConfig, OAuth2Config,
+        AuthenticationConfig, AuthenticationConfigRequest, AuthenticationType, BasicAuthConfig,
+        BearerTokenConfig, CertificateConfig, OAuth2Config,
     },
     encryption::SecretEncryption,
     providers::{
+        AuthenticationProvider,
         basic::BasicAuthProvider,
         bearer::BearerTokenProvider,
         certificate::{CertificateProvider, create_client_with_certificates},
         oauth2::OAuth2Provider,
-        AuthenticationProvider,
     },
 };
 
@@ -29,11 +29,22 @@ pub struct AuthenticationService {
     http_clients: Arc<RwLock<HashMap<Uuid, Client>>>,
 }
 
+impl std::fmt::Debug for AuthenticationService {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AuthenticationService")
+            .field("db_pool", &"PgPool")
+            .field("encryption", &"SecretEncryption")
+            .field("providers", &"HashMap<Uuid, Provider>")
+            .field("http_clients", &"HashMap<Uuid, Client>")
+            .finish()
+    }
+}
+
 impl AuthenticationService {
     /// Create a new authentication service
     pub fn new(db_pool: PgPool) -> Result<Self> {
         let encryption = Arc::new(SecretEncryption::new(db_pool.clone())?);
-        
+
         Ok(Self {
             db_pool,
             encryption,
@@ -41,7 +52,7 @@ impl AuthenticationService {
             http_clients: Arc::new(RwLock::new(HashMap::new())),
         })
     }
-    
+
     /// Get or create an authentication provider for a subscription
     pub async fn get_provider(
         &self,
@@ -55,25 +66,27 @@ impl AuthenticationService {
                 return Ok(Some(provider.clone()));
             }
         }
-        
+
         // Load configuration from database
-        let config = self.load_authentication_config(application_id, subscription_id).await?;
-        
+        let config = self
+            .load_authentication_config(application_id, subscription_id)
+            .await?;
+
         if let Some(config) = config {
             let provider = self.create_provider(config, application_id).await?;
-            
+
             // Cache the provider
             if let Some(sub_id) = subscription_id {
                 let mut providers = self.providers.write().await;
                 providers.insert(sub_id, provider.clone());
             }
-            
+
             Ok(Some(provider))
         } else {
             Ok(None)
         }
     }
-    
+
     /// Load authentication configuration from database
     async fn load_authentication_config(
         &self,
@@ -102,12 +115,12 @@ impl AuthenticationService {
             )
             .fetch_optional(&self.db_pool)
             .await?;
-            
+
             if config.is_some() {
                 return Ok(config);
             }
         }
-        
+
         // Fall back to application default
         let config = sqlx::query_as!(
             AuthenticationConfig,
@@ -131,10 +144,10 @@ impl AuthenticationService {
         )
         .fetch_optional(&self.db_pool)
         .await?;
-        
+
         Ok(config)
     }
-    
+
     /// Create a provider from configuration
     async fn create_provider(
         &self,
@@ -152,10 +165,10 @@ impl AuthenticationService {
         )
         .fetch_one(&self.db_pool)
         .await?;
-        
+
         let auth_type = AuthenticationType::from_str(&auth_type.name)
             .ok_or_else(|| anyhow!("Unknown authentication type: {}", auth_type.name))?;
-        
+
         let provider: Box<dyn AuthenticationProvider> = match auth_type {
             AuthenticationType::OAuth2 => {
                 let oauth_config: OAuth2Config = serde_json::from_value(config.config)?;
@@ -188,28 +201,25 @@ impl AuthenticationService {
             }
             AuthenticationType::Certificate => {
                 let cert_config: CertificateConfig = serde_json::from_value(config.config)?;
-                let provider = CertificateProvider::new(
-                    cert_config,
-                    application_id,
-                    self.encryption.clone(),
-                )
-                .await?;
-                
+                let provider =
+                    CertificateProvider::new(cert_config, application_id, self.encryption.clone())
+                        .await?;
+
                 // Create and cache a special HTTP client for certificate auth
                 let client = create_client_with_certificates(&provider)?;
                 let mut clients = self.http_clients.write().await;
                 clients.insert(config.authentication_config__id, client);
-                
+
                 Box::new(provider)
             }
             AuthenticationType::Custom => {
                 return Err(anyhow!("Custom authentication not yet implemented"));
             }
         };
-        
+
         Ok(Arc::new(provider))
     }
-    
+
     /// Apply authentication to an HTTP request
     pub async fn authenticate_request(
         &self,
@@ -220,10 +230,10 @@ impl AuthenticationService {
         if let Some(provider) = self.get_provider(application_id, subscription_id).await? {
             provider.authenticate(request).await?;
         }
-        
+
         Ok(())
     }
-    
+
     /// Get HTTP client for a specific configuration (needed for certificate auth)
     pub async fn get_http_client(
         &self,
@@ -231,16 +241,19 @@ impl AuthenticationService {
         subscription_id: Option<Uuid>,
     ) -> Result<Option<Client>> {
         // Check if we have a special client (for certificate auth)
-        if let Some(config) = self.load_authentication_config(application_id, subscription_id).await? {
+        if let Some(config) = self
+            .load_authentication_config(application_id, subscription_id)
+            .await?
+        {
             let clients = self.http_clients.read().await;
             if let Some(client) = clients.get(&config.authentication_config__id) {
                 return Ok(Some(client.clone()));
             }
         }
-        
+
         Ok(None)
     }
-    
+
     /// Save or update authentication configuration
     pub async fn save_authentication_config(
         &self,
@@ -260,7 +273,7 @@ impl AuthenticationService {
         )
         .fetch_one(&self.db_pool)
         .await?;
-        
+
         // Validate configuration based on type
         match request.auth_type {
             AuthenticationType::OAuth2 => {
@@ -279,7 +292,7 @@ impl AuthenticationService {
                 // Custom validation if needed
             }
         }
-        
+
         // Insert or update configuration
         let result = sqlx::query!(
             r#"
@@ -310,16 +323,16 @@ impl AuthenticationService {
         )
         .fetch_one(&self.db_pool)
         .await?;
-        
+
         // Clear cached provider if updating
         if let Some(sub_id) = subscription_id {
             let mut providers = self.providers.write().await;
             providers.remove(&sub_id);
         }
-        
+
         Ok(result.authentication_config__id)
     }
-    
+
     /// Delete authentication configuration
     pub async fn delete_authentication_config(
         &self,
@@ -336,7 +349,7 @@ impl AuthenticationService {
             )
             .execute(&self.db_pool)
             .await?;
-            
+
             // Clear cached provider
             let mut providers = self.providers.write().await;
             providers.remove(&sub_id);
@@ -351,10 +364,10 @@ impl AuthenticationService {
             .execute(&self.db_pool)
             .await?;
         }
-        
+
         Ok(())
     }
-    
+
     /// Log authentication attempt
     pub async fn log_authentication(
         &self,
@@ -385,7 +398,7 @@ impl AuthenticationService {
         )
         .execute(&self.db_pool)
         .await?;
-        
+
         Ok(())
     }
 }

@@ -15,13 +15,13 @@ use crate::authentication::config::AuthenticationType;
 pub trait AuthenticationProvider: Send + Sync {
     /// Apply authentication to an HTTP request
     async fn authenticate(&self, request: &mut Request) -> Result<()>;
-    
+
     /// Refresh authentication if needed (e.g., OAuth2 token refresh)
     async fn refresh_if_needed(&self) -> Result<()>;
-    
+
     /// Get the authentication type
     fn get_type(&self) -> AuthenticationType;
-    
+
     /// Check if authentication needs refresh
     fn needs_refresh(&self) -> bool {
         false

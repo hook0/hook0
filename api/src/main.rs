@@ -4,6 +4,7 @@ use actix_cors::Cors;
 use actix_files::{Files, NamedFile};
 use actix_web::middleware::{Compat, Logger, NormalizePath};
 use actix_web::{App, HttpServer, http, middleware};
+use authentication::AuthenticationService;
 use biscuit_auth::{KeyPair, PrivateKey};
 use clap::builder::{BoolValueParser, TypedValueParser};
 use clap::{ArgGroup, Parser, crate_name};
@@ -14,9 +15,9 @@ use paperclip::actix::{OpenApiExt, web};
 use reqwest::Url;
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 use std::str::FromStr;
+use std::sync::Arc;
 use std::time::Duration;
 use uuid::Uuid;
-use authentication::AuthenticationService;
 
 mod authentication;
 mod cloudflare_turnstile;
@@ -422,7 +423,7 @@ pub struct State {
     enable_quota_based_email_notifications: bool,
     support_email_address: Address,
     cloudflare_turnstile_site_key: Option<String>,
-    auth_service: Option<AuthenticationService>,
+    auth_service: Option<Arc<AuthenticationService>>,
     cloudflare_turnstile_secret_key: Option<String>,
 }
 
@@ -635,7 +636,7 @@ async fn main() -> anyhow::Result<()> {
         .expect("Could not initialize mailer; check SMTP configuration");
 
         // Initialize authentication service
-        let auth_service = AuthenticationService::new(pool.clone()).ok();
+        let auth_service = AuthenticationService::new(pool.clone()).ok().map(Arc::new);
 
         // Initialize state
         let initial_state = State {

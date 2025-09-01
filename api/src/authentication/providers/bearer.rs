@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use async_trait::async_trait;
 use reqwest::Request;
 use std::sync::Arc;
@@ -41,30 +41,33 @@ impl AuthenticationProvider for BearerTokenProvider {
             .encryption
             .resolve_secret(&self.config.token, &self.application_id)
             .await?;
-        
+
         // Build the header value
         let header_value = if self.config.prefix.is_empty() {
             token
         } else {
             format!("{} {}", self.config.prefix, token)
         };
-        
+
         // Add the authentication header
+        use reqwest::header::HeaderName;
+        let header_name = HeaderName::from_bytes(self.config.header_name.as_bytes())
+            .map_err(|e| anyhow!("Invalid header name: {}", e))?;
         request.headers_mut().insert(
-            self.config.header_name.as_str(),
+            header_name,
             header_value
                 .parse()
                 .map_err(|e| anyhow!("Invalid header value: {}", e))?,
         );
-        
+
         Ok(())
     }
-    
+
     async fn refresh_if_needed(&self) -> Result<()> {
         // Bearer tokens don't need refresh
         Ok(())
     }
-    
+
     fn get_type(&self) -> AuthenticationType {
         AuthenticationType::Bearer
     }

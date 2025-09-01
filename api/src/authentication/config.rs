@@ -58,23 +58,23 @@ pub struct AuthenticationConfig {
 pub struct OAuth2Config {
     #[serde(rename = "grant_type")]
     pub grant_type: OAuth2GrantType,
-    
+
     #[validate(length(min = 1, max = 255))]
     pub client_id: String,
-    
+
     /// Either env://VARIABLE_NAME or encrypted value
     pub client_secret: String,
-    
+
     #[validate(url)]
     pub token_endpoint: String,
-    
+
     pub scopes: Option<Vec<String>>,
-    
+
     /// Seconds before expiration to refresh token
     #[serde(default = "default_refresh_threshold")]
     pub token_refresh_threshold: u32,
-    
-    pub custom_headers: Option<serde_json::Map<String, serde_json::Value>>,
+
+    pub custom_headers: Option<serde_json::Value>,
 }
 
 fn default_refresh_threshold() -> u32 {
@@ -94,11 +94,11 @@ pub enum OAuth2GrantType {
 pub struct BearerTokenConfig {
     /// Either env://VARIABLE_NAME or encrypted value
     pub token: String,
-    
+
     #[serde(default = "default_header_name")]
     #[validate(length(min = 1, max = 100))]
     pub header_name: String,
-    
+
     #[serde(default = "default_bearer_prefix")]
     #[validate(length(min = 0, max = 50))]
     pub prefix: String,
@@ -117,16 +117,16 @@ fn default_bearer_prefix() -> String {
 pub struct CertificateConfig {
     /// Either env://VARIABLE_NAME or encrypted value
     pub client_cert: String,
-    
+
     /// Either env://VARIABLE_NAME or encrypted value
     pub client_key: String,
-    
+
     /// Optional CA certificate
     pub ca_cert: Option<String>,
-    
+
     #[serde(default = "default_true")]
     pub verify_hostname: bool,
-    
+
     #[serde(default = "default_true")]
     pub mtls: bool,
 }
@@ -140,7 +140,7 @@ fn default_true() -> bool {
 pub struct BasicAuthConfig {
     #[validate(length(min = 1, max = 255))]
     pub username: String,
-    
+
     /// Either env://VARIABLE_NAME or encrypted value
     pub password: String,
 }
@@ -149,10 +149,10 @@ pub struct BasicAuthConfig {
 #[derive(Debug, Clone, Serialize, Deserialize, Apiv2Schema)]
 pub struct CustomAuthConfig {
     /// Custom headers to add
-    pub headers: serde_json::Map<String, serde_json::Value>,
-    
+    pub headers: serde_json::Value,
+
     /// Custom query parameters to add
-    pub query_params: Option<serde_json::Map<String, serde_json::Value>>,
+    pub query_params: Option<serde_json::Value>,
 }
 
 /// Encrypted secret stored in the database
@@ -201,7 +201,7 @@ pub struct AuthenticationAuditLog {
 pub struct AuthenticationConfigRequest {
     #[serde(rename = "type")]
     pub auth_type: AuthenticationType,
-    
+
     pub config: serde_json::Value,
 }
 
