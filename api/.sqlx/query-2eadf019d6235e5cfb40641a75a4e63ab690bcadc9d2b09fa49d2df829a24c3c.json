@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                    UPDATE webhook.subscription\n                    SET is_enabled = $1, description = $2, metadata = $3, labels = $4\n                    WHERE subscription__id = $5 AND application__id = $6 AND deleted_at IS NULL\n                    RETURNING subscription__id, is_enabled, description, secret, metadata, labels, target__id, created_at\n                ",
+  "query": "\n                INSERT INTO webhook.subscription (subscription__id, application__id, is_enabled, description, secret, metadata, labels, target__id, created_at, retry_config)\n                VALUES (public.gen_random_uuid(), $1, $2, $3, public.gen_random_uuid(), $4, $5, public.gen_random_uuid(), statement_timestamp(), $6)\n                RETURNING subscription__id, is_enabled, description, secret, metadata, labels, target__id, created_at, retry_config\n            ",
   "describe": {
     "columns": [
       {
@@ -42,16 +42,21 @@
         "ordinal": 7,
         "name": "created_at",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "retry_config",
+        "type_info": "Jsonb"
       }
     ],
     "parameters": {
       "Left": [
+        "Uuid",
         "Bool",
         "Text",
         "Jsonb",
         "Jsonb",
-        "Uuid",
-        "Uuid"
+        "Jsonb"
       ]
     },
     "nullable": [
@@ -62,8 +67,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "6ad87013dfd419b36331c0fd492310f5085a89bd5e4523d4e577667111c788e7"
+  "hash": "2eadf019d6235e5cfb40641a75a4e63ab690bcadc9d2b09fa49d2df829a24c3c"
 }

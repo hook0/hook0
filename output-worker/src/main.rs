@@ -138,15 +138,6 @@ const MIN_POLLING_SLEEP: Duration = Duration::from_secs(1);
 /// Maximum duration to wait when there are no unprocessed items to pick
 const MAX_POLLING_SLEEP: Duration = Duration::from_secs(10);
 
-/// How long to wait before first fast retry
-const MINIMUM_FAST_RETRY_DELAY: Duration = Duration::from_secs(5);
-
-/// How long to wait between fast retries at maximum
-const MAXIMUM_FAST_RETRY_DELAY: Duration = Duration::from_secs(5 * 60);
-
-/// How long to wait between slow retries
-const SLOW_RETRY_DELAY: Duration = Duration::from_secs(60 * 60);
-
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let config = Config::parse();
@@ -598,25 +589,6 @@ async fn compute_next_retry(
         // If the subscription was disabled or soft-deleted, we do not want to schedule a next attempt
         Ok(None)
     }
-}
-
-fn compute_next_retry_duration(
-    max_fast_retries: u32,
-    max_slow_retries: u32,
-    retry_count: i16,
-) -> Option<Duration> {
-    u32::try_from(retry_count).ok().and_then(|count| {
-        if count < max_fast_retries {
-            Some(min(
-                MINIMUM_FAST_RETRY_DELAY * count,
-                MAXIMUM_FAST_RETRY_DELAY,
-            ))
-        } else if count < max_fast_retries + max_slow_retries {
-            Some(SLOW_RETRY_DELAY)
-        } else {
-            None
-        }
-    })
 }
 
 fn compute_next_retry_duration_with_config(
