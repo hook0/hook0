@@ -17,6 +17,7 @@ pub enum AuthenticationType {
 }
 
 impl AuthenticationType {
+    #[allow(dead_code)]
     pub fn as_str(&self) -> &'static str {
         match self {
             AuthenticationType::OAuth2 => "oauth2",
@@ -27,6 +28,7 @@ impl AuthenticationType {
         }
     }
 
+    #[allow(dead_code)]
     pub fn from_str(s: &str) -> Option<Self> {
         match s {
             "oauth2" => Some(AuthenticationType::OAuth2),
@@ -41,6 +43,7 @@ impl AuthenticationType {
 
 /// Authentication configuration stored in the database
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize, Apiv2Schema)]
+#[allow(non_snake_case)]
 pub struct AuthenticationConfig {
     pub authentication_config__id: Uuid,
     pub application__id: Uuid,
@@ -157,6 +160,7 @@ pub struct CustomAuthConfig {
 
 /// Encrypted secret stored in the database
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize, Apiv2Schema)]
+#[allow(non_snake_case)]
 pub struct EncryptedSecret {
     pub encrypted_secret__id: Uuid,
     pub application__id: Uuid,
@@ -171,6 +175,7 @@ pub struct EncryptedSecret {
 
 /// OAuth token cache entry
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
+#[allow(non_snake_case)]
 pub struct OAuthTokenCache {
     pub oauth_token_cache__id: Uuid,
     pub authentication_config__id: Uuid,
@@ -183,6 +188,7 @@ pub struct OAuthTokenCache {
 
 /// Authentication audit log entry
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
+#[allow(non_snake_case)]
 pub struct AuthenticationAuditLog {
     pub authentication_audit_log__id: Uuid,
     pub subscription__id: Option<Uuid>,
@@ -195,7 +201,6 @@ pub struct AuthenticationAuditLog {
 }
 
 /// API request/response types
-
 /// Authentication configuration for API requests
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, Apiv2Schema)]
 pub struct AuthenticationConfigRequest {

@@ -75,8 +75,7 @@ impl OAuth2Provider {
 
     /// Load cached token from database
     async fn load_cached_token(&mut self) -> Result<()> {
-        let cached = sqlx::query_as!(
-            OAuthTokenCache,
+        let cached = sqlx::query_as::<_, OAuthTokenCache>(
             r#"
             SELECT 
                 oauth_token_cache__id,
@@ -89,8 +88,8 @@ impl OAuth2Provider {
             FROM auth.oauth_token_cache
             WHERE authentication_config__id = $1
             "#,
-            self.config_id
         )
+        .bind(self.config_id)
         .fetch_optional(&self.db_pool)
         .await?;
 
@@ -134,7 +133,7 @@ impl OAuth2Provider {
         *self.token_cache.write().await = Some(cached_token);
 
         // Save to database
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO auth.oauth_token_cache (
                 authentication_config__id,
@@ -151,12 +150,12 @@ impl OAuth2Provider {
                 scopes = EXCLUDED.scopes,
                 created_at = NOW()
             "#,
-            self.config_id,
-            token_response.access_token,
-            token_response.refresh_token,
-            expires_at,
-            &scopes
         )
+        .bind(self.config_id)
+        .bind(&token_response.access_token)
+        .bind(&token_response.refresh_token)
+        .bind(expires_at)
+        .bind(&scopes)
         .execute(&self.db_pool)
         .await?;
 
@@ -360,7 +359,8 @@ impl AuthenticationProvider for OAuth2Provider {
         // Try to get a read lock without blocking
         if let Ok(cache) = self.token_cache.try_read() {
             if let Some(cached_token) = cache.as_ref() {
-                let refresh_threshold = Duration::seconds(self.config.token_refresh_threshold as i64);
+                let refresh_threshold =
+                    Duration::seconds(self.config.token_refresh_threshold as i64);
                 cached_token.expires_at - Utc::now() < refresh_threshold
             } else {
                 true

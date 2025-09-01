@@ -95,8 +95,7 @@ impl AuthenticationService {
     ) -> Result<Option<AuthenticationConfig>> {
         // First try to load subscription-specific config
         if let Some(sub_id) = subscription_id {
-            let config = sqlx::query_as!(
-                AuthenticationConfig,
+            let config = sqlx::query_as::<_, AuthenticationConfig>(
                 r#"
                 SELECT 
                     ac.authentication_config__id,
@@ -111,8 +110,8 @@ impl AuthenticationService {
                 FROM auth.authentication_config ac
                 WHERE ac.subscription__id = $1 AND ac.is_active = true
                 "#,
-                sub_id
             )
+            .bind(sub_id)
             .fetch_optional(&self.db_pool)
             .await?;
 
@@ -122,8 +121,7 @@ impl AuthenticationService {
         }
 
         // Fall back to application default
-        let config = sqlx::query_as!(
-            AuthenticationConfig,
+        let config = sqlx::query_as::<_, AuthenticationConfig>(
             r#"
             SELECT 
                 ac.authentication_config__id,
@@ -140,8 +138,8 @@ impl AuthenticationService {
                 AND ac.subscription__id IS NULL 
                 AND ac.is_active = true
             "#,
-            application_id
         )
+        .bind(application_id)
         .fetch_optional(&self.db_pool)
         .await?;
 
@@ -155,19 +153,19 @@ impl AuthenticationService {
         application_id: Uuid,
     ) -> Result<Arc<Box<dyn AuthenticationProvider>>> {
         // Get authentication type name
-        let auth_type = sqlx::query!(
+        let auth_type_row = sqlx::query_as::<_, (String,)>(
             r#"
             SELECT name 
             FROM auth.authentication_type 
             WHERE authentication_type__id = $1
             "#,
-            config.authentication_type__id
         )
+        .bind(config.authentication_type__id)
         .fetch_one(&self.db_pool)
         .await?;
 
-        let auth_type = AuthenticationType::from_str(&auth_type.name)
-            .ok_or_else(|| anyhow!("Unknown authentication type: {}", auth_type.name))?;
+        let auth_type = AuthenticationType::from_str(&auth_type_row.0)
+            .ok_or_else(|| anyhow!("Unknown authentication type: {}", auth_type_row.0))?;
 
         let provider: Box<dyn AuthenticationProvider> = match auth_type {
             AuthenticationType::OAuth2 => {
@@ -263,14 +261,14 @@ impl AuthenticationService {
         created_by: Uuid,
     ) -> Result<Uuid> {
         // Get authentication type ID
-        let auth_type = sqlx::query!(
+        let auth_type = sqlx::query_as::<_, (Uuid,)>(
             r#"
             SELECT authentication_type__id 
             FROM auth.authentication_type 
             WHERE name = $1
             "#,
-            request.auth_type.as_str()
         )
+        .bind(request.auth_type.as_str())
         .fetch_one(&self.db_pool)
         .await?;
 
@@ -294,7 +292,7 @@ impl AuthenticationService {
         }
 
         // Insert or update configuration
-        let result = sqlx::query!(
+        let result = sqlx::query_scalar::<_, Uuid>(
             r#"
             INSERT INTO auth.authentication_config (
                 application__id,
@@ -315,12 +313,12 @@ impl AuthenticationService {
                 updated_at = NOW()
             RETURNING authentication_config__id
             "#,
-            application_id,
-            subscription_id,
-            auth_type.authentication_type__id,
-            request.config,
-            created_by
         )
+        .bind(application_id)
+        .bind(subscription_id)
+        .bind(auth_type.0)
+        .bind(request.config)
+        .bind(created_by)
         .fetch_one(&self.db_pool)
         .await?;
 
@@ -330,7 +328,7 @@ impl AuthenticationService {
             providers.remove(&sub_id);
         }
 
-        Ok(result.authentication_config__id)
+        Ok(result)
     }
 
     /// Delete authentication configuration
@@ -340,13 +338,13 @@ impl AuthenticationService {
         subscription_id: Option<Uuid>,
     ) -> Result<()> {
         if let Some(sub_id) = subscription_id {
-            sqlx::query!(
+            sqlx::query(
                 r#"
                 DELETE FROM auth.authentication_config
                 WHERE subscription__id = $1
                 "#,
-                sub_id
             )
+            .bind(sub_id)
             .execute(&self.db_pool)
             .await?;
 
@@ -354,13 +352,13 @@ impl AuthenticationService {
             let mut providers = self.providers.write().await;
             providers.remove(&sub_id);
         } else {
-            sqlx::query!(
+            sqlx::query(
                 r#"
                 DELETE FROM auth.authentication_config
                 WHERE application__id = $1 AND subscription__id IS NULL
                 "#,
-                application_id
             )
+            .bind(application_id)
             .execute(&self.db_pool)
             .await?;
         }
@@ -378,7 +376,7 @@ impl AuthenticationService {
         error_message: Option<String>,
         metadata: Option<serde_json::Value>,
     ) -> Result<()> {
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO auth.authentication_audit_log (
                 subscription__id,
@@ -389,13 +387,13 @@ impl AuthenticationService {
                 metadata
             ) VALUES ($1, $2, $3, $4, $5, $6)
             "#,
-            subscription_id,
-            request_attempt_id,
-            auth_type.as_str(),
-            is_success,
-            error_message,
-            metadata
         )
+        .bind(subscription_id)
+        .bind(request_attempt_id)
+        .bind(auth_type.as_str())
+        .bind(is_success)
+        .bind(error_message)
+        .bind(metadata)
         .execute(&self.db_pool)
         .await?;
 

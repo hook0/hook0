@@ -423,6 +423,7 @@ pub struct State {
     enable_quota_based_email_notifications: bool,
     support_email_address: Address,
     cloudflare_turnstile_site_key: Option<String>,
+    #[allow(dead_code)]
     auth_service: Option<Arc<AuthenticationService>>,
     cloudflare_turnstile_secret_key: Option<String>,
 }

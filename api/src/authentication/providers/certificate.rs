@@ -89,7 +89,7 @@ impl CertificateProvider {
 
 #[async_trait]
 impl AuthenticationProvider for CertificateProvider {
-    async fn authenticate(&self, request: &mut Request) -> Result<()> {
+    async fn authenticate(&self, _request: &mut Request) -> Result<()> {
         // Certificate authentication is handled at the HTTP client level
         // through the Identity and Certificate objects, not through headers
         // This method is a no-op for certificate auth

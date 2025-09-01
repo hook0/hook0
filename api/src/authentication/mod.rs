@@ -3,6 +3,6 @@ pub mod encryption;
 pub mod providers;
 pub mod service;
 
-pub use config::{AuthenticationConfig, AuthenticationType};
-pub use encryption::SecretEncryption;
+#[allow(unused_imports)]
+pub use config::{AuthenticationConfigRequest, AuthenticationType};
 pub use service::AuthenticationService;
