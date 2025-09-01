@@ -209,6 +209,7 @@ impl OperationalWebhookWorker {
     }
 
     /// Handle message attempt exhaustion (all retries failed)
+    #[allow(dead_code)]
     pub async fn check_exhausted_attempts(&self) -> Result<(), Box<dyn std::error::Error>> {
         // Find attempts that have exhausted all retries
         let exhausted = sqlx::query!(

@@ -67,6 +67,7 @@ impl OperationalWebhookDelivery {
     }
 
     /// Verify webhook signature
+    #[allow(dead_code)]
     pub fn verify_signature(
         secret: &Uuid,
         signature_header: &str,
@@ -326,6 +327,7 @@ impl OperationalWebhookDelivery {
     }
 
     /// Reset consecutive failures on successful delivery
+    #[allow(dead_code)]
     pub async fn reset_failure_count(&self, endpoint_id: Uuid) -> Result<(), Box<dyn std::error::Error>> {
         query!(
             r#"
