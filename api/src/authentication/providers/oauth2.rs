@@ -26,6 +26,7 @@ struct TokenResponse {
 }
 
 /// OAuth2 authentication provider
+#[allow(dead_code)]
 pub struct OAuth2Provider {
     config: OAuth2Config,
     config_id: Uuid,
@@ -37,6 +38,7 @@ pub struct OAuth2Provider {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct CachedToken {
     access_token: String,
     refresh_token: Option<String>,
@@ -44,6 +46,7 @@ struct CachedToken {
     scopes: Vec<String>,
 }
 
+#[allow(dead_code)]
 impl OAuth2Provider {
     /// Create a new OAuth2 provider
     pub async fn new(

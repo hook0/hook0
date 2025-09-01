@@ -65,9 +65,9 @@ const tokenRefreshThreshold = computed({
 const scopes = computed({
   get: () => (config.value.scopes || []).join(' '),
   set: (value) => {
-    config.value = { 
-      ...config.value, 
-      scopes: value ? value.split(/\s+/).filter(s => s.length > 0) : [] 
+    config.value = {
+      ...config.value,
+      scopes: value ? value.split(/\s+/).filter((s) => s.length > 0) : [],
     };
   },
 });
@@ -79,7 +79,7 @@ const customHeaders = computed({
   },
   set: (pairs: Hook0KeyValueKeyValuePair[]) => {
     const headers: Record<string, string> = {};
-    pairs.forEach(pair => {
+    pairs.forEach((pair) => {
       if (pair.key) {
         headers[pair.key] = pair.value;
       }
@@ -100,9 +100,7 @@ const customHeaders = computed({
           :options="grantTypeOptions"
           placeholder="Select OAuth2 grant type"
         />
-        <span class="text-sm text-gray-500 mt-1">
-          The OAuth2 flow to use for authentication
-        </span>
+        <span class="text-sm text-gray-500 mt-1"> The OAuth2 flow to use for authentication </span>
       </template>
     </Hook0CardContentLine>
 
@@ -110,15 +108,8 @@ const customHeaders = computed({
     <Hook0CardContentLine>
       <template #label>Client ID</template>
       <template #content>
-        <Hook0Input
-          v-model="clientId"
-          type="text"
-          placeholder="your-client-id"
-          required
-        >
-          <template #helpText>
-            The OAuth2 client ID provided by the authorization server
-          </template>
+        <Hook0Input v-model="clientId" type="text" placeholder="your-client-id" required>
+          <template #helpText> The OAuth2 client ID provided by the authorization server </template>
         </Hook0Input>
       </template>
     </Hook0CardContentLine>
@@ -150,9 +141,7 @@ const customHeaders = computed({
           placeholder="https://auth.example.com/oauth/token"
           required
         >
-          <template #helpText>
-            The URL to obtain OAuth2 access tokens
-          </template>
+          <template #helpText> The URL to obtain OAuth2 access tokens </template>
         </Hook0Input>
       </template>
     </Hook0CardContentLine>
@@ -161,14 +150,8 @@ const customHeaders = computed({
     <Hook0CardContentLine>
       <template #label>Scopes (Optional)</template>
       <template #content>
-        <Hook0Input
-          v-model="scopes"
-          type="text"
-          placeholder="read write admin"
-        >
-          <template #helpText>
-            Space-separated list of OAuth2 scopes to request
-          </template>
+        <Hook0Input v-model="scopes" type="text" placeholder="read write admin">
+          <template #helpText> Space-separated list of OAuth2 scopes to request </template>
         </Hook0Input>
       </template>
     </Hook0CardContentLine>
@@ -197,9 +180,9 @@ const customHeaders = computed({
       <template #content>
         <Hook0KeyValue
           :value="customHeaders"
-          @update:model-value="customHeaders = $event"
           key-placeholder="Header-Name"
           value-placeholder="Header-Value"
+          @update:model-value="customHeaders = $event"
         />
         <span class="text-sm text-gray-500 mt-1">
           Additional headers to include in token requests

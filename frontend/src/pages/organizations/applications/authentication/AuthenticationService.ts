@@ -38,11 +38,11 @@ export interface CustomAuthConfig {
   query_params?: Record<string, string>;
 }
 
-export type AuthenticationConfig = 
-  | OAuth2Config 
-  | BearerTokenConfig 
-  | CertificateConfig 
-  | BasicAuthConfig 
+export type AuthenticationConfig =
+  | OAuth2Config
+  | BearerTokenConfig
+  | CertificateConfig
+  | BasicAuthConfig
   | CustomAuthConfig;
 
 export interface AuthenticationConfigRequest {
@@ -66,17 +66,21 @@ export interface AuthenticationAuditLog {
   authentication_type: string;
   is_success: boolean;
   error_message?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   created_at: string;
 }
 
 // Application authentication
-export async function getApplicationAuthentication(application_id: UUID): Promise<AuthenticationConfigResponse | null> {
+export async function getApplicationAuthentication(
+  application_id: UUID
+): Promise<AuthenticationConfigResponse | null> {
   try {
-    const response = await http.get<AuthenticationConfigResponse>(`/applications/${application_id}/authentication`);
+    const response = await http.get<AuthenticationConfigResponse>(
+      `/applications/${application_id}/authentication`
+    );
     return response.data;
-  } catch (error: any) {
-    if (error.status === 404) {
+  } catch (error) {
+    if ((error as { status?: number }).status === 404) {
       return null;
     }
     throw error;
@@ -87,7 +91,10 @@ export async function configureApplicationAuthentication(
   application_id: UUID,
   config: AuthenticationConfigRequest
 ): Promise<AuthenticationConfigResponse> {
-  const response = await http.put<AuthenticationConfigResponse>(`/applications/${application_id}/authentication`, config);
+  const response = await http.put<AuthenticationConfigResponse>(
+    `/applications/${application_id}/authentication`,
+    config
+  );
   return response.data;
 }
 
@@ -96,12 +103,16 @@ export async function deleteApplicationAuthentication(application_id: UUID): Pro
 }
 
 // Subscription authentication
-export async function getSubscriptionAuthentication(subscription_id: UUID): Promise<AuthenticationConfigResponse | null> {
+export async function getSubscriptionAuthentication(
+  subscription_id: UUID
+): Promise<AuthenticationConfigResponse | null> {
   try {
-    const response = await http.get<AuthenticationConfigResponse>(`/subscriptions/${subscription_id}/authentication`);
+    const response = await http.get<AuthenticationConfigResponse>(
+      `/subscriptions/${subscription_id}/authentication`
+    );
     return response.data;
-  } catch (error: any) {
-    if (error.status === 404) {
+  } catch (error) {
+    if ((error as { status?: number }).status === 404) {
       return null;
     }
     throw error;
@@ -112,7 +123,10 @@ export async function configureSubscriptionAuthentication(
   subscription_id: UUID,
   config: AuthenticationConfigRequest
 ): Promise<AuthenticationConfigResponse> {
-  const response = await http.put<AuthenticationConfigResponse>(`/subscriptions/${subscription_id}/authentication`, config);
+  const response = await http.put<AuthenticationConfigResponse>(
+    `/subscriptions/${subscription_id}/authentication`,
+    config
+  );
   return response.data;
 }
 
@@ -121,19 +135,19 @@ export async function deleteSubscriptionAuthentication(subscription_id: UUID): P
 }
 
 // Audit logs
-export async function getAuthenticationAuditLogs(
-  filters?: {
-    subscription_id?: UUID;
-    limit?: number;
-    offset?: number;
-  }
-): Promise<AuthenticationAuditLog[]> {
+export async function getAuthenticationAuditLogs(filters?: {
+  subscription_id?: UUID;
+  limit?: number;
+  offset?: number;
+}): Promise<AuthenticationAuditLog[]> {
   const params = new URLSearchParams();
   if (filters?.subscription_id) params.append('subscription_id', filters.subscription_id);
   if (filters?.limit) params.append('limit', filters.limit.toString());
   if (filters?.offset) params.append('offset', filters.offset.toString());
 
-  const response = await http.get<AuthenticationAuditLog[]>(`/authentication/audit-logs?${params.toString()}`);
+  const response = await http.get<AuthenticationAuditLog[]>(
+    `/authentication/audit-logs?${params.toString()}`
+  );
   return response.data;
 }
 
@@ -152,7 +166,7 @@ export function getSecretDisplayValue(value: string): string {
   return value;
 }
 
-export function validateAuthenticationConfig(type: AuthenticationType, config: any): string[] {
+export function validateAuthenticationConfig(type: AuthenticationType, config: Record<string, unknown>): string[] {
   const errors: string[] = [];
 
   switch (type) {
@@ -161,7 +175,7 @@ export function validateAuthenticationConfig(type: AuthenticationType, config: a
       if (!config.client_id) errors.push('Client ID is required');
       if (!config.client_secret) errors.push('Client secret is required');
       if (!config.token_endpoint) errors.push('Token endpoint is required');
-      if (config.token_endpoint && !isValidUrl(config.token_endpoint)) {
+      if (config.token_endpoint && !isValidUrl(String(config.token_endpoint))) {
         errors.push('Token endpoint must be a valid URL');
       }
       break;

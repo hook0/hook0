@@ -32,7 +32,7 @@ const headerName = computed({
 });
 
 const prefix = computed({
-  get: () => config.value.prefix !== undefined ? config.value.prefix : 'Bearer',
+  get: () => (config.value.prefix !== undefined ? config.value.prefix : 'Bearer'),
   set: (value) => {
     config.value = { ...config.value, prefix: value };
   },
@@ -52,7 +52,8 @@ const prefix = computed({
           required
         >
           <template #helpText>
-            The bearer token to use for authentication. Use env://VARIABLE_NAME to reference an environment variable
+            The bearer token to use for authentication. Use env://VARIABLE_NAME to reference an
+            environment variable
           </template>
         </Hook0Input>
       </template>
@@ -62,11 +63,7 @@ const prefix = computed({
     <Hook0CardContentLine>
       <template #label>Header Name</template>
       <template #content>
-        <Hook0Input
-          v-model="headerName"
-          type="text"
-          placeholder="Authorization"
-        >
+        <Hook0Input v-model="headerName" type="text" placeholder="Authorization">
           <template #helpText>
             The HTTP header name to use for the token (default: Authorization)
           </template>
@@ -78,11 +75,7 @@ const prefix = computed({
     <Hook0CardContentLine>
       <template #label>Token Prefix</template>
       <template #content>
-        <Hook0Input
-          v-model="prefix"
-          type="text"
-          placeholder="Bearer"
-        >
+        <Hook0Input v-model="prefix" type="text" placeholder="Bearer">
           <template #helpText>
             The prefix to add before the token (default: Bearer). Leave empty for no prefix
           </template>

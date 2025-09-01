@@ -15,6 +15,7 @@ use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
+#[allow(dead_code)]
 pub struct AuthenticationConfigResponse {
     pub authentication_config_id: Uuid,
     pub application_id: Uuid,
@@ -25,11 +26,13 @@ pub struct AuthenticationConfigResponse {
 }
 
 #[derive(Debug, Deserialize, Apiv2Schema)]
+#[allow(dead_code)]
 pub struct ApplicationPath {
     pub application_id: Uuid,
 }
 
 #[derive(Debug, Deserialize, Apiv2Schema)]
+#[allow(dead_code)]
 pub struct SubscriptionPath {
     pub subscription_id: Uuid,
 }

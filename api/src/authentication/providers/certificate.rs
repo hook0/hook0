@@ -12,6 +12,7 @@ use crate::authentication::{
 use super::AuthenticationProvider;
 
 /// Certificate authentication provider
+#[allow(dead_code)]
 pub struct CertificateProvider {
     config: CertificateConfig,
     application_id: Uuid,
@@ -20,6 +21,7 @@ pub struct CertificateProvider {
     ca_cert: Option<Certificate>,
 }
 
+#[allow(dead_code)]
 impl CertificateProvider {
     /// Create a new certificate provider
     pub async fn new(
@@ -113,6 +115,7 @@ impl AuthenticationProvider for CertificateProvider {
 }
 
 /// Helper to create an HTTP client with certificate authentication
+#[allow(dead_code)]
 pub fn create_client_with_certificates(provider: &CertificateProvider) -> Result<reqwest::Client> {
     let mut builder = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(30))

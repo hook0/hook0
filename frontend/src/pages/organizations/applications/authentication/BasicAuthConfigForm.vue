@@ -38,15 +38,8 @@ const password = computed({
     <Hook0CardContentLine>
       <template #label>Username</template>
       <template #content>
-        <Hook0Input
-          v-model="username"
-          type="text"
-          placeholder="api-user"
-          required
-        >
-          <template #helpText>
-            The username for Basic authentication
-          </template>
+        <Hook0Input v-model="username" type="text" placeholder="api-user" required>
+          <template #helpText> The username for Basic authentication </template>
         </Hook0Input>
       </template>
     </Hook0CardContentLine>
@@ -62,7 +55,8 @@ const password = computed({
           required
         >
           <template #helpText>
-            The password for Basic authentication. Use env://VARIABLE_NAME to reference an environment variable
+            The password for Basic authentication. Use env://VARIABLE_NAME to reference an
+            environment variable
           </template>
         </Hook0Input>
       </template>
@@ -72,8 +66,8 @@ const password = computed({
     <div class="mt-4 p-4 bg-gray-50 rounded-lg">
       <p class="text-sm font-semibold text-gray-700 mb-2">How it works:</p>
       <p class="text-sm text-gray-600 mb-2">
-        Basic authentication combines the username and password with a colon, encodes them in Base64, 
-        and sends them in the Authorization header.
+        Basic authentication combines the username and password with a colon, encodes them in
+        Base64, and sends them in the Authorization header.
       </p>
       <code class="text-sm bg-gray-100 px-2 py-1 rounded block">
         Authorization: Basic &lt;base64(username:password)&gt;
@@ -83,8 +77,9 @@ const password = computed({
     <!-- Security Warning -->
     <div class="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
       <p class="text-sm text-amber-800">
-        <strong>Security Warning:</strong> Basic authentication transmits credentials in each request. 
-        Always use HTTPS and consider using more secure authentication methods like OAuth2 when possible.
+        <strong>Security Warning:</strong> Basic authentication transmits credentials in each
+        request. Always use HTTPS and consider using more secure authentication methods like OAuth2
+        when possible.
       </p>
     </div>
   </div>

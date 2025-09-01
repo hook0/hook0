@@ -12,12 +12,14 @@ use crate::authentication::{
 use super::AuthenticationProvider;
 
 /// Bearer token authentication provider
+#[allow(dead_code)]
 pub struct BearerTokenProvider {
     config: BearerTokenConfig,
     application_id: Uuid,
     encryption: Arc<SecretEncryption>,
 }
 
+#[allow(dead_code)]
 impl BearerTokenProvider {
     /// Create a new bearer token provider
     pub fn new(

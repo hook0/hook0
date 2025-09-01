@@ -66,7 +66,8 @@ const mtls = computed({
           required
         >
           <template #helpText>
-            The client certificate in PEM format. Use env://VARIABLE_NAME to reference an environment variable
+            The client certificate in PEM format. Use env://VARIABLE_NAME to reference an
+            environment variable
           </template>
         </Hook0Input>
       </template>
@@ -83,7 +84,8 @@ const mtls = computed({
           required
         >
           <template #helpText>
-            The client private key in PEM format. Use env://VARIABLE_NAME to reference an environment variable
+            The client private key in PEM format. Use env://VARIABLE_NAME to reference an
+            environment variable
           </template>
         </Hook0Input>
       </template>
@@ -99,7 +101,8 @@ const mtls = computed({
           placeholder="env://CA_CERT_PEM or enter PEM content"
         >
           <template #helpText>
-            The Certificate Authority certificate for server verification. Leave empty to use system CA bundle
+            The Certificate Authority certificate for server verification. Leave empty to use system
+            CA bundle
           </template>
         </Hook0Input>
       </template>
@@ -112,16 +115,16 @@ const mtls = computed({
         <div class="space-y-2">
           <label class="flex items-center">
             <input
-              type="checkbox"
               v-model="verifyHostname"
+              type="checkbox"
               class="mr-2 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
             />
             <span class="text-sm">Verify hostname in server certificate</span>
           </label>
           <label class="flex items-center">
             <input
-              type="checkbox"
               v-model="mtls"
+              type="checkbox"
               class="mr-2 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
             />
             <span class="text-sm">Enable mutual TLS (mTLS)</span>
@@ -136,8 +139,8 @@ const mtls = computed({
     <!-- Warning -->
     <div class="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
       <p class="text-sm text-amber-800">
-        <strong>Security Note:</strong> Store certificates and keys securely. Use environment variables 
-        for production deployments to avoid exposing sensitive data in configuration.
+        <strong>Security Note:</strong> Store certificates and keys securely. Use environment
+        variables for production deployments to avoid exposing sensitive data in configuration.
       </p>
     </div>
   </div>

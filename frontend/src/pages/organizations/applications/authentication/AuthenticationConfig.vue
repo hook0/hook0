@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-floating-promises */
 import { ref, computed, onMounted } from 'vue';
 import { UUID } from '@/http';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -52,7 +56,9 @@ const authTypeOptions: Hook0SelectSingleOption[] = [
 const isSubscriptionConfig = computed(() => !!props.subscriptionId);
 const configTitle = computed(() => {
   if (isSubscriptionConfig.value) {
-    return props.isNew ? 'Configure Subscription Authentication' : 'Edit Subscription Authentication';
+    return props.isNew
+      ? 'Configure Subscription Authentication'
+      : 'Edit Subscription Authentication';
   }
   return props.isNew ? 'Configure Default Authentication' : 'Edit Default Authentication';
 });
@@ -69,9 +75,13 @@ async function loadCurrentConfig() {
   isLoading.value = true;
   try {
     if (props.subscriptionId) {
-      currentConfig.value = await AuthenticationService.getSubscriptionAuthentication(props.subscriptionId);
+      currentConfig.value = await AuthenticationService.getSubscriptionAuthentication(
+        props.subscriptionId
+      );
     } else if (props.applicationId) {
-      currentConfig.value = await AuthenticationService.getApplicationAuthentication(props.applicationId);
+      currentConfig.value = await AuthenticationService.getApplicationAuthentication(
+        props.applicationId
+      );
     }
 
     if (currentConfig.value) {
@@ -91,7 +101,10 @@ async function loadCurrentConfig() {
 
 async function save() {
   // Validate configuration
-  const errors = AuthenticationService.validateAuthenticationConfig(authenticationType.value, authConfig.value);
+  const errors = AuthenticationService.validateAuthenticationConfig(
+    authenticationType.value,
+    authConfig.value
+  );
   if (errors.length > 0) {
     push.warning({
       title: 'Validation Error',
@@ -247,30 +260,21 @@ onMounted(() => {
             <Hook0Select
               :model-value="authenticationType"
               :options="authTypeOptions"
-              @update:model-value="onAuthTypeChange"
               placeholder="Select authentication type"
+              @update:model-value="onAuthTypeChange"
             />
           </template>
         </Hook0CardContentLine>
 
         <!-- Dynamic Configuration Form based on selected type -->
         <div v-if="authenticationType" class="mt-4">
-          <OAuth2ConfigForm
-            v-if="authenticationType === 'oauth2'"
-            v-model="authConfig"
-          />
-          <BearerTokenConfigForm
-            v-else-if="authenticationType === 'bearer'"
-            v-model="authConfig"
-          />
+          <OAuth2ConfigForm v-if="authenticationType === 'oauth2'" v-model="authConfig" />
+          <BearerTokenConfigForm v-else-if="authenticationType === 'bearer'" v-model="authConfig" />
           <CertificateConfigForm
             v-else-if="authenticationType === 'certificate'"
             v-model="authConfig"
           />
-          <BasicAuthConfigForm
-            v-else-if="authenticationType === 'basic'"
-            v-model="authConfig"
-          />
+          <BasicAuthConfigForm v-else-if="authenticationType === 'basic'" v-model="authConfig" />
         </div>
 
         <!-- Info about secret storage -->
@@ -280,12 +284,12 @@ onMounted(() => {
             <p>Secrets can be stored in two ways:</p>
             <ul class="list-disc ml-5 mt-2">
               <li>
-                <strong>Environment Variable:</strong> Use <code>env://VARIABLE_NAME</code> to reference
-                an environment variable
+                <strong>Environment Variable:</strong> Use <code>env://VARIABLE_NAME</code> to
+                reference an environment variable
               </li>
               <li>
-                <strong>Encrypted:</strong> Enter the value directly and it will be encrypted and stored
-                securely in the database
+                <strong>Encrypted:</strong> Enter the value directly and it will be encrypted and
+                stored securely in the database
               </li>
             </ul>
           </template>
@@ -298,18 +302,18 @@ onMounted(() => {
             <Hook0Button
               v-if="!props.isNew && currentConfig"
               variant="danger"
-              @click="deleteConfig"
               :disabled="isSaving"
+              @click="deleteConfig"
             >
               <Hook0Icon name="trash" />
               Delete Configuration
             </Hook0Button>
           </div>
           <div class="flex gap-2">
-            <Hook0Button variant="secondary" @click="cancel" :disabled="isSaving">
+            <Hook0Button variant="secondary" :disabled="isSaving" @click="cancel">
               Cancel
             </Hook0Button>
-            <Hook0Button variant="primary" @click="save" :disabled="isSaving">
+            <Hook0Button variant="primary" :disabled="isSaving" @click="save">
               <Hook0Icon v-if="isSaving" name="spinner" class="animate-spin" />
               <Hook0Icon v-else name="save" />
               {{ props.isNew ? 'Create' : 'Update' }} Configuration

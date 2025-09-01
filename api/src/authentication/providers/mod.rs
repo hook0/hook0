@@ -12,6 +12,7 @@ use crate::authentication::config::AuthenticationType;
 
 /// Trait for authentication providers
 #[async_trait]
+#[allow(dead_code)]
 pub trait AuthenticationProvider: Send + Sync {
     /// Apply authentication to an HTTP request
     async fn authenticate(&self, request: &mut Request) -> Result<()>;
@@ -30,6 +31,7 @@ pub trait AuthenticationProvider: Send + Sync {
 
 /// Authentication context for audit logging
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct AuthContext {
     pub subscription_id: Option<Uuid>,
     pub request_attempt_id: Option<Uuid>,

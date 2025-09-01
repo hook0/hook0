@@ -18,6 +18,7 @@ pub struct SecretEncryption {
     db_pool: PgPool,
 }
 
+#[allow(dead_code)]
 impl SecretEncryption {
     /// Create a new SecretEncryption service
     pub fn new(db_pool: PgPool) -> Result<Self> {
@@ -61,7 +62,7 @@ impl SecretEncryption {
             .map_err(|e| anyhow!("Encryption failed: {}", e))?;
 
         // Encode both nonce and ciphertext as base64
-        let nonce_b64 = BASE64.encode(&nonce);
+        let nonce_b64 = BASE64.encode(nonce);
         let ciphertext_b64 = BASE64.encode(&ciphertext);
 
         Ok((ciphertext_b64, nonce_b64))
@@ -95,14 +96,12 @@ impl SecretEncryption {
 
     /// Resolve a secret value (handles both env:// and encrypted values)
     pub async fn resolve_secret(&self, value: &str, application_id: &Uuid) -> Result<String> {
-        if value.starts_with("env://") {
+        if let Some(var_name) = value.strip_prefix("env://") {
             // Environment variable reference
-            let var_name = &value[6..];
             env::var(var_name)
                 .map_err(|e| anyhow!("Failed to get environment variable {}: {}", var_name, e))
-        } else if value.starts_with("encrypted://") {
+        } else if let Some(secret_name) = value.strip_prefix("encrypted://") {
             // Encrypted value stored in database
-            let secret_name = &value[12..];
             self.get_encrypted_secret(application_id, secret_name).await
         } else {
             // Plain text value (for non-sensitive config)

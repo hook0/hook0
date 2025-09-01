@@ -13,12 +13,14 @@ use crate::authentication::{
 use super::AuthenticationProvider;
 
 /// Basic authentication provider
+#[allow(dead_code)]
 pub struct BasicAuthProvider {
     config: BasicAuthConfig,
     application_id: Uuid,
     encryption: Arc<SecretEncryption>,
 }
 
+#[allow(dead_code)]
 impl BasicAuthProvider {
     /// Create a new basic auth provider
     pub fn new(

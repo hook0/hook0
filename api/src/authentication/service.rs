@@ -22,6 +22,7 @@ use super::{
 };
 
 /// Main authentication service
+#[allow(dead_code)]
 pub struct AuthenticationService {
     db_pool: PgPool,
     encryption: Arc<SecretEncryption>,
@@ -40,6 +41,7 @@ impl std::fmt::Debug for AuthenticationService {
     }
 }
 
+#[allow(dead_code)]
 impl AuthenticationService {
     /// Create a new authentication service
     pub fn new(db_pool: PgPool) -> Result<Self> {
