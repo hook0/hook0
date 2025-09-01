@@ -469,12 +469,24 @@ pub enum Action<'a> {
         application_id: &'a Uuid,
     },
     //
-    OperationalWebhookList,
-    OperationalWebhookCreate,
-    OperationalWebhookGet,
-    OperationalWebhookUpdate,
-    OperationalWebhookDelete,
-    OperationalWebhookStats,
+    OperationalWebhookList {
+        application_id: &'a Uuid,
+    },
+    OperationalWebhookCreate {
+        application_id: &'a Uuid,
+    },
+    OperationalWebhookGet {
+        application_id: &'a Uuid,
+    },
+    OperationalWebhookUpdate {
+        application_id: &'a Uuid,
+    },
+    OperationalWebhookDelete {
+        application_id: &'a Uuid,
+    },
+    OperationalWebhookStats {
+        application_id: &'a Uuid,
+    },
 }
 
 impl Action<'_> {
@@ -540,12 +552,12 @@ impl Action<'_> {
             //
             Self::ResponseGet { .. } => "response:get",
             //
-            Self::OperationalWebhookList => "operational_webhook:list",
-            Self::OperationalWebhookCreate => "operational_webhook:create",
-            Self::OperationalWebhookGet => "operational_webhook:get",
-            Self::OperationalWebhookUpdate => "operational_webhook:update",
-            Self::OperationalWebhookDelete => "operational_webhook:delete",
-            Self::OperationalWebhookStats => "operational_webhook:stats",
+            Self::OperationalWebhookList { .. } => "operational_webhook:list",
+            Self::OperationalWebhookCreate { .. } => "operational_webhook:create",
+            Self::OperationalWebhookGet { .. } => "operational_webhook:get",
+            Self::OperationalWebhookUpdate { .. } => "operational_webhook:update",
+            Self::OperationalWebhookDelete { .. } => "operational_webhook:delete",
+            Self::OperationalWebhookStats { .. } => "operational_webhook:stats",
         }
     }
 
@@ -613,12 +625,12 @@ impl Action<'_> {
             //
             Self::ResponseGet { .. } => vec![Role::Viewer],
             //
-            Self::OperationalWebhookList => vec![Role::Viewer],
-            Self::OperationalWebhookCreate => vec![],
-            Self::OperationalWebhookGet => vec![Role::Viewer],
-            Self::OperationalWebhookUpdate => vec![],
-            Self::OperationalWebhookDelete => vec![],
-            Self::OperationalWebhookStats => vec![Role::Viewer],
+            Self::OperationalWebhookList { .. } => vec![Role::Viewer],
+            Self::OperationalWebhookCreate { .. } => vec![],
+            Self::OperationalWebhookGet { .. } => vec![Role::Viewer],
+            Self::OperationalWebhookUpdate { .. } => vec![],
+            Self::OperationalWebhookDelete { .. } => vec![],
+            Self::OperationalWebhookStats { .. } => vec![Role::Viewer],
         };
 
         roles.append(&mut per_action_roles);
@@ -701,7 +713,13 @@ impl Action<'_> {
             Self::RequestAttemptList { application_id, .. } => Some(**application_id),
             //
             Self::ResponseGet { application_id, .. } => Some(**application_id),
-        }
+            //
+            Self::OperationalWebhookList { application_id, .. } => Some(**application_id),
+            Self::OperationalWebhookCreate { application_id, .. } => Some(**application_id),
+            Self::OperationalWebhookGet { application_id, .. } => Some(**application_id),
+            Self::OperationalWebhookUpdate { application_id, .. } => Some(**application_id),
+            Self::OperationalWebhookDelete { application_id, .. } => Some(**application_id),
+            Self::OperationalWebhookStats { application_id, .. } => Some(**application_id),        }
     }
 
     pub fn generate_facts(self) -> Vec<Fact> {
@@ -791,6 +809,13 @@ impl Action<'_> {
             Self::RequestAttemptList { .. } => vec![],
             //
             Self::ResponseGet { .. } => vec![],
+            //
+            Self::OperationalWebhookList { .. } => vec![],
+            Self::OperationalWebhookCreate { .. } => vec![],
+            Self::OperationalWebhookGet { .. } => vec![],
+            Self::OperationalWebhookUpdate { .. } => vec![],
+            Self::OperationalWebhookDelete { .. } => vec![],
+            Self::OperationalWebhookStats { .. } => vec![],
         };
 
         facts.push(fact!("action({action})", action = self.action_name()));

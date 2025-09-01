@@ -6,7 +6,7 @@ use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::Sha256;
-use sqlx::{query, query_as, PgPool};
+use sqlx::{query, PgPool};
 use std::time::Duration;
 use uuid::Uuid;
 

@@ -4,18 +4,16 @@ use chrono::{DateTime, Utc};
 use log::error;
 use paperclip::actix::web::{Data, Json, Path, Query};
 use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
-use reqwest::Url;
 use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value, json};
-use sqlx::{query, query_as, query_scalar};
+use serde_json::Value;
+use sqlx::{query, query_scalar, Row};
 use std::collections::HashMap;
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::iam::{Action, authorize_for_application, get_owner_organization};
+use crate::iam::{Action, authorize_for_application};
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
-use crate::quotas::Quota;
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct OperationalEndpoint {
@@ -129,7 +127,10 @@ pub async fn list(
     );
 
     if let Some(app_id) = query.application_id {
-        authorize_for_application(&biscuit, &app_id, Action::OperationalWebhookList, &db).await?;
+        authorize_for_application(db.as_ref(), &biscuit, Action::OperationalWebhookList { application_id: &app_id }, 5000).await.map_err(|e| {
+            error!("Authorization failed: {e}");
+            Hook0Problem::Forbidden
+        })?;
         sql_query.push(" AND application__id = ");
         sql_query.push_bind(app_id);
     }
@@ -187,7 +188,10 @@ pub async fn create(
 ) -> Result<CreatedJson<OperationalEndpoint>, Hook0Problem> {
     payload.validate().map_err(|e| Hook0Problem::Validation(e.into()))?;
 
-    authorize_for_application(&biscuit, &payload.application_id, Action::OperationalWebhookCreate, &db).await?;
+    authorize_for_application(db.as_ref(), &biscuit, Action::OperationalWebhookCreate { application_id: &payload.application_id }, 5000).await.map_err(|e| {
+        error!("Authorization failed: {e}");
+        Hook0Problem::Forbidden
+    })?;
 
     let headers_json = serde_json::to_value(&payload.headers)
         .map_err(|_| Hook0Problem::InternalServerError)?;
@@ -307,7 +311,10 @@ pub async fn get(
         updated_at: row.updated_at,
     };
 
-    authorize_for_application(&biscuit, &endpoint.application_id, Action::OperationalWebhookGet, &db).await?;
+    authorize_for_application(db.as_ref(), &biscuit, Action::OperationalWebhookGet { application_id: &endpoint.application_id }, 5000).await.map_err(|e| {
+        error!("Authorization failed: {e}");
+        Hook0Problem::Forbidden
+    })?;
 
     Ok(Json(endpoint))
 }
@@ -349,62 +356,70 @@ pub async fn update(
     })?
     .ok_or(Hook0Problem::NotFound)?;
 
-    authorize_for_application(&biscuit, &existing, Action::OperationalWebhookUpdate, &db).await?;
+    authorize_for_application(db.as_ref(), &biscuit, Action::OperationalWebhookUpdate { application_id: &existing }, 5000).await.map_err(|e| {
+        error!("Authorization failed: {e}");
+        Hook0Problem::Forbidden
+    })?;
 
-    // Build dynamic update query
-    let mut updates = vec!["updated_at = statement_timestamp()".to_string()];
-    let mut params: Vec<Box<dyn sqlx::Encode<'_, sqlx::Postgres> + Send + Sync>> = vec![];
-    let mut param_count = 2;
+    // First get current endpoint data
+    let current = query!(
+        r#"
+        SELECT 
+            operational_endpoint__id,
+            application__id,
+            url,
+            description,
+            headers,
+            secret,
+            is_enabled,
+            filter_types,
+            rate_limit,
+            created_at,
+            updated_at
+        FROM webhook.operational_endpoint
+        WHERE operational_endpoint__id = $1
+          AND deleted_at IS NULL
+        "#,
+        endpoint_id
+    )
+    .fetch_one(db.as_ref())
+    .await
+    .map_err(|e| {
+        error!("Failed to get operational endpoint: {e}");
+        Hook0Problem::InternalServerError
+    })?;
 
-    if let Some(url) = payload.url {
-        updates.push(format!("url = ${}", param_count));
-        params.push(Box::new(url));
-        param_count += 1;
-    }
+    // Apply updates
+    let new_url = payload.url.unwrap_or(current.url);
+    let new_description = payload.description.or(current.description);
+    let new_headers = if let Some(headers) = payload.headers {
+        serde_json::to_value(&headers).map_err(|_| Hook0Problem::InternalServerError)?
+    } else {
+        current.headers
+    };
+    let new_is_enabled = payload.is_enabled.unwrap_or(current.is_enabled);
+    let new_filter_types = if let Some(filter_types) = payload.filter_types {
+        serde_json::to_value(&filter_types).map_err(|_| Hook0Problem::InternalServerError)?
+    } else {
+        current.filter_types
+    };
+    let new_rate_limit = payload.rate_limit.or(current.rate_limit);
 
-    if let Some(description) = payload.description {
-        updates.push(format!("description = ${}", param_count));
-        params.push(Box::new(description));
-        param_count += 1;
-    }
-
-    if let Some(headers) = payload.headers {
-        let headers_json = serde_json::to_value(&headers)
-            .map_err(|_| Hook0Problem::InternalServerError)?;
-        updates.push(format!("headers = ${}", param_count));
-        params.push(Box::new(headers_json));
-        param_count += 1;
-    }
-
-    if let Some(is_enabled) = payload.is_enabled {
-        updates.push(format!("is_enabled = ${}", param_count));
-        params.push(Box::new(is_enabled));
-        param_count += 1;
-    }
-
-    if let Some(filter_types) = payload.filter_types {
-        let filter_types_json = serde_json::to_value(&filter_types)
-            .map_err(|_| Hook0Problem::InternalServerError)?;
-        updates.push(format!("filter_types = ${}", param_count));
-        params.push(Box::new(filter_types_json));
-        param_count += 1;
-    }
-
-    if let Some(rate_limit) = payload.rate_limit {
-        updates.push(format!("rate_limit = ${}", param_count));
-        params.push(Box::new(rate_limit));
-        param_count += 1;
-    }
-
-    let update_clause = updates.join(", ");
-    let query = format!(
+    // Update the endpoint
+    let row = query!(
         r#"
         UPDATE webhook.operational_endpoint
-        SET {}
+        SET url = $2,
+            description = $3,
+            headers = $4,
+            is_enabled = $5,
+            filter_types = $6,
+            rate_limit = $7,
+            updated_at = statement_timestamp()
         WHERE operational_endpoint__id = $1
         RETURNING 
-            operational_endpoint__id as operational_endpoint_id,
-            application__id as application_id,
+            operational_endpoint__id,
+            application__id,
             url,
             description,
             headers,
@@ -415,23 +430,34 @@ pub async fn update(
             created_at,
             updated_at
         "#,
-        update_clause
-    );
+        endpoint_id,
+        new_url,
+        new_description,
+        new_headers,
+        new_is_enabled,
+        new_filter_types,
+        new_rate_limit
+    )
+    .fetch_one(db.as_ref())
+    .await
+    .map_err(|e| {
+        error!("Failed to update operational endpoint: {e}");
+        Hook0Problem::InternalServerError
+    })?;
 
-    let mut query_builder = sqlx::query_as::<_, OperationalEndpoint>(&query)
-        .bind(endpoint_id);
-    
-    for param in params {
-        query_builder = query_builder.bind(param);
-    }
-
-    let endpoint = query_builder
-        .fetch_one(db.as_ref())
-        .await
-        .map_err(|e| {
-            error!("Failed to update operational endpoint: {e}");
-            Hook0Problem::InternalServerError
-        })?;
+    let endpoint = OperationalEndpoint {
+        operational_endpoint_id: row.operational_endpoint__id,
+        application_id: row.application__id,
+        url: row.url,
+        description: row.description,
+        headers: serde_json::from_value(row.headers).unwrap_or_default(),
+        secret: row.secret,
+        is_enabled: row.is_enabled,
+        filter_types: serde_json::from_value(row.filter_types).unwrap_or_default(),
+        rate_limit: row.rate_limit,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+    };
 
     Ok(Json(endpoint))
 }
@@ -470,7 +496,10 @@ pub async fn delete(
     })?
     .ok_or(Hook0Problem::NotFound)?;
 
-    authorize_for_application(&biscuit, &existing, Action::OperationalWebhookDelete, &db).await?;
+    authorize_for_application(db.as_ref(), &biscuit, Action::OperationalWebhookDelete { application_id: &existing }, 5000).await.map_err(|e| {
+        error!("Authorization failed: {e}");
+        Hook0Problem::Forbidden
+    })?;
 
     query!(
         r#"
@@ -566,7 +595,10 @@ pub async fn stats(
     );
 
     if let Some(app_id) = query.application_id {
-        authorize_for_application(&biscuit, &app_id, Action::OperationalWebhookStats, &db).await?;
+        authorize_for_application(db.as_ref(), &biscuit, Action::OperationalWebhookStats { application_id: &app_id }, 5000).await.map_err(|e| {
+            error!("Authorization failed: {e}");
+            Hook0Problem::Forbidden
+        })?;
         sql_query.push(" AND application__id = ");
         sql_query.push_bind(app_id);
     }
