@@ -85,7 +85,7 @@ Before starting these tutorials, make sure you have:
 If you get stuck during any tutorial:
 
 1. Check the [How-to Guides](../how-to-guides/index.md) for specific problem solutions
-2. Consult the [API Reference](../reference/api-reference.md) for technical details
+2. Consult the [API Reference](../openapi/intro) for technical details
 3. Visit our [Discord community](https://www.hook0.com/community) for help
 4. Report issues on [GitHub](https://github.com/hook0/hook0/issues)
 

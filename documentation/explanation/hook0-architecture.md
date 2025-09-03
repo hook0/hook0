@@ -101,4 +101,4 @@ Subscriptions define:
 
 - [Event Processing Model](./event-processing.md)
 - [Security Model](./security-model.md)
-- [API Reference](../reference/api-reference.md)
+- [API Reference](../openapi/intro)

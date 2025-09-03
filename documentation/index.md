@@ -47,7 +47,7 @@ In-depth explanations of Hook0's architecture, concepts, and design decisions.
 - **[Debug Failed Webhooks](how-to-guides/debug-failed-webhooks.md)** - Troubleshoot delivery issues
 
 ### 📚 Technical Reference
-- **[API Reference](reference/api-reference.md)** - Complete REST API documentation
+- **[API Reference](openapi/intro)** - Complete REST API documentation
 - **[Configuration Options](reference/configuration.md)** - All configuration parameters
 - **[JavaScript SDK](reference/sdk/javascript.md)** - Official JS/TS client library
 - **[Error Codes](reference/error-codes.md)** - Troubleshooting guide

@@ -15,7 +15,7 @@ const config = {
   // Set the production url of your site here
   url: 'https://hook0.gitlab.io',
   // Set the /<baseUrl>/ pathname under which your site is served
-  baseUrl: '/hook0/',
+  baseUrl: '/',
 
   // GitLab pages deployment config.
   organizationName: 'hook0',
@@ -44,7 +44,8 @@ const config = {
           sidebarPath: './sidebars.js',
           routeBasePath: '/',
           editUrl: 'https://gitlab.com/hook0/hook0/-/tree/main/documentation/',
-          exclude: ['**/node_modules/**', '**/build/**', '**/.docusaurus/**'],
+          exclude: ['**/node_modules/**', '**/build/**', '**/.docusaurus/**', '**/scripts/**'],
+          docItemComponent: '@theme/ApiItem',
         },
         blog: false,
         theme: {
@@ -54,8 +55,30 @@ const config = {
     ],
   ],
 
+  plugins: [
+    [
+      'docusaurus-plugin-openapi-docs',
+      {
+        id: 'openapi',
+        docsPluginId: 'classic',
+        config: {
+          hook0: {
+            specPath: './openapi/hook0-api.json',
+            outputDir: './api',
+            sidebarOptions: {
+              groupPathsBy: 'tag',
+              categoryLinkSource: 'tag',
+            },
+            downloadUrl: 'https://app.hook0.com/api/v1/swagger.json',
+          },
+        },
+      },
+    ],
+  ],
+
   themes: [
     '@docusaurus/theme-mermaid',
+    'docusaurus-theme-openapi-docs',
     [
       require.resolve("@easyops-cn/docusaurus-search-local"),
       {
@@ -95,13 +118,8 @@ const config = {
             position: 'left',
           },
           {
-            to: '/reference/api-reference',
-            label: 'API',
-            position: 'left',
-          },
-          {
-            to: '/reference/sdk/',
-            label: 'SDKs',
+            to: '/reference/',
+            label: 'Reference',
             position: 'left',
           },
           {
@@ -162,7 +180,7 @@ const config = {
             items: [
               {
                 label: 'API Documentation',
-                to: '/reference/api-reference',
+                to: '/openapi/intro',
               },
               {
                 label: 'Configuration',

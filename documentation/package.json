@@ -4,7 +4,11 @@
   "private": true,
   "scripts": {
     "docusaurus": "docusaurus",
+    "fetch-openapi": "node scripts/fetch-openapi.js",
+    "generate-api": "docusaurus gen-api-docs hook0 && node scripts/post-process-api.js",
+    "prestart": "npm run fetch-openapi && npm run generate-api",
     "start": "docusaurus start",
+    "prebuild": "npm run fetch-openapi && npm run generate-api",
     "build": "docusaurus build",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",
@@ -13,7 +17,8 @@
     "write-translations": "docusaurus write-translations",
     "write-heading-ids": "docusaurus write-heading-ids",
     "validate": "node scripts/validate-docs.js",
-    "test": "npm run validate && npm run build"
+    "test": "npm run validate && npm run build",
+    "clean-api": "rm -rf docs/api openapi/hook0-api.json"
   },
   "dependencies": {
     "@docusaurus/core": "3.6.3",
@@ -22,6 +27,8 @@
     "@easyops-cn/docusaurus-search-local": "^0.52.1",
     "@mdx-js/react": "^3.0.0",
     "clsx": "^2.0.0",
+    "docusaurus-plugin-openapi-docs": "^4.2.1",
+    "docusaurus-theme-openapi-docs": "^4.2.1",
     "prism-react-renderer": "^2.3.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0"

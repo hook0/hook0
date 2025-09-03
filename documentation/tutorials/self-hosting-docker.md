@@ -17,7 +17,7 @@ Hook0 consists of three main services that need to be deployed:
 - **Web Dashboard**: Provides the management interface
 - **PostgreSQL**: Database for persistence
 
-For a detailed explanation of the architecture, see [Hook0 Architecture Overview](../explanation/what-is-hook0.md#architecture-overview).
+For a detailed explanation of the architecture, see [Hook0 Architecture Overview](../explanation/hook0-architecture.md).
 
 ## Step 1: Prepare Your Environment
 

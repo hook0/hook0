@@ -341,4 +341,4 @@ Content-Security-Policy: default-src 'self'
 ## Next Steps
 
 - [Securing Webhook Endpoints](../how-to-guides/secure-webhook-endpoints.md)
-- [API Reference](../reference/api-reference.md)
+- [API Reference](../openapi/intro)

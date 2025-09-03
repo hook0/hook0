@@ -4,7 +4,7 @@ Technical reference documentation for Hook0. These information-oriented material
 
 ## API Documentation
 
-### [API Reference](api-reference.md)
+### [API Reference](../openapi/intro)
 Complete REST API documentation with all endpoints, parameters, and response formats.
 
 **Includes:**
@@ -114,7 +114,7 @@ Client libraries and SDKs for different programming languages.
 
 Hook0's API is documented in multiple formats:
 
-- **[OpenAPI 3.0 Specification](api-reference.md#openapi-specification)** - Machine-readable API spec
+- **[OpenAPI 3.0 Specification](../openapi/intro)** - Machine-readable API spec
 - **Interactive Documentation** - Built-in Swagger UI at `/docs`
 - **Postman Collection** - Ready-to-use API collection
 

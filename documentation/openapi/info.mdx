@@ -1,0 +1,151 @@
+---
+id: intro
+title: Hook0 API Reference
+sidebar_label: Introduction
+sidebar_position: 0
+---
+
+# Hook0 API Reference
+
+Welcome to the Hook0 API reference documentation. This comprehensive guide provides detailed information about all available API endpoints, request/response formats, and authentication methods.
+
+## Base URL
+
+```
+https://app.hook0.com/api/v1
+```
+
+For self-hosted instances, replace with your domain:
+```
+https://your-domain.com/api/v1
+```
+
+## Authentication
+
+Hook0 uses **Biscuit tokens** for authentication. All API requests must include an `Authorization` header:
+
+```http
+Authorization: Bearer biscuit:YOUR_TOKEN
+```
+
+### Token Types
+
+- **User Access Token**: For user-authenticated requests
+- **Service Token**: For application-to-application communication
+- **Refresh Token**: For obtaining new access tokens
+
+## API Organization
+
+The API is organized into the following sections:
+
+### 🔐 Authentication
+Endpoints for user authentication, token management, and password operations.
+
+### 🏢 Organizations
+Manage organizations, invitations, and member roles.
+
+### 📱 Applications
+Create and manage applications that send and receive webhooks.
+
+### 📊 Event Types
+Define the types of events your application can emit.
+
+### 📤 Events
+Send events and retrieve event history.
+
+### 🔔 Subscriptions
+Configure webhook subscriptions to receive events.
+
+### 📈 Request Attempts
+Monitor webhook delivery attempts and troubleshoot failures.
+
+### 🔑 Service Tokens
+Manage API tokens for programmatic access.
+
+## Rate Limiting
+
+API requests are rate-limited to ensure fair usage:
+
+- **Global limit**: 2000 requests/second
+- **Per-IP limit**: 200 requests/10ms
+- **Per-token limit**: 20 requests/100ms
+
+Rate limit headers are included in responses:
+- `X-RateLimit-Limit`: Maximum requests allowed
+- `X-RateLimit-Remaining`: Requests remaining
+- `X-RateLimit-Reset`: Time when limit resets
+
+## Error Handling
+
+Hook0 API uses standard HTTP status codes:
+
+- `200 OK`: Successful request
+- `201 Created`: Resource created successfully
+- `400 Bad Request`: Invalid request parameters
+- `401 Unauthorized`: Missing or invalid authentication
+- `403 Forbidden`: Insufficient permissions
+- `404 Not Found`: Resource not found
+- `429 Too Many Requests`: Rate limit exceeded
+- `500 Internal Server Error`: Server error
+
+Error responses include a JSON body:
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid request parameters",
+    "details": {
+      "field": "email",
+      "reason": "Invalid email format"
+    }
+  }
+}
+```
+
+## Pagination
+
+List endpoints support pagination using query parameters:
+
+- `limit`: Number of items per page (default: 20, max: 100)
+- `offset`: Number of items to skip
+- `sort`: Sort field and direction (e.g., `created_at:desc`)
+
+Example:
+```
+GET /api/v1/events?limit=50&offset=100&sort=created_at:desc
+```
+
+## Webhooks
+
+When subscribing to events, Hook0 will send webhooks with:
+
+- **Signature verification**: HMAC-SHA256 signature in `X-Hook0-Signature` header
+- **Retry logic**: Automatic retries with exponential backoff
+- **Idempotency**: Event IDs ensure exactly-once delivery
+
+## SDK Support
+
+Official SDKs are available for:
+
+- [JavaScript/TypeScript](../reference/sdk/javascript)
+- [Rust](../reference/sdk/rust)
+- Python (Coming soon)
+- Go (Coming soon)
+
+## Try It Out
+
+Each endpoint in this documentation includes an interactive "Try it out" feature. Simply:
+
+1. Click the "Try it out" button
+2. Enter your Biscuit token
+3. Fill in the request parameters
+4. Click "Execute" to send the request
+5. View the response
+
+## Need Help?
+
+- 📚 Check our [Tutorials](../tutorials/getting-started) for step-by-step guides
+- 🛠 Browse [How-to Guides](../how-to-guides/debug-failed-webhooks) for specific tasks
+- 💬 Join our [Discord community](https://discord.gg/hook0) for support
+- 📧 Contact support at support@hook0.com

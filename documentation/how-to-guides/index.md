@@ -54,7 +54,7 @@ These guides assume you:
 ## Related Resources
 
 - **[Tutorials](../tutorials/index.md)** - If you need to learn Hook0 basics first
-- **[API Reference](../reference/api-reference.md)** - For technical implementation details
+- **[API Reference](../openapi/intro)** - For technical implementation details
 - **[Configuration Reference](../reference/configuration.md)** - For all configuration options
 - **[Error Codes](../reference/error-codes.md)** - For troubleshooting specific errors
 

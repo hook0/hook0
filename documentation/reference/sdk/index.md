@@ -384,7 +384,7 @@ Want to contribute an SDK? Follow these guidelines:
 ## Getting Help
 
 ### Documentation
-- [API Reference](../api-reference.md) - Complete REST API documentation
+- [API Reference](../../openapi/intro) - Complete REST API documentation
 - [Tutorials](../../tutorials/) - Step-by-step guides
 - [How-to Guides](../../how-to-guides/) - Problem-solving guides
 

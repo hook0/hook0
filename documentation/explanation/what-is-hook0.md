@@ -99,4 +99,4 @@ Connect your application to external services like Slack, Discord, or custom sys
 
 - [Getting Started Tutorial](../tutorials/getting-started.md)
 - [System Architecture](./hook0-architecture.md) - Detailed technical architecture
-- [API Reference](../reference/api-reference.md)
+- [API Reference](../openapi/intro)

@@ -249,6 +249,6 @@ Now that you have the basics, try these advanced tutorials:
 
 ## API Reference
 
-- [Events API](../reference/api-reference.md#events)
-- [Subscriptions API](../reference/api-reference.md#subscriptions)
-- [Event Types API](../reference/api-reference.md#event-types)
+- [Events API](../openapi/intro)
+- [Subscriptions API](../openapi/intro)
+- [Event Types API](../openapi/intro)
