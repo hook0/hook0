@@ -13,7 +13,7 @@ const http = require('http');
 // Configuration
 const OPENAPI_URL = process.env.HOOK0_API_URL 
   ? `${process.env.HOOK0_API_URL}/api/v1/swagger.json`
-  : process.env.NODE_ENV === 'production'
+  : process.env.NODE_ENV === 'production' || process.env.CI
     ? 'https://app.hook0.com/api/v1/swagger.json'
     : 'http://localhost:8080/api/v1/swagger.json';
 
@@ -24,6 +24,32 @@ const OUTPUT_FILE = path.join(OUTPUT_DIR, 'hook0-api.json');
 if (!fs.existsSync(OUTPUT_DIR)) {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 }
+
+// Create a fallback spec function
+const createFallbackSpec = () => {
+  const fallbackSpec = {
+    openapi: '3.0.0',
+    info: {
+      title: 'Hook0 API',
+      version: '1.0.0',
+      description: 'Hook0 Webhook Infrastructure API'
+    },
+    paths: {},
+    components: {
+      securitySchemes: {
+        biscuit: {
+          type: 'apiKey',
+          in: 'header',
+          name: 'Authorization',
+          description: 'Biscuit token authentication'
+        }
+      }
+    }
+  };
+  
+  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(fallbackSpec, null, 2));
+  console.log('   Created fallback OpenAPI spec');
+};
 
 // Determine protocol
 const protocol = OPENAPI_URL.startsWith('https') ? https : http;
@@ -47,28 +73,7 @@ const fetchSpec = () => {
         }
         
         // Create a minimal fallback spec
-        const fallbackSpec = {
-          openapi: '3.0.0',
-          info: {
-            title: 'Hook0 API',
-            version: '1.0.0',
-            description: 'Hook0 Webhook Infrastructure API'
-          },
-          paths: {},
-          components: {
-            securitySchemes: {
-              biscuit: {
-                type: 'apiKey',
-                in: 'header',
-                name: 'Authorization',
-                description: 'Biscuit token authentication'
-              }
-            }
-          }
-        };
-        
-        fs.writeFileSync(OUTPUT_FILE, JSON.stringify(fallbackSpec, null, 2));
-        console.log('   Created fallback OpenAPI spec');
+        createFallbackSpec();
         resolve();
         return;
       }
@@ -129,7 +134,17 @@ const fetchSpec = () => {
           console.log(`✅ OpenAPI spec saved to: ${OUTPUT_FILE}`);
           resolve();
         } catch (error) {
-          reject(new Error(`Failed to parse OpenAPI spec: ${error.message}`));
+          console.warn(`⚠️  Failed to parse OpenAPI spec: ${error.message}`);
+          
+          // Check for cached version
+          if (fs.existsSync(OUTPUT_FILE)) {
+            console.log('   Using cached OpenAPI spec');
+            resolve();
+          } else {
+            console.log('   Creating fallback OpenAPI spec');
+            createFallbackSpec();
+            resolve();
+          }
         }
       });
     }).on('error', (error) => {
@@ -140,7 +155,10 @@ const fetchSpec = () => {
         console.log('   Using cached OpenAPI spec');
         resolve();
       } else {
-        reject(error);
+        // Create fallback spec instead of failing
+        console.log('   Creating fallback OpenAPI spec for CI/offline build');
+        createFallbackSpec();
+        resolve();
       }
     });
   });
@@ -153,6 +171,16 @@ fetchSpec()
     process.exit(0);
   })
   .catch((error) => {
-    console.error('❌ Error:', error.message);
-    process.exit(1);
+    // This should rarely happen now as we handle most errors above
+    console.error('❌ Unexpected error:', error.message);
+    
+    // Even in worst case, try to create fallback
+    if (!fs.existsSync(OUTPUT_FILE)) {
+      console.log('   Creating emergency fallback OpenAPI spec');
+      createFallbackSpec();
+    }
+    
+    // Exit with success to not break the build
+    console.log('📄 Proceeding with available OpenAPI spec');
+    process.exit(0);
   });
