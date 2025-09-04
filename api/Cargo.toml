@@ -20,7 +20,7 @@ async-recursion = "1.1.1"
 base64 = "0.22.1"
 biscuit-auth = { version = "6.0.0", features = ["uuid"] }
 chrono = { version = "0.4.41", features = ["serde"] }
-clap = { version = "4.5.45", features = ["derive", "env", "cargo", "wrap_help"] }
+clap = { version = "4.5.47", features = ["derive", "env", "cargo", "wrap_help"] }
 derive_more = { version = "2.0.1", features = ["into"] }
 futures-util = "0.3.31"
 governor = "0.8.1"
@@ -36,16 +36,16 @@ lettre = { version = "0.11.18", default-features = false, features = ["builder",
 log = "0.4.27"
 mrml = "5.0.0"
 paperclip = { version = "0.9.5", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
-regex = "1.11.1"
+regex = "1.11.2"
 reqwest = { version = "0.12.23", default-features = false, features = ["charset", "http2", "macos-system-configuration", "hickory-dns"] }
 sentry-actix = "0.42.0"
 serde = "1.0.219"
-serde_json = "1.0.142"
+serde_json = "1.0.143"
 sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "migrate"] }
 strum = { version = "0.27.2", features = ["derive"] }
-thiserror = "2.0.15"
-url = "2.5.4"
-uuid = { version = "1.18.0", features = ["serde", "v4"] }
+thiserror = "2.0.16"
+url = "2.5.7"
+uuid = { version = "1.18.1", features = ["serde", "v4"] }
 validator = { version = "0.20.0", features = ["derive", "unic"] }
 
 [dev-dependencies]
