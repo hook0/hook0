@@ -13,6 +13,8 @@ services:
       - POSTGRES_USER=${POSTGRES_USER:-postgres}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?postgres}
       - POSTGRES_DB=${POSTGRES_DB:-hook0}
+    ports:
+      - "5439:5432" # externe:interne
     networks:
       - hook0
     restart: unless-stopped
@@ -27,9 +29,11 @@ services:
       - mailpit-data:/data
     environment:
       - MP_DATABASE=/data/mailpit.db
-      # Coolify va générer automatiquement un domaine si besoin
       - SERVICE_FQDN_MAILPIT_8025=/mailpit
       - SERVICE_FQDN_MAILPIT_1025
+    ports:
+      - "8027:8025"
+      - "1025:1025"
     networks:
       - hook0
     restart: unless-stopped
@@ -54,6 +58,8 @@ services:
       - APP_URL=${APP_URL:?http://localhost:8001}
       - BISCUIT_PRIVATE_KEY=${BISCUIT_PRIVATE_KEY:?change-me-in-prod}
       - SERVICE_FQDN_API_${API_PORT:-8081}=/api
+    ports:
+      - "8081:8081"
     networks:
       - hook0
     restart: unless-stopped
@@ -73,6 +79,8 @@ services:
       dockerfile: frontend/Dockerfile
     environment:
       - SERVICE_FQDN_FRONTEND_80
+    ports:
+      - "8001:80"
     networks:
       - hook0
     restart: unless-stopped
