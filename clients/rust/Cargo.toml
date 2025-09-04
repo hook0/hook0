@@ -18,9 +18,9 @@ log = "0.4.27"
 reqwest = { version = "0.12.23", default-features = false, features = ["hickory-dns", "json"], optional = true }
 serde = { version = "1.0.219", features = ["derive"], optional = true }
 sha2 = { version = "0.10.9", optional = true }
-thiserror = "2.0.15"
-url = { version = "2.5.4", optional = true }
-uuid = { version = "1.18.0", features = ["serde", "v4"], optional = true }
+thiserror = "2.0.16"
+url = { version = "2.5.7", optional = true }
+uuid = { version = "1.18.1", features = ["serde", "v4"], optional = true }
 
 [dev-dependencies]
 actix-web = { version = "4.11.0", default-features = false, features = ["macros"] }
