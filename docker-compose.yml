@@ -57,7 +57,7 @@ services:
       - EMAIL_SENDER_ADDRESS=${EMAIL_SENDER_ADDRESS:?sender@hook0.local}
       - APP_URL=${APP_URL:?http://localhost:8001}
       - BISCUIT_PRIVATE_KEY=${BISCUIT_PRIVATE_KEY:?change-me-in-prod}
-      - SERVICE_FQDN_API_${API_PORT:-8081}=/api
+      - SERVICE_FQDN_API_8081=/api
     ports:
       - "8081:8081"
     networks:
