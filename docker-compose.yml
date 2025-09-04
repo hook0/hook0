@@ -10,15 +10,16 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=hook0
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-hook0}
     ports:
       - "5439:5432" # externe:interne
     networks:
       - hook0
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d $${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       timeout: 1s
       interval: 5s
 
@@ -28,6 +29,8 @@ services:
       - mailpit-data:/data
     environment:
       - MP_DATABASE=/data/mailpit.db
+      - SERVICE_FQDN_MAILPIT_8025=/mailpit
+      - SERVICE_FQDN_MAILPIT_1025
     ports:
       - "8027:8025"
       - "1025:1025"
@@ -47,13 +50,14 @@ services:
         FEATURES: "reqwest-rustls-tls-webpki-roots,application-secret-compatibility"
     environment:
       - IP=0.0.0.0
-      - PORT=8081
-      - CORS_ALLOWED_ORIGINS=http://localhost:8001
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/hook0
+      - PORT=${API_PORT:-8081}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-*}
+      - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?postgres}@postgres:5432/${POSTGRES_DB:-hook0}
       - SMTP_CONNECTION_URL=smtp://mailpit:1025
-      - EMAIL_SENDER_ADDRESS=sender@hook0.local
-      - APP_URL=http://localhost:8001
-      - BISCUIT_PRIVATE_KEY=bbea79cd66926b219b3219a3186decb36136d774dd7c35a8239e512090fa8854  # DO NOT USE THIS KEY IN PRODUCTION
+      - EMAIL_SENDER_ADDRESS=${EMAIL_SENDER_ADDRESS:?sender@hook0.local}
+      - APP_URL=${APP_URL:?http://localhost:8001}
+      - BISCUIT_PRIVATE_KEY=${BISCUIT_PRIVATE_KEY:?change-me-in-prod}
+      - SERVICE_FQDN_API_8081=/api
     ports:
       - "8081:8081"
     networks:
@@ -73,6 +77,8 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+    environment:
+      - SERVICE_FQDN_FRONTEND_80
     ports:
       - "8001:80"
     networks:
@@ -91,8 +97,8 @@ services:
       context: .
       dockerfile: output-worker/Dockerfile
     environment:
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/hook0
-      - WORKER_NAME=default
+      - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?postgres}@postgres:5432/${POSTGRES_DB:-hook0}
+      - WORKER_NAME=${WORKER_NAME:-default}
       - DISABLE_TARGET_IP_CHECK=true
     networks:
       - hook0
