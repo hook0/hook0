@@ -8,7 +8,7 @@ use reqwest::Url;
 use reqwest::header::{HeaderMap, HeaderName};
 use sqlx::postgres::types::PgInterval;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-use sqlx::{PgConnection, PgPool, query, query_as};
+use sqlx::{PgConnection, PgPool, query, query_as, query_scalar};
 use std::cmp::min;
 use std::collections::HashMap;
 use std::convert::TryFrom;
@@ -282,19 +282,19 @@ async fn look_for_work(
         let next_attempt = match worker_type {
             WorkerType::Public { worker_id } => {
                 // Only consider request attempts where associated subscription have no dedicated worker specified
-                query_as!(
-                    RequestAttempt,
+                query_scalar!(
                     "
-                        SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.retry_count, t_http.method AS http_method, t_http.url AS http_url, t_http.headers AS http_headers, e.event_type__name, e.payload AS payload, e.payload_content_type AS payload_content_type, s.secret
+                        SELECT ra.request_attempt__id
                         FROM webhook.request_attempt AS ra
                         INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
+                        INNER JOIN event.application AS a ON a.application__id = s.application__id
                         LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
-                        INNER JOIN event.application AS a ON a.application__id = s.application__id AND a.deleted_at IS NULL
-                        INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
-                        LEFT JOIN iam.organization__worker AS ow ON ow.organization__id = o.organization__id AND ow.default = true
-                        INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
-                        INNER JOIN event.event AS e ON e.event__id = ra.event__id
-                        WHERE ra.succeeded_at IS NULL AND ra.failed_at IS NULL AND (ra.delay_until IS NULL OR ra.delay_until <= statement_timestamp()) AND (COALESCE(sw.worker__id, ow.worker__id) IS NULL OR COALESCE(sw.worker__id, ow.worker__id) = $1)
+                        LEFT JOIN iam.organization__worker AS ow ON ow.organization__id = a.organization__id AND ow.default = true
+                        WHERE a.deleted_at IS NULL
+                            AND ra.succeeded_at IS NULL
+                            AND ra.failed_at IS NULL
+                            AND (ra.delay_until IS NULL OR ra.delay_until <= statement_timestamp())
+                            AND (COALESCE(sw.worker__id, ow.worker__id) IS NULL OR COALESCE(sw.worker__id, ow.worker__id) = $1)
                         ORDER BY ra.created_at ASC
                         LIMIT 1
                         FOR UPDATE OF ra
@@ -307,19 +307,19 @@ async fn look_for_work(
             }
             WorkerType::Private { worker_id } => {
                 // Only consider request attempts where associated subscription have at least the currect worker specified as dedicated worker
-                query_as!(
-                    RequestAttempt,
+                query_scalar!(
                     "
-                        SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.retry_count, t_http.method AS http_method, t_http.url AS http_url, t_http.headers AS http_headers, e.event_type__name, e.payload AS payload, e.payload_content_type AS payload_content_type, s.secret
+                        SELECT ra.request_attempt__id
                         FROM webhook.request_attempt AS ra
                         INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
+                        INNER JOIN event.application AS a ON a.application__id = s.application__id
                         LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
-                        INNER JOIN event.application AS a ON a.application__id = s.application__id AND a.deleted_at IS NULL
-                        INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
-                        LEFT JOIN iam.organization__worker AS ow ON ow.organization__id = o.organization__id AND ow.default = true
-                        INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
-                        INNER JOIN event.event AS e ON e.event__id = ra.event__id
-                        WHERE ra.succeeded_at IS NULL AND ra.failed_at IS NULL AND (ra.delay_until IS NULL OR ra.delay_until <= statement_timestamp()) AND (COALESCE(sw.worker__id, ow.worker__id) = $1)
+                        LEFT JOIN iam.organization__worker AS ow ON ow.organization__id = a.organization__id AND ow.default = true
+                        WHERE a.deleted_at IS NULL
+                            AND ra.succeeded_at IS NULL
+                            AND ra.failed_at IS NULL
+                            AND (ra.delay_until IS NULL OR ra.delay_until <= statement_timestamp())
+                            AND (COALESCE(sw.worker__id, ow.worker__id) = $1)
                         ORDER BY ra.created_at ASC
                         LIMIT 1
                         FOR UPDATE OF ra
@@ -332,12 +332,9 @@ async fn look_for_work(
             }
         };
 
-        if let Some(attempt) = next_attempt {
+        if let Some(attempt_id) = next_attempt {
             // Set picked_at
-            debug!(
-                "[unit={unit_id}] Picking request attempt {}",
-                &attempt.request_attempt__id
-            );
+            debug!("[unit={unit_id}] Picking request attempt {attempt_id}");
             query!(
                 "
                     UPDATE webhook.request_attempt
@@ -346,29 +343,40 @@ async fn look_for_work(
                 ",
                 &worker_name,
                 &worker_version,
-                attempt.request_attempt__id
+                attempt_id,
             )
             .execute(&mut *tx)
             .await?;
-            info!(
-                "[unit={unit_id}] Picked request attempt {}",
-                &attempt.request_attempt__id
-            );
+            info!("[unit={unit_id}] Picked request attempt {attempt_id}");
+
+            // Fetch data
+            let attempt = query_as!(
+                RequestAttempt,
+                "
+                    SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.retry_count, t_http.method AS http_method, t_http.url AS http_url, t_http.headers AS http_headers, e.event_type__name, e.payload AS payload, e.payload_content_type AS payload_content_type, s.secret
+                    FROM webhook.request_attempt AS ra
+                    INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
+                    INNER JOIN event.application AS a ON a.application__id = s.application__id AND a.deleted_at IS NULL
+                    INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
+                    INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
+                    INNER JOIN event.event AS e ON e.event__id = ra.event__id
+                    WHERE a.deleted_at IS NULL AND ra.request_attempt__id = $1
+                ",
+                attempt_id,
+            )
+            .fetch_one(&mut *tx)
+            .await?;
 
             // Work
             let response = work(config, &attempt).await;
             debug!(
-                "[unit={unit_id}] Got a response for request attempt {} in {} ms",
-                &attempt.request_attempt__id,
+                "[unit={unit_id}] Got a response for request attempt {attempt_id} in {} ms",
                 &response.elapsed_time_ms()
             );
             trace!("[unit={unit_id}] {:?}", &response);
 
             // Store response
-            debug!(
-                "[unit={unit_id}] Storing response for request attempt {}",
-                &attempt.request_attempt__id
-            );
+            debug!("[unit={unit_id}] Storing response for request attempt {attempt_id}");
             let response_id = query!(
                 "
                     INSERT INTO webhook.response (response_error__name, http_code, headers, body, elapsed_time_ms)
@@ -387,43 +395,33 @@ async fn look_for_work(
 
             // Associate response and request attempt
             debug!(
-                "[unit={unit_id}] Associating response {response_id} with request attempt {}",
-                &attempt.request_attempt__id
+                "[unit={unit_id}] Associating response {response_id} with request attempt {attempt_id}"
             );
             #[allow(clippy::suspicious_else_formatting)] // Clippy false positive
             query!(
                 "UPDATE webhook.request_attempt SET response__id = $1 WHERE request_attempt__id = $2",
-                response_id, attempt.request_attempt__id
+                response_id, attempt_id
             )
             .execute(&mut *tx)
             .await?;
 
             if response.is_success() {
                 // Mark attempt as completed
-                debug!(
-                    "[unit={unit_id}] Completing request attempt {}",
-                    &attempt.request_attempt__id
-                );
+                debug!("[unit={unit_id}] Completing request attempt {attempt_id}");
                 query!(
                     "UPDATE webhook.request_attempt SET succeeded_at = statement_timestamp() WHERE request_attempt__id = $1",
-                    attempt.request_attempt__id
+                    attempt_id
                 )
                 .execute(&mut *tx)
                 .await?;
 
-                info!(
-                    "[unit={unit_id}] Request attempt {} was completed sucessfully",
-                    &attempt.request_attempt__id
-                );
+                info!("[unit={unit_id}] Request attempt {attempt_id} was completed sucessfully");
             } else {
                 // Mark attempt as failed
-                debug!(
-                    "[unit={unit_id}] Failing request attempt {}",
-                    &attempt.request_attempt__id
-                );
+                debug!("[unit={unit_id}] Failing request attempt {attempt_id}");
                 query!(
                     "UPDATE webhook.request_attempt SET failed_at = statement_timestamp() WHERE request_attempt__id = $1",
-                    attempt.request_attempt__id
+                    attempt_id
                 )
                 .execute(&mut *tx)
                 .await?;
@@ -455,14 +453,13 @@ async fn look_for_work(
                     .request_attempt__id;
 
                     info!(
-                        "[unit={unit_id}] Request attempt {} failed; retry #{next_retry_count} created as {retry_id} to be picked in {}s",
-                        &attempt.request_attempt__id,
+                        "[unit={unit_id}] Request attempt {attempt_id} failed; retry #{next_retry_count} created as {retry_id} to be picked in {}s",
                         &retry_in.as_secs(),
                     );
                 } else {
                     info!(
-                        "[unit={unit_id}] Request attempt {} failed after {} attempts; giving up",
-                        &attempt.request_attempt__id, &attempt.retry_count,
+                        "[unit={unit_id}] Request attempt {attempt_id} failed after {} attempts; giving up",
+                        &attempt.retry_count,
                     );
                 }
             }
