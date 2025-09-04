@@ -387,8 +387,8 @@ async fn look_for_work(
 
             // Associate response and request attempt
             debug!(
-                "[unit={unit_id}] Associating response {} with request attempt {}",
-                &response_id, &attempt.request_attempt__id
+                "[unit={unit_id}] Associating response {response_id} with request attempt {}",
+                &attempt.request_attempt__id
             );
             #[allow(clippy::suspicious_else_formatting)] // Clippy false positive
             query!(
@@ -455,11 +455,9 @@ async fn look_for_work(
                     .request_attempt__id;
 
                     info!(
-                        "[unit={unit_id}] Request attempt {} failed; retry #{} created as {} to be picked in {}s",
+                        "[unit={unit_id}] Request attempt {} failed; retry #{next_retry_count} created as {retry_id} to be picked in {}s",
                         &attempt.request_attempt__id,
-                        &next_retry_count,
-                        &retry_id,
-                        &retry_in.as_secs()
+                        &retry_in.as_secs(),
                     );
                 } else {
                     info!(

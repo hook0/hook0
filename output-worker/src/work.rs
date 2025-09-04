@@ -202,10 +202,8 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
 
             debug!("Calling webhook...");
             trace!(
-                "HTTP {} {} {:?}",
+                "HTTP {} {url} {headers:?}",
                 &method.to_string().to_uppercase(),
-                &url,
-                &headers
             );
             let response = client
                 .request(method, url)
@@ -230,7 +228,7 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
                             elapsed_time: start.elapsed(),
                         }
                     } else {
-                        warn!("Webhook call failed with HTTP code {}", &status);
+                        warn!("Webhook call failed with HTTP code {status}");
                         Response {
                             response_error: Some(ResponseError::Http),
                             http_code: Some(status.as_u16()),
@@ -241,7 +239,7 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
                     }
                 }
                 Err(e) if e.is_connect() => {
-                    warn!("Webhook call failed with connection error: {}", &e);
+                    warn!("Webhook call failed with connection error: {e}");
                     Response {
                         response_error: Some(ResponseError::Connection),
                         http_code: None,
@@ -251,7 +249,7 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
                     }
                 }
                 Err(e) if e.is_timeout() => {
-                    warn!("Webhook call failed with timeout error: {}", &e);
+                    warn!("Webhook call failed with timeout error: {e}");
                     Response {
                         response_error: Some(ResponseError::Timeout),
                         http_code: None,
@@ -261,7 +259,7 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
                     }
                 }
                 Err(e) => {
-                    warn!("Webhook call failed with unknown error: {}", &e);
+                    warn!("Webhook call failed with unknown error: {e}");
                     Response {
                         response_error: Some(ResponseError::Unknown),
                         http_code: None,
@@ -273,7 +271,7 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
             }
         }
         (Err(e), _, _, _) => {
-            error!("Target has an invalid HTTP method: {}", &e);
+            error!("Target has an invalid HTTP method: {e}");
             Response {
                 response_error: Some(ResponseError::InvalidTarget),
                 http_code: None,
@@ -283,7 +281,7 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
             }
         }
         (_, Err(e), _, _) => {
-            warn!("Target has an invalid URL: {}", &e);
+            warn!("Target has an invalid URL: {e}");
             Response {
                 response_error: Some(ResponseError::InvalidTarget),
                 http_code: None,
@@ -293,7 +291,7 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
             }
         }
         (_, _, Err(e), _) => {
-            error!("Could not create HTTP client: {}", &e);
+            error!("Could not create HTTP client: {e}");
             Response {
                 response_error: Some(ResponseError::Unknown),
                 http_code: None,
@@ -303,7 +301,7 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
             }
         }
         (_, _, _, Err(e)) => {
-            error!("Target has invalid headers: {}", &e);
+            error!("Target has invalid headers: {e}");
             Response {
                 response_error: Some(ResponseError::InvalidTarget),
                 http_code: None,
