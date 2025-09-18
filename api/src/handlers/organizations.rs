@@ -424,16 +424,28 @@ pub async fn get(
         let consumption = query_as!(
             OrganizationConsumption,
             r#"
+                WITH members AS (
+                    SELECT COUNT(user__id) AS total
+                    FROM iam.user__organization
+                    WHERE organization__id = $1
+                ), applications AS (
+                    SELECT COUNT(application__id) AS total
+                    FROM event.application
+                    WHERE organization__id = $1
+                        AND deleted_at IS NULL
+                ), events_per_day AS (
+                    SELECT SUM(e.amount) AS total
+                    FROM event.events_per_day AS e
+                    INNER JOIN event.application AS a ON a.application__id = e.application__id
+                    WHERE a.organization__id = $1
+                        AND e.date = CURRENT_DATE
+                )
                 SELECT
-                    COALESCE(COUNT(DISTINCT uo.user__id), 0) AS members,
-                    COALESCE(COUNT(DISTINCT a.application__id), 0) AS applications,
-                    COALESCE(SUM(e.amount), 0) AS events_per_day
+                    COALESCE(members.total, 0) AS members,
+                    COALESCE(applications.total, 0) AS applications,
+                    COALESCE(events_per_day.total, 0) AS events_per_day
                 FROM
-                    iam.user__organization AS uo
-                    LEFT JOIN event.application AS a ON uo.organization__id = a.organization__id AND a.deleted_at IS NULL
-                    LEFT JOIN event.events_per_day AS e ON a.application__id = e.application__id AND e.date = CURRENT_DATE
-                WHERE
-                    uo.organization__id = $1
+                    members, applications, events_per_day
             "#,
             &organization_id
         )
