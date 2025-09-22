@@ -5,7 +5,7 @@ use biscuit_auth::{AuthorizerLimits, Biscuit, KeyPair, PrivateKey};
 use chrono::{DateTime, Utc};
 use log::{error, trace, warn};
 use paperclip::v2::schema::TypedData;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use sqlx::{PgPool, query_scalar};
 use std::collections::{BTreeMap, HashMap};
 use std::str::FromStr;
@@ -113,15 +113,6 @@ pub fn kc_group_paths_to_roles(groups: &[String]) -> std::collections::HashMap<U
     }
 
     organizations
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
-pub struct Hook0Claims {
-    pub sub: Uuid,
-    pub email: String,
-    pub given_name: Option<String>,
-    pub family_name: Option<String>,
-    pub groups: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone)]
