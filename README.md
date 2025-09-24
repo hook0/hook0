@@ -120,3 +120,6 @@ limitations:
 - You may not circumvent the license key functionality or remove/obscure features protect
 
 © Hook0 SAS
+
+
+[![Star History Chart](https://api.star-history.com/svg?repos=hook0/hook0&type=Date)](https://www.star-history.com/#hook0/hook0&Date)
