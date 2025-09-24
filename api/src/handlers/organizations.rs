@@ -783,17 +783,16 @@ pub async fn delete(
         return Err(Hook0Problem::Forbidden);
     }
 
-    let organization_is_empty = query!(
-        "
-            SELECT application__id
+    let organization_is_empty = query_scalar!(
+        r#"
+            SELECT COUNT(application__id) = 0 AS "empty!"
             FROM event.application
-            WHERE organization__id = $1
-        ",
+            WHERE organization__id = $1 AND deleted_at IS NULL
+        "#,
         &organization_id,
     )
-    .fetch_all(&state.db)
-    .await?
-    .is_empty();
+    .fetch_one(&state.db)
+    .await?;
 
     if organization_is_empty {
         query!(
