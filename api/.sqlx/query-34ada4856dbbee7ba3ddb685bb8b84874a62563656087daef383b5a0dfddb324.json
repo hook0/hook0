@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                    SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.picked_at, ra.failed_at, ra.succeeded_at, ra.delay_until, ra.response__id, ra.retry_count, s.description AS subscription__description\n                    FROM webhook.request_attempt AS ra\n                    INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id\n                    WHERE s.application__id = $1\n                    ORDER BY ra.created_at DESC\n                    LIMIT 50\n                ",
+  "query": "\n                    SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.picked_at, ra.failed_at, ra.succeeded_at, ra.delay_until, ra.response__id, ra.retry_count, s.description AS subscription__description\n                    FROM webhook.request_attempt AS ra\n                    INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id\n                    WHERE s.application__id = $1\n                        AND ra.event__id = $2\n                        AND (ra.created_at, ra.request_attempt__id) < ($3, $4)\n                        AND ra.created_at >= $5 AND ra.created_at <= $6\n                    ORDER BY ra.created_at DESC, ra.request_attempt__id ASC\n                    LIMIT 50\n                ",
   "describe": {
     "columns": [
       {
@@ -61,7 +61,12 @@
     ],
     "parameters": {
       "Left": [
-        "Uuid"
+        "Uuid",
+        "Uuid",
+        "Timestamptz",
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz"
       ]
     },
     "nullable": [
@@ -78,5 +83,5 @@
       true
     ]
   },
-  "hash": "ff04ae42c5a87275c9fe9b28d92ddad97013233c2bd198f43b8e827c60d99bdc"
+  "hash": "34ada4856dbbee7ba3ddb685bb8b84874a62563656087daef383b5a0dfddb324"
 }
