@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT worker__id, public\n            FROM infrastructure.worker\n            WHERE name = $1\n        ",
+  "query": "\n            SELECT worker__id, public, queue_type\n            FROM infrastructure.worker\n            WHERE name = $1\n        ",
   "describe": {
     "columns": [
       {
@@ -12,6 +12,11 @@
         "ordinal": 1,
         "name": "public",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 2,
+        "name": "queue_type",
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -21,8 +26,9 @@
     },
     "nullable": [
       false,
+      false,
       false
     ]
   },
-  "hash": "4ff3f63142ae27f321e6d9f976a6cf66e798e99eab98f213d96dbb2e2c663dc6"
+  "hash": "a4868fd5a5fe897cdd6034ae06cba5fc3929db38449bb2553621a8f4b9529a8c"
 }

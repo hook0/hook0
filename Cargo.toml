@@ -5,7 +5,7 @@ members = [
   "sentry-integration",
   "clients/rust"
 ]
-resolver = "2"
+resolver = "3"
 
 [profile.release]
 lto = true
