@@ -11,9 +11,12 @@ use ipnetwork::IpNetwork;
 use lettre::Address;
 use log::{debug, info, trace, warn};
 use paperclip::actix::{OpenApiExt, web};
+use pulsar::{Authentication, MultiTopicProducer, ProducerOptions, Pulsar, TokioExecutor};
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 use std::str::FromStr;
+use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::Mutex;
 use url::Url;
 use uuid::Uuid;
 
@@ -69,6 +72,11 @@ const WEBAPP_INDEX_FILE: &str = "index.html";
         .multiple(true)
         .requires_all(&["cloudflare_turnstile_site_key", "cloudflare_turnstile_secret_key"]),
 ))]
+#[clap(group(
+    ArgGroup::new("pulsar")
+        .multiple(true)
+        .requires_all(&["pulsar_binary_url", "pulsar_token", "pulsar_tenant", "pulsar_namespace"]),
+))]
 struct Config {
     /// IP address on which to start the HTTP server
     #[clap(long, env, default_value = "127.0.0.1")]
@@ -105,6 +113,22 @@ struct Config {
     /// Maximum number of connections to database
     #[clap(long, env, default_value = "5")]
     max_db_connections: u32,
+
+    /// Pulsar binary URL
+    #[clap(long, env, group = "pulsar")]
+    pulsar_binary_url: Option<Url>,
+
+    /// Pulsar token
+    #[clap(long, env, hide_env_values = true, group = "pulsar")]
+    pulsar_token: Option<String>,
+
+    /// Pulsar tenant
+    #[clap(long, env, group = "pulsar")]
+    pulsar_tenant: Option<String>,
+
+    /// Pulsar namespace
+    #[clap(long, env, group = "pulsar")]
+    pulsar_namespace: Option<String>,
 
     /// Path to the directory containing the web app to serve
     #[clap(long, env, default_value = "../frontend/dist/")]
@@ -411,6 +435,7 @@ fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
 #[derive(Debug, Clone)]
 pub struct State {
     db: PgPool,
+    pulsar: Option<Arc<PulsarConfig>>,
     biscuit_private_key: PrivateKey,
     mailer: mailer::Mailer,
     app_url: Url,
@@ -443,6 +468,37 @@ pub struct State {
     support_email_address: Address,
     cloudflare_turnstile_site_key: Option<String>,
     cloudflare_turnstile_secret_key: Option<String>,
+}
+
+#[derive(Clone)]
+struct PulsarConfig {
+    #[allow(dead_code)]
+    pulsar: Pulsar<TokioExecutor>,
+    tenant: String,
+    namespace: String,
+    request_attempts_producer: Arc<Mutex<MultiTopicProducer<TokioExecutor>>>,
+}
+
+// A Debug implementation that gets around Pulsar<TokioExecutor> not implementing Debug
+impl std::fmt::Debug for PulsarConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        #[allow(dead_code)]
+        #[derive(Debug)]
+        struct PulsarConfigForDebug<'a> {
+            pulsar: &'a str,
+            tenant: &'a str,
+            namespace: &'a str,
+        }
+
+        std::fmt::Debug::fmt(
+            &PulsarConfigForDebug {
+                pulsar: "[Pulsar connection]",
+                tenant: &self.tenant,
+                namespace: &self.namespace,
+            },
+            f,
+        )
+    }
 }
 
 #[actix_web::main]
@@ -521,6 +577,52 @@ async fn main() -> anyhow::Result<()> {
             info!("Checking/running DB migrations");
             sqlx::migrate!("./migrations").run(&pool).await?;
         }
+
+        // Create Pulsar client
+        let pulsar_config = if let (
+            Some(pulsar_binary_url),
+            Some(pulsar_token),
+            Some(pulsar_tenant),
+            Some(pulsar_namespace),
+        ) = (
+            config.pulsar_binary_url,
+            config.pulsar_token,
+            config.pulsar_tenant,
+            config.pulsar_namespace,
+        ) {
+            rustls::crypto::ring::default_provider()
+                .install_default()
+                .unwrap();
+
+            let pulsar = Pulsar::builder(pulsar_binary_url, TokioExecutor)
+                .with_auth(Authentication {
+                    name: "token".to_owned(),
+                    data: pulsar_token.into_bytes(),
+                })
+                .build()
+                .await?;
+
+            let request_attempts_producer = pulsar
+                .producer()
+                .with_name(format!(
+                    "hook0-api.request-attempts-producer.{}",
+                    Uuid::now_v7()
+                ))
+                .with_options(ProducerOptions {
+                    block_queue_if_full: true,
+                    ..Default::default()
+                })
+                .build_multi_topic();
+
+            Some(Arc::new(PulsarConfig {
+                pulsar,
+                tenant: pulsar_tenant,
+                namespace: pulsar_namespace,
+                request_attempts_producer: Arc::new(Mutex::new(request_attempts_producer)),
+            }))
+        } else {
+            None
+        };
 
         // Initialize Hook0 client
         let hook0_client = hook0_client::initialize(
@@ -659,6 +761,7 @@ async fn main() -> anyhow::Result<()> {
         // Initialize state
         let initial_state = State {
             db: pool,
+            pulsar: pulsar_config,
             app_url: config.app_url,
             biscuit_private_key,
             mailer,
