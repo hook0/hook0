@@ -1,0 +1,262 @@
+use anyhow::anyhow;
+use log::{debug, info, trace};
+use sqlx::postgres::types::PgInterval;
+use sqlx::{PgPool, query, query_as};
+use std::time::Duration;
+use tokio::sync::mpsc::Sender;
+use tokio::time::sleep;
+use tokio_util::task::TaskTracker;
+
+use crate::work::work;
+use crate::{Config, RequestAttempt, Worker, WorkerScope, compute_next_retry};
+
+/// Minimum duration to wait when there are no unprocessed items to pick
+const MIN_POLLING_SLEEP: Duration = Duration::from_secs(1);
+
+/// Maximum duration to wait when there are no unprocessed items to pick
+const MAX_POLLING_SLEEP: Duration = Duration::from_secs(10);
+
+#[allow(clippy::too_many_arguments)]
+pub async fn look_for_work(
+    config: &Config,
+    unit_id: u16,
+    pool: &PgPool,
+    worker: &Worker,
+    worker_version: &str,
+    heartbeat_tx: Option<Sender<u16>>,
+    task_tracker: &TaskTracker,
+) -> anyhow::Result<()> {
+    info!("[unit={unit_id}] Begin looking for work");
+    loop {
+        trace!("[unit={unit_id}] Fetching next unprocessed request attempt...");
+        let mut tx = pool.begin().await?;
+
+        let next_attempt = match worker.scope {
+            WorkerScope::Public { worker_id } => {
+                // Only consider request attempts where associated subscription have no dedicated worker specified
+                query_as!(
+                    RequestAttempt,
+                    "
+                        SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.retry_count, t_http.method AS http_method, t_http.url AS http_url, t_http.headers AS http_headers, e.event_type__name, e.payload AS payload, e.payload_content_type AS payload_content_type, s.secret
+                        FROM webhook.request_attempt AS ra
+                        INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
+                        LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
+                        INNER JOIN event.application AS a ON a.application__id = s.application__id AND a.deleted_at IS NULL
+                        INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
+                        LEFT JOIN iam.organization__worker AS ow ON ow.organization__id = o.organization__id AND ow.default = true
+                        INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
+                        INNER JOIN event.event AS e ON e.event__id = ra.event__id
+                        WHERE ra.succeeded_at IS NULL AND ra.failed_at IS NULL AND (ra.delay_until IS NULL OR ra.delay_until <= statement_timestamp()) AND (COALESCE(sw.worker__id, ow.worker__id) IS NULL OR COALESCE(sw.worker__id, ow.worker__id) = $1)
+                        ORDER BY ra.created_at ASC
+                        LIMIT 1
+                        FOR UPDATE OF ra
+                        SKIP LOCKED
+                    ",
+                    worker_id.to_owned(),
+                )
+                .fetch_optional(&mut *tx)
+                .await?
+            }
+            WorkerScope::Private { worker_id } => {
+                // Only consider request attempts where associated subscription have at least the currect worker specified as dedicated worker
+                query_as!(
+                    RequestAttempt,
+                    "
+                        SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.retry_count, t_http.method AS http_method, t_http.url AS http_url, t_http.headers AS http_headers, e.event_type__name, e.payload AS payload, e.payload_content_type AS payload_content_type, s.secret
+                        FROM webhook.request_attempt AS ra
+                        INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
+                        LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
+                        INNER JOIN event.application AS a ON a.application__id = s.application__id AND a.deleted_at IS NULL
+                        INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
+                        LEFT JOIN iam.organization__worker AS ow ON ow.organization__id = o.organization__id AND ow.default = true
+                        INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
+                        INNER JOIN event.event AS e ON e.event__id = ra.event__id
+                        WHERE ra.succeeded_at IS NULL AND ra.failed_at IS NULL AND (ra.delay_until IS NULL OR ra.delay_until <= statement_timestamp()) AND (COALESCE(sw.worker__id, ow.worker__id) = $1)
+                        ORDER BY ra.created_at ASC
+                        LIMIT 1
+                        FOR UPDATE OF ra
+                        SKIP LOCKED
+                    ",
+                    &worker_id,
+                )
+                .fetch_optional(&mut *tx)
+                .await?
+            }
+        };
+
+        if let Some(attempt) = next_attempt {
+            // Set picked_at
+            debug!(
+                "[unit={unit_id}] Picking request attempt {}",
+                &attempt.request_attempt__id
+            );
+            query!(
+                "
+                    UPDATE webhook.request_attempt
+                    SET picked_at = statement_timestamp(), worker_name = $1, worker_version = $2
+                    WHERE request_attempt__id = $3
+                ",
+                &worker.name,
+                &worker_version,
+                attempt.request_attempt__id
+            )
+            .execute(&mut *tx)
+            .await?;
+            info!(
+                "[unit={unit_id}] Picked request attempt {}",
+                &attempt.request_attempt__id
+            );
+
+            // Work
+            let response = work(config, &attempt).await;
+            debug!(
+                "[unit={unit_id}] Got a response for request attempt {} in {} ms",
+                &attempt.request_attempt__id,
+                &response.elapsed_time_ms()
+            );
+            trace!("[unit={unit_id}] {response:?}");
+
+            // Store response
+            debug!(
+                "[unit={unit_id}] Storing response for request attempt {}",
+                &attempt.request_attempt__id
+            );
+            let response_id = query!(
+                "
+                    INSERT INTO webhook.response (response_error__name, http_code, headers, body, elapsed_time_ms)
+                    VALUES ($1, $2, $3, $4, $5)
+                    RETURNING response__id
+                ",
+                response.response_error__name(),
+                response.http_code(),
+                response.headers(),
+                response.body,
+                response.elapsed_time_ms(),
+            )
+            .fetch_one(&mut *tx)
+            .await?
+            .response__id;
+
+            // Associate response and request attempt
+            debug!(
+                "[unit={unit_id}] Associating response {response_id} with request attempt {}",
+                &attempt.request_attempt__id
+            );
+            query!(
+                "UPDATE webhook.request_attempt SET response__id = $1 WHERE request_attempt__id = $2",
+                response_id, attempt.request_attempt__id
+            )
+            .execute(&mut *tx)
+            .await?;
+
+            if response.is_success() {
+                // Mark attempt as completed
+                debug!(
+                    "[unit={unit_id}] Completing request attempt {}",
+                    &attempt.request_attempt__id
+                );
+                query!(
+                    "UPDATE webhook.request_attempt SET succeeded_at = statement_timestamp() WHERE request_attempt__id = $1",
+                    attempt.request_attempt__id
+                )
+                .execute(&mut *tx)
+                .await?;
+
+                info!(
+                    "[unit={unit_id}] Request attempt {} was completed sucessfully",
+                    &attempt.request_attempt__id
+                );
+            } else {
+                // Mark attempt as failed
+                debug!(
+                    "[unit={unit_id}] Failing request attempt {}",
+                    &attempt.request_attempt__id
+                );
+                query!(
+                    "UPDATE webhook.request_attempt SET failed_at = statement_timestamp() WHERE request_attempt__id = $1",
+                    attempt.request_attempt__id
+                )
+                .execute(&mut *tx)
+                .await?;
+
+                // Creating a retry request or giving up
+                if let Some(retry_in) = compute_next_retry(
+                    &mut tx,
+                    &attempt.subscription__id,
+                    config.max_fast_retries,
+                    config.max_slow_retries,
+                    attempt.retry_count,
+                )
+                .await?
+                {
+                    let next_retry_count = attempt.retry_count + 1;
+                    let retry_id = query!(
+                        "
+                            INSERT INTO webhook.request_attempt (event__id, subscription__id, delay_until, retry_count)
+                            VALUES ($1, $2, statement_timestamp() + $3, $4)
+                            RETURNING request_attempt__id
+                        ",
+                        attempt.event__id,
+                        attempt.subscription__id,
+                        PgInterval::try_from(retry_in).unwrap(),
+                        next_retry_count,
+                    )
+                    .fetch_one(&mut *tx)
+                    .await?
+                    .request_attempt__id;
+
+                    info!(
+                        "[unit={unit_id}] Request attempt {} failed; retry #{next_retry_count} created as {retry_id} to be picked in {}s",
+                        &attempt.request_attempt__id,
+                        &retry_in.as_secs(),
+                    );
+                } else {
+                    info!(
+                        "[unit={unit_id}] Request attempt {} failed after {} attempts; giving up",
+                        &attempt.request_attempt__id, &attempt.retry_count,
+                    );
+                }
+            }
+
+            // Commit transaction
+            tx.commit().await?;
+        } else {
+            trace!("[unit={unit_id}] No unprocessed attempt found");
+
+            // Commit transaction
+            tx.commit().await?;
+
+            wait_because_no_work(unit_id).await;
+        }
+
+        // Send monitoring heartbeat if necessary
+        if let Some(ref tx) = heartbeat_tx {
+            tx.send(unit_id).await?;
+        }
+
+        if task_tracker.is_closed() {
+            break;
+        }
+    }
+
+    if task_tracker.is_closed() {
+        Ok(())
+    } else {
+        Err(anyhow!("Unit {unit_id} crashed"))
+    }
+}
+
+async fn wait_because_no_work(unit_id: u16) {
+    // In order to reduce load on the database when there is no work to do, but simultaneously keep a low latency when some work becomes available,
+    // we wait a variable duration between checks:
+    // - for unit 0, we wait for a short duration, so that new work gets picked up fast
+    // - for units 1 and 2, we wait for a medium duration
+    // - for units > 3, we wait for a long duration, to avoid unnecessary stress on the database
+    // Note: units do not wait after finishing a task (they keep going as fast as possible), they wait only if there is no more work to do
+    let sleep_duration = match unit_id {
+        0 => MIN_POLLING_SLEEP,
+        1 | 2 => (MIN_POLLING_SLEEP + MAX_POLLING_SLEEP) / 2,
+        _ => MAX_POLLING_SLEEP,
+    };
+    sleep(sleep_duration).await;
+}
