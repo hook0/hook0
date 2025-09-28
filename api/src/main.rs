@@ -30,6 +30,7 @@ mod middleware_get_user_ip;
 mod old_events_cleanup;
 mod onboarding;
 mod openapi;
+mod pagination;
 mod problems;
 mod quotas;
 mod rate_limiting;
