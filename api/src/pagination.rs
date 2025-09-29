@@ -1,16 +1,14 @@
-use std::str::FromStr;
-
 use actix_web::Responder;
-use actix_web::http::header::{HeaderName, HeaderValue};
+use actix_web::http::header::{HeaderValue, LINK};
 use base64::engine::Engine;
 use base64::prelude::BASE64_URL_SAFE;
 use chrono::{DateTime, Utc};
 use paperclip::actix::OperationModifier;
 use paperclip::v2::schema::{Apiv2Schema, TypedData};
 use serde::{Deserialize, Deserializer, Serialize};
+use std::str::FromStr;
+use url::Url;
 use uuid::Uuid;
-
-const NEXT_CURSOR_HEADER_NAME: HeaderName = HeaderName::from_static("x-pagination-cursor");
 
 /// A pagination cursor
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
@@ -20,11 +18,10 @@ pub struct Cursor {
 }
 
 impl Cursor {
-    pub fn to_header_value(self) -> Option<HeaderValue> {
+    pub fn to_qs_value(self) -> Option<String> {
         serde_json::to_vec(&self)
             .ok()
             .map(|bytes| BASE64_URL_SAFE.encode(bytes))
-            .and_then(|b64| HeaderValue::from_str(&b64).ok())
     }
 }
 
@@ -72,19 +69,47 @@ impl<'de> Deserialize<'de> for EncodedDescCursor {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct NextPageParts {
+    pub endpoint_url: Url,
+    pub qs: Vec<(&'static str, Option<String>)>,
+    pub cursor: Cursor,
+}
+
+impl NextPageParts {
+    pub fn mk_url(mut self) -> Url {
+        let filtered_qs = self
+            .qs
+            .into_iter()
+            .chain([("pagination_cursor", self.cursor.to_qs_value())])
+            .filter_map(|(k, v_opt)| v_opt.map(|v| (k, v)));
+        self.endpoint_url
+            .query_pairs_mut()
+            .extend_pairs(filtered_qs);
+        self.endpoint_url
+    }
+}
+
 /// Wrapper arround any Actix Web responder to add a header containing the next pagination cursor
 #[derive(Debug, Clone)]
-pub struct Paginated<T: Apiv2Schema + OperationModifier + Responder>(pub T, pub Option<Cursor>);
+pub struct Paginated<T: Apiv2Schema + OperationModifier + Responder> {
+    pub data: T,
+    pub next_page_parts: Option<NextPageParts>,
+}
 
 impl<T: Apiv2Schema + OperationModifier + Responder> Responder for Paginated<T> {
     type Body = T::Body;
 
     fn respond_to(self, req: &actix_web::HttpRequest) -> actix_web::HttpResponse<Self::Body> {
-        let mut res = self.0.respond_to(req);
-        if let Some(cursor) = self.1.and_then(|c| c.to_header_value()) {
+        let mut res = self.data.respond_to(req);
+
+        if let Some(link_hv) = self.next_page_parts.and_then(|parts| {
+            HeaderValue::from_str(&format!(r#"<{}>; rel="next""#, parts.mk_url())).ok()
+        }) {
             let headers = res.headers_mut();
-            headers.insert(NEXT_CURSOR_HEADER_NAME, cursor);
+            headers.insert(LINK, link_hv);
         }
+
         res
     }
 }
@@ -106,8 +131,26 @@ mod tests {
             date: Utc.with_ymd_and_hms(2025, 9, 28, 18, 0, 0).unwrap(),
             id: uuid!("8f27f238-ed88-4330-927f-0d20796da285"),
         };
-        let encoded = cursor.to_header_value().unwrap();
-        let decoded = EncodedDescCursor::from_str(encoded.to_str().unwrap()).unwrap();
+        let encoded = cursor.to_qs_value().unwrap();
+        let decoded = EncodedDescCursor::from_str(&encoded).unwrap();
         assert_eq!(decoded.0, cursor)
+    }
+
+    #[test]
+    fn next_page_url() {
+        let next_page_parts = NextPageParts {
+            endpoint_url: Url::parse("https://test.local/endpoint").unwrap(),
+            qs: vec![
+                ("k1", Some("v1".to_owned())),
+                ("k2", None),
+                ("k3", Some("v3".to_owned())),
+            ],
+            cursor: Cursor {
+                date: DateTime::UNIX_EPOCH,
+                id: Uuid::nil(),
+            },
+        };
+        let expected = Url::parse("https://test.local/endpoint?k1=v1&k3=v3&pagination_cursor=eyJkYXRlIjoiMTk3MC0wMS0wMVQwMDowMDowMFoiLCJpZCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMCJ9").unwrap();
+        assert_eq!(next_page_parts.mk_url(), expected)
     }
 }
