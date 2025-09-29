@@ -1,16 +1,18 @@
 use actix_web::web::ReqData;
 use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};
+use log::error;
 use paperclip::actix::web::{Data, Json, Query};
 use paperclip::actix::{Apiv2Schema, api_v2_operation};
 use serde::{Deserialize, Serialize};
 use sqlx::query_as;
 use std::cmp::max;
+use url::Url;
 use uuid::Uuid;
 
 use crate::iam::{Action, authorize_for_application};
 use crate::openapi::OaBiscuit;
-use crate::pagination::{Cursor, EncodedDescCursor, Paginated};
+use crate::pagination::{Cursor, EncodedDescCursor, NextPageParts, Paginated};
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -102,7 +104,7 @@ pub struct Qs {
 
 #[api_v2_operation(
     summary = "List request attempts",
-    description = "Retrieves the most recent attempts to deliver events to subscriptions for a given application. Request attempts track the status and history of event deliveries, including retries and failures. This endpoint is paginated: extract pagination cursor from the `x-pagination-cursor` response header and put it in the `pagination_cursor` query string parameter to get more items.",
+    description = "Retrieves the most recent attempts to deliver events to subscriptions for a given application. Request attempts track the status and history of event deliveries, including retries and failures. This endpoint is paginated: the next URL is given in the `Link` header of the response, following HATEOAS conventions.",
     operation_id = "requestAttempts.read",
     consumes = "application/json",
     produces = "application/json",
@@ -276,10 +278,44 @@ pub async fn list(
         })
         .collect::<Vec<_>>();
 
-    let cursor = request_attempts.last().map(|ra| Cursor {
-        date: ra.created_at,
-        id: ra.request_attempt_id,
+    let next_page_parts = request_attempts.last().and_then(|ra| {
+        if state.app_url.as_str().ends_with('/') {
+            Ok(state.app_url.clone())
+        } else {
+            Url::parse(&format!("{}/", &state.app_url))
+        }
+        .inspect_err(|e| {
+            error!("Error that should never happen while building app URL for pagination: {e}");
+        })
+        .ok()
+        .and_then(|app_url| {
+            app_url
+                .join("/api/v1/request_attempts")
+                .inspect_err(|e| {
+                    error!(
+                        "Error that should never happen while building app URL for pagination: {e}"
+                    );
+                })
+                .ok()
+        })
+        .map(|endpoint_url| NextPageParts {
+            endpoint_url,
+            qs: vec![
+                ("application_id", Some(qs.application_id.to_string())),
+                ("event_id", qs.event_id.map(|v| v.to_string())),
+                ("subscription_id", qs.subscription_id.map(|v| v.to_string())),
+                ("min_created_at", qs.min_created_at.map(|v| v.to_string())),
+                ("max_created_at", qs.max_created_at.map(|v| v.to_string())),
+            ],
+            cursor: Cursor {
+                date: ra.created_at,
+                id: ra.request_attempt_id,
+            },
+        })
     });
 
-    Ok(Paginated(Json(request_attempts), cursor))
+    Ok(Paginated {
+        data: Json(request_attempts),
+        next_page_parts,
+    })
 }
