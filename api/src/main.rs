@@ -11,10 +11,10 @@ use ipnetwork::IpNetwork;
 use lettre::Address;
 use log::{debug, info, trace, warn};
 use paperclip::actix::{OpenApiExt, web};
-use reqwest::Url;
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 use std::str::FromStr;
 use std::time::Duration;
+use url::Url;
 use uuid::Uuid;
 
 mod cloudflare_turnstile;
@@ -30,6 +30,7 @@ mod middleware_get_user_ip;
 mod old_events_cleanup;
 mod onboarding;
 mod openapi;
+mod pagination;
 mod problems;
 mod quotas;
 mod rate_limiting;
@@ -340,7 +341,7 @@ struct Config {
     #[clap(long, env, default_value = "https://app.hook0.com/256x256.png")]
     email_logo_url: Url,
 
-    /// Frontend application URL (used for building links in emails)
+    /// Frontend application URL (used for building links in emails and pagination)
     #[clap(long, env)]
     app_url: Url,
 
