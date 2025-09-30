@@ -4,9 +4,7 @@ use base64::engine::Engine;
 use base64::prelude::BASE64_URL_SAFE;
 use chrono::{DateTime, Utc};
 use paperclip::actix::OperationModifier;
-use paperclip::v2::models::{
-    DataType, DefaultOperationRaw, DefaultSchemaRaw, Either, Header, Parameter, SecurityScheme,
-};
+use paperclip::v2::models::{DefaultOperationRaw, DefaultSchemaRaw, Parameter, SecurityScheme};
 use paperclip::v2::schema::{Apiv2Schema, TypedData};
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::BTreeMap;
@@ -155,31 +153,18 @@ impl<T: Apiv2Schema + OperationModifier + Responder> OperationModifier for Pagin
 
     fn update_response(_op: &mut DefaultOperationRaw) {
         T::update_response(_op);
-        if let Some(Either::Right(res)) = _op.responses.get_mut("200") {
-            res.headers.insert(
-                LINK.to_string(),
-                Header {
-                    description: Some(r#"Value following HATEOAS conventions; for example: \<https://hook0_domain/endpoint?pagination_cursor=SOME_VALUE\>; rel="next""#.to_owned()),
-                    data_type: Some(DataType::String),
-                    format: None,
-                    items: None,
-                    collection_format: None,
-                    default: None,
-                    enum_: Vec::new(),
-                    maximum: None,
-                    exclusive_maximum: None,
-                    minimum: None,
-                    exclusive_minimum: None,
-                    max_length: None,
-                    min_length: None,
-                    pattern: None,
-                    max_items: None,
-                    min_items: None,
-                    unique_items: None,
-                    multiple_of: None,
-                },
-            );
-        }
+
+        // Paperclip currently does not handle headers in responses
+        // if let Some(Either::Right(res)) = _op.responses.get_mut("200") {
+        //     res.headers.insert(
+        //         LINK.to_string(),
+        //         Header {
+        //             description: Some(r#"Value following HATEOAS conventions; for example: \<https://hook0_domain/endpoint?pagination_cursor=SOME_VALUE\>; rel="next""#.to_owned()),
+        //             data_type: Some(DataType::String),
+        //             ..Default::default()
+        //         },
+        //     );
+        // }
     }
 
     fn update_definitions(map: &mut BTreeMap<String, DefaultSchemaRaw>) {
