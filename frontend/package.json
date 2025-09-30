@@ -38,7 +38,7 @@
     "generate:types:prod": "openapi-typescript https://app.hook0.com/api/v1/swagger.json --output src/types.ts && npm run --silent format"
   },
   "dependencies": {
-    "@biscuit-auth/biscuit-wasm": "^0.5.0",
+    "@biscuit-auth/biscuit-wasm": "^0.6.0",
     "@codemirror/lang-json": "^6.0.1",
     "@codemirror/theme-one-dark": "^6.1.0",
     "@formbricks/js": "^4.1.0",
@@ -72,7 +72,7 @@
     "@types/jest": "^30.0.0",
     "@types/lodash.debounce": "^4.0.7",
     "@types/ramda": "^0.31.1",
-    "@types/swagger-ui": "^3.52.4",
+    "@types/swagger-ui": "^5.21.1",
     "@vitejs/plugin-vue": "^5.0.2",
     "@vue/eslint-config-typescript": "^13.0.0",
     "autoprefixer": "^10.4.0",

@@ -1,4 +1,4 @@
-import { Biscuit, block, PublicKey } from '@biscuit-auth/biscuit-wasm';
+import { Biscuit, block, PublicKey, SignatureAlgorithm } from '@biscuit-auth/biscuit-wasm';
 import http, { handleError, Problem, UUID } from '@/http.ts';
 import { parse } from 'uuid';
 import { AxiosError, AxiosResponse } from 'axios';
@@ -33,7 +33,7 @@ export function attenuateBiscuit(
   expired_at: Date | null,
   biscuitPublicKey: string
 ): Biscuit {
-  const public_key: PublicKey = PublicKey.fromString(biscuitPublicKey);
+  const public_key: PublicKey = PublicKey.fromString(biscuitPublicKey, SignatureAlgorithm.Ed25519);
   let biscuit: Biscuit;
   try {
     biscuit = Biscuit.fromBase64(biscuit_token, public_key);
