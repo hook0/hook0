@@ -4,8 +4,12 @@ use base64::engine::Engine;
 use base64::prelude::BASE64_URL_SAFE;
 use chrono::{DateTime, Utc};
 use paperclip::actix::OperationModifier;
+use paperclip::v2::models::{
+    DataType, DefaultOperationRaw, DefaultSchemaRaw, Either, Header, Parameter, SecurityScheme,
+};
 use paperclip::v2::schema::{Apiv2Schema, TypedData};
 use serde::{Deserialize, Deserializer, Serialize};
+use std::collections::BTreeMap;
 use std::str::FromStr;
 use url::Url;
 use uuid::Uuid;
@@ -127,46 +131,66 @@ impl<T: Apiv2Schema + OperationModifier + Responder> Apiv2Schema for Paginated<T
         T::required()
     }
 
-    fn raw_schema() -> paperclip::v2::models::DefaultSchemaRaw {
+    fn raw_schema() -> DefaultSchemaRaw {
         T::raw_schema()
     }
 
-    fn schema_with_ref() -> paperclip::v2::models::DefaultSchemaRaw {
+    fn schema_with_ref() -> DefaultSchemaRaw {
         T::schema_with_ref()
     }
 
-    fn security_scheme() -> Option<paperclip::v2::models::SecurityScheme> {
+    fn security_scheme() -> Option<SecurityScheme> {
         T::security_scheme()
     }
 
-    fn header_parameter_schema()
-    -> Vec<paperclip::v2::models::Parameter<paperclip::v2::models::DefaultSchemaRaw>> {
+    fn header_parameter_schema() -> Vec<Parameter<DefaultSchemaRaw>> {
         T::header_parameter_schema()
     }
 }
 
 impl<T: Apiv2Schema + OperationModifier + Responder> OperationModifier for Paginated<T> {
-    fn update_parameter(op: &mut paperclip::v2::models::DefaultOperationRaw) {
+    fn update_parameter(op: &mut DefaultOperationRaw) {
         T::update_parameter(op);
     }
 
-    fn update_response(_op: &mut paperclip::v2::models::DefaultOperationRaw) {
+    fn update_response(_op: &mut DefaultOperationRaw) {
         T::update_response(_op);
+        if let Some(Either::Right(res)) = _op.responses.get_mut("200") {
+            res.headers.insert(
+                LINK.to_string(),
+                Header {
+                    description: Some(r#"Value following HATEOAS conventions; for example: \<https://hook0_domain/endpoint?pagination_cursor=SOME_VALUE\>; rel="next""#.to_owned()),
+                    data_type: Some(DataType::String),
+                    format: None,
+                    items: None,
+                    collection_format: None,
+                    default: None,
+                    enum_: Vec::new(),
+                    maximum: None,
+                    exclusive_maximum: None,
+                    minimum: None,
+                    exclusive_minimum: None,
+                    max_length: None,
+                    min_length: None,
+                    pattern: None,
+                    max_items: None,
+                    min_items: None,
+                    unique_items: None,
+                    multiple_of: None,
+                },
+            );
+        }
     }
 
-    fn update_definitions(
-        map: &mut std::collections::BTreeMap<String, paperclip::v2::models::DefaultSchemaRaw>,
-    ) {
+    fn update_definitions(map: &mut BTreeMap<String, DefaultSchemaRaw>) {
         T::update_definitions(map);
     }
 
-    fn update_security(op: &mut paperclip::v2::models::DefaultOperationRaw) {
+    fn update_security(op: &mut DefaultOperationRaw) {
         T::update_security(op);
     }
 
-    fn update_security_definitions(
-        map: &mut std::collections::BTreeMap<String, paperclip::v2::models::SecurityScheme>,
-    ) {
+    fn update_security_definitions(map: &mut std::collections::BTreeMap<String, SecurityScheme>) {
         T::update_security_definitions(map);
     }
 }
