@@ -114,9 +114,62 @@ impl<T: Apiv2Schema + OperationModifier + Responder> Responder for Paginated<T> 
     }
 }
 
-impl<T: Apiv2Schema + OperationModifier + Responder> Apiv2Schema for Paginated<T> {}
+impl<T: Apiv2Schema + OperationModifier + Responder> Apiv2Schema for Paginated<T> {
+    fn name() -> Option<String> {
+        T::name()
+    }
 
-impl<T: Apiv2Schema + OperationModifier + Responder> OperationModifier for Paginated<T> {}
+    fn description() -> &'static str {
+        T::description()
+    }
+
+    fn required() -> bool {
+        T::required()
+    }
+
+    fn raw_schema() -> paperclip::v2::models::DefaultSchemaRaw {
+        T::raw_schema()
+    }
+
+    fn schema_with_ref() -> paperclip::v2::models::DefaultSchemaRaw {
+        T::schema_with_ref()
+    }
+
+    fn security_scheme() -> Option<paperclip::v2::models::SecurityScheme> {
+        T::security_scheme()
+    }
+
+    fn header_parameter_schema()
+    -> Vec<paperclip::v2::models::Parameter<paperclip::v2::models::DefaultSchemaRaw>> {
+        T::header_parameter_schema()
+    }
+}
+
+impl<T: Apiv2Schema + OperationModifier + Responder> OperationModifier for Paginated<T> {
+    fn update_parameter(op: &mut paperclip::v2::models::DefaultOperationRaw) {
+        T::update_parameter(op);
+    }
+
+    fn update_response(_op: &mut paperclip::v2::models::DefaultOperationRaw) {
+        T::update_response(_op);
+    }
+
+    fn update_definitions(
+        map: &mut std::collections::BTreeMap<String, paperclip::v2::models::DefaultSchemaRaw>,
+    ) {
+        T::update_definitions(map);
+    }
+
+    fn update_security(op: &mut paperclip::v2::models::DefaultOperationRaw) {
+        T::update_security(op);
+    }
+
+    fn update_security_definitions(
+        map: &mut std::collections::BTreeMap<String, paperclip::v2::models::SecurityScheme>,
+    ) {
+        T::update_security_definitions(map);
+    }
+}
 
 #[cfg(test)]
 mod tests {
