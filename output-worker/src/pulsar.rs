@@ -182,7 +182,7 @@ async fn handle_message(
                     INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
                     WHERE ra.request_attempt__id = $1
                 "#,
-                attempt.request_attempt__id,
+                attempt.request_attempt_id,
             )
             .fetch_optional(pool)
             .await?
@@ -208,7 +208,7 @@ async fn handle_message(
                     let response = work(config, &attempt).await;
                     debug!(
                         "Got a response for request attempt {} in {} ms",
-                        &attempt.request_attempt__id,
+                        &attempt.request_attempt_id,
                         &response.elapsed_time_ms()
                     );
                     trace!("{response:?}");
@@ -219,7 +219,7 @@ async fn handle_message(
                     // Store response
                     debug!(
                         "Storing response for request attempt {}",
-                        &attempt.request_attempt__id
+                        &attempt.request_attempt_id
                     );
                     let response_id = query!(
                     "
@@ -239,10 +239,7 @@ async fn handle_message(
 
                     if response.is_success() {
                         // Mark attempt as completed
-                        debug!(
-                            "Completing request attempt {}",
-                            &attempt.request_attempt__id
-                        );
+                        debug!("Completing request attempt {}", &attempt.request_attempt_id);
                         query!(
                             "
                             UPDATE webhook.request_attempt
@@ -257,18 +254,18 @@ async fn handle_message(
                             worker_version,
                             picked_at,
                             response_id,
-                            attempt.request_attempt__id,
+                            attempt.request_attempt_id,
                         )
                         .execute(&mut *tx)
                         .await?;
 
                         info!(
                             "Request attempt {} was completed sucessfully",
-                            &attempt.request_attempt__id
+                            &attempt.request_attempt_id
                         );
                     } else {
                         // Mark attempt as failed
-                        debug!("Failing request attempt {}", &attempt.request_attempt__id);
+                        debug!("Failing request attempt {}", &attempt.request_attempt_id);
                         query!(
                             "
                             UPDATE webhook.request_attempt
@@ -283,7 +280,7 @@ async fn handle_message(
                             worker_version,
                             picked_at,
                             response_id,
-                            attempt.request_attempt__id,
+                            attempt.request_attempt_id,
                         )
                         .execute(&mut *tx)
                         .await?;
@@ -291,7 +288,7 @@ async fn handle_message(
                         // Creating a retry request or giving up
                         if let Some(retry_in) = compute_next_retry(
                             &mut tx,
-                            &attempt.subscription__id,
+                            &attempt.subscription_id,
                             config.max_fast_retries,
                             config.max_slow_retries,
                             attempt.retry_count,
@@ -313,8 +310,8 @@ async fn handle_message(
                                 VALUES ($1, $2, $3, $4)
                                 RETURNING request_attempt__id, created_at
                             ",
-                            attempt.event__id,
-                            attempt.subscription__id,
+                            attempt.event_id,
+                            attempt.subscription_id,
                             delay_until,
                             next_retry_count,
                         )
@@ -323,7 +320,7 @@ async fn handle_message(
 
                             info!(
                                 "Request attempt {} failed; retry #{next_retry_count} created as {} to be picked in {}s",
-                                &attempt.request_attempt__id,
+                                &attempt.request_attempt_id,
                                 retry.request_attempt__id,
                                 &retry_in.as_secs(),
                             );
@@ -346,25 +343,17 @@ async fn handle_message(
                                 .event_time(retry.created_at.timestamp_micros() as u64)
                                 .deliver_at(delay_until.into())?
                                 .with_content(RequestAttempt {
-                                    request_attempt__id: retry.request_attempt__id,
-                                    event__id: attempt.event__id,
-                                    subscription__id: attempt.subscription__id,
+                                    request_attempt_id: retry.request_attempt__id,
                                     created_at: retry.created_at,
                                     retry_count: next_retry_count,
-                                    http_method: attempt.http_method,
-                                    http_url: attempt.http_url,
-                                    http_headers: attempt.http_headers,
-                                    event_type__name: attempt.event_type__name,
-                                    payload: attempt.payload,
-                                    payload_content_type: attempt.payload_content_type,
-                                    secret: attempt.secret,
+                                    ..attempt
                                 })
                                 .send_non_blocking()
                                 .await?;
                         } else {
                             info!(
                                 "Request attempt {} failed after {} attempts; giving up",
-                                &attempt.request_attempt__id, &attempt.retry_count,
+                                &attempt.request_attempt_id, &attempt.retry_count,
                             );
                         }
                     }
@@ -379,7 +368,7 @@ async fn handle_message(
                 RequestAttemptStatus::AlreadyDone => {
                     trace!(
                         "Request attempt {} was already done according to database",
-                        &attempt.request_attempt__id
+                        &attempt.request_attempt_id
                     );
                     ack_tx
                         .send((msg.message_id().clone(), Some(permit), true))
@@ -390,7 +379,7 @@ async fn handle_message(
                 RequestAttemptStatus::Cancelled => {
                     trace!(
                         "Request attempt {} was cancelled according to database",
-                        &attempt.request_attempt__id
+                        &attempt.request_attempt_id
                     );
                     ack_tx
                         .send((msg.message_id().clone(), Some(permit), true))
@@ -402,7 +391,7 @@ async fn handle_message(
                     if attempt.created_at + Duration::from_secs(2) >= Utc::now() {
                         trace!(
                             "Request attempt {} was not found in database; as it was created recently it may not have been committed into database yet so let's retry a bit later",
-                            &attempt.request_attempt__id
+                            &attempt.request_attempt_id
                         );
 
                         ack_tx
@@ -411,7 +400,7 @@ async fn handle_message(
                     } else {
                         trace!(
                             "Request attempt {} was not found in database; it was not created recently so let's drop it",
-                            &attempt.request_attempt__id
+                            &attempt.request_attempt_id
                         );
 
                         ack_tx
