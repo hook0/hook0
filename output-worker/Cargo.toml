@@ -16,6 +16,7 @@ clap = { version = "4.5.48", features = ["derive", "env", "cargo", "wrap_help"] 
 futures = "0.3.31"
 hex = "0.4.3"
 hmac = "0.12.1"
+hook0-protobuf = { path = "../protobuf" }
 hook0-sentry-integration = { path = "../sentry-integration", version = "0.1.0" }
 humantime = "2.3.0"
 itertools = "0.14.0"

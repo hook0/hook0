@@ -3,7 +3,8 @@ members = [
   "api",
   "output-worker",
   "sentry-integration",
-  "clients/rust"
+  "clients/rust",
+  "protobuf"
 ]
 resolver = "3"
 
