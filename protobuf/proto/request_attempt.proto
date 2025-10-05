@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package request_attempt;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+message RequestAttempt {
+  string request_attempt_id = 1;
+  string event_id = 2;
+  string subscription_id = 3;
+  google.protobuf.Timestamp created_at = 4;
+  uint32 retry_count = 5;
+  string http_method = 6;
+  string http_url = 7;
+  google.protobuf.Value http_headers = 8;
+  string event_type_name = 9;
+  bytes payload = 10;
+  string payload_content_type = 11;
+  string secret = 12;
+}

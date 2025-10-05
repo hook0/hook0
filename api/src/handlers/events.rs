@@ -8,8 +8,6 @@ use futures_util::TryStreamExt;
 use log::error;
 use paperclip::actix::web::{Data, Json, Path, Query};
 use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
-use pulsar::SerializeMessage;
-use pulsar::producer::Message;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sqlx::types::ipnetwork::IpNetwork;
@@ -27,6 +25,7 @@ use crate::mailer::Mail;
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
 use crate::quotas::{Quota, QuotaNotificationType};
+use hook0_protobuf::RequestAttempt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, IntoStaticStr, VariantNames)]
 pub enum PayloadContentType {
@@ -445,35 +444,6 @@ pub async fn ingest(
                 worker_queue_type: Option<String>,
             }
 
-            #[derive(Debug, Clone, Serialize)]
-            #[allow(non_snake_case)]
-            struct RequestAttemptForOutputWorker {
-                request_attempt__id: Uuid,
-                event__id: Uuid,
-                subscription__id: Uuid,
-                created_at: DateTime<Utc>,
-                retry_count: i16,
-                http_method: String,
-                http_url: String,
-                http_headers: serde_json::Value,
-                event_type__name: String,
-                payload: Vec<u8>,
-                payload_content_type: String,
-                secret: Uuid,
-            }
-
-            impl SerializeMessage for RequestAttemptForOutputWorker {
-                fn serialize_message(input: Self) -> Result<Message, pulsar::Error> {
-                    let payload = serde_json::to_vec(&input)
-                        .map_err(|e| pulsar::Error::Custom(e.to_string()))?;
-                    Ok(Message {
-                        payload,
-                        event_time: Some(input.created_at.timestamp_millis() as u64),
-                        ..Default::default()
-                    })
-                }
-            }
-
             let mut request_attempts_stream = query_as!(
                 RawRequestAttempt,
                 "
@@ -498,16 +468,16 @@ pub async fn ingest(
                 if let Some(worker_id) = ra.worker_id
                     && ra.worker_queue_type.as_deref() == Some("pulsar")
                 {
-                    let request_attempt_for_output_worker = RequestAttemptForOutputWorker {
-                        request_attempt__id: ra.request_attempt__id,
-                        event__id: body.event_id,
-                        subscription__id: ra.subscription__id,
+                    let request_attempt_for_output_worker = RequestAttempt {
+                        request_attempt_id: ra.request_attempt__id,
+                        event_id: body.event_id,
+                        subscription_id: ra.subscription__id,
                         created_at: ra.created_at,
                         retry_count: 0,
                         http_method: ra.http_method,
                         http_url: ra.http_url,
                         http_headers: ra.http_headers,
-                        event_type__name: body.event_type.clone(),
+                        event_type_name: body.event_type.clone(),
                         payload: payload.clone(),
                         payload_content_type: body.payload_content_type.clone(),
                         secret: ra.secret,
