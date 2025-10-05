@@ -37,7 +37,7 @@ pub async fn look_for_work(
                 query_as!(
                     RequestAttempt,
                     "
-                        SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.retry_count, t_http.method AS http_method, t_http.url AS http_url, t_http.headers AS http_headers, e.event_type__name, e.payload AS payload, e.payload_content_type AS payload_content_type, s.secret
+                        SELECT ra.request_attempt__id AS request_attempt_id, ra.event__id AS event_id, ra.subscription__id AS subscription_id, ra.created_at, ra.retry_count, t_http.method AS http_method, t_http.url AS http_url, t_http.headers AS http_headers, e.event_type__name AS event_type_name, e.payload AS payload, e.payload_content_type AS payload_content_type, s.secret
                         FROM webhook.request_attempt AS ra
                         INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
                         LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
@@ -62,7 +62,7 @@ pub async fn look_for_work(
                 query_as!(
                     RequestAttempt,
                     "
-                        SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.retry_count, t_http.method AS http_method, t_http.url AS http_url, t_http.headers AS http_headers, e.event_type__name, e.payload AS payload, e.payload_content_type AS payload_content_type, s.secret
+                        SELECT ra.request_attempt__id AS request_attempt_id, ra.event__id AS event_id, ra.subscription__id AS subscription_id, ra.created_at, ra.retry_count, t_http.method AS http_method, t_http.url AS http_url, t_http.headers AS http_headers, e.event_type__name AS event_type_name, e.payload AS payload, e.payload_content_type AS payload_content_type, s.secret
                         FROM webhook.request_attempt AS ra
                         INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
                         LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
@@ -88,7 +88,7 @@ pub async fn look_for_work(
             // Set picked_at
             debug!(
                 "[unit={unit_id}] Picking request attempt {}",
-                &attempt.request_attempt__id
+                &attempt.request_attempt_id
             );
             query!(
                 "
@@ -98,20 +98,20 @@ pub async fn look_for_work(
                 ",
                 &worker.name,
                 &worker_version,
-                attempt.request_attempt__id
+                attempt.request_attempt_id
             )
             .execute(&mut *tx)
             .await?;
             info!(
                 "[unit={unit_id}] Picked request attempt {}",
-                &attempt.request_attempt__id
+                &attempt.request_attempt_id
             );
 
             // Work
             let response = work(config, &attempt).await;
             debug!(
                 "[unit={unit_id}] Got a response for request attempt {} in {} ms",
-                &attempt.request_attempt__id,
+                &attempt.request_attempt_id,
                 &response.elapsed_time_ms()
             );
             trace!("[unit={unit_id}] {response:?}");
@@ -119,7 +119,7 @@ pub async fn look_for_work(
             // Store response
             debug!(
                 "[unit={unit_id}] Storing response for request attempt {}",
-                &attempt.request_attempt__id
+                &attempt.request_attempt_id
             );
             let response_id = query!(
                 "
@@ -140,11 +140,11 @@ pub async fn look_for_work(
             // Associate response and request attempt
             debug!(
                 "[unit={unit_id}] Associating response {response_id} with request attempt {}",
-                &attempt.request_attempt__id
+                &attempt.request_attempt_id
             );
             query!(
                 "UPDATE webhook.request_attempt SET response__id = $1 WHERE request_attempt__id = $2",
-                response_id, attempt.request_attempt__id
+                response_id, attempt.request_attempt_id
             )
             .execute(&mut *tx)
             .await?;
@@ -153,28 +153,28 @@ pub async fn look_for_work(
                 // Mark attempt as completed
                 debug!(
                     "[unit={unit_id}] Completing request attempt {}",
-                    &attempt.request_attempt__id
+                    &attempt.request_attempt_id
                 );
                 query!(
                     "UPDATE webhook.request_attempt SET succeeded_at = statement_timestamp() WHERE request_attempt__id = $1",
-                    attempt.request_attempt__id
+                    attempt.request_attempt_id
                 )
                 .execute(&mut *tx)
                 .await?;
 
                 info!(
                     "[unit={unit_id}] Request attempt {} was completed sucessfully",
-                    &attempt.request_attempt__id
+                    &attempt.request_attempt_id
                 );
             } else {
                 // Mark attempt as failed
                 debug!(
                     "[unit={unit_id}] Failing request attempt {}",
-                    &attempt.request_attempt__id
+                    &attempt.request_attempt_id
                 );
                 query!(
                     "UPDATE webhook.request_attempt SET failed_at = statement_timestamp() WHERE request_attempt__id = $1",
-                    attempt.request_attempt__id
+                    attempt.request_attempt_id
                 )
                 .execute(&mut *tx)
                 .await?;
@@ -182,7 +182,7 @@ pub async fn look_for_work(
                 // Creating a retry request or giving up
                 if let Some(retry_in) = compute_next_retry(
                     &mut tx,
-                    &attempt.subscription__id,
+                    &attempt.subscription_id,
                     config.max_fast_retries,
                     config.max_slow_retries,
                     attempt.retry_count,
@@ -196,8 +196,8 @@ pub async fn look_for_work(
                             VALUES ($1, $2, statement_timestamp() + $3, $4)
                             RETURNING request_attempt__id
                         ",
-                        attempt.event__id,
-                        attempt.subscription__id,
+                        attempt.event_id,
+                        attempt.subscription_id,
                         PgInterval::try_from(retry_in).unwrap(),
                         next_retry_count,
                     )
@@ -207,13 +207,13 @@ pub async fn look_for_work(
 
                     info!(
                         "[unit={unit_id}] Request attempt {} failed; retry #{next_retry_count} created as {retry_id} to be picked in {}s",
-                        &attempt.request_attempt__id,
+                        &attempt.request_attempt_id,
                         &retry_in.as_secs(),
                     );
                 } else {
                     info!(
                         "[unit={unit_id}] Request attempt {} failed after {} attempts; giving up",
-                        &attempt.request_attempt__id, &attempt.retry_count,
+                        &attempt.request_attempt_id, &attempt.retry_count,
                     );
                 }
             }

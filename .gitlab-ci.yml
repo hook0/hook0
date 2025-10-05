@@ -2,6 +2,7 @@ variables:
   PG_VERSION: "17"
   RUST_VERSION: "1.90"
   NODE_VERSION: "22"
+  PROTOC_VERSION: "32.0"
   POSTGRES_DB: hook0-ci
   POSTGRES_USER: runner
   POSTGRES_PASSWORD: ""

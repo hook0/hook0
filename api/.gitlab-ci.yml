@@ -33,6 +33,9 @@ api.check:
     - rustc --version && cargo --version
     - rustup component add clippy
     - rustup component add rustfmt
+    - wget -O protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/protoc-$PROTOC_VERSION-linux-x86_64.zip && mkdir protoc && unzip protoc.zip -d protoc/
+    - export PROTOC="$(realpath ./protoc/bin/protoc)"
+
   script:
     - pushd api
     - cargo fmt --all -- --check

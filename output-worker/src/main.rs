@@ -3,21 +3,15 @@ mod pg;
 mod pulsar;
 mod work;
 
-use ::pulsar::producer::Message;
-use ::pulsar::{
-    Authentication, DeserializeMessage, Payload, Pulsar, SerializeMessage, TokioExecutor,
-};
+use ::pulsar::{Authentication, Pulsar, TokioExecutor};
 use anyhow::bail;
-use chrono::{DateTime, Utc};
 use clap::{ArgGroup, Parser, ValueEnum, crate_name, crate_version};
 use log::{debug, error, info, warn};
 use reqwest::Url;
-use reqwest::header::{HeaderMap, HeaderName};
-use serde::{Deserialize, Serialize};
+use reqwest::header::HeaderName;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use sqlx::{PgConnection, PgPool, query, query_as};
 use std::cmp::min;
-use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -31,6 +25,7 @@ use tokio::time::sleep;
 use tokio_util::task::TaskTracker;
 use uuid::Uuid;
 
+use hook0_protobuf::RequestAttempt;
 use work::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
@@ -166,52 +161,6 @@ impl std::fmt::Display for WorkerScope {
 enum WorkerQueueType {
     Pg,
     Pulsar,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[allow(non_snake_case)]
-pub struct RequestAttempt {
-    pub request_attempt__id: Uuid,
-    pub event__id: Uuid,
-    pub subscription__id: Uuid,
-    pub created_at: DateTime<Utc>,
-    pub retry_count: i16,
-    pub http_method: String,
-    pub http_url: String,
-    pub http_headers: serde_json::Value,
-    pub event_type__name: String,
-    pub payload: Vec<u8>,
-    pub payload_content_type: String,
-    pub secret: Uuid,
-}
-
-impl RequestAttempt {
-    /// Parse headers of HTTP target from JSON and prepare them to be fed to reqwest
-    fn headers(&self) -> anyhow::Result<HeaderMap> {
-        let hashmap = serde_json::from_value::<HashMap<String, String>>(self.http_headers.clone())?;
-        let headermap = HeaderMap::try_from(&hashmap)?;
-        Ok(headermap)
-    }
-}
-
-impl DeserializeMessage for RequestAttempt {
-    type Output = Result<Self, serde_json::Error>;
-
-    fn deserialize_message(payload: &Payload) -> Self::Output {
-        serde_json::from_slice(&payload.data)
-    }
-}
-
-impl SerializeMessage for RequestAttempt {
-    fn serialize_message(input: Self) -> Result<Message, ::pulsar::Error> {
-        let payload =
-            serde_json::to_vec(&input).map_err(|e| ::pulsar::Error::Custom(e.to_string()))?;
-        Ok(Message {
-            payload,
-            event_time: Some(input.created_at.timestamp_millis() as u64),
-            ..Default::default()
-        })
-    }
 }
 
 /// How long to wait before first fast retry
