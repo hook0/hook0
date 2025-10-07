@@ -41,6 +41,13 @@ mod validators;
 #[cfg(feature = "migrate-users-from-keycloak")]
 mod keycloak_api;
 
+#[cfg(all(target_env = "msvc", feature = "jemalloc"))]
+compile_error!("jemalloc is not supporter when compiling to msvc");
+
+#[cfg(all(not(target_env = "msvc"), feature = "jemalloc"))]
+#[global_allocator]
+static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+
 const APP_TITLE: &str = "Hook0 API";
 const WEBAPP_INDEX_FILE: &str = "index.html";
 
