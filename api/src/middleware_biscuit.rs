@@ -96,9 +96,8 @@ where
                                     .ok_or(biscuit_auth::error::Token::InternalError)
                             }) {
                             Ok((biscuit, revocation_id)) => {
-                                let pool = Box::new(self.db.clone());
-                                let pool: &'static PgPool = Box::leak(pool);
-                                let srv = Rc::clone(&self.service);
+                                let pool = self.db.clone();
+                                let srv = self.service.clone();
                                 Box::pin(async move {
                                     let biscuit_token_id = query_scalar!(
                                         "
@@ -110,7 +109,7 @@ where
                                         ",
                                         &revocation_id
                                     )
-                                    .fetch_optional(pool)
+                                    .fetch_optional(&pool)
                                     .await;
 
                                     match biscuit_token_id {
@@ -172,11 +171,10 @@ where
                                     #[cfg(feature = "application-secret-compatibility")]
                                     if self.enable_application_secret_compatibility {
                                         if let Ok(application_secret_token) = uuid_token {
-                                            let pool = Box::new(self.db.clone());
-                                            let pool: &'static PgPool = Box::leak(pool);
+                                            let pool = self.db.clone();
                                             let biscuit_private_key =
                                                 self.biscuit_private_key.clone();
-                                            let srv = Rc::clone(&self.service);
+                                            let srv = self.service.clone();
                                             Box::pin(async move {
                                                 #[derive(Debug)]
                                                 struct ApplicationSecretLookup {
@@ -195,7 +193,7 @@ where
                                                     ",
                                                     application_secret_token,
                                                 )
-                                                .fetch_optional(pool)
+                                                .fetch_optional(&pool)
                                                 .await;
 
                                                 match application_secret_lookup {
