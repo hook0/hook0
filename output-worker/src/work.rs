@@ -189,14 +189,17 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
                 Utc::now(),
                 &headers,
             )
-            .map_err(|e| Response {
-                response_error: Some(ResponseError::InvalidHeader),
-                http_code: None,
-                headers: None,
-                body: Some(format!(
-                    "Could not construct header '{e}' because it has an invalid value"
-                )),
-                elapsed_time: start.elapsed(),
+            .map_err(|e| {
+                let msg =
+                    format!("Could not construct header '{e}' because it has an invalid value");
+                warn!["{msg}"];
+                Response {
+                    response_error: Some(ResponseError::InvalidHeader),
+                    http_code: None,
+                    headers: None,
+                    body: Some(msg),
+                    elapsed_time: start.elapsed(),
+                }
             })
             .and_then(|sig| {
                 sig.to_header_value(
@@ -324,7 +327,7 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
             }
         }
         (_, _, _, Err(e), _) => {
-            error!("Target has invalid headers: {e}");
+            warn!("Target has invalid headers: {e}");
             Response {
                 response_error: Some(ResponseError::InvalidTarget),
                 http_code: None,
@@ -338,7 +341,7 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
                 "Event type has an invalid header value: {}",
                 &attempt.event_type__name
             );
-            error!("{msg}");
+            warn!("{msg}");
             Response {
                 response_error: Some(ResponseError::InvalidHeader),
                 http_code: None,
