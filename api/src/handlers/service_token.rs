@@ -61,6 +61,7 @@ pub async fn create(
         Some(organization_id),
         Action::ServiceTokenCreate,
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .is_err()
     {
@@ -141,6 +142,7 @@ pub async fn list(
         Some(organization_id),
         Action::ServiceTokenList,
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .is_err()
     {
@@ -191,6 +193,7 @@ pub async fn edit(
             service_token_id: &token_id,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .is_err()
     {
@@ -268,6 +271,7 @@ pub async fn delete(
             service_token_id: &token_id,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .is_err()
     {
@@ -352,6 +356,7 @@ pub async fn get(
         Some(organization_id),
         Action::ServiceTokenGet,
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .is_err()
     {
