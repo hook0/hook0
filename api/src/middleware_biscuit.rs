@@ -4,7 +4,7 @@ use actix_web::body::BoxBody;
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
 use actix_web::{Error, HttpMessage};
 use anyhow::anyhow;
-use biscuit_auth::{Biscuit, PrivateKey};
+use biscuit_auth::{Biscuit, PrivateKey, PublicKey};
 use futures_util::future::{Ready, ok, ready};
 use hook0_sentry_integration::set_user_from_token;
 use log::{debug, error, trace};
@@ -41,6 +41,7 @@ where
             service: Rc::new(service),
             db: self.db.clone(),
             biscuit_private_key: self.biscuit_private_key.clone(),
+            biscuit_public_key: self.biscuit_private_key.public(),
             master_api_key: self.master_api_key,
             #[cfg(feature = "application-secret-compatibility")]
             enable_application_secret_compatibility: self.enable_application_secret_compatibility,
@@ -53,6 +54,7 @@ pub struct BiscuitAuthMiddleware<S> {
     service: Rc<S>,
     db: PgPool,
     biscuit_private_key: PrivateKey,
+    biscuit_public_key: PublicKey,
     master_api_key: Option<Uuid>,
     #[cfg(feature = "application-secret-compatibility")]
     enable_application_secret_compatibility: bool,
@@ -87,14 +89,15 @@ where
                     Ok(token) => {
                         debug!("Token was extracted from request headers");
 
-                        match Biscuit::from_base64(token, self.biscuit_private_key.public())
-                            .and_then(|biscuit| {
+                        match Biscuit::from_base64(token, self.biscuit_public_key).and_then(
+                            |biscuit| {
                                 biscuit
                                     .revocation_identifiers()
                                     .first()
                                     .map(|rid| (biscuit, rid.to_owned()))
                                     .ok_or(biscuit_auth::error::Token::InternalError)
-                            }) {
+                            },
+                        ) {
                             Ok((biscuit, revocation_id)) => {
                                 let pool = self.db.clone();
                                 let srv = self.service.clone();
