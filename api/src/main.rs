@@ -356,6 +356,10 @@ struct Config {
     #[clap(long, env, default_value = "10")]
     max_authorization_time_in_ms: u64,
 
+    /// If true, a trace log message containing authorizer context is emitted on each request; defaut is false because this feature implies a small overhead
+    #[clap(long, env, default_value_t = false)]
+    debug_authorizer: bool,
+
     /// Matomo URL
     #[clap(long, env)]
     matomo_url: Option<Url>,
@@ -419,6 +423,7 @@ pub struct State {
     quotas: quotas::Quotas,
     health_check_key: Option<String>,
     max_authorization_time_in_ms: u64,
+    debug_authorizer: bool,
     enable_quota_enforcement: bool,
     matomo_url: Option<Url>,
     matomo_site_id: Option<u16>,
@@ -672,6 +677,7 @@ async fn main() -> anyhow::Result<()> {
             quotas,
             health_check_key: config.health_check_key,
             max_authorization_time_in_ms: config.max_authorization_time_in_ms,
+            debug_authorizer: config.debug_authorizer,
             enable_quota_enforcement: config.enable_quota_enforcement,
             matomo_url: config.matomo_url,
             matomo_site_id: config.matomo_site_id,
@@ -741,6 +747,7 @@ async fn main() -> anyhow::Result<()> {
 
             let hsts_header_condition =
                 middleware::Condition::new(config.enable_hsts_header, hsts_header);
+
             let mut app = App::new()
                 .app_data(web::Data::new(initial_state.clone()))
                 .app_data(web::JsonConfig::default().error_handler(|e, _req| {

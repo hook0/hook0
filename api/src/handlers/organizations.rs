@@ -92,6 +92,7 @@ pub async fn list(
         None,
         Action::OrganizationList,
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     ) {
         let (token_organizations, is_master) = match token {
             AuthorizedToken::User(AuthorizedUserToken { organizations, .. }) => {
@@ -183,6 +184,7 @@ pub async fn create(
         None,
         Action::OrganizationCreate,
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     ) {
         if let Err(e) = body.validate() {
             return Err(Hook0Problem::Validation(e));
@@ -314,6 +316,7 @@ pub async fn get(
         Some(organization_id),
         Action::OrganizationGet,
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .is_err()
     {
@@ -490,6 +493,7 @@ pub async fn edit(
         Some(organization_id.as_ref().to_owned()),
         Action::OrganizationEdit,
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .is_err()
     {
@@ -559,6 +563,7 @@ pub async fn invite(
         Some(organization_id),
         Action::OrganizationInvite,
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .is_err()
     {
@@ -648,6 +653,7 @@ pub async fn revoke(
         Some(organization_id),
         Action::OrganizationRevoke,
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .is_err()
     {
@@ -729,6 +735,7 @@ pub async fn edit_role(
         Some(organization_id),
         Action::OrganizationEditRole,
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     ) {
         if let AuthorizedToken::User(user_token) = token
             && user_token.user_id == body.user_id
@@ -777,6 +784,7 @@ pub async fn delete(
         Some(organization_id),
         Action::OrganizationDelete,
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .is_err()
     {

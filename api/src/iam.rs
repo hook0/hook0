@@ -816,6 +816,7 @@ pub fn authorize(
     organization_id: Option<Uuid>,
     action: Action,
     max_authorization_time_in_ms: u64,
+    debug_authorizer: bool,
 ) -> Result<AuthorizedToken, biscuit_auth::error::Token> {
     let mut authorizer = authorizer!(
         r#"
@@ -874,7 +875,9 @@ pub fn authorize(
     });
     let mut authorizer = authorizer.build(biscuit)?;
     let result = authorizer.authorize();
-    trace!("Authorizer state:\n{}", authorizer.print_world());
+    if debug_authorizer {
+        trace!("Authorizer state:\n{}", authorizer.print_world());
+    }
     result?;
 
     let raw_type: Vec<(String,)> = authorizer.query(rule!("data($id) <- type($id)"))?;
@@ -971,12 +974,14 @@ pub fn authorize_only_user(
     organization_id: Option<Uuid>,
     action: Action,
     max_authorization_time_in_ms: u64,
+    debug_authorizer: bool,
 ) -> Result<AuthorizedUserToken, biscuit_auth::error::Token> {
     match authorize(
         biscuit,
         organization_id,
         action,
         max_authorization_time_in_ms,
+        debug_authorizer,
     ) {
         Ok(AuthorizedToken::User(aut)) => Ok(aut),
         Ok(_) => {
@@ -1116,6 +1121,7 @@ pub async fn authorize_for_application(
     biscuit: &Biscuit,
     action: Action<'_>,
     max_authorization_time_in_ms: u64,
+    debug_authorizer: bool,
 ) -> Result<AuthorizedToken, String> {
     let application_id = action.application_id().ok_or_else(|| {
         let e = format!("The following action is not application-scoped (please report the issue, this is most likely a bug): {action:?}");
@@ -1137,6 +1143,7 @@ pub async fn authorize_for_application(
                 Some(organization_id),
                 action,
                 max_authorization_time_in_ms,
+                debug_authorizer,
             )
             .map_err(|e| format!("{e:?}"))
         })
@@ -1171,7 +1178,8 @@ mod tests {
                 &biscuit,
                 Some(organization_id),
                 Action::TestSimple,
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true,
             )),
             Ok(AuthorizedToken::Service(AuthorizeServiceToken {
                 organization_id
@@ -1206,7 +1214,8 @@ mod tests {
                 &not_yet_expired_biscuit,
                 Some(organization_id),
                 Action::TestSimple,
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             ))
             .is_ok()
         );
@@ -1215,7 +1224,8 @@ mod tests {
                 &expired_biscuit,
                 Some(organization_id),
                 Action::TestSimple,
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             ))
             .is_err()
         );
@@ -1236,7 +1246,8 @@ mod tests {
                 &biscuit,
                 Some(other_organization_id),
                 Action::TestSimple,
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             ))
             .is_err()
         );
@@ -1267,7 +1278,8 @@ mod tests {
                 Action::TestWithApplication {
                     application_id: &application_id
                 },
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             ))
             .is_ok()
         );
@@ -1278,7 +1290,8 @@ mod tests {
                 Action::TestWithApplication {
                     application_id: &application_id
                 },
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             ))
             .is_ok()
         );
@@ -1289,7 +1302,8 @@ mod tests {
                 Action::TestWithApplication {
                     application_id: &application_id
                 },
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             ))
             .is_err()
         );
@@ -1299,7 +1313,8 @@ mod tests {
                 &application_restricted_biscuit,
                 Some(organization_id),
                 Action::TestSimple,
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             ))
             .is_err()
         );
@@ -1319,7 +1334,8 @@ mod tests {
                 &biscuit,
                 None,
                 Action::TestSimple,
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             ))
             .is_err()
         );
@@ -1328,7 +1344,8 @@ mod tests {
                 &biscuit,
                 None,
                 Action::TestNoOrganization,
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             ))
             .is_ok()
         );
@@ -1360,7 +1377,8 @@ mod tests {
                 &biscuit,
                 Some(organization_id),
                 Action::TestSimple,
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             )),
             Ok(AuthorizedToken::User(AuthorizedUserToken {
                 session_id,
@@ -1404,7 +1422,8 @@ mod tests {
                 &biscuit,
                 Some(organization_id1),
                 Action::TestSimple,
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             ))
             .is_ok()
         );
@@ -1413,7 +1432,8 @@ mod tests {
                 &biscuit,
                 Some(organization_id2),
                 Action::TestSimple,
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             ))
             .is_ok()
         );
@@ -1422,7 +1442,8 @@ mod tests {
                 &biscuit,
                 Some(organization_id3),
                 Action::TestSimple,
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             ))
             .is_err()
         );
@@ -1433,7 +1454,8 @@ mod tests {
                 Action::TestWithApplication {
                     application_id: &Uuid::new_v4()
                 },
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             ))
             .is_ok()
         );
@@ -1444,7 +1466,8 @@ mod tests {
                 Action::TestWithApplication {
                     application_id: &Uuid::new_v4()
                 },
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             ))
             .is_err()
         );
@@ -1455,7 +1478,8 @@ mod tests {
                 Action::TestWithApplication {
                     application_id: &Uuid::new_v4()
                 },
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             ))
             .is_err()
         );
