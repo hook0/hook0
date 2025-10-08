@@ -50,6 +50,7 @@ pub async fn get(
             application_id: &qs.application_id,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .await
     .is_err()

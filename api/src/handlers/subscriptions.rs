@@ -202,6 +202,7 @@ pub async fn list(
             application_id: &qs.application_id,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .await
     .is_err()
@@ -338,6 +339,7 @@ pub async fn get(
             subscription_id: &subscription_id,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .await
     .is_err()
@@ -486,6 +488,7 @@ pub async fn create(
             labels: &labels,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .await
     .is_err()
@@ -732,6 +735,7 @@ pub async fn edit(
             subscription_id: &subscription_id,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .await
     .is_err()
@@ -987,6 +991,7 @@ pub async fn delete(
             subscription_id: &subscription_id,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .await
     .is_err()

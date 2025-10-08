@@ -58,6 +58,7 @@ pub async fn create(
             application_id: &body.application_id,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .await
     .is_err()
@@ -125,6 +126,7 @@ pub async fn list(
             application_id: &qs.application_id,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .await
     .is_err()
@@ -171,6 +173,7 @@ pub async fn edit(
             application_id: &body.application_id,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .await
     .is_err()
@@ -245,6 +248,7 @@ pub async fn delete(
             application_id: &qs.application_id,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .await
     .is_err()

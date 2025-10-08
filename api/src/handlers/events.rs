@@ -143,6 +143,7 @@ pub async fn list(
             application_id: &qs.application_id,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .await
     .is_err()
@@ -234,6 +235,7 @@ pub async fn get(
             application_id: &qs.application_id,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .await
     .is_err()
@@ -309,6 +311,7 @@ pub async fn ingest(
             application_id: &application_id,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .await
     .is_err()
@@ -472,6 +475,7 @@ pub async fn replay(
             application_id: &body.application_id,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .await
     .is_err()

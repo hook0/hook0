@@ -469,6 +469,7 @@ pub async fn logout(
         None,
         Action::AuthLogout,
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     ) {
         query!(
             "
@@ -716,6 +717,7 @@ pub async fn change_password(
         None,
         Action::AuthChangePassword,
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     ) {
         do_change_password(
             &state.db,
