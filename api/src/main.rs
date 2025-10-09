@@ -213,6 +213,10 @@ struct Config {
     #[clap(long, env, default_value = "100")]
     api_rate_limiting_token_replenish_period_in_ms: u64,
 
+    /// Duration to wait beetween rate limiters housekeeping
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "5m")]
+    api_rate_limiting_housekeeping_period: Duration,
+
     /// Comma-separated allowed origins for CORS
     #[clap(long, env, use_value_delimiter = true)]
     cors_allowed_origins: Vec<String>,
@@ -569,6 +573,9 @@ async fn main() -> anyhow::Result<()> {
                 "The master API key is defined in the current configuration; THIS MAY BE A SECURITY ISSUE IN PRODUCTION"
             );
         }
+
+        // Spawn task to do regular rate limiters housekeeping
+        rate_limiters.spawn_housekeeping_task(config.api_rate_limiting_housekeeping_period);
 
         // Spawn task to refresh materialized views
         let refresh_db = pool.clone();
