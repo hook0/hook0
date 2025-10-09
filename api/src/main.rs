@@ -46,7 +46,12 @@ compile_error!("jemalloc is not supporter when compiling to msvc");
 
 #[cfg(all(not(target_env = "msvc"), feature = "jemalloc"))]
 #[global_allocator]
-static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+
+#[cfg(all(not(target_env = "msvc"), feature = "profiling"))]
+#[allow(non_upper_case_globals)]
+#[unsafe(export_name = "malloc_conf")]
+pub static malloc_conf: &[u8] = b"prof:true,prof_active:true,lg_prof_sample:19\0";
 
 const APP_TITLE: &str = "Hook0 API";
 const WEBAPP_INDEX_FILE: &str = "index.html";
@@ -814,9 +819,26 @@ async fn main() -> anyhow::Result<()> {
                             web::scope("/quotas")
                                 .service(web::resource("").route(web::get().to(quotas::get))),
                         )
-                        .service(web::scope("/health").service(
-                            web::resource("").route(web::get().to(handlers::instance::health)),
-                        ))
+                        .service({
+                            let srv = web::scope("/health").service(
+                                web::resource("").route(web::get().to(handlers::instance::health)),
+                            );
+
+                            #[cfg(feature = "profiling")]
+                            {
+                                srv.service(
+                                    web::resource("/profiling/heap")
+                                        .route(web::get().to(handlers::instance::pprof_heap)),
+                                )
+                                .service(
+                                    web::resource("/profiling/cpu")
+                                        .route(web::get().to(handlers::instance::pprof_cpu)),
+                                )
+                            }
+
+                            #[cfg(not(feature = "profiling"))]
+                            srv
+                        })
                         .service(web::scope("/errors").service(
                             web::resource("").route(web::get().to(handlers::errors::list)),
                         ))

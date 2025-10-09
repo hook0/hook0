@@ -129,3 +129,97 @@ pub async fn health(
         _ => Err(Hook0Problem::NotFound),
     }
 }
+
+#[cfg(feature = "profiling")]
+#[api_v2_operation(skip)]
+pub async fn pprof_heap(
+    state: Data<crate::State>,
+    qs: Query<Key>,
+) -> Result<actix_web::HttpResponse, Hook0Problem> {
+    let qs_key = qs.into_inner().key.unwrap_or_else(|| "".to_owned());
+
+    match state.health_check_key.as_deref() {
+        Some(k) => {
+            // Comparison is not done in constant time, but stakes are very low here
+            if k.is_empty() || k == qs_key {
+                let mut prof_ctl = jemalloc_pprof::PROF_CTL
+                    .as_ref()
+                    .ok_or(Hook0Problem::InternalServerError)?
+                    .lock()
+                    .await;
+                if prof_ctl.activated() {
+                    let pprof = prof_ctl.dump_pprof().map_err(|err| {
+                        log::error!("{err}");
+                        Hook0Problem::InternalServerError
+                    })?;
+                    Ok(actix_web::HttpResponse::Ok()
+                        .content_type("application/gzip")
+                        .append_header((
+                            "Content-Disposition",
+                            "attachment; filename=\"hook0-api-heap.pb.gz\"",
+                        ))
+                        .body(pprof))
+                } else {
+                    Err(Hook0Problem::NotFound)
+                }
+            } else {
+                Err(Hook0Problem::Forbidden)
+            }
+        }
+        _ => Err(Hook0Problem::NotFound),
+    }
+}
+
+#[cfg(feature = "profiling")]
+#[api_v2_operation(skip)]
+pub async fn pprof_cpu(
+    state: Data<crate::State>,
+    qs: Query<Key>,
+) -> Result<actix_web::HttpResponse, Hook0Problem> {
+    let qs_key = qs.into_inner().key.unwrap_or_else(|| "".to_owned());
+
+    match state.health_check_key.as_deref() {
+        Some(k) => {
+            // Comparison is not done in constant time, but stakes are very low here
+            if k.is_empty() || k == qs_key {
+                generate_profile(std::time::Duration::from_secs(30))
+                    .await
+                    .map(|pprof| {
+                        actix_web::HttpResponse::Ok()
+                            .content_type("application/octet-stream")
+                            .append_header((
+                                "Content-Disposition",
+                                "attachment; filename=\"hook0-api-cpu.pb\"",
+                            ))
+                            .body(pprof)
+                    })
+                    .map_err(|e| {
+                        log::error!("{e}");
+                        Hook0Problem::InternalServerError
+                    })
+            } else {
+                Err(Hook0Problem::Forbidden)
+            }
+        }
+        _ => Err(Hook0Problem::NotFound),
+    }
+}
+
+#[cfg(feature = "profiling")]
+async fn generate_profile(duration: std::time::Duration) -> anyhow::Result<Vec<u8>> {
+    use pprof::protos::Message;
+
+    let guard = pprof::ProfilerGuardBuilder::default()
+        .frequency(200)
+        .blocklist(&["libc", "libgcc", "pthread", "vdso"])
+        .build()?;
+
+    actix::clock::sleep(duration).await;
+
+    let profile = guard.report().build()?.pprof()?;
+
+    let mut pprof = Vec::new();
+    profile.write_to_writer(&mut pprof)?;
+
+    Ok(pprof)
+}
