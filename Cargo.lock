@@ -85,14 +85,12 @@ dependencies = [
 [[package]]
 name = "actix-governor"
 version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a0cb8586d3fa368d00ef643e8ef77f5d3d5dfe5c7b333415a556bc12eb1c41a"
+source = "git+https://github.com/dsferruzza/actix-governor.git?rev=f1a29212a93a2ee5f819e052dc7fed5efc5f3fb2#f1a29212a93a2ee5f819e052dc7fed5efc5f3fb2"
 dependencies = [
  "actix-http",
  "actix-web",
  "futures",
  "governor",
- "log",
 ]
 
 [[package]]
@@ -1518,9 +1516,9 @@ checksum = "e629b9b98ef3dd8afe6ca2bd0f89306cec16d43d907889945bc5d6687f2f13c7"
 
 [[package]]
 name = "governor"
-version = "0.8.1"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be93b4ec2e4710b04d9264c0c7350cdd62a8c20e5e4ac732552ebb8f0debe8eb"
+checksum = "444405bbb1a762387aa22dd569429533b54a1d8759d35d3b64cb39b0293eaa19"
 dependencies = [
  "cfg-if",
  "dashmap",
@@ -1528,7 +1526,7 @@ dependencies = [
  "futures-timer",
  "futures-util",
  "getrandom 0.3.3",
- "no-std-compat",
+ "hashbrown 0.15.5",
  "nonzero_ext",
  "parking_lot",
  "portable-atomic",
@@ -1733,7 +1731,6 @@ dependencies = [
  "clap",
  "derive_more",
  "futures-util",
- "governor",
  "hook0-client",
  "hook0-sentry-integration",
  "html2text",
@@ -2647,12 +2644,6 @@ dependencies = [
  "cfg-if",
  "libc",
 ]
-
-[[package]]
-name = "no-std-compat"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b93853da6d84c2e3c7d730d6473e8817692dd89be387eb01b94d7f108ecb5b8c"
 
 [[package]]
 name = "nom"
