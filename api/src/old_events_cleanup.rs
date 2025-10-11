@@ -155,16 +155,22 @@ async fn vacuum_analyze_and_reindex<'a, A: Acquire<'a, Database = Postgres>>(
 ) -> Result<(), sqlx::Error> {
     let mut db = db.acquire().await?;
 
+    trace!(
+        "Running VACUUM ANALYZE on big tables: event.event, webhook.request_attempt, webhook.response"
+    );
     query!("VACUUM ANALYZE event.event, webhook.request_attempt, webhook.response")
         .execute(&mut *db)
         .await?;
 
+    trace!("Reindexing table event.event...");
     query!("REINDEX TABLE CONCURRENTLY event.event")
         .execute(&mut *db)
         .await?;
+    trace!("Reindexing table webhook.request_attempt...");
     query!("REINDEX TABLE CONCURRENTLY webhook.request_attempt")
         .execute(&mut *db)
         .await?;
+    trace!("Reindexing table webhook.response...");
     query!("REINDEX TABLE CONCURRENTLY webhook.response")
         .execute(&mut *db)
         .await?;
