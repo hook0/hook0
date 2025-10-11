@@ -20,6 +20,75 @@ use crate::{Config, PulsarConfig, RequestAttempt, compute_next_retry};
 
 type AckMessage = (MessageIdData, Option<OwnedSemaphorePermit>, bool);
 
+pub async fn load_waiting_request_attempts_from_db(
+    pool: &PgPool,
+    worker_id: &Arc<Uuid>,
+    pulsar: &Arc<PulsarConfig>,
+) -> anyhow::Result<u64> {
+    let topic = format!(
+        "persistent://{}/{}/{}.request_attempt",
+        &pulsar.tenant, &pulsar.namespace, worker_id,
+    );
+    let mut producer = pulsar
+        .pulsar
+        .producer()
+        .with_topic(topic)
+        .with_name(format!(
+            "hook0-output-worker.{worker_id}.request-attempts-initial-loading.{}",
+            Uuid::now_v7()
+        ))
+        .with_options(ProducerOptions {
+            block_queue_if_full: true,
+            ..Default::default()
+        })
+        .build()
+        .await?;
+
+    let mut request_attempts_stream = query_as!(
+        RequestAttempt,
+        "
+            SELECT
+                ra.request_attempt__id AS request_attempt_id,
+                ra.event__id AS event_id,
+                ra.subscription__id AS subscription_id,
+                ra.created_at,
+                ra.retry_count,
+                t_http.method as http_method,
+                t_http.url as http_url,
+                t_http.headers as http_headers,
+                e.event_type__name AS event_type_name,
+                e.payload,
+                e.payload_content_type,
+                s.secret
+            FROM webhook.request_attempt AS ra
+            INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
+            INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
+            INNER JOIN event.event AS e ON e.event__id = ra.event__id
+            LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = ra.subscription__id
+            INNER JOIN event.application AS a ON a.application__id = s.application__id
+            LEFT JOIN iam.organization__worker AS ow ON ow.organization__id = a.organization__id AND ow.default = true
+            WHERE ra.succeeded_at IS NULL AND ra.failed_at IS NULL
+                AND a.deleted_at IS NULL
+                AND COALESCE(sw.worker__id, ow.worker__id) = $1
+        ",
+        worker_id.as_ref(),
+    )
+    .fetch(pool);
+
+    let mut counter = 0u64;
+    while let Some(ra) = request_attempts_stream.try_next().await? {
+        producer
+            .create_message()
+            .event_time(ra.created_at.timestamp_micros() as u64)
+            .with_content(ra)
+            .send_non_blocking()
+            .await?;
+        counter += 1;
+    }
+
+    Ok(counter)
+}
+
 #[allow(clippy::too_many_arguments)]
 pub async fn look_for_work(
     config: &Arc<Config>,
