@@ -117,6 +117,10 @@ struct Config {
     /// A comma-separated list of enabled signature versions
     #[clap(long, env, default_value = "v1", value_delimiter = ',')]
     enabled_signature_versions: Vec<SignatureVersion>,
+
+    /// If true, will load waiting request attempts (that can be picked by this worker) from DB into Pulsar before starting working; this is uselfull when migrating ta a Pulsar worker; has no effect if worker has not a pulsar queue type
+    #[clap(long, env, default_value_t = false)]
+    load_waiting_request_attempt_into_pulsar: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -360,6 +364,14 @@ async fn main() -> anyhow::Result<()> {
             let wv = Arc::new(worker_version.to_owned());
             let pu = pulsar.clone();
             tasks.spawn(async move {
+                if c.load_waiting_request_attempt_into_pulsar {
+                    info!("Loading waiting request attempts from database into Pulsar...");
+                    match pulsar::load_waiting_request_attempts_from_db(&po, &wid, &pu).await {
+                        Ok(c) => info!("Loaded {c} waiting request attempts from database into Pulsar"),
+                        Err(e) => error!("Error while loading waiting request attempts from database into Pulsar: {e}"),
+                    }
+                }
+
                 loop {
                     let result = pulsar::look_for_work(
                         &c,
