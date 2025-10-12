@@ -1,4 +1,4 @@
-use actix_web::rt::time::sleep;
+use actix_web::rt::time::{sleep, timeout};
 use log::{debug, error, trace};
 use sqlx::{PgPool, query};
 use std::time::{Duration, Instant};
@@ -11,12 +11,18 @@ pub async fn periodically_refresh_materialized_views(
     db: &PgPool,
     period: Duration,
 ) {
+    let timeout_duration = period / 2;
     sleep(STARTUP_GRACE_PERIOD).await;
 
     while let Ok(permit) = housekeeping_semaphore.acquire().await {
-        if let Err(e) = refresh_materialized_views(db).await {
-            error!("Could not refresh materialized views: {e}");
+        match timeout(timeout_duration, refresh_materialized_views(db)).await {
+            Err(_) => {
+                error!("Timed out after {timeout_duration:?} while refreshing materialized views")
+            }
+            Ok(Err(e)) => error!("Could not refresh materialized views: {e}"),
+            Ok(_) => (),
         }
+
         drop(permit);
 
         sleep(period).await;
