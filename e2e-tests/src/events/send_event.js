@@ -29,6 +29,7 @@ export default function (service_token, base_url, application_id, event_type, la
         r.status === 201 && r.body && r.body.includes('event_id') && r.body.includes('received_at'),
     })
   ) {
+    console.warn(res);
     return null;
   }
 
