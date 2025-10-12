@@ -5,6 +5,7 @@ use hmac::{Hmac, Mac};
 use log::{debug, error, trace, warn};
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue, InvalidHeaderValue};
 use reqwest::{Client, Method, Url};
+use serde_json::Value;
 use sha2::Sha256;
 use std::collections::HashMap;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
@@ -78,10 +79,7 @@ impl Response {
 }
 
 pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
-    debug!(
-        "Processing request attempt {}",
-        &attempt.request_attempt__id
-    );
+    debug!("Processing request attempt {}", &attempt.request_attempt_id);
     let start = Instant::now();
 
     let m = Method::from_str(attempt.http_method.as_str());
@@ -170,9 +168,9 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
             }
         });
     let c = mk_http_client(config.connect_timeout, config.timeout);
-    let hs = attempt.headers();
-    let et = HeaderValue::from_str(&attempt.event_type__name);
-    let event_id = HeaderValue::from_str(attempt.event__id.to_string().as_str())
+    let hs = parse_headers(attempt.http_headers.clone());
+    let et = HeaderValue::from_str(&attempt.event_type_name);
+    let event_id = HeaderValue::from_str(attempt.event_id.to_string().as_str())
         .expect("Could not create a header value from the event ID UUID");
     let content_type = HeaderValue::from_str(attempt.payload_content_type.as_str())
         .expect("Could not create a header value from the event content type");
@@ -339,7 +337,7 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
         (_, _, _, _, Err(_)) => {
             let msg = format!(
                 "Event type has an invalid header value: {}",
-                &attempt.event_type__name
+                &attempt.event_type_name
             );
             warn!("{msg}");
             Response {
@@ -361,6 +359,13 @@ fn mk_http_client(connect_timeout: Duration, timeout: Duration) -> reqwest::Resu
         .user_agent(USER_AGENT)
         .tcp_keepalive(None)
         .build()
+}
+
+/// Parse headers of HTTP target from JSON and prepare them to be fed to reqwest
+fn parse_headers(value: Value) -> anyhow::Result<HeaderMap> {
+    let hashmap = serde_json::from_value::<HashMap<String, String>>(value)?;
+    let headermap = HeaderMap::try_from(&hashmap)?;
+    Ok(headermap)
 }
 
 struct Signature {
