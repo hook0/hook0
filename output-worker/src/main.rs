@@ -118,7 +118,7 @@ struct Config {
     #[clap(long, env, default_value = "v1", value_delimiter = ',')]
     enabled_signature_versions: Vec<SignatureVersion>,
 
-    /// If true, will load waiting request attempts (that can be picked by this worker) from DB into Pulsar before starting working; this is uselfull when migrating ta a Pulsar worker; has no effect if worker has not a pulsar queue type
+    /// If true, will load waiting request attempts (that can be picked by this worker) from DB into Pulsar before starting working; this is usefull when migrating ta a Pulsar worker; has no effect if worker has not a pulsar queue type
     #[clap(long, env, default_value_t = false)]
     load_waiting_request_attempt_into_pulsar: bool,
 }
@@ -218,6 +218,15 @@ async fn main() -> anyhow::Result<()> {
     info!("Connected to database");
 
     let worker = get_worker(worker_name, &pool).await?;
+
+    if matches!(worker.queue_type, WorkerQueueType::Pg)
+        && u32::from(config.concurrent) > config.max_db_connections
+    {
+        warn!(
+            "Worker has a pg queue type with CONCURRENT={}, but MAX_DB_CONNECTIONS is smaller ({}); worker with pg queue should have MAX_DB_CONNECTIONS=CONCURRENT",
+            config.concurrent, config.max_db_connections
+        );
+    }
 
     let pulsar_config = if matches!(worker.queue_type, WorkerQueueType::Pulsar) {
         if let (
@@ -485,7 +494,7 @@ async fn get_worker(name: String, conn: &PgPool) -> anyhow::Result<Worker> {
         })
     } else {
         warn!(
-            "Worker name '{name}' was not found in database; worker is running as a public worker"
+            "Worker name '{name}' was not found in database; worker is running as a public pg worker"
         );
         Ok(Worker {
             name,
