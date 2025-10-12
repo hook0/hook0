@@ -15,7 +15,7 @@ use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, Semaphore};
 use url::Url;
 use uuid::Uuid;
 
@@ -678,10 +678,15 @@ async fn main() -> anyhow::Result<()> {
         // Spawn task to do regular rate limiters housekeeping
         rate_limiters.spawn_housekeeping_task(config.api_rate_limiting_housekeeping_period);
 
+        // This semaphore is used to ensure we do not run multiple housekeeping tasks at the same because it can create unnecessary load on the database
+        let housekeeping_semaphore = Arc::new(Semaphore::new(1));
+
         // Spawn task to refresh materialized views
         let refresh_db = pool.clone();
+        let refresh_housekeeping_semaphore = housekeeping_semaphore.clone();
         actix_web::rt::spawn(async move {
             materialized_views::periodically_refresh_materialized_views(
+                &refresh_housekeeping_semaphore,
                 &refresh_db,
                 Duration::from_secs(config.materialized_views_refresh_period_in_s),
             )
@@ -691,8 +696,11 @@ async fn main() -> anyhow::Result<()> {
         // Spawn task to clean up soft deleted applications
         if config.enable_soft_deleted_applications_cleanup {
             let clean_soft_deleted_applications_db = pool.clone();
+            let clean_soft_deleted_applications_housekeeping_semaphore =
+                housekeeping_semaphore.clone();
             actix_web::rt::spawn(async move {
                 soft_deleted_applications_cleanup::periodically_clean_up_soft_deleted_applications(
+                    &clean_soft_deleted_applications_housekeeping_semaphore,
                     &clean_soft_deleted_applications_db,
                     config.soft_deleted_applications_cleanup_period,
                     config.soft_deleted_applications_cleanup_grace_period,
@@ -703,8 +711,10 @@ async fn main() -> anyhow::Result<()> {
 
         // Spawn task to clean up old events
         let cleanup_db = pool.clone();
+        let cleanup_semaphore = housekeeping_semaphore.clone();
         actix_web::rt::spawn(async move {
             old_events_cleanup::periodically_clean_up_old_events(
+                &cleanup_semaphore,
                 &cleanup_db,
                 Duration::from_secs(config.old_events_cleanup_period_in_s),
                 config.quota_global_days_of_events_retention_limit,
@@ -716,8 +726,10 @@ async fn main() -> anyhow::Result<()> {
 
         // Spawn task to clean up expired tokens
         let cleanup_db = pool.clone();
+        let cleanup_semaphore = housekeeping_semaphore.clone();
         actix_web::rt::spawn(async move {
             expired_tokens_cleanup::periodically_clean_up_expired_tokens(
+                &cleanup_semaphore,
                 &cleanup_db,
                 config.expired_tokens_cleanup_period,
                 config.expired_tokens_cleanup_grace_period,
@@ -729,8 +741,10 @@ async fn main() -> anyhow::Result<()> {
         // Spawn task to clean unverified users if enabled
         if config.enable_unverified_users_cleanup {
             let clean_unverified_users_db = pool.clone();
+            let clean_unverified_users_semaphore = housekeeping_semaphore.clone();
             actix_web::rt::spawn(async move {
                 unverified_users_cleanup::periodically_clean_up_unverified_users(
+                    &clean_unverified_users_semaphore,
                     &clean_unverified_users_db,
                     Duration::from_secs(config.unverified_users_cleanup_period_in_s),
                     config.unverified_users_cleanup_grace_period_in_days,
