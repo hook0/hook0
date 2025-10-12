@@ -41,7 +41,7 @@
     "@biscuit-auth/biscuit-wasm": "^0.6.0",
     "@codemirror/lang-json": "^6.0.1",
     "@codemirror/theme-one-dark": "^6.1.0",
-    "@formbricks/js": "^4.1.0",
+    "@formbricks/js": "^4.2.1",
     "@fortawesome/fontawesome-svg-core": "^7.0.1",
     "@fortawesome/free-solid-svg-icons": "^7.0.1",
     "@fortawesome/vue-fontawesome": "^3.0.0-5",
