@@ -1,0 +1,25 @@
+[package]
+name = "hook0-protobuf"
+version = "0.1.0"
+edition = "2024"
+description = "Protocol Buffers related structures for Hook0, Open-Source Webhooks as a service for SaaS"
+homepage = "https://www.hook0.com/"
+repository = "https://gitlab.com/hook0/hook0/-/tree/master/protobuf"
+authors = ["David Sferruzza <david@hook0.com>", "François-Guillaume Ribreau <fg@hook0.com>"]
+keywords = ["webhooks", "webhook", "webhook-server", "sentry", "saas"]
+license = "SSPL-1.0"
+
+[dependencies]
+chrono = "0.4.42"
+prost = "0.14.1"
+prost-wkt = "0.7.0"
+prost-wkt-types = "0.7.0"
+pulsar = { version = "6.4.1", default-features = false }
+serde = "1.0.228"
+serde_json = "1.0.145"
+thiserror = "2.0.17"
+uuid = "1.18.1"
+
+[build-dependencies]
+prost-build = "0.14.1"
+prost-wkt-build = "0.7.0"

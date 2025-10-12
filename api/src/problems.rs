@@ -11,7 +11,6 @@ use std::fmt::Display;
 use strum::{EnumIter, VariantNames};
 
 use crate::handlers::events::PayloadContentType;
-use crate::handlers::instance::HealthCheck;
 use crate::iam::Role;
 use crate::quotas::QuotaValue;
 
@@ -74,7 +73,6 @@ pub enum Hook0Problem {
     NotFound,
     InternalServerError,
     Forbidden,
-    ServiceUnavailable(HealthCheck),
 }
 
 impl From<sqlx::Error> for Hook0Problem {
@@ -513,13 +511,6 @@ impl From<Hook0Problem> for Problem {
                 detail: "You don't have the right to access or edit this resource.".into(),
                 validation: None,
                 status: StatusCode::FORBIDDEN,
-            },
-            Hook0Problem::ServiceUnavailable(h) => Problem {
-                id: Hook0Problem::ServiceUnavailable(h),
-                title: "Service unavailable",
-                detail: format!("{h}.").into(),
-                validation: None,
-                status: StatusCode::SERVICE_UNAVAILABLE,
             },
         }
     }
