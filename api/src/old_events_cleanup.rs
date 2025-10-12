@@ -141,8 +141,8 @@ async fn delete_dangling_responses<'a, A: Acquire<'a, Database = Postgres>>(
     let res = query!(
         "
             DELETE FROM webhook.response
-            USING webhook.request_attempt AS ra
-            INNER JOIN webhook.response AS r ON r.response__id = ra.response__id
+            USING webhook.response AS r
+            LEFT OUTER JOIN webhook.request_attempt AS ra ON ra.response__id = r.response__id
             WHERE webhook.response.response__id = r.response__id
                 AND ra.response__id IS NULL
         "
