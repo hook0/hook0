@@ -349,7 +349,7 @@ async fn generate_profile(duration: std::time::Duration) -> anyhow::Result<Vec<u
         .blocklist(&["libc", "libgcc", "pthread", "vdso"])
         .build()?;
 
-    actix::clock::sleep(duration).await;
+    actix_web::rt::time::sleep(duration).await;
 
     let profile = guard.report().build()?.pprof()?;
 
