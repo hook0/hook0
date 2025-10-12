@@ -2,16 +2,22 @@ use actix_web::rt::time::sleep;
 use log::{debug, error, trace};
 use sqlx::{PgPool, query};
 use std::time::{Duration, Instant};
+use tokio::sync::Semaphore;
 
 const STARTUP_GRACE_PERIOD: Duration = Duration::from_secs(10);
 
-pub async fn periodically_refresh_materialized_views(db: &PgPool, period: Duration) {
+pub async fn periodically_refresh_materialized_views(
+    housekeeping_semaphore: &Semaphore,
+    db: &PgPool,
+    period: Duration,
+) {
     sleep(STARTUP_GRACE_PERIOD).await;
 
-    loop {
+    while let Ok(permit) = housekeeping_semaphore.acquire().await {
         if let Err(e) = refresh_materialized_views(db).await {
             error!("Could not refresh materialized views: {e}");
         }
+        drop(permit);
 
         sleep(period).await;
     }
