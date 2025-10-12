@@ -38,6 +38,7 @@ export default function (baseUrl, service_token, application_id, event_types, ta
         r.body.includes('labels'),
     })
   ) {
+    console.warn(res);
     return null;
   }
 

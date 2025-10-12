@@ -1,12 +1,12 @@
 import http from 'k6/http';
 import { check } from 'k6';
 
-export default function (baseUrl, organizationId, serviceToken) {
+export default function (baseUrl, organizationId, serviceToken, name) {
   const url = `${baseUrl}api/v1/applications/`;
   const currentDateTime = new Date().toISOString();
 
   const payload = JSON.stringify({
-    name: `test_k6_${currentDateTime}`,
+    name: name ?? `test_k6_${currentDateTime}`,
     organization_id: organizationId, // Ensure this value is not undefined or null
   });
 
@@ -28,6 +28,7 @@ export default function (baseUrl, organizationId, serviceToken) {
         r.body.includes('application_id'),
     })
   ) {
+    console.warn(res);
     return null;
   }
 

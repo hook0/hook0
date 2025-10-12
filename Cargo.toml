@@ -3,9 +3,10 @@ members = [
   "api",
   "output-worker",
   "sentry-integration",
-  "clients/rust"
+  "clients/rust",
+  "protobuf"
 ]
-resolver = "2"
+resolver = "3"
 
 [profile.release]
 lto = true

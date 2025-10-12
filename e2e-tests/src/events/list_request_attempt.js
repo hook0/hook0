@@ -17,6 +17,7 @@ export default function (base_url, service_token, application_id, event_id) {
       'List request attempts': (r) => r.status === 200 && r.body,
     })
   ) {
+    console.warn(res);
     return null;
   }
 
