@@ -139,7 +139,7 @@ pub async fn look_for_work(
             Ok::<_, anyhow::Error>((permit, msg_opt))
         };
 
-        // We need to await 3 async operations at the same time; the first that finishes will be handled, while the others are cancelled:
+        // We need to await 3 async operations at the same time; the first that finishes will be handled, while the others will be cancelled:
         // 1. We wait for gracefull shutdown to be asked and for inflight webhook tasks to be terminated
         // 2. We wait for at least 1 `AckMessage` to be available in the channel
         // 3. We wait for 2 sequential operations: obtaining a permit from the semaphore (= we can take a new job) and obtaining a message from Pulsar consumer (= there is a new job to take), only if gracefull shutdown was not asked
@@ -291,34 +291,34 @@ async fn handle_message(
                         &attempt.request_attempt_id
                     );
                     let response_id = query!(
-                    "
-                        INSERT INTO webhook.response (response_error__name, http_code, headers, body, elapsed_time_ms)
-                        VALUES ($1, $2, $3, $4, $5)
-                        RETURNING response__id
-                    ",
-                    response.response_error__name(),
-                    response.http_code(),
-                    response.headers(),
-                    response.body,
-                    response.elapsed_time_ms(),
-                )
-                .fetch_one(&mut *tx)
-                .await?
-                .response__id;
+                        "
+                            INSERT INTO webhook.response (response_error__name, http_code, headers, body, elapsed_time_ms)
+                            VALUES ($1, $2, $3, $4, $5)
+                            RETURNING response__id
+                        ",
+                        response.response_error__name(),
+                        response.http_code(),
+                        response.headers(),
+                        response.body,
+                        response.elapsed_time_ms(),
+                    )
+                    .fetch_one(&mut *tx)
+                    .await?
+                    .response__id;
 
                     if response.is_success() {
                         // Mark attempt as completed
                         debug!("Completing request attempt {}", &attempt.request_attempt_id);
                         query!(
                             "
-                            UPDATE webhook.request_attempt
-                            SET worker_name = $1,
-                                worker_version = $2,
-                                picked_at = $3,
-                                response__id = $4,
-                                succeeded_at = statement_timestamp()
-                            WHERE request_attempt__id = $5
-                        ",
+                                UPDATE webhook.request_attempt
+                                SET worker_name = $1,
+                                    worker_version = $2,
+                                    picked_at = $3,
+                                    response__id = $4,
+                                    succeeded_at = statement_timestamp()
+                                WHERE request_attempt__id = $5
+                            ",
                             worker_name,
                             worker_version,
                             picked_at,
@@ -337,14 +337,14 @@ async fn handle_message(
                         debug!("Failing request attempt {}", &attempt.request_attempt_id);
                         query!(
                             "
-                            UPDATE webhook.request_attempt
-                            SET worker_name = $1,
-                                worker_version = $2,
-                                picked_at = $3,
-                                response__id = $4,
-                                failed_at = statement_timestamp()
-                            WHERE request_attempt__id = $5
-                        ",
+                                UPDATE webhook.request_attempt
+                                SET worker_name = $1,
+                                    worker_version = $2,
+                                    picked_at = $3,
+                                    response__id = $4,
+                                    failed_at = statement_timestamp()
+                                WHERE request_attempt__id = $5
+                            ",
                             worker_name,
                             worker_version,
                             picked_at,
@@ -373,19 +373,19 @@ async fn handle_message(
                                 created_at: DateTime<Utc>,
                             }
                             let retry = query_as!(
-                            Retry,
-                            "
-                                INSERT INTO webhook.request_attempt (event__id, subscription__id, delay_until, retry_count)
-                                VALUES ($1, $2, $3, $4)
-                                RETURNING request_attempt__id, created_at
-                            ",
-                            attempt.event_id,
-                            attempt.subscription_id,
-                            delay_until,
-                            next_retry_count,
-                        )
-                        .fetch_one(&mut *tx)
-                        .await?;
+                                Retry,
+                                "
+                                    INSERT INTO webhook.request_attempt (event__id, subscription__id, delay_until, retry_count)
+                                    VALUES ($1, $2, $3, $4)
+                                    RETURNING request_attempt__id, created_at
+                                ",
+                                attempt.event_id,
+                                attempt.subscription_id,
+                                delay_until,
+                                next_retry_count,
+                            )
+                            .fetch_one(&mut *tx)
+                            .await?;
 
                             info!(
                                 "Request attempt {} failed; retry #{next_retry_count} created as {} to be picked in {}s",

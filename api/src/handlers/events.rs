@@ -468,7 +468,7 @@ pub async fn ingest(
                 if let Some(worker_id) = ra.worker_id
                     && ra.worker_queue_type.as_deref() == Some("pulsar")
                 {
-                    let request_attempt_for_output_worker = RequestAttempt {
+                    let request_attempt = RequestAttempt {
                         request_attempt_id: ra.request_attempt__id,
                         event_id: body.event_id,
                         subscription_id: ra.subscription__id,
@@ -498,7 +498,7 @@ pub async fn ingest(
                                 "persistent://{}/{}/{}.request_attempt",
                                 &pulsar.tenant, &pulsar.namespace, worker_id,
                             ),
-                            request_attempt_for_output_worker,
+                            request_attempt,
                         )
                         .await
                         .map_err(|e| {
