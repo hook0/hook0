@@ -1,4 +1,4 @@
-use actix::clock::sleep;
+use actix_web::rt::time::sleep;
 use anyhow::anyhow;
 use async_recursion::async_recursion;
 use chrono::{DateTime, Utc};

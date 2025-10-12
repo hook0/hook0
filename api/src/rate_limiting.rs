@@ -1,10 +1,10 @@
-use actix::clock::sleep;
 use actix_governor::governor::middleware::NoOpMiddleware;
 use actix_governor::{
     GlobalKeyExtractor, Governor, GovernorConfig, GovernorConfigBuilder, KeyExtractor,
 };
 use actix_web::HttpMessage;
 use actix_web::middleware::Condition;
+use actix_web::rt::time::sleep;
 use biscuit_auth::Biscuit;
 use log::{debug, trace, warn};
 use std::net::IpAddr;

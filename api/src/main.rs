@@ -1,5 +1,4 @@
 use ::hook0_client::Hook0Client;
-use actix::Arbiter;
 use actix_cors::Cors;
 use actix_files::{Files, NamedFile};
 use actix_web::middleware::{Compat, Logger, NormalizePath};
@@ -633,7 +632,7 @@ async fn main() -> anyhow::Result<()> {
         if let Some(client) = &hook0_client {
             let upsert_client = client.clone();
             let upserts_retries = config.hook0_client_upserts_retries;
-            Arbiter::current().spawn(async move {
+            actix_web::rt::spawn(async move {
                 trace!("Starting Hook0 client upsert task");
                 hook0_client::upsert_event_types(
                     &upsert_client,
