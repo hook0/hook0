@@ -1,4 +1,4 @@
-use actix::clock::sleep;
+use actix_web::rt::time::sleep;
 use chrono::TimeDelta;
 use log::{debug, error, info, trace};
 use sqlx::postgres::types::PgInterval;

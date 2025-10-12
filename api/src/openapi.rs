@@ -1,7 +1,7 @@
-use actix::fut::{Ready, ready};
 use actix_web::{Error, FromRequest, HttpRequest};
 use clap::{crate_description, crate_version};
 use paperclip::actix::Apiv2Security;
+use paperclip::util::{Ready, ready};
 use paperclip::v2::models::{DefaultApiRaw, Info, OperationProtocol};
 use reqwest::Url;
 use serde::Deserialize;

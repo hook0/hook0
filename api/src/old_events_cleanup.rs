@@ -1,4 +1,4 @@
-use actix::clock::sleep;
+use actix_web::rt::time::sleep;
 use log::{debug, error, info, trace};
 use sqlx::{Acquire, PgPool, Postgres, query};
 use std::time::{Duration, Instant};
