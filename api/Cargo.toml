@@ -11,7 +11,7 @@ keywords = ["webhooks", "webhook", "webhook-server", "events", "saas"]
 [dependencies]
 actix-cors = "0.7.1"
 actix-files = "0.6.8"
-actix-governor = { git = "https://github.com/dsferruzza/actix-governor.git", rev = "f1a29212a93a2ee5f819e052dc7fed5efc5f3fb2" }
+actix-governor = "0.10.0"
 actix-web = "4.11.0"
 anyhow = "1.0.100"
 argon2 = "0.5.3"
@@ -36,8 +36,8 @@ log = "0.4.28"
 mrml = "5.0.0"
 paperclip = { version = "0.9.5", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
 pulsar = { version = "6.4.1", default-features = false, features = ["tokio-rustls-runtime"] }
-regex = "1.12.1"
-reqwest = { version = "0.12.23", default-features = false, features = ["charset", "http2", "macos-system-configuration", "hickory-dns"] }
+regex = "1.12.2"
+reqwest = { version = "0.12.24", default-features = false, features = ["charset", "http2", "macos-system-configuration", "hickory-dns"] }
 rustls = { version = "0.23.32", default-features = false, features = ["std", "tls12", "logging", "prefer-post-quantum", "ring"] }
 sentry-actix = "0.45.0"
 serde = "1.0.228"
