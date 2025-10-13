@@ -8,9 +8,12 @@ use clap::builder::{BoolValueParser, TypedValueParser};
 use clap::{ArgGroup, Parser, crate_name};
 use ipnetwork::IpNetwork;
 use lettre::Address;
-use log::{debug, info, trace, warn};
+use log::{debug, error, info, trace, warn};
 use paperclip::actix::{OpenApiExt, web};
-use pulsar::{Authentication, MultiTopicProducer, ProducerOptions, Pulsar, TokioExecutor};
+use pulsar::{
+    Authentication, ConnectionRetryOptions, MultiTopicProducer, ProducerOptions, Pulsar,
+    TokioExecutor,
+};
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 use std::str::FromStr;
 use std::sync::Arc;
@@ -57,6 +60,7 @@ pub static malloc_conf: &[u8] = b"prof:true,prof_active:true,lg_prof_sample:19\0
 
 const APP_TITLE: &str = "Hook0 API";
 const WEBAPP_INDEX_FILE: &str = "index.html";
+const PULSAR_CONNECTION_MAX_RETRIES: u32 = 10;
 
 #[derive(Debug, Clone, Parser)]
 #[clap(author, about, version, name = APP_TITLE)]
@@ -593,32 +597,46 @@ async fn main() -> anyhow::Result<()> {
                 .install_default()
                 .unwrap();
 
-            let pulsar = Pulsar::builder(pulsar_binary_url, TokioExecutor)
+            match Pulsar::builder(pulsar_binary_url, TokioExecutor)
+                .with_connection_retry_options(ConnectionRetryOptions {
+                    max_retries: PULSAR_CONNECTION_MAX_RETRIES,
+                    ..Default::default()
+                })
                 .with_auth(Authentication {
                     name: "token".to_owned(),
                     data: pulsar_token.into_bytes(),
                 })
                 .build()
-                .await?;
+                .await
+            {
+                Ok(pulsar) => {
+                    let request_attempts_producer = pulsar
+                        .producer()
+                        .with_name(format!(
+                            "hook0-api.request-attempts-producer.{}",
+                            Uuid::now_v7()
+                        ))
+                        .with_options(ProducerOptions {
+                            block_queue_if_full: true,
+                            ..Default::default()
+                        })
+                        .build_multi_topic();
 
-            let request_attempts_producer = pulsar
-                .producer()
-                .with_name(format!(
-                    "hook0-api.request-attempts-producer.{}",
-                    Uuid::now_v7()
-                ))
-                .with_options(ProducerOptions {
-                    block_queue_if_full: true,
-                    ..Default::default()
-                })
-                .build_multi_topic();
-
-            Some(Arc::new(PulsarConfig {
-                pulsar,
-                tenant: pulsar_tenant,
-                namespace: pulsar_namespace,
-                request_attempts_producer: Arc::new(Mutex::new(request_attempts_producer)),
-            }))
+                    Some(Arc::new(PulsarConfig {
+                        pulsar,
+                        tenant: pulsar_tenant,
+                        namespace: pulsar_namespace,
+                        request_attempts_producer: Arc::new(Mutex::new(request_attempts_producer)),
+                    }))
+                }
+                Err(e) => {
+                    error!(
+                        "Could not connect to Pulsar after {PULSAR_CONNECTION_MAX_RETRIES} attempts: {e}"
+                    );
+                    warn!("Continuing without Pulsar support (restart to try again)");
+                    None
+                }
+            }
         } else {
             None
         };
