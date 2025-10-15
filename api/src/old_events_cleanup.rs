@@ -77,6 +77,7 @@ async fn clean_up_old_events_and_responses(
             start.elapsed()
         );
     }
+
     Ok(())
 }
 

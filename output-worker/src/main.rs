@@ -5,6 +5,9 @@ mod work;
 
 use ::pulsar::{Authentication, Pulsar, TokioExecutor};
 use anyhow::bail;
+use aws_sdk_s3::Client;
+use aws_sdk_s3::config::{AppName, Credentials, Region};
+use chrono::{DateTime, Utc};
 use clap::{ArgGroup, Parser, ValueEnum, crate_name, crate_version};
 use log::{debug, error, info, warn};
 use reqwest::Url;
@@ -69,6 +72,26 @@ struct Config {
     /// Pulsar namespace
     #[clap(long, env, group = "pulsar")]
     pulsar_namespace: Option<String>,
+
+    /// Host of the S3-like object storage (without https://)
+    #[clap(long, env)]
+    object_storage_host: Option<String>,
+
+    /// Force endpoint scheme to be HTTP (by default it is HTTPS)
+    #[clap(long, env, default_value_t = false)]
+    object_storage_force_http_scheme: bool,
+
+    /// Key ID of the S3-like object storage
+    #[clap(long, env)]
+    object_storage_key_id: Option<String>,
+
+    /// Key secret of the S3-like object storage
+    #[clap(long, env, hide_env_values = true)]
+    object_storage_key_secret: Option<String>,
+
+    /// Bucket name of the S3-like object storage
+    #[clap(long, env)]
+    object_storage_bucket_name: Option<String>,
 
     /// Worker name (as defined in the infrastructure.worker table)
     #[clap(long, env)]
@@ -183,6 +206,30 @@ struct PulsarConfig {
     namespace: String,
 }
 
+#[derive(Debug, Clone)]
+struct ObjectStorageConfig {
+    client: Client,
+    bucket: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct RequestAttemptWithOptionalPayload {
+    pub application_id: Uuid,
+    pub request_attempt_id: Uuid,
+    pub event_id: Uuid,
+    pub event_received_at: DateTime<Utc>,
+    pub subscription_id: Uuid,
+    pub created_at: DateTime<Utc>,
+    pub retry_count: i16,
+    pub http_method: String,
+    pub http_url: String,
+    pub http_headers: serde_json::Value,
+    pub event_type_name: String,
+    pub payload: Option<Vec<u8>>,
+    pub payload_content_type: String,
+    pub secret: Uuid,
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let config = Config::parse();
@@ -257,6 +304,62 @@ async fn main() -> anyhow::Result<()> {
             }))
         } else {
             bail!("This worker has a 'pulsar' queue type, but Pulsar's configuration is missing")
+        }
+    } else {
+        None
+    };
+
+    let object_storage_config = if let (
+        Some(object_storage_host),
+        Some(object_storage_key_id),
+        Some(object_storage_key_secret),
+        Some(object_storage_bucket_name),
+    ) = (
+        &config.object_storage_host,
+        &config.object_storage_key_id,
+        &config.object_storage_key_secret,
+        &config.object_storage_bucket_name,
+    ) {
+        let app_name = AppName::new(crate_name!()).unwrap();
+        let credentials = Credentials::new(
+            object_storage_key_id,
+            object_storage_key_secret,
+            None,
+            None,
+            crate_name!(),
+        );
+        let region = Region::from_static("none");
+        let s3_config = aws_sdk_s3::Config::builder()
+            .region(region)
+            .credentials_provider(credentials)
+            .app_name(app_name)
+            .endpoint_url(format!(
+                "{}://{}",
+                if config.object_storage_force_http_scheme {
+                    "http"
+                } else {
+                    "https"
+                },
+                object_storage_host
+            ))
+            .force_path_style(true)
+            .build();
+        let client = Client::from_conf(s3_config);
+        if let Err(e) = client
+            .head_bucket()
+            .bucket(object_storage_bucket_name)
+            .send()
+            .await
+        {
+            error!("Could not connect to object storage: {e}");
+            warn!("Continuing without object storage support (restart to try again)");
+            None
+        } else {
+            info!("Object storage support is enabled");
+            Some(ObjectStorageConfig {
+                client,
+                bucket: object_storage_bucket_name.to_owned(),
+            })
         }
     } else {
         None
@@ -372,10 +475,11 @@ async fn main() -> anyhow::Result<()> {
             let wn = Arc::new(worker.name.to_owned());
             let wv = Arc::new(worker_version.to_owned());
             let pu = pulsar.clone();
+            let os = object_storage_config.clone();
             tasks.spawn(async move {
                 if c.load_waiting_request_attempt_into_pulsar {
                     info!("Loading waiting request attempts from database into Pulsar...");
-                    match pulsar::load_waiting_request_attempts_from_db(&po, &wid, &pu).await {
+                    match pulsar::load_waiting_request_attempts_from_db(&po, &wid, &pu, &os).await {
                         Ok(c) => info!("Loaded {c} waiting request attempts from database into Pulsar"),
                         Err(e) => error!("Error while loading waiting request attempts from database into Pulsar: {e}"),
                     }
@@ -412,6 +516,7 @@ async fn main() -> anyhow::Result<()> {
 
         for unit_id in 0..config.concurrent {
             let p = pool.clone();
+            let os = object_storage_config.clone();
             let w = worker.to_owned();
             let wv = worker_version.to_owned();
             let tx = heartbeat_tx.to_owned();
@@ -422,7 +527,8 @@ async fn main() -> anyhow::Result<()> {
                 sleep(Duration::from_millis(u64::from(unit_id) * 100)).await;
 
                 loop {
-                    let t = pg::look_for_work(&cfg, unit_id, &p, &w, &wv, tx.clone(), &tt).await;
+                    let t =
+                        pg::look_for_work(&cfg, unit_id, &p, &os, &w, &wv, tx.clone(), &tt).await;
                     if let Err(ref e) = t {
                         error!("Unit {unit_id} crashed: {e}");
                     }
