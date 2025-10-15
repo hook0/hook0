@@ -8,10 +8,11 @@ use pulsar::{Consumer, ConsumerOptions, DeserializeMessage, Executor, ProducerOp
 use sqlx::{PgPool, query, query_as};
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::select;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{Sender, channel};
 use tokio::sync::{OwnedSemaphorePermit, Semaphore};
+use tokio::time::sleep;
+use tokio::{select, spawn};
 use tokio_util::task::TaskTracker;
 use uuid::Uuid;
 
@@ -129,6 +130,21 @@ pub async fn look_for_work(
     // This channel is used to bring back the semaphore permit and the message ID to properly destroy/(N)ACK them
     // This is needed because the webhook sendings happen in a Tokio task (to allow concurrency) but we need mutable access to the Pulsar consumer to (N)ACK messages
     let (ack_tx, mut ack_rx) = channel::<AckMessage>(config.concurrent.into());
+
+    // If monitoring heartbeat is enabled, we need to spawn a task to send heartbeats in case the worker does not have any message to process
+    if let Some(tx) = heartbeat_tx.clone() {
+        let p = Duration::from_secs(config.monitoring_heartbeat_min_period_in_s);
+        let tt = task_tracker.clone();
+        spawn(async move {
+            loop {
+                select! {
+                    biased;
+                    _ = sleep(p) => tx.send(0).await.unwrap(),
+                    _ = tt.wait() => break,
+                }
+            }
+        });
+    }
 
     loop {
         // We prepare a future to acquire a permit from the semaphore and then get a message from the Pulsar consumer
