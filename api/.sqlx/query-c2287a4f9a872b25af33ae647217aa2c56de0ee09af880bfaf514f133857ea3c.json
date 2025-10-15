@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            VACUUM ANALYZE\n                event.application,\n                event.application_secret,\n                event.service,\n                event.resource_type,\n                event.verb,\n                event.event_type,\n                webhook.subscription,\n                webhook.subscription__event_type,\n                webhook.subscription__worker,\n                webhook.target_http\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "c2287a4f9a872b25af33ae647217aa2c56de0ee09af880bfaf514f133857ea3c"
+}

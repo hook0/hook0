@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "REINDEX TABLE CONCURRENTLY webhook.target_http",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "a52eb2fa3d88486d931f87a528ad1ff3beddbdf4f559290644db027ead22a7ef"
+}
