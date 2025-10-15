@@ -1,0 +1,8 @@
+# Docusaurus
+/build
+.docusaurus
+.cache-loader
+
+# Generated API docs
+/api
+/openapi/hook0-api.json
