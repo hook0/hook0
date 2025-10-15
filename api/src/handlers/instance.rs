@@ -10,13 +10,12 @@ use paperclip::actix::web::{Data, Json};
 use paperclip::actix::{Apiv2Schema, OperationModifier, api_v2_operation};
 use paperclip::v2::models::{DefaultSchemaRaw, Either, Reference, Response};
 use paperclip::v2::schema::Apiv2Schema;
-use pulsar::ProducerOptions;
+use pulsar::proto::command_get_topics_of_namespace::Mode;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, query};
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::time::Duration;
-use uuid::Uuid;
 
 use crate::PulsarConfig;
 use crate::problems::Hook0Problem;
@@ -242,24 +241,12 @@ async fn check_database(db: PgPool) -> bool {
 
 async fn check_pulsar(pulsar: Option<Arc<PulsarConfig>>) -> Option<bool> {
     if let Some(p) = pulsar {
-        let producer = p
-            .pulsar
-            .producer()
-            .with_name(format!("hook0-api.health.{}", Uuid::now_v7()))
-            .with_options(ProducerOptions {
-                block_queue_if_full: true,
-                ..Default::default()
-            })
-            .with_topic(format!(
-                "non-persistent://{}/{}/health",
-                p.tenant, p.namespace
-            ))
-            .build()
-            .await;
-        match producer {
-            Ok(mut p) => Some(p.create_message().send_non_blocking().await.is_ok()),
-            Err(_) => Some(false),
-        }
+        Some(
+            p.pulsar
+                .get_topics_of_namespace(format!("{}/{}", p.tenant, p.namespace), Mode::All)
+                .await
+                .is_ok(),
+        )
     } else {
         None
     }
