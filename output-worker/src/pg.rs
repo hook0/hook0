@@ -1,5 +1,5 @@
 use anyhow::anyhow;
-use log::{debug, info, trace};
+use log::{debug, error, info, trace, warn};
 use sqlx::postgres::types::PgInterval;
 use sqlx::{PgPool, query, query_as};
 use std::time::Duration;
@@ -8,7 +8,11 @@ use tokio::time::sleep;
 use tokio_util::task::TaskTracker;
 
 use crate::work::work;
-use crate::{Config, RequestAttempt, Worker, WorkerScope, compute_next_retry};
+use crate::{
+    Config, ObjectStorageConfig, RequestAttemptWithOptionalPayload, Worker, WorkerScope,
+    compute_next_retry,
+};
+use hook0_protobuf::RequestAttempt;
 
 /// Minimum duration to wait when there are no unprocessed items to pick
 const MIN_POLLING_SLEEP: Duration = Duration::from_secs(1);
@@ -21,6 +25,7 @@ pub async fn look_for_work(
     config: &Config,
     unit_id: u16,
     pool: &PgPool,
+    object_storage: &Option<ObjectStorageConfig>,
     worker: &Worker,
     worker_version: &str,
     heartbeat_tx: Option<Sender<u16>>,
@@ -35,9 +40,23 @@ pub async fn look_for_work(
             WorkerScope::Public { worker_id } => {
                 // Only consider request attempts where associated subscription have no dedicated worker specified
                 query_as!(
-                    RequestAttempt,
+                    RequestAttemptWithOptionalPayload,
                     "
-                        SELECT ra.request_attempt__id AS request_attempt_id, ra.event__id AS event_id, ra.subscription__id AS subscription_id, ra.created_at, ra.retry_count, t_http.method AS http_method, t_http.url AS http_url, t_http.headers AS http_headers, e.event_type__name AS event_type_name, e.payload AS payload, e.payload_content_type AS payload_content_type, s.secret
+                        SELECT
+                            e.application__id AS application_id,
+                            ra.request_attempt__id AS request_attempt_id,
+                            ra.event__id AS event_id,
+                            e.received_at AS event_received_at,
+                            ra.subscription__id AS subscription_id,
+                            ra.created_at,
+                            ra.retry_count,
+                            t_http.method AS http_method,
+                            t_http.url AS http_url,
+                            t_http.headers AS http_headers,
+                            e.event_type__name AS event_type_name,
+                            e.payload AS payload,
+                            e.payload_content_type AS payload_content_type,
+                            s.secret
                         FROM webhook.request_attempt AS ra
                         INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
                         LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
@@ -60,9 +79,23 @@ pub async fn look_for_work(
             WorkerScope::Private { worker_id } => {
                 // Only consider request attempts where associated subscription have at least the currect worker specified as dedicated worker
                 query_as!(
-                    RequestAttempt,
+                    RequestAttemptWithOptionalPayload,
                     "
-                        SELECT ra.request_attempt__id AS request_attempt_id, ra.event__id AS event_id, ra.subscription__id AS subscription_id, ra.created_at, ra.retry_count, t_http.method AS http_method, t_http.url AS http_url, t_http.headers AS http_headers, e.event_type__name AS event_type_name, e.payload AS payload, e.payload_content_type AS payload_content_type, s.secret
+                        SELECT
+                            e.application__id AS application_id,
+                            ra.request_attempt__id AS request_attempt_id,
+                            ra.event__id AS event_id,
+                            e.received_at AS event_received_at,
+                            ra.subscription__id AS subscription_id,
+                            ra.created_at,
+                            ra.retry_count,
+                            t_http.method AS http_method,
+                            t_http.url AS http_url,
+                            t_http.headers AS http_headers,
+                            e.event_type__name AS event_type_name,
+                            e.payload AS payload,
+                            e.payload_content_type AS payload_content_type,
+                            s.secret
                         FROM webhook.request_attempt AS ra
                         INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
                         LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
@@ -107,119 +140,179 @@ pub async fn look_for_work(
                 &attempt.request_attempt_id
             );
 
-            // Work
-            let response = work(config, &attempt).await;
-            debug!(
-                "[unit={unit_id}] Got a response for request attempt {} in {} ms",
-                &attempt.request_attempt_id,
-                &response.elapsed_time_ms()
-            );
-            trace!("[unit={unit_id}] {response:?}");
-
-            // Store response
-            debug!(
-                "[unit={unit_id}] Storing response for request attempt {}",
-                &attempt.request_attempt_id
-            );
-            let response_id = query!(
-                "
-                    INSERT INTO webhook.response (response_error__name, http_code, headers, body, elapsed_time_ms)
-                    VALUES ($1, $2, $3, $4, $5)
-                    RETURNING response__id
-                ",
-                response.response_error__name(),
-                response.http_code(),
-                response.headers(),
-                response.body,
-                response.elapsed_time_ms(),
-            )
-            .fetch_one(&mut *tx)
-            .await?
-            .response__id;
-
-            // Associate response and request attempt
-            debug!(
-                "[unit={unit_id}] Associating response {response_id} with request attempt {}",
-                &attempt.request_attempt_id
-            );
-            query!(
-                "UPDATE webhook.request_attempt SET response__id = $1 WHERE request_attempt__id = $2",
-                response_id, attempt.request_attempt_id
-            )
-            .execute(&mut *tx)
-            .await?;
-
-            if response.is_success() {
-                // Mark attempt as completed
-                debug!(
-                    "[unit={unit_id}] Completing request attempt {}",
-                    &attempt.request_attempt_id
-                );
-                query!(
-                    "UPDATE webhook.request_attempt SET succeeded_at = statement_timestamp() WHERE request_attempt__id = $1",
-                    attempt.request_attempt_id
-                )
-                .execute(&mut *tx)
-                .await?;
-
-                info!(
-                    "[unit={unit_id}] Request attempt {} was completed sucessfully",
-                    &attempt.request_attempt_id
-                );
-            } else {
-                // Mark attempt as failed
-                debug!(
-                    "[unit={unit_id}] Failing request attempt {}",
-                    &attempt.request_attempt_id
-                );
-                query!(
-                    "UPDATE webhook.request_attempt SET failed_at = statement_timestamp() WHERE request_attempt__id = $1",
-                    attempt.request_attempt_id
-                )
-                .execute(&mut *tx)
-                .await?;
-
-                // Creating a retry request or giving up
-                if let Some(retry_in) = compute_next_retry(
-                    &mut tx,
-                    &attempt.subscription_id,
-                    config.max_fast_retries,
-                    config.max_slow_retries,
-                    attempt.retry_count,
-                )
-                .await?
+            let payload = if let Some(p) = attempt.payload {
+                Some(p)
+            } else if let Some(os) = &object_storage {
+                match os
+                    .client
+                    .get_object()
+                    .bucket(&os.bucket)
+                    .key(format!(
+                        "{}/event/{}/{}",
+                        attempt.application_id,
+                        attempt.event_received_at.naive_utc().date(),
+                        attempt.event_id
+                    ))
+                    .send()
+                    .await
                 {
-                    let next_retry_count = attempt.retry_count + 1;
-                    let retry_id = query!(
-                        "
-                            INSERT INTO webhook.request_attempt (event__id, subscription__id, delay_until, retry_count)
-                            VALUES ($1, $2, statement_timestamp() + $3, $4)
-                            RETURNING request_attempt__id
-                        ",
-                        attempt.event_id,
-                        attempt.subscription_id,
-                        PgInterval::try_from(retry_in).unwrap(),
-                        next_retry_count,
+                    Ok(obj) => match obj.body.collect().await {
+                        Ok(ab) => Some(ab.to_vec()),
+                        Err(e) => {
+                            warn!(
+                                "Error while getting payload body from object storage for event {}: {e}",
+                                attempt.event_id
+                            );
+                            None
+                        }
+                    },
+                    Err(e) => {
+                        warn!(
+                            "Error while getting payload object from object storage for event {}: {e}",
+                            attempt.event_id
+                        );
+                        None
+                    }
+                }
+            } else {
+                None
+            };
+
+            if let Some(p) = payload {
+                let attempt_with_payload = RequestAttempt {
+                    application_id: attempt.application_id,
+                    request_attempt_id: attempt.request_attempt_id,
+                    event_id: attempt.event_id,
+                    event_received_at: attempt.event_received_at,
+                    subscription_id: attempt.subscription_id,
+                    created_at: attempt.created_at,
+                    retry_count: attempt.retry_count,
+                    http_method: attempt.http_method,
+                    http_url: attempt.http_url,
+                    http_headers: attempt.http_headers,
+                    event_type_name: attempt.event_type_name,
+                    payload: p,
+                    payload_content_type: attempt.payload_content_type,
+                    secret: attempt.secret,
+                };
+
+                // Work
+                let response = work(config, &attempt_with_payload).await;
+                debug!(
+                    "[unit={unit_id}] Got a response for request attempt {} in {} ms",
+                    &attempt.request_attempt_id,
+                    &response.elapsed_time_ms()
+                );
+                trace!("[unit={unit_id}] {response:?}");
+
+                // Store response
+                debug!(
+                    "[unit={unit_id}] Storing response for request attempt {}",
+                    &attempt.request_attempt_id
+                );
+                let response_id = query!(
+                    "
+                        INSERT INTO webhook.response (response_error__name, http_code, headers, body, elapsed_time_ms)
+                        VALUES ($1, $2, $3, $4, $5)
+                        RETURNING response__id
+                    ",
+                    response.response_error__name(),
+                    response.http_code(),
+                    response.headers(),
+                    response.body,
+                    response.elapsed_time_ms(),
+                )
+                .fetch_one(&mut *tx)
+                .await?
+                .response__id;
+
+                // Associate response and request attempt
+                debug!(
+                    "[unit={unit_id}] Associating response {response_id} with request attempt {}",
+                    &attempt.request_attempt_id
+                );
+                query!(
+                    "UPDATE webhook.request_attempt SET response__id = $1 WHERE request_attempt__id = $2",
+                    response_id, attempt.request_attempt_id
+                )
+                .execute(&mut *tx)
+                .await?;
+
+                if response.is_success() {
+                    // Mark attempt as completed
+                    debug!(
+                        "[unit={unit_id}] Completing request attempt {}",
+                        &attempt.request_attempt_id
+                    );
+                    query!(
+                        "UPDATE webhook.request_attempt SET succeeded_at = statement_timestamp() WHERE request_attempt__id = $1",
+                        attempt.request_attempt_id
                     )
-                    .fetch_one(&mut *tx)
-                    .await?
-                    .request_attempt__id;
+                    .execute(&mut *tx)
+                    .await?;
 
                     info!(
-                        "[unit={unit_id}] Request attempt {} failed; retry #{next_retry_count} created as {retry_id} to be picked in {}s",
-                        &attempt.request_attempt_id,
-                        &retry_in.as_secs(),
+                        "[unit={unit_id}] Request attempt {} was completed sucessfully",
+                        &attempt.request_attempt_id
                     );
                 } else {
-                    info!(
-                        "[unit={unit_id}] Request attempt {} failed after {} attempts; giving up",
-                        &attempt.request_attempt_id, &attempt.retry_count,
+                    // Mark attempt as failed
+                    debug!(
+                        "[unit={unit_id}] Failing request attempt {}",
+                        &attempt.request_attempt_id
                     );
-                }
-            }
+                    query!(
+                        "UPDATE webhook.request_attempt SET failed_at = statement_timestamp() WHERE request_attempt__id = $1",
+                        attempt.request_attempt_id
+                    )
+                    .execute(&mut *tx)
+                    .await?;
 
-            // Commit transaction
-            tx.commit().await?;
+                    // Creating a retry request or giving up
+                    if let Some(retry_in) = compute_next_retry(
+                        &mut tx,
+                        &attempt.subscription_id,
+                        config.max_fast_retries,
+                        config.max_slow_retries,
+                        attempt.retry_count,
+                    )
+                    .await?
+                    {
+                        let next_retry_count = attempt.retry_count + 1;
+                        let retry_id = query!(
+                            "
+                                INSERT INTO webhook.request_attempt (event__id, subscription__id, delay_until, retry_count)
+                                VALUES ($1, $2, statement_timestamp() + $3, $4)
+                                RETURNING request_attempt__id
+                            ",
+                            attempt.event_id,
+                            attempt.subscription_id,
+                            PgInterval::try_from(retry_in).unwrap(),
+                            next_retry_count,
+                        )
+                        .fetch_one(&mut *tx)
+                        .await?
+                        .request_attempt__id;
+
+                        info!(
+                            "[unit={unit_id}] Request attempt {} failed; retry #{next_retry_count} created as {retry_id} to be picked in {}s",
+                            &attempt.request_attempt_id,
+                            &retry_in.as_secs(),
+                        );
+                    } else {
+                        info!(
+                            "[unit={unit_id}] Request attempt {} failed after {} attempts; giving up",
+                            &attempt.request_attempt_id, &attempt.retry_count,
+                        );
+                    }
+                }
+
+                // Commit transaction
+                tx.commit().await?;
+            } else {
+                error!("Could not get payload for event {}", attempt.event_id);
+                tx.rollback().await?;
+            }
         } else {
             trace!("[unit={unit_id}] No unprocessed attempt found");
 

@@ -8,8 +8,10 @@ use crate::error::Hook0ProtobufError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RequestAttempt {
+    pub application_id: Uuid,
     pub request_attempt_id: Uuid,
     pub event_id: Uuid,
+    pub event_received_at: DateTime<Utc>,
     pub subscription_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub retry_count: i16,
@@ -28,6 +30,17 @@ impl TryFrom<crate::raw_proto::request_attempt::RequestAttempt> for RequestAttem
     fn try_from(
         value: crate::raw_proto::request_attempt::RequestAttempt,
     ) -> Result<Self, Self::Error> {
+        let application_id = if value.application_id.is_empty() {
+            // This field was added afterwards so we need to avoid failing if it is empty
+            Uuid::nil()
+        } else {
+            Uuid::parse_str(&value.application_id).map_err(|error| {
+                Hook0ProtobufError::InvalidUuid {
+                    error,
+                    str: value.application_id,
+                }
+            })?
+        };
         let request_attempt_id = Uuid::parse_str(&value.request_attempt_id).map_err(|error| {
             Hook0ProtobufError::InvalidUuid {
                 error,
@@ -39,6 +52,11 @@ impl TryFrom<crate::raw_proto::request_attempt::RequestAttempt> for RequestAttem
                 error,
                 str: value.event_id,
             })?;
+        let event_received_at = value
+            .event_received_at
+            .map(DateTime::from)
+            // This field was added afterwards so we need to avoid failing if it is empty
+            .unwrap_or(DateTime::<Utc>::MIN_UTC);
         let subscription_id = Uuid::parse_str(&value.subscription_id).map_err(|error| {
             Hook0ProtobufError::InvalidUuid {
                 error,
@@ -65,8 +83,10 @@ impl TryFrom<crate::raw_proto::request_attempt::RequestAttempt> for RequestAttem
             })?;
 
         Ok(Self {
+            application_id,
             request_attempt_id,
             event_id,
+            event_received_at,
             subscription_id,
             created_at,
             retry_count,
@@ -96,8 +116,10 @@ impl TryFrom<RequestAttempt> for crate::raw_proto::request_attempt::RequestAttem
         );
 
         Ok(Self {
+            application_id: value.application_id.to_string(),
             request_attempt_id: value.request_attempt_id.to_string(),
             event_id: value.event_id.to_string(),
+            event_received_at: Some(value.event_received_at.into()),
             subscription_id: value.subscription_id.to_string(),
             created_at: Some(value.created_at.into()),
             retry_count,
@@ -157,8 +179,10 @@ mod tests {
     #[test]
     fn protobuf_conversion() {
         let request_attempt = RequestAttempt {
+            application_id: uuid!("00000000-0000-0000-0000-000000000000"),
             request_attempt_id: uuid!("00000000-0000-0000-0000-000000000001"),
             event_id: uuid!("00000000-0000-0000-0000-000000000002"),
+            event_received_at: Utc.with_ymd_and_hms(2025, 10, 5, 16, 0, 41).unwrap(),
             subscription_id: uuid!("00000000-0000-0000-0000-000000000003"),
             created_at: Utc.with_ymd_and_hms(2025, 10, 5, 16, 0, 42).unwrap(),
             retry_count: 42,
