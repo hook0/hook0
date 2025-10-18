@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE event.event\n            SET dispatched_at = NULL\n            WHERE event__id = $1\n                AND application__id = $2\n            RETURNING event_type__name AS event_type, payload, payload_content_type\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "event_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "payload",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 2,
+        "name": "payload_content_type",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "6cbd1c9e47c731cdae8adca31dc3a4619b72dddf0f2513cde124f37fd0d2aeb4"
+}
