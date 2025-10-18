@@ -19,7 +19,7 @@ async-recursion = "1.1.1"
 base64 = "0.22.1"
 biscuit-auth = { version = "6.0.0", features = ["uuid"] }
 chrono = { version = "0.4.42", features = ["serde"] }
-clap = { version = "4.5.48", features = ["derive", "env", "cargo", "wrap_help"] }
+clap = { version = "4.5.49", features = ["derive", "env", "cargo", "wrap_help"] }
 derive_more = { version = "2.0.1", features = ["into"] }
 futures-util = "0.3.31"
 hook0-client = { path = "../clients/rust", version = "0.2.0", default-features = false, features = ["producer"] }
@@ -38,14 +38,14 @@ paperclip = { version = "0.9.5", default-features = false, features = ["actix4",
 pulsar = { version = "6.4.1", default-features = false, features = ["tokio-rustls-runtime"] }
 regex = "1.12.2"
 reqwest = { version = "0.12.24", default-features = false, features = ["charset", "http2", "macos-system-configuration", "hickory-dns"] }
-rustls = { version = "0.23.32", default-features = false, features = ["std", "tls12", "logging", "prefer-post-quantum", "ring"] }
+rustls = { version = "0.23.33", default-features = false, features = ["std", "tls12", "logging", "prefer-post-quantum", "ring"] }
 sentry-actix = "0.45.0"
 serde = "1.0.228"
 serde_json = "1.0.145"
 sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "migrate"] }
 strum = { version = "0.27.2", features = ["derive"] }
 thiserror = "2.0.17"
-tokio = { version = "1.47.1" }
+tokio = { version = "1.48.0" }
 url = "2.5.7"
 uuid = { version = "1.18.1", features = ["serde", "v4", "v7"] }
 validator = { version = "0.20.0", features = ["derive", "unic"] }
@@ -53,7 +53,7 @@ validator = { version = "0.20.0", features = ["derive", "unic"] }
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
 jemalloc_pprof = { version = "0.8.1", features = ["symbolize"], optional = true }
 pprof = { version = "0.15.0", features = ["protobuf-codec"], optional = true }
-tikv-jemallocator = { version = "0.6.0", optional = true }
+tikv-jemallocator = { version = "0.6.1", optional = true }
 
 [dev-dependencies]
 test-log = { version = "0.2.18", features = ["unstable"] }
