@@ -11,14 +11,16 @@ use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sqlx::types::ipnetwork::IpNetwork;
-use sqlx::{query, query_as, query_scalar};
+use sqlx::{PgTransaction, query_as, query_scalar};
 use std::collections::HashMap;
 use std::str::FromStr;
+use std::sync::Arc;
 use std::time::Duration;
 use strum::{IntoStaticStr, VariantNames};
 use uuid::Uuid;
 use validator::Validate;
 
+use crate::PulsarConfig;
 use crate::extractor_user_ip::UserIp;
 use crate::iam::{Action, authorize_for_application};
 use crate::mailer::Mail;
@@ -430,83 +432,15 @@ pub async fn ingest(
             .map_err(Hook0Problem::from)?;
 
         if let Some(pulsar) = &state.pulsar {
-            #[derive(Debug, Clone)]
-            #[allow(non_snake_case)]
-            struct RawRequestAttempt {
-                request_attempt__id: Uuid,
-                subscription__id: Uuid,
-                created_at: DateTime<Utc>,
-                http_method: String,
-                http_url: String,
-                http_headers: serde_json::Value,
-                secret: Uuid,
-                worker_id: Option<Uuid>,
-                worker_queue_type: Option<String>,
-            }
-
-            let mut request_attempts_stream = query_as!(
-                RawRequestAttempt,
-                "
-                    SELECT ra.request_attempt__id, ra.subscription__id, ra.created_at, t_http.method as http_method, t_http.url as http_url, t_http.headers as http_headers, s.secret, COALESCE(sw.worker__id, ow.worker__id) as worker_id, COALESCE(w1.queue_type, w2.queue_type) as worker_queue_type
-                    FROM webhook.request_attempt AS ra
-                    INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
-                    INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
-                    LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = ra.subscription__id
-                    LEFT JOIN infrastructure.worker AS w1 ON w1.worker__id = sw.worker__id
-                    INNER JOIN event.application AS a ON a.application__id = s.application__id
-                    LEFT JOIN iam.organization__worker AS ow ON ow.organization__id = a.organization__id AND ow.default = true
-                    LEFT JOIN infrastructure.worker AS w2 ON w2.worker__id = ow.worker__id
-                    WHERE ra.event__id = $1
-                        AND ra.succeeded_at IS NULL AND ra.failed_at IS NULL
-                        AND a.deleted_at IS NULL
-                ",
-                &event.event_id,
+            send_request_attempts_to_pulsar(
+                &mut tx,
+                pulsar,
+                event.event_id,
+                &body.event_type,
+                &payload,
+                &body.payload_content_type,
             )
-            .fetch(&mut *tx);
-
-            while let Some(ra) = request_attempts_stream.try_next().await? {
-                if let Some(worker_id) = ra.worker_id
-                    && ra.worker_queue_type.as_deref() == Some("pulsar")
-                {
-                    let request_attempt = RequestAttempt {
-                        request_attempt_id: ra.request_attempt__id,
-                        event_id: body.event_id,
-                        subscription_id: ra.subscription__id,
-                        created_at: ra.created_at,
-                        retry_count: 0,
-                        http_method: ra.http_method,
-                        http_url: ra.http_url,
-                        http_headers: ra.http_headers,
-                        event_type_name: body.event_type.clone(),
-                        payload: payload.clone(),
-                        payload_content_type: body.payload_content_type.clone(),
-                        secret: ra.secret,
-                    };
-
-                    let mut producer = timeout(
-                        Duration::from_secs(3),
-                        pulsar.request_attempts_producer.lock(),
-                    )
-                    .await
-                    .map_err(|_| {
-                        error!("Timed out while waiting access to Pulsar producer");
-                        Hook0Problem::InternalServerError
-                    })?;
-                    producer
-                        .send_non_blocking(
-                            format!(
-                                "persistent://{}/{}/{}.request_attempt",
-                                &pulsar.tenant, &pulsar.namespace, worker_id,
-                            ),
-                            request_attempt,
-                        )
-                        .await
-                        .map_err(|e| {
-                            error!("Error while sending a message to Pulsar: {e}");
-                            Hook0Problem::InternalServerError
-                        })?;
-                }
-            }
+            .await?;
         }
 
         tx.commit().await?;
@@ -553,7 +487,7 @@ pub async fn replay(
     event_id: Path<Uuid>,
     body: Json<ReplayEvent>,
 ) -> Result<NoContent, Hook0Problem> {
-    let event_uuid = event_id.into_inner();
+    let event_id = event_id.into_inner();
 
     if authorize_for_application(
         &state.db,
@@ -570,24 +504,146 @@ pub async fn replay(
         return Err(Hook0Problem::Forbidden);
     }
 
-    let replayed = query!(
+    let mut tx = state.db.begin().await?;
+
+    struct ReplayedEvent {
+        event_type: String,
+        payload: Vec<u8>,
+        payload_content_type: String,
+    }
+    let replayed = query_as!(
+        ReplayedEvent,
         "
             UPDATE event.event
             SET dispatched_at = NULL
             WHERE event__id = $1
-            AND application__id = $2
+                AND application__id = $2
+            RETURNING event_type__name AS event_type, payload, payload_content_type
         ",
-        event_uuid,
+        event_id,
         body.application_id,
     )
-    .execute(&state.db)
+    .fetch_optional(&mut *tx)
     .await
-    .map_err(Hook0Problem::from);
+    .map_err(Hook0Problem::from)?;
 
     match replayed {
-        Ok(_) => Ok(NoContent),
-        Err(e) => Err(e),
+        Some(event) => {
+            if let Some(pulsar) = &state.pulsar {
+                send_request_attempts_to_pulsar(
+                    &mut tx,
+                    pulsar,
+                    event_id,
+                    &event.event_type,
+                    &event.payload,
+                    &event.payload_content_type,
+                )
+                .await?;
+            }
+
+            tx.commit().await?;
+            Ok(NoContent)
+        }
+        None => Err(Hook0Problem::NotFound),
     }
+}
+
+async fn send_request_attempts_to_pulsar<'a>(
+    tx: &mut PgTransaction<'a>,
+    pulsar: &Arc<PulsarConfig>,
+    event_id: Uuid,
+    event_type: &str,
+    payload: &[u8],
+    payload_content_type: &str,
+) -> Result<(), Hook0Problem> {
+    #[derive(Debug, Clone)]
+    #[allow(non_snake_case)]
+    struct RawRequestAttempt {
+        request_attempt__id: Uuid,
+        subscription__id: Uuid,
+        created_at: DateTime<Utc>,
+        http_method: String,
+        http_url: String,
+        http_headers: serde_json::Value,
+        secret: Uuid,
+        worker_id: Option<Uuid>,
+        worker_queue_type: Option<String>,
+    }
+
+    let mut request_attempts_stream = query_as!(
+        RawRequestAttempt,
+        "
+            SELECT
+                ra.request_attempt__id,
+                ra.subscription__id,
+                ra.created_at,
+                t_http.method AS http_method,
+                t_http.url AS http_url,
+                t_http.headers AS http_headers,
+                s.secret,
+                COALESCE(sw.worker__id, ow.worker__id) AS worker_id,
+                COALESCE(w1.queue_type, w2.queue_type) AS worker_queue_type
+            FROM webhook.request_attempt AS ra
+            INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
+            INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
+            LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = ra.subscription__id
+            LEFT JOIN infrastructure.worker AS w1 ON w1.worker__id = sw.worker__id
+            INNER JOIN event.application AS a ON a.application__id = s.application__id
+            LEFT JOIN iam.organization__worker AS ow ON ow.organization__id = a.organization__id AND ow.default = true
+            LEFT JOIN infrastructure.worker AS w2 ON w2.worker__id = ow.worker__id
+            WHERE ra.event__id = $1
+                AND ra.succeeded_at IS NULL AND ra.failed_at IS NULL
+                AND a.deleted_at IS NULL
+        ",
+        &event_id,
+    )
+    .fetch(&mut **tx);
+
+    while let Some(ra) = request_attempts_stream.try_next().await? {
+        if let Some(worker_id) = ra.worker_id
+            && ra.worker_queue_type.as_deref() == Some("pulsar")
+        {
+            let request_attempt = RequestAttempt {
+                request_attempt_id: ra.request_attempt__id,
+                event_id,
+                subscription_id: ra.subscription__id,
+                created_at: ra.created_at,
+                retry_count: 0,
+                http_method: ra.http_method,
+                http_url: ra.http_url,
+                http_headers: ra.http_headers,
+                event_type_name: event_type.to_owned(),
+                payload: payload.to_owned(),
+                payload_content_type: payload_content_type.to_owned(),
+                secret: ra.secret,
+            };
+
+            let mut producer = timeout(
+                Duration::from_secs(3),
+                pulsar.request_attempts_producer.lock(),
+            )
+            .await
+            .map_err(|_| {
+                error!("Timed out while waiting access to Pulsar producer");
+                Hook0Problem::InternalServerError
+            })?;
+            producer
+                .send_non_blocking(
+                    format!(
+                        "persistent://{}/{}/{}.request_attempt",
+                        &pulsar.tenant, &pulsar.namespace, worker_id,
+                    ),
+                    request_attempt,
+                )
+                .await
+                .map_err(|e| {
+                    error!("Error while sending a message to Pulsar: {e}");
+                    Hook0Problem::InternalServerError
+                })?;
+        }
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
