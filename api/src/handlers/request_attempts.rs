@@ -172,7 +172,11 @@ pub async fn list(
     let next_param_idx = query_builder.param_index;
 
     // Add pagination and date range filters (these are always present, not optional)
-    where_parts.push(format!("(ra.created_at, ra.request_attempt__id) < (${}, ${})", next_param_idx, next_param_idx + 1));
+    where_parts.push(format!(
+        "(ra.created_at, ra.request_attempt__id) < (${}, ${})",
+        next_param_idx,
+        next_param_idx + 1
+    ));
     where_parts.push(format!("ra.created_at >= ${}", next_param_idx + 2));
     where_parts.push(format!("ra.created_at <= ${}", next_param_idx + 3));
 

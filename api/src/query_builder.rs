@@ -150,14 +150,15 @@ impl QueryBuilder {
         values: Option<Vec<String>>,
     ) -> &mut Self {
         if let Some(v) = values
-            && !v.is_empty() {
-                self.conditions.push(format!(
-                    "subscription__id IN ({} WHERE event_type__name = ANY(${}::text[]))",
-                    subquery, self.param_index
-                ));
-                self.param_index += 1;
-                self.params.push(QueryParam::StringArray(v));
-            }
+            && !v.is_empty()
+        {
+            self.conditions.push(format!(
+                "subscription__id IN ({} WHERE event_type__name = ANY(${}::text[]))",
+                subquery, self.param_index
+            ));
+            self.param_index += 1;
+            self.params.push(QueryParam::StringArray(v));
+        }
         self
     }
 
@@ -214,13 +215,13 @@ pub fn parse_date_filter(
     DateTime::parse_from_rfc3339(date_str)
         .map(|d| d.with_timezone(&Utc))
         .or_else(|_| {
-            let time = if is_end_of_day { (23, 59, 59) } else { (0, 0, 0) };
+            let time = if is_end_of_day {
+                (23, 59, 59)
+            } else {
+                (0, 0, 0)
+            };
             chrono::NaiveDate::parse_from_str(date_str, "%Y-%m-%d")
-                .map(|d| {
-                    d.and_hms_opt(time.0, time.1, time.2)
-                        .unwrap()
-                        .and_utc()
-                })
+                .map(|d| d.and_hms_opt(time.0, time.1, time.2).unwrap().and_utc())
                 .map_err(|_| validator::ValidationErrors::new())
         })
         .map_err(|_| validator::ValidationErrors::new())
@@ -239,7 +240,10 @@ mod tests {
         builder.add_string_filter("name", Some("test".to_string()));
 
         let where_clause = builder.build_where_clause();
-        assert_eq!(where_clause, "application_id = $1 AND is_enabled = $2 AND name = $3");
+        assert_eq!(
+            where_clause,
+            "application_id = $1 AND is_enabled = $2 AND name = $3"
+        );
         assert_eq!(builder.get_params().len(), 2);
     }
 
@@ -337,7 +341,10 @@ mod tests {
         let where_clause = builder.build_where_clause();
 
         // Verify only placeholders in SQL
-        assert_eq!(where_clause, "org_id = $1 AND name = $2 AND email = $3 AND is_active = $4");
+        assert_eq!(
+            where_clause,
+            "org_id = $1 AND name = $2 AND email = $3 AND is_active = $4"
+        );
         assert!(!where_clause.contains("DROP TABLE"));
         assert!(!where_clause.contains("--"));
         assert!(!where_clause.contains("OR '1'='1'"));
@@ -391,7 +398,7 @@ mod tests {
             QueryParam::Json(json) => {
                 let expected_json = serde_json::to_value(malicious_metadata).unwrap();
                 assert_eq!(json, &expected_json);
-            },
+            }
             _ => panic!("Expected Json parameter"),
         }
     }

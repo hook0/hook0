@@ -238,7 +238,10 @@ pub async fn list(
     }
 
     // Build dynamic WHERE conditions
-    let mut where_conditions = vec!["s.application__id = $1".to_string(), "deleted_at IS NULL".to_string()];
+    let mut where_conditions = vec![
+        "s.application__id = $1".to_string(),
+        "deleted_at IS NULL".to_string(),
+    ];
     let mut param_index = 2;
 
     // Extract filters
@@ -276,10 +279,13 @@ pub async fn list(
     let event_types_filter: Option<Vec<String>> = if let Some(ref types_str) = qs.event_types {
         let types: Vec<String> = types_str.split(',').map(|s| s.trim().to_string()).collect();
         if !types.is_empty() {
-            where_conditions.push(format!("s.subscription__id IN (
+            where_conditions.push(format!(
+                "s.subscription__id IN (
                 SELECT subscription__id FROM webhook.subscription__event_type
                 WHERE event_type__name = ANY(${}::text[])
-            )", param_index));
+            )",
+                param_index
+            ));
             param_index += 1;
             Some(types)
         } else {
@@ -297,9 +303,7 @@ pub async fn list(
                 chrono::NaiveDate::parse_from_str(date_str, "%Y-%m-%d")
                     .map(|d| d.and_hms_opt(0, 0, 0).unwrap().and_utc().fixed_offset())
             })
-            .map_err(|_| Hook0Problem::Validation(
-                validator::ValidationErrors::new()
-            ))?;
+            .map_err(|_| Hook0Problem::Validation(validator::ValidationErrors::new()))?;
         where_conditions.push(format!("s.created_at >= ${}", param_index));
         param_index += 1;
         Some(parsed.with_timezone(&Utc))
@@ -313,9 +317,7 @@ pub async fn list(
                 chrono::NaiveDate::parse_from_str(date_str, "%Y-%m-%d")
                     .map(|d| d.and_hms_opt(23, 59, 59).unwrap().and_utc().fixed_offset())
             })
-            .map_err(|_| Hook0Problem::Validation(
-                validator::ValidationErrors::new()
-            ))?;
+            .map_err(|_| Hook0Problem::Validation(validator::ValidationErrors::new()))?;
         where_conditions.push(format!("s.created_at <= ${}", param_index));
         Some(parsed.with_timezone(&Utc))
     } else {
@@ -380,13 +382,10 @@ pub async fn list(
         query = query.bind(d);
     }
 
-    let raw_subscriptions = query
-        .fetch_all(&state.db)
-        .await
-        .map_err(|e| {
-            error!("{e}");
-            Hook0Problem::InternalServerError
-        })?;
+    let raw_subscriptions = query.fetch_all(&state.db).await.map_err(|e| {
+        error!("{e}");
+        Hook0Problem::InternalServerError
+    })?;
 
     let subscriptions = raw_subscriptions
         .into_iter()
