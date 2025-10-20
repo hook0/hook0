@@ -179,6 +179,18 @@ where
 #[derive(Debug, Deserialize, Serialize, Apiv2Schema)]
 pub struct Qs {
     application_id: Uuid,
+    #[serde(default)]
+    is_enabled: Option<bool>,
+    #[serde(default)]
+    event_types: Option<String>, // Comma-separated list
+    #[serde(default, rename = "created_at[gte]")]
+    created_at_gte: Option<String>,
+    #[serde(default, rename = "created_at[lte]")]
+    created_at_lte: Option<String>,
+    #[serde(flatten)]
+    metadata: crate::filters::MetadataFilters,
+    #[serde(flatten)]
+    labels: crate::filters::LabelsFilters,
 }
 
 #[api_v2_operation(
@@ -189,6 +201,7 @@ pub struct Qs {
     produces = "application/json",
     tags("Subscriptions Management")
 )]
+#[allow(non_snake_case)]
 pub async fn list(
     state: Data<crate::State>,
     _: OaBiscuit,
@@ -210,7 +223,7 @@ pub async fn list(
         return Err(Hook0Problem::Forbidden);
     }
 
-    #[allow(non_snake_case)]
+    #[derive(sqlx::FromRow)]
     struct RawSubscription {
         subscription__id: Uuid,
         is_enabled: bool,
@@ -224,8 +237,94 @@ pub async fn list(
         dedicated_workers: Option<Vec<String>>,
     }
 
-    let raw_subscriptions = query_as!(
-        RawSubscription,
+    // Build dynamic WHERE conditions
+    let mut where_conditions = vec!["s.application__id = $1".to_string(), "deleted_at IS NULL".to_string()];
+    let mut param_index = 2;
+
+    // Extract filters
+    let metadata_filters = qs.metadata.extract();
+    let labels_filters = qs.labels.extract();
+
+    // Build metadata filter
+    let metadata_filter_json = if !metadata_filters.is_empty() {
+        where_conditions.push(format!("s.metadata @> ${}", param_index));
+        param_index += 1;
+        Some(serde_json::to_value(metadata_filters).unwrap())
+    } else {
+        None
+    };
+
+    // Build labels filter
+    let labels_filter_json = if !labels_filters.is_empty() {
+        where_conditions.push(format!("s.labels @> ${}", param_index));
+        param_index += 1;
+        Some(serde_json::to_value(labels_filters).unwrap())
+    } else {
+        None
+    };
+
+    // Build is_enabled filter
+    let is_enabled_filter = if let Some(enabled) = qs.is_enabled {
+        where_conditions.push(format!("s.is_enabled = ${}", param_index));
+        param_index += 1;
+        Some(enabled)
+    } else {
+        None
+    };
+
+    // Build event_types filter (array overlap)
+    let event_types_filter: Option<Vec<String>> = if let Some(ref types_str) = qs.event_types {
+        let types: Vec<String> = types_str.split(',').map(|s| s.trim().to_string()).collect();
+        if !types.is_empty() {
+            where_conditions.push(format!("s.subscription__id IN (
+                SELECT subscription__id FROM webhook.subscription__event_type
+                WHERE event_type__name = ANY(${}::text[])
+            )", param_index));
+            param_index += 1;
+            Some(types)
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    // Build created_at filters
+    let created_at_gte = if let Some(ref date_str) = qs.created_at_gte {
+        let parsed = DateTime::parse_from_rfc3339(date_str)
+            .or_else(|_| {
+                // Try parsing as date only
+                chrono::NaiveDate::parse_from_str(date_str, "%Y-%m-%d")
+                    .map(|d| d.and_hms_opt(0, 0, 0).unwrap().and_utc().fixed_offset())
+            })
+            .map_err(|_| Hook0Problem::Validation(
+                validator::ValidationErrors::new()
+            ))?;
+        where_conditions.push(format!("s.created_at >= ${}", param_index));
+        param_index += 1;
+        Some(parsed.with_timezone(&Utc))
+    } else {
+        None
+    };
+
+    let created_at_lte = if let Some(ref date_str) = qs.created_at_lte {
+        let parsed = DateTime::parse_from_rfc3339(date_str)
+            .or_else(|_| {
+                chrono::NaiveDate::parse_from_str(date_str, "%Y-%m-%d")
+                    .map(|d| d.and_hms_opt(23, 59, 59).unwrap().and_utc().fixed_offset())
+            })
+            .map_err(|_| Hook0Problem::Validation(
+                validator::ValidationErrors::new()
+            ))?;
+        where_conditions.push(format!("s.created_at <= ${}", param_index));
+        Some(parsed.with_timezone(&Utc))
+    } else {
+        None
+    };
+
+    let where_clause = where_conditions.join(" AND ");
+
+    let sql = format!(
         r#"
             WITH subs AS (
                 SELECT
@@ -240,7 +339,7 @@ pub async fn list(
                 LEFT JOIN webhook.subscription__event_type AS set ON set.subscription__id = s.subscription__id
                 LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
                 LEFT JOIN infrastructure.worker AS w ON w.worker__id = sw.worker__id
-                WHERE s.application__id = $1 AND deleted_at IS NULL
+                WHERE {}
                 GROUP BY s.subscription__id
                 ORDER BY s.created_at ASC
             ), targets AS (
@@ -252,18 +351,42 @@ pub async fn list(
                 ) AS target_json FROM webhook.target_http
                 WHERE target__id IN (SELECT target__id FROM subs)
             )
-            SELECT subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.labels AS "labels!", subs.created_at AS "created_at!", subs.event_types, targets.target_json, subs.dedicated_workers
+            SELECT subs.subscription__id, subs.is_enabled, subs.description, subs.secret, subs.metadata, subs.labels, subs.created_at, subs.event_types, targets.target_json, subs.dedicated_workers
             FROM subs
             INNER JOIN targets ON subs.target__id = targets.target__id
-        "#, // Column aliases ending with "!" are there because sqlx does not seem to infer correctly that these columns' types are not options
-        &qs.application_id,
-    )
-    .fetch_all(&state.db)
-    .await
-    .map_err(|e| {
-        error!("{e}");
-        Hook0Problem::InternalServerError
-    })?;
+        "#,
+        where_clause
+    );
+
+    // Build query with dynamic parameters
+    let mut query = sqlx::query_as::<_, RawSubscription>(&sql).bind(qs.application_id);
+
+    if let Some(m) = metadata_filter_json {
+        query = query.bind(m);
+    }
+    if let Some(l) = labels_filter_json {
+        query = query.bind(l);
+    }
+    if let Some(e) = is_enabled_filter {
+        query = query.bind(e);
+    }
+    if let Some(t) = event_types_filter {
+        query = query.bind(t);
+    }
+    if let Some(d) = created_at_gte {
+        query = query.bind(d);
+    }
+    if let Some(d) = created_at_lte {
+        query = query.bind(d);
+    }
+
+    let raw_subscriptions = query
+        .fetch_all(&state.db)
+        .await
+        .map_err(|e| {
+            error!("{e}");
+            Hook0Problem::InternalServerError
+        })?;
 
     let subscriptions = raw_subscriptions
         .into_iter()

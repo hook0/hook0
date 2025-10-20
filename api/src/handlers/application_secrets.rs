@@ -16,8 +16,9 @@ use crate::hook0_client::{
 use crate::iam::{Action, authorize_for_application, get_owner_organization};
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
+use crate::query_builder::QueryBuilder;
 
-#[derive(Debug, Serialize, Apiv2Schema)]
+#[derive(Debug, Serialize, Apiv2Schema, sqlx::FromRow)]
 pub struct ApplicationSecret {
     pub name: Option<String>,
     pub token: Uuid,
@@ -28,6 +29,8 @@ pub struct ApplicationSecret {
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
 pub struct Qs {
     application_id: Uuid,
+    #[serde(default, rename = "application.name")]
+    application_name: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
@@ -134,19 +137,48 @@ pub async fn list(
         return Err(Hook0Problem::Forbidden);
     }
 
-    let application_secrets = query_as!(
-        ApplicationSecret,
-        "
-            SELECT name, token, created_at, deleted_at
-            FROM event.application_secret
-            WHERE deleted_at IS NULL AND application__id = $1
-            ORDER BY created_at ASC
-        ",
-        &qs.application_id,
-    )
-    .fetch_all(&state.db)
-    .await
-    .map_err(Hook0Problem::from)?;
+    // Build dynamic WHERE conditions using QueryBuilder
+    let mut query_builder = QueryBuilder::new(
+        "asec.application__id = $1 AND asec.deleted_at IS NULL".to_string(),
+        2, // Next parameter index after application_id
+    );
+
+    let needs_app_join = qs.application_name.is_some();
+    if needs_app_join {
+        query_builder.add_string_filter("app.name", qs.application_name.clone());
+    }
+
+    let where_clause = query_builder.build_where_clause();
+    let sql = if needs_app_join {
+        format!(
+            "
+                SELECT asec.name, asec.token, asec.created_at, asec.deleted_at
+                FROM event.application_secret AS asec
+                INNER JOIN event.application AS app ON app.application__id = asec.application__id
+                WHERE {}
+                ORDER BY asec.created_at ASC
+            ",
+            where_clause
+        )
+    } else {
+        format!(
+            "
+                SELECT name, token, created_at, deleted_at
+                FROM event.application_secret AS asec
+                WHERE {}
+                ORDER BY created_at ASC
+            ",
+            where_clause
+        )
+    };
+
+    let query = query_as::<_, ApplicationSecret>(&sql).bind(qs.application_id);
+    let query = query_builder.bind_params(query);
+
+    let application_secrets = query
+        .fetch_all(&state.db)
+        .await
+        .map_err(Hook0Problem::from)?;
 
     Ok(Json(application_secrets))
 }

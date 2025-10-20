@@ -13,9 +13,10 @@ use crate::hook0_client::{EventEventTypeCreated, EventEventTypeRemoved, Hook0Cli
 use crate::iam::{Action, authorize_for_application, get_owner_organization};
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
+use crate::query_builder::QueryBuilder;
 use crate::quotas::Quota;
 
-#[derive(Debug, Serialize, Apiv2Schema)]
+#[derive(Debug, Serialize, Apiv2Schema, sqlx::FromRow)]
 pub struct EventType {
     service_name: String,
     resource_type_name: String,
@@ -27,6 +28,16 @@ pub struct EventType {
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
 pub struct Qs {
     application_id: Uuid,
+    #[serde(default, rename = "service.name")]
+    service_name: Option<String>,
+    #[serde(default, rename = "resource.name")]
+    resource_name: Option<String>,
+    #[serde(default, rename = "verb.name")]
+    verb_name: Option<String>,
+    #[serde(default, rename = "application.name")]
+    application_name: Option<String>,
+    #[serde(default)]
+    name: Option<String>, // event_type__name
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
@@ -212,16 +223,52 @@ pub async fn list(
         return Err(Hook0Problem::Forbidden);
     }
 
-    let event_types = query_as!(
-            EventType,
+    // Build dynamic WHERE conditions using QueryBuilder
+    let mut query_builder = QueryBuilder::new(
+        "et.application__id = $1 AND et.deactivated_at IS NULL".to_string(),
+        2, // Next parameter index after application_id
+    );
+
+    // Add all filters
+    query_builder.add_string_filter("et.service__name", qs.service_name.clone());
+    query_builder.add_string_filter("et.resource_type__name", qs.resource_name.clone());
+    query_builder.add_string_filter("et.verb__name", qs.verb_name.clone());
+    query_builder.add_string_filter("et.event_type__name", qs.name.clone());
+
+    // Add application.name filter (requires JOIN)
+    let needs_app_join = qs.application_name.is_some();
+    if needs_app_join {
+        query_builder.add_string_filter("app.name", qs.application_name.clone());
+    }
+
+    let where_clause = query_builder.build_where_clause();
+    let sql = if needs_app_join {
+        format!(
+            "
+                SELECT et.service__name AS service_name, et.resource_type__name AS resource_type_name, et.verb__name AS verb_name, et.event_type__name AS event_type_name
+                FROM event.event_type AS et
+                INNER JOIN event.application AS app ON app.application__id = et.application__id
+                WHERE {}
+                ORDER BY et.event_type__name ASC
+            ",
+            where_clause
+        )
+    } else {
+        format!(
             "
                 SELECT service__name AS service_name, resource_type__name AS resource_type_name, verb__name AS verb_name, event_type__name AS event_type_name
-                FROM event.event_type
-                WHERE application__id = $1 AND deactivated_at IS NULL
+                FROM event.event_type AS et
+                WHERE {}
                 ORDER BY event_type__name ASC
             ",
-            &qs.application_id
+            where_clause
         )
+    };
+
+    let query = query_as::<_, EventType>(&sql).bind(qs.application_id);
+    let query = query_builder.bind_params(query);
+
+    let event_types = query
         .fetch_all(&state.db)
         .await
         .map_err(Hook0Problem::from)?;

@@ -14,6 +14,7 @@ use crate::iam::{Action, authorize_for_application};
 use crate::openapi::OaBiscuit;
 use crate::pagination::{Cursor, EncodedDescCursor, NextPageParts, Paginated};
 use crate::problems::Hook0Problem;
+use crate::query_builder::QueryBuilder;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct RequestAttempt {
@@ -97,6 +98,8 @@ pub struct Qs {
     application_id: Uuid,
     event_id: Option<Uuid>,
     subscription_id: Option<Uuid>,
+    #[serde(default, rename = "event.event_type")]
+    event_event_type: Option<String>,
     pagination_cursor: Option<EncodedDescCursor>,
     min_created_at: Option<DateTime<Utc>>,
     max_created_at: Option<DateTime<Utc>>,
@@ -110,6 +113,7 @@ pub struct Qs {
     produces = "application/json",
     tags("Subscriptions Management")
 )]
+#[allow(non_snake_case)]
 pub async fn list(
     state: Data<crate::State>,
     _: OaBiscuit,
@@ -135,7 +139,7 @@ pub async fn list(
     let min_created_at = qs.min_created_at.unwrap_or(DateTime::<Utc>::UNIX_EPOCH);
     let max_created_at = qs.max_created_at.unwrap_or_else(Utc::now);
 
-    #[allow(non_snake_case)]
+    #[derive(sqlx::FromRow)]
     struct RawRequestAttempt {
         request_attempt__id: Uuid,
         event__id: Uuid,
@@ -149,108 +153,60 @@ pub async fn list(
         response__id: Option<Uuid>,
         retry_count: i16,
     }
-    let raw_request_attempts = match (&qs.event_id, &qs.subscription_id) {
-        (None, None) => {
-            query_as!(
-                RawRequestAttempt,
-                "
-                    SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.picked_at, ra.failed_at, ra.succeeded_at, ra.delay_until, ra.response__id, ra.retry_count, s.description AS subscription__description
-                    FROM webhook.request_attempt AS ra
-                    INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
-                    WHERE s.application__id = $1
-                        AND (ra.created_at, ra.request_attempt__id) < ($2, $3)
-                        AND ra.created_at >= $4 AND ra.created_at <= $5
-                    ORDER BY ra.created_at DESC, ra.request_attempt__id ASC
-                    LIMIT 50
-                ",
-                &qs.application_id,
-                pagination.date,
-                pagination.id,
-                min_created_at,
-                max_created_at,
-            )
-            .fetch_all(&state.db)
-            .await
-            .map_err(Hook0Problem::from)?
-        }
-        (Some(eid), None) => {
-            query_as!(
-                RawRequestAttempt,
-                "
-                    SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.picked_at, ra.failed_at, ra.succeeded_at, ra.delay_until, ra.response__id, ra.retry_count, s.description AS subscription__description
-                    FROM webhook.request_attempt AS ra
-                    INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
-                    WHERE s.application__id = $1
-                        AND ra.event__id = $2
-                        AND (ra.created_at, ra.request_attempt__id) < ($3, $4)
-                        AND ra.created_at >= $5 AND ra.created_at <= $6
-                    ORDER BY ra.created_at DESC, ra.request_attempt__id ASC
-                    LIMIT 50
-                ",
-                &qs.application_id,
-                eid,
-                pagination.date,
-                pagination.id,
-                min_created_at,
-                max_created_at,
-            )
-            .fetch_all(&state.db)
-            .await
-            .map_err(Hook0Problem::from)?
-        }
-        (None, Some(sid)) => {
-            query_as!(
-                RawRequestAttempt,
-                "
-                    SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.picked_at, ra.failed_at, ra.succeeded_at, ra.delay_until, ra.response__id, ra.retry_count, s.description AS subscription__description
-                    FROM webhook.request_attempt AS ra
-                    INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
-                    WHERE s.application__id = $1
-                        AND s.subscription__id = $2
-                        AND (ra.created_at, ra.request_attempt__id) < ($3, $4)
-                        AND ra.created_at >= $5 AND ra.created_at <= $6
-                    ORDER BY ra.created_at DESC, ra.request_attempt__id ASC
-                    LIMIT 50
-                ",
-                &qs.application_id,
-                sid,
-                pagination.date,
-                pagination.id,
-                min_created_at,
-                max_created_at,
-            )
-            .fetch_all(&state.db)
-            .await
-            .map_err(Hook0Problem::from)?
-        }
-        (Some(eid), Some(sid)) => {
-            query_as!(
-                RawRequestAttempt,
-                "
-                    SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.picked_at, ra.failed_at, ra.succeeded_at, ra.delay_until, ra.response__id, ra.retry_count, s.description AS subscription__description
-                    FROM webhook.request_attempt AS ra
-                    INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
-                    WHERE s.application__id = $1
-                        AND ra.event__id = $2
-                        AND s.subscription__id = $3
-                        AND (ra.created_at, ra.request_attempt__id) < ($4, $5)
-                        AND ra.created_at >= $6 AND ra.created_at <= $7
-                    ORDER BY ra.created_at DESC, ra.request_attempt__id ASC
-                    LIMIT 50
-                ",
-                &qs.application_id,
-                eid,
-                sid,
-                pagination.date,
-                pagination.id,
-                min_created_at,
-                max_created_at,
-            )
-            .fetch_all(&state.db)
-            .await
-            .map_err(Hook0Problem::from)?
-        }
-    };
+
+    // Build dynamic WHERE conditions using QueryBuilder
+    let mut query_builder = QueryBuilder::new(
+        "s.application__id = $1".to_string(),
+        2, // Next parameter index after application_id
+    );
+
+    // Add optional filters
+    query_builder.add_uuid_filter("ra.event__id", qs.event_id);
+    query_builder.add_uuid_filter("s.subscription__id", qs.subscription_id);
+    query_builder.add_string_filter("e.event_type__name", qs.event_event_type.clone());
+
+    // Build the initial WHERE clause from QueryBuilder
+    let mut where_parts = vec![query_builder.build_where_clause()];
+
+    // Calculate next parameter index for pagination filters
+    let next_param_idx = query_builder.param_index;
+
+    // Add pagination and date range filters (these are always present, not optional)
+    where_parts.push(format!("(ra.created_at, ra.request_attempt__id) < (${}, ${})", next_param_idx, next_param_idx + 1));
+    where_parts.push(format!("ra.created_at >= ${}", next_param_idx + 2));
+    where_parts.push(format!("ra.created_at <= ${}", next_param_idx + 3));
+
+    let where_clause = where_parts.join(" AND ");
+    let sql = format!(
+        "
+            SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.picked_at, ra.failed_at, ra.succeeded_at, ra.delay_until, ra.response__id, ra.retry_count, s.description AS subscription__description
+            FROM webhook.request_attempt AS ra
+            INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
+            INNER JOIN event.event AS e ON e.event__id = ra.event__id
+            WHERE {}
+            ORDER BY ra.created_at DESC, ra.request_attempt__id ASC
+            LIMIT 50
+        ",
+        where_clause
+    );
+
+    // Build query with dynamic parameters
+    let query = query_as::<_, RawRequestAttempt>(&sql).bind(qs.application_id);
+
+    // Bind QueryBuilder params
+    let query = query_builder.bind_params(query);
+
+    // Bind pagination and date range params
+    let query = query
+        .bind(pagination.date)
+        .bind(pagination.id)
+        .bind(min_created_at)
+        .bind(max_created_at);
+
+    let raw_request_attempts = query
+        .fetch_all(&state.db)
+        .await
+        .map_err(Hook0Problem::from)?;
 
     let request_attempts = raw_request_attempts
         .iter()

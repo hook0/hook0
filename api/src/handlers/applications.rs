@@ -15,9 +15,10 @@ use crate::iam::{Action, authorize, authorize_for_application, get_owner_organiz
 use crate::onboarding::{ApplicationOnboardingSteps, get_application_onboarding_steps};
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
+use crate::query_builder::QueryBuilder;
 use crate::quotas::{Quota, QuotaValue};
 
-#[derive(Debug, Serialize, Apiv2Schema)]
+#[derive(Debug, Serialize, Apiv2Schema, sqlx::FromRow)]
 pub struct Application {
     application_id: Uuid,
     organization_id: Uuid,
@@ -48,6 +49,8 @@ pub struct ApplicationQuotas {
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
 pub struct Qs {
     organization_id: Uuid,
+    #[serde(default)]
+    name: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
@@ -267,11 +270,24 @@ pub async fn list(
         return Err(Hook0Problem::Forbidden);
     }
 
-    let applications = query_as!(
-            Application,
-            "SELECT application__id AS application_id, organization__id AS organization_id, name FROM event.application WHERE organization__id = $1 AND deleted_at IS NULL",
-            &qs.organization_id
-        )
+    // Build dynamic WHERE conditions using QueryBuilder
+    let mut query_builder = QueryBuilder::new(
+        "organization__id = $1 AND deleted_at IS NULL".to_string(),
+        2, // Next parameter index after organization_id
+    );
+
+    query_builder.add_string_filter("name", qs.name.clone());
+
+    let where_clause = query_builder.build_where_clause();
+    let sql = format!(
+        "SELECT application__id AS application_id, organization__id AS organization_id, name FROM event.application WHERE {}",
+        where_clause
+    );
+
+    let query = query_as::<_, Application>(&sql).bind(qs.organization_id);
+    let query = query_builder.bind_params(query);
+
+    let applications = query
         .fetch_all(&state.db)
         .await
         .map_err(Hook0Problem::from)?;
