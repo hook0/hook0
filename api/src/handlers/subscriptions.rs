@@ -179,11 +179,29 @@ where
 #[derive(Debug, Deserialize, Serialize, Apiv2Schema)]
 pub struct Qs {
     application_id: Uuid,
+    #[serde(flatten)]
+    maps: HashMap<String, String>,
+}
+
+impl Qs {
+    pub fn metadata(&self) -> HashMap<String, String> {
+        self.extract_map("metadata")
+    }
+
+    fn extract_map(&self, prefix: &str) -> HashMap<String, String> {
+        self.maps
+            .iter()
+            .filter_map(|(k, v)| {
+                k.strip_prefix(&format!("{prefix}."))
+                    .map(|sanitized_key| (sanitized_key.to_owned(), v.to_owned()))
+            })
+            .collect::<HashMap<_, _>>()
+    }
 }
 
 #[api_v2_operation(
     summary = "List subscriptions",
-    description = "Retrieves all active event subscriptions for a given application. A subscription defines how and where event notifications will be sent.",
+    description = "Retrieves all active event subscriptions for a given application. A subscription defines how and where event notifications will be sent. Optional metadata filter: provide one or several query string parameters like `metadata.my_key=my_value`.",
     operation_id = "subscriptions.list",
     consumes = "application/json",
     produces = "application/json",
@@ -195,11 +213,14 @@ pub async fn list(
     biscuit: ReqData<Biscuit>,
     qs: Query<Qs>,
 ) -> Result<Json<Vec<Subscription>>, Hook0Problem> {
+    let metadata = qs.metadata();
+
     if authorize_for_application(
         &state.db,
         &biscuit,
         Action::SubscriptionList {
             application_id: &qs.application_id,
+            metadata: &metadata,
         },
         state.max_authorization_time_in_ms,
         state.debug_authorizer,
@@ -210,92 +231,104 @@ pub async fn list(
         return Err(Hook0Problem::Forbidden);
     }
 
-    #[allow(non_snake_case)]
-    struct RawSubscription {
-        subscription__id: Uuid,
-        is_enabled: bool,
-        event_types: Option<Vec<String>>,
-        description: Option<String>,
-        secret: Uuid,
-        metadata: Value,
-        labels: Value,
-        target_json: Option<Value>,
-        created_at: DateTime<Utc>,
-        dedicated_workers: Option<Vec<String>>,
-    }
-
-    let raw_subscriptions = query_as!(
-        RawSubscription,
-        r#"
-            WITH subs AS (
-                SELECT
-                    s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.target__id, s.created_at,
-                    CASE WHEN length((array_agg(set.event_type__name))[1]) > 0
-                        THEN array_agg(set.event_type__name)
-                        ELSE ARRAY[]::text[] END AS event_types,
-                    CASE WHEN length((array_agg(w.name))[1]) > 0
-                        THEN array_agg(w.name)
-                        ELSE ARRAY[]::text[] END AS dedicated_workers
-                FROM webhook.subscription AS s
-                LEFT JOIN webhook.subscription__event_type AS set ON set.subscription__id = s.subscription__id
-                LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
-                LEFT JOIN infrastructure.worker AS w ON w.worker__id = sw.worker__id
-                WHERE s.application__id = $1 AND deleted_at IS NULL
-                GROUP BY s.subscription__id
-                ORDER BY s.created_at ASC
-            ), targets AS (
-                SELECT target__id, jsonb_build_object(
-                    'type', replace(tableoid::regclass::text, 'webhook.target_', ''),
-                    'method', method,
-                    'url', url,
-                    'headers', headers
-                ) AS target_json FROM webhook.target_http
-                WHERE target__id IN (SELECT target__id FROM subs)
-            )
-            SELECT subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.labels AS "labels!", subs.created_at AS "created_at!", subs.event_types, targets.target_json, subs.dedicated_workers
-            FROM subs
-            INNER JOIN targets ON subs.target__id = targets.target__id
-        "#, // Column aliases ending with "!" are there because sqlx does not seem to infer correctly that these columns' types are not options
-        &qs.application_id,
-    )
-    .fetch_all(&state.db)
-    .await
-    .map_err(|e| {
-        error!("{e}");
-        Hook0Problem::InternalServerError
-    })?;
-
-    let subscriptions = raw_subscriptions
-        .into_iter()
-        .map(|s| {
-            let labels: HashMap<String, String> =
-                serde_json::from_value(s.labels).unwrap_or_else(|_| HashMap::new());
-            let first_label = labels
-                .iter()
-                .next()
-                .map(|(k, v)| (k.to_owned(), v.to_owned()))
-                .unwrap_or_else(|| (String::new(), String::new()));
-
-            Subscription {
-                application_id: qs.application_id,
-                subscription_id: s.subscription__id,
-                is_enabled: s.is_enabled,
-                event_types: s.event_types.unwrap_or_default(),
-                description: s.description,
-                secret: s.secret,
-                metadata: serde_json::from_value(s.metadata).unwrap_or_else(|_| HashMap::new()),
-                label_key: first_label.0,
-                label_value: first_label.1,
-                labels,
-                target: serde_json::from_value(s.target_json.unwrap())
-                    .expect("Could not parse subscription target"),
-                created_at: s.created_at,
-                dedicated_workers: s.dedicated_workers.unwrap_or_default(),
+    match serde_json::to_value(&metadata) {
+        Ok(m) => {
+            #[allow(non_snake_case)]
+            struct RawSubscription {
+                subscription__id: Uuid,
+                is_enabled: bool,
+                event_types: Option<Vec<String>>,
+                description: Option<String>,
+                secret: Uuid,
+                metadata: Value,
+                labels: Value,
+                target_json: Option<Value>,
+                created_at: DateTime<Utc>,
+                dedicated_workers: Option<Vec<String>>,
             }
-        })
-        .collect::<Vec<_>>();
 
-    Ok(Json(subscriptions))
+            let raw_subscriptions = query_as!(
+                RawSubscription,
+                r#"
+                    WITH subs AS (
+                        SELECT
+                            s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.target__id, s.created_at,
+                            CASE WHEN length((array_agg(set.event_type__name))[1]) > 0
+                                THEN array_agg(set.event_type__name)
+                                ELSE ARRAY[]::text[] END AS event_types,
+                            CASE WHEN length((array_agg(w.name))[1]) > 0
+                                THEN array_agg(w.name)
+                                ELSE ARRAY[]::text[] END AS dedicated_workers
+                        FROM webhook.subscription AS s
+                        LEFT JOIN webhook.subscription__event_type AS set ON set.subscription__id = s.subscription__id
+                        LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
+                        LEFT JOIN infrastructure.worker AS w ON w.worker__id = sw.worker__id
+                        WHERE s.application__id = $1
+                            AND s.deleted_at IS NULL
+                            AND s.metadata @> $2
+                        GROUP BY s.subscription__id
+                        ORDER BY s.created_at ASC
+                    ), targets AS (
+                        SELECT target__id, jsonb_build_object(
+                            'type', replace(tableoid::regclass::text, 'webhook.target_', ''),
+                            'method', method,
+                            'url', url,
+                            'headers', headers
+                        ) AS target_json FROM webhook.target_http
+                        WHERE target__id IN (SELECT target__id FROM subs)
+                    )
+                    SELECT subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.labels AS "labels!", subs.created_at AS "created_at!", subs.event_types, targets.target_json, subs.dedicated_workers
+                    FROM subs
+                    INNER JOIN targets ON subs.target__id = targets.target__id
+                "#, // Column aliases ending with "!" are there because sqlx does not seem to infer correctly that these columns' types are not options
+                &qs.application_id,
+                &m,
+            )
+            .fetch_all(&state.db)
+            .await
+            .map_err(|e| {
+                error!("{e}");
+                Hook0Problem::InternalServerError
+            })?;
+
+            let subscriptions = raw_subscriptions
+                .into_iter()
+                .map(|s| {
+                    let labels: HashMap<String, String> =
+                        serde_json::from_value(s.labels).unwrap_or_else(|_| HashMap::new());
+                    let first_label = labels
+                        .iter()
+                        .next()
+                        .map(|(k, v)| (k.to_owned(), v.to_owned()))
+                        .unwrap_or_else(|| (String::new(), String::new()));
+
+                    Subscription {
+                        application_id: qs.application_id,
+                        subscription_id: s.subscription__id,
+                        is_enabled: s.is_enabled,
+                        event_types: s.event_types.unwrap_or_default(),
+                        description: s.description,
+                        secret: s.secret,
+                        metadata: serde_json::from_value(s.metadata)
+                            .unwrap_or_else(|_| HashMap::new()),
+                        label_key: first_label.0,
+                        label_value: first_label.1,
+                        labels,
+                        target: serde_json::from_value(s.target_json.unwrap())
+                            .expect("Could not parse subscription target"),
+                        created_at: s.created_at,
+                        dedicated_workers: s.dedicated_workers.unwrap_or_default(),
+                    }
+                })
+                .collect::<Vec<_>>();
+
+            Ok(Json(subscriptions))
+        }
+        Err(e) => {
+            error!("Could not convert metadata to JSONB: {e}");
+            Err(Hook0Problem::InternalServerError)
+        }
+    }
 }
 
 #[api_v2_operation(

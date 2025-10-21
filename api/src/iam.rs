@@ -421,6 +421,7 @@ pub enum Action<'a> {
     //
     SubscriptionList {
         application_id: &'a Uuid,
+        metadata: &'a HashMap<String, String>,
     },
     SubscriptionCreate {
         application_id: &'a Uuid,
@@ -727,13 +728,12 @@ impl Action<'_> {
             Self::EventTypeGet { .. } => vec![],
             Self::EventTypeDelete { .. } => vec![],
             //
-            Self::SubscriptionList { .. } => vec![],
-            Self::SubscriptionCreate { labels, .. } => vec![Fact::new(
-                "labels".to_owned(),
-                vec![Term::Map(BTreeMap::from_iter(labels.iter().map(
-                    |(k, v)| (MapKey::Str(k.to_owned()), Term::Str(v.to_owned())),
-                )))],
-            )],
+            Self::SubscriptionList { metadata, .. } => {
+                vec![Self::mk_string_map_fact("metadata", metadata)]
+            }
+            Self::SubscriptionCreate { labels, .. } => {
+                vec![Self::mk_string_map_fact("labels", labels)]
+            }
             Self::SubscriptionGet {
                 subscription_id, ..
             } => vec![fact!(
@@ -776,6 +776,15 @@ impl Action<'_> {
         }
 
         facts
+    }
+
+    fn mk_string_map_fact(name: &str, map: &HashMap<String, String>) -> Fact {
+        Fact::new(
+            name.to_owned(),
+            vec![Term::Map(BTreeMap::from_iter(map.iter().map(|(k, v)| {
+                (MapKey::Str(k.to_owned()), Term::Str(v.to_owned()))
+            })))],
+        )
     }
 }
 
