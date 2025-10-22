@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                                        UPDATE webhook.fifo_subscription_state\n                                        SET\n                                            current_request_attempt__id = NULL,\n                                            last_completed_event_created_at = (SELECT e.occurred_at FROM event.event e WHERE e.event__id = $2),\n                                            updated_at = statement_timestamp()\n                                        WHERE subscription__id = $1\n                                    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b926fab9e1cce089b2f39a81578f0143e1778b86804698aca31a09475a1c1e55"
+}

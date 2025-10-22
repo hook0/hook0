@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    SELECT\n                        (s.is_enabled AND a.deleted_at IS NULL) AS \"not_cancelled!\",\n                        (ra.succeeded_at IS NULL AND ra.failed_at IS NULL) AS \"not_done!\",\n                        s.fifo_mode AS \"fifo_mode!\",\n                        (s.fifo_mode = true AND fss.current_request_attempt__id IS NOT NULL AND fss.current_request_attempt__id != ra.request_attempt__id) AS \"fifo_blocked!\"\n                    FROM webhook.request_attempt AS ra\n                    INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id\n                    INNER JOIN event.application AS a ON a.application__id = s.application__id\n                    INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id\n                    LEFT JOIN webhook.fifo_subscription_state AS fss ON fss.subscription__id = s.subscription__id\n                    WHERE ra.request_attempt__id = $1\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "not_cancelled!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 1,
+        "name": "not_done!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 2,
+        "name": "fifo_mode!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "fifo_blocked!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      false,
+      null
+    ]
+  },
+  "hash": "7da60a0c8071cc52cdcb3fc542e978375fb364596f42a2d4a66a05460661a64d"
+}
