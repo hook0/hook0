@@ -11,7 +11,6 @@ use std::fmt::Display;
 use strum::{EnumIter, VariantNames};
 
 use crate::handlers::events::PayloadContentType;
-use crate::handlers::instance::HealthCheck;
 use crate::iam::Role;
 use crate::quotas::QuotaValue;
 
@@ -47,6 +46,8 @@ pub enum Hook0Problem {
     EventInvalidBase64Payload(String),
     EventInvalidJsonPayload(String),
 
+    LabelsAmbiguity,
+
     // Auth errors
     AuthNoAuthorizationHeader,
     AuthInvalidAuthorizationHeader,
@@ -72,7 +73,6 @@ pub enum Hook0Problem {
     NotFound,
     InternalServerError,
     Forbidden,
-    ServiceUnavailable(HealthCheck),
 }
 
 impl From<sqlx::Error> for Hook0Problem {
@@ -336,6 +336,13 @@ impl From<Hook0Problem> for Problem {
                     status: StatusCode::BAD_REQUEST,
                 }
             },
+            Hook0Problem::LabelsAmbiguity => Problem {
+                id: Hook0Problem::LabelsAmbiguity,
+                title: "Ambiguous labels specification",
+                detail: "You must specify either the `labels` property as an object with a least one property (recommended) or separated `label_key` and `label_value` properties as strings (legacy), but not both.".into(),
+                validation: None,
+                status: StatusCode::BAD_REQUEST,
+            },
 
             // Auth error
             Hook0Problem::AuthNoAuthorizationHeader => Problem {
@@ -504,13 +511,6 @@ impl From<Hook0Problem> for Problem {
                 detail: "You don't have the right to access or edit this resource.".into(),
                 validation: None,
                 status: StatusCode::FORBIDDEN,
-            },
-            Hook0Problem::ServiceUnavailable(h) => Problem {
-                id: Hook0Problem::ServiceUnavailable(h),
-                title: "Service unavailable",
-                detail: format!("{h}.").into(),
-                validation: None,
-                status: StatusCode::SERVICE_UNAVAILABLE,
             },
         }
     }

@@ -1,15 +1,18 @@
 use actix_web::web::ReqData;
 use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};
+use log::error;
 use paperclip::actix::web::{Data, Json, Query};
 use paperclip::actix::{Apiv2Schema, api_v2_operation};
 use serde::{Deserialize, Serialize};
 use sqlx::query_as;
 use std::cmp::max;
+use url::Url;
 use uuid::Uuid;
 
 use crate::iam::{Action, authorize_for_application};
 use crate::openapi::OaBiscuit;
+use crate::pagination::{Cursor, EncodedDescCursor, NextPageParts, Paginated};
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -89,16 +92,19 @@ impl RequestAttemptStatus {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
+#[derive(Debug, Deserialize, Apiv2Schema)]
 pub struct Qs {
     application_id: Uuid,
     event_id: Option<Uuid>,
     subscription_id: Option<Uuid>,
+    pagination_cursor: Option<EncodedDescCursor>,
+    min_created_at: Option<DateTime<Utc>>,
+    max_created_at: Option<DateTime<Utc>>,
 }
 
 #[api_v2_operation(
     summary = "List request attempts",
-    description = "Retrieves the most recent attempts to deliver events to subscriptions for a given application. Request attempts track the status and history of event deliveries, including retries and failures.",
+    description = "Retrieves the most recent attempts to deliver events to subscriptions for a given application. Request attempts track the status and history of event deliveries, including retries and failures. This endpoint is paginated: the next URL is given in the `Link` header of the response, following HATEOAS conventions.",
     operation_id = "requestAttempts.read",
     consumes = "application/json",
     produces = "application/json",
@@ -109,7 +115,7 @@ pub async fn list(
     _: OaBiscuit,
     biscuit: ReqData<Biscuit>,
     qs: Query<Qs>,
-) -> Result<Json<Vec<RequestAttempt>>, Hook0Problem> {
+) -> Result<Paginated<Json<Vec<RequestAttempt>>>, Hook0Problem> {
     if authorize_for_application(
         &state.db,
         &biscuit,
@@ -117,12 +123,17 @@ pub async fn list(
             application_id: &qs.application_id,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .await
     .is_err()
     {
         return Err(Hook0Problem::Forbidden);
     }
+
+    let pagination = qs.pagination_cursor.unwrap_or_default().0;
+    let min_created_at = qs.min_created_at.unwrap_or(DateTime::<Utc>::UNIX_EPOCH);
+    let max_created_at = qs.max_created_at.unwrap_or_else(Utc::now);
 
     #[allow(non_snake_case)]
     struct RawRequestAttempt {
@@ -147,10 +158,16 @@ pub async fn list(
                     FROM webhook.request_attempt AS ra
                     INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
                     WHERE s.application__id = $1
-                    ORDER BY ra.created_at DESC
+                        AND (ra.created_at, ra.request_attempt__id) < ($2, $3)
+                        AND ra.created_at >= $4 AND ra.created_at <= $5
+                    ORDER BY ra.created_at DESC, ra.request_attempt__id ASC
                     LIMIT 50
                 ",
                 &qs.application_id,
+                pagination.date,
+                pagination.id,
+                min_created_at,
+                max_created_at,
             )
             .fetch_all(&state.db)
             .await
@@ -163,12 +180,19 @@ pub async fn list(
                     SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.picked_at, ra.failed_at, ra.succeeded_at, ra.delay_until, ra.response__id, ra.retry_count, s.description AS subscription__description
                     FROM webhook.request_attempt AS ra
                     INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
-                    WHERE s.application__id = $1 AND ra.event__id = $2
-                    ORDER BY ra.created_at DESC
+                    WHERE s.application__id = $1
+                        AND ra.event__id = $2
+                        AND (ra.created_at, ra.request_attempt__id) < ($3, $4)
+                        AND ra.created_at >= $5 AND ra.created_at <= $6
+                    ORDER BY ra.created_at DESC, ra.request_attempt__id ASC
                     LIMIT 50
                 ",
                 &qs.application_id,
                 eid,
+                pagination.date,
+                pagination.id,
+                min_created_at,
+                max_created_at,
             )
             .fetch_all(&state.db)
             .await
@@ -181,12 +205,19 @@ pub async fn list(
                     SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.picked_at, ra.failed_at, ra.succeeded_at, ra.delay_until, ra.response__id, ra.retry_count, s.description AS subscription__description
                     FROM webhook.request_attempt AS ra
                     INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
-                    WHERE s.application__id = $1 AND s.subscription__id = $2
-                    ORDER BY ra.created_at DESC
+                    WHERE s.application__id = $1
+                        AND s.subscription__id = $2
+                        AND (ra.created_at, ra.request_attempt__id) < ($3, $4)
+                        AND ra.created_at >= $5 AND ra.created_at <= $6
+                    ORDER BY ra.created_at DESC, ra.request_attempt__id ASC
                     LIMIT 50
                 ",
                 &qs.application_id,
                 sid,
+                pagination.date,
+                pagination.id,
+                min_created_at,
+                max_created_at,
             )
             .fetch_all(&state.db)
             .await
@@ -199,13 +230,21 @@ pub async fn list(
                     SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.picked_at, ra.failed_at, ra.succeeded_at, ra.delay_until, ra.response__id, ra.retry_count, s.description AS subscription__description
                     FROM webhook.request_attempt AS ra
                     INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
-                    WHERE s.application__id = $1 AND ra.event__id = $2 AND s.subscription__id = $3
-                    ORDER BY ra.created_at DESC
+                    WHERE s.application__id = $1
+                        AND ra.event__id = $2
+                        AND s.subscription__id = $3
+                        AND (ra.created_at, ra.request_attempt__id) < ($4, $5)
+                        AND ra.created_at >= $6 AND ra.created_at <= $7
+                    ORDER BY ra.created_at DESC, ra.request_attempt__id ASC
                     LIMIT 50
                 ",
                 &qs.application_id,
                 eid,
                 sid,
+                pagination.date,
+                pagination.id,
+                min_created_at,
+                max_created_at,
             )
             .fetch_all(&state.db)
             .await
@@ -240,5 +279,44 @@ pub async fn list(
         })
         .collect::<Vec<_>>();
 
-    Ok(Json(request_attempts))
+    let next_page_parts = request_attempts.last().and_then(|ra| {
+        if state.app_url.as_str().ends_with('/') {
+            Ok(state.app_url.clone())
+        } else {
+            Url::parse(&format!("{}/", &state.app_url))
+        }
+        .inspect_err(|e| {
+            error!("Error that should never happen while building app URL for pagination: {e}");
+        })
+        .ok()
+        .and_then(|app_url| {
+            app_url
+                .join("/api/v1/request_attempts")
+                .inspect_err(|e| {
+                    error!(
+                        "Error that should never happen while building app URL for pagination: {e}"
+                    );
+                })
+                .ok()
+        })
+        .map(|endpoint_url| NextPageParts {
+            endpoint_url,
+            qs: vec![
+                ("application_id", Some(qs.application_id.to_string())),
+                ("event_id", qs.event_id.map(|v| v.to_string())),
+                ("subscription_id", qs.subscription_id.map(|v| v.to_string())),
+                ("min_created_at", qs.min_created_at.map(|v| v.to_string())),
+                ("max_created_at", qs.max_created_at.map(|v| v.to_string())),
+            ],
+            cursor: Cursor {
+                date: ra.created_at,
+                id: ra.request_attempt_id,
+            },
+        })
+    });
+
+    Ok(Paginated {
+        data: Json(request_attempts),
+        next_page_parts,
+    })
 }

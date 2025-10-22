@@ -76,6 +76,7 @@ pub async fn create(
         Some(body.organization_id),
         Action::ApplicationCreate,
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .is_err()
     {
@@ -166,6 +167,7 @@ pub async fn get(
             application_id: &application_id,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .await
     .is_err()
@@ -258,6 +260,7 @@ pub async fn list(
         Some(qs.organization_id),
         Action::ApplicationList,
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .is_err()
     {
@@ -298,6 +301,7 @@ pub async fn edit(
             application_id: &application_id,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .await
     .is_err()
@@ -370,6 +374,7 @@ pub async fn delete(
             application_id: &application_id,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .await
     .is_err()

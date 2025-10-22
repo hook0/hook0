@@ -1,12 +1,14 @@
-use actix::clock::sleep;
+use actix_web::rt::time::sleep;
 use log::{debug, error, info, trace};
 use sqlx::postgres::types::PgInterval;
 use sqlx::{Acquire, PgPool, Postgres, query};
 use std::time::{Duration, Instant};
+use tokio::sync::Semaphore;
 
 const STARTUP_GRACE_PERIOD: Duration = Duration::from_secs(35);
 
 pub async fn periodically_clean_up_expired_tokens(
+    housekeeping_semaphore: &Semaphore,
     db: &PgPool,
     period: Duration,
     grace_period: Duration,
@@ -14,13 +16,16 @@ pub async fn periodically_clean_up_expired_tokens(
 ) {
     sleep(STARTUP_GRACE_PERIOD).await;
     match PgInterval::try_from(grace_period) {
-        Ok(grace_period) => loop {
-            if let Err(e) = clean_up_expired_tokens(db, &grace_period, delete).await {
-                error!("Could not clean up expired tokens: {e}");
-            }
+        Ok(grace_period) => {
+            while let Ok(permit) = housekeeping_semaphore.acquire().await {
+                if let Err(e) = clean_up_expired_tokens(db, &grace_period, delete).await {
+                    error!("Could not clean up expired tokens: {e}");
+                }
+                drop(permit);
 
-            sleep(period).await;
-        },
+                sleep(period).await;
+            }
+        }
         Err(e) => error!("Could not convert grace period ({grace_period:?}) to a PG interval: {e}"),
     }
 }

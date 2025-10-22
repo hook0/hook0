@@ -211,7 +211,7 @@
                     <div class="p-6">
                         <h2 class="text-lg leading-6 font-medium text-gray-900">Developer</h2>
                         <p class="mt-4 text-sm text-gray-500">Perfect way to try out Hook0, no need to setup
-                            onpremiseing,
+                            your instance,
                             free
                             forever for side-projects.</p>
                         <p class="mt-8">
@@ -255,13 +255,13 @@
                             <li class="flex space-x-3">
                                 <span><%- include('../svg/check-green.svg') %></span>
                                 <span class="text-sm text-gray-500"><abbr
-                                            title="Extra events are not blocked but billed at €0.0001/event">Up to <strong>100</strong> events per day</abbr></span>
+                                            title="Extra events are blocked">Up to <strong>100</strong> events per day</abbr></span>
                             </li>
 
                             <li class="flex space-x-3">
                                 <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500"><abbr
-                                            title="Extended retention can be purchased, contact us!"><strong>7 days</strong> data retention</abbr></span>
+                                <span class="text-sm text-gray-500">
+                                  <strong>7 days</strong> data retention</span>
                             </li>
 
                             <li class="flex space-x-3">
@@ -333,7 +333,7 @@
                             <li class="flex space-x-3">
                                 <span><%- include('../svg/check-green.svg') %></span>
                                 <span class="text-sm text-gray-500"><abbr
-                                            title="Extra events are not blocked but billed at €0.0001/event">Up to <strong>30,000</strong> events per day</abbr></span>
+                                            title="Extra events are not blocked but billed at €0.003/event">Up to <strong>30,000</strong> events per day</abbr></span>
                             </li>
 
                             <li class="flex space-x-3">
@@ -366,12 +366,16 @@
                         <p class="mt-4 text-sm text-gray-500">Unleash your data connectivity along with enterprise
                             features
                             and better support.</p>
-                        <p class="mt-8">
+                        <p class="mt-2">
                             <span class="text-4xl font-extrabold text-gray-900">€190</span>
                             <span class="text-base font-medium text-gray-500">/month</span>
                         </p>
+                        <p class="mt-1">
+                            <span class="text-2xl font-extrabold text-gray-900">€1824</span>
+                            <span class="text-base font-medium text-gray-500">/year <small>(20% off, <a href="<%= locals.meta.contact %>" class="underline">contact us</a>)</small></span>
+                        </p>
                         <a href="<%= locals.subscriptionLinks.cloud.pro %>"
-                           class="mt-8 block w-full bg-green-500 border border-transparent rounded-md py-2 text-sm font-semibold text-white text-center hover:bg-green-400">Subscribe</a>
+                           class="mt-5 block w-full bg-green-500 border border-transparent rounded-md py-2 text-sm font-semibold text-white text-center hover:bg-green-400">Subscribe</a>
                     </div>
                     <div class="pt-6 pb-8 px-6">
                         <h3 class="text-xs font-medium text-gray-900 tracking-wide uppercase">What's included</h3>
@@ -445,7 +449,7 @@
                             build a custom plan just for you.</p>
                         <p class="mt-8">
                             <span class="text-4xl font-extrabold text-gray-900">Custom</span>
-                            <span class="text-base font-medium text-gray-500">/month</span>
+                            <span class="text-base font-medium text-gray-500">/year</span>
                         </p>
                         <a href="<%= locals.meta.contact %>"
                            class="mt-8 block w-full bg-green-500 border border-transparent rounded-md py-2 text-sm font-semibold text-white text-center hover:bg-green-400">Contact
@@ -483,14 +487,12 @@
 
                             <li class="flex space-x-3">
                                 <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500"><abbr
-                                            title="Extra events are not blocked but billed at €0.0001/event"><strong>Custom</strong> events per day</abbr></span>
+                                <span class="text-sm text-gray-500"><strong>Custom</strong> events per day</span>
                             </li>
 
                             <li class="flex space-x-3">
                                 <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500"><abbr
-                                            title="Extended retention can be purchased, contact us!"><strong>Custom</strong> data retention</abbr></span>
+                                <span class="text-sm text-gray-500"><strong>Custom</strong> data retention</span>
                             </li>
 
                             <li class="flex space-x-3">
@@ -543,7 +545,7 @@
                 <div class="border border-gray-200 rounded-lg shadow-sm divide-y divide-gray-200">
                     <div class="p-6">
                         <h2 class="text-lg leading-6 font-medium text-gray-900">Self-hosted</h2>
-                        <p class="mt-4 text-sm text-gray-500">Open-source, onpremiseed.
+                        <p class="mt-4 text-sm text-gray-500">Open-source, on your infrastructure.
                             Complete control over your data. Security and privacy compliant.</p>
                         <p class="mt-8">
                             <span class="text-4xl font-extrabold text-gray-900">FREE</span>
@@ -604,15 +606,22 @@
                         <p class="mt-4 text-sm text-gray-500">We deploy a dedicated Hook0 instance to your environment
                             and
                             help you maintain/update it.</p>
-                        <p class="mt-8">
+                        <p class="mt-2">
                             <span class="text-4xl font-extrabold text-gray-900">€1000</span>
                             <span class="text-base font-medium text-gray-500">setup</span>
                             <span class="text-4xl font-extrabold text-gray-900">+</span>
                             <span class="text-4xl font-extrabold text-gray-900">€500</span>
-                            <span class="text-base font-medium text-gray-500">/mo</span>
+                            <span class="text-base font-medium text-gray-500">/month</span>
+                          </p>
+                          <p class="mt-1">
+                            <span class="text-2xl font-extrabold text-gray-900">€0</span>
+                            <span class="text-base font-medium text-gray-500">setup</span>
+                            <span class="text-2xl font-extrabold text-gray-900">+</span>
+                            <span class="text-2xl font-extrabold text-gray-900">€6000</span>
+                            <span class="text-base font-medium text-gray-500">/year <small>(<a href="<%= locals.meta.contact %>" class="underline">contact us</a>)</small></span>
                         </p>
                         <a href="<%= locals.subscriptionLinks.onprem.pro %>"
-                           class="mt-8 block w-full bg-indigo-500 border border-transparent rounded-md py-2 text-sm font-semibold text-white text-center hover:bg-indigo-400">Subscribe</a>
+                           class="mt-5 block w-full bg-indigo-500 border border-transparent rounded-md py-2 text-sm font-semibold text-white text-center hover:bg-indigo-400">Subscribe</a>
                     </div>
                     <div class="pt-6 pb-8 px-6">
                         <h3 class="text-xs font-medium text-gray-900 tracking-wide uppercase">What's included</h3>
@@ -620,6 +629,12 @@
                             <li class="flex space-x-3">
                                 <span><%- include('../svg/check-green.svg') %></span>
                                 <span class="text-sm text-gray-500">Your data, your rules</span>
+                            </li>
+
+                            <li class="flex space-x-3">
+                                <span><%- include('../svg/check-green.svg') %></span>
+                                <span class="text-sm text-gray-500"><abbr
+                                            title="Contact us if you need more!">Up to <strong>1,000,000</strong> events per day</abbr></span>
                             </li>
 
                             <li class="flex space-x-3">
@@ -664,6 +679,11 @@
                             <li class="flex space-x-3">
                                 <span><%- include('../svg/check-green.svg') %></span>
                                 <span class="text-sm text-gray-500"><strong>Custom</strong> support level</span>
+                            </li>
+
+                            <li class="flex space-x-3">
+                                <span><%- include('../svg/check-green.svg') %></span>
+                                <span class="text-sm text-gray-500"><strong>Custom</strong> events per day</span>
                             </li>
 
                             <li class="flex space-x-3">

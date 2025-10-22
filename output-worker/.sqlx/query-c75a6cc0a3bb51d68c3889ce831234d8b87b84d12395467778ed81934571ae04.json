@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM webhook.fifo_subscription_state WHERE subscription__id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c75a6cc0a3bb51d68c3889ce831234d8b87b84d12395467778ed81934571ae04"
+}

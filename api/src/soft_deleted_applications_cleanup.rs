@@ -1,12 +1,14 @@
-use actix::clock::sleep;
+use actix_web::rt::time::sleep;
 use log::{debug, error, info, trace};
 use sqlx::postgres::types::PgInterval;
 use sqlx::{Acquire, PgPool, Postgres, query};
 use std::time::{Duration, Instant};
+use tokio::sync::Semaphore;
 
 const STARTUP_GRACE_PERIOD: Duration = Duration::from_secs(20);
 
 pub async fn periodically_clean_up_soft_deleted_applications(
+    housekeeping_semaphore: &Semaphore,
     db: &PgPool,
     period: Duration,
     grace_period: Duration,
@@ -14,13 +16,16 @@ pub async fn periodically_clean_up_soft_deleted_applications(
     sleep(STARTUP_GRACE_PERIOD).await;
 
     match PgInterval::try_from(grace_period) {
-        Ok(grace_period) => loop {
-            if let Err(e) = clean_up_soft_deleted_applications(db, &grace_period).await {
-                error!("Could not clean up deleted applications: {e}");
-            }
+        Ok(grace_period) => {
+            while let Ok(permit) = housekeeping_semaphore.acquire().await {
+                if let Err(e) = clean_up_soft_deleted_applications(db, &grace_period).await {
+                    error!("Could not clean up deleted applications: {e}");
+                }
+                drop(permit);
 
-            sleep(period).await;
-        },
+                sleep(period).await;
+            }
+        }
         Err(e) => {
             error!("Could not convert grace period ({grace_period:?}) to a PG interval: {e}")
         }
@@ -78,11 +83,44 @@ async fn vacuum_analyze_and_reindex<'a, A: Acquire<'a, Database = Postgres>>(
 ) -> Result<(), sqlx::Error> {
     let mut db = db.acquire().await?;
 
-    query!("VACUUM ANALYZE event.application, event.event_type, webhook.subscription, event.event, webhook.request_attempt, webhook.response")
+    // We do not vacuum nor reindex the following tables: event.event, webhook.request_attempt, webhook.response
+    // This is because it is done by the old events cleanup task anyway
+
+    query!(
+        "
+            VACUUM ANALYZE
+                event.application,
+                event.application_secret,
+                event.service,
+                event.resource_type,
+                event.verb,
+                event.event_type,
+                webhook.subscription,
+                webhook.subscription__event_type,
+                webhook.subscription__worker,
+                webhook.target_http
+        "
+    )
+    .execute(&mut *db)
+    .await?;
+
+    query!("REINDEX TABLE CONCURRENTLY event.application")
         .execute(&mut *db)
         .await?;
 
-    query!("REINDEX TABLE CONCURRENTLY event.application")
+    query!("REINDEX TABLE CONCURRENTLY event.application_secret")
+        .execute(&mut *db)
+        .await?;
+
+    query!("REINDEX TABLE CONCURRENTLY event.service")
+        .execute(&mut *db)
+        .await?;
+
+    query!("REINDEX TABLE CONCURRENTLY event.resource_type")
+        .execute(&mut *db)
+        .await?;
+
+    query!("REINDEX TABLE CONCURRENTLY event.verb")
         .execute(&mut *db)
         .await?;
 
@@ -94,15 +132,15 @@ async fn vacuum_analyze_and_reindex<'a, A: Acquire<'a, Database = Postgres>>(
         .execute(&mut *db)
         .await?;
 
-    query!("REINDEX TABLE CONCURRENTLY event.event")
+    query!("REINDEX TABLE CONCURRENTLY webhook.subscription__event_type")
         .execute(&mut *db)
         .await?;
 
-    query!("REINDEX TABLE CONCURRENTLY webhook.request_attempt")
+    query!("REINDEX TABLE CONCURRENTLY webhook.subscription__worker")
         .execute(&mut *db)
         .await?;
 
-    query!("REINDEX TABLE CONCURRENTLY webhook.response")
+    query!("REINDEX TABLE CONCURRENTLY webhook.target_http")
         .execute(&mut *db)
         .await?;
 

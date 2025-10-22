@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                        INSERT INTO webhook.fifo_subscription_state (subscription__id, current_request_attempt__id, updated_at)\n                        VALUES ($1, $2, statement_timestamp())\n                        ON CONFLICT (subscription__id) DO NOTHING\n                    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "324028b7731cc448ed7098f5a7d911cb070194425953c6e2384b8a27887777e6"
+}

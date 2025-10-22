@@ -56,8 +56,7 @@ export function toggleEnable(
     description: subscription.description,
     metadata: subscription.metadata,
 
-    label_key: subscription.label_key,
-    label_value: subscription.label_value,
+    labels: subscription.labels,
   });
 }
 

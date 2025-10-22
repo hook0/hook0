@@ -9,6 +9,7 @@ import ApiDocumentation from '@/pages/api/documentation/ApiDocumentation.vue';
 import Error404 from '@/pages/Error404.vue';
 import Login from '@/pages/LoginPage.vue';
 import Register from '@/pages/RegisterPage.vue';
+import CheckEmail from './pages/CheckEmailPage.vue';
 import EventTypesList from '@/pages/organizations/applications/event_types/EventTypesList.vue';
 import EventTypesNew from '@/pages/organizations/applications/event_types/EventTypesNew.vue';
 import Home from '@/Home.vue';
@@ -51,6 +52,7 @@ export const routes: Record<Hook0Routes, string> = {
   UserSettings: 'UserSettings',
   BeginResetPassword: 'BeginResetPassword',
   ResetPassword: 'ResetPassword',
+  CheckEmail: 'CheckEmail',
 
   OrganizationsDashboard: 'OrganizationsDashboard',
   OrganizationsDetail: 'OrganizationsDetail',
@@ -148,6 +150,12 @@ export default [
     name: routes.VerifyEmail,
     path: '/verify-email',
     component: VerifyUser,
+    meta: { requiresAuth: false },
+  },
+  {
+    name: routes.CheckEmail,
+    path: '/check-email',
+    component: CheckEmail,
     meta: { requiresAuth: false },
   },
   {

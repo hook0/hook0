@@ -1,0 +1,1 @@
+drop index webhook.request_attempt_created_at_idx;

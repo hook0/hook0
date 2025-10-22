@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO webhook.fifo_subscription_state (subscription__id)\n                VALUES ($1)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4603d0b1a3e7dbe58d4dacf0a6bb31174f3073adff4e3b63a124c5033321b47e"
+}

@@ -9,51 +9,60 @@ license = "SSPL-1.0"
 keywords = ["webhooks", "webhook", "webhook-server", "events", "saas"]
 
 [dependencies]
-actix = "0.13.5"
 actix-cors = "0.7.1"
-actix-files = "0.6.6"
-actix-governor = { version = "0.8.0", features = ["log"] }
+actix-files = "0.6.8"
+actix-governor = "0.10.0"
 actix-web = "4.11.0"
-anyhow = "1.0.98"
+anyhow = "1.0.100"
 argon2 = "0.5.3"
 async-recursion = "1.1.1"
 base64 = "0.22.1"
 biscuit-auth = { version = "6.0.0", features = ["uuid"] }
-chrono = { version = "0.4.41", features = ["serde"] }
-clap = { version = "4.5.42", features = ["derive", "env", "cargo", "wrap_help"] }
+chrono = { version = "0.4.42", features = ["serde"] }
+clap = { version = "4.5.49", features = ["derive", "env", "cargo", "wrap_help"] }
 derive_more = { version = "2.0.1", features = ["into"] }
 futures-util = "0.3.31"
-governor = "0.8.1"
 hook0-client = { path = "../clients/rust", version = "0.2.0", default-features = false, features = ["producer"] }
+hook0-protobuf = { path = "../protobuf" }
 hook0-sentry-integration = { path = "../sentry-integration", version = "0.1.0" }
-html2text = "0.15.3"
+html2text = "0.15.5"
 http-api-problem = { version = "0.57.0", features = ["actix-web"] }
 http-serde = "2.1.1"
-humantime = "2.2.0"
+humantime = "2.3.0"
 ipnetwork = "0.21.1"
 lazy_static = "1.5.0"
-lettre = { version = "0.11.18", default-features = false, features = ["builder", "smtp-transport", "pool", "tokio1-rustls-tls"] }
-log = "0.4.27"
+lettre = { version = "0.11.19", default-features = false, features = ["builder", "smtp-transport", "pool", "tokio1-rustls-tls"] }
+log = "0.4.28"
 mrml = "5.0.0"
 paperclip = { version = "0.9.5", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
-regex = "1.11.1"
-reqwest = { version = "0.12.22", default-features = false, features = ["charset", "http2", "macos-system-configuration", "hickory-dns"] }
-sentry-actix = "0.42.0"
-serde = "1.0.219"
-serde_json = "1.0.142"
+pulsar = { version = "6.4.1", default-features = false, features = ["tokio-rustls-runtime"] }
+regex = "1.12.2"
+reqwest = { version = "0.12.24", default-features = false, features = ["charset", "http2", "macos-system-configuration", "hickory-dns"] }
+rustls = { version = "0.23.33", default-features = false, features = ["std", "tls12", "logging", "prefer-post-quantum", "ring"] }
+sentry-actix = "0.45.0"
+serde = "1.0.228"
+serde_json = "1.0.145"
 sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "migrate"] }
 strum = { version = "0.27.2", features = ["derive"] }
-thiserror = "2.0.12"
-url = "2.5.4"
-uuid = { version = "1.17.0", features = ["serde", "v4"] }
+thiserror = "2.0.17"
+tokio = { version = "1.48.0" }
+url = "2.5.7"
+uuid = { version = "1.18.1", features = ["serde", "v4", "v7"] }
 validator = { version = "0.20.0", features = ["derive", "unic"] }
+
+[target.'cfg(not(target_env = "msvc"))'.dependencies]
+jemalloc_pprof = { version = "0.8.1", features = ["symbolize"], optional = true }
+pprof = { version = "0.15.0", features = ["protobuf-codec"], optional = true }
+tikv-jemallocator = { version = "0.6.1", optional = true }
 
 [dev-dependencies]
 test-log = { version = "0.2.18", features = ["unstable"] }
 
 [features]
-default = ["reqwest-rustls-tls-webpki-roots", "migrate-users-from-keycloak", "application-secret-compatibility"]
+default = ["reqwest-rustls-tls-webpki-roots", "application-secret-compatibility", "jemalloc"]
 reqwest-rustls-tls-webpki-roots = ["reqwest/rustls-tls-webpki-roots", "hook0-client/reqwest-rustls-tls-webpki-roots"]
 reqwest-rustls-tls-native-roots = ["reqwest/rustls-tls-native-roots", "hook0-client/reqwest-rustls-tls-native-roots"]
 migrate-users-from-keycloak = []
 application-secret-compatibility = []
+jemalloc = ["dep:tikv-jemallocator"]
+profiling = ["jemalloc", "tikv-jemallocator/profiling", "tikv-jemallocator/stats", "tikv-jemallocator/unprefixed_malloc_on_supported_platforms", "tikv-jemallocator/background_threads", "dep:jemalloc_pprof", "dep:pprof"]
