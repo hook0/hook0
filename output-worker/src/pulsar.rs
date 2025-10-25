@@ -1,7 +1,7 @@
 use anyhow::bail;
 use chrono::{DateTime, Utc};
 use futures::TryStreamExt;
-use log::{debug, error, info, trace};
+use log::{debug, error, info, trace, warn};
 use pulsar::consumer::{InitialPosition, Message};
 use pulsar::proto::MessageIdData;
 use pulsar::{Consumer, ConsumerOptions, DeserializeMessage, Executor, ProducerOptions, SubType};
@@ -17,7 +17,10 @@ use tokio_util::task::TaskTracker;
 use uuid::Uuid;
 
 use crate::work::work;
-use crate::{Config, PulsarConfig, RequestAttempt, compute_next_retry};
+use crate::{
+    Config, ObjectStorageConfig, PulsarConfig, RequestAttempt, RequestAttemptWithOptionalPayload,
+    compute_next_retry,
+};
 
 type AckMessage = (MessageIdData, Option<OwnedSemaphorePermit>, bool);
 
@@ -25,6 +28,7 @@ pub async fn load_waiting_request_attempts_from_db(
     pool: &PgPool,
     worker_id: &Arc<Uuid>,
     pulsar: &Arc<PulsarConfig>,
+    object_storage: &Option<ObjectStorageConfig>,
 ) -> anyhow::Result<u64> {
     let topic = format!(
         "persistent://{}/{}/{}.request_attempt",
@@ -46,11 +50,13 @@ pub async fn load_waiting_request_attempts_from_db(
         .await?;
 
     let mut request_attempts_stream = query_as!(
-        RequestAttempt,
+        RequestAttemptWithOptionalPayload,
         "
             SELECT
+                e.application__id AS application_id,
                 ra.request_attempt__id AS request_attempt_id,
                 ra.event__id AS event_id,
+                e.received_at AS event_received_at,
                 ra.subscription__id AS subscription_id,
                 ra.created_at,
                 ra.retry_count,
@@ -78,13 +84,71 @@ pub async fn load_waiting_request_attempts_from_db(
 
     let mut counter = 0u64;
     while let Some(ra) = request_attempts_stream.try_next().await? {
-        producer
-            .create_message()
-            .event_time(ra.created_at.timestamp_micros() as u64)
-            .with_content(ra)
-            .send_non_blocking()
-            .await?;
-        counter += 1;
+        let payload = if let Some(p) = ra.payload {
+            Some(p)
+        } else if let Some(os) = &object_storage {
+            match os
+                .client
+                .get_object()
+                .bucket(&os.bucket)
+                .key(format!(
+                    "{}/event/{}/{}",
+                    ra.application_id,
+                    ra.event_received_at.naive_utc().date(),
+                    ra.event_id
+                ))
+                .send()
+                .await
+            {
+                Ok(obj) => match obj.body.collect().await {
+                    Ok(ab) => Some(ab.to_vec()),
+                    Err(e) => {
+                        warn!(
+                            "Error while getting payload body from object storage for event {}: {e}",
+                            ra.event_id
+                        );
+                        None
+                    }
+                },
+                Err(e) => {
+                    warn!(
+                        "Error while getting payload object from object storage for event {}: {e}",
+                        ra.event_id
+                    );
+                    None
+                }
+            }
+        } else {
+            None
+        };
+
+        if let Some(p) = payload {
+            let request_attempt = RequestAttempt {
+                application_id: ra.application_id,
+                request_attempt_id: ra.request_attempt_id,
+                event_id: ra.event_id,
+                event_received_at: ra.event_received_at,
+                subscription_id: ra.subscription_id,
+                created_at: ra.created_at,
+                retry_count: ra.retry_count,
+                http_method: ra.http_method,
+                http_url: ra.http_url,
+                http_headers: ra.http_headers,
+                event_type_name: ra.event_type_name,
+                payload: p,
+                payload_content_type: ra.payload_content_type,
+                secret: ra.secret,
+            };
+            producer
+                .create_message()
+                .event_time(request_attempt.created_at.timestamp_micros() as u64)
+                .with_content(request_attempt)
+                .send_non_blocking()
+                .await?;
+            counter += 1;
+        } else {
+            error!("Could not get payload for event {}", ra.event_id);
+        }
     }
 
     Ok(counter)

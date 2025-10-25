@@ -3,6 +3,8 @@ use actix_cors::Cors;
 use actix_files::{Files, NamedFile};
 use actix_web::middleware::{Compat, Logger, NormalizePath};
 use actix_web::{App, HttpServer, http, middleware};
+use aws_sdk_s3::Client;
+use aws_sdk_s3::config::{AppName, Credentials, Region};
 use biscuit_auth::{KeyPair, PrivateKey};
 use clap::builder::{BoolValueParser, TypedValueParser};
 use clap::{ArgGroup, Parser, crate_name};
@@ -32,6 +34,7 @@ mod mailer;
 mod materialized_views;
 mod middleware_biscuit;
 mod middleware_get_user_ip;
+mod object_storage_cleanup;
 mod old_events_cleanup;
 mod onboarding;
 mod openapi;
@@ -79,6 +82,11 @@ const PULSAR_CONNECTION_MAX_RETRIES: u32 = 10;
     ArgGroup::new("pulsar")
         .multiple(true)
         .requires_all(&["pulsar_binary_url", "pulsar_token", "pulsar_tenant", "pulsar_namespace"]),
+))]
+#[clap(group(
+    ArgGroup::new("object_storage")
+        .multiple(true)
+        .requires_all(&["object_storage_host", "object_storage_key_id", "object_storage_key_secret", "object_storage_bucket_name"]),
 ))]
 struct Config {
     /// IP address on which to start the HTTP server
@@ -132,6 +140,34 @@ struct Config {
     /// Pulsar namespace
     #[clap(long, env, group = "pulsar")]
     pulsar_namespace: Option<String>,
+
+    /// Host of the S3-like object storage (without https://)
+    #[clap(long, env)]
+    object_storage_host: Option<String>,
+
+    /// Force endpoint scheme to be HTTP (by default it is HTTPS)
+    #[clap(long, env, default_value_t = false)]
+    object_storage_force_http_scheme: bool,
+
+    /// Key ID of the S3-like object storage
+    #[clap(long, env)]
+    object_storage_key_id: Option<String>,
+
+    /// Key secret of the S3-like object storage
+    #[clap(long, env, hide_env_values = true)]
+    object_storage_key_secret: Option<String>,
+
+    /// Bucket name of the S3-like object storage
+    #[clap(long, env)]
+    object_storage_bucket_name: Option<String>,
+
+    /// If true, new events' payload will be stored in object storage instead of database
+    #[clap(long, env, default_value_t = false)]
+    store_event_payloads_in_object_storage: bool,
+
+    /// A comma-separated list of applications ID whose events should be stored in object storage; if empty (default), all events will be stored in object storage regardless of application ID
+    #[clap(long, env, use_value_delimiter = true)]
+    store_event_payloads_in_object_storage_only_for: Vec<Uuid>,
 
     /// Path to the directory containing the web app to serve
     #[clap(long, env, default_value = "../frontend/dist/")]
@@ -316,6 +352,14 @@ struct Config {
     #[clap(long, env, default_value = "false")]
     old_events_cleanup_report_and_delete: bool,
 
+    /// Duration to wait between object storage cleanups
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "1d")]
+    object_storage_cleanup_period: Duration,
+
+    /// If true, allow to delete outdated objects from object storage; if false (default), they will only be reported
+    #[clap(long, env, default_value_t = false)]
+    object_storage_cleanup_report_and_delete: bool,
+
     /// Duration to wait between expired tokens cleanups
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "1h")]
     expired_tokens_cleanup_period: Duration,
@@ -439,6 +483,7 @@ fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
 pub struct State {
     db: PgPool,
     pulsar: Option<Arc<PulsarConfig>>,
+    object_storage: Option<ObjectStorageConfig>,
     biscuit_private_key: PrivateKey,
     mailer: mailer::Mailer,
     app_url: Url,
@@ -475,11 +520,18 @@ pub struct State {
 
 #[derive(Clone)]
 struct PulsarConfig {
-    #[allow(dead_code)]
     pulsar: Pulsar<TokioExecutor>,
     tenant: String,
     namespace: String,
     request_attempts_producer: Arc<Mutex<MultiTopicProducer<TokioExecutor>>>,
+}
+
+#[derive(Debug, Clone)]
+struct ObjectStorageConfig {
+    client: Client,
+    bucket: String,
+    store_event_payloads: bool,
+    only_for: Vec<Uuid>,
 }
 
 // A Debug implementation that gets around Pulsar<TokioExecutor> not implementing Debug
@@ -622,6 +674,7 @@ async fn main() -> anyhow::Result<()> {
                         })
                         .build_multi_topic();
 
+                    info!("Pulsar support is enabled");
                     Some(Arc::new(PulsarConfig {
                         pulsar,
                         tenant: pulsar_tenant,
@@ -636,6 +689,64 @@ async fn main() -> anyhow::Result<()> {
                     warn!("Continuing without Pulsar support (restart to try again)");
                     None
                 }
+            }
+        } else {
+            None
+        };
+
+        // Create object storage client
+        let object_storage_config = if let (
+            Some(object_storage_host),
+            Some(object_storage_key_id),
+            Some(object_storage_key_secret),
+            Some(object_storage_bucket_name),
+        ) = (
+            config.object_storage_host,
+            config.object_storage_key_id,
+            config.object_storage_key_secret,
+            config.object_storage_bucket_name,
+        ) {
+            let app_name = AppName::new(crate_name!()).unwrap();
+            let credentials = Credentials::new(
+                object_storage_key_id,
+                object_storage_key_secret,
+                None,
+                None,
+                crate_name!(),
+            );
+            let region = Region::from_static("none");
+            let s3_config = aws_sdk_s3::Config::builder()
+                .region(region)
+                .credentials_provider(credentials)
+                .app_name(app_name)
+                .endpoint_url(format!(
+                    "{}://{object_storage_host}",
+                    if config.object_storage_force_http_scheme {
+                        "http"
+                    } else {
+                        "https"
+                    },
+                ))
+                .force_path_style(true)
+                .build();
+            let client = Client::from_conf(s3_config);
+            if let Err(e) = client
+                .head_bucket()
+                .bucket(&object_storage_bucket_name)
+                .send()
+                .await
+            {
+                error!("Could not connect to object storage: {e}");
+                warn!("Continuing without object storage support (restart to try again)");
+                None
+            } else {
+                info!("Object storage support is enabled");
+                Some(ObjectStorageConfig {
+                    client,
+                    bucket: object_storage_bucket_name,
+                    store_event_payloads: config.store_event_payloads_in_object_storage,
+                    only_for: config.store_event_payloads_in_object_storage_only_for,
+                })
             }
         } else {
             None
@@ -772,6 +883,22 @@ async fn main() -> anyhow::Result<()> {
             });
         }
 
+        // Spawn task to clean up object storage
+        // No housekeeping semaphore here because this task is not database-intensive and should be able to run for a long time without keeping other tasks from running
+        if let Some(os) = &object_storage_config {
+            let cleanup_db = pool.clone();
+            let cleanup_object_storage = os.clone();
+            actix_web::rt::spawn(async move {
+                object_storage_cleanup::periodically_clean_up_object_storage(
+                    &cleanup_db,
+                    &cleanup_object_storage,
+                    config.object_storage_cleanup_period,
+                    config.object_storage_cleanup_report_and_delete,
+                )
+                .await;
+            });
+        }
+
         // Create Mailer
         let smtp_config = mailer::MailerSmtpConfig {
             smtp_connection_url: config.smtp_connection_url,
@@ -793,6 +920,7 @@ async fn main() -> anyhow::Result<()> {
         let initial_state = State {
             db: pool,
             pulsar: pulsar_config,
+            object_storage: object_storage_config,
             app_url: config.app_url,
             biscuit_private_key,
             mailer,
