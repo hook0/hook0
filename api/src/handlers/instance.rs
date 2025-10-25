@@ -17,8 +17,8 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::time::Duration;
 
-use crate::PulsarConfig;
 use crate::problems::Hook0Problem;
+use crate::{ObjectStorageConfig, PulsarConfig};
 
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct InstanceConfig {
@@ -93,11 +93,12 @@ pub async fn get(state: Data<crate::State>) -> Result<Json<InstanceConfig>, Hook
 pub struct HealthCheck {
     database: bool,
     pulsar: Option<bool>,
+    object_storage: Option<bool>,
 }
 
 impl HealthCheck {
     fn is_ok(&self) -> bool {
-        self.database && self.pulsar.unwrap_or(true)
+        self.database && self.pulsar.unwrap_or(true) && self.object_storage.unwrap_or(true)
     }
 }
 
@@ -215,6 +216,12 @@ pub async fn health(
                 let pulsar_config = state.pulsar.clone();
                 let pulsar_task = spawn(timeout(HEALTH_CHECK_TIMEOUT, check_pulsar(pulsar_config)));
 
+                let object_storage_config = state.object_storage.clone();
+                let object_storage_task = spawn(timeout(
+                    HEALTH_CHECK_TIMEOUT,
+                    check_object_storage(object_storage_config),
+                ));
+
                 let database = matches!(database_task.await, Ok(Ok(true)));
                 let pulsar = if let Ok(Ok(r)) = pulsar_task.await {
                     r
@@ -223,8 +230,19 @@ pub async fn health(
                 } else {
                     None
                 };
+                let object_storage = if let Ok(Ok(r)) = object_storage_task.await {
+                    r
+                } else if state.object_storage.is_some() {
+                    Some(false)
+                } else {
+                    None
+                };
 
-                let health_check = HealthCheck { database, pulsar };
+                let health_check = HealthCheck {
+                    database,
+                    pulsar,
+                    object_storage,
+                };
 
                 Ok(HealthCheckWithOa(health_check))
             } else {
@@ -244,6 +262,21 @@ async fn check_pulsar(pulsar: Option<Arc<PulsarConfig>>) -> Option<bool> {
         Some(
             p.pulsar
                 .get_topics_of_namespace(format!("{}/{}", p.tenant, p.namespace), Mode::All)
+                .await
+                .is_ok(),
+        )
+    } else {
+        None
+    }
+}
+
+async fn check_object_storage(object_storage: Option<ObjectStorageConfig>) -> Option<bool> {
+    if let Some(os) = object_storage {
+        Some(
+            os.client
+                .head_bucket()
+                .bucket(&os.bucket)
+                .send()
                 .await
                 .is_ok(),
         )
