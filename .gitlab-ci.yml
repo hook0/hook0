@@ -1,5 +1,5 @@
 variables:
-  PG_VERSION: "17"
+  PG_VERSION: "18"
   RUST_VERSION: "1.90-trixie"
   NODE_VERSION: "22-trixie"
   PROTOC_VERSION: "32.0"
