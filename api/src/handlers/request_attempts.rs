@@ -149,108 +149,44 @@ pub async fn list(
         response__id: Option<Uuid>,
         retry_count: i16,
     }
-    let raw_request_attempts = match (&qs.event_id, &qs.subscription_id) {
-        (None, None) => {
-            query_as!(
-                RawRequestAttempt,
-                "
-                    SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.picked_at, ra.failed_at, ra.succeeded_at, ra.delay_until, ra.response__id, ra.retry_count, s.description AS subscription__description
-                    FROM webhook.request_attempt AS ra
-                    INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
-                    WHERE s.application__id = $1
-                        AND (ra.created_at, ra.request_attempt__id) < ($2, $3)
-                        AND ra.created_at >= $4 AND ra.created_at <= $5
-                    ORDER BY ra.created_at DESC, ra.request_attempt__id ASC
-                    LIMIT 50
-                ",
-                &qs.application_id,
-                pagination.date,
-                pagination.id,
-                min_created_at,
-                max_created_at,
-            )
-            .fetch_all(&state.db)
-            .await
-            .map_err(Hook0Problem::from)?
-        }
-        (Some(eid), None) => {
-            query_as!(
-                RawRequestAttempt,
-                "
-                    SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.picked_at, ra.failed_at, ra.succeeded_at, ra.delay_until, ra.response__id, ra.retry_count, s.description AS subscription__description
-                    FROM webhook.request_attempt AS ra
-                    INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
-                    WHERE s.application__id = $1
-                        AND ra.event__id = $2
-                        AND (ra.created_at, ra.request_attempt__id) < ($3, $4)
-                        AND ra.created_at >= $5 AND ra.created_at <= $6
-                    ORDER BY ra.created_at DESC, ra.request_attempt__id ASC
-                    LIMIT 50
-                ",
-                &qs.application_id,
-                eid,
-                pagination.date,
-                pagination.id,
-                min_created_at,
-                max_created_at,
-            )
-            .fetch_all(&state.db)
-            .await
-            .map_err(Hook0Problem::from)?
-        }
-        (None, Some(sid)) => {
-            query_as!(
-                RawRequestAttempt,
-                "
-                    SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.picked_at, ra.failed_at, ra.succeeded_at, ra.delay_until, ra.response__id, ra.retry_count, s.description AS subscription__description
-                    FROM webhook.request_attempt AS ra
-                    INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
-                    WHERE s.application__id = $1
-                        AND s.subscription__id = $2
-                        AND (ra.created_at, ra.request_attempt__id) < ($3, $4)
-                        AND ra.created_at >= $5 AND ra.created_at <= $6
-                    ORDER BY ra.created_at DESC, ra.request_attempt__id ASC
-                    LIMIT 50
-                ",
-                &qs.application_id,
-                sid,
-                pagination.date,
-                pagination.id,
-                min_created_at,
-                max_created_at,
-            )
-            .fetch_all(&state.db)
-            .await
-            .map_err(Hook0Problem::from)?
-        }
-        (Some(eid), Some(sid)) => {
-            query_as!(
-                RawRequestAttempt,
-                "
-                    SELECT ra.request_attempt__id, ra.event__id, ra.subscription__id, ra.created_at, ra.picked_at, ra.failed_at, ra.succeeded_at, ra.delay_until, ra.response__id, ra.retry_count, s.description AS subscription__description
-                    FROM webhook.request_attempt AS ra
-                    INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
-                    WHERE s.application__id = $1
-                        AND ra.event__id = $2
-                        AND s.subscription__id = $3
-                        AND (ra.created_at, ra.request_attempt__id) < ($4, $5)
-                        AND ra.created_at >= $6 AND ra.created_at <= $7
-                    ORDER BY ra.created_at DESC, ra.request_attempt__id ASC
-                    LIMIT 50
-                ",
-                &qs.application_id,
-                eid,
-                sid,
-                pagination.date,
-                pagination.id,
-                min_created_at,
-                max_created_at,
-            )
-            .fetch_all(&state.db)
-            .await
-            .map_err(Hook0Problem::from)?
-        }
-    };
+    let raw_request_attempts = query_as!(
+        RawRequestAttempt,
+        "
+            SELECT
+                ra.request_attempt__id,
+                ra.event__id,
+                ra.subscription__id,
+                ra.created_at,
+                ra.picked_at,
+                ra.failed_at,
+                ra.succeeded_at,
+                ra.delay_until,
+                ra.response__id,
+                ra.retry_count,
+                s.description AS subscription__description
+            FROM webhook.request_attempt AS ra
+            INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
+            WHERE s.application__id = $1
+                AND (ra.event__id = $2 OR $2 IS NULL)
+                AND (s.subscription__id = $3 OR $3 IS NULL)
+                AND ra.created_at BETWEEN $4 AND $5
+                AND (ra.created_at, ra.request_attempt__id) < ($6, $7)
+            ORDER BY
+                ra.created_at DESC,
+                ra.request_attempt__id ASC
+            LIMIT 50
+        ",
+        &qs.application_id,
+        qs.event_id,
+        qs.subscription_id,
+        min_created_at,
+        max_created_at,
+        pagination.date,
+        pagination.id,
+    )
+    .fetch_all(&state.db)
+    .await
+    .map_err(Hook0Problem::from)?;
 
     let request_attempts = raw_request_attempts
         .iter()
