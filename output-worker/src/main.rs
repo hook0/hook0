@@ -6,6 +6,7 @@ mod work;
 use ::pulsar::{Authentication, Pulsar, TokioExecutor};
 use anyhow::bail;
 use aws_sdk_s3::Client;
+use aws_sdk_s3::config::retry::RetryConfig;
 use aws_sdk_s3::config::{AppName, Credentials, Region};
 use chrono::{DateTime, Utc};
 use clap::{ArgGroup, Parser, ValueEnum, crate_name, crate_version};
@@ -343,6 +344,7 @@ async fn main() -> anyhow::Result<()> {
                 object_storage_host
             ))
             .force_path_style(true)
+            .retry_config(RetryConfig::standard().with_max_backoff(Duration::from_secs(2)))
             .build();
         let client = Client::from_conf(s3_config);
         if let Err(e) = client
