@@ -4,6 +4,7 @@ use actix_files::{Files, NamedFile};
 use actix_web::middleware::{Compat, Logger, NormalizePath};
 use actix_web::{App, HttpServer, http, middleware};
 use aws_sdk_s3::Client;
+use aws_sdk_s3::config::retry::RetryConfig;
 use aws_sdk_s3::config::{AppName, Credentials, Region};
 use biscuit_auth::{KeyPair, PrivateKey};
 use clap::builder::{BoolValueParser, TypedValueParser};
@@ -733,6 +734,7 @@ async fn main() -> anyhow::Result<()> {
                     },
                 ))
                 .force_path_style(true)
+                .retry_config(RetryConfig::standard().with_max_backoff(Duration::from_secs(2)))
                 .build();
             let client = Client::from_conf(s3_config);
             if let Err(e) = client
