@@ -143,16 +143,17 @@ pub async fn look_for_work(
             let payload = if let Some(p) = attempt.payload {
                 Some(p)
             } else if let Some(os) = &object_storage {
+                let key = format!(
+                    "{}/event/{}/{}",
+                    attempt.application_id,
+                    attempt.event_received_at.naive_utc().date(),
+                    attempt.event_id
+                );
                 match os
                     .client
                     .get_object()
                     .bucket(&os.bucket)
-                    .key(format!(
-                        "{}/event/{}/{}",
-                        attempt.application_id,
-                        attempt.event_received_at.naive_utc().date(),
-                        attempt.event_id
-                    ))
+                    .key(&key)
                     .send()
                     .await
                 {
@@ -160,16 +161,14 @@ pub async fn look_for_work(
                         Ok(ab) => Some(ab.to_vec()),
                         Err(e) => {
                             warn!(
-                                "Error while getting payload body from object storage for event {}: {e}",
-                                attempt.event_id
+                                "Error while getting payload body from object storage for key '{key}': {e}",
                             );
                             None
                         }
                     },
                     Err(e) => {
                         warn!(
-                            "Error while getting payload object from object storage for event {}: {e}",
-                            attempt.event_id
+                            "Error while getting payload object from object storage for key '{key}': {e}",
                         );
                         None
                     }
