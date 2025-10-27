@@ -181,6 +181,10 @@ struct Config {
     #[clap(long, env, hide_env_values = true)]
     health_check_key: Option<String>,
 
+    /// Max timeout duration for health check: if subsystems take longer to respond they will be considered unhealthy
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "5s")]
+    health_check_timeout: Duration,
+
     /// Enable Keycloak migration mode
     #[cfg(feature = "migrate-users-from-keycloak")]
     #[clap(long, env, default_value = "true")]
@@ -504,6 +508,7 @@ pub struct State {
     hook0_client: Option<Hook0Client>,
     quotas: quotas::Quotas,
     health_check_key: Option<String>,
+    health_check_timeout: Duration,
     max_authorization_time_in_ms: u64,
     debug_authorizer: bool,
     enable_quota_enforcement: bool,
@@ -950,6 +955,7 @@ async fn main() -> anyhow::Result<()> {
             hook0_client,
             quotas,
             health_check_key: config.health_check_key,
+            health_check_timeout: config.health_check_timeout,
             max_authorization_time_in_ms: config.max_authorization_time_in_ms,
             debug_authorizer: config.debug_authorizer,
             enable_quota_enforcement: config.enable_quota_enforcement,
