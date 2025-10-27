@@ -87,16 +87,17 @@ pub async fn load_waiting_request_attempts_from_db(
         let payload = if let Some(p) = ra.payload {
             Some(p)
         } else if let Some(os) = &object_storage {
+            let key = format!(
+                "{}/event/{}/{}",
+                ra.application_id,
+                ra.event_received_at.naive_utc().date(),
+                ra.event_id
+            );
             match os
                 .client
                 .get_object()
                 .bucket(&os.bucket)
-                .key(format!(
-                    "{}/event/{}/{}",
-                    ra.application_id,
-                    ra.event_received_at.naive_utc().date(),
-                    ra.event_id
-                ))
+                .key(&key)
                 .send()
                 .await
             {
@@ -104,16 +105,14 @@ pub async fn load_waiting_request_attempts_from_db(
                     Ok(ab) => Some(ab.to_vec()),
                     Err(e) => {
                         warn!(
-                            "Error while getting payload body from object storage for event {}: {e}",
-                            ra.event_id
+                            "Error while getting payload body from object storage for key '{key}': {e}",
                         );
                         None
                     }
                 },
                 Err(e) => {
                     warn!(
-                        "Error while getting payload object from object storage for event {}: {e}",
-                        ra.event_id
+                        "Error while getting payload object from object storage for key '{key}': {e}",
                     );
                     None
                 }
