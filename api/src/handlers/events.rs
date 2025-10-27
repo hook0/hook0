@@ -272,22 +272,27 @@ pub async fn get(
             if let Some(p) = &re.payload {
                 Ok(Json(re.to_event(p)))
             } else if let Some(object_storage) = &state.object_storage {
+                let key = format!(
+                    "{}/event/{}/{event_id}",
+                    qs.application_id,
+                    re.received_at.naive_utc().date()
+                );
                 let payload_object = object_storage
                         .client
                         .get_object()
                         .bucket(&object_storage.bucket)
-                        .key(format!("{}/event/{}/{event_id}", qs.application_id, re.received_at.naive_utc().date()))
+                        .key(&key)
                         .send()
                         .await
                         .map_err(|e| {
-                            error!("Error while getting payload object from object storage for event {event_id}: {e}");
+                            error!("Error while getting payload object from object storage for key '{key}': {e}");
                             Hook0Problem::InternalServerError
                         })?;
                 let payload = payload_object.body
                         .collect()
                         .await
                         .map_err(|e| {
-                            error!("Error while getting payload body from object storage for event {event_id}: {e}");
+                            error!("Error while getting payload body from object storage for key '{key}': {e}");
                             Hook0Problem::InternalServerError
                         })?
                         .to_vec();
@@ -480,23 +485,23 @@ pub async fn ingest(
             && (object_storage.only_for.is_empty()
                 || object_storage.only_for.contains(&application_id))
         {
+            let key = format!(
+                "{application_id}/event/{}/{}",
+                event.received_at.naive_utc().date(),
+                &body.event_id
+            );
             object_storage
                 .client
                 .put_object()
                 .bucket(&object_storage.bucket)
-                .key(format!(
-                    "{application_id}/event/{}/{}",
-                    event.received_at.naive_utc().date(),
-                    &body.event_id
-                ))
+                .key(&key)
                 .content_type(&body.payload_content_type)
                 .body(ByteStream::from(payload.clone()))
                 .send()
                 .await
                 .map_err(|e| {
                     error!(
-                        "Error while putting payload body to object storage for event {}: {e}",
-                        &body.event_id
+                        "Error while putting payload body to object storage for key '{key}': {e}"
                     );
                     Hook0Problem::InternalServerError
                 })?;
@@ -607,15 +612,16 @@ pub async fn replay(
                 let payload = if let Some(p) = event.payload {
                     Some(p)
                 } else if let Some(os) = &state.object_storage {
+                    let key = format!(
+                        "{}/event/{}/{event_id}",
+                        body.application_id,
+                        event.received_at.naive_utc().date(),
+                    );
                     match os
                         .client
                         .get_object()
                         .bucket(&os.bucket)
-                        .key(format!(
-                            "{}/event/{}/{event_id}",
-                            body.application_id,
-                            event.received_at.naive_utc().date(),
-                        ))
+                        .key(&key)
                         .send()
                         .await
                     {
@@ -623,14 +629,14 @@ pub async fn replay(
                             Ok(ab) => Some(ab.to_vec()),
                             Err(e) => {
                                 error!(
-                                    "Error while getting payload body from object storage for event {event_id}: {e}",
+                                    "Error while getting payload body from object storage for key '{key}': {e}",
                                 );
                                 None
                             }
                         },
                         Err(e) => {
                             error!(
-                                "Error while getting payload object from object storage for event {event_id}: {e}",
+                                "Error while getting payload object from object storage for key '{key}': {e}",
                             );
                             None
                         }
