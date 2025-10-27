@@ -160,14 +160,14 @@ pub async fn look_for_work(
                     Ok(obj) => match obj.body.collect().await {
                         Ok(ab) => Some(ab.to_vec()),
                         Err(e) => {
-                            warn!(
+                            error!(
                                 "Error while getting payload body from object storage for key '{key}': {e}",
                             );
                             None
                         }
                     },
                     Err(e) => {
-                        warn!(
+                        error!(
                             "Error while getting payload object from object storage for key '{key}': {e}",
                         );
                         None
@@ -309,7 +309,7 @@ pub async fn look_for_work(
                 // Commit transaction
                 tx.commit().await?;
             } else {
-                error!("Could not get payload for event {}", attempt.event_id);
+                warn!("Could not get payload for event {}", attempt.event_id);
                 tx.rollback().await?;
             }
         } else {
