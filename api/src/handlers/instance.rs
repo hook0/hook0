@@ -15,7 +15,6 @@ use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, query};
 use std::collections::BTreeMap;
 use std::sync::Arc;
-use std::time::Duration;
 
 use crate::problems::Hook0Problem;
 use crate::{ObjectStorageConfig, PulsarConfig};
@@ -189,8 +188,6 @@ pub struct Key {
     key: Option<String>,
 }
 
-const HEALTH_CHECK_TIMEOUT: Duration = Duration::from_secs(5);
-
 /// Check instance health
 #[api_v2_operation(
     summary = "Check instance health",
@@ -211,14 +208,18 @@ pub async fn health(
             // Comparison is not done in constant time, but stakes are very low here
             if k.is_empty() || k == qs_key {
                 let pool = state.db.clone();
-                let database_task = spawn(timeout(HEALTH_CHECK_TIMEOUT, check_database(pool)));
+                let database_task =
+                    spawn(timeout(state.health_check_timeout, check_database(pool)));
 
                 let pulsar_config = state.pulsar.clone();
-                let pulsar_task = spawn(timeout(HEALTH_CHECK_TIMEOUT, check_pulsar(pulsar_config)));
+                let pulsar_task = spawn(timeout(
+                    state.health_check_timeout,
+                    check_pulsar(pulsar_config),
+                ));
 
                 let object_storage_config = state.object_storage.clone();
                 let object_storage_task = spawn(timeout(
-                    HEALTH_CHECK_TIMEOUT,
+                    state.health_check_timeout,
                     check_object_storage(object_storage_config),
                 ));
 
