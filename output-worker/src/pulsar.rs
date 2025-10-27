@@ -104,14 +104,14 @@ pub async fn load_waiting_request_attempts_from_db(
                 Ok(obj) => match obj.body.collect().await {
                     Ok(ab) => Some(ab.to_vec()),
                     Err(e) => {
-                        warn!(
+                        error!(
                             "Error while getting payload body from object storage for key '{key}': {e}",
                         );
                         None
                     }
                 },
                 Err(e) => {
-                    warn!(
+                    error!(
                         "Error while getting payload object from object storage for key '{key}': {e}",
                     );
                     None
@@ -146,7 +146,7 @@ pub async fn load_waiting_request_attempts_from_db(
                 .await?;
             counter += 1;
         } else {
-            error!("Could not get payload for event {}", ra.event_id);
+            warn!("Could not get payload for event {}", ra.event_id);
         }
     }
 
