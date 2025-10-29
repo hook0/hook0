@@ -357,6 +357,10 @@ struct Config {
     #[clap(long, env, default_value = "false")]
     old_events_cleanup_report_and_delete: bool,
 
+    /// If true (default), big tables will be reindexed concurrently after cleanup
+    #[clap(long, env, default_value_t = true)]
+    old_events_cleanup_full_reindex: bool,
+
     /// Duration to wait between object storage cleanups
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "1d")]
     object_storage_cleanup_period: Duration,
@@ -856,6 +860,7 @@ async fn main() -> anyhow::Result<()> {
                 config.quota_global_days_of_events_retention_limit,
                 config.old_events_cleanup_grace_period_in_day,
                 config.old_events_cleanup_report_and_delete,
+                config.old_events_cleanup_full_reindex,
             )
             .await;
         });
