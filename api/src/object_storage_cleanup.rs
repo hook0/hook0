@@ -66,7 +66,7 @@ async fn delete_dangling_objects_from_object_storage(
     })
     .collect::<HashMap<_, _>>();
 
-    let applications_in_object_storage = {
+    let (applications_in_object_storage, lost_applications) = {
         let mut applications = Vec::new();
         let mut continuation_token = Some(String::new());
 
@@ -100,15 +100,20 @@ async fn delete_dangling_objects_from_object_storage(
         applications
     }
     .into_iter()
-    .filter_map(
-        |a| match applications_with_oldest_event_date.get_key_value(&a) {
-            Some(kv) => Some(kv),
-            None => {
-                error!("Application {a} exists in object storage but not in database; you should investigate and maybe removed it from object storage manually");
-                None
-            }
-        },
-    );
+    .fold((Vec::new(), Vec::new()), |(mut acc, mut lost_acc), cur| {
+        match applications_with_oldest_event_date.get_key_value(&cur) {
+            Some(kv) => acc.push(kv),
+            None => lost_acc.push(cur.to_string()),
+        };
+        (acc, lost_acc)
+    });
+
+    if !lost_applications.is_empty() {
+        error!(
+            "Some applications exist in object storage but not in database (you should investigate and maybe remove them from object storage manually): {}",
+            lost_applications.join(", ")
+        );
+    }
 
     trace!("Listing object storage prefixes that should be deleted...");
     let mut prefixes_to_delete = Vec::new();
