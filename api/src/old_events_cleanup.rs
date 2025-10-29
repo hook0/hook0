@@ -13,6 +13,7 @@ pub async fn periodically_clean_up_old_events(
     global_days_of_events_retention_limit: i32,
     grace_period_in_day: u16,
     delete: bool,
+    full_reindex: bool,
 ) {
     sleep(STARTUP_GRACE_PERIOD).await;
 
@@ -22,6 +23,7 @@ pub async fn periodically_clean_up_old_events(
             global_days_of_events_retention_limit,
             grace_period_in_day,
             delete,
+            full_reindex,
         )
         .await
         {
@@ -38,6 +40,7 @@ async fn clean_up_old_events_and_responses(
     global_days_of_events_retention_limit: i32,
     grace_period_in_day: u16,
     delete: bool,
+    full_reindex: bool,
 ) -> Result<(), sqlx::Error> {
     trace!("Start cleaning up old events...");
     let start = Instant::now();
@@ -63,7 +66,7 @@ async fn clean_up_old_events_and_responses(
 
         if total_deleted_events + total_dangling_responses > 0 {
             debug!("Running vacuum analyze and reindexing...");
-            vacuum_analyze_and_reindex(db).await?;
+            vacuum_analyze_and_reindex(db, full_reindex).await?;
         }
 
         info!(
@@ -76,6 +79,13 @@ async fn clean_up_old_events_and_responses(
             "Could clean up {total_deleted_events} old events and {total_dangling_responses} dangling responses in {:?} (but transaction was rolled back)",
             start.elapsed()
         );
+    }
+
+    if !delete || !full_reindex {
+        trace!("Reindexing partial index webhook.request_attempt_waiting_idx...");
+        query!("REINDEX INDEX CONCURRENTLY webhook.request_attempt_waiting_idx")
+            .execute(db)
+            .await?;
     }
 
     Ok(())
@@ -156,6 +166,7 @@ async fn delete_dangling_responses<'a, A: Acquire<'a, Database = Postgres>>(
 
 async fn vacuum_analyze_and_reindex<'a, A: Acquire<'a, Database = Postgres>>(
     db: A,
+    full_reindex: bool,
 ) -> Result<(), sqlx::Error> {
     let mut db = db.acquire().await?;
 
@@ -166,18 +177,20 @@ async fn vacuum_analyze_and_reindex<'a, A: Acquire<'a, Database = Postgres>>(
         .execute(&mut *db)
         .await?;
 
-    trace!("Reindexing table event.event...");
-    query!("REINDEX TABLE CONCURRENTLY event.event")
-        .execute(&mut *db)
-        .await?;
-    trace!("Reindexing table webhook.request_attempt...");
-    query!("REINDEX TABLE CONCURRENTLY webhook.request_attempt")
-        .execute(&mut *db)
-        .await?;
-    trace!("Reindexing table webhook.response...");
-    query!("REINDEX TABLE CONCURRENTLY webhook.response")
-        .execute(&mut *db)
-        .await?;
+    if full_reindex {
+        trace!("Reindexing table event.event...");
+        query!("REINDEX TABLE CONCURRENTLY event.event")
+            .execute(&mut *db)
+            .await?;
+        trace!("Reindexing table webhook.request_attempt...");
+        query!("REINDEX TABLE CONCURRENTLY webhook.request_attempt")
+            .execute(&mut *db)
+            .await?;
+        trace!("Reindexing table webhook.response...");
+        query!("REINDEX TABLE CONCURRENTLY webhook.response")
+            .execute(&mut *db)
+            .await?;
+    }
 
     Ok(())
 }

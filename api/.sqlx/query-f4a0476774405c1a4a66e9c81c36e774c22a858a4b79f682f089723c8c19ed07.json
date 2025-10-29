@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "REINDEX INDEX CONCURRENTLY webhook.request_attempt_waiting_idx",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "f4a0476774405c1a4a66e9c81c36e774c22a858a4b79f682f089723c8c19ed07"
+}
