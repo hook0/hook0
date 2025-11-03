@@ -1,4 +1,4 @@
-ARG RUST_VERSION=1.90
+ARG RUST_VERSION=1.91-trixie
 
 FROM rust:${RUST_VERSION} AS builder-rust
 WORKDIR /app
@@ -23,8 +23,11 @@ cd .. || exit 1
 cp ./target/release/hook0-api /
 EOF
 
-FROM debian:12-slim
+FROM debian:trixie-slim
 ARG UID=10001
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends adduser curl \
+    && rm -rf /var/lib/apt/lists/*
 RUN adduser \
     --disabled-password \
     --gecos "" \
@@ -33,9 +36,6 @@ RUN adduser \
     --no-create-home \
     --uid "${UID}" \
     appuser
-RUN apt-get update -y \
-    && apt-get install -y --no-install-recommends curl \
-    && rm -rf /var/lib/apt/lists/*
 USER appuser
 COPY --from=builder-rust /hook0-api /
 ENV DISABLE_SERVING_WEBAPP=true

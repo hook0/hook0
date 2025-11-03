@@ -38,6 +38,7 @@ pub async fn get_owner_organization(db: &PgPool, application_id: &Uuid) -> Optio
     Eq,
     PartialOrd,
     Ord,
+    Default,
     strum::Display,
     EnumString,
     EnumIter,
@@ -46,14 +47,9 @@ pub async fn get_owner_organization(db: &PgPool, application_id: &Uuid) -> Optio
 )]
 #[strum(serialize_all = "snake_case")]
 pub enum Role {
+    #[default]
     Viewer,
     Editor,
-}
-
-impl Default for Role {
-    fn default() -> Self {
-        Self::Viewer
-    }
 }
 
 impl TypedData for Role {

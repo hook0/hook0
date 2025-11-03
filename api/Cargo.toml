@@ -16,11 +16,11 @@ actix-web = "4.11.0"
 anyhow = "1.0.100"
 argon2 = "0.5.3"
 async-recursion = "1.1.1"
-aws-sdk-s3 = { version = "1.108.0", features = ["behavior-version-latest"] }
+aws-sdk-s3 = { version = "1.110.0", features = ["behavior-version-latest"] }
 base64 = "0.22.1"
 biscuit-auth = { version = "6.0.0", features = ["uuid"] }
 chrono = { version = "0.4.42", features = ["serde"] }
-clap = { version = "4.5.50", features = ["derive", "env", "cargo", "wrap_help"] }
+clap = { version = "4.5.51", features = ["derive", "env", "cargo", "wrap_help"] }
 derive_more = { version = "2.0.1", features = ["into"] }
 futures-util = "0.3.31"
 hook0-client = { path = "../clients/rust", version = "0.2.0", default-features = false, features = ["producer"] }
@@ -36,7 +36,7 @@ lettre = { version = "0.11.19", default-features = false, features = ["builder",
 log = "0.4.28"
 mrml = "5.0.0"
 paperclip = { version = "0.9.5", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
-pulsar = { version = "6.4.1", default-features = false, features = ["tokio-rustls-runtime"] }
+pulsar = { version = "6.5.0", default-features = false, features = ["tokio-rustls-runtime"] }
 regex = "1.12.2"
 reqwest = { version = "0.12.24", default-features = false, features = ["charset", "http2", "macos-system-configuration", "hickory-dns"] }
 rustls = { version = "0.23.34", default-features = false, features = ["std", "tls12", "logging", "prefer-post-quantum", "ring"] }

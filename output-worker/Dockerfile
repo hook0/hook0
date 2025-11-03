@@ -1,4 +1,4 @@
-ARG RUST_VERSION=1.90
+ARG RUST_VERSION=1.91-trixie
 
 FROM rust:${RUST_VERSION} AS builder-rust
 WORKDIR /app
@@ -22,8 +22,11 @@ cd .. || exit 1
 cp ./target/release/hook0-output-worker /
 EOF
 
-FROM debian:12-slim
+FROM debian:trixie-slim
 ARG UID=10001
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends adduser curl \
+    && rm -rf /var/lib/apt/lists/*
 RUN adduser \
     --disabled-password \
     --gecos "" \
