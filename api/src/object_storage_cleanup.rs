@@ -2,7 +2,7 @@ use actix_web::rt::time::sleep;
 use aws_sdk_s3::types::{Delete, ObjectIdentifier};
 use chrono::NaiveDate;
 use log::{error, info, trace};
-use sqlx::{PgPool, query_as};
+use sqlx::{PgPool, query, query_as};
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::time::{Duration, Instant};
@@ -66,7 +66,7 @@ async fn delete_dangling_objects_from_object_storage(
     })
     .collect::<HashMap<_, _>>();
 
-    let (applications_in_object_storage, lost_applications) = {
+    let (mut applications_in_object_storage, lost_applications) = {
         let mut applications = Vec::new();
         let mut continuation_token = Some(String::new());
 
@@ -102,16 +102,38 @@ async fn delete_dangling_objects_from_object_storage(
     .into_iter()
     .fold((Vec::new(), Vec::new()), |(mut acc, mut lost_acc), cur| {
         match applications_with_oldest_event_date.get_key_value(&cur) {
-            Some(kv) => acc.push(kv),
-            None => lost_acc.push(cur.to_string()),
+            Some((k, v)) => acc.push((*k, v)),
+            None => lost_acc.push(cur),
         };
         (acc, lost_acc)
     });
 
-    if !lost_applications.is_empty() {
+    let mut unknown_applications = Vec::new();
+    for a in lost_applications {
+        let has_existed = query!(
+            "
+                SELECT true AS whatever
+                FROM event.all_time_events_per_day
+                WHERE application__id = $1
+                LIMIT 1
+            ",
+            a
+        )
+        .fetch_optional(db)
+        .await?
+        .is_some();
+
+        if has_existed {
+            applications_in_object_storage.push((a, &NaiveDate::MAX));
+        } else {
+            unknown_applications.push(a.to_string());
+        }
+    }
+
+    if !unknown_applications.is_empty() {
         error!(
             "Some applications exist in object storage but not in database (you should investigate and maybe remove them from object storage manually): {}",
-            lost_applications.join(", ")
+            unknown_applications.join(", ")
         );
     }
 
