@@ -76,7 +76,6 @@ async fn delete_dangling_objects_from_object_storage(
                 .list_objects_v2()
                 .bucket(&object_storage.bucket)
                 .delimiter("/")
-                .max_keys(1)
                 .set_continuation_token(if ct.is_empty() { None } else { Some(ct) })
                 .send()
                 .await?;
@@ -151,7 +150,6 @@ async fn delete_dangling_objects_from_object_storage(
                     .bucket(&object_storage.bucket)
                     .delimiter("/")
                     .prefix(format!("{application_id}/event/"))
-                    .max_keys(1)
                     .set_continuation_token(if ct.is_empty() { None } else { Some(ct) })
                     .send()
                     .await?;
@@ -178,7 +176,45 @@ async fn delete_dangling_objects_from_object_storage(
         .map(|d| format!("{application_id}/event/{d}/"))
         .collect::<Vec<_>>();
 
+        let mut response_prefixes = {
+            let mut dates = Vec::new();
+            let mut continuation_token = Some(String::new());
+
+            while let Some(ct) = continuation_token {
+                let dates_list = object_storage
+                    .client
+                    .list_objects_v2()
+                    .bucket(&object_storage.bucket)
+                    .delimiter("/")
+                    .prefix(format!("{application_id}/response/"))
+                    .set_continuation_token(if ct.is_empty() { None } else { Some(ct) })
+                    .send()
+                    .await?;
+                dates.append(
+                    &mut dates_list
+                        .common_prefixes()
+                        .iter()
+                        .filter_map(|cp| {
+                            cp.prefix
+                                .as_deref()
+                                .and_then(|p| p.strip_suffix("/"))
+                                .and_then(|p| p.split("/").last())
+                                .and_then(|p| NaiveDate::from_str(p).ok())
+                        })
+                        .collect::<Vec<_>>(),
+                );
+                continuation_token = dates_list.next_continuation_token().map(|ct| ct.to_owned());
+            }
+
+            dates
+        }
+        .into_iter()
+        .filter(|d| d < oldest_event_date)
+        .map(|d| format!("{application_id}/response/{d}/"))
+        .collect::<Vec<_>>();
+
         prefixes_to_delete.append(&mut event_prefixes);
+        prefixes_to_delete.append(&mut response_prefixes);
     }
 
     if !prefixes_to_delete.is_empty() {
@@ -203,7 +239,6 @@ async fn delete_dangling_objects_from_object_storage(
                     .bucket(&object_storage.bucket)
                     .delimiter("/")
                     .prefix(prefix)
-                    .max_keys(2)
                     .set_continuation_token(if ct.is_empty() { None } else { Some(ct) })
                     .send()
                     .await?;

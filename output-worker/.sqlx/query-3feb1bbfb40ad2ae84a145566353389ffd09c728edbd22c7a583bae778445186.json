@@ -14,7 +14,7 @@
         "Text",
         "Int2",
         "Jsonb",
-        "Text",
+        "Bytea",
         "Int4"
       ]
     },
