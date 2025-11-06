@@ -1,4 +1,5 @@
 use anyhow::bail;
+use aws_sdk_s3::primitives::ByteStream;
 use chrono::{DateTime, Utc};
 use futures::TryStreamExt;
 use log::{debug, error, info, trace, warn};
@@ -21,6 +22,7 @@ use crate::{
     Config, ObjectStorageConfig, PulsarConfig, RequestAttempt, RequestAttemptWithOptionalPayload,
     compute_next_retry,
 };
+use hook0_protobuf::ObjectStorageResponse;
 
 type AckMessage = (MessageIdData, Option<OwnedSemaphorePermit>, bool);
 
@@ -157,6 +159,7 @@ pub async fn load_waiting_request_attempts_from_db(
 pub async fn look_for_work(
     config: &Arc<Config>,
     pool: &PgPool,
+    object_storage: &Arc<Option<ObjectStorageConfig>>,
     worker_id: &Arc<Uuid>,
     worker_name: &Arc<String>,
     worker_version: &Arc<String>,
@@ -248,6 +251,7 @@ pub async fn look_for_work(
                     let ack_tx = ack_tx.clone();
                     let c = config.clone();
                     let po = pool.clone();
+                    let os = object_storage.clone();
                     let wid = worker_id.clone();
                     let wn = worker_name.clone();
                     let wv = worker_version.clone();
@@ -259,6 +263,7 @@ pub async fn look_for_work(
                         if let Err(e) = handle_message(
                             &c,
                             &po,
+                            &os,
                             &wid,
                             &wn,
                             &wv,
@@ -300,6 +305,7 @@ enum RequestAttemptStatus {
 async fn handle_message(
     config: &Config,
     pool: &PgPool,
+    object_storage: &Arc<Option<ObjectStorageConfig>>,
     worker_id: &Uuid,
     worker_name: &str,
     worker_version: &str,
@@ -359,7 +365,6 @@ async fn handle_message(
                         &attempt.request_attempt_id,
                         &response.elapsed_time_ms()
                     );
-                    trace!("{response:?}");
 
                     // Open DB transaction
                     let mut tx = pool.begin().await?;
@@ -369,6 +374,22 @@ async fn handle_message(
                         "Storing response for request attempt {}",
                         &attempt.request_attempt_id
                     );
+                    let response_headers = response.headers();
+                    let response_contents_to_insert = if let Some(true) =
+                        object_storage.as_ref().as_ref().map(|object_storage| {
+                            object_storage.store_response_body_and_headers
+                                && (object_storage
+                                    .store_response_body_and_headers_only_for
+                                    .is_empty()
+                                    || object_storage
+                                        .store_response_body_and_headers_only_for
+                                        .contains(&attempt.application_id))
+                                && (response.body.is_some() || response_headers.is_some())
+                        }) {
+                        None
+                    } else {
+                        Some((&response.body, &response_headers))
+                    };
                     let response_id = query!(
                         "
                             INSERT INTO webhook.response (response_error__name, http_code, headers, body, elapsed_time_ms)
@@ -377,13 +398,49 @@ async fn handle_message(
                         ",
                         response.response_error__name(),
                         response.http_code(),
-                        response.headers(),
-                        response.body,
+                        response_contents_to_insert.map(|(_, headers)| headers.to_owned()).unwrap_or(None),
+                        response_contents_to_insert.map(|(body, _)| body.to_owned()).unwrap_or(None),
                         response.elapsed_time_ms(),
                     )
                     .fetch_one(&mut *tx)
                     .await?
                     .response__id;
+
+                    if let Some(object_storage) = object_storage.as_ref()
+                        && object_storage.store_response_body_and_headers
+                        && (object_storage
+                            .store_response_body_and_headers_only_for
+                            .is_empty()
+                            || object_storage
+                                .store_response_body_and_headers_only_for
+                                .contains(&attempt.application_id))
+                        && (response.body.is_some() || response_headers.is_some())
+                    {
+                        let key = format!(
+                            "{}/response/{}/{response_id}",
+                            attempt.application_id,
+                            attempt.created_at.naive_utc().date()
+                        );
+                        let object: Vec<u8> = ObjectStorageResponse {
+                            body: response.body.clone().unwrap_or_default(),
+                            headers: response_headers.unwrap_or_default(),
+                        }
+                        .try_into()?;
+                        object_storage
+                            .client
+                            .put_object()
+                            .bucket(&object_storage.bucket)
+                            .key(&key)
+                            .content_type("application/protobuf")
+                            .body(ByteStream::from(object))
+                            .send()
+                            .await
+                            .inspect_err(|e| {
+                                error!(
+                                    "Error while putting response to object storage for key '{key}': {e}"
+                                );
+                            })?;
+                    }
 
                     if response.is_success() {
                         // Mark attempt as completed
