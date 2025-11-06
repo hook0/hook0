@@ -94,6 +94,14 @@ struct Config {
     #[clap(long, env)]
     object_storage_bucket_name: Option<String>,
 
+    /// If true, new response bodies and headers will be stored in object storage instead of database
+    #[clap(long, env, default_value_t = false)]
+    store_response_body_and_headers_in_object_storage: bool,
+
+    /// A comma-separated list of applications ID whose response bodies and headers should be stored in object storage; if empty (default), all response bodies and headers will be stored in object storage regardless of application ID
+    #[clap(long, env, use_value_delimiter = true)]
+    store_response_body_and_headers_in_object_storage_only_for: Vec<Uuid>,
+
     /// Worker name (as defined in the infrastructure.worker table)
     #[clap(long, env)]
     worker_name: String,
@@ -211,6 +219,8 @@ struct PulsarConfig {
 struct ObjectStorageConfig {
     client: Client,
     bucket: String,
+    store_response_body_and_headers: bool,
+    store_response_body_and_headers_only_for: Vec<Uuid>,
 }
 
 #[derive(Debug, Clone)]
@@ -361,6 +371,11 @@ async fn main() -> anyhow::Result<()> {
             Some(ObjectStorageConfig {
                 client,
                 bucket: object_storage_bucket_name.to_owned(),
+                store_response_body_and_headers: config
+                    .store_response_body_and_headers_in_object_storage,
+                store_response_body_and_headers_only_for: config
+                    .store_response_body_and_headers_in_object_storage_only_for
+                    .to_owned(),
             })
         }
     } else {
@@ -473,11 +488,11 @@ async fn main() -> anyhow::Result<()> {
         if let Some(worker_id) = worker.scope.worker_id() {
             let c = Arc::new(config);
             let po = pool.clone();
+            let os = Arc::new(object_storage_config);
             let wid = Arc::new(worker_id);
             let wn = Arc::new(worker.name.to_owned());
             let wv = Arc::new(worker_version.to_owned());
             let pu = pulsar.clone();
-            let os = object_storage_config.clone();
             tasks.spawn(async move {
                 if c.load_waiting_request_attempt_into_pulsar {
                     info!("Loading waiting request attempts from database into Pulsar...");
@@ -491,6 +506,7 @@ async fn main() -> anyhow::Result<()> {
                     let result = pulsar::look_for_work(
                         &c,
                         &po,
+                        &os,
                         &wid,
                         &wn,
                         &wv,
