@@ -15,7 +15,13 @@ fn main() {
         .extern_path(".google.protobuf.Value", "::prost_wkt_types::Value")
         .enum_attribute(".", "#[allow(clippy::enum_variant_names)]")
         .file_descriptor_set_path(&descriptor_file)
-        .compile_protos(&["./proto/request_attempt.proto"], &["./proto/"])
+        .compile_protos(
+            &[
+                "./proto/object_storage_response.proto",
+                "./proto/request_attempt.proto",
+            ],
+            &["./proto/"],
+        )
         .unwrap();
     let descriptor_bytes = std::fs::read(descriptor_file).unwrap();
     let descriptor = FileDescriptorSet::decode(&descriptor_bytes[..]).unwrap();

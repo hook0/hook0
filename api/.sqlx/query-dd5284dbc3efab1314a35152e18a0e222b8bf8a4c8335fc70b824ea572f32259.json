@@ -1,0 +1,59 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                r.response__id,\n                r.response_error__name,\n                r.http_code,\n                r.headers,\n                r.body,\n                r.elapsed_time_ms,\n                ra.created_at as request_attempt_created_at\n            FROM webhook.response AS r\n            INNER JOIN webhook.request_attempt AS ra ON ra.response__id = r.response__id\n            INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id\n            WHERE s.application__id = $1 AND r.response__id = $2\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "response__id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "response_error__name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "http_code",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 3,
+        "name": "headers",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 4,
+        "name": "body",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 5,
+        "name": "elapsed_time_ms",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "request_attempt_created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "dd5284dbc3efab1314a35152e18a0e222b8bf8a4c8335fc70b824ea572f32259"
+}

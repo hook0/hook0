@@ -162,11 +162,11 @@ struct Config {
     #[clap(long, env)]
     object_storage_bucket_name: Option<String>,
 
-    /// If true, new events' payload will be stored in object storage instead of database
+    /// If true, new event payloads will be stored in object storage instead of database
     #[clap(long, env, default_value_t = false)]
     store_event_payloads_in_object_storage: bool,
 
-    /// A comma-separated list of applications ID whose events should be stored in object storage; if empty (default), all events will be stored in object storage regardless of application ID
+    /// A comma-separated list of applications ID whose event payloads should be stored in object storage; if empty (default), all event payloads will be stored in object storage regardless of application ID
     #[clap(long, env, use_value_delimiter = true)]
     store_event_payloads_in_object_storage_only_for: Vec<Uuid>,
 
@@ -541,7 +541,7 @@ struct ObjectStorageConfig {
     client: Client,
     bucket: String,
     store_event_payloads: bool,
-    only_for: Vec<Uuid>,
+    store_event_only_for: Vec<Uuid>,
 }
 
 // A Debug implementation that gets around Pulsar<TokioExecutor> not implementing Debug
@@ -756,7 +756,7 @@ async fn main() -> anyhow::Result<()> {
                     client,
                     bucket: object_storage_bucket_name,
                     store_event_payloads: config.store_event_payloads_in_object_storage,
-                    only_for: config.store_event_payloads_in_object_storage_only_for,
+                    store_event_only_for: config.store_event_payloads_in_object_storage_only_for,
                 })
             }
         } else {
