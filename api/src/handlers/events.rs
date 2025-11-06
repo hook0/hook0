@@ -452,8 +452,10 @@ pub async fn ingest(
         let payload_to_insert = if let Some(true) =
             state.object_storage.as_ref().map(|object_storage| {
                 object_storage.store_event_payloads
-                    && (object_storage.only_for.is_empty()
-                        || object_storage.only_for.contains(&application_id))
+                    && (object_storage.store_event_only_for.is_empty()
+                        || object_storage
+                            .store_event_only_for
+                            .contains(&application_id))
             }) {
             None
         } else {
@@ -482,8 +484,10 @@ pub async fn ingest(
 
         if let Some(object_storage) = &state.object_storage
             && object_storage.store_event_payloads
-            && (object_storage.only_for.is_empty()
-                || object_storage.only_for.contains(&application_id))
+            && (object_storage.store_event_only_for.is_empty()
+                || object_storage
+                    .store_event_only_for
+                    .contains(&application_id))
         {
             let key = format!(
                 "{application_id}/event/{}/{}",
