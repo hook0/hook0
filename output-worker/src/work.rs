@@ -38,7 +38,7 @@ pub struct Response {
     pub response_error: Option<ResponseError>,
     pub http_code: Option<u16>,
     pub headers: Option<HeaderMap>,
-    pub body: Option<String>,
+    pub body: Option<Vec<u8>>,
     pub elapsed_time: Duration,
 }
 
@@ -195,7 +195,7 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
                     response_error: Some(ResponseError::InvalidHeader),
                     http_code: None,
                     headers: None,
-                    body: Some(msg),
+                    body: Some(msg.into_bytes()),
                     elapsed_time: start.elapsed(),
                 }
             })
@@ -237,7 +237,7 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
                         Ok(res) => {
                             let status = res.status();
                             let headers = res.headers().clone();
-                            let body = res.text().await.ok();
+                            let body = res.bytes().await.ok().map(|b| b.to_vec());
 
                             if status.is_success() {
                                 debug!("Webhook call was successful");
@@ -265,7 +265,7 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
                                 response_error: Some(ResponseError::Connection),
                                 http_code: None,
                                 headers: None,
-                                body: Some(e.to_string()),
+                                body: Some(e.to_string().into_bytes()),
                                 elapsed_time: start.elapsed(),
                             }
                         }
@@ -275,7 +275,7 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
                                 response_error: Some(ResponseError::Timeout),
                                 http_code: None,
                                 headers: None,
-                                body: Some(e.to_string()),
+                                body: Some(e.to_string().into_bytes()),
                                 elapsed_time: start.elapsed(),
                             }
                         }
@@ -285,7 +285,7 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
                                 response_error: Some(ResponseError::Unknown),
                                 http_code: None,
                                 headers: None,
-                                body: Some(e.to_string()),
+                                body: Some(e.to_string().into_bytes()),
                                 elapsed_time: start.elapsed(),
                             }
                         }
@@ -300,7 +300,7 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
                 response_error: Some(ResponseError::InvalidTarget),
                 http_code: None,
                 headers: None,
-                body: Some(e.to_string()),
+                body: Some(e.to_string().into_bytes()),
                 elapsed_time: start.elapsed(),
             }
         }
@@ -310,7 +310,7 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
                 response_error: Some(ResponseError::InvalidTarget),
                 http_code: None,
                 headers: None,
-                body: Some(e.to_string()),
+                body: Some(e.to_string().into_bytes()),
                 elapsed_time: start.elapsed(),
             }
         }
@@ -320,7 +320,7 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
                 response_error: Some(ResponseError::Unknown),
                 http_code: None,
                 headers: None,
-                body: Some(e.to_string()),
+                body: Some(e.to_string().into_bytes()),
                 elapsed_time: start.elapsed(),
             }
         }
@@ -330,7 +330,7 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
                 response_error: Some(ResponseError::InvalidTarget),
                 http_code: None,
                 headers: None,
-                body: Some(e.to_string()),
+                body: Some(e.to_string().into_bytes()),
                 elapsed_time: start.elapsed(),
             }
         }
@@ -344,7 +344,7 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
                 response_error: Some(ResponseError::InvalidHeader),
                 http_code: None,
                 headers: None,
-                body: Some(msg),
+                body: Some(msg.into_bytes()),
                 elapsed_time: start.elapsed(),
             }
         }

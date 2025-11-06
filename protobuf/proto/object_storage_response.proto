@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package object_storage_response;
+
+import "google/protobuf/struct.proto";
+
+message ObjectStorageResponse {
+  bytes body = 1;
+  google.protobuf.Value headers = 2;
+}
