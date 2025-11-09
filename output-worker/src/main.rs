@@ -1,4 +1,5 @@
 mod monitoring;
+mod opentelemetry;
 mod pg;
 mod pulsar;
 mod work;
@@ -21,11 +22,11 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 use strum::{EnumString, VariantNames};
-use tokio::select;
 use tokio::signal::unix::{SignalKind, signal};
 use tokio::sync::mpsc::channel;
 use tokio::task::JoinSet;
 use tokio::time::sleep;
+use tokio::{select, spawn};
 use tokio_util::task::TaskTracker;
 use uuid::Uuid;
 
@@ -49,6 +50,18 @@ struct Config {
     /// Optional Sentry DSN for error reporting
     #[clap(long, env)]
     sentry_dsn: Option<String>,
+
+    /// Optional OTLP endpoint that will receive metrics
+    #[clap(long, env)]
+    otlp_metrics_endpoint: Option<Url>,
+
+    /// Optional OTLP endpoint that will receive traces
+    #[clap(long, env)]
+    otlp_traces_endpoint: Option<Url>,
+
+    /// Optional value for OTLP `Authorization` header (for example: `Bearer mytoken`)
+    #[clap(long, env, hide_env_values = true)]
+    otlp_authorization: Option<String>,
 
     /// Database URL (with credentials)
     #[clap(long, env, hide_env_values = true)]
@@ -255,6 +268,9 @@ async fn main() -> anyhow::Result<()> {
     // Return value *must* be kept in a variable or else it will be dropped and Sentry integration won't work
     let _sentry = hook0_sentry_integration::init(crate_name!(), &config.sentry_dsn, &None);
 
+    // Init OpenTelemetry
+    let otlp_exporters = opentelemetry::init(&config, &worker_version)?;
+
     info!(
         "Starting {} {worker_version} [{worker_name}]",
         crate_name!(),
@@ -285,6 +301,15 @@ async fn main() -> anyhow::Result<()> {
             config.concurrent, config.max_db_connections
         );
     }
+
+    // Periodically collect metrics from database pool
+    let metrics_pool = pool.clone();
+    let metrics_pool_handle = spawn(async move {
+        loop {
+            opentelemetry::gather_pool_metrics(&metrics_pool);
+            sleep(Duration::from_secs(15)).await
+        }
+    });
 
     let pulsar_config = if matches!(worker.queue_type, WorkerQueueType::Pulsar) {
         if let (
@@ -570,6 +595,10 @@ async fn main() -> anyhow::Result<()> {
 
     // We wait for all tasks to terminate or one of them to return an error
     tasks.join_all().await;
+
+    // Ensure all OpenTelemetry entities have been reported
+    metrics_pool_handle.abort();
+    otlp_exporters.shutdown()?;
 
     if task_tracker.is_closed() {
         info!("Worker gracefully terminated");
