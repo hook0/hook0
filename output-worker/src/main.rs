@@ -1,4 +1,5 @@
 mod monitoring;
+mod opentelemetry;
 mod pg;
 mod pulsar;
 mod work;
@@ -49,6 +50,14 @@ struct Config {
     /// Optional Sentry DSN for error reporting
     #[clap(long, env)]
     sentry_dsn: Option<String>,
+
+    /// Optional OTLP endpoint that will receive telemetry
+    #[clap(long, env)]
+    otlp_endpoint: Option<Url>,
+
+    /// Optional value for OTLP `Authorization` header (for example: `Bearer mytoken`)
+    #[clap(long, env, hide_env_values = true)]
+    otlp_authorization: Option<String>,
 
     /// Database URL (with credentials)
     #[clap(long, env, hide_env_values = true)]
@@ -244,6 +253,7 @@ pub struct RequestAttemptWithOptionalPayload {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let config = Config::parse();
+    opentelemetry::init(&config)?;
 
     let worker_name = config.worker_name.to_owned();
     let worker_version = config

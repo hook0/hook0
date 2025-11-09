@@ -17,6 +17,7 @@ use tokio::{select, spawn};
 use tokio_util::task::TaskTracker;
 use uuid::Uuid;
 
+use crate::opentelemetry::{end_request_attempt_span, start_request_attempt_span};
 use crate::work::work;
 use crate::{
     Config, ObjectStorageConfig, PulsarConfig, RequestAttempt, RequestAttemptWithOptionalPayload,
@@ -358,6 +359,9 @@ async fn handle_message(
 
             match request_attempt_status {
                 RequestAttemptStatus::Ready => {
+                    // Start OpenTelemetry span
+                    let span = start_request_attempt_span(&attempt);
+
                     // Work
                     let response = work(config, &attempt).await;
                     debug!(
@@ -564,6 +568,10 @@ async fn handle_message(
                     }
 
                     tx.commit().await?;
+
+                    // End OpenTelemetry span
+                    end_request_attempt_span(span, &response);
+
                     ack_tx
                         .send((msg.message_id().clone(), Some(permit), true))
                         .await?;
