@@ -126,6 +126,10 @@ struct Config {
     #[clap(long, env, default_value = "5")]
     max_db_connections: u32,
 
+    /// Statement timeout for database queries; if `0ms` (default), no timeout will be set; this is only for API-related queries, housekeeping tasks run without timeout
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "0ms")]
+    db_statement_timeout: Duration,
+
     /// Pulsar binary URL
     #[clap(long, env, group = "pulsar")]
     pulsar_binary_url: Option<Url>,
@@ -625,9 +629,32 @@ async fn main() -> anyhow::Result<()> {
             config.api_rate_limiting_token_replenish_period_in_ms,
         );
 
-        // Create a DB connection pool
+        // Create a DB connection pool for housekeeping tasks (no timeout)
+        let housekeeping_pool = PgPoolOptions::new()
+            .max_connections(3)
+            .connect_with(
+                PgConnectOptions::from_str(&config.database_url)?
+                    .application_name(&format!("{}-housekeeping", crate_name!())),
+            )
+            .await?;
+
+        // Create a DB connection pool for API
+        let statement_timeout = config.db_statement_timeout;
         let pool = PgPoolOptions::new()
             .max_connections(config.max_db_connections)
+            .after_connect(move |conn, _meta| {
+                Box::pin(async move {
+                    if !statement_timeout.is_zero() {
+                        sqlx::Executor::execute(
+                            conn,
+                            format!("SET statement_timeout = {}", statement_timeout.as_millis())
+                                .as_str(),
+                        )
+                        .await?;
+                    }
+                    Ok(())
+                })
+            })
             .connect_with(
                 PgConnectOptions::from_str(&config.database_url)?.application_name(crate_name!()),
             )
@@ -640,7 +667,9 @@ async fn main() -> anyhow::Result<()> {
         // Run migrations
         if config.auto_db_migration {
             info!("Checking/running DB migrations");
-            sqlx::migrate!("./migrations").run(&pool).await?;
+            sqlx::migrate!("./migrations")
+                .run(&housekeeping_pool)
+                .await?;
         }
 
         // Create Pulsar client
@@ -835,7 +864,7 @@ async fn main() -> anyhow::Result<()> {
 
         // Spawn task to clean up soft deleted applications
         if config.enable_soft_deleted_applications_cleanup {
-            let clean_soft_deleted_applications_db = pool.clone();
+            let clean_soft_deleted_applications_db = housekeeping_pool.clone();
             let clean_soft_deleted_applications_housekeeping_semaphore =
                 housekeeping_semaphore.clone();
             actix_web::rt::spawn(async move {
@@ -850,7 +879,7 @@ async fn main() -> anyhow::Result<()> {
         }
 
         // Spawn task to clean up old events
-        let cleanup_db = pool.clone();
+        let cleanup_db = housekeeping_pool.clone();
         let cleanup_semaphore = housekeeping_semaphore.clone();
         actix_web::rt::spawn(async move {
             old_events_cleanup::periodically_clean_up_old_events(
@@ -866,7 +895,7 @@ async fn main() -> anyhow::Result<()> {
         });
 
         // Spawn task to clean up expired tokens
-        let cleanup_db = pool.clone();
+        let cleanup_db = housekeeping_pool.clone();
         let cleanup_semaphore = housekeeping_semaphore.clone();
         actix_web::rt::spawn(async move {
             expired_tokens_cleanup::periodically_clean_up_expired_tokens(
@@ -881,7 +910,7 @@ async fn main() -> anyhow::Result<()> {
 
         // Spawn task to clean unverified users if enabled
         if config.enable_unverified_users_cleanup {
-            let clean_unverified_users_db = pool.clone();
+            let clean_unverified_users_db = housekeeping_pool.clone();
             let clean_unverified_users_semaphore = housekeeping_semaphore.clone();
             actix_web::rt::spawn(async move {
                 unverified_users_cleanup::periodically_clean_up_unverified_users(
@@ -898,7 +927,7 @@ async fn main() -> anyhow::Result<()> {
         // Spawn task to clean up object storage
         // No housekeeping semaphore here because this task is not database-intensive and should be able to run for a long time without keeping other tasks from running
         if let Some(os) = &object_storage_config {
-            let cleanup_db = pool.clone();
+            let cleanup_db = housekeeping_pool.clone();
             let cleanup_object_storage = os.clone();
             actix_web::rt::spawn(async move {
                 object_storage_cleanup::periodically_clean_up_object_storage(
