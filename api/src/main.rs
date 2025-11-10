@@ -851,7 +851,7 @@ async fn main() -> anyhow::Result<()> {
         let housekeeping_semaphore = Arc::new(Semaphore::new(1));
 
         // Spawn task to refresh materialized views
-        let refresh_db = pool.clone();
+        let refresh_db = housekeeping_pool.clone();
         let refresh_housekeeping_semaphore = housekeeping_semaphore.clone();
         actix_web::rt::spawn(async move {
             materialized_views::periodically_refresh_materialized_views(
