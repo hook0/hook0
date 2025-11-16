@@ -162,6 +162,10 @@ struct Config {
     #[clap(long, env, hide_env_values = true)]
     object_storage_key_secret: Option<String>,
 
+    /// Maximum number of attempts for object storage operations
+    #[clap(long, env, default_value_t = 3)]
+    object_storage_max_attempts: u32,
+
     /// Bucket name of the S3-like object storage
     #[clap(long, env)]
     object_storage_bucket_name: Option<String>,
@@ -767,7 +771,11 @@ async fn main() -> anyhow::Result<()> {
                     },
                 ))
                 .force_path_style(true)
-                .retry_config(RetryConfig::standard().with_max_backoff(Duration::from_secs(2)))
+                .retry_config(
+                    RetryConfig::standard()
+                        .with_max_attempts(config.object_storage_max_attempts)
+                        .with_max_backoff(Duration::from_secs(2)),
+                )
                 .build();
             let client = Client::from_conf(s3_config);
             if let Err(e) = client
