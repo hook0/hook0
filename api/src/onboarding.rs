@@ -39,7 +39,7 @@ pub async fn get_organization_onboarding_steps<'a, A: Acquire<'a, Database = Pos
                 COALESCE(CARDINALITY(application_ids.applications_ids), 0) >= 1 as "application!",
                 EXISTS(SELECT 1 FROM event.event_type WHERE application__id = ANY(application_ids.applications_ids) AND deactivated_at IS NULL) AS "event_type!",
                 EXISTS(SELECT 1 FROM webhook.subscription WHERE application__id = ANY(application_ids.applications_ids) AND deleted_at IS NULL) AS "subscription!",
-                EXISTS(SELECT 1 FROM event.event WHERE application__id = ANY(application_ids.applications_ids)) AS "event!"
+                EXISTS(SELECT 1 FROM event.event AS e INNER JOIN event.application AS a ON e.application__id = a.application__id WHERE organization__id = $1) AS "event!"
             FROM application_ids
         "#,
         organization_id
