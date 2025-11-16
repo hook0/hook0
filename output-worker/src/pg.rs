@@ -8,6 +8,7 @@ use tokio::sync::mpsc::Sender;
 use tokio::time::sleep;
 use tokio_util::task::TaskTracker;
 
+use crate::opentelemetry::{end_request_attempt_span, start_request_attempt_span};
 use crate::work::work;
 use crate::{
     Config, ObjectStorageConfig, RequestAttemptWithOptionalPayload, Worker, WorkerScope,
@@ -208,6 +209,9 @@ pub async fn look_for_work(
                     secret: attempt.secret,
                 };
 
+                // Start OpenTelemetry span
+                let span = start_request_attempt_span(&attempt_with_payload);
+
                 // Work
                 let response = work(config, &attempt_with_payload).await;
                 debug!(
@@ -372,6 +376,9 @@ pub async fn look_for_work(
 
                 // Commit transaction
                 tx.commit().await?;
+
+                // End OpenTelemetry span
+                end_request_attempt_span(span, &response);
             } else {
                 warn!("Could not get payload for event {}", attempt.event_id);
                 tx.rollback().await?;
