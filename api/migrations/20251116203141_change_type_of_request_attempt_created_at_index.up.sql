@@ -1,0 +1,4 @@
+create index if not exists request_attempt_created_at_btree_idx on webhook.request_attempt (created_at);
+alter index webhook.request_attempt_created_at_idx rename to request_attempt_created_at_brin_idx;
+alter index webhook.request_attempt_created_at_btree_idx rename to request_attempt_created_at_idx;
+drop index webhook.request_attempt_created_at_brin_idx;
