@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH application_ids as (\n                SELECT ARRAY_AGG(application__id) as applications_ids FROM event.application WHERE organization__id = $1 AND deleted_at IS NULL\n            )\n            SELECT\n                COALESCE(CARDINALITY(application_ids.applications_ids), 0) >= 1 as \"application!\",\n                EXISTS(SELECT 1 FROM event.event_type WHERE application__id = ANY(application_ids.applications_ids) AND deactivated_at IS NULL) AS \"event_type!\",\n                EXISTS(SELECT 1 FROM webhook.subscription WHERE application__id = ANY(application_ids.applications_ids) AND deleted_at IS NULL) AS \"subscription!\",\n                EXISTS(SELECT 1 FROM event.event AS e INNER JOIN event.application AS a ON e.application__id = a.application__id WHERE organization__id = $1) AS \"event!\"\n            FROM application_ids\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "application!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 1,
+        "name": "event_type!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 2,
+        "name": "subscription!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "event!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "5df8bbc52fe1ebd882b4520354c5f2668593ad5a78f5ee5c2be79b6cd48ec681"
+}
