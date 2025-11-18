@@ -186,8 +186,8 @@ onUpdated(() => {
         <Hook0CardHeader>
           <template #header>Request Attempts</template>
           <template #subtitle>
-            Requests that Hook0 sent to
-            <Hook0Button :to="{ name: routes.SubscriptionsList }">subscriptions</Hook0Button>.
+            Last webhooks sent by Hook0.
+            <em>Items older than 7 days are not shown.</em>
           </template>
         </Hook0CardHeader>
 
