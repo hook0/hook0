@@ -1,5 +1,6 @@
 import { AxiosError, AxiosResponse } from 'axios';
 import http, { handleError, Problem, UUID } from '@/http';
+import { subDays } from 'date-fns';
 import type { components } from '@/types';
 
 type definitions = components['schemas'];
@@ -27,6 +28,7 @@ export function list(application_id: UUID): Promise<Array<RequestAttemptTypeFixe
     .get('/request_attempts', {
       params: {
         application_id: application_id,
+        min_created_at: subDays(new Date(), 7).toISOString(),
       },
     })
     .then(
