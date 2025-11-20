@@ -133,7 +133,7 @@ pub async fn look_for_work(
 
         if let Some(attempt) = next_attempt {
             // Set picked_at
-            debug!(
+            trace!(
                 "[unit={unit_id}] Picking request attempt {}",
                 &attempt.request_attempt_id
             );
@@ -149,7 +149,7 @@ pub async fn look_for_work(
             )
             .execute(&mut *tx)
             .await?;
-            info!(
+            debug!(
                 "[unit={unit_id}] Picked request attempt {}",
                 &attempt.request_attempt_id
             );
@@ -214,14 +214,14 @@ pub async fn look_for_work(
 
                 // Work
                 let response = work(config, &attempt_with_payload).await;
-                debug!(
+                trace!(
                     "[unit={unit_id}] Got a response for request attempt {} in {} ms",
                     &attempt.request_attempt_id,
                     &response.elapsed_time_ms()
                 );
 
                 // Store response
-                debug!(
+                trace!(
                     "[unit={unit_id}] Storing response for request attempt {}",
                     &attempt.request_attempt_id
                 );
@@ -294,7 +294,7 @@ pub async fn look_for_work(
                 }
 
                 // Associate response and request attempt
-                debug!(
+                trace!(
                     "[unit={unit_id}] Associating response {response_id} with request attempt {}",
                     &attempt.request_attempt_id
                 );
@@ -307,7 +307,7 @@ pub async fn look_for_work(
 
                 if response.is_success() {
                     // Mark attempt as completed
-                    debug!(
+                    trace!(
                         "[unit={unit_id}] Completing request attempt {}",
                         &attempt.request_attempt_id
                     );
@@ -318,13 +318,13 @@ pub async fn look_for_work(
                     .execute(&mut *tx)
                     .await?;
 
-                    info!(
+                    debug!(
                         "[unit={unit_id}] Request attempt {} was completed sucessfully",
                         &attempt.request_attempt_id
                     );
                 } else {
                     // Mark attempt as failed
-                    debug!(
+                    trace!(
                         "[unit={unit_id}] Failing request attempt {}",
                         &attempt.request_attempt_id
                     );
@@ -361,7 +361,7 @@ pub async fn look_for_work(
                         .await?
                         .request_attempt__id;
 
-                        info!(
+                        debug!(
                             "[unit={unit_id}] Request attempt {} failed; retry #{next_retry_count} created as {retry_id} to be picked in {}s",
                             &attempt.request_attempt_id,
                             &retry_in.as_secs(),
