@@ -168,6 +168,7 @@ pub async fn look_for_work(
     heartbeat_tx: Option<Sender<u16>>,
     task_tracker: &TaskTracker,
 ) -> anyhow::Result<()> {
+    info!("Begin looking for work");
     let topic = format!(
         "persistent://{}/{}/{}.request_attempt",
         &pulsar.tenant, &pulsar.namespace, worker_id,
@@ -364,7 +365,7 @@ async fn handle_message(
 
                     // Work
                     let response = work(config, &attempt).await;
-                    debug!(
+                    trace!(
                         "Got a response for request attempt {} in {} ms",
                         &attempt.request_attempt_id,
                         &response.elapsed_time_ms()
@@ -374,7 +375,7 @@ async fn handle_message(
                     let mut tx = pool.begin().await?;
 
                     // Store response
-                    debug!(
+                    trace!(
                         "Storing response for request attempt {}",
                         &attempt.request_attempt_id
                     );
@@ -448,7 +449,7 @@ async fn handle_message(
 
                     if response.is_success() {
                         // Mark attempt as completed
-                        debug!("Completing request attempt {}", &attempt.request_attempt_id);
+                        trace!("Completing request attempt {}", &attempt.request_attempt_id);
                         query!(
                             "
                                 UPDATE webhook.request_attempt
@@ -468,13 +469,13 @@ async fn handle_message(
                         .execute(&mut *tx)
                         .await?;
 
-                        info!(
+                        debug!(
                             "Request attempt {} was completed sucessfully",
                             &attempt.request_attempt_id
                         );
                     } else {
                         // Mark attempt as failed
-                        debug!("Failing request attempt {}", &attempt.request_attempt_id);
+                        trace!("Failing request attempt {}", &attempt.request_attempt_id);
                         query!(
                             "
                                 UPDATE webhook.request_attempt
@@ -527,7 +528,7 @@ async fn handle_message(
                             .fetch_one(&mut *tx)
                             .await?;
 
-                            info!(
+                            debug!(
                                 "Request attempt {} failed; retry #{next_retry_count} created as {} to be picked in {}s",
                                 &attempt.request_attempt_id,
                                 retry.request_attempt__id,
@@ -560,7 +561,7 @@ async fn handle_message(
                                 .send_non_blocking()
                                 .await?;
                         } else {
-                            info!(
+                            debug!(
                                 "Request attempt {} failed after {} attempts; giving up",
                                 &attempt.request_attempt_id, &attempt.retry_count,
                             );
