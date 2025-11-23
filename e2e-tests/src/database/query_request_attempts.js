@@ -12,7 +12,7 @@ export default function (
   // Use the existing API endpoint to get request attempts
   // Note: API returns attempts filtered by event_id or all for application
   const attempts = list_request_attempt_api(base_url, service_token, application_id, event_id);
-  
+
   if (!attempts || !Array.isArray(attempts)) {
     return [];
   }
@@ -26,4 +26,3 @@ export default function (
 
   return attempts;
 }
-

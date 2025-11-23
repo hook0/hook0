@@ -26,4 +26,3 @@ export default function (baseUrl, service_token, subscription_id, application_id
 
   return JSON.parse(res.body);
 }
-
