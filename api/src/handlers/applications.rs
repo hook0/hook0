@@ -355,7 +355,7 @@ pub async fn edit(
 
 #[api_v2_operation(
     summary = "Delete an application",
-    description = "Marks an application as deleted. No more events will be emitted, and all active webhook subscriptions will be removed. All pending request attempts for all subscriptions belonging to this application will be automatically marked as failed (`failed_at` set to current timestamp).",
+    description = "Marks an application as deleted. No more events will be emitted, and all active webhook subscriptions will be removed. All pending request attempts for all subscriptions belonging to this application will be automatically marked as failed.",
     operation_id = "applications.delete",
     consumes = "application/json",
     produces = "application/json",
