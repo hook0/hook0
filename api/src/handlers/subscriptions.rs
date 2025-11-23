@@ -708,7 +708,7 @@ pub async fn create(
 
 #[api_v2_operation(
     summary = "Update a subscription",
-    description = "Modifies an existing subscription, including its event types, target configuration, or metadata. The subscription must belong to the specified application. When disabling a subscription (setting `is_enabled` to `false`), all pending request attempts for this subscription will be automatically marked as failed (`failed_at` set to current timestamp).",
+    description = "Modifies an existing subscription, including its event types, target configuration, or metadata. The subscription must belong to the specified application. When disabling a subscription (setting `is_enabled` to `false`), all pending and scheduled request attempts for this subscription will be automatically marked as failed (`failed_at` set to current timestamp); they won't be set back to a pending state if the subscription is re-enabled later.",
     operation_id = "subscriptions.update",
     consumes = "application/json",
     produces = "application/json",
