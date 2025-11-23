@@ -47,7 +47,7 @@ const columnDefs: ColDef[] = [
           const subscriptionName = row.description || 'this subscription';
           if (
             !confirm(
-              `Are you sure you want to disable ${subscriptionName}? All pending webhook deliveries will be marked as failed.`
+              `Are you sure you want to disable ${subscriptionName}? All pending and scheduled webhook deliveries will be marked as failed and stay in this state even if you re-enable the subscription later.`
             )
           ) {
             return;
