@@ -774,10 +774,10 @@ pub async fn edit(
         target__id: Uuid,
         created_at: DateTime<Utc>,
     }
-    
+
     // Check if disabling from the request body (avoiding extra SELECT query)
     let is_being_disabled = !body.is_enabled;
-    
+
     // If disabling, try to update only when is_enabled = true to detect transition from enabled to disabled
     // This allows us to know if we're actually disabling (vs. already disabled)
     let was_disabled = if is_being_disabled {
@@ -797,7 +797,7 @@ pub async fn edit(
     } else {
         false
     };
-    
+
     // Now do the full update (updates all fields including is_enabled, description, metadata, labels)
     // This will work whether the subscription was already disabled or just became disabled
     let subscription = query_as!(
