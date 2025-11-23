@@ -775,31 +775,7 @@ pub async fn edit(
         created_at: DateTime<Utc>,
     }
 
-    // Check if disabling from the request body (avoiding extra SELECT query)
-    let is_being_disabled = !body.is_enabled;
-
-    // If disabling, try to update only when is_enabled = true to detect transition from enabled to disabled
-    // This allows us to know if we're actually disabling (vs. already disabled)
-    let was_disabled = if is_being_disabled {
-        let result = query!(
-            "
-                UPDATE webhook.subscription
-                SET is_enabled = false
-                WHERE subscription__id = $1 AND application__id = $2 AND deleted_at IS NULL AND is_enabled = true
-            ",
-            &subscription_id_uuid,
-            &body.application_id
-        )
-        .execute(&mut *tx)
-        .await
-        .map_err(Hook0Problem::from)?;
-        result.rows_affected() > 0
-    } else {
-        false
-    };
-
-    // Now do the full update (updates all fields including is_enabled, description, metadata, labels)
-    // This will work whether the subscription was already disabled or just became disabled
+    // Update all fields including is_enabled, description, metadata, labels
     let subscription = query_as!(
         RawSubscription,
         "
@@ -942,8 +918,9 @@ pub async fn edit(
                 .map_err(Hook0Problem::from)?;
             }
 
-            // Mark pending request attempts as failed if subscription transitioned from enabled to disabled
-            if was_disabled {
+            // Mark pending request attempts as failed if subscription is disabled
+            // This is idempotent: if already marked as failed, nothing happens
+            if !body.is_enabled {
                 query!(
                     "
                         UPDATE webhook.request_attempt
