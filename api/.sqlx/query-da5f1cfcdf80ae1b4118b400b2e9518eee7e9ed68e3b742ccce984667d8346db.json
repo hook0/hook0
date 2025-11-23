@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                    UPDATE webhook.subscription\n                    SET is_enabled = $1, description = $2, metadata = $3, labels = $4\n                    WHERE subscription__id = $5 AND application__id = $6 AND deleted_at IS NULL\n                    RETURNING subscription__id, is_enabled, description, secret, metadata, labels, target__id, created_at\n                ",
+  "query": "\n            UPDATE webhook.subscription\n            SET is_enabled = $1, description = $2, metadata = $3, labels = $4\n            WHERE subscription__id = $5 AND application__id = $6 AND deleted_at IS NULL\n            RETURNING subscription__id, is_enabled, description, secret, metadata, labels, target__id, created_at\n        ",
   "describe": {
     "columns": [
       {
@@ -65,5 +65,5 @@
       false
     ]
   },
-  "hash": "6ad87013dfd419b36331c0fd492310f5085a89bd5e4523d4e577667111c788e7"
+  "hash": "da5f1cfcdf80ae1b4118b400b2e9518eee7e9ed68e3b742ccce984667d8346db"
 }
