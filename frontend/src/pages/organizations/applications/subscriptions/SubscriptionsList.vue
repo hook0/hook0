@@ -42,6 +42,17 @@ const columnDefs: ColDef[] = [
       value: (subscription: Subscription) => (subscription.is_enabled ? 'Enabled' : 'Disabled'),
       icon: (subscription: Subscription) => (subscription.is_enabled ? 'toggle-on' : 'toggle-off'),
       onClick: (row: Subscription): void => {
+        // If disabling, ask for confirmation
+        if (row.is_enabled) {
+          const subscriptionName = row.description || 'this subscription';
+          if (
+            !confirm(
+              `Are you sure you want to disable ${subscriptionName}? All pending webhook deliveries will be marked as failed.`
+            )
+          ) {
+            return;
+          }
+        }
         SubscriptionService.toggleEnable(row.subscription_id, row)
           .then(() => {
             // @TODO notify user of success
