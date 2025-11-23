@@ -708,7 +708,7 @@ pub async fn create(
 
 #[api_v2_operation(
     summary = "Update a subscription",
-    description = "Modifies an existing subscription, including its event types, target configuration, or metadata. The subscription must belong to the specified application. When disabling a subscription (setting `is_enabled` to `false`), all pending and scheduled request attempts for this subscription will be automatically marked as failed (`failed_at` set to current timestamp); they won't be set back to a pending state if the subscription is re-enabled later.",
+    description = "Modifies an existing subscription, including its event types, target configuration, or metadata. The subscription must belong to the specified application. When disabling a subscription, all pending and scheduled request attempts for this subscription will be automatically marked as failed; they won't be set back to a pending state if the subscription is re-enabled later.",
     operation_id = "subscriptions.update",
     consumes = "application/json",
     produces = "application/json",
@@ -992,7 +992,7 @@ pub async fn edit(
 
 #[api_v2_operation(
     summary = "Delete a subscription",
-    description = "Marks a subscription as deleted, preventing any further event notifications from being sent. All pending request attempts for this subscription will be automatically marked as failed (`failed_at` set to current timestamp). This operation is irreversible.",
+    description = "Marks a subscription as deleted, preventing any further event notifications from being sent. All pending request attempts for this subscription will be automatically marked as failed. This operation is irreversible.",
     operation_id = "subscriptions.delete",
     consumes = "application/json",
     produces = "application/json",
