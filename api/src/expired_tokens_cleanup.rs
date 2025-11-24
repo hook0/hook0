@@ -47,8 +47,8 @@ async fn clean_up_expired_tokens(
         tx.commit().await?;
 
         if total_deleted_tokens > 0 {
-            debug!("Running vacuum analyze and reindexing...");
-            vacuum_analyze_and_reindex(db).await?;
+            debug!("Running vacuum analyze...");
+            vacuum_analyze(db).await?;
         }
 
         info!(
@@ -85,16 +85,10 @@ async fn delete_expired_tokens<'a, A: Acquire<'a, Database = Postgres>>(
     Ok(res.rows_affected())
 }
 
-async fn vacuum_analyze_and_reindex<'a, A: Acquire<'a, Database = Postgres>>(
-    db: A,
-) -> Result<(), sqlx::Error> {
+async fn vacuum_analyze<'a, A: Acquire<'a, Database = Postgres>>(db: A) -> Result<(), sqlx::Error> {
     let mut db = db.acquire().await?;
 
     query!("VACUUM ANALYZE iam.token").execute(&mut *db).await?;
-
-    query!("REINDEX TABLE CONCURRENTLY iam.token")
-        .execute(&mut *db)
-        .await?;
 
     Ok(())
 }

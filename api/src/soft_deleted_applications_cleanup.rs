@@ -47,8 +47,8 @@ async fn clean_up_soft_deleted_applications(
     tx.commit().await?;
 
     if total_deleted_soft_deleted_applications > 0 {
-        debug!("Running vacuum analyze and reindexing...");
-        vacuum_analyze_and_reindex(db).await?;
+        debug!("Running vacuum analyze...");
+        vacuum_analyze(db).await?;
     }
 
     info!(
@@ -78,12 +78,10 @@ async fn purge_soft_soft_deleted_applications<'a, A: Acquire<'a, Database = Post
     Ok(res.rows_affected())
 }
 
-async fn vacuum_analyze_and_reindex<'a, A: Acquire<'a, Database = Postgres>>(
-    db: A,
-) -> Result<(), sqlx::Error> {
+async fn vacuum_analyze<'a, A: Acquire<'a, Database = Postgres>>(db: A) -> Result<(), sqlx::Error> {
     let mut db = db.acquire().await?;
 
-    // We do not vacuum nor reindex the following tables: event.event, webhook.request_attempt, webhook.response
+    // We do not vacuum the following tables: event.event, webhook.request_attempt, webhook.response
     // This is because it is done by the old events cleanup task anyway
 
     query!(
@@ -103,46 +101,6 @@ async fn vacuum_analyze_and_reindex<'a, A: Acquire<'a, Database = Postgres>>(
     )
     .execute(&mut *db)
     .await?;
-
-    query!("REINDEX TABLE CONCURRENTLY event.application")
-        .execute(&mut *db)
-        .await?;
-
-    query!("REINDEX TABLE CONCURRENTLY event.application_secret")
-        .execute(&mut *db)
-        .await?;
-
-    query!("REINDEX TABLE CONCURRENTLY event.service")
-        .execute(&mut *db)
-        .await?;
-
-    query!("REINDEX TABLE CONCURRENTLY event.resource_type")
-        .execute(&mut *db)
-        .await?;
-
-    query!("REINDEX TABLE CONCURRENTLY event.verb")
-        .execute(&mut *db)
-        .await?;
-
-    query!("REINDEX TABLE CONCURRENTLY event.event_type")
-        .execute(&mut *db)
-        .await?;
-
-    query!("REINDEX TABLE CONCURRENTLY webhook.subscription")
-        .execute(&mut *db)
-        .await?;
-
-    query!("REINDEX TABLE CONCURRENTLY webhook.subscription__event_type")
-        .execute(&mut *db)
-        .await?;
-
-    query!("REINDEX TABLE CONCURRENTLY webhook.subscription__worker")
-        .execute(&mut *db)
-        .await?;
-
-    query!("REINDEX TABLE CONCURRENTLY webhook.target_http")
-        .execute(&mut *db)
-        .await?;
 
     Ok(())
 }

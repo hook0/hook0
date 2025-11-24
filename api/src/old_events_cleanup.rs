@@ -65,7 +65,7 @@ async fn clean_up_old_events_and_responses(
         tx.commit().await?;
 
         if total_deleted_events + total_dangling_responses > 0 {
-            debug!("Running vacuum analyze and reindexing...");
+            debug!("Running vacuum analyze...");
             vacuum_analyze_and_reindex(db, full_reindex).await?;
         }
 
@@ -79,13 +79,6 @@ async fn clean_up_old_events_and_responses(
             "Could clean up {total_deleted_events} old events and {total_dangling_responses} dangling responses in {:?} (but transaction was rolled back)",
             start.elapsed()
         );
-    }
-
-    if !delete || !full_reindex {
-        trace!("Reindexing partial index webhook.request_attempt_waiting_idx...");
-        query!("REINDEX INDEX CONCURRENTLY webhook.request_attempt_waiting_idx")
-            .execute(db)
-            .await?;
     }
 
     Ok(())
