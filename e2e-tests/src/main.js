@@ -183,14 +183,9 @@ function scenario_subscription_deletion() {
       throw new Error('Failed to create event type');
     }
 
-    const subscription = create_subscription(
-      h,
-      s,
-      application_id,
-      [event_type],
-      config.targetUrl,
-      { test_label: 'test_value' }
-    );
+    const subscription = create_subscription(h, s, application_id, [event_type], config.targetUrl, {
+      test_label: 'test_value',
+    });
     if (!isNotNull(subscription)) {
       throw new Error('Failed to create subscription');
     }
@@ -217,9 +212,7 @@ function scenario_subscription_deletion() {
     }
 
     // Find pending attempts (no failed_at, no succeeded_at)
-    const pending_before = attempts_before.filter(
-      (a) => !a.failed_at && !a.succeeded_at
-    );
+    const pending_before = attempts_before.filter((a) => !a.failed_at && !a.succeeded_at);
     if (pending_before.length === 0) {
       console.log(
         'No pending attempts found (they may have been processed already), skipping test'
@@ -231,12 +224,7 @@ function scenario_subscription_deletion() {
     const timestamp_before_delete = new Date().toISOString();
 
     // 6. Delete subscription
-    const delete_result = delete_subscription(
-      h,
-      s,
-      subscription.subscription_id,
-      application_id
-    );
+    const delete_result = delete_subscription(h, s, subscription.subscription_id, application_id);
     if (!isNotNull(delete_result)) {
       throw new Error('Failed to delete subscription');
     }
@@ -310,14 +298,9 @@ function scenario_subscription_disable() {
       throw new Error('Failed to create event type');
     }
 
-    const subscription = create_subscription(
-      h,
-      s,
-      application_id,
-      [event_type],
-      config.targetUrl,
-      { test_label: 'test_value' }
-    );
+    const subscription = create_subscription(h, s, application_id, [event_type], config.targetUrl, {
+      test_label: 'test_value',
+    });
     if (!isNotNull(subscription)) {
       throw new Error('Failed to create subscription');
     }
@@ -348,9 +331,7 @@ function scenario_subscription_disable() {
     }
 
     // Find pending attempts (no failed_at, no succeeded_at)
-    const pending_before = attempts_before.filter(
-      (a) => !a.failed_at && !a.succeeded_at
-    );
+    const pending_before = attempts_before.filter((a) => !a.failed_at && !a.succeeded_at);
     if (pending_before.length === 0) {
       console.log(
         'No pending attempts found (they may have been processed already), skipping test'
@@ -514,9 +495,7 @@ function scenario_application_deletion() {
     }
 
     // Find pending attempts (no failed_at, no succeeded_at)
-    const pending_before = attempts_before.filter(
-      (a) => !a.failed_at && !a.succeeded_at
-    );
+    const pending_before = attempts_before.filter((a) => !a.failed_at && !a.succeeded_at);
     if (pending_before.length === 0) {
       console.log(
         'No pending attempts found (they may have been processed already), skipping test'
