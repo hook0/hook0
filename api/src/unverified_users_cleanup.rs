@@ -53,8 +53,8 @@ async fn clean_up_unverified_users(
         tx.commit().await?;
 
         if total_deleted_unverified_users + total_deleted_unreachable_organizations > 0 {
-            debug!("Running vacuum analyze and reindexing...");
-            vacuum_analyze_and_reindex(db).await?;
+            debug!("Running vacuum analyze...");
+            vacuum_analyze(db).await?;
         }
 
         info!(
@@ -119,20 +119,10 @@ async fn deleted_unreachable_organizations<'a, A: Acquire<'a, Database = Postgre
     Ok(res.rows_affected())
 }
 
-async fn vacuum_analyze_and_reindex<'a, A: Acquire<'a, Database = Postgres>>(
-    db: A,
-) -> Result<(), sqlx::Error> {
+async fn vacuum_analyze<'a, A: Acquire<'a, Database = Postgres>>(db: A) -> Result<(), sqlx::Error> {
     let mut db = db.acquire().await?;
 
     query!("VACUUM ANALYZE iam.user, iam.organization")
-        .execute(&mut *db)
-        .await?;
-
-    query!("REINDEX TABLE CONCURRENTLY iam.user")
-        .execute(&mut *db)
-        .await?;
-
-    query!("REINDEX TABLE CONCURRENTLY iam.organization")
         .execute(&mut *db)
         .await?;
 
