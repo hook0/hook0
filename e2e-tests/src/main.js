@@ -3,8 +3,11 @@ import create_application from './applications/create_application.js';
 import create_event_type from './event_types/create_event_type.js';
 import create_subscription from './subscriptions/create_subscription.js';
 import create_subscription_legacy from './subscriptions/create_subscription_legacy.js';
+import update_subscription from './subscriptions/update_subscription.js';
+import delete_subscription from './subscriptions/delete_subscription.js';
 import send_event from './events/send_event.js';
 import list_request_attempt from './events/list_request_attempt.js';
+import query_request_attempts from './database/query_request_attempts.js';
 import delete_application from './applications/delete_application.js';
 import get_quota from './unauthentified/quotas.js';
 
@@ -160,6 +163,249 @@ function scenario_1() {
   }
 }
 
+function scenario_subscription_deletion() {
+  const h = config.apiOrigin;
+  const s = config.serviceToken;
+  const o = config.organizationId;
+
+  let application_id = null;
+
+  try {
+    // 1. Setup
+    application_id = create_application(h, o, s);
+    if (!isNotNull(application_id)) {
+      throw new Error('Failed to create application');
+    }
+
+    const event_type = create_event_type(h, s, application_id);
+    if (!isNotNull(event_type)) {
+      throw new Error('Failed to create event type');
+    }
+
+    const subscription = create_subscription(h, s, application_id, [event_type], config.targetUrl, {
+      test_label: 'test_value',
+    });
+    if (!isNotNull(subscription)) {
+      throw new Error('Failed to create subscription');
+    }
+
+    // 2. Send event to create pending request attempts
+    const event_id = send_event(s, h, application_id, event_type, {
+      test_label: 'test_value',
+    });
+    if (!isNotNull(event_id)) {
+      throw new Error('Failed to create event');
+    }
+
+    // 3. Verify we have pending attempts
+    let attempts_before = list_request_attempt(h, s, application_id, event_id);
+    if (!isNotNull(attempts_before) || attempts_before.length === 0) {
+      throw new Error(
+        'Expected to find at least 1 request attempt before deletion | Found: ' +
+          (attempts_before ? attempts_before.length : 0)
+      );
+    }
+
+    // Find pending attempts (no failed_at, no succeeded_at)
+    const pending_before = attempts_before.filter((a) => !a.failed_at && !a.succeeded_at);
+    if (pending_before.length === 0) {
+      console.log(
+        'No pending attempts found (they may have been processed already), skipping test'
+      );
+      return;
+    }
+
+    // 5. Record timestamp before deletion
+    const timestamp_before_delete = new Date().toISOString();
+
+    // 6. Delete subscription
+    const delete_result = delete_subscription(h, s, subscription.subscription_id, application_id);
+    if (!isNotNull(delete_result)) {
+      throw new Error('Failed to delete subscription');
+    }
+
+    // 7. Verify pending attempts now have failed_at set
+    let attempts_after = query_request_attempts(
+      h,
+      s,
+      application_id,
+      subscription.subscription_id,
+      event_id
+    );
+
+    // Filter pending attempts that should now be marked as failed
+    const failed_attempts = attempts_after.filter((a) => {
+      return a.failed_at !== null && a.failed_at !== undefined;
+    });
+
+    if (failed_attempts.length < pending_before.length) {
+      throw new Error(
+        `Expected at least ${pending_before.length} attempts to be marked as failed | Found: ${failed_attempts.length}`
+      );
+    }
+
+    // Verify failed_at timestamps are reasonable (after deletion timestamp)
+    for (const attempt of failed_attempts) {
+      const failed_at = new Date(attempt.failed_at);
+      const before_delete = new Date(timestamp_before_delete);
+      if (failed_at < before_delete) {
+        throw new Error(
+          `failed_at timestamp (${attempt.failed_at}) should be after deletion timestamp (${timestamp_before_delete})`
+        );
+      }
+    }
+
+    console.log(
+      `✓ Subscription deletion test passed: ${failed_attempts.length} attempts marked as failed`
+    );
+
+    if (application_id && !config.keepTestApplication) {
+      delete_application(h, application_id, s);
+    }
+  } catch (error) {
+    console.error('Subscription deletion test failed:', error.message);
+    if (application_id && !config.keepTestApplication) {
+      delete_application(h, application_id, s);
+    }
+    throw error;
+  }
+}
+
+function scenario_subscription_disable() {
+  const h = config.apiOrigin;
+  const s = config.serviceToken;
+  const o = config.organizationId;
+
+  let application_id = null;
+
+  try {
+    // 1. Setup
+    application_id = create_application(h, o, s);
+    if (!isNotNull(application_id)) {
+      throw new Error('Failed to create application');
+    }
+
+    const event_type = create_event_type(h, s, application_id);
+    if (!isNotNull(event_type)) {
+      throw new Error('Failed to create event type');
+    }
+
+    const subscription = create_subscription(h, s, application_id, [event_type], config.targetUrl, {
+      test_label: 'test_value',
+    });
+    if (!isNotNull(subscription)) {
+      throw new Error('Failed to create subscription');
+    }
+
+    // Verify subscription is enabled
+    if (!subscription.is_enabled) {
+      throw new Error('Subscription should be enabled by default');
+    }
+
+    // 2. Send event to create pending request attempts
+    const event_id = send_event(s, h, application_id, event_type, {
+      test_label: 'test_value',
+    });
+    if (!isNotNull(event_id)) {
+      throw new Error('Failed to create event');
+    }
+
+    // 3. Verify we have pending attempts
+    let attempts_before = list_request_attempt(h, s, application_id, event_id);
+    if (!isNotNull(attempts_before) || attempts_before.length === 0) {
+      throw new Error(
+        'Expected to find at least 1 request attempt before disable | Found: ' +
+          (attempts_before ? attempts_before.length : 0)
+      );
+    }
+
+    // Find pending attempts (no failed_at, no succeeded_at)
+    const pending_before = attempts_before.filter((a) => !a.failed_at && !a.succeeded_at);
+    if (pending_before.length === 0) {
+      console.log(
+        'No pending attempts found (they may have been processed already), skipping test'
+      );
+      return;
+    }
+
+    // 5. Record timestamp before disable
+    const timestamp_before_disable = new Date().toISOString();
+
+    // 6. Disable subscription
+    const subscription_to_update = {
+      application_id: application_id,
+      is_enabled: false,
+      event_types: [event_type],
+      target: subscription.target,
+      description: subscription.description,
+      metadata: subscription.metadata || {},
+      labels: subscription.labels,
+    };
+
+    const updated = update_subscription(
+      h,
+      s,
+      subscription.subscription_id,
+      application_id,
+      subscription_to_update
+    );
+    if (!isNotNull(updated)) {
+      throw new Error('Failed to disable subscription');
+    }
+
+    if (updated.is_enabled !== false) {
+      throw new Error('Subscription should be disabled after update');
+    }
+
+    // 7. Verify pending attempts now have failed_at set
+    let attempts_after = query_request_attempts(
+      h,
+      s,
+      application_id,
+      subscription.subscription_id,
+      event_id
+    );
+
+    // Filter pending attempts that should now be marked as failed
+    const failed_attempts = attempts_after.filter((a) => {
+      return a.failed_at !== null && a.failed_at !== undefined;
+    });
+
+    if (failed_attempts.length < pending_before.length) {
+      throw new Error(
+        `Expected at least ${pending_before.length} attempts to be marked as failed | Found: ${failed_attempts.length}`
+      );
+    }
+
+    // Verify failed_at timestamps are reasonable (after disable timestamp)
+    for (const attempt of failed_attempts) {
+      const failed_at = new Date(attempt.failed_at);
+      const before_disable = new Date(timestamp_before_disable);
+      if (failed_at < before_disable) {
+        throw new Error(
+          `failed_at timestamp (${attempt.failed_at}) should be after disable timestamp (${timestamp_before_disable})`
+        );
+      }
+    }
+
+    console.log(
+      `✓ Subscription disable test passed: ${failed_attempts.length} attempts marked as failed`
+    );
+
+    if (application_id && !config.keepTestApplication) {
+      delete_application(h, application_id, s);
+    }
+  } catch (error) {
+    console.error('Subscription disable test failed:', error.message);
+    if (application_id && !config.keepTestApplication) {
+      delete_application(h, application_id, s);
+    }
+    throw error;
+  }
+}
+
 export default function () {
   scenario_1();
+  scenario_subscription_deletion();
+  scenario_subscription_disable();
 }
