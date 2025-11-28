@@ -10,17 +10,17 @@ keywords = ["webhooks", "webhook", "webhook-server", "events", "saas"]
 
 [dependencies]
 actix-cors = "0.7.1"
-actix-files = "0.6.8"
+actix-files = "0.6.9"
 actix-governor = "0.10.0"
-actix-web = "4.12.0"
+actix-web = "4.12.1"
 anyhow = "1.0.100"
 argon2 = "0.5.3"
 async-recursion = "1.1.1"
-aws-sdk-s3 = { version = "1.112.0", features = ["behavior-version-latest"] }
+aws-sdk-s3 = { version = "1.115.0", features = ["behavior-version-latest"] }
 base64 = "0.22.1"
 biscuit-auth = { version = "6.0.0", features = ["uuid"] }
 chrono = { version = "0.4.42", features = ["serde"] }
-clap = { version = "4.5.51", features = ["derive", "env", "cargo", "wrap_help"] }
+clap = { version = "4.5.53", features = ["derive", "env", "cargo", "wrap_help"] }
 derive_more = { version = "2.0.1", features = ["into"] }
 futures-util = "0.3.31"
 hook0-client = { path = "../clients/rust", version = "0.2.0", default-features = false, features = ["producer"] }
@@ -57,7 +57,7 @@ pprof = { version = "0.15.0", features = ["protobuf-codec"], optional = true }
 tikv-jemallocator = { version = "0.6.1", optional = true }
 
 [dev-dependencies]
-test-log = { version = "0.2.18", features = ["unstable"] }
+test-log = { version = "0.2.19", features = ["unstable"] }
 
 [features]
 default = ["reqwest-rustls-tls-webpki-roots", "application-secret-compatibility", "jemalloc"]
