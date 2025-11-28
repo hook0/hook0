@@ -708,7 +708,7 @@ pub async fn create(
 
 #[api_v2_operation(
     summary = "Update a subscription",
-    description = "Modifies an existing subscription, including its event types, target configuration, or metadata. The subscription must belong to the specified application.",
+    description = "Modifies an existing subscription, including its event types, target configuration, or metadata. The subscription must belong to the specified application. When disabling a subscription, all pending and scheduled request attempts for this subscription will be automatically marked as failed; they won't be set back to a pending state if the subscription is re-enabled later.",
     operation_id = "subscriptions.update",
     consumes = "application/json",
     produces = "application/json",
@@ -761,6 +761,8 @@ pub async fn edit(
 
     let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
 
+    let subscription_id = subscription_id.into_inner();
+
     #[allow(non_snake_case)]
     struct RawSubscription {
         subscription__id: Uuid,
@@ -772,24 +774,26 @@ pub async fn edit(
         target__id: Uuid,
         created_at: DateTime<Utc>,
     }
+
+    // Update all fields including is_enabled, description, metadata, labels
     let subscription = query_as!(
-                RawSubscription,
-                "
-                    UPDATE webhook.subscription
-                    SET is_enabled = $1, description = $2, metadata = $3, labels = $4
-                    WHERE subscription__id = $5 AND application__id = $6 AND deleted_at IS NULL
-                    RETURNING subscription__id, is_enabled, description, secret, metadata, labels, target__id, created_at
-                ",
-                &body.is_enabled, // updatable
-                body.description, // updatable
-                metadata, // updatable (our validator layer ensure this will never fail)
-                labels, // updatable
-                &subscription_id.into_inner(), // read-only
-                &body.application_id // read-only
-            )
-        .fetch_optional(&mut *tx)
-        .await
-        .map_err(Hook0Problem::from)?;
+        RawSubscription,
+        "
+            UPDATE webhook.subscription
+            SET is_enabled = $1, description = $2, metadata = $3, labels = $4
+            WHERE subscription__id = $5 AND application__id = $6 AND deleted_at IS NULL
+            RETURNING subscription__id, is_enabled, description, secret, metadata, labels, target__id, created_at
+        ",
+        &body.is_enabled,
+        body.description,
+        metadata,
+        labels,
+        &subscription_id,
+        &body.application_id
+    )
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(Hook0Problem::from)?;
 
     match subscription {
         Some(s) => {
@@ -914,6 +918,24 @@ pub async fn edit(
                 .map_err(Hook0Problem::from)?;
             }
 
+            // Mark pending request attempts as failed if subscription is disabled
+            // This is idempotent: if already marked as failed, nothing happens
+            if !body.is_enabled {
+                query!(
+                    "
+                        UPDATE webhook.request_attempt
+                        SET failed_at = statement_timestamp()
+                        WHERE subscription__id = $1
+                          AND failed_at IS NULL
+                          AND succeeded_at IS NULL
+                    ",
+                    &s.subscription__id
+                )
+                .execute(&mut *tx)
+                .await
+                .map_err(Hook0Problem::from)?;
+            }
+
             tx.commit().await.map_err(Hook0Problem::from)?;
 
             let labels: HashMap<String, String> =
@@ -970,7 +992,7 @@ pub async fn edit(
 
 #[api_v2_operation(
     summary = "Delete a subscription",
-    description = "Marks a subscription as deleted, preventing any further event notifications from being sent. This operation is irreversible.",
+    description = "Marks a subscription as deleted, preventing any further event notifications from being sent. All pending request attempts for this subscription will be automatically marked as failed. This operation is irreversible.",
     operation_id = "subscriptions.delete",
     consumes = "application/json",
     produces = "application/json",
@@ -1021,6 +1043,8 @@ pub async fn delete(
 
     match subscription {
         Some(s) => {
+            let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
+
             query!(
                 "
                     UPDATE webhook.subscription
@@ -1030,9 +1054,26 @@ pub async fn delete(
                 &application_id,
                 &s.subscription__id
             )
-            .execute(&state.db)
+            .execute(&mut *tx)
             .await
             .map_err(Hook0Problem::from)?;
+
+            // Mark pending request attempts as failed
+            query!(
+                "
+                    UPDATE webhook.request_attempt
+                    SET failed_at = statement_timestamp()
+                    WHERE subscription__id = $1
+                      AND failed_at IS NULL
+                      AND succeeded_at IS NULL
+                ",
+                &s.subscription__id
+            )
+            .execute(&mut *tx)
+            .await
+            .map_err(Hook0Problem::from)?;
+
+            tx.commit().await.map_err(Hook0Problem::from)?;
 
             if let Some(hook0_client) = state.hook0_client.as_ref() {
                 let hook0_client_event: Hook0ClientEvent = EventSubscriptionRemoved {

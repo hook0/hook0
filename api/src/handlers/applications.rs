@@ -355,7 +355,7 @@ pub async fn edit(
 
 #[api_v2_operation(
     summary = "Delete an application",
-    description = "Marks an application as deleted. No more events will be emitted, and all active webhook subscriptions will be removed.",
+    description = "Marks an application as deleted. No more events will be emitted, and all active webhook subscriptions will be removed. All pending request attempts for all subscriptions belonging to this application will be automatically marked as failed.",
     operation_id = "applications.delete",
     consumes = "application/json",
     produces = "application/json",
@@ -398,13 +398,34 @@ pub async fn delete(
 
     match application {
         Some(a) => {
+            let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
+
             query!(
                 "UPDATE event.application SET deleted_at = NOW() WHERE application__id = $1",
                 a.application_id
             )
-            .execute(&state.db)
+            .execute(&mut *tx)
             .await
             .map_err(Hook0Problem::from)?;
+
+            // Mark pending request attempts as failed for all subscriptions of this application
+            query!(
+                "
+                    UPDATE webhook.request_attempt AS ra
+                    SET failed_at = statement_timestamp()
+                    FROM webhook.subscription AS s
+                    WHERE ra.subscription__id = s.subscription__id
+                      AND s.application__id = $1
+                      AND ra.failed_at IS NULL
+                      AND ra.succeeded_at IS NULL
+                ",
+                &a.application_id
+            )
+            .execute(&mut *tx)
+            .await
+            .map_err(Hook0Problem::from)?;
+
+            tx.commit().await.map_err(Hook0Problem::from)?;
 
             if let Some(hook0_client) = state.hook0_client.as_ref() {
                 let hook0_client_event: Hook0ClientEvent = EventApplicationRemoved {
