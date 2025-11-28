@@ -761,7 +761,7 @@ pub async fn edit(
 
     let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
 
-    let subscription_id_uuid = subscription_id.into_inner();
+    let subscription_id = subscription_id.into_inner();
 
     #[allow(non_snake_case)]
     struct RawSubscription {
@@ -788,7 +788,7 @@ pub async fn edit(
         body.description,
         metadata,
         labels,
-        &subscription_id_uuid,
+        &subscription_id,
         &body.application_id
     )
     .fetch_optional(&mut *tx)
