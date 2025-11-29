@@ -118,11 +118,11 @@ pub fn init(config: &Config, version: &str) -> Result<OtlpExporters, ExporterBui
 
 pub fn gather_pool_metrics(pool: &PgPool) {
     let max_connections = u64::from(pool.options().get_max_connections());
-    let openened_connections = u64::from(pool.size());
+    let opened_connections = u64::from(pool.size());
     let idle_connections = u64::try_from(pool.num_idle())
         .inspect_err(|e| warn!("Could not convert {} to u64: {e}", pool.num_idle()))
         .ok();
-    let active_connections = idle_connections.map(|idle| openened_connections - idle);
+    let active_connections = idle_connections.map(|idle| opened_connections - idle);
 
     let meter = global::meter(crate_name!());
     meter
@@ -130,9 +130,9 @@ pub fn gather_pool_metrics(pool: &PgPool) {
         .build()
         .record(max_connections, &[]);
     meter
-        .u64_gauge("db.openened_connections")
+        .u64_gauge("db.opened_connections")
         .build()
-        .record(openened_connections, &[]);
+        .record(opened_connections, &[]);
     if let Some(value) = idle_connections {
         meter
             .u64_gauge("db.idle_connections")
