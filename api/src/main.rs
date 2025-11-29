@@ -8,7 +8,7 @@ use aws_sdk_s3::config::retry::RetryConfig;
 use aws_sdk_s3::config::{AppName, Credentials, Region};
 use biscuit_auth::{KeyPair, PrivateKey};
 use clap::builder::{BoolValueParser, TypedValueParser};
-use clap::{ArgGroup, Parser, crate_name};
+use clap::{ArgGroup, Parser, crate_name, crate_version};
 use ipnetwork::IpNetwork;
 use lettre::Address;
 use log::{debug, error, info, trace, warn};
@@ -39,6 +39,7 @@ mod object_storage_cleanup;
 mod old_events_cleanup;
 mod onboarding;
 mod openapi;
+mod opentelemetry;
 mod pagination;
 mod problems;
 mod quotas;
@@ -117,6 +118,18 @@ struct Config {
     /// Optional sample rate for tracing transactions with Sentry (between 0.0 and 1.0)
     #[clap(long, env)]
     sentry_traces_sample_rate: Option<f32>,
+
+    /// Optional OTLP endpoint that will receive metrics
+    #[clap(long, env)]
+    otlp_metrics_endpoint: Option<Url>,
+
+    /// Optional OTLP endpoint that will receive traces
+    #[clap(long, env)]
+    otlp_traces_endpoint: Option<Url>,
+
+    /// Optional value for OTLP `Authorization` header (for example: `Bearer mytoken`)
+    #[clap(long, env, hide_env_values = true)]
+    otlp_authorization: Option<String>,
 
     /// Database URL (with credentials)
     #[clap(long, env, hide_env_values = true)]
@@ -587,6 +600,14 @@ async fn main() -> anyhow::Result<()> {
             &config.sentry_traces_sample_rate,
         );
 
+        // Init OpenTelemetry
+        opentelemetry::init(
+            crate_version!(),
+            &config.otlp_authorization,
+            &config.otlp_metrics_endpoint,
+            &config.otlp_traces_endpoint,
+        )?;
+
         trace!("Starting {APP_TITLE}");
 
         // Prepare trusted reverse proxies CIDRs
@@ -667,6 +688,18 @@ async fn main() -> anyhow::Result<()> {
             "Started a pool of maximum {} DB connections",
             &config.max_db_connections
         );
+
+        // Periodically collect metrics from database pools
+        let metrics_pools = [
+            ("housekeeping", housekeeping_pool.clone()),
+            ("main", pool.clone()),
+        ];
+        actix_web::rt::spawn(async move {
+            loop {
+                opentelemetry::gather_pools_metrics(&metrics_pools);
+                actix_web::rt::time::sleep(Duration::from_secs(15)).await
+            }
+        });
 
         // Run migrations
         if config.auto_db_migration {

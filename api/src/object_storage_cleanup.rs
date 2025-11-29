@@ -9,6 +9,7 @@ use std::time::{Duration, Instant};
 use uuid::Uuid;
 
 use crate::ObjectStorageConfig;
+use crate::opentelemetry::report_cleaned_up_objects;
 
 const STARTUP_GRACE_PERIOD: Duration = Duration::from_secs(2 * 60);
 
@@ -255,8 +256,9 @@ async fn delete_dangling_objects_from_object_storage(
                     d.build().ok()
                 };
                 if let Some(del) = delete {
-                    total_deleted_objects += del.objects().len();
-                    deleted_objects_for_current_prefix += del.objects().len();
+                    let deleted_amount = del.objects().len();
+                    total_deleted_objects += deleted_amount;
+                    deleted_objects_for_current_prefix += deleted_amount;
 
                     object_storage
                         .client
@@ -265,6 +267,8 @@ async fn delete_dangling_objects_from_object_storage(
                         .delete(del)
                         .send()
                         .await?;
+
+                    report_cleaned_up_objects(deleted_amount.try_into().unwrap_or(0));
                 };
                 continuation_token = objects.next_continuation_token().map(|ct| ct.to_owned());
             }

@@ -20,6 +20,7 @@ use crate::hook0_client::{
 };
 use crate::iam::{Action, authorize_for_application, get_owner_organization};
 use crate::openapi::OaBiscuit;
+use crate::opentelemetry::report_cancelled_request_attempts;
 use crate::problems::Hook0Problem;
 use crate::quotas::Quota;
 use crate::validators::{
@@ -920,8 +921,8 @@ pub async fn edit(
 
             // Mark pending request attempts as failed if subscription is disabled
             // This is idempotent: if already marked as failed, nothing happens
-            if !body.is_enabled {
-                query!(
+            let cancelled_request_attempts = if !body.is_enabled {
+                let update = query!(
                     "
                         UPDATE webhook.request_attempt
                         SET failed_at = statement_timestamp()
@@ -934,9 +935,16 @@ pub async fn edit(
                 .execute(&mut *tx)
                 .await
                 .map_err(Hook0Problem::from)?;
-            }
+                update.rows_affected()
+            } else {
+                0
+            };
 
             tx.commit().await.map_err(Hook0Problem::from)?;
+
+            if cancelled_request_attempts > 0 {
+                report_cancelled_request_attempts(cancelled_request_attempts);
+            }
 
             let labels: HashMap<String, String> =
                 serde_json::from_value(s.labels).unwrap_or_else(|_| HashMap::new());
@@ -1059,7 +1067,7 @@ pub async fn delete(
             .map_err(Hook0Problem::from)?;
 
             // Mark pending request attempts as failed
-            query!(
+            let cancelled_request_attempts_result = query!(
                 "
                     UPDATE webhook.request_attempt
                     SET failed_at = statement_timestamp()
@@ -1072,8 +1080,13 @@ pub async fn delete(
             .execute(&mut *tx)
             .await
             .map_err(Hook0Problem::from)?;
+            let cancelled_request_attempts = cancelled_request_attempts_result.rows_affected();
 
             tx.commit().await.map_err(Hook0Problem::from)?;
+
+            if cancelled_request_attempts > 0 {
+                report_cancelled_request_attempts(cancelled_request_attempts);
+            }
 
             if let Some(hook0_client) = state.hook0_client.as_ref() {
                 let hook0_client_event: Hook0ClientEvent = EventSubscriptionRemoved {
