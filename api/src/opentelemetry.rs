@@ -117,7 +117,7 @@ pub fn report_cancelled_request_attempts(amount: u64) {
 pub fn report_cleaned_up_objects(amount: u64) {
     let meter = global::meter(crate_name!());
     let counter = meter
-        .u64_counter("object_storage_cleaned_up_objects")
+        .u64_counter("object_storage.cleaned_up_objects")
         .build();
     counter.add(amount, &[]);
 }
