@@ -35,6 +35,9 @@ lazy_static = "1.5.0"
 lettre = { version = "0.11.19", default-features = false, features = ["builder", "smtp-transport", "pool", "tokio1-rustls-tls"] }
 log = "0.4.28"
 mrml = "5.1.0"
+opentelemetry = { version = "0.31.0", default-features = false, features = ["trace", "metrics"] }
+opentelemetry-otlp = { version = "0.31.0", default-features = false, features = ["trace", "metrics", "http-proto", "zstd-http", "internal-logs", "reqwest-blocking-client", "reqwest-rustls-webpki-roots"] }
+opentelemetry_sdk = { version = "0.31.0", default-features = false, features = ["trace", "metrics", "rt-tokio"] }
 paperclip = { version = "0.9.5", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
 pulsar = { version = "6.5.0", default-features = false, features = ["tokio-rustls-runtime"] }
 regex = "1.12.2"
