@@ -50,9 +50,9 @@ async fn delete_dangling_objects_from_object_storage(
         "
             SELECT
                 a.application__id AS application_id,
-                MIN(epd.date) AS oldest_event_date
+                MIN(e.received_at)::date AS oldest_event_date
             FROM event.application AS a
-            LEFT JOIN event.events_per_day AS epd ON epd.application__id = a.application__id
+            INNER JOIN event.event AS e ON e.application__id = a.application__id
             GROUP BY a.application__id
         "
     )
