@@ -885,8 +885,9 @@ async fn main() -> anyhow::Result<()> {
             );
         }
 
-        // Spawn task to do regular rate limiters housekeeping
+        // Spawn tasks to do regular rate limiters housekeeping and metrics reporting
         rate_limiters.spawn_housekeeping_task(config.api_rate_limiting_housekeeping_period);
+        rate_limiters.spawn_metrics_task();
 
         // This semaphore is used to ensure we do not run multiple housekeeping tasks at the same because it can create unnecessary load on the database
         let housekeeping_semaphore = Arc::new(Semaphore::new(1));
