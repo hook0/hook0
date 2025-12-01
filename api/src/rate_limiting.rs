@@ -10,6 +10,7 @@ use log::{debug, trace, warn};
 use std::net::IpAddr;
 use std::time::Duration;
 
+use crate::opentelemetry::report_rate_limiters_metrics;
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Clone)]
@@ -117,6 +118,21 @@ impl Hook0RateLimiters {
                 self_clone.token.limiter().shrink_to_fit();
 
                 debug!("Rate limiters housekeeping done");
+            }
+        });
+    }
+
+    pub fn spawn_metrics_task(&self) {
+        const INTERVAL: Duration = Duration::from_secs(15);
+        let self_clone = self.clone();
+        actix_web::rt::spawn(async move {
+            loop {
+                sleep(INTERVAL).await;
+
+                report_rate_limiters_metrics(&dbg!([
+                    ("ip", self_clone.ip.limiter().len()),
+                    ("token", self_clone.token.limiter().len()),
+                ]));
             }
         });
     }
