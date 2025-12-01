@@ -108,6 +108,24 @@ pub fn gather_pools_metrics(pools: &[(&'static str, PgPool)]) {
     }
 }
 
+pub fn report_rate_limiters_metrics(rate_limiters: &[(&'static str, usize)]) {
+    for (name, len) in rate_limiters {
+        let len_u64 = u64::try_from(*len)
+            .inspect_err(|e| warn!("Could not convert {len} to u64: {e}"))
+            .ok();
+
+        let meter = global::meter(crate_name!());
+        let attributes = [KeyValue::new("key", *name)];
+
+        if let Some(value) = len_u64 {
+            meter
+                .u64_gauge("rate_limiter.len")
+                .build()
+                .record(value, &attributes);
+        }
+    }
+}
+
 pub fn report_cancelled_request_attempts(amount: u64) {
     let meter = global::meter(crate_name!());
     let counter = meter.u64_counter("cancelled_request_attempts").build();
