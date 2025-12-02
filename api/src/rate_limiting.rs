@@ -129,10 +129,10 @@ impl Hook0RateLimiters {
             loop {
                 sleep(INTERVAL).await;
 
-                report_rate_limiters_metrics(&dbg!([
+                report_rate_limiters_metrics(&[
                     ("ip", self_clone.ip.limiter().len()),
                     ("token", self_clone.token.limiter().len()),
-                ]));
+                ]);
             }
         });
     }
