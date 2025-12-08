@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                                INSERT INTO webhook.request_attempt (application__id, event__id, subscription__id, delay_until, retry_count)\n                                VALUES ($1, $2, $3, statement_timestamp() + $4, $5)\n                                RETURNING request_attempt__id\n                            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "request_attempt__id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Interval",
+        "Int2"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "12378cbdecc6045bb7e1cfa75959e78f5d493cfcdef7e07873ff087ea406ab5e"
+}
