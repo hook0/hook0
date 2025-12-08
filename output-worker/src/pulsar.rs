@@ -516,10 +516,11 @@ async fn handle_message(
                             let retry = query_as!(
                                 Retry,
                                 "
-                                    INSERT INTO webhook.request_attempt (event__id, subscription__id, delay_until, retry_count)
-                                    VALUES ($1, $2, $3, $4)
+                                    INSERT INTO webhook.request_attempt (application__id, event__id, subscription__id, delay_until, retry_count)
+                                    VALUES ($1, $2, $3, $4, $5)
                                     RETURNING request_attempt__id, created_at
                                 ",
+                                attempt.application_id,
                                 attempt.event_id,
                                 attempt.subscription_id,
                                 delay_until,

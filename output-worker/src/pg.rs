@@ -348,10 +348,11 @@ pub async fn look_for_work(
                         let next_retry_count = attempt.retry_count + 1;
                         let retry_id = query!(
                             "
-                                INSERT INTO webhook.request_attempt (event__id, subscription__id, delay_until, retry_count)
-                                VALUES ($1, $2, statement_timestamp() + $3, $4)
+                                INSERT INTO webhook.request_attempt (application__id, event__id, subscription__id, delay_until, retry_count)
+                                VALUES ($1, $2, $3, statement_timestamp() + $4, $5)
                                 RETURNING request_attempt__id
                             ",
+                            attempt.application_id,
                             attempt.event_id,
                             attempt.subscription_id,
                             PgInterval::try_from(retry_in).unwrap(),
