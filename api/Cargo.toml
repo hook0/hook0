@@ -16,24 +16,24 @@ actix-web = "4.12.1"
 anyhow = "1.0.100"
 argon2 = "0.5.3"
 async-recursion = "1.1.1"
-aws-sdk-s3 = { version = "1.115.0", features = ["behavior-version-latest"] }
+aws-sdk-s3 = { version = "1.116.0", features = ["behavior-version-latest"] }
 base64 = "0.22.1"
 biscuit-auth = { version = "6.0.0", features = ["uuid"] }
 chrono = { version = "0.4.42", features = ["serde"] }
 clap = { version = "4.5.53", features = ["derive", "env", "cargo", "wrap_help"] }
-derive_more = { version = "2.0.1", features = ["into"] }
+derive_more = { version = "2.1.0", features = ["into"] }
 futures-util = "0.3.31"
 hook0-client = { path = "../clients/rust", version = "0.2.0", default-features = false, features = ["producer"] }
 hook0-protobuf = { path = "../protobuf" }
 hook0-sentry-integration = { path = "../sentry-integration", version = "0.1.0" }
-html2text = "0.16.4"
+html2text = "0.16.5"
 http-api-problem = { version = "0.57.0", features = ["actix-web"] }
 http-serde = "2.1.1"
 humantime = "2.3.0"
 ipnetwork = "0.21.1"
 lazy_static = "1.5.0"
 lettre = { version = "0.11.19", default-features = false, features = ["builder", "smtp-transport", "pool", "tokio1-rustls-tls"] }
-log = "0.4.28"
+log = "0.4.29"
 mrml = "5.1.0"
 opentelemetry = { version = "0.31.0", default-features = false, features = ["trace", "metrics"] }
 opentelemetry-otlp = { version = "0.31.0", default-features = false, features = ["trace", "metrics", "http-proto", "zstd-http", "internal-logs", "reqwest-blocking-client", "reqwest-rustls-webpki-roots"] }
@@ -43,7 +43,7 @@ pulsar = { version = "6.5.0", default-features = false, features = ["tokio-rustl
 regex = "1.12.2"
 reqwest = { version = "0.12.24", default-features = false, features = ["charset", "http2", "macos-system-configuration", "hickory-dns"] }
 rustls = { version = "0.23.35", default-features = false, features = ["std", "tls12", "logging", "prefer-post-quantum", "ring"] }
-sentry-actix = "0.45.0"
+sentry-actix = "0.46.0"
 serde = "1.0.228"
 serde_json = "1.0.145"
 sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "migrate"] }
@@ -51,7 +51,7 @@ strum = { version = "0.27.2", features = ["derive"] }
 thiserror = "2.0.17"
 tokio = { version = "1.48.0" }
 url = "2.5.7"
-uuid = { version = "1.18.1", features = ["serde", "v4", "v7"] }
+uuid = { version = "1.19.0", features = ["serde", "v4", "v7"] }
 validator = { version = "0.20.0", features = ["derive", "unic"] }
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
