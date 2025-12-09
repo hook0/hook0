@@ -166,7 +166,7 @@ pub async fn list(
                 s.description AS subscription__description
             FROM webhook.request_attempt AS ra
             INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
-            WHERE s.application__id = $1
+            WHERE ra.application__id = $1
                 AND (ra.event__id = $2 OR $2 IS NULL)
                 AND (s.subscription__id = $3 OR $3 IS NULL)
                 AND ra.created_at BETWEEN $4 AND $5
