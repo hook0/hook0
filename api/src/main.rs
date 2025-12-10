@@ -813,7 +813,11 @@ async fn main() -> anyhow::Result<()> {
                 .send()
                 .await
             {
-                error!("Could not connect to object storage: {e}");
+                if let Some(se) = e.as_service_error() {
+                    error!("Could not connect to object storage: (service error) {se}");
+                } else {
+                    error!("Could not connect to object storage: {e}");
+                }
                 warn!("Continuing without object storage support (restart to try again)");
                 None
             } else {

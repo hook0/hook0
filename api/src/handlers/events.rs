@@ -285,7 +285,11 @@ pub async fn get(
                         .send()
                         .await
                         .map_err(|e| {
-                            error!("Error while getting payload object from object storage for key '{key}': {e}");
+                            if let Some(se) = e.as_service_error() {
+                                error!("Error while getting payload object from object storage for key '{key}': (service error) {se}");
+                            } else {
+                                error!("Error while getting payload object from object storage for key '{key}': {e}");
+                            }
                             Hook0Problem::InternalServerError
                         })?;
                 let payload = payload_object.body
@@ -504,9 +508,15 @@ pub async fn ingest(
                 .send()
                 .await
                 .map_err(|e| {
-                    error!(
-                        "Error while putting payload body to object storage for key '{key}': {e}"
-                    );
+                    if let Some(se) = e.as_service_error() {
+                        error!(
+                            "Error while putting payload body to object storage for key '{key}': (service error) {se}"
+                        );
+                    } else {
+                        error!(
+                            "Error while putting payload body to object storage for key '{key}': {e}"
+                        );
+                    }
                     Hook0Problem::InternalServerError
                 })?;
         }
@@ -639,9 +649,15 @@ pub async fn replay(
                             }
                         },
                         Err(e) => {
-                            error!(
-                                "Error while getting payload object from object storage for key '{key}': {e}",
-                            );
+                            if let Some(se) = e.as_service_error() {
+                                error!(
+                                    "Error while getting payload object from object storage for key '{key}': (service error) {se}",
+                                );
+                            } else {
+                                error!(
+                                    "Error while getting payload object from object storage for key '{key}': {e}",
+                                );
+                            }
                             None
                         }
                     }
