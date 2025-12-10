@@ -181,9 +181,15 @@ pub async fn look_for_work(
                         }
                     },
                     Err(e) => {
-                        error!(
-                            "Error while getting payload object from object storage for key '{key}': {e}",
-                        );
+                        if let Some(se) = e.as_service_error() {
+                            error!(
+                                "Error while getting payload object from object storage for key '{key}': (service error) {se}",
+                            );
+                        } else {
+                            error!(
+                                "Error while getting payload object from object storage for key '{key}': {e}",
+                            );
+                        }
                         None
                     }
                 }
@@ -287,9 +293,15 @@ pub async fn look_for_work(
                         .send()
                         .await
                         .inspect_err(|e| {
-                            error!(
-                                "Error while putting response to object storage for key '{key}': {e}"
-                            );
+                            if let Some(se) = e.as_service_error() {
+                                error!(
+                                    "Error while putting response to object storage for key '{key}': (service error) {se}"
+                                );
+                            } else {
+                                error!(
+                                    "Error while putting response to object storage for key '{key}': {e}"
+                                );
+                            }
                         })?;
                 }
 
