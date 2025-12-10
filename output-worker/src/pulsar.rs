@@ -318,6 +318,7 @@ pub async fn look_for_work(
                     let c = config.clone();
                     let po = pool.clone();
                     let os = object_storage.clone();
+                    let wi = worker_id.clone();
                     let wn = worker_name.clone();
                     let wv = worker_version.clone();
                     let rp = retry_producer.clone();
@@ -329,6 +330,7 @@ pub async fn look_for_work(
                             &c,
                             &po,
                             &os,
+                            &wi,
                             &wn,
                             &wv,
                             &rp,
@@ -368,6 +370,7 @@ enum RequestAttemptStatus {
     },
     AlreadyDone,
     Cancelled,
+    NotForThisWorker,
     NotFound,
 }
 
@@ -376,6 +379,7 @@ async fn handle_message(
     config: &Config,
     pool: &PgPool,
     object_storage: &Arc<Option<ObjectStorageConfig>>,
+    worker_id: &Uuid,
     worker_name: &str,
     worker_version: &str,
     retry_producer: &Mutex<Producer<TokioExecutor>>,
@@ -394,6 +398,7 @@ async fn handle_message(
                 not_cancelled: bool,
                 not_done: bool,
                 delay_until: Option<DateTime<Utc>>,
+                for_this_worker: bool,
             }
             let fetch_start = std::time::Instant::now();
             let request_attempt_status = match query_as!(
@@ -402,14 +407,36 @@ async fn handle_message(
                     SELECT
                         (s.is_enabled AND a.deleted_at IS NULL) AS "not_cancelled!",
                         (ra.succeeded_at IS NULL AND ra.failed_at IS NULL) AS "not_done!",
-                        ra.delay_until
+                        ra.delay_until,
+                        (
+                            EXISTS (
+                                SELECT 1
+                                FROM webhook.subscription__worker AS sw1
+                                WHERE sw1.subscription__id = ra.subscription__id
+                                    AND sw1.worker__id IS NOT DISTINCT FROM $2
+                            )
+                            OR (
+                                NOT EXISTS (
+                                    SELECT 1
+                                    FROM webhook.subscription__worker AS sw2
+                                    WHERE sw2.subscription__id = ra.subscription__id
+                                )
+                                AND EXISTS (
+                                    SELECT 1
+                                    FROM iam.organization__worker AS ow
+                                    WHERE ow.organization__id = a.organization__id
+                                        AND ow.default = true
+                                        AND ow.worker__id IS NOT DISTINCT FROM $2
+                                )
+                            )
+                        ) AS "for_this_worker!"
                     FROM webhook.request_attempt AS ra
                     INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
                     INNER JOIN event.application AS a ON a.application__id = s.application__id
-                    INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
                     WHERE ra.request_attempt__id = $1
                 "#,
                 attempt.request_attempt_id,
+                worker_id,
             )
             .fetch_optional(pool)
             .await?
@@ -417,6 +444,7 @@ async fn handle_message(
                 Some(RawRequestAttemptStatus {
                     not_cancelled: true,
                     not_done: true,
+                    for_this_worker: true,
                     delay_until: Some(d),
                 }) if d > (Utc::now() + DELAY_TOLERANCE) => RequestAttemptStatus::Delayed {
                     delay_until: d,
@@ -425,6 +453,7 @@ async fn handle_message(
                 Some(RawRequestAttemptStatus {
                     not_cancelled: true,
                     not_done: true,
+                    for_this_worker: true,
                     delay_until,
                 }) => RequestAttemptStatus::Ready { delay_until },
                 Some(RawRequestAttemptStatus {
@@ -436,6 +465,12 @@ async fn handle_message(
                     not_cancelled: false,
                     ..
                 }) => RequestAttemptStatus::Cancelled,
+                Some(RawRequestAttemptStatus {
+                    not_cancelled: true,
+                    not_done: true,
+                    for_this_worker: false,
+                    ..
+                }) => RequestAttemptStatus::NotForThisWorker,
                 None => RequestAttemptStatus::NotFound,
             };
             stats.record_db_fetch(fetch_start.elapsed());
@@ -676,6 +711,16 @@ async fn handle_message(
                 RequestAttemptStatus::Cancelled => {
                     stats.record_not_ready();
                     trace!(request_attempt_id = %attempt.request_attempt_id, "Request attempt was cancelled");
+                    ack_tx
+                        .send((msg.message_id().clone(), Some(permit), true))
+                        .await?;
+
+                    Ok(())
+                }
+                RequestAttemptStatus::NotForThisWorker => {
+                    debug!(request_attempt_id = %attempt.request_attempt_id, "Request attempt should not be handled by the present worker");
+
+                    // Message is only ACKed and not republished into the right topic because the rightful worker is supposed to reload everything from the database when it first starts
                     ack_tx
                         .send((msg.message_id().clone(), Some(permit), true))
                         .await?;
