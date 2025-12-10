@@ -119,7 +119,7 @@ pub async fn get(
                         .collect()
                         .await
                         .map_err(|e| {
-                            error!("Error while getting response from object storage for key '{key}': {e}");
+                            error!("Error while getting response body from object storage for key '{key}': {e}");
                             Hook0Problem::InternalServerError
                         })
                         .and_then(|p| {
@@ -129,7 +129,7 @@ pub async fn get(
                                     .try_into()
                                     .map(Some)
                                     .map_err(|e| {
-                                        error!("Error while getting response from object storage for key '{key}': {e}");
+                                        error!("Error while decoding response from object storage for key '{key}': {e}");
                                         Hook0Problem::InternalServerError
                                     });
                             res
@@ -137,7 +137,7 @@ pub async fn get(
                 },
                 Err(GetObjectError::NoSuchKey(_)) => Ok(None),
                 Err(e) => {
-                    error!("Error while getting response from object storage for key '{key}': {e}");
+                    error!("Error while getting response object from object storage for key '{key}': (service error) {e}");
                     Err(Hook0Problem::InternalServerError)
                 }
             }
