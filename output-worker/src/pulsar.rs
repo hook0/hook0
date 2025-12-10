@@ -306,6 +306,7 @@ enum RequestAttemptStatus {
     Ready,
     AlreadyDone,
     Cancelled,
+    NotForThisWorker,
     NotFound,
 }
 
@@ -331,20 +332,25 @@ async fn handle_message(
             struct RawRequestAttemptStatus {
                 not_cancelled: bool,
                 not_done: bool,
+                for_this_worker: bool,
             }
             let request_attempt_status = match query_as!(
                 RawRequestAttemptStatus,
                 r#"
                     SELECT
                         (s.is_enabled AND a.deleted_at IS NULL) AS "not_cancelled!",
-                        (ra.succeeded_at IS NULL AND ra.failed_at IS NULL) AS "not_done!"
+                        (ra.succeeded_at IS NULL AND ra.failed_at IS NULL) AS "not_done!",
+                        COALESCE(sw.worker__id, ow.worker__id) IS NOT DISTINCT FROM $2 AS "for_this_worker!"
                     FROM webhook.request_attempt AS ra
                     INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
                     INNER JOIN event.application AS a ON a.application__id = s.application__id
                     INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
+                    LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = ra.subscription__id
+                    LEFT JOIN iam.organization__worker AS ow ON ow.organization__id = a.organization__id AND ow.default = true
                     WHERE ra.request_attempt__id = $1
                 "#,
                 attempt.request_attempt_id,
+                worker_id,
             )
             .fetch_optional(pool)
             .await?
@@ -352,15 +358,23 @@ async fn handle_message(
                 Some(RawRequestAttemptStatus {
                     not_cancelled: true,
                     not_done: true,
+                    for_this_worker: true,
                 }) => RequestAttemptStatus::Ready,
                 Some(RawRequestAttemptStatus {
                     not_cancelled: true,
                     not_done: false,
+                    for_this_worker: _,
                 }) => RequestAttemptStatus::AlreadyDone,
                 Some(RawRequestAttemptStatus {
                     not_cancelled: false,
                     not_done: _,
+                    for_this_worker: _,
                 }) => RequestAttemptStatus::Cancelled,
+                Some(RawRequestAttemptStatus {
+                    not_cancelled: true,
+                    not_done: true,
+                    for_this_worker: false
+                }) => RequestAttemptStatus::NotForThisWorker,
                 None => RequestAttemptStatus::NotFound,
             };
 
@@ -606,6 +620,17 @@ async fn handle_message(
                 RequestAttemptStatus::Cancelled => {
                     trace!(
                         "Request attempt {} was cancelled according to database",
+                        &attempt.request_attempt_id
+                    );
+                    ack_tx
+                        .send((msg.message_id().clone(), Some(permit), true))
+                        .await?;
+
+                    Ok(())
+                }
+                RequestAttemptStatus::NotForThisWorker => {
+                    trace!(
+                        "Request attempt {} should not be handled by the present worker",
                         &attempt.request_attempt_id
                     );
                     ack_tx
