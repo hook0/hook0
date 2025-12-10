@@ -350,10 +350,10 @@ pub async fn look_for_work(
                     // Creating a retry request or giving up
                     if let Some(retry_in) = compute_next_retry(
                         &mut tx,
-                        &attempt.subscription_id,
+                        &attempt_with_payload,
+                        &response,
                         config.max_fast_retries,
                         config.max_slow_retries,
-                        attempt.retry_count,
                     )
                     .await?
                     {
