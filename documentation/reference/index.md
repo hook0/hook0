@@ -86,7 +86,7 @@ Client libraries and SDKs for different programming languages.
 | 400 | Bad Request | Invalid request parameters |
 | 401 | Unauthorized | Missing or invalid authentication |
 | 403 | Forbidden | Insufficient permissions |
-| 404 | Not Found | Resource doesn't exist |
+| 404 | Not Found | Resource does not exist |
 | 422 | Unprocessable Entity | Validation errors |
 | 500 | Internal Server Error | Server-side errors |
 

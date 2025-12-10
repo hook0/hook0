@@ -5,27 +5,27 @@ The official Hook0 SDK for JavaScript and TypeScript applications, providing a t
 ## Installation
 
 ```bash
-npm install @hook0/sdk
+npm install hook0-client
 # or
-yarn add @hook0/sdk
+yarn add hook0-client
 # or
-pnpm add @hook0/sdk
+pnpm add hook0-client
 ```
 
 ## Quick Start
 
 ```typescript
-import { Hook0 } from '@hook0/sdk';
+import { Hook0Client, Event } from 'hook0-client';
 
 const hook0 = new Hook0Client(
-  'https://app.hook0.com/api/v1',
+  'http://localhost:8081/api/v1',
   'app_1234567890', // Your application ID
-  'biscuit:YOUR_TOKEN_HERE'
+  '{YOUR_TOKEN}'
 );
 
 // Send an event
 const event = new Event(
-  'user.created',
+  'users.account.created',
   JSON.stringify({
     user_id: 'user_123',
     email: 'john.doe@example.com'
@@ -42,12 +42,12 @@ const eventId = await hook0.sendEvent(event);
 ### Client Initialization
 
 ```typescript
-import { Hook0Client } from '@hook0/sdk';
+import { Hook0Client } from 'hook0-client';
 
 const hook0 = new Hook0Client(
-  'https://app.hook0.com/api/v1',     // API URL
+  'http://localhost:8081/api/v1',     // API URL
   'app_1234567890',            // Your application ID
-  'biscuit:YOUR_TOKEN_HERE',   // Authentication token
+  '{YOUR_TOKEN}',   // Authentication token
   false                        // Debug mode (optional)
 );
 ```
@@ -65,16 +65,16 @@ The current TypeScript SDK implementation requires explicit configuration and do
 #### Send Single Event
 
 ```typescript
-import { Hook0Client, Event } from '@hook0/sdk';
+import { Hook0Client, Event } from 'hook0-client';
 
 const hook0 = new Hook0Client(
-  'https://app.hook0.com/api/v1',
+  'http://localhost:8081/api/v1',
   'app_1234567890',
-  'biscuit:YOUR_TOKEN_HERE'
+  '{YOUR_TOKEN}'
 );
 
 const event = new Event(
-  'order.placed',
+  'orders.checkout.completed',
   JSON.stringify({
     order_id: 'ord_123',
     customer_id: 'cust_456',
@@ -107,9 +107,9 @@ The event listing and querying functionality is not available in the current SDK
 ```typescript
 // Upsert event types (creates if not exists)
 const addedEventTypes = await hook0.upsertEventTypes([
-  'user.created',
-  'user.updated',
-  'order.placed'
+  'users.account.created',
+  'users.account.updated',
+  'orders.checkout.completed'
 ]);
 
 console.log('Added event types:', addedEventTypes);
@@ -124,15 +124,16 @@ The current SDK implementation provides basic event sending and event type manag
 ### Webhook Verification
 
 ```typescript
-import { verifyWebhookSignature } from '@hook0/sdk';
+import { verifyWebhookSignature } from 'hook0-client';
 import express from 'express';
 
 const app = express();
 
-app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
-  const signature = req.headers['hook0-signature'] as string;
+// Note: Express.js normalizes all header names to lowercase
+app.post('/webhook', express.json(), (req, res) => {
+  const signature = req.headers['x-hook0-signature'] as string;
   const secret = process.env.WEBHOOK_SECRET!;
-  
+
   try {
     // Verify the signature with headers
     const headers = new Headers();
@@ -141,26 +142,23 @@ app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
         headers.set(key, value);
       }
     });
-    
+
     const isValid = verifyWebhookSignature(
       signature,
-      req.body,
+      JSON.stringify(req.body),
       headers,
       secret,
       300 // 5-minute tolerance
     );
-    
+
     if (!isValid) {
       return res.status(401).json({ error: 'Invalid signature' });
     }
-    
-    // Parse and process the webhook
-    const payload = JSON.parse(req.body.toString());
-    console.log('Webhook received:', payload);
-    
-    // Process the webhook
-    processWebhook(payload);
-    
+
+    // Process the webhook (already parsed by express.json())
+    console.log('Webhook received:', req.body);
+    processWebhook(req.body);
+
     res.json({ status: 'processed' });
   } catch (error) {
     console.error('Webhook processing error:', error);
@@ -172,21 +170,21 @@ app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
 ### Error Handling
 
 ```typescript
-import { Hook0ClientError } from '@hook0/sdk';
+import { Hook0ClientError } from 'hook0-client';
 
 try {
   const event = new Event(
-    'user.created',
+    'users.account.created',
     JSON.stringify({ user_id: 'user_123' }),
     'application/json',
     { source: 'api' }
   );
-  
+
   const eventId = await hook0.sendEvent(event);
 } catch (error) {
   if (error instanceof Hook0ClientError) {
     console.error('Hook0 error:', error.message);
-    
+
     // Handle specific error types
     if (error.message.includes('Invalid event type')) {
       console.error('Event type format is invalid');
@@ -208,11 +206,11 @@ Middleware system and event streaming are not available in the current SDK imple
 The SDK is written in TypeScript and provides type definitions:
 
 ```typescript
-import { Hook0Client, Event, EventType, Hook0ClientError } from '@hook0/sdk';
+import { Hook0Client, Event, EventType, Hook0ClientError } from 'hook0-client';
 
 // Type-safe event creation
 const event = new Event(
-  'user.created',
+  'users.account.created',
   JSON.stringify({
     user_id: 'user_123',
     email: 'john@example.com'
@@ -237,7 +235,7 @@ if (eventType instanceof Hook0ClientError) {
 ### Testing
 
 ```typescript
-import { Hook0Client, Event } from '@hook0/sdk';
+import { Hook0Client, Event } from 'hook0-client';
 import { jest } from '@jest/globals';
 
 describe('Event Handler', () => {
@@ -247,29 +245,29 @@ describe('Event Handler', () => {
       ok: true,
       text: async () => '',
     });
-    
+
     const client = new Hook0Client(
-      'https://app.hook0.com/api/v1',
+      'http://localhost:8081/api/v1',
       'app_test',
-      'biscuit:test_token'
+      'test_token'
     );
-    
+
     const event = new Event(
-      'user.created',
+      'users.account.created',
       JSON.stringify({ email: 'test@example.com' }),
       'application/json',
       {}
     );
-    
+
     const eventId = await client.sendEvent(event);
-    
+
     // Verify fetch was called correctly
     expect(fetch).toHaveBeenCalledWith(
-      'https://app.hook0.com/api/v1/event',
+      'http://localhost:8081/api/v1/event',
       expect.objectContaining({
         method: 'POST',
         headers: expect.objectContaining({
-          'Authorization': 'Bearer biscuit:test_token',
+          'Authorization': 'Bearer test_token',
           'Content-Type': 'application/json'
         })
       })
@@ -283,30 +281,33 @@ describe('Event Handler', () => {
 ### 1. Use Environment Variables
 
 ```typescript
-// Bad
-const hook0 = new Hook0({
-  token: 'biscuit:hardcoded_token_here'
-});
+// Bad - hardcoded credentials
+const hook0 = new Hook0Client(
+  'http://localhost:8081/api/v1',
+  'app_1234567890',
+  'hardcoded_token_here'
+);
 
-// Good
-const hook0 = new Hook0({
-  token: process.env.HOOK0_TOKEN!
-});
+// Good - use environment variables
+const hook0 = new Hook0Client(
+  process.env.HOOK0_API_URL!,
+  process.env.HOOK0_APP_ID!,
+  process.env.HOOK0_TOKEN!
+);
 ```
 
 ### 2. Implement Proper Error Handling
 
 ```typescript
 // Bad
-await hook0.events.send(event);
+await hook0.sendEvent(event);
 
 // Good
 try {
-  await hook0.events.send(event);
+  await hook0.sendEvent(event);
 } catch (error) {
-  if (error instanceof Hook0Error) {
+  if (error instanceof Hook0ClientError) {
     logger.error('Failed to send event', {
-      code: error.code,
       message: error.message,
       event
     });
@@ -322,7 +323,7 @@ try {
 // When sending multiple events, consider using Promise.all for parallelization
 const eventPromises = users.map(user => {
   const event = new Event(
-    'user.created',
+    'users.account.created',
     JSON.stringify(user),
     'application/json',
     { source: 'bulk_import' }
@@ -339,7 +340,7 @@ console.log(`Sent ${eventIds.length} events`);
 ```typescript
 // Provide your own event ID for idempotency
 const event = new Event(
-  'payment.processed',
+  'payments.transaction.processed',
   JSON.stringify({ amount: 100.00 }),
   'application/json',
   { transaction_id },
@@ -357,12 +358,11 @@ const eventId = await hook0.sendEvent(event);
 
 **Authentication Errors**
 ```typescript
-// Ensure token includes 'biscuit:' prefix
+// Ensure token is passed correctly (without Bearer prefix - SDK adds it)
 const hook0 = new Hook0Client(
-  'https://app.hook0.com/api/v1',
+  'http://localhost:8081/api/v1',
   'app_1234567890',
-  'biscuit:YOUR_TOKEN_HERE' // ✓ Correct
-  // 'YOUR_TOKEN_HERE' // ✗ Wrong - missing 'biscuit:' prefix
+  '{YOUR_TOKEN}' // ✓ Correct - just the token, SDK adds "Bearer " automatically
 );
 ```
 
@@ -390,7 +390,7 @@ async function sendEventWithRetry(client: Hook0Client, event: Event, maxRetries 
 
 ## Support
 
-- **Documentation**: [Hook0 API Docs](https://app.hook0.com/api/v1/docs)
+- **Documentation**: [Hook0 API Docs](http://localhost:8081/api/v1/docs)
 - **GitHub Issues**: [Report Issues](https://github.com/hook0/hook0/issues)
 - **Discord**: [Join Community](https://www.hook0.com/community)
-- **NPM Package**: @hook0/sdk
+- **NPM Package**: hook0-client

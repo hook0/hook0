@@ -2,6 +2,29 @@
 
 This reference provides standardized schemas and examples for common event types in Hook0. Following these schemas ensures consistency and compatibility across integrations.
 
+## Event Type Naming Convention
+
+Hook0 uses a **three-part naming convention** for event types:
+
+```
+service.resource.verb
+```
+
+- **service**: The service or domain (e.g., `users`, `orders`, `payments`)
+- **resource**: The specific resource or entity (e.g., `account`, `payment`, `subscription`)
+- **verb**: The action in past tense (e.g., `created`, `updated`, `deleted`, `completed`)
+
+**Examples:**
+- `users.account.created` - A user account was created
+- `orders.payment.completed` - An order payment was completed
+- `inventory.stock.updated` - Inventory stock was updated
+- `subscriptions.plan.cancelled` - A subscription plan was cancelled
+
+**Anti-patterns (avoid 2-part names):**
+- ❌ `user.created` → ✅ `users.account.created`
+- ❌ `order.paid` → ✅ `orders.payment.completed`
+- ❌ `file.uploaded` → ✅ `storage.file.uploaded`
+
 ## Schema Format
 
 Hook0 events follow this structure:
@@ -18,7 +41,7 @@ Hook0 events follow this structure:
 
 ## User Lifecycle Events
 
-### user.created
+### users.account.created
 
 Emitted when a new user account is created.
 
@@ -40,7 +63,7 @@ interface UserCreatedPayload {
 ```json
 {
   "event_id": "evt_user_created_123",
-  "event_type": "user.created",
+  "event_type": "users.account.created",
   "payload": {
     "user_id": "user_12345",
     "email": "john.doe@example.com",

@@ -1,0 +1,108 @@
+# Redirections depuis l'ancien format readme.io vers Docusaurus Diátaxis
+# Format Netlify/Vercel: from to [status]
+# https://docs.netlify.com/routing/redirects/
+
+# =============================================================================
+# EXPLANATION (Understanding) - Ancien /docs/what-is-*
+# =============================================================================
+
+/docs/what-is-hook0                     /explanation/what-is-hook0              301
+/docs/architecture                      /explanation/hook0-architecture         301
+/docs/event-processing                  /explanation/event-processing           301
+/docs/security                          /explanation/security-model             301
+/docs/concepts                          /explanation/                           301
+
+# =============================================================================
+# TUTORIALS (Learning) - Ancien /docs/getting-started et /docs/guides
+# =============================================================================
+
+/docs/getting-started                   /tutorials/getting-started              301
+/docs/quickstart                        /tutorials/getting-started              301
+/docs/first-webhook                     /tutorials/first-webhook-integration    301
+/docs/webhook-integration               /tutorials/first-webhook-integration    301
+/docs/event-types                       /tutorials/event-types-subscriptions    301
+/docs/subscriptions                     /tutorials/event-types-subscriptions    301
+/docs/verifying-webhook-signatures      /tutorials/webhook-authentication       301
+/docs/webhook-security                  /tutorials/webhook-authentication       301
+/docs/self-hosting                      /tutorials/self-hosting-docker          301
+/docs/docker-deployment                 /tutorials/self-hosting-docker          301
+
+# =============================================================================
+# HOW-TO GUIDES (Problem-solving) - Ancien /docs/guides
+# =============================================================================
+
+/docs/debug-webhooks                    /how-to-guides/debug-failed-webhooks    301
+/docs/debugging                         /how-to-guides/debug-failed-webhooks    301
+/docs/secure-endpoints                  /how-to-guides/secure-webhook-endpoints 301
+/docs/webhook-best-practices            /how-to-guides/secure-webhook-endpoints 301
+# GitLab migration guide not yet created - redirect to main how-to index
+/docs/gitlab-migration                  /how-to-guides/                         301
+/docs/migration                         /how-to-guides/                         301
+
+# =============================================================================
+# REFERENCE (Information) - Ancien /reference
+# =============================================================================
+
+# SDKs
+/docs/sdk-javascript-typescript         /reference/sdk/javascript               301
+/docs/sdk-javascript                    /reference/sdk/javascript               301
+/docs/sdk-typescript                    /reference/sdk/javascript               301
+/docs/sdk-rust                          /reference/sdk/rust                     301
+/docs/sdks                              /reference/sdk/                         301
+/reference/sdks                         /reference/sdk/                         301
+
+# API Reference
+/reference/api                          /api/                                   301
+/docs/api                               /api/                                   301
+/docs/rest-api                          /api/                                   301
+
+# Configuration et autres références
+/docs/configuration                     /reference/configuration                301
+/docs/config                            /reference/configuration                301
+/docs/error-codes                       /reference/error-codes                  301
+/docs/errors                            /reference/error-codes                  301
+/docs/event-schemas                     /reference/event-schemas                301
+/docs/schemas                           /reference/event-schemas                301
+
+# Index de référence global
+/reference/                             /reference/                             200
+/docs/reference                         /reference/                             301
+
+# =============================================================================
+# ROOT et INDEX
+# =============================================================================
+
+# Ancien homepage docs
+/docs                                   /                                       301
+/docs/                                  /                                       301
+
+# Fallback pour /readme (si utilisé)
+/readme                                 /                                       301
+/readme/*                               /:splat                                 301
+
+# =============================================================================
+# API ENDPOINTS (si anciennes URLs directes)
+# =============================================================================
+
+/api/v1                                 https://app.hook0.com/api/v1            302
+/swagger                                https://app.hook0.com/api/v1/swagger.json 302
+
+# =============================================================================
+# LEGACY PATHS (anciennes structures possibles)
+# =============================================================================
+
+# Ancien format avec catégories
+/docs/guides/*                          /how-to-guides/:splat                   301
+/docs/tutorials/*                       /tutorials/:splat                       301
+/docs/explanation/*                     /explanation/:splat                     301
+
+# Catch-all pour anciens docs
+/docs/*                                 /:splat                                 301
+
+# =============================================================================
+# SPECIAL PAGES
+# =============================================================================
+
+# Anciennes pages de statut/santé
+/status                                 https://status.hook0.com                302
+/health                                 https://status.hook0.com                302

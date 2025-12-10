@@ -1,6 +1,6 @@
 # What is Hook0?
 
-Hook0 is an open-source webhook server (WaaS) that solves the fundamental challenge of reliable event delivery between distributed systems. 
+Hook0 is an open-source webhook server (Webhooks as a Service - WaaS) that solves the fundamental challenge of reliable event delivery between distributed systems. 
 It acts as a reliable intermediary that receives events from your applications and delivers them to configured webhook endpoints.
 
 ## The Problem Hook0 Solves
@@ -32,9 +32,9 @@ Applications represent your services or products within an organization. Each ap
 
 ### Event Types
 Event types define the structure and metadata of events your application can emit. Examples:
-- `user.created`
-- `payment.completed`
-- `order.shipped`
+- `users.account.created`
+- `payments.transaction.completed`
+- `orders.shipment.shipped`
 
 ### Events
 Events are specific occurrences of an event type, containing:
@@ -62,7 +62,7 @@ Hook0 tracks every delivery attempt, including:
 ### Open Source & Self-Hostable
 - Full control over your infrastructure
 - No vendor lock-in
-- SSPL v1 license
+- Server Side Public License (SSPL) v1
 
 ### Built for Scale
 - Rust-based architecture for performance

@@ -12,6 +12,14 @@ Troubleshoot webhook delivery failures and diagnose common issues.
 
 ---
 
+### [Monitor Webhook Performance](monitor-webhook-performance.md)
+Track webhook delivery metrics, set up alerts, and optimize performance.
+
+**When to use:** When setting up production monitoring or investigating performance issues
+**Covers:** Dashboard usage, API metrics, Sentry integration, key performance indicators, debugging workflows
+
+---
+
 
 ## Integration & Migration
 
@@ -39,6 +47,7 @@ Implement robust security measures for webhook endpoints and payloads.
 | Problem | Guide | Difficulty |
 |---------|-------|------------|
 | Webhooks not delivering | [Debug Failed Webhooks](debug-failed-webhooks.md) | Beginner |
+| Need performance monitoring | [Monitor Webhook Performance](monitor-webhook-performance.md) | Intermediate |
 | Need security implementation | [Secure Webhook Endpoints](secure-webhook-endpoints.md) | Intermediate |
 | Migrating from GitLab | [GitLab Webhook Migration](gitlab-webhook-migration.md) | Intermediate |
 

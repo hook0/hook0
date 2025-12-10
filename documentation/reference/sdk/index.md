@@ -20,21 +20,21 @@ TypeScript SDK for Node.js applications with basic event sending capabilities.
 
 **Installation:**
 ```bash
-npm install @hook0/sdk
+npm install hook0-client
 ```
 
 **Quick Start:**
 ```typescript
-import { Hook0Client, Event } from '@hook0/sdk';
+import { Hook0Client, Event } from 'hook0-client';
 
 const hook0 = new Hook0Client(
-  'https://app.hook0.com',
+  'http://localhost:8081',
   'app_1234567890',
-  'biscuit:YOUR_TOKEN_HERE'
+  '{YOUR_TOKEN}'
 );
 
 const event = new Event(
-  'user.created',
+  'users.account.created',
   JSON.stringify({ user_id: 123 }),
   'application/json',
   { source: 'api' }
@@ -65,9 +65,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = Client::new();
     let response = client
         .post("https://app.hook0.com/api/v1/event")
-        .header("Authorization", "Bearer biscuit:YOUR_TOKEN")
+        .header("Authorization", "Bearer {YOUR_TOKEN}")
         .json(&json!({
-            "event_type": "user.created",
+            "event_type": "users.account.created",
             "payload": { "user_id": 123 }
         }))
         .send()
@@ -95,13 +95,13 @@ All Hook0 functionality is available through the REST API. Here's how to send ev
 import requests
 
 response = requests.post(
-    'https://app.hook0.com/api/v1/event',
+    'http://localhost:8081',
     headers={
-        'Authorization': 'Bearer biscuit:YOUR_TOKEN',
+        'Authorization': 'Bearer {YOUR_TOKEN}',
         'Content-Type': 'application/json'
     },
     json={
-        'event_type': 'user.created',
+        'event_type': 'users.account.created',
         'payload': {'user_id': 123}
     }
 )
@@ -113,13 +113,13 @@ import "net/http"
 import "encoding/json"
 
 event := map[string]interface{}{
-    "event_type": "user.created",
+    "event_type": "users.account.created",
     "payload": map[string]interface{}{"user_id": 123},
 }
 
 data, _ := json.Marshal(event)
 req, _ := http.NewRequest("POST", "https://app.hook0.com/api/v1/event", bytes.NewBuffer(data))
-req.Header.Set("Authorization", "Bearer biscuit:YOUR_TOKEN")
+req.Header.Set("Authorization", "Bearer {YOUR_TOKEN}")
 req.Header.Set("Content-Type", "application/json")
 
 client := &http.Client{}
@@ -164,7 +164,7 @@ All official Hook0 SDKs provide:
 ```typescript
 // JavaScript/TypeScript
 const event = new Event(
-  'order.placed',
+  'orders.checkout.completed',
   JSON.stringify({
     order_id: 'ord_123',
     total: 99.99
@@ -181,11 +181,11 @@ await hook0.sendEvent(event);
 
 ```bash
 # Using cURL
-curl -X POST https://app.hook0.com/api/v1/event \
-  -H "Authorization: Bearer biscuit:YOUR_TOKEN" \
+curl -X POST http://localhost:8081/api/v1/event \
+  -H "Authorization: Bearer {YOUR_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
-    "event_type": "order.placed",
+    "event_type": "orders.checkout.completed",
     "payload": {
       "order_id": "ord_123",
       "total": 99.99
@@ -201,12 +201,12 @@ curl -X POST https://app.hook0.com/api/v1/event \
 
 ```bash
 # Using the REST API
-curl -X POST https://app.hook0.com/api/v1/subscriptions \
-  -H "Authorization: Bearer biscuit:YOUR_TOKEN" \
+curl -X POST http://localhost:8081/api/v1/subscriptions \
+  -H "Authorization: Bearer {YOUR_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
     "description": "Order Events",
-    "event_types": ["order.placed", "order.shipped"],
+    "event_types": ["orders.checkout.completed", "order.shipped"],
     "target": {
       "type": "http",
       "url": "https://api.example.com/webhooks",
@@ -219,28 +219,29 @@ curl -X POST https://app.hook0.com/api/v1/subscriptions \
 
 ```typescript
 // JavaScript/TypeScript
-import { verifyWebhookSignature } from '@hook0/sdk';
+import { verifyWebhookSignature } from 'hook0-client';
 
-app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
-  const signature = req.headers['hook0-signature'];
+// Note: Express.js normalizes all header names to lowercase
+app.post('/webhook', express.json(), (req, res) => {
+  const signature = req.headers['x-hook0-signature'];
   const headers = new Headers();
   Object.entries(req.headers).forEach(([key, value]) => {
     if (typeof value === 'string') headers.set(key, value);
   });
-  
+
   try {
     const isValid = verifyWebhookSignature(
       signature,
-      req.body,
+      JSON.stringify(req.body),
       headers,
       secret,
       300 // 5-minute tolerance
     );
-    
+
     if (!isValid) {
       return res.status(401).json({ error: 'Invalid signature' });
     }
-    // Process webhook...
+    // Process webhook (already parsed)...
   } catch (error) {
     return res.status(401).json({ error: 'Invalid signature' });
   }
@@ -253,7 +254,7 @@ SDKs provide error handling capabilities:
 
 ```typescript
 // JavaScript/TypeScript
-import { Hook0ClientError } from '@hook0/sdk';
+import { Hook0ClientError } from 'hook0-client';
 
 try {
   const eventId = await hook0.sendEvent(event);
@@ -272,10 +273,10 @@ try {
 
 ```javascript
 // REST API error handling
-fetch('https://app.hook0.com/api/v1/event', {
+fetch('http://localhost:8081', {
   method: 'POST',
   headers: {
-    'Authorization': 'Bearer biscuit:YOUR_TOKEN',
+    'Authorization': 'Bearer {YOUR_TOKEN}',
     'Content-Type': 'application/json'
   },
   body: JSON.stringify(event)
@@ -296,9 +297,9 @@ fetch('https://app.hook0.com/api/v1/event', {
 ### TypeScript SDK Configuration
 ```typescript
 const hook0 = new Hook0Client(
-  'https://app.hook0.com',     // API URL
+  'http://localhost:8081',     // API URL
   'app_1234567890',            // Application ID
-  'biscuit:YOUR_TOKEN_HERE',   // Authentication token
+  '{YOUR_TOKEN}',   // Authentication token
   false                        // Debug mode (optional)
 );
 ```
@@ -309,9 +310,9 @@ When using the REST API directly, configure your HTTP client:
 ```javascript
 // Example with axios
 const apiClient = axios.create({
-  baseURL: 'https://app.hook0.com/api/v1',
+  baseURL: 'http://localhost:8081',
   headers: {
-    'Authorization': 'Bearer biscuit:YOUR_TOKEN_HERE',
+    'Authorization': 'Bearer {YOUR_TOKEN}',
     'Content-Type': 'application/json'
   },
   timeout: 30000
@@ -324,7 +325,7 @@ const apiClient = axios.create({
 
 ```typescript
 // Mock fetch for testing
-import { Hook0Client, Event } from '@hook0/sdk';
+import { Hook0Client, Event } from 'hook0-client';
 import { jest } from '@jest/globals';
 
 test('should send event', async () => {
@@ -334,9 +335,9 @@ test('should send event', async () => {
   });
   
   const client = new Hook0Client(
-    'https://app.hook0.com',
+    'http://localhost:8081',
     'app_test',
-    'biscuit:test_token'
+    'test_token'
   );
   
   const event = new Event(
@@ -349,7 +350,7 @@ test('should send event', async () => {
   await client.sendEvent(event);
   
   expect(fetch).toHaveBeenCalledWith(
-    'https://app.hook0.com/event',
+    'http://localhost:8081',
     expect.objectContaining({
       method: 'POST'
     })

@@ -6,202 +6,45 @@ This guide provides comprehensive security practices for webhook endpoints, from
 
 ### Common Webhook Security Threats
 
-**Spoofing Attacks** 🎭
-- Attackers sending fake webhook requests
-- **Mitigation**: Signature verification, IP allowlisting
+:::danger Spoofing Attacks
+Attackers sending fake webhook requests.
 
-**Replay Attacks** 🔄  
-- Reusing legitimate webhook requests
-- **Mitigation**: Timestamp validation, nonce tracking
+**Mitigation**: Signature verification, IP allowlisting
+:::
 
-**Man-in-the-Middle** 🕵️
-- Intercepting and modifying webhook data
-- **Mitigation**: HTTPS, certificate pinning
+:::warning Replay Attacks
+Reusing legitimate webhook requests.
 
-**Denial of Service** ⚡
-- Overwhelming webhook endpoints with requests
-- **Mitigation**: Rate limiting, request validation
+**Mitigation**: Timestamp validation, nonce tracking
+:::
 
-**Data Injection** 💉
-- Malicious payloads causing application vulnerabilities
-- **Mitigation**: Input validation, sanitization
+:::info Man-in-the-Middle
+Intercepting and modifying webhook data.
+
+**Mitigation**: HTTPS, certificate pinning
+:::
+
+:::danger Denial of Service
+Overwhelming webhook endpoints with requests.
+
+**Mitigation**: Rate limiting, request validation
+:::
+
+:::warning Data Injection
+Malicious payloads causing application vulnerabilities.
+
+**Mitigation**: Input validation, sanitization
+:::
 
 ## Step 1: Implement Robust Signature Verification
 
-### Enhanced Signature Verification
+Hook0 uses HMAC-SHA256 signatures with the v1 format. For complete signature verification implementation in JavaScript, Python, and Go, see [Implementing Webhook Authentication](../tutorials/webhook-authentication.md).
 
-```javascript
-// secure-webhook-auth.js
-const crypto = require('crypto');
-
-class SecureWebhookAuth {
-  constructor(secrets, options = {}) {
-    this.secrets = Array.isArray(secrets) ? secrets : [secrets];
-    this.timestampTolerance = options.timestampTolerance || 300; // 5 minutes
-    this.algorithms = options.algorithms || ['sha256'];
-    this.headerName = options.headerName || 'hook0-signature';
-  }
-  
-  verifySignature(payload, signature, secret) {
-    // Support multiple algorithms
-    for (const algorithm of this.algorithms) {
-      const expectedSignature = crypto
-        .createHmac(algorithm, secret)
-        .update(payload, 'utf8')
-        .digest('hex');
-      
-      const expectedHeader = `${algorithm}=${expectedSignature}`;
-      
-      // Timing-safe comparison
-      if (this.timingSafeEqual(signature, expectedHeader)) {
-        return { valid: true, algorithm, secret: this.maskSecret(secret) };
-      }
-    }
-    
-    return { valid: false };
-  }
-  
-  timingSafeEqual(a, b) {
-    if (a.length !== b.length) {
-      return false;
-    }
-    
-    return crypto.timingSafeEqual(
-      Buffer.from(a, 'utf8'),
-      Buffer.from(b, 'utf8')
-    );
-  }
-  
-  maskSecret(secret) {
-    return secret.substring(0, 8) + '***';
-  }
-  
-  verifyTimestamp(timestamp) {
-    const now = Math.floor(Date.now() / 1000);
-    const webhookTime = Math.floor(new Date(timestamp).getTime() / 1000);
-    const diff = Math.abs(now - webhookTime);
-    
-    return {
-      valid: diff <= this.timestampTolerance,
-      diff: diff,
-      tolerance: this.timestampTolerance
-    };
-  }
-  
-  authenticate(payload, headers) {
-    const signature = headers[this.headerName];
-    const timestamp = headers['hook0-timestamp'] || new Date().toISOString();
-    
-    // Verify signature with any valid secret
-    let signatureResult = { valid: false };
-    for (const secret of this.secrets) {
-      signatureResult = this.verifySignature(payload, signature, secret);
-      if (signatureResult.valid) break;
-    }
-    
-    const timestampResult = this.verifyTimestamp(timestamp);
-    
-    return {
-      authenticated: signatureResult.valid && timestampResult.valid,
-      signature: signatureResult,
-      timestamp: timestampResult
-    };
-  }
-}
-
-module.exports = SecureWebhookAuth;
-```
-
-### Express.js Middleware Implementation
-
-```javascript
-// webhook-security-middleware.js
-const SecureWebhookAuth = require('./secure-webhook-auth');
-const rateLimit = require('express-rate-limit');
-
-function createSecureWebhookMiddleware(options = {}) {
-  const auth = new SecureWebhookAuth(options.secrets, options.auth);
-  
-  // Rate limiting
-  const limiter = rateLimit({
-    windowMs: options.rateLimit?.windowMs || 15 * 60 * 1000, // 15 minutes
-    max: options.rateLimit?.max || 1000,
-    message: { error: 'Too many webhook requests' },
-    standardHeaders: true,
-    legacyHeaders: false,
-    keyGenerator: (req) => {
-      // Use IP + signature for rate limiting key
-      const signature = req.headers['hook0-signature'] || 'anonymous';
-      return `${req.ip}-${crypto.createHash('sha256').update(signature).digest('hex').substring(0, 16)}`;
-    }
-  });
-  
-  return [
-    limiter,
-    (req, res, next) => {
-      // Security headers
-      res.set({
-        'X-Content-Type-Options': 'nosniff',
-        'X-Frame-Options': 'DENY',
-        'X-XSS-Protection': '1; mode=block'
-      });
-      
-      // Validate content type
-      if (req.headers['content-type'] !== 'application/json') {
-        return res.status(400).json({ 
-          error: 'Invalid content type',
-          expected: 'application/json'
-        });
-      }
-      
-      // Validate payload size
-      const maxSize = options.maxPayloadSize || 1024 * 1024; // 1MB
-      if (req.body && Buffer.byteLength(req.body) > maxSize) {
-        return res.status(413).json({ 
-          error: 'Payload too large',
-          maxSize: maxSize
-        });
-      }
-      
-      // Authenticate request
-      const authResult = auth.authenticate(req.body, req.headers);
-      
-      if (!authResult.authenticated) {
-        const error = {
-          error: 'Authentication failed',
-          timestamp: new Date().toISOString()
-        };
-        
-        if (!authResult.signature.valid) {
-          error.details = 'Invalid signature';
-        } else if (!authResult.timestamp.valid) {
-          error.details = 'Invalid timestamp';
-          error.timestampDiff = authResult.timestamp.diff;
-        }
-        
-        return res.status(401).json(error);
-      }
-      
-      // Add auth info to request
-      req.webhookAuth = authResult;
-      
-      // Parse JSON payload
-      try {
-        req.webhook = JSON.parse(req.body);
-      } catch (error) {
-        return res.status(400).json({ 
-          error: 'Invalid JSON payload',
-          details: error.message
-        });
-      }
-      
-      next();
-    }
-  ];
-}
-
-module.exports = createSecureWebhookMiddleware;
-```
+Key security considerations for signature verification:
+- Use timing-safe comparison to prevent timing attacks
+- Support multiple secrets for rotation
+- Validate timestamp to prevent replay attacks
+- Use raw request body (not parsed JSON)
 
 ## Step 2: Implement Advanced Input Validation
 
@@ -213,9 +56,9 @@ const Joi = require('joi');
 
 // Define webhook payload schemas
 const eventSchemas = {
-  'user.created': Joi.object({
+  'users.account.created': Joi.object({
     event_id: Joi.string().uuid().required(),
-    event_type: Joi.string().valid('user.created').required(),
+    event_type: Joi.string().valid('users.account.created').required(),
     timestamp: Joi.string().isoDate().required(),
     payload: Joi.object({
       user_id: Joi.string().required(),
@@ -339,110 +182,140 @@ module.exports = SecurityFilters;
 
 ## Step 3: Implement Request Deduplication
 
-### Idempotency with Redis
+### Idempotency with In-Memory Storage
 
 ```javascript
 // idempotency-manager.js
-const Redis = require('redis');
-
 class IdempotencyManager {
-  constructor(redisConfig = {}) {
-    this.redis = Redis.createClient(redisConfig);
-    this.defaultTTL = 24 * 60 * 60; // 24 hours
-    
-    this.redis.on('error', (err) => {
-      console.error('Redis client error:', err);
-    });
-    
-    this.redis.connect();
+  constructor(options = {}) {
+    this.store = new Map();
+    this.defaultTTL = options.ttl || 24 * 60 * 60 * 1000; // 24 hours in ms
+    this.maxSize = options.maxSize || 10000;
+
+    // Cleanup old entries periodically
+    this.cleanupInterval = setInterval(() => this.cleanup(), 60 * 60 * 1000); // Every hour
   }
-  
+
   generateKey(eventId, subscriptionId) {
-    return `webhook:${subscriptionId}:${eventId}`;
+    return `${subscriptionId}:${eventId}`;
   }
-  
+
   async checkAndSetProcessed(eventId, subscriptionId, ttl = this.defaultTTL) {
     const key = this.generateKey(eventId, subscriptionId);
-    
-    // Try to set the key if it doesn't exist
-    const result = await this.redis.setNX(key, JSON.stringify({
-      processedAt: new Date().toISOString(),
-      eventId,
-      subscriptionId
-    }));
-    
-    if (result) {
-      // Key was set, this is the first processing
-      await this.redis.expire(key, ttl);
-      return { isFirst: true, key };
-    } else {
+    const existing = this.store.get(key);
+
+    if (existing) {
       // Key already exists, this is a duplicate
-      const existing = await this.redis.get(key);
-      return { 
-        isFirst: false, 
+      return {
+        isFirst: false,
         key,
-        previousProcessing: JSON.parse(existing)
+        previousProcessing: existing.data
+      };
+    }
+
+    // Key doesn't exist, set it
+    this.store.set(key, {
+      data: {
+        processedAt: new Date().toISOString(),
+        eventId,
+        subscriptionId
+      },
+      expiresAt: Date.now() + ttl
+    });
+
+    // Enforce max size
+    if (this.store.size > this.maxSize) {
+      this.cleanup();
+    }
+
+    return { isFirst: true, key };
+  }
+
+  async markCompleted(eventId, subscriptionId, result) {
+    const key = this.generateKey(eventId, subscriptionId);
+    const entry = this.store.get(key);
+
+    if (entry) {
+      entry.data = {
+        ...entry.data,
+        completedAt: new Date().toISOString(),
+        result: result,
+        status: 'completed'
       };
     }
   }
-  
-  async markCompleted(eventId, subscriptionId, result) {
-    const key = this.generateKey(eventId, subscriptionId);
-    
-    await this.redis.hSet(key, {
-      completedAt: new Date().toISOString(),
-      result: JSON.stringify(result),
-      status: 'completed'
-    });
-  }
-  
+
   async markFailed(eventId, subscriptionId, error) {
     const key = this.generateKey(eventId, subscriptionId);
-    
-    await this.redis.hSet(key, {
-      failedAt: new Date().toISOString(),
-      error: JSON.stringify({
-        message: error.message,
-        stack: error.stack
-      }),
-      status: 'failed'
-    });
+    const entry = this.store.get(key);
+
+    if (entry) {
+      entry.data = {
+        ...entry.data,
+        failedAt: new Date().toISOString(),
+        error: {
+          message: error.message,
+          stack: error.stack
+        },
+        status: 'failed'
+      };
+    }
+  }
+
+  cleanup() {
+    const now = Date.now();
+    let removed = 0;
+
+    for (const [key, entry] of this.store.entries()) {
+      if (entry.expiresAt < now) {
+        this.store.delete(key);
+        removed++;
+      }
+    }
+
+    console.log(`Cleaned up ${removed} expired entries. Current size: ${this.store.size}`);
+  }
+
+  destroy() {
+    clearInterval(this.cleanupInterval);
+    this.store.clear();
   }
 }
 
 // Usage in webhook handler
 const idempotency = new IdempotencyManager({
-  url: process.env.REDIS_URL
+  ttl: 24 * 60 * 60 * 1000, // 24 hours
+  maxSize: 10000
 });
 
 app.post('/webhook', async (req, res) => {
   const { event_id } = req.webhook;
   const subscriptionId = req.headers['hook0-subscription-id'];
-  
+
   try {
     const idempotencyCheck = await idempotency.checkAndSetProcessed(
-      event_id, 
+      event_id,
       subscriptionId
     );
-    
+
     if (!idempotencyCheck.isFirst) {
       console.log(`Duplicate webhook ignored: ${event_id}`);
-      return res.json({ 
+      return res.json({
         status: 'duplicate',
         previousProcessing: idempotencyCheck.previousProcessing
       });
     }
-    
+
     // Process the webhook
     const result = await processWebhook(req.webhook);
-    
+
     await idempotency.markCompleted(event_id, subscriptionId, result);
-    
+
     res.json({ status: 'processed', result });
-    
+
   } catch (error) {
     await idempotency.markFailed(event_id, subscriptionId, error);
-    
+
     console.error('Webhook processing failed:', error);
     res.status(500).json({ error: 'Processing failed' });
   }
@@ -450,6 +323,10 @@ app.post('/webhook', async (req, res) => {
 
 module.exports = IdempotencyManager;
 ```
+
+:::tip Production Note
+For production environments with multiple instances, use PostgreSQL for idempotency storage instead of in-memory. Query the database to check if an event has been processed before.
+:::
 
 ## Step 4: Implement IP Allowlisting and Geolocation
 
@@ -803,8 +680,8 @@ module.exports = AnomalyDetector;
 ```javascript
 // secure-webhook-server.js
 const express = require('express');
+const crypto = require('crypto');
 const helmet = require('helmet');
-const createSecureWebhookMiddleware = require('./webhook-security-middleware');
 const IPSecurity = require('./ip-security');
 const WebhookLogger = require('./webhook-logger');
 const AnomalyDetector = require('./anomaly-detector');
@@ -824,6 +701,19 @@ app.use(helmet({
 
 // Trust proxy for correct IP detection
 app.set('trust proxy', 1);
+
+// Hook0 signature verification (v1 format)
+// See tutorials/webhook-authentication.md for detailed explanation
+function verifyHook0Signature(payload, signature, headers, secret) {
+  const parts = Object.fromEntries(signature.split(',').map(p => p.split('=')));
+  const headerNames = parts.h ? parts.h.split(' ') : [];
+  const headerValues = headerNames.map(h => headers[h] || '').join('.');
+  const signedData = parts.h
+    ? `${parts.t}.${parts.h}.${headerValues}.${payload}`
+    : `${parts.t}.${payload}`;
+  const expected = crypto.createHmac('sha256', secret).update(signedData).digest('hex');
+  return parts.v1 === expected;
+}
 
 // Initialize security components
 const ipSecurity = new IPSecurity({
@@ -845,44 +735,40 @@ const anomalyDetector = new AnomalyDetector({
 });
 
 const idempotencyManager = new IdempotencyManager({
-  url: process.env.REDIS_URL
+  ttl: 24 * 60 * 60 * 1000,
+  maxSize: 10000
 });
 
 // Middleware pipeline
-app.use('/webhook', express.raw({ type: 'application/json', limit: '1mb' }));
+app.use('/webhook', express.json({ limit: '1mb' }));
 app.use('/webhook', ipSecurity.middleware());
 app.use('/webhook', webhookLogger.middleware());
 app.use('/webhook', anomalyDetector.middleware());
-app.use('/webhook', createSecureWebhookMiddleware({
-  secrets: [
-    process.env.WEBHOOK_SECRET_CURRENT,
-    process.env.WEBHOOK_SECRET_PREVIOUS
-  ].filter(Boolean),
-  auth: {
-    timestampTolerance: 300,
-    algorithms: ['sha256']
-  },
-  rateLimit: {
-    windowMs: 15 * 60 * 1000,
-    max: 1000
-  },
-  maxPayloadSize: 1024 * 1024 // 1MB
-}));
 
 // Secure webhook handler
 app.post('/webhook', async (req, res) => {
   try {
-    // Validate payload structure
-    const validation = validateWebhookPayload(req.webhook);
+    // Verify signature
+    const signature = req.headers['x-hook0-signature'];
+    const secrets = [process.env.WEBHOOK_SECRET_CURRENT, process.env.WEBHOOK_SECRET_PREVIOUS].filter(Boolean);
+    const isValid = secrets.some(s => verifyHook0Signature(JSON.stringify(req.body), signature, req.headers, s));
+
+    if (!isValid) {
+      return res.status(401).json({ error: 'Invalid signature' });
+    }
+
+    // Validate payload (already parsed by express.json())
+    const webhook = req.body;
+    const validation = validateWebhookPayload(webhook);
     if (!validation.valid) {
       return res.status(400).json({
         error: 'Payload validation failed',
         details: validation.details || validation.error
       });
     }
-    
+
     // Check for duplicate processing
-    const { event_id } = req.webhook;
+    const { event_id } = webhook;
     const subscriptionId = req.headers['hook0-subscription-id'] || 'default';
     
     const idempotencyCheck = await idempotencyManager.checkAndSetProcessed(
@@ -910,17 +796,7 @@ app.post('/webhook', async (req, res) => {
     });
     
   } catch (error) {
-    // Mark as failed
-    if (req.webhook?.event_id) {
-      await idempotencyManager.markFailed(
-        req.webhook.event_id,
-        req.headers['hook0-subscription-id'] || 'default',
-        error
-      );
-    }
-    
     console.error('Secure webhook processing failed:', error);
-    
     res.status(500).json({
       error: 'Processing failed',
       timestamp: new Date().toISOString()
@@ -970,7 +846,7 @@ module.exports = app;
 
 ## Security Best Practices Summary
 
-### Authentication & Authorization
+### Authentication and authorization
 - ✅ Always verify HMAC signatures
 - ✅ Use timing-safe comparison for signature verification
 - ✅ Support signature algorithm flexibility

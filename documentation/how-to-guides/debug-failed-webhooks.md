@@ -18,22 +18,24 @@ Hook0 categorizes delivery failures to help you understand the root cause:
 
 ### HTTP Status Code Categories
 
-**2xx - Success** ✅
-- Request processed successfully
-- No retry needed
+:::tip 2xx - Success
+Request processed successfully. No retry needed.
+:::
 
-**4xx - Client Errors** ⚠️
+:::warning 4xx - Client Errors
 - 400-407, 409-499: Permanent failures, no retry
 - 408 (Timeout), 429 (Rate Limited): Temporary failures, will retry
+:::
 
-**5xx - Server Errors** 🔄
-- All 5xx codes: Temporary failures, will retry
-- Suggests issues with your webhook endpoint
+:::danger 5xx - Server Errors
+All 5xx codes: Temporary failures, will retry. Suggests issues with your webhook endpoint.
+:::
 
-**Network Errors** 🌐
+:::info Network Errors
 - Connection timeouts
 - DNS resolution failures
 - Connection refused
+:::
 
 ## Step 1: Access Hook0 Dashboard Diagnostics
 
@@ -66,21 +68,25 @@ Look for these key details:
 ### Get Request Attempts via API
 
 ```bash
-# Get all request attempts for an event
-curl "https://app.hook0.com/api/v1/events/{event-id}/request_attempts" \
-  -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE"
+# Get all request attempts for an application
+curl "http://localhost:8081/api/v1/request_attempts/?application_id={APP_ID}" \
+  -H "Authorization: Bearer {YOUR_TOKEN}"
 
-# Get specific request attempt details
-curl "https://app.hook0.com/api/v1/request_attempts/{attempt-id}" \
-  -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE"
+# Filter by event
+curl "http://localhost:8081/api/v1/request_attempts/?application_id={APP_ID}&event_id={EVENT_ID}" \
+  -H "Authorization: Bearer {YOUR_TOKEN}"
+
+# Filter by subscription
+curl "http://localhost:8081/api/v1/request_attempts/?application_id={APP_ID}&subscription_id={SUBSCRIPTION_ID}" \
+  -H "Authorization: Bearer {YOUR_TOKEN}"
 ```
 
-### Filter Failed Attempts
+### Get Response Details
 
 ```bash
-# Get only failed attempts for a subscription
-curl "https://app.hook0.com/api/v1/subscriptions/{sub-id}/request_attempts?status=failed" \
-  -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE"
+# Get the response body and headers for a failed attempt
+curl "http://localhost:8081/api/v1/responses/{RESPONSE_ID}?application_id={APP_ID}" \
+  -H "Authorization: Bearer {YOUR_TOKEN}"
 ```
 
 ## Step 3: Common Failure Scenarios and Solutions
@@ -144,36 +150,15 @@ certbot renew
 - Error messages about invalid signatures
 
 **Diagnosis:**
-```javascript
-// Debug signature calculation
-const crypto = require('crypto');
 
-function debugSignature(body, signature, secret) {
-  console.log('Raw body:', body);
-  console.log('Received signature:', signature);
-  
-  const expectedSignature = crypto
-    .createHmac('sha256', secret)
-    .update(body)
-    .digest('hex');
-  
-  console.log('Expected signature:', `sha256=${expectedSignature}`);
-  console.log('Signatures match:', signature === `sha256=${expectedSignature}`);
-}
-
-// Test with actual webhook data
-debugSignature(
-  '{"event_id":"evt_123","event_type":"user.created"}',
-  'sha256=abc123...',
-  'your-subscription-secret'
-);
-```
+Add logging to compare expected vs received signature. See [Implementing Webhook Authentication](../tutorials/webhook-authentication.md) for the correct verification code.
 
 **Solutions:**
-- Use raw request body for signature verification
+- Use raw request body for signature verification (not parsed JSON)
 - Ensure consistent character encoding (UTF-8)
 - Verify you're using the correct subscription secret
 - Check HMAC algorithm (SHA256)
+- Include headers in signature computation (v1 format)
 
 ### Scenario 4: Rate Limiting Issues
 
@@ -183,10 +168,10 @@ debugSignature(
 
 **Diagnosis:**
 ```bash
-# Monitor request patterns
-curl "https://app.hook0.com/api/v1/subscriptions/{sub-id}/request_attempts" \
-  -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" | \
-  jq '.[] | select(.status_code == 429)'
+# Monitor request patterns - filter 429 responses
+curl "http://localhost:8081/api/v1/request_attempts/?application_id={APP_ID}&subscription_id={SUBSCRIPTION_ID}" \
+  -H "Authorization: Bearer {YOUR_TOKEN}" | \
+  jq '.[] | select(.status.type == "failed")'
 ```
 
 **Solutions:**
@@ -277,34 +262,36 @@ app.use((req, res, next) => {
   next();
 });
 
-// Capture raw body
-app.use('/webhook', express.raw({ type: 'application/json' }));
+// Parse JSON body
+app.use('/webhook', express.json());
 
+// Note: Express.js normalizes all header names to lowercase
 app.post('/webhook', (req, res) => {
   const timestamp = new Date().toISOString();
-  const signature = req.headers['hook0-signature'];
-  
+  const signature = req.headers['x-hook0-signature'];
+  const bodyString = JSON.stringify(req.body);
+
   const debugInfo = {
     timestamp,
     signature,
-    bodyLength: req.body.length,
-    bodyPreview: req.body.slice(0, 200).toString(),
+    bodyLength: bodyString.length,
+    bodyPreview: bodyString.slice(0, 200),
     headers: req.headers
   };
-  
+
   console.log('Webhook debug info:', JSON.stringify(debugInfo, null, 2));
-  
+
   // Save to file for analysis
   fs.appendFileSync('webhook-debug.log', JSON.stringify({
     ...debugInfo,
-    fullBody: req.body.toString()
+    fullBody: bodyString
   }) + '\n');
-  
+
   // Always respond successfully for debugging
-  res.json({ 
+  res.json({
     status: 'debug_received',
     timestamp,
-    bodyLength: req.body.length
+    bodyLength: bodyString.length
   });
 });
 
@@ -337,47 +324,48 @@ ngrok http 3000
 // monitor-failures.js
 const fetch = require('node-fetch');
 
-const HOOK0_TOKEN = 'biscuit:YOUR_TOKEN_HERE';
-const APP_ID = 'your-app-id';
-const SUBSCRIPTION_ID = 'your-subscription-id';
+const HOOK0_TOKEN = '{YOUR_TOKEN}';
+const APP_ID = '{APP_ID}';
+const SUBSCRIPTION_ID = '{SUBSCRIPTION_ID}';
 
 async function getFailureRate(subscriptionId, hours = 24) {
-  const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
-  
-  const response = await fetch(
-    `https://app.hook0.com/api/v1/applications/${APP_ID}/subscriptions/${subscriptionId}/request_attempts?since=${since}`,
-    {
-      headers: {
-        'Authorization': `Bearer ${HOOK0_TOKEN}`
-      }
+  // Get request attempts, optionally filtered by subscription
+  const url = subscriptionId
+    ? `http://localhost:8081/api/v1/request_attempts/?application_id=${APP_ID}&subscription_id=${subscriptionId}`
+    : `http://localhost:8081/api/v1/request_attempts/?application_id=${APP_ID}`;
+
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${HOOK0_TOKEN}`
     }
-  );
-  
+  });
+
   const attempts = await response.json();
-  
+
   const total = attempts.length;
-  const failed = attempts.filter(a => a.status_code >= 400 || !a.status_code).length;
+  // Status is a string: "pending", "succeeded", or "failed"
+  const failed = attempts.filter(a => a.failed_at !== null).length;
   const failureRate = total > 0 ? (failed / total) * 100 : 0;
-  
+
   return { total, failed, failureRate, attempts: attempts.slice(0, 5) };
 }
 
 async function monitorSubscriptions() {
   try {
     const stats = await getFailureRate(SUBSCRIPTION_ID);
-    
+
     console.log(`Failure Rate: ${stats.failureRate.toFixed(2)}%`);
     console.log(`Total Attempts: ${stats.total}`);
     console.log(`Failed Attempts: ${stats.failed}`);
-    
+
     if (stats.failureRate > 10) {
       console.warn('⚠️ High failure rate detected!');
-      
-      // Show recent failures
-      const recentFailures = stats.attempts.filter(a => a.status_code >= 400);
+
+      // Show recent failures (failed_at is set when delivery failed)
+      const recentFailures = stats.attempts.filter(a => a.failed_at !== null);
       console.log('Recent failures:', recentFailures);
     }
-    
+
   } catch (error) {
     console.error('Monitoring error:', error.message);
   }
@@ -417,15 +405,16 @@ async function sendAlert(subject, message) {
 
 async function checkAndAlert() {
   const stats = await getFailureRate(SUBSCRIPTION_ID);
-  
+
   if (stats.failureRate > 20) {
+    const failedAttempts = stats.attempts.filter(a => a.failed_at !== null);
     await sendAlert('High Webhook Failure Rate', `
 Failure Rate: ${stats.failureRate.toFixed(2)}%
 Total Attempts: ${stats.total}
 Failed Attempts: ${stats.failed}
 
 Recent failures:
-${JSON.stringify(stats.attempts.filter(a => a.status_code >= 400), null, 2)}
+${JSON.stringify(failedAttempts, null, 2)}
     `);
   }
 }
@@ -436,60 +425,75 @@ ${JSON.stringify(stats.attempts.filter(a => a.status_code >= 400), null, 2)}
 ### Manual Retry Failed Events
 
 ```bash
-# Get failed events
-curl "https://app.hook0.com/api/v1/events?status=failed" \
-  -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE"
+# Get events for your application
+curl "http://localhost:8081/api/v1/events/?application_id={APP_ID}" \
+  -H "Authorization: Bearer {YOUR_TOKEN}"
 
-# Retry specific event (if supported)
-curl -X POST "https://app.hook0.com/api/v1/events/{event-id}/replay" \
-  -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE"
+# Replay a specific event
+curl -X POST "http://localhost:8081/api/v1/events/{EVENT_ID}/replay" \
+  -H "Authorization: Bearer {YOUR_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "application_id": "{APP_ID}"
+  }'
 ```
 
 ### Bulk Retry Script
 
 ```javascript
 // retry-failed.js
-async function retryFailedEvents(subscriptionId, maxAge = 24) {
-  const since = new Date(Date.now() - maxAge * 60 * 60 * 1000).toISOString();
-  
-  // Get failed attempts
+const HOOK0_TOKEN = '{YOUR_TOKEN}';
+const APP_ID = '{APP_ID}';
+
+async function retryFailedEvents(maxAge = 24) {
+  // Get failed request attempts
   const response = await fetch(
-    `https://app.hook0.com/api/v1/applications/${APP_ID}/subscriptions/${subscriptionId}/request_attempts?status=failed&since=${since}`,
+    `http://localhost:8081/api/v1/request_attempts/?application_id=${APP_ID}`,
     {
       headers: { 'Authorization': `Bearer ${HOOK0_TOKEN}` }
     }
   );
-  
-  const failedAttempts = await response.json();
+
+  const attempts = await response.json();
+
+  // Filter failed attempts (failed_at is set when delivery failed)
+  const failedAttempts = attempts.filter(a => a.failed_at !== null);
+
+  // Get unique event IDs
   const uniqueEvents = [...new Set(failedAttempts.map(a => a.event_id))];
-  
+
   console.log(`Found ${uniqueEvents.length} failed events to retry`);
-  
+
   for (const eventId of uniqueEvents) {
     try {
       const retryResponse = await fetch(
-        `https://app.hook0.com/api/v1/events/${eventId}/retry`,
+        `http://localhost:8081/api/v1/events/${eventId}/replay`,
         {
           method: 'POST',
-          headers: { 'Authorization': `Bearer ${HOOK0_TOKEN}` }
+          headers: {
+            'Authorization': `Bearer ${HOOK0_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ application_id: APP_ID })
         }
       );
-      
+
       if (retryResponse.ok) {
-        console.log(`✅ Retried event: ${eventId}`);
+        console.log(`✅ Replayed event: ${eventId}`);
       } else {
-        console.log(`❌ Failed to retry event: ${eventId}`);
+        const error = await retryResponse.text();
+        console.log(`❌ Failed to replay event: ${eventId} - ${error}`);
       }
-      
+
       // Rate limit retries
       await new Promise(resolve => setTimeout(resolve, 100));
     } catch (error) {
-      console.error(`Error retrying event ${eventId}:`, error.message);
+      console.error(`Error replaying event ${eventId}:`, error.message);
     }
   }
 }
 
-retryFailedEvents(SUBSCRIPTION_ID);
+retryFailedEvents();
 ```
 
 ## Step 7: Prevention Strategies
@@ -586,7 +590,7 @@ app.post('/webhook', async (req, res) => {
 
 ## Best Practices for Webhook Reliability
 
-### Endpoint Design
+### Endpoint design
 - ✅ Return appropriate HTTP status codes
 - ✅ Respond within 30 seconds
 - ✅ Implement idempotency

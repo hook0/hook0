@@ -1,756 +1,358 @@
 # Configuration Reference
 
-This reference covers all configuration options for Hook0, including environment variables, configuration files, and deployment settings for both self-hosted and cloud deployments.
+Environment variables for configuring Hook0.
 
-## Environment Variables
+## Server Configuration
 
-### Core Configuration
-
-#### Database Configuration
+### Network
 
 ```bash
-# PostgreSQL connection
+# IP address to bind (use 0.0.0.0 in Docker containers)
+IP=127.0.0.1
+
+# Port to listen on
+PORT=8080
+```
+
+:::tip Docker deployments
+When running in Docker, set `IP=0.0.0.0` to allow connections from outside the container. The self-hosting tutorial uses port 8081 by convention.
+:::
+
+### Reverse Proxy
+
+```bash
+# Trusted IPs/CIDRs that can set X-Forwarded-For and Forwarded headers
+REVERSE_PROXY_IPS=192.168.0.0/16,10.0.0.0/8
+
+# Alternative Clever Cloud specific setting
+CC_REVERSE_PROXY_IPS=192.168.0.0/16
+
+# Enable if behind Cloudflare
+BEHIND_CLOUDFLARE=false
+```
+
+## Database
+
+```bash
+# PostgreSQL connection string
 DATABASE_URL=postgresql://user:password@localhost:5432/hook0
 
-# Connection pool settings
-DATABASE_MAX_CONNECTIONS=50
-DATABASE_MIN_CONNECTIONS=5
-DATABASE_ACQUIRE_TIMEOUT=30000
-DATABASE_IDLE_TIMEOUT=600000
-DATABASE_MAX_LIFETIME=1800000
+# Maximum database connections
+MAX_DB_CONNECTIONS=5
+
+# Disable automatic database migration on startup
+NO_AUTO_DB_MIGRATION=false
 ```
 
-#### Redis Configuration
+## Authentication
 
 ```bash
-# Redis connection for caching and queuing
-REDIS_URL=redis://localhost:6379/0
+# Biscuit private key for token generation
+BISCUIT_PRIVATE_KEY=your-hex-encoded-private-key
 
-# Redis connection pool
-REDIS_MAX_CONNECTIONS=10
-REDIS_MIN_CONNECTIONS=2
-REDIS_CONNECT_TIMEOUT=5000
-REDIS_COMMAND_TIMEOUT=3000
+# Maximum authorization time (milliseconds)
+MAX_AUTHORIZATION_TIME_IN_MS=10
 ```
 
-#### Server Configuration
+## CORS
 
 ```bash
-# HTTP server settings
-PORT=8000
-HOST=0.0.0.0
-REQUEST_TIMEOUT=30000
-
-# CORS settings
-CORS_ORIGINS=https://app.hook0.com,https://your-frontend.com
-CORS_CREDENTIALS=true
-
-# Rate limiting
-RATE_LIMIT_WINDOW_MS=900000    # 15 minutes
-RATE_LIMIT_MAX_REQUESTS=1000
-RATE_LIMIT_SKIP_SUCCESSFUL=false
+# Comma-separated allowed origins
+CORS_ALLOWED_ORIGINS=https://app.hook0.com,https://your-domain.com
 ```
 
-### Authentication & Security
-
-#### Token Configuration
+## API Rate Limiting
 
 ```bash
-# Biscuit token settings
-BISCUIT_PRIVATE_KEY=your-base64-encoded-private-key
-BISCUIT_TOKEN_TTL=86400         # 24 hours in seconds
-BISCUIT_REFRESH_TTL=2592000     # 30 days in seconds
+# Disable all rate limiting
+DISABLE_API_RATE_LIMITING=false
 
-# JWT settings (legacy support)
-JWT_SECRET=your-jwt-secret-key
-JWT_EXPIRES_IN=24h
-JWT_ISSUER=hook0.com
+# Global rate limiting (across all requests)
+DISABLE_API_RATE_LIMITING_GLOBAL=false
+API_RATE_LIMITING_GLOBAL_BURST_SIZE=2000
+API_RATE_LIMITING_GLOBAL_REPLENISH_PERIOD_IN_MS=1
+
+# Per-IP rate limiting
+DISABLE_API_RATE_LIMITING_IP=false
+API_RATE_LIMITING_IP_BURST_SIZE=200
+API_RATE_LIMITING_IP_REPLENISH_PERIOD_IN_MS=10
+
+# Per-token rate limiting
+DISABLE_API_RATE_LIMITING_TOKEN=false
+API_RATE_LIMITING_TOKEN_BURST_SIZE=20
+API_RATE_LIMITING_TOKEN_REPLENISH_PERIOD_IN_MS=100
 ```
 
-#### Security Headers
+## Email Configuration
 
 ```bash
-# Security configuration
-SECURITY_HSTS_MAX_AGE=31536000
-SECURITY_CONTENT_TYPE_OPTIONS=nosniff
-SECURITY_FRAME_OPTIONS=DENY
-SECURITY_XSS_PROTECTION=1; mode=block
+# Sender information
+EMAIL_SENDER_ADDRESS=noreply@hook0.com
+EMAIL_SENDER_NAME=Hook0
 
-# CSRF protection
-CSRF_SECRET=your-csrf-secret
-CSRF_COOKIE_NAME=_hook0_csrf
-CSRF_HEADER_NAME=X-CSRF-Token
+# SMTP connection URL
+# Examples:
+# - smtp://localhost:1025 (plain)
+# - smtps://user:password@provider.com:465 (TLS)
+# - smtp://user:password@provider.com:587?tls=required (STARTTLS)
+SMTP_CONNECTION_URL=smtp://localhost:1025
+
+# SMTP timeout (seconds)
+SMTP_TIMEOUT_IN_S=5
+
+# Logo URL for emails
+EMAIL_LOGO_URL=https://app.hook0.com/256x256.png
+
+# Frontend URL for email links
+APP_URL=https://app.hook0.com
 ```
 
-### Webhook Processing
-
-#### Worker Configuration
+## Frontend
 
 ```bash
-# Worker process settings
-WORKER_CONCURRENCY=50
-WORKER_BATCH_SIZE=100
-WORKER_POLL_INTERVAL=1000      # milliseconds
-WORKER_MAX_RETRY_ATTEMPTS=5
-WORKER_INITIAL_RETRY_DELAY=1000
-WORKER_MAX_RETRY_DELAY=300000
-WORKER_RETRY_MULTIPLIER=2
+# Directory containing web app to serve
+WEBAPP_PATH=../frontend/dist/
 
-# HTTP client settings
-HTTP_CLIENT_TIMEOUT=30000
-HTTP_CLIENT_MAX_CONNECTIONS=100
-HTTP_CLIENT_KEEP_ALIVE=true
-HTTP_CLIENT_KEEP_ALIVE_TIMEOUT=30000
+# Disable serving the web app (API only)
+DISABLE_SERVING_WEBAPP=false
 ```
 
-#### Queue Configuration
+## Security
 
 ```bash
-# Queue settings
-QUEUE_DEFAULT_PRIORITY=normal
-QUEUE_HIGH_PRIORITY_WEIGHT=3
-QUEUE_NORMAL_PRIORITY_WEIGHT=2
-QUEUE_LOW_PRIORITY_WEIGHT=1
+# Security headers
+ENABLE_SECURITY_HEADERS=true
+ENABLE_HSTS_HEADER=false
 
-# Dead letter queue
-DLQ_ENABLED=true
-DLQ_MAX_ATTEMPTS=3
-DLQ_RETENTION_DAYS=30
+# Disable user registration
+DISABLE_REGISTRATION=false
+
+# Minimum password length
+PASSWORD_MINIMUM_LENGTH=12
 ```
 
-### Monitoring & Observability
-
-#### Logging Configuration
+## Quotas
 
 ```bash
-# Logging level and format
-LOG_LEVEL=info
-LOG_FORMAT=json
-LOG_TIMESTAMP=true
-LOG_CALLER=false
+# Enable quota enforcement
+ENABLE_QUOTA_ENFORCEMENT=false
 
-# Log destinations
-LOG_FILE_ENABLED=true
-LOG_FILE_PATH=/var/log/hook0/app.log
-LOG_FILE_MAX_SIZE=100MB
-LOG_FILE_MAX_FILES=10
-LOG_FILE_COMPRESS=true
+# Default quota limits (can be overridden by plans)
+QUOTA_GLOBAL_MEMBERS_PER_ORGANIZATION_LIMIT=1
+QUOTA_GLOBAL_APPLICATIONS_PER_ORGANIZATION_LIMIT=1
+QUOTA_GLOBAL_EVENTS_PER_DAY_LIMIT=100
+QUOTA_GLOBAL_DAYS_OF_EVENTS_RETENTION_LIMIT=7
+QUOTA_GLOBAL_SUBSCRIPTIONS_PER_APPLICATION_LIMIT=10
+QUOTA_GLOBAL_EVENT_TYPES_PER_APPLICATION_LIMIT=10
 
-# Structured logging
-LOG_REQUEST_ID=true
-LOG_USER_ID=true
-LOG_PERFORMANCE=true
+# Quota notification threshold (percentage)
+QUOTA_NOTIFICATION_EVENTS_PER_DAY_THRESHOLD=80
+ENABLE_QUOTA_BASED_EMAIL_NOTIFICATIONS=false
 ```
 
-#### Metrics Configuration
+## Cleanup Tasks
+
+### Materialized Views
 
 ```bash
-# Prometheus metrics
-METRICS_ENABLED=true
-METRICS_PORT=9090
-METRICS_PATH=/metrics
-METRICS_NAMESPACE=hook0
-
-# Custom metrics
-METRICS_COLLECT_SYSTEM=true
-METRICS_COLLECT_RUNTIME=true
-METRICS_COLLECT_HTTP=true
-METRICS_COLLECT_DATABASE=true
+# Refresh period (seconds)
+MATERIALIZED_VIEWS_REFRESH_PERIOD_IN_S=60
 ```
 
-#### Tracing Configuration
+### Old Events
 
 ```bash
-# OpenTelemetry tracing
-TRACING_ENABLED=true
-TRACING_ENDPOINT=http://jaeger:14268/api/traces
-TRACING_SERVICE_NAME=hook0-api
-TRACING_SAMPLE_RATE=0.1
+# Cleanup period (seconds)
+OLD_EVENTS_CLEANUP_PERIOD_IN_S=3600
 
-# Trace exporters
-TRACING_JAEGER_ENABLED=true
-TRACING_ZIPKIN_ENABLED=false
-TRACING_OTLP_ENABLED=false
+# Grace period before deletion (days)
+OLD_EVENTS_CLEANUP_GRACE_PERIOD_IN_DAY=30
+
+# Actually delete (vs just report)
+OLD_EVENTS_CLEANUP_REPORT_AND_DELETE=false
 ```
 
-### External Services
-
-#### Email Configuration
+### Expired Tokens
 
 ```bash
-# SMTP settings
-SMTP_HOST=smtp.sendgrid.net
-SMTP_PORT=587
-SMTP_USERNAME=apikey
-SMTP_PASSWORD=your-sendgrid-api-key
-SMTP_FROM_EMAIL=noreply@hook0.com
-SMTP_FROM_NAME=Hook0
+# Cleanup period (humantime format: 1h, 1d, etc.)
+EXPIRED_TOKENS_CLEANUP_PERIOD=1h
 
-# Email templates
-EMAIL_TEMPLATE_ENGINE=mjml
-EMAIL_TEMPLATE_DIR=/app/templates
-EMAIL_BASE_URL=https://app.hook0.com
+# Grace period before deletion
+EXPIRED_TOKENS_CLEANUP_GRACE_PERIOD=7d
+
+# Actually delete (vs just report)
+EXPIRED_TOKENS_CLEANUP_REPORT_AND_DELETE=false
 ```
 
-#### Cloud Storage
+### Unverified Users
 
 ```bash
-# S3-compatible storage
-STORAGE_PROVIDER=s3
-STORAGE_BUCKET=hook0-events
-STORAGE_REGION=us-east-1
-STORAGE_ACCESS_KEY=your-access-key
-STORAGE_SECRET_KEY=your-secret-key
-STORAGE_ENDPOINT=https://s3.amazonaws.com
+# Enable cleanup
+ENABLE_UNVERIFIED_USERS_CLEANUP=false
 
-# Local storage (development)
-STORAGE_PROVIDER=local
-STORAGE_LOCAL_PATH=/var/lib/hook0/storage
+# Cleanup period (seconds)
+UNVERIFIED_USERS_CLEANUP_PERIOD_IN_S=3600
+
+# Grace period (days)
+UNVERIFIED_USERS_CLEANUP_GRACE_PERIOD_IN_DAYS=7
+
+# Actually delete (vs just report)
+UNVERIFIED_USERS_CLEANUP_REPORT_AND_DELETE=false
 ```
 
-#### External APIs
+### Soft-Deleted Applications
 
 ```bash
-# Notification services
-SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
-DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
-PAGERDUTY_INTEGRATION_KEY=your-pagerduty-key
+# Enable cleanup
+ENABLE_SOFT_DELETED_APPLICATIONS_CLEANUP=false
 
-# Analytics
-ANALYTICS_PROVIDER=mixpanel
-ANALYTICS_TOKEN=your-mixpanel-token
-ANALYTICS_ENABLED=true
+# Cleanup period
+SOFT_DELETED_APPLICATIONS_CLEANUP_PERIOD=1d
+
+# Grace period
+SOFT_DELETED_APPLICATIONS_CLEANUP_GRACE_PERIOD=30d
 ```
 
-### Feature Flags
+## Monitoring
 
 ```bash
-# Feature toggles
-FEATURE_WEBSOCKET_API=true
-FEATURE_BATCH_EVENTS=true
-FEATURE_CIRCUIT_BREAKER=true
-FEATURE_RATE_LIMITING=true
-FEATURE_QUOTA_ENFORCEMENT=true
-FEATURE_WEBHOOK_SIGNING=true
-FEATURE_PAYLOAD_VALIDATION=true
-FEATURE_REAL_TIME_METRICS=true
+# Sentry error tracking
+SENTRY_DSN=https://your-sentry-dsn
+
+# Sentry traces sample rate (0.0-1.0)
+SENTRY_TRACES_SAMPLE_RATE=0.1
+
+# Health check endpoint key (empty = public, unset = disabled)
+HEALTH_CHECK_KEY=your-secret-key
 ```
 
-## Configuration Files
-
-### YAML Configuration
-
-Create `config/hook0.yml` for structured configuration:
-
-```yaml
-# config/hook0.yml
-server:
-  port: 8000
-  host: "0.0.0.0"
-  timeout: 30000
-  cors:
-    origins:
-      - "https://app.hook0.com"
-      - "https://your-frontend.com"
-    credentials: true
-
-database:
-  url: "postgresql://user:password@localhost:5432/hook0"
-  pool:
-    max_connections: 50
-    min_connections: 5
-    acquire_timeout: 30000
-    idle_timeout: 600000
-    max_lifetime: 1800000
-
-redis:
-  url: "redis://localhost:6379/0"
-  pool:
-    max_connections: 10
-    min_connections: 2
-
-authentication:
-  biscuit:
-    private_key: "your-base64-encoded-private-key"
-    token_ttl: 86400
-    refresh_ttl: 2592000
-
-workers:
-  concurrency: 50
-  batch_size: 100
-  poll_interval: 1000
-  retry:
-    max_attempts: 5
-    initial_delay: 1000
-    max_delay: 300000
-    multiplier: 2
-
-monitoring:
-  logging:
-    level: "info"
-    format: "json"
-    file:
-      enabled: true
-      path: "/var/log/hook0/app.log"
-      max_size: "100MB"
-      max_files: 10
-  
-  metrics:
-    enabled: true
-    port: 9090
-    path: "/metrics"
-    namespace: "hook0"
-  
-  tracing:
-    enabled: true
-    endpoint: "http://jaeger:14268/api/traces"
-    service_name: "hook0-api"
-    sample_rate: 0.1
-
-email:
-  smtp:
-    host: "smtp.sendgrid.net"
-    port: 587
-    username: "apikey"
-    password: "your-sendgrid-api-key"
-  from:
-    email: "noreply@hook0.com"
-    name: "Hook0"
-
-features:
-  websocket_api: true
-  batch_events: true
-  circuit_breaker: true
-  rate_limiting: true
-  quota_enforcement: true
-  webhook_signing: true
-  payload_validation: true
-```
-
-### JSON Configuration
-
-Alternative JSON format in `config/hook0.json`:
-
-```json
-{
-  "server": {
-    "port": 8000,
-    "host": "0.0.0.0",
-    "timeout": 30000
-  },
-  "database": {
-    "url": "postgresql://user:password@localhost:5432/hook0",
-    "pool": {
-      "max_connections": 50,
-      "min_connections": 5,
-      "acquire_timeout": 30000
-    }
-  },
-  "workers": {
-    "concurrency": 50,
-    "batch_size": 100,
-    "retry": {
-      "max_attempts": 5,
-      "initial_delay": 1000,
-      "max_delay": 300000
-    }
-  }
-}
-```
-
-## Docker Configuration
-
-### Docker Compose Example
-
-```yaml
-# docker-compose.yml
-version: '3.8'
-
-services:
-  hook0-api:
-    image: hook0/hook0:latest
-    environment:
-      - DATABASE_URL=postgresql://hook0:password@postgres:5432/hook0
-      - REDIS_URL=redis://redis:6379/0
-      - LOG_LEVEL=info
-      - WORKER_CONCURRENCY=20
-    ports:
-      - "8000:8000"
-    depends_on:
-      - postgres
-      - redis
-    volumes:
-      - ./config:/app/config:ro
-      - ./logs:/var/log/hook0
-    restart: unless-stopped
-    
-  hook0-worker:
-    image: hook0/hook0-worker:latest
-    environment:
-      - DATABASE_URL=postgresql://hook0:password@postgres:5432/hook0
-      - REDIS_URL=redis://redis:6379/0
-      - WORKER_CONCURRENCY=50
-    depends_on:
-      - postgres
-      - redis
-    restart: unless-stopped
-    deploy:
-      replicas: 3
-
-  postgres:
-    image: postgres:15
-    environment:
-      - POSTGRES_DB=hook0
-      - POSTGRES_USER=hook0
-      - POSTGRES_PASSWORD=password
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./config/postgres.conf:/etc/postgresql/postgresql.conf
-    ports:
-      - "5432:5432"
-    command: postgres -c config_file=/etc/postgresql/postgresql.conf
-
-  redis:
-    image: redis:7-alpine
-    volumes:
-      - redis_data:/data
-      - ./config/redis.conf:/usr/local/etc/redis/redis.conf
-    ports:
-      - "6379:6379"
-    command: redis-server /usr/local/etc/redis/redis.conf
-
-volumes:
-  postgres_data:
-  redis_data:
-```
-
-## Kubernetes Configuration
-
-### ConfigMap Example
-
-```yaml
-# k8s/configmap.yml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: hook0-config
-  namespace: hook0
-data:
-  DATABASE_URL: "postgresql://hook0:password@postgres:5432/hook0"
-  REDIS_URL: "redis://redis:6379/0"
-  LOG_LEVEL: "info"
-  WORKER_CONCURRENCY: "50"
-  METRICS_ENABLED: "true"
-  TRACING_ENABLED: "true"
-  
-  hook0.yml: |
-    server:
-      port: 8000
-      timeout: 30000
-    
-    workers:
-      concurrency: 50
-      batch_size: 100
-    
-    monitoring:
-      metrics:
-        enabled: true
-        port: 9090
-```
-
-### Secret Example
-
-```yaml
-# k8s/secret.yml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: hook0-secrets
-  namespace: hook0
-type: Opaque
-stringData:
-  BISCUIT_PRIVATE_KEY: "your-base64-encoded-private-key"
-  SMTP_PASSWORD: "your-sendgrid-api-key"
-  JWT_SECRET: "your-jwt-secret"
-```
-
-### Deployment Example
-
-```yaml
-# k8s/deployment.yml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: hook0-api
-  namespace: hook0
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: hook0-api
-  template:
-    metadata:
-      labels:
-        app: hook0-api
-    spec:
-      containers:
-      - name: hook0-api
-        image: hook0/hook0:latest
-        ports:
-        - containerPort: 8000
-        - containerPort: 9090
-        envFrom:
-        - configMapRef:
-            name: hook0-config
-        - secretRef:
-            name: hook0-secrets
-        volumeMounts:
-        - name: config
-          mountPath: /app/config
-        resources:
-          requests:
-            memory: "512Mi"
-            cpu: "500m"
-          limits:
-            memory: "1Gi"
-            cpu: "1000m"
-        readinessProbe:
-          httpGet:
-            path: /health
-            port: 8000
-          initialDelaySeconds: 10
-          periodSeconds: 5
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 8000
-          initialDelaySeconds: 30
-          periodSeconds: 10
-      volumes:
-      - name: config
-        configMap:
-          name: hook0-config
-```
-
-## Database Configuration
-
-### PostgreSQL Settings
-
-```sql
--- postgresql.conf optimizations
-shared_buffers = 256MB
-effective_cache_size = 1GB
-maintenance_work_mem = 64MB
-checkpoint_completion_target = 0.7
-wal_buffers = 16MB
-default_statistics_target = 100
-random_page_cost = 1.1
-effective_io_concurrency = 200
-work_mem = 4MB
-min_wal_size = 1GB
-max_wal_size = 4GB
-
--- Connection settings
-max_connections = 200
-superuser_reserved_connections = 3
-
--- Logging (disable in production)
-log_statement = 'none'
-log_duration = off
-log_lock_waits = on
-log_checkpoints = on
-
--- Autovacuum
-autovacuum_max_workers = 4
-autovacuum_naptime = 30s
-```
-
-### Redis Configuration
-
-```conf
-# redis.conf
-maxmemory 1gb
-maxmemory-policy allkeys-lru
-
-# Persistence
-save 900 1
-save 300 10
-save 60 10000
-
-# Network
-tcp-keepalive 300
-timeout 0
-
-# Clients
-maxclients 10000
-
-# Append only file
-appendonly yes
-appendfsync everysec
-```
-
-## Performance Tuning
-
-### High-Throughput Configuration
+## Analytics
 
 ```bash
-# For high-volume deployments
-WORKER_CONCURRENCY=200
-WORKER_BATCH_SIZE=500
-HTTP_CLIENT_MAX_CONNECTIONS=500
-DATABASE_MAX_CONNECTIONS=100
-REDIS_MAX_CONNECTIONS=50
+# Matomo analytics
+MATOMO_URL=https://analytics.example.com
+MATOMO_SITE_ID=1
 
-# Aggressive retry settings
-WORKER_MAX_RETRY_ATTEMPTS=3
-WORKER_INITIAL_RETRY_DELAY=500
-WORKER_MAX_RETRY_DELAY=60000
-
-# Queue optimization
-QUEUE_HIGH_PRIORITY_WEIGHT=5
-QUEUE_NORMAL_PRIORITY_WEIGHT=3
-QUEUE_LOW_PRIORITY_WEIGHT=1
+# Formbricks feedback
+FORMBRICKS_API_HOST=https://app.formbricks.com
+FORMBRICKS_ENVIRONMENT_ID=your-env-id
 ```
 
-### Low-Resource Configuration
+## Other
 
 ```bash
-# For small deployments
-WORKER_CONCURRENCY=10
-WORKER_BATCH_SIZE=20
-HTTP_CLIENT_MAX_CONNECTIONS=25
-DATABASE_MAX_CONNECTIONS=20
-REDIS_MAX_CONNECTIONS=10
+# Website URL
+WEBSITE_URL=https://hook0.com
 
-# Conservative retry settings
-WORKER_MAX_RETRY_ATTEMPTS=5
-WORKER_INITIAL_RETRY_DELAY=2000
-WORKER_MAX_RETRY_DELAY=300000
+# Support email
+SUPPORT_EMAIL_ADDRESS=support@hook0.com
+
+# Cloudflare Turnstile (bot protection for registration)
+CLOUDFLARE_TURNSTILE_SITE_KEY=your-site-key
+CLOUDFLARE_TURNSTILE_SECRET_KEY=your-secret-key
+
+# Global admin API key (USE AT YOUR OWN RISK)
+MASTER_API_KEY=uuid-goes-here
 ```
 
-## Security Configuration
-
-### Production Security Settings
+## Hook0 Client (Self-hosting with upstream instance)
 
 ```bash
-# Security hardening
-SECURITY_HSTS_MAX_AGE=31536000
-SECURITY_HSTS_INCLUDE_SUBDOMAINS=true
-SECURITY_HSTS_PRELOAD=true
-SECURITY_CONTENT_TYPE_OPTIONS=nosniff
-SECURITY_FRAME_OPTIONS=DENY
-SECURITY_XSS_PROTECTION=1; mode=block
-SECURITY_REFERRER_POLICY=strict-origin-when-cross-origin
+# Base API URL of upstream Hook0 instance
+HOOK0_CLIENT_API_URL=https://api.hook0.com
 
-# Rate limiting
-RATE_LIMIT_ENABLED=true
-RATE_LIMIT_WINDOW_MS=900000
-RATE_LIMIT_MAX_REQUESTS=1000
-RATE_LIMIT_STORE=redis
+# Application ID on upstream instance
+HOOK0_CLIENT_APPLICATION_ID=uuid-goes-here
 
-# IP filtering
-IP_WHITELIST_ENABLED=false
-IP_BLACKLIST_ENABLED=true
-IP_BLACKLIST_FILE=/etc/hook0/blocked-ips.txt
+# Authentication token for upstream instance
+HOOK0_CLIENT_TOKEN=your-token
 
-# Request validation
-PAYLOAD_MAX_SIZE=10485760    # 10MB
-REQUEST_TIMEOUT=30000
-BODY_PARSER_LIMIT=10mb
+# Retry attempts for event type upserts
+HOOK0_CLIENT_UPSERTS_RETRIES=10
 ```
 
-## Configuration Validation
+## Feature Flags (compile-time)
 
-Hook0 validates configuration on startup. Here's how to check your configuration:
-
-### Environment Validation
+These are set during build, not runtime:
 
 ```bash
-# Check configuration
-hook0 config validate
+# Enable Keycloak migration support
+ENABLE_KEYCLOAK_MIGRATION=true
+KEYCLOAK_OIDC_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----...
+KEYCLOAK_URL=https://keycloak.example.com/auth
+KEYCLOAK_REALM=myrealm
+KEYCLOAK_CLIENT_ID=hook0
+KEYCLOAK_CLIENT_SECRET=secret
 
-# Show current configuration
-hook0 config show
-
-# Test database connection
-hook0 config test-db
-
-# Test Redis connection
-hook0 config test-redis
+# Enable application secret compatibility mode
+ENABLE_APPLICATION_SECRET_COMPATIBILITY=true
 ```
 
-### Configuration Schema
+## Output Worker Configuration
 
-Hook0 uses JSON Schema to validate configuration:
+The output-worker is a separate binary with its own configuration.
 
-```json
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "type": "object",
-  "properties": {
-    "server": {
-      "type": "object",
-      "properties": {
-        "port": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 65535
-        },
-        "host": {
-          "type": "string",
-          "format": "hostname"
-        },
-        "timeout": {
-          "type": "integer",
-          "minimum": 1000,
-          "maximum": 300000
-        }
-      },
-      "required": ["port"]
-    },
-    "database": {
-      "type": "object",
-      "properties": {
-        "url": {
-          "type": "string",
-          "pattern": "^postgresql://"
-        }
-      },
-      "required": ["url"]
-    }
-  },
-  "required": ["server", "database"]
-}
+### Core Settings
+
+```bash
+# Database connection
+DATABASE_URL=postgresql://user:password@localhost:5432/hook0
+
+# Worker identification
+WORKER_NAME=default
+WORKER_VERSION=0.1.0  # Optional, defaults to cargo version
+
+# Concurrency (1-100)
+CONCURRENT=10
 ```
 
-## Configuration Best Practices
+### Retry Strategy
+
+```bash
+# Fast retries (exponential backoff from 5s to 5min)
+MAX_FAST_RETRIES=30
+
+# Slow retries (1 hour between attempts)
+MAX_SLOW_RETRIES=30
+```
+
+### Timeouts
+
+```bash
+# Connection establishment timeout
+CONNECT_TIMEOUT=5s
+
+# Total request timeout (including connect)
+TIMEOUT=15s
+```
 
 ### Security
-- Store sensitive values in environment variables or secrets
-- Use separate configurations for different environments
-- Regularly rotate secrets and API keys
-- Enable security headers in production
-- Use strong, unique passwords and keys
 
-### Performance
-- Tune worker concurrency based on your load
-- Monitor and adjust retry settings
-- Configure appropriate timeouts
-- Use connection pooling effectively
-- Monitor resource usage and scale accordingly
+```bash
+# Allow webhooks to target private IPs (NOT recommended for production)
+DISABLE_TARGET_IP_CHECK=false
+
+# Signature configuration
+SIGNATURE_HEADER_NAME=X-Hook0-Signature
+ENABLED_SIGNATURE_VERSIONS=v1
+```
 
 ### Monitoring
-- Enable comprehensive logging in production
-- Configure metrics collection
-- Set up alerting for critical issues
-- Use structured logging with correlation IDs
-- Monitor configuration drift
 
-### Maintenance
-- Version your configuration files
-- Document configuration changes
-- Test configuration changes in staging
-- Use Infrastructure as Code when possible
-- Backup configuration files regularly
+```bash
+# Sentry error tracking
+SENTRY_DSN=https://your-sentry-dsn
 
-For more advanced configuration options and deployment scenarios, see our [Self-hosting Guide](../tutorials/self-hosting-docker.md) and [Security Best Practices](../how-to-guides/secure-webhook-endpoints.md) guides.
+# Heartbeat for dead man's switch monitoring
+MONITORING_HEARTBEAT_URL=https://healthchecks.io/ping/your-uuid
+MONITORING_HEARTBEAT_MIN_PERIOD_IN_S=60
+```
+
+## Notes
+
+- Boolean values: `true`, `false` (case-insensitive)
+- Durations: Use humantime format (`1h`, `30m`, `7d`) where supported, otherwise seconds
+- Lists: Comma-separated
+- URLs: Must be valid URLs with scheme
+- Hook0 uses PostgreSQL 18 and does NOT use Redis

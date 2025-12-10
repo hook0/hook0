@@ -1,95 +1,107 @@
 # Getting Started with Hook0
 
-This tutorial will guide you through setting up your first Hook0 project, creating an application, and sending your first webhook event. By the end, you'll have a working webhook integration.
+This tutorial will guide you through creating an application and sending your first webhook event. By the end, you will have a working webhook integration.
 
 ## Prerequisites
 
-- A Hook0 account (sign up at [hook0.com](https://www.hook0.com/))
+- **For Self-Hosted**: Docker and Docker Compose installed
+- **For Cloud**: A Hook0 account at [hook0.com](https://www.hook0.com/)
 - Basic understanding of HTTP APIs
 - cURL or similar HTTP client
 - Familiarity with [Hook0 Core Concepts](../explanation/what-is-hook0.md#core-concepts)
 
-## Step 1: Create Your Organization
+## Step 1: Start Hook0 (Self-Hosted Only)
 
-When you first sign up for Hook0, you'll need to create an organization. This serves as the top-level container for all your projects.
+Start Hook0 using Docker Compose:
 
-1. **Sign up** at [hook0.com](https://www.hook0.com/)
-2. **Verify your email** address
-3. **Create your organization**:
-   - Choose a unique organization name
-   - Add a description (optional)
-   - Select your region
+:::tip Production Deployment
+For a more hardened setup, see [Self-hosting Hook0 in production](./self-hosting-docker.md).
+:::
 
-Your organization URL will be: `https://app.hook0.com/organizations/{org-id}`
+```bash
+# Clone the repository
+git clone https://github.com/hook0/hook0.git
+cd hook0
+
+# Start all services
+docker-compose up -d
+
+# Wait for services to be ready
+sleep 10
+
+# Verify API is running (check swagger endpoint)
+curl -s https://app.hook0.com/api/v1/swagger.json | head -c 100
+```
+
+Access the dashboard at http://localhost:8001 and create your first organization account.
+
+:::tip Self-Hosted Email Verification
+For self-hosted instances, after registering you need to verify your email:
+1. Check Mailpit at **http://localhost:8025** for the verification email
+2. Click the verification link in the email
+3. Return to the dashboard and log in
+
+Without email verification, you'll see an `AuthEmailNotVerified` error when trying to access the API.
+:::
+
+:::info Keep going?
+At this point you have two choices:
+- **Use the UI tutorial**, displayed on the dashboard, for a quick start. You can **stop the tutorial right here** and let the UI guides you.
+- **Skip it and go to step 2**
+:::
+
 
 ## Step 2: Create Your First Application
 
 Applications represent individual services or projects within your organization.
 
-1. **Navigate to Applications** in the Hook0 dashboard
-2. **Click "Create Application"**
-3. **Fill in the details**:
-   ```
-   Name: My First App
-   Description: Learning Hook0 basics
-   ```
+1. **Select your organization** in the left sidebar.
+2. At the end, **Click "Create new application"**
+3. **Fill in the Application Name**: My First App
 4. **Click "Create"**
 
-You'll receive an application ID that looks like: `app_1234567890abcdef`
+In the header will be displayed an application ID (**App ID**) that looks like `b676db07-5a75-4359-a6ef-89c79706072e`, Please keep it, you'll need it for later.
 
-## Step 3: Get Your API Token  
+## Step 3: Get Your API Token
 
 To send events to Hook0, you need an API token.
 
-1. **Go to Service Tokens** in your organization settings
-2. **Click "Create Service Token"**
-3. **Configure the token**:
-   ```
-   Name: Tutorial Token
-   Permissions: 
-   - application:read
-   - application:write
-   - event:send
-   Applications: My First App
-   ```
-4. **Copy the token** - it looks like:
-   ```
-   biscuit:EoQKCAohCiEKIH0eTOWqO...
-   ```
-
-⚠️ **Important**: Save this token securely. It won't be shown again.
-
+1. **Go to API keys** the sidebar of your application.
+2. **Click "Create new API Key"**
+3. **Give it a name**
+4. **Copy the token** - it looks like this: `49757726-4107-45d4-a262-e438d4f17ab4`
+   
 ## Step 4: Create an Event Type
 
 Event types define the structure of events your application can send.
 
-### Using the Dashboard
+### - Using the Dashboard:
 
 1. **Navigate to Event Types** in your application
 2. **Click "Create Event Type"**
-3. **Define your event type**:
-   ```
-   Name: user.created
-   Description: Triggered when a new user registers
-   ```
+3. **Define your event type**: `users.account.created`
 
-### Using the API
+### - OR using the API:
 
 ```bash
 curl -X POST "https://app.hook0.com/api/v1/event_types" \
-  -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
+  -H "Authorization: Bearer {YOUR_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "user.created",
-    "description": "Triggered when a new user registers"
+    "application_id": "{APP_ID}",
+    "service": "users",
+    "resource_type": "account",
+    "verb": "created"
   }'
 ```
+
+This creates an event type named `users.account.created` (composed from service.resource_type.verb).
 
 ## Step 5: Create a Webhook Subscription
 
 Subscriptions define where Hook0 should send webhook notifications.
 
-For this tutorial, we'll use [webhook.site](https://webhook.site) to create a test endpoint:
+For this tutorial, use [webhook.site](https://webhook.site) to create a test endpoint:
 
 1. **Visit [webhook.site](https://webhook.site)**
 2. **Copy your unique URL** (e.g., `https://webhook.site/abc123`)
@@ -98,11 +110,15 @@ For this tutorial, we'll use [webhook.site](https://webhook.site) to create a te
 
 ```bash
 curl -X POST "https://app.hook0.com/api/v1/subscriptions" \
-  -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
+  -H "Authorization: Bearer {YOUR_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
-    "event_types": ["user.created"],
+    "application_id": "{APP_ID}",
+    "is_enabled": true,
+    "event_types": ["users.account.created"],
     "description": "Tutorial webhook endpoint",
+    "label_key": "environment",
+    "label_value": "tutorial",
     "target": {
       "type": "http",
       "method": "POST",
@@ -114,37 +130,60 @@ curl -X POST "https://app.hook0.com/api/v1/subscriptions" \
   }'
 ```
 
-You'll receive a subscription ID: `sub_abcdef1234567890`
+You'll receive a response with the subscription ID and secret:
+
+```json
+{
+  "subscription_id": "550e8400-e29b-41d4-a716-446655440000",
+  "secret": "your-webhook-secret",
+  ...
+}
+```
+
+⚠️ **Important**: Save the `secret` - you'll need it to verify webhook signatures.
+
+Keep the `subscription_id`, you'll need it in step 8.
 
 ## Step 6: Send Your First Event
 
 Now let's trigger a webhook by sending an event to Hook0:
 
+:::warning Labels Required
+Every event must include at least one label. Labels are used to route events to the correct subscriptions. An empty `labels: {}` object will be rejected by the API.
+:::
+
 ```bash
 curl -X POST "https://app.hook0.com/api/v1/event" \
-  -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE" \
+  -H "Authorization: Bearer {YOUR_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
-    "event_type": "user.created",
-    "payload": {
-      "user_id": 123,
-      "email": "john.doe@example.com",
-      "name": "John Doe",
-      "created_at": "2024-01-15T10:30:00Z"
-    },
+    "application_id": "{APP_ID}",
+    "event_id": "'$(uuidgen)'",
+    "event_type": "users.account.created",
+    "payload": "{\"user_id\": 123, \"email\": \"john.doe@example.com\"}",
+    "payload_content_type": "application/json",
     "labels": {
       "environment": "tutorial"
-    }
+    },
+    "occurred_at": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'"
   }'
 ```
+
+:::tip Event ID Format
+The `event_id` **must be a valid UUID** (e.g., `550e8400-e29b-41d4-a716-446655440000`). Using `$(uuidgen)` generates this automatically. Non-UUID values will be rejected by the API.
+:::
+
+:::warning Payload Format
+The `payload` field must be a **JSON-encoded string**, not a raw object. Notice the escaped quotes in the example: `"{\"user_id\": 123}"`. The API will reject payloads that are not properly stringified.
+:::
 
 ### Expected Response
 
 ```json
 {
-  "event_id": "evt_1234567890abcdef",
-  "status": "accepted",
-  "message": "Event queued for delivery"
+  "application_id": "{APP_ID}",
+  "event_id": "{EVENT_ID}",
+  "received_at": "2024-01-15T10:30:01Z"
 }
 ```
 
@@ -154,7 +193,7 @@ curl -X POST "https://app.hook0.com/api/v1/event" \
    ```json
    {
      "event_id": "evt_1234567890abcdef",
-     "event_type": "user.created", 
+     "event_type": "users.account.created", 
      "payload": {
        "user_id": 123,
        "email": "john.doe@example.com",
@@ -176,41 +215,26 @@ curl -X POST "https://app.hook0.com/api/v1/event" \
 
 ## Step 8: Verify Webhook Signature
 
-Hook0 signs all webhook deliveries with HMAC-SHA256. Let's verify the signature:
+Hook0 signs all webhook deliveries with HMAC-SHA256. You should always verify signatures to ensure webhooks are authentic.
 
-### Get Your Subscription Secret
+:::tip Forgot your application secret?
+You can get it with:
 
 ```bash
-curl "https://app.hook0.com/api/v1/subscriptions/{sub-id}" \
-  -H "Authorization: Bearer biscuit:YOUR_TOKEN_HERE"
+curl "https://app.hook0.com/api/v1/subscriptions/{SUBSCRIPTION_ID}?application_id={APP_ID}" \
+  -H "Authorization: Bearer {YOUR_TOKEN}"
 ```
-
 Note the `secret` field in the response.
+:::
 
-### Verify Signature (JavaScript)
 
-```javascript
-const crypto = require('crypto');
+### Verify the Signature
 
-function verifyHook0Signature(payload, signature, secret) {
-    const expectedSignature = crypto
-        .createHmac('sha256', secret)
-        .update(payload)
-        .digest('hex');
-    
-    return signature === `sha256=${expectedSignature}`;
-}
+See [Implementing Webhook Authentication](./webhook-authentication.md) for complete signature verification code in JavaScript, Python, and Go.
 
-// Example usage
-const payload = '{"event_id":"evt_123",...}';
-const signature = 'sha256=a1b2c3...'; // From Hook0-Signature header
-const secret = 'your-subscription-secret';
+## 🎉 Congrats, you made it to the end!
 
-const isValid = verifyHook0Signature(payload, signature, secret);
-console.log('Signature valid:', isValid);
-```
-
-## What You've Learned
+### What You've Learned
 
 ✅ Created a Hook0 organization and application  
 ✅ Generated API tokens for authentication  
@@ -248,7 +272,7 @@ Now that you have the basics, try these advanced tutorials:
 - Verify HMAC algorithm (SHA256)
 
 ## API Reference
-
+@TODOROMAIN
 - [Events API](../openapi/intro)
 - [Subscriptions API](../openapi/intro)
 - [Event Types API](../openapi/intro)

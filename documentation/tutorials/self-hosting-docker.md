@@ -1,6 +1,6 @@
-# Self-hosting Hook0 with Docker
+# Self-hosting Hook0 in production
 
-This tutorial guides you through setting up a complete Hook0 installation using Docker and Docker Compose. You'll learn how to deploy, configure, and manage your own Hook0 instance.
+This tutorial guides you through setting up a complete Hook0 installation using Docker and Docker Compose.
 
 ## Prerequisites
 
@@ -11,13 +11,15 @@ This tutorial guides you through setting up a complete Hook0 installation using 
 
 ## Architecture Overview
 
-Hook0 consists of three main services that need to be deployed:
-- **API Server**: Handles event ingestion and management
-- **Worker Process**: Processes webhook deliveries
-- **Web Dashboard**: Provides the management interface
-- **PostgreSQL**: Database for persistence
+Hook0 consists of three main services:
+- **api**: Handles event ingestion and management
+- **frontend**: Provides the management interface
+- **output-worker**: Processes webhook deliveries
+- **postgres**: Database for persistence (PostgreSQL 16)
 
-For a detailed explanation of the architecture, see [Hook0 Architecture Overview](../explanation/hook0-architecture.md).
+:::tip No Redis Required
+Hook0 uses PostgreSQL for all persistence and queuing needs. This simplifies deployment and reduces operational overhead compared to systems requiring Redis.
+:::
 
 ## Step 1: Prepare Your Environment
 
@@ -33,274 +35,54 @@ cd hook0-self-hosted
 ```bash
 # .env
 # Database Configuration
-POSTGRES_USER=hook0
 POSTGRES_PASSWORD=your-secure-password
-POSTGRES_DB=hook0
-DATABASE_URL=postgresql://hook0:your-secure-password@postgres:5432/hook0
+DATABASE_URL=postgres://postgres:your-secure-password@postgres:5432/hook0
 
-# Hook0 API Configuration
-HOOK0_CLIENT_API_URL=https://your-domain.com/api
-HOOK0_CLIENT_FRONTEND_URL=https://your-domain.com
-RUST_LOG=info
+# API Configuration
+IP=0.0.0.0
+PORT=8081
+CORS_ALLOWED_ORIGINS=http://localhost:8001
 
-# Security
-JWT_SECRET=your-jwt-secret-key-minimum-32-characters
-BISCUIT_PRIVATE_KEY=your-biscuit-private-key
+# Security - IMPORTANT: Generate a real key for production
+BISCUIT_PRIVATE_KEY=your-hex-private-key
 
-# Optional: Email Configuration (for notifications)
-SMTP_HOST=smtp.your-domain.com
-SMTP_PORT=587
-SMTP_USERNAME=noreply@your-domain.com
-SMTP_PASSWORD=your-smtp-password
-SMTP_FROM=Hook0 <noreply@your-domain.com>
+# Email Configuration (using Mailpit for dev, configure SMTP for production)
+SMTP_CONNECTION_URL=smtp://mailpit:1025
+EMAIL_SENDER_ADDRESS=noreply@hook0.local
+
+# Frontend URL (for email links)
+APP_URL=http://localhost:8001
 
 # Optional: Monitoring
 SENTRY_DSN=https://your-sentry-dsn
 ```
 
-### Generate Secrets
+### Generate Biscuit Private Key
 
 ```bash
-# Generate JWT secret
-openssl rand -base64 32
-
-# Generate Biscuit private key
-openssl rand -base64 32
+# Generate a random hex key (64 characters)
+openssl rand -hex 32
 ```
 
 ## Step 2: Create Docker Compose Configuration
 
-### Basic Docker Compose Setup
+### Development Setup
 
-```yaml
-# docker-compose.yml
-version: '3.8'
-
-services:
-  postgres:
-    image: postgres:15
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 30s
-      retries: 3
-      start_period: 30s
-      timeout: 10s
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      retries: 3
-      start_period: 10s
-      timeout: 5s
-
-  hook0-api:
-    image: hook0/hook0:latest
-    environment:
-      DATABASE_URL: ${DATABASE_URL}
-      HOOK0_CLIENT_API_URL: ${HOOK0_CLIENT_API_URL}
-      HOOK0_CLIENT_FRONTEND_URL: ${HOOK0_CLIENT_FRONTEND_URL}
-      RUST_LOG: ${RUST_LOG}
-      JWT_SECRET: ${JWT_SECRET}
-      BISCUIT_PRIVATE_KEY: ${BISCUIT_PRIVATE_KEY}
-    ports:
-      - "8000:8000"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      retries: 3
-      start_period: 60s
-      timeout: 10s
-
-  hook0-worker:
-    image: hook0/hook0-worker:latest
-    environment:
-      DATABASE_URL: ${DATABASE_URL}
-      RUST_LOG: ${RUST_LOG}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      hook0-api:
-        condition: service_healthy
-    deploy:
-      replicas: 2
-
-  hook0-frontend:
-    image: hook0/hook0-frontend:latest
-    environment:
-      VITE_API_URL: ${HOOK0_CLIENT_API_URL}
-    ports:
-      - "3000:80"
-    depends_on:
-      - hook0-api
-
-volumes:
-  postgres_data:
-```
-
-## Step 3: Production Configuration
-
-### Production Docker Compose with Reverse Proxy
-
-```yaml
-# docker-compose.prod.yml
-version: '3.8'
-
-services:
-  traefik:
-    image: traefik:v2.10
-    command:
-      - "--api.insecure=true"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.websecure.address=:443"
-      - "--entrypoints.web.address=:80"
-      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
-      - "--certificatesresolvers.myresolver.acme.email=admin@your-domain.com"
-      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
-    ports:
-      - "80:80"
-      - "443:443"
-      - "8080:8080"
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
-      - "./letsencrypt:/letsencrypt"
-
-  postgres:
-    image: postgres:15
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./backups:/backups
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 30s
-      retries: 3
-      start_period: 30s
-      timeout: 10s
-
-  redis:
-    image: redis:7-alpine
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      retries: 3
-      start_period: 10s
-      timeout: 5s
-
-  hook0-api:
-    image: hook0/hook0:latest
-    environment:
-      DATABASE_URL: ${DATABASE_URL}
-      HOOK0_CLIENT_API_URL: https://api.your-domain.com
-      HOOK0_CLIENT_FRONTEND_URL: https://your-domain.com
-      RUST_LOG: info
-      JWT_SECRET: ${JWT_SECRET}
-      BISCUIT_PRIVATE_KEY: ${BISCUIT_PRIVATE_KEY}
-      SMTP_HOST: ${SMTP_HOST}
-      SMTP_PORT: ${SMTP_PORT}
-      SMTP_USERNAME: ${SMTP_USERNAME}
-      SMTP_PASSWORD: ${SMTP_PASSWORD}
-      SMTP_FROM: ${SMTP_FROM}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.hook0-api.rule=Host(`api.your-domain.com`)"
-      - "traefik.http.routers.hook0-api.entrypoints=websecure"
-      - "traefik.http.routers.hook0-api.tls.certresolver=myresolver"
-      - "traefik.http.services.hook0-api.loadbalancer.server.port=8000"
-    deploy:
-      replicas: 2
-      resources:
-        limits:
-          memory: 512M
-        reservations:
-          memory: 256M
-
-  hook0-worker:
-    image: hook0/hook0-worker:latest
-    environment:
-      DATABASE_URL: ${DATABASE_URL}
-      RUST_LOG: info
-    depends_on:
-      postgres:
-        condition: service_healthy
-    deploy:
-      replicas: 3
-      resources:
-        limits:
-          memory: 256M
-        reservations:
-          memory: 128M
-
-  hook0-frontend:
-    image: hook0/hook0-frontend:latest
-    environment:
-      VITE_API_URL: https://api.your-domain.com
-    depends_on:
-      - hook0-api
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.hook0-frontend.rule=Host(`your-domain.com`)"
-      - "traefik.http.routers.hook0-frontend.entrypoints=websecure"
-      - "traefik.http.routers.hook0-frontend.tls.certresolver=myresolver"
-      - "traefik.http.services.hook0-frontend.loadbalancer.server.port=80"
-
-volumes:
-  postgres_data:
-  redis_data:
-```
-
-## Step 4: Initialize the Database
-
-### Run Database Migrations
+First, clone the Hook0 repository:
 
 ```bash
-# Start only PostgreSQL first
-docker-compose up -d postgres
-
-# Wait for PostgreSQL to be ready
-docker-compose exec postgres pg_isready -U hook0
-
-# Run migrations (if available)
-docker-compose run --rm hook0-api migrate
-
-# Or manually create database schema
-docker-compose exec postgres psql -U hook0 -d hook0 -f /path/to/schema.sql
+git clone https://github.com/hook0/hook0.git
+cd hook0
 ```
 
-### Create Initial Admin User
+The repository includes a ready-to-use `docker-compose.yaml` with all required services.
 
-```bash
-# Create admin user (if supported by Hook0)
-docker-compose exec hook0-api create-user \
-  --email admin@your-domain.com \
-  --name "Admin User" \
-  --role admin
-```
+## Step 3: Start the Services
 
-## Step 5: Start the Services
+:::warning Build Time
+The first build compiles Rust code and may take **10-15 minutes** depending on your hardware.
+Subsequent builds use Docker layer caching and are much faster.
+:::
 
 ### Development Environment
 
@@ -312,54 +94,236 @@ docker-compose up -d
 docker-compose ps
 
 # View logs
-docker-compose logs -f hook0-api
-docker-compose logs -f hook0-worker
+docker-compose logs -f api
+docker-compose logs -f output-worker
 ```
 
-### Production Environment
+### Access the Application
+
+- **Frontend**: http://localhost:8001
+- **API**: http://localhost:8081
+- **API Docs**: http://localhost:8081/api/v1/docs
+- **Mailpit** (email testing): http://localhost:8025
+
+:::tip Email Testing
+The development setup includes [Mailpit](https://github.com/axllent/mailpit), a local email testing tool.
+All emails sent by Hook0 (invitations, notifications) are captured and viewable at http://localhost:8025.
+:::
+
+## Step 4: Initial Setup
+
+After starting the services, you need to bootstrap your Hook0 instance with an admin account and organization.
+
+### 4.1: Access the Dashboard
+
+Open your browser and navigate to:
+```
+http://localhost:8001
+```
+
+### 4.2: Create Admin Account
+
+On the first visit, you'll see the registration page:
+
+1. **Sign up** with your email and password
+2. This first account becomes the **admin** of the first organization
+3. Enter your organization details:
+   - Organization name (e.g., "My Company")
+   - Organization identifier (e.g., "my-company")
+
+### 4.3: Generate API Token
+
+Once logged in:
+
+1. **Navigate to Settings** → API Tokens
+2. **Click "Create Token"**
+3. **Set token details**:
+   - Name: "Production API Token" (or your preferred name)
+   - Permissions: Select required scopes (at minimum: `event:write`)
+4. **Copy the token** - it starts with `E` and you'll need it for API calls
+5. **Save it securely** - you will not be able to see it again
+
+### 4.4: Verify Installation
+
+Test your setup with a simple API call:
 
 ```bash
-# Start production environment
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# Generate a UUID (or use a static one for testing)
+# Linux/macOS: uuidgen
+# Windows: [guid]::NewGuid() in PowerShell
+EVENT_UUID="550e8400-e29b-41d4-a716-446655440000"
 
-# Check health
-curl -f https://api.your-domain.com/health
-curl -f https://your-domain.com
+curl -X POST http://localhost:8081/api/v1/event \
+  -H "Authorization: Bearer {YOUR_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "application_id": "{APP_ID}",
+    "event_id": "'$EVENT_UUID'",
+    "event_type": "system.test.completed",
+    "payload": "{\"message\": \"Hook0 is working!\", \"timestamp\": \"2024-01-15T10:00:00Z\"}",
+    "payload_content_type": "application/json",
+    "occurred_at": "2024-01-15T10:00:00Z",
+    "labels": {
+      "environment": "test"
+    }
+  }'
 ```
 
-## Step 6: Configure SSL and Domain
+If successful, you'll receive a response with an event ID.
 
-### DNS Configuration
+### 4.5: Check Event in Dashboard
 
-```
-# A Records
-your-domain.com       → your-server-ip
-api.your-domain.com   → your-server-ip
-```
+1. Go to **Events** in the dashboard
+2. You should see your test event listed
+3. Click on it to view details including:
+   - Event type
+   - Payload
+   - Timestamp
+   - Delivery attempts (if subscriptions exist)
 
-### Manual SSL Setup (Alternative to Let's Encrypt)
+**Note**: Without subscriptions, events are stored but not delivered. Continue to the [Getting Started tutorial](getting-started.md) to create subscriptions and webhooks.
+
+## Step 5: Production Configuration
+
+### Production Environment Variables
 
 ```bash
-# Create SSL directory
-mkdir ssl
+# .env.production
+POSTGRES_PASSWORD=generate-strong-password
+DATABASE_URL=postgres://postgres:your-password@postgres:5432/hook0
 
-# Place your certificates
-cp your-domain.com.crt ssl/
-cp your-domain.com.key ssl/
-cp api.your-domain.com.crt ssl/
-cp api.your-domain.com.key ssl/
+IP=0.0.0.0
+PORT=8081
+CORS_ALLOWED_ORIGINS=https://your-domain.com
+
+BISCUIT_PRIVATE_KEY=generate-with-openssl-rand-hex-32
+
+# Production SMTP
+SMTP_CONNECTION_URL=smtps://user:password@smtp.sendgrid.net:465
+EMAIL_SENDER_ADDRESS=noreply@your-domain.com
+EMAIL_SENDER_NAME=Hook0
+
+APP_URL=https://your-domain.com
+
+# Security
+ENABLE_SECURITY_HEADERS=true
+ENABLE_HSTS_HEADER=true
+DISABLE_REGISTRATION=false
+PASSWORD_MINIMUM_LENGTH=12
+
+# Monitoring
+SENTRY_DSN=https://your-sentry-dsn
+HEALTH_CHECK_KEY=your-secret-health-key
+
+# Resource limits
+MAX_DB_CONNECTIONS=20
 ```
 
-### Nginx Configuration (Alternative to Traefik)
+### Production Docker Compose
+
+:::warning Version Pinning
+Always pin to a specific Git tag (e.g., `#v0.5.0`) instead of building from the default branch. Building from `main` means your production could break if a bug is pushed minutes before your deployment.
+:::
+
+```yaml
+# docker-compose.prod.yml
+version: '3.8'
+
+volumes:
+  postgres-data:
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=hook0
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d hook0"]
+      timeout: 5s
+      interval: 10s
+      retries: 5
+    restart: unless-stopped
+    # Do not expose port externally in production
+
+  api:
+    # Pin to a specific version tag for reproducible builds
+    build:
+      context: https://github.com/hook0/hook0.git#v0.5.0
+      dockerfile: api/Dockerfile
+    environment:
+      - IP=${IP}
+      - PORT=${PORT}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
+      - DATABASE_URL=${DATABASE_URL}
+      - SMTP_CONNECTION_URL=${SMTP_CONNECTION_URL}
+      - EMAIL_SENDER_ADDRESS=${EMAIL_SENDER_ADDRESS}
+      - EMAIL_SENDER_NAME=${EMAIL_SENDER_NAME}
+      - APP_URL=${APP_URL}
+      - BISCUIT_PRIVATE_KEY=${BISCUIT_PRIVATE_KEY}
+      - ENABLE_SECURITY_HEADERS=${ENABLE_SECURITY_HEADERS}
+      - ENABLE_HSTS_HEADER=${ENABLE_HSTS_HEADER}
+      - SENTRY_DSN=${SENTRY_DSN}
+      - HEALTH_CHECK_KEY=${HEALTH_CHECK_KEY}
+      - RUST_LOG=info
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail http://localhost:8081/api/v1/swagger.json || exit 1"]
+      timeout: 5s
+      interval: 10s
+      retries: 3
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: https://github.com/hook0/hook0.git#v0.5.0
+      dockerfile: frontend/Dockerfile
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail http://localhost || exit 1"]
+      timeout: 5s
+      interval: 10s
+      retries: 3
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  output-worker:
+    build:
+      context: https://github.com/hook0/hook0.git#v0.5.0
+      dockerfile: output-worker/Dockerfile
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - WORKER_NAME=prod-worker-1
+      - RUST_LOG=info
+    depends_on:
+      postgres:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+```
+
+:::tip Scaling Services
+Use `docker-compose up -d --scale api=2 --scale output-worker=3` to run multiple instances. The `deploy:` section with `replicas` is only supported by Docker Swarm mode (`docker stack deploy`), not standard Docker Compose.
+:::
+
+## Step 6: Reverse Proxy Setup
+
+### Nginx Configuration
 
 ```nginx
-# nginx.conf
+# /etc/nginx/sites-available/hook0
 upstream hook0_api {
-    server hook0-api:8000;
+    server localhost:8081;
 }
 
 upstream hook0_frontend {
-    server hook0-frontend:80;
+    server localhost:8001;
 }
 
 server {
@@ -369,30 +333,42 @@ server {
 }
 
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
+    http2 on;  # Nginx 1.25.1+ syntax (replaces deprecated 'listen 443 ssl http2')
     server_name api.your-domain.com;
-    
-    ssl_certificate /etc/ssl/certs/api.your-domain.com.crt;
-    ssl_certificate_key /etc/ssl/private/api.your-domain.com.key;
-    
+
+    ssl_certificate /etc/letsencrypt/live/api.your-domain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/api.your-domain.com/privkey.pem;
+
+    # Security headers
+    add_header Strict-Transport-Security "max-age=63072000" always;
+
     location / {
         proxy_pass http://hook0_api;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
     }
 }
 
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
+    http2 on;
     server_name your-domain.com;
-    
-    ssl_certificate /etc/ssl/certs/your-domain.com.crt;
-    ssl_certificate_key /etc/ssl/private/your-domain.com.key;
-    
+
+    ssl_certificate /etc/letsencrypt/live/your-domain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
+
+    add_header Strict-Transport-Security "max-age=63072000" always;
+
     location / {
         proxy_pass http://hook0_frontend;
+        proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -401,105 +377,32 @@ server {
 }
 ```
 
-## Step 7: Monitoring and Logging
-
-### Health Check Script
+### Enable Site
 
 ```bash
-#!/bin/bash
-# health-check.sh
-
-services=("hook0-api" "hook0-worker" "hook0-frontend" "postgres" "redis")
-
-for service in "${services[@]}"; do
-    if docker-compose ps $service | grep -q "Up"; then
-        echo "✅ $service is running"
-    else
-        echo "❌ $service is not running"
-        docker-compose logs --tail=20 $service
-    fi
-done
-
-# Check API health endpoint
-if curl -f https://api.your-domain.com/health > /dev/null 2>&1; then
-    echo "✅ API health check passed"
-else
-    echo "❌ API health check failed"
-fi
+sudo ln -s /etc/nginx/sites-available/hook0 /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
 ```
 
-### Log Aggregation with ELK Stack
-
-```yaml
-# docker-compose.monitoring.yml
-version: '3.8'
-
-services:
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.8.0
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-    volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
-    ports:
-      - "9200:9200"
-
-  logstash:
-    image: docker.elastic.co/logstash/logstash:8.8.0
-    volumes:
-      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf
-    depends_on:
-      - elasticsearch
-
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.8.0
-    environment:
-      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
-    ports:
-      - "5601:5601"
-    depends_on:
-      - elasticsearch
-
-volumes:
-  elasticsearch_data:
-```
-
-### Prometheus Monitoring
-
-```yaml
-# prometheus.yml
-global:
-  scrape_interval: 15s
-
-scrape_configs:
-  - job_name: 'hook0-api'
-    static_configs:
-      - targets: ['hook0-api:8000']
-    metrics_path: /metrics
-    scrape_interval: 30s
-
-  - job_name: 'hook0-worker'
-    static_configs:
-      - targets: ['hook0-worker:8000']
-    metrics_path: /metrics
-    scrape_interval: 30s
-```
-
-## Step 8: Backup and Recovery
+## Step 7: Backup and Recovery
 
 ### Database Backup Script
 
 ```bash
 #!/bin/bash
 # backup.sh
+set -e  # Exit immediately on error (prevents silent failures)
 
-BACKUP_DIR="/backups"
+BACKUP_DIR="./backups"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUP_FILE="hook0_backup_${TIMESTAMP}.sql"
 
+# Ensure backup directory exists
+mkdir -p "${BACKUP_DIR}"
+
 # Create backup
-docker-compose exec -T postgres pg_dump -U hook0 hook0 > "${BACKUP_DIR}/${BACKUP_FILE}"
+docker-compose exec -T postgres pg_dump -U postgres hook0 > "${BACKUP_DIR}/${BACKUP_FILE}"
 
 # Compress backup
 gzip "${BACKUP_DIR}/${BACKUP_FILE}"
@@ -515,6 +418,7 @@ echo "Backup completed: ${BACKUP_FILE}.gz"
 ```bash
 #!/bin/bash
 # restore.sh
+set -e
 
 if [ $# -eq 0 ]; then
     echo "Usage: $0 <backup_file.sql.gz>"
@@ -524,13 +428,13 @@ fi
 BACKUP_FILE=$1
 
 # Stop services
-docker-compose stop hook0-api hook0-worker
+docker-compose stop api output-worker
 
 # Restore database
-gunzip -c ${BACKUP_FILE} | docker-compose exec -T postgres psql -U hook0 -d hook0
+gunzip -c ${BACKUP_FILE} | docker-compose exec -T postgres psql -U postgres -d hook0
 
 # Start services
-docker-compose start hook0-api hook0-worker
+docker-compose start api output-worker
 
 echo "Restore completed from: ${BACKUP_FILE}"
 ```
@@ -542,57 +446,26 @@ echo "Restore completed from: ${BACKUP_FILE}"
 # Backup every day at 2 AM
 0 2 * * * /path/to/hook0-self-hosted/backup.sh
 
-# Health check every 5 minutes
-*/5 * * * * /path/to/hook0-self-hosted/health-check.sh
+# Health check every 5 minutes (requires HEALTH_CHECK_KEY env var in API)
+*/5 * * * * curl -f "http://localhost:8081/api/v1/health/?key=your-health-key" || echo "Health check failed"
 ```
 
-## Step 9: Scaling and Performance Tuning
+## Step 8: Scaling
 
-### Horizontal Scaling Configuration
+### Horizontal Scaling
 
 ```yaml
-# docker-compose.scale.yml
-version: '3.8'
+# Scale workers
+docker-compose up -d --scale output-worker=5
 
-services:
-  hook0-api:
-    deploy:
-      replicas: 3
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 1G
-        reservations:
-          cpus: '0.5'
-          memory: 512M
-
-  hook0-worker:
-    deploy:
-      replicas: 5
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
-        reservations:
-          cpus: '0.25'
-          memory: 256M
-
-  postgres:
-    environment:
-      POSTGRES_SHARED_BUFFERS: 256MB
-      POSTGRES_EFFECTIVE_CACHE_SIZE: 1GB
-      POSTGRES_MAINTENANCE_WORK_MEM: 64MB
-      POSTGRES_CHECKPOINT_COMPLETION_TARGET: 0.7
-      POSTGRES_WAL_BUFFERS: 16MB
-    volumes:
-      - ./postgresql.conf:/etc/postgresql/postgresql.conf
-    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+# Scale API
+docker-compose up -d --scale api=3
 ```
 
 ### PostgreSQL Performance Tuning
 
 ```bash
-# postgresql.conf
+# postgresql.conf additions
 shared_buffers = 256MB
 effective_cache_size = 1GB
 maintenance_work_mem = 64MB
@@ -605,113 +478,66 @@ work_mem = 4MB
 min_wal_size = 1GB
 max_wal_size = 4GB
 max_worker_processes = 8
-max_parallel_workers_per_gather = 2
 max_parallel_workers = 8
-max_parallel_maintenance_workers = 2
-```
-
-## Step 10: Security Hardening
-
-### Security Configuration
-
-```yaml
-# docker-compose.security.yml
-version: '3.8'
-
-services:
-  hook0-api:
-    security_opt:
-      - no-new-privileges:true
-    user: "1000:1000"
-    read_only: true
-    tmpfs:
-      - /tmp:noexec,nosuid,size=100m
-
-  hook0-worker:
-    security_opt:
-      - no-new-privileges:true
-    user: "1000:1000"
-    read_only: true
-    tmpfs:
-      - /tmp:noexec,nosuid,size=100m
-
-  postgres:
-    security_opt:
-      - no-new-privileges:true
-    environment:
-      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
-```
-
-### Firewall Configuration
-
-```bash
-# UFW firewall rules
-ufw allow 22/tcp    # SSH
-ufw allow 80/tcp    # HTTP
-ufw allow 443/tcp   # HTTPS
-ufw deny 5432/tcp   # PostgreSQL (internal only)
-ufw deny 6379/tcp   # Redis (internal only)
-ufw enable
 ```
 
 ## What You've Learned
 
-✅ Set up complete Hook0 self-hosted environment  
-✅ Configured production-ready Docker Compose setup  
-✅ Implemented SSL/TLS with automatic certificate management  
-✅ Set up monitoring and logging infrastructure  
-✅ Created backup and recovery procedures  
-✅ Configured horizontal scaling  
-✅ Implemented security hardening measures  
+- Set up Hook0 self-hosted environment
+- Configured production-ready Docker Compose setup
+- Implemented reverse proxy with Nginx
+- Created backup and recovery procedures
+- Configured horizontal scaling
 
 ## Best Practices
 
 ### Deployment
-- ✅ Use health checks for all services
-- ✅ Implement proper resource limits
-- ✅ Use secrets management for sensitive data
-- ✅ Set up automated backups
-- ✅ Monitor service health continuously
+- Use health checks for all services
+- Implement proper resource limits
+- Use secrets management for sensitive data
+- Set up automated backups
+- Monitor service health continuously
 
 ### Security
-- ✅ Use HTTPS for all endpoints
-- ✅ Keep containers updated
-- ✅ Run containers as non-root users
-- ✅ Use read-only filesystems where possible
-- ✅ Implement proper firewall rules
+- Use HTTPS for all endpoints
+- Keep containers updated
+- Run containers as non-root users where possible
+- Implement proper firewall rules
+- Use strong Biscuit private keys
 
 ### Operations
-- ✅ Set up log aggregation
-- ✅ Monitor resource usage
-- ✅ Implement alerting for failures
-- ✅ Test backup and recovery procedures
-- ✅ Document operational procedures
+- Set up log aggregation
+- Monitor resource usage
+- Implement alerting for failures
+- Test backup and recovery procedures
+- Document operational procedures
 
 ## Next Steps
 
+- [Configuration Reference](../reference/configuration.md)
 - [Debugging Failed Webhooks](../how-to-guides/debug-failed-webhooks.md)
 - [Securing Webhook Endpoints](../how-to-guides/secure-webhook-endpoints.md)
-- [Configuration Reference](../reference/configuration.md)
 
 ## Troubleshooting
 
-### Services Won't Start
+### Services will not start
+
 1. Check Docker Compose syntax
 2. Verify environment variables
 3. Check port conflicts
-4. Review service logs
+4. Review service logs: `docker-compose logs service-name`
 5. Ensure database is accessible
 
-### SSL Certificate Issues
-1. Verify DNS resolution
-2. Check certificate expiration
-3. Validate certificate chain
-4. Ensure port 80/443 are accessible
-5. Review Let's Encrypt rate limits
+### Database Connection Issues
+
+1. Verify DATABASE_URL format
+2. Check PostgreSQL is running: `docker-compose ps postgres`
+3. Check health: `docker-compose exec postgres pg_isready`
+4. Review PostgreSQL logs: `docker-compose logs postgres`
 
 ### Performance Issues
-1. Monitor resource usage
-2. Check database performance
+
+1. Monitor resource usage: `docker stats`
+2. Check database performance: slow query logs
 3. Review worker scaling
-4. Analyze slow queries
-5. Optimize connection pooling
+4. Optimize connection pooling: MAX_DB_CONNECTIONS

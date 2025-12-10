@@ -68,6 +68,7 @@ const sidebars = {
       items: [
         'how-to-guides/debug-failed-webhooks',
         'how-to-guides/secure-webhook-endpoints',
+        'how-to-guides/monitor-webhook-performance',
         'how-to-guides/gitlab-webhook-migration',
       ],
     },
@@ -126,6 +127,7 @@ const sidebars = {
         'explanation/hook0-architecture',
         'explanation/event-processing',
         'explanation/security-model',
+        'explanation/scaling-performance',
       ],
     },
   ],

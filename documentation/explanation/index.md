@@ -56,6 +56,18 @@ Hook0's approach to security, authentication, and data protection.
 
 ---
 
+### [Scaling and Performance](scaling-performance.md)
+Understanding Hook0's scalability architecture and performance characteristics.
+
+**Topics covered:**
+- Horizontal scaling architecture (API + workers)
+- PostgreSQL connection pooling and coordination
+- Rate limiting configuration (global, IP, token)
+- Webhook delivery performance and retry strategies
+- Resource usage and monitoring
+
+---
+
 
 ## Design Philosophy
 

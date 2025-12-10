@@ -16,13 +16,15 @@ https://app.hook0.com/api/v1
 ```
 
 For self-hosted instances, replace with your domain:
+
 ```
 https://your-domain.com/api/v1
+# Or http://localhost:8001/api/v1 for testing locally
 ```
 
 ## Authentication
 
-Hook0 uses **Biscuit tokens** for authentication. All API requests must include an `Authorization` header:
+Hook0 uses **Biscuit tokens** for authentication. All API requests must include an `Authorization` header: @TODOROMAIN
 
 ```http
 Authorization: Bearer biscuit:YOUR_TOKEN
@@ -39,27 +41,35 @@ Authorization: Bearer biscuit:YOUR_TOKEN
 The API is organized into the following sections:
 
 ### 🔐 Authentication
+
 Endpoints for user authentication, token management, and password operations.
 
 ### 🏢 Organizations
+
 Manage organizations, invitations, and member roles.
 
 ### 📱 Applications
+
 Create and manage applications that send and receive webhooks.
 
 ### 📊 Event Types
+
 Define the types of events your application can emit.
 
 ### 📤 Events
+
 Send events and retrieve event history.
 
 ### 🔔 Subscriptions
+
 Configure webhook subscriptions to receive events.
 
 ### 📈 Request Attempts
+
 Monitor webhook delivery attempts and troubleshoot failures.
 
 ### 🔑 Service Tokens
+
 Manage API tokens for programmatic access.
 
 ## Rate Limiting
@@ -71,6 +81,7 @@ API requests are rate-limited to ensure fair usage:
 - **Per-token limit**: 20 requests/100ms
 
 Rate limit headers are included in responses:
+
 - `X-RateLimit-Limit`: Maximum requests allowed
 - `X-RateLimit-Remaining`: Requests remaining
 - `X-RateLimit-Reset`: Time when limit resets
@@ -112,6 +123,7 @@ List endpoints support pagination using query parameters:
 - `sort`: Sort field and direction (e.g., `created_at:desc`)
 
 Example:
+
 ```
 GET /api/v1/events?limit=50&offset=100&sort=created_at:desc
 ```

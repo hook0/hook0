@@ -45,8 +45,8 @@ Upon successful validation, events are stored with:
 ### 2. Subscription Matching
 
 When an event is stored, Hook0 identifies matching subscriptions. Subscriptions can match:
-- **Exact types**: `user.created`
-- **Multiple types**: `["user.created", "user.updated"]`
+- **Exact types**: `users.account.created`
+- **Multiple types**: `["users.account.created", "users.account.updated"]`
 
 ### 3. Delivery Task Creation
 

@@ -9,7 +9,7 @@ Hook0 uses Biscuit tokens for authentication, providing cryptographically secure
 
 #### Biscuit Token Structure
 ```
-Bearer biscuit:EoQKCAohCiEKIH0eTOWqO...
+Bearer EoQKCAohCiEKIH0eTOWqO...
 ```
 
 Biscuit tokens contain:
@@ -70,30 +70,19 @@ struct EventPayload {
 ### Webhook Security
 
 #### Signature Verification
-All webhook deliveries include HMAC-SHA256 signatures:
+All webhook deliveries include HMAC-SHA256 signatures in the `X-Hook0-Signature` header. Hook0 uses **v1 signatures by default**, which include selected headers for additional security:
 
-```rust
-// Signature generation
-let signature = hmac_sha256(&subscription.secret, &request_body);
-let header_value = format!("sha256={}", hex::encode(signature));
+```
+X-Hook0-Signature: t=1765443663,h=content-type x-custom-header,v1=85da0586ae0b711d...
 ```
 
-Recipients should verify signatures:
-```javascript
-const crypto = require('crypto');
+- **t**: Unix timestamp (seconds)
+- **h**: Space-separated list of header names included in signature
+- **v1**: HMAC-SHA256 signature (hex-encoded)
 
-function verifySignature(payload, signature, secret) {
-    const expectedSignature = crypto
-        .createHmac('sha256', secret)
-        .update(payload)
-        .digest('hex');
-    
-    return crypto.timingSafeEqual(
-        Buffer.from(signature, 'hex'),
-        Buffer.from(expectedSignature, 'hex')
-    );
-}
-```
+Signature computation: `HMAC-SHA256(secret, timestamp + "." + header_names + "." + header_values + "." + payload)`
+
+For implementation details and code examples in JavaScript, Python, and Go, see [Implementing Webhook Authentication](../tutorials/webhook-authentication.md).
 
 #### Target URL Validation
 - HTTPS required for production webhooks
@@ -222,28 +211,17 @@ securityContext:
 let token = env::var("HOOK0_TOKEN")
     .expect("HOOK0_TOKEN environment variable required");
 
-// Don't log tokens
+// Do not log tokens
 log::info!("Making API request with token: [REDACTED]");
 ```
 
 #### Webhook Verification
-```python
-import hmac
-import hashlib
 
-def verify_hook0_signature(payload, signature, secret):
-    expected = hmac.new(
-        secret.encode('utf-8'),
-        payload.encode('utf-8'),
-        hashlib.sha256
-    ).hexdigest()
-    
-    return hmac.compare_digest(f"sha256={expected}", signature)
-```
+See [Implementing Webhook Authentication](../tutorials/webhook-authentication.md) for signature verification code examples.
 
 #### Error Handling
 ```python
-# Don't expose internal errors
+# Do not expose internal errors
 try:
     process_webhook(payload)
 except Exception as e:
@@ -275,10 +253,10 @@ def handle_webhook(event_id, payload):
 
 ## Compliance & Standards
 
-### Standards Compliance
+### Standards compliance
 - **SOC 2 Type II**: Security controls and monitoring
 - **ISO 27001**: Information security management
-- **GDPR**: Data protection and privacy rights
+- **General Data Protection Regulation (GDPR)**: Data protection and privacy rights
 - **CCPA**: California consumer privacy requirements
 
 ### Security Headers
