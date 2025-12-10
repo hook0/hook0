@@ -671,31 +671,64 @@ async fn get_worker(name: String, conn: &PgPool) -> anyhow::Result<Worker> {
 
 async fn compute_next_retry(
     conn: &mut PgConnection,
-    subscription_id: &Uuid,
+    attempt: &RequestAttempt,
+    response: &Response,
     max_fast_retries: u32,
     max_slow_retries: u32,
-    retry_count: i16,
 ) -> Result<Option<Duration>, sqlx::Error> {
-    let sub = query!(
-        "
-            SELECT true AS whatever
-            FROM webhook.subscription
-            WHERE subscription__id = $1 AND deleted_at IS NULL AND is_enabled
-        ",
-        subscription_id
-    )
-    .fetch_optional(conn)
-    .await?;
+    match response.response_error {
+        Some(ResponseError::InvalidHeader) => {
+            let msg = response
+                .body
+                .as_ref()
+                .and_then(|bytes| str::from_utf8(bytes).ok())
+                .unwrap_or("???");
+            error!(
+                "Could not construct signature for request attempt {} ({msg}); giving up",
+                attempt.request_attempt_id
+            );
+            Ok(None)
+        }
+        _ => {
+            // Temporary warning message; this will be replaced by actual actions at some point
+            if let Some(ResponseError::InvalidTarget) = response.response_error {
+                let msg = response
+                    .body
+                    .as_ref()
+                    .and_then(|bytes| str::from_utf8(bytes).ok())
+                    .unwrap_or("???");
+                warn!(
+                    "Invalid target for request attempt {} ({msg}); continuing as normal",
+                    attempt.request_attempt_id
+                );
+            }
 
-    if sub.is_some() {
-        Ok(compute_next_retry_duration(
-            max_fast_retries,
-            max_slow_retries,
-            retry_count,
-        ))
-    } else {
-        // If the subscription was disabled or soft-deleted, we do not want to schedule a next attempt
-        Ok(None)
+            let sub = query!(
+                "
+                    SELECT true AS whatever
+                    FROM webhook.subscription AS s
+                    INNER JOIN event.application AS a ON a.application__id = s.application__id
+                    WHERE s.subscription__id = $1
+                        AND s.deleted_at IS NULL
+                        AND s.is_enabled
+                        AND a.deleted_at IS NULL
+                ",
+                attempt.subscription_id
+            )
+            .fetch_optional(conn)
+            .await?;
+
+            if sub.is_some() {
+                Ok(compute_next_retry_duration(
+                    max_fast_retries,
+                    max_slow_retries,
+                    attempt.retry_count,
+                ))
+            } else {
+                // If the subscription was disabled or soft-deleted (or its application was deleted), we do not schedule a next attempt
+                Ok(None)
+            }
+        }
     }
 }
 

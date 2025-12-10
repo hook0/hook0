@@ -510,10 +510,10 @@ async fn handle_message(
                         // Creating a retry request or giving up
                         if let Some(retry_in) = compute_next_retry(
                             &mut tx,
-                            &attempt.subscription_id,
+                            &attempt,
+                            &response,
                             config.max_fast_retries,
                             config.max_slow_retries,
-                            attempt.retry_count,
                         )
                         .await?
                         {
