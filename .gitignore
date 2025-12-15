@@ -24,3 +24,4 @@ api/.clever.json
 # docs
 /build
 .docusaurus
+.DS_Store

@@ -12,7 +12,7 @@ Quick reference for Hook0 terminology.
 An occurrence of something happening in your system. Events have a type, payload, and optional labels.
 
 ### Event Type
-A schema defining a category of events. Format: `service.resource.verb` (e.g., `users.account.created`).
+A schema defining a category of events. Format: `service.resource.verb` (e.g., `user.account.created`).
 
 ### Subscription
 Configuration that defines where and when to deliver webhooks. Links event types to a target URL with optional label filtering.
@@ -36,7 +36,7 @@ Hook0's authentication mechanism. A bearer token format that supports:
 
 Format: `EoQKCAoh...`
 
-See [Biscuit Authentication](../explanation/biscuit-authentication.md) for details.
+See [Security Model](../explanation/security-model.md) for details.
 
 ### API Key
 Only used for `MASTER_API_KEY` - the admin credential for initial setup. Not for regular authentication.

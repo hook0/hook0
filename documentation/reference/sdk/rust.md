@@ -35,7 +35,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create an event
     let event = Event {
         event_id: &None,
-        event_type: "users.account.created",
+        event_type: "user.account.created",
         payload: Cow::Borrowed(r#"{"user_id": "123", "email": "john@example.com"}"#),
         payload_content_type: "application/json",
         metadata: None,
@@ -133,10 +133,10 @@ Ensure your application has the required event types defined:
 
 ```rust
 let event_types = vec![
-    "users.account.created",
-    "users.account.updated",
-    "users.account.deleted",
-    "orders.checkout.completed",
+    "user.account.created",
+    "user.account.updated",
+    "user.account.deleted",
+    "order.checkout.completed",
     "order.shipped",
 ];
 
@@ -299,7 +299,7 @@ async fn create_and_send_user_event(
 
     let event = Event {
         event_id: &None,
-        event_type: "users.account.created",
+        event_type: "user.account.created",
         payload: Cow::Owned(payload),
         payload_content_type: "application/json",
         metadata: None,
@@ -532,7 +532,7 @@ tokio::spawn(async move {
 // Ensure payload string matches content type
 let event = Event {
     event_id: &None,
-    event_type: "users.account.created",
+    event_type: "user.account.created",
     payload: Cow::Borrowed(r#"{"user_id": "123"}"#),  // JSON string
     payload_content_type: "application/json",  // Must match
     metadata: None,

@@ -19,7 +19,7 @@ Every event must include **at least one label**. The API will reject events with
 ```json
 {
   "event_id": "evt_123",
-  "event_type": "users.account.created",
+  "event_type": "user.account.created",
   "labels": {
     "tenant_id": "tenant_abc",
     "environment": "production",
@@ -32,18 +32,39 @@ Every event must include **at least one label**. The API will reject events with
 
 ## How Labels Work
 
+### Set Up Environment Variables
+
+```bash
+# Set your service token (from dashboard)
+export HOOK0_TOKEN="YOUR_TOKEN_HERE"
+export HOOK0_API="https://app.hook0.com/api/v1" # Replace by your domain (or http://localhost:8081 locally)
+
+# Set your application ID (shown in dashboard URL or application details)
+export APP_ID="YOUR_APPLICATION_ID_HERE"
+```
+
+Save these values:
+```bash
+# Save to .env file for later use
+cat > .env <<EOF
+HOOK0_TOKEN=$HOOK0_TOKEN
+HOOK0_API=$HOOK0_API
+APP_ID=$APP_ID
+EOF
+```
+
 ### Event Sending with Labels
 
 When sending an event, include labels in the request:
 
 ```bash
-curl -X POST "https://app.hook0.com/api/v1/event" \
-  -H "Authorization: Bearer{YOUR_TOKEN}" \
+curl -X POST "$HOOK0_API/event" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "app_123",
+    "application_id": "'"$APP_ID"'",
     "event_id": "evt_456",
-    "event_type": "users.account.created",
+    "event_type": "user.account.created",
     "payload": "{\"user_id\": \"user_789\"}",
     "payload_content_type": "application/json",
     "labels": {
@@ -59,13 +80,13 @@ curl -X POST "https://app.hook0.com/api/v1/event" \
 Subscriptions use `label_key` and `label_value` to filter events:
 
 ```bash
-curl -X POST "https://app.hook0.com/api/v1/subscriptions" \
-  -H "Authorization: Bearer{YOUR_TOKEN}" \
+curl -X POST "$HOOK0_API/subscriptions" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "app_123",
+    "application_id": "'"$APP_ID"'",
     "is_enabled": true,
-    "event_types": ["users.account.created", "users.account.updated"],
+    "event_types": ["user.account.created", "user.account.updated"],
     "label_key": "tenant_id",
     "label_value": "acme_corp",
     "description": "Webhooks for ACME Corp tenant",
@@ -155,7 +176,7 @@ Route high-priority events to dedicated endpoints:
 ```javascript
 // High-priority event
 await hook0.sendEvent({
-  eventType: 'payments.transaction.failed',
+  eventType: 'payment.transaction.failed',
   labels: {
     priority: 'critical',
     alert_team: 'payments'
@@ -164,7 +185,7 @@ await hook0.sendEvent({
 
 // Normal-priority event
 await hook0.sendEvent({
-  eventType: 'payments.transaction.succeeded',
+  eventType: 'payment.transaction.succeeded',
   labels: { priority: 'normal' }
 });
 ```
@@ -189,7 +210,7 @@ Route events based on region or data center:
 
 ```javascript
 await hook0.sendEvent({
-  eventType: 'orders.order.created',
+  eventType: 'order.order.created',
   payload: { orderId: 'ord_123' },
   labels: {
     region: 'us-east-1',
@@ -215,7 +236,7 @@ Route events based on feature enablement:
 
 ```javascript
 await hook0.sendEvent({
-  eventType: 'users.account.created',
+  eventType: 'user.account.created',
   labels: {
     feature_new_onboarding: 'enabled',
     experiment_group: 'variant_a'
@@ -330,7 +351,7 @@ Since subscriptions support only one label filter, use multiple subscriptions fo
 ```javascript
 // Event with multiple labels
 await hook0.sendEvent({
-  eventType: 'orders.order.created',
+  eventType: 'order.order.created',
   labels: {
     tenant_id: 'acme_corp',
     environment: 'production',
@@ -396,7 +417,7 @@ Generate labels programmatically:
 ```javascript
 function sendOrderEvent(order) {
   return hook0.sendEvent({
-    eventType: 'orders.order.created',
+    eventType: 'order.order.created',
     payload: order,
     labels: {
       tenant_id: order.tenantId,
@@ -422,7 +443,7 @@ Organize subscriptions using labels:
 ```javascript
 // Create subscription with metadata describing label usage
 await hook0.createSubscription({
-  eventTypes: ['payments.transaction.succeeded'],
+  eventTypes: ['payment.transaction.succeeded'],
   labelKey: 'tenant_id',
   labelValue: 'acme_corp',
   description: 'ACME Corp payment webhooks',
@@ -544,7 +565,7 @@ const labels = LabelValidator.create('acme_corp', 'production', {
 });
 
 await hook0.sendEvent({
-  eventType: 'orders.order.created',
+  eventType: 'order.order.created',
   labels
 });
 ```
@@ -652,12 +673,12 @@ await createSubscription({
 ```http
 POST /api/v1/event
 Content-Type: application/json
-Authorization: BearerTOKEN
+Authorization: Bearer TOKEN
 
 {
   "application_id": "app_123",
   "event_id": "evt_456",
-  "event_type": "users.account.created",
+  "event_type": "user.account.created",
   "payload": "{}",
   "labels": {
     "tenant_id": "acme_corp",
@@ -671,11 +692,11 @@ Authorization: BearerTOKEN
 ```http
 POST /api/v1/subscriptions
 Content-Type: application/json
-Authorization: BearerTOKEN
+Authorization: Bearer TOKEN
 
 {
   "application_id": "app_123",
-  "event_types": ["users.account.created"],
+  "event_types": ["user.account.created"],
   "label_key": "tenant_id",
   "label_value": "acme_corp",
   "target": {
@@ -690,7 +711,7 @@ Authorization: BearerTOKEN
 
 ```http
 GET /api/v1/events?application_id=app_123
-Authorization: BearerTOKEN
+Authorization: Bearer TOKEN
 ```
 
 Response includes labels for filtering client-side:

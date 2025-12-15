@@ -19,6 +19,8 @@ const OPENAPI_URL = process.env.HOOK0_API_URL
 
 const OUTPUT_DIR = path.join(__dirname, '..', 'openapi');
 const OUTPUT_FILE = path.join(OUTPUT_DIR, 'hook0-api.json');
+const STATIC_DIR = path.join(__dirname, '..', 'static');
+const STATIC_FILE = path.join(STATIC_DIR, 'hook0-api.json');
 
 // Ensure output directory exists
 if (!fs.existsSync(OUTPUT_DIR)) {
@@ -115,23 +117,74 @@ const fetchSpec = () => {
             };
           }
           
-          // Ensure tags are properly defined for grouping
-          if (!spec.tags || spec.tags.length === 0) {
-            spec.tags = [
-              { name: 'Authentication', description: 'User authentication and authorization' },
-              { name: 'Organizations', description: 'Organization management' },
-              { name: 'Applications', description: 'Application management' },
-              { name: 'Event Types', description: 'Event type definitions' },
-              { name: 'Events', description: 'Event ingestion and retrieval' },
-              { name: 'Subscriptions', description: 'Webhook subscription management' },
-              { name: 'Request Attempts', description: 'Webhook delivery tracking' },
-              { name: 'Service Tokens', description: 'API token management' }
-            ];
+          // Rename biscuit security schemes to API Token for better UX
+          if (spec.components && spec.components.securitySchemes) {
+            const schemes = spec.components.securitySchemes;
+            if (schemes.biscuit) {
+              schemes.apiToken = {
+                ...schemes.biscuit,
+                description: 'API Token authentication. Use the format: `Bearer YOUR_API_TOKEN`'
+              };
+              delete schemes.biscuit;
+            }
+            if (schemes.biscuit_user_access) {
+              schemes.userAccessToken = {
+                ...schemes.biscuit_user_access,
+                description: 'User access token for authentication'
+              };
+              delete schemes.biscuit_user_access;
+            }
+            if (schemes.biscuit_refresh) {
+              schemes.refreshToken = {
+                ...schemes.biscuit_refresh,
+                description: 'Refresh token for obtaining new access tokens'
+              };
+              delete schemes.biscuit_refresh;
+            }
+
+            // Update security references in paths
+            const updateSecurityRefs = (obj) => {
+              if (Array.isArray(obj)) {
+                return obj.map(item => {
+                  if (item.biscuit !== undefined) {
+                    return { apiToken: item.biscuit };
+                  }
+                  if (item.biscuit_user_access !== undefined) {
+                    return { userAccessToken: item.biscuit_user_access };
+                  }
+                  if (item.biscuit_refresh !== undefined) {
+                    return { refreshToken: item.biscuit_refresh };
+                  }
+                  return item;
+                });
+              }
+              return obj;
+            };
+
+            // Update global security
+            if (spec.security) {
+              spec.security = updateSecurityRefs(spec.security);
+            }
+
+            // Update path-level security
+            if (spec.paths) {
+              for (const path in spec.paths) {
+                for (const method in spec.paths[path]) {
+                  if (spec.paths[path][method].security) {
+                    spec.paths[path][method].security = updateSecurityRefs(spec.paths[path][method].security);
+                  }
+                }
+              }
+            }
           }
-          
+
           // Write the enhanced spec
           fs.writeFileSync(OUTPUT_FILE, JSON.stringify(spec, null, 2));
           console.log(`✅ OpenAPI spec saved to: ${OUTPUT_FILE}`);
+
+          // Also copy to static folder for Scalar
+          fs.writeFileSync(STATIC_FILE, JSON.stringify(spec, null, 2));
+          console.log(`✅ OpenAPI spec copied to: ${STATIC_FILE}`);
           resolve();
         } catch (error) {
           console.warn(`⚠️  Failed to parse OpenAPI spec: ${error.message}`);

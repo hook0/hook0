@@ -8,6 +8,27 @@ This tutorial covers various webhook authentication methods, from basic signatur
 - Understanding of cryptographic concepts (HMAC, hashing)
 - Basic knowledge of HTTP security
 
+### Set Up Environment Variables
+
+```bash
+# Set your service token (from dashboard)
+export HOOK0_TOKEN="YOUR_TOKEN_HERE"
+export HOOK0_API="https://app.hook0.com/api/v1" # Replace by your domain (or http://localhost:8081 locally)
+
+# Set your application ID (shown in dashboard URL or application details)
+export APP_ID="YOUR_APPLICATION_ID_HERE"
+```
+
+Save these values:
+```bash
+# Save to .env file for later use
+cat > .env <<EOF
+HOOK0_TOKEN=$HOOK0_TOKEN
+HOOK0_API=$HOOK0_API
+APP_ID=$APP_ID
+EOF
+```
+
 ## Authentication Methods Overview
 
 ### 1. HMAC Signature Verification (Recommended)
@@ -245,13 +266,13 @@ Add additional authentication headers to your subscriptions:
 ### Create Subscription with Custom Headers
 
 ```bash
-curl -X POST "https://app.hook0.com/api/v1/subscriptions" \
-  -H "Authorization: Bearer {YOUR_TOKEN}" \
+curl -X POST "$HOOK0_API/subscriptions" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{APP_ID}",
+    "application_id": "'"$APP_ID"'",
     "is_enabled": true,
-    "event_types": ["users.account.created"],
+    "event_types": ["user.account.created"],
     "description": "Webhook with custom authentication",
     "label_key": "environment",
     "label_value": "production",

@@ -11,22 +11,6 @@
 
 // @ts-check
 
-// Try to load the generated API sidebar
-let apiSidebar = [];
-try {
-  const generatedSidebar = require('./api/sidebar.ts');
-  
-  // The generated sidebar exports default which is the array directly
-  const sidebarData = generatedSidebar.default || generatedSidebar;
-  
-  if (Array.isArray(sidebarData)) {
-    apiSidebar = sidebarData;
-  }
-} catch (e) {
-  // API sidebar not generated yet
-  console.log('API sidebar will be generated during build');
-}
-
 /** @type {import('@docusaurus/plugin-content-docs').SidebarsConfig} */
 const sidebars = {
   tutorialSidebar: [
@@ -80,23 +64,11 @@ const sidebars = {
         id: 'reference/index',
       },
       items: [
+        'openapi/intro',
         {
-          type: 'category',
-          label: 'API Documentation',
-          items: apiSidebar.length > 0 ? [
-            {
-              type: 'doc',
-              id: 'openapi/intro',
-              label: 'Overview',
-            },
-            ...apiSidebar
-          ] : [
-            {
-              type: 'doc',
-              id: 'openapi/intro',
-              label: 'API Reference',
-            },
-          ],
+          type: 'link',
+          label: 'API Reference',
+          href: '/api',
         },
         'reference/event-schemas',
         'reference/configuration',

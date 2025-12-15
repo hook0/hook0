@@ -56,9 +56,9 @@ const Joi = require('joi');
 
 // Define webhook payload schemas
 const eventSchemas = {
-  'users.account.created': Joi.object({
+  'user.account.created': Joi.object({
     event_id: Joi.string().uuid().required(),
-    event_type: Joi.string().valid('users.account.created').required(),
+    event_type: Joi.string().valid('user.account.created').required(),
     timestamp: Joi.string().isoDate().required(),
     payload: Joi.object({
       user_id: Joi.string().required(),

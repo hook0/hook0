@@ -7,6 +7,27 @@ description: Official Hook0 client libraries for multiple programming languages
 
 Hook0 provides official SDKs to make integration seamless across different programming languages and platforms. All SDKs follow consistent design patterns while remaining idiomatic to their respective languages.
 
+## Set Up Environment Variables
+
+```bash
+# Set your service token (from dashboard)
+export HOOK0_TOKEN="YOUR_TOKEN_HERE"
+export HOOK0_API="https://app.hook0.com/api/v1" # Replace by your domain (or http://localhost:8081 locally)
+
+# Set your application ID (shown in dashboard URL or application details)
+export APP_ID="YOUR_APPLICATION_ID_HERE"
+```
+
+Save these values:
+```bash
+# Save to .env file for later use
+cat > .env <<EOF
+HOOK0_TOKEN=$HOOK0_TOKEN
+HOOK0_API=$HOOK0_API
+APP_ID=$APP_ID
+EOF
+```
+
 ## Official SDKs
 
 ### 🟨 [JavaScript/TypeScript SDK](javascript.md)
@@ -34,7 +55,7 @@ const hook0 = new Hook0Client(
 );
 
 const event = new Event(
-  'users.account.created',
+  'user.account.created',
   JSON.stringify({ user_id: 123 }),
   'application/json',
   { source: 'api' }
@@ -67,7 +88,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .post("https://app.hook0.com/api/v1/event")
         .header("Authorization", "Bearer {YOUR_TOKEN}")
         .json(&json!({
-            "event_type": "users.account.created",
+            "event_type": "user.account.created",
             "payload": { "user_id": 123 }
         }))
         .send()
@@ -101,7 +122,7 @@ response = requests.post(
         'Content-Type': 'application/json'
     },
     json={
-        'event_type': 'users.account.created',
+        'event_type': 'user.account.created',
         'payload': {'user_id': 123}
     }
 )
@@ -113,7 +134,7 @@ import "net/http"
 import "encoding/json"
 
 event := map[string]interface{}{
-    "event_type": "users.account.created",
+    "event_type": "user.account.created",
     "payload": map[string]interface{}{"user_id": 123},
 }
 
@@ -164,7 +185,7 @@ All official Hook0 SDKs provide:
 ```typescript
 // JavaScript/TypeScript
 const event = new Event(
-  'orders.checkout.completed',
+  'order.checkout.completed',
   JSON.stringify({
     order_id: 'ord_123',
     total: 99.99
@@ -181,11 +202,11 @@ await hook0.sendEvent(event);
 
 ```bash
 # Using cURL
-curl -X POST http://localhost:8081/api/v1/event \
-  -H "Authorization: Bearer {YOUR_TOKEN}" \
+curl -X POST $HOOK0_API/event \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "event_type": "orders.checkout.completed",
+    "event_type": "order.checkout.completed",
     "payload": {
       "order_id": "ord_123",
       "total": 99.99
@@ -201,12 +222,12 @@ curl -X POST http://localhost:8081/api/v1/event \
 
 ```bash
 # Using the REST API
-curl -X POST http://localhost:8081/api/v1/subscriptions \
-  -H "Authorization: Bearer {YOUR_TOKEN}" \
+curl -X POST $HOOK0_API/subscriptions \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "description": "Order Events",
-    "event_types": ["orders.checkout.completed", "order.shipped"],
+    "event_types": ["order.checkout.completed", "order.shipped"],
     "target": {
       "type": "http",
       "url": "https://api.example.com/webhooks",

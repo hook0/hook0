@@ -17,6 +17,27 @@ A complete webhook delivery system that:
 - Application ID from Hook0
 - Basic understanding of REST APIs and webhooks
 
+### Set Up Environment Variables
+
+```bash
+# Set your service token (from dashboard)
+export HOOK0_TOKEN="YOUR_TOKEN_HERE"
+export HOOK0_API="https://app.hook0.com/api/v1" # Replace by your domain (or http://localhost:8081 locally)
+
+# Set your application ID (shown in dashboard URL or application details)
+export APP_ID="YOUR_APPLICATION_ID_HERE"
+```
+
+Save these values:
+```bash
+# Save to .env file for later use
+cat > .env <<EOF
+HOOK0_TOKEN=$HOOK0_TOKEN
+HOOK0_API=$HOOK0_API
+APP_ID=$APP_ID
+EOF
+```
+
 ## Architecture Overview
 
 ```
@@ -49,13 +70,13 @@ Event types act as a contract between your SaaS and customer webhooks. They must
 ### Creating a "User Created" Event Type
 
 ```bash
-curl -X POST "https://app.hook0.com/api/v1/event_types" \
-  -H "Authorization: Bearer {YOUR_TOKEN}" \
+curl -X POST "$HOOK0_API/event_types" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{APP_ID}",
-    "service": "users",
-    "resource_type": "account", 
+    "application_id": "'"$APP_ID"'",
+    "service": "user",
+    "resource_type": "account",
     "verb": "created"
   }'
 ```
@@ -63,22 +84,22 @@ curl -X POST "https://app.hook0.com/api/v1/event_types" \
 **Response:**
 ```json
 {
-  "service_name": "users",
+  "service_name": "user",
   "resource_type_name": "account",
   "verb_name": "created",
-  "event_type_name": "users.account.created"
+  "event_type_name": "user.account.created"
 }
 ```
 
 ### Creating an "Order Completed" Event Type
 
 ```bash
-curl -X POST "https://app.hook0.com/api/v1/event_types" \
-  -H "Authorization: Bearer {YOUR_TOKEN}" \
+curl -X POST "$HOOK0_API/event_types" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{APP_ID}",
-    "service": "orders",
+    "application_id": "'"$APP_ID"'",
+    "service": "order",
     "resource_type": "purchase",
     "verb": "completed"
   }'
@@ -90,7 +111,7 @@ curl -X POST "https://app.hook0.com/api/v1/event_types" \
   "service_name":"orders",
   "resource_type_name":"purchase",
   "verb_name":"completed",
-  "event_type_name":"orders.purchase.completed"
+  "event_type_name":"order.purchase.completed"
 }
 ```
 
@@ -107,13 +128,13 @@ You must create event types before sending events. Hook0 validates that the even
 When a user signs up in your SaaS:
 
 ```bash
-curl -X POST "https://app.hook0.com/api/v1/event" \
-  -H "Authorization: Bearer {YOUR_TOKEN}" \
+curl -X POST "$HOOK0_API/event" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{APP_ID}",
+    "application_id": "'"$APP_ID"'",
     "event_id": "'$(uuidgen)'",
-    "event_type": "users.account.created",
+    "event_type": "user.account.created",
     "payload": "{\"user_id\": \"usr_789\", \"email\": \"john@example.com\", \"plan\": \"premium\"}",
     "payload_content_type": "application/json",
     "occurred_at": "2024-01-15T10:30:00Z",
@@ -128,8 +149,8 @@ curl -X POST "https://app.hook0.com/api/v1/event" \
 **Response:**
 ```json
 {
-  "application_id": "3cae6773-88ae-4489-9b30-3918624fbd49",
-  "event_id": "69f69ecf-0d9e-4c92-a6e0-3b2676343940",
+  "application_id": "{APP_ID}",
+  "event_id": "{EVENT_ID}",
   "received_at": "2025-12-12T09:25:28.084734Z"
 }
 ```
@@ -156,13 +177,13 @@ The `tenant_id` label ensures events only go to the right customer.
 When an order is fulfilled:
 
 ```bash
-curl -X POST "https://app.hook0.com/api/v1/event" \
-  -H "Authorization: Bearer {YOUR_TOKEN}" \
+curl -X POST "$HOOK0_API/event" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{APP_ID}",
+    "application_id": "'"$APP_ID"'",
     "event_id": "'$(uuidgen)'",
-    "event_type": "orders.purchase.completed",
+    "event_type": "order.purchase.completed",
     "payload": "{\"order_id\": \"ord_456\", \"amount\": 299.99, \"items\": 3}",
     "payload_content_type": "application/json",
     "occurred_at": "2024-01-15T11:00:00Z",
@@ -177,8 +198,8 @@ curl -X POST "https://app.hook0.com/api/v1/event" \
 **Response:**
 ```json
 {
-  "application_id": "3cae6773-88ae-4489-9b30-3918624fbd49",
-  "event_id": "7c7a01cc-56a7-48b6-a0cb-f43457346e41",
+  "application_id": "{APP_ID}",
+  "event_id": "{EVENT_ID}",
   "received_at": "2025-12-12T09:27:27.045191Z"
 }
 ```
@@ -193,15 +214,15 @@ The `label_key` and `label_value` create a filter. Only events with matching lab
 ### Creating a Subscription for a Customer
 
 ```bash
-curl -X POST "https://app.hook0.com/api/v1/subscriptions" \
-  -H "Authorization: Bearer {YOUR_TOKEN}" \
+curl -X POST "$HOOK0_API/subscriptions" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{APP_ID}",
+    "application_id": "'"$APP_ID"'",
     "is_enabled": true,
     "event_types": [
-      "users.account.created",
-      "orders.purchase.completed"
+      "user.account.created",
+      "order.purchase.completed"
     ],
     "description": "Webhook for Customer ABC Corp",
     "label_key": "tenant_id",
@@ -226,12 +247,12 @@ curl -X POST "https://app.hook0.com/api/v1/subscriptions" \
 **Response:**
 ```json
 {
-  "application_id": "3cae6773-88ae-4489-9b30-3918624fbd49",
-  "subscription_id": "5fd32357-494b-446a-b49d-68f973e6aaaa",
+  "application_id": "{APP_ID}",
+  "subscription_id": "{SUBSCRIPTION_ID}",
   "is_enabled": true,
   "event_types": [
-    "users.account.created",
-    "orders.purchase.completed"
+    "user.account.created",
+    "order.purchase.completed"
   ],
   "description": "Webhook for Customer ABC Corp",
   "secret": "d48488f1-cddc...",
@@ -279,16 +300,16 @@ Hook0 provides comprehensive monitoring to track webhook success and failures.
 See what events have been sent:
 
 ```bash
-curl -X GET "https://app.hook0.com/api/v1/events/?application_id={APP_ID}" \
-  -H "Authorization: Bearer {YOUR_TOKEN}"
+curl -X GET "$HOOK0_API/events/?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 ```
 
 **Response:**
 ```json
 [
   {
-    "event_id": "7c7a01cc-56a7-48b6-a0cb-f43457346e41",
-    "event_type_name": "orders.purchase.completed",
+    "event_id": "{EVENT_ID}",
+    "event_type_name": "order.purchase.completed",
     "payload_content_type": "application/json",
     "ip": "192.168.97.1",
     "metadata": {},
@@ -301,8 +322,8 @@ curl -X GET "https://app.hook0.com/api/v1/events/?application_id={APP_ID}" \
     }
   },
   {
-    "event_id": "69f69ecf-0d9e-4c92-a6e0-3b2676343940",
-    "event_type_name": "users.account.created",
+    "event_id": "{EVENT_ID}",
+    "event_type_name": "user.account.created",
     "payload_content_type": "application/json",
     "ip": "192.168.97.1",
     "metadata": {},
@@ -315,8 +336,8 @@ curl -X GET "https://app.hook0.com/api/v1/events/?application_id={APP_ID}" \
     }
   },
   {
-    "event_id": "ae5844f0-b1ce-46fb-87f1-eddd52ace36c",
-    "event_type_name": "users.account.created",
+    "event_id": "{EVENT_ID}",
+    "event_type_name": "user.account.created",
     "payload_content_type": "application/json",
     "ip": "192.168.97.1",
     "metadata": {},
@@ -334,18 +355,18 @@ curl -X GET "https://app.hook0.com/api/v1/events/?application_id={APP_ID}" \
 Monitor webhook delivery attempts and their status:
 
 ```bash
-curl -X GET "https://app.hook0.com/api/v1/request_attempts/?application_id={APP_ID}" \
-  -H "Authorization: Bearer {YOUR_TOKEN}"
+curl -X GET "$HOOK0_API/request_attempts/?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 ```
 
 **Response:**
 ```json
 [
   {
-    "request_attempt_id": "550e8400-e29b-41d4-a716-446655440001",
-    "event_id": "550e8400-e29b-41d4-a716-446655440000",
+    "request_attempt_id": "{REQUEST_ATTEMPT_ID}",
+    "event_id": "{EVENT_ID}",
     "subscription": {
-      "subscription_id": "550e8400-e29b-41d4-a716-446655440002",
+      "subscription_id": "{SUBSCRIPTION_ID}",
       "description": "Customer webhook"
     },
     "created_at": "2024-01-15T10:30:01Z",
@@ -353,7 +374,7 @@ curl -X GET "https://app.hook0.com/api/v1/request_attempts/?application_id={APP_
     "succeeded_at": "2024-01-15T10:30:03Z",
     "failed_at": null,
     "retry_count": 0,
-    "response_id": "550e8400-e29b-41d4-a716-446655440003",
+    "response_id": "{RESPONSE_ID}",
     "status": {
       "type": "succeeded",
       "at": "2024-01-15T10:30:03Z"
@@ -367,11 +388,11 @@ curl -X GET "https://app.hook0.com/api/v1/request_attempts/?application_id={APP_
 If a webhook fails, you can replay it:
 
 ```bash
-curl -X POST "https://app.hook0.com/api/v1/events/{EVENT_ID}/replay" \
-  -H "Authorization: Bearer {YOUR_TOKEN}" \
+curl -X POST "$HOOK0_API/events/{EVENT_ID}/replay" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{APP_ID}"
+    "application_id": "'"$APP_ID"'"
   }'
 ```
 
@@ -383,13 +404,13 @@ When you need to send multiple events (e.g., batch import), send them individual
 
 ```bash
 # Event 1 of batch
-curl -X POST "https://app.hook0.com/api/v1/event" \
-  -H "Authorization: Bearer {YOUR_TOKEN}" \
+curl -X POST "$HOOK0_API/event" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{APP_ID}",
+    "application_id": "'"$APP_ID"'",
     "event_id": "'$(uuidgen)'",
-    "event_type": "users.account.created",
+    "event_type": "user.account.created",
     "payload": "{\"user_id\": \"usr_789\", \"email\": \"john@example.com\", \"plan\": \"premium\"}",
     "labels": {
       "tenant_id": "customer_123",
@@ -398,14 +419,14 @@ curl -X POST "https://app.hook0.com/api/v1/event" \
     }
   }'
 
-# Event 2 of batch  
-curl -X POST "https://app.hook0.com/api/v1/event" \
-  -H "Authorization: Bearer {YOUR_TOKEN}" \
+# Event 2 of batch
+curl -X POST "$HOOK0_API/event" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{APP_ID}",
+    "application_id": "'"$APP_ID"'",
     "event_id": "'$(uuidgen)'",
-    "event_type": "users.account.created",
+    "event_type": "user.account.created",
     "payload": "{\"user_id\": \"usr_7892\", \"email\": \"john2@example.com\", \"plan\": \"premium\"}",
     "labels": {
       "tenant_id": "customer_123",
@@ -421,13 +442,13 @@ Use labels to separate environments:
 
 ```bash
 # Production event
-curl -X POST "https://app.hook0.com/api/v1/event" \
-  -H "Authorization: Bearer {YOUR_TOKEN}" \
+curl -X POST "$HOOK0_API/event" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{APP_ID}",
+    "application_id": "'"$APP_ID"'",
     "event_id": "'$(uuidgen)'",
-    "event_type": "users.account.created",
+    "event_type": "user.account.created",
     "payload": "{\"user_id\": \"usr_123\"}",
     "payload_content_type": "application/json",
     "occurred_at": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'",
@@ -441,21 +462,21 @@ curl -X POST "https://app.hook0.com/api/v1/event" \
 **Response:**
 ```json
 {
-  "application_id": "3cae6773-88ae-4489-9b30-3918624fbd49",
-  "event_id": "dad2b176-d385-4d02-8201-f5b17ba764c1",
+  "application_id": "{APP_ID}",
+  "event_id": "{EVENT_ID}",
   "received_at": "2025-12-12T09:41:39.757315Z"
 }
 ```
 
 ```bash
 # Staging subscription (will not receive production events)
-curl -X POST "https://app.hook0.com/api/v1/subscriptions" \
-  -H "Authorization: Bearer {YOUR_TOKEN}" \
+curl -X POST "$HOOK0_API/subscriptions" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{APP_ID}",
+    "application_id": "'"$APP_ID"'",
     "is_enabled": true,
-    "event_types": ["users.account.created"],
+    "event_types": ["user.account.created"],
     "description": "Staging webhook",
     "label_key": "environment",
     "label_value": "staging",
@@ -473,12 +494,12 @@ curl -X POST "https://app.hook0.com/api/v1/subscriptions" \
 **Response:**
 ```json
 {
-  "application_id": "3cae6773-88ae-4489-9b30-3918624fbd49",
-  "subscription_id": "d2e628df-fa60-42f4-ab9a-5034b4f3a333",
+  "application_id": "{APP_ID}",
+  "subscription_id": "{SUBSCRIPTION_ID}",
   "is_enabled": true,
-  "event_types": ["users.account.created"],
+  "event_types": ["user.account.created"],
   "description": "Staging webhook",
-  "secret": "d77dfd50-477f-4a9e-b2e1-b49f7e506cf8",
+  "secret": "{SECRET}",
   "label_key": "environment",
   "label_value": "staging",
   "target": {
@@ -499,13 +520,13 @@ Use labels for priority handling:
 
 ```bash
 # High-priority event
-curl -X POST "https://app.hook0.com/api/v1/event" \
-  -H "Authorization: Bearer {YOUR_TOKEN}" \
+curl -X POST "$HOOK0_API/event" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{APP_ID}",
+    "application_id": "'"$APP_ID"'",
     "event_id": "'$(uuidgen)'",
-    "event_type": "payments.transaction.processed",
+    "event_type": "payment.transaction.processed",
     "payload": "{\"amount\": 10000}",
     "payload_content_type": "application/json",
     "occurred_at": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'",
@@ -520,8 +541,8 @@ curl -X POST "https://app.hook0.com/api/v1/event" \
 **Response:**
 ```json
 {
-  "application_id": "3cae6773-88ae-4489-9b30-3918624fbd49",
-  "event_id": "cb00bf75-5757-4de2-a314-a37c26c230fd",
+  "application_id": "{APP_ID}",
+  "event_id": "{EVENT_ID}",
   "received_at": "2025-12-12T09:41:52.802753Z"
 }
 ```
@@ -533,11 +554,11 @@ Here's a practical example showing the complete flow from event creation to webh
 ### Step 1: Create Event Type (one-time setup)
 
 ```bash
-curl -X POST "https://app.hook0.com/api/v1/event_types" \
-  -H "Authorization: Bearer {YOUR_TOKEN}" \
+curl -X POST "$HOOK0_API/event_types" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{APP_ID}",
+    "application_id": "'"$APP_ID"'",
     "service": "billing",
     "resource_type": "invoice",
     "verb": "paid"
@@ -557,11 +578,11 @@ curl -X POST "https://app.hook0.com/api/v1/event_types" \
 ### Step 2: Create Subscription (customer setup)
 
 ```bash
-curl -X POST "https://app.hook0.com/api/v1/subscriptions" \
-  -H "Authorization: Bearer {YOUR_TOKEN}" \
+curl -X POST "$HOOK0_API/subscriptions" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{APP_ID}",
+    "application_id": "'"$APP_ID"'",
     "is_enabled": true,
     "event_types": ["billing.invoice.paid"],
     "description": "Customer billing webhook",
@@ -581,12 +602,12 @@ curl -X POST "https://app.hook0.com/api/v1/subscriptions" \
 **Response:**
 ```json
 {
-  "application_id": "3cae6773-88ae-4489-9b30-3918624fbd49",
-  "subscription_id": "6b15a1be-20f9-4a6b-b09b-e09c50072d2d",
+  "application_id": "{APP_ID}",
+  "subscription_id": "{SUBSCRIPTION_ID}",
   "is_enabled": true,
   "event_types": ["billing.invoice.paid"],
   "description": "Customer billing webhook",
-  "secret": "af0c8a2a-00f9-42e5-afef-69ba9a66997a",
+  "secret": "{SECRET}",
   "label_key": "tenant_id",
   "label_value": "customer_789",
   "target": {
@@ -604,11 +625,11 @@ curl -X POST "https://app.hook0.com/api/v1/subscriptions" \
 ### Step 3: Send Event (when invoice is paid)
 
 ```bash
-curl -X POST "https://app.hook0.com/api/v1/event" \
-  -H "Authorization: Bearer {YOUR_TOKEN}" \
+curl -X POST "$HOOK0_API/event" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{APP_ID}",
+    "application_id": "'"$APP_ID"'",
     "event_id": "'$(uuidgen)'",
     "event_type": "billing.invoice.paid",
     "payload": "{\"invoice_id\": \"inv_456\", \"amount\": 1500.00}",
@@ -623,8 +644,8 @@ curl -X POST "https://app.hook0.com/api/v1/event" \
 **Response:**
 ```json
 {
-  "application_id": "3cae6773-88ae-4489-9b30-3918624fbd49",
-  "event_id": "1d84fdac-1de4-424d-966b-8c6386834ef6",
+  "application_id": "{APP_ID}",
+  "event_id": "{EVENT_ID}",
   "received_at": "2025-12-12T09:43:24.351417Z"
 }
 ```
@@ -653,7 +674,7 @@ from datetime import datetime, timezone
 event = {
     "application_id": "{APP_ID}",
     "event_id": str(uuid.uuid4()),
-    "event_type": "users.account.created",
+    "event_type": "user.account.created",
     "payload": json.dumps({"user_id": "usr_123"}),
     "payload_content_type": "application/json",
     "occurred_at": datetime.now(timezone.utc).isoformat(),
@@ -682,7 +703,7 @@ import (
 event := map[string]interface{}{
     "application_id":       "{APP_ID}",
     "event_id":             uuid.New().String(),
-    "event_type":           "users.account.created",
+    "event_type":           "user.account.created",
     "payload":              `{"user_id": "usr_123"}`,
     "payload_content_type": "application/json",
     "occurred_at":          time.Now().UTC().Format(time.RFC3339),
@@ -714,7 +735,7 @@ require 'time'
 event = {
   application_id: "{APP_ID}",
   event_id: SecureRandom.uuid,
-  event_type: "users.account.created",
+  event_type: "user.account.created",
   payload: {user_id: "usr_123"}.to_json,
   payload_content_type: "application/json",
   occurred_at: Time.now.utc.iso8601,
@@ -763,27 +784,27 @@ response = http.request(request)
 ### Event Not Delivered
 ```bash
 # Check if event was received
-curl -X GET "https://app.hook0.com/api/v1/events?application_id={APP_ID}" \
-  -H "Authorization: Bearer {YOUR_TOKEN}"
+curl -X GET "$HOOK0_API/events?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 
 # Check subscription filters
-curl -X GET "https://app.hook0.com/api/v1/subscriptions?application_id={APP_ID}" \
-  -H "Authorization: Bearer {YOUR_TOKEN}"
+curl -X GET "$HOOK0_API/subscriptions?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 # Verify label_key and label_value match your events
 ```
 
 ### 401 Unauthorized
 ```bash
 # Verify token is included
-curl -H "Authorization: Bearer {YOUR_TOKEN}"  # ✅ Correct
-curl -H "Authorization: {YOUR_TOKEN}"         # ❌ Wrong - missing Bearer
+curl -H "Authorization: Bearer $HOOK0_TOKEN"  # ✅ Correct
+curl -H "Authorization: $HOOK0_TOKEN"         # ❌ Wrong - missing Bearer
 ```
 
 ### Event Type Not Found
 ```bash
 # List existing event types
-curl -X GET "https://app.hook0.com/api/v1/event_types?application_id={APP_ID}" \
-  -H "Authorization: Bearer {YOUR_TOKEN}"
+curl -X GET "$HOOK0_API/event_types?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 
 # Create missing event type before sending events
 ```

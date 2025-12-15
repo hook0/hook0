@@ -37,6 +37,27 @@ All 5xx codes: Temporary failures, will retry. Suggests issues with your webhook
 - Connection refused
 :::
 
+### Set Up Environment Variables
+
+```bash
+# Set your service token (from dashboard)
+export HOOK0_TOKEN="YOUR_TOKEN_HERE"
+export HOOK0_API="https://app.hook0.com/api/v1" # Replace by your domain (or http://localhost:8081 locally)
+
+# Set your application ID (shown in dashboard URL or application details)
+export APP_ID="YOUR_APPLICATION_ID_HERE"
+```
+
+Save these values:
+```bash
+# Save to .env file for later use
+cat > .env <<EOF
+HOOK0_TOKEN=$HOOK0_TOKEN
+HOOK0_API=$HOOK0_API
+APP_ID=$APP_ID
+EOF
+```
+
 ## Step 1: Access Hook0 Dashboard Diagnostics
 
 ### Navigate to Request Attempts
@@ -69,24 +90,24 @@ Look for these key details:
 
 ```bash
 # Get all request attempts for an application
-curl "http://localhost:8081/api/v1/request_attempts/?application_id={APP_ID}" \
-  -H "Authorization: Bearer {YOUR_TOKEN}"
+curl "$HOOK0_API/request_attempts/?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 
 # Filter by event
-curl "http://localhost:8081/api/v1/request_attempts/?application_id={APP_ID}&event_id={EVENT_ID}" \
-  -H "Authorization: Bearer {YOUR_TOKEN}"
+curl "$HOOK0_API/request_attempts/?application_id=$APP_ID&event_id={EVENT_ID}" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 
 # Filter by subscription
-curl "http://localhost:8081/api/v1/request_attempts/?application_id={APP_ID}&subscription_id={SUBSCRIPTION_ID}" \
-  -H "Authorization: Bearer {YOUR_TOKEN}"
+curl "$HOOK0_API/request_attempts/?application_id=$APP_ID&subscription_id={SUBSCRIPTION_ID}" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 ```
 
 ### Get Response Details
 
 ```bash
 # Get the response body and headers for a failed attempt
-curl "http://localhost:8081/api/v1/responses/{RESPONSE_ID}?application_id={APP_ID}" \
-  -H "Authorization: Bearer {YOUR_TOKEN}"
+curl "$HOOK0_API/responses/{RESPONSE_ID}?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 ```
 
 ## Step 3: Common Failure Scenarios and Solutions
@@ -169,8 +190,8 @@ Add logging to compare expected vs received signature. See [Implementing Webhook
 **Diagnosis:**
 ```bash
 # Monitor request patterns - filter 429 responses
-curl "http://localhost:8081/api/v1/request_attempts/?application_id={APP_ID}&subscription_id={SUBSCRIPTION_ID}" \
-  -H "Authorization: Bearer {YOUR_TOKEN}" | \
+curl "$HOOK0_API/request_attempts/?application_id=$APP_ID&subscription_id={SUBSCRIPTION_ID}" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" | \
   jq '.[] | select(.status.type == "failed")'
 ```
 
@@ -426,15 +447,15 @@ ${JSON.stringify(failedAttempts, null, 2)}
 
 ```bash
 # Get events for your application
-curl "http://localhost:8081/api/v1/events/?application_id={APP_ID}" \
-  -H "Authorization: Bearer {YOUR_TOKEN}"
+curl "$HOOK0_API/events/?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 
 # Replay a specific event
-curl -X POST "http://localhost:8081/api/v1/events/{EVENT_ID}/replay" \
-  -H "Authorization: Bearer {YOUR_TOKEN}" \
+curl -X POST "$HOOK0_API/events/{EVENT_ID}/replay" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{APP_ID}"
+    "application_id": "'"$APP_ID"'"
   }'
 ```
 

@@ -10,6 +10,27 @@ GitLab.com hosts millions of projects across thousands of organizations. Each pr
 - Multi-tenant isolation ensuring data privacy
 - Scalable infrastructure handling billions of events
 
+### Set Up Environment Variables
+
+```bash
+# Set your service token (from dashboard)
+export HOOK0_TOKEN="YOUR_TOKEN_HERE"
+export HOOK0_API="https://app.hook0.com/api/v1" # Replace by your domain (or http://localhost:8081 locally)
+
+# Set your application ID (shown in dashboard URL or application details)
+export APP_ID="YOUR_APPLICATION_ID_HERE"
+```
+
+Save these values:
+```bash
+# Save to .env file for later use
+cat > .env <<EOF
+HOOK0_TOKEN=$HOOK0_TOKEN
+HOOK0_API=$HOOK0_API
+APP_ID=$APP_ID
+EOF
+```
+
 ## Architecture Overview
 
 Hook0 provides GitLab.com with:
@@ -24,33 +45,33 @@ First, GitLab.com needs to define event types for all GitLab activities:
 
 ```bash
 # Create push event type
-curl -X POST "http://localhost:8081/api/v1/event_types" \
-  -H "Authorization: Bearer $GITLAB_ADMIN_TOKEN" \
+curl -X POST "$HOOK0_API/event_types" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{GITLAB_APP_ID}",
+    "application_id": "'"$APP_ID"'",
     "service": "gitlab",
     "resource_type": "push",
     "verb": "created"
   }'
 
 # Create merge request event type
-curl -X POST "http://localhost:8081/api/v1/event_types" \
-  -H "Authorization: Bearer $GITLAB_ADMIN_TOKEN" \
+curl -X POST "$HOOK0_API/event_types" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{GITLAB_APP_ID}",
+    "application_id": "'"$APP_ID"'",
     "service": "gitlab",
     "resource_type": "merge_request",
     "verb": "opened"
   }'
 
 # Create pipeline event type
-curl -X POST "http://localhost:8081/api/v1/event_types" \
-  -H "Authorization: Bearer $GITLAB_ADMIN_TOKEN" \
+curl -X POST "$HOOK0_API/event_types" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{GITLAB_APP_ID}",
+    "application_id": "'"$APP_ID"'",
     "service": "gitlab",
     "resource_type": "pipeline",
     "verb": "completed"
@@ -64,11 +85,11 @@ When events occur in GitLab, they're sent to Hook0 with tenant-specific labels:
 ```bash
 # Example: User pushes code to a project
 # Note: event_id must be a valid UUID
-curl -X POST "http://localhost:8081/api/v1/event" \
-  -H "Authorization: Bearer $GITLAB_SERVICE_TOKEN" \
+curl -X POST "$HOOK0_API/event" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{GITLAB_APP_ID}",
+    "application_id": "'"$APP_ID"'",
     "event_id": "'"$(uuidgen)"'",
     "event_type": "gitlab.push.created",
     "payload": "{\"ref\":\"refs/heads/main\",\"commits\":3,\"author\":\"john@example.com\",\"message\":\"Fix bug in authentication\"}",
@@ -87,11 +108,11 @@ curl -X POST "http://localhost:8081/api/v1/event" \
   }'
 
 # Example: Pipeline completion event
-curl -X POST "http://localhost:8081/api/v1/event" \
-  -H "Authorization: Bearer $GITLAB_SERVICE_TOKEN" \
+curl -X POST "$HOOK0_API/event" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{GITLAB_APP_ID}",
+    "application_id": "'"$APP_ID"'",
     "event_id": "'"$(uuidgen)"'",
     "event_type": "gitlab.pipeline.completed",
     "payload": "{\"pipeline_id\":\"9876\",\"status\":\"success\",\"duration\":240,\"stages\":[\"test\",\"build\",\"deploy\"]}",
@@ -114,11 +135,11 @@ GitLab users create webhooks that are registered as Hook0 subscriptions with lab
 ```bash
 # User creates a project webhook via GitLab UI
 # GitLab backend registers it with Hook0:
-curl -X POST "http://localhost:8081/api/v1/subscriptions" \
-  -H "Authorization: Bearer $GITLAB_SERVICE_TOKEN" \
+curl -X POST "$HOOK0_API/subscriptions" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{GITLAB_APP_ID}",
+    "application_id": "'"$APP_ID"'",
     "is_enabled": true,
     "event_types": ["gitlab.push.created", "gitlab.merge_request.opened"],
     "description": "ACME Corp API Gateway project webhook",
@@ -140,11 +161,11 @@ curl -X POST "http://localhost:8081/api/v1/subscriptions" \
   }'
 
 # Group-level webhook (triggers for all projects in group)
-curl -X POST "http://localhost:8081/api/v1/subscriptions" \
-  -H "Authorization: Bearer $GITLAB_SERVICE_TOKEN" \
+curl -X POST "$HOOK0_API/subscriptions" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{GITLAB_APP_ID}",
+    "application_id": "'"$APP_ID"'",
     "is_enabled": true,
     "event_types": ["gitlab.pipeline.completed"],
     "description": "ACME Corp group-wide pipeline notifications",
@@ -170,20 +191,20 @@ GitLab.com exposes webhook delivery information through their UI by querying Hoo
 ```bash
 # Get request attempts for a subscription (webhook)
 # GitLab UI calls this when user views webhook logs
-curl -X GET "http://localhost:8081/api/v1/request_attempts/?application_id={GITLAB_APP_ID}&subscription_id={SUBSCRIPTION_ID}" \
-  -H "Authorization: Bearer $GITLAB_SERVICE_TOKEN"
+curl -X GET "$HOOK0_API/request_attempts/?application_id=$APP_ID&subscription_id={SUBSCRIPTION_ID}" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 
 # Response includes delivery attempts with status, response codes, and timing
 # GitLab formats this data for display in their webhook settings UI
 
 # Filter by time range for recent attempts
-curl -X GET "http://localhost:8081/api/v1/request_attempts/?application_id={GITLAB_APP_ID}&subscription_id={SUBSCRIPTION_ID}&min_created_at=2024-01-15T00:00:00Z" \
-  -H "Authorization: Bearer $GITLAB_SERVICE_TOKEN"
+curl -X GET "$HOOK0_API/request_attempts/?application_id=$APP_ID&subscription_id={SUBSCRIPTION_ID}&min_created_at=2024-01-15T00:00:00Z" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 
 # Get response body for debugging failed deliveries
 # First get the response_id from request_attempt, then fetch response details
-curl -X GET "http://localhost:8081/api/v1/responses/{RESPONSE_ID}?application_id={GITLAB_APP_ID}" \
-  -H "Authorization: Bearer $GITLAB_SERVICE_TOKEN"
+curl -X GET "$HOOK0_API/responses/{RESPONSE_ID}?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 ```
 
 ## Step 5: User-Facing Webhook Management
@@ -196,15 +217,15 @@ When updating subscriptions, the PUT endpoint requires ALL fields (`application_
 
 ```bash
 # List all webhooks for an application (GitLab queries subscriptions)
-curl -X GET "http://localhost:8081/api/v1/subscriptions/?application_id={GITLAB_APP_ID}" \
-  -H "Authorization: Bearer $GITLAB_SERVICE_TOKEN"
+curl -X GET "$HOOK0_API/subscriptions/?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 
 # Update webhook (e.g., change URL or events) - include ALL fields
-curl -X PUT "http://localhost:8081/api/v1/subscriptions/{SUBSCRIPTION_ID}" \
-  -H "Authorization: Bearer $GITLAB_SERVICE_TOKEN" \
+curl -X PUT "$HOOK0_API/subscriptions/{SUBSCRIPTION_ID}" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{GITLAB_APP_ID}",
+    "application_id": "'"$APP_ID"'",
     "is_enabled": true,
     "event_types": ["gitlab.push.created", "gitlab.merge_request.opened", "gitlab.pipeline.completed"],
     "description": "ACME Corp API Gateway project webhook",
@@ -219,11 +240,11 @@ curl -X PUT "http://localhost:8081/api/v1/subscriptions/{SUBSCRIPTION_ID}" \
   }'
 
 # Disable webhook temporarily (all fields required)
-curl -X PUT "http://localhost:8081/api/v1/subscriptions/{SUBSCRIPTION_ID}" \
-  -H "Authorization: Bearer $GITLAB_SERVICE_TOKEN" \
+curl -X PUT "$HOOK0_API/subscriptions/{SUBSCRIPTION_ID}" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{GITLAB_APP_ID}",
+    "application_id": "'"$APP_ID"'",
     "is_enabled": false,
     "event_types": ["gitlab.push.created", "gitlab.merge_request.opened"],
     "description": "ACME Corp API Gateway project webhook",
@@ -238,8 +259,8 @@ curl -X PUT "http://localhost:8081/api/v1/subscriptions/{SUBSCRIPTION_ID}" \
   }'
 
 # Delete webhook
-curl -X DELETE "http://localhost:8081/api/v1/subscriptions/{SUBSCRIPTION_ID}?application_id={GITLAB_APP_ID}" \
-  -H "Authorization: Bearer $GITLAB_SERVICE_TOKEN"
+curl -X DELETE "$HOOK0_API/subscriptions/{SUBSCRIPTION_ID}?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 ```
 
 ## Step 6: Retry Failed Webhook Deliveries
@@ -248,11 +269,11 @@ Users can manually retry failed webhook deliveries through GitLab's UI:
 
 ```bash
 # Replay a specific event (user clicks "Retry" in GitLab UI)
-curl -X POST "http://localhost:8081/api/v1/events/{EVENT_ID}/replay" \
-  -H "Authorization: Bearer $GITLAB_SERVICE_TOKEN" \
+curl -X POST "$HOOK0_API/events/{EVENT_ID}/replay" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{GITLAB_APP_ID}"
+    "application_id": "'"$APP_ID"'"
   }'
 ```
 
@@ -262,11 +283,11 @@ GitLab.com administrators can set up system-wide hooks:
 
 ```bash
 # Create system hook for user creation events
-curl -X POST "http://localhost:8081/api/v1/subscriptions" \
-  -H "Authorization: Bearer $GITLAB_ADMIN_TOKEN" \
+curl -X POST "$HOOK0_API/subscriptions" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{GITLAB_APP_ID}",
+    "application_id": "'"$APP_ID"'",
     "is_enabled": true,
     "event_types": ["gitlab.user.created", "gitlab.user.blocked", "gitlab.project.created"],
     "description": "GitLab.com system hooks for compliance",
@@ -289,16 +310,16 @@ GitLab.com monitors webhook health across the platform:
 
 ```bash
 # Query delivery metrics by time range
-curl -X GET "http://localhost:8081/api/v1/request_attempts/?application_id={GITLAB_APP_ID}&min_created_at=2024-01-15T00:00:00Z&max_created_at=2024-01-15T23:59:59Z" \
-  -H "Authorization: Bearer $GITLAB_SERVICE_TOKEN"
+curl -X GET "$HOOK0_API/request_attempts/?application_id=$APP_ID&min_created_at=2024-01-15T00:00:00Z&max_created_at=2024-01-15T23:59:59Z" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 
 # Monitor webhook performance for a specific subscription
-curl -X GET "http://localhost:8081/api/v1/request_attempts/?application_id={GITLAB_APP_ID}&subscription_id={SUBSCRIPTION_ID}" \
-  -H "Authorization: Bearer $GITLAB_SERVICE_TOKEN"
+curl -X GET "$HOOK0_API/request_attempts/?application_id=$APP_ID&subscription_id={SUBSCRIPTION_ID}" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 
 # Filter by event to track specific webhook deliveries
-curl -X GET "http://localhost:8081/api/v1/request_attempts/?application_id={GITLAB_APP_ID}&event_id={EVENT_ID}" \
-  -H "Authorization: Bearer $GITLAB_SERVICE_TOKEN"
+curl -X GET "$HOOK0_API/request_attempts/?application_id=$APP_ID&event_id={EVENT_ID}" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 ```
 
 ## Benefits for GitLab.com Users

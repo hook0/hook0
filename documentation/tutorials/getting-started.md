@@ -4,11 +4,32 @@ This tutorial will guide you through creating an application and sending your fi
 
 ## Prerequisites
 
-- **For Self-Hosted**: Docker and Docker Compose installed
+- **For Self-Hosted**: Docker and Docker Compose installed. **🚨 You'll need to replace the API base URL with your own domain or http://localhost:8081 in the examples.**
 - **For Cloud**: A Hook0 account at [hook0.com](https://www.hook0.com/)
 - Basic understanding of HTTP APIs
 - cURL or similar HTTP client
 - Familiarity with [Hook0 Core Concepts](../explanation/what-is-hook0.md#core-concepts)
+
+### Set Up Environment Variables
+
+```bash
+# Set your service token (from dashboard)
+export HOOK0_TOKEN="YOUR_TOKEN_HERE"
+export HOOK0_API="https://app.hook0.com/api/v1" # Replace by your domain (or http://localhost:8081 locally)
+
+# Set your application ID (shown in dashboard URL or application details)
+export APP_ID="YOUR_APPLICATION_ID_HERE"
+```
+
+Save these values:
+```bash
+# Save to .env file for later use
+cat > .env <<EOF
+HOOK0_TOKEN=$HOOK0_TOKEN
+HOOK0_API=$HOOK0_API
+APP_ID=$APP_ID
+EOF
+```
 
 ## Step 1: Start Hook0 (Self-Hosted Only)
 
@@ -79,23 +100,33 @@ Event types define the structure of events your application can send.
 
 1. **Navigate to Event Types** in your application
 2. **Click "Create Event Type"**
-3. **Define your event type**: `users.account.created`
+3. **Define your event type**: `user.account.created`
 
 ### - OR using the API:
 
 ```bash
-curl -X POST "https://app.hook0.com/api/v1/event_types" \
-  -H "Authorization: Bearer {YOUR_TOKEN}" \
+curl -X POST "$HOOK0_API/event_types" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{APP_ID}",
-    "service": "users",
+    "application_id": "'"$APP_ID"'",
+    "service": "user",
     "resource_type": "account",
     "verb": "created"
   }'
 ```
 
-This creates an event type named `users.account.created` (composed from service.resource_type.verb).
+**Response:**
+```json
+{
+  "service_name": "user",
+  "resource_type_name": "account",
+  "verb_name": "created",
+  "event_type_name": "user.account.created"
+}
+```
+
+This creates an event type named `user.account.created` (composed from `service.resource_type.verb`).
 
 ## Step 5: Create a Webhook Subscription
 
@@ -109,13 +140,13 @@ For this tutorial, use [webhook.site](https://webhook.site) to create a test end
 ### Create the Subscription
 
 ```bash
-curl -X POST "https://app.hook0.com/api/v1/subscriptions" \
-  -H "Authorization: Bearer {YOUR_TOKEN}" \
+curl -X POST "$HOOK0_API/subscriptions" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{APP_ID}",
+    "application_id": "'"$APP_ID"'",
     "is_enabled": true,
-    "event_types": ["users.account.created"],
+    "event_types": ["user.account.created"],
     "description": "Tutorial webhook endpoint",
     "label_key": "environment",
     "label_value": "tutorial",
@@ -134,8 +165,8 @@ You'll receive a response with the subscription ID and secret:
 
 ```json
 {
-  "subscription_id": "550e8400-e29b-41d4-a716-446655440000",
-  "secret": "your-webhook-secret",
+  "subscription_id": "{SUBSCRIPTION_ID}",
+  "secret": "{SECRET}",
   ...
 }
 ```
@@ -153,13 +184,13 @@ Every event must include at least one label. Labels are used to route events to 
 :::
 
 ```bash
-curl -X POST "https://app.hook0.com/api/v1/event" \
-  -H "Authorization: Bearer {YOUR_TOKEN}" \
+curl -X POST "$HOOK0_API/event" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{APP_ID}",
+    "application_id": "'"$APP_ID"'",
     "event_id": "'$(uuidgen)'",
-    "event_type": "users.account.created",
+    "event_type": "user.account.created",
     "payload": "{\"user_id\": 123, \"email\": \"john.doe@example.com\"}",
     "payload_content_type": "application/json",
     "labels": {
@@ -193,7 +224,7 @@ The `payload` field must be a **JSON-encoded string**, not a raw object. Notice 
    ```json
    {
      "event_id": "evt_1234567890abcdef",
-     "event_type": "users.account.created", 
+     "event_type": "user.account.created", 
      "payload": {
        "user_id": 123,
        "email": "john.doe@example.com",
@@ -221,8 +252,8 @@ Hook0 signs all webhook deliveries with HMAC-SHA256. You should always verify si
 You can get it with:
 
 ```bash
-curl "https://app.hook0.com/api/v1/subscriptions/{SUBSCRIPTION_ID}?application_id={APP_ID}" \
-  -H "Authorization: Bearer {YOUR_TOKEN}"
+curl "$HOOK0_API/subscriptions/$SUBSCRIPTION_ID?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 ```
 Note the `secret` field in the response.
 :::
@@ -272,7 +303,7 @@ Now that you have the basics, try these advanced tutorials:
 - Verify HMAC algorithm (SHA256)
 
 ## API Reference
-@TODOROMAIN
+
 - [Events API](../openapi/intro)
 - [Subscriptions API](../openapi/intro)
 - [Event Types API](../openapi/intro)

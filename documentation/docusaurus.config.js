@@ -50,7 +50,6 @@ const config = {
             "**/build/**",
             "**/.docusaurus/**",
             "**/scripts/**",
-            "**/api/**",
           ],
         },
         blog: false,
@@ -63,20 +62,20 @@ const config = {
 
   plugins: [
     [
-      "docusaurus-plugin-openapi-docs",
+      "@scalar/docusaurus",
       {
-        id: "openapi",
-        docsPluginId: "classic",
-        config: {
-          hook0: {
-            specPath: "./openapi/hook0-api.json",
-            outputDir: "./api",
-            sidebarOptions: {
-              groupPathsBy: "tag",
-              categoryLinkSource: "tag",
-            },
-            downloadUrl: "https://app.hook0.com/api/v1/swagger.json",
+        label: "API Reference",
+        route: "/api",
+        showNavLink: true,
+        configuration: {
+          spec: {
+            url: "/hook0-api.json",
           },
+          theme: "none",
+          authentication: {
+            preferredSecurityScheme: "apiToken",
+          },
+          customCss: `@import url('https://unpkg.com/highlight.js@11.11.1/styles/night-owl.min.css');`,
         },
       },
     ],
@@ -84,7 +83,6 @@ const config = {
 
   themes: [
     "@docusaurus/theme-mermaid",
-    "docusaurus-theme-openapi-docs",
     [
       require.resolve("@easyops-cn/docusaurus-search-local"),
       {
@@ -92,6 +90,8 @@ const config = {
         language: ["en", "fr"],
         highlightSearchTermsOnTargetPage: true,
         explicitSearchResultPath: true,
+        docsDir: ".",
+        docsRouteBasePath: "/",
       },
     ],
   ],
@@ -270,7 +270,7 @@ const config = {
       },
       prism: {
         theme: prismThemes.github,
-        darkTheme: prismThemes.dracula,
+        darkTheme: prismThemes.nightOwl,
         additionalLanguages: ["rust", "bash", "json", "yaml", "toml"],
       },
       announcementBar: {

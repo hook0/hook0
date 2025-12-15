@@ -10,19 +10,19 @@ Hook0 uses a **three-part naming convention** for event types:
 service.resource.verb
 ```
 
-- **service**: The service or domain (e.g., `users`, `orders`, `payments`)
+- **service**: The service or domain (e.g., `user`, `order`, `payment`)
 - **resource**: The specific resource or entity (e.g., `account`, `payment`, `subscription`)
 - **verb**: The action in past tense (e.g., `created`, `updated`, `deleted`, `completed`)
 
 **Examples:**
-- `users.account.created` - A user account was created
-- `orders.payment.completed` - An order payment was completed
+- `user.account.created` - A user account was created
+- `order.payment.completed` - An order payment was completed
 - `inventory.stock.updated` - Inventory stock was updated
-- `subscriptions.plan.cancelled` - A subscription plan was cancelled
+- `subscription.plan.cancelled` - A subscription plan was cancelled
 
 **Anti-patterns (avoid 2-part names):**
-- ❌ `user.created` → ✅ `users.account.created`
-- ❌ `order.paid` → ✅ `orders.payment.completed`
+- ❌ `user.created` → ✅ `user.account.created`
+- ❌ `order.paid` → ✅ `order.payment.completed`
 - ❌ `file.uploaded` → ✅ `storage.file.uploaded`
 
 ## Schema Format
@@ -41,7 +41,7 @@ Hook0 events follow this structure:
 
 ## User Lifecycle Events
 
-### users.account.created
+### user.account.created
 
 Emitted when a new user account is created.
 
@@ -63,7 +63,7 @@ interface UserCreatedPayload {
 ```json
 {
   "event_id": "evt_user_created_123",
-  "event_type": "users.account.created",
+  "event_type": "user.account.created",
   "payload": {
     "user_id": "user_12345",
     "email": "john.doe@example.com",
@@ -106,7 +106,7 @@ interface UserUpdatedPayload {
 ```json
 {
   "event_id": "evt_user_updated_456",
-  "event_type": "user.updated",
+  "event_type": "user.account.updated",
   "payload": {
     "user_id": "user_12345",
     "changes": ["name", "plan"],
@@ -148,7 +148,7 @@ interface UserDeletedPayload {
 ```json
 {
   "event_id": "evt_user_deleted_789",
-  "event_type": "user.deleted",
+  "event_type": "user.account.deleted",
   "payload": {
     "user_id": "user_12345",
     "email": "john.doe@example.com",
@@ -227,7 +227,7 @@ interface SubscriptionCreatedPayload {
 ```json
 {
   "event_id": "evt_sub_created_202",
-  "event_type": "subscription.created",
+  "event_type": "subscription.plan.created",
   "payload": {
     "subscription_id": "sub_67890",
     "user_id": "user_12345",
@@ -307,7 +307,7 @@ interface PaymentSucceededPayload {
 ```json
 {
   "event_id": "evt_payment_success_303",
-  "event_type": "payment.succeeded",
+  "event_type": "payment.transaction.succeeded",
   "payload": {
     "payment_id": "pay_12345",
     "subscription_id": "sub_67890",
@@ -358,7 +358,7 @@ interface PaymentFailedPayload {
 ```json
 {
   "event_id": "evt_payment_failed_404",
-  "event_type": "payment.failed",
+  "event_type": "payment.transaction.failed",
   "payload": {
     "payment_id": "pay_12346",
     "subscription_id": "sub_67890",
@@ -431,7 +431,7 @@ interface OrderCreatedPayload {
 ```json
 {
   "event_id": "evt_order_created_505",
-  "event_type": "order.created",
+  "event_type": "order.purchase.created",
   "payload": {
     "order_id": "ord_98765",
     "customer_id": "user_12345",
@@ -498,7 +498,7 @@ interface OrderShippedPayload {
 ```json
 {
   "event_id": "evt_order_shipped_606",
-  "event_type": "order.shipped",
+  "event_type": "order.shipment.shipped",
   "payload": {
     "order_id": "ord_98765",
     "customer_id": "user_12345",

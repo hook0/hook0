@@ -32,9 +32,9 @@ Applications represent your services or products within an organization. Each ap
 
 ### Event Types
 Event types define the structure and metadata of events your application can emit. Examples:
-- `users.account.created`
-- `payments.transaction.completed`
-- `orders.shipment.shipped`
+- `user.account.created`
+- `payment.transaction.completed`
+- `order.shipment.shipped`
 
 ### Events
 Events are specific occurrences of an event type, containing:
@@ -59,10 +59,11 @@ Hook0 tracks every delivery attempt, including:
 
 ## Why Choose Hook0?
 
-### Open Source & Self-Hostable
+### Open Source, Self-Hostable or Cloud version
 - Full control over your infrastructure
 - No vendor lock-in
 - Server Side Public License (SSPL) v1
+- Cloud version available at [hook0.com](https://www.hook0.com/)
 
 ### Built for Scale
 - Rust-based architecture for performance

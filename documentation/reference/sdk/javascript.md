@@ -25,7 +25,7 @@ const hook0 = new Hook0Client(
 
 // Send an event
 const event = new Event(
-  'users.account.created',
+  'user.account.created',
   JSON.stringify({
     user_id: 'user_123',
     email: 'john.doe@example.com'
@@ -74,7 +74,7 @@ const hook0 = new Hook0Client(
 );
 
 const event = new Event(
-  'orders.checkout.completed',
+  'order.checkout.completed',
   JSON.stringify({
     order_id: 'ord_123',
     customer_id: 'cust_456',
@@ -107,9 +107,9 @@ The event listing and querying functionality is not available in the current SDK
 ```typescript
 // Upsert event types (creates if not exists)
 const addedEventTypes = await hook0.upsertEventTypes([
-  'users.account.created',
-  'users.account.updated',
-  'orders.checkout.completed'
+  'user.account.created',
+  'user.account.updated',
+  'order.checkout.completed'
 ]);
 
 console.log('Added event types:', addedEventTypes);
@@ -174,7 +174,7 @@ import { Hook0ClientError } from 'hook0-client';
 
 try {
   const event = new Event(
-    'users.account.created',
+    'user.account.created',
     JSON.stringify({ user_id: 'user_123' }),
     'application/json',
     { source: 'api' }
@@ -210,7 +210,7 @@ import { Hook0Client, Event, EventType, Hook0ClientError } from 'hook0-client';
 
 // Type-safe event creation
 const event = new Event(
-  'users.account.created',
+  'user.account.created',
   JSON.stringify({
     user_id: 'user_123',
     email: 'john@example.com'
@@ -253,7 +253,7 @@ describe('Event Handler', () => {
     );
 
     const event = new Event(
-      'users.account.created',
+      'user.account.created',
       JSON.stringify({ email: 'test@example.com' }),
       'application/json',
       {}
@@ -323,7 +323,7 @@ try {
 // When sending multiple events, consider using Promise.all for parallelization
 const eventPromises = users.map(user => {
   const event = new Event(
-    'users.account.created',
+    'user.account.created',
     JSON.stringify(user),
     'application/json',
     { source: 'bulk_import' }
@@ -340,7 +340,7 @@ console.log(`Sent ${eventIds.length} events`);
 ```typescript
 // Provide your own event ID for idempotency
 const event = new Event(
-  'payments.transaction.processed',
+  'payment.transaction.processed',
   JSON.stringify({ amount: 100.00 }),
   'application/json',
   { transaction_id },

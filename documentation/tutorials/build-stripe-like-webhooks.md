@@ -13,7 +13,7 @@ This comprehensive tutorial guides you through building a production-ready webho
 ## What You'll Build
 
 A complete webhook infrastructure featuring:
-- Payment event types (`payments.charge.succeeded`, `payments.charge.failed`)
+- Payment event types (`payment.charge.succeeded`, `payment.charge.failed`)
 - Secure webhook receiver with signature verification
 - Multi-tenant event routing using labels
 - Webhook testing and debugging tools
@@ -43,7 +43,8 @@ docker compose logs -f api
 # Wait until you see "Listening on 0.0.0.0:8081"
 
 # Verify API is running
-curl https://app.hook0.com/api/v1/swagger.json | head -1
+# Use http://localhost:8081 for self-hosted or https://app.hook0.com for cloud
+curl http://localhost:8081/api/v1/swagger.json | head -1
 # Expected: {"openapi":"3.0.3"...
 ```
 
@@ -73,8 +74,8 @@ For self-hosted instances, check Mailpit at http://localhost:8025 to access veri
 
 ```bash
 # Set your service token (from dashboard)
-export HOOK0_TOKEN="YOUR_SERVICE_TOKEN_HERE"
-export HOOK0_API="https://app.hook0.com/api/v1"
+export HOOK0_TOKEN="YOUR_TOKEN_HERE"
+export HOOK0_API="https://app.hook0.com/api/v1" # Replace by your domain (or http://localhost:8081/api/v1 locally)
 
 # Set your application ID (shown in dashboard URL or application details)
 export APP_ID="YOUR_APPLICATION_ID_HERE"
@@ -105,7 +106,7 @@ curl -X POST "$HOOK0_API/event_types" \
   -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"application_id\": \"$APP_ID\",
+    \"application_id\": \"'"$APP_ID"'\",
     \"service\": \"payments\",
     \"resource_type\": \"charge\",
     \"verb\": \"succeeded\"
@@ -116,7 +117,7 @@ curl -X POST "$HOOK0_API/event_types" \
   -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"application_id\": \"$APP_ID\",
+    \"application_id\": \"'"$APP_ID"'\",
     \"service\": \"payments\",
     \"resource_type\": \"charge\",
     \"verb\": \"failed\"
@@ -127,7 +128,7 @@ curl -X POST "$HOOK0_API/event_types" \
   -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"application_id\": \"$APP_ID\",
+    \"application_id\": \"'"$APP_ID"'\",
     \"service\": \"payments\",
     \"resource_type\": \"refund\",
     \"verb\": \"created\"
@@ -138,7 +139,7 @@ curl -X POST "$HOOK0_API/event_types" \
   -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"application_id\": \"$APP_ID\",
+    \"application_id\": \"'"$APP_ID"'\",
     \"service\": \"customers\",
     \"resource_type\": \"account\",
     \"verb\": \"created\"
@@ -157,26 +158,26 @@ curl "$HOOK0_API/event_types?application_id=$APP_ID" \
 Expected output:
 ```json
 {
-  "event_type_name": "payments.charge.succeeded",
-  "service_name": "payments",
+  "event_type_name": "payment.charge.succeeded",
+  "service_name": "payment",
   "resource_type_name": "charge",
   "verb_name": "succeeded"
 }
 {
-  "event_type_name": "payments.charge.failed",
-  "service_name": "payments",
+  "event_type_name": "payment.charge.failed",
+  "service_name": "payment",
   "resource_type_name": "charge",
   "verb_name": "failed"
 }
 {
-  "event_type_name": "payments.refund.created",
-  "service_name": "payments",
+  "event_type_name": "payment.refund.created",
+  "service_name": "payment",
   "resource_type_name": "refund",
   "verb_name": "created"
 }
 {
-  "event_type_name": "customers.account.created",
-  "service_name": "customers",
+  "event_type_name": "customer.account.created",
+  "service_name": "customer",
   "resource_type_name": "account",
   "verb_name": "created"
 }
@@ -309,13 +310,13 @@ SUB_ACME=$(curl -s -X POST "$HOOK0_API/subscriptions" \
   -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"application_id\": \"$APP_ID\",
+    \"application_id\": \"'"$APP_ID"'\",
     \"is_enabled\": true,
     \"description\": \"ACME Corp payment webhooks\",
     \"event_types\": [
-      \"payments.charge.succeeded\",
-      \"payments.charge.failed\",
-      \"payments.refund.created\"
+      \"payment.charge.succeeded\",
+      \"payment.charge.failed\",
+      \"payment.refund.created\"
     ],
     \"label_key\": \"tenant_id\",
     \"label_value\": \"acme_corp\",
@@ -368,12 +369,12 @@ SUB_GLOBEX=$(curl -s -X POST "$HOOK0_API/subscriptions" \
   -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"application_id\": \"$APP_ID\",
+    \"application_id\": \"'"$APP_ID"'\",
     \"is_enabled\": true,
     \"description\": \"Globex Inc payment webhooks\",
     \"event_types\": [
-      \"payments.charge.succeeded\",
-      \"customers.account.created\"
+      \"payment.charge.succeeded\",
+      \"customer.account.created\"
     ],
     \"label_key\": \"tenant_id\",
     \"label_value\": \"globex_inc\",
@@ -405,9 +406,9 @@ curl -X POST "$HOOK0_API/event" \
   -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"application_id\": \"$APP_ID\",
+    \"application_id\": \"'"$APP_ID"'\",
     \"event_id\": \"$(uuidgen)\",
-    \"event_type\": \"payments.charge.succeeded\",
+    \"event_type\": \"payment.charge.succeeded\",
     \"payload\": \"{\\\"charge_id\\\":\\\"ch_123\\\",\\\"amount\\\":4999,\\\"currency\\\":\\\"USD\\\",\\\"customer_id\\\":\\\"cus_acme_001\\\",\\\"description\\\":\\\"Pro plan subscription\\\"}\",
     \"payload_content_type\": \"application/json\",
     \"occurred_at\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
@@ -439,9 +440,9 @@ curl -X POST "$HOOK0_API/event" \
   -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"application_id\": \"$APP_ID\",
+    \"application_id\": \"'"$APP_ID"'\",
     \"event_id\": \"$(uuidgen)\",
-    \"event_type\": \"payments.charge.failed\",
+    \"event_type\": \"payment.charge.failed\",
     \"payload\": \"{\\\"charge_id\\\":\\\"ch_124\\\",\\\"amount\\\":4999,\\\"currency\\\":\\\"USD\\\",\\\"customer_id\\\":\\\"cus_acme_001\\\",\\\"error_code\\\":\\\"card_declined\\\",\\\"error_message\\\":\\\"Insufficient funds\\\"}\",
     \"payload_content_type\": \"application/json\",
     \"occurred_at\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
@@ -460,9 +461,9 @@ curl -X POST "$HOOK0_API/event" \
   -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"application_id\": \"$APP_ID\",
+    \"application_id\": \"'"$APP_ID"'\",
     \"event_id\": \"$(uuidgen)\",
-    \"event_type\": \"customers.account.created\",
+    \"event_type\": \"customer.account.created\",
     \"payload\": \"{\\\"customer_id\\\":\\\"cus_globex_001\\\",\\\"email\\\":\\\"customer@globex.com\\\",\\\"name\\\":\\\"John Doe\\\",\\\"plan\\\":\\\"enterprise\\\"}\",
     \"payload_content_type\": \"application/json\",
     \"occurred_at\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
@@ -482,9 +483,9 @@ curl -X POST "$HOOK0_API/event" \
   -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"application_id\": \"$APP_ID\",
+    \"application_id\": \"'"$APP_ID"'\",
     \"event_id\": \"$(uuidgen)\",
-    \"event_type\": \"payments.charge.succeeded\",
+    \"event_type\": \"payment.charge.succeeded\",
     \"payload\": \"{\\\"charge_id\\\":\\\"ch_999\\\"}\",
     \"payload_content_type\": \"application/json\",
     \"occurred_at\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
@@ -527,7 +528,7 @@ curl "$HOOK0_API/subscriptions/$SUB_ACME_ID/request_attempts?limit=10" \
 Expected output:
 ```json
 {
-  "event_type": "payments.charge.succeeded",
+  "event_type": "payment.charge.succeeded",
   "status_code": 200,
   "duration_ms": 15,
   "created_at": "2025-12-10T12:00:00Z",
@@ -600,7 +601,7 @@ async function simulatePayments() {
 
   for (const tenant of tenants) {
     // Successful payment
-    await sendEvent('payments.charge.succeeded', {
+    await sendEvent('payment.charge.succeeded', {
       charge_id: `ch_${uuidv4()}`,
       amount: Math.floor(Math.random() * 10000) + 1000,
       currency: 'USD',
@@ -611,7 +612,7 @@ async function simulatePayments() {
 
     // Failed payment (10% chance)
     if (Math.random() < 0.1) {
-      await sendEvent('payments.charge.failed', {
+      await sendEvent('payment.charge.failed', {
         charge_id: `ch_${uuidv4()}`,
         amount: 4999,
         currency: 'USD',
@@ -777,7 +778,7 @@ curl "$HOOK0_API/subscriptions/$SUB_ACME_ID/request_attempts?limit=100" \
 ## Next Steps
 
 - **Production deployment**: [Self-hosting with Kubernetes](./self-hosting-docker.md)
-- **Advanced authentication**: [Biscuit Token Guide](../explanation/biscuit-authentication.md)
+- **Advanced authentication**: [Security Model](../explanation/security-model.md)
 - **Performance tuning**: [Scaling and Performance](../explanation/scaling-performance.md)
 - **Monitoring**: [Monitor Webhook Performance](../how-to-guides/monitor-webhook-performance.md)
 

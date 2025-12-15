@@ -45,8 +45,8 @@ Upon successful validation, events are stored with:
 ### 2. Subscription Matching
 
 When an event is stored, Hook0 identifies matching subscriptions. Subscriptions can match:
-- **Exact types**: `users.account.created`
-- **Multiple types**: `["users.account.created", "users.account.updated"]`
+- **Exact types**: `user.account.created`
+- **Multiple types**: `["user.account.created", "user.account.updated"]`
 
 ### 3. Delivery Task Creation
 
@@ -70,15 +70,11 @@ Hook0 categorizes HTTP responses to determine next actions:
 - Record response details
 - No further action needed
 
-#### Client Errors (4xx)
-- Mark as permanently failed
-- Do not retry (except 408, 429)
-- Log for debugging
-
-#### Server Errors (5xx) & Network Issues
+#### Non-Success Responses (4xx, 5xx) & Network Issues
 - Schedule retry with exponential backoff
 - Increment attempt counter
-- Eventually move to dead letter queue
+- See [HTTP Status Code Categories](../how-to-guides/debug-failed-webhooks.md#http-status-code-categories) for retry behavior details
+- Eventually move to dead letter queue after max retries exhausted
 
 
 ### 6. Request Attempt Tracking

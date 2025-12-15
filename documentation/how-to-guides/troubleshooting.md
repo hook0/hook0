@@ -6,6 +6,27 @@ sidebar_position: 5
 
 This guide helps you diagnose and resolve common issues with Hook0. Each section includes symptoms, root causes, solutions, and debug commands.
 
+### Set Up Environment Variables
+
+```bash
+# Set your service token (from dashboard)
+export HOOK0_TOKEN="YOUR_TOKEN_HERE"
+export HOOK0_API="https://app.hook0.com/api/v1" # Replace by your domain (or http://localhost:8081 locally)
+
+# Set your application ID (shown in dashboard URL or application details)
+export APP_ID="YOUR_APPLICATION_ID_HERE"
+```
+
+Save these values:
+```bash
+# Save to .env file for later use
+cat > .env <<EOF
+HOOK0_TOKEN=$HOOK0_TOKEN
+HOOK0_API=$HOOK0_API
+APP_ID=$APP_ID
+EOF
+```
+
 ## Connection Issues
 
 ### Cannot Connect to Hook0 API
@@ -21,11 +42,11 @@ This guide helps you diagnose and resolve common issues with Hook0. Each section
 
 ```bash
 # ❌ Wrong - missing application_id
-curl http://localhost:8081/api/v1/events/
+curl $HOOK0_API/events/
 
 # ✅ Correct
-curl "http://localhost:8081/api/v1/events/?application_id={APP_ID}" \
-  -H "Authorization: Bearer {YOUR_TOKEN}"
+curl "$HOOK0_API/events/?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 ```
 
 2. **Firewall blocking outbound connections**
@@ -47,8 +68,8 @@ curl -s http://localhost:8081/api/v1/swagger.json | head -c 100
 nslookup app.hook0.com
 
 # Test connectivity with verbose output
-curl -v "http://localhost:8081/api/v1/events/?application_id={APP_ID}" \
-  -H "Authorization: Bearer {YOUR_TOKEN}"
+curl -v "$HOOK0_API/events/?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 
 # For self-hosted: Check container status
 docker ps | grep hook0
@@ -178,22 +199,22 @@ docker exec hook0-api env | grep BISCUIT_PUBLIC_KEY
 
 ```bash
 # Test API with token
-curl -v "http://localhost:8081/api/v1/events/?application_id={APP_ID}" \
-  -H "Authorization: Bearer {YOUR_TOKEN}"
+curl -v "$HOOK0_API/events/?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 
 # Check response headers for error details
 # Look for X-Error-Id header
 
 # Decode token (requires biscuit-cli)
-biscuit inspect token "{YOUR_TOKEN}" --public-key "PUBLIC_KEY"
+biscuit inspect token "$HOOK0_TOKEN" --public-key "PUBLIC_KEY"
 ```
 
 **Solutions**:
 
 1. Generate new token via dashboard or API:
 ```bash
-curl -X POST "http://localhost:8081/api/v1/service_token" \
-  -H "Authorization: Bearer {USER_TOKEN}" \
+curl -X POST "$HOOK0_API/service_token" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "organization_id": "org_123",
@@ -209,7 +230,7 @@ export HOOK0_TOKEN="NEW_TOKEN_HERE"
 
 3. Verify token works:
 ```bash
-curl "http://localhost:8081/api/v1/events/?application_id={APP_ID}" \
+curl "$HOOK0_API/events/?application_id=$APP_ID" \
   -H "Authorization: Bearer $HOOK0_TOKEN"
 ```
 
@@ -245,12 +266,12 @@ User not member of target organization or has incorrect role.
 
 ```bash
 # List organizations user belongs to
-curl "http://localhost:8081/api/v1/organizations" \
-  -H "Authorization: Bearer $TOKEN"
+curl "$HOOK0_API/organizations" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 
 # Check specific organization info and roles
-curl "http://localhost:8081/api/v1/organizations/{ORG_ID}" \
-  -H "Authorization: Bearer $TOKEN"
+curl "$HOOK0_API/organizations/{ORG_ID}" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 ```
 
 **Solutions**:
@@ -258,8 +279,8 @@ curl "http://localhost:8081/api/v1/organizations/{ORG_ID}" \
 1. Create token with correct permissions:
 ```bash
 # Request editor role token
-curl -X POST "http://localhost:8081/api/v1/service_token" \
-  -H "Authorization: Bearer {USER_TOKEN}" \
+curl -X POST "$HOOK0_API/service_token" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "organization_id": "org_123",
@@ -279,7 +300,7 @@ WHERE user__id = 'user_id' AND organization__id = 'org_id';
 // Ensure request uses correct application
 const response = await hook0.sendEvent({
   applicationId: 'app_123',  // Must match token scope
-  eventType: 'users.account.created',
+  eventType: 'user.account.created',
   payload: { ... }
 });
 ```
@@ -322,8 +343,8 @@ Check proxy configuration to ensure Authorization headers are forwarded.
 1. Add Authorization header to all requests
 2. Verify header is present in request:
 ```bash
-curl -v http://localhost:8081/api/v1/events \
-  -H "Authorization: Bearer {TOKEN}" \
+curl -v $HOOK0_API/events \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   2>&1 | grep Authorization
 ```
 
@@ -343,8 +364,8 @@ curl -v http://localhost:8081/api/v1/events \
 **Debug commands**:
 ```bash
 # Check subscription status
-curl "http://localhost:8081/api/v1/subscriptions/{sub-id}?application_id={APP_ID}" \
-  -H "Authorization: Bearer $TOKEN"
+curl "$HOOK0_API/subscriptions/{sub-id}?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 
 # Look for: "is_enabled": false
 ```
@@ -353,8 +374,8 @@ curl "http://localhost:8081/api/v1/subscriptions/{sub-id}?application_id={APP_ID
 
 First, get the current subscription configuration:
 ```bash
-curl "http://localhost:8081/api/v1/subscriptions/{sub-id}?application_id={APP_ID}" \
-  -H "Authorization: Bearer $TOKEN" > subscription.json
+curl "$HOOK0_API/subscriptions/{sub-id}?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" > subscription.json
 ```
 
 :::warning PUT Requires ALL Fields
@@ -364,11 +385,11 @@ The PUT endpoint replaces the entire subscription. You must include ALL fields (
 Then update with all required fields:
 ```bash
 # Enable subscription (include all required fields)
-curl -X PUT "http://localhost:8081/api/v1/subscriptions/{sub-id}" \
-  -H "Authorization: Bearer $TOKEN" \
+curl -X PUT "$HOOK0_API/subscriptions/{sub-id}" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{APP_ID}",
+    "application_id": "'"$APP_ID"'",
     "is_enabled": true,
     "event_types": ["your.event.type"],
     "label_key": "environment",
@@ -386,8 +407,8 @@ curl -X PUT "http://localhost:8081/api/v1/subscriptions/{sub-id}" \
 
 ```bash
 # List subscription event types
-curl "http://localhost:8081/api/v1/subscriptions/{sub-id}?application_id={APP_ID}" \
-  -H "Authorization: Bearer $TOKEN" \
+curl "$HOOK0_API/subscriptions/{sub-id}?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   | jq '.event_types'
 
 # Compare with event sent
@@ -401,13 +422,13 @@ curl "http://localhost:8081/api/v1/subscriptions/{sub-id}?application_id={APP_ID
 
 ```bash
 # Check event labels
-curl "http://localhost:8081/api/v1/events/{event-id}?application_id={APP_ID}" \
-  -H "Authorization: Bearer $TOKEN" \
+curl "$HOOK0_API/events/{event-id}?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   | jq '.labels'
 
 # Check subscription label filter
-curl "http://localhost:8081/api/v1/subscriptions/{sub-id}?application_id={APP_ID}" \
-  -H "Authorization: Bearer $TOKEN" \
+curl "$HOOK0_API/subscriptions/{sub-id}?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   | jq '{label_key, label_value}'
 
 # Labels must match exactly (case-sensitive)
@@ -454,8 +475,8 @@ SELECT tgname FROM pg_trigger WHERE tgname = 'event_dispatch_trigger';
 
 ```bash
 # Get subscription secret
-curl "http://localhost:8081/api/v1/subscriptions/{sub-id}?application_id={APP_ID}" \
-  -H "Authorization: Bearer $TOKEN" \
+curl "$HOOK0_API/subscriptions/{sub-id}?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   | jq -r '.secret'
 
 # Verify it matches your webhook code
@@ -495,8 +516,8 @@ const isValid = verifySignature(payload, signature, secret);
 To rotate a subscription secret, delete the subscription and recreate it, or update it via PUT (the secret is regenerated on update):
 ```bash
 # Delete and recreate subscription to get new secret
-curl -X DELETE "http://localhost:8081/api/v1/subscriptions/{sub-id}?application_id={APP_ID}" \
-  -H "Authorization: Bearer $TOKEN"
+curl -X DELETE "$HOOK0_API/subscriptions/{sub-id}?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 
 # Then create a new one (see subscriptions API documentation)
 ```
@@ -628,23 +649,23 @@ CREATE INDEX idx_events_type ON events(event_type);
 
 ```bash
 # Get request attempts for a subscription
-curl "http://localhost:8081/api/v1/request_attempts/?application_id={APP_ID}&subscription_id={sub-id}" \
-  -H "Authorization: Bearer $TOKEN"
+curl "$HOOK0_API/request_attempts/?application_id=$APP_ID&subscription_id={sub-id}" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 
 # Count failed attempts (failed_at is set for failures)
-curl "http://localhost:8081/api/v1/request_attempts/?application_id={APP_ID}&subscription_id={sub-id}" \
-  -H "Authorization: Bearer $TOKEN" \
+curl "$HOOK0_API/request_attempts/?application_id=$APP_ID&subscription_id={sub-id}" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   | jq '[.[] | select(.failed_at != null)] | length'
 
 # Get response details for failed attempts
 # First get request_attempts, then fetch response details using response_id
-curl "http://localhost:8081/api/v1/request_attempts/?application_id={APP_ID}&subscription_id={sub-id}" \
-  -H "Authorization: Bearer $TOKEN" \
+curl "$HOOK0_API/request_attempts/?application_id=$APP_ID&subscription_id={sub-id}" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   | jq '.[] | select(.failed_at != null) | .response_id'
 
 # Then for each response_id:
-curl "http://localhost:8081/api/v1/responses/{RESPONSE_ID}?application_id={APP_ID}" \
-  -H "Authorization: Bearer $TOKEN"
+curl "$HOOK0_API/responses/{RESPONSE_ID}?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 ```
 
 **Solutions**:
@@ -746,12 +767,12 @@ CREATE INDEX CONCURRENTLY idx_request_attempt_event_id ON webhook.request_attemp
 
 ```bash
 # List subscriptions for application
-curl "http://localhost:8081/api/v1/subscriptions/?application_id={APP_ID}" \
-  -H "Authorization: Bearer $TOKEN"
+curl "$HOOK0_API/subscriptions/?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 
 # Check request attempts for each subscription to identify problematic ones
-curl "http://localhost:8081/api/v1/request_attempts/?application_id={APP_ID}&subscription_id={sub-id}" \
-  -H "Authorization: Bearer $TOKEN" \
+curl "$HOOK0_API/request_attempts/?application_id=$APP_ID&subscription_id={sub-id}" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   | jq '[.[] | select(.failed_at != null)] | length'
 ```
 
@@ -763,15 +784,15 @@ Remember: PUT replaces the entire subscription. Include all fields, not just `is
 
 ```bash
 # Get current subscription config
-SUB=$(curl -s "http://localhost:8081/api/v1/subscriptions/{sub-id}?application_id={APP_ID}" \
-  -H "Authorization: Bearer $TOKEN")
+SUB=$(curl -s "$HOOK0_API/subscriptions/{sub-id}?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN")
 
 # Disable it (all fields required)
-curl -X PUT "http://localhost:8081/api/v1/subscriptions/{sub-id}" \
-  -H "Authorization: Bearer $TOKEN" \
+curl -X PUT "$HOOK0_API/subscriptions/{sub-id}" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "application_id": "{APP_ID}",
+    "application_id": "'"$APP_ID"'",
     "is_enabled": false,
     "event_types": ["your.event.type"],
     "label_key": "environment",
@@ -844,8 +865,8 @@ WHERE created_at < NOW() - INTERVAL '30 days';
 
 ```bash
 # Check rate limit headers
-curl -I http://localhost:8081/api/v1/events \
-  -H "Authorization: Bearer $TOKEN"
+curl -I $HOOK0_API/events \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 
 # Look for:
 # X-RateLimit-Limit: 1000
@@ -953,8 +974,8 @@ docker-compose config > config.yml
 
 4. **Request/response examples** (with headers):
 ```bash
-curl -v http://localhost:8081/api/v1/events \
-  -H "Authorization: Bearer {TOKEN}" \
+curl -v $HOOK0_API/events \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   > request-response.log 2>&1
 ```
 

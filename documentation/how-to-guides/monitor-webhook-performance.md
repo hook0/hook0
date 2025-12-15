@@ -11,6 +11,27 @@ Hook0 tracks every webhook delivery attempt through the `request_attempts` syste
 - Worker information (worker_name, worker_version)
 - Retry count and scheduling
 
+### Set Up Environment Variables
+
+```bash
+# Set your service token (from dashboard)
+export HOOK0_TOKEN="YOUR_TOKEN_HERE"
+export HOOK0_API="https://app.hook0.com/api/v1" # Replace by your domain (or http://localhost:8081 locally)
+
+# Set your application ID (shown in dashboard URL or application details)
+export APP_ID="YOUR_APPLICATION_ID_HERE"
+```
+
+Save these values:
+```bash
+# Save to .env file for later use
+cat > .env <<EOF
+HOOK0_TOKEN=$HOOK0_TOKEN
+HOOK0_API=$HOOK0_API
+APP_ID=$APP_ID
+EOF
+```
+
 ## Using the Hook0 Dashboard
 
 The Hook0 web interface provides visual monitoring of webhook delivery:
@@ -47,12 +68,12 @@ Monitor subscription-level metrics:
 Query request attempts programmatically:
 
 ```bash
-curl -X GET "http://localhost:8081/api/v1/request_attempts/?application_id={APP_ID}" \
-  -H "Authorization: Bearer {YOUR_TOKEN}"
+curl -X GET "$HOOK0_API/request_attempts/?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 
 # Filter by specific event
-curl -X GET "http://localhost:8081/api/v1/request_attempts/?application_id={APP_ID}&event_id={EVENT_ID}" \
-  -H "Authorization: Bearer {YOUR_TOKEN}"
+curl -X GET "$HOOK0_API/request_attempts/?application_id=$APP_ID&event_id={EVENT_ID}" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 ```
 
 **Query Parameters:**
@@ -88,8 +109,8 @@ curl -X GET "http://localhost:8081/api/v1/request_attempts/?application_id={APP_
 Fetch HTTP response details for a specific attempt:
 
 ```bash
-curl -X GET "http://localhost:8081/api/v1/responses/{RESPONSE_ID}?application_id={APP_ID}" \
-  -H "Authorization: Bearer {YOUR_TOKEN}"
+curl -X GET "$HOOK0_API/responses/{RESPONSE_ID}?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 ```
 
 **Response Example:**
@@ -113,8 +134,8 @@ curl -X GET "http://localhost:8081/api/v1/responses/{RESPONSE_ID}?application_id
 Query events to find patterns:
 
 ```bash
-curl -X GET "http://localhost:8081/api/v1/events/?application_id={APP_ID}" \
-  -H "Authorization: Bearer {YOUR_TOKEN}"
+curl -X GET "$HOOK0_API/events/?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 ```
 
 **Query Parameters:**
@@ -274,8 +295,8 @@ Track per-endpoint metrics:
 
 ```bash
 # Get request attempts for specific subscription
-curl -X GET "http://localhost:8081/api/v1/request_attempts/?application_id={APP_ID}&subscription_id={SUBSCRIPTION_ID}" \
-  -H "Authorization: Bearer {YOUR_TOKEN}"
+curl -X GET "$HOOK0_API/request_attempts/?application_id=$APP_ID&subscription_id={SUBSCRIPTION_ID}" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 ```
 
 ### 4. Track Retry Patterns
@@ -304,8 +325,8 @@ Use the dashboard or API to find failed attempts:
 
 ```bash
 # List recent failed attempts
-curl -X GET "http://localhost:8081/api/v1/request_attempts/?application_id={APP_ID}&subscription_id={SUBSCRIPTION_ID}" \
-  -H "Authorization: Bearer {YOUR_TOKEN}" \
+curl -X GET "$HOOK0_API/request_attempts/?application_id=$APP_ID&subscription_id={SUBSCRIPTION_ID}" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
   | jq '.[] | select(.failed_at != null)'
 ```
 
@@ -314,8 +335,8 @@ curl -X GET "http://localhost:8081/api/v1/request_attempts/?application_id={APP_
 Get the HTTP response for the failed attempt:
 
 ```bash
-curl -X GET "http://localhost:8081/api/v1/responses/{RESPONSE_ID}?application_id={APP_ID}" \
-  -H "Authorization: Bearer {YOUR_TOKEN}"
+curl -X GET "$HOOK0_API/responses/{RESPONSE_ID}?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 ```
 
 Look for:
@@ -336,8 +357,8 @@ The `response_error_name` field categorizes the failure:
 Ensure the event payload is valid:
 
 ```bash
-curl -X GET "http://localhost:8081/api/v1/events/{EVENT_ID}?application_id={APP_ID}" \
-  -H "Authorization: Bearer {YOUR_TOKEN}"
+curl -X GET "$HOOK0_API/events/{EVENT_ID}?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 ```
 
 Check for:
@@ -354,7 +375,7 @@ Manually verify the target endpoint:
 # Simulate Hook0 webhook request
 curl -X POST "https://your-endpoint.com/webhook" \
   -H "Content-Type: application/json" \
-  -H "X-Event-Type: users.account.created" \
+  -H "X-Event-Type: user.account.created" \
   -H "X-Event-Id: test-event-id" \
   -H "X-Hook0-Signature: t=1234567890,v1=..." \
   -d '{"user_id": "123", "email": "test@example.com"}'
@@ -428,16 +449,16 @@ Query for endpoints with high response times:
 
 ```bash
 # Find request attempts for your application
-curl -X GET "http://localhost:8081/api/v1/request_attempts/?application_id={APP_ID}" \
-  -H "Authorization: Bearer {YOUR_TOKEN}"
+curl -X GET "$HOOK0_API/request_attempts/?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 ```
 
 Then fetch response details to check elapsed time:
 
 ```bash
 # Get response details including elapsed_time_ms
-curl -X GET "http://localhost:8081/api/v1/responses/{RESPONSE_ID}?application_id={APP_ID}" \
-  -H "Authorization: Bearer {YOUR_TOKEN}"
+curl -X GET "$HOOK0_API/responses/{RESPONSE_ID}?application_id=$APP_ID" \
+  -H "Authorization: Bearer $HOOK0_TOKEN"
 ```
 
 **Actions:**

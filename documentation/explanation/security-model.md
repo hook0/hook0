@@ -4,7 +4,7 @@ Hook0 implements defense-in-depth security with multiple layers of protection. T
 
 ## Security Architecture
 
-### Authentication & Authorization
+<!-- ### Authentication & Authorization
 Hook0 uses Biscuit tokens for authentication, providing cryptographically secure, fine-grained access control.
 
 #### Biscuit Token Structure
@@ -26,7 +26,7 @@ application:read
 application:write
 event:send
 subscription:manage
-```
+``` -->
 
 ### Multi-Tenant Isolation
 
