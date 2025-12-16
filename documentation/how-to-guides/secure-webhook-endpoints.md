@@ -2,6 +2,15 @@
 
 This guide provides comprehensive security practices for webhook endpoints, from basic authentication to advanced security patterns. Learn how to protect your webhook receivers against common attacks and security vulnerabilities.
 
+## Quick Start (5 minutes)
+
+1. **Verify HMAC signature** - Check `X-Hook0-Signature` header
+2. **Validate payload** - Use Joi/Zod to validate JSON structure
+3. **Implement idempotency** - Track processed `event_id` to avoid duplicates
+4. **Log requests** - Record all webhook attempts for debugging
+
+For detailed implementation, see sections below.
+
 ## Security Threat Model
 
 ### Common Webhook Security Threats

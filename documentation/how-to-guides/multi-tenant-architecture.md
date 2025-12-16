@@ -1,10 +1,12 @@
-# GitLab.com Multi-Tenant Webhook Management with Hook0
+# Multi-Tenant Webhook Architecture
 
-This guide demonstrates how GitLab.com could leverage Hook0 to manage webhooks for millions of users, projects, and organizations while providing visibility into delivery attempts and logs.
+This guide demonstrates how to implement a multi-tenant webhook system using Hook0's label-based routing mechanism. Organizations can manage webhooks for millions of users and projects with complete isolation and visibility into delivery attempts.
 
-## The GitLab.com Challenge
+We use GitLab.com as a practical example to illustrate the concepts, but this architecture applies to any multi-tenant SaaS platform.
 
-GitLab.com hosts millions of projects across thousands of organizations. Each project can have multiple webhooks, and organizations need:
+## Multi-Tenant Architecture Challenge
+
+A multi-tenant platform hosting millions of projects across thousands of organizations needs:
 - Reliable webhook delivery with automatic retries
 - Visibility into webhook logs and delivery attempts
 - Multi-tenant isolation ensuring data privacy
@@ -33,15 +35,15 @@ EOF
 
 ## Architecture Overview
 
-Hook0 provides GitLab.com with:
+Hook0 provides multi-tenant platforms with:
 1. **Multi-tenant event routing** using labels
 2. **Request attempt tracking** for user visibility
 3. **Automatic retry logic** with exponential backoff
 4. **Secure isolation** between tenants
 
-## Step 1: Create Event Types for GitLab Events
+## Step 1: Create Event Types
 
-First, GitLab.com needs to define event types for all GitLab activities:
+First, define event types for your platform activities. In this GitLab example:
 
 ```bash
 # Create push event type
@@ -80,7 +82,7 @@ curl -X POST "$HOOK0_API/event_types" \
 
 ## Step 2: Multi-Tenant Event Ingestion
 
-When events occur in GitLab, they're sent to Hook0 with tenant-specific labels:
+When events occur in your platform, send them to Hook0 with tenant-specific labels:
 
 ```bash
 # Example: User pushes code to a project
@@ -130,7 +132,7 @@ curl -X POST "$HOOK0_API/event" \
 
 ## Step 3: User Webhook Management
 
-GitLab users create webhooks that are registered as Hook0 subscriptions with label-based filtering:
+Users create webhooks that are registered as Hook0 subscriptions with label-based filtering:
 
 ```bash
 # User creates a project webhook via GitLab UI
@@ -186,7 +188,7 @@ curl -X POST "$HOOK0_API/subscriptions" \
 
 ## Step 4: Exposing Logs and Request Attempts to Users
 
-GitLab.com exposes webhook delivery information through their UI by querying Hook0's API:
+Expose webhook delivery information through your UI by querying Hook0's API:
 
 ```bash
 # Get request attempts for a subscription (webhook)
@@ -209,7 +211,7 @@ curl -X GET "$HOOK0_API/responses/{RESPONSE_ID}?application_id=$APP_ID" \
 
 ## Step 5: User-Facing Webhook Management
 
-GitLab users can manage their webhooks through GitLab's UI, which internally calls Hook0:
+Users can manage their webhooks through your UI, which internally calls Hook0:
 
 :::warning PUT Requires ALL Fields
 When updating subscriptions, the PUT endpoint requires ALL fields (`application_id`, `is_enabled`, `event_types`, `label_key`, `label_value`, `target`), not just the ones you want to change. First GET the current subscription, then send the complete object with your modifications.
@@ -265,7 +267,7 @@ curl -X DELETE "$HOOK0_API/subscriptions/{SUBSCRIPTION_ID}?application_id=$APP_I
 
 ## Step 6: Retry Failed Webhook Deliveries
 
-Users can manually retry failed webhook deliveries through GitLab's UI:
+Users can manually retry failed webhook deliveries through your UI:
 
 ```bash
 # Replay a specific event (user clicks "Retry" in GitLab UI)
@@ -277,9 +279,9 @@ curl -X POST "$HOOK0_API/events/{EVENT_ID}/replay" \
   }'
 ```
 
-## Step 7: System Hooks for GitLab Administrators
+## Step 7: System Hooks for Platform Administrators
 
-GitLab.com administrators can set up system-wide hooks:
+Platform administrators can set up system-wide hooks:
 
 ```bash
 # Create system hook for user creation events
@@ -306,7 +308,7 @@ curl -X POST "$HOOK0_API/subscriptions" \
 
 ## Step 8: Analytics and Monitoring
 
-GitLab.com monitors webhook health across the platform:
+Monitor webhook health across your platform:
 
 ```bash
 # Query delivery metrics by time range
@@ -322,9 +324,9 @@ curl -X GET "$HOOK0_API/request_attempts/?application_id=$APP_ID&event_id={EVENT
   -H "Authorization: Bearer $HOOK0_TOKEN"
 ```
 
-## Benefits for GitLab.com Users
+## Benefits for End Users
 
-1. **Visibility**: Users see all webhook delivery attempts, response codes, and error messages directly in GitLab's UI
+1. **Visibility**: Users see all webhook delivery attempts, response codes, and error messages directly in your UI
 2. **Reliability**: Automatic retries with exponential backoff ensure events are delivered
 3. **Debugging**: Access to request/response bodies helps users debug integration issues
 4. **Multi-tenancy**: Complete isolation between different organizations and projects
@@ -332,7 +334,7 @@ curl -X GET "$HOOK0_API/request_attempts/?application_id=$APP_ID&event_id={EVENT
 
 ## Security Considerations
 
-- Each GitLab.com namespace/project has isolated webhook data
+- Each tenant (namespace/project/organization) has isolated webhook data
 - Biscuit tokens include facts limiting access to specific tenants
 - Request logs are retained according to user's plan (e.g., 7 days for free, 30 days for premium)
 - Sensitive headers are redacted in logs
@@ -340,11 +342,11 @@ curl -X GET "$HOOK0_API/request_attempts/?application_id=$APP_ID&event_id={EVENT
 
 ## Summary
 
-By using Hook0, GitLab.com can:
+By using Hook0, multi-tenant platforms can:
 - Offload webhook delivery infrastructure to a specialized service
 - Provide users with detailed delivery logs and retry capabilities
 - Maintain strict multi-tenant isolation
 - Scale to handle billions of events across millions of projects
-- Focus on core Git and CI/CD functionality rather than webhook infrastructure
+- Focus on core business functionality rather than webhook infrastructure
 
-The label-based routing system (`label_key` and `label_value`) enables flexible filtering without requiring complex query languages, making it perfect for GitLab's hierarchical structure of users, groups, and projects.
+The label-based routing system (`label_key` and `label_value`) enables flexible filtering without requiring complex query languages, making it perfect for hierarchical multi-tenant structures (users, groups, organizations, projects, etc.).

@@ -41,6 +41,14 @@ Implement robust security measures for webhook endpoints and payloads.
 
 ---
 
+### [Client-side Error Handling](client-error-handling.md)
+Implement robust error handling for Hook0 API responses.
+
+**When to use:** When building API integrations that need to handle errors gracefully
+**Covers:** Error response parsing, retry logic, error logging, handling strategies
+
+---
+
 
 ## Quick Reference
 
@@ -49,6 +57,7 @@ Implement robust security measures for webhook endpoints and payloads.
 | Webhooks not delivering | [Debug Failed Webhooks](debug-failed-webhooks.md) | Beginner |
 | Need performance monitoring | [Monitor Webhook Performance](monitor-webhook-performance.md) | Intermediate |
 | Need security implementation | [Secure Webhook Endpoints](secure-webhook-endpoints.md) | Intermediate |
+| Need error handling in client | [Client-side Error Handling](client-error-handling.md) | Beginner |
 | Migrating from GitLab | [GitLab Webhook Migration](gitlab-webhook-migration.md) | Intermediate |
 
 ## Before You Start

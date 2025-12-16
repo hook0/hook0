@@ -12,6 +12,82 @@ Modern applications need to communicate with external systems when events occur.
 - **Observability**: How do you track and debug failed deliveries?
 - **Security**: How do you ensure webhook authenticity?
 
+## Before vs After Hook0
+
+### Without Hook0
+```
++-------------------------------------------------------------+
+| Your Application                                            |
+|                                                             |
+| +--------------+    +-------------------------------------+ |
+| | Core Business|--->| Webhook Logic (you maintain)        | |
+| | Logic        |    |                                     | |
+| +--------------+    | - Retry logic & backoff             | |
+|                     | - Failure handling                  | |
+|                     | - Queue management                  | |
+|                     | - Monitoring & logging              | |
+|                     | - Security (signatures)             | |
+|                     | - Dead letter queues                | |
+|                     +------------------+------------------+ |
+|                                        |                    |
++----------------------------------------|--------------------+
+                                         |
+                                         v
+                              +------------------+
+                              | Customer Webhook |
+                              | ❌ Is it down?   |
+                              +------------------+
+
+Problems:
+  ❌ Webhook code scattered across your application
+  ❌ No centralized visibility on delivery status
+  ❌ Complex retry/failure logic to maintain
+  ❌ Difficult to debug failed deliveries
+```
+
+### With Hook0
+```
++------------------+           +----------------------------------+
+| Your Application |           | Hook0                            |
+|                  |           |                                  |
+| +------------+   |  Simple   | +----------------------------+   |
+| | Business   |   |  HTTP     | | Event Processing           |   |
+| | Logic      |---|--POST---->| | - Validation               |   |
+| |            |   |           | | - Storage                  |   |
+| +------------+   |           | +-------------+--------------+   |
+|                  |           |               |                  |
++------------------+           |               v                  |
+                               | +----------------------------+   |
+                               | | Webhook Delivery Engine    |   |
+                               | | - Automatic retries        |   |
+                               | | - Exponential backoff      |   |
+                               | | - Signature generation     |   |
+                               | | - Rate limiting            |   |
+                               | | - Dead letter queues       |   |
+                               | +-------------+--------------+   |
+                               |               |                  |
+                               |               v                  |
+                               | +----------------------------+   |
+                               | | Observability Dashboard    |   |
+                               | | - All delivery attempts    |   |
+                               | | - Failure analytics        |   |
+                               | | - Debug tools              |   |
+                               | +-------------+--------------+   |
+                               +---------------|------------------+
+                                               |
+                                               v
+                                    +------------------+
+                                    | Customer Webhook |
+                                    | ✅ Reliable      |
+                                    +------------------+
+
+Benefits:
+  ✅ Single API call to send events
+  ✅ Centralized dashboard for all deliveries
+  ✅ Production-ready retry logic out of the box
+  ✅ Complete visibility and debugging tools
+```
+
 ## How Hook0 Works
 
 Hook0 implements a producer-consumer pattern:

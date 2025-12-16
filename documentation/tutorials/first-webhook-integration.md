@@ -5,10 +5,10 @@ This tutorial demonstrates how to integrate Hook0 into your SaaS platform to pro
 ## What You'll Build
 
 A complete webhook delivery system that:
-- Send events from your SaaS to Hook0
-- Enable customer subscriptions to specific events  
-- Handle automatic delivery, retries, and monitoring
-- Support multi-tenant filtering with labels
+- Sends events from your SaaS to Hook0
+- Enables customer subscriptions to specific events
+- Handles automatic delivery, retries, and monitoring
+- Supports multi-tenant filtering with labels
 
 ## Prerequisites
 
@@ -41,11 +41,11 @@ EOF
 ## Architecture Overview
 
 ```
-  ┌──────────┐  POST event    ┌────────┐  POST webhook   ┌──────────┐
-  │ Your     │───────────────▶│        │────────────────▶│ Customer │
-  │ SaaS     │                │ Hook0  │                 │ Endpoint │
-  └──────────┘                │        │                 └──────────┘
-                              └────────┘
+  +----------+  POST event    +--------+  POST webhook   +----------+
+  | Your     |--------------->|        |---------------->| Customer |
+  | SaaS     |                | Hook0  |                 | Endpoint |
+  +----------+                |        |                 +----------+
+                              +--------+
 ```
 
 Your SaaS sends events to Hook0, which manages all webhook complexity including delivery, retries, signature verification, and monitoring.
@@ -286,9 +286,9 @@ curl -X POST "$HOOK0_API/subscriptions" \
 
 ```
 Event labels                 Subscription filter              Result
-────────────────────────     ─────────────────────────        ────────────
-tenant_id: "customer_123" →  tenant_id = "customer_123"   →   ✅ Delivered
-tenant_id: "customer_456" →  tenant_id = "customer_123"   →   ❌ Skipped
+------------------------     -------------------------        ------------
+tenant_id: "customer_123" -> tenant_id = "customer_123"   ->  ✅ Delivered
+tenant_id: "customer_456" -> tenant_id = "customer_123"   ->  ❌ Skipped
 ```
 
 ## Step 4: Monitor Webhook Deliveries
@@ -825,4 +825,4 @@ The key insight is that Hook0's label system enables powerful multi-tenant webho
 - [Event Types and Subscriptions Deep Dive](./event-types-subscriptions.md)
 - [Webhook Authentication and Security](./webhook-authentication.md)
 - [Debugging Failed Webhooks](../how-to-guides/debug-failed-webhooks.md)
-- [GitLab-Style Webhook Migration](../how-to-guides/gitlab-webhook-migration.md)
+- [Multi-Tenant Architecture](../how-to-guides/multi-tenant-architecture.md)

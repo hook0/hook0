@@ -2,6 +2,52 @@
 
 Hook0's event processing model is designed for reliability, scalability, and observability. This document explains how events flow through the system from ingestion to delivery.
 
+## Event Processing Flow
+
+The following diagram illustrates the complete event processing flow from ingestion to delivery:
+
+```
++-------------+     +-------------+     +-------------+     +-------------+
+| Application |     |  Hook0 API  |     |  Database   |     |   Worker    |
++------+------+     +------+------+     +------+------+     +------+------+
+       |                   |                   |                   |
+       | POST /event       |                   |                   |
+       |------------------>|                   |                   |
+       |                   | Store event       |                   |
+       |                   |------------------>|                   |
+       |                   |                   |                   |
+       |    200 OK         |                   |                   |
+       |<------------------|                   |                   |
+       |                   |                   |                   |
+       |                   |                   | Poll pending      |
+       |                   |                   |<------------------|
+       |                   |                   |                   |
+       |                   |                   | Return attempts   |
+       |                   |                   |------------------>|
+       |                   |                   |                   |
+       |                   |                   |                   |
++------+------+                                |           +------+------+
+|  Webhook    |<-------------------------------------------|   Worker    |
+|  Endpoint   |         HTTP POST payload                  +------+------+
++------+------+                                                   |
+       |                                                          |
+       |  Response (2xx/4xx/5xx)                                  |
+       |--------------------------------------------------------->|
+       |                                                          |
+       |                                   +----------------------+------+
+       |                                   | On Success: Record attempt  |
+       |                                   | On Failure: Record + Retry  |
+       |                                   +-----------------------------+
+```
+
+**Flow steps:**
+1. **Application** sends event to Hook0 API via `POST /event`
+2. **API** validates and stores event in database, returns `200 OK`
+3. **Worker** polls database for pending delivery attempts
+4. **Worker** sends HTTP POST to webhook endpoint
+5. **Endpoint** responds with status code
+6. **Worker** records attempt result; schedules retry on failure (exponential backoff)
+
 ## Event Lifecycle
 
 ### 1. Event Creation
@@ -65,7 +111,7 @@ For each matching subscription, Hook0 creates a delivery task.
 
 ### 4. Webhook Delivery
 
-For each delivery task, the worker send the HTTP request.
+For each delivery task, the worker sends the HTTP request.
 
 ### 5. Response Handling
 

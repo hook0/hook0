@@ -7,19 +7,19 @@ This document explains Hook0's webhook architecture, design decisions, and how d
 Hook0 follows a modular architecture with clear separation of concerns:
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Client Apps   │───▶│   API Server    │───▶│   PostgreSQL    │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-                                │
-                                ▼
-                       ┌─────────────────┐    ┌─────────────────┐
-                       │  Worker Process │───▶│ Webhook Targets │
-                       └─────────────────┘    └─────────────────┘
-                                │
-                                ▼
-                       ┌─────────────────┐
-                       │ Web Dashboard   │
-                       └─────────────────┘
++-----------------+    +-----------------+    +-----------------+
+|   Client Apps   |--->|   API Server    |--->|   PostgreSQL    |
++-----------------+    +-----------------+    +-----------------+
+                                |
+                                v
+                       +-----------------+    +-----------------+
+                       |  Worker Process |--->| Webhook Targets |
+                       +-----------------+    +-----------------+
+                                |
+                                v
+                       +-----------------+
+                       | Web Dashboard   |
+                       +-----------------+
 ```
 
 ## Component Responsibilities

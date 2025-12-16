@@ -355,4 +355,4 @@ MONITORING_HEARTBEAT_MIN_PERIOD_IN_S=60
 - Durations: Use humantime format (`1h`, `30m`, `7d`) where supported, otherwise seconds
 - Lists: Comma-separated
 - URLs: Must be valid URLs with scheme
-- Hook0 uses PostgreSQL 18 and does NOT use Redis
+- Hook0 uses PostgreSQL (15+) and does NOT use Redis

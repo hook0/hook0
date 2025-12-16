@@ -390,7 +390,8 @@ async function sendEventWithRetry(client: Hook0Client, event: Event, maxRetries 
 
 ## Support
 
-- **Documentation**: [Hook0 API Docs](http://localhost:8081/api/v1/docs)
+- **Documentation**: [Hook0 API Docs](/api)
+- **Getting Started**: [Tutorial](/tutorials/getting-started)
 - **GitHub Issues**: [Report Issues](https://github.com/hook0/hook0/issues)
 - **Discord**: [Join Community](https://www.hook0.com/community)
 - **NPM Package**: hook0-client

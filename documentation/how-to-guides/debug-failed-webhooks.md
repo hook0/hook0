@@ -2,6 +2,10 @@
 
 This guide helps you identify, diagnose, and resolve webhook delivery failures in Hook0. Learn systematic approaches to troubleshoot common issues and prevent future failures.
 
+:::tip General Troubleshooting
+For API errors, connection issues, and authentication problems, see [Troubleshooting Guide](./troubleshooting.md). This guide focuses specifically on webhook delivery failures.
+:::
+
 ## Quick Diagnosis Checklist
 
 Before diving deep, run through this quick checklist:
@@ -11,6 +15,7 @@ Before diving deep, run through this quick checklist:
 - [ ] Is the endpoint processing requests within timeout limits?
 - [ ] Have you verified the webhook signature?
 - [ ] Is your subscription properly configured?
+- [ ] Is your subscription enabled? (see [Troubleshooting Guide - Events Not Being Delivered](./troubleshooting.md#events-not-being-delivered))
 
 ## Understanding Webhook Failures
 
@@ -169,17 +174,57 @@ certbot renew
 **Symptoms:**
 - 401 Unauthorized responses
 - Error messages about invalid signatures
+- Webhook endpoint rejecting Hook0 requests
 
 **Diagnosis:**
 
-Add logging to compare expected vs received signature. See [Implementing Webhook Authentication](../tutorials/webhook-authentication.md) for the correct verification code.
+Add logging to compare expected vs received signature:
+
+```javascript
+app.post('/webhook', express.json(), (req, res) => {
+  const signature = req.headers['x-hook0-signature'];
+  const bodyString = JSON.stringify(req.body);
+
+  console.log('Received signature:', signature);
+  console.log('Body length:', bodyString.length);
+  console.log('Body preview:', bodyString.slice(0, 100));
+
+  // Your verification logic here
+  const isValid = verifySignature(bodyString, signature, secret);
+  console.log('Signature valid:', isValid);
+
+  if (!isValid) {
+    console.error('Signature verification failed');
+    return res.status(401).json({ error: 'Invalid signature' });
+  }
+
+  res.json({ status: 'processed' });
+});
+```
+
+**Common Mistakes:**
+
+```javascript
+// ❌ Wrong - Using parsed body instead of raw
+const computed = crypto.createHmac('sha256', secret)
+  .update(JSON.stringify(req.body))  // Wrong if body already parsed
+  .digest('hex');
+
+// ✅ Correct - Use raw body or re-stringify
+const bodyString = JSON.stringify(req.body);
+const computed = crypto.createHmac('sha256', secret)
+  .update(bodyString)
+  .digest('hex');
+```
 
 **Solutions:**
-- Use raw request body for signature verification (not parsed JSON)
-- Ensure consistent character encoding (UTF-8)
-- Verify you're using the correct subscription secret
-- Check HMAC algorithm (SHA256)
-- Include headers in signature computation (v1 format)
+1. Use raw request body for signature verification (or `JSON.stringify(req.body)`)
+2. Ensure consistent character encoding (UTF-8)
+3. Verify you're using the correct subscription secret (fetch from API)
+4. Check HMAC algorithm (SHA256)
+5. Match Hook0's signature format exactly
+
+See [Implementing Webhook Authentication](../tutorials/webhook-authentication.md) for complete implementation guide.
 
 ### Scenario 4: Rate Limiting Issues
 
@@ -651,10 +696,17 @@ When webhook deliveries fail, work through this systematic checklist:
 - [ ] Logging captures enough detail for debugging
 
 ### Hook0 Configuration
-- [ ] Subscription is enabled and active
+- [ ] Subscription is enabled and active (see [Events Not Being Delivered](./troubleshooting.md#events-not-being-delivered))
 - [ ] Event types match what you're sending
 - [ ] Target URL is correct
 - [ ] Custom headers are properly configured
 - [ ] Retry configuration is appropriate
+
+## Related Resources
+
+- [Troubleshooting Guide](./troubleshooting.md) - API errors, authentication, and configuration issues
+- [Implementing Webhook Authentication](../tutorials/webhook-authentication.md) - Complete signature verification guide
+- [Monitor Webhook Performance](./monitor-webhook-performance.md) - Performance monitoring strategies
+- [Error Codes Reference](../reference/error-codes.md) - Complete error code list
 
 Ready to implement these debugging strategies? Start with the Hook0 dashboard analysis and work your way through the systematic approaches outlined above.

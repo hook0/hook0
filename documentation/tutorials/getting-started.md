@@ -205,9 +205,40 @@ The `event_id` **must be a valid UUID** (e.g., `550e8400-e29b-41d4-a716-44665544
 :::
 
 :::warning Payload Format
-The `payload` field must be a **JSON-encoded string**, not a raw object. Notice the escaped quotes in the example: `"{\"user_id\": 123}"`. The API will reject payloads that are not properly stringified.
+The `payload` field must be a **JSON-encoded string**, not a raw object. See [Understanding Payload Format](#understanding-payload-format) below for details.
 :::
 
+### Understanding Payload Format
+
+A common source of confusion is the payload format. **The `payload` field must be a JSON-encoded string, not a JavaScript/JSON object.**
+
+#### Why String Format?
+
+Hook0 forwards payloads exactly as received without re-serialization. This ensures:
+- No data transformation or modification
+- Preserved formatting and whitespace
+- Support for any content type (not just JSON)
+- Zero overhead processing
+
+#### Correct vs Incorrect Format
+
+**✅ Correct** - String with escaped quotes:
+```json
+{
+  "event_type": "user.account.created",
+  "payload": "{\"user_id\": \"123\", \"email\": \"user@example.com\"}",
+  "payload_content_type": "application/json"
+}
+```
+
+**❌ Incorrect** - Raw object:
+```json
+{
+  "event_type": "user.account.created",
+  "payload": {"user_id": "123", "email": "user@example.com"},
+  "payload_content_type": "application/json"
+}
+```
 ### Expected Response
 
 ```json

@@ -478,82 +478,9 @@ Service is temporarily unavailable.
 }
 ```
 
-## Error Handling Best Practices
+## Handling Errors
 
-### Client Implementation
-
-```typescript
-async function handleApiResponse(response: Response) {
-  if (!response.ok) {
-    const error = await response.json();
-
-    switch (error.id) {
-      case 'TooManyEventsToday':
-        // Wait until tomorrow or upgrade plan
-        throw new QuotaExceededError(error.detail);
-
-      case 'AuthInvalidBiscuit':
-        // Refresh or re-authenticate
-        await refreshToken();
-        return retryRequest();
-
-      case 'EventTypeDoesNotExist':
-        // Create event type first
-        await createEventType(eventType);
-        return retryRequest();
-
-      case 'NotFound':
-        throw new NotFoundError(error.detail);
-
-      default:
-        throw new ApiError(error.detail, error.id);
-    }
-  }
-
-  return response.json();
-}
-```
-
-### Retry Logic
-
-```typescript
-const retryableErrors = [
-  'InternalServerError',
-  'ServiceUnavailable',
-  'AuthBiscuitLookupError',
-  'AuthApplicationSecretLookupError'
-];
-
-async function requestWithRetry(requestFn: () => Promise<Response>, maxRetries = 3) {
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      return await requestFn();
-    } catch (error) {
-      if (attempt === maxRetries || !retryableErrors.includes(error.id)) {
-        throw error;
-      }
-
-      const delay = Math.min(1000 * Math.pow(2, attempt - 1), 30000);
-      await sleep(delay);
-    }
-  }
-}
-```
-
-### Error Logging
-
-```typescript
-function logError(error: any) {
-  console.error('Hook0 API Error', {
-    id: error.id,
-    type: error.type,
-    title: error.title,
-    detail: error.detail,
-    status: error.status,
-    timestamp: new Date().toISOString()
-  });
-}
-```
+For implementation guidance on error handling in your client code, see [Client-side Error Handling Best Practices](/how-to-guides/client-error-handling).
 
 ## Complete Error List
 

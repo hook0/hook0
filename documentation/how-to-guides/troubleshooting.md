@@ -6,6 +6,10 @@ sidebar_position: 5
 
 This guide helps you diagnose and resolve common issues with Hook0. Each section includes symptoms, root causes, solutions, and debug commands.
 
+:::tip For Webhook Delivery Issues
+If you're troubleshooting webhook delivery failures, see [Debugging Failed Webhooks](./debug-failed-webhooks.md) for a comprehensive guide with debugging strategies, monitoring scripts, and recovery techniques.
+:::
+
 ### Set Up Environment Variables
 
 ```bash
@@ -462,251 +466,16 @@ For self-hosted, verify database trigger exists:
 SELECT tgname FROM pg_trigger WHERE tgname = 'event_dispatch_trigger';
 ```
 
-### Webhook Signature Verification Failing
+### Webhook Delivery Failures
 
-**Symptoms**:
-- Webhook endpoint receiving requests but signature invalid
-- "Invalid signature" errors in webhook logs
-- Requests rejected by webhook handler
+For comprehensive troubleshooting of webhook delivery issues, see [Debugging Failed Webhooks](./debug-failed-webhooks.md), which covers:
 
-**Possible Causes**:
-
-1. **Using wrong secret**
-
-```bash
-# Get subscription secret
-curl "$HOOK0_API/subscriptions/{sub-id}?application_id=$APP_ID" \
-  -H "Authorization: Bearer $HOOK0_TOKEN" \
-  | jq -r '.secret'
-
-# Verify it matches your webhook code
-```
-
-2. **Incorrect signature verification logic**
-
-```javascript
-// ❌ Wrong - not using raw body
-const computed = crypto.createHmac('sha256', secret)
-  .update(JSON.stringify(req.body))  // Wrong if body already parsed
-  .digest('hex');
-
-// ✅ Correct - use raw body
-const computed = crypto.createHmac('sha256', secret)
-  .update(rawBody)  // Raw request body as received
-  .digest('hex');
-```
-
-**Solutions**:
-
-See [Implementing Webhook Authentication](../tutorials/webhook-authentication.md) for correct signature verification code and [Debugging Failed Webhooks](./debug-failed-webhooks.md#scenario-3-webhook-signature-verification-failures) for debugging tips.
-
-2. Use `JSON.stringify(req.body)` for signature verification:
-
-```javascript
-// Express - use express.json() and stringify for verification
-app.use('/webhook', express.json());
-
-// In handler, stringify the body for signature verification
-const payload = JSON.stringify(req.body);
-const isValid = verifySignature(payload, signature, secret);
-```
-
-3. Rotate subscription secret if compromised:
-
-To rotate a subscription secret, delete the subscription and recreate it, or update it via PUT (the secret is regenerated on update):
-```bash
-# Delete and recreate subscription to get new secret
-curl -X DELETE "$HOOK0_API/subscriptions/{sub-id}?application_id=$APP_ID" \
-  -H "Authorization: Bearer $HOOK0_TOKEN"
-
-# Then create a new one (see subscriptions API documentation)
-```
-
-### Webhook Endpoint Timing Out
-
-**Symptoms**:
-- Delivery attempts show high duration_ms (>30 seconds)
-- "Connection timeout" errors
-- Retries exhausted
-
-**Possible Causes**:
-
-1. **Slow webhook processing**
-
-```javascript
-// ❌ Slow - blocking operations in webhook handler
-app.post('/webhook', (req, res) => {
-  const event = req.body;
-
-  // Synchronous processing (slow)
-  processEvent(event);  // 30+ seconds
-  updateDatabase(event);
-  sendNotifications(event);
-
-  res.sendStatus(200);  // Takes too long
-});
-
-// ✅ Fast - respond immediately, process async
-app.post('/webhook', (req, res) => {
-  const event = req.body;
-
-  // Respond immediately
-  res.sendStatus(200);
-
-  // Process asynchronously
-  processEventAsync(event).catch(console.error);
-});
-```
-
-2. **Database queries timing out**
-
-**Debug**:
-```bash
-# Monitor slow queries
-docker exec -it postgres \
-  psql -U hook0 -c "SELECT query, state, wait_event_type, wait_event
-                    FROM pg_stat_activity
-                    WHERE state != 'idle' AND query_start < now() - interval '10 seconds';"
-```
-
-3. **External API calls blocking**
-
-```javascript
-// ❌ Blocking external API call
-app.post('/webhook', async (req, res) => {
-  await fetch('https://slow-external-api.com/notify', {
-    method: 'POST',
-    body: JSON.stringify(req.body)
-  });  // May take 30+ seconds
-
-  res.sendStatus(200);
-});
-
-// ✅ Use queue for external calls
-app.post('/webhook', async (req, res) => {
-  await queue.push({ type: 'external_notify', data: req.body });
-  res.sendStatus(200);
-});
-```
-
-**Solutions**:
-
-1. Respond within 30 seconds:
-```javascript
-const WEBHOOK_TIMEOUT = 25000;  // 25 seconds (leave buffer)
-
-app.post('/webhook', (req, res) => {
-  // Set response timeout
-  const timeout = setTimeout(() => {
-    res.sendStatus(200);
-  }, WEBHOOK_TIMEOUT);
-
-  // Process with timeout
-  processEvent(req.body)
-    .then(() => {
-      clearTimeout(timeout);
-      res.sendStatus(200);
-    })
-    .catch(err => {
-      clearTimeout(timeout);
-      console.error('Processing failed:', err);
-      res.sendStatus(200);  // Still return 200 to avoid retries
-    });
-});
-```
-
-2. Use background jobs:
-```javascript
-// Queue-based processing
-app.post('/webhook', async (req, res) => {
-  try {
-    await queue.add('process-webhook', req.body, {
-      attempts: 3,
-      backoff: { type: 'exponential', delay: 1000 }
-    });
-    res.sendStatus(200);
-  } catch (error) {
-    res.sendStatus(500);
-  }
-});
-```
-
-3. Optimize database queries:
-```sql
--- Add indexes for common queries
-CREATE INDEX idx_events_created_at ON events(created_at);
-CREATE INDEX idx_events_type ON events(event_type);
-```
-
-### High Failure Rate
-
-**Symptoms**:
-- Many failed delivery attempts in dashboard
-- Subscription showing mostly 4xx/5xx responses
-- Alerts for high failure rate
-
-**Debug commands**:
-
-```bash
-# Get request attempts for a subscription
-curl "$HOOK0_API/request_attempts/?application_id=$APP_ID&subscription_id={sub-id}" \
-  -H "Authorization: Bearer $HOOK0_TOKEN"
-
-# Count failed attempts (failed_at is set for failures)
-curl "$HOOK0_API/request_attempts/?application_id=$APP_ID&subscription_id={sub-id}" \
-  -H "Authorization: Bearer $HOOK0_TOKEN" \
-  | jq '[.[] | select(.failed_at != null)] | length'
-
-# Get response details for failed attempts
-# First get request_attempts, then fetch response details using response_id
-curl "$HOOK0_API/request_attempts/?application_id=$APP_ID&subscription_id={sub-id}" \
-  -H "Authorization: Bearer $HOOK0_TOKEN" \
-  | jq '.[] | select(.failed_at != null) | .response_id'
-
-# Then for each response_id:
-curl "$HOOK0_API/responses/{RESPONSE_ID}?application_id=$APP_ID" \
-  -H "Authorization: Bearer $HOOK0_TOKEN"
-```
-
-**Solutions**:
-
-1. Fix endpoint issues based on error codes:
-
-```javascript
-// Handle errors properly
-app.post('/webhook', async (req, res) => {
-  try {
-    // Validate request
-    if (!req.body.event_type) {
-      return res.status(400).json({ error: 'event_type required' });
-    }
-
-    // Process event
-    await processEvent(req.body);
-
-    res.sendStatus(200);
-  } catch (error) {
-    console.error('Webhook processing error:', error);
-
-    // Return appropriate status
-    if (error.name === 'ValidationError') {
-      res.status(400).json({ error: error.message });
-    } else {
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  }
-});
-```
-
-2. Monitor webhook endpoint health:
-
-```bash
-# Check endpoint availability
-while true; do
-  curl -o /dev/null -s -w "%{http_code}\n" https://your-webhook.com/webhook
-  sleep 60
-done
-```
+- Connection timeouts and SSL/TLS issues
+- Signature verification failures
+- Rate limiting problems
+- High failure rates
+- Monitoring and alerting strategies
+- Recovery and retry scripts
 
 ## Performance Issues
 
@@ -854,11 +623,11 @@ DELETE FROM webhook.request_attempt
 WHERE created_at < NOW() - INTERVAL '30 days';
 ```
 
-### Rate Limiting
+### API Rate Limiting
 
 **Symptoms**:
 - HTTP 429 Too Many Requests
-- "Rate limit exceeded" errors
+- "Rate limit exceeded" errors when sending events
 - Requests being throttled
 
 **Debug commands**:
@@ -915,6 +684,10 @@ environment:
   RATE_LIMIT_PER_MINUTE: 10000
   RATE_LIMIT_PER_HOUR: 100000
 ```
+
+:::info Webhook Rate Limiting
+For rate limiting issues at webhook endpoints, see [Debugging Failed Webhooks](./debug-failed-webhooks.md#scenario-4-rate-limiting-issues).
+:::
 
 ## Still Stuck?
 

@@ -16,6 +16,19 @@ A comprehensive introduction to Hook0, including core concepts and fundamental u
 
 ---
 
+## Suggested Reading Order
+
+**Beginner Path:**
+1. [What is Hook0?](what-is-hook0.md) - Core concepts
+2. [Hook0 Architecture](hook0-architecture.md) - System overview
+3. [Event Processing](event-processing.md) - How events flow
+
+**Advanced Path:**
+4. [Security Model](security-model.md) - Security architecture
+5. [Scaling & Performance](scaling-performance.md) - Production optimization
+
+---
+
 ## Architecture & Design
 
 ### [System Architecture](hook0-architecture.md)

@@ -6,77 +6,91 @@ keywords: [hook0, webhooks, event delivery, api, documentation]
 
 # Hook0 Documentation
 
-Welcome to the comprehensive documentation for Hook0, the open-source webhook server designed for reliable event delivery at scale.
+Welcome to Hook0, the open-source webhook server for reliable event delivery at scale.
 
-Hook0 is a production-ready, self-hosted webhook server that ensures your events reach their destinations with enterprise-grade reliability, security, and observability.
+## What is Hook0?
 
-## Getting Started
+Hook0 is a production-ready webhook server that ensures your events reach their destinations with enterprise-grade reliability, security, and observability. Available as a cloud service or self-hosted.
 
-New to Hook0? Start here:
+<div className="row">
+<div className="col col--6">
 
-- **[What is Hook0?](explanation/what-is-hook0.md)** - Learn about Hook0's core concepts and architecture
-- **[Quick Start Tutorial](tutorials/getting-started.md)** - Get Hook0 running in 5 minutes
+### New to Hook0?
 
-## Documentation Structure
+1. **[What is Hook0?](explanation/what-is-hook0.md)** - Understand core concepts
+2. **[Quick Start](tutorials/getting-started.md)** - Get running in 5 minutes
+3. **[First Webhook](tutorials/first-webhook-integration.md)** - Build your first integration
 
-This documentation follows the [Diataxis methodology](https://diataxis.fr/) to provide you with the right information at the right time:
+</div>
+<div className="col col--6">
 
-### 📚 [Tutorials](tutorials/index.md)
-Step-by-step learning materials for newcomers. Perfect for getting started with Hook0.
+### Ready to Build?
 
-### 🔧 [How-to Guides](how-to-guides/index.md)
-Problem-oriented guides for common tasks and challenges you'll face in production.
+1. **[Event Types & Subscriptions](tutorials/event-types-subscriptions.md)** - Configure events
+2. **[API Reference](/api)** - Complete REST API docs
+3. **[JavaScript SDK](reference/sdk/javascript.md)** - Official client library
 
-### 📖 [Reference](reference/index.md)
-Technical reference materials including API documentation, configuration options, and specifications.
-
-### 💡 [Explanation](explanation/index.md)
-In-depth explanations of Hook0's architecture, concepts, and design decisions.
-
-## Quick Links
-
-### 🚀 For New Users
-- **[Getting Started Tutorial](tutorials/getting-started.md)** - Set up Hook0 in 5 minutes
-- **[First Webhook Integration](tutorials/first-webhook-integration.md)** - Build your first webhook
-- **[What is Hook0?](explanation/what-is-hook0.md)** - Understand core concepts
-
-### ⚙️ For Production Use
-- **[GitLab-Style Webhook Migration](how-to-guides/gitlab-webhook-migration.md)** - Enterprise webhook patterns
-- **[Security Best Practices](how-to-guides/secure-webhook-endpoints.md)** - Secure your webhooks
-- **[Self-hosting with Docker](tutorials/self-hosting-docker.md)** - Deploy Hook0 in production
-- **[Debug Failed Webhooks](how-to-guides/debug-failed-webhooks.md)** - Troubleshoot delivery issues
-
-### 📚 Technical Reference
-- **[API Reference](openapi/intro)** - Complete REST API documentation
-- **[Configuration Options](reference/configuration.md)** - All configuration parameters
-- **[JavaScript SDK](reference/sdk/javascript.md)** - Official JS/TS client library
-- **[Error Codes](reference/error-codes.md)** - Troubleshooting guide
-
-## Key Features
-
-- **🔄 Reliable Delivery** - Automatic retries with exponential backoff
-- **🔐 Security First** - Biscuit token authentication and webhook signatures
-- **📊 Observable** - Built-in metrics, monitoring, and detailed logs
-- **⚡ High Performance** - Handle thousands of events per second
-- **🎯 Flexible Routing** - Event filtering and subscription management
-- **🛠️ Developer Friendly** - Clean APIs, SDKs, and comprehensive docs
-
-## Community & Support
-
-- **GitHub**: [hook0/hook0](https://github.com/hook0/hook0) - Source code and issue tracking
-- **Discord**: [Join our community](https://www.hook0.com/community) - Get help and share experiences
-- **Stack Overflow**: [#hook0](https://stackoverflow.com/questions/tagged/hook0) - Q&A and troubleshooting
-- **Twitter**: [@hook0_](https://twitter.com/hook0_) - Latest updates and announcements
-
-## Latest Updates
-
-Stay informed about Hook0 developments:
-
-- 📰 [Blog](https://www.hook0.com/blog) - Technical articles and tutorials
-- 📝 [Changelog](https://github.com/hook0/hook0/releases) - Release notes and updates
-- 🗺️ Roadmap - Upcoming features (check GitHub issues for current priorities)
-- 🤝 Contributing - Help make Hook0 better
+</div>
+</div>
 
 ---
 
-*Hook0 - Enterprise-grade webhook delivery infrastructure for modern applications.*
+## Documentation Sections
+
+This documentation follows the [Diataxis methodology](https://diataxis.fr/):
+
+| Section | Purpose | Start Here |
+|---------|---------|------------|
+| **[Tutorials](tutorials/index.md)** | Step-by-step learning | [Getting Started](tutorials/getting-started.md) |
+| **[How-to Guides](how-to-guides/index.md)** | Solve specific problems | [Debug Webhooks](how-to-guides/debug-failed-webhooks.md) |
+| **[Reference](reference/index.md)** | Technical specifications | [API Reference](/api) |
+| **[Explanation](explanation/index.md)** | Deep understanding | [Architecture](explanation/hook0-architecture.md) |
+
+---
+
+## Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Reliable Delivery** | Automatic retries with exponential backoff |
+| **Security** | HMAC-SHA-256 signatures, TLS encryption |
+| **Observable** | Built-in metrics, logs, and delivery tracking |
+| **High Performance** | Rust-based, handles thousands of events/second |
+| **Flexible** | Event filtering, label-based routing |
+| **Open Source** | Self-host or use our cloud service |
+
+---
+
+## Quick Links
+
+### By Role
+
+**Developers**
+- [API Reference](/api) - REST API documentation
+- [JavaScript SDK](reference/sdk/javascript.md) - TypeScript/JS client
+- [Rust SDK](reference/sdk/rust.md) - Rust client library
+- [Error Codes](reference/error-codes.md) - Troubleshooting
+
+**DevOps**
+- [Self-hosting](tutorials/self-hosting-docker.md) - Deploy with Docker
+- [Configuration](reference/configuration.md) - All options
+- [Monitor Performance](how-to-guides/monitor-webhook-performance.md) - Observability
+
+**Architects**
+- [Architecture](explanation/hook0-architecture.md) - System design
+- [Security Model](explanation/security-model.md) - Security architecture
+- [Event Processing](explanation/event-processing.md) - Delivery pipeline
+- [Scaling & Performance](explanation/scaling-performance.md) - Production optimization
+
+---
+
+## Resources
+
+- **[GitHub](https://github.com/hook0/hook0)** - Source code
+- **[Discord](https://www.hook0.com/community)** - Community chat
+- **[Blog](https://www.hook0.com/blog)** - Articles & tutorials
+- **[Status](https://status.hook0.com)** - Service status
+
+---
+
+*Hook0 - Enterprise-grade webhook delivery for modern applications.*

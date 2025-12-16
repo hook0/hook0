@@ -176,8 +176,8 @@ const config = {
                 to: "/how-to-guides/secure-webhook-endpoints",
               },
               {
-                label: "GitLab Webhook Migration",
-                to: "/how-to-guides/gitlab-webhook-migration",
+                label: "Multi-Tenant Architecture",
+                to: "/how-to-guides/multi-tenant-architecture",
               },
             ],
           },
