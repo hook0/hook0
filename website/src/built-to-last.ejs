@@ -8,7 +8,7 @@
 <%- include('./includes/_header.ejs') %>
 
 <!-- Hero Section -->
-<section class="relative min-h-[70vh] flex items-center gradient-hero overflow-hidden">
+<section class="relative min-h-screen flex items-center gradient-hero overflow-hidden">
     <!-- Background Effects -->
     <div class="absolute inset-0 grid-pattern opacity-50"></div>
     <div class="blur-circle blur-circle--indigo w-96 h-96 -top-48 left-1/4"></div>
@@ -30,7 +30,7 @@
         <!-- Headline -->
         <h1 class="animate-on-scroll text-display-xl text-white mb-6">
             Built to Last
-            <span class="block text-gradient-green mt-2">The Hook0 Manifesto</span>
+            <span class="block text-gradient-green mt-2 pb-1 leading-relaxed">The Hook0 Manifesto</span>
         </h1>
 
         <!-- Description -->
@@ -41,17 +41,27 @@
         <!-- Trust Metrics -->
         <div class="animate-on-scroll mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto stagger-children">
             <div class="glass rounded-2xl p-6">
-                <div class="text-4xl font-extrabold text-gradient-indigo mb-2">100%</div>
+                <div class="text-4xl font-extrabold text-gradient-indigo mb-2 pb-1 leading-relaxed">100%</div>
                 <div class="text-sm text-gray-400">Bootstrapped</div>
             </div>
             <div class="glass rounded-2xl p-6">
-                <div class="text-4xl font-extrabold text-gradient-green mb-2">0</div>
+                <div class="text-4xl font-extrabold text-gradient-green mb-2 pb-1 leading-relaxed">0</div>
                 <div class="text-sm text-gray-400">VC Funding</div>
             </div>
             <div class="glass rounded-2xl p-6">
-                <div class="text-4xl font-extrabold text-gradient-indigo mb-2">∞</div>
+                <div class="text-4xl font-extrabold text-gradient-indigo mb-2 pb-1 leading-relaxed">∞</div>
                 <div class="text-sm text-gray-400">Years Commitment</div>
             </div>
+        </div>
+    </div>
+
+    <!-- Scroll Indicator -->
+    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 animate-bounce">
+        <div class="flex flex-col items-center gap-2">
+            <span class="text-sm text-gray-400 uppercase tracking-wider">Scroll</span>
+            <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+            </svg>
         </div>
     </div>
 </section>
@@ -215,7 +225,7 @@
     <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div class="animate-on-scroll">
             <h2 class="text-4xl md:text-5xl font-extrabold text-white mb-6">
-                Built to Last, <span class="text-gradient-green">Built for You</span>
+                Built to Last, <span class="text-gradient-green pb-1 leading-relaxed">Built for You</span>
             </h2>
 
             <p class="text-xl text-gray-400 mb-8 max-w-3xl mx-auto leading-relaxed">
@@ -244,7 +254,7 @@
             </div>
 
             <div class="mt-12 p-8 glass rounded-2xl inline-block">
-                <p class="text-2xl font-bold text-gradient-indigo">
+                <p class="text-2xl font-bold text-gradient-indigo pb-1 leading-relaxed">
                     Hook0 will still be here when others have disappeared.
                 </p>
             </div>

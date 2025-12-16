@@ -365,10 +365,10 @@
     }
 
     &__feature {
-      @apply flex items-start gap-3 text-sm text-gray-300;
+      @apply flex items-start gap-0 text-sm text-gray-300;
 
       svg {
-        @apply w-5 h-5 text-green-500 flex-shrink-0 mt-0.5;
+        @apply w-5 h-5 text-green-500 flex-shrink-0 mt-0.5 mr-3;
       }
 
       // Prevent text from wrapping onto multiple lines
