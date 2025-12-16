@@ -43,7 +43,7 @@ documentation.build:staging:
 
 pages:
   extends: .pages_template
-  dependencies:
+  needs:
     - documentation.build
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -53,7 +53,7 @@ pages:
 
 pages:staging:
   extends: .pages_template
-  dependencies:
+  needs:
     - documentation.build:staging
   variables:
     PAGES_PREFIX: staging
