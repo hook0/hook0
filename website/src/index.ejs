@@ -9,143 +9,121 @@
 
 <%- include('./includes/_header.ejs') %>
 
-<div class="relative overflow-hidden">
-    <main>
-        <div class="pt-10 bg-gray-900 sm:pt-16 lg:pt-8 lg:pb-0">
-            <div class="mx-auto max-w-7xl lg:px-8">
-                <div class="lg:grid lg:grid-cols-2 lg:gap-8">
-                    <div class="mx-auto max-w-md px-4 sm:max-w-2xl sm:px-6 sm:text-center lg:px-0 lg:text-left lg:flex lg:items-center">
-                        <div class="lg:py-24">
-                            <a href="<%= locals.social.github.href %>"
-                               class="inline-flex items-center text-white bg-black rounded-full p-1 pr-2 sm:text-base lg:text-sm xl:text-base hover:text-gray-200">
-                                <span class="px-3 py-0.5 text-white text-xs font-semibold leading-5 tracking-wide bg-green-500 rounded-full">No investors thus future-proof</span>
-                                <span class="ml-4 text-sm">Hook0 is open-Source</span>
-                                <span><%- include('./svg/chevron-right.svg') %></span>
-                            </a>
-                            <h1 class="mt-4 text-4xl tracking-tight font-extrabold text-white sm:mt-5 sm:text-6xl lg:mt-6 xl:text-6xl">
-                                <span class="block">Webhooks</span>
-                                <span class="block text-green-400">As A Service</span>
-                            </h1>
+<!-- Hero Section -->
+<section class="relative min-h-screen flex items-center gradient-hero overflow-hidden">
+    <!-- Background Effects -->
+    <div class="absolute inset-0 grid-pattern opacity-50"></div>
+    <div class="blur-circle blur-circle--indigo w-96 h-96 -top-48 -left-48"></div>
+    <div class="blur-circle blur-circle--green w-80 h-80 top-1/2 -right-40"></div>
+    <div class="blur-circle blur-circle--indigo w-64 h-64 bottom-20 left-1/4 opacity-30"></div>
 
-                            <p class="mt-3 text-base text-gray-300 sm:mt-5 sm:text-xl lg:text-lg xl:text-xl">
-                                Hook0 is an Open-Source Webhooks-as-a-service (WaaS) that makes it easy for developers to send webhooks. Developers make one API call, and Hook0 takes care of deliverability, retries, security, and more.
-                            </p>
-                            <div class="mt-10 sm:mt-12">
-                                <div class="mt-10 sm:mt-12">
-                                    <div class="rounded-md shadow">
-                                        <a href="./sign_up" class="w-full flex items-center justify-center px-8 py-3 shadow border border-transparent text-base font-medium rounded-md text-white bg-green-500 hover:bg-green-700 md:py-4 md:text-lg md:px-10 focus:ring-2 focus:ring-green-300 focus:ring-offset-2 focus:ring-offset-gray-900">
-                                            Get Started For Free
-                                        </a>
-                                    </div>
-                                </div>
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
+        <div class="lg:grid lg:grid-cols-2 lg:gap-16 items-center">
+            <!-- Left Column - Text Content -->
+            <div class="text-center lg:text-left">
+                <!-- Badge -->
+                <a href="<%= locals.social.github.href %>"
+                   class="animate-on-scroll inline-flex items-center gap-3 px-1 pr-4 py-1 rounded-full
+                          bg-white/5 border border-white/10 backdrop-blur-sm
+                          hover:bg-white/10 transition-all duration-300 group">
+                    <span class="px-3 py-1 text-xs font-semibold tracking-wide bg-green-500 text-white rounded-full">
+                        100% Bootstrapped
+                    </span>
+                    <span class="text-sm text-gray-300 group-hover:text-white transition-colors">
+                        Hook0 is Open-Source
+                    </span>
+                    <svg class="w-4 h-4 text-gray-400 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </a>
 
-                                <div class="mt-8 w-full sm:mx-auto sm:max-w-lg lg:ml-0">
-                                    <div class="flex flex-wrap items-start justify-between">
-                                        <div class="flex justify-center px-1 text-white">
-                                            <span><%- include('./svg/check-white.svg') %></span>
-                                            Free Plan
-                                        </div>
-                                        <div class="flex justify-center px-1 text-white">
-                                            <span><%- include('./svg/check-white.svg') %></span>
-                                            No Credit Card Required
-                                        </div>
-                                        <div class="flex justify-center px-1 text-white">
-                                            <span><%- include('./svg/check-white.svg') %></span>
-                                            Hosted in Europe
-                                            <span class="ms-2"><%- include('./svg/europe-flag.svg') %></span>
-                                        </div>
-                                    </div>
+                <!-- Headline -->
+                <h1 class="animate-on-scroll mt-8 text-display-xl text-white">
+                    <span class="block">Webhooks</span>
+                    <span class="block text-gradient-green">As A Service</span>
+                </h1>
 
-                                    <div class="flex flex-col sm:flex-row flex-wrap items-start justify-start mt-6">
-                                        <a class="mr-4 mb-4 sm:mb-0" href="https://www.producthunt.com/posts/hook0?utm_source=badge-top-post-badge&utm_medium=badge&utm_souce=badge-hook0" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/top-post-badge.svg?post_id=447944&theme=neutral&period=daily" alt="Hook0 - OpenSource&#0032;Webhook&#0032;as&#0032;a&#0032;service&#0044;&#0032;secure&#0032;and&#0032;enterprise&#0032;ready | Product Hunt" style="width: 240px; height: 60px;" width="240" height="60" /></a>
-                                        <a href="https://www.producthunt.com/posts/hook0?utm_source=badge-top-post-topic-badge&utm_medium=badge&utm_souce=badge-hook0" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/top-post-topic-badge.svg?post_id=447944&theme=neutral&period=weekly&topic_id=237" alt="Hook0 - OpenSource&#0032;Webhook&#0032;as&#0032;a&#0032;service&#0044;&#0032;secure&#0032;and&#0032;enterprise&#0032;ready | Product Hunt" style="width: 240px; height: 60px;" width="240" height="60" /></a>
-                                      </div>
-                                      <div class="mt-4">
-                                        <iframe src="https://ghbtns.com/github-btn.html?user=hook0&repo=hook0&type=star&count=true&size=large" frameborder="0" scrolling="0" width="170" height="30" title="GitHub"></iframe>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                <!-- Description -->
+                <p class="animate-on-scroll mt-6 text-body-lg text-gray-400 max-w-xl mx-auto lg:mx-0">
+                    Hook0 is an Open-Source Webhooks-as-a-service (WaaS) that makes it easy for developers to send webhooks. Developers make one API call, and Hook0 takes care of deliverability, retries, security, and more.
+                </p>
+
+                <!-- CTA Buttons -->
+                <div class="animate-on-scroll mt-10 flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                    <a href="./sign_up" class="btn btn--primary btn--lg group">
+                        Get Started For Free
+                        <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                        </svg>
+                    </a>
+                    <a href="<%= locals.meta.doc_getstarted %>" class="btn btn--secondary btn--lg">
+                        View Documentation
+                    </a>
+                </div>
+
+                <!-- Trust Indicators -->
+                <div class="animate-on-scroll mt-10 flex flex-wrap gap-6 justify-center lg:justify-start text-sm text-gray-400">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span>Free Plan</span>
                     </div>
-                    <div class="mt-12 -mb-16 sm:-mb-48 lg:m-0 lg:relative">
-                        <div class="mx-auto max-w-md px-4 sm:max-w-2xl sm:px-6 lg:max-w-none lg:px-0">
-                            <div class="w-full lg:absolute lg:inset-y-0 lg:left-0 lg:h-full lg:w-auto lg:max-w-none">
-                                <span><%- include('./svg/cloud-illustration-indigo-400.svg') %></span>
-                            </div>
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span>No Credit Card</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span class="inline-flex items-center gap-1.5">
+                            Hosted in Europe
+                            <%- include('./svg/europe-flag.svg') %>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Social Proof -->
+                <div class="animate-on-scroll mt-10 pt-8 border-t border-white/10">
+                    <div class="flex flex-col sm:flex-row items-center gap-6 justify-center lg:justify-start">
+                        <a href="https://www.producthunt.com/posts/hook0?utm_source=badge-top-post-badge&utm_medium=badge&utm_souce=badge-hook0" target="_blank" class="opacity-80 hover:opacity-100 transition-opacity">
+                            <img src="https://api.producthunt.com/widgets/embed-image/v1/top-post-badge.svg?post_id=447944&theme=neutral&period=daily" alt="Hook0 on Product Hunt" width="240" height="54" loading="lazy" />
+                        </a>
+                        <div class="flex items-center gap-4">
+                            <iframe src="https://ghbtns.com/github-btn.html?user=hook0&repo=hook0&type=star&count=true&size=large" frameborder="0" scrolling="0" width="170" height="30" title="GitHub Stars" loading="lazy"></iframe>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <% /*
-            <section class="mt-40 lg:px-8 max-w-7xl mx-auto pb-32 px-4 relative sm:px-6 z-10"
-                     aria-labelledby="contact-heading">
-                <h2 class="sr-only" id="contact-heading">Setup and forget</h2>
-                <div class="gap-y-20 grid grid-cols-1 lg:gap-x-8 lg:gap-y-0 lg:grid-cols-4">
-                    <div class="bg-white flex flex-col rounded-xl shadow-xl">
-                        <div class="primary-feature">
-                            <div class="primary-feature-icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                                     stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
-                                </svg>
-                            </div>
-                            <h3 class="font-medium text-gray-900 text-xl">1 - Create an app</h3>
-                            <p class="mt-4 text-base text-gray-500">Create a Hook0 account and declare which event types
-                                your application can send.</p></div>
-                    </div>
-                    <div class="bg-white flex flex-col rounded-xl shadow-xl">
-                        <div class="primary-feature">
-                            <div class="primary-feature-icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                                     stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
-                                </svg>
-                            </div>
-                            <h3 class="font-medium text-gray-900 text-xl">2 - Send events</h3>
-                            <p class="mt-4 text-base text-gray-500">Use Hook0's HTTP API to send events from you
-                                backend.
-                                Events must have a type name, a scope (one or several user IDs, none or broadcast) and a
-                                JSON payload.</p></div>
-                    </div>
-                    <div class="bg-white flex flex-col rounded-xl shadow-xl">
-                        <div class="primary-feature">
-                            <div class="primary-feature-icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                                     stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
-                                </svg>
-                            </div>
-                            <h3 class="font-medium text-gray-900 text-xl">3 - Provide your own UI</h3>
-                            <p class="mt-4 text-base text-gray-500">Build widgets that fit in your app to allow users to
-                                register webhooks. Use Hook0's HTTP API to store and retrieve subscriptions.</p></div>
-                    </div>
-
-                    <div class="bg-white flex flex-col rounded-xl shadow-xl">
-                        <div class="primary-feature">
-                            <div class="primary-feature-icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                                     stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                </svg>
-                            </div>
-                            <h3 class="font-medium text-gray-900 text-xl">4 - Users subscribe</h3>
-                            <p class="mt-4 text-base text-gray-500">Your users can now register any number of webhooks
-                                to receive your app's events. Hook0 takes care of the rest!</p></div>
+            <!-- Right Column - Illustration -->
+            <div class="hidden lg:block relative mt-16 lg:mt-0">
+                <div class="animate-on-scroll animate-on-scroll--right">
+                    <div class="relative animate-float">
+                        <!-- Glow effect behind illustration -->
+                        <div class="absolute inset-0 bg-indigo-500/20 blur-3xl rounded-full scale-75"></div>
+                        <div class="relative">
+                            <%- include('./svg/cloud-illustration-indigo-400.svg') %>
+                        </div>
                     </div>
                 </div>
-            </section>
-            */%>
+            </div>
         </div>
+    </div>
 
-    </main>
-</div>
+    <!-- Scroll Indicator -->
+    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
+        <a href="#customers" class="flex flex-col items-center gap-2 text-gray-500 hover:text-white transition-colors">
+            <span class="text-xs uppercase tracking-wider">Scroll</span>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+            </svg>
+        </a>
+    </div>
+</section>
 
 <%- include('./includes/_customers.ejs') %>
 
