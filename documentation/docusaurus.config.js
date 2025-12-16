@@ -69,7 +69,7 @@ const config = {
         showNavLink: false,
         configuration: {
           spec: {
-            url: "./hook0-api.json",
+            url: "../hook0-api.json",
           },
           theme: "none",
           authentication: {
