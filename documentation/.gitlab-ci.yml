@@ -1,5 +1,4 @@
-# Documentation build template
-.documentation.build_template:
+documentation.build:
   stage: documentation
   image: node:${NODE_VERSION}-alpine
   cache:
@@ -17,50 +16,24 @@
     paths:
       - documentation/build/
     expire_in: 1 week
-
-documentation.build:
-  extends: .documentation.build_template
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - changes:
+        - documentation/**/*
 
-documentation.build:staging:
-  extends: .documentation.build_template
-  variables:
-    BASE_URL: /staging/
-  rules:
-    - if: $CI_MERGE_REQUEST_IID
-
-# Deploy to GitLab Pages template
-.pages_template:
+pages:
   stage: documentation
   image: alpine:latest
+  needs:
+    - documentation.build
   script:
     - mkdir -p public
     - cp -r documentation/build/* public/
   artifacts:
     paths:
       - public
-
-pages:
-  extends: .pages_template
-  needs:
-    - documentation.build
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - changes:
+        - documentation/**/*
   environment:
     name: production
     url: https://hook0.gitlab.io
-
-pages:staging:
-  extends: .pages_template
-  needs:
-    - documentation.build:staging
-  variables:
-    PAGES_PREFIX: staging
-  pages:
-    path_prefix: $PAGES_PREFIX
-  rules:
-    - if: $CI_MERGE_REQUEST_IID
-  environment:
-    name: staging
-    url: https://hook0.gitlab.io/$PAGES_PREFIX
