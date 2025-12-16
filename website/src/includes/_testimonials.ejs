@@ -1,79 +1,100 @@
-<section class="bg-indigo-800">
-    <div class="max-w-7xl mx-auto md:grid md:grid-cols-3 md:px-6 lg:px-8">
-        <div class="py-12 px-4 sm:px-6 md:flex md:flex-col md:py-16 md:pl-0 md:pr-10 md:border-r md:border-indigo-900 lg:pr-16">
-            <blockquote class="mt-6 md:flex-grow md:flex md:flex-col">
-                <div class="relative text-lg font-medium text-white md:flex-grow">
-                    <svg class="absolute top-0 left-0 -translate-x-3 -translate-y-2 h-8 w-8 text-indigo-600"
-                         fill="currentColor" viewBox="0 0 32 32" aria-hidden="true">
-                        <path d="M9.352 4C4.456 7.456 1 13.12 1 19.36c0 5.088 3.072 8.064 6.624 8.064 3.36 0 5.856-2.688 5.856-5.856 0-3.168-2.208-5.472-5.088-5.472-.576 0-1.344.096-1.536.192.48-3.264 3.552-7.104 6.624-9.024L9.352 4zm16.512 0c-4.8 3.456-8.256 9.12-8.256 15.36 0 5.088 3.072 8.064 6.624 8.064 3.264 0 5.856-2.688 5.856-5.856 0-3.168-2.304-5.472-5.184-5.472-.576 0-1.248.096-1.44.192.48-3.264 3.456-7.104 6.528-9.024L25.864 4z"/>
-                    </svg>
-                  </div>
-                  <p class="relative text-lg font-medium text-white md:flex-grow">
-                      Give it enough time and open-Source always wins in the end!
-                  </p>
-                <footer class="mt-8">
-                    <div class="flex items-start">
-                        <div class="flex-shrink-0 inline-flex rounded-full border-2 border-white">
-                            <img class="h-12 w-12 rounded-full"
-                                 src="./mediakit/founders/francois-guillaume-ribreau.jpg?width=400" alt="">
-                        </div>
-                        <div class="ml-4">
-                            <div class="text-base font-medium text-white">François-Guillaume Ribreau</div>
-                            <div class="text-base font-medium text-indigo-200">Hook0 co-founder</div>
-                        </div>
-                    </div>
-                </footer>
-            </blockquote>
+<section class="relative py-24 sm:py-32 overflow-hidden">
+    <!-- Gradient Background -->
+    <div class="absolute inset-0 bg-gradient-to-b from-indigo-950/80 via-surface-primary to-surface-primary"></div>
+    <div class="blur-circle blur-circle--indigo w-[600px] h-[600px] top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-30"></div>
+
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Section Header -->
+        <div class="section__header animate-on-scroll">
+            <span class="section__eyebrow">Testimonials</span>
+            <h2 class="section__title">What people are saying</h2>
+            <p class="section__description">
+                Hear from developers and teams who trust Hook0 for their webhook infrastructure
+            </p>
         </div>
-        <div class="py-12 px-4 border-t-2 border-indigo-900 sm:px-6 md:py-16 md:pr-0 md:pl-10 md:border-t-0 md:border-l lg:pl-16">
-            <blockquote class="mt-6 md:flex-grow md:flex md:flex-col">
-                <div class="relative text-lg font-medium text-white md:flex-grow">
-                    <svg class="absolute top-0 left-0 -translate-x-3 -translate-y-2 h-8 w-8 text-indigo-600"
-                         fill="currentColor" viewBox="0 0 32 32">
+
+        <!-- Testimonials Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 stagger-children">
+            <!-- Testimonial 1 -->
+            <div class="animate-on-scroll">
+                <div class="glass card--glow testimonial-card rounded-2xl p-8 h-full flex flex-col">
+                    <!-- Quote Icon -->
+                    <svg class="testimonial__quote-icon animate-pulse-subtle" fill="currentColor" viewBox="0 0 32 32" aria-hidden="true">
                         <path d="M9.352 4C4.456 7.456 1 13.12 1 19.36c0 5.088 3.072 8.064 6.624 8.064 3.36 0 5.856-2.688 5.856-5.856 0-3.168-2.208-5.472-5.088-5.472-.576 0-1.344.096-1.536.192.48-3.264 3.552-7.104 6.624-9.024L9.352 4zm16.512 0c-4.8 3.456-8.256 9.12-8.256 15.36 0 5.088 3.072 8.064 6.624 8.064 3.264 0 5.856-2.688 5.856-5.856 0-3.168-2.304-5.472-5.184-5.472-.576 0-1.248.096-1.44.192.48-3.264 3.456-7.104 6.528-9.024L25.864 4z"/>
                     </svg>
-                  </div>
-                  <p class="relative text-lg font-medium text-white md:flex-grow">
-                      We are building it the way we would love to use it
-                  </p>
-                <footer class="mt-8">
-                    <div class="flex items-start">
-                        <div class="flex-shrink-0 inline-flex rounded-full border-2 border-white">
-                            <img class="h-12 w-12 rounded-full" src="mediakit/founders/david-sferruzza.jpg?width=400"
-                                 alt="">
+
+                    <!-- Quote Text -->
+                    <p class="testimonial__text flex-grow">
+                        Give it enough time and open-Source always wins in the end!
+                    </p>
+
+                    <!-- Author -->
+                    <div class="testimonial__author">
+                        <div class="testimonial__avatar ring-2 ring-indigo-500/50">
+                            <img src="./mediakit/founders/francois-guillaume-ribreau.jpg?width=400"
+                                 alt="François-Guillaume Ribreau" loading="lazy" />
                         </div>
-                        <div class="ml-4">
-                            <div class="text-base font-medium text-white">David Sferruzza, PhD</div>
-                            <div class="text-base font-medium text-indigo-200">Hook0 co-founder</div>
+                        <div>
+                            <div class="testimonial__name">François-Guillaume Ribreau</div>
+                            <div class="testimonial__role">Hook0 co-founder</div>
                         </div>
                     </div>
-                </footer>
-            </blockquote>
-        </div>
-        <div class="py-12 px-4 border-t-2 border-indigo-900 sm:px-6 md:py-16 md:pr-0 md:pl-10 md:border-t-0 md:border-l lg:pl-16">
-            <blockquote class="mt-6 md:flex-grow md:flex md:flex-col">
-                <div class="relative text-lg font-medium text-white md:flex-grow">
-                    <svg class="absolute top-0 left-0 -translate-x-3 -translate-y-2 h-8 w-8 text-indigo-600"
-                         fill="currentColor" viewBox="0 0 32 32" aria-hidden="true">
+                </div>
+            </div>
+
+            <!-- Testimonial 2 -->
+            <div class="animate-on-scroll">
+                <div class="glass card--glow testimonial-card rounded-2xl p-8 h-full flex flex-col">
+                    <!-- Quote Icon -->
+                    <svg class="testimonial__quote-icon animate-pulse-subtle" fill="currentColor" viewBox="0 0 32 32" aria-hidden="true">
                         <path d="M9.352 4C4.456 7.456 1 13.12 1 19.36c0 5.088 3.072 8.064 6.624 8.064 3.36 0 5.856-2.688 5.856-5.856 0-3.168-2.208-5.472-5.088-5.472-.576 0-1.344.096-1.536.192.48-3.264 3.552-7.104 6.624-9.024L9.352 4zm16.512 0c-4.8 3.456-8.256 9.12-8.256 15.36 0 5.088 3.072 8.064 6.624 8.064 3.264 0 5.856-2.688 5.856-5.856 0-3.168-2.304-5.472-5.184-5.472-.576 0-1.248.096-1.44.192.48-3.264 3.456-7.104 6.528-9.024L25.864 4z"/>
                     </svg>
-                  </div>
-                  <p class="relative text-lg font-medium text-white md:flex-grow">
-                      This is by far the best webhook software out there
-                  </p>
-                <footer class="mt-8">
-                    <div class="flex items-start">
-                        <div class="flex-shrink-0 inline-flex rounded-full border-2 border-white">
-                            <img class="h-12 w-12 rounded-full"
-                                 src="customers/kieron-wiltshire.webp" alt="Kieron Wiltshire">
+
+                    <!-- Quote Text -->
+                    <p class="testimonial__text flex-grow">
+                        We are building it the way we would love to use it
+                    </p>
+
+                    <!-- Author -->
+                    <div class="testimonial__author">
+                        <div class="testimonial__avatar ring-2 ring-indigo-500/50">
+                            <img src="mediakit/founders/david-sferruzza.jpg?width=400"
+                                 alt="David Sferruzza" loading="lazy" />
                         </div>
-                        <div class="ml-4">
-                            <div class="text-base font-medium text-white">Kieron Wiltshire</div>
-                            <div class="text-base font-medium text-indigo-200">Senior Software Engineer</div>
+                        <div>
+                            <div class="testimonial__name">David Sferruzza, PhD</div>
+                            <div class="testimonial__role">Hook0 co-founder</div>
                         </div>
                     </div>
-                </footer>
-            </blockquote>
+                </div>
+            </div>
+
+            <!-- Testimonial 3 -->
+            <div class="animate-on-scroll">
+                <div class="glass card--glow testimonial-card rounded-2xl p-8 h-full flex flex-col">
+                    <!-- Quote Icon -->
+                    <svg class="testimonial__quote-icon animate-pulse-subtle" fill="currentColor" viewBox="0 0 32 32" aria-hidden="true">
+                        <path d="M9.352 4C4.456 7.456 1 13.12 1 19.36c0 5.088 3.072 8.064 6.624 8.064 3.36 0 5.856-2.688 5.856-5.856 0-3.168-2.208-5.472-5.088-5.472-.576 0-1.344.096-1.536.192.48-3.264 3.552-7.104 6.624-9.024L9.352 4zm16.512 0c-4.8 3.456-8.256 9.12-8.256 15.36 0 5.088 3.072 8.064 6.624 8.064 3.264 0 5.856-2.688 5.856-5.856 0-3.168-2.304-5.472-5.184-5.472-.576 0-1.248.096-1.44.192.48-3.264 3.456-7.104 6.528-9.024L25.864 4z"/>
+                    </svg>
+
+                    <!-- Quote Text -->
+                    <p class="testimonial__text flex-grow">
+                        This is by far the best webhook software out there
+                    </p>
+
+                    <!-- Author -->
+                    <div class="testimonial__author">
+                        <div class="testimonial__avatar ring-2 ring-indigo-500/50">
+                            <img src="customers/kieron-wiltshire.webp"
+                                 alt="Kieron Wiltshire" loading="lazy" />
+                        </div>
+                        <div>
+                            <div class="testimonial__name">Kieron Wiltshire</div>
+                            <div class="testimonial__role">Senior Software Engineer</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </section>
