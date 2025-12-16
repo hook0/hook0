@@ -5,30 +5,36 @@ Hook0's event processing model is designed for reliability, scalability, and obs
 ## Event Lifecycle
 
 ### 1. Event Creation
+
 Events begin their lifecycle when applications send them to Hook0:
 
-```http
-POST /api/v1/event
-Authorization: Bearer <biscuit-token>
-Content-Type: application/json
+:::info Prerequisites
+Before sending events, you need:
+1. An application created in Hook0
+2. An API token for authentication (see [Getting Started](/tutorials/getting-started#step-3-get-your-api-token))
+3. An event type registered for your application
+:::
 
-{
-  "event_type": "order.completed",
-  "payload": {
-    "order_id": "ord_123",
-    "customer_id": "cust_456",
-    "amount": 99.99,
-    "currency": "USD"
-  },
-  "labels": {
-    "environment": "production",
-    "region": "us-east-1"
-  }
-}
+```bash
+curl -X POST "$HOOK0_API/event" \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "application_id": "'"$APP_ID"'",
+    "event_id": "'"$(uuidgen)"'",
+    "event_type": "order.order.completed",
+    "payload": "{\"order_id\": \"ord_123\", \"customer_id\": \"cust_456\", \"amount\": 99.99, \"currency\": \"USD\"}",
+    "payload_content_type": "application/json",
+    "occurred_at": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'",
+    "labels": {
+      "environment": "production",
+      "region": "us-east-1"
+    }
+  }'
 ```
 
 #### Validation Steps
-1. **Authentication**: Verify Biscuit token and permissions
+1. **Authentication**: Verify API token and permissions
 2. **Event Type**: Ensure event type exists for the application
 3. **Payload**: Validate against schema if defined
 4. **Quotas**: Check organization limits
