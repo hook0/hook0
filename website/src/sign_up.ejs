@@ -1,302 +1,375 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Hook0 — Open-Source Webhooks-as-a-service (WaaS)</title>
+    <title>Sign Up - Hook0 — Open-Source Webhooks-as-a-service (WaaS)</title>
     <%- include('./includes/_head.ejs') %>
 </head>
 <body>
-  <a name="top"></a>
-
 <%- include('./includes/_header.ejs') %>
 
-<div class="relative overflow-hidden">
-    <main>
-        <div class="pt-10  sm:pt-16 lg:pt-8 lg:pb-0">
-            <div class="mx-auto max-w-7xl lg:px-8">
-                <div class="lg:flex lg:items-center max-w-7xl mx-auto w-full">
+<!-- Hero Section with Form -->
+<section class="relative gradient-hero overflow-hidden py-12 sm:py-20">
+    <!-- Background Effects -->
+    <div class="absolute inset-0 grid-pattern opacity-50"></div>
+    <div class="blur-circle blur-circle--indigo w-96 h-96 -top-48 -left-48"></div>
+    <div class="blur-circle blur-circle--green w-80 h-80 top-1/2 -right-40"></div>
 
-                    <div class="flex-1 w-full flex pt-20 justify-center py-2 px-4 sm:px-6 lg:px-2">
-                        <div class="max-w-lg w-full space-y-8 pb-12">
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-start">
+
+            <!-- Form Section -->
+            <div class="animate-on-scroll">
+                <div class="mb-8">
+                    <span class="section__eyebrow">Get Started</span>
+                    <h1 class="mt-4 text-display-xl text-white font-extrabold">
+                        Set up your Free Webhooks account
+                    </h1>
+                    <p class="mt-4 text-body-lg text-gray-400">
+                        Start building with Hook0 in minutes. No credit card required.
+                    </p>
+                </div>
+
+                <div class="card card--glow">
+                    <form class="js-signup-form space-y-5">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                             <div>
-                                <h2 class="mt-6 text-center lg:text-left lg:text-4xl text-3xl font-extrabold text-[#142850]">
-                                    Set up your Free Webhooks account
-                                </h2>
-                            </div>
-                            <form class="js-signup-form">
-                                <div class="mt-4 sm:mt-3.5">
-                                    <label for="First Name" class="text-sm font-medium text-[#0A043C]">First Name</label>
-                                    <input type="text" required="required" id="first_name" class="block mt-1 w-full px-4 h-10 text-sm rounded-md text-blueGray-700 bg-blueGray-100 focus:bg-white border border-gray-300 focus:border-[#3F72AF] transition-colors focus:outline-none" name="user[first_name]">
-                                </div>
-
-                                <div class="mt-4 sm:mt-3.5">
-                                    <label for="Last Name" class="text-sm font-medium text-[#0A043C]">Last Name</label>
-                                    <input type="text" required="required" id="last_name" class="block mt-1 w-full px-4 h-10 text-sm rounded-md text-blueGray-700 bg-blueGray-100 focus:bg-white border border-gray-300 focus:border-[#3F72AF] transition-colors focus:outline-none" name="user[last_name]">
-                                </div>
-
-                                <div class="mt-4 sm:mt-3.5">
-                                    <label for="email" class="text-sm font-medium text-[#0A043C]">Email</label>
-                                    <input type="email" required="required" id="user_email" class="block mt-1 w-full px-4 h-10 text-sm rounded-md text-blueGray-700 bg-blueGray-100 focus:bg-white border border-gray-300 focus:border-[#3F72AF] transition-colors focus:outline-none" name="user[email]">
-                                </div>
-
-                                <div class="mt-4 sm:mt-3.5">
-                                    <label class="text-sm font-medium text-[#0A043C]" for="user_password">Password</label>
-                                    <input type="password" required="required" class="block mt-1 w-full px-4 h-10 text-sm rounded-md text-blueGray-700 bg-blueGray-100 focus:bg-white border border-gray-300 focus:border-[#3F72AF] transition-colors focus:outline-none" name="user[password]" id="user_password">
-                                </div>
-
-                                <div class="sm:flex">
-                                    <div class="mt-3 sm:mt-0 text-sm sm:mt-4">
-                                        <label>
-                                            <input type="checkbox"
-                                                   class="input_replaced focus:ring-green-500 h-4 w-4 text-green-600 border-gray-300 align-middle"
-                                                   tabindex="9"
-                                                   value="1" id="OPT_IN"
-                                                   name="OPT_IN" required="">
-                                            <span class="mt-3 text-sm sm:mt-4 align-middle">I accept Hook0 <a
-                                                        href="./terms.ejs"
-                                                        class="font-medium">terms of service</a>.</span>
-                                        </label>
-                                    </div>
-                                </div>
-
-                                <div id="turnstile-container" class="mt-4 sm:mt-3.5"></div>
-
-                                <button name="button" type="submit" id="signup_submit" class="mt-6 px-4 w-full h-10 font-medium rounded-md text-white bg-green-500 hover:bg-green-600 focus:ring-2 focus:ring-offset-2 focus:ring-green-600 transition-colors focus:outline-none">
-                                    Sign Up
-                                </button>
-
-                                <div class="other-links pt-3 text-sm text-blueGray-700">
-                                    Already have an account? <a class="rounded font-medium text-green-500 hover:text-green-600 focus:ring-2 focus:ring-[#3F72AF] transition-colors duration-75 focus:outline-none" href="<%= locals.meta.login %>">Sign in</a>
-                                </div>
-                            </form>
-
-                            <!-- success form -->
-                            <div class="relative hidden bg-white flex flex-col rounded-xl js-signup-form">
-                                <dt>
-                                    <svg class="absolute h-6 w-6 text-green-500" fill="none" stroke="currentColor"
-                                         aria-hidden="true" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                              d="m5 13 4 4L19 7"></path>
-                                    </svg>
-                                    <p class="font-medium leading-6 ml-9 text-gray-900 text-lg">Welcome to Hook0 family!</p>
-                                </dt>
-                                <dd id="success_form_password">
-                                    <a href="<%= locals.meta.login %>"
-                                       class="block text-center py-3 mt-6 px-4 w-full font-medium rounded-md text-white bg-green-500 hover:bg-green-600 focus:ring-2 focus:ring-offset-2 focus:ring-green-600 transition-colors focus:outline-none">
-                                        Login
-                                    </a>
-                                </dd>
+                                <label for="first_name" class="block text-sm font-medium text-gray-300 mb-2">
+                                    First Name
+                                </label>
+                                <input
+                                    type="text"
+                                    required
+                                    id="first_name"
+                                    class="block w-full px-4 py-3 text-sm rounded-xl text-white bg-white/5 border border-white/10 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-surface-tertiary transition-all outline-none"
+                                    name="user[first_name]"
+                                    placeholder="John"
+                                >
                             </div>
 
-
-                            <!-- error_form -->
-                            <div class="rounded-md hidden bg-red-50 rounded-xl shadow-xl p-5 mt-5 js-signup-form">
-                                <div class="flex">
-                                    <div class="flex-shrink-0">
-                                        <!-- Heroicon name: solid/x-circle -->
-                                        <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg"
-                                             viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                            <path fill-rule="evenodd"
-                                                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                                                  clip-rule="evenodd"/>
-                                        </svg>
-                                    </div>
-                                    <div class="ml-3">
-                                        <h3 class="text-sm font-medium text-red-800"
-                                            data-problem="title">title</h3>
-                                        <div class="mt-2 text-sm text-red-700 flex-1 md:flex md:justify-between">
-                                            <p data-problem="detail">details</p>
-                                        </div>
-                                    </div>
-                                </div>
+                            <div>
+                                <label for="last_name" class="block text-sm font-medium text-gray-300 mb-2">
+                                    Last Name
+                                </label>
+                                <input
+                                    type="text"
+                                    required
+                                    id="last_name"
+                                    class="block w-full px-4 py-3 text-sm rounded-xl text-white bg-white/5 border border-white/10 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-surface-tertiary transition-all outline-none"
+                                    name="user[last_name]"
+                                    placeholder="Doe"
+                                >
                             </div>
+                        </div>
 
-                            <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"></script>
-                            <script defer>
-                                (function () {
-                                    const api_base_url = 'https://app.hook0.com/api/v1';
+                        <div>
+                            <label for="user_email" class="block text-sm font-medium text-gray-300 mb-2">
+                                Email
+                            </label>
+                            <input
+                                type="email"
+                                required
+                                id="user_email"
+                                class="block w-full px-4 py-3 text-sm rounded-xl text-white bg-white/5 border border-white/10 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-surface-tertiary transition-all outline-none"
+                                name="user[email]"
+                                placeholder="john.doe@company.com"
+                            >
+                        </div>
 
-                                    let turnstileToken = null;
-                                    fetch(`${api_base_url}/instance`)
-                                        .then((r) => r.json().then(data => ([r, data])))
-                                        .then(([response, data]) => {
-                                            if ([400, 409].includes(response.status) && response.headers.get('content-type') === 'application/problem+json') {
-                                                displayProblem(data);
-                                                return;
-                                            } else if (response.status !== 200) {
-                                                // fallback on global catch
-                                                throw new Error('Unknown error: ' + JSON.stringify(data));
-                                            }
+                        <div>
+                            <label for="user_password" class="block text-sm font-medium text-gray-300 mb-2">
+                                Password
+                            </label>
+                            <input
+                                type="password"
+                                required
+                                id="user_password"
+                                class="block w-full px-4 py-3 text-sm rounded-xl text-white bg-white/5 border border-white/10 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-surface-tertiary transition-all outline-none"
+                                name="user[password]"
+                                placeholder="••••••••"
+                            >
+                        </div>
 
-                                            if (typeof data.cloudflare_turnstile_site_key === 'string') {
-                                                submit.disabled = true;
-                                                turnstile.ready(function () {
-                                                    console.log("ready");
-                                                    turnstile.render('#turnstile-container', {
-                                                        sitekey: data.cloudflare_turnstile_site_key,
-                                                        size: 'flexible',
-                                                        callback: function (token) {
-                                                            turnstileToken = token;
-                                                            submit.disabled = false;
-                                                        },
-                                                    });
-                                                });
-                                            }
-                                        })
-                                        .catch(err => {
-                                            displayProblem({
-                                                title: 'Error',
-                                                detail: `Could not load Hook0 config: ${err.message} If this error persists, please contact support.`,
-                                                type: 'unknown'
-                                            });
-                                        });
+                        <div class="flex items-start">
+                            <div class="flex items-center h-5 mt-1">
+                                <input
+                                    type="checkbox"
+                                    class="w-4 h-4 rounded border-white/10 bg-white/5 text-green-500 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-surface-tertiary"
+                                    tabindex="9"
+                                    value="1"
+                                    id="OPT_IN"
+                                    name="OPT_IN"
+                                    required
+                                >
+                            </div>
+                            <label for="OPT_IN" class="ml-3 text-sm text-gray-300">
+                                I accept Hook0 <a href="./terms.ejs" class="text-indigo-400 hover:text-indigo-300 font-medium transition-colors">terms of service</a>
+                            </label>
+                        </div>
 
-                                    const submit = document.getElementById('signup_submit');
-                                    const [signup_form, success_form, error_form] = document.querySelectorAll('.js-signup-form');
+                        <div id="turnstile-container"></div>
 
-                                    function $set(kind, data) {
-                                        Object.entries(data).forEach(([k, v]) => {
-                                            const el = document.querySelector(`[data-${kind}="${k}"]`);
-                                            if (!el) {
-                                                return;
-                                            }
-                                            el.innerText = v;
-                                        })
-                                    }
+                        <button
+                            type="submit"
+                            id="signup_submit"
+                            class="btn btn--primary w-full btn--lg"
+                        >
+                            Create Account
+                            <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                            </svg>
+                        </button>
 
-                                    /**
-                                     * @param {object} data
-                                     * @property {string} title
-                                     * @property {string} type
-                                     * @property {string} detail
-                                     */
-                                    function displayProblem(data) {
-                                        error_form.classList.remove('hidden');
-                                        $set('problem', data);
-                                    }
+                        <div class="text-center text-sm text-gray-400">
+                            Already have an account?
+                            <a href="<%= locals.meta.login %>" class="text-indigo-400 hover:text-indigo-300 font-medium transition-colors ml-1">
+                                Sign in
+                            </a>
+                        </div>
+                    </form>
 
-                                    signup_form.addEventListener('submit', (e) => {
-                                        e.preventDefault();
-
-                                        submit.disabled = true;
-
-                                        const email = document.getElementById('user_email').value;
-                                        const user_password = document.getElementById('user_password').value;
-                                        const first_name = document.getElementById('first_name').value;
-                                        const last_name = document.getElementById('last_name').value;
-
-                                        function displaySuccess(data) {
-                                            success_form.classList.remove('hidden');
-                                            signup_form.classList.add('hidden');
-                                            $set('success', data);
-                                        }
-
-                                        fetch(`${api_base_url}/register`, {
-                                            redirect: 'error',
-                                            method: 'POST',
-                                            headers: {
-                                                'Content-type': 'application/json'
-                                            },
-                                            body: JSON.stringify(Object.assign({
-                                                "email": email,
-                                                "first_name": first_name,
-                                                "last_name": last_name,
-                                                "password": user_password,
-                                            }, turnstileToken === null ? {} : { turnstile_token: turnstileToken })),
-                                            mode: 'cors',
-                                            cache: 'default'
-                                        }).then((r) => r.json().then(data => ([r, data])))
-                                            .then(([response, data]) => {
-                                                if ([400, 409].includes(response.status) && response.headers.get('content-type') === 'application/problem+json') {
-                                                    displayProblem(data);
-                                                    return;
-                                                } else if (response.status !== 201) {
-                                                    // fallback on global catch
-                                                    throw new Error('Unknown error: ' + JSON.stringify(data));
-                                                }
-
-                                                error_form.classList.add('hidden');
-
-
-
-                                                displaySuccess({
-                                                    email: email,
-                                                    password: data.temporary_password
-                                                })
-                                            })
-                                            .catch(err => {
-                                                displayProblem({
-                                                    title: 'Error',
-                                                    detail: err.message,
-                                                    type: 'unknown'
-                                                });
-                                            })
-                                            .finally(() => {
-                                                submit.disabled = false;
-                                            });
-
-                                    });
-
-                                })();
-                            </script>
-
+                    <!-- success form -->
+                    <div class="hidden js-signup-form">
+                        <div class="flex items-start gap-4 p-6 bg-green-500/10 border border-green-500/20 rounded-xl">
+                            <div class="flex-shrink-0">
+                                <svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m5 13 4 4L19 7"></path>
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="text-lg font-semibold text-white mb-2">Welcome to Hook0 family!</h3>
+                                <p class="text-sm text-gray-300 mb-4">Your account has been created successfully.</p>
+                                <a href="<%= locals.meta.login %>" class="btn btn--primary w-full">
+                                    Login to Dashboard
+                                </a>
+                            </div>
                         </div>
                     </div>
 
-
-
-                    <div class="flex-1 px-4 py-6 lg:p-0 max-w-2xl mx-auto lg:mx-0 lg:max-w-none lg:ml-20 lg:grid grid-cols-2 rounded-xl">
-                        <div class="p-6 lg:border-r lg:border-b hover:bg-gray-100">
-                            <div class="flex items-center text-lg font-medium text-gray-500">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    <!-- error_form -->
+                    <div class="hidden js-signup-form">
+                        <div class="flex items-start gap-4 p-6 bg-red-500/10 border border-red-500/20 rounded-xl">
+                            <div class="flex-shrink-0">
+                                <svg class="w-6 h-6 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
                                 </svg>
-                                <span class="ml-2 text-gray-800">Go To Market Faster</span>
                             </div>
-                            <p class="mt-2 tracking-tight leading-relaxed text-gray-600 text-sm">Our out of the box solution gives you a robust webhook platform in a fraction of the time.</p>
-                        </div>
-
-                        <div class="p-6 lg:border-b hover:bg-gray-100">
-                            <div class="flex items-center text-lg font-medium text-gray-500">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                </svg>
-                                <span class="ml-2 text-gray-800">Test Webhook Payloads</span>
+                            <div class="flex-1">
+                                <h3 class="text-sm font-semibold text-red-300 mb-1" data-problem="title">Error</h3>
+                                <p class="text-sm text-red-200" data-problem="detail">An error occurred</p>
                             </div>
-                            <p class="mt-2 tracking-tight leading-relaxed text-gray-600 text-sm">Make testing your integration easier by triggering mock payloads to simulate webhook messages</p>
-                        </div>
-
-                        <div class="p-6 lg:border-r hover:bg-gray-100">
-                            <div class="flex items-center text-lg font-medium text-gray-500">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                </svg>
-                                <span class="ml-2 text-gray-800">View and Search Logs</span>
-                            </div>
-                            <p class="mt-2 tracking-tight leading-relaxed text-gray-600 text-sm">Help debug your integration by searching through webhook attempts and payloads</p>
-                        </div>
-
-                        <div class="p-6 hover:bg-gray-100">
-                            <div class="flex items-center text-lg font-medium text-gray-500">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                </svg>
-                                <span class="ml-2 text-gray-800">Manage Your Integration</span>
-
-                            </div>
-                            <p class="mt-2 tracking-tight leading-relaxed text-gray-600 text-sm">Our self-serve portal lets you build your own endpoints and subscribe to any or all events</p>
                         </div>
                     </div>
-
-
 
                 </div>
             </div>
+
+            <!-- Features/Benefits Section -->
+            <div class="mt-12 lg:mt-0 animate-on-scroll">
+                <div class="mb-8 lg:sticky lg:top-32">
+                    <h2 class="text-display font-bold text-white mb-6">
+                        Why choose Hook0?
+                    </h2>
+                    <div class="space-y-4">
+                        <div class="card card--glow p-6 hover:border-indigo-500/30 transition-all">
+                            <div class="flex items-start gap-4">
+                                <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="text-lg font-semibold text-white mb-2">Go To Market Faster</h3>
+                                    <p class="text-sm text-gray-400 leading-relaxed">Our out of the box solution gives you a robust webhook platform in a fraction of the time.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card card--glow p-6 hover:border-green-500/30 transition-all">
+                            <div class="flex items-start gap-4">
+                                <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="text-lg font-semibold text-white mb-2">Test Webhook Payloads</h3>
+                                    <p class="text-sm text-gray-400 leading-relaxed">Make testing your integration easier by triggering mock payloads to simulate webhook messages.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card card--glow p-6 hover:border-indigo-500/30 transition-all">
+                            <div class="flex items-start gap-4">
+                                <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="text-lg font-semibold text-white mb-2">View and Search Logs</h3>
+                                    <p class="text-sm text-gray-400 leading-relaxed">Help debug your integration by searching through webhook attempts and payloads.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card card--glow p-6 hover:border-green-500/30 transition-all">
+                            <div class="flex items-start gap-4">
+                                <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="text-lg font-semibold text-white mb-2">Manage Your Integration</h3>
+                                    <p class="text-sm text-gray-400 leading-relaxed">Our self-serve portal lets you build your own endpoints and subscribe to any or all events.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
+    </div>
+</section>
+
+<!-- Background pattern section -->
+<section class="relative bg-surface-primary py-16 sm:py-20 overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="blur-circle blur-circle--indigo w-64 h-64 top-1/4 right-0 opacity-10"></div>
+
+    <div class="relative z-10">
         <%- include('./includes/_customers.ejs') %>
-    </main>
-</div>
+    </div>
+</section>
 
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"></script>
+<script defer>
+    (function () {
+        const api_base_url = 'https://app.hook0.com/api/v1';
 
+        let turnstileToken = null;
+        fetch(`${api_base_url}/instance`)
+            .then((r) => r.json().then(data => ([r, data])))
+            .then(([response, data]) => {
+                if ([400, 409].includes(response.status) && response.headers.get('content-type') === 'application/problem+json') {
+                    displayProblem(data);
+                    return;
+                } else if (response.status !== 200) {
+                    // fallback on global catch
+                    throw new Error('Unknown error: ' + JSON.stringify(data));
+                }
+
+                if (typeof data.cloudflare_turnstile_site_key === 'string') {
+                    submit.disabled = true;
+                    turnstile.ready(function () {
+                        console.log("ready");
+                        turnstile.render('#turnstile-container', {
+                            sitekey: data.cloudflare_turnstile_site_key,
+                            size: 'flexible',
+                            callback: function (token) {
+                                turnstileToken = token;
+                                submit.disabled = false;
+                            },
+                        });
+                    });
+                }
+            })
+            .catch(err => {
+                displayProblem({
+                    title: 'Error',
+                    detail: `Could not load Hook0 config: ${err.message} If this error persists, please contact support.`,
+                    type: 'unknown'
+                });
+            });
+
+        const submit = document.getElementById('signup_submit');
+        const [signup_form, success_form, error_form] = document.querySelectorAll('.js-signup-form');
+
+        function $set(kind, data) {
+            Object.entries(data).forEach(([k, v]) => {
+                const el = document.querySelector(`[data-${kind}="${k}"]`);
+                if (!el) {
+                    return;
+                }
+                el.innerText = v;
+            })
+        }
+
+        /**
+         * @param {object} data
+         * @property {string} title
+         * @property {string} type
+         * @property {string} detail
+         */
+        function displayProblem(data) {
+            error_form.classList.remove('hidden');
+            signup_form.classList.add('hidden');
+            $set('problem', data);
+        }
+
+        signup_form.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            submit.disabled = true;
+
+            const email = document.getElementById('user_email').value;
+            const user_password = document.getElementById('user_password').value;
+            const first_name = document.getElementById('first_name').value;
+            const last_name = document.getElementById('last_name').value;
+
+            function displaySuccess(data) {
+                success_form.classList.remove('hidden');
+                signup_form.classList.add('hidden');
+                $set('success', data);
+            }
+
+            fetch(`${api_base_url}/register`, {
+                redirect: 'error',
+                method: 'POST',
+                headers: {
+                    'Content-type': 'application/json'
+                },
+                body: JSON.stringify(Object.assign({
+                    "email": email,
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "password": user_password,
+                }, turnstileToken === null ? {} : { turnstile_token: turnstileToken })),
+                mode: 'cors',
+                cache: 'default'
+            }).then((r) => r.json().then(data => ([r, data])))
+                .then(([response, data]) => {
+                    if ([400, 409].includes(response.status) && response.headers.get('content-type') === 'application/problem+json') {
+                        displayProblem(data);
+                        return;
+                    } else if (response.status !== 201) {
+                        // fallback on global catch
+                        throw new Error('Unknown error: ' + JSON.stringify(data));
+                    }
+
+                    error_form.classList.add('hidden');
+
+                    displaySuccess({
+                        email: email,
+                        password: data.temporary_password
+                    })
+                })
+                .catch(err => {
+                    displayProblem({
+                        title: 'Error',
+                        detail: err.message,
+                        type: 'unknown'
+                    });
+                })
+                .finally(() => {
+                    submit.disabled = false;
+                });
+
+        });
+
+    })();
+</script>
 
 <%- include('./includes/_footer.ejs') %>
 

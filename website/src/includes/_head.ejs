@@ -1,6 +1,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="theme-color" content="#0a0a0f">
+
+<!-- Preconnect to Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<!-- Stylesheet -->
 <link rel='stylesheet' href='./style.scss'/>
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" href="./mediakit/logo/110x110-white.png">
 
 <% if (process.env.CRISP_WEBSITE_ID) { %>
 <!-- Crisp -->
@@ -28,3 +38,53 @@
 </script>
 <!-- End Matomo Code -->
 <% } %>
+
+<!-- Scroll Animation Script -->
+<script defer>
+document.addEventListener('DOMContentLoaded', function() {
+    // Intersection Observer for scroll-triggered animations
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+                observer.unobserve(entry.target);
+            }
+        });
+    }, observerOptions);
+
+    document.querySelectorAll('.animate-on-scroll').forEach(function(el) {
+        observer.observe(el);
+    });
+
+    // Header scroll effect
+    const header = document.getElementById('main-header');
+    if (header) {
+        var lastScroll = 0;
+        window.addEventListener('scroll', function() {
+            var currentScroll = window.pageYOffset;
+            if (currentScroll > 50) {
+                header.classList.add('header-scrolled');
+            } else {
+                header.classList.remove('header-scrolled');
+            }
+            lastScroll = currentScroll;
+        }, { passive: true });
+    }
+
+    // Card glow effect (mouse tracking)
+    document.querySelectorAll('.card--glow').forEach(function(card) {
+        card.addEventListener('mousemove', function(e) {
+            var rect = card.getBoundingClientRect();
+            var x = e.clientX - rect.left;
+            var y = e.clientY - rect.top;
+            card.style.setProperty('--mouse-x', x + 'px');
+            card.style.setProperty('--mouse-y', y + 'px');
+        });
+    });
+});
+</script>
