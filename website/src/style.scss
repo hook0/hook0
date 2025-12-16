@@ -373,6 +373,14 @@
 
       // Prevent text from wrapping onto multiple lines
       white-space: nowrap;
+
+      // Ensure no extra spacing around strong elements
+      strong {
+        margin: 0;
+        padding: 0;
+        word-spacing: normal;
+        letter-spacing: normal;
+      }
     }
   }
 
