@@ -16,7 +16,7 @@ const config = {
   // Set the production url of your site here
   url: "https://hook0.gitlab.io",
   // Set the /<baseUrl>/ pathname under which your site is served
-  baseUrl: "/",
+  baseUrl: "/hook0/",
 
   // GitLab pages deployment config.
   organizationName: "hook0",

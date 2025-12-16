@@ -36,4 +36,4 @@ pages:
         - documentation/**/*
   environment:
     name: production
-    url: https://hook0.gitlab.io
+    url: https://hook0.gitlab.io/hook0
