@@ -7,8 +7,6 @@ variables:
   POSTGRES_PASSWORD: ""
   POSTGRES_HOST_AUTH_METHOD: trust
 
-
-
 stages:
   - build
   - test
@@ -29,6 +27,7 @@ include:
   - local: 'sentry-integration/.gitlab-ci.yml'
   - local: 'website/.gitlab-ci.yml'
   - local: 'e2e-tests/.gitlab-ci.yml'
+  - local: 'documentation/.gitlab-ci.yml'
 
 osv_dependency_scan:
   stage: test
@@ -47,45 +46,3 @@ dast:
     site_profile: "REST API v1"
     scanner_profile: "DAST"
 
-# Documentation build
-build_docs:
-  stage: documentation
-  image: node:${NODE_VERSION}-alpine
-  cache:
-    key: ${CI_COMMIT_REF_SLUG}-docs
-    paths:
-      - documentation/node_modules/
-      - documentation/.npm/
-  before_script:
-    - cd documentation
-    - npm config set cache .npm --global
-    - npm ci --prefer-offline --no-audit
-  script:
-    - npm run build
-    - echo "Documentation built successfully"
-  artifacts:
-    paths:
-      - documentation/build/
-    expire_in: 1 week
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-    - if: $CI_MERGE_REQUEST_IID
-
-# Deploy to GitLab Pages
-pages:
-  stage: documentation
-  image: alpine:latest
-  dependencies:
-    - build_docs
-  script:
-    - mkdir -p public
-    - cp -r documentation/build/* public/
-    - echo "Documentation deployed to GitLab Pages"
-  artifacts:
-    paths:
-      - public
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-  environment:
-    name: production
-    url: https://hook0.gitlab.io/hook0

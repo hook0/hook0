@@ -14,9 +14,9 @@ const config = {
   favicon: "favicon.ico",
 
   // Set the production url of your site here
-  url: "https://hook0.gitlab.io",
+  url: process.env.SITE_URL || "https://hook0.gitlab.io",
   // Set the /<baseUrl>/ pathname under which your site is served
-  baseUrl: "/",
+  baseUrl: process.env.BASE_URL || "/",
 
   // GitLab pages deployment config.
   organizationName: "hook0",

@@ -1,0 +1,66 @@
+# Documentation build template
+.documentation.build_template:
+  stage: documentation
+  image: node:${NODE_VERSION}-alpine
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}-docs
+    paths:
+      - documentation/node_modules/
+      - documentation/.npm/
+  before_script:
+    - cd documentation
+    - npm config set cache .npm --global
+    - npm ci --prefer-offline --no-audit
+  script:
+    - npm run build
+  artifacts:
+    paths:
+      - documentation/build/
+    expire_in: 1 week
+
+documentation.build:
+  extends: .documentation.build_template
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+documentation.build:staging:
+  extends: .documentation.build_template
+  variables:
+    BASE_URL: /staging/
+  rules:
+    - if: $CI_MERGE_REQUEST_IID
+
+# Deploy to GitLab Pages template
+.pages_template:
+  stage: documentation
+  image: alpine:latest
+  script:
+    - mkdir -p public
+    - cp -r documentation/build/* public/
+  artifacts:
+    paths:
+      - public
+
+pages:
+  extends: .pages_template
+  dependencies:
+    - documentation.build
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  environment:
+    name: production
+    url: https://hook0.gitlab.io
+
+pages:staging:
+  extends: .pages_template
+  dependencies:
+    - documentation.build:staging
+  variables:
+    PAGES_PREFIX: staging
+  pages:
+    path_prefix: $PAGES_PREFIX
+  rules:
+    - if: $CI_MERGE_REQUEST_IID
+  environment:
+    name: staging
+    url: https://hook0.gitlab.io/$PAGES_PREFIX
