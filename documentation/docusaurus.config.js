@@ -66,7 +66,7 @@ const config = {
       {
         label: "API Reference",
         route: "/api",
-        showNavLink: true,
+        showNavLink: false,
         configuration: {
           spec: {
             url: "/hook0-api.json",
