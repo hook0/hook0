@@ -23,11 +23,11 @@ Track webhook delivery metrics, set up alerts, and optimize performance.
 
 ## Integration & Migration
 
-### [GitLab Webhook Migration](gitlab-webhook-migration.md)
-Implement a GitLab-style webhook system using Hook0's labels and subscriptions.
+### [Multi-Tenant Architecture](multi-tenant-architecture.md)
+Implement multi-tenant webhook systems using Hook0's labels and subscriptions.
 
-**When to use:** When migrating from GitLab webhooks or implementing similar event-driven systems
-**Covers:** Event mapping, label-based filtering, subscription management, signature verification
+**When to use:** When building SaaS platforms that need tenant-isolated webhook delivery
+**Covers:** Label-based filtering, subscription management, tenant isolation patterns
 
 ---
 
@@ -58,7 +58,7 @@ Implement robust error handling for Hook0 API responses.
 | Need performance monitoring | [Monitor Webhook Performance](monitor-webhook-performance.md) | Intermediate |
 | Need security implementation | [Secure Webhook Endpoints](secure-webhook-endpoints.md) | Intermediate |
 | Need error handling in client | [Client-side Error Handling](client-error-handling.md) | Beginner |
-| Migrating from GitLab | [GitLab Webhook Migration](gitlab-webhook-migration.md) | Intermediate |
+| Building multi-tenant SaaS | [Multi-Tenant Architecture](multi-tenant-architecture.md) | Intermediate |
 
 ## Before You Start
 
