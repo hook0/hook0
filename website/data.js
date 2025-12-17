@@ -44,6 +44,17 @@ locals.meta = {
   contact: 'mailto:support@hook0.com',
 };
 
+locals.seo = {
+  siteUrl: 'https://www.hook0.com',
+  siteName: 'Hook0',
+  defaultTitle: 'Hook0 - Open-Source Webhooks-as-a-Service (WaaS)',
+  defaultDescription: 'Hook0 is an open-source Webhooks-as-a-Service platform. Send webhooks with one API call. We handle deliverability, retries, security, and monitoring. Free plan available.',
+  defaultImage: '/mediakit/logo/1920x1920-banner.png',
+  twitterHandle: '@hook0_',
+  locale: 'en_US',
+  themeColor: '#0a0a0f',
+};
+
 locals['guide-sdk-tutorial'] = [
   {
     language: 'Python',

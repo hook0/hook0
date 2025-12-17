@@ -17,6 +17,8 @@
   ],
   "license": "MIT",
   "devDependencies": {
+    "@parcel/packager-raw-url": "^2.16.3",
+    "@parcel/transformer-jsonld": "^2.16.3",
     "@parcel/transformer-sass": "^2.9.3",
     "@tailwindcss/typography": "^0.5.0",
     "nodemon": "^3.0.1",
