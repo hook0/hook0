@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                ra.request_attempt__id,\n                ra.event__id,\n                ra.subscription__id,\n                ra.created_at,\n                ra.picked_at,\n                ra.failed_at,\n                ra.succeeded_at,\n                ra.delay_until,\n                ra.response__id,\n                ra.retry_count,\n                s.description AS subscription__description\n            FROM webhook.request_attempt AS ra\n            INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id\n            WHERE ra.application__id = $1\n                AND (ra.event__id = $2 OR $2 IS NULL)\n                AND (s.subscription__id = $3 OR $3 IS NULL)\n                AND ra.created_at BETWEEN $4 AND $5\n                AND (ra.created_at, ra.request_attempt__id) < ($6, $7)\n            ORDER BY\n                ra.created_at DESC,\n                ra.request_attempt__id ASC\n            LIMIT 50\n        ",
+  "query": "\n            SELECT\n                ra.request_attempt__id,\n                ra.event__id,\n                ra.subscription__id,\n                ra.created_at,\n                ra.picked_at,\n                ra.failed_at,\n                ra.succeeded_at,\n                ra.delay_until,\n                ra.response__id,\n                ra.retry_count,\n                s.description AS subscription__description,\n                e.event_type__name\n            FROM webhook.request_attempt AS ra\n            INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id\n            INNER JOIN event.event AS e ON e.event__id = ra.event__id\n            WHERE ra.application__id = $1\n                AND (ra.event__id = $2 OR $2 IS NULL)\n                AND (s.subscription__id = $3 OR $3 IS NULL)\n                AND ra.created_at BETWEEN $4 AND $5\n                AND (ra.created_at, ra.request_attempt__id) < ($6, $7)\n                AND (e.event_type__name = any($8) OR $8 = '{}')\n            ORDER BY\n                ra.created_at DESC,\n                ra.request_attempt__id ASC\n            LIMIT 50\n        ",
   "describe": {
     "columns": [
       {
@@ -57,6 +57,11 @@
         "ordinal": 10,
         "name": "subscription__description",
         "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "event_type__name",
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -67,7 +72,8 @@
         "Timestamptz",
         "Timestamptz",
         "Timestamptz",
-        "Uuid"
+        "Uuid",
+        "TextArray"
       ]
     },
     "nullable": [
@@ -81,8 +87,9 @@
       true,
       true,
       false,
-      true
+      true,
+      false
     ]
   },
-  "hash": "d42673e9d6b51f43d5f1159b89ea4c7d4d1335fa5d0c2e96a3f62bac12df8f53"
+  "hash": "c802b992c4fea98c33db0da792120dfe74f22e15d45a44f2c2da9ae6b91f95bd"
 }
