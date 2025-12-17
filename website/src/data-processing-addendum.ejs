@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
     <title>Hook0 - Data Processing Agreement</title>
-    <meta name="description" content="Data Processing Terms of Services for Hook0, covering compliance, data processing operations, and security measures.">
+    <%
+    locals.pageTitle = 'Hook0 - Data Processing Agreement (DPA)';
+    locals.pageDescription = 'Hook0 Data Processing Agreement covering GDPR compliance, data processing operations, security measures, and subprocessor management.';
+    locals.pageCanonical = '/data-processing-addendum';
+    %>
     <%- include('./includes/_head.ejs') %>
     <style>
         .legal-table {
