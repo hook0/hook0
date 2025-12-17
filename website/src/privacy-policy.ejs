@@ -1,64 +1,138 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Hook0 Privacy Policy</title>
+    <title>Hook0 - Privacy Policy</title>
+    <meta name="description" content="Hook0 Privacy Policy - How we handle and protect your data.">
     <%- include('./includes/_head.ejs') %>
 </head>
 <body>
 <%- include('./includes/_header.ejs') %>
 
-<div class="relative py-16 bg-white overflow-hidden">
-    <div class="relative px-4 sm:px-6 lg:px-8">
-        <div class="text-lg max-w-prose prose prose-lg mx-auto">
-            <h1>
-                <span class="block text-base text-center text-green-600 font-semibold tracking-wide uppercase">Privacy Policy</span>
-            </h1>
+<!-- Hero Section -->
+<section class="relative gradient-hero overflow-hidden py-20 sm:py-24">
+    <!-- Background Effects -->
+    <div class="absolute inset-0 grid-pattern opacity-50"></div>
+    <div class="blur-circle blur-circle--indigo w-96 h-96 -top-48 -left-48"></div>
+    <div class="blur-circle blur-circle--green w-80 h-80 top-1/2 -right-40"></div>
 
-            <div class='privacy'>
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <span class="section__eyebrow">Legal</span>
+        <h1 class="mt-4 text-display-xl text-white">
+            Privacy Policy
+        </h1>
+        <p class="mt-6 text-body-lg text-gray-400 max-w-2xl mx-auto">
+            Your privacy is important to us. Here's how we handle and protect your data.
+        </p>
+    </div>
+</section>
 
+<!-- Main Content Section -->
+<section class="relative bg-surface-primary py-16 sm:py-20 overflow-hidden">
+    <!-- Background Effects -->
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="blur-circle blur-circle--indigo w-64 h-64 top-1/4 right-0 opacity-10"></div>
+    <div class="blur-circle blur-circle--green w-64 h-64 bottom-1/4 left-0 opacity-10"></div>
 
-                <ul role="list">
-                    <li>
-                        Hook0 started life as a way to open-source the internal webhook management services from
-                        François-Guillaume Ribreau and David Sferruzza successive SaaS and stop writing again and again
-                        somewhat the same code.
-                    </li>
-                    <li>We do not share user data with third parties under any circumstances.</li>
-                    <li>All revenue comes from paid subscriptions, removing the need for any type of tracking.</li>
-                    <li>
-                        Hook0 does not store your payment information. Payment is handled through Stripe, but if you are
-                        uncomfortable using those services, alternative arrangements are available.
-                    </li>
-                    <li>
-                        Hook0 earns all of its revenue through user subscriptions, and has no business relationship with
-                        large surveillance-based platforms like Facebook, Amazon or Google.
-                    </li>
-                    <% if (process.env.MATOMO_URL && process.env.MATOMO_SITE_ID) { %>
-                    <li>
-                        We use a self-hosted instance of Matomo to track visits on this website.
-                        It is configured to be GDPR compliant and does not track any personal data.
-                        <div id="matomo-opt-out"></div>
-                        <script src="<%= process.env.MATOMO_URL %>/index.php?module=CoreAdminHome&action=optOutJS&divId=matomo-opt-out&language=auto&showIntro=1"></script>
-                    </li>
-                    <% } %>
-                    <li>
-                        If there is a privacy breach, we promise to disclose it as soon as possible on the <a
-                                href='https://twitter.com/hook0_'>Twitter</a> account.
-                    </li>
-                    <li>
-                        If you choose to delete your account, all your data will be removed after a 30-day waiting
-                        period.
-                    </li>
-                    <li>
-                        If you spot a privacy leak, please report it to <a href="mailto:support@hook0.com">support@hook0.com</a>.
-                    </li>
-                </ul>
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        <div class="card card--glow animate-on-scroll">
+            <div class="prose prose-invert prose-lg max-w-none">
+
+                <!-- Our Story -->
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-white mb-4">Our Story</h2>
+                    <p class="text-gray-300 leading-relaxed">
+                        Hook0 started life as a way to open-source the internal webhook management services from Francois-Guillaume Ribreau and David Sferruzza successive SaaS and stop writing again and again somewhat the same code.
+                    </p>
+                </div>
+
+                <!-- Privacy Commitments -->
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-white mb-4">Our Privacy Commitments</h2>
+                    <ul class="space-y-4">
+                        <li class="flex items-start gap-3">
+                            <div class="flex-shrink-0 w-5 h-5 mt-1 rounded bg-green-500/20 flex items-center justify-center">
+                                <svg class="w-3 h-3 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                            <span class="text-gray-300">We do not share user data with third parties under any circumstances.</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <div class="flex-shrink-0 w-5 h-5 mt-1 rounded bg-green-500/20 flex items-center justify-center">
+                                <svg class="w-3 h-3 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                            <span class="text-gray-300">All revenue comes from paid subscriptions, removing the need for any type of tracking.</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <div class="flex-shrink-0 w-5 h-5 mt-1 rounded bg-green-500/20 flex items-center justify-center">
+                                <svg class="w-3 h-3 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                            <span class="text-gray-300">Hook0 does not store your payment information. Payment is handled through Stripe, but if you are uncomfortable using those services, alternative arrangements are available.</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <div class="flex-shrink-0 w-5 h-5 mt-1 rounded bg-green-500/20 flex items-center justify-center">
+                                <svg class="w-3 h-3 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                            <span class="text-gray-300">Hook0 earns all of its revenue through user subscriptions, and has no business relationship with large surveillance-based platforms like Facebook, Amazon or Google.</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <% if (process.env.MATOMO_URL && process.env.MATOMO_SITE_ID) { %>
+                <!-- Analytics -->
+                <div class="mb-8 p-6 rounded-xl bg-white/5 border border-white/10">
+                    <h2 class="text-2xl font-bold text-white mb-4">Analytics</h2>
+                    <p class="text-gray-300 mb-4">
+                        We use a self-hosted instance of Matomo to track visits on this website. It is configured to be GDPR compliant and does not track any personal data.
+                    </p>
+                    <div id="matomo-opt-out" class="p-4 rounded-lg bg-surface-secondary"></div>
+                    <script src="<%= process.env.MATOMO_URL %>/index.php?module=CoreAdminHome&action=optOutJS&divId=matomo-opt-out&language=auto&showIntro=1"></script>
+                </div>
+                <% } %>
+
+                <!-- Security Breach Disclosure -->
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-white mb-4">Security & Breach Disclosure</h2>
+                    <ul class="space-y-4">
+                        <li class="flex items-start gap-3">
+                            <div class="flex-shrink-0 w-5 h-5 mt-1 rounded bg-indigo-500/20 flex items-center justify-center">
+                                <svg class="w-3 h-3 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                </svg>
+                            </div>
+                            <span class="text-gray-300">If there is a privacy breach, we promise to disclose it as soon as possible on our <a href="https://twitter.com/hook0_" class="text-green-400 hover:text-green-300 transition-colors">Twitter</a> account.</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <div class="flex-shrink-0 w-5 h-5 mt-1 rounded bg-indigo-500/20 flex items-center justify-center">
+                                <svg class="w-3 h-3 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </div>
+                            <span class="text-gray-300">If you choose to delete your account, all your data will be removed after a 30-day waiting period.</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <div class="flex-shrink-0 w-5 h-5 mt-1 rounded bg-indigo-500/20 flex items-center justify-center">
+                                <svg class="w-3 h-3 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                </svg>
+                            </div>
+                            <span class="text-gray-300">If you spot a privacy leak, please report it to <a href="mailto:support@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">support@hook0.com</a>.</span>
+                        </li>
+                    </ul>
+                </div>
+
             </div>
-
         </div>
 
     </div>
-</div>
+</section>
 
 <%- include('./includes/_footer.ejs') %>
 

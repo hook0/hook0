@@ -1,0 +1,224 @@
+<svg viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="wf-greenGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4ade80;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#22c55e;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="wf-indigoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#818cf8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6366f1;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Glow filters -->
+    <filter id="wf-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="wf-softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background glow effects -->
+  <ellipse cx="300" cy="200" rx="180" ry="120" fill="#6366f1" opacity="0.05" filter="url(#wf-softGlow)"/>
+
+  <!-- SaaS Application Box (Left) -->
+  <g transform="translate(40, 140)">
+    <rect x="0" y="0" width="120" height="120" rx="16" fill="#1e1b4b" stroke="#4338ca" stroke-width="2" opacity="0.9">
+      <animate attributeName="opacity" values="0.8;1;0.8" dur="3s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="0" y="0" width="120" height="120" rx="16" fill="url(#wf-indigoGradient)" opacity="0.15"/>
+
+    <!-- SaaS Icon - Application window -->
+    <rect x="25" y="30" width="70" height="50" rx="6" fill="none" stroke="#818cf8" stroke-width="2"/>
+    <line x1="25" y1="42" x2="95" y2="42" stroke="#818cf8" stroke-width="2"/>
+    <circle cx="33" cy="36" r="3" fill="#f87171"/>
+    <circle cx="43" cy="36" r="3" fill="#fbbf24"/>
+    <circle cx="53" cy="36" r="3" fill="#4ade80"/>
+    <rect x="32" y="50" width="25" height="4" rx="2" fill="#818cf8" opacity="0.6"/>
+    <rect x="32" y="58" width="40" height="4" rx="2" fill="#818cf8" opacity="0.4"/>
+    <rect x="32" y="66" width="30" height="4" rx="2" fill="#818cf8" opacity="0.4"/>
+
+    <!-- Label -->
+    <text x="60" y="105" text-anchor="middle" fill="#a5b4fc" font-family="system-ui, sans-serif" font-size="12" font-weight="600">Your SaaS</text>
+  </g>
+
+  <!-- Connection Line: SaaS to Hook0 -->
+  <line x1="165" y1="200" x2="240" y2="200" stroke="#4ade80" stroke-width="2" opacity="0.3" stroke-dasharray="6 4">
+    <animate attributeName="stroke-dashoffset" from="0" to="-20" dur="1s" repeatCount="indefinite"/>
+  </line>
+
+  <!-- Animated event dots flying to Hook0 -->
+  <circle cx="165" cy="200" r="6" fill="#4ade80" filter="url(#wf-glow)">
+    <animate attributeName="cx" values="165;240" dur="1.5s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="1.5s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="165" cy="200" r="6" fill="#4ade80" filter="url(#wf-glow)">
+    <animate attributeName="cx" values="165;240" dur="1.5s" repeatCount="indefinite" begin="0.5s"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="1.5s" repeatCount="indefinite" begin="0.5s"/>
+  </circle>
+  <circle cx="165" cy="200" r="6" fill="#4ade80" filter="url(#wf-glow)">
+    <animate attributeName="cx" values="165;240" dur="1.5s" repeatCount="indefinite" begin="1s"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="1.5s" repeatCount="indefinite" begin="1s"/>
+  </circle>
+
+  <!-- "Events" label -->
+  <text x="200" y="180" text-anchor="middle" fill="#4ade80" font-family="system-ui, sans-serif" font-size="11" font-weight="500" opacity="0.8">events</text>
+
+  <!-- Hook0 Central Hub -->
+  <g transform="translate(240, 140)">
+    <!-- Outer glow ring - animated -->
+    <circle cx="60" cy="60" r="70" fill="#4ade80" opacity="0.05" filter="url(#wf-softGlow)">
+      <animate attributeName="r" values="65;75;65" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.05;0.12;0.05" dur="2s" repeatCount="indefinite"/>
+    </circle>
+
+    <!-- Main box -->
+    <rect x="0" y="0" width="120" height="120" rx="20" fill="#052e16" stroke="#4ade80" stroke-width="3">
+      <animate attributeName="stroke-opacity" values="0.7;1;0.7" dur="2s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="0" y="0" width="120" height="120" rx="20" fill="url(#wf-greenGradient)" opacity="0.2"/>
+
+    <!-- Hook0 Logo representation -->
+    <circle cx="60" cy="50" r="20" fill="none" stroke="#4ade80" stroke-width="3"/>
+    <path d="M50 50 L60 60 L70 45" stroke="#4ade80" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+    <!-- Status indicator - blinking -->
+    <circle cx="100" cy="20" r="6" fill="#4ade80" filter="url(#wf-glow)">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="1.5s" repeatCount="indefinite"/>
+    </circle>
+
+    <!-- Label -->
+    <text x="60" y="90" text-anchor="middle" fill="#4ade80" font-family="system-ui, sans-serif" font-size="16" font-weight="700">Hook0</text>
+    <text x="60" y="105" text-anchor="middle" fill="#86efac" font-family="system-ui, sans-serif" font-size="10" opacity="0.8">Webhook Hub</text>
+  </g>
+
+  <!-- Dispatch Lines to Endpoints (static curves) -->
+  <path d="M360 185 Q400 120, 460 120" fill="none" stroke="#6366f1" stroke-width="2" opacity="0.3"/>
+  <path d="M360 195 Q400 165, 460 170" fill="none" stroke="#6366f1" stroke-width="2" opacity="0.3"/>
+  <path d="M360 205 Q400 220, 460 220" fill="none" stroke="#6366f1" stroke-width="2" opacity="0.3"/>
+  <path d="M360 215 Q400 265, 460 270" fill="none" stroke="#6366f1" stroke-width="2" opacity="0.3"/>
+
+  <!-- Animated dispatch dots to Endpoint 1 -->
+  <circle r="5" fill="#818cf8" filter="url(#wf-glow)">
+    <animateMotion dur="1.2s" repeatCount="indefinite" path="M360,185 Q400,120 460,120"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="1.2s" repeatCount="indefinite"/>
+  </circle>
+  <circle r="5" fill="#818cf8" filter="url(#wf-glow)">
+    <animateMotion dur="1.2s" repeatCount="indefinite" path="M360,185 Q400,120 460,120" begin="0.6s"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="1.2s" repeatCount="indefinite" begin="0.6s"/>
+  </circle>
+
+  <!-- Animated dispatch dots to Endpoint 2 -->
+  <circle r="5" fill="#818cf8" filter="url(#wf-glow)">
+    <animateMotion dur="1.3s" repeatCount="indefinite" path="M360,195 Q400,165 460,170" begin="0.15s"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="1.3s" repeatCount="indefinite" begin="0.15s"/>
+  </circle>
+  <circle r="5" fill="#818cf8" filter="url(#wf-glow)">
+    <animateMotion dur="1.3s" repeatCount="indefinite" path="M360,195 Q400,165 460,170" begin="0.75s"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="1.3s" repeatCount="indefinite" begin="0.75s"/>
+  </circle>
+
+  <!-- Animated dispatch dots to Endpoint 3 -->
+  <circle r="5" fill="#818cf8" filter="url(#wf-glow)">
+    <animateMotion dur="1.25s" repeatCount="indefinite" path="M360,205 Q400,220 460,220" begin="0.3s"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="1.25s" repeatCount="indefinite" begin="0.3s"/>
+  </circle>
+  <circle r="5" fill="#818cf8" filter="url(#wf-glow)">
+    <animateMotion dur="1.25s" repeatCount="indefinite" path="M360,205 Q400,220 460,220" begin="0.9s"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="1.25s" repeatCount="indefinite" begin="0.9s"/>
+  </circle>
+
+  <!-- Animated dispatch dots to Endpoint 4 -->
+  <circle r="5" fill="#818cf8" filter="url(#wf-glow)">
+    <animateMotion dur="1.4s" repeatCount="indefinite" path="M360,215 Q400,265 460,270" begin="0.45s"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="1.4s" repeatCount="indefinite" begin="0.45s"/>
+  </circle>
+  <circle r="5" fill="#818cf8" filter="url(#wf-glow)">
+    <animateMotion dur="1.4s" repeatCount="indefinite" path="M360,215 Q400,265 460,270" begin="1.05s"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="1.4s" repeatCount="indefinite" begin="1.05s"/>
+  </circle>
+
+  <!-- "Webhooks" label -->
+  <text x="410" y="148" text-anchor="middle" fill="#818cf8" font-family="system-ui, sans-serif" font-size="11" font-weight="500" opacity="0.8">webhooks</text>
+
+  <!-- Customer Webhook Endpoints -->
+  <!-- Endpoint 1 -->
+  <g transform="translate(460, 95)">
+    <rect x="0" y="0" width="100" height="50" rx="10" fill="#1e1b4b" stroke="#6366f1" stroke-width="1.5" opacity="0.8">
+      <animate attributeName="opacity" values="0.7;0.9;0.7" dur="2s" repeatCount="indefinite"/>
+    </rect>
+    <circle cx="18" cy="25" r="8" fill="#6366f1" opacity="0.3"/>
+    <path d="M14 25 L18 29 L22 21" stroke="#818cf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <!-- Delivery flash -->
+    <circle cx="18" cy="25" r="12" fill="#4ade80" opacity="0">
+      <animate attributeName="opacity" values="0;0.6;0" dur="1.2s" repeatCount="indefinite"/>
+      <animate attributeName="r" values="8;16;8" dur="1.2s" repeatCount="indefinite"/>
+    </circle>
+    <text x="60" y="22" text-anchor="middle" fill="#c7d2fe" font-family="system-ui, sans-serif" font-size="9" font-weight="500">Customer A</text>
+    <text x="60" y="35" text-anchor="middle" fill="#818cf8" font-family="system-ui, sans-serif" font-size="8" opacity="0.7">/webhook</text>
+  </g>
+
+  <!-- Endpoint 2 -->
+  <g transform="translate(460, 155)">
+    <rect x="0" y="0" width="100" height="50" rx="10" fill="#1e1b4b" stroke="#6366f1" stroke-width="1.5" opacity="0.8">
+      <animate attributeName="opacity" values="0.7;0.9;0.7" dur="2s" repeatCount="indefinite" begin="0.3s"/>
+    </rect>
+    <circle cx="18" cy="25" r="8" fill="#6366f1" opacity="0.3"/>
+    <path d="M14 25 L18 29 L22 21" stroke="#818cf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <!-- Delivery flash -->
+    <circle cx="18" cy="25" r="12" fill="#4ade80" opacity="0">
+      <animate attributeName="opacity" values="0;0.6;0" dur="1.3s" repeatCount="indefinite" begin="0.15s"/>
+      <animate attributeName="r" values="8;16;8" dur="1.3s" repeatCount="indefinite" begin="0.15s"/>
+    </circle>
+    <text x="60" y="22" text-anchor="middle" fill="#c7d2fe" font-family="system-ui, sans-serif" font-size="9" font-weight="500">Customer B</text>
+    <text x="60" y="35" text-anchor="middle" fill="#818cf8" font-family="system-ui, sans-serif" font-size="8" opacity="0.7">/webhook</text>
+  </g>
+
+  <!-- Endpoint 3 -->
+  <g transform="translate(460, 215)">
+    <rect x="0" y="0" width="100" height="50" rx="10" fill="#1e1b4b" stroke="#6366f1" stroke-width="1.5" opacity="0.8">
+      <animate attributeName="opacity" values="0.7;0.9;0.7" dur="2s" repeatCount="indefinite" begin="0.6s"/>
+    </rect>
+    <circle cx="18" cy="25" r="8" fill="#6366f1" opacity="0.3"/>
+    <path d="M14 25 L18 29 L22 21" stroke="#818cf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <!-- Delivery flash -->
+    <circle cx="18" cy="25" r="12" fill="#4ade80" opacity="0">
+      <animate attributeName="opacity" values="0;0.6;0" dur="1.25s" repeatCount="indefinite" begin="0.3s"/>
+      <animate attributeName="r" values="8;16;8" dur="1.25s" repeatCount="indefinite" begin="0.3s"/>
+    </circle>
+    <text x="60" y="22" text-anchor="middle" fill="#c7d2fe" font-family="system-ui, sans-serif" font-size="9" font-weight="500">Customer C</text>
+    <text x="60" y="35" text-anchor="middle" fill="#818cf8" font-family="system-ui, sans-serif" font-size="8" opacity="0.7">/webhook</text>
+  </g>
+
+  <!-- Endpoint 4 -->
+  <g transform="translate(460, 275)">
+    <rect x="0" y="0" width="100" height="50" rx="10" fill="#1e1b4b" stroke="#6366f1" stroke-width="1.5" opacity="0.8">
+      <animate attributeName="opacity" values="0.7;0.9;0.7" dur="2s" repeatCount="indefinite" begin="0.9s"/>
+    </rect>
+    <circle cx="18" cy="25" r="8" fill="#6366f1" opacity="0.3"/>
+    <path d="M14 25 L18 29 L22 21" stroke="#818cf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <!-- Delivery flash -->
+    <circle cx="18" cy="25" r="12" fill="#4ade80" opacity="0">
+      <animate attributeName="opacity" values="0;0.6;0" dur="1.4s" repeatCount="indefinite" begin="0.45s"/>
+      <animate attributeName="r" values="8;16;8" dur="1.4s" repeatCount="indefinite" begin="0.45s"/>
+    </circle>
+    <text x="60" y="22" text-anchor="middle" fill="#c7d2fe" font-family="system-ui, sans-serif" font-size="9" font-weight="500">Customer D</text>
+    <text x="60" y="35" text-anchor="middle" fill="#818cf8" font-family="system-ui, sans-serif" font-size="8" opacity="0.7">/webhook</text>
+  </g>
+
+  <!-- Flow Labels at bottom -->
+  <g transform="translate(0, 365)">
+    <text x="100" y="0" text-anchor="middle" fill="#6b7280" font-family="system-ui, sans-serif" font-size="10">1. Send Event</text>
+    <text x="300" y="0" text-anchor="middle" fill="#6b7280" font-family="system-ui, sans-serif" font-size="10">2. Process &amp; Route</text>
+    <text x="510" y="0" text-anchor="middle" fill="#6b7280" font-family="system-ui, sans-serif" font-size="10">3. Deliver Webhooks</text>
+  </g>
+</svg>
