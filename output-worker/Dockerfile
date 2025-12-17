@@ -1,4 +1,4 @@
-ARG RUST_VERSION=1.91-trixie
+ARG RUST_VERSION=1.92-trixie
 
 FROM rust:${RUST_VERSION} AS builder-rust
 WORKDIR /app
