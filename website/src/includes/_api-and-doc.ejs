@@ -88,15 +88,17 @@
                     <div class="code-preview__body">
                         <pre><code class="text-gray-300"><span class="text-gray-500"># Send a webhook event</span>
 <span class="text-green-400">curl</span> -X POST \
-  https://api.hook0.com/v1/events \
+  https://app.hook0.com/api/v1/event \
   -H <span class="text-yellow-300">"Authorization: Bearer $API_KEY"</span> \
   -H <span class="text-yellow-300">"Content-Type: application/json"</span> \
   -d <span class="text-yellow-300">'{
+    "application_id": "$APPLICATION_ID",
+    "event_id": "550e8400-e29b-41d4-a716-446655440000",
     "event_type": "order.completed",
-    "payload": {
-      "order_id": "12345",
-      "amount": 99.99
-    }
+    "payload": "{\"order_id\":\"12345\",\"amount\":99.99}",
+    "payload_content_type": "application/json",
+    "occurred_at": "2025-01-15T10:30:00Z",
+    "labels": {}
   }'</span></code></pre>
                     </div>
                 </div>
