@@ -18,7 +18,8 @@ use crate::problems::Hook0Problem;
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct RequestAttempt {
     pub request_attempt_id: Uuid,
-    pub event_id: Uuid,
+    pub event_id: Uuid, // Kept to avoid breaking compatibility
+    pub event: EventSummary,
     pub subscription: SubscriptionSummary,
     pub created_at: DateTime<Utc>,
     pub picked_at: Option<DateTime<Utc>>,
@@ -28,6 +29,12 @@ pub struct RequestAttempt {
     pub response_id: Option<Uuid>,
     pub retry_count: i16,
     pub status: RequestAttemptStatus,
+}
+
+#[derive(Debug, Serialize, Apiv2Schema)]
+pub struct EventSummary {
+    pub event_id: Uuid,
+    pub event_type_name: String,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -100,6 +107,9 @@ pub struct Qs {
     pagination_cursor: Option<EncodedDescCursor>,
     min_created_at: Option<DateTime<Utc>>,
     max_created_at: Option<DateTime<Utc>>,
+    /// Comma-separated event types
+    #[serde(rename = "event.event_type_names")]
+    event_type_names: Option<String>,
 }
 
 #[api_v2_operation(
@@ -116,11 +126,25 @@ pub async fn list(
     biscuit: ReqData<Biscuit>,
     qs: Query<Qs>,
 ) -> Result<Paginated<Json<Vec<RequestAttempt>>>, Hook0Problem> {
+    let min_created_at = qs.min_created_at.unwrap_or(DateTime::<Utc>::UNIX_EPOCH);
+    let max_created_at = qs.max_created_at.unwrap_or_else(Utc::now);
+    let event_type_names = qs
+        .event_type_names
+        .as_ref()
+        .map(|s| {
+            s.split(",")
+                .map(|p| p.trim().to_owned())
+                .filter(|p| !p.is_empty())
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+
     if authorize_for_application(
         &state.db,
         &biscuit,
         Action::RequestAttemptList {
             application_id: &qs.application_id,
+            event_type_names: &event_type_names,
         },
         state.max_authorization_time_in_ms,
         state.debug_authorizer,
@@ -132,8 +156,6 @@ pub async fn list(
     }
 
     let pagination = qs.pagination_cursor.unwrap_or_default().0;
-    let min_created_at = qs.min_created_at.unwrap_or(DateTime::<Utc>::UNIX_EPOCH);
-    let max_created_at = qs.max_created_at.unwrap_or_else(Utc::now);
 
     #[allow(non_snake_case)]
     struct RawRequestAttempt {
@@ -148,6 +170,7 @@ pub async fn list(
         delay_until: Option<DateTime<Utc>>,
         response__id: Option<Uuid>,
         retry_count: i16,
+        event_type__name: String,
     }
     let raw_request_attempts = query_as!(
         RawRequestAttempt,
@@ -163,14 +186,17 @@ pub async fn list(
                 ra.delay_until,
                 ra.response__id,
                 ra.retry_count,
-                s.description AS subscription__description
+                s.description AS subscription__description,
+                e.event_type__name
             FROM webhook.request_attempt AS ra
             INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
+            INNER JOIN event.event AS e ON e.event__id = ra.event__id
             WHERE ra.application__id = $1
                 AND (ra.event__id = $2 OR $2 IS NULL)
                 AND (s.subscription__id = $3 OR $3 IS NULL)
                 AND ra.created_at BETWEEN $4 AND $5
                 AND (ra.created_at, ra.request_attempt__id) < ($6, $7)
+                AND (e.event_type__name = any($8) OR $8 = '{}')
             ORDER BY
                 ra.created_at DESC,
                 ra.request_attempt__id ASC
@@ -183,6 +209,7 @@ pub async fn list(
         max_created_at,
         pagination.date,
         pagination.id,
+        &event_type_names,
     )
     .fetch_all(&state.db)
     .await
@@ -193,6 +220,10 @@ pub async fn list(
         .map(|ra| RequestAttempt {
             request_attempt_id: ra.request_attempt__id,
             event_id: ra.event__id,
+            event: EventSummary {
+                event_id: ra.event__id,
+                event_type_name: ra.event_type__name.to_owned(),
+            },
             subscription: SubscriptionSummary {
                 subscription_id: ra.subscription__id,
                 description: ra.subscription__description.clone(),
@@ -243,6 +274,7 @@ pub async fn list(
                 ("subscription_id", qs.subscription_id.map(|v| v.to_string())),
                 ("min_created_at", qs.min_created_at.map(|v| v.to_string())),
                 ("max_created_at", qs.max_created_at.map(|v| v.to_string())),
+                ("event.event_type_names", qs.event_type_names.to_owned()),
             ],
             cursor: Cursor {
                 date: ra.created_at,
