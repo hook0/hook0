@@ -7,7 +7,7 @@ use log::{error, trace, warn};
 use paperclip::v2::schema::TypedData;
 use serde::Serialize;
 use sqlx::{PgPool, query_scalar};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::str::FromStr;
 use std::time::{Duration, SystemTime};
 use strum::{AsRefStr, EnumIter, EnumString, VariantNames};
@@ -450,6 +450,7 @@ pub enum Action<'a> {
     //
     RequestAttemptList {
         application_id: &'a Uuid,
+        event_type_names: &'a [String],
     },
     //
     ResponseGet {
@@ -754,7 +755,13 @@ impl Action<'_> {
             Self::EventIngest { .. } => vec![],
             Self::EventReplay { .. } => vec![],
             //
-            Self::RequestAttemptList { .. } => vec![],
+            Self::RequestAttemptList {
+                event_type_names, ..
+            } => vec![Self::mk_string_set_fact(
+                "event_type_names",
+                event_type_names,
+            )],
+
             //
             Self::ResponseGet { .. } => vec![],
         };
@@ -772,6 +779,15 @@ impl Action<'_> {
         }
 
         facts
+    }
+
+    fn mk_string_set_fact(name: &str, set: &[String]) -> Fact {
+        Fact::new(
+            name.to_owned(),
+            vec![Term::Set(BTreeSet::from_iter(
+                set.iter().map(|v| Term::Str(v.to_owned())),
+            ))],
+        )
     }
 }
 
