@@ -1,2 +1,12 @@
-# Hello :)
+# Hook0 robots.txt
+# https://www.hook0.com/
+
+User-agent: *
+Allow: /
+
+# Block payment flow pages from indexing
+Disallow: /subscription-success
+Disallow: /subscription-error
+
+# Sitemap location
 Sitemap: https://www.hook0.com/sitemap.xml

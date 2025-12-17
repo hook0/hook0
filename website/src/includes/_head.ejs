@@ -1,6 +1,61 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<meta name="theme-color" content="#0a0a0f">
+<meta name="theme-color" content="<%= locals.seo.themeColor %>">
+
+<!-- SEO Meta Tags -->
+<% if (locals.pageDescription) { %>
+<meta name="description" content="<%= locals.pageDescription %>">
+<% } else { %>
+<meta name="description" content="<%= locals.seo.defaultDescription %>">
+<% } %>
+
+<!-- Canonical URL -->
+<% if (locals.pageCanonical) { %>
+<link rel="canonical" href="<%= locals.seo.siteUrl %><%= locals.pageCanonical %>">
+<% } %>
+
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content="<%= locals.pageType || 'website' %>">
+<meta property="og:site_name" content="<%= locals.seo.siteName %>">
+<% if (locals.pageCanonical) { %>
+<meta property="og:url" content="<%= locals.seo.siteUrl %><%= locals.pageCanonical %>">
+<% } %>
+<% if (locals.pageTitle) { %>
+<meta property="og:title" content="<%= locals.pageTitle %>">
+<% } else { %>
+<meta property="og:title" content="<%= locals.seo.defaultTitle %>">
+<% } %>
+<% if (locals.pageDescription) { %>
+<meta property="og:description" content="<%= locals.pageDescription %>">
+<% } else { %>
+<meta property="og:description" content="<%= locals.seo.defaultDescription %>">
+<% } %>
+<% if (locals.pageImage) { %>
+<meta property="og:image" content="<%= locals.seo.siteUrl %><%= locals.pageImage %>">
+<% } else { %>
+<meta property="og:image" content="<%= locals.seo.siteUrl %><%= locals.seo.defaultImage %>">
+<% } %>
+<meta property="og:locale" content="<%= locals.seo.locale %>">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="<%= locals.seo.twitterHandle %>">
+<meta name="twitter:creator" content="<%= locals.seo.twitterHandle %>">
+<% if (locals.pageTitle) { %>
+<meta name="twitter:title" content="<%= locals.pageTitle %>">
+<% } else { %>
+<meta name="twitter:title" content="<%= locals.seo.defaultTitle %>">
+<% } %>
+<% if (locals.pageDescription) { %>
+<meta name="twitter:description" content="<%= locals.pageDescription %>">
+<% } else { %>
+<meta name="twitter:description" content="<%= locals.seo.defaultDescription %>">
+<% } %>
+<% if (locals.pageImage) { %>
+<meta name="twitter:image" content="<%= locals.seo.siteUrl %><%= locals.pageImage %>">
+<% } else { %>
+<meta name="twitter:image" content="<%= locals.seo.siteUrl %><%= locals.seo.defaultImage %>">
+<% } %>
 
 <!-- Preconnect to Google Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,6 +66,7 @@
 
 <!-- Favicon -->
 <link rel="icon" type="image/png" href="./mediakit/logo/110x110-white.png">
+<link rel="apple-touch-icon" href="./mediakit/logo/110x110-white.png">
 
 <% if (process.env.CRISP_WEBSITE_ID) { %>
 <!-- Crisp -->
@@ -37,6 +93,47 @@
     })();
 </script>
 <!-- End Matomo Code -->
+<% } %>
+
+<!-- Structured Data -->
+<% if (locals.pageSchema) { %>
+<script type="application/ld+json">
+<%- JSON.stringify(locals.pageSchema, null, 2) %>
+</script>
+<% } else { %>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Hook0",
+  "url": "<%= locals.seo.siteUrl %>",
+  "logo": "<%= locals.seo.siteUrl %>/mediakit/logo/110x110-white.png",
+  "description": "<%= locals.seo.defaultDescription %>",
+  "foundingDate": "2021",
+  "founders": [
+    {
+      "@type": "Person",
+      "name": "Francois-Guillaume Ribreau"
+    },
+    {
+      "@type": "Person",
+      "name": "David Sferruzza"
+    }
+  ],
+  "sameAs": [
+    "<%= locals.social.twitter.href %>",
+    "<%= locals.social.github.href %>",
+    "<%= locals.social.linkedin.href %>",
+    "<%= locals.social.youtube.href %>",
+    "<%= locals.social.discord.href %>"
+  ],
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "email": "support@hook0.com",
+    "contactType": "customer service"
+  }
+}
+</script>
 <% } %>
 
 <!-- Scroll Animation Script -->
