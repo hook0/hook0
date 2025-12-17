@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Hook0 - Media Kit - Brand Assets & Press Resources</title>
+    <%- include('./includes/_head.ejs') %>
+</head>
+<body>
+<%- include('./includes/_header.ejs') %>
+
+<!-- Hero Section -->
+<section class="relative min-h-[60vh] flex items-center gradient-hero overflow-hidden">
+    <!-- Background Effects -->
+    <div class="absolute inset-0 grid-pattern opacity-50"></div>
+    <div class="blur-circle blur-circle--indigo w-96 h-96 -top-48 left-1/4"></div>
+    <div class="blur-circle blur-circle--green w-80 h-80 top-1/3 right-1/4"></div>
+
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32 text-center">
+        <!-- Badge -->
+        <div class="animate-on-scroll inline-flex items-center gap-3 px-1 pr-4 py-1 rounded-full
+                    bg-white/5 border border-white/10 backdrop-blur-sm mb-8">
+            <span class="px-3 py-1 text-xs font-semibold tracking-wide bg-indigo-500 text-white rounded-full">
+                Press Resources
+            </span>
+            <span class="text-sm text-gray-300">
+                Brand Assets & Guidelines
+            </span>
+        </div>
+
+        <!-- Headline -->
+        <h1 class="animate-on-scroll text-display-xl text-white mb-6">
+            Media Kit
+            <span class="block text-gradient-green mt-2 pb-1 leading-relaxed">Brand Resources</span>
+        </h1>
+
+        <!-- Description -->
+        <p class="animate-on-scroll text-body-lg text-gray-400 max-w-3xl mx-auto">
+            Everything you need to feature Hook0 in your publications. Download our logos, learn about our brand, and discover the team behind Hook0.
+        </p>
+    </div>
+</section>
+
+<!-- Logo Section -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-30"></div>
+
+    <div class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="animate-on-scroll text-center mb-16">
+            <span class="section__eyebrow">Brand Identity</span>
+            <h2 class="section__title">Our Logo</h2>
+            <p class="text-gray-400 mt-4 max-w-2xl mx-auto">
+                The Hook0 logo represents reliability and connectivity. Please use it responsibly and maintain proper spacing.
+            </p>
+        </div>
+
+        <!-- Primary Logo Display -->
+        <div class="animate-on-scroll mb-12">
+            <div class="glass rounded-3xl p-12 text-center">
+                <div class="inline-block p-8 bg-white rounded-2xl mb-6">
+                    <img src="./mediakit/logo/512x512.png" alt="Hook0 Logo" class="w-48 h-48 mx-auto" />
+                </div>
+                <h3 class="text-xl font-semibold text-white mb-2">Primary Logo</h3>
+                <p class="text-gray-400 text-sm">Use this version on light backgrounds</p>
+            </div>
+        </div>
+
+        <!-- Logo Variants Grid -->
+        <div class="grid md:grid-cols-3 gap-6 mb-12 stagger-children">
+            <!-- Color Logo -->
+            <div class="animate-on-scroll card">
+                <div class="p-6 bg-white rounded-xl mb-4 flex items-center justify-center">
+                    <img src="./mediakit/logo/256x256.png" alt="Hook0 Color Logo" class="w-32 h-32" />
+                </div>
+                <h4 class="text-lg font-semibold text-white mb-1">Color</h4>
+                <p class="text-gray-400 text-sm mb-4">For light backgrounds</p>
+                <a data-download="/mediakit/logo/1024x1024.png" class="btn btn--secondary btn--sm w-full download-link">
+                    Download PNG
+                </a>
+            </div>
+
+            <!-- White Logo -->
+            <div class="animate-on-scroll card">
+                <div class="p-6 bg-gray-800 rounded-xl mb-4 flex items-center justify-center">
+                    <img src="./mediakit/logo/256x256-white.png" alt="Hook0 White Logo" class="w-32 h-32" />
+                </div>
+                <h4 class="text-lg font-semibold text-white mb-1">White</h4>
+                <p class="text-gray-400 text-sm mb-4">For dark backgrounds</p>
+                <a data-download="/mediakit/logo/1024x1024-white.png" class="btn btn--secondary btn--sm w-full download-link">
+                    Download PNG
+                </a>
+            </div>
+
+            <!-- Gray Logo -->
+            <div class="animate-on-scroll card">
+                <div class="p-6 bg-gray-100 rounded-xl mb-4 flex items-center justify-center">
+                    <img src="./mediakit/logo/256x256-gray.png" alt="Hook0 Gray Logo" class="w-32 h-32" />
+                </div>
+                <h4 class="text-lg font-semibold text-white mb-1">Grayscale</h4>
+                <p class="text-gray-400 text-sm mb-4">For monochrome contexts</p>
+                <a data-download="/mediakit/logo/1024x1024-gray.png" class="btn btn--secondary btn--sm w-full download-link">
+                    Download PNG
+                </a>
+            </div>
+        </div>
+
+        <!-- Banner Logos -->
+        <div class="animate-on-scroll mb-12">
+            <h3 class="text-xl font-semibold text-white mb-6 text-center">Banner Variants</h3>
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="card">
+                    <div class="p-6 bg-white rounded-xl mb-4 flex items-center justify-center">
+                        <img src="./mediakit/logo/512x512-banner.png" alt="Hook0 Banner" class="h-24 object-contain" />
+                    </div>
+                    <h4 class="text-lg font-semibold text-white mb-1">Banner (Light)</h4>
+                    <p class="text-gray-400 text-sm mb-4">Logo with wordmark for headers</p>
+                    <a data-download="/mediakit/logo/1024x1024-banner.png" class="btn btn--secondary btn--sm w-full download-link">
+                        Download PNG
+                    </a>
+                </div>
+                <div class="card">
+                    <div class="p-6 bg-gray-800 rounded-xl mb-4 flex items-center justify-center">
+                        <img src="./mediakit/logo/512x512-banner-transparent.png" alt="Hook0 Banner Transparent" class="h-24 object-contain" />
+                    </div>
+                    <h4 class="text-lg font-semibold text-white mb-1">Banner (Transparent)</h4>
+                    <p class="text-gray-400 text-sm mb-4">Transparent version for overlays</p>
+                    <a data-download="/mediakit/logo/1024x1024-banner-transparent.png" class="btn btn--secondary btn--sm w-full download-link">
+                        Download PNG
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<!-- Brand Colors -->
+<section class="section relative overflow-hidden bg-surface-secondary">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+
+    <div class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="animate-on-scroll text-center mb-16">
+            <span class="section__eyebrow">Visual Identity</span>
+            <h2 class="section__title">Brand Colors</h2>
+            <p class="text-gray-400 mt-4 max-w-2xl mx-auto">
+                Our color palette reflects trust, innovation, and reliability.
+            </p>
+        </div>
+
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 stagger-children">
+            <!-- Primary Green -->
+            <div class="animate-on-scroll card">
+                <div class="h-32 rounded-xl mb-4" style="background-color: #22c55e;"></div>
+                <h4 class="text-lg font-semibold text-white mb-1">Green 500</h4>
+                <p class="text-gray-400 text-sm font-mono">#22c55e</p>
+                <p class="text-gray-500 text-xs mt-1">Primary brand color</p>
+            </div>
+
+            <!-- Primary Indigo -->
+            <div class="animate-on-scroll card">
+                <div class="h-32 rounded-xl mb-4" style="background-color: #6366f1;"></div>
+                <h4 class="text-lg font-semibold text-white mb-1">Indigo 500</h4>
+                <p class="text-gray-400 text-sm font-mono">#6366f1</p>
+                <p class="text-gray-500 text-xs mt-1">Accent color</p>
+            </div>
+
+            <!-- Dark Background -->
+            <div class="animate-on-scroll card">
+                <div class="h-32 rounded-xl mb-4 border border-white/10" style="background-color: #0f0f14;"></div>
+                <h4 class="text-lg font-semibold text-white mb-1">Surface Primary</h4>
+                <p class="text-gray-400 text-sm font-mono">#0f0f14</p>
+                <p class="text-gray-500 text-xs mt-1">Dark background</p>
+            </div>
+
+            <!-- Light Text -->
+            <div class="animate-on-scroll card">
+                <div class="h-32 rounded-xl mb-4 flex items-center justify-center" style="background-color: #f9fafb;">
+                    <span class="text-gray-800 font-semibold">Aa</span>
+                </div>
+                <h4 class="text-lg font-semibold text-white mb-1">Gray 50</h4>
+                <p class="text-gray-400 text-sm font-mono">#f9fafb</p>
+                <p class="text-gray-500 text-xs mt-1">Light mode backgrounds</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Founders Section -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-30"></div>
+    <div class="blur-circle blur-circle--green w-96 h-96 top-1/4 -right-48 opacity-20"></div>
+
+    <div class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="animate-on-scroll text-center mb-16">
+            <span class="section__eyebrow">The Team</span>
+            <h2 class="section__title">Meet the Founders</h2>
+            <p class="text-gray-400 mt-4 max-w-2xl mx-auto">
+                Hook0 was founded by two experienced developers from Nantes, France, with a passion for building reliable infrastructure.
+            </p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto stagger-children">
+            <!-- Founder 1 -->
+            <div class="animate-on-scroll card card--glow text-center">
+                <div class="relative mb-6">
+                    <div class="w-48 h-48 mx-auto rounded-full overflow-hidden ring-4 ring-indigo-500/20">
+                        <img data-src="/mediakit/founders/francois-guillaume-ribreau.jpg" alt="Francois-Guillaume Ribreau" class="w-full h-full object-cover founder-img" />
+                    </div>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-1">Francois-Guillaume Ribreau</h3>
+                <p class="text-indigo-400 font-medium mb-4">Co-Founder & CEO</p>
+                <p class="text-gray-400 text-sm mb-6">
+                    Serial entrepreneur with 15+ years of experience building developer tools and SaaS products.
+                </p>
+                <div class="flex justify-center gap-4">
+                    <a href="https://x.com/FGRibreau" target="_blank" class="w-10 h-10 flex items-center justify-center rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all">
+                        <%- locals.social.twitter.logo %>
+                    </a>
+                    <a href="https://www.linkedin.com/in/francoisguillaumeribreau/" target="_blank" class="w-10 h-10 flex items-center justify-center rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all">
+                        <%- locals.social.linkedin.logo %>
+                    </a>
+                    <a href="https://github.com/FGRibreau" target="_blank" class="w-10 h-10 flex items-center justify-center rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all">
+                        <%- locals.social.github.logo %>
+                    </a>
+                </div>
+                <a data-download="/mediakit/founders/francois-guillaume-ribreau.jpg" class="btn btn--secondary btn--sm mt-6 download-link">
+                    Download Photo
+                </a>
+            </div>
+
+            <!-- Founder 2 -->
+            <div class="animate-on-scroll card card--glow text-center">
+                <div class="relative mb-6">
+                    <div class="w-48 h-48 mx-auto rounded-full overflow-hidden ring-4 ring-green-500/20">
+                        <img data-src="/mediakit/founders/david-sferruzza.jpg" alt="David Sferruzza" class="w-full h-full object-cover founder-img" />
+                    </div>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-1">David Sferruzza</h3>
+                <p class="text-green-400 font-medium mb-4">Co-Founder & CTO</p>
+                <p class="text-gray-400 text-sm mb-6">
+                    Software architect and functional programming enthusiast with deep expertise in distributed systems.
+                </p>
+                <div class="flex justify-center gap-4">
+                    <a href="https://x.com/d_sferruzza" target="_blank" class="w-10 h-10 flex items-center justify-center rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all">
+                        <%- locals.social.twitter.logo %>
+                    </a>
+                    <a href="https://www.linkedin.com/in/david-sferruzza/" target="_blank" class="w-10 h-10 flex items-center justify-center rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all">
+                        <%- locals.social.linkedin.logo %>
+                    </a>
+                    <a href="https://github.com/dsferruzza" target="_blank" class="w-10 h-10 flex items-center justify-center rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all">
+                        <%- locals.social.github.logo %>
+                    </a>
+                </div>
+                <a data-download="/mediakit/founders/david-sferruzza.jpg" class="btn btn--secondary btn--sm mt-6 download-link">
+                    Download Photo
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Hooky Mascot Section -->
+<section class="section relative overflow-hidden bg-surface-secondary">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="blur-circle blur-circle--indigo w-80 h-80 -top-40 left-1/4 opacity-20"></div>
+
+    <div class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="animate-on-scroll text-center mb-16">
+            <span class="section__eyebrow">Brand Character</span>
+            <h2 class="section__title">Meet Hooky</h2>
+            <p class="text-gray-400 mt-4 max-w-2xl mx-auto">
+                Our mascot embodies the Hook0 promise: Reliability, Transparency, and Robustness.
+            </p>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-12 items-center">
+            <!-- Hooky Image -->
+            <div class="animate-on-scroll">
+                <div class="relative">
+                    <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-green-500/20 rounded-3xl blur-3xl"></div>
+                    <div class="relative glass rounded-3xl p-8 text-center">
+                        <img data-src="/mediakit/hooky/hooky.jpg" alt="Hooky - Hook0 Mascot" class="w-full max-w-md mx-auto rounded-2xl hooky-img" />
+                        <div class="mt-6 flex flex-wrap justify-center gap-3">
+                            <a data-download="/mediakit/hooky/hooky.jpg" class="btn btn--secondary btn--sm download-link">
+                                Download JPG
+                            </a>
+                            <a data-download="/mediakit/hooky/hooky-large.png" class="btn btn--secondary btn--sm download-link">
+                                Download Large PNG
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hooky Description -->
+            <div class="animate-on-scroll space-y-8">
+                <div>
+                    <h3 class="text-2xl font-bold text-white mb-4">Character Essence</h3>
+                    <p class="text-gray-400">
+                        Hooky is not a marketing gimmick. He is the visual manifestation of the Hook0 promise.
+                        While other mascots might be abstract shapes representing "synergy," Hooky is a machine
+                        with a purpose—ensuring message deliverability with precision and reliability.
+                    </p>
+                </div>
+
+                <!-- Personality Pillars -->
+                <div class="space-y-4">
+                    <h4 class="text-lg font-semibold text-white">The 3 Pillars of Personality</h4>
+
+                    <div class="card border-indigo-500/20">
+                        <div class="flex items-start gap-4">
+                            <div class="w-10 h-10 flex-shrink-0 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                                <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h5 class="font-semibold text-white">The Technical Expert</h5>
+                                <p class="text-gray-400 text-sm">He speaks JSON, understands HTTP status codes natively, and prefers exact numbers over approximations.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-green-500/20">
+                        <div class="flex items-start gap-4">
+                            <div class="w-10 h-10 flex-shrink-0 rounded-lg bg-green-500/10 flex items-center justify-center">
+                                <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h5 class="font-semibold text-white">The European Guardian</h5>
+                                <p class="text-gray-400 text-sm">Protective and vigilant. GDPR Native. He treats personal data like radioactive material—handled with extreme care.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-amber-500/20">
+                        <div class="flex items-start gap-4">
+                            <div class="w-10 h-10 flex-shrink-0 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                                <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h5 class="font-semibold text-white">The Independent</h5>
+                                <p class="text-gray-400 text-sm">Built to last. Solid, made of high-grade metal, not disposable plastic. Scratches on his armor are badges of honor.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Voice & Tone -->
+                <div class="card border-white/10">
+                    <h4 class="text-lg font-semibold text-white mb-3">Voice & Tone</h4>
+                    <p class="text-gray-400 text-sm mb-4">
+                        Hooky speaks to developers. His tone is informative, encouraging, concise, and dryly humorous.
+                        He avoids corporate jargon entirely.
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="px-3 py-1 text-xs font-mono bg-green-500/10 text-green-400 rounded-full">Payload</span>
+                        <span class="px-3 py-1 text-xs font-mono bg-green-500/10 text-green-400 rounded-full">Endpoint</span>
+                        <span class="px-3 py-1 text-xs font-mono bg-green-500/10 text-green-400 rounded-full">Latency</span>
+                        <span class="px-3 py-1 text-xs font-mono bg-green-500/10 text-green-400 rounded-full">Dispatch</span>
+                        <span class="px-3 py-1 text-xs font-mono bg-red-500/10 text-red-400 rounded-full line-through">Synergy</span>
+                        <span class="px-3 py-1 text-xs font-mono bg-red-500/10 text-red-400 rounded-full line-through">Leverage</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Color Palette for Hooky -->
+        <div class="animate-on-scroll mt-16">
+            <h3 class="text-xl font-semibold text-white mb-6 text-center">Hooky's Color Palette</h3>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <div class="card text-center">
+                    <div class="h-16 rounded-lg mb-3" style="background-color: #00A3FF;"></div>
+                    <p class="text-white text-sm font-semibold">Electric Blue</p>
+                    <p class="text-gray-500 text-xs font-mono">#00A3FF</p>
+                </div>
+                <div class="card text-center">
+                    <div class="h-16 rounded-lg mb-3" style="background-color: #E0E0E0;"></div>
+                    <p class="text-white text-sm font-semibold">Titanium White</p>
+                    <p class="text-gray-500 text-xs font-mono">#E0E0E0</p>
+                </div>
+                <div class="card text-center">
+                    <div class="h-16 rounded-lg mb-3" style="background-color: #8C92AC;"></div>
+                    <p class="text-white text-sm font-semibold">Brushed Steel</p>
+                    <p class="text-gray-500 text-xs font-mono">#8C92AC</p>
+                </div>
+                <div class="card text-center">
+                    <div class="h-16 rounded-lg mb-3" style="background-color: #2D3748;"></div>
+                    <p class="text-white text-sm font-semibold">Carbon Black</p>
+                    <p class="text-gray-500 text-xs font-mono">#2D3748</p>
+                </div>
+                <div class="card text-center">
+                    <div class="h-16 rounded-lg mb-3" style="background-color: #48BB78;"></div>
+                    <p class="text-white text-sm font-semibold">Success Green</p>
+                    <p class="text-gray-500 text-xs font-mono">#48BB78</p>
+                </div>
+                <div class="card text-center">
+                    <div class="h-16 rounded-lg mb-3" style="background-color: #F56565;"></div>
+                    <p class="text-white text-sm font-semibold">Retry Red</p>
+                    <p class="text-gray-500 text-xs font-mono">#F56565</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- About Hook0 -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-30"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="animate-on-scroll text-center mb-12">
+            <span class="section__eyebrow">Press Information</span>
+            <h2 class="section__title">About Hook0</h2>
+        </div>
+
+        <div class="animate-on-scroll glass rounded-3xl p-8 md:p-12">
+            <div class="prose prose-lg prose-invert max-w-none">
+                <h3 class="text-xl font-semibold text-white mb-4">Company Overview</h3>
+                <p class="text-gray-400 mb-6">
+                    Hook0 is an open-source Webhooks-as-a-Service platform that helps developers send, receive, and manage webhooks at scale. Founded in Nantes, France, Hook0 is 100% bootstrapped with no venture capital funding.
+                </p>
+
+                <h3 class="text-xl font-semibold text-white mb-4">Key Facts</h3>
+                <ul class="space-y-3 text-gray-400 mb-6">
+                    <li class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span><strong class="text-white">Founded:</strong> Nantes, France</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span><strong class="text-white">Funding:</strong> 100% Bootstrapped, no VC</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span><strong class="text-white">Product:</strong> Open-Source Webhooks-as-a-Service</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span><strong class="text-white">Mission:</strong> Build reliable webhook infrastructure that lasts</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span><strong class="text-white">GDPR:</strong> Fully compliant, EU-based</span>
+                    </li>
+                </ul>
+
+                <h3 class="text-xl font-semibold text-white mb-4">Boilerplate</h3>
+                <div class="bg-surface-tertiary rounded-xl p-6 border border-white/5">
+                    <p class="text-gray-300 italic">
+                        "Hook0 is an open-source webhooks platform that enables developers to build reliable, scalable event-driven integrations. Based in France and 100% bootstrapped, Hook0 is committed to building software that stands the test of time."
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Usage Guidelines -->
+<section class="section relative overflow-hidden bg-surface-secondary">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="animate-on-scroll text-center mb-12">
+            <span class="section__eyebrow">Guidelines</span>
+            <h2 class="section__title">Brand Usage</h2>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8 stagger-children">
+            <!-- Do's -->
+            <div class="animate-on-scroll card border-green-500/20">
+                <h3 class="text-xl font-semibold text-green-400 mb-6 flex items-center gap-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Do
+                </h3>
+                <ul class="space-y-3 text-gray-400">
+                    <li class="flex items-start gap-3">
+                        <span class="text-green-500">+</span>
+                        <span>Use the logo with adequate clear space</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="text-green-500">+</span>
+                        <span>Use the white logo on dark backgrounds</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="text-green-500">+</span>
+                        <span>Maintain the original aspect ratio</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="text-green-500">+</span>
+                        <span>Use high-resolution versions for print</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="text-green-500">+</span>
+                        <span>Reference Hook0 correctly in text</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Don'ts -->
+            <div class="animate-on-scroll card border-red-500/20">
+                <h3 class="text-xl font-semibold text-red-400 mb-6 flex items-center gap-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                    Don't
+                </h3>
+                <ul class="space-y-3 text-gray-400">
+                    <li class="flex items-start gap-3">
+                        <span class="text-red-500">-</span>
+                        <span>Alter the logo colors</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="text-red-500">-</span>
+                        <span>Stretch or distort the logo</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="text-red-500">-</span>
+                        <span>Add effects like shadows or gradients</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="text-red-500">-</span>
+                        <span>Use the logo as part of a sentence</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="text-red-500">-</span>
+                        <span>Place on busy or low-contrast backgrounds</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Contact Section -->
+<section class="section--sm relative overflow-hidden bg-gradient-to-b from-surface-primary to-surface-secondary">
+    <div class="absolute inset-0 grid-pattern opacity-40"></div>
+    <div class="blur-circle blur-circle--indigo w-80 h-80 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-30"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div class="animate-on-scroll">
+            <h2 class="text-4xl md:text-5xl font-extrabold text-white mb-6">
+                Need More? <span class="text-gradient-green pb-1 leading-relaxed">Get in Touch</span>
+            </h2>
+
+            <p class="text-xl text-gray-400 mb-8 max-w-2xl mx-auto">
+                For press inquiries, interview requests, or additional assets, our team is here to help.
+            </p>
+
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="mailto:press@hook0.com" class="btn btn--primary btn--lg group">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                    </svg>
+                    Contact Press Team
+                </a>
+                <a href="mailto:support@hook0.com" class="btn btn--secondary btn--lg">
+                    General Inquiries
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<%- include('./includes/_footer.ejs') %>
+
+<script>
+// Scroll animation observer
+document.addEventListener('DOMContentLoaded', function() {
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+            }
+        });
+    }, observerOptions);
+
+    document.querySelectorAll('.animate-on-scroll').forEach(el => {
+        observer.observe(el);
+    });
+
+    // Card glow effect on mouse move
+    document.querySelectorAll('.card--glow').forEach(card => {
+        card.addEventListener('mousemove', function(e) {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            card.style.setProperty('--mouse-x', `${x}px`);
+            card.style.setProperty('--mouse-y', `${y}px`);
+        });
+    });
+
+    // Initialize download links from data attributes
+    document.querySelectorAll('.download-link').forEach(link => {
+        const downloadUrl = link.getAttribute('data-download');
+        if (downloadUrl) {
+            link.href = downloadUrl;
+            link.setAttribute('download', '');
+        }
+    });
+
+    // Initialize founder images from data attributes
+    document.querySelectorAll('.founder-img').forEach(img => {
+        const src = img.getAttribute('data-src');
+        if (src) {
+            img.src = src;
+        }
+    });
+
+    // Initialize Hooky image from data attributes
+    document.querySelectorAll('.hooky-img').forEach(img => {
+        const src = img.getAttribute('data-src');
+        if (src) {
+            img.src = src;
+        }
+    });
+});
+</script>
+
+</body>
+</html>
