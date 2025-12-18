@@ -21,12 +21,22 @@ const isLoading = ref<boolean>(false);
 const cardRef = ref<HTMLElement | null>(null);
 const mouseX = ref<string>('50%');
 const mouseY = ref<string>('50%');
+let rafId: number | null = null;
 
 function handleMouseMove(event: MouseEvent) {
   if (!cardRef.value) return;
-  const rect = cardRef.value.getBoundingClientRect();
-  mouseX.value = `${event.clientX - rect.left}px`;
-  mouseY.value = `${event.clientY - rect.top}px`;
+  if (rafId !== null) return;
+
+  rafId = requestAnimationFrame(() => {
+    if (!cardRef.value) {
+      rafId = null;
+      return;
+    }
+    const rect = cardRef.value.getBoundingClientRect();
+    mouseX.value = `${event.clientX - rect.left}px`;
+    mouseY.value = `${event.clientY - rect.top}px`;
+    rafId = null;
+  });
 }
 
 async function submit() {
@@ -44,18 +54,20 @@ async function submit() {
 
     const organizations = await OrganizationService.list();
 
-    if (organizations.length < 1) {
+    // No organizations → show tutorial
+    if (organizations.length === 0) {
       return router.push({ name: routes.Tutorial });
-    } else if (organizations.length === 1) {
-      const applications = await ApplicationService.list(organizations[0].organization_id);
-      if (applications.length < 1) {
-        return router.push({ name: routes.Tutorial });
-      } else {
-        return router.push({ name: routes.Home });
-      }
-    } else {
-      return router.push({ name: routes.Home });
     }
+
+    // Single organization → check if it has applications
+    if (organizations.length === 1) {
+      const applications = await ApplicationService.list(organizations[0].organization_id);
+      const destination = applications.length === 0 ? routes.Tutorial : routes.Home;
+      return router.push({ name: destination });
+    }
+
+    // Multiple organizations → go to home
+    return router.push({ name: routes.Home });
   } catch (err) {
     const problem = handleError(err as AxiosError<AxiosResponse<Problem>>);
     displayError(problem);
@@ -118,7 +130,6 @@ function togglePasswordVisibility() {
               v-model="email"
               type="email"
               required
-              autofocus
               placeholder="you@company.com"
               class="login-page__input"
               :disabled="isLoading"
@@ -302,7 +313,11 @@ function togglePasswordVisibility() {
 <style lang="scss" scoped>
 .login-page {
   @apply min-h-screen w-full relative overflow-hidden;
-  background: linear-gradient(180deg, #0a0a0f 0%, #111118 100%);
+  background: linear-gradient(
+    180deg,
+    theme('colors.surface.primary') 0%,
+    theme('colors.surface.secondary') 100%
+  );
   font-family:
     'Inter',
     system-ui,
@@ -364,7 +379,7 @@ function togglePasswordVisibility() {
   // Card
   &__card {
     @apply w-full max-w-md p-8 rounded-2xl;
-    background: #1a1a24;
+    background: theme('colors.surface.tertiary');
     border: 1px solid rgba(255, 255, 255, 0.05);
     position: relative;
     overflow: hidden;
@@ -432,9 +447,8 @@ function togglePasswordVisibility() {
     }
 
     &:focus {
-      @apply border-indigo-500 ring-2 ring-indigo-500;
-      --tw-ring-offset-width: 2px;
-      --tw-ring-offset-color: #1a1a24;
+      @apply border-indigo-500 ring-2 ring-indigo-500 ring-offset-2;
+      --tw-ring-offset-color: theme('colors.surface.tertiary');
     }
 
     &:disabled {
@@ -469,8 +483,7 @@ function togglePasswordVisibility() {
 
   // Submit button
   &__submit {
-    @apply w-full py-3 px-6 rounded-xl font-semibold text-white transition-all;
-    background: #22c55e;
+    @apply w-full py-3 px-6 rounded-xl font-semibold text-white transition-all bg-green-500;
 
     &:hover:not(:disabled) {
       @apply bg-green-400;
@@ -479,9 +492,8 @@ function togglePasswordVisibility() {
     }
 
     &:focus {
-      @apply outline-none ring-2 ring-green-500;
-      --tw-ring-offset-width: 2px;
-      --tw-ring-offset-color: #1a1a24;
+      @apply outline-none ring-2 ring-green-500 ring-offset-2;
+      --tw-ring-offset-color: theme('colors.surface.tertiary');
     }
 
     &:disabled {
@@ -523,9 +535,8 @@ function togglePasswordVisibility() {
     }
 
     &:focus {
-      @apply outline-none ring-2 ring-white/50;
-      --tw-ring-offset-width: 2px;
-      --tw-ring-offset-color: #1a1a24;
+      @apply outline-none ring-2 ring-white/50 ring-offset-2;
+      --tw-ring-offset-color: theme('colors.surface.tertiary');
     }
 
     svg {
