@@ -6,6 +6,8 @@
 
 import { themes as prismThemes } from "prism-react-renderer";
 
+const baseUrl = "/hook0/";
+
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: "Hook0 Documentation",
@@ -16,7 +18,7 @@ const config = {
   // Set the production url of your site here
   url: "https://hook0.gitlab.io",
   // Set the /<baseUrl>/ pathname under which your site is served
-  baseUrl: "/hook0/",
+  baseUrl,
 
   // GitLab pages deployment config.
   organizationName: "hook0",
@@ -69,7 +71,7 @@ const config = {
         showNavLink: false,
         configuration: {
           spec: {
-            url: "../hook0-api.json",
+            url: `${baseUrl}hook0-api.json`,
           },
           theme: "none",
           authentication: {
