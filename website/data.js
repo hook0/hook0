@@ -211,7 +211,11 @@ locals.subscriptionLinks = {
   },
 };
 
-locals.ossFriends = require('./oss-friends.json').data;
+try {
+  locals.ossFriends = require('./oss-friends.json').data;
+} catch {
+  locals.ossFriends = [];
+}
 
 // Footer icons - SVG paths for footer link icons
 // Shared with documentation via webpack alias
