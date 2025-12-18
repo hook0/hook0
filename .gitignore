@@ -22,3 +22,9 @@ api/.clever.json
 
 # playwright
 .playwright-mcp
+
+# docs
+/build
+.docusaurus
+.DS_Store
+docs
