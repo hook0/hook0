@@ -196,7 +196,6 @@ const sidebars = {
         },
         'resources/security',
         'resources/pricing-billing',
-        'resources/support-options',
         'resources/support',
       ],
     },

@@ -12,5 +12,4 @@ description: Additional resources for Hook0
 
 ## Customer Support
 - [Pricing & billing](pricing-billing.md) - Plans and discounts
-- [Support options](support-options.md) - SLA and response times
 - [Support](support.md) - Get help
