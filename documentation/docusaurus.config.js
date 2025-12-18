@@ -268,7 +268,7 @@ const config = {
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} Hook0 SAS. Built with Docusaurus.`,
+        copyright: `Copyright © ${new Date().getFullYear()} Hook0 SAS.`,
       },
       prism: {
         theme: prismThemes.github,
@@ -279,12 +279,12 @@ const config = {
         id: "hook0_v2",
         content:
           '🚀 Hook0 v2.0 is now available! Check out the <a href="/tutorials/getting-started">updated getting started guide</a> and <a href="https://github.com/hook0/hook0/releases">release notes</a>.',
-        backgroundColor: "#1890ff",
+        backgroundColor: "#4ade80",
         textColor: "#ffffff",
         isCloseable: true,
       },
       colorMode: {
-        defaultMode: "light",
+        defaultMode: "dark",
         disableSwitch: false,
         respectPrefersColorScheme: true,
       },
