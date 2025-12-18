@@ -49,7 +49,7 @@ function handleMouseMove(event: MouseEvent) {
   });
 }
 
-async function submit() {
+function submit() {
   if (isLoading.value) return;
 
   if (new_password.value !== confirm_new_password.value) {
@@ -63,19 +63,21 @@ async function submit() {
 
   isLoading.value = true;
 
-  try {
-    await resetPassword(token, new_password.value);
-    push.success({
-      title: 'Success',
-      message: 'Your password has been reset successfully. Please login.',
-      duration: 5000,
+  resetPassword(token, new_password.value)
+    .then(() => {
+      push.success({
+        title: 'Success',
+        message: 'Your password has been reset successfully. Please login.',
+        duration: 5000,
+      });
+      return router.push({ name: routes.Login });
+    })
+    .catch((err) => {
+      displayError(err as Problem);
+    })
+    .finally(() => {
+      isLoading.value = false;
     });
-    await router.push({ name: routes.Login });
-  } catch (err) {
-    displayError(err as Problem);
-  } finally {
-    isLoading.value = false;
-  }
 }
 
 function displayError(err: Problem) {

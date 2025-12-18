@@ -62,7 +62,7 @@ function displaySuccess() {
   });
 }
 
-async function _onLoad() {
+function _onLoad() {
   const token = route.query.token as string;
   if (!token) {
     displayError({
@@ -73,17 +73,19 @@ async function _onLoad() {
     });
     return;
   }
-  try {
-    await UserService.verifyEmail(token);
-    displaySuccess();
-    await router.push({ name: routes.Login });
-  } catch (err) {
-    displayError(err as Problem);
-  }
+
+  UserService.verifyEmail(token)
+    .then(() => {
+      displaySuccess();
+      return router.push({ name: routes.Login });
+    })
+    .catch((err) => {
+      displayError(err as Problem);
+    });
 }
 
 onMounted(() => {
-  _onLoad().catch(console.error);
+  _onLoad();
 });
 </script>
 

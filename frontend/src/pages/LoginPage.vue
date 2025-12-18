@@ -39,41 +39,44 @@ function handleMouseMove(event: MouseEvent) {
   });
 }
 
-async function submit() {
+function submit() {
   if (isLoading.value) return;
   isLoading.value = true;
 
-  try {
-    await login(email.value, password.value);
+  login(email.value, password.value)
+    .then(() => {
+      push.success({
+        title: 'Success',
+        message: 'You have successfully logged in.',
+        duration: 5000,
+      });
 
-    push.success({
-      title: 'Success',
-      message: 'You have successfully logged in.',
-      duration: 5000,
+      return OrganizationService.list();
+    })
+    .then((organizations) => {
+      // No organizations → show tutorial
+      if (organizations.length === 0) {
+        return router.push({ name: routes.Tutorial });
+      }
+
+      // Single organization → check if it has applications
+      if (organizations.length === 1) {
+        return ApplicationService.list(organizations[0].organization_id).then((applications) => {
+          const destination = applications.length === 0 ? routes.Tutorial : routes.Home;
+          return router.push({ name: destination });
+        });
+      }
+
+      // Multiple organizations → go to home
+      return router.push({ name: routes.Home });
+    })
+    .catch((err) => {
+      const problem = handleError(err as AxiosError<AxiosResponse<Problem>>);
+      displayError(problem);
+    })
+    .finally(() => {
+      isLoading.value = false;
     });
-
-    const organizations = await OrganizationService.list();
-
-    // No organizations → show tutorial
-    if (organizations.length === 0) {
-      return router.push({ name: routes.Tutorial });
-    }
-
-    // Single organization → check if it has applications
-    if (organizations.length === 1) {
-      const applications = await ApplicationService.list(organizations[0].organization_id);
-      const destination = applications.length === 0 ? routes.Tutorial : routes.Home;
-      return router.push({ name: destination });
-    }
-
-    // Multiple organizations → go to home
-    return router.push({ name: routes.Home });
-  } catch (err) {
-    const problem = handleError(err as AxiosError<AxiosResponse<Problem>>);
-    displayError(problem);
-  } finally {
-    isLoading.value = false;
-  }
 }
 
 function displayError(err: Problem) {

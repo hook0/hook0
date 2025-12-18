@@ -32,23 +32,25 @@ function handleMouseMove(event: MouseEvent) {
   });
 }
 
-async function submit() {
+function submit() {
   if (isLoading.value) return;
   isLoading.value = true;
 
-  try {
-    await beginResetPassword(email.value);
-    push.success({
-      title: 'Success',
-      message: 'Email sent successfully. Please check your email to reset your password.',
-      duration: 5000,
+  beginResetPassword(email.value)
+    .then(() => {
+      push.success({
+        title: 'Success',
+        message: 'Email sent successfully. Please check your email to reset your password.',
+        duration: 5000,
+      });
+    })
+    .catch((err) => {
+      const problem = handleError(err as AxiosError<AxiosResponse<Problem>>);
+      displayError(problem);
+    })
+    .finally(() => {
+      isLoading.value = false;
     });
-  } catch (err) {
-    const problem = handleError(err as AxiosError<AxiosResponse<Problem>>);
-    displayError(problem);
-  } finally {
-    isLoading.value = false;
-  }
 }
 
 function displayError(err: Problem) {

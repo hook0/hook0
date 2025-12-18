@@ -43,32 +43,35 @@ function handleMouseMove(event: MouseEvent) {
   });
 }
 
-onMounted(async () => {
-  const instanceConfig = await getInstanceConfig();
-  if (instanceConfig.cloudflare_turnstile_site_key) {
-    turnstile_site_key.value = instanceConfig.cloudflare_turnstile_site_key;
-  }
+onMounted(() => {
+  getInstanceConfig()
+    .then((instanceConfig) => {
+      if (instanceConfig.cloudflare_turnstile_site_key) {
+        turnstile_site_key.value = instanceConfig.cloudflare_turnstile_site_key;
+      }
+    })
+    .catch(console.error);
 });
 
-async function submit() {
+function submit() {
   if (isLoading.value) return;
   isLoading.value = true;
 
-  try {
-    await register(
-      email.value,
-      firstName.value,
-      lastName.value,
-      password.value,
-      turnstile_token.value !== '' ? turnstile_token.value : undefined
-    );
-    await router.push({ name: routes.CheckEmail });
-  } catch (err) {
-    const problem = handleError(err as AxiosError<AxiosResponse<Problem>>);
-    displayError(problem);
-  } finally {
-    isLoading.value = false;
-  }
+  register(
+    email.value,
+    firstName.value,
+    lastName.value,
+    password.value,
+    turnstile_token.value !== '' ? turnstile_token.value : undefined
+  )
+    .then(() => router.push({ name: routes.CheckEmail }))
+    .catch((err) => {
+      const problem = handleError(err as AxiosError<AxiosResponse<Problem>>);
+      displayError(problem);
+    })
+    .finally(() => {
+      isLoading.value = false;
+    });
 }
 
 function displayError(err: Problem) {
