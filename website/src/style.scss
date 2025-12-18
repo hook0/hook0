@@ -194,8 +194,8 @@
       @apply text-body text-gray-400;
     }
 
-    // Legacy support
-    & a {
+    // Legacy support - exclude buttons from anchor styling
+    & a:not(.btn) {
       @apply text-indigo-400 hover:text-indigo-300 transition-colors;
     }
   }
