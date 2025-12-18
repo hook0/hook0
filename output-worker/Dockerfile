@@ -1,13 +1,17 @@
-ARG RUST_VERSION=1.88
+ARG RUST_VERSION=1.92-trixie
 
 FROM rust:${RUST_VERSION} AS builder-rust
 WORKDIR /app
+
+RUN apt-get update && apt-get install -y protobuf-compiler
+
 RUN --mount=type=bind,source=Cargo.toml,target=Cargo.toml \
     --mount=type=bind,source=Cargo.lock,target=Cargo.lock \
     --mount=type=bind,source=api,target=api \
     --mount=type=bind,source=clients/rust,target=clients/rust \
     --mount=type=bind,source=output-worker,target=output-worker \
     --mount=type=bind,source=sentry-integration,target=sentry-integration \
+    --mount=type=bind,source=protobuf,target=protobuf \
     --mount=type=cache,sharing=private,target=/app/target/ \
     --mount=type=cache,sharing=private,target=/usr/local/cargo/registry/ \
     <<EOF
@@ -18,8 +22,11 @@ cd .. || exit 1
 cp ./target/release/hook0-output-worker /
 EOF
 
-FROM debian:12-slim
+FROM debian:trixie-slim
 ARG UID=10001
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends adduser curl \
+    && rm -rf /var/lib/apt/lists/*
 RUN adduser \
     --disabled-password \
     --gecos "" \

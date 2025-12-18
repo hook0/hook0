@@ -1,11 +1,14 @@
 variables:
-  PG_VERSION: "17"
-  RUST_VERSION: "1.88"
-  NODE_VERSION: "22"
+  PG_VERSION: "18"
+  RUST_VERSION: "1.92-trixie"
+  NODE_VERSION: "24-trixie"
+  PROTOC_VERSION: "32.0"
   POSTGRES_DB: hook0-ci
   POSTGRES_USER: runner
   POSTGRES_PASSWORD: ""
   POSTGRES_HOST_AUTH_METHOD: trust
+
+
 
 stages:
   - build
@@ -45,4 +48,3 @@ dast:
   dast_configuration:
     site_profile: "REST API v1"
     scanner_profile: "DAST"
-

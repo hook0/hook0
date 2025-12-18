@@ -14,6 +14,7 @@ use crate::hook0_client::{
 use crate::iam::{Action, authorize, authorize_for_application, get_owner_organization};
 use crate::onboarding::{ApplicationOnboardingSteps, get_application_onboarding_steps};
 use crate::openapi::OaBiscuit;
+use crate::opentelemetry::report_cancelled_request_attempts;
 use crate::problems::Hook0Problem;
 use crate::quotas::{Quota, QuotaValue};
 
@@ -76,6 +77,7 @@ pub async fn create(
         Some(body.organization_id),
         Action::ApplicationCreate,
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .is_err()
     {
@@ -166,6 +168,7 @@ pub async fn get(
             application_id: &application_id,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .await
     .is_err()
@@ -258,6 +261,7 @@ pub async fn list(
         Some(qs.organization_id),
         Action::ApplicationList,
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .is_err()
     {
@@ -298,6 +302,7 @@ pub async fn edit(
             application_id: &application_id,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .await
     .is_err()
@@ -351,7 +356,7 @@ pub async fn edit(
 
 #[api_v2_operation(
     summary = "Delete an application",
-    description = "Marks an application as deleted. No more events will be emitted, and all active webhook subscriptions will be removed.",
+    description = "Marks an application as deleted. No more events will be emitted, and all active webhook subscriptions will be removed. All pending request attempts for all subscriptions belonging to this application will be automatically marked as failed.",
     operation_id = "applications.delete",
     consumes = "application/json",
     produces = "application/json",
@@ -370,6 +375,7 @@ pub async fn delete(
             application_id: &application_id,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .await
     .is_err()
@@ -393,13 +399,39 @@ pub async fn delete(
 
     match application {
         Some(a) => {
+            let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
+
             query!(
                 "UPDATE event.application SET deleted_at = NOW() WHERE application__id = $1",
                 a.application_id
             )
-            .execute(&state.db)
+            .execute(&mut *tx)
             .await
             .map_err(Hook0Problem::from)?;
+
+            // Mark pending request attempts as failed for all subscriptions of this application
+            let cancelled_request_attempts_result = query!(
+                "
+                    UPDATE webhook.request_attempt AS ra
+                    SET failed_at = statement_timestamp()
+                    FROM webhook.subscription AS s
+                    WHERE ra.subscription__id = s.subscription__id
+                      AND s.application__id = $1
+                      AND ra.failed_at IS NULL
+                      AND ra.succeeded_at IS NULL
+                ",
+                &a.application_id
+            )
+            .execute(&mut *tx)
+            .await
+            .map_err(Hook0Problem::from)?;
+            let cancelled_request_attempts = cancelled_request_attempts_result.rows_affected();
+
+            tx.commit().await.map_err(Hook0Problem::from)?;
+
+            if cancelled_request_attempts > 0 {
+                report_cancelled_request_attempts(cancelled_request_attempts);
+            }
 
             if let Some(hook0_client) = state.hook0_client.as_ref() {
                 let hook0_client_event: Hook0ClientEvent = EventApplicationRemoved {

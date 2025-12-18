@@ -1,20 +1,28 @@
 use ::hook0_client::Hook0Client;
-use actix::Arbiter;
 use actix_cors::Cors;
 use actix_files::{Files, NamedFile};
 use actix_web::middleware::{Compat, Logger, NormalizePath};
 use actix_web::{App, HttpServer, http, middleware};
+use aws_sdk_s3::Client;
+use aws_sdk_s3::config::retry::RetryConfig;
+use aws_sdk_s3::config::{AppName, Credentials, Region};
 use biscuit_auth::{KeyPair, PrivateKey};
 use clap::builder::{BoolValueParser, TypedValueParser};
-use clap::{ArgGroup, Parser, crate_name};
+use clap::{ArgGroup, Parser, crate_name, crate_version};
 use ipnetwork::IpNetwork;
 use lettre::Address;
-use log::{debug, info, trace, warn};
+use log::{debug, error, info, trace, warn};
 use paperclip::actix::{OpenApiExt, web};
-use reqwest::Url;
+use pulsar::{
+    Authentication, ConnectionRetryOptions, MultiTopicProducer, ProducerOptions, Pulsar,
+    TokioExecutor,
+};
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 use std::str::FromStr;
+use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::{Mutex, Semaphore};
+use url::Url;
 use uuid::Uuid;
 
 mod cloudflare_turnstile;
@@ -27,9 +35,12 @@ mod mailer;
 mod materialized_views;
 mod middleware_biscuit;
 mod middleware_get_user_ip;
+mod object_storage_cleanup;
 mod old_events_cleanup;
 mod onboarding;
 mod openapi;
+mod opentelemetry;
+mod pagination;
 mod problems;
 mod quotas;
 mod rate_limiting;
@@ -40,8 +51,21 @@ mod validators;
 #[cfg(feature = "migrate-users-from-keycloak")]
 mod keycloak_api;
 
+#[cfg(all(target_env = "msvc", feature = "jemalloc"))]
+compile_error!("jemalloc is not supporter when compiling to msvc");
+
+#[cfg(all(not(target_env = "msvc"), feature = "jemalloc"))]
+#[global_allocator]
+static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+
+#[cfg(all(not(target_env = "msvc"), feature = "profiling"))]
+#[allow(non_upper_case_globals)]
+#[unsafe(export_name = "malloc_conf")]
+pub static malloc_conf: &[u8] = b"prof:true,prof_active:true,lg_prof_sample:19\0";
+
 const APP_TITLE: &str = "Hook0 API";
 const WEBAPP_INDEX_FILE: &str = "index.html";
+const PULSAR_CONNECTION_MAX_RETRIES: u32 = 10;
 
 #[derive(Debug, Clone, Parser)]
 #[clap(author, about, version, name = APP_TITLE)]
@@ -55,6 +79,16 @@ const WEBAPP_INDEX_FILE: &str = "index.html";
     ArgGroup::new("cloudflare_turnstile")
         .multiple(true)
         .requires_all(&["cloudflare_turnstile_site_key", "cloudflare_turnstile_secret_key"]),
+))]
+#[clap(group(
+    ArgGroup::new("pulsar")
+        .multiple(true)
+        .requires_all(&["pulsar_binary_url", "pulsar_token", "pulsar_tenant", "pulsar_namespace"]),
+))]
+#[clap(group(
+    ArgGroup::new("object_storage")
+        .multiple(true)
+        .requires_all(&["object_storage_host", "object_storage_key_id", "object_storage_key_secret", "object_storage_bucket_name"]),
 ))]
 struct Config {
     /// IP address on which to start the HTTP server
@@ -85,6 +119,18 @@ struct Config {
     #[clap(long, env)]
     sentry_traces_sample_rate: Option<f32>,
 
+    /// Optional OTLP endpoint that will receive metrics
+    #[clap(long, env)]
+    otlp_metrics_endpoint: Option<Url>,
+
+    /// Optional OTLP endpoint that will receive traces
+    #[clap(long, env)]
+    otlp_traces_endpoint: Option<Url>,
+
+    /// Optional value for OTLP `Authorization` header (for example: `Bearer mytoken`)
+    #[clap(long, env, hide_env_values = true)]
+    otlp_authorization: Option<String>,
+
     /// Database URL (with credentials)
     #[clap(long, env, hide_env_values = true)]
     database_url: String,
@@ -92,6 +138,58 @@ struct Config {
     /// Maximum number of connections to database
     #[clap(long, env, default_value = "5")]
     max_db_connections: u32,
+
+    /// Statement timeout for database queries; if `0ms` (default), no timeout will be set; this is only for API-related queries, housekeeping tasks run without timeout
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "0ms")]
+    db_statement_timeout: Duration,
+
+    /// Pulsar binary URL
+    #[clap(long, env, group = "pulsar")]
+    pulsar_binary_url: Option<Url>,
+
+    /// Pulsar token
+    #[clap(long, env, hide_env_values = true, group = "pulsar")]
+    pulsar_token: Option<String>,
+
+    /// Pulsar tenant
+    #[clap(long, env, group = "pulsar")]
+    pulsar_tenant: Option<String>,
+
+    /// Pulsar namespace
+    #[clap(long, env, group = "pulsar")]
+    pulsar_namespace: Option<String>,
+
+    /// Host of the S3-like object storage (without https://)
+    #[clap(long, env)]
+    object_storage_host: Option<String>,
+
+    /// Force endpoint scheme to be HTTP (by default it is HTTPS)
+    #[clap(long, env, default_value_t = false)]
+    object_storage_force_http_scheme: bool,
+
+    /// Key ID of the S3-like object storage
+    #[clap(long, env)]
+    object_storage_key_id: Option<String>,
+
+    /// Key secret of the S3-like object storage
+    #[clap(long, env, hide_env_values = true)]
+    object_storage_key_secret: Option<String>,
+
+    /// Maximum number of attempts for object storage operations
+    #[clap(long, env, default_value_t = 3)]
+    object_storage_max_attempts: u32,
+
+    /// Bucket name of the S3-like object storage
+    #[clap(long, env)]
+    object_storage_bucket_name: Option<String>,
+
+    /// If true, new event payloads will be stored in object storage instead of database
+    #[clap(long, env, default_value_t = false)]
+    store_event_payloads_in_object_storage: bool,
+
+    /// A comma-separated list of applications ID whose event payloads should be stored in object storage; if empty (default), all event payloads will be stored in object storage regardless of application ID
+    #[clap(long, env, use_value_delimiter = true)]
+    store_event_payloads_in_object_storage_only_for: Vec<Uuid>,
 
     /// Path to the directory containing the web app to serve
     #[clap(long, env, default_value = "../frontend/dist/")]
@@ -104,6 +202,10 @@ struct Config {
     /// Key for the health check endpoint; if not specified, endpoint is disabled; if empty, endpoint is public
     #[clap(long, env, hide_env_values = true)]
     health_check_key: Option<String>,
+
+    /// Max timeout duration for health check: if subsystems take longer to respond they will be considered unhealthy
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "5s")]
+    health_check_timeout: Duration,
 
     /// Enable Keycloak migration mode
     #[cfg(feature = "migrate-users-from-keycloak")]
@@ -200,6 +302,10 @@ struct Config {
     #[clap(long, env, default_value = "100")]
     api_rate_limiting_token_replenish_period_in_ms: u64,
 
+    /// Duration to wait beetween rate limiters housekeeping
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "5m")]
+    api_rate_limiting_housekeeping_period: Duration,
+
     /// Comma-separated allowed origins for CORS
     #[clap(long, env, use_value_delimiter = true)]
     cors_allowed_origins: Vec<String>,
@@ -272,6 +378,14 @@ struct Config {
     #[clap(long, env, default_value = "false")]
     old_events_cleanup_report_and_delete: bool,
 
+    /// Duration to wait between object storage cleanups
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "1d")]
+    object_storage_cleanup_period: Duration,
+
+    /// If true, allow to delete outdated objects from object storage; if false (default), they will only be reported
+    #[clap(long, env, default_value_t = false)]
+    object_storage_cleanup_report_and_delete: bool,
+
     /// Duration to wait between expired tokens cleanups
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "1h")]
     expired_tokens_cleanup_period: Duration,
@@ -340,13 +454,17 @@ struct Config {
     #[clap(long, env, default_value = "https://app.hook0.com/256x256.png")]
     email_logo_url: Url,
 
-    /// Frontend application URL (used for building links in emails)
+    /// Frontend application URL (used for building links in emails and pagination)
     #[clap(long, env)]
     app_url: Url,
 
     /// Maximum duration (in millisecond) that can be spent running Biscuit's authorizer
     #[clap(long, env, default_value = "10")]
     max_authorization_time_in_ms: u64,
+
+    /// If true, a trace log message containing authorizer context is emitted on each request; defaut is false because this feature implies a small overhead
+    #[clap(long, env, default_value_t = false)]
+    debug_authorizer: bool,
 
     /// Matomo URL
     #[clap(long, env)]
@@ -390,6 +508,8 @@ fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
 #[derive(Debug, Clone)]
 pub struct State {
     db: PgPool,
+    pulsar: Option<Arc<PulsarConfig>>,
+    object_storage: Option<ObjectStorageConfig>,
     biscuit_private_key: PrivateKey,
     mailer: mailer::Mailer,
     app_url: Url,
@@ -410,7 +530,9 @@ pub struct State {
     hook0_client: Option<Hook0Client>,
     quotas: quotas::Quotas,
     health_check_key: Option<String>,
+    health_check_timeout: Duration,
     max_authorization_time_in_ms: u64,
+    debug_authorizer: bool,
     enable_quota_enforcement: bool,
     matomo_url: Option<Url>,
     matomo_site_id: Option<u16>,
@@ -421,6 +543,44 @@ pub struct State {
     support_email_address: Address,
     cloudflare_turnstile_site_key: Option<String>,
     cloudflare_turnstile_secret_key: Option<String>,
+}
+
+#[derive(Clone)]
+struct PulsarConfig {
+    pulsar: Pulsar<TokioExecutor>,
+    tenant: String,
+    namespace: String,
+    request_attempts_producer: Arc<Mutex<MultiTopicProducer<TokioExecutor>>>,
+}
+
+#[derive(Debug, Clone)]
+struct ObjectStorageConfig {
+    client: Client,
+    bucket: String,
+    store_event_payloads: bool,
+    store_event_only_for: Vec<Uuid>,
+}
+
+// A Debug implementation that gets around Pulsar<TokioExecutor> not implementing Debug
+impl std::fmt::Debug for PulsarConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        #[allow(dead_code)]
+        #[derive(Debug)]
+        struct PulsarConfigForDebug<'a> {
+            pulsar: &'a str,
+            tenant: &'a str,
+            namespace: &'a str,
+        }
+
+        std::fmt::Debug::fmt(
+            &PulsarConfigForDebug {
+                pulsar: "[Pulsar connection]",
+                tenant: &self.tenant,
+                namespace: &self.namespace,
+            },
+            f,
+        )
+    }
 }
 
 #[actix_web::main]
@@ -435,6 +595,14 @@ async fn main() -> anyhow::Result<()> {
             &config.sentry_dsn,
             &config.sentry_traces_sample_rate,
         );
+
+        // Init OpenTelemetry
+        opentelemetry::init(
+            crate_version!(),
+            &config.otlp_authorization,
+            &config.otlp_metrics_endpoint,
+            &config.otlp_traces_endpoint,
+        )?;
 
         trace!("Starting {APP_TITLE}");
 
@@ -482,9 +650,32 @@ async fn main() -> anyhow::Result<()> {
             config.api_rate_limiting_token_replenish_period_in_ms,
         );
 
-        // Create a DB connection pool
+        // Create a DB connection pool for housekeeping tasks (no timeout)
+        let housekeeping_pool = PgPoolOptions::new()
+            .max_connections(3)
+            .connect_with(
+                PgConnectOptions::from_str(&config.database_url)?
+                    .application_name(&format!("{}-housekeeping", crate_name!())),
+            )
+            .await?;
+
+        // Create a DB connection pool for API
+        let statement_timeout = config.db_statement_timeout;
         let pool = PgPoolOptions::new()
             .max_connections(config.max_db_connections)
+            .after_connect(move |conn, _meta| {
+                Box::pin(async move {
+                    if !statement_timeout.is_zero() {
+                        sqlx::Executor::execute(
+                            conn,
+                            format!("SET statement_timeout = {}", statement_timeout.as_millis())
+                                .as_str(),
+                        )
+                        .await?;
+                    }
+                    Ok(())
+                })
+            })
             .connect_with(
                 PgConnectOptions::from_str(&config.database_url)?.application_name(crate_name!()),
             )
@@ -494,11 +685,153 @@ async fn main() -> anyhow::Result<()> {
             &config.max_db_connections
         );
 
+        // Periodically collect metrics from database pools
+        let metrics_pools = [
+            ("housekeeping", housekeeping_pool.clone()),
+            ("main", pool.clone()),
+        ];
+        actix_web::rt::spawn(async move {
+            loop {
+                opentelemetry::gather_pools_metrics(&metrics_pools);
+                actix_web::rt::time::sleep(Duration::from_secs(15)).await
+            }
+        });
+
         // Run migrations
         if config.auto_db_migration {
             info!("Checking/running DB migrations");
-            sqlx::migrate!("./migrations").run(&pool).await?;
+            sqlx::migrate!("./migrations")
+                .run(&housekeeping_pool)
+                .await?;
         }
+
+        // Create Pulsar client
+        let pulsar_config = if let (
+            Some(pulsar_binary_url),
+            Some(pulsar_token),
+            Some(pulsar_tenant),
+            Some(pulsar_namespace),
+        ) = (
+            config.pulsar_binary_url,
+            config.pulsar_token,
+            config.pulsar_tenant,
+            config.pulsar_namespace,
+        ) {
+            rustls::crypto::ring::default_provider()
+                .install_default()
+                .unwrap();
+
+            match Pulsar::builder(pulsar_binary_url, TokioExecutor)
+                .with_connection_retry_options(ConnectionRetryOptions {
+                    max_retries: PULSAR_CONNECTION_MAX_RETRIES,
+                    ..Default::default()
+                })
+                .with_auth(Authentication {
+                    name: "token".to_owned(),
+                    data: pulsar_token.into_bytes(),
+                })
+                .build()
+                .await
+            {
+                Ok(pulsar) => {
+                    let request_attempts_producer = pulsar
+                        .producer()
+                        .with_name(format!(
+                            "hook0-api.request-attempts-producer.{}",
+                            Uuid::now_v7()
+                        ))
+                        .with_options(ProducerOptions {
+                            block_queue_if_full: true,
+                            ..Default::default()
+                        })
+                        .build_multi_topic();
+
+                    info!("Pulsar support is enabled");
+                    Some(Arc::new(PulsarConfig {
+                        pulsar,
+                        tenant: pulsar_tenant,
+                        namespace: pulsar_namespace,
+                        request_attempts_producer: Arc::new(Mutex::new(request_attempts_producer)),
+                    }))
+                }
+                Err(e) => {
+                    error!(
+                        "Could not connect to Pulsar after {PULSAR_CONNECTION_MAX_RETRIES} attempts: {e}"
+                    );
+                    warn!("Continuing without Pulsar support (restart to try again)");
+                    None
+                }
+            }
+        } else {
+            None
+        };
+
+        // Create object storage client
+        let object_storage_config = if let (
+            Some(object_storage_host),
+            Some(object_storage_key_id),
+            Some(object_storage_key_secret),
+            Some(object_storage_bucket_name),
+        ) = (
+            config.object_storage_host,
+            config.object_storage_key_id,
+            config.object_storage_key_secret,
+            config.object_storage_bucket_name,
+        ) {
+            let app_name = AppName::new(crate_name!()).unwrap();
+            let credentials = Credentials::new(
+                object_storage_key_id,
+                object_storage_key_secret,
+                None,
+                None,
+                crate_name!(),
+            );
+            let region = Region::from_static("none");
+            let s3_config = aws_sdk_s3::Config::builder()
+                .region(region)
+                .credentials_provider(credentials)
+                .app_name(app_name)
+                .endpoint_url(format!(
+                    "{}://{object_storage_host}",
+                    if config.object_storage_force_http_scheme {
+                        "http"
+                    } else {
+                        "https"
+                    },
+                ))
+                .force_path_style(true)
+                .retry_config(
+                    RetryConfig::standard()
+                        .with_max_attempts(config.object_storage_max_attempts)
+                        .with_max_backoff(Duration::from_secs(2)),
+                )
+                .build();
+            let client = Client::from_conf(s3_config);
+            if let Err(e) = client
+                .head_bucket()
+                .bucket(&object_storage_bucket_name)
+                .send()
+                .await
+            {
+                if let Some(se) = e.as_service_error() {
+                    error!("Could not connect to object storage: (service error) {se}");
+                } else {
+                    error!("Could not connect to object storage: {e}");
+                }
+                warn!("Continuing without object storage support (restart to try again)");
+                None
+            } else {
+                info!("Object storage support is enabled");
+                Some(ObjectStorageConfig {
+                    client,
+                    bucket: object_storage_bucket_name,
+                    store_event_payloads: config.store_event_payloads_in_object_storage,
+                    store_event_only_for: config.store_event_payloads_in_object_storage_only_for,
+                })
+            }
+        } else {
+            None
+        };
 
         // Initialize Hook0 client
         let hook0_client = hook0_client::initialize(
@@ -509,7 +842,7 @@ async fn main() -> anyhow::Result<()> {
         if let Some(client) = &hook0_client {
             let upsert_client = client.clone();
             let upserts_retries = config.hook0_client_upserts_retries;
-            Arbiter::current().spawn(async move {
+            actix_web::rt::spawn(async move {
                 trace!("Starting Hook0 client upsert task");
                 hook0_client::upsert_event_types(
                     &upsert_client,
@@ -552,10 +885,19 @@ async fn main() -> anyhow::Result<()> {
             );
         }
 
+        // Spawn tasks to do regular rate limiters housekeeping and metrics reporting
+        rate_limiters.spawn_housekeeping_task(config.api_rate_limiting_housekeeping_period);
+        rate_limiters.spawn_metrics_task();
+
+        // This semaphore is used to ensure we do not run multiple housekeeping tasks at the same because it can create unnecessary load on the database
+        let housekeeping_semaphore = Arc::new(Semaphore::new(1));
+
         // Spawn task to refresh materialized views
-        let refresh_db = pool.clone();
+        let refresh_db = housekeeping_pool.clone();
+        let refresh_housekeeping_semaphore = housekeeping_semaphore.clone();
         actix_web::rt::spawn(async move {
             materialized_views::periodically_refresh_materialized_views(
+                &refresh_housekeeping_semaphore,
                 &refresh_db,
                 Duration::from_secs(config.materialized_views_refresh_period_in_s),
             )
@@ -564,9 +906,12 @@ async fn main() -> anyhow::Result<()> {
 
         // Spawn task to clean up soft deleted applications
         if config.enable_soft_deleted_applications_cleanup {
-            let clean_soft_deleted_applications_db = pool.clone();
+            let clean_soft_deleted_applications_db = housekeeping_pool.clone();
+            let clean_soft_deleted_applications_housekeeping_semaphore =
+                housekeeping_semaphore.clone();
             actix_web::rt::spawn(async move {
                 soft_deleted_applications_cleanup::periodically_clean_up_soft_deleted_applications(
+                    &clean_soft_deleted_applications_housekeeping_semaphore,
                     &clean_soft_deleted_applications_db,
                     config.soft_deleted_applications_cleanup_period,
                     config.soft_deleted_applications_cleanup_grace_period,
@@ -576,9 +921,11 @@ async fn main() -> anyhow::Result<()> {
         }
 
         // Spawn task to clean up old events
-        let cleanup_db = pool.clone();
+        let cleanup_db = housekeeping_pool.clone();
+        let cleanup_semaphore = housekeeping_semaphore.clone();
         actix_web::rt::spawn(async move {
             old_events_cleanup::periodically_clean_up_old_events(
+                &cleanup_semaphore,
                 &cleanup_db,
                 Duration::from_secs(config.old_events_cleanup_period_in_s),
                 config.quota_global_days_of_events_retention_limit,
@@ -589,9 +936,11 @@ async fn main() -> anyhow::Result<()> {
         });
 
         // Spawn task to clean up expired tokens
-        let cleanup_db = pool.clone();
+        let cleanup_db = housekeeping_pool.clone();
+        let cleanup_semaphore = housekeeping_semaphore.clone();
         actix_web::rt::spawn(async move {
             expired_tokens_cleanup::periodically_clean_up_expired_tokens(
+                &cleanup_semaphore,
                 &cleanup_db,
                 config.expired_tokens_cleanup_period,
                 config.expired_tokens_cleanup_grace_period,
@@ -602,13 +951,31 @@ async fn main() -> anyhow::Result<()> {
 
         // Spawn task to clean unverified users if enabled
         if config.enable_unverified_users_cleanup {
-            let clean_unverified_users_db = pool.clone();
+            let clean_unverified_users_db = housekeeping_pool.clone();
+            let clean_unverified_users_semaphore = housekeeping_semaphore.clone();
             actix_web::rt::spawn(async move {
                 unverified_users_cleanup::periodically_clean_up_unverified_users(
+                    &clean_unverified_users_semaphore,
                     &clean_unverified_users_db,
                     Duration::from_secs(config.unverified_users_cleanup_period_in_s),
                     config.unverified_users_cleanup_grace_period_in_days,
                     config.unverified_users_cleanup_report_and_delete,
+                )
+                .await;
+            });
+        }
+
+        // Spawn task to clean up object storage
+        // No housekeeping semaphore here because this task is not database-intensive and should be able to run for a long time without keeping other tasks from running
+        if let Some(os) = &object_storage_config {
+            let cleanup_db = housekeeping_pool.clone();
+            let cleanup_object_storage = os.clone();
+            actix_web::rt::spawn(async move {
+                object_storage_cleanup::periodically_clean_up_object_storage(
+                    &cleanup_db,
+                    &cleanup_object_storage,
+                    config.object_storage_cleanup_period,
+                    config.object_storage_cleanup_report_and_delete,
                 )
                 .await;
             });
@@ -634,6 +1001,8 @@ async fn main() -> anyhow::Result<()> {
         // Initialize state
         let initial_state = State {
             db: pool,
+            pulsar: pulsar_config,
+            object_storage: object_storage_config,
             app_url: config.app_url,
             biscuit_private_key,
             mailer,
@@ -663,7 +1032,9 @@ async fn main() -> anyhow::Result<()> {
             hook0_client,
             quotas,
             health_check_key: config.health_check_key,
+            health_check_timeout: config.health_check_timeout,
             max_authorization_time_in_ms: config.max_authorization_time_in_ms,
+            debug_authorizer: config.debug_authorizer,
             enable_quota_enforcement: config.enable_quota_enforcement,
             matomo_url: config.matomo_url,
             matomo_site_id: config.matomo_site_id,
@@ -733,6 +1104,7 @@ async fn main() -> anyhow::Result<()> {
 
             let hsts_header_condition =
                 middleware::Condition::new(config.enable_hsts_header, hsts_header);
+
             let mut app = App::new()
                 .app_data(web::Data::new(initial_state.clone()))
                 .app_data(web::JsonConfig::default().error_handler(|e, _req| {
@@ -799,9 +1171,26 @@ async fn main() -> anyhow::Result<()> {
                             web::scope("/quotas")
                                 .service(web::resource("").route(web::get().to(quotas::get))),
                         )
-                        .service(web::scope("/health").service(
-                            web::resource("").route(web::get().to(handlers::instance::health)),
-                        ))
+                        .service({
+                            let srv = web::scope("/health").service(
+                                web::resource("").route(web::get().to(handlers::instance::health)),
+                            );
+
+                            #[cfg(feature = "profiling")]
+                            {
+                                srv.service(
+                                    web::resource("/profiling/heap")
+                                        .route(web::get().to(handlers::instance::pprof_heap)),
+                                )
+                                .service(
+                                    web::resource("/profiling/cpu")
+                                        .route(web::get().to(handlers::instance::pprof_cpu)),
+                                )
+                            }
+
+                            #[cfg(not(feature = "profiling"))]
+                            srv
+                        })
                         .service(web::scope("/errors").service(
                             web::resource("").route(web::get().to(handlers::errors::list)),
                         ))

@@ -1,13 +1,16 @@
+use actix_governor::governor::middleware::NoOpMiddleware;
 use actix_governor::{
     GlobalKeyExtractor, Governor, GovernorConfig, GovernorConfigBuilder, KeyExtractor,
 };
 use actix_web::HttpMessage;
 use actix_web::middleware::Condition;
+use actix_web::rt::time::sleep;
 use biscuit_auth::Biscuit;
-use governor::middleware::NoOpMiddleware;
-use log::warn;
+use log::{debug, trace, warn};
 use std::net::IpAddr;
+use std::time::Duration;
 
+use crate::opentelemetry::report_rate_limiters_metrics;
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Clone)]
@@ -99,6 +102,40 @@ impl Hook0RateLimiters {
             Governor::new(&self.token),
         )
     }
+
+    pub fn spawn_housekeeping_task(&self, interval: Duration) {
+        let self_clone = self.clone();
+        actix_web::rt::spawn(async move {
+            loop {
+                sleep(interval).await;
+
+                trace!("Removing old entries from rate limiters...");
+                self_clone.ip.limiter().retain_recent();
+                self_clone.token.limiter().retain_recent();
+
+                trace!("Shrinking rate limiters internal's structures...");
+                self_clone.ip.limiter().shrink_to_fit();
+                self_clone.token.limiter().shrink_to_fit();
+
+                debug!("Rate limiters housekeeping done");
+            }
+        });
+    }
+
+    pub fn spawn_metrics_task(&self) {
+        const INTERVAL: Duration = Duration::from_secs(15);
+        let self_clone = self.clone();
+        actix_web::rt::spawn(async move {
+            loop {
+                sleep(INTERVAL).await;
+
+                report_rate_limiters_metrics(&[
+                    ("ip", self_clone.ip.limiter().len()),
+                    ("token", self_clone.token.limiter().len()),
+                ]);
+            }
+        });
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -107,10 +144,6 @@ pub struct UserIpKeyExtractor;
 impl KeyExtractor for UserIpKeyExtractor {
     type Key = IpAddr;
     type KeyExtractionError = Hook0Problem;
-
-    fn name(&self) -> &'static str {
-        "user IP"
-    }
 
     fn extract(
         &self,
@@ -121,10 +154,6 @@ impl KeyExtractor for UserIpKeyExtractor {
             .copied()
             .ok_or(Hook0Problem::InternalServerError)
     }
-
-    fn key_name(&self, key: &Self::Key) -> Option<String> {
-        Some(key.to_string())
-    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -133,10 +162,6 @@ pub struct TokenKeyExtractor;
 impl KeyExtractor for TokenKeyExtractor {
     type Key = Vec<Vec<u8>>;
     type KeyExtractionError = Hook0Problem;
-
-    fn name(&self) -> &'static str {
-        "token"
-    }
 
     fn extract(
         &self,

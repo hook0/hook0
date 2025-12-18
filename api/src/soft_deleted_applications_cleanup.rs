@@ -1,12 +1,14 @@
-use actix::clock::sleep;
+use actix_web::rt::time::sleep;
 use log::{debug, error, info, trace};
 use sqlx::postgres::types::PgInterval;
 use sqlx::{Acquire, PgPool, Postgres, query};
 use std::time::{Duration, Instant};
+use tokio::sync::Semaphore;
 
 const STARTUP_GRACE_PERIOD: Duration = Duration::from_secs(20);
 
 pub async fn periodically_clean_up_soft_deleted_applications(
+    housekeeping_semaphore: &Semaphore,
     db: &PgPool,
     period: Duration,
     grace_period: Duration,
@@ -14,13 +16,16 @@ pub async fn periodically_clean_up_soft_deleted_applications(
     sleep(STARTUP_GRACE_PERIOD).await;
 
     match PgInterval::try_from(grace_period) {
-        Ok(grace_period) => loop {
-            if let Err(e) = clean_up_soft_deleted_applications(db, &grace_period).await {
-                error!("Could not clean up deleted applications: {e}");
-            }
+        Ok(grace_period) => {
+            while let Ok(permit) = housekeeping_semaphore.acquire().await {
+                if let Err(e) = clean_up_soft_deleted_applications(db, &grace_period).await {
+                    error!("Could not clean up deleted applications: {e}");
+                }
+                drop(permit);
 
-            sleep(period).await;
-        },
+                sleep(period).await;
+            }
+        }
         Err(e) => {
             error!("Could not convert grace period ({grace_period:?}) to a PG interval: {e}")
         }
@@ -42,8 +47,8 @@ async fn clean_up_soft_deleted_applications(
     tx.commit().await?;
 
     if total_deleted_soft_deleted_applications > 0 {
-        debug!("Running vacuum analyze and reindexing...");
-        vacuum_analyze_and_reindex(db).await?;
+        debug!("Running vacuum analyze...");
+        vacuum_analyze(db).await?;
     }
 
     info!(
@@ -73,38 +78,29 @@ async fn purge_soft_soft_deleted_applications<'a, A: Acquire<'a, Database = Post
     Ok(res.rows_affected())
 }
 
-async fn vacuum_analyze_and_reindex<'a, A: Acquire<'a, Database = Postgres>>(
-    db: A,
-) -> Result<(), sqlx::Error> {
+async fn vacuum_analyze<'a, A: Acquire<'a, Database = Postgres>>(db: A) -> Result<(), sqlx::Error> {
     let mut db = db.acquire().await?;
 
-    query!("VACUUM ANALYZE event.application, event.event_type, webhook.subscription, event.event, webhook.request_attempt, webhook.response")
-        .execute(&mut *db)
-        .await?;
+    // We do not vacuum the following tables: event.event, webhook.request_attempt, webhook.response
+    // This is because it is done by the old events cleanup task anyway
 
-    query!("REINDEX TABLE CONCURRENTLY event.application")
-        .execute(&mut *db)
-        .await?;
-
-    query!("REINDEX TABLE CONCURRENTLY event.event_type")
-        .execute(&mut *db)
-        .await?;
-
-    query!("REINDEX TABLE CONCURRENTLY webhook.subscription")
-        .execute(&mut *db)
-        .await?;
-
-    query!("REINDEX TABLE CONCURRENTLY event.event")
-        .execute(&mut *db)
-        .await?;
-
-    query!("REINDEX TABLE CONCURRENTLY webhook.request_attempt")
-        .execute(&mut *db)
-        .await?;
-
-    query!("REINDEX TABLE CONCURRENTLY webhook.response")
-        .execute(&mut *db)
-        .await?;
+    query!(
+        "
+            VACUUM ANALYZE
+                event.application,
+                event.application_secret,
+                event.service,
+                event.resource_type,
+                event.verb,
+                event.event_type,
+                webhook.subscription,
+                webhook.subscription__event_type,
+                webhook.subscription__worker,
+                webhook.target_http
+        "
+    )
+    .execute(&mut *db)
+    .await?;
 
     Ok(())
 }

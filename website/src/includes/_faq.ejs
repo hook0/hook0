@@ -1,73 +1,87 @@
-<div class="bg-gray-100 border-t border-b border-gray-200">
-    <div class="max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:py-20 lg:px-8">
-        <div class="lg:grid lg:grid-cols-3 lg:gap-8">
-            <div>
-                <h2 class="text-3xl font-extrabold text-gray-900">
+<section class="relative bg-surface-secondary py-24 sm:py-32 overflow-hidden">
+    <!-- Background Effects -->
+    <div class="absolute inset-0 gradient-mesh opacity-30"></div>
+
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="lg:grid lg:grid-cols-12 lg:gap-16">
+            <!-- Left Column - Header -->
+            <div class="lg:col-span-4 animate-on-scroll animate-on-scroll--left">
+                <span class="section__eyebrow">FAQ</span>
+                <h2 class="text-display font-bold text-white mt-4">
                     Frequently asked questions
                 </h2>
-                <p class="mt-4 text-lg text-gray-500">Can’t find the answer you’re looking for?<br/> Reach out to our <a
-                            href="<%= locals.meta.contact %>"
-                            class="font-medium text-indigo-600 hover:text-indigo-500">customer support</a> team.</p>
+                <p class="mt-4 text-body-lg text-gray-400">
+                    Can't find the answer you're looking for? Reach out to our
+                    <a href="<%= locals.meta.contact %>" class="text-indigo-400 hover:text-indigo-300 transition-colors">customer support</a> team.
+                </p>
             </div>
-            <div class="mt-12 lg:mt-0 lg:col-span-2">
-                <dl class="space-y-12">
-                    <div>
-                        <dt class="text-lg leading-6 font-medium text-gray-900">
-                            What are Webhooks as a Service?
-                        </dt>
-                        <dd class="mt-2 text-base text-gray-500">
-                            We take everything that goes into a webhook service (retries, backoffs, endpoint monitoring,
-                            subscriber management, etc) and package it up into a platform that you can easily integrate
-                            with using our API.
-                        </dd>
-                    </div>
-                    <div>
-                        <dt class="text-lg leading-6 font-medium text-gray-900">
-                            How long does it take to integrate with Hook0?
-                        </dt>
-                        <dd class="mt-2 text-base text-gray-500">
-                            Every setup is different, but a senior developer should be able to build out a working
-                            version within a day and be live in under a week.
-                        </dd>
-                    </div>
-                    <div>
-                        <dt class="text-lg leading-6 font-medium text-gray-900">
-                            How is this different than Zapier or Integromat?
-                        </dt>
-                        <dd class="mt-2 text-base text-gray-500">
-                            Zapier is an automation tool that helps connect services together. Hook0 is a platform
-                            that gives your application the ability to send webhook events to your users.
-                        </dd>
-                    </div>
-                    <div>
-                        <dt class="text-lg leading-6 font-medium text-gray-900">
-                            We've already built webhooks, can we still use Hook0?
-                        </dt>
-                        <dd class="mt-2 text-base text-gray-500">
-                            That is a great use case for using Hook0 since you've already validated that your
-                            users want webhooks. There is a good chance that what Hook0 offers is much more robust
-                            than your solution. If that is the case, then migrating your custom solution to Hook0
-                            will allow you to focus on other priorities while offering a top notch webhook solution.
-                        </dd>
-                    </div>
-                </dl>
 
-                <div class="px-6 pt-5 pb-8 mt-8 bg-white rounded-lg shadow-sm">
-                    <div class="mx-auto max-w-2xl text-center">
-                        <p class="mx-auto mt-6 max-w-xl text-lg leading-8 text-gray-600">Have more questions?<br/>Check
-                            out our <a href="https://documentation.hook0.com/docs/getting-started"
-                                       class=" text-indigo-600 hover:text-indigo-500" target="_blank">product
-                                FAQ</a>, <a href="https://documentation.hook0.com/docs/pricing-plans-faq"
-                                            class=" text-indigo-600 hover:text-indigo-500"
-                                            target="_blank">pricing FAQ</a>, or <a href="mailto:support@hook0.com"
-                                                                                   class=" text-indigo-600 hover:text-indigo-500">contact
-                                sales team</a>.</p>
-                    </div>
+            <!-- Right Column - FAQ Items -->
+            <div class="lg:col-span-8 mt-12 lg:mt-0">
+                <div class="space-y-4 stagger-children">
+                    <!-- FAQ Item 1 -->
+                    <details class="faq-item animate-on-scroll group">
+                        <summary class="text-white font-medium">
+                            <span>What are Webhooks as a Service?</span>
+                            <svg class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </summary>
+                        <div class="faq-item__content">
+                            We took everything that goes into a webhook service (retries, fine-grained subscriptions management, etc) and packaged it up into a platform that you can easily integrate with using our API.
+                        </div>
+                    </details>
+
+                    <!-- FAQ Item 2 -->
+                    <details class="faq-item animate-on-scroll group">
+                        <summary class="text-white font-medium">
+                            <span>How long does it take to integrate with Hook0?</span>
+                            <svg class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </summary>
+                        <div class="faq-item__content">
+                            Every setup is different, but a senior developer should be able to build out a working version within a day and be live in under a week.
+                        </div>
+                    </details>
+
+                    <!-- FAQ Item 3 -->
+                    <details class="faq-item animate-on-scroll group">
+                        <summary class="text-white font-medium">
+                            <span>How is this different than Zapier, Make or n8n?</span>
+                            <svg class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </summary>
+                        <div class="faq-item__content">
+                            These services are automation tools that help connect online services together. Hook0 is a platform that gives your application the ability to send webhook events to your users (who may use these services).
+                        </div>
+                    </details>
+
+                    <!-- FAQ Item 4 -->
+                    <details class="faq-item animate-on-scroll group">
+                        <summary class="text-white font-medium">
+                            <span>We've already built webhooks, can we still use Hook0?</span>
+                            <svg class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </summary>
+                        <div class="faq-item__content">
+                            That is a great use case for using Hook0 since you've already validated that your users want webhooks. There is a good chance that what Hook0 offers is much more robust than your solution. If that is the case, then migrating your custom solution to Hook0 will allow you to <strong>focus</strong> on other priorities while offering a top notch webhook solution.
+                        </div>
+                    </details>
+                </div>
+
+                <!-- More Questions CTA -->
+                <div class="mt-12 p-8 rounded-2xl glass text-center animate-on-scroll">
+                    <p class="text-gray-300">
+                        Have more questions? Check out our
+                        <a href="https://documentation.hook0.com/docs/getting-started" class="text-indigo-400 hover:text-indigo-300 transition-colors" target="_blank">product FAQ</a>
+                        or
+                        <a href="mailto:support@hook0.com" class="text-indigo-400 hover:text-indigo-300 transition-colors">contact us</a>.
+                    </p>
                 </div>
             </div>
-
         </div>
-
-
     </div>
-</div>
+</section>

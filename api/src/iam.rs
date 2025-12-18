@@ -1,12 +1,13 @@
-use biscuit_auth::builder::Fact;
+use biscuit_auth::builder::{Fact, MapKey, Term};
 use biscuit_auth::builder_ext::AuthorizerExt;
 use biscuit_auth::macros::{authorizer, authorizer_merge, biscuit, fact, rule};
 use biscuit_auth::{AuthorizerLimits, Biscuit, KeyPair, PrivateKey};
 use chrono::{DateTime, Utc};
 use log::{error, trace, warn};
 use paperclip::v2::schema::TypedData;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use sqlx::{PgPool, query_scalar};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::str::FromStr;
 use std::time::{Duration, SystemTime};
 use strum::{AsRefStr, EnumIter, EnumString, VariantNames};
@@ -37,6 +38,7 @@ pub async fn get_owner_organization(db: &PgPool, application_id: &Uuid) -> Optio
     Eq,
     PartialOrd,
     Ord,
+    Default,
     strum::Display,
     EnumString,
     EnumIter,
@@ -45,14 +47,9 @@ pub async fn get_owner_organization(db: &PgPool, application_id: &Uuid) -> Optio
 )]
 #[strum(serialize_all = "snake_case")]
 pub enum Role {
+    #[default]
     Viewer,
     Editor,
-}
-
-impl Default for Role {
-    fn default() -> Self {
-        Self::Viewer
-    }
 }
 
 impl TypedData for Role {
@@ -112,15 +109,6 @@ pub fn kc_group_paths_to_roles(groups: &[String]) -> std::collections::HashMap<U
     }
 
     organizations
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
-pub struct Hook0Claims {
-    pub sub: Uuid,
-    pub email: String,
-    pub given_name: Option<String>,
-    pub family_name: Option<String>,
-    pub groups: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone)]
@@ -432,8 +420,7 @@ pub enum Action<'a> {
     },
     SubscriptionCreate {
         application_id: &'a Uuid,
-        label_key: &'a str,
-        label_value: &'a str,
+        labels: &'a HashMap<String, String>,
     },
     SubscriptionGet {
         application_id: &'a Uuid,
@@ -463,6 +450,7 @@ pub enum Action<'a> {
     //
     RequestAttemptList {
         application_id: &'a Uuid,
+        event_type_names: &'a [String],
     },
     //
     ResponseGet {
@@ -737,14 +725,12 @@ impl Action<'_> {
             Self::EventTypeDelete { .. } => vec![],
             //
             Self::SubscriptionList { .. } => vec![],
-            Self::SubscriptionCreate {
-                label_key,
-                label_value,
-                ..
-            } => vec![
-                fact!("label_key({label_key})", label_key = label_key),
-                fact!("label_value({label_value})", label_value = label_value),
-            ],
+            Self::SubscriptionCreate { labels, .. } => vec![Fact::new(
+                "labels".to_owned(),
+                vec![Term::Map(BTreeMap::from_iter(labels.iter().map(
+                    |(k, v)| (MapKey::Str(k.to_owned()), Term::Str(v.to_owned())),
+                )))],
+            )],
             Self::SubscriptionGet {
                 subscription_id, ..
             } => vec![fact!(
@@ -769,7 +755,13 @@ impl Action<'_> {
             Self::EventIngest { .. } => vec![],
             Self::EventReplay { .. } => vec![],
             //
-            Self::RequestAttemptList { .. } => vec![],
+            Self::RequestAttemptList {
+                event_type_names, ..
+            } => vec![Self::mk_string_set_fact(
+                "event_type_names",
+                event_type_names,
+            )],
+
             //
             Self::ResponseGet { .. } => vec![],
         };
@@ -787,6 +779,15 @@ impl Action<'_> {
         }
 
         facts
+    }
+
+    fn mk_string_set_fact(name: &str, set: &[String]) -> Fact {
+        Fact::new(
+            name.to_owned(),
+            vec![Term::Set(BTreeSet::from_iter(
+                set.iter().map(|v| Term::Str(v.to_owned())),
+            ))],
+        )
     }
 }
 
@@ -827,6 +828,7 @@ pub fn authorize(
     organization_id: Option<Uuid>,
     action: Action,
     max_authorization_time_in_ms: u64,
+    debug_authorizer: bool,
 ) -> Result<AuthorizedToken, biscuit_auth::error::Token> {
     let mut authorizer = authorizer!(
         r#"
@@ -885,7 +887,9 @@ pub fn authorize(
     });
     let mut authorizer = authorizer.build(biscuit)?;
     let result = authorizer.authorize();
-    trace!("Authorizer state:\n{}", authorizer.print_world());
+    if debug_authorizer {
+        trace!("Authorizer state:\n{}", authorizer.print_world());
+    }
     result?;
 
     let raw_type: Vec<(String,)> = authorizer.query(rule!("data($id) <- type($id)"))?;
@@ -982,12 +986,14 @@ pub fn authorize_only_user(
     organization_id: Option<Uuid>,
     action: Action,
     max_authorization_time_in_ms: u64,
+    debug_authorizer: bool,
 ) -> Result<AuthorizedUserToken, biscuit_auth::error::Token> {
     match authorize(
         biscuit,
         organization_id,
         action,
         max_authorization_time_in_ms,
+        debug_authorizer,
     ) {
         Ok(AuthorizedToken::User(aut)) => Ok(aut),
         Ok(_) => {
@@ -1127,6 +1133,7 @@ pub async fn authorize_for_application(
     biscuit: &Biscuit,
     action: Action<'_>,
     max_authorization_time_in_ms: u64,
+    debug_authorizer: bool,
 ) -> Result<AuthorizedToken, String> {
     let application_id = action.application_id().ok_or_else(|| {
         let e = format!("The following action is not application-scoped (please report the issue, this is most likely a bug): {action:?}");
@@ -1148,6 +1155,7 @@ pub async fn authorize_for_application(
                 Some(organization_id),
                 action,
                 max_authorization_time_in_ms,
+                debug_authorizer,
             )
             .map_err(|e| format!("{e:?}"))
         })
@@ -1182,7 +1190,8 @@ mod tests {
                 &biscuit,
                 Some(organization_id),
                 Action::TestSimple,
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true,
             )),
             Ok(AuthorizedToken::Service(AuthorizeServiceToken {
                 organization_id
@@ -1217,7 +1226,8 @@ mod tests {
                 &not_yet_expired_biscuit,
                 Some(organization_id),
                 Action::TestSimple,
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             ))
             .is_ok()
         );
@@ -1226,7 +1236,8 @@ mod tests {
                 &expired_biscuit,
                 Some(organization_id),
                 Action::TestSimple,
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             ))
             .is_err()
         );
@@ -1247,7 +1258,8 @@ mod tests {
                 &biscuit,
                 Some(other_organization_id),
                 Action::TestSimple,
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             ))
             .is_err()
         );
@@ -1278,7 +1290,8 @@ mod tests {
                 Action::TestWithApplication {
                     application_id: &application_id
                 },
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             ))
             .is_ok()
         );
@@ -1289,7 +1302,8 @@ mod tests {
                 Action::TestWithApplication {
                     application_id: &application_id
                 },
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             ))
             .is_ok()
         );
@@ -1300,7 +1314,8 @@ mod tests {
                 Action::TestWithApplication {
                     application_id: &application_id
                 },
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             ))
             .is_err()
         );
@@ -1310,7 +1325,8 @@ mod tests {
                 &application_restricted_biscuit,
                 Some(organization_id),
                 Action::TestSimple,
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             ))
             .is_err()
         );
@@ -1330,7 +1346,8 @@ mod tests {
                 &biscuit,
                 None,
                 Action::TestSimple,
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             ))
             .is_err()
         );
@@ -1339,7 +1356,8 @@ mod tests {
                 &biscuit,
                 None,
                 Action::TestNoOrganization,
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             ))
             .is_ok()
         );
@@ -1371,7 +1389,8 @@ mod tests {
                 &biscuit,
                 Some(organization_id),
                 Action::TestSimple,
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             )),
             Ok(AuthorizedToken::User(AuthorizedUserToken {
                 session_id,
@@ -1415,7 +1434,8 @@ mod tests {
                 &biscuit,
                 Some(organization_id1),
                 Action::TestSimple,
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             ))
             .is_ok()
         );
@@ -1424,7 +1444,8 @@ mod tests {
                 &biscuit,
                 Some(organization_id2),
                 Action::TestSimple,
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             ))
             .is_ok()
         );
@@ -1433,7 +1454,8 @@ mod tests {
                 &biscuit,
                 Some(organization_id3),
                 Action::TestSimple,
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             ))
             .is_err()
         );
@@ -1444,7 +1466,8 @@ mod tests {
                 Action::TestWithApplication {
                     application_id: &Uuid::new_v4()
                 },
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             ))
             .is_ok()
         );
@@ -1455,7 +1478,8 @@ mod tests {
                 Action::TestWithApplication {
                     application_id: &Uuid::new_v4()
                 },
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             ))
             .is_err()
         );
@@ -1466,7 +1490,8 @@ mod tests {
                 Action::TestWithApplication {
                     application_id: &Uuid::new_v4()
                 },
-                MAX_DURATION_TIME_IN_MS
+                MAX_DURATION_TIME_IN_MS,
+                true
             ))
             .is_err()
         );

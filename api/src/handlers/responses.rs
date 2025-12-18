@@ -1,6 +1,11 @@
 use actix_web::web::ReqData;
+use aws_sdk_s3::operation::get_object::GetObjectError;
+use base64::Engine;
+use base64::engine::general_purpose::STANDARD as Base64;
 use biscuit_auth::Biscuit;
-use log::warn;
+use chrono::{DateTime, Utc};
+use hook0_protobuf::ObjectStorageResponse;
+use log::{error, warn};
 use paperclip::actix::web::{Data, Json, Path, Query};
 use paperclip::actix::{Apiv2Schema, api_v2_operation};
 use serde::{Deserialize, Serialize};
@@ -50,6 +55,7 @@ pub async fn get(
             application_id: &qs.application_id,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .await
     .is_err()
@@ -63,14 +69,22 @@ pub async fn get(
         response_error__name: Option<String>,
         http_code: Option<i16>,
         headers: Option<Value>,
-        body: Option<String>,
+        body: Option<Vec<u8>>,
         elapsed_time_ms: Option<i32>,
+        request_attempt_created_at: DateTime<Utc>,
     }
 
     let raw_response = query_as!(
         RawResponse,
         "
-            SELECT r.response__id, r.response_error__name, r.http_code, r.headers, r.body, r.elapsed_time_ms
+            SELECT
+                r.response__id,
+                r.response_error__name,
+                r.http_code,
+                r.headers,
+                r.body,
+                r.elapsed_time_ms,
+                ra.created_at as request_attempt_created_at
             FROM webhook.response AS r
             INNER JOIN webhook.request_attempt AS ra ON ra.response__id = r.response__id
             INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
@@ -83,30 +97,83 @@ pub async fn get(
     .await
     .map_err(Hook0Problem::from)?;
 
-    let response = raw_response.map(|rr| {
-        let headers = match rr.headers {
+    if let Some(rr) = raw_response {
+        let object_storage_response = if let Some(object_storage) = &state.object_storage {
+            let key = format!(
+                "{}/response/{}/{}",
+                qs.application_id,
+                rr.request_attempt_created_at.naive_utc().date(),
+                rr.response__id,
+            );
+            let payload_object = object_storage
+                .client
+                .get_object()
+                .bucket(&object_storage.bucket)
+                .key(&key)
+                .send()
+                .await;
+            match payload_object.map_err(|e| e.into_service_error()) {
+                Ok(object) => {
+                    object
+                        .body
+                        .collect()
+                        .await
+                        .map_err(|e| {
+                            error!("Error while getting response body from object storage for key '{key}': {e}");
+                            Hook0Problem::InternalServerError
+                        })
+                        .and_then(|p| {
+                            let res: Result<Option<ObjectStorageResponse>, _> = p
+                                    .to_vec()
+                                    .as_slice()
+                                    .try_into()
+                                    .map(Some)
+                                    .map_err(|e| {
+                                        error!("Error while decoding response from object storage for key '{key}': {e}");
+                                        Hook0Problem::InternalServerError
+                                    });
+                            res
+                        })
+                },
+                Err(GetObjectError::NoSuchKey(_)) => Ok(None),
+                Err(e) => {
+                    error!("Error while getting response object from object storage for key '{key}': (service error) {e}");
+                    Err(Hook0Problem::InternalServerError)
+                }
+            }
+        } else {
+            Ok(None)
+        }?;
+
+        let (body_bytes, raw_headers) = if let Some(os_response) = object_storage_response {
+            (Some(os_response.body), Some(os_response.headers))
+        } else {
+            (rr.body, rr.headers)
+        };
+
+        let headers = match raw_headers {
             Some(h) => match serde_json::from_value(h) {
                 Ok(hashmap) => Some(hashmap),
                 Err(e) => {
-                    warn!("Could not deserialize response headers: {}", &e);
+                    warn!("Could not deserialize response headers: {e}");
                     Some(HashMap::new())
                 }
             },
             None => None,
         };
+        let body = body_bytes.map(|bytes| {
+            String::from_utf8(bytes.to_owned()).unwrap_or_else(|_| Base64.encode(bytes))
+        });
 
-        Response {
+        Ok(Json(Response {
             response_id: rr.response__id,
             response_error_name: rr.response_error__name,
             http_code: rr.http_code,
             headers,
-            body: rr.body,
+            body,
             elapsed_time_ms: rr.elapsed_time_ms,
-        }
-    });
-
-    match response {
-        Some(r) => Ok(Json(r)),
-        None => Err(Hook0Problem::NotFound),
+        }))
+    } else {
+        Err(Hook0Problem::NotFound)
     }
 }

@@ -1,26 +1,34 @@
+use actix_web::rt::time::timeout;
 use actix_web::web::ReqData;
+use aws_sdk_s3::primitives::ByteStream;
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as Base64;
 use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};
+use futures_util::TryStreamExt;
+use log::error;
 use paperclip::actix::web::{Data, Json, Path, Query};
 use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sqlx::types::ipnetwork::IpNetwork;
-use sqlx::{query, query_as, query_scalar};
+use sqlx::{PgTransaction, query_as, query_scalar};
 use std::collections::HashMap;
 use std::str::FromStr;
+use std::sync::Arc;
+use std::time::Duration;
 use strum::{IntoStaticStr, VariantNames};
 use uuid::Uuid;
 use validator::Validate;
 
+use crate::PulsarConfig;
 use crate::extractor_user_ip::UserIp;
 use crate::iam::{Action, authorize_for_application};
 use crate::mailer::Mail;
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
 use crate::quotas::{Quota, QuotaNotificationType};
+use hook0_protobuf::RequestAttempt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, IntoStaticStr, VariantNames)]
 pub enum PayloadContentType {
@@ -143,6 +151,7 @@ pub async fn list(
             application_id: &qs.application_id,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .await
     .is_err()
@@ -174,7 +183,7 @@ pub async fn list(
 struct EventWithPayloadRaw {
     event__id: Uuid,
     event_type__name: String,
-    payload: Vec<u8>,
+    payload: Option<Vec<u8>>,
     payload_content_type: String,
     ip: IpNetwork,
     metadata: Option<Value>,
@@ -184,11 +193,11 @@ struct EventWithPayloadRaw {
 }
 
 impl EventWithPayloadRaw {
-    pub fn to_event(&self) -> EventWithPayload {
+    pub fn to_event(&self, payload: &[u8]) -> EventWithPayload {
         EventWithPayload {
             event_id: self.event__id,
             event_type_name: self.event_type__name.clone(),
-            payload: Base64.encode(self.payload.as_slice()),
+            payload: Base64.encode(payload),
             payload_content_type: self.payload_content_type.clone(),
             ip: self.ip.ip().to_string(),
             metadata: self.metadata.clone(),
@@ -234,12 +243,15 @@ pub async fn get(
             application_id: &qs.application_id,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .await
     .is_err()
     {
         return Err(Hook0Problem::Forbidden);
     }
+
+    let event_id = event_id.into_inner();
 
     let raw_event = query_as!(
             EventWithPayloadRaw,
@@ -249,14 +261,53 @@ pub async fn get(
                 WHERE application__id = $1 AND event__id = $2
             ",
             &qs.application_id,
-            &event_id.into_inner(),
+            &event_id,
         )
         .fetch_optional(&state.db)
         .await
         .map_err(Hook0Problem::from)?;
 
     match raw_event {
-        Some(re) => Ok(Json(re.to_event())),
+        Some(re) => {
+            if let Some(p) = &re.payload {
+                Ok(Json(re.to_event(p)))
+            } else if let Some(object_storage) = &state.object_storage {
+                let key = format!(
+                    "{}/event/{}/{event_id}",
+                    qs.application_id,
+                    re.received_at.naive_utc().date()
+                );
+                let payload_object = object_storage
+                        .client
+                        .get_object()
+                        .bucket(&object_storage.bucket)
+                        .key(&key)
+                        .send()
+                        .await
+                        .map_err(|e| {
+                            if let Some(se) = e.as_service_error() {
+                                error!("Error while getting payload object from object storage for key '{key}': (service error) {se}");
+                            } else {
+                                error!("Error while getting payload object from object storage for key '{key}': {e}");
+                            }
+                            Hook0Problem::InternalServerError
+                        })?;
+                let payload = payload_object.body
+                        .collect()
+                        .await
+                        .map_err(|e| {
+                            error!("Error while getting payload body from object storage for key '{key}': {e}");
+                            Hook0Problem::InternalServerError
+                        })?
+                        .to_vec();
+                Ok(Json(re.to_event(&payload)))
+            } else {
+                error!(
+                    "Payload of event {event_id} is not in database but object storage is disabled"
+                );
+                Ok(Json(re.to_event(&[])))
+            }
+        }
         None => Err(Hook0Problem::NotFound),
     }
 }
@@ -272,10 +323,10 @@ pub struct EventPost {
     #[validate(non_control_character, length(min = 1, max = 100))]
     payload_content_type: String,
     #[validate(custom(function = "crate::validators::metadata"))]
-    metadata: Option<HashMap<String, Value>>,
+    metadata: Option<HashMap<String, String>>,
     occurred_at: DateTime<Utc>,
     #[validate(custom(function = "crate::validators::labels"))]
-    labels: HashMap<String, Value>,
+    labels: HashMap<String, String>,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -309,6 +360,7 @@ pub async fn ingest(
             application_id: &application_id,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .await
     .is_err()
@@ -399,6 +451,20 @@ pub async fn ingest(
         let content_type = PayloadContentType::from_str(&body.payload_content_type)?;
         let payload = content_type.validate_and_decode(&body.payload)?;
 
+        let mut tx = state.db.begin().await?;
+
+        let payload_to_insert = if let Some(true) =
+            state.object_storage.as_ref().map(|object_storage| {
+                object_storage.store_event_payloads
+                    && (object_storage.store_event_only_for.is_empty()
+                        || object_storage
+                            .store_event_only_for
+                            .contains(&application_id))
+            }) {
+            None
+        } else {
+            Some(&payload)
+        };
         let event = query_as!(
                 IngestedEvent,
                 "
@@ -409,17 +475,67 @@ pub async fn ingest(
                 application_id,
                 &body.event_id,
                 &body.event_type,
-                &payload,
+                payload_to_insert,
                 &body.payload_content_type,
                 IpNetwork::from(ip.into_inner()),
                 metadata,
                 &body.occurred_at,
                 labels,
             )
-            .fetch_one(&state.db)
+            .fetch_one(&mut *tx)
             .await
             .map_err(Hook0Problem::from)?;
 
+        if let Some(object_storage) = &state.object_storage
+            && object_storage.store_event_payloads
+            && (object_storage.store_event_only_for.is_empty()
+                || object_storage
+                    .store_event_only_for
+                    .contains(&application_id))
+        {
+            let key = format!(
+                "{application_id}/event/{}/{}",
+                event.received_at.naive_utc().date(),
+                &body.event_id
+            );
+            object_storage
+                .client
+                .put_object()
+                .bucket(&object_storage.bucket)
+                .key(&key)
+                .content_type(&body.payload_content_type)
+                .body(ByteStream::from(payload.clone()))
+                .send()
+                .await
+                .map_err(|e| {
+                    if let Some(se) = e.as_service_error() {
+                        error!(
+                            "Error while putting payload body to object storage for key '{key}': (service error) {se}"
+                        );
+                    } else {
+                        error!(
+                            "Error while putting payload body to object storage for key '{key}': {e}"
+                        );
+                    }
+                    Hook0Problem::InternalServerError
+                })?;
+        }
+
+        if let Some(pulsar) = &state.pulsar {
+            send_request_attempts_to_pulsar(
+                &mut tx,
+                pulsar,
+                application_id,
+                event.event_id,
+                event.received_at,
+                &body.event_type,
+                &payload,
+                &body.payload_content_type,
+            )
+            .await?;
+        }
+
+        tx.commit().await?;
         Ok(CreatedJson(event))
     } else {
         if state.enable_quota_based_email_notifications {
@@ -463,7 +579,7 @@ pub async fn replay(
     event_id: Path<Uuid>,
     body: Json<ReplayEvent>,
 ) -> Result<NoContent, Hook0Problem> {
-    let event_uuid = event_id.into_inner();
+    let event_id = event_id.into_inner();
 
     if authorize_for_application(
         &state.db,
@@ -472,6 +588,7 @@ pub async fn replay(
             application_id: &body.application_id,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .await
     .is_err()
@@ -479,24 +596,204 @@ pub async fn replay(
         return Err(Hook0Problem::Forbidden);
     }
 
-    let replayed = query!(
+    let mut tx = state.db.begin().await?;
+
+    struct ReplayedEvent {
+        received_at: DateTime<Utc>,
+        event_type: String,
+        payload: Option<Vec<u8>>,
+        payload_content_type: String,
+    }
+    let replayed = query_as!(
+        ReplayedEvent,
         "
             UPDATE event.event
             SET dispatched_at = NULL
             WHERE event__id = $1
-            AND application__id = $2
+                AND application__id = $2
+            RETURNING received_at, event_type__name AS event_type, payload, payload_content_type
         ",
-        event_uuid,
+        event_id,
         body.application_id,
     )
-    .execute(&state.db)
+    .fetch_optional(&mut *tx)
     .await
-    .map_err(Hook0Problem::from);
+    .map_err(Hook0Problem::from)?;
 
     match replayed {
-        Ok(_) => Ok(NoContent),
-        Err(e) => Err(e),
+        Some(event) => {
+            if let Some(pulsar) = &state.pulsar {
+                let payload = if let Some(p) = event.payload {
+                    Some(p)
+                } else if let Some(os) = &state.object_storage {
+                    let key = format!(
+                        "{}/event/{}/{event_id}",
+                        body.application_id,
+                        event.received_at.naive_utc().date(),
+                    );
+                    match os
+                        .client
+                        .get_object()
+                        .bucket(&os.bucket)
+                        .key(&key)
+                        .send()
+                        .await
+                    {
+                        Ok(obj) => match obj.body.collect().await {
+                            Ok(ab) => Some(ab.to_vec()),
+                            Err(e) => {
+                                error!(
+                                    "Error while getting payload body from object storage for key '{key}': {e}",
+                                );
+                                None
+                            }
+                        },
+                        Err(e) => {
+                            if let Some(se) = e.as_service_error() {
+                                error!(
+                                    "Error while getting payload object from object storage for key '{key}': (service error) {se}",
+                                );
+                            } else {
+                                error!(
+                                    "Error while getting payload object from object storage for key '{key}': {e}",
+                                );
+                            }
+                            None
+                        }
+                    }
+                } else {
+                    None
+                };
+
+                if let Some(p) = payload {
+                    send_request_attempts_to_pulsar(
+                        &mut tx,
+                        pulsar,
+                        body.application_id,
+                        event_id,
+                        event.received_at,
+                        &event.event_type,
+                        &p,
+                        &event.payload_content_type,
+                    )
+                    .await?;
+
+                    tx.commit().await?;
+                    Ok(NoContent)
+                } else {
+                    tx.rollback().await?;
+                    Err(Hook0Problem::InternalServerError)
+                }
+            } else {
+                tx.commit().await?;
+                Ok(NoContent)
+            }
+        }
+        None => Err(Hook0Problem::NotFound),
     }
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn send_request_attempts_to_pulsar<'a>(
+    tx: &mut PgTransaction<'a>,
+    pulsar: &Arc<PulsarConfig>,
+    application_id: Uuid,
+    event_id: Uuid,
+    event_received_at: DateTime<Utc>,
+    event_type: &str,
+    payload: &[u8],
+    payload_content_type: &str,
+) -> Result<(), Hook0Problem> {
+    #[derive(Debug, Clone)]
+    #[allow(non_snake_case)]
+    struct RawRequestAttempt {
+        request_attempt__id: Uuid,
+        subscription__id: Uuid,
+        created_at: DateTime<Utc>,
+        http_method: String,
+        http_url: String,
+        http_headers: serde_json::Value,
+        secret: Uuid,
+        worker_id: Option<Uuid>,
+        worker_queue_type: Option<String>,
+    }
+
+    let mut request_attempts_stream = query_as!(
+        RawRequestAttempt,
+        "
+            SELECT
+                ra.request_attempt__id,
+                ra.subscription__id,
+                ra.created_at,
+                t_http.method AS http_method,
+                t_http.url AS http_url,
+                t_http.headers AS http_headers,
+                s.secret,
+                COALESCE(sw.worker__id, ow.worker__id) AS worker_id,
+                COALESCE(w1.queue_type, w2.queue_type) AS worker_queue_type
+            FROM webhook.request_attempt AS ra
+            INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
+            INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
+            LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = ra.subscription__id
+            LEFT JOIN infrastructure.worker AS w1 ON w1.worker__id = sw.worker__id
+            INNER JOIN event.application AS a ON a.application__id = s.application__id
+            LEFT JOIN iam.organization__worker AS ow ON ow.organization__id = a.organization__id AND ow.default = true
+            LEFT JOIN infrastructure.worker AS w2 ON w2.worker__id = ow.worker__id
+            WHERE ra.event__id = $1
+                AND ra.succeeded_at IS NULL AND ra.failed_at IS NULL
+                AND a.deleted_at IS NULL
+        ",
+        &event_id,
+    )
+    .fetch(&mut **tx);
+
+    while let Some(ra) = request_attempts_stream.try_next().await? {
+        if let Some(worker_id) = ra.worker_id
+            && ra.worker_queue_type.as_deref() == Some("pulsar")
+        {
+            let request_attempt = RequestAttempt {
+                application_id,
+                request_attempt_id: ra.request_attempt__id,
+                event_id,
+                event_received_at,
+                subscription_id: ra.subscription__id,
+                created_at: ra.created_at,
+                retry_count: 0,
+                http_method: ra.http_method,
+                http_url: ra.http_url,
+                http_headers: ra.http_headers,
+                event_type_name: event_type.to_owned(),
+                payload: payload.to_owned(),
+                payload_content_type: payload_content_type.to_owned(),
+                secret: ra.secret,
+            };
+
+            let mut producer = timeout(
+                Duration::from_secs(3),
+                pulsar.request_attempts_producer.lock(),
+            )
+            .await
+            .map_err(|_| {
+                error!("Timed out while waiting access to Pulsar producer");
+                Hook0Problem::InternalServerError
+            })?;
+            producer
+                .send_non_blocking(
+                    format!(
+                        "persistent://{}/{}/{}.request_attempt",
+                        &pulsar.tenant, &pulsar.namespace, worker_id,
+                    ),
+                    request_attempt,
+                )
+                .await
+                .map_err(|e| {
+                    error!("Error while sending a message to Pulsar: {e}");
+                    Hook0Problem::InternalServerError
+                })?;
+        }
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]

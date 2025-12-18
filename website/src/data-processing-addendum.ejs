@@ -2,581 +2,384 @@
 <html lang="en">
 <head>
     <title>Hook0 - Data Processing Agreement</title>
-    <meta name="description"
-          content="Data Processing Terms of Services for Hook0, covering compliance, data processing operations, and security measures.">
+    <%
+    locals.pageTitle = 'Hook0 - Data Processing Agreement (DPA)';
+    locals.pageDescription = 'Hook0 Data Processing Agreement covering GDPR compliance, data processing operations, security measures, and subprocessor management.';
+    locals.pageCanonical = '/data-processing-addendum';
+    %>
     <%- include('./includes/_head.ejs') %>
+    <style>
+        .legal-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+        }
+        .legal-table th,
+        .legal-table td {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            text-align: left;
+        }
+        .legal-table th {
+            background-color: rgba(99, 102, 241, 0.2);
+            color: white;
+            font-weight: 600;
+            width: 35%;
+        }
+        .legal-table td {
+            background-color: rgba(255, 255, 255, 0.02);
+            color: #d1d5db;
+        }
+        .legal-content h2 {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        .legal-content h3 {
+            color: white;
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-top: 2rem;
+            margin-bottom: 0.75rem;
+        }
+        .legal-content p {
+            color: #d1d5db;
+            line-height: 1.75;
+            margin-bottom: 1rem;
+        }
+        .legal-content ol,
+        .legal-content ul {
+            color: #d1d5db;
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .legal-content li {
+            margin-bottom: 0.5rem;
+            line-height: 1.75;
+        }
+        .legal-content a {
+            color: #4ade80;
+            transition: color 0.2s;
+        }
+        .legal-content a:hover {
+            color: #86efac;
+        }
+    </style>
 </head>
 <body>
 <%- include('./includes/_header.ejs') %>
 
-<div class="relative py-16 bg-white overflow-hidden">
-    <div class="relative px-4 sm:px-6 lg:px-8">
-        <div class="text-lg max-w-prose prose prose-lg mx-auto">
-            <h2>
-                <span class="block text-base text-center text-green-600 font-semibold tracking-wide uppercase">Data Processing Agreement</span>
-            </h2>
+<!-- Hero Section -->
+<section class="relative gradient-hero overflow-hidden py-20 sm:py-24">
+    <!-- Background Effects -->
+    <div class="absolute inset-0 grid-pattern opacity-50"></div>
+    <div class="blur-circle blur-circle--indigo w-96 h-96 -top-48 -left-48"></div>
+    <div class="blur-circle blur-circle--green w-80 h-80 top-1/2 -right-40"></div>
 
-            <div>
-
-
-                <div class="section haze wf-section">
-                    <div class="wrapper">
-                        <div class="intro">
-                            <div class="text-label">Last Update: September 28th, 2024</div>
-                            <div class="divider"></div>
-                        </div>
-                        <div class="w-layout-grid main-grid">
-                            <div class="text-default">
-                                <h1 id="appendix-b--data-processing-terms-of-services">DATA PROCESSING TERMS OF
-                                    SERVICES</h1>
-                                <p>The purpose of this DPA is to reflect the parties’ agreement with regard to the
-                                    processing of Personal Data in accordance with the requirements of Data Protection
-                                    Regulations.</p>
-                                <p>In respect of the processing of Personal Data of the Customer by Hook0 under the
-                                    Terms of Services, the parties acknowledge that the Customer is the Data Controller
-                                    and Hook0 is the Data Processor and both agree to comply with all corresponding
-                                    obligations as per the Data Protection Regulations.</p>
-                                <p>The Customer gives instructions to Hook0 to process such Personal Data on its
-                                    behalf as it is necessary for the purposes of the Terms of Services as defined in
-                                    Appendix 1 “Description of Personal Data processing”. The Appendix 1 is filled out
-                                    by the Customer and shall be updated if any change is made by the Customer. </p>
-                                <ol>
-                                    <li><h2 id="compliance-with-data-protection-regulations"><strong>COMPLIANCE WITH
-                                                DATA PROTECTION REGULATIONS</strong></h2>
-                                    </li>
-                                </ol>
-                                <p>Each party shall comply with its obligations under the Data Protection
-                                    Regulations. </p>
-                                <p>All capitalized words in the DPA shall have the meaning ascribed to them in the GDPR,
-                                    the Data Protection Regulations and in the Terms of Services. </p>
-                                <ol start="2">
-                                    <li><h2 id="data-processing-operations-under-the-dpa"><strong>DATA PROCESSING
-                                                OPERATIONS UNDER THE DPA</strong></h2>
-                                    </li>
-                                </ol>
-                                <p>As a reminder, for every processing carried out under this DPA, the Customer
-                                    shall: </p>
-                                <ul>
-                                    <li>Document the instructions related to Personal Data,</li>
-                                    <li>Provide the information related to the processing to fill the Appendix 1 by
-                                        contacting Hook0 via the support email address: <a
-                                                href="mailto:support@hook0.com">support@hook0.com</a>.
-                                    </li>
-                                </ul>
-                                <p>The Customer warrants to Hook0 that it is entitled to transfer the Personal Data
-                                    to the Hook0 and/or the Sub-processor(s) in full compliance with Data Protection
-                                    Regulations, including as needed, compliance to any prior required formalities and
-                                    Data Subject rights, such as information and/or consent when such is required under
-                                    Data Protection Regulations.</p>
-                                <p>The Customer acknowledges that it is and shall remain solely responsible for
-                                    determining the purposes and the means of Hook0’s processing the Personal Data.
-                                    The Data Controller remains solely responsible for the accuracy and adequacy of the
-                                    aforementioned instructions. Any changes to the instructions given or the security
-                                    measures that are required by the Customer, including in order to comply with
-                                    applicable data protection laws, shall be agreed by the parties and/or via an
-                                    amendment to this DPA. Any costs incurred by Hook0 in complying with such
-                                    changes shall be borne by the Customer.</p>
-                                <p>The Customer undertakes that the Data Subjects have been informed or will be informed
-                                    before the transfer of their Personal Data to Hook0 in the scope of the
-                                    Services.</p>
-                                <p>The Product is not intended to process Special Categories of Personal Data.
-                                    Therefore, the Customer undertakes to prevent any processing of Special Categories
-                                    of Personal Data through the Product and the Services. However, at the Customer
-                                    request, processing of Special Categories of Personal Data may be performed by
-                                    Hook0. In such case, the Processing shall be covered by a specific addendum to
-                                    the DPA to be entered into between the Customer and Hook0. </p>
-                                <p>In case the Customer expressly requests the assistance of Hook0 for the
-                                    fulfilment of its obligation under the Data Protection Regulations, then Hook0
-                                    shall address to the Customer the estimated costs for such assistance. Upon express
-                                    acceptation of the estimated cost, Hook0 shall provide assistance pursuant to
-                                    the instructions of the Customer and the terms of the present DPA.</p>
-                                <ol start="3">
-                                    <li><h2 id="scope--instructions"><strong>SCOPE &amp; INSTRUCTIONS</strong></h2>
-                                    </li>
-                                </ol>
-                                <p>Hook0 undertakes to:</p>
-                                <ol>
-                                    <li>solely process the Customer’s Personal Data disclosed by the Customer as well as
-                                        those collected or produced during the Terms of Services for the purpose(s)
-                                        fulfilling its obligations under the Terms of Services and in compliance under
-                                        the Customer’s documented instructions, unless otherwise required by applicable
-                                        Data Protection Regulations;
-                                    </li>
-                                    <li>ensure that any person acting under its authority, who has access to the
-                                        Customer’s Personal Data disclosed by the Customer as well as those collected or
-                                        produced during the Terms of Services, will process those data solely for the
-                                        purpose of fulfilling Hook0’s obligations under this Terms of Services and
-                                        on instructions from the Customer, unless required by applicable Data Protection
-                                        Regulations;
-                                    </li>
-                                    <li>refrain from using Customer’s Personal Data for any misappropriated, fraudulent
-                                        or personal use, including for commercial purposes;
-                                    </li>
-                                    <li>immediately inform the Customer if, in its opinion, a Customer’s instruction
-                                        infringes applicable Data Protection Regulations.
-                                    </li>
-                                </ol>
-                                <ol start="4">
-                                    <li><h2 id="communication-of-customers-personal-data-to-third-parties"><strong>COMMUNICATION
-                                                OF CUSTOMER’S PERSONAL DATA TO THIRD PARTIES</strong></h2>
-                                    </li>
-                                </ol>
-                                <p>The Customer’s Personal Data processed under the DPA shall not be subject to any
-                                    assignment, lease, concession, communication or disclosure to a third party,
-                                    including sub-Processors of Hook0, except otherwise required by the Terms of
-                                    Services or by a legal or regulatory mandatory provision.</p>
-                                <p>In such a case, Hook0 shall inform the Customer of that legal requirement before
-                                    Processing, unless that legal or regulatory mandatory provision prohibits such
-                                    information on important grounds of public interest.</p>
-                                <ol start="5">
-                                    <li><h2 id="sub-processing"><strong>SUB-PROCESSING</strong></h2>
-                                    </li>
-                                </ol>
-                                <p>With respect to the conditions referred to in paragraphs 2 and 4 of article 28 of
-                                    GDPR for engaging another Data Processor (the “<strong>Sub-processor</strong>”), the
-                                    Customer agrees that Hook0 may sub-process the Processing of the Customer’s
-                                    Personal Data. </p>
-                                <p>Notwithstanding the general consent given by the Customer, Hook0 shall inform the
-                                    Customer of any intended changes concerning the addition or replacement of any
-                                    Sub-processor within a reasonable time prior to implementation of such change. The
-                                    list of the sub-Processors under the authority of Hook0 is available to the
-                                    Customer at <a href="./gdpr-subprocessors.ejs">Hook0 / GDPR Sub-processors</a>.
-                                </p>
-                                <p>Where Hook0 engages a Sub-processor who shall process the Customer’s Personal
-                                    Data, the same data protection obligations as set out in the DPA shall be imposed on
-                                    the Sub-processor by Hook0.</p>
-                                <p>This agreement must in particular provide for an obligation of the Sub-processor to
-                                    provide sufficient guarantees to implement appropriate technical and organisational
-                                    measures in such a manner that the Processing will meet the requirements of Data
-                                    Protection Regulations and of the DPA. </p>
-                                <ol start="6">
-                                    <li>
-                                        <h2 id="transfer-of-customers-personal-data-outside-the-european-economic-area-eea">
-                                            <strong>TRANSFER OF CUSTOMER’S PERSONAL DATA OUTSIDE THE EUROPEAN ECONOMIC
-                                                AREA (EEA)</strong></h2>
-                                    </li>
-                                </ol>
-                                <p>Hook0 warranties the Customer that the Customer’s Personal Data are located in
-                                    France or in the European Union. Hook0 undertakes not to carry out any transfer
-                                    of Customer’s Personal Data outside the EEA without the written consent of the
-                                    Customer.</p>
-                                <p>At the request of the Customer and upon instructions, Hook0 shall store or
-                                    transfer Personal Data to other Hook0 entities and/or to Sub-processors located
-                                    in countries outside the EEA (“Third Countries”). In that case and when Third
-                                    Countries have not been subject to an adequacy decision of the European Commission,
-                                    Hook0 undertakes that the transfer will be carried out in accordance with the
-                                    Data Protection Regulations and will be subject to appropriate safeguards to
-                                    guarantee a level of protection equivalent to the one guaranteed by the Data
-                                    Protection Regulations, such as the signing of the Standard Contractual Clauses
-                                    adopted by the European Commission and available at <a
-                                            href="https://ec.europa.eu/info/law/law-topic/data-protection/international-dimension-data-protection/standard-contractual-clauses-scc_en">https://ec.europa.eu/info/law/law-topic/data-protection/international-dimension-data-protection/standard-contractual-clauses-scc_en</a>.
-                                </p>
-                                <p>The Customer hereby mandates Hook0 to sign on its behalf the Standard Contractual
-                                    Clauses with Hook0 entities and sub-Processors located in Third Countries.</p>
-                                <p>At the request of the Customer, Hook0 agrees to assist the Customer to perform a
-                                    transfer impact assessments to identify any gaps between the Data Protection
-                                    Regulations and the laws of the Third Country and to implement the necessary
-                                    supplementary measures to guarantee a level protection equivalent to the one
-                                    guaranteed by the Data Protection Regulations. </p>
-                                <ol start="7">
-                                    <li><h2 id="security-measures-and-confidentiality-of-the-processing"><strong>SECURITY
-                                                MEASURES AND CONFIDENTIALITY OF THE PROCESSING</strong></h2>
-                                    </li>
-                                </ol>
-                                <p>Hook0 shall take, insofar as this is relevant to the provision of the Services or
-                                    compliance with its other obligations in the DPA, adequate measures to ensure a
-                                    level of security of the Customer’s Personal Data appropriate to the risk and to
-                                    take into account the principles of data protection by design and by default in the
-                                    execution of the DPA. </p>
-                                <p>Hook0 undertakes to:</p>
-                                <ol>
-                                    <li>implement all appropriate technical and organisational measures in order to
-                                        protect Personal Data against accidental or unlawful destruction, loss,
-                                        alteration, unauthorized disclosure or access to Personal Data transmitted,
-                                        stored or otherwise processed and, in particular, all the measures mentioned in
-                                        Appendix 2;
-                                    </li>
-                                    <li>respect all the instructions communicated by the Customer in relation to
-                                        security and confidentiality measures that can be reasonably implemented;
-                                    </li>
-                                    <li>make Customer’s Personal Data accessible and consultable only to duly authorised
-                                        persons;
-                                    </li>
-                                    <li>ensure confidentiality of the Customer’s Personal Data processed under the DPA
-                                        and that all the persons authorised to process the Customer’s Personal Data
-                                        under the authority of Hook0 (including employees and sub-Processors)
-                                        undertake to respect the confidentiality of the said data or are under an
-                                        appropriate statutory obligation of confidentiality.
-                                    </li>
-                                </ol>
-                                <ol start="8">
-                                    <li><h2 id="personal-data-breach-notification"><strong>PERSONAL DATA BREACH
-                                                NOTIFICATION</strong></h2>
-                                    </li>
-                                </ol>
-                                <p>Hook0 shall notify the Customer of any Personal Data Breach without undue delay
-                                    and in writing after it becomes aware of a Personal Data Breach. When the
-                                    information is available to Hook0, such notification shall:</p>
-                                <ol>
-                                    <li>describe the nature of the Personal Data Breach including where possible, the
-                                        categories and approximate number of the concerned Data Subjects and the
-                                        categories and approximate number of Personal Data concerned;
-                                    </li>
-                                    <li>communicate the name and contact details of the Data Protection Officer or other
-                                        contact point where more information can be obtained;
-                                    </li>
-                                    <li>describe the likely consequences of the Personal Data Breach;</li>
-                                    <li>describe the measures taken or proposed to be taken to address the Personal Data
-                                        Breach, including, where appropriate, measures to mitigate its possible adverse
-                                        effects.
-                                    </li>
-                                </ol>
-                                <p>Where, and in so far as, it is not possible to provide the information at the same
-                                    time, the information may be provided in phases without undue further delay.</p>
-                                <p>At the request of the Customer, Hook0 also undertakes to provide the Customer
-                                    with reasonable assistance and co-operation to notify the Personal Data Breach to
-                                    the competent Data Protection Authority and to communicate such Personal Data Breach
-                                    to the Data Subjects, in compliance with applicable Data Protection Regulations.</p>
-                                <ol start="9">
-                                    <li><h2 id="rights-of-the-data-subjects"><strong>RIGHTS OF THE DATA
-                                                SUBJECTS</strong></h2>
-                                    </li>
-                                </ol>
-                                <p>Based on the nature of the Personal Data Processing activities, Hook0 undertakes
-                                    to:</p>
-                                <ol>
-                                    <li>promptly notify the Customer of any request or complaint received relating to
-                                        data protection of Customer’s Personal Data;
-                                    </li>
-                                    <li>at the request of the Customer, provide the Customer with reasonable assistance
-                                        and co-operation, to allow the Customer to respond (i) to requests presented by
-                                        Data Subjects for exercising their rights (right of access, rights to
-                                        rectification, erasure, limitation, portability and object), or (ii) to respond
-                                        to the competent data protection authorities’ requests or the Customer’s Data
-                                        Protection Officer requests; in particular, implement appropriate technical and
-                                        organisational measures to allow the Customer to promptly satisfy in writing to
-                                        any request for information of the Customer;
-                                    </li>
-                                    <li>duly provide the Data Subjects with the adequate information on the Personal
-                                        Data Processing operations carried out concerning their Personal Data under the
-                                        Terms of Services, where requested by and at the expense of the Customer.
-                                    </li>
-                                </ol>
-                                <ol start="10">
-                                    <li><h2 id="data-protection-impact-assessment"><strong>DATA PROTECTION IMPACT
-                                                ASSESSMENT</strong></h2>
-                                    </li>
-                                </ol>
-                                <p>At the request of the Customer, Hook0 undertakes to provide the Customer with
-                                    reasonable assistance and co-operation to carry out an assessment of the impact of
-                                    the Personal Data Processing operations carried out under the present DPA on the
-                                    protection of Personal Data and to consult the competent data protection
-                                    authorities, where necessary and at the expense of the Customer (based on a time and
-                                    materials fee).</p>
-                                <ol start="11">
-                                    <li><h2 id="retention-return-or-destruction-of-the-personal-data"><strong>RETENTION,
-                                                RETURN OR DESTRUCTION OF THE PERSONAL DATA</strong></h2>
-                                    </li>
-                                </ol>
-                                <p>The Customer remains solely responsible for implementing and managing Personal Data
-                                    retention periods, and undertakes to use the Product accordingly. </p>
-                                <p>Without prejudice to the applicable laws and regulations Hook0 undertakes to, at
-                                    the end of the Terms of Services:</p>
-                                <ol>
-                                    <li>return or destroy, at the Customer’s request, all Customer’s Personal Data in
-                                        an automated or manual way, following processes and prescriptions previously
-                                        agreed between the Parties;</li>
-                                    <li>delete all existing copies of the Personal Data unless and to the extent
-                                        that Hook0 is required to retain copies of the Personal Data in
-                                        accordance with applicable laws;
-                                    </li>
-                                    <li>Certify the destruction of the Personal data in writing.</li>
-                                </ol>
-                                <ol start="12">
-                                    <li><h2 id="documentation-and-audit"><strong>DOCUMENTATION AND AUDIT</strong></h2></li>
-                                </ol>
-                                <p>Upon prior written notice of thirty (30) business days sent by the Customer,
-                                    Hook0 shall disclose to the Customer the information strictly necessary to
-                                    demonstrate compliance with the obligations laid down in this Terms of Services.</p>
-                                <p>At the request of the Customer and once a year, Hook0 undertakes to allow for and
-                                    contribute to reasonable audits, including inspections, conducted by or on behalf of
-                                    the Customer, for the purposes of assessing the Hook0’s compliance with the Data
-                                    Protection Regulations and the provisions of the DPA.</p>
-                                <p>Hook0 also undertakes to allow for and contribute to audits conducted by
-                                    competent Data Protection Authorities.</p>
-                                <p>The Customer shall have no right to view or access any systems, data, records or
-                                    other information relating or pertaining to Hook0’s other customers.</p>
-                                <p>Any such audit by or on behalf of the Customer shall be conducted at its own costs.
-                                    The Customer shall provide Hook0 with a copy of the audit report.</p>
-                                <p>In the event that the Customer is subject to an investigation or a request for
-                                    information by a competent data protection authority and concerning any of the
-                                    processing operations carried out by Hook0 on behalf of the Customer, the
-                                    Customer undertakes to inform Hook0 as soon as possible and to satisfy such
-                                    investigation or request, to the best of its ability, at the expense of the
-                                    Customer, and in accordance with the procedures adopted by the data protection
-                                    authority.</p>
-                                <p>The Customer undertakes to comply with any confidentiality provisions, policies
-                                    and/or site rules Hook0 may notify to the Customer in relation to the
-                                    audit. </p>
-
-                                <h2>APPENDIX 1 - PERSONAL DATA PROCESSING ACTIVITIES CARRIED OUT BY HOOK0 ON BEHALF OF
-                                    THE CUSTOMER</h2>
-
-                                <table>
-                                    <tr>
-                                        <th>Nature of the Processing operations</th>
-                                        <td><em>[to be completed by the Customer]</em></td>
-                                    </tr>
-                                    <tr>
-                                        <th>Purpose(s) of Processing</th>
-                                        <td><em>[to be completed by the Customer]</em></td>
-                                    </tr>
-                                    <tr>
-                                        <th>Name and contact details of the Customer’s Data Protection Officer (if
-                                            applicable)
-                                        </th>
-                                        <td><em>[to be completed by the Customer]</em></td>
-                                    </tr>
-                                    <tr>
-                                        <th>Category/ies of Personal Data</th>
-                                        <td><em>[to be completed by the Customer]</em><br>
-                                            At the Customer's request, processing of Special Categories of Personal Data
-                                            may be performed by Hook0. In such case, the Processing shall be covered by
-                                            a specific addendum to the DPA to be entered into between the Customer and
-                                            Hook0.
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th>Category/ies of Data Subjects</th>
-                                        <td><em>[to be completed by the Customer]</em></td>
-                                    </tr>
-                                    <tr>
-                                        <th>Location(s) of Processing operations</th>
-                                        <td>France or EEA<br>
-                                            If the Customer requests the Personal Data to be located outside the EEA,
-                                            such Processing shall be covered by a separate agreement between the
-                                            Customer and Hook0.<br>
-                                            Please see: <a href="./gdpr-subprocessors.ejs">Hook0 / GDPR
-                                                Sub-processors</a>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th>Identity of the sub-Processor(s)</th>
-                                        <td>Please see: <a href="./gdpr-subprocessors.ejs">Hook0 / GDPR
-                                                Sub-processors</a>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th>Duration of Processing operations</th>
-                                        <td>For the duration of the Terms of Services.</td>
-                                    </tr>
-                                </table>
-
-                                <h2 id="appendix-2--appropriate-technical-and-organisational-measures-implemented">
-                                    <strong>APPENDIX 2 – APPROPRIATE TECHNICAL AND ORGANISATIONAL MEASURES
-                                        IMPLEMENTED</strong></h2>
-                                <p>The following technical and organisational measures are implemented by Hook0 in
-                                    order to protect Personal Data against accidental or unlawful destruction, loss,
-                                    alteration, unauthorized disclosure or, or access to Personal Data transmitted,
-                                    stored or otherwise processed:</p>
-
-                                <h3>People, Awareness, and HR</h3>
-                                <ul>
-                                    <li>All recruitments follow a screening process according to the
-                                        principles of the Hook0 background check policy;
-                                    </li>
-                                    <li>In each contract, each employee has Non-Disclosure Agreements
-                                        clauses;
-                                    </li>
-                                    <li>Code of Ethics awareness training (including a test) is a yearly
-                                        obligation for all employees and is to be performed through a
-                                        dedicated e-learning module;
-                                    </li>
-                                    <li>Group IT Acceptable Use policy or local version, are shared with all
-                                        employees;
-                                    </li>
-                                    <li>Security policy statement signed by the Management is shared with
-                                        all employees;
-                                    </li>
-                                    <li>Hook0 staff is obliged on a yearly basis to follow the Hook0 Data
-                                        Protection policy, Information Security and Safety training
-                                        (including a test);
-                                    </li>
-                                    <li>Regular awareness trainings on GDPR for all employees (in addition
-                                        to Hook0 Data Protection policy, Information Security and Safety
-                                        training);
-                                    </li>
-                                    <li>Access to systems is provided on a ‘need to have basis’ taken into
-                                        account segregation of duties;
-                                    </li>
-                                    <li>Regular internal security audits are conducted to verify the
-                                        security practices.
-                                    </li>
-                                </ul>
-
-                                <h3>Physical Security and Paper Records</h3>
-                                <p>Compliance with the Hook0 Physical and Environmental Security policy:</p>
-                                <ul>
-                                    <li>Access control and visitor management systems implemented for all
-                                        visitors/guests;
-                                    </li>
-                                    <li>Physical access reviews as per defined periodicity;</li>
-                                    <li>Clean desk, clear screen and follow me printing, process
-                                        implemented;
-                                    </li>
-                                    <li>Information, which includes paper documents, handled by the data
-                                        importer is classified, labelled, protected and handled according to
-                                        the Hook0 information classification policy;
-                                    </li>
-                                    <li>Except with prior specific authorization, laptops and desktops are
-                                        not taken off the site;
-                                    </li>
-                                    <li>CCTV surveillance to protect restricted areas;</li>
-                                    <li>Fire alarm and fire-fighting systems implemented for employee
-                                        safety;
-                                    </li>
-                                    <li>Fire evacuation drills are conducted at specified frequencies;</li>
-                                </ul>
-
-                                <h3>Remote End User Devices are Protected</h3>
-                                <p>The remote users are working with laptop and desktop on Hook0 secured
-                                    network. Following security measures are incorporated in addition:</p>
-                                <ul>
-                                    <li>Encryption of the hard disk on company-assigned laptops;</li>
-                                    <li>2 Factors Authentication (PKI / Alternative);</li>
-                                    <li>Centrally managed and anti-virus protection;</li>
-                                    <li>Management and monitoring of the software to control an authorized
-                                        software installation;
-                                    </li>
-                                    <li>Vendor supplied updates are installed;</li>
-                                    <li>All the laptops and desktops working on the Hook0 projects follow a
-                                        strong overwriting process before it is reassigned;
-                                    </li>
-                                    <li>Login ID and password controls are implemented to access
-                                        information;
-                                    </li>
-                                    <li>Periodic access review is implemented;</li>
-                                    <li>E-mails are automatically scanned by anti-virus and anti-spam
-                                        software.
-                                    </li>
-                                </ul>
-                                <h3>Remote Access Security</h3>
-                                <p>2-factor authentication is used in general for remote access to the
-                                    critical Hook0 target systems. If the source of the remote connection is
-                                    a Hook0 controlled system then device authentication based on a
-                                    certificate on the device is implemented. If the source is not under
-                                    Hook0 control, it should connect to a virtual desktop system.</p>
-                                <p>Any other set up of connections needs to be upfront approved by the
-                                    security department.</p>
-
-                                <h3>Generic security measures are a.o.:</h3>
-                                <ul>
-                                    <li>Data is only stored in the EU Data Centers or in case of laptops
-                                        encrypted on the local device;
-                                    </li>
-                                    <li>Termination of access connection in Demilitarized Zone;</li>
-                                    <li>All connectivity up to the secured area (PCI zone) is encrypted;
-                                    </li>
-                                    <li>Access to PCI zone only possible via strong authentication via Hook0
-                                        provided security client;
-                                    </li>
-                                    <li>Multiple layers of firewalls & intrusion detection need to be
-                                        passed;
-                                    </li>
-                                    <li>Access managed according to Role Based Access Control principles.
-                                    </li>
-                                </ul>
-
-                                <h3>Access control to Personal Data</h3>
-                                <p>Employees with access to private data can only access the data that are
-                                    necessary for the purpose of the activities under their responsibility.
-                                    Access authorisation is provided based on the ‘need to know’ and ‘need
-                                    to access’ and is either role based or name based. Access logs are in
-                                    place and the responsibility for access control is assigned.</p>
-
-                                <p>Following measures are in place:</p>
-                                <ul>
-                                    <li>Obligation for employees to comply with the applicable Hook0
-                                        security policies and data protection policies;
-                                    </li>
-                                    <li>Work instructions on handling private data;</li>
-                                    <li>User (password) codes for access to Private Data;</li>
-                                    <li>Differentiated access regulations (e.g. partial blocking);</li>
-                                    <li>Access Logging and control;</li>
-                                    <li>Controlled destruction of data media;</li>
-                                    <li>Procedures for Checking compliance with procedures and work
-                                        instructions are in place;
-                                    </li>
-                                    <li>Formalised Control frameworks and TPA to take care that not a single
-                                        person can access, modify or use critical information assets without
-                                        authorization or detection;
-                                    </li>
-                                </ul>
-
-                                <h3>Security and confidentiality of personal data</h3>
-                                <p>Based on a risk assessment (and if required an additional DPIA) Hook0
-                                    will ensure a level of security appropriate to the risk, including inter
-                                    alia as appropriate:</p>
-                                <ul>
-                                    <li>The anonymization, pseudonymisation (e.g. tokenization) and
-                                        encryption of Personal Data;
-                                    </li>
-                                    <li>The ability to ensure the ongoing confidentiality, integrity,
-                                        availability and resilience of processing systems and services;
-                                    </li>
-                                    <li>The ability to restore the availability and access to Personal Data
-                                        in a timely manner in the event of a physical or technical incident;
-                                    </li>
-                                    <li>A process for regularly testing, assessing and evaluating the
-                                        effectiveness of technical and organisational measures for ensuring
-                                        the security of the processing;
-                                    </li>
-                                    <li>Ensure a logical separation between its own data, the data of its
-                                        customers and suppliers;
-                                    </li>
-                                    <li>Set up a process to keep processed data accurate, reliable and
-                                        up-to-date;
-                                    </li>
-                                    <li>Process registers according to GDPR requirements;</li>
-                                    <li>Access log systems’ use with relevant for the purposes of being able
-                                        to detect unauthorized access attempts.
-                                    </li>
-                                    <li>Customer Data (including back-ups and archives) will only be stored
-                                        for as long as it serves the purposes for which the data was
-                                        collected unless there is a legal or contractual obligation to
-                                        retain the data for a longer period of time.
-                                    </li>
-                                </ul>
-
-                                <h3>Organization Control</h3>
-                                <p>The Data Processor shall maintain its internal organization in a manner
-                                    that meets the requirements of the applicable legislation and the Data
-                                    Controller requirements on data security. This shall be accomplished
-                                    by:</p>
-
-                                <ul>
-                                    <li>Internal data processing policies and procedures, guidelines, work
-                                        instructions, process descriptions and regulations for programming,
-                                        testing, and release, insofar as they relate to the Personal Data
-                                        transferred by the Controller;
-                                    </li>
-                                    <li>Implementing a Data Protection control framework that is audited on
-                                        compliance on a yearly basis;
-                                    </li>
-                                    <li>Having an emergency plan with procedures and allocation of
-                                        responsibilities in place (backup contingency plan).
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <span class="section__eyebrow">Legal</span>
+        <h1 class="mt-4 text-display-xl text-white">
+            Data Processing Agreement
+        </h1>
+        <p class="mt-6 text-body-lg text-gray-400 max-w-2xl mx-auto">
+            Our commitment to protecting your data under GDPR and data protection regulations.
+        </p>
+        <div class="mt-4 inline-flex items-center px-4 py-2 rounded-full bg-white/10 text-sm text-gray-300">
+            <svg class="w-4 h-4 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>
+            Last Update: September 28th, 2024
         </div>
-
     </div>
-</div>
+</section>
+
+<!-- Main Content Section -->
+<section class="relative bg-surface-primary py-16 sm:py-20 overflow-hidden">
+    <!-- Background Effects -->
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="card card--glow">
+            <div class="legal-content">
+
+                <h2>DATA PROCESSING TERMS OF SERVICES</h2>
+
+                <p>The purpose of this DPA is to reflect the parties' agreement with regard to the processing of Personal Data in accordance with the requirements of Data Protection Regulations.</p>
+
+                <p>In respect of the processing of Personal Data of the Customer by Hook0 under the Terms of Services, the parties acknowledge that the Customer is the Data Controller and Hook0 is the Data Processor and both agree to comply with all corresponding obligations as per the Data Protection Regulations.</p>
+
+                <p>The Customer gives instructions to Hook0 to process such Personal Data on its behalf as it is necessary for the purposes of the Terms of Services as defined in Appendix 1 "Description of Personal Data processing". The Appendix 1 is filled out by the Customer and shall be updated if any change is made by the Customer.</p>
+
+                <h2>1. COMPLIANCE WITH DATA PROTECTION REGULATIONS</h2>
+
+                <p>Each party shall comply with its obligations under the Data Protection Regulations.</p>
+
+                <p>All capitalized words in the DPA shall have the meaning ascribed to them in the GDPR, the Data Protection Regulations and in the Terms of Services.</p>
+
+                <h2>2. DATA PROCESSING OPERATIONS UNDER THE DPA</h2>
+
+                <p>As a reminder, for every processing carried out under this DPA, the Customer shall:</p>
+
+                <ul>
+                    <li>Document the instructions related to Personal Data,</li>
+                    <li>Provide the information related to the processing to fill the Appendix 1 by contacting Hook0 via the support email address: <a href="mailto:support@hook0.com">support@hook0.com</a>.</li>
+                </ul>
+
+                <p>The Customer warrants to Hook0 that it is entitled to transfer the Personal Data to the Hook0 and/or the Sub-processor(s) in full compliance with Data Protection Regulations, including as needed, compliance to any prior required formalities and Data Subject rights, such as information and/or consent when such is required under Data Protection Regulations.</p>
+
+                <p>The Customer acknowledges that it is and shall remain solely responsible for determining the purposes and the means of Hook0's processing the Personal Data. The Data Controller remains solely responsible for the accuracy and adequacy of the aforementioned instructions. Any changes to the instructions given or the security measures that are required by the Customer, including in order to comply with applicable data protection laws, shall be agreed by the parties and/or via an amendment to this DPA. Any costs incurred by Hook0 in complying with such changes shall be borne by the Customer.</p>
+
+                <p>The Customer undertakes that the Data Subjects have been informed or will be informed before the transfer of their Personal Data to Hook0 in the scope of the Services.</p>
+
+                <p>The Product is not intended to process Special Categories of Personal Data. Therefore, the Customer undertakes to prevent any processing of Special Categories of Personal Data through the Product and the Services. However, at the Customer request, processing of Special Categories of Personal Data may be performed by Hook0. In such case, the Processing shall be covered by a specific addendum to the DPA to be entered into between the Customer and Hook0.</p>
+
+                <p>In case the Customer expressly requests the assistance of Hook0 for the fulfilment of its obligation under the Data Protection Regulations, then Hook0 shall address to the Customer the estimated costs for such assistance. Upon express acceptation of the estimated cost, Hook0 shall provide assistance pursuant to the instructions of the Customer and the terms of the present DPA.</p>
+
+                <h2>3. SCOPE & INSTRUCTIONS</h2>
+
+                <p>Hook0 undertakes to:</p>
+
+                <ol>
+                    <li>solely process the Customer's Personal Data disclosed by the Customer as well as those collected or produced during the Terms of Services for the purpose(s) fulfilling its obligations under the Terms of Services and in compliance under the Customer's documented instructions, unless otherwise required by applicable Data Protection Regulations;</li>
+                    <li>ensure that any person acting under its authority, who has access to the Customer's Personal Data disclosed by the Customer as well as those collected or produced during the Terms of Services, will process those data solely for the purpose of fulfilling Hook0's obligations under this Terms of Services and on instructions from the Customer, unless required by applicable Data Protection Regulations;</li>
+                    <li>refrain from using Customer's Personal Data for any misappropriated, fraudulent or personal use, including for commercial purposes;</li>
+                    <li>immediately inform the Customer if, in its opinion, a Customer's instruction infringes applicable Data Protection Regulations.</li>
+                </ol>
+
+                <h2>4. COMMUNICATION OF CUSTOMER'S PERSONAL DATA TO THIRD PARTIES</h2>
+
+                <p>The Customer's Personal Data processed under the DPA shall not be subject to any assignment, lease, concession, communication or disclosure to a third party, including sub-Processors of Hook0, except otherwise required by the Terms of Services or by a legal or regulatory mandatory provision.</p>
+
+                <p>In such a case, Hook0 shall inform the Customer of that legal requirement before Processing, unless that legal or regulatory mandatory provision prohibits such information on important grounds of public interest.</p>
+
+                <h2>5. SUB-PROCESSING</h2>
+
+                <p>With respect to the conditions referred to in paragraphs 2 and 4 of article 28 of GDPR for engaging another Data Processor (the "<strong>Sub-processor</strong>"), the Customer agrees that Hook0 may sub-process the Processing of the Customer's Personal Data.</p>
+
+                <p>Notwithstanding the general consent given by the Customer, Hook0 shall inform the Customer of any intended changes concerning the addition or replacement of any Sub-processor within a reasonable time prior to implementation of such change. The list of the sub-Processors under the authority of Hook0 is available to the Customer at <a href="./gdpr-subprocessors.ejs">Hook0 / GDPR Sub-processors</a>.</p>
+
+                <p>Where Hook0 engages a Sub-processor who shall process the Customer's Personal Data, the same data protection obligations as set out in the DPA shall be imposed on the Sub-processor by Hook0.</p>
+
+                <p>This agreement must in particular provide for an obligation of the Sub-processor to provide sufficient guarantees to implement appropriate technical and organisational measures in such a manner that the Processing will meet the requirements of Data Protection Regulations and of the DPA.</p>
+
+                <h2>6. TRANSFER OF CUSTOMER'S PERSONAL DATA OUTSIDE THE EUROPEAN ECONOMIC AREA (EEA)</h2>
+
+                <p>Hook0 warranties the Customer that the Customer's Personal Data are located in France or in the European Union. Hook0 undertakes not to carry out any transfer of Customer's Personal Data outside the EEA without the written consent of the Customer.</p>
+
+                <p>At the request of the Customer and upon instructions, Hook0 shall store or transfer Personal Data to other Hook0 entities and/or to Sub-processors located in countries outside the EEA ("Third Countries"). In that case and when Third Countries have not been subject to an adequacy decision of the European Commission, Hook0 undertakes that the transfer will be carried out in accordance with the Data Protection Regulations and will be subject to appropriate safeguards to guarantee a level of protection equivalent to the one guaranteed by the Data Protection Regulations, such as the signing of the Standard Contractual Clauses adopted by the European Commission and available at <a href="https://ec.europa.eu/info/law/law-topic/data-protection/international-dimension-data-protection/standard-contractual-clauses-scc_en">https://ec.europa.eu/info/law/law-topic/data-protection/international-dimension-data-protection/standard-contractual-clauses-scc_en</a>.</p>
+
+                <p>The Customer hereby mandates Hook0 to sign on its behalf the Standard Contractual Clauses with Hook0 entities and sub-Processors located in Third Countries.</p>
+
+                <p>At the request of the Customer, Hook0 agrees to assist the Customer to perform a transfer impact assessments to identify any gaps between the Data Protection Regulations and the laws of the Third Country and to implement the necessary supplementary measures to guarantee a level protection equivalent to the one guaranteed by the Data Protection Regulations.</p>
+
+                <h2>7. SECURITY MEASURES AND CONFIDENTIALITY OF THE PROCESSING</h2>
+
+                <p>Hook0 shall take, insofar as this is relevant to the provision of the Services or compliance with its other obligations in the DPA, adequate measures to ensure a level of security of the Customer's Personal Data appropriate to the risk and to take into account the principles of data protection by design and by default in the execution of the DPA.</p>
+
+                <p>Hook0 undertakes to:</p>
+
+                <ol>
+                    <li>implement all appropriate technical and organisational measures in order to protect Personal Data against accidental or unlawful destruction, loss, alteration, unauthorized disclosure or access to Personal Data transmitted, stored or otherwise processed and, in particular, all the measures mentioned in Appendix 2;</li>
+                    <li>respect all the instructions communicated by the Customer in relation to security and confidentiality measures that can be reasonably implemented;</li>
+                    <li>make Customer's Personal Data accessible and consultable only to duly authorised persons;</li>
+                    <li>ensure confidentiality of the Customer's Personal Data processed under the DPA and that all the persons authorised to process the Customer's Personal Data under the authority of Hook0 (including employees and sub-Processors) undertake to respect the confidentiality of the said data or are under an appropriate statutory obligation of confidentiality.</li>
+                </ol>
+
+                <h2>8. PERSONAL DATA BREACH NOTIFICATION</h2>
+
+                <p>Hook0 shall notify the Customer of any Personal Data Breach without undue delay and in writing after it becomes aware of a Personal Data Breach. When the information is available to Hook0, such notification shall:</p>
+
+                <ol>
+                    <li>describe the nature of the Personal Data Breach including where possible, the categories and approximate number of the concerned Data Subjects and the categories and approximate number of Personal Data concerned;</li>
+                    <li>communicate the name and contact details of the Data Protection Officer or other contact point where more information can be obtained;</li>
+                    <li>describe the likely consequences of the Personal Data Breach;</li>
+                    <li>describe the measures taken or proposed to be taken to address the Personal Data Breach, including, where appropriate, measures to mitigate its possible adverse effects.</li>
+                </ol>
+
+                <p>Where, and in so far as, it is not possible to provide the information at the same time, the information may be provided in phases without undue further delay.</p>
+
+                <p>At the request of the Customer, Hook0 also undertakes to provide the Customer with reasonable assistance and co-operation to notify the Personal Data Breach to the competent Data Protection Authority and to communicate such Personal Data Breach to the Data Subjects, in compliance with applicable Data Protection Regulations.</p>
+
+                <h2>9. RIGHTS OF THE DATA SUBJECTS</h2>
+
+                <p>Based on the nature of the Personal Data Processing activities, Hook0 undertakes to:</p>
+
+                <ol>
+                    <li>promptly notify the Customer of any request or complaint received relating to data protection of Customer's Personal Data;</li>
+                    <li>at the request of the Customer, provide the Customer with reasonable assistance and co-operation, to allow the Customer to respond (i) to requests presented by Data Subjects for exercising their rights (right of access, rights to rectification, erasure, limitation, portability and object), or (ii) to respond to the competent data protection authorities' requests or the Customer's Data Protection Officer requests; in particular, implement appropriate technical and organisational measures to allow the Customer to promptly satisfy in writing to any request for information of the Customer;</li>
+                    <li>duly provide the Data Subjects with the adequate information on the Personal Data Processing operations carried out concerning their Personal Data under the Terms of Services, where requested by and at the expense of the Customer.</li>
+                </ol>
+
+                <h2>10. DATA PROTECTION IMPACT ASSESSMENT</h2>
+
+                <p>At the request of the Customer, Hook0 undertakes to provide the Customer with reasonable assistance and co-operation to carry out an assessment of the impact of the Personal Data Processing operations carried out under the present DPA on the protection of Personal Data and to consult the competent data protection authorities, where necessary and at the expense of the Customer (based on a time and materials fee).</p>
+
+                <h2>11. RETENTION, RETURN OR DESTRUCTION OF THE PERSONAL DATA</h2>
+
+                <p>The Customer remains solely responsible for implementing and managing Personal Data retention periods, and undertakes to use the Product accordingly.</p>
+
+                <p>Without prejudice to the applicable laws and regulations Hook0 undertakes to, at the end of the Terms of Services:</p>
+
+                <ol>
+                    <li>return or destroy, at the Customer's request, all Customer's Personal Data in an automated or manual way, following processes and prescriptions previously agreed between the Parties;</li>
+                    <li>delete all existing copies of the Personal Data unless and to the extent that Hook0 is required to retain copies of the Personal Data in accordance with applicable laws;</li>
+                    <li>Certify the destruction of the Personal data in writing.</li>
+                </ol>
+
+                <h2>12. DOCUMENTATION AND AUDIT</h2>
+
+                <p>Upon prior written notice of thirty (30) business days sent by the Customer, Hook0 shall disclose to the Customer the information strictly necessary to demonstrate compliance with the obligations laid down in this Terms of Services.</p>
+
+                <p>At the request of the Customer and once a year, Hook0 undertakes to allow for and contribute to reasonable audits, including inspections, conducted by or on behalf of the Customer, for the purposes of assessing the Hook0's compliance with the Data Protection Regulations and the provisions of the DPA.</p>
+
+                <p>Hook0 also undertakes to allow for and contribute to audits conducted by competent Data Protection Authorities.</p>
+
+                <p>The Customer shall have no right to view or access any systems, data, records or other information relating or pertaining to Hook0's other customers.</p>
+
+                <p>Any such audit by or on behalf of the Customer shall be conducted at its own costs. The Customer shall provide Hook0 with a copy of the audit report.</p>
+
+                <p>In the event that the Customer is subject to an investigation or a request for information by a competent data protection authority and concerning any of the processing operations carried out by Hook0 on behalf of the Customer, the Customer undertakes to inform Hook0 as soon as possible and to satisfy such investigation or request, to the best of its ability, at the expense of the Customer, and in accordance with the procedures adopted by the data protection authority.</p>
+
+                <p>The Customer undertakes to comply with any confidentiality provisions, policies and/or site rules Hook0 may notify to the Customer in relation to the audit.</p>
+
+                <h2>APPENDIX 1 - PERSONAL DATA PROCESSING ACTIVITIES CARRIED OUT BY HOOK0 ON BEHALF OF THE CUSTOMER</h2>
+
+                <table class="legal-table">
+                    <tr>
+                        <th>Nature of the Processing operations</th>
+                        <td><em>[to be completed by the Customer]</em></td>
+                    </tr>
+                    <tr>
+                        <th>Purpose(s) of Processing</th>
+                        <td><em>[to be completed by the Customer]</em></td>
+                    </tr>
+                    <tr>
+                        <th>Name and contact details of the Customer's Data Protection Officer (if applicable)</th>
+                        <td><em>[to be completed by the Customer]</em></td>
+                    </tr>
+                    <tr>
+                        <th>Category/ies of Personal Data</th>
+                        <td><em>[to be completed by the Customer]</em><br><br>At the Customer's request, processing of Special Categories of Personal Data may be performed by Hook0. In such case, the Processing shall be covered by a specific addendum to the DPA to be entered into between the Customer and Hook0.</td>
+                    </tr>
+                    <tr>
+                        <th>Category/ies of Data Subjects</th>
+                        <td><em>[to be completed by the Customer]</em></td>
+                    </tr>
+                    <tr>
+                        <th>Location(s) of Processing operations</th>
+                        <td>France or EEA<br><br>If the Customer requests the Personal Data to be located outside the EEA, such Processing shall be covered by a separate agreement between the Customer and Hook0.<br><br>Please see: <a href="./gdpr-subprocessors.ejs">Hook0 / GDPR Sub-processors</a></td>
+                    </tr>
+                    <tr>
+                        <th>Identity of the sub-Processor(s)</th>
+                        <td>Please see: <a href="./gdpr-subprocessors.ejs">Hook0 / GDPR Sub-processors</a></td>
+                    </tr>
+                    <tr>
+                        <th>Duration of Processing operations</th>
+                        <td>For the duration of the Terms of Services.</td>
+                    </tr>
+                </table>
+
+                <h2>APPENDIX 2 - APPROPRIATE TECHNICAL AND ORGANISATIONAL MEASURES IMPLEMENTED</h2>
+
+                <p>The following technical and organisational measures are implemented by Hook0 in order to protect Personal Data against accidental or unlawful destruction, loss, alteration, unauthorized disclosure or, or access to Personal Data transmitted, stored or otherwise processed:</p>
+
+                <h3>People, Awareness, and HR</h3>
+                <ul>
+                    <li>All recruitments follow a screening process according to the principles of the Hook0 background check policy;</li>
+                    <li>In each contract, each employee has Non-Disclosure Agreements clauses;</li>
+                    <li>Code of Ethics awareness training (including a test) is a yearly obligation for all employees and is to be performed through a dedicated e-learning module;</li>
+                    <li>Group IT Acceptable Use policy or local version, are shared with all employees;</li>
+                    <li>Security policy statement signed by the Management is shared with all employees;</li>
+                    <li>Hook0 staff is obliged on a yearly basis to follow the Hook0 Data Protection policy, Information Security and Safety training (including a test);</li>
+                    <li>Regular awareness trainings on GDPR for all employees (in addition to Hook0 Data Protection policy, Information Security and Safety training);</li>
+                    <li>Access to systems is provided on a 'need to have basis' taken into account segregation of duties;</li>
+                    <li>Regular internal security audits are conducted to verify the security practices.</li>
+                </ul>
+
+                <h3>Physical Security and Paper Records</h3>
+                <p>Compliance with the Hook0 Physical and Environmental Security policy:</p>
+                <ul>
+                    <li>Access control and visitor management systems implemented for all visitors/guests;</li>
+                    <li>Physical access reviews as per defined periodicity;</li>
+                    <li>Clean desk, clear screen and follow me printing, process implemented;</li>
+                    <li>Information, which includes paper documents, handled by the data importer is classified, labelled, protected and handled according to the Hook0 information classification policy;</li>
+                    <li>Except with prior specific authorization, laptops and desktops are not taken off the site;</li>
+                    <li>CCTV surveillance to protect restricted areas;</li>
+                    <li>Fire alarm and fire-fighting systems implemented for employee safety;</li>
+                    <li>Fire evacuation drills are conducted at specified frequencies;</li>
+                </ul>
+
+                <h3>Remote End User Devices are Protected</h3>
+                <p>The remote users are working with laptop and desktop on Hook0 secured network. Following security measures are incorporated in addition:</p>
+                <ul>
+                    <li>Encryption of the hard disk on company-assigned laptops;</li>
+                    <li>2 Factors Authentication (PKI / Alternative);</li>
+                    <li>Centrally managed and anti-virus protection;</li>
+                    <li>Management and monitoring of the software to control an authorized software installation;</li>
+                    <li>Vendor supplied updates are installed;</li>
+                    <li>All the laptops and desktops working on the Hook0 projects follow a strong overwriting process before it is reassigned;</li>
+                    <li>Login ID and password controls are implemented to access information;</li>
+                    <li>Periodic access review is implemented;</li>
+                    <li>E-mails are automatically scanned by anti-virus and anti-spam software.</li>
+                </ul>
+
+                <h3>Remote Access Security</h3>
+                <p>2-factor authentication is used in general for remote access to the critical Hook0 target systems. If the source of the remote connection is a Hook0 controlled system then device authentication based on a certificate on the device is implemented. If the source is not under Hook0 control, it should connect to a virtual desktop system.</p>
+                <p>Any other set up of connections needs to be upfront approved by the security department.</p>
+
+                <h3>Generic Security Measures</h3>
+                <ul>
+                    <li>Data is only stored in the EU Data Centers or in case of laptops encrypted on the local device;</li>
+                    <li>Termination of access connection in Demilitarized Zone;</li>
+                    <li>All connectivity up to the secured area (PCI zone) is encrypted;</li>
+                    <li>Access to PCI zone only possible via strong authentication via Hook0 provided security client;</li>
+                    <li>Multiple layers of firewalls & intrusion detection need to be passed;</li>
+                    <li>Access managed according to Role Based Access Control principles.</li>
+                </ul>
+
+                <h3>Access Control to Personal Data</h3>
+                <p>Employees with access to private data can only access the data that are necessary for the purpose of the activities under their responsibility. Access authorisation is provided based on the 'need to know' and 'need to access' and is either role based or name based. Access logs are in place and the responsibility for access control is assigned.</p>
+
+                <p>Following measures are in place:</p>
+                <ul>
+                    <li>Obligation for employees to comply with the applicable Hook0 security policies and data protection policies;</li>
+                    <li>Work instructions on handling private data;</li>
+                    <li>User (password) codes for access to Private Data;</li>
+                    <li>Differentiated access regulations (e.g. partial blocking);</li>
+                    <li>Access Logging and control;</li>
+                    <li>Controlled destruction of data media;</li>
+                    <li>Procedures for Checking compliance with procedures and work instructions are in place;</li>
+                    <li>Formalised Control frameworks and TPA to take care that not a single person can access, modify or use critical information assets without authorization or detection;</li>
+                </ul>
+
+                <h3>Security and Confidentiality of Personal Data</h3>
+                <p>Based on a risk assessment (and if required an additional DPIA) Hook0 will ensure a level of security appropriate to the risk, including inter alia as appropriate:</p>
+                <ul>
+                    <li>The anonymization, pseudonymisation (e.g. tokenization) and encryption of Personal Data;</li>
+                    <li>The ability to ensure the ongoing confidentiality, integrity, availability and resilience of processing systems and services;</li>
+                    <li>The ability to restore the availability and access to Personal Data in a timely manner in the event of a physical or technical incident;</li>
+                    <li>A process for regularly testing, assessing and evaluating the effectiveness of technical and organisational measures for ensuring the security of the processing;</li>
+                    <li>Ensure a logical separation between its own data, the data of its customers and suppliers;</li>
+                    <li>Set up a process to keep processed data accurate, reliable and up-to-date;</li>
+                    <li>Process registers according to GDPR requirements;</li>
+                    <li>Access log systems' use with relevant for the purposes of being able to detect unauthorized access attempts.</li>
+                    <li>Customer Data (including back-ups and archives) will only be stored for as long as it serves the purposes for which the data was collected unless there is a legal or contractual obligation to retain the data for a longer period of time.</li>
+                </ul>
+
+                <h3>Organization Control</h3>
+                <p>The Data Processor shall maintain its internal organization in a manner that meets the requirements of the applicable legislation and the Data Controller requirements on data security. This shall be accomplished by:</p>
+                <ul>
+                    <li>Internal data processing policies and procedures, guidelines, work instructions, process descriptions and regulations for programming, testing, and release, insofar as they relate to the Personal Data transferred by the Controller;</li>
+                    <li>Implementing a Data Protection control framework that is audited on compliance on a yearly basis;</li>
+                    <li>Having an emergency plan with procedures and allocation of responsibilities in place (backup contingency plan).</li>
+                </ul>
+
+            </div>
+        </div>
+    </div>
+</section>
 
 <%- include('./includes/_footer.ejs') %>
 

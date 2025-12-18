@@ -22,11 +22,12 @@
                 history.pushState({}, null, url);
             }
 
-            document.querySelectorAll('.pricing-switcher a').forEach(function (link) {
+            document.querySelectorAll('.pricing-toggle-btn').forEach(function (link) {
                 link.addEventListener('click', function (e) {
                     e.preventDefault();
                     e.stopImmediatePropagation();
-                    _display(getDestination() === destination.CLOUD ? destination.ONPREMISE : destination.CLOUD);
+                    const target = this.dataset.target;
+                    _display(target);
                 });
             });
 
@@ -34,128 +35,13 @@
         });
     })();
 </script>
+
 <style>
-    .pricing[data-destination="cloud"] .pricing-switcher #cloud h3,
-    .pricing[data-destination="cloud"] .pricing-switcher #cloud h3 svg,
-    .pricing[data-destination="cloud"] .pricing-switcher #cloud p,
-    .pricing[data-destination="onpremise"] .pricing-switcher #onpremise h3,
-    .pricing[data-destination="onpremise"] .pricing-switcher #onpremise h3 svg,
-    .pricing[data-destination="onpremise"] .pricing-switcher #onpremise p {
-        color: #509ee3;
-        fill: #509ee3;
-    }
-
-    .pricing-switcher div > p {
-        color: #4c5773;
-        font-size: 18px;
-        font-weight: bold;
-        margin: 0;
-        text-align: center;
-    }
-
-    .pricing-switcher div {
-        display: flex;
-        flex-direction: row;
-        justify-content: center;
-        justify-items: center;
-        margin: 20px 0 40px;
-        position: relative;
-        width: 100%;
-    }
-
-    .pricing-switcher a {
-        display: block;
-        width: 170px;
-        z-index: 3;
-    }
-
-    .pricing-switcher a h3,
-    .pricing-switcher a p {
-        color: #4c5773;
-        margin: 0;
-    }
-
-    .pricing-switcher a {
-        display: block;
-        text-decoration: none;
-    }
-
-    .pricing-switcher a h3 {
-        display: flex;
-        font-size: 20px;
-        font-weight: bold;
-        justify-content: flex-start;
-    }
-
-    .pricing-switcher a h3 svg {
-        fill: currentcolor;
-        margin: 0 8px;
-        position: relative;
-        top: 3px;
-        width: 30px;
-    }
-
-    .pricing-switcher a p {
-        font-size: 14px;
-        font-weight: normal;
-    }
-
-    .pricing-switcher a:first-child {
-        padding: 0 36px 0 0;
-    }
-
-    .pricing-switcher a:last-child {
-        padding: 0 0 0 36px;
-    }
-
-    .pricing-switcher a:first-child h3,
-    .pricing-switcher a:first-child p {
-        text-align: right;
-    }
-
-    .pricing-switcher a:first-child h3 {
-        flex-direction: row-reverse;
-    }
-
-    .pricing-switcher div::before {
-        background: #eff3f6;
-        border-radius: 16px;
-        box-shadow: inset 0 6px 12px rgba(0, 0, 0, 0.08);
-        content: " ";
-        display: block;
-        height: 32px;
-        left: 50%;
-        position: absolute;
-        top: 7px;
-        transform: translateX(-27px);
-        width: 54px;
-        z-index: 1;
-    }
-
-    .pricing-switcher div::after {
-        background: #509ee3;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 14px;
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
-        box-sizing: border-box;
-        content: " ";
-        display: block;
-        height: 28px;
-        left: 50%;
-        position: absolute;
-        top: 9px;
-        transform: translateX(-14px);
-        transition: transform 0.15s;
-        width: 28px;
-        z-index: 2;
-    }
-
-    .pricing[data-destination="cloud"] .pricing-switcher div::after {
-        transform: translateX(-24px);
-    }
-
-    .pricing[data-destination="onpremise"] .pricing-switcher div::after {
-        transform: translateX(-4px);
+    .pricing[data-destination="cloud"] .pricing-toggle-btn[data-target="cloud"],
+    .pricing[data-destination="onpremise"] .pricing-toggle-btn[data-target="onpremise"] {
+        background: rgba(99, 102, 241, 0.2);
+        color: #a5b4fc;
+        border-color: rgba(99, 102, 241, 0.5);
     }
 
     .pricing--onpremise, .pricing--cloud {
@@ -166,535 +52,412 @@
     .pricing[data-destination="onpremise"] .pricing--onpremise {
         display: block;
     }
-
 </style>
-<div class="bg-gradient-to-b from-white to-gray-50 pricing deploy-cloud">
-    <div class="max-w-7xl mx-auto pt-24 px-4 sm:px-6 lg:px-8 pb-32">
-        <div class="sm:flex sm:flex-col sm:align-center">
-            <h1 class="text-5xl font-extrabold text-gray-900 sm:text-center">Hook0 Pricing</h1>
-            <p class="mt-5 text-xl text-gray-500 sm:text-center">Choose the plan that's right for you, and start sending webhooks now</p>
-        </div>
 
+<section class="relative py-24 sm:py-32 overflow-hidden pricing">
+    <!-- Background -->
+    <div class="absolute inset-0 bg-gradient-to-b from-surface-primary via-indigo-950/30 to-surface-primary"></div>
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="blur-circle blur-circle--indigo w-[800px] h-[800px] top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20"></div>
 
-        <div class="pricing-switcher">
-            <div>
-                <a id="cloud" href="#cloud" data-destination="cloud">
-                    <h3>Cloud
-                        <svg width="28" height="20" viewBox="0 0 28 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path fill-rule="evenodd" clip-rule="evenodd"
-                                  d="M21.9173 6.78008C21.1731 3.088 17.9111 0.307739 13.9998 0.307739C10.0884 0.307739 6.82638 3.08802 6.08221 6.78011C2.69016 6.97647 0 9.78942 0 13.2307C0 16.7993 2.89293 19.6922 6.46154 19.6922H21.5385C25.1071 19.6922 28 16.7993 28 13.2307C28 9.78925 25.3096 6.9762 21.9173 6.78008Z"></path>
-                        </svg>
-                    </h3>
-                    <p>Hook0 as a service</p>
-                </a>
-                <a id="onpremise" href="#onpremise" data-destination="onpremise">
-                    <h3>On-Prem
-                        <svg width="26" height="22" viewBox="0 0 26 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path fill-rule="evenodd" clip-rule="evenodd"
-                                  d="M0 3C0 1.34314 1.34315 0 3 0H23C24.6569 0 26 1.34315 26 3V18.4783C26 20.1351 24.6569 21.4783 23 21.4783H3C1.34315 21.4783 0 20.1351 0 18.4783V3ZM7.08947 13.5652L5.73774 12.2959L8.74929 9.044L5.65212 5.81452L6.98165 4.5217L11.1591 8.87765L11.3043 9.01395L11.1892 9.13821L7.08947 13.5652ZM19.5001 14.6957H10.4566V16.9565H19.5001V14.6957Z"></path>
-                        </svg>
-                    </h3>
-                    <p>Manage it yourself</p>
-                </a>
-            </div>
-        </div>
-
-
-        <div class="pricing--cloud">
-            <h2 class="mt-12 ms-4 text-3xl font-bold text-gray-900 sm:text-center md:text-left">
-                Cloud
-                <small class="text-xl font-semibold text-gray-400">Hook0 as a service, managed by our team</small>
-            </h2>
-
-            <div class="mt-5 space-y-4 sm:space-y-0 sm:grid sm:grid-cols-1 sm:gap-6 xl:max-w-4xl xl:mx-auto xl:max-w-none xl:mx-0 xl:grid-cols-4">
-                <div class="border border-gray-200 rounded-lg shadow-sm divide-y divide-gray-200">
-                    <div class="p-6">
-                        <h2 class="text-lg leading-6 font-medium text-gray-900">Developer</h2>
-                        <p class="mt-4 text-sm text-gray-500">Perfect way to try out Hook0, no need to setup
-                            onpremiseing,
-                            free
-                            forever for side-projects.</p>
-                        <p class="mt-8">
-                            <span class="text-4xl font-extrabold text-gray-900">FREE</span>
-                            <span class="text-base font-medium text-gray-500">Forever</span>
-                        </p>
-                        <a href="#top"
-                           class="mt-8 block w-full bg-green-500 border border-transparent rounded-md py-2 text-sm font-semibold text-white text-center hover:bg-green-400">Sign
-                            Up</a>
-                    </div>
-                    <div class="pt-6 pb-8 px-6">
-                        <h3 class="text-xs font-medium text-gray-900 tracking-wide uppercase">What's included</h3>
-                        <ul role="list" class="mt-6 space-y-4">
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500">Fully managed, no infra. to own</span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500"><strong>1</strong> developer</span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500"><strong>1</strong> application</span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500"><strong>10</strong> event types</span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500">
-                                    <strong>10</strong> subscriptions
-                                </span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500"><abbr
-                                            title="Extra events are not blocked but billed at €0.0001/event">Up to <strong>100</strong> events per day</abbr></span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500"><abbr
-                                            title="Extended retention can be purchased, contact us!"><strong>7 days</strong> data retention</abbr></span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500">No credit card required</span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500">Community support on <a
-                                            href="<%= locals.social.discord.href %>" target="_blank">Discord</a></span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500">Support video and documentation</span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500">Account security</span>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div class="border border-gray-200 rounded-lg shadow-sm divide-y divide-gray-200">
-                    <div class="p-6">
-                        <h2 class="text-lg leading-6 font-medium text-gray-900">Startup</h2>
-                        <p class="mt-4 text-sm text-gray-500">Enhance your webhook experience with
-                            our new features and grow your start-up!</p>
-                        <p class="mt-8">
-                            <span class="text-4xl font-extrabold text-gray-900">€59</span>
-                            <span class="text-base font-medium text-gray-500">/month</span>
-                        </p>
-                        <a href="<%= locals.subscriptionLinks.cloud.startup %>"
-                           class="mt-8 block w-full bg-green-500 border border-transparent rounded-md py-2 text-sm font-semibold text-white text-center hover:bg-green-400">Subscribe</a>
-                    </div>
-                    <div class="pt-6 pb-8 px-6">
-                        <h3 class="text-xs font-medium text-gray-900 tracking-wide uppercase">What's included</h3>
-                        <ul role="list" class="mt-6 space-y-4">
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500">Fully managed, no infra. to own</span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500"><strong>25</strong> developers</span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500"><strong>1</strong> application</span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500"><strong>50</strong> event types</span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                              <span><%- include('../svg/check-green.svg') %></span>
-                              <span class="text-sm text-gray-500">
-                                  <strong>300</strong> subscriptions
-                              </span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500"><abbr
-                                            title="Extra events are not blocked but billed at €0.0001/event">Up to <strong>30,000</strong> events per day</abbr></span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500"><abbr
-                                            title="Extended retention can be purchased, contact us!"><strong>14 days</strong> data retention</abbr></span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500"><strong>Standard</strong> support (3-day email)</span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500">Support video and documentation</span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500">Account security</span>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div class="border border-gray-200 rounded-lg shadow-sm divide-y divide-gray-200">
-                    <div class="p-6">
-                        <h2 class="text-lg leading-6 font-medium text-gray-900">Pro</h2>
-                        <p class="mt-4 text-sm text-gray-500">Unleash your data connectivity along with enterprise
-                            features
-                            and better support.</p>
-                        <p class="mt-8">
-                            <span class="text-4xl font-extrabold text-gray-900">€190</span>
-                            <span class="text-base font-medium text-gray-500">/month</span>
-                        </p>
-                        <a href="<%= locals.subscriptionLinks.cloud.pro %>"
-                           class="mt-8 block w-full bg-green-500 border border-transparent rounded-md py-2 text-sm font-semibold text-white text-center hover:bg-green-400">Subscribe</a>
-                    </div>
-                    <div class="pt-6 pb-8 px-6">
-                        <h3 class="text-xs font-medium text-gray-900 tracking-wide uppercase">What's included</h3>
-                        <ul role="list" class="mt-6 space-y-4">
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500">Fully managed, no infra. to own</span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500"><strong>Unlimited</strong> developers</span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500"><strong>Unlimited</strong> applications</span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500"><strong>Unlimited</strong> event types</span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                              <span><%- include('../svg/check-green.svg') %></span>
-                              <span class="text-sm text-gray-500">
-                                  <strong>Unlimited</strong> subscriptions
-                              </span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500"><abbr
-                                            title="Extra events are not blocked but billed at €0.0001/event">Up to <strong>100,000</strong> events per day</abbr></span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500"><abbr
-                                            title="Extended retention can be purchased, contact us!"><strong>30 days</strong> data retention</abbr></span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500"><strong>Premium</strong> support (3-day email)</span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500">Support video and documentation</span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500">Account security</span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500">Static source IPs (on demand)</span>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div class="border border-gray-200 rounded-lg shadow-sm divide-y divide-gray-200">
-                    <div class="p-6">
-                        <h2 class="text-lg leading-6 font-medium text-gray-900">Enterprise</h2>
-                        <p class="mt-4 text-sm text-gray-500">You need more? You need different? Let us know and we will
-                            build a custom plan just for you.</p>
-                        <p class="mt-8">
-                            <span class="text-4xl font-extrabold text-gray-900">Custom</span>
-                            <span class="text-base font-medium text-gray-500">/month</span>
-                        </p>
-                        <a href="<%= locals.meta.contact %>"
-                           class="mt-8 block w-full bg-green-500 border border-transparent rounded-md py-2 text-sm font-semibold text-white text-center hover:bg-green-400">Contact
-                            us</a>
-                    </div>
-                    <div class="pt-6 pb-8 px-6">
-                        <h3 class="text-xs font-medium text-gray-900 tracking-wide uppercase">What's included</h3>
-                        <ul role="list" class="mt-6 space-y-4">
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500">Fully managed, no infra. to own</span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500"><strong>Unlimited</strong> developers</span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500"><strong>Unlimited</strong> applications</span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500"><strong>Unlimited</strong> event types</span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                              <span><%- include('../svg/check-green.svg') %></span>
-                              <span class="text-sm text-gray-500">
-                                  <strong>Unlimited</strong> subscriptions
-                              </span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500"><abbr
-                                            title="Extra events are not blocked but billed at €0.0001/event"><strong>Custom</strong> events per day</abbr></span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500"><abbr
-                                            title="Extended retention can be purchased, contact us!"><strong>Custom</strong> data retention</abbr></span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500"><strong>Custom</strong> support level</span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500">Support video and documentation</span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500">
-                                    <strong>Custom</strong> requirements
-                                </span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500">
-                                Enterprise <strong>security</strong> & compliance
-                            </span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500">Static source IPs (on demand)</span>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-
-            <p class="mt-4 ml-2 flex space-x-3">
-                <span><%- include('../svg/information-circle.svg') %></span>
-                <span class="text-sm text-gray-500">One <strong>event</strong> can trigger multiple webhook subscriptions which can in turn be retried multiple times. <strong>Subscriptions and retries are free.</strong></span>
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Section Header -->
+        <div class="section__header animate-on-scroll">
+            <span class="section__eyebrow">Pricing</span>
+            <h2 class="section__title">Hook0 Pricing</h2>
+            <p class="section__description">
+                Choose the plan that's right for you, and start sending webhooks now
             </p>
-
         </div>
 
+        <!-- Pricing Toggle -->
+        <div class="animate-on-scroll flex justify-center mb-12">
+            <div class="inline-flex gap-2 p-1.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                <button class="pricing-toggle-btn px-6 py-3 rounded-xl text-sm font-medium text-gray-400 border border-transparent
+                               hover:text-white transition-all duration-300 flex items-center gap-2" data-target="cloud">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 28 20">
+                        <path fill-rule="evenodd" clip-rule="evenodd"
+                              d="M21.9173 6.78008C21.1731 3.088 17.9111 0.307739 13.9998 0.307739C10.0884 0.307739 6.82638 3.08802 6.08221 6.78011C2.69016 6.97647 0 9.78942 0 13.2307C0 16.7993 2.89293 19.6922 6.46154 19.6922H21.5385C25.1071 19.6922 28 16.7993 28 13.2307C28 9.78925 25.3096 6.9762 21.9173 6.78008Z"></path>
+                    </svg>
+                    Cloud
+                </button>
+                <button class="pricing-toggle-btn px-6 py-3 rounded-xl text-sm font-medium text-gray-400 border border-transparent
+                               hover:text-white transition-all duration-300 flex items-center gap-2" data-target="onpremise">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 26 22">
+                        <path fill-rule="evenodd" clip-rule="evenodd"
+                              d="M0 3C0 1.34314 1.34315 0 3 0H23C24.6569 0 26 1.34315 26 3V18.4783C26 20.1351 24.6569 21.4783 23 21.4783H3C1.34315 21.4783 0 20.1351 0 18.4783V3ZM7.08947 13.5652L5.73774 12.2959L8.74929 9.044L5.65212 5.81452L6.98165 4.5217L11.1591 8.87765L11.3043 9.01395L11.1892 9.13821L7.08947 13.5652ZM19.5001 14.6957H10.4566V16.9565H19.5001V14.6957Z"></path>
+                    </svg>
+                    On-Premise
+                </button>
+            </div>
+        </div>
+
+        <!-- Cloud Pricing -->
+        <div class="pricing--cloud">
+            <div class="text-center mb-12 animate-on-scroll">
+                <h3 class="text-heading-xl font-bold text-white">Cloud</h3>
+                <p class="mt-2 text-gray-400">Hook0 as a service, managed by our team</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 stagger-children items-stretch">
+                <!-- Developer Plan -->
+                <div class="animate-on-scroll pricing-card flex flex-col">
+                    <div class="pricing-card__header">
+                        <h3 class="pricing-card__name">Developer</h3>
+                        <p class="pricing-card__description">Perfect way to try out Hook0, no need to setup your instance, free forever for side-projects.</p>
+                        <div class="pricing-card__price">
+                            <span class="amount">FREE</span>
+                            <span class="period">Forever</span>
+                        </div>
+                    </div>
+                    <div class="pricing-card__body flex-1 flex flex-col">
+                        <a href="#top" class="btn btn--primary w-full mb-6">Sign Up</a>
+                        <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">What's included</h4>
+                        <ul class="pricing-card__features flex-1">
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span>Fully managed, no infra. to own</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span><strong>1</strong> developer</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span><strong>1</strong> application</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span><strong>10</strong> event types</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span><strong>10</strong> subscriptions</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <abbr title="Extra events are blocked">Up to <strong>100</strong> events/day</abbr>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span><strong>7 days</strong> data retention</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span>No credit card required</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Startup Plan -->
+                <div class="animate-on-scroll pricing-card flex flex-col">
+                    <div class="pricing-card__header">
+                        <h3 class="pricing-card__name">Startup</h3>
+                        <p class="pricing-card__description">Enhance your webhook experience with our new features and grow your start-up!</p>
+                        <div class="pricing-card__price">
+                            <span class="amount">€59</span>
+                            <span class="period">/month</span>
+                        </div>
+                    </div>
+                    <div class="pricing-card__body flex-1 flex flex-col">
+                        <a href="<%= locals.subscriptionLinks.cloud.startup %>" class="btn btn--primary w-full mb-6">Subscribe</a>
+                        <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">What's included</h4>
+                        <ul class="pricing-card__features flex-1">
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span>Fully managed, no infra. to own</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span><strong>25</strong> developers</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span><strong>1</strong> application</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span><strong>50</strong> event types</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span><strong>300</strong> subscriptions</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <abbr title="Extra events are not blocked but billed at €0.003/event">Up to <strong>30,000</strong> events/day</abbr>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <abbr title="Extended retention can be purchased, contact us!"><strong>14 days</strong> data retention</abbr>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span><strong>Standard</strong> support (3-day email)</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Pro Plan (Featured) -->
+                <div class="animate-on-scroll pricing-card pricing-card--featured flex flex-col pt-6">
+                    <div class="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                        <span class="px-4 py-1.5 rounded-full bg-indigo-500 text-white text-xs font-semibold whitespace-nowrap">Most Popular</span>
+                    </div>
+                    <div class="pricing-card__header">
+                        <h3 class="pricing-card__name">Pro</h3>
+                        <p class="pricing-card__description">Unleash your data connectivity along with enterprise features and better support.</p>
+                        <div class="pricing-card__price">
+                            <span class="amount">€190</span>
+                            <span class="period">/month</span>
+                        </div>
+                        <p class="mt-2 text-sm text-gray-400 text-left">
+                            €1824/year <span class="text-green-400">(20% off)</span>
+                        </p>
+                    </div>
+                    <div class="pricing-card__body flex-1 flex flex-col">
+                        <a href="<%= locals.subscriptionLinks.cloud.pro %>" class="btn btn--primary w-full mb-6">Subscribe</a>
+                        <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">What's included</h4>
+                        <ul class="pricing-card__features flex-1">
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span>Fully managed, no infra. to own</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span><strong>Unlimited</strong> developers</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span><strong>Unlimited</strong> applications</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span><strong>Unlimited</strong> event types</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span><strong>Unlimited</strong> subscriptions</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <abbr title="Extra events are not blocked but billed at €0.0001/event">Up to <strong>100,000</strong> events/day</abbr>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <abbr title="Extended retention can be purchased, contact us!"><strong>30 days</strong> data retention</abbr>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span><strong>Premium</strong> support (3-day email)</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span>Static source IPs (on demand)</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Enterprise Plan -->
+                <div class="animate-on-scroll pricing-card flex flex-col">
+                    <div class="pricing-card__header">
+                        <h3 class="pricing-card__name">Enterprise</h3>
+                        <p class="pricing-card__description">You need more? You need different? Let us know and we will build a custom plan just for you.</p>
+                        <div class="pricing-card__price">
+                            <span class="amount">Custom</span>
+                            <span class="period">/year</span>
+                        </div>
+                    </div>
+                    <div class="pricing-card__body flex-1 flex flex-col">
+                        <a href="<%= locals.meta.contact %>" class="btn btn--secondary w-full mb-6">Contact us</a>
+                        <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">What's included</h4>
+                        <ul class="pricing-card__features flex-1">
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span>Fully managed, no infra. to own</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span><strong>Unlimited</strong> everything</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span><strong>Custom</strong> events per day</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span><strong>Custom</strong> data retention</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span><strong>Custom</strong> support level</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span>Enterprise <strong>security</strong> & compliance</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span>Static source IPs (on demand)</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Note -->
+            <div class="mt-8 flex items-start gap-3 text-sm text-gray-400 animate-on-scroll">
+                <svg class="w-5 h-5 text-indigo-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span>One <strong>event</strong> can trigger multiple webhook subscriptions which can in turn be retried multiple times. <strong class="text-green-400">Subscriptions and retries are free.</strong></span>
+            </div>
+        </div>
+
+        <!-- On-Premise Pricing -->
         <div class="pricing--onpremise">
-            <h2 class="mt-12 ms-4 text-3xl font-bold text-gray-900 sm:text-center md:text-left">
-                On-Premise
-                <small class="text-xl font-semibold text-gray-400">Your dedicated Hook0 instance</small>
-            </h2>
+            <div class="text-center mb-12 animate-on-scroll">
+                <h3 class="text-heading-xl font-bold text-white">On-Premise</h3>
+                <p class="mt-2 text-gray-400">Your dedicated Hook0 instance</p>
+            </div>
 
-            <div class="mt-5 space-y-4 sm:space-y-0 sm:grid sm:grid-cols-1 sm:gap-6 lg:max-w-4xl lg:mx-auto lg:max-w-none lg:mx-0 lg:grid-cols-3">
-                <div class="border border-gray-200 rounded-lg shadow-sm divide-y divide-gray-200">
-                    <div class="p-6">
-                        <h2 class="text-lg leading-6 font-medium text-gray-900">Self-hosted</h2>
-                        <p class="mt-4 text-sm text-gray-500">Open-source, onpremiseed.
-                            Complete control over your data. Security and privacy compliant.</p>
-                        <p class="mt-8">
-                            <span class="text-4xl font-extrabold text-gray-900">FREE</span>
-                            <span class="text-base font-medium text-gray-500">Forever</span>
-                        </p>
-                        <a href="https://documentation.hook0.com/docs/docker-compose"
-                           class="mt-8 block w-full bg-indigo-500 border border-transparent rounded-md py-2 text-sm font-semibold text-white text-center hover:bg-indigo-400">Get installation instructions</a>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 stagger-children items-stretch">
+                <!-- Self-hosted Plan -->
+                <div class="animate-on-scroll pricing-card flex flex-col">
+                    <div class="pricing-card__header">
+                        <h3 class="pricing-card__name">Self-hosted</h3>
+                        <p class="pricing-card__description">Open-source, on your infrastructure. Complete control over your data. Security and privacy compliant.</p>
+                        <div class="pricing-card__price">
+                            <span class="amount">FREE</span>
+                            <span class="period">Forever</span>
+                        </div>
                     </div>
-                    <div class="pt-6 pb-8 px-6">
-                        <h3 class="text-xs font-medium text-gray-900 tracking-wide uppercase">What's included</h3>
-                        <ul role="list" class="mt-6 space-y-4">
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500">Host your own instance</span>
+                    <div class="pricing-card__body flex-1 flex flex-col">
+                        <a href="https://documentation.hook0.com/docs/docker-compose" class="btn btn--secondary w-full mb-6">Get installation instructions</a>
+                        <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">What's included</h4>
+                        <ul class="pricing-card__features flex-1">
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span>Host your own instance</span>
                             </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500">Your data, your rules</span>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span>Your data, your rules</span>
                             </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500"><a
-                                            href="https://gitlab.com/hook0/hook0/-/blob/master/LICENSE.txt">Server Side Public License</a></span>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <a href="https://gitlab.com/hook0/hook0/-/blob/master/LICENSE.txt" class="text-indigo-400 hover:text-indigo-300">Server Side Public License</a>
                             </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500">Community support on <a
-                                            href="<%= locals.social.discord.href %>" target="_blank">Discord</a></span>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span>Community support on <a href="<%= locals.social.discord.href %>" target="_blank" class="text-indigo-400 hover:text-indigo-300">Discord</a></span>
                             </li>
                         </ul>
-                        <h3 class="mt-6 text-xs font-medium text-gray-900 tracking-wide uppercase">What's not
-                            included</h3>
-                        <ul role="list" class="mt-6 space-y-4">
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/exclamation-triangle.svg') %></span>
-                                <span class="text-sm text-gray-500">Infrastructure scaling</span>
+                        <h4 class="text-xs font-semibold text-yellow-500/80 uppercase tracking-wider mb-4 mt-6">What's not included</h4>
+                        <ul class="pricing-card__features">
+                            <li class="pricing-card__feature text-gray-500">
+                                <svg class="text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                <span>Infrastructure scaling</span>
                             </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/exclamation-triangle.svg') %></span>
-                                <span class="text-sm text-gray-500">99.9% uptime</span>
+                            <li class="pricing-card__feature text-gray-500">
+                                <svg class="text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                <span>99.9% uptime</span>
                             </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/exclamation-triangle.svg') %></span>
-                                <span class="text-sm text-gray-500">Managed updates</span>
+                            <li class="pricing-card__feature text-gray-500">
+                                <svg class="text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                <span>Managed updates</span>
                             </li>
                         </ul>
                     </div>
                 </div>
 
-                <div class="border border-gray-200 rounded-lg shadow-sm divide-y divide-gray-200">
-                    <div class="p-6">
-                        <h2 class="text-lg leading-6 font-medium text-gray-900">Pro</h2>
-                        <p class="mt-4 text-sm text-gray-500">We deploy a dedicated Hook0 instance to your environment
-                            and
-                            help you maintain/update it.</p>
-                        <p class="mt-8">
-                            <span class="text-4xl font-extrabold text-gray-900">€1000</span>
-                            <span class="text-base font-medium text-gray-500">setup</span>
-                            <span class="text-4xl font-extrabold text-gray-900">+</span>
-                            <span class="text-4xl font-extrabold text-gray-900">€500</span>
-                            <span class="text-base font-medium text-gray-500">/mo</span>
-                        </p>
-                        <a href="<%= locals.subscriptionLinks.onprem.pro %>"
-                           class="mt-8 block w-full bg-indigo-500 border border-transparent rounded-md py-2 text-sm font-semibold text-white text-center hover:bg-indigo-400">Subscribe</a>
+                <!-- Pro On-Premise Plan -->
+                <div class="animate-on-scroll pricing-card pricing-card--featured flex flex-col pt-6">
+                    <div class="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                        <span class="px-4 py-1.5 rounded-full bg-indigo-500 text-white text-xs font-semibold whitespace-nowrap">Recommended</span>
                     </div>
-                    <div class="pt-6 pb-8 px-6">
-                        <h3 class="text-xs font-medium text-gray-900 tracking-wide uppercase">What's included</h3>
-                        <ul role="list" class="mt-6 space-y-4">
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500">Your data, your rules</span>
+                    <div class="pricing-card__header">
+                        <h3 class="pricing-card__name">Pro</h3>
+                        <p class="pricing-card__description">We deploy a dedicated Hook0 instance to your environment and help you maintain/update it.</p>
+                        <div class="pricing-card__price">
+                            <span class="amount">€1000</span>
+                            <span class="period">setup + €500/month</span>
+                        </div>
+                        <p class="mt-2 text-sm text-gray-400 text-left">
+                            Or €0 setup + €6000/year
+                        </p>
+                    </div>
+                    <div class="pricing-card__body flex-1 flex flex-col">
+                        <a href="<%= locals.subscriptionLinks.onprem.pro %>" class="btn btn--primary w-full mb-6">Subscribe</a>
+                        <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">What's included</h4>
+                        <ul class="pricing-card__features flex-1">
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span>Your data, your rules</span>
                             </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500"><strong>Compatible</strong> with most cloud providers</span>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <abbr title="Contact us if you need more!">Up to <strong>1,000,000</strong> events/day</abbr>
                             </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500"><strong>Managed</strong> updates</span>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span><strong>Compatible</strong> with most cloud providers</span>
                             </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500"><strong>Premium</strong> support (3-day email)</span>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span><strong>Managed</strong> updates</span>
+                            </li>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span><strong>Premium</strong> support (3-day email)</span>
                             </li>
                         </ul>
                     </div>
                 </div>
 
-                <div class="border border-gray-200 rounded-lg shadow-sm divide-y divide-gray-200">
-                    <div class="p-6">
-                        <h2 class="text-lg leading-6 font-medium text-gray-900">Enterprise</h2>
-                        <p class="mt-4 text-sm text-gray-500">We help you exactly the way you need to provide a great
-                            webhook experience to your users.</p>
-                        <p class="mt-8">
-                            <span class="text-4xl font-extrabold text-gray-900"><wbr></span>
-                        </p>
-                        <a href="<%= locals.meta.contact %>"
-                           class="mt-8 block w-full bg-indigo-500 border border-transparent rounded-md py-2 text-sm font-semibold text-white text-center hover:bg-indigo-400">Contact
-                            us</a>
+                <!-- Enterprise On-Premise Plan -->
+                <div class="animate-on-scroll pricing-card flex flex-col">
+                    <div class="pricing-card__header">
+                        <h3 class="pricing-card__name">Enterprise</h3>
+                        <p class="pricing-card__description">We help you exactly the way you need to provide a great webhook experience to your users.</p>
+                        <div class="pricing-card__price">
+                            <span class="amount">Custom</span>
+                        </div>
                     </div>
-                    <div class="pt-6 pb-8 px-6">
-                        <h3 class="text-xs font-medium text-gray-900 tracking-wide uppercase">What's included</h3>
-                        <ul role="list" class="mt-6 space-y-4">
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500">Your data, your rules</span>
+                    <div class="pricing-card__body flex-1 flex flex-col">
+                        <a href="<%= locals.meta.contact %>" class="btn btn--secondary w-full mb-6">Contact us</a>
+                        <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">What's included</h4>
+                        <ul class="pricing-card__features flex-1">
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span>Your data, your rules</span>
                             </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/check-green.svg') %></span>
-                                <span class="text-sm text-gray-500"><strong>Custom</strong> support level</span>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span><strong>Custom</strong> support level</span>
                             </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/question-mark-circle.svg') %></span>
-                                <span class="text-sm text-gray-500">Study of your use cases</span>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span><strong>Custom</strong> events per day</span>
                             </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/question-mark-circle.svg') %></span>
-                                <span class="text-sm text-gray-500">Deployment on your architecture</span>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                <span>Study of your use cases</span>
                             </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/question-mark-circle.svg') %></span>
-                                <span class="text-sm text-gray-500">Instance management</span>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                <span>Custom developments</span>
                             </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/question-mark-circle.svg') %></span>
-                                <span class="text-sm text-gray-500">Custom developments</span>
-                            </li>
-
-                            <li class="flex space-x-3">
-                                <span><%- include('../svg/question-mark-circle.svg') %></span>
-                                <span class="text-sm text-gray-500">Training</span>
+                            <li class="pricing-card__feature">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                <span>Training</span>
                             </li>
                         </ul>
                     </div>
                 </div>
             </div>
         </div>
-
     </div>
-</div>
+</section>

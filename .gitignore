@@ -20,8 +20,5 @@ api/.clever.json
 # docker-compose
 .data
 
-
-# docs
-/build
-.docusaurus
-.DS_Store
+# playwright
+.playwright-mcp

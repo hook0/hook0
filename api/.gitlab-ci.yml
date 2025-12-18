@@ -33,6 +33,9 @@ api.check:
     - rustc --version && cargo --version
     - rustup component add clippy
     - rustup component add rustfmt
+    - wget -O protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/protoc-$PROTOC_VERSION-linux-x86_64.zip && mkdir protoc && unzip protoc.zip -d protoc/
+    - export PROTOC="$(realpath ./protoc/bin/protoc)"
+
   script:
     - pushd api
     - cargo fmt --all -- --check
@@ -52,4 +55,4 @@ api.documentation:
         - Cargo.*
   image: node:$NODE_VERSION
   script:
-    - npx --yes rdme@9.1.1 openapi --id=${README_IO_ID} --key=${README_IO_KEY} --update https://app.hook0.com/api/v1/swagger.json
+    - npx --yes rdme@9.2.2 openapi --id=${README_IO_ID} --key=${README_IO_KEY} --update https://app.hook0.com/api/v1/swagger.json

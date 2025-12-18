@@ -92,6 +92,7 @@ pub async fn list(
         None,
         Action::OrganizationList,
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     ) {
         let (token_organizations, is_master) = match token {
             AuthorizedToken::User(AuthorizedUserToken { organizations, .. }) => {
@@ -183,6 +184,7 @@ pub async fn create(
         None,
         Action::OrganizationCreate,
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     ) {
         if let Err(e) = body.validate() {
             return Err(Hook0Problem::Validation(e));
@@ -314,6 +316,7 @@ pub async fn get(
         Some(organization_id),
         Action::OrganizationGet,
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .is_err()
     {
@@ -424,16 +427,28 @@ pub async fn get(
         let consumption = query_as!(
             OrganizationConsumption,
             r#"
+                WITH members AS (
+                    SELECT COUNT(user__id) AS total
+                    FROM iam.user__organization
+                    WHERE organization__id = $1
+                ), applications AS (
+                    SELECT COUNT(application__id) AS total
+                    FROM event.application
+                    WHERE organization__id = $1
+                        AND deleted_at IS NULL
+                ), events_per_day AS (
+                    SELECT SUM(e.amount) AS total
+                    FROM event.events_per_day AS e
+                    INNER JOIN event.application AS a ON a.application__id = e.application__id
+                    WHERE a.organization__id = $1
+                        AND e.date = CURRENT_DATE
+                )
                 SELECT
-                    COALESCE(COUNT(DISTINCT uo.user__id), 0) AS members,
-                    COALESCE(COUNT(DISTINCT a.application__id), 0) AS applications,
-                    COALESCE(SUM(e.amount), 0) AS events_per_day
+                    COALESCE(members.total, 0) AS members,
+                    COALESCE(applications.total, 0) AS applications,
+                    COALESCE(events_per_day.total, 0) AS events_per_day
                 FROM
-                    iam.user__organization AS uo
-                    LEFT JOIN event.application AS a ON uo.organization__id = a.organization__id AND a.deleted_at IS NULL
-                    LEFT JOIN event.events_per_day AS e ON a.application__id = e.application__id AND e.date = CURRENT_DATE
-                WHERE
-                    uo.organization__id = $1
+                    members, applications, events_per_day
             "#,
             &organization_id
         )
@@ -478,6 +493,7 @@ pub async fn edit(
         Some(organization_id.as_ref().to_owned()),
         Action::OrganizationEdit,
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .is_err()
     {
@@ -547,6 +563,7 @@ pub async fn invite(
         Some(organization_id),
         Action::OrganizationInvite,
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .is_err()
     {
@@ -636,6 +653,7 @@ pub async fn revoke(
         Some(organization_id),
         Action::OrganizationRevoke,
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .is_err()
     {
@@ -717,11 +735,12 @@ pub async fn edit_role(
         Some(organization_id),
         Action::OrganizationEditRole,
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     ) {
-        if let AuthorizedToken::User(user_token) = token {
-            if user_token.user_id == body.user_id {
-                return Err(Hook0Problem::Forbidden);
-            }
+        if let AuthorizedToken::User(user_token) = token
+            && user_token.user_id == body.user_id
+        {
+            return Err(Hook0Problem::Forbidden);
         }
 
         query!(
@@ -765,23 +784,23 @@ pub async fn delete(
         Some(organization_id),
         Action::OrganizationDelete,
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .is_err()
     {
         return Err(Hook0Problem::Forbidden);
     }
 
-    let organization_is_empty = query!(
-        "
-            SELECT application__id
+    let organization_is_empty = query_scalar!(
+        r#"
+            SELECT COUNT(application__id) = 0 AS "empty!"
             FROM event.application
-            WHERE organization__id = $1
-        ",
+            WHERE organization__id = $1 AND deleted_at IS NULL
+        "#,
         &organization_id,
     )
-    .fetch_all(&state.db)
-    .await?
-    .is_empty();
+    .fetch_one(&state.db)
+    .await?;
 
     if organization_is_empty {
         query!(

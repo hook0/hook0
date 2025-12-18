@@ -1,0 +1,8 @@
+<% const bgColor = (typeof color !== 'undefined' && color === 'indigo') ? 'bg-indigo-500/20' : 'bg-green-500/20'; %>
+<% const textColor = (typeof color !== 'undefined' && color === 'indigo') ? 'text-indigo-400' : 'text-green-400'; %>
+<% const sw = (typeof strokeWidth !== 'undefined') ? strokeWidth : 3; %>
+<div class="flex-shrink-0 w-5 h-5 mt-1 rounded <%= bgColor %> flex items-center justify-center">
+    <svg class="w-3 h-3 <%= textColor %>" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="<%= sw %>" d="<%= iconPath %>"></path>
+    </svg>
+</div>

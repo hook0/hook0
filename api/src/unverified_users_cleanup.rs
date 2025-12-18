@@ -1,13 +1,15 @@
-use actix::clock::sleep;
+use actix_web::rt::time::sleep;
 use chrono::TimeDelta;
 use log::{debug, error, info, trace};
 use sqlx::postgres::types::PgInterval;
 use sqlx::{Acquire, PgPool, Postgres, query};
 use std::time::{Duration, Instant};
+use tokio::sync::Semaphore;
 
 const STARTUP_GRACE_PERIOD: Duration = Duration::from_secs(40);
 
 pub async fn periodically_clean_up_unverified_users(
+    housekeeping_semaphore: &Semaphore,
     db: &PgPool,
     period: Duration,
     grace_period_in_day: u32,
@@ -16,13 +18,16 @@ pub async fn periodically_clean_up_unverified_users(
     sleep(STARTUP_GRACE_PERIOD).await;
 
     match PgInterval::try_from(TimeDelta::days(grace_period_in_day.into())) {
-        Ok(grace_period) => loop {
-            if let Err(e) = clean_up_unverified_users(db, &grace_period, delete).await {
-                error!("Could not clean up unverified users: {e}");
-            }
+        Ok(grace_period) => {
+            while let Ok(permit) = housekeeping_semaphore.acquire().await {
+                if let Err(e) = clean_up_unverified_users(db, &grace_period, delete).await {
+                    error!("Could not clean up unverified users: {e}");
+                }
+                drop(permit);
 
-            sleep(period).await;
-        },
+                sleep(period).await;
+            }
+        }
         Err(e) => {
             error!("Could not convert grace period ({grace_period_in_day:?}) to a PG interval: {e}")
         }
@@ -48,8 +53,8 @@ async fn clean_up_unverified_users(
         tx.commit().await?;
 
         if total_deleted_unverified_users + total_deleted_unreachable_organizations > 0 {
-            debug!("Running vacuum analyze and reindexing...");
-            vacuum_analyze_and_reindex(db).await?;
+            debug!("Running vacuum analyze...");
+            vacuum_analyze(db).await?;
         }
 
         info!(
@@ -114,20 +119,10 @@ async fn deleted_unreachable_organizations<'a, A: Acquire<'a, Database = Postgre
     Ok(res.rows_affected())
 }
 
-async fn vacuum_analyze_and_reindex<'a, A: Acquire<'a, Database = Postgres>>(
-    db: A,
-) -> Result<(), sqlx::Error> {
+async fn vacuum_analyze<'a, A: Acquire<'a, Database = Postgres>>(db: A) -> Result<(), sqlx::Error> {
     let mut db = db.acquire().await?;
 
     query!("VACUUM ANALYZE iam.user, iam.organization")
-        .execute(&mut *db)
-        .await?;
-
-    query!("REINDEX TABLE CONCURRENTLY iam.user")
-        .execute(&mut *db)
-        .await?;
-
-    query!("REINDEX TABLE CONCURRENTLY iam.organization")
         .execute(&mut *db)
         .await?;
 

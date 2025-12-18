@@ -1,6 +1,3 @@
-<!-- Heroicon name: outline/clock -->
-<svg class="absolute h-6 w-6 text-yellow-500" xmlns="http://www.w3.org/2000/svg"
-        fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-</svg>
+version https://git-lfs.github.com/spec/v1
+oid sha256:6d2bbd56172c3101d606427d3912aa5c9ee6a6c275c5f41d1be6a2465d8c1884
+size 325

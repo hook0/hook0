@@ -42,6 +42,17 @@ const columnDefs: ColDef[] = [
       value: (subscription: Subscription) => (subscription.is_enabled ? 'Enabled' : 'Disabled'),
       icon: (subscription: Subscription) => (subscription.is_enabled ? 'toggle-on' : 'toggle-off'),
       onClick: (row: Subscription): void => {
+        // If disabling, ask for confirmation
+        if (row.is_enabled) {
+          const subscriptionName = row.description || 'this subscription';
+          if (
+            !confirm(
+              `Are you sure you want to disable ${subscriptionName}? All pending and scheduled webhook deliveries will be marked as failed and stay in this state even if you re-enable the subscription later.`
+            )
+          ) {
+            return;
+          }
+        }
         SubscriptionService.toggleEnable(row.subscription_id, row)
           .then(() => {
             // @TODO notify user of success
@@ -91,14 +102,18 @@ const columnDefs: ColDef[] = [
     },
   },
   {
+    field: 'labels',
     suppressMovable: true,
     sortable: true,
     resizable: true,
-    headerName: 'Label',
+    width: 100,
+    headerName: 'Labels',
     cellRenderer: Hook0TableCellCode,
     cellRendererParams: {
-      value: (data: Subscription) => {
-        return `${data.label_key}=${data.label_value}`;
+      value(row: Subscription) {
+        return Object.entries(row.labels as Record<string, string>)
+          .map(([key, value]) => `${key}=${value}`)
+          .join(' ');
       },
     },
     // This seems useless but triggers a warning if not set

@@ -1,27 +1,81 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Hook0 - Subscription success</title>
+    <title>Hook0 - Subscription Success</title>
+    <meta name="description" content="Your Hook0 subscription is now active.">
     <%- include('./includes/_head.ejs') %>
 </head>
 <body>
 <%- include('./includes/_header.ejs') %>
 
-<div class="relative py-16 bg-white overflow-hidden">
-    <div class="relative px-4 sm:px-6 lg:px-8">
-        <div class="text-lg max-w-prose prose prose-lg mx-auto">
-            <h1>
-                <span class="block text-center text-yellow-600 font-semibold tracking-wide uppercase">🙌 You are good to go!</span>
-            </h1>
+<!-- Hero Section -->
+<section class="relative gradient-hero overflow-hidden min-h-[60vh] flex items-center">
+    <!-- Background Effects -->
+    <div class="absolute inset-0 grid-pattern opacity-50"></div>
+    <div class="blur-circle blur-circle--green w-96 h-96 -top-48 -left-48"></div>
+    <div class="blur-circle blur-circle--indigo w-80 h-80 top-1/2 -right-40"></div>
 
-            <p>
-                Thanks for subscribing!
-                Your account is now active.
-            </p>
+    <div class="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center py-20">
+        <!-- Success Icon -->
+        <div class="mx-auto w-24 h-24 rounded-full bg-green-500/20 flex items-center justify-center mb-8 animate-on-scroll">
+            <svg class="w-12 h-12 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
         </div>
 
+        <span class="section__eyebrow text-green-400">Success</span>
+        <h1 class="mt-4 text-display-xl text-white">
+            You're All Set!
+        </h1>
+        <p class="mt-6 text-body-lg text-gray-400 max-w-xl mx-auto">
+            Thanks for subscribing! Your account is now active and ready to use. Start sending webhooks in minutes.
+        </p>
+
+        <!-- Action Buttons -->
+        <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center animate-on-scroll">
+            <a href="<%= locals.meta.app_url %>" class="btn btn--primary btn--lg">
+                Go to Dashboard
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                </svg>
+            </a>
+            <a href="<%= locals.meta.doc_guides %>" class="btn btn--secondary btn--lg">
+                Read the Docs
+            </a>
+        </div>
+
+        <!-- Feature Highlights -->
+        <div class="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6 animate-on-scroll">
+            <div class="p-6 rounded-xl bg-white/5 border border-white/10">
+                <div class="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-white font-semibold">Quick Setup</h3>
+                <p class="text-sm text-gray-400 mt-2">Get started in minutes with our simple API</p>
+            </div>
+            <div class="p-6 rounded-xl bg-white/5 border border-white/10">
+                <div class="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-white font-semibold">Secure & Reliable</h3>
+                <p class="text-sm text-gray-400 mt-2">Enterprise-grade security with 99.9% uptime</p>
+            </div>
+            <div class="p-6 rounded-xl bg-white/5 border border-white/10">
+                <div class="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-white font-semibold">24/7 Support</h3>
+                <p class="text-sm text-gray-400 mt-2">Our team is here to help you succeed</p>
+            </div>
+        </div>
     </div>
-</div>
+</section>
 
 <%- include('./includes/_footer.ejs') %>
 

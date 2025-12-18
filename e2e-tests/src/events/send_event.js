@@ -16,6 +16,9 @@ export default function (service_token, base_url, application_id, event_type, la
     occurred_at: '2022-11-04T16:12:58Z',
     payload_content_type: 'application/json',
     payload: '{"test_k6": true}',
+    metadata: {
+      test_k6: 'true',
+    },
   };
 
   let res = http.post(url, JSON.stringify(payload), { headers: headers });
@@ -26,6 +29,7 @@ export default function (service_token, base_url, application_id, event_type, la
         r.status === 201 && r.body && r.body.includes('event_id') && r.body.includes('received_at'),
     })
   ) {
+    console.warn(res);
     return null;
   }
 

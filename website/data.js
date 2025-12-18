@@ -44,6 +44,17 @@ locals.meta = {
   contact: 'mailto:support@hook0.com',
 };
 
+locals.seo = {
+  siteUrl: 'https://www.hook0.com',
+  siteName: 'Hook0',
+  defaultTitle: 'Hook0 - Open-Source Webhooks-as-a-Service (WaaS)',
+  defaultDescription: 'Hook0 is an open-source Webhooks-as-a-Service platform. Send webhooks with one API call. We handle deliverability, retries, security, and monitoring. Free plan available.',
+  defaultImage: '/mediakit/logo/1920x1920-banner.png',
+  twitterHandle: '@hook0_',
+  locale: 'en_US',
+  themeColor: '#0a0a0f',
+};
+
 locals['guide-sdk-tutorial'] = [
   {
     language: 'Python',
@@ -96,41 +107,41 @@ locals.features = [
   {
     primary: true,
     title: 'Easy Integration',
-    description: 'Our JSON REST API and integrations makes it easy to trigger webhook events from your Application and connect to every available SaaS',
+    description: 'Our JSON REST API and SDKs make it easy to trigger webhook events from your application and let your users connect to every available SaaS.',
   },
   {
     primary: true,
     title: 'Enterprise Level Security',
-    description: 'All webhooks are SSL secured and contain Signing Secrets to prevent Replay, Forgery and Man-in-the-middle attacks',
+    description: 'All webhooks are TLS secured and contain a cryptographic signature to prevent forgery, replay, man-in-the-middle attacks.',
   },
   {
     primary: true,
     title: 'Smart Retries',
-    description: 'Managing webhook retries is a pain. Our exponential back offs, endpoint monitoring and notifications handle it for you',
+    description: 'Managing webhook retries is a pain. Our exponential back offs, endpoint monitoring and notifications handle it for you.',
     wip: false,
   },
   {
     primary: true,
     title: 'Make Your Subscribers Happy',
-    description: 'Give your users a primo experience with our mock payloads, webhook logs and subscriber portal',
+    description: 'Give your users a primo experience with our mock payloads, webhook logs and subscriber portal.',
     wip: false,
   },
   {
     primary: true,
     title: 'Transparent Webhooks',
-    description: 'All webhook attempts are logged so you and your subscribers can easily search, debug and replay old events',
+    description: 'All webhook attempts are logged so you and your subscribers can easily search, debug and replay old events.',
     wip: false,
   },
   {
     primary: true,
     title: 'Embeddable Portal',
-    description: 'Give your subscribers a branded experience with a custom subdomain and your logo uploaded on the subscriber portal',
+    description: 'Give your subscribers a branded experience with a custom subdomain and your logo uploaded on the subscriber portal.',
     wip: false,
   },
   {
     primary: true,
-    title: 'Real-time Monitoring',
-    description: 'We monitor your subscriber endpoints for SSL and uptime and send notifications for non-responsive endpoints',
+    title: 'Precise Dispatch',
+    description: 'Your users only receive webhooks they subscribed to. You can filter each subscription by business info (user ID, …).',
     wip: true,
   },
   {
@@ -145,7 +156,7 @@ locals.features = [
   },
   {
     title: 'Multi subscriptions',
-    description: 'Your users can register several webhooks, we will send events to all of them!',
+    description: 'Your users can register several webhook target URLs, we will send events to all of them!',
     wip: false,
   },
   {
@@ -158,7 +169,6 @@ locals.features = [
     description: 'Either use Hook0 out-of-the-box dashboards to let your users see events that went through their subscriptions, or build your own with the API.',
     wip: true,
   },
-
   {
     title: 'Failure notification',
     description: "If after several retries we still can't successfuly reach a webhook, your subscriber is notified by email.",
@@ -166,7 +176,7 @@ locals.features = [
   },
   {
     title: 'Events & responses persistence',
-    description: 'Hook0 can keep track of every event your application sent it and of every webhook call. This can helps you debug things or act as an audit log !',
+    description: 'Hook0 keeps track of every event your application sent it and of every webhook call. This can help you debug your integration or act as an audit log!',
     wip: false,
   },
   {

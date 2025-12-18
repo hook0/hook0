@@ -2,48 +2,314 @@
 <html lang="en">
 <head>
     <title>Hook0 - Built to Last - The Hook0 Manifesto</title>
+    <%
+    locals.pageTitle = 'Hook0 - Built to Last - The Hook0 Manifesto';
+    locals.pageDescription = '100% bootstrapped, no VC funding, no exit strategy. Hook0 is built to serve you today, tomorrow, and for decades to come. Our commitment to sustainable open-source software.';
+    locals.pageCanonical = '/built-to-last';
+    %>
     <%- include('./includes/_head.ejs') %>
 </head>
 <body>
 <%- include('./includes/_header.ejs') %>
 
-<div class="relative py-16 bg-white overflow-hidden">
-    <div class="relative px-4 sm:px-6 lg:px-8">
-        <div class="text-lg max-w-prose prose prose-lg mx-auto">
-            <div>
-                <div class="section haze wf-section">
-                    <div class="wrapper">
-                        <div class="intro">
-                            <h1 class="text-4xl font-bold">Built to Last - The Hook0 Manifesto</h1>
-                        </div>
-                        <div class="w-layout-grid main-grid">
-                            <div class="text-base">
-                                <p>At Hook0, we are committed to building software that stands the test of time. In an era where information is often transient, ensuring the longevity of data is paramount. Our mission is to provide an open-source, reliable, and durable webhook infrastructure, ensuring that the integrations you build today remain operational in the future.</p>
-                                <p>But longevity isn’t just about technology, <strong>it is about how we build our company</strong>. We believe that the way a company is funded determines its destiny. That is why we choose to bootstrap rather than chase endless funding rounds. We’re not here to impress investors with hockey-stick growth projections; we’re here to serve our customers with <strong>a product that works today and will still work in a decade</strong>.</p>
-                                <p><strong>Our approach to ensuring long-term sustainability:</strong></p>
-                                <ol>
-                                    <li><strong>Simplicity is key.</strong> We are staunch opponents of software complexity. Clean and straightforward code is more durable, easier to maintain, and adaptable. Complexity introduces unnecessary dependencies, increases the risk of failure, and forces users into costly migrations. At Hook0, we embrace <strong>simplicity and clarity</strong>, ensuring that our software is built to last.</li>
-                                    <li><strong>We prioritize core value over feature creep.</strong> We love our customers, and we listen carefully to their needs. But we don’t say “yes” to every feature request. Great software isn’t about adding more, it’s about adding <strong>the right things</strong>. The best upgrade is the one that <strong>doesn’t break what already works</strong>. Every feature we add must serve a clear purpose and enhance long-term maintainability.</li>
-                                    <li><strong>No external pressure, no artificial deadlines.</strong> When companies raise money, they sell their freedom. Investors expect rapid growth, often at the expense of sustainability and product quality. That’s not what we want for Hook0. By bootstrapping, we <strong>control our own roadmap</strong>, ensuring we make decisions that benefit our customers rather than external stakeholders.</li>
-                                    <li><strong>Profitability is sustainability.</strong> We believe that a business should sustain itself. We build products that <strong>pay for themselves</strong>: not through speculative investments, but through real customers willing to pay for real value. Profitability isn’t just a goal; it is proof that we’re solving real problems in a way that makes sense.</li>
-                                    <li><strong>Independence means resilience.</strong> Hook0 isn’t built to be sold or acquired, it is built to serve its users. We don’t rely on VC money, and we don’t build with an exit in mind. This means we aren’t at the mercy of market downturns, sudden pivots, or an impatient board demanding unsustainable growth. We are fully accountable <strong></strong>, and that is exactly how we like it.</li>
-                                </ol>
-                                <p><strong>Built to Last, Built for You</strong></p>
-                                <p>Software today is often disposable. Products rise and fall overnight, and users are forced to migrate, retrain, and rebuild their workflows as startups collapse or pivot. We refuse to contribute to this cycle.</p>
-                                <p>Hook0 is designed to last. <strong>We are in this for the long run</strong>. Our customers can count on us, not just today, but for years to come.</p>
-                                <p>That’s why we bootstrap. That’s why we build carefully. That’s why we put our customers first. And that’s why <strong>Hook0 will still be here when others have disappeared.</strong></p>
-                            </div>
-                        </div>
+<!-- Hero Section -->
+<section class="relative min-h-screen flex items-center gradient-hero overflow-hidden">
+    <!-- Background Effects -->
+    <div class="absolute inset-0 grid-pattern opacity-50"></div>
+    <div class="blur-circle blur-circle--indigo w-96 h-96 -top-48 left-1/4"></div>
+    <div class="blur-circle blur-circle--green w-80 h-80 top-1/3 right-1/4"></div>
+    <div class="blur-circle blur-circle--indigo w-64 h-64 bottom-20 left-1/2 opacity-30"></div>
+
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32 text-center">
+        <!-- Badge -->
+        <div class="animate-on-scroll inline-flex items-center gap-3 px-1 pr-4 py-1 rounded-full
+                    bg-white/5 border border-white/10 backdrop-blur-sm mb-8">
+            <span class="px-3 py-1 text-xs font-semibold tracking-wide bg-green-500 text-white rounded-full">
+                100% Bootstrapped
+            </span>
+            <span class="text-sm text-gray-300">
+                No VC, No Exit Strategy, No Compromises
+            </span>
+        </div>
+
+        <!-- Headline -->
+        <h1 class="animate-on-scroll text-display-xl text-white mb-6">
+            Built to Last
+            <span class="block text-gradient-green mt-2 pb-1 leading-relaxed">The Hook0 Manifesto</span>
+        </h1>
+
+        <!-- Description -->
+        <p class="animate-on-scroll text-body-lg text-gray-400 max-w-3xl mx-auto">
+            In an era where software is disposable and startups collapse overnight, we're building something different. Hook0 is designed to serve you today, tomorrow, and for decades to come.
+        </p>
+
+        <!-- Trust Metrics -->
+        <div class="animate-on-scroll mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto stagger-children">
+            <div class="glass rounded-2xl p-6">
+                <div class="text-4xl font-extrabold text-gradient-indigo mb-2 pb-1 leading-relaxed">100%</div>
+                <div class="text-sm text-gray-400">Bootstrapped</div>
+            </div>
+            <div class="glass rounded-2xl p-6">
+                <div class="text-4xl font-extrabold text-gradient-green mb-2 pb-1 leading-relaxed">0</div>
+                <div class="text-sm text-gray-400">VC Funding</div>
+            </div>
+            <div class="glass rounded-2xl p-6">
+                <div class="text-4xl font-extrabold text-gradient-indigo mb-2 pb-1 leading-relaxed">∞</div>
+                <div class="text-sm text-gray-400">Years Commitment</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scroll Indicator -->
+    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 animate-bounce">
+        <div class="flex flex-col items-center gap-2">
+            <span class="text-sm text-gray-400 uppercase tracking-wider">Scroll</span>
+            <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+            </svg>
+        </div>
+    </div>
+</section>
+
+<!-- Mission Statement -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-30"></div>
+
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="animate-on-scroll text-center mb-16">
+            <span class="section__eyebrow">Our Mission</span>
+            <h2 class="section__title">Software That Stands the Test of Time</h2>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8 stagger-children">
+            <div class="animate-on-scroll card card--glow">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-white mb-3">Technology Built to Endure</h3>
+                        <p class="text-gray-400">
+                            At Hook0, we are committed to building software that stands the test of time. In an era where information is often transient, ensuring the longevity of data is paramount. Our mission is to provide an open-source, reliable, and durable webhook infrastructure, ensuring that the integrations you build today remain operational in the future.
+                        </p>
                     </div>
                 </div>
             </div>
 
+            <div class="animate-on-scroll card card--glow">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-white mb-3">How We Build Our Company</h3>
+                        <p class="text-gray-400">
+                            But longevity isn't just about technology, <strong class="text-white">it is about how we build our company</strong>. We believe that the way a company is funded determines its destiny. That is why we choose to bootstrap rather than chase endless funding rounds. We're not here to impress investors with hockey-stick growth projections; we're here to serve our customers with <strong class="text-white">a product that works today and will still work in a decade</strong>.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Core Principles -->
+<section class="section relative overflow-hidden bg-surface-secondary">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="blur-circle blur-circle--green w-96 h-96 top-1/4 -left-48 opacity-20"></div>
+
+    <div class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="animate-on-scroll text-center mb-16">
+            <span class="section__eyebrow">Our Principles</span>
+            <h2 class="section__title">Our Approach to Long-Term Sustainability</h2>
         </div>
 
+        <div class="space-y-8 stagger-children">
+            <!-- Principle 1 -->
+            <div class="animate-on-scroll primary-feature">
+                <div class="primary-feature-icon">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-bold text-white mb-4">Simplicity is Key</h3>
+                <p class="text-gray-400 leading-relaxed">
+                    We are staunch opponents of software complexity. Clean and straightforward code is more durable, easier to maintain, and adaptable. Complexity introduces unnecessary dependencies, increases the risk of failure, and forces users into costly migrations. At Hook0, we embrace <strong class="text-white">simplicity and clarity</strong>, ensuring that our software is built to last.
+                </p>
+            </div>
+
+            <!-- Principle 2 -->
+            <div class="animate-on-scroll primary-feature">
+                <div class="primary-feature-icon">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-bold text-white mb-4">Core Value Over Feature Creep</h3>
+                <p class="text-gray-400 leading-relaxed">
+                    We love our customers, and we listen carefully to their needs. But we don't say "yes" to every feature request. Great software isn't about adding more, it's about adding <strong class="text-white">the right things</strong>. The best upgrade is the one that <strong class="text-white">doesn't break what already works</strong>. Every feature we add must serve a clear purpose and enhance long-term maintainability.
+                </p>
+            </div>
+
+            <!-- Principle 3 -->
+            <div class="animate-on-scroll primary-feature">
+                <div class="primary-feature-icon">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-bold text-white mb-4">No External Pressure, No Artificial Deadlines</h3>
+                <p class="text-gray-400 leading-relaxed">
+                    When companies raise money, they sell their freedom. Investors expect rapid growth, often at the expense of sustainability and product quality. That's not what we want for Hook0. By bootstrapping, we <strong class="text-white">control our own roadmap</strong>, ensuring we make decisions that benefit our customers rather than external stakeholders.
+                </p>
+            </div>
+
+            <!-- Principle 4 -->
+            <div class="animate-on-scroll primary-feature">
+                <div class="primary-feature-icon">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-bold text-white mb-4">Profitability is Sustainability</h3>
+                <p class="text-gray-400 leading-relaxed">
+                    We believe that a business should sustain itself. We build products that <strong class="text-white">pay for themselves</strong>: not through speculative investments, but through real customers willing to pay for real value. Profitability isn't just a goal; it is proof that we're solving real problems in a way that makes sense.
+                </p>
+            </div>
+
+            <!-- Principle 5 -->
+            <div class="animate-on-scroll primary-feature">
+                <div class="primary-feature-icon">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-bold text-white mb-4">Independence Means Resilience</h3>
+                <p class="text-gray-400 leading-relaxed">
+                    Hook0 isn't built to be sold or acquired, it is built to serve its users. We don't rely on VC money, and we don't build with an exit in mind. This means we aren't at the mercy of market downturns, sudden pivots, or an impatient board demanding unsustainable growth. We are fully accountable, and that is exactly how we like it.
+                </p>
+            </div>
+        </div>
     </div>
-</div>
+</section>
+
+<!-- The Problem Section -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-30"></div>
+    <div class="blur-circle blur-circle--indigo w-96 h-96 bottom-0 right-0 opacity-20"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="animate-on-scroll glass rounded-3xl p-12 border border-indigo-500/20">
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 mb-6 shadow-glow-indigo">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                </div>
+                <h2 class="text-3xl font-bold text-white mb-4">The Industry Problem</h2>
+            </div>
+
+            <div class="text-gray-400 text-lg leading-relaxed space-y-4">
+                <p>
+                    Software today is often disposable. Products rise and fall overnight, and users are forced to migrate, retrain, and rebuild their workflows as startups collapse or pivot. <strong class="text-white">We refuse to contribute to this cycle.</strong>
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Our Commitment Section -->
+<section class="section--sm relative overflow-hidden bg-gradient-to-b from-surface-primary to-surface-secondary">
+    <div class="absolute inset-0 grid-pattern opacity-40"></div>
+    <div class="blur-circle blur-circle--green w-80 h-80 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-30"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div class="animate-on-scroll">
+            <h2 class="text-4xl md:text-5xl font-extrabold text-white mb-6">
+                Built to Last, <span class="text-gradient-green pb-1 leading-relaxed">Built for You</span>
+            </h2>
+
+            <p class="text-xl text-gray-400 mb-8 max-w-3xl mx-auto leading-relaxed">
+                Hook0 is designed to last. <strong class="text-white">We are in this for the long run</strong>. Our customers can count on us, not just today, but for years to come.
+            </p>
+
+            <div class="inline-flex flex-col gap-3 text-lg text-gray-300 text-left">
+                <div class="flex items-center gap-3">
+                    <svg class="w-6 h-6 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <span>That's why we bootstrap.</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <svg class="w-6 h-6 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <span>That's why we build carefully.</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <svg class="w-6 h-6 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <span>That's why we put our customers first.</span>
+                </div>
+            </div>
+
+            <div class="mt-12 p-8 glass rounded-2xl inline-block">
+                <p class="text-2xl font-bold text-gradient-indigo pb-1 leading-relaxed">
+                    Hook0 will still be here when others have disappeared.
+                </p>
+            </div>
+
+            <div class="mt-12">
+                <a href="./sign_up" class="btn btn--primary btn--lg group">
+                    Join Us For The Long Run
+                    <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
 
 <%- include('./includes/_footer.ejs') %>
+
+<script>
+// Scroll animation observer
+document.addEventListener('DOMContentLoaded', function() {
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+            }
+        });
+    }, observerOptions);
+
+    document.querySelectorAll('.animate-on-scroll').forEach(el => {
+        observer.observe(el);
+    });
+
+    // Card glow effect on mouse move
+    document.querySelectorAll('.card--glow').forEach(card => {
+        card.addEventListener('mousemove', function(e) {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            card.style.setProperty('--mouse-x', `${x}px`);
+            card.style.setProperty('--mouse-y', `${y}px`);
+        });
+    });
+});
+</script>
 
 </body>
 </html>

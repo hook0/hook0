@@ -2,203 +2,296 @@
 <html lang="en">
 <head>
     <title>Hook0 - GDPR Subprocessors</title>
+    <%
+    locals.pageTitle = 'Hook0 - GDPR Subprocessors';
+    locals.pageDescription = 'Learn about Hook0 GDPR compliance and the subprocessors we use to provide our webhook services. Full transparency on data processing in Europe.';
+    locals.pageCanonical = '/gdpr-subprocessors';
+    %>
     <%- include('./includes/_head.ejs') %>
     <style>
-      table {
-        width: 100%
-      }
-
-      table td,
-      table th {
-        border: 1px solid #ccc;
-        padding: 15px;
-        padding-left: 10px !important;
-      }
-
-      table th {
-        background-color: #7d8998;
-        color: #fff
-      }
-
+        .subprocessor-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+        }
+        .subprocessor-table th,
+        .subprocessor-table td {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            text-align: left;
+        }
+        .subprocessor-table th {
+            background-color: rgba(99, 102, 241, 0.3);
+            color: white;
+            font-weight: 600;
+        }
+        .subprocessor-table td {
+            background-color: rgba(255, 255, 255, 0.02);
+            color: #d1d5db;
+        }
+        .subprocessor-table tr:hover td {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
     </style>
 </head>
 <body>
 <%- include('./includes/_header.ejs') %>
 
-<div class="relative py-16 bg-white overflow-hidden">
-    <div class="relative px-4 sm:px-6 lg:px-8">
-        <div class="text-lg max-w-prose prose prose-lg mx-auto">
-            <h1>
-                <span class="block text-base text-center text-green-600 font-semibold tracking-wide uppercase">GDPR and Subprocessors</span>
-            </h1>
+<!-- Hero Section -->
+<section class="relative gradient-hero overflow-hidden py-20 sm:py-24">
+    <!-- Background Effects -->
+    <div class="absolute inset-0 grid-pattern opacity-50"></div>
+    <div class="blur-circle blur-circle--indigo w-96 h-96 -top-48 -left-48"></div>
+    <div class="blur-circle blur-circle--green w-80 h-80 top-1/2 -right-40"></div>
 
-            <div class="section haze wf-section">
-                <div class="wrapper">
-                    <div class="intro">
-                        <div class="text-label">Last Update: September 28th, 2024</div>
-                        <div class="divider"></div>
-                    </div>
-                    <div class="w-layout-grid main-grid">
-                        <div class="text-default">
-                            <p>The General Data Protection Regulation (GDPR / DSVGO) is the toughest privacy and
-                                security law in the world. It imposes obligations onto organizations anywhere, so long
-                                as they target or collect data related to people in the EU. The regulation was approved
-                                by the EU Parliament in April 2016 and came into effect on May 25, 2018.</p>
-
-                            <p>Hook0 uses certain sub-processors to assist it in providing Application Services to its
-                                customers, as described in the Master Services Agreement or Terms of Use available at <a
-                                        href="terms.ejs">terms-of-service</a> or such other location as the Terms of Use
-                                may be posted from time to time (as applicable, the “Agreement”). Defined terms used
-                                herein shall have the same meaning as defined in the Agreement.</p>
-
-                            <h2>What is personal data?</h2>
-
-                            <p>GDPR is especially concerned about protecting
-                                personal data of individuals. Personal data (Art. 4 GDPR) consists of any information
-                                that allows us to identify a person directly or indirectly and can be anything such as a
-                                name, email address, credit card number, or documents with personal information.</p>
-
-                            <h2>How we process personal data</h2>
-                            <p>When you visit our websites or use our
-                                services, we will most likely process your personal data in one way or another. You can
-                                find all relevant information about which data we process, our legal basis for
-                                processing, and your rights regarding your personal data in our privacy policy.</p>
-
-                            <h2>Subprocessors and their roles</h2>
-                            <p>A subprocessor is a third-party data
-                                processor engaged by Hook0, including entities from within the Hook0 group, who has or
-                                potentially will have access to or process Customer Content (which may contain Personal
-                                Data). Hook0 engages different types of subprocessors to perform various functions as
-                                explained in the tables below.</p>
-
-                            <h2>Infrastructure</h2>
-                            <p>We use the following subprocessors to provide our cloud infrastructure
-                                environment and storage of our Customer Content:</p>
-
-                            <table>
-                                <thead>
-                                <tr>
-                                    <th>Subprocessor</th>
-                                    <th>Country of Processing</th>
-                                    <th>Purpose</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <tr>
-                                    <td>Clever Cloud SAS</td>
-                                    <td>France, Europe</td>
-                                    <td>Hook0 customer database, API, and web application</td>
-                                </tr>
-                                <tr>
-                                    <td>Cloudflare</td>
-                                    <td>USA</td>
-                                    <td>DNS and DDoS protection</td>
-                                </tr>
-                                </tbody>
-                            </table>
-
-                            <h2>Processing of Customer Content</h2>
-                            <p>Hook0 works with various subprocessors that monitor,
-                                maintain, and support the Application Services. These subprocessors may, but not
-                                necessarily will, have access to Customer Content:</p>
-
-                            <table>
-                                <thead>
-                                <tr>
-                                    <th>Subprocessor</th>
-                                    <th>Country</th>
-                                    <th>Purpose</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <tr>
-                                    <td>Clever Cloud SAS</td>
-                                    <td>France, Europe</td>
-                                    <td>Workers that call the webhook subscription endpoints</td>
-                                </tr>
-                                <tr>
-                                    <td>Scaleway SAS</td>
-                                    <td>France, Europe</td>
-                                    <td>Private dedicated workers that call the webhook subscription endpoints (only for relevant customers)</td>
-                                </tr>
-                                <tr>
-                                    <td>Stripe Inc.</td>
-                                    <td>USA</td>
-                                    <td>Hook0's customer subscription management</td>
-                                </tr>
-                                <tr>
-                                    <td>Brevo</td>
-                                    <td>France, Europe</td>
-                                    <td>Automated emailing</td>
-                                </tr>
-                                <tr>
-                                    <td>Postmark</td>
-                                    <td>USA</td>
-                                    <td>Automated emailing</td>
-                                </tr>
-                                <tr>
-                                    <td>BetterUptime</td>
-                                    <td>Czech Republic, Europe</td>
-                                    <td>Uptime monitoring, status page, and on-call management</td>
-                                </tr>
-                                <tr>
-                                    <td>Sentry</td>
-                                    <td>USA</td>
-                                    <td>Error tracking</td>
-                                </tr>
-                                <tr>
-                                    <td>Crisp</td>
-                                    <td>France, Europe</td>
-                                    <td>Customer relations management</td>
-                                </tr>
-                                <tr>
-                                    <td>Gmail</td>
-                                    <td>USA</td>
-                                    <td>Support mailbox</td>
-                                </tr>
-                                </tbody>
-                            </table>
-
-                            <p>* Note, the list of subprocessors applies to any new Hook0 customers as of that date, or
-                                existing Hook0 customers who have not otherwise received notice of a different effective
-                                date of this list.</p>
-
-
-                            <h2>Stay in Control</h2>
-
-                            <p>
-                              As a French SaaS, Hook0.com offers unmatched GDPR compliance. We leverage the best global
-                              infrastructure to ensure the highest levels of confidentiality, integrity, and availability
-                              for your data. We understand the need for control and independence, so if you prefer not to
-                              rely solely on our or our sub-processors' measures, you can still access our support
-                              services without compromising your data.
-                            </p>
-
-                            <h2>Data Ownership and Management</h2>
-
-                            <p>
-                              There are no data transfers outside of the EU for your deployment (assuming EU-based
-                              hosting). The only exception is for disaster recovery purposes, where backups are stored
-                              securely in French data centers. Moreover, all our staff and consultants who might access
-                              your deployment are based in the EU.
-                            </p>
-
-
-                            <p>
-                              Regarding your own user database (i.e., your ), you must establish the required processes to
-                              comply with GDPR yourself and declare all data transfers that you handle independently.
-                              In this case, Hook0 acts as a subprocessor, and our <a
-                                      href="./data-processing-addendum.ejs">DPA (Data Processing Agreement)</a> specifies
-                              what we do.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <span class="section__eyebrow">Compliance</span>
+        <h1 class="mt-4 text-display-xl text-white">
+            GDPR & Subprocessors
+        </h1>
+        <p class="mt-6 text-body-lg text-gray-400 max-w-2xl mx-auto">
+            Our commitment to data protection and the partners we work with.
+        </p>
+        <div class="mt-4 inline-flex items-center px-4 py-2 rounded-full bg-white/10 text-sm text-gray-300">
+            <svg class="w-4 h-4 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>
+            Last Update: September 28th, 2024
         </div>
     </div>
-</div>
+</section>
+
+<!-- Main Content Section -->
+<section class="relative bg-surface-primary py-16 sm:py-20 overflow-hidden">
+    <!-- Background Effects -->
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="blur-circle blur-circle--indigo w-64 h-64 top-1/4 right-0 opacity-10"></div>
+    <div class="blur-circle blur-circle--green w-64 h-64 bottom-1/4 left-0 opacity-10"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        <!-- Introduction -->
+        <div class="card card--glow mb-8 animate-on-scroll">
+            <div class="prose prose-invert prose-lg max-w-none">
+                <p class="text-gray-300 leading-relaxed">
+                    The General Data Protection Regulation (GDPR / DSVGO) is the toughest privacy and security law in the world. It imposes obligations onto organizations anywhere, so long as they target or collect data related to people in the EU. The regulation was approved by the EU Parliament in April 2016 and came into effect on May 25, 2018.
+                </p>
+                <p class="text-gray-300 leading-relaxed">
+                    Hook0 uses certain sub-processors to assist it in providing Application Services to its customers, as described in the Master Services Agreement or Terms of Use available at <a href="./terms.ejs" class="text-green-400 hover:text-green-300 transition-colors">terms-of-service</a> or such other location as the Terms of Use may be posted from time to time (as applicable, the "Agreement"). Defined terms used herein shall have the same meaning as defined in the Agreement.
+                </p>
+            </div>
+        </div>
+
+        <!-- What is Personal Data -->
+        <div class="mb-8 animate-on-scroll">
+            <div class="mb-6">
+                <h2 class="text-display font-bold text-white">What is Personal Data?</h2>
+                <div class="mt-3 h-1 w-20 bg-gradient-to-r from-green-500 to-indigo-500 rounded-full"></div>
+            </div>
+            <div class="card card--glow">
+                <p class="text-gray-300 leading-relaxed">
+                    GDPR is especially concerned about protecting personal data of individuals. Personal data (Art. 4 GDPR) consists of any information that allows us to identify a person directly or indirectly and can be anything such as a name, email address, credit card number, or documents with personal information.
+                </p>
+            </div>
+        </div>
+
+        <!-- How We Process Personal Data -->
+        <div class="mb-8 animate-on-scroll">
+            <div class="mb-6">
+                <h2 class="text-display font-bold text-white">How We Process Personal Data</h2>
+                <div class="mt-3 h-1 w-20 bg-gradient-to-r from-green-500 to-indigo-500 rounded-full"></div>
+            </div>
+            <div class="card card--glow">
+                <p class="text-gray-300 leading-relaxed">
+                    When you visit our websites or use our services, we will most likely process your personal data in one way or another. You can find all relevant information about which data we process, our legal basis for processing, and your rights regarding your personal data in our privacy policy.
+                </p>
+            </div>
+        </div>
+
+        <!-- Subprocessors and Their Roles -->
+        <div class="mb-8 animate-on-scroll">
+            <div class="mb-6">
+                <h2 class="text-display font-bold text-white">Subprocessors and Their Roles</h2>
+                <div class="mt-3 h-1 w-20 bg-gradient-to-r from-green-500 to-indigo-500 rounded-full"></div>
+            </div>
+            <div class="card card--glow">
+                <p class="text-gray-300 leading-relaxed">
+                    A subprocessor is a third-party data processor engaged by Hook0, including entities from within the Hook0 group, who has or potentially will have access to or process Customer Content (which may contain Personal Data). Hook0 engages different types of subprocessors to perform various functions as explained in the tables below.
+                </p>
+            </div>
+        </div>
+
+        <!-- Infrastructure -->
+        <div class="mb-8 animate-on-scroll">
+            <div class="mb-6">
+                <h2 class="text-display font-bold text-white">Infrastructure</h2>
+                <div class="mt-3 h-1 w-20 bg-gradient-to-r from-green-500 to-indigo-500 rounded-full"></div>
+            </div>
+            <div class="card card--glow">
+                <p class="text-gray-300 leading-relaxed mb-6">
+                    We use the following subprocessors to provide our cloud infrastructure environment and storage of our Customer Content:
+                </p>
+                <div class="overflow-x-auto">
+                    <table class="subprocessor-table">
+                        <thead>
+                            <tr>
+                                <th>Subprocessor</th>
+                                <th>Country of Processing</th>
+                                <th>Purpose</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Clever Cloud SAS</td>
+                                <td>
+                                    <span class="inline-flex items-center">
+                                        <img src="svg/europe-flag.svg" alt="EU" class="w-4 h-4 mr-2" loading="lazy">
+                                        France, Europe
+                                    </span>
+                                </td>
+                                <td>Hook0 customer database, API, and web application</td>
+                            </tr>
+                            <tr>
+                                <td>Cloudflare</td>
+                                <td>USA</td>
+                                <td>DNS and DDoS protection</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Processing of Customer Content -->
+        <div class="mb-8 animate-on-scroll">
+            <div class="mb-6">
+                <h2 class="text-display font-bold text-white">Processing of Customer Content</h2>
+                <div class="mt-3 h-1 w-20 bg-gradient-to-r from-green-500 to-indigo-500 rounded-full"></div>
+            </div>
+            <div class="card card--glow">
+                <p class="text-gray-300 leading-relaxed mb-6">
+                    Hook0 works with various subprocessors that monitor, maintain, and support the Application Services. These subprocessors may, but not necessarily will, have access to Customer Content:
+                </p>
+                <div class="overflow-x-auto">
+                    <table class="subprocessor-table">
+                        <thead>
+                            <tr>
+                                <th>Subprocessor</th>
+                                <th>Country</th>
+                                <th>Purpose</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Clever Cloud SAS</td>
+                                <td>
+                                    <span class="inline-flex items-center">
+                                        <img src="svg/europe-flag.svg" alt="EU" class="w-4 h-4 mr-2" loading="lazy">
+                                        France, Europe
+                                    </span>
+                                </td>
+                                <td>Workers that call the webhook subscription endpoints</td>
+                            </tr>
+                            <tr>
+                                <td>Scaleway SAS</td>
+                                <td>
+                                    <span class="inline-flex items-center">
+                                        <img src="svg/europe-flag.svg" alt="EU" class="w-4 h-4 mr-2" loading="lazy">
+                                        France, Europe
+                                    </span>
+                                </td>
+                                <td>Private dedicated workers that call the webhook subscription endpoints (only for relevant customers)</td>
+                            </tr>
+                            <tr>
+                                <td>Stripe Inc.</td>
+                                <td>USA</td>
+                                <td>Hook0's customer subscription management</td>
+                            </tr>
+                            <tr>
+                                <td>Brevo</td>
+                                <td>
+                                    <span class="inline-flex items-center">
+                                        <img src="svg/europe-flag.svg" alt="EU" class="w-4 h-4 mr-2" loading="lazy">
+                                        France, Europe
+                                    </span>
+                                </td>
+                                <td>Automated emailing</td>
+                            </tr>
+                            <tr>
+                                <td>Postmark</td>
+                                <td>USA</td>
+                                <td>Automated emailing</td>
+                            </tr>
+                            <tr>
+                                <td>BetterUptime</td>
+                                <td>
+                                    <span class="inline-flex items-center">
+                                        <img src="svg/europe-flag.svg" alt="EU" class="w-4 h-4 mr-2" loading="lazy">
+                                        Czech Republic, Europe
+                                    </span>
+                                </td>
+                                <td>Uptime monitoring, status page, and on-call management</td>
+                            </tr>
+                            <tr>
+                                <td>Sentry</td>
+                                <td>USA</td>
+                                <td>Error tracking</td>
+                            </tr>
+                            <tr>
+                                <td>Crisp</td>
+                                <td>
+                                    <span class="inline-flex items-center">
+                                        <img src="svg/europe-flag.svg" alt="EU" class="w-4 h-4 mr-2" loading="lazy">
+                                        France, Europe
+                                    </span>
+                                </td>
+                                <td>Customer relations management</td>
+                            </tr>
+                            <tr>
+                                <td>Gmail</td>
+                                <td>USA</td>
+                                <td>Support mailbox</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-gray-500 text-sm mt-4">
+                    * Note, the list of subprocessors applies to any new Hook0 customers as of that date, or existing Hook0 customers who have not otherwise received notice of a different effective date of this list.
+                </p>
+            </div>
+        </div>
+
+        <!-- Stay in Control -->
+        <div class="mb-8 animate-on-scroll">
+            <div class="mb-6">
+                <h2 class="text-display font-bold text-white">Stay in Control</h2>
+                <div class="mt-3 h-1 w-20 bg-gradient-to-r from-green-500 to-indigo-500 rounded-full"></div>
+            </div>
+            <div class="card card--glow">
+                <p class="text-gray-300 leading-relaxed">
+                    As a French SaaS, Hook0.com offers unmatched GDPR compliance. We leverage the best global infrastructure to ensure the highest levels of confidentiality, integrity, and availability for your data. We understand the need for control and independence, so if you prefer not to rely solely on our or our sub-processors' measures, you can still access our support services without compromising your data.
+                </p>
+            </div>
+        </div>
+
+        <!-- Data Ownership and Management -->
+        <div class="mb-8 animate-on-scroll">
+            <div class="mb-6">
+                <h2 class="text-display font-bold text-white">Data Ownership and Management</h2>
+                <div class="mt-3 h-1 w-20 bg-gradient-to-r from-green-500 to-indigo-500 rounded-full"></div>
+            </div>
+            <div class="card card--glow">
+                <p class="text-gray-300 leading-relaxed mb-4">
+                    There are no data transfers outside of the EU for your deployment (assuming EU-based hosting). The only exception is for disaster recovery purposes, where backups are stored securely in French data centers. Moreover, all our staff and consultants who might access your deployment are based in the EU.
+                </p>
+                <p class="text-gray-300 leading-relaxed">
+                    Regarding your own user database, you must establish the required processes to comply with GDPR yourself and declare all data transfers that you handle independently. In this case, Hook0 acts as a subprocessor, and our <a href="./data-processing-addendum.ejs" class="text-green-400 hover:text-green-300 transition-colors">DPA (Data Processing Agreement)</a> specifies what we do.
+                </p>
+            </div>
+        </div>
+
+    </div>
+</section>
 
 <%- include('./includes/_footer.ejs') %>
 

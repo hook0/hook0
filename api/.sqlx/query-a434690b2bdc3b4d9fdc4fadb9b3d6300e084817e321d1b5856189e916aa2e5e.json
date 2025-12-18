@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                ra.request_attempt__id,\n                ra.subscription__id,\n                ra.created_at,\n                t_http.method AS http_method,\n                t_http.url AS http_url,\n                t_http.headers AS http_headers,\n                s.secret,\n                COALESCE(sw.worker__id, ow.worker__id) AS worker_id,\n                COALESCE(w1.queue_type, w2.queue_type) AS worker_queue_type\n            FROM webhook.request_attempt AS ra\n            INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id\n            INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id\n            LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = ra.subscription__id\n            LEFT JOIN infrastructure.worker AS w1 ON w1.worker__id = sw.worker__id\n            INNER JOIN event.application AS a ON a.application__id = s.application__id\n            LEFT JOIN iam.organization__worker AS ow ON ow.organization__id = a.organization__id AND ow.default = true\n            LEFT JOIN infrastructure.worker AS w2 ON w2.worker__id = ow.worker__id\n            WHERE ra.event__id = $1\n                AND ra.succeeded_at IS NULL AND ra.failed_at IS NULL\n                AND a.deleted_at IS NULL\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "request_attempt__id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "subscription__id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "http_method",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "http_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "http_headers",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 6,
+        "name": "secret",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 7,
+        "name": "worker_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 8,
+        "name": "worker_queue_type",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "a434690b2bdc3b4d9fdc4fadb9b3d6300e084817e321d1b5856189e916aa2e5e"
+}

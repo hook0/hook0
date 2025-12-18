@@ -8,7 +8,7 @@ use paperclip::v2::models::{DataType, DataTypeFormat, DefaultSchemaRaw};
 use paperclip::v2::schema::Apiv2Schema;
 use reqwest::Url;
 use serde::{Deserialize, Deserializer, Serialize};
-use serde_json::{Value, json};
+use serde_json::{Map, Value, json};
 use sqlx::{query, query_as, query_scalar};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::ops::Deref;
@@ -20,6 +20,7 @@ use crate::hook0_client::{
 };
 use crate::iam::{Action, authorize_for_application, get_owner_organization};
 use crate::openapi::OaBiscuit;
+use crate::opentelemetry::report_cancelled_request_attempts;
 use crate::problems::Hook0Problem;
 use crate::quotas::Quota;
 use crate::validators::{
@@ -35,9 +36,12 @@ pub struct Subscription {
     pub event_types: Vec<String>,
     pub description: Option<String>,
     pub secret: Uuid,
-    pub metadata: HashMap<String, Value>,
+    pub metadata: HashMap<String, String>,
+    /// _Kept for backward compatibility, you should use `labels`_
     pub label_key: String,
+    /// _Kept for backward compatibility, you should use `labels`_
     pub label_value: String,
+    pub labels: HashMap<String, String>,
     pub target: Target,
     pub created_at: DateTime<Utc>,
     pub dedicated_workers: Vec<String>,
@@ -199,6 +203,7 @@ pub async fn list(
             application_id: &qs.application_id,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .await
     .is_err()
@@ -214,8 +219,7 @@ pub async fn list(
         description: Option<String>,
         secret: Uuid,
         metadata: Value,
-        label_key: String,
-        label_value: String,
+        labels: Value,
         target_json: Option<Value>,
         created_at: DateTime<Utc>,
         dedicated_workers: Option<Vec<String>>,
@@ -226,7 +230,7 @@ pub async fn list(
         r#"
             WITH subs AS (
                 SELECT
-                    s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.label_key, s.label_value, s.target__id, s.created_at,
+                    s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.target__id, s.created_at,
                     CASE WHEN length((array_agg(set.event_type__name))[1]) > 0
                         THEN array_agg(set.event_type__name)
                         ELSE ARRAY[]::text[] END AS event_types,
@@ -249,35 +253,46 @@ pub async fn list(
                 ) AS target_json FROM webhook.target_http
                 WHERE target__id IN (SELECT target__id FROM subs)
             )
-            SELECT subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.label_key AS "label_key!", subs.label_value AS "label_value!", subs.created_at AS "created_at!", subs.event_types, targets.target_json, subs.dedicated_workers
+            SELECT subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.labels AS "labels!", subs.created_at AS "created_at!", subs.event_types, targets.target_json, subs.dedicated_workers
             FROM subs
             INNER JOIN targets ON subs.target__id = targets.target__id
         "#, // Column aliases ending with "!" are there because sqlx does not seem to infer correctly that these columns' types are not options
         &qs.application_id,
     )
-        .fetch_all(&state.db)
-        .await
-        .map_err(|e| {
-            error!("{}", &e);
-            Hook0Problem::InternalServerError
-        })?;
+    .fetch_all(&state.db)
+    .await
+    .map_err(|e| {
+        error!("{e}");
+        Hook0Problem::InternalServerError
+    })?;
 
     let subscriptions = raw_subscriptions
-        .iter()
-        .map(|s| Subscription {
-            application_id: qs.application_id,
-            subscription_id: s.subscription__id,
-            is_enabled: s.is_enabled,
-            event_types: s.event_types.clone().unwrap_or_default(),
-            description: s.description.to_owned(),
-            secret: s.secret,
-            metadata: serde_json::from_value(s.metadata.clone()).unwrap_or_else(|_| HashMap::new()),
-            label_key: s.label_key.to_owned(),
-            label_value: s.label_value.to_owned(),
-            target: serde_json::from_value(s.target_json.clone().unwrap())
-                .expect("Could not parse subscription target"),
-            created_at: s.created_at,
-            dedicated_workers: s.dedicated_workers.clone().unwrap_or_default(),
+        .into_iter()
+        .map(|s| {
+            let labels: HashMap<String, String> =
+                serde_json::from_value(s.labels).unwrap_or_else(|_| HashMap::new());
+            let first_label = labels
+                .iter()
+                .next()
+                .map(|(k, v)| (k.to_owned(), v.to_owned()))
+                .unwrap_or_else(|| (String::new(), String::new()));
+
+            Subscription {
+                application_id: qs.application_id,
+                subscription_id: s.subscription__id,
+                is_enabled: s.is_enabled,
+                event_types: s.event_types.unwrap_or_default(),
+                description: s.description,
+                secret: s.secret,
+                metadata: serde_json::from_value(s.metadata).unwrap_or_else(|_| HashMap::new()),
+                label_key: first_label.0,
+                label_value: first_label.1,
+                labels,
+                target: serde_json::from_value(s.target_json.unwrap())
+                    .expect("Could not parse subscription target"),
+                created_at: s.created_at,
+                dedicated_workers: s.dedicated_workers.unwrap_or_default(),
+            }
         })
         .collect::<Vec<_>>();
 
@@ -325,6 +340,7 @@ pub async fn get(
             subscription_id: &subscription_id,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .await
     .is_err()
@@ -341,8 +357,7 @@ pub async fn get(
         description: Option<String>,
         secret: Uuid,
         metadata: Value,
-        label_key: String,
-        label_value: String,
+        labels: Value,
         target_json: Option<Value>,
         created_at: DateTime<Utc>,
         dedicated_workers: Option<Vec<String>>,
@@ -353,7 +368,7 @@ pub async fn get(
         r#"
             WITH subs AS (
                 SELECT
-                    s.application__id, s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.label_key, s.label_value, s.target__id, s.created_at,
+                    s.application__id, s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.target__id, s.created_at,
                     CASE WHEN length((array_agg(set.event_type__name))[1]) > 0
                         THEN array_agg(set.event_type__name)
                         ELSE ARRAY[]::text[] END AS event_types,
@@ -376,7 +391,7 @@ pub async fn get(
                 ) AS target_json FROM webhook.target_http
                 WHERE target__id IN (SELECT target__id FROM subs)
             )
-            SELECT subs.application__id AS "application__id!", subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.label_key AS "label_key!", subs.label_value AS "label_value!", subs.created_at AS "created_at!", subs.event_types, targets.target_json, subs.dedicated_workers
+            SELECT subs.application__id AS "application__id!", subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.labels AS "labels!", subs.created_at AS "created_at!", subs.event_types, targets.target_json, subs.dedicated_workers
             FROM subs
             INNER JOIN targets ON subs.target__id = targets.target__id
             LIMIT 1
@@ -384,29 +399,40 @@ pub async fn get(
         &application_id,
         &subscription_id,
     )
-        .fetch_optional(&state.db)
-        .await
-        .map_err(|e| {
-            error!("{}", &e);
-            Hook0Problem::InternalServerError
-        })?;
+    .fetch_optional(&state.db)
+    .await
+    .map_err(|e| {
+        error!("{e}");
+        Hook0Problem::InternalServerError
+    })?;
 
     match raw_subscription {
-        Some(s) => Ok(Json(Subscription {
-            application_id: s.application__id,
-            subscription_id: s.subscription__id,
-            is_enabled: s.is_enabled,
-            event_types: s.event_types.clone().unwrap_or_default(),
-            description: s.description.to_owned(),
-            secret: s.secret,
-            metadata: serde_json::from_value(s.metadata.clone()).unwrap_or_else(|_| HashMap::new()),
-            label_key: s.label_key.to_owned(),
-            label_value: s.label_value.to_owned(),
-            target: serde_json::from_value(s.target_json.clone().unwrap())
-                .expect("Could not parse subscription target"),
-            created_at: s.created_at,
-            dedicated_workers: s.dedicated_workers.unwrap_or_default(),
-        })),
+        Some(s) => {
+            let labels: HashMap<String, String> =
+                serde_json::from_value(s.labels).unwrap_or_else(|_| HashMap::new());
+            let first_label = labels
+                .iter()
+                .next()
+                .map(|(k, v)| (k.to_owned(), v.to_owned()))
+                .unwrap_or_else(|| (String::new(), String::new()));
+
+            Ok(Json(Subscription {
+                application_id: s.application__id,
+                subscription_id: s.subscription__id,
+                is_enabled: s.is_enabled,
+                event_types: s.event_types.unwrap_or_default(),
+                description: s.description,
+                secret: s.secret,
+                metadata: serde_json::from_value(s.metadata).unwrap_or_else(|_| HashMap::new()),
+                label_key: first_label.0,
+                label_value: first_label.1,
+                labels,
+                target: serde_json::from_value(s.target_json.unwrap())
+                    .expect("Could not parse subscription target"),
+                created_at: s.created_at,
+                dedicated_workers: s.dedicated_workers.unwrap_or_default(),
+            }))
+        }
         None => Err(Hook0Problem::NotFound),
     }
 }
@@ -420,11 +446,15 @@ pub struct SubscriptionPost {
     #[validate(length(min = 1, max = 100))]
     description: Option<String>,
     #[validate(custom(function = "crate::validators::metadata"))]
-    metadata: Option<HashMap<String, Value>>,
+    metadata: Option<HashMap<String, String>>,
+    /// _Kept for backward compatibility, you should use `labels`_
     #[validate(non_control_character, length(min = 1, max = 100))]
-    label_key: String,
+    label_key: Option<String>,
+    /// _Kept for backward compatibility, you should use `labels`_
     #[validate(non_control_character, length(min = 1, max = 100))]
-    label_value: String,
+    label_value: Option<String>,
+    #[validate(custom(function = "crate::validators::labels"))]
+    labels: Option<HashMap<String, String>>,
     #[validate(nested)]
     target: Target,
     #[validate(length(min = 1, max = 20))]
@@ -445,15 +475,21 @@ pub async fn create(
     biscuit: ReqData<Biscuit>,
     body: Json<SubscriptionPost>,
 ) -> Result<CreatedJson<Subscription>, Hook0Problem> {
+    let labels = match (&body.labels, &body.label_key, &body.label_value) {
+        (Some(l), _, _) => Ok(l.to_owned()),
+        (None, Some(k), Some(v)) => Ok(HashMap::from_iter([(k.to_owned(), v.to_owned())])),
+        _ => Err(Hook0Problem::LabelsAmbiguity),
+    }?;
+
     if authorize_for_application(
         &state.db,
         &biscuit,
         Action::SubscriptionCreate {
             application_id: &body.application_id,
-            label_key: &body.label_key,
-            label_value: &body.label_value,
+            labels: &labels,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .await
     .is_err()
@@ -496,6 +532,8 @@ pub async fn create(
         ));
     }
 
+    let labels = serde_json::to_value(&labels).unwrap_or_else(|_| Value::Object(Map::new()));
+
     let metadata = match body.metadata.as_ref() {
         Some(m) => serde_json::to_value(m.clone())
             .expect("could not serialize subscription metadata into JSON"),
@@ -511,24 +549,22 @@ pub async fn create(
         description: Option<String>,
         secret: Uuid,
         metadata: Value,
-        label_key: String,
-        label_value: String,
+        labels: Value,
         target__id: Uuid,
         created_at: DateTime<Utc>,
     }
     let subscription = query_as!(
             RawSubscription,
             "
-                INSERT INTO webhook.subscription (subscription__id, application__id, is_enabled, description, secret, metadata, label_key, label_value, target__id, created_at)
-                VALUES (public.gen_random_uuid(), $1, $2, $3, public.gen_random_uuid(), $4, $5, $6, public.gen_random_uuid(), statement_timestamp())
-                RETURNING subscription__id, is_enabled, description, secret, metadata, label_key, label_value, target__id, created_at
+                INSERT INTO webhook.subscription (subscription__id, application__id, is_enabled, description, secret, metadata, labels, target__id, created_at)
+                VALUES (public.gen_random_uuid(), $1, $2, $3, public.gen_random_uuid(), $4, $5, public.gen_random_uuid(), statement_timestamp())
+                RETURNING subscription__id, is_enabled, description, secret, metadata, labels, target__id, created_at
             ",
             &body.application_id,
             &body.is_enabled,
             body.description,
             metadata,
-            &body.label_key,
-            &body.label_value,
+            labels,
         )
             .fetch_one(&mut *tx)
             .await
@@ -622,6 +658,13 @@ pub async fn create(
 
     tx.commit().await.map_err(Hook0Problem::from)?;
 
+    let labels: HashMap<String, String> =
+        serde_json::from_value(subscription.labels).unwrap_or_else(|_| HashMap::new());
+    let first_label = labels
+        .iter()
+        .next()
+        .map(|(k, v)| (k.to_owned(), v.to_owned()))
+        .unwrap_or_else(|| (String::new(), String::new()));
     let subscription = Subscription {
         application_id: body.application_id,
         subscription_id: subscription.subscription__id,
@@ -631,8 +674,9 @@ pub async fn create(
         secret: subscription.secret,
         metadata: serde_json::from_value(subscription.metadata.clone())
             .unwrap_or_else(|_| HashMap::new()),
-        label_key: subscription.label_key,
-        label_value: subscription.label_value,
+        label_key: first_label.0,
+        label_value: first_label.1,
+        labels,
         target: body.target.clone(),
         created_at: subscription.created_at,
         dedicated_workers: body.dedicated_workers.clone().unwrap_or_default(),
@@ -647,8 +691,7 @@ pub async fn create(
             event_types: subscription.event_types.to_owned(),
             description: subscription.description.to_owned(),
             metadata: subscription.metadata.to_owned(),
-            label_key: subscription.label_key.to_owned(),
-            label_value: subscription.label_value.to_owned(),
+            labels: subscription.labels.to_owned(),
             target: subscription.target.to_owned(),
             created_at: subscription.created_at,
         }
@@ -666,7 +709,7 @@ pub async fn create(
 
 #[api_v2_operation(
     summary = "Update a subscription",
-    description = "Modifies an existing subscription, including its event types, target configuration, or metadata. The subscription must belong to the specified application.",
+    description = "Modifies an existing subscription, including its event types, target configuration, or metadata. The subscription must belong to the specified application. When disabling a subscription, all pending and scheduled request attempts for this subscription will be automatically marked as failed; they won't be set back to a pending state if the subscription is re-enabled later.",
     operation_id = "subscriptions.update",
     consumes = "application/json",
     produces = "application/json",
@@ -679,6 +722,12 @@ pub async fn edit(
     subscription_id: Path<Uuid>,
     body: Json<SubscriptionPost>,
 ) -> Result<Json<Subscription>, Hook0Problem> {
+    let labels = match (&body.labels, &body.label_key, &body.label_value) {
+        (Some(l), _, _) => Ok(l.to_owned()),
+        (None, Some(k), Some(v)) => Ok(HashMap::from_iter([(k.to_owned(), v.to_owned())])),
+        _ => Err(Hook0Problem::LabelsAmbiguity),
+    }?;
+
     if authorize_for_application(
         &state.db,
         &biscuit,
@@ -687,6 +736,7 @@ pub async fn edit(
             subscription_id: &subscription_id,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .await
     .is_err()
@@ -702,6 +752,8 @@ pub async fn edit(
         .await
         .unwrap_or(Uuid::nil());
 
+    let labels = serde_json::to_value(&labels).unwrap_or_else(|_| Value::Object(Map::new()));
+
     let metadata = match body.metadata.as_ref() {
         Some(m) => serde_json::to_value(m.clone())
             .expect("could not serialize subscription metadata into JSON"),
@@ -710,6 +762,8 @@ pub async fn edit(
 
     let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
 
+    let subscription_id = subscription_id.into_inner();
+
     #[allow(non_snake_case)]
     struct RawSubscription {
         subscription__id: Uuid,
@@ -717,30 +771,30 @@ pub async fn edit(
         description: Option<String>,
         secret: Uuid,
         metadata: Value,
-        label_key: String,
-        label_value: String,
+        labels: Value,
         target__id: Uuid,
         created_at: DateTime<Utc>,
     }
+
+    // Update all fields including is_enabled, description, metadata, labels
     let subscription = query_as!(
-                RawSubscription,
-                "
-                    UPDATE webhook.subscription
-                    SET is_enabled = $1, description = $2, metadata = $3, label_key = $4, label_value = $5
-                    WHERE subscription__id = $6 AND application__id = $7 AND deleted_at IS NULL
-                    RETURNING subscription__id, is_enabled, description, secret, metadata, label_key, label_value, target__id, created_at
-                ",
-                &body.is_enabled, // updatable
-                body.description, // updatable
-                metadata, // updatable (our validator layer ensure this will never fail)
-                &body.label_key, // updatable
-                &body.label_value, // updatable
-                &subscription_id.into_inner(), // read-only
-                &body.application_id // read-only
-            )
-        .fetch_optional(&mut *tx)
-        .await
-        .map_err(Hook0Problem::from)?;
+        RawSubscription,
+        "
+            UPDATE webhook.subscription
+            SET is_enabled = $1, description = $2, metadata = $3, labels = $4
+            WHERE subscription__id = $5 AND application__id = $6 AND deleted_at IS NULL
+            RETURNING subscription__id, is_enabled, description, secret, metadata, labels, target__id, created_at
+        ",
+        &body.is_enabled,
+        body.description,
+        metadata,
+        labels,
+        &subscription_id,
+        &body.application_id
+    )
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(Hook0Problem::from)?;
 
     match subscription {
         Some(s) => {
@@ -865,8 +919,40 @@ pub async fn edit(
                 .map_err(Hook0Problem::from)?;
             }
 
+            // Mark pending request attempts as failed if subscription is disabled
+            // This is idempotent: if already marked as failed, nothing happens
+            let cancelled_request_attempts = if !body.is_enabled {
+                let update = query!(
+                    "
+                        UPDATE webhook.request_attempt
+                        SET failed_at = statement_timestamp()
+                        WHERE subscription__id = $1
+                          AND failed_at IS NULL
+                          AND succeeded_at IS NULL
+                    ",
+                    &s.subscription__id
+                )
+                .execute(&mut *tx)
+                .await
+                .map_err(Hook0Problem::from)?;
+                update.rows_affected()
+            } else {
+                0
+            };
+
             tx.commit().await.map_err(Hook0Problem::from)?;
 
+            if cancelled_request_attempts > 0 {
+                report_cancelled_request_attempts(cancelled_request_attempts);
+            }
+
+            let labels: HashMap<String, String> =
+                serde_json::from_value(s.labels).unwrap_or_else(|_| HashMap::new());
+            let first_label = labels
+                .iter()
+                .next()
+                .map(|(k, v)| (k.to_owned(), v.to_owned()))
+                .unwrap_or_else(|| (String::new(), String::new()));
             let subscription = Subscription {
                 application_id: body.application_id,
                 subscription_id: s.subscription__id,
@@ -876,8 +962,9 @@ pub async fn edit(
                 secret: s.secret,
                 metadata: serde_json::from_value(s.metadata.clone())
                     .unwrap_or_else(|_| HashMap::new()),
-                label_key: s.label_key,
-                label_value: s.label_value,
+                label_key: first_label.0,
+                label_value: first_label.1,
+                labels,
                 target: body.target.clone(),
                 created_at: s.created_at,
                 dedicated_workers: body.dedicated_workers.clone().unwrap_or_default(),
@@ -892,8 +979,7 @@ pub async fn edit(
                     event_types: subscription.event_types.to_owned(),
                     description: subscription.description.to_owned(),
                     metadata: subscription.metadata.to_owned(),
-                    label_key: subscription.label_key.to_owned(),
-                    label_value: subscription.label_value.to_owned(),
+                    labels: subscription.labels.to_owned(),
                     target: subscription.target.to_owned(),
                     created_at: subscription.created_at,
                 }
@@ -914,7 +1000,7 @@ pub async fn edit(
 
 #[api_v2_operation(
     summary = "Delete a subscription",
-    description = "Marks a subscription as deleted, preventing any further event notifications from being sent. This operation is irreversible.",
+    description = "Marks a subscription as deleted, preventing any further event notifications from being sent. All pending request attempts for this subscription will be automatically marked as failed. This operation is irreversible.",
     operation_id = "subscriptions.delete",
     consumes = "application/json",
     produces = "application/json",
@@ -935,6 +1021,7 @@ pub async fn delete(
             subscription_id: &subscription_id,
         },
         state.max_authorization_time_in_ms,
+        state.debug_authorizer,
     )
     .await
     .is_err()
@@ -964,6 +1051,8 @@ pub async fn delete(
 
     match subscription {
         Some(s) => {
+            let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
+
             query!(
                 "
                     UPDATE webhook.subscription
@@ -973,9 +1062,31 @@ pub async fn delete(
                 &application_id,
                 &s.subscription__id
             )
-            .execute(&state.db)
+            .execute(&mut *tx)
             .await
             .map_err(Hook0Problem::from)?;
+
+            // Mark pending request attempts as failed
+            let cancelled_request_attempts_result = query!(
+                "
+                    UPDATE webhook.request_attempt
+                    SET failed_at = statement_timestamp()
+                    WHERE subscription__id = $1
+                      AND failed_at IS NULL
+                      AND succeeded_at IS NULL
+                ",
+                &s.subscription__id
+            )
+            .execute(&mut *tx)
+            .await
+            .map_err(Hook0Problem::from)?;
+            let cancelled_request_attempts = cancelled_request_attempts_result.rows_affected();
+
+            tx.commit().await.map_err(Hook0Problem::from)?;
+
+            if cancelled_request_attempts > 0 {
+                report_cancelled_request_attempts(cancelled_request_attempts);
+            }
 
             if let Some(hook0_client) = state.hook0_client.as_ref() {
                 let hook0_client_event: Hook0ClientEvent = EventSubscriptionRemoved {

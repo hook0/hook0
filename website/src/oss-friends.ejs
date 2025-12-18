@@ -1,7 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Hook0 — oss-friends</title>
+    <title>Hook0 - Open-Source Friends</title>
+    <%
+    locals.pageTitle = 'Hook0 - Open-Source Friends';
+    locals.pageDescription = 'Discover our open-source friends and partners. Hook0 collaborates with amazing projects promoting transparency, collaboration, and community values.';
+    locals.pageCanonical = '/oss-friends';
+    %>
     <%- include('./includes/_head.ejs') %>
 </head>
 <body>
@@ -9,38 +14,49 @@
 
 <%- include('./includes/_header.ejs') %>
 
-<div class="relative overflow-hidden">
-    <main class="max-w-8xl relative mx-auto mb-auto flex w-full flex-col justify-center sm:px-2 lg:px-8 xl:px-12">
-        <div class="px-4 py-20 text-center sm:px-6 lg:px-8 lg:py-28"><h1
-                    class="text-3xl font-bold tracking-tight text-black-100 sm:text-4xl md:text-5xl">
-                <span class="xl:inline">Our</span> <span
-                        class="text-green-400 xl:inline">Open-source</span>
-                <span class="inline ">Friends</span></h1>
-            <p class="mx-auto mt-3 max-w-md text-base text-slate-200 dark:text-slate-300 sm:text-lg md:mt-5 md:max-w-2xl md:text-xl">
-                In Hook0, we are proud to collaborate with a diverse group of partners to promote open-source software and the values of transparency, collaboration, and community that it represents.
-            </p>
+<div class="relative overflow-hidden bg-surface-primary">
+    <!-- Hero Section -->
+    <section class="relative py-24 sm:py-32 overflow-hidden">
+        <!-- Background Effects -->
+        <div class="absolute inset-0 grid-pattern opacity-30"></div>
+        <div class="blur-circle blur-circle--indigo w-96 h-96 top-0 right-0 opacity-20"></div>
+        <div class="blur-circle blur-circle--green w-64 h-64 bottom-0 left-0 opacity-15"></div>
 
-        </div>
-        <div class="pt-10 bg-white sm:pt-16 lg:pt-8 lg:pb-0 ">
-            <div class="mx-auto max-w-7xl lg:px-8">
-                <div class="m-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    <% locals.ossFriends.forEach((friend) => { %>
-                        <div class="overflow-hidden pt-6 bg-gray-50 flow-root pb-8 px-6 rounded-lg">
-                            <a href="<%= friend.href %>" class="mb-2 text-xl font-bold">
+        <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- Section Header -->
+            <div class="section__header animate-on-scroll text-center">
+                <span class="section__eyebrow">Community</span>
+                <h1 class="text-display font-bold text-white mt-4">
+                    Our <span class="text-green-400">Open-source</span> Friends
+                </h1>
+                <p class="mx-auto mt-6 max-w-2xl text-body-lg text-gray-400">
+                    In Hook0, we are proud to collaborate with a diverse group of partners to promote open-source software and the values of transparency, collaboration, and community that it represents.
+                </p>
+            </div>
+
+            <!-- OSS Friends Grid -->
+            <div class="mt-16 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 stagger-children">
+                <% locals.ossFriends.forEach((friend) => { %>
+                    <div class="animate-on-scroll card card--glow group">
+                        <h3 class="card__title">
+                            <a href="<%= friend.href %>" target="_blank" class="text-green-400 hover:text-green-300 transition-colors">
                                 <%= friend.name %>
                             </a>
-                            <p class="mt-4 text-sm text-gray-700"><%= friend.description %></p>
-                            <div class="mt-4">
-                                <a target="_blank" variant="primary" href="<%= friend.href %>">
-                                    Learn more
-                                </a>
-                            </div>
+                        </h3>
+                        <p class="card__description"><%= friend.description %></p>
+                        <div class="mt-6">
+                            <a target="_blank" href="<%= friend.href %>" class="inline-flex items-center text-sm font-medium text-green-400 hover:text-green-300 transition-colors group-hover:translate-x-1 transform duration-200">
+                                Learn more
+                                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                                </svg>
+                            </a>
                         </div>
-                    <% }) %>
-                </div>
+                    </div>
+                <% }) %>
             </div>
         </div>
-    </main>
+    </section>
 </div>
 
 <%- include('./includes/_cta.ejs') %>
