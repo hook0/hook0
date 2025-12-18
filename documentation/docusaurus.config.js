@@ -5,6 +5,11 @@
 // See: https://docusaurus.io/docs/api/docusaurus-config
 
 import { themes as prismThemes } from "prism-react-renderer";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const baseUrl = "/hook0/";
 
@@ -63,6 +68,17 @@ const config = {
   ],
 
   plugins: [
+    // Module alias plugin to import shared data from website/
+    // Without this, importing via relative path (../../../../website/...) causes Webpack
+    // to watch the entire parent directory, leading to EMFILE "too many open files" errors
+    [
+      "docusaurus-plugin-module-alias",
+      {
+        alias: {
+          "@shared/website-data": path.resolve(__dirname, "../website/data.js"),
+        },
+      },
+    ],
     [
       "@scalar/docusaurus",
       {

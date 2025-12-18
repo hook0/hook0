@@ -35,6 +35,7 @@
   "devDependencies": {
     "@docusaurus/module-type-aliases": "3.6.3",
     "@docusaurus/types": "3.6.3",
+    "docusaurus-plugin-module-alias": "^0.0.2",
     "glob": "^11.0.3"
   },
   "browserslist": {
