@@ -105,7 +105,7 @@ function togglePasswordVisibility() {
         <!-- Header -->
         <div class="login-page__header">
           <h1 class="login-page__title">Welcome back</h1>
-          <p class="login-page__subtitle">Sign in to your Hook0 account</p>
+          <p class="login-page__subtitle">Continue building reliable integrations</p>
         </div>
 
         <!-- Form -->
@@ -262,7 +262,7 @@ function togglePasswordVisibility() {
               clip-rule="evenodd"
             />
           </svg>
-          <span>Secure & encrypted</span>
+          <span>Open Source, here to last</span>
         </div>
         <div class="login-page__trust-item">
           <svg
@@ -277,7 +277,7 @@ function togglePasswordVisibility() {
               clip-rule="evenodd"
             />
           </svg>
-          <span>No credit card required</span>
+          <span>Reliable, 99.9% uptime</span>
         </div>
         <div class="login-page__trust-item">
           <svg
@@ -292,7 +292,7 @@ function togglePasswordVisibility() {
               clip-rule="evenodd"
             />
           </svg>
-          <span>Hosted in Europe</span>
+          <span>GDPR compliant, EU hosted</span>
         </div>
       </div>
     </div>
