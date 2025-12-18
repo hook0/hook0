@@ -128,33 +128,46 @@ const config = {
         logo: {
           alt: "Hook0 Logo",
           src: "img/logo.svg",
+          href: "https://www.hook0.com",
         },
         items: [
+          // Left side
           {
-            type: "docSidebar",
-            sidebarId: "tutorialSidebar",
+            to: "/",
+            label: "Documentation",
             position: "left",
-            label: "Docs",
+            activeBaseRegex: "^/hook0/(?!tutorials|api).*$|^/hook0/$",
           },
           {
-            to: "/tutorials/getting-started",
+            to: "/tutorials",
             label: "Tutorials",
             position: "left",
+            activeBaseRegex: "^/hook0/tutorials(/.*)?$",
           },
           {
-            to: "/reference/",
+            to: "/api",
             label: "Reference",
             position: "left",
+            activeBaseRegex: "^/hook0/api(/.*)?$",
+          },
+          // Right side
+          {
+            href: "mailto:support@hook0.com",
+            label: "Contact",
+            position: "right",
+            className: "navbar__item--no-external-icon",
           },
           {
-            href: "https://www.hook0.com/blog",
-            label: "Blog",
+            href: "https://app.hook0.com/",
+            label: "Login",
             position: "right",
+            className: "navbar__item--no-external-icon",
           },
           {
-            href: "https://gitlab.com/hook0/hook0",
-            label: "GitLab",
+            href: "https://www.hook0.com/sign_up",
+            label: "Get Started →",
             position: "right",
+            className: "navbar__item--primary navbar__item--no-external-icon",
           },
         ],
       },

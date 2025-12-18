@@ -235,6 +235,39 @@ body {
   background: var(--h0-green-bg);
 }
 
+/* Primary navbar button (Get Started) - matches website */
+.navbar__item--primary {
+  background: #22c55e;
+  color: white !important;
+  border-radius: 12px;
+  padding: 8px 16px !important;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.15s ease;
+  margin-right: 0.5rem;
+}
+
+.navbar__item--primary:hover {
+  background: #16a34a;
+  color: white !important;
+}
+
+/* Hide external link icon */
+.navbar__item--no-external-icon svg {
+  display: none;
+}
+
+/* Move color mode toggle before Contact */
+.navbar__items--right {
+  display: flex;
+  flex-direction: row;
+}
+
+.navbar__items--right > .colorModeToggle_DEke,
+.navbar__items--right > [class*="colorModeToggle"] {
+  order: -1;
+}
+
 /* Mobile navbar */
 .navbar-sidebar {
   background: var(--h0-bg-primary);
