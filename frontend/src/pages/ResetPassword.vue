@@ -5,6 +5,7 @@ import { Problem } from '@/http.ts';
 import { resetPassword } from '@/pages/user/UserService';
 import { routes } from '@/routes.ts';
 import router from '@/router.ts';
+import { useCardGlow } from '@/composables/useCardGlow';
 
 // Form state
 const new_password = ref<string>('');
@@ -28,26 +29,7 @@ const alert = ref<{
 });
 
 // Mouse tracking for card glow effect
-const cardRef = ref<HTMLElement | null>(null);
-const mouseX = ref<string>('50%');
-const mouseY = ref<string>('50%');
-let rafId: number | null = null;
-
-function handleMouseMove(event: MouseEvent) {
-  if (!cardRef.value) return;
-  if (rafId !== null) return;
-
-  rafId = requestAnimationFrame(() => {
-    if (!cardRef.value) {
-      rafId = null;
-      return;
-    }
-    const rect = cardRef.value.getBoundingClientRect();
-    mouseX.value = `${event.clientX - rect.left}px`;
-    mouseY.value = `${event.clientY - rect.top}px`;
-    rafId = null;
-  });
-}
+const { cardRef, mouseX, mouseY, handleMouseMove } = useCardGlow();
 
 function submit() {
   if (isLoading.value) return;
@@ -134,6 +116,7 @@ onMounted(() => {
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
+            aria-hidden="true"
           >
             <path
               stroke-linecap="round"
@@ -149,6 +132,7 @@ onMounted(() => {
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
+            aria-hidden="true"
           >
             <path
               stroke-linecap="round"
@@ -169,6 +153,7 @@ onMounted(() => {
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
+            aria-hidden="true"
           >
             <path
               stroke-linecap="round"
@@ -208,6 +193,7 @@ onMounted(() => {
                 required
                 placeholder="Enter your new password"
                 class="reset-page__input reset-page__input--password"
+                autocomplete="new-password"
                 :disabled="isLoading"
               />
               <button
@@ -223,6 +209,7 @@ onMounted(() => {
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
+                  aria-hidden="true"
                 >
                   <path
                     stroke-linecap="round"
@@ -244,6 +231,7 @@ onMounted(() => {
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
+                  aria-hidden="true"
                 >
                   <path
                     stroke-linecap="round"
@@ -267,6 +255,7 @@ onMounted(() => {
                 required
                 placeholder="Confirm your new password"
                 class="reset-page__input reset-page__input--password"
+                autocomplete="new-password"
                 :disabled="isLoading"
               />
               <button
@@ -282,6 +271,7 @@ onMounted(() => {
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
+                  aria-hidden="true"
                 >
                   <path
                     stroke-linecap="round"
@@ -303,6 +293,7 @@ onMounted(() => {
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
+                  aria-hidden="true"
                 >
                   <path
                     stroke-linecap="round"
@@ -324,6 +315,7 @@ onMounted(() => {
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
+                aria-hidden="true"
               >
                 <circle
                   class="opacity-25"

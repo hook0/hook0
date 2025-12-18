@@ -8,6 +8,7 @@ import { routes } from '@/routes.ts';
 import { push } from 'notivue';
 import * as OrganizationService from './organizations/OrganizationService';
 import * as ApplicationService from './organizations/applications/ApplicationService';
+import { useCardGlow } from '@/composables/useCardGlow';
 
 const router = useRouter();
 
@@ -18,26 +19,7 @@ const showPassword = ref<boolean>(false);
 const isLoading = ref<boolean>(false);
 
 // Mouse tracking for card glow effect
-const cardRef = ref<HTMLElement | null>(null);
-const mouseX = ref<string>('50%');
-const mouseY = ref<string>('50%');
-let rafId: number | null = null;
-
-function handleMouseMove(event: MouseEvent) {
-  if (!cardRef.value) return;
-  if (rafId !== null) return;
-
-  rafId = requestAnimationFrame(() => {
-    if (!cardRef.value) {
-      rafId = null;
-      return;
-    }
-    const rect = cardRef.value.getBoundingClientRect();
-    mouseX.value = `${event.clientX - rect.left}px`;
-    mouseY.value = `${event.clientY - rect.top}px`;
-    rafId = null;
-  });
-}
+const { cardRef, mouseX, mouseY, handleMouseMove } = useCardGlow();
 
 function submit() {
   if (isLoading.value) return;
@@ -135,6 +117,7 @@ function togglePasswordVisibility() {
               required
               placeholder="you@company.com"
               class="login-page__input"
+              autocomplete="email"
               :disabled="isLoading"
             />
           </div>
@@ -150,6 +133,7 @@ function togglePasswordVisibility() {
                 required
                 placeholder="Enter your password"
                 class="login-page__input login-page__input--password"
+                autocomplete="current-password"
                 :disabled="isLoading"
               />
               <button
@@ -166,6 +150,7 @@ function togglePasswordVisibility() {
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
+                  aria-hidden="true"
                 >
                   <path
                     stroke-linecap="round"
@@ -188,6 +173,7 @@ function togglePasswordVisibility() {
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
+                  aria-hidden="true"
                 >
                   <path
                     stroke-linecap="round"
@@ -216,6 +202,7 @@ function togglePasswordVisibility() {
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
+                aria-hidden="true"
               >
                 <circle
                   class="opacity-25"
@@ -250,6 +237,7 @@ function togglePasswordVisibility() {
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
+            aria-hidden="true"
           >
             <path
               stroke-linecap="round"
@@ -269,6 +257,7 @@ function togglePasswordVisibility() {
             class="h-5 w-5 text-green-500"
             viewBox="0 0 20 20"
             fill="currentColor"
+            aria-hidden="true"
           >
             <path
               fill-rule="evenodd"
@@ -284,6 +273,7 @@ function togglePasswordVisibility() {
             class="h-5 w-5 text-green-500"
             viewBox="0 0 20 20"
             fill="currentColor"
+            aria-hidden="true"
           >
             <path
               fill-rule="evenodd"
@@ -299,6 +289,7 @@ function togglePasswordVisibility() {
             class="h-5 w-5 text-green-500"
             viewBox="0 0 20 20"
             fill="currentColor"
+            aria-hidden="true"
           >
             <path
               fill-rule="evenodd"

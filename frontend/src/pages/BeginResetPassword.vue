@@ -5,32 +5,14 @@ import { AxiosError, AxiosResponse } from 'axios';
 import { handleError, Problem } from '@/http.ts';
 import { beginResetPassword } from '@/pages/user/UserService';
 import { routes } from '@/routes.ts';
+import { useCardGlow } from '@/composables/useCardGlow';
 
 // Form state
 const email = ref<string>('');
 const isLoading = ref<boolean>(false);
 
 // Mouse tracking for card glow effect
-const cardRef = ref<HTMLElement | null>(null);
-const mouseX = ref<string>('50%');
-const mouseY = ref<string>('50%');
-let rafId: number | null = null;
-
-function handleMouseMove(event: MouseEvent) {
-  if (!cardRef.value) return;
-  if (rafId !== null) return;
-
-  rafId = requestAnimationFrame(() => {
-    if (!cardRef.value) {
-      rafId = null;
-      return;
-    }
-    const rect = cardRef.value.getBoundingClientRect();
-    mouseX.value = `${event.clientX - rect.left}px`;
-    mouseY.value = `${event.clientY - rect.top}px`;
-    rafId = null;
-  });
-}
+const { cardRef, mouseX, mouseY, handleMouseMove } = useCardGlow();
 
 function submit() {
   if (isLoading.value) return;
@@ -107,6 +89,7 @@ function displayError(err: Problem) {
               required
               placeholder="you@company.com"
               class="reset-page__input"
+              autocomplete="email"
               :disabled="isLoading"
             />
           </div>
@@ -120,6 +103,7 @@ function displayError(err: Problem) {
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
+                aria-hidden="true"
               >
                 <circle
                   class="opacity-25"
@@ -148,6 +132,7 @@ function displayError(err: Problem) {
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
+            aria-hidden="true"
           >
             <path
               stroke-linecap="round"

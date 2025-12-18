@@ -1,28 +1,9 @@
 <script setup lang="ts">
-import { ref } from 'vue';
 import { routes } from '@/routes.ts';
+import { useCardGlow } from '@/composables/useCardGlow';
 
 // Mouse tracking for card glow effect
-const cardRef = ref<HTMLElement | null>(null);
-const mouseX = ref<string>('50%');
-const mouseY = ref<string>('50%');
-let rafId: number | null = null;
-
-function handleMouseMove(event: MouseEvent) {
-  if (!cardRef.value) return;
-  if (rafId !== null) return;
-
-  rafId = requestAnimationFrame(() => {
-    if (!cardRef.value) {
-      rafId = null;
-      return;
-    }
-    const rect = cardRef.value.getBoundingClientRect();
-    mouseX.value = `${event.clientX - rect.left}px`;
-    mouseY.value = `${event.clientY - rect.top}px`;
-    rafId = null;
-  });
-}
+const { cardRef, mouseX, mouseY, handleMouseMove } = useCardGlow();
 </script>
 
 <template>
@@ -56,6 +37,7 @@ function handleMouseMove(event: MouseEvent) {
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
+            aria-hidden="true"
           >
             <path
               stroke-linecap="round"
@@ -83,6 +65,7 @@ function handleMouseMove(event: MouseEvent) {
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
+            aria-hidden="true"
           >
             <path
               stroke-linecap="round"
@@ -106,6 +89,7 @@ function handleMouseMove(event: MouseEvent) {
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
+              aria-hidden="true"
             >
               <path
                 stroke-linecap="round"
@@ -126,6 +110,7 @@ function handleMouseMove(event: MouseEvent) {
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
+              aria-hidden="true"
             >
               <path
                 stroke-linecap="round"

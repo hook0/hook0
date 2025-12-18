@@ -8,6 +8,7 @@ import { routes } from '@/routes.ts';
 import router from '@/router.ts';
 import VueTurnstile from 'vue-turnstile';
 import { getInstanceConfig } from '@/utils/biscuit_auth';
+import { useCardGlow } from '@/composables/useCardGlow';
 
 // Form state
 const email = ref<string>('');
@@ -22,26 +23,7 @@ const turnstile_site_key = ref<null | string>(null);
 const turnstile_token = ref<string>('');
 
 // Mouse tracking for card glow effect
-const cardRef = ref<HTMLElement | null>(null);
-const mouseX = ref<string>('50%');
-const mouseY = ref<string>('50%');
-let rafId: number | null = null;
-
-function handleMouseMove(event: MouseEvent) {
-  if (!cardRef.value) return;
-  if (rafId !== null) return;
-
-  rafId = requestAnimationFrame(() => {
-    if (!cardRef.value) {
-      rafId = null;
-      return;
-    }
-    const rect = cardRef.value.getBoundingClientRect();
-    mouseX.value = `${event.clientX - rect.left}px`;
-    mouseY.value = `${event.clientY - rect.top}px`;
-    rafId = null;
-  });
-}
+const { cardRef, mouseX, mouseY, handleMouseMove } = useCardGlow();
 
 onMounted(() => {
   getInstanceConfig()
@@ -130,6 +112,7 @@ function togglePasswordVisibility() {
               required
               placeholder="you@company.com"
               class="register-page__input"
+              autocomplete="email"
               :disabled="isLoading"
             />
           </div>
@@ -145,6 +128,7 @@ function togglePasswordVisibility() {
                 required
                 placeholder="John"
                 class="register-page__input"
+                autocomplete="given-name"
                 :disabled="isLoading"
               />
             </div>
@@ -157,6 +141,7 @@ function togglePasswordVisibility() {
                 required
                 placeholder="Doe"
                 class="register-page__input"
+                autocomplete="family-name"
                 :disabled="isLoading"
               />
             </div>
@@ -173,6 +158,7 @@ function togglePasswordVisibility() {
                 required
                 placeholder="Create a strong password"
                 class="register-page__input register-page__input--password"
+                autocomplete="new-password"
                 :disabled="isLoading"
               />
               <button
@@ -188,6 +174,7 @@ function togglePasswordVisibility() {
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
+                  aria-hidden="true"
                 >
                   <path
                     stroke-linecap="round"
@@ -209,6 +196,7 @@ function togglePasswordVisibility() {
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
+                  aria-hidden="true"
                 >
                   <path
                     stroke-linecap="round"
@@ -241,6 +229,7 @@ function togglePasswordVisibility() {
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
+                aria-hidden="true"
               >
                 <circle
                   class="opacity-25"
@@ -275,6 +264,7 @@ function togglePasswordVisibility() {
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
+            aria-hidden="true"
           >
             <path
               stroke-linecap="round"
@@ -294,6 +284,7 @@ function togglePasswordVisibility() {
             class="h-5 w-5 text-green-500"
             viewBox="0 0 20 20"
             fill="currentColor"
+            aria-hidden="true"
           >
             <path
               fill-rule="evenodd"
@@ -309,6 +300,7 @@ function togglePasswordVisibility() {
             class="h-5 w-5 text-green-500"
             viewBox="0 0 20 20"
             fill="currentColor"
+            aria-hidden="true"
           >
             <path
               fill-rule="evenodd"
@@ -324,6 +316,7 @@ function togglePasswordVisibility() {
             class="h-5 w-5 text-green-500"
             viewBox="0 0 20 20"
             fill="currentColor"
+            aria-hidden="true"
           >
             <path
               fill-rule="evenodd"

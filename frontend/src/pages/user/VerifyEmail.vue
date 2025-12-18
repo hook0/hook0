@@ -6,6 +6,7 @@ import { useRoute } from 'vue-router';
 import router from '@/router.ts';
 import { routes } from '@/routes.ts';
 import { push } from 'notivue';
+import { useCardGlow } from '@/composables/useCardGlow';
 
 const route = useRoute();
 
@@ -24,26 +25,7 @@ const alert = ref<{
 });
 
 // Mouse tracking for card glow effect
-const cardRef = ref<HTMLElement | null>(null);
-const mouseX = ref<string>('50%');
-const mouseY = ref<string>('50%');
-let rafId: number | null = null;
-
-function handleMouseMove(event: MouseEvent) {
-  if (!cardRef.value) return;
-  if (rafId !== null) return;
-
-  rafId = requestAnimationFrame(() => {
-    if (!cardRef.value) {
-      rafId = null;
-      return;
-    }
-    const rect = cardRef.value.getBoundingClientRect();
-    mouseX.value = `${event.clientX - rect.left}px`;
-    mouseY.value = `${event.clientY - rect.top}px`;
-    rafId = null;
-  });
-}
+const { cardRef, mouseX, mouseY, handleMouseMove } = useCardGlow();
 
 function displayError(err: Problem) {
   console.error(err);
@@ -113,6 +95,7 @@ onMounted(() => {
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
+            aria-hidden="true"
           >
             <circle
               class="opacity-25"
@@ -151,6 +134,7 @@ onMounted(() => {
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
+            aria-hidden="true"
           >
             <path
               stroke-linecap="round"
@@ -166,6 +150,7 @@ onMounted(() => {
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
+            aria-hidden="true"
           >
             <path
               stroke-linecap="round"
@@ -186,6 +171,7 @@ onMounted(() => {
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
+            aria-hidden="true"
           >
             <path
               stroke-linecap="round"
