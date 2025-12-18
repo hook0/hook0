@@ -1,6 +1,6 @@
 documentation.build:
   stage: documentation
-  image: node:${NODE_VERSION}-alpine
+  image: node:${NODE_VERSION}
   cache:
     key: ${CI_COMMIT_REF_SLUG}-docs
     paths:
