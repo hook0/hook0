@@ -9,7 +9,7 @@ description: Get help with Hook0 - support options and response times
 
 Experiencing an issue with Hook0? Let us help you.
 
-- **Common Issues** - See the [troubleshooting guide](/reference/troubleshooting) for how to address common issues.
+- **Common Issues** - See the [error codes reference](/reference/error-codes) and [how-to guides](/how-to-guides/) for help with common issues.
 - **Existing bugs** - See existing public bug reports or create your own on [GitHub](https://github.com/hook0/hook0/issues).
 - **Feature requests** - File your feature request on [GitHub](https://github.com/hook0/hook0/issues/new).
 - **Hook0 status** - Check status of Hook0 services at [status.hook0.com](https://status.hook0.com).

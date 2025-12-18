@@ -852,48 +852,7 @@ button[class*='copyButton']:hover {
   font-size: 0.95rem;
 }
 
-/* ============================================
-   FOOTER
-   ============================================ */
-.footer {
-  background: #111111 !important;
-  padding: 3rem 0 1.5rem;
-  position: relative;
-  border-top: 1px solid var(--h0-border);
-}
-
-[data-theme='dark'] .footer {
-  background: #0a0a0a !important;
-}
-
-.footer__title {
-  color: white;
-  font-weight: 600;
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 1rem;
-}
-
-.footer__link-item {
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 0.875rem;
-  transition: color 0.15s ease;
-  padding: 0.2rem 0;
-  display: inline-block;
-}
-
-.footer__link-item:hover {
-  color: var(--h0-green-light);
-}
-
-.footer__copyright {
-  margin-top: 2.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.35);
-  font-size: 0.8rem;
-}
+/* Footer is handled by custom component in src/theme/Footer */
 
 /* ============================================
    SEARCH
