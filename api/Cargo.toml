@@ -1,6 +1,6 @@
 [package]
 name = "hook0-api"
-version = "0.1.0"
+version = "2.0.0"
 description = "Core REST API of Hook0 — Open-Source Webhooks as a service for SaaS"
 repository = "https://gitlab.com/hook0/hook0/-/tree/master/api"
 homepage = "https://www.hook0.com/"

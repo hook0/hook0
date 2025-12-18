@@ -19,3 +19,14 @@ split-debuginfo = "unpacked"
 
 [profile.dev.package.sqlx-macros]
 opt-level = 3
+
+[workspace.metadata.release]
+shared-version = true
+tag-name = "v{{version}}"
+tag-message = "Release {{version}}"
+pre-release-commit-message = "chore(release): bump version to {{version}}"
+publish = false
+push = true
+pre-release-replacements = [
+  { file = "frontend/package.json", search = "\"version\": \"[0-9]+\\.[0-9]+\\.[0-9]+\"", replace = "\"version\": \"{{version}}\"" },
+]
