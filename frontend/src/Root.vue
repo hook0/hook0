@@ -382,13 +382,8 @@ function toggleMobileSidebar() {
   </div>
 
   <!-- If user not logged in -->
-  <div v-else class="h-screen flex flex-col justify-center items-center">
-    <div class="h-1/6 mb-6 w-full flex justify-center">
-      <img src="/logo.svg" />
-    </div>
-    <div class="w-full flex justify-center items-center">
-      <RouterView />
-    </div>
+  <div v-else>
+    <RouterView />
   </div>
 </template>
 
