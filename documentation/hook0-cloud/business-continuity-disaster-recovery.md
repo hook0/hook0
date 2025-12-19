@@ -104,4 +104,4 @@ For more information on CleverCloud's disaster recovery plan, please visit the [
 
 CleverCloud automatically backs up all PostgreSQL databases on a daily basis. The backups are stored in multiple data centers in different geographic locations. In the event of a disaster, CleverCloud can restore a database from backup in a matter of minutes.
 
-For more information on CleverCloud's PostgreSQL backup policy, please visit the [https://www.clever-cloud.com/fr/CleverCloud website](https://www.clever-cloud.com/fr/).
+For more information on CleverCloud's PostgreSQL backup policy, please visit the [CleverCloud website](https://www.clever-cloud.com/fr/).
