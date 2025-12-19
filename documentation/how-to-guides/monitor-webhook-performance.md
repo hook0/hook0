@@ -483,8 +483,6 @@ Monitor worker performance:
 - Look for growing `delay_until` queues
 - Scale worker `--concurrent` setting or add workers
 
-See [Scaling and Performance](../explanation/scaling-performance.md) for scaling guidance.
-
 ## Summary
 
 Effective webhook monitoring involves:
@@ -499,4 +497,4 @@ Regular monitoring helps maintain high webhook delivery reliability and quickly 
 
 ---
 
-*For debugging specific webhook failures, see [Debug Failed Webhooks](debug-failed-webhooks.md). For performance tuning, see [Scaling and Performance](../explanation/scaling-performance.md).*
+*For debugging specific webhook failures, see [Debug Failed Webhooks](debug-failed-webhooks.md).*

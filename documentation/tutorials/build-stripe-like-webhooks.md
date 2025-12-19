@@ -781,9 +781,7 @@ curl "$HOOK0_API/subscriptions/$SUB_ACME_ID/request_attempts?limit=100" \
 
 ## Next Steps
 
-- **Production deployment**: [Self-hosting with Kubernetes](./self-hosting-docker.md)
 - **Advanced authentication**: [Security Model](../explanation/security-model.md)
-- **Performance tuning**: [Scaling and Performance](../explanation/scaling-performance.md)
 - **Monitoring**: [Monitor Webhook Performance](../how-to-guides/monitor-webhook-performance.md)
 
 ## Production Checklist

@@ -35,10 +35,6 @@ EOF
 
 Start Hook0 using Docker Compose:
 
-:::tip Production Deployment
-For a more hardened setup, see [Self-hosting Hook0 in production](./self-hosting-docker.md).
-:::
-
 ```bash
 # Clone the repository
 git clone https://github.com/hook0/hook0.git

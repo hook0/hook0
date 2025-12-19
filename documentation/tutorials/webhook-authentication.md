@@ -721,7 +721,6 @@ node test-auth.js
 
 ## Next Steps
 
-- [Self-hosting Hook0 with Docker](./self-hosting-docker.md)
 - [Securing Webhook Endpoints](../how-to-guides/secure-webhook-endpoints.md)
 - [Debugging Failed Webhook Deliveries](../how-to-guides/debug-failed-webhooks.md)
 

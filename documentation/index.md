@@ -72,7 +72,6 @@ This documentation follows the [Diataxis methodology](https://diataxis.fr/):
 - [Error Codes](reference/error-codes.md) - Troubleshooting
 
 **DevOps**
-- [Self-hosting](tutorials/self-hosting-docker.md) - Deploy with Docker
 - [Configuration](reference/configuration.md) - All options
 - [Monitor Performance](how-to-guides/monitor-webhook-performance.md) - Observability
 
@@ -80,7 +79,6 @@ This documentation follows the [Diataxis methodology](https://diataxis.fr/):
 - [Architecture](explanation/hook0-architecture.md) - System design
 - [Security Model](explanation/security-model.md) - Security architecture
 - [Event Processing](explanation/event-processing.md) - Delivery pipeline
-- [Scaling & Performance](explanation/scaling-performance.md) - Production optimization
 
 ---
 

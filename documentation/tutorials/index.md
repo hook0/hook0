@@ -58,19 +58,6 @@ Implement secure webhook authentication using Biscuit tokens.
 
 ---
 
-### 5. [Self-hosting with Docker](self-hosting-docker.md)
-Deploy Hook0 in production using Docker and Docker Compose.
-
-**What you'll learn:**
-- Setting up Hook0 with Docker Compose
-- Configuring PostgreSQL database
-- Environment variables and secrets management
-- Production deployment considerations
-
-**Time:** ~45 minutes
-
----
-
 ## Prerequisites
 
 Before starting these tutorials, make sure you have:

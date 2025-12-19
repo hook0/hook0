@@ -24,8 +24,6 @@
 /docs/subscriptions                     /tutorials/event-types-subscriptions    301
 /docs/verifying-webhook-signatures      /tutorials/webhook-authentication       301
 /docs/webhook-security                  /tutorials/webhook-authentication       301
-/docs/self-hosting                      /tutorials/self-hosting-docker          301
-/docs/docker-deployment                 /tutorials/self-hosting-docker          301
 
 # =============================================================================
 # HOW-TO GUIDES (Problem-solving) - Ancien /docs/guides

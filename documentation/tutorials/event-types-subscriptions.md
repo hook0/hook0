@@ -772,7 +772,6 @@ Never trust the payload blindly. Any public endpoint can be flooded with fake da
 ## Next Steps
 
 - [Implementing Webhook Authentication](./webhook-authentication.md)
-- [Self-hosting Hook0 in production](./self-hosting-docker.md)
 - [Debugging Failed Webhook Deliveries](../how-to-guides/debug-failed-webhooks.md)
 
 ## Troubleshooting
