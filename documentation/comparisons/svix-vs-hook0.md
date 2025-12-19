@@ -18,3 +18,4 @@ description: Compare Svix and Hook0 webhook platforms
 | **Self-hosting** | ⚠️ Open-core (limited features in self-hosted version) | ✅ Fully self-hostable |
 | **Open-Source** | ⚠️ Open-core (most features not available in open-source version) | ✅ |
 | **Self-funded** | ❌ Svix raised $13M | ✅ Fully self-funded |
+*Funding data last verified: Dec 2024*

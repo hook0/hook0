@@ -16,4 +16,6 @@ description: Compare Hookdeck and Hook0 webhook platforms
 | **SaaS** | ✅ | ✅ |
 | **Self-hosting** | ❌ Cannot self-host Hookdeck | ✅ Fully self-hostable |
 | **Open-Source** | ❌ | ✅ |
-| **Self-funded** | ❌ Hookdeck raised $2.65M | ✅ Fully self-funded |
+| **Self-funded** | ❌ $5.5M total (seed $2.65M, Apr 2022) | ✅ Fully self-funded |
+
+*Funding data last verified: Dec 2024*
