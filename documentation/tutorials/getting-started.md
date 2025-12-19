@@ -81,7 +81,7 @@ Applications represent individual services or projects within your organization.
 3. **Fill in the Application Name**: My First App
 4. **Click "Create"**
 
-In the header will be displayed an application ID (**App ID**) that looks like `b676db07-5a75-4359-a6ef-89c79706072e`, Please keep it, you'll need it for later.
+In the header will be displayed an application ID (**App ID**) that looks like `b676db07-5a75-4359-a6ef-89c79706072e`. Please keep it, you'll need it for later.
 
 ## Step 3: Get Your API Token
 
@@ -317,8 +317,8 @@ Now that you have the basics, try these advanced tutorials:
 
 ### Event Not Delivered
 - Check subscription is enabled
-- Verify event type matches subscription
-- Check webhook endpoint is accessible
+- Verify event type and labels match subscription
+- Check that the URL you specified as target in your subscription is accessible
 - Review logs in Hook0 dashboard
 
 ### Authentication Errors
