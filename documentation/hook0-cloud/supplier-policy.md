@@ -25,7 +25,7 @@ The service manager and office manager are responsible to implement the policy.
 - If the supplier will process PII (personally identifiable information) on our behalf:
   - A data processing agreement (DPA) must be signed
   - The data should be located within the EU
-  - There should have a privacy policy in which they adhere to GDPR
+  - They should have a GDPR-compliant privacy policy
 - Suppliers should be assessed periodically, taking into account
   - Performance (are we happy with them?)
   - KPI performance (are they living up to the expectations?)
