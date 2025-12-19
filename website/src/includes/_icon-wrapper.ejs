@@ -1,8 +1,33 @@
-<% const bgColor = (typeof color !== 'undefined' && color === 'indigo') ? 'bg-indigo-500/20' : 'bg-green-500/20'; %>
-<% const textColor = (typeof color !== 'undefined' && color === 'indigo') ? 'text-indigo-400' : 'text-green-400'; %>
-<% const sw = (typeof strokeWidth !== 'undefined') ? strokeWidth : 3; %>
+<%
+// Use shared icon data from data.js (locals.footerIcons)
+const iconName = typeof icon !== 'undefined' ? icon : '';
+const iconConfig = locals.footerIcons ? locals.footerIcons[iconName] : null;
+
+if (iconConfig) {
+  if (iconConfig.type === 'social' && locals.social[iconConfig.key]) {
+    // Social icons - filled SVGs from locals.social
+%>
+<span class="w-4 h-4 flex-shrink-0 flex items-center justify-center text-indigo-400 [&>svg]:w-full [&>svg]:h-full"><%- locals.social[iconConfig.key].logo %></span>
+<%
+  } else if (iconConfig.type === 'stroke') {
+    // Stroke icons - outline style
+    const textColor = iconConfig.color === 'green' ? 'text-green-400' : 'text-indigo-400';
+    const sw = iconConfig.strokeWidth || 2;
+%>
+<svg class="w-4 h-4 flex-shrink-0 <%= textColor %>" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="<%= sw %>" d="<%= iconConfig.path %>"></path>
+</svg>
+<%
+  }
+} else if (typeof iconPath !== 'undefined') {
+  // Legacy support for direct iconPath usage
+  const bgColor = (typeof color !== 'undefined' && color === 'indigo') ? 'bg-indigo-500/20' : 'bg-green-500/20';
+  const textColor = (typeof color !== 'undefined' && color === 'indigo') ? 'text-indigo-400' : 'text-green-400';
+  const sw = (typeof strokeWidth !== 'undefined') ? strokeWidth : 3;
+%>
 <div class="flex-shrink-0 w-5 h-5 mt-1 rounded <%= bgColor %> flex items-center justify-center">
     <svg class="w-3 h-3 <%= textColor %>" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="<%= sw %>" d="<%= iconPath %>"></path>
     </svg>
 </div>
+<% } %>

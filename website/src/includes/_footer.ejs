@@ -16,7 +16,7 @@
                 <p class="mt-4 text-sm text-gray-400 max-w-xs">
                     Open-Source Webhooks-as-a-Service. Built by developers for developers.
                 </p>
-                <div class="mt-6 flex items-center gap-1 text-xs text-gray-500">
+                <div class="flex items-center gap-1 text-xs text-gray-500 mt-6">
                     <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-tertiary border border-white/5">
                         <%- include('../svg/europe-flag.svg') %>
                         Made in France
@@ -26,162 +26,45 @@
 
             <!-- About Column -->
             <div>
-                <h3 class="text-sm font-semibold text-white uppercase tracking-wider mb-4">About</h3>
+                <h3 class="text-sm font-semibold text-white uppercase tracking-wider mb-4"><%= locals.footerLinks.about.title %></h3>
                 <ul role="list" class="space-y-3">
+                    <% locals.footerLinks.about.items.forEach((item) => { %>
                     <li>
-                        <a href="mailto:support@hook0.com" class="text-sm text-gray-400 hover:text-white transition-colors">
-                            Contact
+                        <a href="<%= item.href %>" class="text-sm leading-6 text-gray-400 hover:text-white transition-colors">
+                            <%= item.label %>
                         </a>
                     </li>
-                    <li>
-                        <a href="/#pricing" class="text-sm text-gray-400 hover:text-white transition-colors">
-                            Pricing
-                        </a>
-                    </li>
-                    <li>
-                        <a href="<%= locals.meta.doc_guides %>" class="text-sm text-gray-400 hover:text-white transition-colors">
-                            Resources
-                        </a>
-                    </li>
-                    <li>
-                        <a href="./security.ejs" class="text-sm text-gray-400 hover:text-white transition-colors">
-                            Security & Compliance
-                        </a>
-                    </li>
-                    <li>
-                        <a href="./privacy-policy.ejs" class="text-sm text-gray-400 hover:text-white transition-colors">
-                            Privacy Policy
-                        </a>
-                    </li>
-                    <li>
-                        <a href="./terms.ejs" class="text-sm text-gray-400 hover:text-white transition-colors">
-                            Terms of Service
-                        </a>
-                    </li>
-                    <li>
-                        <a href="./built-to-last.ejs" class="text-sm text-gray-400 hover:text-white transition-colors">
-                            Built to Last
-                        </a>
-                    </li>
-                    <li>
-                        <a href="./mediakit.ejs" class="text-sm text-gray-400 hover:text-white transition-colors">
-                            Media Kit
-                        </a>
-                    </li>
+                    <% }) %>
                 </ul>
             </div>
 
             <!-- Developers Column -->
             <div>
-                <h3 class="text-sm font-semibold text-white uppercase tracking-wider mb-4">Developers</h3>
+                <h3 class="text-sm font-semibold text-white uppercase tracking-wider mb-4"><%= locals.footerLinks.developers.title %></h3>
                 <ul role="list" class="space-y-3">
+                    <% locals.footerLinks.developers.items.forEach((item) => { %>
                     <li>
-                        <a href="<%= locals.meta.doc_getstarted %>" class="text-sm text-gray-400 hover:text-white transition-colors inline-flex items-center gap-2">
-                            <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                            </svg>
-                            Quick Start
+                        <a href="<%= item.href %>" class="text-sm leading-6 text-gray-400 hover:text-white transition-colors inline-flex items-center gap-2">
+                            <%- include('_icon-wrapper', { icon: item.icon }) %>
+                            <%= item.label %>
                         </a>
                     </li>
-                    <li>
-                        <a href="<%= locals.meta.doc_guides %>" class="text-sm text-gray-400 hover:text-white transition-colors inline-flex items-center gap-2">
-                            <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                            </svg>
-                            Documentation
-                        </a>
-                    </li>
-                    <li>
-                        <a href="<%= locals.meta.doc_api_reference %>" class="text-sm text-gray-400 hover:text-white transition-colors inline-flex items-center gap-2">
-                            <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"></path>
-                            </svg>
-                            API Reference
-                        </a>
-                    </li>
-                    <li>
-                        <a href="<%= locals.social.github.href %>" class="text-sm text-gray-400 hover:text-white transition-colors inline-flex items-center gap-2">
-                            <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
-                            </svg>
-                            SDK & Libraries
-                        </a>
-                    </li>
-                    <li>
-                        <a href="<%= locals.social.github.repoHref %>" class="text-sm text-gray-400 hover:text-white transition-colors inline-flex items-center gap-2">
-                            <span class="w-4 h-4 flex-shrink-0 flex items-center justify-center text-indigo-400 [&>svg]:w-full [&>svg]:h-full"><%- locals.social.github.logo %></span>
-                            Source Code
-                        </a>
-                    </li>
-                    <li>
-                        <a href="https://status.hook0.com/" class="text-sm text-gray-400 hover:text-white transition-colors inline-flex items-center gap-2">
-                            <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.072 0a5 5 0 010 7.07M13 12a1 1 0 11-2 0 1 1 0 012 0z"></path>
-                            </svg>
-                            Status Page
-                        </a>
-                    </li>
-                    <li>
-                        <a href="https://documentation.hook0.com/docs/docker-compose" class="text-sm text-gray-400 hover:text-white transition-colors inline-flex items-center gap-2">
-                            <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.737 5.1a3.375 3.375 0 012.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 01.9 2.7m0 0a3 3 0 01-3 3m0 3h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008zm-3 6h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008z"></path>
-                            </svg>
-                            Self-hosting
-                        </a>
-                    </li>
+                    <% }) %>
                 </ul>
             </div>
 
             <!-- Community Column -->
             <div>
-                <h3 class="text-sm font-semibold text-white uppercase tracking-wider mb-4">Community</h3>
+                <h3 class="text-sm font-semibold text-white uppercase tracking-wider mb-4"><%= locals.footerLinks.community.title %></h3>
                 <ul role="list" class="space-y-3">
+                    <% locals.footerLinks.community.items.forEach((item) => { %>
                     <li>
-                        <a href="https://gitlab.com/hook0/hook0/-/blob/master/CODE_OF_CONDUCT.md" target="_blank" class="text-sm text-gray-400 hover:text-white transition-colors inline-flex items-center gap-2">
-                            <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z"></path>
-                            </svg>
-                            Code of Conduct
+                        <a href="<%= item.href %>" target="_blank" class="text-sm leading-6 text-gray-400 hover:text-white transition-colors inline-flex items-center gap-2">
+                            <%- include('_icon-wrapper', { icon: item.icon }) %>
+                            <%= item.label %>
                         </a>
                     </li>
-                    <li>
-                        <a href="./oss-friends.ejs" class="text-sm text-gray-400 hover:text-white transition-colors inline-flex items-center gap-2">
-                            <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.893 13.393l-1.135-1.135a2.252 2.252 0 01-.421-.585l-1.08-2.16a.414.414 0 00-.663-.107.827.827 0 01-.812.21l-1.273-.363a.89.89 0 00-.738 1.595l.587.39c.59.395.674 1.23.172 1.732l-.2.2c-.212.212-.33.498-.33.796v.41c0 .409-.11.809-.32 1.158l-1.315 2.191a2.11 2.11 0 01-1.81 1.025 1.055 1.055 0 01-1.055-1.055v-1.172c0-.92-.56-1.747-1.414-2.089l-.655-.261a2.25 2.25 0 01-1.383-2.46l.007-.042a2.25 2.25 0 01.29-.787l.09-.15a2.25 2.25 0 012.37-1.048l1.178.236a1.125 1.125 0 001.302-.795l.208-.73a1.125 1.125 0 00-.578-1.315l-.665-.332-.091.091a2.25 2.25 0 01-1.591.659h-.18c-.249 0-.487.1-.662.274a.931.931 0 01-1.458-1.137l1.411-2.353a2.25 2.25 0 00.286-.76m11.928 9.869A9 9 0 008.965 3.525m11.928 9.868A9 9 0 118.965 3.525"></path>
-                            </svg>
-                            OSS Friends
-                        </a>
-                    </li>
-                    <li>
-                        <a href="<%= locals.social.discord.href %>" target="_blank" class="text-sm text-gray-400 hover:text-white transition-colors inline-flex items-center gap-2">
-                            <span class="w-4 h-4 flex-shrink-0 flex items-center justify-center text-indigo-400 [&>svg]:w-full [&>svg]:h-full"><%- locals.social.discord.logo %></span>
-                            Discord
-                        </a>
-                    </li>
-                    <li>
-                        <a href="<%= locals.social.github.repoHref %>" target="_blank" class="text-sm text-gray-400 hover:text-white transition-colors inline-flex items-center gap-2">
-                            <span class="w-4 h-4 flex-shrink-0 flex items-center justify-center text-indigo-400 [&>svg]:w-full [&>svg]:h-full"><%- locals.social.github.logo %></span>
-                            GitHub
-                        </a>
-                    </li>
-                    <li>
-                        <a href="<%= locals.social.linkedin.href %>" target="_blank" class="text-sm text-gray-400 hover:text-white transition-colors inline-flex items-center gap-2">
-                            <span class="w-4 h-4 flex-shrink-0 flex items-center justify-center text-indigo-400 [&>svg]:w-full [&>svg]:h-full"><%- locals.social.linkedin.logo %></span>
-                            LinkedIn
-                        </a>
-                    </li>
-                    <li>
-                        <a href="<%= locals.social.youtube.href %>" target="_blank" class="text-sm text-gray-400 hover:text-white transition-colors inline-flex items-center gap-2">
-                            <span class="w-4 h-4 flex-shrink-0 flex items-center justify-center text-indigo-400 [&>svg]:w-full [&>svg]:h-full"><%- locals.social.youtube.logo %></span>
-                            YouTube
-                        </a>
-                    </li>
-                    <li>
-                        <a href="<%= locals.social.twitter.href %>" target="_blank" class="text-sm text-gray-400 hover:text-white transition-colors inline-flex items-center gap-2">
-                            <span class="w-4 h-4 flex-shrink-0 flex items-center justify-center text-indigo-400 [&>svg]:w-full [&>svg]:h-full"><%- locals.social.twitter.logo %></span>
-                            Twitter / X
-                        </a>
-                    </li>
+                    <% }) %>
                 </ul>
             </div>
         </div>
@@ -199,10 +82,10 @@
 
                 <!-- Social Icons -->
                 <div class="flex items-center gap-4">
-                    <% Object.values(locals.social).forEach((social) => { %>
+                    <% locals.socialLinks.forEach((social) => { %>
                         <a href="<%= social.href %>" target="_blank" class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:text-white hover:bg-white/5 transition-all" title="<%= social.name %>">
                             <span class="sr-only"><%= social.name %></span>
-                            <span class="w-5 h-5"><%- social.logo %></span>
+                            <span class="w-6 h-6"><%- locals.social[social.icon.toLowerCase()]?.logo || locals.social[social.icon]?.logo %></span>
                         </a>
                     <% }) %>
                 </div>
