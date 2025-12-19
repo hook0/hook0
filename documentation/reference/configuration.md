@@ -24,9 +24,6 @@ When running in Docker, set `IP=0.0.0.0` to allow connections from outside the c
 # Trusted IPs/CIDRs that can set X-Forwarded-For and Forwarded headers
 REVERSE_PROXY_IPS=192.168.0.0/16,10.0.0.0/8
 
-# Alternative Clever Cloud specific setting
-CC_REVERSE_PROXY_IPS=192.168.0.0/16
-
 # Enable if behind Cloudflare
 BEHIND_CLOUDFLARE=false
 ```
