@@ -1,10 +1,247 @@
 # Error Codes Reference
 
+<!--
+  ⚠️  AUTO-GENERATED FILE - DO NOT EDIT MANUALLY
+
+  This file is generated from the Hook0 API /errors endpoint.
+  To regenerate, run: npm run generate:errors
+-->
+
 Hook0 uses RFC 7807 Problem Details for HTTP APIs format for structured error responses.
 
 ## Error Response Format
 
 All API errors follow this structure (RFC 7807):
+
+- **type**: URL to error documentation
+- **id**: Error identifier (enum variant name)
+- **title**: Short human-readable summary
+- **detail**: Explanation of the error
+- **status**: HTTP status code
+
+## 400 Bad Request
+
+### ApplicationNameMissing
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/ApplicationNameMissing",
+  "id": "ApplicationNameMissing",
+  "title": "Application name cannot be empty",
+  "detail": "Application name length must have more than 1 character.",
+  "status": 400
+}
+```
+
+### AuthInvalidAuthorizationHeader
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/AuthInvalidAuthorizationHeader",
+  "id": "AuthInvalidAuthorizationHeader",
+  "title": "`Authorization` header is invalid",
+  "detail": "`Authorization` header value could not be decoded as a valid UTF-8 string containing `Bearer {UUID}`.",
+  "status": 400
+}
+```
+
+### EventInvalidBase64Payload
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/EventInvalidBase64Payload",
+  "id": "EventInvalidBase64Payload",
+  "title": "Invalid event base64 payload",
+  "detail": "Event payload is not encoded in valid base64 format: ",
+  "status": 400
+}
+```
+
+### EventInvalidJsonPayload
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/EventInvalidJsonPayload",
+  "id": "EventInvalidJsonPayload",
+  "title": "Invalid event JSON payload",
+  "detail": "Event payload is not encoded in valid JSON format: .",
+  "status": 400
+}
+```
+
+### EventInvalidPayloadContentType
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/EventInvalidPayloadContentType",
+  "id": "EventInvalidPayloadContentType",
+  "title": "Invalid event payload content type",
+  "detail": "The specified event payload content type is not handled. Valid content types are: text/plain, application/json, application/octet-stream+base64",
+  "status": 400
+}
+```
+
+### EventTypeDoesNotExist
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/EventTypeDoesNotExist",
+  "id": "EventTypeDoesNotExist",
+  "title": "Invalid event type",
+  "detail": "Event type does not exist or was deactivated. You should (re)create it.",
+  "status": 400
+}
+```
+
+### InvalidRole
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/InvalidRole",
+  "id": "InvalidRole",
+  "title": "Provided role does not exist",
+  "detail": "Valid roles are: viewer, editor.",
+  "status": 400
+}
+```
+
+### JsonPayload
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/JsonPayload",
+  "id": "JsonPayload",
+  "title": "Provided body could not be decoded as JSON",
+  "detail": "",
+  "status": 400
+}
+```
+
+### LabelsAmbiguity
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/LabelsAmbiguity",
+  "id": "LabelsAmbiguity",
+  "title": "Ambiguous labels specification",
+  "detail": "You must specify either the `labels` property as an object with a least one property (recommended) or separated `label_key` and `label_value` properties as strings (legacy), but not both.",
+  "status": 400
+}
+```
+
+### OrganizationNameMissing
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/OrganizationNameMissing",
+  "id": "OrganizationNameMissing",
+  "title": "Organization name cannot be empty",
+  "detail": "Organization name length must have more than 1 character.",
+  "status": 400
+}
+```
+
+### PasswordTooShort
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/PasswordTooShort",
+  "id": "PasswordTooShort",
+  "title": "Provided password is too short",
+  "detail": "Password must be at least 0 characters long.",
+  "status": 400
+}
+```
+
+### UnauthorizedWorkers
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/UnauthorizedWorkers",
+  "id": "UnauthorizedWorkers",
+  "title": "Some of the provided dedicated workers are not authorized for your organization",
+  "detail": "You do not have access to the following workers: ",
+  "status": 400
+}
+```
+
+## 401 Unauthorized
+
+### AuthEmailExpired
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/AuthEmailExpired",
+  "id": "AuthEmailExpired",
+  "title": "Could not verify your link",
+  "detail": "The link you clicked might be expired. Please retry the whole process or contact support.",
+  "status": 401
+}
+```
+
+### AuthEmailNotVerified
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/AuthEmailNotVerified",
+  "id": "AuthEmailNotVerified",
+  "title": "Email not verified",
+  "detail": "Your email has not been verified yet. Please check your inbox.",
+  "status": 401
+}
+```
+
+### AuthFailedLogin
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/AuthFailedLogin",
+  "id": "AuthFailedLogin",
+  "title": "Login failed",
+  "detail": "The provided credentials do not match ones of a valid user.",
+  "status": 401
+}
+```
+
+### AuthFailedRefresh
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/AuthFailedRefresh",
+  "id": "AuthFailedRefresh",
+  "title": "Refreshing access token failed",
+  "detail": "The provided refresh token is probably invalid or expired.",
+  "status": 401
+}
+```
+
+### AuthNoAuthorizationHeader
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/AuthNoAuthorizationHeader",
+  "id": "AuthNoAuthorizationHeader",
+  "title": "No `Authorization` header was found in the HTTP request",
+  "detail": "`Authorization` header must be provided and must contain a bearer token.",
+  "status": 401
+}
+```
+
+## 403 Forbidden
+
+### AuthInvalidApplicationSecret
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/AuthInvalidApplicationSecret",
+  "id": "AuthInvalidApplicationSecret",
+  "title": "Invalid application secret",
+  "detail": "The provided application secret does not exist.",
+  "status": 403
+}
+```
+
+### AuthInvalidBiscuit
 
 ```json
 {
@@ -16,517 +253,234 @@ All API errors follow this structure (RFC 7807):
 }
 ```
 
-### Error Fields
-
-- **type**: URL to error documentation
-- **id**: Error identifier (enum variant name)
-- **title**: Short human-readable summary
-- **detail**: Explanation of the error
-- **status**: HTTP status code
-- **validation**: Additional validation errors (for validation failures)
-
-## HTTP Status Codes
-
-| Status | Description |
-|--------|-------------|
-| 400 | Bad Request - Invalid request format or parameters |
-| 401 | Unauthorized - Authentication required |
-| 403 | Forbidden - Insufficient permissions or invalid credentials |
-| 404 | Not Found - Resource does not exist |
-| 409 | Conflict - Resource already exists |
-| 410 | Gone - Feature disabled |
-| 422 | Unprocessable Entity - Validation errors |
-| 429 | Too Many Requests - Rate limit or quota exceeded |
-| 500 | Internal Server Error - Unexpected error |
-| 503 | Service Unavailable - Service temporarily unavailable |
-
-## Authentication Errors (401, 403)
-
-### AuthNoAuthorizationHeader
-
-**Status**: 401
-
-No `Authorization` header found in the HTTP request.
+### Forbidden
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/AuthNoAuthorizationHeader",
-  "id": "AuthNoAuthorizationHeader",
-  "title": "No `Authorization` header was found in the HTTP request",
-  "detail": "`Authorization` header must be provided and must contain a bearer token."
+  "type": "https://hook0.com/documentation/errors/Forbidden",
+  "id": "Forbidden",
+  "title": "Insufficient rights",
+  "detail": "You don't have the right to access or edit this resource.",
+  "status": 403
 }
 ```
 
-**Resolution**: Include `Authorization: Bearer {YOUR_TOKEN}` header.
-
-### AuthInvalidAuthorizationHeader
-
-**Status**: 400
-
-`Authorization` header format is invalid.
-
-```json
-{
-  "type": "https://hook0.com/documentation/errors/AuthInvalidAuthorizationHeader",
-  "id": "AuthInvalidAuthorizationHeader",
-  "title": "`Authorization` header is invalid",
-  "detail": "`Authorization` header value could not be decoded as a valid UTF-8 string containing `Bearer {UUID}`."
-}
-```
-
-**Resolution**: Verify header format: `Authorization: Bearer TOKEN`.
-
-### AuthInvalidBiscuit
-
-**Status**: 403
-
-The provided Biscuit token is invalid or expired.
-
-```json
-{
-  "type": "https://hook0.com/documentation/errors/AuthInvalidBiscuit",
-  "id": "AuthInvalidBiscuit",
-  "title": "Invalid Biscuit",
-  "detail": "The provided authentication token (Biscuit) is not valid, was not created using the current private key or is expired."
-}
-```
-
-**Resolution**: Obtain a new token or verify your Biscuit private key configuration.
-
-### AuthBiscuitLookupError
-
-**Status**: 500
-
-Database error while verifying Biscuit token revocation.
-
-```json
-{
-  "type": "https://hook0.com/documentation/errors/AuthBiscuitLookupError",
-  "id": "AuthBiscuitLookupError",
-  "title": "Could not check database to verify if the provided Biscuit was revoked",
-  "detail": "This is likely to be caused by database unavailability."
-}
-```
-
-### AuthInvalidApplicationSecret
-
-**Status**: 403
-
-The provided application secret does not exist.
-
-```json
-{
-  "type": "https://hook0.com/documentation/errors/AuthInvalidApplicationSecret",
-  "id": "AuthInvalidApplicationSecret",
-  "title": "Invalid application secret",
-  "detail": "The provided application secret does not exist."
-}
-```
-
-### AuthApplicationSecretLookupError
-
-**Status**: 500
-
-Database error while verifying application secret.
-
-### AuthFailedLogin
-
-**Status**: 401
-
-Login credentials do not match a valid user.
-
-```json
-{
-  "type": "https://hook0.com/documentation/errors/AuthFailedLogin",
-  "id": "AuthFailedLogin",
-  "title": "Login failed",
-  "detail": "The provided credentials do not match ones of a valid user."
-}
-```
-
-### AuthEmailNotVerified
-
-**Status**: 401
-
-User's email address has not been verified yet.
-
-```json
-{
-  "type": "https://hook0.com/documentation/errors/AuthEmailNotVerified",
-  "id": "AuthEmailNotVerified",
-  "title": "Email not verified",
-  "detail": "Your email has not been verified yet. Please check your inbox."
-}
-```
-
-### AuthFailedRefresh
-
-**Status**: 401
-
-Refresh token is invalid or expired.
-
-### AuthEmailExpired
-
-**Status**: 401
-
-Email verification link has expired.
-
-## Validation Errors (400, 422)
-
-### Validation
-
-**Status**: 422
-
-Request contains validation errors.
-
-```json
-{
-  "type": "https://hook0.com/documentation/errors/Validation",
-  "id": "Validation",
-  "title": "Provided input is malformed",
-  "detail": "event_type: required field",
-  "validation": {
-    "event_type": [
-      {
-        "code": "required",
-        "message": "This field is required"
-      }
-    ]
-  }
-}
-```
-
-**Resolution**: Fix the validation errors listed in the `validation` field.
-
-### JsonPayload
-
-**Status**: 400
-
-Request body contains invalid JSON or exceeds size limits.
-
-```json
-{
-  "type": "https://hook0.com/documentation/errors/JsonPayload",
-  "id": "JsonPayload",
-  "title": "Provided body could not be decoded as JSON",
-  "detail": "Body is too big (maximum is 1048576 bytes)"
-}
-```
-
-Possible detail messages:
-- "Body is too big (maximum is X bytes)"
-- "Content-Type header should be set to 'application/json'"
-- "JSON deserialization error: ..."
-- "JSON serialization error: ..."
-
-## Organization Errors
-
-### OrganizationNameMissing
-
-**Status**: 400
-
-Organization name cannot be empty.
-
-### OrganizationIsNotEmpty
-
-**Status**: 409
-
-Cannot delete organization that contains applications.
-
-```json
-{
-  "type": "https://hook0.com/documentation/errors/OrganizationIsNotEmpty",
-  "id": "OrganizationIsNotEmpty",
-  "title": "Organization is not empty",
-  "detail": "Organizations that contain at least an application cannot be deleted; applications must be deleted first. If you believe this is a mistake, please contact the Hook0 support team."
-}
-```
-
-## User & Registration Errors
-
-### UserAlreadyExist
-
-**Status**: 409
-
-Email address is already registered.
-
-### RegistrationDisabled
-
-**Status**: 410
-
-User registration has been disabled by an administrator.
-
-### PasswordTooShort
-
-**Status**: 400
-
-Password does not meet minimum length requirement.
-
-```json
-{
-  "type": "https://hook0.com/documentation/errors/PasswordTooShort",
-  "id": "PasswordTooShort",
-  "title": "Provided password is too short",
-  "detail": "Password must be at least 12 characters long."
-}
-```
+## 404 Not Found
 
 ### InvitedUserDoesNotExist
 
-**Status**: 404
-
-User to invite does not exist.
-
-### InvitedUserAlreadyInOrganization
-
-**Status**: 409
-
-User is already a member of the organization.
-
-## Application Errors
-
-### ApplicationNameMissing
-
-**Status**: 400
-
-Application name cannot be empty.
-
-## Event Type Errors
-
-### EventTypeAlreadyExist
-
-**Status**: 409
-
-Event type with this name already exists.
-
-### EventTypeDoesNotExist
-
-**Status**: 400
-
-Event type does not exist or was deactivated.
-
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/EventTypeDoesNotExist",
-  "id": "EventTypeDoesNotExist",
-  "title": "Invalid event type",
-  "detail": "Event type does not exist or was deactivated. You should (re)create it."
+  "type": "https://hook0.com/documentation/errors/InvitedUserDoesNotExist",
+  "id": "InvitedUserDoesNotExist",
+  "title": "Invited user does not exist",
+  "detail": "The user you are trying to invite does not exist. Please make sure the user is already register in Hook0.",
+  "status": 404
 }
 ```
-
-## Event Errors
-
-### EventAlreadyIngested
-
-**Status**: 409
-
-Event with this ID was already ingested (idempotency check).
-
-```json
-{
-  "type": "https://hook0.com/documentation/errors/EventAlreadyIngested",
-  "id": "EventAlreadyIngested",
-  "title": "Event already Ingested",
-  "detail": "This event was previously ingested and recorded inside Hook0 service."
-}
-```
-
-### EventInvalidPayloadContentType
-
-**Status**: 400
-
-Specified payload content type is not supported.
-
-```json
-{
-  "type": "https://hook0.com/documentation/errors/EventInvalidPayloadContentType",
-  "id": "EventInvalidPayloadContentType",
-  "title": "Invalid event payload content type",
-  "detail": "The specified event payload content type is not handled. Valid content types are: application/json, text/plain, application/octet-stream"
-}
-```
-
-### EventInvalidBase64Payload
-
-**Status**: 400
-
-Event payload is not valid base64.
-
-### EventInvalidJsonPayload
-
-**Status**: 400
-
-Event payload is not valid JSON.
-
-## Role Errors
-
-### InvalidRole
-
-**Status**: 400
-
-Provided role does not exist.
-
-```json
-{
-  "type": "https://hook0.com/documentation/errors/InvalidRole",
-  "id": "InvalidRole",
-  "title": "Provided role does not exist",
-  "detail": "Valid roles are: admin, member."
-}
-```
-
-## Worker Errors
-
-### UnauthorizedWorkers
-
-**Status**: 400
-
-Attempted to use dedicated workers not authorized for your organization.
-
-## Quota Errors (429)
-
-All quota errors return status 429 (Too Many Requests).
-
-### TooManyMembersPerOrganization
-
-Organization has reached maximum number of members.
-
-```json
-{
-  "type": "https://hook0.com/documentation/errors/TooManyMembersPerOrganization",
-  "id": "TooManyMembersPerOrganization",
-  "title": "Exceeded number of users that can be invited in this organization",
-  "detail": "This organization cannot have more than 10 users. You might want to upgrade to a better plan."
-}
-```
-
-### TooManyApplicationsPerOrganization
-
-Organization has reached maximum number of applications.
-
-### TooManyEventsToday
-
-Organization has reached daily event limit.
-
-```json
-{
-  "type": "https://hook0.com/documentation/errors/TooManyEventsToday",
-  "id": "TooManyEventsToday",
-  "title": "Exceeded number of events that can be ingested in this organization today",
-  "detail": "This organization cannot ingest more than 1000 events per day. You might want to upgrade to a better plan."
-}
-```
-
-### TooManySubscriptionsPerApplication
-
-Application has reached maximum number of subscriptions.
-
-### TooManyEventTypesPerApplication
-
-Application has reached maximum number of event types.
-
-## Generic Errors
 
 ### NotFound
-
-**Status**: 404
-
-Resource does not exist.
 
 ```json
 {
   "type": "https://hook0.com/documentation/errors/NotFound",
   "id": "NotFound",
   "title": "Item not found",
-  "detail": "Could not find the item. Check the identifier or that you have the right to access it."
+  "detail": "Could not find the item. Check the identifier or that you have the right to access it.",
+  "status": 404
 }
 ```
 
-### Forbidden
+## 409 Conflict
 
-**Status**: 403
+### EventAlreadyIngested
 
-Insufficient rights to access or modify resource.
+```json
+{
+  "type": "https://hook0.com/documentation/errors/EventAlreadyIngested",
+  "id": "EventAlreadyIngested",
+  "title": "Event already Ingested",
+  "detail": "This event was previously ingested and recorded inside Hook0 service.",
+  "status": 409
+}
+```
+
+### EventTypeAlreadyExist
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/EventTypeAlreadyExist",
+  "id": "EventTypeAlreadyExist",
+  "title": "This event type already exist",
+  "detail": "An event type with this name is already present.",
+  "status": 409
+}
+```
+
+### InvitedUserAlreadyInOrganization
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/InvitedUserAlreadyInOrganization",
+  "id": "InvitedUserAlreadyInOrganization",
+  "title": "Invited user is already in the organization",
+  "detail": "The user you are trying to invite has already access to the organization.",
+  "status": 409
+}
+```
+
+### OrganizationIsNotEmpty
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/OrganizationIsNotEmpty",
+  "id": "OrganizationIsNotEmpty",
+  "title": "Organization is not empty",
+  "detail": "Organizations that contain at least an application cannot be deleted; applications must be deleted first. If you believe this is a mistake, please contact the Hook0 support team.",
+  "status": 409
+}
+```
+
+### UserAlreadyExist
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/UserAlreadyExist",
+  "id": "UserAlreadyExist",
+  "title": "This user already exist",
+  "detail": "This email is already registered.",
+  "status": 409
+}
+```
+
+## 410 Gone
+
+### RegistrationDisabled
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/RegistrationDisabled",
+  "id": "RegistrationDisabled",
+  "title": "Registrations are disabled",
+  "detail": "Registration was disabled by an administrator.",
+  "status": 410
+}
+```
+
+## 422 Unprocessable Entity
+
+### Validation
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/Validation",
+  "id": "Validation",
+  "title": "Provided input is malformed",
+  "detail": "",
+  "status": 422
+}
+```
+
+## 429 Too Many Requests
+
+### TooManyApplicationsPerOrganization
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/TooManyApplicationsPerOrganization",
+  "id": "TooManyApplicationsPerOrganization",
+  "title": "Exceeded number of applications that can be created in this organization",
+  "detail": "This organization cannot have more than 0 applications. You might want to upgrade to a better plan.",
+  "status": 429
+}
+```
+
+### TooManyEventsToday
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/TooManyEventsToday",
+  "id": "TooManyEventsToday",
+  "title": "Exceeded number of events that can be ingested in this organization today",
+  "detail": "This organization cannot ingest more than 0 events per day. You might want to upgrade to a better plan.",
+  "status": 429
+}
+```
+
+### TooManyEventTypesPerApplication
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/TooManyEventTypesPerApplication",
+  "id": "TooManyEventTypesPerApplication",
+  "title": "Exceeded number of event types that can be created in this application",
+  "detail": "This application cannot have more than 0 event types. You might want to upgrade to a better plan.",
+  "status": 429
+}
+```
+
+### TooManyMembersPerOrganization
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/TooManyMembersPerOrganization",
+  "id": "TooManyMembersPerOrganization",
+  "title": "Exceeded number of users that can be invited in this organization",
+  "detail": "This organization cannot have more than 0 users. You might want to upgrade to a better plan.",
+  "status": 429
+}
+```
+
+### TooManySubscriptionsPerApplication
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/TooManySubscriptionsPerApplication",
+  "id": "TooManySubscriptionsPerApplication",
+  "title": "Exceeded number of subscriptions that can be created in this application",
+  "detail": "This application cannot have more than 0 subscriptions. You might want to upgrade to a better plan.",
+  "status": 429
+}
+```
+
+## 500 Internal Server Error
+
+### AuthApplicationSecretLookupError
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/AuthApplicationSecretLookupError",
+  "id": "AuthApplicationSecretLookupError",
+  "title": "Could not check database to verify the provided application secret",
+  "detail": "This is likely to be caused by database unavailability.",
+  "status": 500
+}
+```
+
+### AuthBiscuitLookupError
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/AuthBiscuitLookupError",
+  "id": "AuthBiscuitLookupError",
+  "title": "Could not check database to verify if the provided Biscuit was revoked",
+  "detail": "This is likely to be caused by database unavailability.",
+  "status": 500
+}
+```
 
 ### InternalServerError
-
-**Status**: 500
-
-Unexpected server error occurred.
 
 ```json
 {
   "type": "https://hook0.com/documentation/errors/InternalServerError",
   "id": "InternalServerError",
   "title": "Something wrong happened",
-  "detail": "Hook0 server had issue handling your request. Our team was notified."
-}
-```
-
-### ServiceUnavailable
-
-**Status**: 503
-
-Service is temporarily unavailable.
-
-```json
-{
-  "type": "https://hook0.com/documentation/errors/ServiceUnavailable",
-  "id": "ServiceUnavailable",
-  "title": "Service unavailable",
-  "detail": "Database is unavailable."
+  "detail": "Hook0 server had issue handling your request. Our team was notified.",
+  "status": 500
 }
 ```
 
 ## Handling Errors
 
 For implementation guidance on error handling in your client code, see [Client-side Error Handling Best Practices](/how-to-guides/client-error-handling).
-
-## Complete Error List
-
-| Error ID | Status | Description |
-|----------|--------|-------------|
-| AuthNoAuthorizationHeader | 401 | No Authorization header |
-| AuthInvalidAuthorizationHeader | 400 | Invalid Authorization header format |
-| AuthApplicationSecretLookupError | 500 | Database error checking application secret |
-| AuthInvalidApplicationSecret | 403 | Invalid application secret |
-| AuthBiscuitLookupError | 500 | Database error checking Biscuit token |
-| AuthInvalidBiscuit | 403 | Invalid or expired Biscuit token |
-| AuthFailedLogin | 401 | Invalid login credentials |
-| AuthEmailNotVerified | 401 | Email not verified |
-| AuthFailedRefresh | 401 | Invalid refresh token |
-| AuthEmailExpired | 401 | Email verification link expired |
-| OrganizationNameMissing | 400 | Empty organization name |
-| OrganizationIsNotEmpty | 409 | Cannot delete non-empty organization |
-| UserAlreadyExist | 409 | Email already registered |
-| RegistrationDisabled | 410 | Registration disabled |
-| PasswordTooShort | 400 | Password below minimum length |
-| InvitedUserDoesNotExist | 404 | User to invite not found |
-| InvitedUserAlreadyInOrganization | 409 | User already in organization |
-| ApplicationNameMissing | 400 | Empty application name |
-| InvalidRole | 400 | Invalid role specified |
-| EventTypeAlreadyExist | 409 | Event type already exists |
-| EventTypeDoesNotExist | 400 | Event type not found |
-| UnauthorizedWorkers | 400 | Dedicated workers not authorized |
-| EventAlreadyIngested | 409 | Duplicate event ID |
-| EventInvalidPayloadContentType | 400 | Unsupported content type |
-| EventInvalidBase64Payload | 400 | Invalid base64 payload |
-| EventInvalidJsonPayload | 400 | Invalid JSON payload |
-| TooManyMembersPerOrganization | 429 | Member quota exceeded |
-| TooManyApplicationsPerOrganization | 429 | Application quota exceeded |
-| TooManyEventsToday | 429 | Daily event quota exceeded |
-| TooManySubscriptionsPerApplication | 429 | Subscription quota exceeded |
-| TooManyEventTypesPerApplication | 429 | Event type quota exceeded |
-| JsonPayload | 400 | Invalid JSON request body |
-| Validation | 422 | Validation errors |
-| NotFound | 404 | Resource not found |
-| InternalServerError | 500 | Unexpected server error |
-| Forbidden | 403 | Insufficient permissions |
-| ServiceUnavailable | 503 | Service unavailable |
-
-## Support
-
-For issues not covered by this reference:
-- Check the API documentation
-- Review server logs if self-hosting
-- Contact support with the error details
