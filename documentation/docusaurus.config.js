@@ -5,6 +5,7 @@
 // See: https://docusaurus.io/docs/api/docusaurus-config
 
 import { themes as prismThemes } from "prism-react-renderer";
+import poimandresTheme from "./src/prism/poimandres.js";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -197,7 +198,7 @@ const config = {
       // Footer is handled by custom component in src/theme/Footer
       prism: {
         theme: prismThemes.github,
-        darkTheme: prismThemes.nightOwl,
+        darkTheme: poimandresTheme,
         additionalLanguages: ["rust", "bash", "json", "yaml", "toml"],
       },
       announcementBar: {
