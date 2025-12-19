@@ -11,7 +11,7 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const baseUrl = "/hook0/";
+const baseUrl = process.env.DOCUMENTATION_BASE_URL || "/hook0/";
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
