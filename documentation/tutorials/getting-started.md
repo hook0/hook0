@@ -151,7 +151,7 @@ curl -X POST "$HOOK0_API/subscriptions" \
       "method": "POST",
       "url": "https://webhook.site/YOUR_UNIQUE_ID",
       "headers": {
-        "Content-Type": "application/json"
+        "X-Custom-Header": "my-value"
       }
     }
   }'
