@@ -25,7 +25,7 @@ The office manager is responsible for implementing this policy.
 In case a (home) office contains digital or printed information classified as Confidential or Sensitive:
 
 - Hard copies (such as contracts, HR files or customer records) must be stored in a cabinet; this cabinet should be locked when unsupervised
-- Office locks should be controlled (e.g. with numbered keys, cards or fobs, of which an inventory is kept under Assets)
+- Office locks should be controlled (e.g. with numbered keys, cards or fobs, recorded in the company asset management system maintained by the Operations team)
 - Electronic access rights should be checked periodically
 - Alarm codes must not be shared with other tenants
 - In case alarm codes are shared internally, they should be changed at regular intervals, at least as part of the HR off boarding process
