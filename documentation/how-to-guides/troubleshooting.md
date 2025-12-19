@@ -383,7 +383,7 @@ curl "$HOOK0_API/subscriptions/{sub-id}?application_id=$APP_ID" \
 ```
 
 :::warning PUT Requires ALL Fields
-The PUT endpoint replaces the entire subscription. You must include ALL fields (`application_id`, `is_enabled`, `event_types`, `label_key`, `label_value`, `target`), not just the ones you want to change. Missing fields will cause validation errors.
+The PUT endpoint replaces the entire subscription. You must include ALL fields (`application_id`, `is_enabled`, `event_types`, `labels`, `target`), not just the ones you want to change. Missing fields will cause validation errors.
 :::
 
 Then update with all required fields:
@@ -396,13 +396,14 @@ curl -X PUT "$HOOK0_API/subscriptions/{sub-id}" \
     "application_id": "'"$APP_ID"'",
     "is_enabled": true,
     "event_types": ["your.event.type"],
-    "label_key": "environment",
-    "label_value": "production",
+    "labels": {
+      "environment": "production"
+    },
     "target": {
       "type": "http",
       "method": "POST",
       "url": "https://your-webhook.com/webhook",
-      "headers": {"Content-Type": "application/json"}
+      "headers": {"X-Source": "hook0"}
     }
   }'
 ```
@@ -430,10 +431,10 @@ curl "$HOOK0_API/events/{event-id}?application_id=$APP_ID" \
   -H "Authorization: Bearer $HOOK0_TOKEN" \
   | jq '.labels'
 
-# Check subscription label filter
+# Check subscription labels filter
 curl "$HOOK0_API/subscriptions/{sub-id}?application_id=$APP_ID" \
   -H "Authorization: Bearer $HOOK0_TOKEN" \
-  | jq '{label_key, label_value}'
+  | jq '.labels'
 
 # Labels must match exactly (case-sensitive)
 ```
@@ -444,8 +445,7 @@ curl "$HOOK0_API/subscriptions/{sub-id}?application_id=$APP_ID" \
 labels: { environment: "production" }
 
 // Subscription
-label_key: "environment"
-label_value: "production"  // Must match exactly
+labels: { environment: "production" }  // Must match exactly
 ```
 
 4. **Output worker not running (self-hosted)**
@@ -564,13 +564,14 @@ curl -X PUT "$HOOK0_API/subscriptions/{sub-id}" \
     "application_id": "'"$APP_ID"'",
     "is_enabled": false,
     "event_types": ["your.event.type"],
-    "label_key": "environment",
-    "label_value": "production",
+    "labels": {
+      "environment": "production"
+    },
     "target": {
       "type": "http",
       "method": "POST",
       "url": "https://your-webhook.com/webhook",
-      "headers": {"Content-Type": "application/json"}
+      "headers": {"X-Source": "hook0"}
     }
   }'
 ```

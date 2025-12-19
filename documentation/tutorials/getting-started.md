@@ -144,8 +144,9 @@ curl -X POST "$HOOK0_API/subscriptions" \
     "is_enabled": true,
     "event_types": ["user.account.created"],
     "description": "Tutorial webhook endpoint",
-    "label_key": "environment",
-    "label_value": "tutorial",
+    "labels": {
+      "environment": "tutorial"
+    },
     "target": {
       "type": "http",
       "method": "POST",

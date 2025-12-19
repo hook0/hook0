@@ -34,8 +34,9 @@ curl -X POST "$HOOK0_API/subscriptions" \
       "order.purchase.completed"
     ],
     "description": "Webhook for Customer ABC Corp",
-    "label_key": "tenant_id",
-    "label_value": "customer_123",
+    "labels": {
+      "tenant_id": "customer_123"
+    },
     "target": {
       "type": "http",
       "method": "POST",
@@ -55,8 +56,9 @@ curl -X POST "$HOOK0_API/subscriptions" \
   "event_types": ["user.account.created", "order.purchase.completed"],
   "description": "Webhook for Customer ABC Corp",
   "secret": "d48488f1-cddc...",
-  "label_key": "tenant_id",
-  "label_value": "customer_123",
+  "labels": {
+    "tenant_id": "customer_123"
+  },
   "target": {
     "type": "http",
     "method": "POST",

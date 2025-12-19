@@ -209,7 +209,7 @@ curl -X POST "$HOOK0_API/event" \
 Subscriptions define where and how webhooks are delivered. Each subscription filters events based on labels, ensuring customers only receive their own events.
 
 ### Why labels matter for multi-tenancy
-The `label_key` and `label_value` create a filter. Only events with matching labels are delivered to that subscription. This is how Hook0 supports multi-tenant SaaS platforms.
+The `labels` object creates a filter. Only events with matching labels are delivered to that subscription. This is how Hook0 supports multi-tenant SaaS platforms.
 
 ### Creating a Subscription for a Customer
 
@@ -225,14 +225,14 @@ curl -X POST "$HOOK0_API/subscriptions" \
       "order.purchase.completed"
     ],
     "description": "Webhook for Customer ABC Corp",
-    "label_key": "tenant_id",
-    "label_value": "customer_123",
+    "labels": {
+      "tenant_id": "customer_123"
+    },
     "target": {
       "type": "http",
       "method": "POST",
       "url": "https://customer-abc.com/webhooks/hook0",
       "headers": {
-        "Content-Type": "application/json",
         "X-Customer-Id": "customer_123"
       }
     },
@@ -261,8 +261,6 @@ curl -X POST "$HOOK0_API/subscriptions" \
     "plan": "enterprise",
     "created_by": "api"
   },
-  "label_key": "tenant_id",
-  "label_value": "customer_123",
   "labels": {
     "tenant_id": "customer_123"
   },
@@ -271,7 +269,6 @@ curl -X POST "$HOOK0_API/subscriptions" \
     "method": "POST",
     "url": "https://customer-abc.com/webhooks/hook0",
     "headers": {
-      "content-type": "application/json",
       "x-customer-id": "customer_123"
     }
   },
@@ -478,14 +475,15 @@ curl -X POST "$HOOK0_API/subscriptions" \
     "is_enabled": true,
     "event_types": ["user.account.created"],
     "description": "Staging webhook",
-    "label_key": "environment",
-    "label_value": "staging",
+    "labels": {
+      "environment": "staging"
+    },
     "target": {
       "type": "http",
       "method": "POST",
       "url": "https://staging.example.com/webhook",
       "headers": {
-        "Content-Type": "application/json"
+        "X-Environment": "staging"
       }
     }
   }'
@@ -500,13 +498,14 @@ curl -X POST "$HOOK0_API/subscriptions" \
   "event_types": ["user.account.created"],
   "description": "Staging webhook",
   "secret": "{SECRET}",
-  "label_key": "environment",
-  "label_value": "staging",
+  "labels": {
+    "environment": "staging"
+  },
   "target": {
     "type": "http",
     "method": "POST",
     "url": "https://staging.example.com/webhook",
-    "headers": {"content-type": "application/json"}
+    "headers": {"x-environment": "staging"}
   },
   "created_at": "2025-12-12T09:41:41.304925Z"
 }
@@ -586,14 +585,15 @@ curl -X POST "$HOOK0_API/subscriptions" \
     "is_enabled": true,
     "event_types": ["billing.invoice.paid"],
     "description": "Customer billing webhook",
-    "label_key": "tenant_id",
-    "label_value": "customer_789",
+    "labels": {
+      "tenant_id": "customer_789"
+    },
     "target": {
       "type": "http",
       "method": "POST",
       "url": "https://customer.example.com/webhooks",
       "headers": {
-        "Content-Type": "application/json"
+        "X-Tenant-Id": "customer_789"
       }
     }
   }'
@@ -608,13 +608,14 @@ curl -X POST "$HOOK0_API/subscriptions" \
   "event_types": ["billing.invoice.paid"],
   "description": "Customer billing webhook",
   "secret": "{SECRET}",
-  "label_key": "tenant_id",
-  "label_value": "customer_789",
+  "labels": {
+    "tenant_id": "customer_789"
+  },
   "target": {
     "type": "http",
     "method": "POST",
     "url": "https://customer.example.com/webhooks",
-    "headers": {"content-type": "application/json"}
+    "headers": {"x-tenant-id": "customer_789"}
   },
   "created_at": "2025-12-12T09:43:22.425687Z"
 }
@@ -790,7 +791,7 @@ curl -X GET "$HOOK0_API/events?application_id=$APP_ID" \
 # Check subscription filters
 curl -X GET "$HOOK0_API/subscriptions?application_id=$APP_ID" \
   -H "Authorization: Bearer $HOOK0_TOKEN"
-# Verify label_key and label_value match your events
+# Verify labels match your events
 ```
 
 ### 401 Unauthorized

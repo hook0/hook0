@@ -244,8 +244,9 @@ curl -X POST "$HOOK0_API/subscriptions" \
     "is_enabled": true,
     "event_types": ["user.account.registered"],
     "description": "Welcome email trigger",
-    "label_key": "environment",
-    "label_value": "production",
+    "labels": {
+      "environment": "production"
+    },
     "target": {
       "type": "http",
       "method": "POST",
@@ -267,8 +268,9 @@ curl -X POST "$HOOK0_API/subscriptions" \
   "event_types": ["user.account.registered"],
   "description": "Welcome email trigger",
   "secret": "{SECRET}",
-  "label_key": "environment",
-  "label_value": "production",
+  "labels": {
+    "environment": "production"
+  },
   "target": {
     "type": "http",
     "method": "POST",
@@ -299,8 +301,9 @@ curl -X POST "$HOOK0_API/subscriptions" \
       "user.profile.updated"
     ],
     "description": "CRM system user sync",
-    "label_key": "environment",
-    "label_value": "production",
+    "labels": {
+      "environment": "production"
+    },
     "target": {
       "type": "http",
       "method": "POST",
@@ -331,8 +334,9 @@ curl -X POST "$HOOK0_API/subscriptions" \
       "user.account.deactivated"
     ],
     "description": "Analytics tracking for all user events",
-    "label_key": "environment",
-    "label_value": "production",
+    "labels": {
+      "environment": "production"
+    },
     "target": {
       "type": "http",
       "method": "POST",
@@ -361,8 +365,9 @@ curl -X POST "$HOOK0_API/subscriptions" \
       "user.account.deactivated"
     ],
     "description": "Alert system for critical events",
-    "label_key": "environment",
-    "label_value": "production",
+    "labels": {
+      "environment": "production"
+    },
     "target": {
       "type": "http",
       "method": "POST",
@@ -389,8 +394,9 @@ curl -X POST "$HOOK0_API/subscriptions" \
     "is_enabled": true,
     "event_types": ["subscription.plan.created"],
     "description": "Billing system integration",
-    "label_key": "environment",
-    "label_value": "production",
+    "labels": {
+      "environment": "production"
+    },
     "target": {
       "type": "http",
       "method": "POST",
@@ -427,8 +433,9 @@ curl -X POST "$HOOK0_API/subscriptions" \
     "is_enabled": true,
     "event_types": ["user.account.registered", "user.account.deactivated"],
     "description": "Marketing automation system",
-    "label_key": "department",
-    "label_value": "marketing",
+    "labels": {
+      "department": "marketing"
+    },
     "target": {
       "type": "http",
       "method": "POST",
@@ -602,8 +609,9 @@ curl "$HOOK0_API/subscriptions/?application_id=$APP_ID" \
     "description": "Welcome email trigger",
     "secret": "591b414d-8cd4-...",
     "metadata": {},
-    "label_key": "environment",
-    "label_value": "production",
+    "labels": {
+      "environment": "production"
+    },
     "labels": {
       "environment": "production"
     },
@@ -638,8 +646,6 @@ curl "$HOOK0_API/subscriptions/{SUBSCRIPTION_ID}?application_id=$APP_ID" \
   "description": "Welcome email trigger",
   "secret": "591b414d-8cd4-...",
   "metadata": {},
-  "label_key": "environment",
-  "label_value": "production",
   "labels": {
     "environment": "production"
   },
@@ -662,7 +668,7 @@ curl "$HOOK0_API/subscriptions/{SUBSCRIPTION_ID}?application_id=$APP_ID" \
 ### Update Subscription Configuration
 
 :::warning Required Fields
-The PUT endpoint requires all subscription fields, not just the ones you want to change. You must include `application_id`, `is_enabled`, `event_types`, `label_key`, `label_value`, and `target`.
+The PUT endpoint requires all subscription fields, not just the ones you want to change. You must include `application_id`, `is_enabled`, `event_types`, `labels`, and `target`.
 :::
 
 ```bash
@@ -674,8 +680,9 @@ curl -X PUT "$HOOK0_API/subscriptions/{SUBSCRIPTION_ID}" \
     "is_enabled": true,
     "event_types": ["user.account.registered", "user.email.verified"],
     "description": "Updated CRM integration - removed profile updates",
-    "label_key": "environment",
-    "label_value": "production",
+    "labels": {
+      "environment": "production"
+    },
     "target": {
       "type": "http",
       "method": "POST",
@@ -715,8 +722,9 @@ curl -X PUT "$HOOK0_API/subscriptions/{SUBSCRIPTION_ID}" \
     "application_id": "'"$APP_ID"'",
     "is_enabled": false,
     "event_types": ["user.account.created"],
-    "label_key": "environment",
-    "label_value": "production",
+    "labels": {
+      "environment": "production"
+    },
     "target": {
       "type": "http",
       "method": "POST",

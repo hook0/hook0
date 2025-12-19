@@ -145,8 +145,9 @@ curl -X POST "$HOOK0_API/subscriptions" \
     "is_enabled": true,
     "event_types": ["gitlab.push.created", "gitlab.merge_request.opened"],
     "description": "ACME Corp API Gateway project webhook",
-    "label_key": "project_id",
-    "label_value": "67890",
+    "labels": {
+      "project_id": "67890"
+    },
     "target": {
       "type": "http",
       "method": "POST",
@@ -171,8 +172,9 @@ curl -X POST "$HOOK0_API/subscriptions" \
     "is_enabled": true,
     "event_types": ["gitlab.pipeline.completed"],
     "description": "ACME Corp group-wide pipeline notifications",
-    "label_key": "group_id",
-    "label_value": "54321",
+    "labels": {
+      "group_id": "54321"
+    },
     "target": {
       "type": "http",
       "method": "POST",
@@ -214,7 +216,7 @@ curl -X GET "$HOOK0_API/responses/{RESPONSE_ID}?application_id=$APP_ID" \
 Users can manage their webhooks through your UI, which internally calls Hook0:
 
 :::warning PUT Requires ALL Fields
-When updating subscriptions, the PUT endpoint requires ALL fields (`application_id`, `is_enabled`, `event_types`, `label_key`, `label_value`, `target`), not just the ones you want to change. First GET the current subscription, then send the complete object with your modifications.
+When updating subscriptions, the PUT endpoint requires ALL fields (`application_id`, `is_enabled`, `event_types`, `labels`, `target`), not just the ones you want to change. First GET the current subscription, then send the complete object with your modifications.
 :::
 
 ```bash
@@ -231,8 +233,9 @@ curl -X PUT "$HOOK0_API/subscriptions/{SUBSCRIPTION_ID}" \
     "is_enabled": true,
     "event_types": ["gitlab.push.created", "gitlab.merge_request.opened", "gitlab.pipeline.completed"],
     "description": "ACME Corp API Gateway project webhook",
-    "label_key": "project_id",
-    "label_value": "67890",
+    "labels": {
+      "project_id": "67890"
+    },
     "target": {
       "type": "http",
       "method": "POST",
@@ -250,8 +253,9 @@ curl -X PUT "$HOOK0_API/subscriptions/{SUBSCRIPTION_ID}" \
     "is_enabled": false,
     "event_types": ["gitlab.push.created", "gitlab.merge_request.opened"],
     "description": "ACME Corp API Gateway project webhook",
-    "label_key": "project_id",
-    "label_value": "67890",
+    "labels": {
+      "project_id": "67890"
+    },
     "target": {
       "type": "http",
       "method": "POST",
@@ -293,8 +297,9 @@ curl -X POST "$HOOK0_API/subscriptions" \
     "is_enabled": true,
     "event_types": ["gitlab.user.created", "gitlab.user.blocked", "gitlab.project.created"],
     "description": "GitLab.com system hooks for compliance",
-    "label_key": "hook_type",
-    "label_value": "system",
+    "labels": {
+      "hook_type": "system"
+    },
     "target": {
       "type": "http",
       "method": "POST",
@@ -349,4 +354,4 @@ By using Hook0, multi-tenant platforms can:
 - Scale to handle billions of events across millions of projects
 - Focus on core business functionality rather than webhook infrastructure
 
-The label-based routing system (`label_key` and `label_value`) enables flexible filtering without requiring complex query languages, making it perfect for hierarchical multi-tenant structures (users, groups, organizations, projects, etc.).
+The label-based routing system (`labels`) enables flexible filtering without requiring complex query languages, making it perfect for hierarchical multi-tenant structures (users, groups, organizations, projects, etc.).

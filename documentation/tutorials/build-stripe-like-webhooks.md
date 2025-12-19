@@ -322,14 +322,15 @@ SUB_ACME=$(curl -s -X POST "$HOOK0_API/subscriptions" \
       \"payment.charge.failed\",
       \"payment.refund.created\"
     ],
-    \"label_key\": \"tenant_id\",
-    \"label_value\": \"acme_corp\",
+    \"labels\": {
+      \"tenant_id\": \"acme_corp\"
+    },
     \"target\": {
       \"type\": \"http\",
       \"method\": \"POST\",
       \"url\": \"http://host.docker.internal:3000/webhook/acme_corp\",
       \"headers\": {
-        \"Content-Type\": \"application/json\"
+        \"X-Tenant\": \"acme_corp\"
       }
     }
   }")
@@ -380,14 +381,15 @@ SUB_GLOBEX=$(curl -s -X POST "$HOOK0_API/subscriptions" \
       \"payment.charge.succeeded\",
       \"customer.account.created\"
     ],
-    \"label_key\": \"tenant_id\",
-    \"label_value\": \"globex_inc\",
+    \"labels\": {
+      \"tenant_id\": \"globex_inc\"
+    },
     \"target\": {
       \"type\": \"http\",
       \"method\": \"POST\",
       \"url\": \"http://host.docker.internal:3000/webhook/globex_inc\",
       \"headers\": {
-        \"Content-Type\": \"application/json\"
+        \"X-Tenant\": \"globex_inc\"
       }
     }
   }")
@@ -733,7 +735,7 @@ curl "$HOOK0_API/events/{event-id}" \
 # Subscription filter
 curl "$HOOK0_API/subscriptions/$SUB_ACME_ID" \
   -H "Authorization: Bearer $HOOK0_TOKEN" \
-  | jq '{label_key, label_value}'
+  | jq '.labels'
 ```
 
 #### Signature Verification Failing

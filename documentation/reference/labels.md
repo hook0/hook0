@@ -77,7 +77,7 @@ curl -X POST "$HOOK0_API/event" \
 
 ### Subscription Filtering
 
-Subscriptions use `label_key` and `label_value` to filter events:
+Subscriptions use `labels` to filter events:
 
 ```bash
 curl -X POST "$HOOK0_API/subscriptions" \
@@ -87,8 +87,9 @@ curl -X POST "$HOOK0_API/subscriptions" \
     "application_id": "'"$APP_ID"'",
     "is_enabled": true,
     "event_types": ["user.account.created", "user.account.updated"],
-    "label_key": "tenant_id",
-    "label_value": "acme_corp",
+    "labels": {
+      "tenant_id": "acme_corp"
+    },
     "description": "Webhooks for ACME Corp tenant",
     "target": {
       "type": "http",
@@ -99,9 +100,9 @@ curl -X POST "$HOOK0_API/subscriptions" \
 ```
 
 **Filtering logic**:
-- Subscription receives event if `event.labels[label_key] == label_value`
-- If event does not have the specified label, subscription will not receive it
-- Only one label filter per subscription (label_key/label_value pair)
+- Subscription receives event if all subscription labels match the event labels
+- If event does not have a required label, subscription will not receive it
+- Multiple label filters per subscription are supported
 
 ## Common Use Cases
 
@@ -122,15 +123,13 @@ await hook0.sendEvent({
 
 // Tenant A subscription (only receives tenant_a events)
 {
-  "label_key": "tenant_id",
-  "label_value": "acme_corp",
+  "labels": { "tenant_id": "acme_corp" },
   "target": { "url": "https://acme.example.com/webhooks" }
 }
 
 // Tenant B subscription (only receives tenant_b events)
 {
-  "label_key": "tenant_id",
-  "label_value": "globex_inc",
+  "labels": { "tenant_id": "globex_inc" },
   "target": { "url": "https://globex.example.com/webhooks" }
 }
 ```
@@ -162,8 +161,7 @@ Subscriptions filter by environment:
 
 ```json
 {
-  "label_key": "environment",
-  "label_value": "production",
+  "labels": { "environment": "production" },
   "description": "Production monitoring",
   "target": { "url": "https://monitoring.prod.example.com/webhooks" }
 }
@@ -194,8 +192,7 @@ Subscriptions handle priorities differently:
 
 ```json
 {
-  "label_key": "priority",
-  "label_value": "critical",
+  "labels": { "priority": "critical" },
   "description": "Critical alerts to Slack",
   "target": {
     "url": "https://hooks.slack.com/services/critical-alerts",
@@ -223,8 +220,7 @@ Region-specific subscriptions:
 
 ```json
 {
-  "label_key": "region",
-  "label_value": "us-east-1",
+  "labels": { "region": "us-east-1" },
   "description": "US East fulfillment center",
   "target": { "url": "https://fulfillment.us-east.example.com/webhooks" }
 }
@@ -365,22 +361,19 @@ Create separate subscriptions for different filtering needs:
 ```json
 // Subscription 1: All ACME Corp events
 {
-  "label_key": "tenant_id",
-  "label_value": "acme_corp",
+  "labels": { "tenant_id": "acme_corp" },
   "target": { "url": "https://acme.example.com/all-events" }
 }
 
 // Subscription 2: All production events (all tenants)
 {
-  "label_key": "environment",
-  "label_value": "production",
+  "labels": { "environment": "production" },
   "target": { "url": "https://monitoring.example.com/production" }
 }
 
 // Subscription 3: All high-priority events
 {
-  "label_key": "priority",
-  "label_value": "high",
+  "labels": { "priority": "high" },
   "target": { "url": "https://alerts.example.com/high-priority" }
 }
 ```
@@ -506,7 +499,7 @@ labels:
 - ✅ Use string values only
 
 **Subscription configuration**:
-- ✅ Choose appropriate label_key for filtering
+- ✅ Choose appropriate labels for filtering
 - ✅ Document subscription filtering logic
 - ✅ Test subscription receives expected events
 - ✅ Monitor subscription delivery metrics
@@ -590,14 +583,13 @@ console.log('Event labels:', event.labels);
 
 // Check subscription filter
 const subscription = await hook0.getSubscription('sub_456');
-console.log('Subscription filter:', {
-  key: subscription.label_key,
-  value: subscription.label_value
-});
+console.log('Subscription labels:', subscription.labels);
 
-// Verify match
-const matches = event.labels[subscription.label_key] === subscription.label_value;
-console.log('Label matches:', matches);
+// Verify match (all subscription labels must match event labels)
+const matches = Object.entries(subscription.labels).every(
+  ([key, value]) => event.labels[key] === value
+);
+console.log('Labels match:', matches);
 ```
 
 ### Validation Errors
@@ -697,8 +689,9 @@ Authorization: Bearer TOKEN
 {
   "application_id": "app_123",
   "event_types": ["user.account.created"],
-  "label_key": "tenant_id",
-  "label_value": "acme_corp",
+  "labels": {
+    "tenant_id": "acme_corp"
+  },
   "target": {
     "type": "http",
     "method": "POST",
