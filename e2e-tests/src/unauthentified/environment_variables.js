@@ -2,16 +2,16 @@ import http from 'k6/http';
 import { check } from 'k6';
 
 export default function (baseUrl) {
-  const url = `${baseUrl}api/v1/environments`;
+  const url = `${baseUrl}/api/v1/environment_variables`;
 
   const res = http.get(url);
   if (
     !check(res, {
-      'Get environments': (r) => r.status === 200 && r.body,
+      'Get environment_variables': (r) => r.status === 200 && r.body,
     })
   ) {
-    console.warn(res);
-    return false;
+    console.warn(res.status, res.body);
+    throw new Error(`GET /environment_variables failed with status ${res.status}`);
   }
 
   let json;
@@ -23,8 +23,8 @@ export default function (baseUrl) {
 
   if (
     !check(json, {
-      'environments is array': () => Array.isArray(json),
-      'environments has items': () => json.length > 0,
+      'environment_variables is array': () => Array.isArray(json),
+      'environment_variables has items': () => json.length > 0,
     })
   ) {
     throw new Error(`Unexpected response: ${JSON.stringify(json)}`);
