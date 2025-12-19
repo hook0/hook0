@@ -164,13 +164,6 @@ All official Hook0 SDKs provide:
 - Event type management
 - Delivery status tracking (via REST API)
 
-### 🔄 Reliability
-- Automatic retry with exponential backoff
-- Circuit breaker pattern
-- Connection pooling
-- Rate limit handling
-- Timeout configuration
-
 ### 🛠️ Developer Experience
 - Type safety and auto-completion
 - Comprehensive error handling
