@@ -7,6 +7,7 @@
   extends: .release-rules
   stage: build
   image: rust:latest
+  timeout: 3h
   variables:
     SQLX_OFFLINE: "true"
   before_script:
