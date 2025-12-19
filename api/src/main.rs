@@ -91,410 +91,410 @@ const PULSAR_CONNECTION_MAX_RETRIES: u32 = 10;
         .requires_all(&["object_storage_host", "object_storage_key_id", "object_storage_key_secret", "object_storage_bucket_name"]),
 ))]
 struct Config {
-    /// IP address on which to start the HTTP server
+    /// [Web Server] IP address on which to start the HTTP server
     #[clap(long, env, default_value = "127.0.0.1")]
     ip: String,
 
-    /// Port on which to start the HTTP server
+    /// [Web Server] Port on which to start the HTTP server
     #[clap(long, env, default_value = "8080")]
     port: String,
 
-    /// A comma-separated list of trusted IP addresses (e.g. `192.168.1.1`) or CIDRs (e.g. `192.168.0.0/16`) that are allowed to set "X-Forwarded-For" and "Forwarded" headers
+    /// [Reverse Proxy] A comma-separated list of trusted IP addresses (e.g. `192.168.1.1`) or CIDRs (e.g. `192.168.0.0/16`) that are allowed to set "X-Forwarded-For" and "Forwarded" headers
     #[clap(long, env, use_value_delimiter = true, group = "reverse_proxy")]
     reverse_proxy_ips: Vec<IpNetwork>,
 
-    /// A comma-separated list of trusted IP addresses (e.g. `192.168.1.1`) or CIDRs (e.g. `192.168.0.0/16`) that are allowed to set "X-Forwarded-For" and "Forwarded" headers
+    /// [Reverse Proxy] A comma-separated list of trusted IP addresses (e.g. `192.168.1.1`) or CIDRs (e.g. `192.168.0.0/16`) that are allowed to set "X-Forwarded-For" and "Forwarded" headers
     #[clap(long, env, use_value_delimiter = true, group = "reverse_proxy")]
     cc_reverse_proxy_ips: Vec<IpNetwork>,
 
-    /// Set to true if your instance is served behind Cloudflare's proxies in order to determine the correct user IP for each request
+    /// [Reverse Proxy] Set to true if your instance is served behind Cloudflare's proxies in order to determine the correct user IP for each request
     #[clap(long, env, default_value = "false")]
     behind_cloudflare: bool,
 
-    /// Optional Sentry DSN for error reporting
+    /// [Monitoring] Optional Sentry DSN for error reporting
     #[clap(long, env)]
     sentry_dsn: Option<String>,
 
-    /// Optional sample rate for tracing transactions with Sentry (between 0.0 and 1.0)
+    /// [Monitoring] Optional sample rate for tracing transactions with Sentry (between 0.0 and 1.0)
     #[clap(long, env)]
     sentry_traces_sample_rate: Option<f32>,
 
-    /// Optional OTLP endpoint that will receive metrics
+    /// [Monitoring] Optional OTLP endpoint that will receive metrics
     #[clap(long, env)]
     otlp_metrics_endpoint: Option<Url>,
 
-    /// Optional OTLP endpoint that will receive traces
+    /// [Monitoring] Optional OTLP endpoint that will receive traces
     #[clap(long, env)]
     otlp_traces_endpoint: Option<Url>,
 
-    /// Optional value for OTLP `Authorization` header (for example: `Bearer mytoken`)
+    /// [Monitoring] Optional value for OTLP `Authorization` header (for example: `Bearer mytoken`)
     #[clap(long, env, hide_env_values = true)]
     otlp_authorization: Option<String>,
 
-    /// Database URL (with credentials)
+    /// [Database] Database URL (with credentials)
     #[clap(long, env, hide_env_values = true)]
     database_url: String,
 
-    /// Maximum number of connections to database
+    /// [Database] Maximum number of connections to database
     #[clap(long, env, default_value = "5")]
     max_db_connections: u32,
 
-    /// Statement timeout for database queries; if `0ms` (default), no timeout will be set; this is only for API-related queries, housekeeping tasks run without timeout
+    /// [Database] Statement timeout for database queries; if `0ms` (default), no timeout will be set; this is only for API-related queries, housekeeping tasks run without timeout
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "0ms")]
     db_statement_timeout: Duration,
 
-    /// Pulsar binary URL
+    /// [Pulsar] Pulsar binary URL
     #[clap(long, env, group = "pulsar")]
     pulsar_binary_url: Option<Url>,
 
-    /// Pulsar token
+    /// [Pulsar] Pulsar token
     #[clap(long, env, hide_env_values = true, group = "pulsar")]
     pulsar_token: Option<String>,
 
-    /// Pulsar tenant
+    /// [Pulsar] Pulsar tenant
     #[clap(long, env, group = "pulsar")]
     pulsar_tenant: Option<String>,
 
-    /// Pulsar namespace
+    /// [Pulsar] Pulsar namespace
     #[clap(long, env, group = "pulsar")]
     pulsar_namespace: Option<String>,
 
-    /// Host of the S3-like object storage (without https://)
+    /// [Object Storage] Host of the S3-like object storage (without https://)
     #[clap(long, env)]
     object_storage_host: Option<String>,
 
-    /// Force endpoint scheme to be HTTP (by default it is HTTPS)
+    /// [Object Storage] Force endpoint scheme to be HTTP (by default it is HTTPS)
     #[clap(long, env, default_value_t = false)]
     object_storage_force_http_scheme: bool,
 
-    /// Key ID of the S3-like object storage
+    /// [Object Storage] Key ID of the S3-like object storage
     #[clap(long, env)]
     object_storage_key_id: Option<String>,
 
-    /// Key secret of the S3-like object storage
+    /// [Object Storage] Key secret of the S3-like object storage
     #[clap(long, env, hide_env_values = true)]
     object_storage_key_secret: Option<String>,
 
-    /// Maximum number of attempts for object storage operations
+    /// [Object Storage] Maximum number of attempts for object storage operations
     #[clap(long, env, default_value_t = 3)]
     object_storage_max_attempts: u32,
 
-    /// Bucket name of the S3-like object storage
+    /// [Object Storage] Bucket name of the S3-like object storage
     #[clap(long, env)]
     object_storage_bucket_name: Option<String>,
 
-    /// If true, new event payloads will be stored in object storage instead of database
+    /// [Object Storage] If true, new event payloads will be stored in object storage instead of database
     #[clap(long, env, default_value_t = false)]
     store_event_payloads_in_object_storage: bool,
 
-    /// A comma-separated list of applications ID whose event payloads should be stored in object storage; if empty (default), all event payloads will be stored in object storage regardless of application ID
+    /// [Object Storage] A comma-separated list of applications ID whose event payloads should be stored in object storage; if empty (default), all event payloads will be stored in object storage regardless of application ID
     #[clap(long, env, use_value_delimiter = true)]
     store_event_payloads_in_object_storage_only_for: Vec<Uuid>,
 
-    /// Path to the directory containing the web app to serve
+    /// [Frontend] Path to the directory containing the web app to serve
     #[clap(long, env, default_value = "../frontend/dist/")]
     webapp_path: String,
 
-    /// Set to true to disable serving the web app and only serve the API
+    /// [Frontend] Set to true to disable serving the web app and only serve the API
     #[clap(long, env)]
     disable_serving_webapp: bool,
 
-    /// Key for the health check endpoint; if not specified, endpoint is disabled; if empty, endpoint is public
+    /// [Monitoring] Key for the health check endpoint; if not specified, endpoint is disabled; if empty, endpoint is public
     #[clap(long, env, hide_env_values = true)]
     health_check_key: Option<String>,
 
-    /// Max timeout duration for health check: if subsystems take longer to respond they will be considered unhealthy
+    /// [Monitoring] Max timeout duration for health check: if subsystems take longer to respond they will be considered unhealthy
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "5s")]
     health_check_timeout: Duration,
 
-    /// Enable Keycloak migration mode
+    /// [Deprecated] Enable Keycloak migration mode
     #[cfg(feature = "migrate-users-from-keycloak")]
     #[clap(long, env, default_value = "true")]
     enable_keycloak_migration: bool,
 
-    /// Enable application secret compatibility mode
+    /// [Deprecated] Enable application secret compatibility mode
     #[cfg(feature = "application-secret-compatibility")]
     #[clap(long, env, default_value = "true")]
     enable_application_secret_compatibility: bool,
 
-    /// Keycloak RS256 public key (with GPG delimiters)
+    /// [Deprecated] Keycloak RS256 public key (with GPG delimiters)
     #[cfg(feature = "migrate-users-from-keycloak")]
     #[clap(long, env)]
     keycloak_oidc_public_key: String,
 
-    /// Biscuit's private key, used for authentication
+    /// [Auth] Biscuit's private key, used for authentication
     #[clap(long, env, value_parser = parse_biscuit_private_key)]
     biscuit_private_key: Option<PrivateKey>,
 
-    /// Disable automatic database migration
+    /// [Database] Disable automatic database migration
     #[clap(long = "no-auto-db-migration", env = "NO_AUTO_DB_MIGRATION", value_parser = BoolValueParser::new().map(|v| !v))]
     auto_db_migration: bool,
 
-    /// A global admin API key that have almost all rights. Better left undefined, USE AT YOUR OWN RISKS!
+    /// [Auth] A global admin API key that have almost all rights. Better left undefined, USE AT YOUR OWN RISKS!
     #[clap(long, env, hide_env_values = true)]
     master_api_key: Option<Uuid>,
 
-    /// URL of a Keycloak instance (example: https://my.keycloak.net/auth)
+    /// [Deprecated] URL of a Keycloak instance (example: https://my.keycloak.net/auth)
     #[cfg(feature = "migrate-users-from-keycloak")]
     #[clap(long, env)]
     keycloak_url: Url,
 
-    /// Keycloak realm
+    /// [Deprecated] Keycloak realm
     #[clap(long, env)]
     #[cfg(feature = "migrate-users-from-keycloak")]
     keycloak_realm: String,
 
-    /// OIDC client ID (the confidential client for Hook0 API)
+    /// [Deprecated] OIDC client ID (the confidential client for Hook0 API)
     #[clap(long, env)]
     #[cfg(feature = "migrate-users-from-keycloak")]
     keycloak_client_id: String,
 
-    /// OIDC client secret (the confidential client for Hook0 API)
+    /// [Deprecated] OIDC client secret (the confidential client for Hook0 API)
     #[cfg(feature = "migrate-users-from-keycloak")]
     #[clap(long, env, hide_env_values = true)]
     keycloak_client_secret: String,
 
-    /// Set to true to disable registration endpoint
+    /// [Auth] Set to true to disable registration endpoint
     #[clap(long, env)]
     disable_registration: bool,
 
-    /// Minimum length of user passwords. This is checked when a user registers.
+    /// [Auth] Minimum length of user passwords. This is checked when a user registers.
     #[clap(long, env, default_value = "12")]
     password_minimum_length: u8,
 
-    /// Set to true to disable every API rate limiting
+    /// [Rate Limiting] Set to true to disable every API rate limiting
     #[clap(long, env)]
     disable_api_rate_limiting: bool,
 
-    /// Set to true to disable global API rate limiting
+    /// [Rate Limiting] Set to true to disable global API rate limiting
     #[clap(long, env)]
     disable_api_rate_limiting_global: bool,
 
-    /// Global quota of API calls before rate limiting blocks incomming requests (must be ≥ 1)
+    /// [Rate Limiting] Global quota of API calls before rate limiting blocks incomming requests (must be ≥ 1)
     #[clap(long, env, default_value = "2000")]
     api_rate_limiting_global_burst_size: u32,
 
-    /// Duration (in millisecond) after which one global API call is restored in the quota (must be ≥ 1)
+    /// [Rate Limiting] Duration (in millisecond) after which one global API call is restored in the quota (must be ≥ 1)
     #[clap(long, env, default_value = "1")]
     api_rate_limiting_global_replenish_period_in_ms: u64,
 
-    /// Set to true to disable per-IP API rate limiting
+    /// [Rate Limiting] Set to true to disable per-IP API rate limiting
     #[clap(long, env)]
     disable_api_rate_limiting_ip: bool,
 
-    /// Quota of API calls per IP before rate limiting blocks incomming requests (must be ≥ 1)
+    /// [Rate Limiting] Quota of API calls per IP before rate limiting blocks incomming requests (must be ≥ 1)
     #[clap(long, env, default_value = "200")]
     api_rate_limiting_ip_burst_size: u32,
 
-    /// Duration (in millisecond) after which one API call per IP is restored in the quota (must be ≥ 1)
+    /// [Rate Limiting] Duration (in millisecond) after which one API call per IP is restored in the quota (must be ≥ 1)
     #[clap(long, env, default_value = "10")]
     api_rate_limiting_ip_replenish_period_in_ms: u64,
 
-    /// Set to true to disable per-token API rate limiting
+    /// [Rate Limiting] Set to true to disable per-token API rate limiting
     #[clap(long, env)]
     disable_api_rate_limiting_token: bool,
 
-    /// Quota of API calls per token before rate limiting blocks incomming requests (must be ≥ 1)
+    /// [Rate Limiting] Quota of API calls per token before rate limiting blocks incomming requests (must be ≥ 1)
     #[clap(long, env, default_value = "20")]
     api_rate_limiting_token_burst_size: u32,
 
-    /// Duration (in millisecond) after which one API call per token is restored in the quota (must be ≥ 1)
+    /// [Rate Limiting] Duration (in millisecond) after which one API call per token is restored in the quota (must be ≥ 1)
     #[clap(long, env, default_value = "100")]
     api_rate_limiting_token_replenish_period_in_ms: u64,
 
-    /// Duration to wait beetween rate limiters housekeeping
+    /// [Rate Limiting] Duration to wait beetween rate limiters housekeeping
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "5m")]
     api_rate_limiting_housekeeping_period: Duration,
 
-    /// Comma-separated allowed origins for CORS
+    /// [Web Server] Comma-separated allowed origins for CORS
     #[clap(long, env, use_value_delimiter = true)]
     cors_allowed_origins: Vec<String>,
 
-    /// Base API URL of a Hook0 instance that will receive events from this Hook0 instance
+    /// [Hook0 Client] Base API URL of a Hook0 instance that will receive events from this Hook0 instance
     #[clap(long, env, group = "client")]
     hook0_client_api_url: Option<Url>,
 
-    /// UUID of a Hook0 application that will receive events from this Hook0 instance
+    /// [Hook0 Client] UUID of a Hook0 application that will receive events from this Hook0 instance
     #[clap(long, env, group = "client")]
     hook0_client_application_id: Option<Uuid>,
 
-    /// Authentifcation token valid for a Hook0 application that will receive events from this Hook0 instance
+    /// [Hook0 Client] Authentifcation token valid for a Hook0 application that will receive events from this Hook0 instance
     #[clap(long, env, group = "client")]
     hook0_client_token: Option<String>,
 
-    /// Number of allowed retries when upserting event types to the linked Hook0 application fails
+    /// [Hook0 Client] Number of allowed retries when upserting event types to the linked Hook0 application fails
     #[clap(long, env, default_value = "10")]
     hook0_client_upserts_retries: u16,
 
-    /// Set to true to apply quotas limits (default is not to)
+    /// [Quotas] Set to true to apply quotas limits (default is not to)
     #[clap(long, env)]
     enable_quota_enforcement: bool,
 
-    /// Default limit of members per organization (can be overriden by a plan)
+    /// [Quotas] Default limit of members per organization (can be overriden by a plan)
     #[clap(long, env, default_value = "1")]
     quota_global_members_per_organization_limit: quotas::QuotaValue,
 
-    /// Default limit of applications per organization (can be overriden by a plan)
+    /// [Quotas] Default limit of applications per organization (can be overriden by a plan)
     #[clap(long, env, default_value = "1")]
     quota_global_applications_per_organization_limit: quotas::QuotaValue,
 
-    /// Default limit of events per day (can be overriden by a plan)
+    /// [Quotas] Default limit of events per day (can be overriden by a plan)
     #[clap(long, env, default_value = "100")]
     quota_global_events_per_day_limit: quotas::QuotaValue,
 
-    /// Default limit of day of event's retention (can be overriden by a plan)
+    /// [Quotas] Default limit of day of event's retention (can be overriden by a plan)
     #[clap(long, env, default_value = "7")]
     quota_global_days_of_events_retention_limit: quotas::QuotaValue,
 
-    /// Default limit of subscriptions per application (can be overriden by a plan)
+    /// [Quotas] Default limit of subscriptions per application (can be overriden by a plan)
     #[clap(long, env, default_value = "10")]
     quota_global_subscriptions_per_application_limit: quotas::QuotaValue,
 
-    /// Default limit of event types per application (can be overriden by a plan)
+    /// [Quotas] Default limit of event types per application (can be overriden by a plan)
     #[clap(long, env, default_value = "10")]
     quota_global_event_types_per_application_limit: quotas::QuotaValue,
 
-    /// Default threshold (in %) of events per day at which to send a warning notification
+    /// [Quotas] Default threshold (in %) of events per day at which to send a warning notification
     #[clap(long, env, default_value = "80")]
     quota_notification_events_per_day_threshold: u8,
 
-    /// Set to true to enable quota-based email notifications
+    /// [Quotas] Set to true to enable quota-based email notifications
     #[clap(long, env, default_value = "false")]
     enable_quota_based_email_notifications: bool,
 
-    /// Duration (in second) to wait between materialized views refreshes
+    /// [Housekeeping] Duration (in second) to wait between materialized views refreshes
     #[clap(long, env, default_value = "60")]
     materialized_views_refresh_period_in_s: u64,
 
-    /// Duration (in second) to wait between old events cleanups
+    /// [Housekeeping] Duration (in second) to wait between old events cleanups
     #[clap(long, env, default_value = "3600")]
     old_events_cleanup_period_in_s: u64,
 
-    /// Duration (in day) to wait before actually deleting events that are passed retention period
+    /// [Housekeeping] Duration (in day) to wait before actually deleting events that are passed retention period
     #[clap(long, env, default_value = "30")]
     old_events_cleanup_grace_period_in_day: u16,
 
-    /// If true, old events will be reported and cleaned up; if false (default), they will only be reported
+    /// [Housekeeping] If true, old events will be reported and cleaned up; if false (default), they will only be reported
     #[clap(long, env, default_value = "false")]
     old_events_cleanup_report_and_delete: bool,
 
-    /// Duration to wait between object storage cleanups
+    /// [Housekeeping] Duration to wait between object storage cleanups
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "1d")]
     object_storage_cleanup_period: Duration,
 
-    /// If true, allow to delete outdated objects from object storage; if false (default), they will only be reported
+    /// [Housekeeping] If true, allow to delete outdated objects from object storage; if false (default), they will only be reported
     #[clap(long, env, default_value_t = false)]
     object_storage_cleanup_report_and_delete: bool,
 
-    /// Duration to wait between expired tokens cleanups
+    /// [Housekeeping] Duration to wait between expired tokens cleanups
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "1h")]
     expired_tokens_cleanup_period: Duration,
 
-    /// Duration to wait before actually deleting expired tokens (expired tokens cannot be used anyway, even if kept for some time)
+    /// [Housekeeping] Duration to wait before actually deleting expired tokens (expired tokens cannot be used anyway, even if kept for some time)
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "7d")]
     expired_tokens_cleanup_grace_period: Duration,
 
-    /// If true, expired tokens will be reported and cleaned up; if false (default), they will only be reported
+    /// [Housekeeping] If true, expired tokens will be reported and cleaned up; if false (default), they will only be reported
     #[clap(long, env, default_value = "false")]
     expired_tokens_cleanup_report_and_delete: bool,
 
-    /// If true, unverified users will be remove from database after a while
+    /// [Housekeeping] If true, unverified users will be remove from database after a while
     #[clap(long, env, default_value = "false")]
     enable_unverified_users_cleanup: bool,
 
-    /// Duration (in second) to wait between unverified users cleanups
+    /// [Housekeeping] Duration (in second) to wait between unverified users cleanups
     #[clap(long, env, default_value = "3600")]
     unverified_users_cleanup_period_in_s: u64,
 
-    /// Duration (in day) to wait before removing a unverified user
+    /// [Housekeeping] Duration (in day) to wait before removing a unverified user
     #[clap(long, env, default_value = "7")]
     unverified_users_cleanup_grace_period_in_days: u32,
 
-    /// If true, unverified users will be reported and cleaned up; if false (default), they will only be reported
+    /// [Housekeeping] If true, unverified users will be reported and cleaned up; if false (default), they will only be reported
     #[clap(long, env, default_value = "false")]
     unverified_users_cleanup_report_and_delete: bool,
 
-    /// If true, soft-deleted applications will be removed from database after a while; otherwise they will be kept in database forever
+    /// [Housekeeping] If true, soft-deleted applications will be removed from database after a while; otherwise they will be kept in database forever
     #[clap(long, env, default_value = "false")]
     enable_soft_deleted_applications_cleanup: bool,
 
-    /// Duration to wait between soft-deleted applications cleanups
+    /// [Housekeeping] Duration to wait between soft-deleted applications cleanups
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "1d")]
     soft_deleted_applications_cleanup_period: Duration,
 
-    /// Duration to wait before removing a soft-deleted application
+    /// [Housekeeping] Duration to wait before removing a soft-deleted application
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "30d")]
     soft_deleted_applications_cleanup_grace_period: Duration,
 
-    /// If true, the secured HTTP headers will be enabled
+    /// [Web Server] If true, the secured HTTP headers will be enabled
     #[clap(long, env, default_value = "true")]
     enable_security_headers: bool,
 
-    /// If true, the HSTS header will be enabled
+    /// [Web Server] If true, the HSTS header will be enabled
     #[clap(long, env, default_value = "false")]
     enable_hsts_header: bool,
 
-    /// Sender email address
+    /// [Email] Sender email address
     #[clap(long, env)]
     email_sender_address: Address,
 
-    /// Sender name
+    /// [Email] Sender name
     #[clap(long, env, default_value = "Hook0")]
     email_sender_name: String,
 
-    /// Connection URL to SMTP server; for example: `smtp://localhost:1025`, `smtps://user:password@provider.com:465` (SMTP over TLS) or `smtp://user:password@provider.com:465?tls=required` (SMTP with STARTTLS)
+    /// [Email] Connection URL to SMTP server; for example: `smtp://localhost:1025`, `smtps://user:password@provider.com:465` (SMTP over TLS) or `smtp://user:password@provider.com:465?tls=required` (SMTP with STARTTLS)
     #[clap(long, env, hide_env_values = true)]
     smtp_connection_url: String,
 
-    /// Duration (in second) to use as timeout when sending emails to the SMTP server
+    /// [Email] Duration (in second) to use as timeout when sending emails to the SMTP server
     #[clap(long, env, default_value = "5")]
     smtp_timeout_in_s: u64,
 
-    /// URL of the Hook0 logo
+    /// [Frontend] URL of the Hook0 logo
     #[clap(long, env, default_value = "https://app.hook0.com/256x256.png")]
     email_logo_url: Url,
 
-    /// Frontend application URL (used for building links in emails and pagination)
+    /// [Frontend] Frontend application URL (used for building links in emails and pagination)
     #[clap(long, env)]
     app_url: Url,
 
-    /// Maximum duration (in millisecond) that can be spent running Biscuit's authorizer
+    /// [Auth] Maximum duration (in millisecond) that can be spent running Biscuit's authorizer
     #[clap(long, env, default_value = "10")]
     max_authorization_time_in_ms: u64,
 
-    /// If true, a trace log message containing authorizer context is emitted on each request; defaut is false because this feature implies a small overhead
+    /// [Auth] If true, a trace log message containing authorizer context is emitted on each request; defaut is false because this feature implies a small overhead
     #[clap(long, env, default_value_t = false)]
     debug_authorizer: bool,
 
-    /// Matomo URL
+    /// [Frontend] Matomo URL
     #[clap(long, env)]
     matomo_url: Option<Url>,
 
-    /// Matomo site ID
+    /// [Frontend] Matomo site ID
     #[clap(long, env)]
     matomo_site_id: Option<u16>,
 
-    /// Formbricks API host
+    /// [Frontend] Formbricks API host
     #[clap(long, env, default_value = "https://app.formbricks.com")]
     formbricks_api_host: String,
 
-    /// Formbricks API environment ID
+    /// [Frontend] Formbricks API environment ID
     #[clap(long, env)]
     formbricks_environment_id: Option<String>,
 
-    /// Website URL
+    /// [Frontend] Website URL
     #[clap(long, env, default_value = "https://hook0.com")]
     website_url: Url,
 
-    /// Support email address
+    /// [Frontend] Support email address
     #[clap(long, env, default_value = "support@hook0.com")]
     support_email_address: Address,
 
-    /// Cloudflare Turnstile site key (enables Turnstile for user registration)
+    /// [Frontend] Cloudflare Turnstile site key (enables Turnstile for user registration)
     #[clap(long, env, group = "cloudflare_turnstile")]
     cloudflare_turnstile_site_key: Option<String>,
 
-    /// Cloudflare Turnstile secret key (enables Turnstile for user registration)
+    /// [Frontend] Cloudflare Turnstile secret key (enables Turnstile for user registration)
     #[clap(long, env, group = "cloudflare_turnstile")]
     cloudflare_turnstile_secret_key: Option<String>,
 }
@@ -1171,9 +1171,12 @@ async fn main() -> anyhow::Result<()> {
                             web::scope("/quotas")
                                 .service(web::resource("").route(web::get().to(quotas::get))),
                         )
-                        .service(web::scope("/environment_variables").service(
-                            web::resource("").route(web::get().to(handlers::environment_variables::get)),
-                        ))
+                        .service(
+                            web::scope("/environment_variables").service(
+                                web::resource("")
+                                    .route(web::get().to(handlers::environment_variables::get)),
+                            ),
+                        )
                         .service({
                             let srv = web::scope("/health").service(
                                 web::resource("").route(web::get().to(handlers::instance::health)),
