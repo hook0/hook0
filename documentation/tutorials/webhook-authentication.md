@@ -37,9 +37,6 @@ Hook0's default method using HMAC-SHA256 signatures.
 ### 2. Custom Headers
 Using API keys or tokens in HTTP headers.
 
-### 3. IP Allowlisting
-Restricting webhook sources by IP address.
-
 ## Step 1: Understanding Hook0 Signatures
 
 Hook0 signs every webhook request with HMAC-SHA256. The default signature version is **v1**, which includes selected headers:
@@ -457,7 +454,6 @@ const webhookAuth = new WebhookAuth({
     process.env.WEBHOOK_SECRET_PREVIOUS  // For rotation support
   ].filter(Boolean),
   timestampTolerance: 300,  // 5 minutes
-  allowedIPs: [],  // Empty = allow all IPs
   requiredHeaders: {
     'x-webhook-source': 'hook0'  // Optional custom header check
   }
@@ -583,7 +579,6 @@ node test-auth.js
 - ✅ Use HTTPS for all webhook endpoints
 - ✅ Log authentication failures for monitoring
 - ❌ Do not log webhook secrets
-- ❌ Do not rely solely on IP allowlisting
 - ❌ Do not skip signature verification
 
 ### Implementation
@@ -596,9 +591,9 @@ node test-auth.js
 
 ## What You've Learned
 
-✅ Implemented HMAC-SHA256 signature verification  
-✅ Built multi-language webhook authentication  
-✅ Created advanced security patterns (timestamp validation, IP filtering)
+✅ Implemented HMAC-SHA256 signature verification
+✅ Built multi-language webhook authentication
+✅ Created advanced security patterns (timestamp validation, replay attack protection)
 ✅ Configured custom header authentication
 ✅ Built reusable authentication middleware  
 ✅ Tested authentication implementations  
@@ -617,13 +612,7 @@ node test-auth.js
 4. Check HMAC algorithm (SHA256, not SHA1)
 
 ### Timestamp Validation Issues
-1. Verify timestamp format (ISO 8601)
+1. Verify timestamp format (Unix timestamp in seconds)
 2. Check server clock synchronization
 3. Adjust tolerance window if needed
 4. Handle timezone differences correctly
-
-### IP Allowlisting Problems
-1. Check if you're behind a proxy/load balancer
-2. Verify actual client IP address
-3. Account for IPv4/IPv6 differences
-4. Consider using X-Forwarded-For header
