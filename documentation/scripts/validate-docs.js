@@ -24,8 +24,8 @@ function checkFileExists(sourceFile, linkPath) {
   const cleanPath = linkPath.split('#')[0];
   if (!cleanPath) return true; // Hash-only links are OK
   
-  const sourcDir = path.dirname(sourceFile);
-  const targetPath = path.resolve(sourcDir, cleanPath);
+  const sourceDir = path.dirname(sourceFile);
+  const targetPath = path.resolve(sourceDir, cleanPath);
   
   // Check if it's a markdown file
   if (!cleanPath.endsWith('.md')) {
