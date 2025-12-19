@@ -1,9 +1,8 @@
-use std::collections::HashMap;
-
 use clap::CommandFactory;
 use paperclip::actix::web::Json;
 use paperclip::actix::{Apiv2Schema, api_v2_operation};
 use serde::Serialize;
+use std::collections::HashMap;
 
 use crate::problems::Hook0Problem;
 
@@ -18,11 +17,10 @@ pub struct EnvVarMetadata {
     pub group: Option<String>,
 }
 
-/// Get environment variables metadata
 #[api_v2_operation(
-    summary = "Get environment variables metadata",
+    summary = "List environment variables metadata",
     description = "Returns metadata for all environment variables read by the API",
-    operation_id = "environment_variables.get",
+    operation_id = "environment_variables.list",
     produces = "application/json",
     tags("Hook0")
 )]
