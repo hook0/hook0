@@ -54,7 +54,7 @@ Once Hook0 has restored critical systems and data, it will begin the process of 
 
 ## Recovery Time Objectives (RTO) & Recovery Point Objectives (RPO)
 
-Every customers has the default RTO and REPO
+Every customer has the default RTO and RPO:
 
 | Service           | RTO     | RPO   |
 | ----------------- | ------- | ----- |
