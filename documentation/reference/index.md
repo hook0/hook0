@@ -93,11 +93,11 @@ Client libraries and SDKs for different programming languages.
 ### Event Delivery Status
 | Status | Description |
 |--------|-------------|
+| `waiting` | Scheduled for future delivery (retry backoff) |
 | `pending` | Event queued for delivery |
-| `sending` | Currently being delivered |
-| `delivered` | Successfully delivered |
+| `inprogress` | Currently being delivered |
+| `successful` | Successfully delivered |
 | `failed` | Delivery failed (will retry) |
-| `cancelled` | Delivery cancelled |
 
 ### Configuration Sections
 | Section | Purpose |

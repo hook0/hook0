@@ -73,7 +73,8 @@ async function requestWithRetry(requestFn: () => Promise<Response>, maxRetries =
     try {
       return await requestFn();
     } catch (error) {
-      if (attempt === maxRetries || !retryableErrors.includes(error.id)) {
+      const isHook0Error = typeof error === 'object' && error !== null && 'id' in error;
+      if (attempt === maxRetries || !isHook0Error || !retryableErrors.includes(error.id)) {
         throw error;
       }
 
