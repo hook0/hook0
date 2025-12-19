@@ -1,0 +1,58 @@
+{
+  "name": "hook0-documentation",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "docusaurus": "docusaurus",
+    "fetch-openapi": "node scripts/fetch-openapi.js",
+    "generate-api": "docusaurus gen-api-docs hook0 && node scripts/post-process-api.js",
+    "prestart": "npm run fetch-openapi",
+    "start": "docusaurus start",
+    "prebuild": "npm run fetch-openapi",
+    "build": "docusaurus build",
+    "swizzle": "docusaurus swizzle",
+    "deploy": "docusaurus deploy",
+    "clear": "docusaurus clear",
+    "serve": "docusaurus serve",
+    "write-translations": "docusaurus write-translations",
+    "write-heading-ids": "docusaurus write-heading-ids",
+    "generate:errors": "node scripts/generate-error-codes.js",
+    "validate": "node scripts/validate-docs.js",
+    "test": "npm run validate && npm run build",
+    "clean-api": "rimraf docs/api openapi/hook0-api.json"
+  },
+  "dependencies": {
+    "@docusaurus/core": "3.6.3",
+    "@docusaurus/preset-classic": "3.6.3",
+    "@docusaurus/theme-mermaid": "3.6.3",
+    "@easyops-cn/docusaurus-search-local": "^0.52.1",
+    "@mdx-js/react": "^3.0.0",
+    "@scalar/docusaurus": "^0.7.24",
+    "clsx": "^2.0.0",
+    "prism-react-renderer": "^2.3.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "devDependencies": {
+    "@docusaurus/module-type-aliases": "3.6.3",
+    "@docusaurus/types": "3.6.3",
+    "docusaurus-plugin-module-alias": "^0.0.2",
+    "glob": "^11.0.3",
+    "rimraf": "^6.1.2"
+  },
+  "browserslist": {
+    "production": [
+      ">0.5%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 3 chrome version",
+      "last 3 firefox version",
+      "last 5 safari version"
+    ]
+  },
+  "engines": {
+    "node": ">=18.0"
+  }
+}
