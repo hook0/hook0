@@ -249,10 +249,9 @@ Hook0 forwards payloads exactly as received without re-serialization. This ensur
 
 1. **Check webhook.site** - you should see a new request containing your event payload.
 
-2. **Check the Hook0 dashboard** - navigate to Events to see:
+2. **Check the Hook0 dashboard** - navigate to Request Attempts to see:
    - Event details
    - Delivery status
-   - Response codes
    - Retry attempts (if any)
 
 ## Step 8: Verify Webhook Signature
@@ -299,7 +298,6 @@ Now that you have the basics, try these advanced tutorials:
 - Check subscription is enabled
 - Verify event type and labels match subscription
 - Check that the URL you specified as target in your subscription is accessible
-- Review logs in Hook0 dashboard
 
 ### Authentication Errors
 - Ensure token has correct permissions
