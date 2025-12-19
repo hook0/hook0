@@ -51,7 +51,7 @@ const config = {
           path: ".",
           sidebarPath: "./sidebars.js",
           routeBasePath: "/",
-          editUrl: "https://gitlab.com/hook0/hook0/-/tree/main/documentation/",
+          editUrl: "https://gitlab.com/hook0/hook0/-/tree/master/documentation/",
           exclude: [
             "**/node_modules/**",
             "**/build/**",
