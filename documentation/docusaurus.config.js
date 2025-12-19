@@ -118,6 +118,29 @@ const config = {
     mermaid: true,
   },
 
+  // Matomo analytics script (injected in <head>)
+  headTags:
+    process.env.DOCUMENTATION_MATOMO_URL && process.env.DOCUMENTATION_MATOMO_SITE_ID
+      ? [
+          {
+            tagName: "script",
+            attributes: {},
+            innerHTML: `
+              var _paq = window._paq = window._paq || [];
+              _paq.push(['trackPageView']);
+              _paq.push(['enableLinkTracking']);
+              (function() {
+                var u="${process.env.DOCUMENTATION_MATOMO_URL}";
+                _paq.push(['setTrackerUrl', u+'matomo.php']);
+                _paq.push(['setSiteId', '${process.env.DOCUMENTATION_MATOMO_SITE_ID}']);
+                var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+                g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
+              })();
+            `,
+          },
+        ]
+      : [],
+
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
