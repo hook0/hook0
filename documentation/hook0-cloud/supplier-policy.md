@@ -29,4 +29,4 @@ The service manager and office manager are responsible to implement the policy.
 - Suppliers should be assessed periodically, taking into account
   - Performance (are we happy with them?)
   - KPI performance (are they living up to the expectations?)
-  - Recent incidents (where they a party in a recent information security incident?)
+  - Recent incidents (were they a party in a recent information security incident?)
