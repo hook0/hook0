@@ -40,9 +40,6 @@ Using API keys or tokens in HTTP headers.
 ### 3. IP Allowlisting
 Restricting webhook sources by IP address.
 
-### 4. mTLS (Mutual TLS)
-Certificate-based authentication for high-security environments.
-
 ## Step 1: Understanding Hook0 Signatures
 
 Hook0 signs every webhook request with HMAC-SHA256. The default signature version is **v1**, which includes selected headers:
@@ -335,118 +332,17 @@ app.post('/webhooks/authenticated', (req, res) => {
 });
 ```
 
-## Step 5: IP Allowlisting
+## Step 5: About IP Allowlisting
 
-### Application-Level IP Filtering
+:::danger Not Recommended
+IP allowlisting is **not recommended** for Hook0 webhooks. Hook0 does not guarantee a fixed set of IP addresses for webhook delivery, and IPs may change without notice.
 
-:::warning Behind a Load Balancer or Proxy?
-In most production environments (Kubernetes, Heroku, AWS, etc.), your application is behind a reverse proxy or load balancer. In this case, `req.ip` will return the proxy's IP, not Hook0's IP.
+**Always rely on signature verification** as your primary authentication mechanism - it's cryptographically secure and doesn't depend on network configuration.
 
-**Solution:** Configure Express to trust the proxy and use `X-Forwarded-For`:
-```javascript
-app.set('trust proxy', 1); // Trust first proxy
-```
+If you have specific compliance requirements that mandate IP filtering, contact Hook0 support about enterprise options.
 :::
 
-```javascript
-const allowedIPs = [
-  '203.0.113.10',
-  '203.0.113.11',
-  '198.51.100.20'
-];
-
-function isIPAllowed(clientIP) {
-  return allowedIPs.includes(clientIP);
-}
-
-// If behind a proxy, uncomment this line:
-// app.set('trust proxy', 1);
-
-app.post('/webhooks/ip-filtered', (req, res) => {
-  // req.ip respects 'trust proxy' setting and uses X-Forwarded-For when enabled
-  const clientIP = req.ip || req.connection.remoteAddress;
-  
-  if (!isIPAllowed(clientIP)) {
-    console.log('Blocked request from:', clientIP);
-    return res.status(403).json({ error: 'IP not allowed' });
-  }
-  
-  // Continue with signature verification
-  // Note: Express.js normalizes all header names to lowercase
-  const signature = req.headers['x-hook0-signature'];
-  if (!verifyHook0Signature(req.body, signature, process.env.WEBHOOK_SECRET)) {
-    return res.status(401).json({ error: 'Invalid signature' });
-  }
-
-  res.json({ status: 'verified' });
-});
-```
-
-## Step 6: Mutual TLS (mTLS)
-
-For high-security environments, configure mutual TLS:
-
-:::info Infrastructure-Level mTLS
-In most production environments, TLS termination happens at the load balancer level (Nginx, AWS ALB, Cloudflare). The Node.js application never sees the client certificate directly.
-
-If you need mTLS, configure it at your infrastructure layer and verify the client certificate there. The code below is for cases where Node.js handles TLS directly (rare in production).
-:::
-
-### Generate Client Certificates
-
-```bash
-# Generate CA private key
-openssl genrsa -out ca-key.pem 4096
-
-# Generate CA certificate
-openssl req -new -x509 -days 365 -key ca-key.pem -sha256 -out ca.pem
-
-# Generate client private key
-openssl genrsa -out client-key.pem 4096
-
-# Generate client certificate signing request
-openssl req -subj '/CN=hook0-client' -new -key client-key.pem -out client.csr
-
-# Sign client certificate
-openssl x509 -req -days 365 -in client.csr -CA ca.pem -CAkey ca-key.pem -out client-cert.pem
-```
-
-### Configure Express.js for mTLS
-
-```javascript
-const https = require('https');
-const fs = require('fs');
-
-const options = {
-  key: fs.readFileSync('server-key.pem'),
-  cert: fs.readFileSync('server-cert.pem'),
-  ca: fs.readFileSync('ca.pem'),
-  requestCert: true,
-  rejectUnauthorized: true
-};
-
-app.post('/webhooks/mtls', (req, res) => {
-  // Client certificate is automatically verified by Node.js
-  const clientCert = req.connection.getPeerCertificate();
-  
-  console.log('Client certificate CN:', clientCert.subject.CN);
-  
-  // Additional signature verification
-  // Note: Express.js normalizes all header names to lowercase
-  const signature = req.headers['x-hook0-signature'];
-  if (!verifyHook0Signature(req.body, signature, process.env.WEBHOOK_SECRET)) {
-    return res.status(401).json({ error: 'Invalid signature' });
-  }
-
-  res.json({ status: 'mTLS verified' });
-});
-
-https.createServer(options, app).listen(8443, () => {
-  console.log('HTTPS Server with mTLS running on port 8443');
-});
-```
-
-## Step 7: Authentication Middleware
+## Step 6: Authentication Middleware
 
 Create reusable authentication middleware that properly handles the Hook0 signature format (`t=...,v1=...`):
 
@@ -458,7 +354,6 @@ class WebhookAuth {
   constructor(options = {}) {
     this.secrets = options.secrets || [];
     this.timestampTolerance = options.timestampTolerance || 300;
-    this.allowedIPs = options.allowedIPs || [];
     this.requiredHeaders = options.requiredHeaders || {};
   }
 
@@ -485,11 +380,6 @@ class WebhookAuth {
     return crypto.createHmac('sha256', secret).update(signedData).digest('hex');
   }
 
-  verifyIP(clientIP) {
-    if (this.allowedIPs.length === 0) return true;
-    return this.allowedIPs.includes(clientIP);
-  }
-
   verifyHeaders(headers) {
     for (const [key, expectedValue] of Object.entries(this.requiredHeaders)) {
       if (headers[key.toLowerCase()] !== expectedValue) {
@@ -501,18 +391,12 @@ class WebhookAuth {
 
   middleware() {
     return (req, res, next) => {
-      // 1. IP verification
-      const clientIP = req.ip || req.connection.remoteAddress;
-      if (!this.verifyIP(clientIP)) {
-        return res.status(403).json({ error: 'IP not allowed' });
-      }
-
-      // 2. Custom header verification
+      // 1. Custom header verification
       if (!this.verifyHeaders(req.headers)) {
         return res.status(401).json({ error: 'Required headers missing or invalid' });
       }
 
-      // 3. Signature header presence
+      // 2. Signature header presence
       const signatureHeader = req.headers['x-hook0-signature'];
       if (!signatureHeader) {
         return res.status(401).json({ error: 'Missing signature' });
@@ -592,7 +476,7 @@ app.post('/webhooks/secure', (req, res) => {
 });
 ```
 
-## Step 8: Testing Authentication
+## Step 7: Testing Authentication
 
 Create a test script to verify your authentication. The script must generate signatures in Hook0's format (`t=...,v1=...`):
 
@@ -714,9 +598,8 @@ node test-auth.js
 
 ✅ Implemented HMAC-SHA256 signature verification  
 ✅ Built multi-language webhook authentication  
-✅ Created advanced security patterns (timestamp validation, IP filtering)  
-✅ Configured custom header authentication  
-✅ Set up mutual TLS for high-security environments  
+✅ Created advanced security patterns (timestamp validation, IP filtering)
+✅ Configured custom header authentication
 ✅ Built reusable authentication middleware  
 ✅ Tested authentication implementations  
 

@@ -58,7 +58,6 @@ Hook0 does NOT use Redis. All state is stored in PostgreSQL.
 | Acronym | Full Name |
 |---------|-----------|
 | HMAC | Hash-based Message Authentication Code |
-| mTLS | Mutual Transport Layer Security |
 | SSPL | Server Side Public License |
 | WaaS | Webhooks as a Service |
 | GDPR | General Data Protection Regulation |
