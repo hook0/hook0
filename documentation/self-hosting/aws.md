@@ -3,7 +3,11 @@ title: AWS
 description: Deploy Hook0 on Amazon Web Services
 ---
 
+import DevOnlyWarning from './_dev-only-warning.mdx';
+
 # AWS
+
+<DevOnlyWarning />
 
 *(Content coming soon...)*
 

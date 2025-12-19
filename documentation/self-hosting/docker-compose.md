@@ -3,15 +3,13 @@ title: Docker Compose
 description: Quick local setup using Docker Compose
 ---
 
+import DevOnlyWarning from './_dev-only-warning.mdx';
+
 # Docker Compose
 
 This guide covers setting up Hook0 using Docker Compose for local development.
 
-:::warning
-
-**Do not run this in production!** The setup uses non-secure defaults and unsecured passwords. Production users should use either the managed SaaS at hook0.com or follow manual setup procedures.
-
-:::
+<DevOnlyWarning />
 
 ## Prerequisites
 

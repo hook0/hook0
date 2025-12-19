@@ -3,9 +3,13 @@ title: Kubernetes
 description: Deploy Hook0 on a Kubernetes cluster
 ---
 
+import DevOnlyWarning from './_dev-only-warning.mdx';
+
 # Kubernetes
 
 This guide provides instructions for deploying Hook0 on a Kubernetes cluster using a `deployments.yaml` file.
+
+<DevOnlyWarning />
 
 ## Prerequisites
 

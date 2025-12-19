@@ -3,9 +3,13 @@ title: Bare Metal
 description: Manual setup of Hook0 on bare metal servers
 ---
 
+import DevOnlyWarning from './_dev-only-warning.mdx';
+
 # Bare Metal
 
 This guide provides complete instructions for deploying Hook0 on bare metal servers.
+
+<DevOnlyWarning />
 
 ## Requirements
 
