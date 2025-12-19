@@ -22,7 +22,7 @@ documentation.build:
 
 pages:
   stage: documentation
-  image: alpine:latest
+  image: alpine:3.21
   needs:
     - documentation.build
   script:
