@@ -1,0 +1,40 @@
+documentation.build:
+  stage: documentation
+  image: node:${NODE_VERSION}
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}-docs
+    paths:
+      - documentation/node_modules/
+      - documentation/.npm/
+  before_script:
+    - cd documentation
+    - npm config set cache .npm --global
+    - npm ci --prefer-offline --no-audit
+  script:
+    - npm run build
+  artifacts:
+    paths:
+      - documentation/build/
+    expire_in: 1 week
+  rules:
+    - changes:
+        - documentation/**/*
+
+pages:
+  stage: documentation
+  image: alpine:3.21
+  needs:
+    - documentation.build
+  script:
+    - mkdir -p public
+    - cp -r documentation/build/* public/
+  artifacts:
+    paths:
+      - public
+  rules:
+    - changes:
+        - documentation/**/*
+      if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  environment:
+    name: production
+    url: https://hook0.gitlab.io/hook0

@@ -1,0 +1,3966 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Hook0 API",
+    "description": "Core REST API of Hook0 — Open-Source Webhooks as a service for SaaS",
+    "version": "0.1.0",
+    "contact": {
+      "name": "Hook0 Support",
+      "url": "https://www.hook0.com",
+      "email": "support@hook0.com"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
+    }
+  },
+  "servers": [
+    {
+      "url": "{baseUrl}",
+      "description": "Custom server",
+      "variables": {
+        "baseUrl": {
+          "default": "https://app.hook0.com",
+          "description": "Server URL"
+        }
+      }
+    },
+    {
+      "url": "https://app.hook0.com",
+      "description": "Production"
+    },
+    {
+      "url": "http://localhost:8081",
+      "description": "Local development"
+    }
+  ],
+  "paths": {
+    "/api/v1/application_secrets/": {
+      "get": {
+        "tags": [
+          "Applications Management"
+        ],
+        "summary": "List application secrets",
+        "description": "Retrieves all active API tokens for a given application.",
+        "operationId": "applicationSecrets.read",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApplicationSecret"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Applications Management"
+        ],
+        "summary": "Create a new application secret",
+        "description": "Generates a new API token for an application.",
+        "operationId": "applicationSecrets.create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplicationSecretPost"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationSecret"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      }
+    },
+    "/api/v1/application_secrets/{application_secret_token}": {
+      "put": {
+        "tags": [
+          "Applications Management"
+        ],
+        "summary": "Update an application secret",
+        "description": "Updates the name of an existing API token.",
+        "operationId": "applicationSecrets.update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_secret_token",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplicationSecretPost"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationSecret"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Applications Management"
+        ],
+        "summary": "Delete an application secret",
+        "description": "Marks an API token as revoked, preventing any further use. This operation is irreversible.",
+        "operationId": "applicationSecrets.delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_secret_token",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "simple"
+          },
+          {
+            "in": "query",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      }
+    },
+    "/api/v1/applications/": {
+      "get": {
+        "tags": [
+          "Applications Management"
+        ],
+        "summary": "List applications",
+        "description": "Retrieves all applications.",
+        "operationId": "applications.list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Application"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Applications Management"
+        ],
+        "summary": "Create a new application",
+        "description": "Registers a new application within an organization. An application emits events that customers can subscribe to using webhooks.",
+        "operationId": "applications.create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplicationPost"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Application"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      }
+    },
+    "/api/v1/applications/{application_id}": {
+      "get": {
+        "tags": [
+          "Applications Management"
+        ],
+        "summary": "Get an application by its ID",
+        "description": "Retrieves details about a specific application, including quotas and consumption statistics.",
+        "operationId": "applications.get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationInfo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Applications Management"
+        ],
+        "summary": "Edit an application",
+        "description": "Updates the name of an existing application.",
+        "operationId": "applications.update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplicationPost"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Application"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Applications Management"
+        ],
+        "summary": "Delete an application",
+        "description": "Marks an application as deleted. No more events will be emitted, and all active webhook subscriptions will be removed. All pending request attempts for all subscriptions belonging to this application will be automatically marked as failed.",
+        "operationId": "applications.delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/begin-reset-password": {
+      "post": {
+        "tags": [
+          "User Authentication"
+        ],
+        "summary": "Begin reset password",
+        "description": "Send an email with a link to reset the password of a user.",
+        "operationId": "auth.begin_reset_password",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BeginResetPasswordPost"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": [
+          "User Authentication"
+        ],
+        "summary": "Login",
+        "description": "Get an access token using a user's credentials.",
+        "operationId": "auth.login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginPost"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": [
+          "User Authentication"
+        ],
+        "summary": "Logout",
+        "description": "Revoke all tokens associated to the current session.",
+        "operationId": "auth.logout",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "userAccessToken": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/password": {
+      "post": {
+        "tags": [
+          "User Authentication"
+        ],
+        "summary": "Change password",
+        "description": "Change the password of a user.",
+        "operationId": "auth.change_password",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordPost"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "userAccessToken": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "tags": [
+          "User Authentication"
+        ],
+        "summary": "Refresh access token",
+        "description": "Get a new access token in exchange of a refresh token.",
+        "operationId": "auth.refresh",
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "refreshToken": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/reset-password": {
+      "post": {
+        "tags": [
+          "User Authentication"
+        ],
+        "summary": "Reset password",
+        "description": "Reset the password of a user.",
+        "operationId": "auth.reset_password",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordPost"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/verify-email": {
+      "post": {
+        "tags": [
+          "User Authentication"
+        ],
+        "summary": "Email verification",
+        "description": "Verify the email of a user.",
+        "operationId": "auth.verify_email",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailVerificationPost"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/errors/": {
+      "get": {
+        "tags": [
+          "Hook0"
+        ],
+        "summary": "List errors",
+        "description": "List of every possible errors that Hook0 can return. Each error is in RFC7807 problem format.",
+        "operationId": "errors.list",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Problem"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/event/": {
+      "post": {
+        "tags": [
+          "Events Management"
+        ],
+        "summary": "Ingest an event",
+        "description": "Send an event to your Hook0 application. Matching subscriptions will be triggered, if any.",
+        "operationId": "events.ingest",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventPost"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngestedEvent"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      }
+    },
+    "/api/v1/event_types/": {
+      "get": {
+        "tags": [
+          "Events Management"
+        ],
+        "summary": "List event types",
+        "description": "Retrieves all active event types registered for a given application. Each event type is uniquely identified by its service, resource type, and verb.",
+        "operationId": "eventTypes.list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EventType"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Events Management"
+        ],
+        "summary": "Create a new event type",
+        "description": "Defines a new event type for an application. Event types help categorize and structure emitted events, making them easier to manage and subscribe to.",
+        "operationId": "eventTypes.create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventTypePost"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventType"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      }
+    },
+    "/api/v1/event_types/{event_type_name}": {
+      "get": {
+        "tags": [
+          "Events Management"
+        ],
+        "summary": "Get an event type by its name",
+        "description": "Retrieves details of a specific event type if it exists within the given application. Event types define the structure of emitted events.",
+        "operationId": "eventTypes.get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "event_type_name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          {
+            "in": "query",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventType"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Events Management"
+        ],
+        "summary": "Delete an event type",
+        "description": "Marks an event type as deactivated, preventing it from being used for new event emissions. Existing events using this type remain unaffected.",
+        "operationId": "eventTypes.delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "event_type_name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          {
+            "in": "query",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      }
+    },
+    "/api/v1/events/": {
+      "get": {
+        "tags": [
+          "Events Management"
+        ],
+        "summary": "List latest events",
+        "description": "Retrieves the last 100 ingested events for a given application.",
+        "operationId": "events.list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Event"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      }
+    },
+    "/api/v1/events/{event_id}": {
+      "get": {
+        "tags": [
+          "Events Management"
+        ],
+        "summary": "Get an event",
+        "description": "Retrieves details of a specific event if it belongs to the specified application.",
+        "operationId": "events.get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "event_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "simple"
+          },
+          {
+            "in": "query",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventWithPayload"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      }
+    },
+    "/api/v1/events/{event_id}/replay": {
+      "post": {
+        "tags": [
+          "Events Management"
+        ],
+        "summary": "Replay an event",
+        "description": "Trigger existing subscriptions matching an existing event, which will result in webhook being send again.",
+        "operationId": "events.replay",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "event_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplayEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      }
+    },
+    "/api/v1/health/": {
+      "get": {
+        "tags": [
+          "Hook0"
+        ],
+        "summary": "Check instance health",
+        "description": "Get an object that shows if this instance is up.",
+        "operationId": "instance.health",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "key",
+            "schema": {
+              "type": "string"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthCheck"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthCheck"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/instance/": {
+      "get": {
+        "tags": [
+          "Hook0"
+        ],
+        "summary": "Get instance configuration",
+        "description": "Get an object that shows how this instance is configured.",
+        "operationId": "instance.get",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstanceConfig"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/organizations/": {
+      "get": {
+        "tags": [
+          "Organizations Management"
+        ],
+        "summary": "List organizations",
+        "description": "Retrieves all organizations the current API token has access to, with the associated roles.",
+        "operationId": "organizations.list",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Organization"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Organizations Management"
+        ],
+        "summary": "Create an organization",
+        "description": "Create a new organization. An organization contains applications, members and optionaly a plan. Note that you will need to regenerate an authentication token to be able to see/use the newly created organization.",
+        "operationId": "organizations.create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationPost"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationInfo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "userAccessToken": []
+          }
+        ]
+      }
+    },
+    "/api/v1/organizations/{organization_id}/": {
+      "get": {
+        "tags": [
+          "Organizations Management"
+        ],
+        "summary": "Get organization's info by its ID",
+        "description": "Retrieves details about a specific organization, including quotas and consumption statistics.",
+        "operationId": "organizations.get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organization_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationInfo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Organizations Management"
+        ],
+        "summary": "Edit an organization",
+        "description": "Note that you will need to regenerate a JWT to be able to see the updated name of the organization.",
+        "operationId": "organizations.edit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organization_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationPost"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationInfo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Organizations Management"
+        ],
+        "summary": "Delete an organization",
+        "description": "Remove an organization you have write access to. Organization must not contain any application otherwise this will fail.",
+        "operationId": "organizations.delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organization_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      }
+    },
+    "/api/v1/organizations/{organization_id}/invite": {
+      "put": {
+        "tags": [
+          "Organizations Management"
+        ],
+        "summary": "Edit a user's role in an organization",
+        "description": "Change the role of a user that has already access to an organization you have write access to.",
+        "operationId": "organizations.edit_role",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organization_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationEditRole"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationEditRole"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Organizations Management"
+        ],
+        "summary": "Invite a user to an organization",
+        "description": "Give permission to a user to access an organization you have write access to. The user must already have a Hook0 account otherwise this will fail.",
+        "operationId": "organizations.invite",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organization_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserInvitation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserInvitation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Organizations Management"
+        ],
+        "summary": "Revoke a user's access to an organization",
+        "description": "Remove permission of a user to access an organization you have write access to.",
+        "operationId": "organizations.revoke",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organization_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Revoke"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Revoke"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      }
+    },
+    "/api/v1/payload_content_types/": {
+      "get": {
+        "tags": [
+          "Events Management"
+        ],
+        "summary": "List supported event payload content types",
+        "description": "List of every possible content types that can be used in event payloads.",
+        "operationId": "payload_content_types.list",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/quotas/": {
+      "get": {
+        "tags": [
+          "Hook0"
+        ],
+        "summary": "Get quotas",
+        "description": "Get the current quotas limitations on the instance.",
+        "operationId": "quotas.get",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuotasResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/register/": {
+      "post": {
+        "tags": [
+          "Organizations Management"
+        ],
+        "summary": "Create a new user account and its own personal organization",
+        "description": "If instance has Cloudflare Turnstile enabled (see response of /instance endpoint), the `turnstile_token` field is mandatory.",
+        "operationId": "register",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrationPost"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Registration"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/request_attempts/": {
+      "get": {
+        "tags": [
+          "Subscriptions Management"
+        ],
+        "summary": "List request attempts",
+        "description": "Retrieves the most recent attempts to deliver events to subscriptions for a given application. Request attempts track the status and history of event deliveries, including retries and failures. This endpoint is paginated: the next URL is given in the `Link` header of the response, following HATEOAS conventions.",
+        "operationId": "requestAttempts.read",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "form"
+          },
+          {
+            "in": "query",
+            "name": "event_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "form"
+          },
+          {
+            "in": "query",
+            "name": "max_created_at",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "style": "form"
+          },
+          {
+            "in": "query",
+            "name": "min_created_at",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "style": "form"
+          },
+          {
+            "in": "query",
+            "name": "pagination_cursor",
+            "schema": {
+              "type": "string"
+            },
+            "style": "form"
+          },
+          {
+            "in": "query",
+            "name": "subscription_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RequestAttempt"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      }
+    },
+    "/api/v1/responses/{response_id}": {
+      "get": {
+        "tags": [
+          "Subscriptions Management"
+        ],
+        "summary": "Get a response by its ID",
+        "description": "A response is produced when a request attempt is processed. Response IDs can be obtained from request attempts details.",
+        "operationId": "response.get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "form"
+          },
+          {
+            "in": "path",
+            "name": "response_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      }
+    },
+    "/api/v1/service_token/": {
+      "get": {
+        "tags": [
+          "Service Tokens Management"
+        ],
+        "summary": "List service tokens",
+        "description": "Retrieves all active service tokens for a given organization. Expired or revoked tokens are not included in the response.",
+        "operationId": "serviceToken.list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ServiceToken"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Service Tokens Management"
+        ],
+        "summary": "Create a new service token",
+        "description": "Creates a new organization-wide API key (service token) that allows external applications to send API requests to Hook0. The token can be attenuated to limit its scope for better security.",
+        "operationId": "serviceToken.create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceTokenPost"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceToken"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      }
+    },
+    "/api/v1/service_token/{service_token_id}": {
+      "get": {
+        "tags": [
+          "Service Tokens Management"
+        ],
+        "summary": "Get a service token",
+        "description": "Retrieves details of a specific service token if it belongs to the specified organization and is still active.",
+        "operationId": "serviceToken.get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service_token_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "simple"
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceToken"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Service Tokens Management"
+        ],
+        "summary": "Edit a service token",
+        "description": "Updates the name of an existing service token. The token must belong to the specified organization and still be active (not expired or revoked).",
+        "operationId": "serviceToken.edit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service_token_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceTokenPost"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceToken"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Service Tokens Management"
+        ],
+        "summary": "Delete a service token",
+        "description": "Marks a service token as expired, effectively revoking its access. This operation is irreversible.",
+        "operationId": "serviceToken.delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service_token_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "simple"
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      }
+    },
+    "/api/v1/subscriptions/": {
+      "get": {
+        "tags": [
+          "Subscriptions Management"
+        ],
+        "summary": "List subscriptions",
+        "description": "Retrieves all active event subscriptions for a given application. A subscription defines how and where event notifications will be sent.",
+        "operationId": "subscriptions.list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Subscription"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Subscriptions Management"
+        ],
+        "summary": "Create a new subscription",
+        "description": "Creates a new event subscription for an application. This allows clients to receive event notifications via a webhook or another defined target.",
+        "operationId": "subscriptions.create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscriptionPost"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subscription"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      }
+    },
+    "/api/v1/subscriptions/{subscription_id}": {
+      "get": {
+        "tags": [
+          "Subscriptions Management"
+        ],
+        "summary": "Get a subscription by its id",
+        "description": "Retrieves details of a specific subscription if it belongs to the specified application and has not been deleted.",
+        "operationId": "subscriptions.get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subscription_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subscription"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Subscriptions Management"
+        ],
+        "summary": "Update a subscription",
+        "description": "Modifies an existing subscription, including its event types, target configuration, or metadata. The subscription must belong to the specified application. When disabling a subscription, all pending and scheduled request attempts for this subscription will be automatically marked as failed; they won't be set back to a pending state if the subscription is re-enabled later.",
+        "operationId": "subscriptions.update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subscription_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscriptionPost"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subscription"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Subscriptions Management"
+        ],
+        "summary": "Delete a subscription",
+        "description": "Marks a subscription as deleted, preventing any further event notifications from being sent. All pending request attempts for this subscription will be automatically marked as failed. This operation is irreversible.",
+        "operationId": "subscriptions.delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subscription_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "simple"
+          },
+          {
+            "in": "query",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Application": {
+        "type": "object",
+        "properties": {
+          "application_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "application_id",
+          "name",
+          "organization_id"
+        ]
+      },
+      "ApplicationInfo": {
+        "type": "object",
+        "properties": {
+          "application_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "consumption": {
+            "type": "object",
+            "properties": {
+              "events_per_day": {
+                "type": "integer",
+                "format": "int32"
+              }
+            }
+          },
+          "name": {
+            "type": "string"
+          },
+          "onboarding_steps": {
+            "type": "object",
+            "properties": {
+              "event": {
+                "type": "string",
+                "enum": [
+                  "ToDo",
+                  "Done"
+                ]
+              },
+              "event_type": {
+                "type": "string",
+                "enum": [
+                  "ToDo",
+                  "Done"
+                ]
+              },
+              "subscription": {
+                "type": "string",
+                "enum": [
+                  "ToDo",
+                  "Done"
+                ]
+              }
+            },
+            "required": [
+              "event",
+              "event_type",
+              "subscription"
+            ]
+          },
+          "organization_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quotas": {
+            "type": "object",
+            "properties": {
+              "days_of_events_retention_limit": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "events_per_day_limit": {
+                "type": "integer",
+                "format": "int32"
+              }
+            },
+            "required": [
+              "days_of_events_retention_limit",
+              "events_per_day_limit"
+            ]
+          }
+        },
+        "required": [
+          "application_id",
+          "consumption",
+          "name",
+          "onboarding_steps",
+          "organization_id",
+          "quotas"
+        ]
+      },
+      "ApplicationPost": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "name",
+          "organization_id"
+        ]
+      },
+      "ApplicationSecret": {
+        "type": "object",
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "deleted_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "name": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "created_at",
+          "token"
+        ]
+      },
+      "ApplicationSecretPost": {
+        "type": "object",
+        "properties": {
+          "application_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id"
+        ]
+      },
+      "BeginResetPasswordPost": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "ChangePasswordPost": {
+        "type": "object",
+        "properties": {
+          "new_password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "new_password"
+        ]
+      },
+      "EmailVerificationPost": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "Event": {
+        "type": "object",
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "event_type_name": {
+            "type": "string"
+          },
+          "ip": {
+            "type": "string"
+          },
+          "labels": {
+            "type": "object"
+          },
+          "metadata": {
+            "type": "object"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "payload_content_type": {
+            "type": "string"
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "event_id",
+          "event_type_name",
+          "ip",
+          "labels",
+          "occurred_at",
+          "payload_content_type",
+          "received_at"
+        ]
+      },
+      "EventPost": {
+        "type": "object",
+        "properties": {
+          "application_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "event_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "event_type": {
+            "type": "string"
+          },
+          "labels": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "payload": {
+            "type": "string"
+          },
+          "payload_content_type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id",
+          "event_id",
+          "event_type",
+          "labels",
+          "occurred_at",
+          "payload",
+          "payload_content_type"
+        ]
+      },
+      "EventType": {
+        "type": "object",
+        "properties": {
+          "event_type_name": {
+            "type": "string"
+          },
+          "resource_type_name": {
+            "type": "string"
+          },
+          "service_name": {
+            "type": "string"
+          },
+          "verb_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_type_name",
+          "resource_type_name",
+          "service_name",
+          "verb_name"
+        ]
+      },
+      "EventTypePost": {
+        "type": "object",
+        "properties": {
+          "application_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "resource_type": {
+            "type": "string"
+          },
+          "service": {
+            "type": "string"
+          },
+          "verb": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id",
+          "resource_type",
+          "service",
+          "verb"
+        ]
+      },
+      "EventWithPayload": {
+        "type": "object",
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "event_type_name": {
+            "type": "string"
+          },
+          "ip": {
+            "type": "string"
+          },
+          "labels": {
+            "type": "object"
+          },
+          "metadata": {
+            "type": "object"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "payload": {
+            "type": "string"
+          },
+          "payload_content_type": {
+            "type": "string"
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "event_id",
+          "event_type_name",
+          "ip",
+          "labels",
+          "occurred_at",
+          "payload",
+          "payload_content_type",
+          "received_at"
+        ]
+      },
+      "HealthCheck": {
+        "type": "object",
+        "properties": {
+          "database": {
+            "type": "boolean"
+          },
+          "object_storage": {
+            "type": "boolean"
+          },
+          "pulsar": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "database"
+        ]
+      },
+      "IngestedEvent": {
+        "type": "object",
+        "properties": {
+          "application_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "event_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "application_id",
+          "event_id",
+          "received_at"
+        ]
+      },
+      "InstanceConfig": {
+        "type": "object",
+        "properties": {
+          "application_secret_compatibility": {
+            "type": "boolean"
+          },
+          "auto_db_migration": {
+            "type": "boolean"
+          },
+          "biscuit_public_key": {
+            "type": "string"
+          },
+          "cloudflare_turnstile_site_key": {
+            "type": "string"
+          },
+          "formbricks": {
+            "type": "object",
+            "properties": {
+              "api_host": {
+                "type": "string"
+              },
+              "environment_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "api_host",
+              "environment_id"
+            ]
+          },
+          "matomo": {
+            "type": "object",
+            "properties": {
+              "site_id": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "site_id",
+              "url"
+            ]
+          },
+          "password_minimum_length": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "quota_enforcement": {
+            "type": "boolean"
+          },
+          "registration_disabled": {
+            "type": "boolean"
+          },
+          "support_email_address": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_secret_compatibility",
+          "auto_db_migration",
+          "biscuit_public_key",
+          "password_minimum_length",
+          "quota_enforcement",
+          "registration_disabled",
+          "support_email_address"
+        ]
+      },
+      "LoginPost": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "access_token": {
+            "type": "string"
+          },
+          "access_token_expiration": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "email": {
+            "type": "string"
+          },
+          "first_name": {
+            "type": "string"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "refresh_token": {
+            "type": "string"
+          },
+          "refresh_token_expiration": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "access_token",
+          "access_token_expiration",
+          "email",
+          "first_name",
+          "last_name",
+          "refresh_token",
+          "refresh_token_expiration",
+          "user_id"
+        ]
+      },
+      "Organization": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "plan": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "label",
+              "name"
+            ]
+          },
+          "role": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "organization_id",
+          "role"
+        ]
+      },
+      "OrganizationEditRole": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "role",
+          "user_id"
+        ]
+      },
+      "OrganizationInfo": {
+        "type": "object",
+        "properties": {
+          "consumption": {
+            "type": "object",
+            "properties": {
+              "applications": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "events_per_day": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "members": {
+                "type": "integer",
+                "format": "int64"
+              }
+            }
+          },
+          "name": {
+            "type": "string"
+          },
+          "onboarding_steps": {
+            "type": "object",
+            "properties": {
+              "application": {
+                "type": "string",
+                "enum": [
+                  "ToDo",
+                  "Done"
+                ]
+              },
+              "event": {
+                "type": "string",
+                "enum": [
+                  "ToDo",
+                  "Done"
+                ]
+              },
+              "event_type": {
+                "type": "string",
+                "enum": [
+                  "ToDo",
+                  "Done"
+                ]
+              },
+              "subscription": {
+                "type": "string",
+                "enum": [
+                  "ToDo",
+                  "Done"
+                ]
+              }
+            },
+            "required": [
+              "application",
+              "event",
+              "event_type",
+              "subscription"
+            ]
+          },
+          "organization_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "plan": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "label",
+              "name"
+            ]
+          },
+          "quotas": {
+            "type": "object",
+            "properties": {
+              "applications_per_organization_limit": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "days_of_events_retention_limit": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "events_per_day_limit": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "members_per_organization_limit": {
+                "type": "integer",
+                "format": "int32"
+              }
+            },
+            "required": [
+              "applications_per_organization_limit",
+              "days_of_events_retention_limit",
+              "events_per_day_limit",
+              "members_per_organization_limit"
+            ]
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "type": "string"
+                },
+                "first_name": {
+                  "type": "string"
+                },
+                "last_name": {
+                  "type": "string"
+                },
+                "role": {
+                  "type": "string"
+                },
+                "user_id": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "required": [
+                "email",
+                "first_name",
+                "last_name",
+                "role",
+                "user_id"
+              ]
+            }
+          }
+        },
+        "required": [
+          "consumption",
+          "name",
+          "onboarding_steps",
+          "organization_id",
+          "quotas",
+          "users"
+        ]
+      },
+      "OrganizationPost": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "Problem": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "detail",
+          "id",
+          "status",
+          "title"
+        ]
+      },
+      "QuotasResponse": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "limits": {
+            "type": "object",
+            "properties": {
+              "global_applications_per_organization_limit": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "global_days_of_events_retention_limit": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "global_event_types_per_application_limit": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "global_events_per_day_limit": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "global_members_per_organization_limit": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "global_subscriptions_per_application_limit": {
+                "type": "integer",
+                "format": "int32"
+              }
+            },
+            "required": [
+              "global_applications_per_organization_limit",
+              "global_days_of_events_retention_limit",
+              "global_event_types_per_application_limit",
+              "global_events_per_day_limit",
+              "global_members_per_organization_limit",
+              "global_subscriptions_per_application_limit"
+            ]
+          }
+        },
+        "required": [
+          "enabled",
+          "limits"
+        ]
+      },
+      "Registration": {
+        "type": "object",
+        "properties": {
+          "organization_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "organization_id",
+          "user_id"
+        ]
+      },
+      "RegistrationPost": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "first_name": {
+            "type": "string"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "turnstile_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "first_name",
+          "last_name",
+          "password"
+        ]
+      },
+      "ReplayEvent": {
+        "type": "object",
+        "properties": {
+          "application_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "application_id"
+        ]
+      },
+      "RequestAttempt": {
+        "type": "object",
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "delay_until": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "event_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "failed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "picked_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "request_attempt_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "response_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "retry_count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "type": "string"
+          },
+          "subscription": {
+            "type": "object",
+            "properties": {
+              "description": {
+                "type": "string"
+              },
+              "subscription_id": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "required": [
+              "subscription_id"
+            ]
+          },
+          "succeeded_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "created_at",
+          "event_id",
+          "request_attempt_id",
+          "retry_count",
+          "status",
+          "subscription"
+        ]
+      },
+      "ResetPasswordPost": {
+        "type": "object",
+        "properties": {
+          "new_password": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "new_password",
+          "token"
+        ]
+      },
+      "Response": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "elapsed_time_ms": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "headers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "http_code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "response_error_name": {
+            "type": "string"
+          },
+          "response_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "response_id"
+        ]
+      },
+      "Revoke": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "user_id"
+        ]
+      },
+      "ServiceToken": {
+        "type": "object",
+        "properties": {
+          "biscuit": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "name": {
+            "type": "string"
+          },
+          "token_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "biscuit",
+          "created_at",
+          "name",
+          "token_id"
+        ]
+      },
+      "ServiceTokenPost": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "name",
+          "organization_id"
+        ]
+      },
+      "Subscription": {
+        "type": "object",
+        "properties": {
+          "application_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dedicated_workers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "description": {
+            "type": "string"
+          },
+          "event_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "is_enabled": {
+            "type": "boolean"
+          },
+          "label_key": {
+            "description": "_Kept for backward compatibility, you should use `labels`_",
+            "type": "string"
+          },
+          "label_value": {
+            "description": "_Kept for backward compatibility, you should use `labels`_",
+            "type": "string"
+          },
+          "labels": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "secret": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "subscription_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "target": {
+            "type": "object",
+            "properties": {
+              "headers": {
+                "type": "object"
+              },
+              "method": {
+                "type": "string"
+              },
+              "type": {
+                "example": "http",
+                "type": "string"
+              },
+              "url": {
+                "type": "string",
+                "format": "url"
+              }
+            },
+            "required": [
+              "headers",
+              "method",
+              "type",
+              "url"
+            ]
+          }
+        },
+        "required": [
+          "application_id",
+          "created_at",
+          "dedicated_workers",
+          "event_types",
+          "is_enabled",
+          "label_key",
+          "label_value",
+          "labels",
+          "metadata",
+          "secret",
+          "subscription_id",
+          "target"
+        ]
+      },
+      "SubscriptionPost": {
+        "type": "object",
+        "properties": {
+          "application_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "dedicated_workers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "description": {
+            "type": "string"
+          },
+          "event_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "is_enabled": {
+            "type": "boolean"
+          },
+          "label_key": {
+            "description": "_Kept for backward compatibility, you should use `labels`_",
+            "type": "string"
+          },
+          "label_value": {
+            "description": "_Kept for backward compatibility, you should use `labels`_",
+            "type": "string"
+          },
+          "labels": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "target": {
+            "type": "object",
+            "properties": {
+              "headers": {
+                "type": "object"
+              },
+              "method": {
+                "type": "string"
+              },
+              "type": {
+                "example": "http",
+                "type": "string"
+              },
+              "url": {
+                "type": "string",
+                "format": "url"
+              }
+            },
+            "required": [
+              "headers",
+              "method",
+              "type",
+              "url"
+            ]
+          }
+        },
+        "required": [
+          "application_id",
+          "event_types",
+          "is_enabled",
+          "target"
+        ]
+      },
+      "UserInvitation": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "role"
+        ]
+      }
+    },
+    "securitySchemes": {
+      "apiToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "API Token authentication. Use the format: `Bearer YOUR_API_TOKEN`"
+      },
+      "userAccessToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "User access token for authentication"
+      },
+      "refreshToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Refresh token for obtaining new access tokens"
+      }
+    }
+  }
+}
