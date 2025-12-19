@@ -247,23 +247,7 @@ Hook0 forwards payloads exactly as received without re-serialization. This ensur
 
 ## Step 7: Verify Webhook Delivery
 
-1. **Check webhook.site** - you should see a new request with:
-   ```json
-   {
-     "event_id": "evt_1234567890abcdef",
-     "event_type": "user.account.created", 
-     "payload": {
-       "user_id": 123,
-       "email": "john.doe@example.com",
-       "name": "John Doe",
-       "created_at": "2024-01-15T10:30:00Z"
-     },
-     "timestamp": "2024-01-15T10:30:01Z",
-     "labels": {
-       "environment": "tutorial"
-     }
-   }
-   ```
+1. **Check webhook.site** - you should see a new request containing your event payload.
 
 2. **Check the Hook0 dashboard** - navigate to Events to see:
    - Event details
