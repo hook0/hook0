@@ -269,23 +269,6 @@ HOOK0_CLIENT_TOKEN=your-token
 HOOK0_CLIENT_UPSERTS_RETRIES=10
 ```
 
-## Feature Flags (compile-time)
-
-These are set during build, not runtime:
-
-```bash
-# Enable Keycloak migration support
-ENABLE_KEYCLOAK_MIGRATION=true
-KEYCLOAK_OIDC_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----...
-KEYCLOAK_URL=https://keycloak.example.com/auth
-KEYCLOAK_REALM=myrealm
-KEYCLOAK_CLIENT_ID=hook0
-KEYCLOAK_CLIENT_SECRET=secret
-
-# Enable application secret compatibility mode
-ENABLE_APPLICATION_SECRET_COMPATIBILITY=true
-```
-
 ## Output Worker Configuration
 
 The output-worker is a separate binary with its own configuration.
