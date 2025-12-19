@@ -49,10 +49,6 @@ The background process that delivers webhooks. Handles retries, rate limiting, a
 ### PostgreSQL
 Hook0's only database. Stores events, subscriptions, and delivery attempts.
 
-:::warning Important
-Hook0 does NOT use Redis. All state is stored in PostgreSQL.
-:::
-
 ## Acronyms
 
 | Acronym | Full Name |

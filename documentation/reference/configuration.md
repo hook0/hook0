@@ -2,6 +2,17 @@
 
 Environment variables for configuring Hook0.
 
+:::tip Source of Truth
+The authoritative reference for all configuration options is running the executable with `--help`:
+
+```bash
+hook0-api --help
+hook0-output-worker --help
+```
+
+This documentation may not cover all options or reflect recent changes.
+:::
+
 ## Server Configuration
 
 ### Network
