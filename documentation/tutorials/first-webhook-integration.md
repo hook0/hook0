@@ -380,9 +380,9 @@ curl -X GET "$HOOK0_API/request_attempts/?application_id=$APP_ID" \
 ]
 ```
 
-### Replay Failed Events
+### Replay Events
 
-If a webhook fails, you can replay it:
+You can manually replay an event when needed for business purposes (e.g., re-triggering a workflow). Note that failed deliveries are automatically retried by Hook0:
 
 ```bash
 curl -X POST "$HOOK0_API/events/{EVENT_ID}/replay" \
