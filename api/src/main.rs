@@ -1171,6 +1171,9 @@ async fn main() -> anyhow::Result<()> {
                             web::scope("/quotas")
                                 .service(web::resource("").route(web::get().to(quotas::get))),
                         )
+                        .service(web::scope("/environments").service(
+                            web::resource("").route(web::get().to(handlers::environments::get)),
+                        ))
                         .service({
                             let srv = web::scope("/health").service(
                                 web::resource("").route(web::get().to(handlers::instance::health)),
