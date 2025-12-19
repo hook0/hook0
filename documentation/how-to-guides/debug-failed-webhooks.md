@@ -181,16 +181,20 @@ certbot renew
 Add logging to compare expected vs received signature:
 
 ```javascript
-app.post('/webhook', express.json(), (req, res) => {
+// Capture raw body for signature verification
+app.post('/webhook', express.json({
+  verify: (req, res, buf) => { req.rawBody = buf; }
+}), (req, res) => {
   const signature = req.headers['x-hook0-signature'];
-  const bodyString = JSON.stringify(req.body);
+  // Use raw body for signature verification, not JSON.stringify(req.body)
+  const rawBodyString = req.rawBody.toString('utf8');
 
   console.log('Received signature:', signature);
-  console.log('Body length:', bodyString.length);
-  console.log('Body preview:', bodyString.slice(0, 100));
+  console.log('Body length:', rawBodyString.length);
+  console.log('Body preview:', rawBodyString.slice(0, 100));
 
   // Your verification logic here
-  const isValid = verifySignature(bodyString, signature, secret);
+  const isValid = verifySignature(rawBodyString, signature, secret);
   console.log('Signature valid:', isValid);
 
   if (!isValid) {
@@ -328,20 +332,26 @@ app.use((req, res, next) => {
   next();
 });
 
-// Parse JSON body
-app.use('/webhook', express.json());
+// Capture raw body for signature verification, then parse JSON
+// This is critical: JSON.stringify(req.body) may differ from the original payload
+app.use('/webhook', express.json({
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  }
+}));
 
 // Note: Express.js normalizes all header names to lowercase
 app.post('/webhook', (req, res) => {
   const timestamp = new Date().toISOString();
   const signature = req.headers['x-hook0-signature'];
-  const bodyString = JSON.stringify(req.body);
+  // Use raw body for signature verification, not JSON.stringify(req.body)
+  const rawBodyString = req.rawBody.toString('utf8');
 
   const debugInfo = {
     timestamp,
     signature,
-    bodyLength: bodyString.length,
-    bodyPreview: bodyString.slice(0, 200),
+    bodyLength: rawBodyString.length,
+    bodyPreview: rawBodyString.slice(0, 200),
     headers: req.headers
   };
 
@@ -350,14 +360,14 @@ app.post('/webhook', (req, res) => {
   // Save to file for analysis
   fs.appendFileSync('webhook-debug.log', JSON.stringify({
     ...debugInfo,
-    fullBody: bodyString
+    fullBody: rawBodyString
   }) + '\n');
 
   // Always respond successfully for debugging
   res.json({
     status: 'debug_received',
     timestamp,
-    bodyLength: bodyString.length
+    bodyLength: rawBodyString.length
   });
 });
 

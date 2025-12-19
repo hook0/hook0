@@ -73,25 +73,28 @@ const crypto = require('crypto');
 const express = require('express');
 const app = express();
 
-app.use('/webhooks', express.json());
+// Capture raw body for signature verification
+app.use('/webhooks', express.json({
+  verify: (req, res, buf) => { req.rawBody = buf; }
+}));
 
-function verifyHook0Signature(body, signature, headers, secret) {
+function verifyHook0Signature(rawBody, signature, headers, secret) {
   const parts = Object.fromEntries(signature.split(',').map(p => p.split('=')));
   const headerNames = parts.h ? parts.h.split(' ') : [];
   const headerValues = headerNames.map(h => headers[h] || '').join('.');
-  // Reconstruct payload from parsed body
-  const payload = JSON.stringify(body);
+  // Use raw body string directly, not JSON.stringify(parsedBody)
   const signedData = parts.h
-    ? `${parts.t}.${parts.h}.${headerValues}.${payload}`
-    : `${parts.t}.${payload}`;
+    ? `${parts.t}.${parts.h}.${headerValues}.${rawBody}`
+    : `${parts.t}.${rawBody}`;
   const expected = crypto.createHmac('sha256', secret).update(signedData).digest('hex');
   return parts.v1 === expected;
 }
 
 app.post('/webhooks/secure', (req, res) => {
   const signature = req.headers['x-hook0-signature'];
+  const rawBodyString = req.rawBody.toString('utf8');
 
-  if (!signature || !verifyHook0Signature(req.body, signature, req.headers, process.env.WEBHOOK_SECRET)) {
+  if (!signature || !verifyHook0Signature(rawBodyString, signature, req.headers, process.env.WEBHOOK_SECRET)) {
     return res.status(401).json({ error: 'Invalid signature' });
   }
 
@@ -108,11 +111,15 @@ For production use, we recommend using the official `hook0-client` npm package w
 ```javascript
 const { verifyWebhookSignature } = require('hook0-client');
 
-app.post('/webhooks', express.json(), (req, res) => {
+// Capture raw body for signature verification
+app.post('/webhooks', express.json({
+  verify: (req, res, buf) => { req.rawBody = buf; }
+}), (req, res) => {
   const signature = req.headers['x-hook0-signature'];
+  const rawBodyString = req.rawBody.toString('utf8');
 
   try {
-    verifyWebhookSignature(signature, req.body, req.headers, process.env.WEBHOOK_SECRET, 300);
+    verifyWebhookSignature(signature, rawBodyString, req.headers, process.env.WEBHOOK_SECRET, 300);
     // Process webhook...
     res.json({ received: true });
   } catch (error) {
@@ -571,7 +578,10 @@ const webhookAuth = new WebhookAuth({
   }
 });
 
-app.use('/webhooks', express.json());
+// Capture raw body for signature verification
+app.use('/webhooks', express.json({
+  verify: (req, res, buf) => { req.rawBody = buf; }
+}));
 app.use('/webhooks', webhookAuth.middleware());
 
 app.post('/webhooks/secure', (req, res) => {

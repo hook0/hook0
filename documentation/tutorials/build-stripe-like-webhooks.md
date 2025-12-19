@@ -228,28 +228,32 @@ const WEBHOOK_SECRETS = {
 };
 
 // See webhook-authentication tutorial for full signature verification details
-function verifySignature(body, signature, headers, secret) {
+function verifySignature(rawBody, signature, headers, secret) {
   const parts = Object.fromEntries(signature.split(',').map(p => p.split('=')));
   const headerNames = parts.h ? parts.h.split(' ') : [];
   const headerValues = headerNames.map(h => headers[h] || '').join('.');
-  const payload = JSON.stringify(body);
+  // Use raw body string directly, not JSON.stringify(parsedBody)
   const signedData = parts.h
-    ? `${parts.t}.${parts.h}.${headerValues}.${payload}`
-    : `${parts.t}.${payload}`;
+    ? `${parts.t}.${parts.h}.${headerValues}.${rawBody}`
+    : `${parts.t}.${rawBody}`;
   const expected = crypto.createHmac('sha256', secret).update(signedData).digest('hex');
   return parts.v1 === expected;
 }
 
-app.use('/webhook/:tenant', express.json());
+// Capture raw body for signature verification
+app.use('/webhook/:tenant', express.json({
+  verify: (req, res, buf) => { req.rawBody = buf; }
+}));
 
 app.post('/webhook/:tenant', (req, res) => {
   const tenant = req.params.tenant;
   const signature = req.headers['x-hook0-signature'];
   const secret = WEBHOOK_SECRETS[tenant];
+  const rawBodyString = req.rawBody.toString('utf8');
 
   if (!secret) return res.status(404).json({ error: 'Tenant not found' });
 
-  if (!verifySignature(req.body, signature, req.headers, secret)) {
+  if (!verifySignature(rawBodyString, signature, req.headers, secret)) {
     return res.status(401).json({ error: 'Invalid signature' });
   }
 

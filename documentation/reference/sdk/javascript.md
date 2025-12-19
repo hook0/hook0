@@ -130,9 +130,14 @@ import express from 'express';
 const app = express();
 
 // Note: Express.js normalizes all header names to lowercase
-app.post('/webhook', express.json(), (req, res) => {
+// Capture raw body for signature verification
+app.post('/webhook', express.json({
+  verify: (req, res, buf) => { (req as any).rawBody = buf; }
+}), (req, res) => {
   const signature = req.headers['x-hook0-signature'] as string;
   const secret = process.env.WEBHOOK_SECRET!;
+  // Use raw body for signature verification, not JSON.stringify(req.body)
+  const rawBodyString = (req as any).rawBody.toString('utf8');
 
   try {
     // Verify the signature with headers
@@ -145,7 +150,7 @@ app.post('/webhook', express.json(), (req, res) => {
 
     const isValid = verifyWebhookSignature(
       signature,
-      JSON.stringify(req.body),
+      rawBodyString,
       headers,
       secret,
       300 // 5-minute tolerance
@@ -155,7 +160,7 @@ app.post('/webhook', express.json(), (req, res) => {
       return res.status(401).json({ error: 'Invalid signature' });
     }
 
-    // Process the webhook (already parsed by express.json())
+    // Process the webhook (already parsed via req.body)
     console.log('Webhook received:', req.body);
     processWebhook(req.body);
 

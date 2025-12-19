@@ -748,8 +748,11 @@ const idempotencyManager = new IdempotencyManager({
   maxSize: 10000
 });
 
-// Middleware pipeline
-app.use('/webhook', express.json({ limit: '1mb' }));
+// Middleware pipeline - capture raw body for signature verification
+app.use('/webhook', express.json({
+  limit: '1mb',
+  verify: (req, res, buf) => { req.rawBody = buf; }
+}));
 app.use('/webhook', ipSecurity.middleware());
 app.use('/webhook', webhookLogger.middleware());
 app.use('/webhook', anomalyDetector.middleware());
@@ -757,16 +760,17 @@ app.use('/webhook', anomalyDetector.middleware());
 // Secure webhook handler
 app.post('/webhook', async (req, res) => {
   try {
-    // Verify signature
+    // Verify signature using raw body, not JSON.stringify(req.body)
     const signature = req.headers['x-hook0-signature'];
+    const rawBodyString = req.rawBody.toString('utf8');
     const secrets = [process.env.WEBHOOK_SECRET_CURRENT, process.env.WEBHOOK_SECRET_PREVIOUS].filter(Boolean);
-    const isValid = secrets.some(s => verifyHook0Signature(JSON.stringify(req.body), signature, req.headers, s));
+    const isValid = secrets.some(s => verifyHook0Signature(rawBodyString, signature, req.headers, s));
 
     if (!isValid) {
       return res.status(401).json({ error: 'Invalid signature' });
     }
 
-    // Validate payload (already parsed by express.json())
+    // Validate payload (already parsed via req.body)
     const webhook = req.body;
     const validation = validateWebhookPayload(webhook);
     if (!validation.valid) {

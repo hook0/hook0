@@ -243,8 +243,13 @@ curl -X POST $HOOK0_API/subscriptions \
 import { verifyWebhookSignature } from 'hook0-client';
 
 // Note: Express.js normalizes all header names to lowercase
-app.post('/webhook', express.json(), (req, res) => {
+// Capture raw body for signature verification
+app.post('/webhook', express.json({
+  verify: (req, res, buf) => { req.rawBody = buf; }
+}), (req, res) => {
   const signature = req.headers['x-hook0-signature'];
+  // Use raw body for signature verification, not JSON.stringify(req.body)
+  const rawBodyString = req.rawBody.toString('utf8');
   const headers = new Headers();
   Object.entries(req.headers).forEach(([key, value]) => {
     if (typeof value === 'string') headers.set(key, value);
@@ -253,7 +258,7 @@ app.post('/webhook', express.json(), (req, res) => {
   try {
     const isValid = verifyWebhookSignature(
       signature,
-      JSON.stringify(req.body),
+      rawBodyString,
       headers,
       secret,
       300 // 5-minute tolerance
@@ -262,7 +267,7 @@ app.post('/webhook', express.json(), (req, res) => {
     if (!isValid) {
       return res.status(401).json({ error: 'Invalid signature' });
     }
-    // Process webhook (already parsed)...
+    // Process webhook (already parsed via req.body)...
   } catch (error) {
     return res.status(401).json({ error: 'Invalid signature' });
   }
