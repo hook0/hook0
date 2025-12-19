@@ -151,22 +151,33 @@ The SDK provides built-in webhook signature verification:
 ### Example: Actix-web Integration
 
 ```rust
-use actix_web::{web, HttpRequest, HttpResponse, Error};
+use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer, Error};
 use hook0_client::verify_webhook_signature;
 use std::time::Duration;
+
+// Configuration loaded at startup
+struct Config {
+    webhook_secret: String,
+}
+
+impl Config {
+    fn from_env() -> Result<Self, String> {
+        let webhook_secret = std::env::var("WEBHOOK_SECRET")
+            .map_err(|_| "WEBHOOK_SECRET environment variable not set")?;
+        Ok(Self { webhook_secret })
+    }
+}
 
 async fn webhook_handler(
     req: HttpRequest,
     body: web::Bytes,
+    config: web::Data<Config>,
 ) -> Result<HttpResponse, Error> {
     let signature = req
         .headers()
         .get("X-Hook0-Signature")
         .and_then(|h| h.to_str().ok())
         .ok_or_else(|| actix_web::error::ErrorUnauthorized("Missing signature"))?;
-
-    let secret = std::env::var("WEBHOOK_SECRET")
-        .expect("WEBHOOK_SECRET not set");
 
     // Extract headers as tuples
     let headers: Vec<(&str, &str)> = req
@@ -182,7 +193,7 @@ async fn webhook_handler(
         signature,
         &body,
         &headers,
-        &secret,
+        &config.webhook_secret,
         Duration::from_secs(300),
     )
     .map_err(|_| actix_web::error::ErrorUnauthorized("Invalid signature"))?;
@@ -193,6 +204,25 @@ async fn webhook_handler(
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "status": "processed"
     })))
+}
+
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+    // Load and validate config at startup - exits gracefully if missing
+    let config = Config::from_env().unwrap_or_else(|e| {
+        eprintln!("Configuration error: {}", e);
+        std::process::exit(1);
+    });
+    let config = web::Data::new(config);
+
+    HttpServer::new(move || {
+        App::new()
+            .app_data(config.clone())
+            .route("/webhook", web::post().to(webhook_handler))
+    })
+    .bind("127.0.0.1:8080")?
+    .run()
+    .await
 }
 ```
 
