@@ -415,7 +415,9 @@ async function fetchWebhookMetrics(applicationId, token) {
     succeeded: attempts.filter(a => a.succeeded_at).length,
     failed: attempts.filter(a => a.failed_at).length,
     pending: attempts.filter(a => !a.succeeded_at && !a.failed_at).length,
-    avgRetries: attempts.reduce((sum, a) => sum + a.retry_count, 0) / attempts.length,
+    avgRetries: attempts.length > 0
+      ? attempts.reduce((sum, a) => sum + a.retry_count, 0) / attempts.length
+      : 0,
   };
 
   return metrics;

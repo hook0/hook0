@@ -18,7 +18,7 @@
     "write-heading-ids": "docusaurus write-heading-ids",
     "validate": "node scripts/validate-docs.js",
     "test": "npm run validate && npm run build",
-    "clean-api": "rm -rf docs/api openapi/hook0-api.json"
+    "clean-api": "rimraf docs/api openapi/hook0-api.json"
   },
   "dependencies": {
     "@docusaurus/core": "3.6.3",
@@ -36,7 +36,8 @@
     "@docusaurus/module-type-aliases": "3.6.3",
     "@docusaurus/types": "3.6.3",
     "docusaurus-plugin-module-alias": "^0.0.2",
-    "glob": "^11.0.3"
+    "glob": "^11.0.3",
+    "rimraf": "^6.1.2"
   },
   "browserslist": {
     "production": [
