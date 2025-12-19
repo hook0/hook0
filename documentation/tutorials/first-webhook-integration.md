@@ -189,7 +189,6 @@ curl -X POST "$HOOK0_API/event" \
     "occurred_at": "2024-01-15T11:00:00Z",
     "labels": {
       "tenant_id": "customer_123",
-      "priority": "high",
       "environment": "production"
     }
   }'
@@ -314,7 +313,6 @@ curl -X GET "$HOOK0_API/events/?application_id=$APP_ID" \
     "received_at": "2025-12-12T09:27:27.045191Z",
     "labels": {
       "environment": "production",
-      "priority": "high",
       "tenant_id": "customer_123"
     }
   },
@@ -512,39 +510,6 @@ curl -X POST "$HOOK0_API/subscriptions" \
 ```
 
 Since this subscription filters on `environment: "staging"`, it will **not** receive the production event above.
-
-### Priority-Based Routing
-
-Use labels for priority handling:
-
-```bash
-# High-priority event
-curl -X POST "$HOOK0_API/event" \
-  -H "Authorization: Bearer $HOOK0_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "application_id": "'"$APP_ID"'",
-    "event_id": "'$(uuidgen)'",
-    "event_type": "payment.transaction.processed",
-    "payload": "{\"amount\": 10000}",
-    "payload_content_type": "application/json",
-    "occurred_at": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'",
-    "labels": {
-      "tenant_id": "customer_123",
-      "priority": "high",
-      "amount_tier": "enterprise"
-    }
-  }'
-```
-
-**Response:**
-```json
-{
-  "application_id": "{APP_ID}",
-  "event_id": "{EVENT_ID}",
-  "received_at": "2025-12-12T09:41:52.802753Z"
-}
-```
 
 ## Complete Integration Example
 
@@ -765,7 +730,6 @@ response = http.request(request)
 ### 2. Label Strategy
 - **tenant_id**: Always include for multi-tenancy
 - **environment**: Separate prod/staging/dev
-- **priority**: Enable priority-based processing
 - **region**: Support geographic filtering
 
 ### 3. Error Handling
@@ -817,7 +781,7 @@ You've learned how to:
 2. **Send events** with proper labeling for multi-tenancy
 3. **Create subscriptions** with label-based filtering
 4. **Monitor deliveries** and handle failures
-5. **Implement patterns** for bulk processing and priority routing
+5. **Implement patterns** for bulk processing
 
 The key insight is that Hook0's label system enables powerful multi-tenant webhook delivery while keeping the integration simple. By following this flow - define types, send events, create subscriptions, monitor results - you can build a robust webhook system for your SaaS platform.
 
