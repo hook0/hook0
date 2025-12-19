@@ -19,7 +19,7 @@ The penetration testing policy describes rules and principles on how vulnerabili
 - We are open to any customer initiated penetration test, providing
   - It is announced and dates are agreed upon
   - We receive an integral copy of the test report
-- In case we initiate the penetration test, the tester should meet the competence requirements as defined on Security tester
+- In case we initiate the penetration test, the tester should hold a recognized security certification (e.g., OSCP, CEH, GPEN, or equivalent) and have demonstrable experience in web application and infrastructure penetration testing
 - We have published a Responsible disclosure policy on our website
 
 ## Scoring
