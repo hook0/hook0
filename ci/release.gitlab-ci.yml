@@ -19,11 +19,10 @@
 
 # --- API Builds ---
 
-# TODO: REVERT - temporairement en ARM pour test local
 release.build-api-x86_64:
   extends: .build-binary
   variables:
-    TARGET: aarch64-unknown-linux-gnu
+    TARGET: x86_64-unknown-linux-gnu
     CROSS_DEPS: ""
   script:
     - mkdir -p artifacts
@@ -54,11 +53,10 @@ release.build-api-armv7:
 
 # --- Worker Builds ---
 
-# TODO: REVERT - temporairement en ARM pour test local
 release.build-worker-x86_64:
   extends: .build-binary
   variables:
-    TARGET: aarch64-unknown-linux-gnu
+    TARGET: x86_64-unknown-linux-gnu
     CROSS_DEPS: ""
   script:
     - mkdir -p artifacts
