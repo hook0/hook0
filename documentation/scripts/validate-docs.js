@@ -44,6 +44,8 @@ function validateFile(filePath) {
   let fileErrors = 0;
   
   // Check for broken internal links
+  // Reset lastIndex to avoid skipping matches (global regex persists state)
+  LINK_PATTERN.lastIndex = 0;
   let match;
   while ((match = LINK_PATTERN.exec(content)) !== null) {
     const linkText = match[1];
