@@ -5,7 +5,7 @@ import type { components } from '@/types';
 import router from '@/router';
 import { differenceInMilliseconds, subMinutes } from 'date-fns';
 import { routes } from '@/routes.ts';
-import { getInstanceConfig } from '@/utils/biscuit_auth';
+import { getInstanceConfig } from '@/utils/instance-config';
 import formbricks from '@formbricks/js';
 
 type definitions = components['schemas'];

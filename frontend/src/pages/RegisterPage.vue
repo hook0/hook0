@@ -7,7 +7,7 @@ import { push } from 'notivue';
 import { routes } from '@/routes.ts';
 import router from '@/router.ts';
 import VueTurnstile from 'vue-turnstile';
-import { getInstanceConfig } from '@/utils/biscuit_auth';
+import { getInstanceConfig } from '@/utils/instance-config';
 import { useCardGlow } from '@/composables/useCardGlow';
 
 // Form state
@@ -96,8 +96,62 @@ function togglePasswordVisibility() {
       >
         <!-- Header -->
         <div class="register-page__header">
-          <h1 class="register-page__title">Create your account</h1>
-          <p class="register-page__subtitle">Start sending webhooks in minutes</p>
+          <h1 class="register-page__title">Start Your Free Trial</h1>
+          <p class="register-page__subtitle register-page__subtitle--highlight">
+            No Credit Card Required
+          </p>
+
+          <!-- Benefits List -->
+          <ul class="register-page__benefits">
+            <li class="register-page__benefit">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4 text-green-500"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              <span>Up to 100 free events/day</span>
+            </li>
+            <li class="register-page__benefit">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4 text-green-500"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              <span>Set up in 5 minutes</span>
+            </li>
+            <li class="register-page__benefit">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4 text-green-500"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              <span>Cancel anytime</span>
+            </li>
+          </ul>
         </div>
 
         <!-- Form -->
@@ -326,6 +380,11 @@ function togglePasswordVisibility() {
           </svg>
           <span>GDPR compliant, EU hosted</span>
         </div>
+
+        <!-- Social Proof -->
+        <div class="register-page__social-proof">
+          <span>Join 500+ companies using Hook0</span>
+        </div>
       </div>
     </div>
   </div>
@@ -437,6 +496,22 @@ function togglePasswordVisibility() {
 
   &__subtitle {
     @apply text-gray-400 text-sm;
+
+    &--highlight {
+      @apply text-green-400 font-medium;
+    }
+  }
+
+  &__benefits {
+    @apply mt-4 space-y-2 text-left;
+  }
+
+  &__benefit {
+    @apply flex items-center gap-2 text-sm text-gray-300;
+
+    svg {
+      @apply flex-shrink-0;
+    }
   }
 
   &__form {
@@ -568,6 +643,16 @@ function togglePasswordVisibility() {
 
   &__trust-item {
     @apply flex items-center gap-2 text-sm text-gray-400;
+  }
+
+  &__social-proof {
+    @apply mt-4 text-center text-sm text-gray-500;
+
+    span {
+      @apply px-3 py-1 rounded-full;
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+    }
   }
 }
 
