@@ -5,7 +5,8 @@
 // ============================================
 // FONT IMPORTS
 // ============================================
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+// Font is preloaded in _head.ejs for better performance
+// @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 // ============================================
 // CSS CUSTOM PROPERTIES
@@ -417,6 +418,43 @@
 
     &__content {
       @apply px-6 pb-6 pt-2 text-gray-400;
+    }
+  }
+
+  // --------------------------------------------
+  // EXPANDABLE USE CASES
+  // --------------------------------------------
+  .use-case-detail {
+    summary {
+      &::-webkit-details-marker {
+        display: none;
+      }
+
+      &::marker {
+        display: none;
+      }
+    }
+
+    &[open] {
+      .use-case-chevron {
+        transform: rotate(180deg);
+      }
+    }
+
+    // Smooth expand animation
+    > div:last-child {
+      animation: slideDown 0.3s ease-out;
+    }
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      max-height: 0;
+    }
+    to {
+      opacity: 1;
+      max-height: 500px;
     }
   }
 

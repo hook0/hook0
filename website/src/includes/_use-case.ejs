@@ -29,140 +29,292 @@
             <div class="lg:col-span-8 mt-12 lg:mt-0">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 stagger-children">
                     <!-- Use Case 1 -->
-                    <div class="animate-on-scroll card card--glow group">
-                        <div class="flex items-start gap-4">
+                    <details class="animate-on-scroll card card--glow group use-case-detail">
+                        <summary class="flex items-start gap-4 cursor-pointer list-none">
                             <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-500/20 transition-colors">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
                                 </svg>
                             </div>
-                            <div>
-                                <h3 class="text-base font-semibold text-white group-hover:text-indigo-300 transition-colors">No Code Solutions</h3>
+                            <div class="flex-grow">
+                                <div class="flex items-center justify-between">
+                                    <h3 class="text-base font-semibold text-white group-hover:text-indigo-300 transition-colors">No Code Solutions</h3>
+                                    <svg class="w-5 h-5 text-gray-500 transition-transform use-case-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </div>
                                 <p class="mt-2 text-sm text-gray-500">
                                     Integrate with platforms like Zapier and Integromat and offer your users webhooks without any code.
                                 </p>
                             </div>
+                        </summary>
+                        <div class="mt-6 pt-6 border-t border-white/10">
+                            <div class="text-sm text-gray-400 space-y-3">
+                                <p><strong class="text-white">Perfect for:</strong> E-commerce, Marketing Automation, CRM Integration</p>
+                                <p><strong class="text-white">How it works:</strong> Hook0 seamlessly connects with 3000+ apps through Zapier. Simply configure your webhook endpoint and let your users automate their workflows.</p>
+                                <div class="mt-4">
+                                    <a href="<%= locals.meta.doc_guides %>" class="link link--arrow text-indigo-400 hover:text-indigo-300 text-sm">
+                                        View integration guide
+                                        <svg class="w-4 h-4 inline ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    </details>
 
                     <!-- Use Case 2 -->
-                    <div class="animate-on-scroll card card--glow group">
-                        <div class="flex items-start gap-4">
+                    <details class="animate-on-scroll card card--glow group use-case-detail">
+                        <summary class="flex items-start gap-4 cursor-pointer list-none">
                             <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-500/20 transition-colors">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
                                 </svg>
                             </div>
-                            <div>
-                                <h3 class="text-base font-semibold text-white group-hover:text-indigo-300 transition-colors">Stop Polling</h3>
+                            <div class="flex-grow">
+                                <div class="flex items-center justify-between">
+                                    <h3 class="text-base font-semibold text-white group-hover:text-indigo-300 transition-colors">Stop Polling</h3>
+                                    <svg class="w-5 h-5 text-gray-500 transition-transform use-case-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </div>
                                 <p class="mt-2 text-sm text-gray-500">
                                     We all know polling for data is inefficient. Use webhooks instead to push data to your users.
                                 </p>
                             </div>
+                        </summary>
+                        <div class="mt-6 pt-6 border-t border-white/10">
+                            <div class="text-sm text-gray-400 space-y-3">
+                                <p><strong class="text-white">Perfect for:</strong> Real-time Apps, IoT Platforms, Data Sync Services</p>
+                                <p><strong class="text-white">How it works:</strong> Replace inefficient polling with instant push notifications. Reduce API calls by up to 90% and get real-time data delivery.</p>
+                                <div class="mt-4">
+                                    <a href="<%= locals.meta.doc_guides %>" class="link link--arrow text-indigo-400 hover:text-indigo-300 text-sm">
+                                        Learn about webhooks
+                                        <svg class="w-4 h-4 inline ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    </details>
 
                     <!-- Use Case 3 -->
-                    <div class="animate-on-scroll card card--glow group">
-                        <div class="flex items-start gap-4">
+                    <details class="animate-on-scroll card card--glow group use-case-detail">
+                        <summary class="flex items-start gap-4 cursor-pointer list-none">
                             <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-500/20 transition-colors">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                 </svg>
                             </div>
-                            <div>
-                                <h3 class="text-base font-semibold text-white group-hover:text-indigo-300 transition-colors">No More Custom Reporting</h3>
+                            <div class="flex-grow">
+                                <div class="flex items-center justify-between">
+                                    <h3 class="text-base font-semibold text-white group-hover:text-indigo-300 transition-colors">No More Custom Reporting</h3>
+                                    <svg class="w-5 h-5 text-gray-500 transition-transform use-case-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </div>
                                 <p class="mt-2 text-sm text-gray-500">
                                     Have your users subscribe to your webhooks and give them a self serve integration.
                                 </p>
                             </div>
+                        </summary>
+                        <div class="mt-6 pt-6 border-t border-white/10">
+                            <div class="text-sm text-gray-400 space-y-3">
+                                <p><strong class="text-white">Perfect for:</strong> SaaS Platforms, Analytics Tools, Business Intelligence</p>
+                                <p><strong class="text-white">How it works:</strong> Let your customers build their own integrations. They subscribe to events they care about and receive data in their preferred format.</p>
+                                <div class="mt-4">
+                                    <a href="<%= locals.meta.doc_guides %>" class="link link--arrow text-indigo-400 hover:text-indigo-300 text-sm">
+                                        See self-service examples
+                                        <svg class="w-4 h-4 inline ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    </details>
 
                     <!-- Use Case 4 -->
-                    <div class="animate-on-scroll card card--glow group">
-                        <div class="flex items-start gap-4">
+                    <details class="animate-on-scroll card card--glow group use-case-detail">
+                        <summary class="flex items-start gap-4 cursor-pointer list-none">
                             <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-500/20 transition-colors">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
                             </div>
-                            <div>
-                                <h3 class="text-base font-semibold text-white group-hover:text-indigo-300 transition-colors">Asynchronous Notifications</h3>
+                            <div class="flex-grow">
+                                <div class="flex items-center justify-between">
+                                    <h3 class="text-base font-semibold text-white group-hover:text-indigo-300 transition-colors">Asynchronous Notifications</h3>
+                                    <svg class="w-5 h-5 text-gray-500 transition-transform use-case-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </div>
                                 <p class="mt-2 text-sm text-gray-500">
                                     For time consuming tasks, use webhooks to asynchronously notify your users when they are done.
                                 </p>
                             </div>
+                        </summary>
+                        <div class="mt-6 pt-6 border-t border-white/10">
+                            <div class="text-sm text-gray-400 space-y-3">
+                                <p><strong class="text-white">Perfect for:</strong> Video Processing, Data Pipelines, ML/AI Workloads</p>
+                                <p><strong class="text-white">How it works:</strong> Start long-running jobs and get notified when they complete. No need to keep connections open or poll for status.</p>
+                                <div class="mt-4">
+                                    <a href="<%= locals.meta.doc_guides %>" class="link link--arrow text-indigo-400 hover:text-indigo-300 text-sm">
+                                        Async webhook patterns
+                                        <svg class="w-4 h-4 inline ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    </details>
 
                     <!-- Use Case 5 -->
-                    <div class="animate-on-scroll card card--glow group">
-                        <div class="flex items-start gap-4">
+                    <details class="animate-on-scroll card card--glow group use-case-detail">
+                        <summary class="flex items-start gap-4 cursor-pointer list-none">
                             <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-500/20 transition-colors">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                                 </svg>
                             </div>
-                            <div>
-                                <h3 class="text-base font-semibold text-white group-hover:text-indigo-300 transition-colors">Internal Systems Communication</h3>
+                            <div class="flex-grow">
+                                <div class="flex items-center justify-between">
+                                    <h3 class="text-base font-semibold text-white group-hover:text-indigo-300 transition-colors">Internal Systems Communication</h3>
+                                    <svg class="w-5 h-5 text-gray-500 transition-transform use-case-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </div>
                                 <p class="mt-2 text-sm text-gray-500">
                                     An event bus solution can be heavy, start with internal webhooks to communicate between internal services.
                                 </p>
                             </div>
+                        </summary>
+                        <div class="mt-6 pt-6 border-t border-white/10">
+                            <div class="text-sm text-gray-400 space-y-3">
+                                <p><strong class="text-white">Perfect for:</strong> Microservices, Event-Driven Architecture, Internal APIs</p>
+                                <p><strong class="text-white">How it works:</strong> Use webhooks as a lightweight alternative to message queues. Perfect for decoupling services without infrastructure overhead.</p>
+                                <div class="mt-4">
+                                    <a href="<%= locals.meta.doc_guides %>" class="link link--arrow text-indigo-400 hover:text-indigo-300 text-sm">
+                                        Internal webhooks guide
+                                        <svg class="w-4 h-4 inline ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    </details>
 
                     <!-- Use Case 6 -->
-                    <div class="animate-on-scroll card card--glow group">
-                        <div class="flex items-start gap-4">
+                    <details class="animate-on-scroll card card--glow group use-case-detail">
+                        <summary class="flex items-start gap-4 cursor-pointer list-none">
                             <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-500/20 transition-colors">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
                                 </svg>
                             </div>
-                            <div>
-                                <h3 class="text-base font-semibold text-white group-hover:text-indigo-300 transition-colors">Platform Notifications</h3>
+                            <div class="flex-grow">
+                                <div class="flex items-center justify-between">
+                                    <h3 class="text-base font-semibold text-white group-hover:text-indigo-300 transition-colors">Platform Notifications</h3>
+                                    <svg class="w-5 h-5 text-gray-500 transition-transform use-case-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </div>
                                 <p class="mt-2 text-sm text-gray-500">
                                     Giving your platform users access to events occuring on your platform improves the experience for everyone.
                                 </p>
                             </div>
+                        </summary>
+                        <div class="mt-6 pt-6 border-t border-white/10">
+                            <div class="text-sm text-gray-400 space-y-3">
+                                <p><strong class="text-white">Perfect for:</strong> Marketplaces, Social Platforms, Developer Tools</p>
+                                <p><strong class="text-white">How it works:</strong> Empower your users to react to platform events in real-time. From new orders to user signups, keep everyone in sync.</p>
+                                <div class="mt-4">
+                                    <a href="<%= locals.meta.doc_guides %>" class="link link--arrow text-indigo-400 hover:text-indigo-300 text-sm">
+                                        Platform events setup
+                                        <svg class="w-4 h-4 inline ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    </details>
 
                     <!-- Use Case 7 -->
-                    <div class="animate-on-scroll card card--glow group">
-                        <div class="flex items-start gap-4">
+                    <details class="animate-on-scroll card card--glow group use-case-detail">
+                        <summary class="flex items-start gap-4 cursor-pointer list-none">
                             <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-500/20 transition-colors">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                                 </svg>
                             </div>
-                            <div>
-                                <h3 class="text-base font-semibold text-white group-hover:text-indigo-300 transition-colors">Back Office Operations</h3>
+                            <div class="flex-grow">
+                                <div class="flex items-center justify-between">
+                                    <h3 class="text-base font-semibold text-white group-hover:text-indigo-300 transition-colors">Back Office Operations</h3>
+                                    <svg class="w-5 h-5 text-gray-500 transition-transform use-case-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </div>
                                 <p class="mt-2 text-sm text-gray-500">
                                     Let your subscribers know an order has been refunded or shipment has been delivered so they can take action.
                                 </p>
                             </div>
+                        </summary>
+                        <div class="mt-6 pt-6 border-t border-white/10">
+                            <div class="text-sm text-gray-400 space-y-3">
+                                <p><strong class="text-white">Perfect for:</strong> E-commerce, Logistics, Order Management</p>
+                                <p><strong class="text-white">How it works:</strong> Automate back-office workflows. Trigger actions on refunds, shipments, inventory changes, and more.</p>
+                                <div class="mt-4">
+                                    <a href="<%= locals.meta.doc_guides %>" class="link link--arrow text-indigo-400 hover:text-indigo-300 text-sm">
+                                        E-commerce webhooks
+                                        <svg class="w-4 h-4 inline ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    </details>
 
                     <!-- Use Case 8 -->
-                    <div class="animate-on-scroll card card--glow group">
-                        <div class="flex items-start gap-4">
+                    <details class="animate-on-scroll card card--glow group use-case-detail">
+                        <summary class="flex items-start gap-4 cursor-pointer list-none">
                             <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-500/20 transition-colors">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
                                 </svg>
                             </div>
-                            <div>
-                                <h3 class="text-base font-semibold text-white group-hover:text-indigo-300 transition-colors">Provide Updates On Progress</h3>
+                            <div class="flex-grow">
+                                <div class="flex items-center justify-between">
+                                    <h3 class="text-base font-semibold text-white group-hover:text-indigo-300 transition-colors">Provide Updates On Progress</h3>
+                                    <svg class="w-5 h-5 text-gray-500 transition-transform use-case-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </div>
                                 <p class="mt-2 text-sm text-gray-500">
                                     As data in your system changes, update your subscribers with those changes.
                                 </p>
                             </div>
+                        </summary>
+                        <div class="mt-6 pt-6 border-t border-white/10">
+                            <div class="text-sm text-gray-400 space-y-3">
+                                <p><strong class="text-white">Perfect for:</strong> Project Management, CRM Systems, Collaboration Tools</p>
+                                <p><strong class="text-white">How it works:</strong> Keep all stakeholders informed as data evolves. From status updates to milestone completions, deliver real-time progress notifications.</p>
+                                <div class="mt-4">
+                                    <a href="<%= locals.meta.doc_guides %>" class="link link--arrow text-indigo-400 hover:text-indigo-300 text-sm">
+                                        Progress notifications
+                                        <svg class="w-4 h-4 inline ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    </details>
                 </div>
             </div>
         </div>
