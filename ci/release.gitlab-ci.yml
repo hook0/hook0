@@ -310,8 +310,9 @@ release.github:
     - git config user.name "Hook0 CI"
     - git remote set-url origin "https://oauth2:${GITLAB_RELEASE_TOKEN}@gitlab.com/${CI_PROJECT_PATH}.git"
     # Fetch all tags and checkout branch (GitLab CI clones in detached HEAD)
-    - git fetch --tags
+    - git fetch --tags origin $CI_COMMIT_REF_NAME
     - git checkout $CI_COMMIT_REF_NAME
+    - git reset --hard origin/$CI_COMMIT_REF_NAME
 
 release:patch:
   extends: .release-trigger
