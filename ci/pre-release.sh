@@ -50,7 +50,8 @@ echo "  ✓ CHANGELOG.md generated"
 git add frontend/package.json CHANGELOG.md
 
 # Bump Cargo.toml versions, commit, tag, and push
+# --allow-dirty is needed because we staged frontend/package.json and CHANGELOG.md above
 echo "Running cargo release..."
-cargo release "$BUMP_TYPE" --execute --no-confirm
+cargo release "$BUMP_TYPE" --execute --no-confirm --allow-dirty
 
 echo "=== Release $NEW_VERSION completed ==="
