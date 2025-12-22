@@ -9,7 +9,8 @@ RUN useradd \
     --uid "${UID}" \
     appuser
 
-COPY hook0-output-worker-${TARGETARCH}-linux /hook0-output-worker
+# Note: Artifacts are named hook0-output-worker-linux-{amd64,arm64}
+COPY hook0-output-worker-linux-${TARGETARCH} /hook0-output-worker
 RUN chmod +x /hook0-output-worker
 
 USER appuser

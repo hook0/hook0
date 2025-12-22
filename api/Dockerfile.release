@@ -13,8 +13,8 @@ RUN apt-get update -y \
     && apt-get install -y --no-install-recommends curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Note: The CI renames the artifacts to match this pattern based on target arch
-COPY hook0-api-${TARGETARCH}-linux /hook0-api
+# Note: Artifacts are named hook0-api-linux-{amd64,arm64}
+COPY hook0-api-linux-${TARGETARCH} /hook0-api
 RUN chmod +x /hook0-api
 
 USER appuser
