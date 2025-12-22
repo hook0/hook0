@@ -1,3 +1,11 @@
+workflow:
+  rules:
+    # Skip branch pipeline for release commits (tag pipeline will run instead)
+    - if: $CI_COMMIT_BRANCH && $CI_COMMIT_MESSAGE =~ /^chore\(release\):/
+      when: never
+    # Run for all other cases
+    - when: always
+
 variables:
   PG_VERSION: "18"
   RUST_VERSION: "1.91-trixie"
