@@ -1,5 +1,12 @@
 # Configuration Reference
 
+<!--
+  ⚠️  AUTO-GENERATED FILE - DO NOT EDIT MANUALLY
+
+  This file is generated from the Hook0 API /environment_variables endpoint.
+  To regenerate, run: npm run generate:config
+-->
+
 Environment variables for configuring Hook0.
 
 :::tip Source of Truth
@@ -13,335 +20,173 @@ hook0-output-worker --help
 This documentation may not cover all options or reflect recent changes.
 :::
 
-## Server Configuration
+## Web Server
 
-### Network
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `CORS_ALLOWED_ORIGINS` | Comma-separated allowed origins for CORS | - |  |
+| `ENABLE_HSTS_HEADER` | If true, the HSTS header will be enabled | `false` |  |
+| `ENABLE_SECURITY_HEADERS` | If true, the secured HTTP headers will be enabled | `true` |  |
+| `IP` | IP address on which to start the HTTP server | `127.0.0.1` |  |
+| `PORT` | Port on which to start the HTTP server | `8080` |  |
 
-```bash
-# IP address to bind (use 0.0.0.0 in Docker containers)
-IP=127.0.0.1
+## Reverse Proxy
 
-# Port to listen on
-PORT=8080
-```
-
-:::tip Docker deployments
-When running in Docker, set `IP=0.0.0.0` to allow connections from outside the container. The self-hosting tutorial uses port 8081 by convention.
-:::
-
-### Reverse Proxy
-
-```bash
-# Trusted IPs/CIDRs that can set X-Forwarded-For and Forwarded headers
-REVERSE_PROXY_IPS=192.168.0.0/16,10.0.0.0/8
-
-# Enable if behind Cloudflare
-BEHIND_CLOUDFLARE=false
-```
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `BEHIND_CLOUDFLARE` | Set to true if your instance is served behind Cloudflare's proxies in order to determine the correct user IP for each request | `false` |  |
+| `CC_REVERSE_PROXY_IPS` | A comma-separated list of trusted IP addresses (e.g. `192.168.1.1`) or CIDRs (e.g. `192.168.0.0/16`) that are allowed to set "X-Forwarded-For" and "Forwarded" headers | - |  |
+| `REVERSE_PROXY_IPS` | A comma-separated list of trusted IP addresses (e.g. `192.168.1.1`) or CIDRs (e.g. `192.168.0.0/16`) that are allowed to set "X-Forwarded-For" and "Forwarded" headers | - |  |
 
 ## Database
 
-```bash
-# PostgreSQL connection string
-DATABASE_URL=postgresql://user:password@localhost:5432/hook0
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `DATABASE_URL` 🔒 | Database URL (with credentials) | - | ✓ |
+| `DB_STATEMENT_TIMEOUT` | Statement timeout for database queries; if `0ms` (default), no timeout will be set; this is only for API-related queries, housekeeping tasks run without timeout | `0ms` |  |
+| `MAX_DB_CONNECTIONS` | Maximum number of connections to database | `5` |  |
+| `NO_AUTO_DB_MIGRATION` | Disable automatic database migration | - |  |
 
-# Maximum database connections
-MAX_DB_CONNECTIONS=5
+## Auth
 
-# Disable automatic database migration on startup
-NO_AUTO_DB_MIGRATION=false
-```
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `BISCUIT_PRIVATE_KEY` | Biscuit's private key, used for authentication | - |  |
+| `DEBUG_AUTHORIZER` | If true, a trace log message containing authorizer context is emitted on each request; defaut is false because this feature implies a small overhead | `false` |  |
+| `DISABLE_REGISTRATION` | Set to true to disable registration endpoint | - |  |
+| `MASTER_API_KEY` 🔒 | A global admin API key that have almost all rights. Better left undefined, USE AT YOUR OWN RISKS! | - |  |
+| `MAX_AUTHORIZATION_TIME_IN_MS` | Maximum duration (in millisecond) that can be spent running Biscuit's authorizer | `10` |  |
+| `PASSWORD_MINIMUM_LENGTH` | Minimum length of user passwords. This is checked when a user registers | `12` |  |
 
-## Authentication
+## Email
 
-```bash
-# Biscuit private key for token generation
-BISCUIT_PRIVATE_KEY=your-hex-encoded-private-key
-
-# Maximum authorization time (milliseconds)
-MAX_AUTHORIZATION_TIME_IN_MS=10
-```
-
-## CORS
-
-```bash
-# Comma-separated allowed origins
-CORS_ALLOWED_ORIGINS=https://app.hook0.com,https://your-domain.com
-```
-
-## API Rate Limiting
-
-```bash
-# Disable all rate limiting
-DISABLE_API_RATE_LIMITING=false
-
-# Global rate limiting (across all requests)
-DISABLE_API_RATE_LIMITING_GLOBAL=false
-API_RATE_LIMITING_GLOBAL_BURST_SIZE=2000
-API_RATE_LIMITING_GLOBAL_REPLENISH_PERIOD_IN_MS=1
-
-# Per-IP rate limiting
-DISABLE_API_RATE_LIMITING_IP=false
-API_RATE_LIMITING_IP_BURST_SIZE=200
-API_RATE_LIMITING_IP_REPLENISH_PERIOD_IN_MS=10
-
-# Per-token rate limiting
-DISABLE_API_RATE_LIMITING_TOKEN=false
-API_RATE_LIMITING_TOKEN_BURST_SIZE=20
-API_RATE_LIMITING_TOKEN_REPLENISH_PERIOD_IN_MS=100
-```
-
-## Email Configuration
-
-```bash
-# Sender information
-EMAIL_SENDER_ADDRESS=noreply@hook0.com
-EMAIL_SENDER_NAME=Hook0
-
-# SMTP connection URL
-# Examples:
-# - smtp://localhost:1025 (plain)
-# - smtps://user:password@provider.com:465 (TLS)
-# - smtp://user:password@provider.com:587?tls=required (STARTTLS)
-SMTP_CONNECTION_URL=smtp://localhost:1025
-
-# SMTP timeout (seconds)
-SMTP_TIMEOUT_IN_S=5
-
-# Logo URL for emails
-EMAIL_LOGO_URL=https://app.hook0.com/256x256.png
-
-# Frontend URL for email links
-APP_URL=https://app.hook0.com
-```
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `EMAIL_SENDER_ADDRESS` | Sender email address | - | ✓ |
+| `EMAIL_SENDER_NAME` | Sender name | `Hook0` |  |
+| `SMTP_CONNECTION_URL` 🔒 | Connection URL to SMTP server; for example: `smtp://localhost:1025`, `smtps://user:password@provider.com:465` (SMTP over TLS) or `smtp://user:password@provider.com:465?tls=required` (SMTP with STARTTLS) | - | ✓ |
+| `SMTP_TIMEOUT_IN_S` | Duration (in second) to use as timeout when sending emails to the SMTP server | `5` |  |
 
 ## Frontend
 
-```bash
-# Directory containing web app to serve
-WEBAPP_PATH=../frontend/dist/
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `APP_URL` | Frontend application URL (used for building links in emails and pagination) | - | ✓ |
+| `CLOUDFLARE_TURNSTILE_SECRET_KEY` | Cloudflare Turnstile secret key (enables Turnstile for user registration) | - |  |
+| `CLOUDFLARE_TURNSTILE_SITE_KEY` | Cloudflare Turnstile site key (enables Turnstile for user registration) | - |  |
+| `DISABLE_SERVING_WEBAPP` | Set to true to disable serving the web app and only serve the API | - |  |
+| `EMAIL_LOGO_URL` | URL of the Hook0 logo | `https://app.hook0.com/256x256.png` |  |
+| `FORMBRICKS_API_HOST` | Formbricks API host | `https://app.formbricks.com` |  |
+| `FORMBRICKS_ENVIRONMENT_ID` | Formbricks API environment ID | - |  |
+| `MATOMO_SITE_ID` | Matomo site ID | - |  |
+| `MATOMO_URL` | Matomo URL | - |  |
+| `SUPPORT_EMAIL_ADDRESS` | Support email address | `support@hook0.com` |  |
+| `WEBAPP_PATH` | Path to the directory containing the web app to serve | `../frontend/dist/` |  |
+| `WEBSITE_URL` | Website URL | `https://hook0.com` |  |
 
-# Disable serving the web app (API only)
-DISABLE_SERVING_WEBAPP=false
-```
+## Rate Limiting
 
-## Security
-
-```bash
-# Security headers
-ENABLE_SECURITY_HEADERS=true
-ENABLE_HSTS_HEADER=false
-
-# Disable user registration
-DISABLE_REGISTRATION=false
-
-# Minimum password length
-PASSWORD_MINIMUM_LENGTH=12
-```
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `API_RATE_LIMITING_GLOBAL_BURST_SIZE` | Global quota of API calls before rate limiting blocks incomming requests (must be ≥ 1) | `2000` |  |
+| `API_RATE_LIMITING_GLOBAL_REPLENISH_PERIOD_IN_MS` | Duration (in millisecond) after which one global API call is restored in the quota (must be ≥ 1) | `1` |  |
+| `API_RATE_LIMITING_HOUSEKEEPING_PERIOD` | Duration to wait beetween rate limiters housekeeping | `5m` |  |
+| `API_RATE_LIMITING_IP_BURST_SIZE` | Quota of API calls per IP before rate limiting blocks incomming requests (must be ≥ 1) | `200` |  |
+| `API_RATE_LIMITING_IP_REPLENISH_PERIOD_IN_MS` | Duration (in millisecond) after which one API call per IP is restored in the quota (must be ≥ 1) | `10` |  |
+| `API_RATE_LIMITING_TOKEN_BURST_SIZE` | Quota of API calls per token before rate limiting blocks incomming requests (must be ≥ 1) | `20` |  |
+| `API_RATE_LIMITING_TOKEN_REPLENISH_PERIOD_IN_MS` | Duration (in millisecond) after which one API call per token is restored in the quota (must be ≥ 1) | `100` |  |
+| `DISABLE_API_RATE_LIMITING` | Set to true to disable every API rate limiting | - |  |
+| `DISABLE_API_RATE_LIMITING_GLOBAL` | Set to true to disable global API rate limiting | - |  |
+| `DISABLE_API_RATE_LIMITING_IP` | Set to true to disable per-IP API rate limiting | - |  |
+| `DISABLE_API_RATE_LIMITING_TOKEN` | Set to true to disable per-token API rate limiting | - |  |
 
 ## Quotas
 
-```bash
-# Enable quota enforcement
-ENABLE_QUOTA_ENFORCEMENT=false
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `ENABLE_QUOTA_BASED_EMAIL_NOTIFICATIONS` | Set to true to enable quota-based email notifications | `false` |  |
+| `ENABLE_QUOTA_ENFORCEMENT` | Set to true to apply quotas limits (default is not to) | - |  |
+| `QUOTA_GLOBAL_APPLICATIONS_PER_ORGANIZATION_LIMIT` | Default limit of applications per organization (can be overriden by a plan) | `1` |  |
+| `QUOTA_GLOBAL_DAYS_OF_EVENTS_RETENTION_LIMIT` | Default limit of day of event's retention (can be overriden by a plan) | `7` |  |
+| `QUOTA_GLOBAL_EVENT_TYPES_PER_APPLICATION_LIMIT` | Default limit of event types per application (can be overriden by a plan) | `10` |  |
+| `QUOTA_GLOBAL_EVENTS_PER_DAY_LIMIT` | Default limit of events per day (can be overriden by a plan) | `100` |  |
+| `QUOTA_GLOBAL_MEMBERS_PER_ORGANIZATION_LIMIT` | Default limit of members per organization (can be overriden by a plan) | `1` |  |
+| `QUOTA_GLOBAL_SUBSCRIPTIONS_PER_APPLICATION_LIMIT` | Default limit of subscriptions per application (can be overriden by a plan) | `10` |  |
+| `QUOTA_NOTIFICATION_EVENTS_PER_DAY_THRESHOLD` | Default threshold (in %) of events per day at which to send a warning notification | `80` |  |
 
-# Default quota limits (can be overridden by plans)
-QUOTA_GLOBAL_MEMBERS_PER_ORGANIZATION_LIMIT=1
-QUOTA_GLOBAL_APPLICATIONS_PER_ORGANIZATION_LIMIT=1
-QUOTA_GLOBAL_EVENTS_PER_DAY_LIMIT=100
-QUOTA_GLOBAL_DAYS_OF_EVENTS_RETENTION_LIMIT=7
-QUOTA_GLOBAL_SUBSCRIPTIONS_PER_APPLICATION_LIMIT=10
-QUOTA_GLOBAL_EVENT_TYPES_PER_APPLICATION_LIMIT=10
+## Housekeeping
 
-# Quota notification threshold (percentage)
-QUOTA_NOTIFICATION_EVENTS_PER_DAY_THRESHOLD=80
-ENABLE_QUOTA_BASED_EMAIL_NOTIFICATIONS=false
-```
-
-## Cleanup Tasks
-
-### Materialized Views
-
-```bash
-# Refresh period (seconds)
-MATERIALIZED_VIEWS_REFRESH_PERIOD_IN_S=60
-```
-
-### Old Events
-
-```bash
-# Cleanup period (seconds)
-OLD_EVENTS_CLEANUP_PERIOD_IN_S=3600
-
-# Grace period before deletion (days)
-OLD_EVENTS_CLEANUP_GRACE_PERIOD_IN_DAY=30
-
-# Actually delete (vs just report)
-OLD_EVENTS_CLEANUP_REPORT_AND_DELETE=false
-```
-
-### Expired Tokens
-
-```bash
-# Cleanup period (humantime format: 1h, 1d, etc.)
-EXPIRED_TOKENS_CLEANUP_PERIOD=1h
-
-# Grace period before deletion
-EXPIRED_TOKENS_CLEANUP_GRACE_PERIOD=7d
-
-# Actually delete (vs just report)
-EXPIRED_TOKENS_CLEANUP_REPORT_AND_DELETE=false
-```
-
-### Unverified Users
-
-```bash
-# Enable cleanup
-ENABLE_UNVERIFIED_USERS_CLEANUP=false
-
-# Cleanup period (seconds)
-UNVERIFIED_USERS_CLEANUP_PERIOD_IN_S=3600
-
-# Grace period (days)
-UNVERIFIED_USERS_CLEANUP_GRACE_PERIOD_IN_DAYS=7
-
-# Actually delete (vs just report)
-UNVERIFIED_USERS_CLEANUP_REPORT_AND_DELETE=false
-```
-
-### Soft-Deleted Applications
-
-```bash
-# Enable cleanup
-ENABLE_SOFT_DELETED_APPLICATIONS_CLEANUP=false
-
-# Cleanup period
-SOFT_DELETED_APPLICATIONS_CLEANUP_PERIOD=1d
-
-# Grace period
-SOFT_DELETED_APPLICATIONS_CLEANUP_GRACE_PERIOD=30d
-```
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `ENABLE_SOFT_DELETED_APPLICATIONS_CLEANUP` | If true, soft-deleted applications will be removed from database after a while; otherwise they will be kept in database forever | `false` |  |
+| `ENABLE_UNVERIFIED_USERS_CLEANUP` | If true, unverified users will be remove from database after a while | `false` |  |
+| `EXPIRED_TOKENS_CLEANUP_GRACE_PERIOD` | Duration to wait before actually deleting expired tokens (expired tokens cannot be used anyway, even if kept for some time) | `7d` |  |
+| `EXPIRED_TOKENS_CLEANUP_PERIOD` | Duration to wait between expired tokens cleanups | `1h` |  |
+| `EXPIRED_TOKENS_CLEANUP_REPORT_AND_DELETE` | If true, expired tokens will be reported and cleaned up; if false (default), they will only be reported | `false` |  |
+| `MATERIALIZED_VIEWS_REFRESH_PERIOD_IN_S` | Duration (in second) to wait between materialized views refreshes | `60` |  |
+| `OBJECT_STORAGE_CLEANUP_PERIOD` | Duration to wait between object storage cleanups | `1d` |  |
+| `OBJECT_STORAGE_CLEANUP_REPORT_AND_DELETE` | If true, allow to delete outdated objects from object storage; if false (default), they will only be reported | `false` |  |
+| `OLD_EVENTS_CLEANUP_GRACE_PERIOD_IN_DAY` | Duration (in day) to wait before actually deleting events that are passed retention period | `30` |  |
+| `OLD_EVENTS_CLEANUP_PERIOD_IN_S` | Duration (in second) to wait between old events cleanups | `3600` |  |
+| `OLD_EVENTS_CLEANUP_REPORT_AND_DELETE` | If true, old events will be reported and cleaned up; if false (default), they will only be reported | `false` |  |
+| `SOFT_DELETED_APPLICATIONS_CLEANUP_GRACE_PERIOD` | Duration to wait before removing a soft-deleted application | `30d` |  |
+| `SOFT_DELETED_APPLICATIONS_CLEANUP_PERIOD` | Duration to wait between soft-deleted applications cleanups | `1d` |  |
+| `UNVERIFIED_USERS_CLEANUP_GRACE_PERIOD_IN_DAYS` | Duration (in day) to wait before removing a unverified user | `7` |  |
+| `UNVERIFIED_USERS_CLEANUP_PERIOD_IN_S` | Duration (in second) to wait between unverified users cleanups | `3600` |  |
+| `UNVERIFIED_USERS_CLEANUP_REPORT_AND_DELETE` | If true, unverified users will be reported and cleaned up; if false (default), they will only be reported | `false` |  |
 
 ## Monitoring
 
-```bash
-# Sentry error tracking
-SENTRY_DSN=https://your-sentry-dsn
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `HEALTH_CHECK_KEY` 🔒 | Key for the health check endpoint; if not specified, endpoint is disabled; if empty, endpoint is public | - |  |
+| `HEALTH_CHECK_TIMEOUT` | Max timeout duration for health check: if subsystems take longer to respond they will be considered unhealthy | `5s` |  |
+| `OTLP_AUTHORIZATION` 🔒 | Optional value for OTLP `Authorization` header (for example: `Bearer mytoken`) | - |  |
+| `OTLP_METRICS_ENDPOINT` | Optional OTLP endpoint that will receive metrics | - |  |
+| `OTLP_TRACES_ENDPOINT` | Optional OTLP endpoint that will receive traces | - |  |
+| `SENTRY_DSN` | Optional Sentry DSN for error reporting | - |  |
+| `SENTRY_TRACES_SAMPLE_RATE` | Optional sample rate for tracing transactions with Sentry (between 0.0 and 1.0) | - |  |
 
-# Sentry traces sample rate (0.0-1.0)
-SENTRY_TRACES_SAMPLE_RATE=0.1
+## Hook0 Client
 
-# Health check endpoint key (empty = public, unset = disabled)
-HEALTH_CHECK_KEY=your-secret-key
-```
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `HOOK0_CLIENT_API_URL` | Base API URL of a Hook0 instance that will receive events from this Hook0 instance | - |  |
+| `HOOK0_CLIENT_APPLICATION_ID` | UUID of a Hook0 application that will receive events from this Hook0 instance | - |  |
+| `HOOK0_CLIENT_TOKEN` | Authentifcation token valid for a Hook0 application that will receive events from this Hook0 instance | - |  |
+| `HOOK0_CLIENT_UPSERTS_RETRIES` | Number of allowed retries when upserting event types to the linked Hook0 application fails | `10` |  |
 
-## Analytics
+## Object Storage
 
-```bash
-# Matomo analytics
-MATOMO_URL=https://analytics.example.com
-MATOMO_SITE_ID=1
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `OBJECT_STORAGE_BUCKET_NAME` | Bucket name of the S3-like object storage | - |  |
+| `OBJECT_STORAGE_FORCE_HTTP_SCHEME` | Force endpoint scheme to be HTTP (by default it is HTTPS) | `false` |  |
+| `OBJECT_STORAGE_HOST` | Host of the S3-like object storage (without https://) | - |  |
+| `OBJECT_STORAGE_KEY_ID` | Key ID of the S3-like object storage | - |  |
+| `OBJECT_STORAGE_KEY_SECRET` 🔒 | Key secret of the S3-like object storage | - |  |
+| `OBJECT_STORAGE_MAX_ATTEMPTS` | Maximum number of attempts for object storage operations | `3` |  |
+| `STORE_EVENT_PAYLOADS_IN_OBJECT_STORAGE` | If true, new event payloads will be stored in object storage instead of database | `false` |  |
+| `STORE_EVENT_PAYLOADS_IN_OBJECT_STORAGE_ONLY_FOR` | A comma-separated list of applications ID whose event payloads should be stored in object storage; if empty (default), all event payloads will be stored in object storage regardless of application ID | - |  |
 
-# Formbricks feedback
-FORMBRICKS_API_HOST=https://app.formbricks.com
-FORMBRICKS_ENVIRONMENT_ID=your-env-id
-```
+## Pulsar
 
-## Other
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `PULSAR_BINARY_URL` | Pulsar binary URL | - |  |
+| `PULSAR_NAMESPACE` | Pulsar namespace | - |  |
+| `PULSAR_TENANT` | Pulsar tenant | - |  |
+| `PULSAR_TOKEN` 🔒 | Pulsar token | - |  |
 
-```bash
-# Website URL
-WEBSITE_URL=https://hook0.com
+## Deprecated
 
-# Support email
-SUPPORT_EMAIL_ADDRESS=support@hook0.com
-
-# Cloudflare Turnstile (bot protection for registration)
-CLOUDFLARE_TURNSTILE_SITE_KEY=your-site-key
-CLOUDFLARE_TURNSTILE_SECRET_KEY=your-secret-key
-
-# Global admin API key (USE AT YOUR OWN RISK)
-MASTER_API_KEY=uuid-goes-here
-```
-
-## Hook0 Client (Self-hosting with upstream instance)
-
-```bash
-# Base API URL of upstream Hook0 instance
-HOOK0_CLIENT_API_URL=https://api.hook0.com
-
-# Application ID on upstream instance
-HOOK0_CLIENT_APPLICATION_ID=uuid-goes-here
-
-# Authentication token for upstream instance
-HOOK0_CLIENT_TOKEN=your-token
-
-# Retry attempts for event type upserts
-HOOK0_CLIENT_UPSERTS_RETRIES=10
-```
-
-## Output Worker Configuration
-
-The output-worker is a separate binary with its own configuration.
-
-### Core Settings
-
-```bash
-# Database connection
-DATABASE_URL=postgresql://user:password@localhost:5432/hook0
-
-# Worker identification
-WORKER_NAME=default
-WORKER_VERSION=0.1.0  # Optional, defaults to cargo version
-
-# Concurrency (1-100)
-CONCURRENT=10
-```
-
-### Retry Strategy
-
-```bash
-# Fast retries (exponential backoff from 5s to 5min)
-MAX_FAST_RETRIES=30
-
-# Slow retries (1 hour between attempts)
-MAX_SLOW_RETRIES=30
-```
-
-### Timeouts
-
-```bash
-# Connection establishment timeout
-CONNECT_TIMEOUT=5s
-
-# Total request timeout (including connect)
-TIMEOUT=15s
-```
-
-### Security
-
-```bash
-# Allow webhooks to target private IPs (NOT recommended for production)
-DISABLE_TARGET_IP_CHECK=false
-
-# Signature configuration
-SIGNATURE_HEADER_NAME=X-Hook0-Signature
-ENABLED_SIGNATURE_VERSIONS=v1
-```
-
-### Monitoring
-
-```bash
-# Sentry error tracking
-SENTRY_DSN=https://your-sentry-dsn
-
-# Heartbeat for dead man's switch monitoring
-MONITORING_HEARTBEAT_URL=https://healthchecks.io/ping/your-uuid
-MONITORING_HEARTBEAT_MIN_PERIOD_IN_S=60
-```
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `ENABLE_APPLICATION_SECRET_COMPATIBILITY` | Enable application secret compatibility mode | `true` |  |
 
 ## Notes
 
+- 🔒 indicates sensitive values (hidden in logs)
 - Boolean values: `true`, `false` (case-insensitive)
 - Durations: Use humantime format (`1h`, `30m`, `7d`) where supported, otherwise seconds
 - Lists: Comma-separated
