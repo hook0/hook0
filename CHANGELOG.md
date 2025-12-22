@@ -5,13 +5,1274 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.0.1] - 2025-12-22
 
-## [2.0.1] - 2025-12-17
+### Added
+
+- Add multi-arch Docker release pipeline with automated GitLab/GitHub releases (release)
+
+### Fixed
+
+- Use cargo binstall to install cargo-release for faster builds (previous commit)
+- Use cargo-binstall and allow dirty for pre-staged files (release)
+- Run cargo-release before frontend/changelog updates (release)
+- Allow pipeline success without triggering manual release jobs (release)
+- Checkout branch before release (GitLab CI detached HEAD) (release)
+- Reset to origin after checkout to avoid divergence (release)
+
+### Other
+
+- Ignore GitLab CI artifacts in gitignore
+- Trigger pipeline
+
+## [0.0.1-test] - 2025-12-19
+
+### Added
+
+- Create API project
+- Add DB connection
+- Add OpenAPI doc generation
+- Add routes
+- Add CRUD handlers for applications
+- Use crate name as app name when connecting to PG
+- Add event_types endpoints
+- Put API URLs inside /api/
+- Serve webapp
+- Frontend
+- Add application_secrets endpoints
+- Add endpoints to see events
+- Add event ingestion endpoint
+- Implement output worker
+- Implement bounded linear retry delay
+- Rewrite Sentry integration & use it in both apps
+- Feat
+- Add authentication for application endpoints
+- Add authentication for every endpoint that should require it
+- Add endpoint to list organizations
+- Improved frontend
+- Routing is working
+- Components
+- Application listing and application create
+- Add subscriptions endpoints
+- Store worker ID and version when processing
+- Error management + swagger-ui
+- Add request attempts endpoint
+- Allow to filter request attempts
+- Slow down or stop attempting requests after given numbers of retries
+- Add responses endpoint
+- Add organization metadata in database
+- Enable auto DB migration by default
+- Improve JWT claims extraction & update dependencies
+- Add logo
+- New issue
+- Allow authentication using both JWT or application secret
+- Improve auth module to better handle event ingestion
+- Use trust dns resolver and enable anyhow integration in Sentry
+- Add more trace messages
+- Add a registration endpoint
+- Allow to disable registration
+- Add API rate limiting
+- Sign webhook calls
+- Expose instance config
+- Add support for working on another api environment
+- Cors
+- Add input validation infrastructure
+- Add input validators
+- Check max length of input strings
+- Return JSON body parsing errors as Hook0 problems
+- Add more validators
+- Update pictures
+- Require front client ID to be set and expose it
+- Add a secure extractor for user's IP
+- Allow to configure CORS allowed origins
+- Add multiple rate limiters
+- Add sign up form (website)
+- Add an endpoint to list organization's users
+- Add endpoints to invite or remove users from organizations
+- Add an endpoint to create an organization
+- Add a created_by field for organizations
+- Add footer + universal button
+- Add Hook0Table and Hook0TableCellLink (frontend)
+- Application create, edit (frontend)
+- Add an endpoint to edit organizations
+- Switch API spec from OpenAPI v2 to v3
+- Organization crud
+- Complete organisation & application support + partial event_types support
+- Add support for event types deletion
+- Remove application and bug fixes
+- Support organization and application removal
+- Display problem as alert
+- Fill in default organization_id & application_id
+- Events and eventsdetail
+- Add an endpoint to remove an organization
+- Improve the way event playload content types are handled
+- Full organization support
+- Link developer plan to the sign up form
+- Add an endpoint to get a subscription
+- Expose application_id in subscriptions endpoints
+- Upsert response error names
+- Add status page (website)
+- Better event list display (frontend)
+- Fix types and add Hook0Code and Hook0DateTime (frontend)
+- Toggle on subscription list (frontend)
+- Allow to not serve web app (api)
+- Add event type in webhook requests
+- Add a Rust client
+- Improve payload handling and documentation
+- Initialize a Hook0 client in Hook0 API
+- Implement Hook0 client for some events
+- Implement Hook0 client for more events
+- Support the new way of handling payload content in events
+- Implement Hook0 client for more events
+- Upsert Hook0 client event types on startup
+- Improve labels of Hook0 events
+- Implement Hook0 client for more events
+- Implement Hook0 client for more events
+- Add user info in Sentry reports
+- Publish openapi to readme.io (api)
+- Update princing (website)
+- First version of logs
+- Update princing (website)
+- Publish security and compliance page (website)
+- Add use-cases (website)
+- User must provide a password when registering (api)
+- Add container and docker-compose (docker)
+- Add robots.txt, security.txt and sitemap.xml (website)
+- Add osv-scanner and SAST (ci)
+- Add osv dependency scan (ci)
+- Add options to allow Sentry to trace and profile transactions
+- Add Sentry middleware for Actix Web
+- Add a Cargo feature to use rustls-native-certs for outgoing HTTPS requests
+- Add more lists to application dashboard (frontend)
+- Add server in OpenAPI spec (api)
+- Add ability to edit and view subscription's metadata (SubscriptionsEdit)
+- Declare application secret authentication in OpenAPI (api)
+- Add quotas (api)
+- Allow fetching quotas to use transactions
+- Enforce some quotas
+- Improve navigation lisibility (frontend)
+- Display plan on organization dashboard (frontend)
+- Add a second name to plans for user-facing display
+- Allow to disable pricing
+- Add dedicated workers
+- Add customers (website)
+- Do not override dedicated workers when editing a subscription (frontend)
+- Allow to select text in tables (frontend)
+- Improve several tables (frontend)
+- Improve several tables (frontend)
+- Improve event details (frontend)
+- Add subscriptions to application dashboard (frontend)
+- Hide unfinished search bar (frontend)
+- Adjust default column size for IPs (frontend)
+- Add an item to enterprise plan (website)
+- Improve pricing (website)
+- Improve pricing (website)
+- Improve pricing
+- Link to documentation (website)
+- DAST support (gitlab)
+- Add DAST, container-scanning and secret detection (ci)
+- Updated logo
+- Add banner (mediakit)
+- Add banner (mediakit)
+- Oss-friends
+- Add scheduled stage for metabase-to-brevo (gitlab-ci.yml)
+- Allow to configure a master API key (api)
+- Allow to set default organization workers
+- Allow to periodically send monitoring heartbeats (output-worker)
+- Add Crisp chatbox (frontend)
+- Enforce events per day quota (api)
+- Check that subscriptions target URLs are valid (api)
+- Allow to forbid HTTP requests that target IPs that are not globally reachable (output-worker)
+- Handle multiple request attempts concurrently (output-worker)
+- Improve resilience (output-worker)
+- Add Matomo & get Crisp website ID from env (website)
+- Update privacy policy (website)
+- Handle organization members (frontend)
+- Add health check endpoint (api)
+- Never index pages from this app (frontend)
+- When there is nothing to do, close DB transaction before waiting (output-worker)
+- When there is nothing to do, close DB transaction before waiting (output-worker)
+- Improve some data tables (frontend)
+- Clean up old events (api)
+- Backup events per day before cleaning up and do some housekeeping after (api)
+- Only run housekeeping operations after actual data was deleted because of retention policy (api)
+- Add product hunt button (website)
+- Add subscription secret (frontend)
+- Add product hunt badge (website)
+- Add product hunt badge (website)
+- Add some personal information's and possibility to delete your account (frontend)
+- Change buttons of product hunt to #4 product of the week (better social-proof) (website)
+- Add secured headers / HSTS with configuration (api)
+- Betters named give to configuration / enable by default the HSTS (api)
+- Screenshot (mediakit)
+- Init (api)
+- Add module for send some mails with template made in mjml (api)
+- #20 upgrade mails semantics / add reset password mail (api)
+- #20 upgrade variable system of each mail / add a new template (welcome) (api)
+- #20 remove subject field from Mails enum (api)
+- #20 add conversion for html to text (api)
+- Support SMTP authentication (api)
+- Some little updates (api)
+- IAM v2
+- IAM v2
+- Add mailer (api)
+- Implement module for email verification with mailer to send a mail (api)
+- Add /auth/verify-email process (not finished) (api)
+- Finished the part for email verification (api)
+- Implement "Forgot Password" + "Password Reset" + "Change Password" features (api)
+- Add email_logo_url config used for replace variable { $logo_url } in mail template (api)
+- Add route for get information about only one service token (api)
+- Login page form and field with iam-v2 (frontend)
+- Modification applied (check David's comment) (frontend)
+- Add iam-v2 form and routes (frontend)
+- Some modification and upgrade of Register / AuthPlugin (frontend)
+- Add email verification frontend + modify some details (@dsferruzza comment's) (frontend)
+- Tentative to add notifications system into hook0 project (frontend)
+- Modify the Hook0Problem with notification system (notivue) (frontend)
+- Add notification when user logged in (frontend)
+- Feat(frontend) add banner / logo to /public
+- Add automatically pushed user to login routes when registered (frontend)
+- Add and modify UserSettings to the new iam + add frontend change password (frontend)
+- Finish begin reset password && reset password frontend part (frontend)
+- Organization services tokens (frontend)
+- Add service token view page and start to implement biscuit auth (frontend)
+- Some updates (frontend)
+- Complete a part for get BiscuitToken deserialized (frontend)
+- Some updates (frontend)
+- Finish the part for attenuate biscuit token with some params (frontend)
+- Add function to get ServiceToken information by he's token_id (frontend)
+- Some updates in token view part. Changed the moment when receive the biscuit token not by getting routes params but an api call (frontend)
+- Some updates (frontend)
+- Check if attenuate expiration date is in the future and convert it to RFC 3339 (frontend)
+- Finished the work with attenuation token (frontend)
+- Add plugin (didn't work actually) for check on load if webassembly is supported on user browser. (frontend)
+- Display unattenuated biscuit token. (frontend)
+- Various improvements (frontend)
+- Add a message on organization's dashboard when no service token exist (frontend)
+- Add a button to return to service token list when viewing a service token (frontend)
+- Suppress reload and add notification when create/removing/editing organizations (frontend)
+- Add a message on organization's dashboard when no service token exist (frontend)
+- Add migration to replay an event (migrations)
+- Add possibility to replay an event when he's already consume in the past (api/frontend)
+- Remove useless item in event list datatable (frontend)
+- Better displaying for login / registration part (frontend)
+- Add authorizer MAX_AUTHORIZATION_TIME_IN_MS config (api)
+- Add comment and constant for MAX_DURATION_TIME_IN_MS (api)
+- Make email case insensitive and return a proper error when registering with an already registered email (api)
+- Clean all unverfied users (api)
+- Prepare application secrets deprecation and hide service token UIs
+- Make logout safer (frontend)
+- Improve emails (api)
+- Change HSTS max age to 2 years (api)
+- Improve emails (api)
+- Make timeouts configurable (output-worker)
+- Add a security header (api)
+- Extract some runtime variables in an env file (self-hosted)
+- Update api keywords (api)
+- Helm & kubernetes yaml (self-hosting)
+- Update Hook0Select.vue to use default props (api)
+- Delete unreachable organizations (api)
+- Only clean up empty organizations (api)
+- Vacuum, analyze and reindex after unverified users cleanup (api)
+- Update dependencies
+- Better DPA (website)
+- Configurable signature header name (worker)
+- Improve usage on signature_header_name (worker)
+- Display the organization id in organizations/{org_id}/settings and add a copy button
+- Add better display of organization_id and application_id (#56)
+- Add copy button (#56)
+- Add better display of organization_id and application_id (#56)
+- Upgrade for the mobile ui
+- Better display for org id & app id (#56)
+- Add possibility to copy app and org id with text on mobile (#56) (frontend)
+- Api test for k6 (k6)
+- Add README.me (k6)
+- Add README.me (k6)
+- Update for the scenario (k6)
+- Scenario fully created / waiting for David's review (k6)
+- Implement k6 for the new iam version (v2) with a scenario (check README.md) (k6)
+- Feat
+- Improve API origin config (e2e-tests)
+- Add a system for revokate token of users when password changes (frontend/api)
+- Limit number of event types and subscriptions by application on the plans (#61) (frontend/api)
+- Add non persistant cache for api instance (frontend)
+- Edit pricing (website)
+- Update pricing (website)
+- Add an index (api)
+- Add a configuration KEEP_TEST_APPLICATION & a command (npm run check) for check if prettier check is good (ci) (ci)
+- Add a Dockerfile / fix(ci): delete application by default (can be configured) (ci)
+- Start implementation of tutorial (not finished only 2 steps ) (frontend)
+- Rebase to iam-v2 for merging (frontend)
+- Add possibility to select an existing organization for the tutorial (frontend)
+- Partial init of progress bar component
+- #9
+- Lot of things (UX/UI edit (fg & david comment's)) (frontend)
+- Add CodeMirror in send event payload (frontend)
+- Add tutorial check flow for onboarding and application setup (frontend)
+- Feat(tutorial): replace TutorialOnboarding with TutorialIntroduction for better clarity and user experience
+feat(tutorial): create TutorialIntroduction.vue to provide a welcoming tutorial interface and guide users through initial steps
+- Feat(tutorial): refactor progress bar implementation to use a shared progressItems array for consistency and maintainability
+fix(tutorial): update step numbers in various components to reflect the correct order in the tutorial flow
+chore(tutorial): create TutorialService.ts to centralize progressItems data for better organization and reusability
+- Feat(frontend): enhance tutorial flow by passing organization and application IDs to the success page
+fix(frontend): remove unnecessary console log from event listing in OrganizationAndApplicationSelector.vue
+refactor(frontend): implement error handling for missing organization and application IDs in TutorialSuccess.vue
+- Add possibility to use an existing application or creating a new one in tutorial (frontend)
+- Feat(api)
+- Feat(frontend)
+- Add tutorial's wizard in application dashboard (api/frontend)
+- Feat/fix(frontend)
+- Feat/fix(frontend)
+- Improve contents (frontend)
+- Add card tree structure for org & app (frontend)
+- Avoid concurrent config API calls (frontend)
+- Add Matomo integration (frontend)
+- Implement AuthEmailNotVerified problem (#68) (api)
+- Add routes for exposing default quotas (#61) (api)
+- Start impleting change user role in organization (api/frontend)
+- Send email when events per days quota reached (api)
+- Implement consumption (api)
+- Implement consumption (frontend)
+- Add color changes on 80% and 100% on quotas progress bar (frontend)
+- Add built to last page (website)
+- Add a function to verify the webhooks signature & unit tests (clients)
+- Add 2 examples and some edits (clients)
+- Add producer & consumer features (clients)
+- Change version of rust sdk and add README.md (clients)
+- Start implementing ts sdk (#69) (clients)
+- Start implementing prettier & jest for code formatting and unit tests. And add a part of documentation (clients)
+- Add unit tests for hook0client functions (clients)
+- Add unit tests for signature part (clients)
+- Add ci test for typescript client (clients)
+- Add dependency and scripts (clients)
+- Add readme (clients.ts)
+- Set moduleResolution to node (clients.typescript)
+- Sdk can be use in javascript & typescript project (clients.typescript)
+- Improve Cargo features selection and testing (clients/rust)
+- Add badges to readme (clients/typescript)
+- Add badges to readme (clients/rust)
+- Allow to whitelist trusted reverse proxies using CIDR IPs (api)
+- Support user IP extraction when behind Cloudflare (api)
+- Support v1 signature verification (clients/rust)
+- Support v1 signature verification (clients/typescript)
+- Add support email adress to configuration field (api)
+- Add support email adress to configuration field (frontend)
+- Add a default value for support email address (api)
+- Add Cloudflare Turnstile on registration form
+- Improve subscription UI (frontend)
+- Testimonial (website)
+- Update content (website)
+- Update content (website)
+- Update content (website)
+- Add pagination on the request attempts endpoint (api)
+- Add pagination on the request attempts endpoint (api)
+- Improve OpenAPI documentation for paginated responses (api)
+- Update content (website)
+- Allow to extract profiling information (api)
+- Add a Pulsar-based worker mode
+- Improve health check (api)
+- Use protobuf to serialize request attempts transported by Pulsar
+- Allow to load waiting request attempts from database into Pulsar on startup (output-worker)
+- Prevent housekeeping tasks from running concurrently (api)
+- Add a timeout on materialized views refresh (api)
+- Allow to continue starting without Pulsar connection (api)
+- Improve housekeeping (api)
+- Add support for storing events' payload in object storage
+- Allow to configure health check timeout (api)
+- Enable retries in object storage client
+- Improve log message when finding orphan applications in object storage (api)
+- Add support for storing responses' body and headers in object storage
+- Allow to configure DB statement timeout (api)
+- Add OTLP metrics/traces support (output-worker)
+- Allow to configure maximum number of attempts for object storage operations
+- Only display request attempts that are more recent than 7 days (frontend)
+- Marks subscription as failed when disabling/deleting a subscription or deleting and application.
+- Ask for confirmation when disabling a subscription (frontend)
+- Add OTLP metrics/traces support (api)
+- Report span when refreshing materialized views (api)
+- Track size of rate limiters (api)
+- Improve retry logic (output-worker)
+- Add old homepage screenshots (screenshots)
+- Add multi-arch Docker release pipeline with automated GitLab/GitHub releases (release)
 
 ### Changed
-- Unified versioning across api, output-worker, and frontend
-- Introduced automated release pipeline
 
-[Unreleased]: https://gitlab.com/hook0/hook0/-/compare/v2.0.1...HEAD
-[2.0.1]: https://gitlab.com/hook0/hook0/-/releases/v2.0.1
+- Git ignore files
+- Fix coding style
+- Do not put too much in search_path
+- Do not put too much in search_path
+- Let the DB compute the delay_until date
+- Split logic into several files (output-worker)
+- Make imports more readable
+- Fix
+- Sort dependencies
+- Fix indentation
+- Use sqlx DB migrations
+- Fixtures
+- Fix
+- Reformat imports
+- Improve queries formatting
+- Use a Hook0Problem to report user-facing errors
+- Use strum to implement Display
+- Fix
+- Improve SQL query coding style
+- Log sqlx error messages
+- Create a service to use Keycloak API
+- Rephrase
+- Improve naming
+- Use validator wherever possible for the event ingestion endpoint
+- Separate user IP generic middleware from extractor
+- Rename middleware
+- Remove useless default config value
+- Cors allowed headers
+- Allow Role type in responses
+- Rename types and endpoints
+- Activate prettier everywhere
+- Display metadata and labels (EventsDetail)
+- Remove useless exception
+- Add a price table (api)
+- Improve worker type log message (output-worker)
+- Add a cell renderer for dates (frontend)
+- Remove a useless dependency (frontend)
+- Extract some SVG to their own file (website)
+- Rewrite Docker Compose file (docker)
+- Pass the whole config to the work function (output-worker)
+- Fix typo (api)
+- Old events cleanup (api)
+- Optimization and simplification of displaying errors (frontend)
+- Optimization and simplification of displaying errors (frontend)
+- Mailer (api)
+- Improve a lot of things (api)
+- Run cargo fmt (api)
+- Improve a lot of things (api)
+- Improve a lot of things (api)
+- Run cargo fmt (api)
+- Improve content (frontend)
+- Do not display optional section before checking if it should be displayed (frontend)
+- Remove a debug message (frontend)
+- Clean up unverified users (api)
+- Remove non-working WASM check (frontend)
+- Rename some components (frontend)
+- Add semver checks in CI, fixes #48 (repo)
+- Run cargo fmt (api)
+- Style
+- Moove subscriptions directory to root dir and add Prettier
+- Apply suggestions from David's review
+- Refactor(frontend)
+- Apply suggestions from David's review
+- Refactor(ci)
+- Refactor(api)
+- Fix Dockerfile warnings
+- Apply suggestions from David's review
+- Apply suggestions from David's review
+- Refactor(ci)
+- David's comment (ci)
+- Run Prettier (e2e-tests)
+- Move source files in src directory (e2e-tests)
+- Pin k6 version in Dockerfile (e2e-tests)
+- Various fixes (e2e-tests)
+- Run Prettier (e2e-tests)
+- Rename the routes and files for better naming (frontend)
+- Remove an useless comment (frontend)
+- Update header text to be more inviting and concise for better user experience (frontend)
+- Update text (frontend)
+- Update text (frontend)
+- Pdate subtitles and descriptions (frontend)
+- Change icons for use the actual's one (frontend)
+- Refactor(frontend)
+- Style component (tutorial & wizard) changes (frontend)
+- Style(api)
+- Refactor(frontend)
+- Redirect to tutorial routes when orga & app created (frontend)
+- Edit the datas management (org & app stats -> onboarding_steps (api/frontend)
+- Make more performant the sql request for organization onboardingsteps (api/frontend)
+- Put onboarding logic in its own modules
+- Improve Hook0ProgressBar props (frontend)
+- Rename events (frontend)
+- Improve components (frontend)
+- Improve OrganizationAndApplicationSelector.vue components (frontend)
+- Check if the password is correct before checking if the user's email is verified (api)
+- Refactor(api)
+- Refactor(api)
+- Refactor(api)
+- Refactor(api)
+- Refactor(api)
+- Refactor(api)
+- Add progress bar for quota displaying (frontend)
+- Refactor(api)
+- Refactor(api)
+- Refactor(api)
+- Refactor(api)
+- Rename title (website)
+- Refactor(website)
+- Refactor(clients)
+- Refactor(clients)
+- Remove simple.rs example (clients)
+- Remove local test.ts (clients)
+- Improve and finish signature part (clients)
+- Rename hook0-webhook-producer or consumer to consumer & producer (clients.rust)
+- A lot of modification and code style (clients.typescript)
+- Refactor(clients.rust)
+- Rename clients ts to typecript (clients.typescript)
+- Refactor(api)
+- Refactor(clients.rust)
+- User IP detection (api)
+- Format code (output-worker)
+- Improve signature (output-worker)
+- Various improvements (clients/typescript)
+- Factorize some code (clients/rust)
+- Rename type parameters (clients/rust)
+- Minor improvements
+- Cloudflare Turnstile integration
+- Remove workaround for subscriptions target (frontend)
+- Update and improve Formbricks integration (frontend)
+- Metadata and labels validation
+- Improve string interpolation (output-worker)
+- Remove unnecessary boxing (api)
+- Minor improvements
+- Remove Actix as a direct dependency (api)
+- Improve pulsar health check (api)
+- Merge conditional SQL queries into a unique one (api)
+- Improve logs related to object storage operations (api)
+- Improve logs related to object storage operations
+- Variable name (api)
+- Improve metric name (api)
+- Remove dbg (api)
+- Improve error messages related to object storage
+- Complete website redesign with modern aesthetic (website)
+
+### Documentation
+
+- Update .env and readme
+- Add a TODO note
+- Fix README
+- Start deployment documentation
+- Doc(website)
+- Add warnings to some organizations-related endpoints
+- Add a warning about Keycloak new admin console
+- Add some API documentation
+- Refactor README
+- Better readme (readme)
+- Added code of conduct and contributed
+- Fix a typo (readme)
+- Doc(readme)
+- Updated readme
+- Add algora bounties
+- Update ADRs (adr)
+- Edit the part for supported database / os
+- Fix license badge link (https://github.com/hook0/hook0/pull/10/files)
+- Fix license badge link (https://github.com/hook0/hook0/pull/10/files)
+- Improve some contents and comments (frontend)
+- Modify README.md (k6)
+- Modify README.md (k6)
+- Modify README.md (k6)
+- README.md FRENCH -> ENGLISH (k6)
+- Improve READMEs (clients)
+- Add license (client/rust)
+- Change copyright (client/rust)
+- Add license (clients/typescript)
+- Improve configuration docs (api)
+- Add description to service_token (api)
+- Add description (api)
+- Add/improve endpoint descriptions (api)
+- Fix OpenAPI schema for Target (api)
+- Update technical detail from openApi documentation (api)
+
+### Fixed
+
+- Move Cargo profile config to workspace root
+- Schema
+- Rename sentry lib to avoid a conflict
+- Do not load fixtures when loading schema
+- Default webapp path
+- Vue
+- It works
+- Always use timestamptz
+- Do not return application_id when provided in input
+- Typo
+- Building workspace
+- Clippy warning
+- Dockerfile
+- Docker
+- Regen sqlx offline data
+- Add missing auth middleware
+- Remove double underscores from public entities
+- Navigation
+- Routing
+- Database
+- Attempt picking
+- Ui
+- Downgrade database
+- Remove tests
+- Cargo.lock
+- Remove unused imports
+- Implement From instead of Into
+- Build
+- Application create
+- Regen sqlx offline data
+- Upgrade cargo version
+- API documentation
+- Add license
+- Cargo warning
+- Ci
+- Remove a natural join
+- Warning
+- Regen sqlx offline data
+- Regen sqlx offline data
+- Regen sqlx offline data
+- HTTP methods and webhook response errors must be uppercase
+- Problem's details consistency
+- Event dispatch
+- Ci
+- Ci (should be the last time)
+- Warning
+- Use different names for Keycloak clients used by frontend/backend
+- Cors
+- Typo
+- Rebase glitches
+- Tailwind CSS
+- API docs ordering
+- Log
+- User IP detection
+- Cors
+- Newsletter form action
+- Subscription success page
+- Newsletter form action
+- Warnings
+- Testimonials
+- Pin nodejs version
+- Ci?
+- Ci
+- Ci
+- Ci
+- Use the right extension
+- Regen sqlx offline data
+- Warnings
+- Forgot to set button with the right pointer (frontend)
+- Input component should have default value (frontend)
+- Move api doc behind a feature flag
+- Typo
+- Do not allow soft-deleted application secrets for authentication
+- Do not list soft-deleted application secrets through API
+- Event_type creation UI & add subscription edit
+- Api documentation is now authenticated
+- Convert timeouts axios's error to Problem
+- Dev mode
+- Backward-compatible change to make application_id optional
+- Fix sql unwrap issue (api)
+- Fix sqlx (api)
+- Allow API paths to have a final slash
+- Regen sqlx offline data
+- Regen sqlx offline data
+- Allow to soft delete subscriptions
+- Center vertically
+- Add missing files (frontend)
+- Add missing file
+- Enable/disable subscriptions (frontend)
+- Event type primary key
+- Add documentation website
+- Better navigation menu and bring back prettier
+- Errors and warnings
+- Always set active (frontend)
+- Fix subscription edit and add tests (frontend)
+- Lock file (frontend)
+- Subscription deletion (frontend)
+- Regen sqlx offline data
+- Fix(security)
+- Better output osv (ci)
+- Fix(osv)
+- Remove hook0
+- Fix(ci)
+- Fix(ci)
+- Fix(ci)
+- Fix(ci)
+- Fix(ci)
+- Display a proper error when creating a duplicate event type (api)
+- Typo (frontend)
+- Typo
+- Retries limits (output-worker)
+- Better app selected (ui)
+- Update ci (keycloak-theme)
+- Link (frontend)
+- Improve request attempts page (frontend)
+- Cancel action on application creation ui now does not throw error
+- Fix typescript issue (Hook0Table)
+- Updated and aligned menu icon (frontend)
+- Deprecation warning (frontend)
+- Forgot linkedin
+- Logic issue related to dedicated workers (api)
+- Typo (output-worker)
+- Allow a public worker to pick work dedicated to itself (output-worker)
+- Subscription editing (frontend)
+- App title (frontend)
+- Move from slack to discord (website)
+- Subscription editing (frontend)
+- Fix column width for options (frontend)
+- Internal links (website)
+- Testimonial
+- Bug on pricing switcher (website)
+- Bug on price switcher (pricing)
+- Bug on price switcher (pricing)
+- Rely on dataset instead of hacky classnames like metabase
+- Css.........
+- Easier style
+- Discord invitation link (website)
+- Use permalink instead
+- Remove debugger; (frontend)
+- Pricing (website)
+- Contributing (doc)
+- Fix(keycloak-theme)
+- Update footer (website)
+- Correctly populate HTTP target headers when editing (frontend)
+- Typo (docker)
+- Improve Docker Compose (docker)
+- CoC link (website)
+- Remove useless env file (docker)
+- Add missing code (prev commit)
+- Disable jobs when on schedule (gitlab-ci)
+- Remove deprecated only/except & replace with rules (gitlab-ci)
+- Add missing rules (prev commit)
+- Fix metabase-to-brevo gitlab-ci schedule (prev commit)
+- Remove console.log (prev commit)
+- Disable heartbeat call if there is no METABASETOSENDINBLUE_BETTERUPTIME_HEARTBEATURL (prev commit)
+- Fix(prev commit)
+- Typo (website)
+- Warning (api)
+- Quota limits calculation (api)
+- Rare dispatch issue (api)
+- Do not require metadata field when updating a subscription (api)
+- Merge glitch (output-worker)
+- Add missing info in some log messages (output-worker)
+- Only build pages (website)
+- Pricing (website)
+- Get subgroups on recent Keycloak versions (api)
+- Disabled buttons (frontend)
+- Typo (frontend)
+- Increase default API timeout (frontend)
+- Commit instead of rolling back (output-worker)
+- Avoid doing a rollback even if it does not change much (output-worker)
+- Remove useless check (api)
+- Be ready for v13 and v14 (keycloak-teme)
+- Enable a missing Cargo feature (output-worker)
+- Regen sqlx offline data
+- Dispatch issue (api)
+- Fix api keys token resizable (frontend)
+- Better display frontend errors (frontend)
+- Add space between each button in responsive mode (website)
+- Display error < 500 (frontend)
+- Close the dropdown after click on item (frontend)
+- Close the dropdown after click on item (frontend)
+- Close the dropdown after click on item (frontend)
+- Close the dropdown after click on item (frontend)
+- Fix height / width for the products hunt button (website)
+- Ensure scripts are executable (self-hosted)
+- Fix(ci)
+- Removed domain url to app_url and api_url (they can be different) (api)
+- Edit info! for dbg! (auth.rs) + remove useless .clone (api)
+- Return HTTP error (api)
+- Add expiration for the email verification token (api)
+- Unsupported DateTime in biscuit auth. Replaced by SystemTime (api)
+- Removed get method in route /api/v1/auth/verify-email (api)
+- Convert Option<String> to String because he is useless (api)
+- Add AND email_verified_at IS NULL in UPDATE iam.user (api)
+- Little modification for adding dbg when token verification failed (authorize_email_verification) (api)
+- Remove useless impl error (api)
+- Rename some part of verify_email struct and argument (api)
+- Split reset password process to begin-reset-password / reset-password (api)
+- Fix logo_url variable (api)
+- Remove unused biscuit token from ChangePasswordPost body (already get by ReqData<Biscuit>) (api)
+- Change message when email sending failed. More user-friendly (need to check with @dsferruzza if we remove the detail to user and only warn and alert our team ??) (api)
+- Replace default logo url (api)
+- Some fixes (api)
+- Remove useless setTimeout (api)
+- Display error and not error notification (frontend)
+- Edit verified message successfully / remove unused codes (frontend)
+- Remove useless verification when user logged in (already worked in iam.ts) (frontend)
+- Add unauthenticated post to verifyEmail function (frontend)
+- Some fix (frontend)
+- Some fix + start implement for reset password frontend (frontend)
+- Another implementation for resetting password. Not finished (frontend)
+- David's comment fix (frontend)
+- Remove hook0button disable when clicked (frontend)
+- Undo some modification (frontend)
+- Miss linter (frontend)
+- Add eye + pen fontawesome icon (frontend)
+- Some fixe about biscuit auth attenuation (frontend)
+- Fix some types (frontend)
+- Fix some types (frontend)
+- Some fixes but not finished (frontend)
+- David's comment fixes (frontend)
+- Prepare to remove application_secret__token from events (api)
+- Fix organization's viewers can't see right now the services tokens and api keys (api)
+- Fix organization's viewers can't see right now the services tokens and api keys (api)
+- Linter format (frontend)
+- Some fixes (frontend)
+- David's thread fix (api/frontend)
+- Prepare sqlx modified request (migration)
+- David comment's fix (api)
+- Sqlx prepare (api)
+- Add config to enable or not keycloack migration and service tokens (api)
+- David comment's fix (api)
+- Pipeline fix (api)
+- Pipeline fix (api)
+- Remove useless export (frontend)
+- David comment's fix (frontend)
+- Rename 256x256.svg to logo.svg (frontend)
+- Add width to svg logo (frontend)
+- Some fixes (api)
+- Sqlx prepare fix (api)
+- Reject revoked application secrets (api)
+- Automate output-worker deploy to clever (ci)
+- Fix links (frontend)
+- Unverified users config (api)
+- Replace deprecated reqwest feature
+- Remove useless broken code (frontend)
+- Ensure Docker Compose works with IAM v2 (self-hosted)
+- Docker deployment
+- Weird routing behavior when 'application-secret-compatibility' feature is disabled (api)
+- Frontend sending 404 responses on paths other than / (docker)
+- Fix(ci)
+- Remove wrong ignores
+- EditorConfig
+- Unhandled event type errors (api)
+- Fix typescript build error (frontend)
+- Return a 404 response when organization does not exist (api)
+- Better sub-processors (website)
+- Better DPA (website)
+- DPA and subprocessors (website)
+- Missing illustration (website)
+- Import from Keyclaok when an organization was removed (api)
+- Sidebar opening on mobile (frontend)
+- Remove outdated welcome message (frontend)
+- Sidebar disappearing on desktop (frontend)
+- Display an error when constraint (user__organization_pkey) violated
+- Remove useless warning
+- Fixes FEATURES build arg scope for API Dockerfile (docker)
+- Concurrent builds with cache (docker)
+- Update the RUST_VERSION argument to 1.83.0 (last stable rust docker image)
+- #57
+- Cargo fmt
+- Password display on validation error #57
+- Remove console.log (#56)
+- Sidebar doesn't open on mobile (#8) (frontend)
+- Password min length while login (api)
+- Response -> res (k6)
+- Fixes (k6)
+- Fix
+- Delete application when tests are over or something fails (but provide a config to avoid deleting anything when test fails)
+- Metadata Rows Not Handling Multiple Entries in Subscription Configuration (#50) (frontend)
+- Cargo fmt (api)
+- Fix(output-worker)
+- Cargo fmt (#61) (api)
+- Cargo sqlx prepare (#61) (api)
+- Fix(ci)
+- Default quota value (api)
+- Subscriptions and event types quotas (api)
+- Subscriptions and event types quotas (api)
+- Enable Cargo features during API build in Docker Compose file
+- Make ci fail on k6 check's fail (ci)
+- Add setup part & an env config option (ci)
+- Fix(ci)
+- Fix(ci)
+- Configuration (e2e-tests)
+- Do not delete application too early (e2e-tests)
+- Add a scroll possibility for the users on OrganizationAndApplicationSelector.vue (#65) (frontend)
+- Never delete unreachable organizations that have a plan (api)
+- Some david's thread fixes (frontend)
+- David comment's fix (frontend)
+- Fix ci (frontend)
+- Update image source path to use absolute path for better accessibility (TutorialIntroduction.vue)
+- Update subtitle text to specify Hook0 for clarity and branding consistency (TutorialIntroduction.vue)
+- Update error messages to provide a more user-friendly response and maintain consistency across components (tutorial)
+- Navbar UX/UI fix (frontend)
+- Cargo sqlx prepare (api)
+- Remove deleted event_type & subscription from orga & app statistics (api)
+- Cargo sqlx prepare (api)
+- Error when organization does not have any application (api)
+- Display tutorial after email verification (frontend)
+- Warning (frontend)
+- Build (frontend)
+- Remove trailing slash in Matomo URL (api)
+- Component fix (frontend)
+- Do not allow current user to change his role (api)
+- Private workers (output-worker)
+- Add the real default quota (api)
+- Remove index drop (already droped by drop table) (api)
+- Change the json format check (been changed in the api) (e2e)
+- Improve content (website)
+- Update Cargo.lock (clients)
+- Pipeline fix (clients)
+- Fix ci (clients.typescript)
+- Fix ci (clients.typescript)
+- Remove dist folder from linter (clients.typescript)
+- Remove a useless export (clients/rust)
+- Fix email link (api)
+- IPv6 support (api)
+- Put debug message under a flag (clients/typescript)
+- Signup (website)
+- Fix openapi typ (api)
+- Internal server error (api)
+- Package-lock.json (website)
+- Allow multiple labels in event test UI (frontend)
+- Better validate custom headers in subscriptions (api)
+- Testimonials (website)
+- Avoid optimizer to remove some contents (website)
+- Timeout error message (frontend)
+- Computation of organization consumption (api)
+- Fix(doc)
+- Do not block organization deletion that contain soft-deleted applications (api)
+- Missing OpenAPI documentation for paginated responses (api)
+- Invalid OpenAPI documentation for paginated responses (api)
+- Avoid crashing if header names/values are invalid (output-worker)
+- Do regular housekeeping on rate limiters (api)
+- Regen sqlx offline data
+- Index name (api)
+- Removing dangling responses (api)
+- Send heartbeat in pulsar mode even if worker is idle (output-worker)
+- Regen sqlx offline data
+- Replaying events with a pulsar worker (api)
+- Add protoc and protobuf mount to Docker build (api,output-worker)
+- Timeout for refreshing materialized views (api)
+- Prevent pg workers to pick up request attempts from disabled or deleted subscriptions (output-worker)
+- Object storage cleanup with deleted applications (api)
+- Use housekeeping DB pool to refresh materialized views (api)
+- Cargo fmt (api)
+- Delete a sql request (api)
+- Format main.js (ci)
+- Add missing sqlx files (ci)
+- Fix after review (test)
+- Remove unseless test (test)
+- Linting (test)
+- Typo in metric name (output-worker)
+- Accept semver tags with suffixes (beta, rc, test, etc.) (release)
+- Restore x86_64 target for native builds (release)
+- Add 3h timeout for build jobs (release)
+
+### Other
+
+- Add an EditorConfig file
+- Update SQLx
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Build using Rust 1.49.0
+- Update dependencies
+- Rename crates
+- Do not sync Clever CLI config file
+- Update dependencies
+- Update dependencies
+- Build using Rust 1.50.0
+- Add TODO
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- List necessary frontend env var
+- Update dependencies
+- Update dependencies
+- Downgrade before release (frontend)
+- Chore(frontend)
+- Chore(frontend)
+- Chore(ignore)
+- Remove old schema
+- Migrate to actix-web 4
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Add missing env var
+- Update dependencies
+- Update dependencies
+- Update to Rust 2021 edition
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update caniuse
+- Update dependencies
+- Update to Tailwind CSS 3
+- Update front dependencies & improve linter support
+- Regenerate types from backend
+- Fix warnings
+- Enable more Typescript lints & fix corresponding violations
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update actix-governor
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Ignore SQLx-produced files
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Remove useless files
+- Update dependencies
+- Update dependencies
+- Update dependencies & use Node.js 18
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies (frontend)
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Trigger recompilation when a new migration is added
+- Improve debug compile time
+- Update dependencies
+- Add Prettier & update frontend types (frontend)
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update deps (website)
+- Update dependencies
+- Add a comment on a table
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Move adr to root folder
+- Update dependencies
+- Remove support of Sentry profiling
+- Update dependencies
+- Update dependencies
+- Remove useless folder
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update a subscription link (website)
+- Update dependencies (website)
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies (keycloak-theme)
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Add editorconfig and clevercloud deploy (ci)
+- Add logo (frontend)
+- Remove dead code (api)
+- Remove useless files (frontend)
+- Update dependencies
+- Remove Keycloak JS (frontend)
+- Upgrade to node v20 (frontend)
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Remove keycloak deps (docker)
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Minor improvements (e2e-tests)
+- Update dependencies
+- Update dependencies
+- Update dependencies (e2e-tests)
+- Update dependencies
+- Update dependencies
+- Remove useless comments (api)
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Enable only necessary features for Hook0 client (api)
+- Prepare for publish (clients/typescript)
+- Bump (clients/typescript)
+- Mention the license in README.md (clients/rust)
+- Mention the license in README.md (clients/typescript)
+- Update the license on manifest (clients/rust)
+- Update the license on manifest (clients/typescript)
+- Update dependencies
+- Update to Rust Edition 2024
+- Update dependencies
+- Update to k6 0.57 (e2e-tests)
+- Update dependencies & improve mailer
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies (website)
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Remove migrate-users-from-keycloak from default features (api)
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies (website)
+- Update dependencies
+- Improve logging (output-worker)
+- Add log messages (api)
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies & fix Dockerfiles
+- Update dependencies
+- Update dependencies
+- Change level of some log messages (output-worker)
+- Update dependencies
+- Remove automatic reindexing from housekeeping tasks (api)
+- Update dependencies
+
+### Performance
+
+- Add an index on event table (api)
+- Add an index in request attempt table (api)
+- Try to reduce stress on the database when output worker is idle (output-worker)
+- Add indexes to improve performances of picking request attempts (output-worker)
+- Add index to improve performance of picking request attempts (output-worker)
+- Use jemalloc (api)
+- Disable authorizer context log message by default (api)
+- Avoid re-deriving Biscuit public key on each request (api)
+- Add indexes (api)
+- Allow to avoid reindexing big tables (api)
+- Add various indexes (api)
+- Change type of request attempt created_at index
+- Improve a slow query (api)
+- Avoid manually reindexing tables (api)
+- Reduce scope of events per day materialized view (api)
+- Add application ID to request_attempt table
+- Improve request attempts listing endpoint (api)
+
+### Build
+
+- Use SQLx in offline mode
+- Use PG 13
+- Add a script to make a dev build (website)
+- Remove deprecated plugin (frontend)
+- Fix dev mode (frontend)
+- Fix warning (api)
+- Add ARG for API endpoint in frontend Dockerfile and update dependencies
+
+### Ci
+
+- Check output-worker
+- Do not build/check the full workspace
+- Check every Rust programs
+- Build using Rust 1.48.0
+- Add comments
+- Disable a Clippy warning until paperclip fixes its macros
+- Check that SQLx offline is synced
+- Build using Rust 1.52.0
+- Build using Rust 1.51.0
+- Refactor PG client installation
+- Build using Rust 1.52.1
+- Fix db schema init
+- Test frontend build
+- Build using Rust 1.54.0
+- Remove psql
+- Remove psql
+- Improve
+- Build using Rust 1.57
+- Fix website release job
+- Improve Rust build
+- Build using Rust 1.58
+- Build using Rust 1.59
+- Try to fix loophole in conditional build
+- Build using Rust 1.60
+- Build using Rust 1.62
+- Build using Rust 1.63
+- Build using Rust 1.65
+- Run Rust job when client changes
+- Test rust client before API
+- Split rust job
+- Temporarily disable keycloak-theme jobs
+- Update OSV-Scanner
+- Update OSV-Scanner
+- Fix watched paths
+- Fix jobs restricted to master branch
+- Use Rust 1.74
+- Check frontend & avoid downloading previous artifacts if not necessary
+- Fix a path
+- Update Clever Cloud Pipeline component
+- Update deployment component
+- Improve semver check (client/rust)
+- Run e2e-test's
+- Run e2e-test's
+- Add missing variable (e2e-tests)
+- Remove some warnings (frontend)
+- Fix cargo-semver-checks (clients/rust)
+- Update readme CLI
+- Fix change rule
+- Update to PG 17
+- Fix deploy (website)
+- Fix GLIBC error
+- Fix publishing of API documentation (api)
+
+### Refacto
+
+- Update landing page and website (website)
+
+### Test
+
+- HTTP target deserialization (api)
+- Add current datetime in created application names
+- Add tests for v1 signature verification (clients/rust)
+- Add test for #85 (e2e)
+- Fix formating error (fix)
+
+### Website
+
+- Feat add oss friends & code of conduct
+- Maj Pricing
+
+[2.0.1]: https://gitlab.com/hook0/hook0/-/compare/v0.0.1-test...v2.0.1
+[0.0.1-test]: https://gitlab.com/hook0/hook0/-/compare/v1.0.0...v0.0.1-test
+
