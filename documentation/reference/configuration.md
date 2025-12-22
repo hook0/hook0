@@ -20,7 +20,9 @@ hook0-output-worker --help
 This documentation may not cover all options or reflect recent changes.
 :::
 
-## Web Server
+## API
+
+### Web Server
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
@@ -30,7 +32,7 @@ This documentation may not cover all options or reflect recent changes.
 | `IP` | IP address on which to start the HTTP server | `127.0.0.1` |  |
 | `PORT` | Port on which to start the HTTP server | `8080` |  |
 
-## Reverse Proxy
+### Reverse Proxy
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
@@ -38,7 +40,7 @@ This documentation may not cover all options or reflect recent changes.
 | `CC_REVERSE_PROXY_IPS` | A comma-separated list of trusted IP addresses (e.g. `192.168.1.1`) or CIDRs (e.g. `192.168.0.0/16`) that are allowed to set "X-Forwarded-For" and "Forwarded" headers | - |  |
 | `REVERSE_PROXY_IPS` | A comma-separated list of trusted IP addresses (e.g. `192.168.1.1`) or CIDRs (e.g. `192.168.0.0/16`) that are allowed to set "X-Forwarded-For" and "Forwarded" headers | - |  |
 
-## Database
+### Database
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
@@ -47,7 +49,7 @@ This documentation may not cover all options or reflect recent changes.
 | `MAX_DB_CONNECTIONS` | Maximum number of connections to database | `5` |  |
 | `NO_AUTO_DB_MIGRATION` | Disable automatic database migration | - |  |
 
-## Auth
+### Auth
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
@@ -58,7 +60,7 @@ This documentation may not cover all options or reflect recent changes.
 | `MAX_AUTHORIZATION_TIME_IN_MS` | Maximum duration (in millisecond) that can be spent running Biscuit's authorizer | `10` |  |
 | `PASSWORD_MINIMUM_LENGTH` | Minimum length of user passwords. This is checked when a user registers | `12` |  |
 
-## Email
+### Email
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
@@ -67,7 +69,7 @@ This documentation may not cover all options or reflect recent changes.
 | `SMTP_CONNECTION_URL` 🔒 | Connection URL to SMTP server; for example: `smtp://localhost:1025`, `smtps://user:password@provider.com:465` (SMTP over TLS) or `smtp://user:password@provider.com:465?tls=required` (SMTP with STARTTLS) | - | ✓ |
 | `SMTP_TIMEOUT_IN_S` | Duration (in second) to use as timeout when sending emails to the SMTP server | `5` |  |
 
-## Frontend
+### Frontend
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
@@ -84,7 +86,7 @@ This documentation may not cover all options or reflect recent changes.
 | `WEBAPP_PATH` | Path to the directory containing the web app to serve | `../frontend/dist/` |  |
 | `WEBSITE_URL` | Website URL | `https://hook0.com` |  |
 
-## Rate Limiting
+### Rate Limiting
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
@@ -100,7 +102,7 @@ This documentation may not cover all options or reflect recent changes.
 | `DISABLE_API_RATE_LIMITING_IP` | Set to true to disable per-IP API rate limiting | - |  |
 | `DISABLE_API_RATE_LIMITING_TOKEN` | Set to true to disable per-token API rate limiting | - |  |
 
-## Quotas
+### Quotas
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
@@ -114,7 +116,7 @@ This documentation may not cover all options or reflect recent changes.
 | `QUOTA_GLOBAL_SUBSCRIPTIONS_PER_APPLICATION_LIMIT` | Default limit of subscriptions per application (can be overriden by a plan) | `10` |  |
 | `QUOTA_NOTIFICATION_EVENTS_PER_DAY_THRESHOLD` | Default threshold (in %) of events per day at which to send a warning notification | `80` |  |
 
-## Housekeeping
+### Housekeeping
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
@@ -135,7 +137,7 @@ This documentation may not cover all options or reflect recent changes.
 | `UNVERIFIED_USERS_CLEANUP_PERIOD_IN_S` | Duration (in second) to wait between unverified users cleanups | `3600` |  |
 | `UNVERIFIED_USERS_CLEANUP_REPORT_AND_DELETE` | If true, unverified users will be reported and cleaned up; if false (default), they will only be reported | `false` |  |
 
-## Monitoring
+### Monitoring
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
@@ -147,7 +149,7 @@ This documentation may not cover all options or reflect recent changes.
 | `SENTRY_DSN` | Optional Sentry DSN for error reporting | - |  |
 | `SENTRY_TRACES_SAMPLE_RATE` | Optional sample rate for tracing transactions with Sentry (between 0.0 and 1.0) | - |  |
 
-## Hook0 Client
+### Hook0 Client
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
@@ -156,7 +158,7 @@ This documentation may not cover all options or reflect recent changes.
 | `HOOK0_CLIENT_TOKEN` | Authentifcation token valid for a Hook0 application that will receive events from this Hook0 instance | - |  |
 | `HOOK0_CLIENT_UPSERTS_RETRIES` | Number of allowed retries when upserting event types to the linked Hook0 application fails | `10` |  |
 
-## Object Storage
+### Object Storage
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
@@ -169,7 +171,7 @@ This documentation may not cover all options or reflect recent changes.
 | `STORE_EVENT_PAYLOADS_IN_OBJECT_STORAGE` | If true, new event payloads will be stored in object storage instead of database | `false` |  |
 | `STORE_EVENT_PAYLOADS_IN_OBJECT_STORAGE_ONLY_FOR` | A comma-separated list of applications ID whose event payloads should be stored in object storage; if empty (default), all event payloads will be stored in object storage regardless of application ID | - |  |
 
-## Pulsar
+### Pulsar
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
@@ -178,11 +180,49 @@ This documentation may not cover all options or reflect recent changes.
 | `PULSAR_TENANT` | Pulsar tenant | - |  |
 | `PULSAR_TOKEN` 🔒 | Pulsar token | - |  |
 
-## Deprecated
+### Deprecated
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
 | `ENABLE_APPLICATION_SECRET_COMPATIBILITY` | Enable application secret compatibility mode | `true` |  |
+
+## Output Worker
+
+The output-worker is a separate binary with its own configuration. Run `hook0-output-worker --help` for the authoritative reference.
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `SENTRY_DSN` | Optional Sentry DSN for error reporting | - |  |
+| `OTLP_METRICS_ENDPOINT` | Optional OTLP endpoint that will receive metrics | - |  |
+| `OTLP_TRACES_ENDPOINT` | Optional OTLP endpoint that will receive traces | - |  |
+| `OTLP_AUTHORIZATION` 🔒 | Optional value for OTLP `Authorization` header (for example: `Bearer mytoken`) | - |  |
+| `DATABASE_URL` 🔒 | Database URL (with credentials) | - | ✓ |
+| `MAX_DB_CONNECTIONS` | Maximum number of connections to database (for a worker with pg queue type, it should be equal to CONCURRENT) | `5` |  |
+| `PULSAR_BINARY_URL` | Pulsar binary URL | - |  |
+| `PULSAR_TOKEN` 🔒 | Pulsar token | - |  |
+| `PULSAR_TENANT` | Pulsar tenant | - |  |
+| `PULSAR_NAMESPACE` | Pulsar namespace | - |  |
+| `OBJECT_STORAGE_HOST` | Host of the S3-like object storage (without https://) | - |  |
+| `OBJECT_STORAGE_FORCE_HTTP_SCHEME` | Force endpoint scheme to be HTTP (by default it is HTTPS) | `false` |  |
+| `OBJECT_STORAGE_KEY_ID` | Key ID of the S3-like object storage | - |  |
+| `OBJECT_STORAGE_KEY_SECRET` 🔒 | Key secret of the S3-like object storage | - |  |
+| `OBJECT_STORAGE_MAX_ATTEMPTS` | Maximum number of attempts for object storage operations | `3` |  |
+| `OBJECT_STORAGE_BUCKET_NAME` | Bucket name of the S3-like object storage | - |  |
+| `STORE_RESPONSE_BODY_AND_HEADERS_IN_OBJECT_STORAGE` | If true, new response bodies and headers will be stored in object storage instead of database | `false` |  |
+| `STORE_RESPONSE_BODY_AND_HEADERS_IN_OBJECT_STORAGE_ONLY_FOR` | A comma-separated list of applications ID whose response bodies and headers should be stored in object storage | - |  |
+| `WORKER_NAME` | Worker name (as defined in the infrastructure.worker table) | - | ✓ |
+| `WORKER_VERSION` | Worker version (if empty, will use version from Cargo.toml) | - |  |
+| `CONCURRENT` | Number of request attempts to handle concurrently | `1` |  |
+| `MAX_FAST_RETRIES` | Maximum number of fast retries (before doing slow retries) | `30` |  |
+| `MAX_SLOW_RETRIES` | Maximum number of slow retries (before giving up) | `30` |  |
+| `MONITORING_HEARTBEAT_URL` | Heartbeat URL that should be called regularly | - |  |
+| `MONITORING_HEARTBEAT_MIN_PERIOD_IN_S` | Minimal duration (in second) to wait between sending two heartbeats | `60` |  |
+| `DISABLE_TARGET_IP_CHECK` | If set to false (default), webhooks targeting non-globally-reachable IPs will fail | `false` |  |
+| `CONNECT_TIMEOUT` | Timeout for establishing a connection to the target | `5s` |  |
+| `TIMEOUT` | Timeout for obtaining a HTTP response from the target, including connect phase | `15s` |  |
+| `SIGNATURE_HEADER_NAME` | Name of the header containing webhook's signature | `X-Hook0-Signature` |  |
+| `ENABLED_SIGNATURE_VERSIONS` | A comma-separated list of enabled signature versions | `v1` |  |
+| `LOAD_WAITING_REQUEST_ATTEMPT_INTO_PULSAR` | If true, will load waiting request attempts from DB into Pulsar before starting | `false` |  |
 
 ## Notes
 

@@ -88,12 +88,14 @@ hook0-output-worker --help
 This documentation may not cover all options or reflect recent changes.
 :::
 
+## API
+
 `;
 
   for (const group of sortedGroups) {
     const vars = grouped[group].sort((a, b) => a.env_var.localeCompare(b.env_var));
 
-    md += `## ${group}\n\n`;
+    md += `### ${group}\n\n`;
     md += `| Variable | Description | Default | Required |\n`;
     md += `|----------|-------------|---------|----------|\n`;
 
@@ -108,6 +110,47 @@ This documentation may not cover all options or reflect recent changes.
 
     md += '\n';
   }
+
+  // Add output-worker section (not auto-generated)
+  md += `## Output Worker
+
+The output-worker is a separate binary with its own configuration. Run \`hook0-output-worker --help\` for the authoritative reference.
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| \`SENTRY_DSN\` | Optional Sentry DSN for error reporting | - |  |
+| \`OTLP_METRICS_ENDPOINT\` | Optional OTLP endpoint that will receive metrics | - |  |
+| \`OTLP_TRACES_ENDPOINT\` | Optional OTLP endpoint that will receive traces | - |  |
+| \`OTLP_AUTHORIZATION\` 🔒 | Optional value for OTLP \`Authorization\` header (for example: \`Bearer mytoken\`) | - |  |
+| \`DATABASE_URL\` 🔒 | Database URL (with credentials) | - | ✓ |
+| \`MAX_DB_CONNECTIONS\` | Maximum number of connections to database (for a worker with pg queue type, it should be equal to CONCURRENT) | \`5\` |  |
+| \`PULSAR_BINARY_URL\` | Pulsar binary URL | - |  |
+| \`PULSAR_TOKEN\` 🔒 | Pulsar token | - |  |
+| \`PULSAR_TENANT\` | Pulsar tenant | - |  |
+| \`PULSAR_NAMESPACE\` | Pulsar namespace | - |  |
+| \`OBJECT_STORAGE_HOST\` | Host of the S3-like object storage (without https://) | - |  |
+| \`OBJECT_STORAGE_FORCE_HTTP_SCHEME\` | Force endpoint scheme to be HTTP (by default it is HTTPS) | \`false\` |  |
+| \`OBJECT_STORAGE_KEY_ID\` | Key ID of the S3-like object storage | - |  |
+| \`OBJECT_STORAGE_KEY_SECRET\` 🔒 | Key secret of the S3-like object storage | - |  |
+| \`OBJECT_STORAGE_MAX_ATTEMPTS\` | Maximum number of attempts for object storage operations | \`3\` |  |
+| \`OBJECT_STORAGE_BUCKET_NAME\` | Bucket name of the S3-like object storage | - |  |
+| \`STORE_RESPONSE_BODY_AND_HEADERS_IN_OBJECT_STORAGE\` | If true, new response bodies and headers will be stored in object storage instead of database | \`false\` |  |
+| \`STORE_RESPONSE_BODY_AND_HEADERS_IN_OBJECT_STORAGE_ONLY_FOR\` | A comma-separated list of applications ID whose response bodies and headers should be stored in object storage | - |  |
+| \`WORKER_NAME\` | Worker name (as defined in the infrastructure.worker table) | - | ✓ |
+| \`WORKER_VERSION\` | Worker version (if empty, will use version from Cargo.toml) | - |  |
+| \`CONCURRENT\` | Number of request attempts to handle concurrently | \`1\` |  |
+| \`MAX_FAST_RETRIES\` | Maximum number of fast retries (before doing slow retries) | \`30\` |  |
+| \`MAX_SLOW_RETRIES\` | Maximum number of slow retries (before giving up) | \`30\` |  |
+| \`MONITORING_HEARTBEAT_URL\` | Heartbeat URL that should be called regularly | - |  |
+| \`MONITORING_HEARTBEAT_MIN_PERIOD_IN_S\` | Minimal duration (in second) to wait between sending two heartbeats | \`60\` |  |
+| \`DISABLE_TARGET_IP_CHECK\` | If set to false (default), webhooks targeting non-globally-reachable IPs will fail | \`false\` |  |
+| \`CONNECT_TIMEOUT\` | Timeout for establishing a connection to the target | \`5s\` |  |
+| \`TIMEOUT\` | Timeout for obtaining a HTTP response from the target, including connect phase | \`15s\` |  |
+| \`SIGNATURE_HEADER_NAME\` | Name of the header containing webhook's signature | \`X-Hook0-Signature\` |  |
+| \`ENABLED_SIGNATURE_VERSIONS\` | A comma-separated list of enabled signature versions | \`v1\` |  |
+| \`LOAD_WAITING_REQUEST_ATTEMPT_INTO_PULSAR\` | If true, will load waiting request attempts from DB into Pulsar before starting | \`false\` |  |
+
+`;
 
   md += `## Notes
 
