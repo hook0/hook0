@@ -12,6 +12,7 @@ stages:
   - build
   - test
   - release
+  - trigger-release
   - dast
   - documentation
 

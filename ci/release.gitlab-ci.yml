@@ -1,13 +1,68 @@
 .release-rules:
   rules:
-    # Matches semver tags: v1.0.0, v2.1.3-beta, v1.0.0-rc.1, etc.
-    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+.*$/
+    # Matches strict semver tags: v1.0.0, v2.1.3 (no suffixes)
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+
+# --- Version Validation ---
+
+release.verify-versions:
+  extends: .release-rules
+  stage: build
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache grep sed
+  script:
+    - |
+      # Extract version from git tag (remove 'v' prefix)
+      TAG_VERSION=$(echo "$CI_COMMIT_TAG" | sed 's/^v//')
+      echo "Tag version: $TAG_VERSION"
+
+      # Get version from api/Cargo.toml
+      API_VERSION=$(grep '^version = ' api/Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+      echo "API version: $API_VERSION"
+
+      # Get version from output-worker/Cargo.toml
+      WORKER_VERSION=$(grep '^version = ' output-worker/Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+      echo "Worker version: $WORKER_VERSION"
+
+      # Get version from frontend/package.json
+      FRONTEND_VERSION=$(grep '"version"' frontend/package.json | head -1 | sed 's/.*"version": "\([^"]*\)".*/\1/')
+      echo "Frontend version: $FRONTEND_VERSION"
+
+      # Check all versions match
+      ERRORS=""
+      if [ "$TAG_VERSION" != "$API_VERSION" ]; then
+        ERRORS="${ERRORS}API version ($API_VERSION) does not match tag ($TAG_VERSION)\n"
+      fi
+      if [ "$TAG_VERSION" != "$WORKER_VERSION" ]; then
+        ERRORS="${ERRORS}Worker version ($WORKER_VERSION) does not match tag ($TAG_VERSION)\n"
+      fi
+      if [ "$TAG_VERSION" != "$FRONTEND_VERSION" ]; then
+        ERRORS="${ERRORS}Frontend version ($FRONTEND_VERSION) does not match tag ($TAG_VERSION)\n"
+      fi
+
+      if [ -n "$ERRORS" ]; then
+        echo "=========================================="
+        echo "ERROR: Version mismatch detected!"
+        echo "=========================================="
+        printf "$ERRORS"
+        echo ""
+        echo "All components must have the same version as the git tag."
+        echo "Run 'cargo release' to bump versions consistently."
+        exit 1
+      fi
+
+      echo "=========================================="
+      echo "Version check passed: all components at $TAG_VERSION"
+      echo "=========================================="
 
 .build-binary:
   extends: .release-rules
   stage: build
-  image: rust:latest
+  image: rust:$RUST_VERSION
   timeout: 3h
+  needs:
+    - job: release.verify-versions
   variables:
     SQLX_OFFLINE: "true"
   before_script:
@@ -20,7 +75,7 @@
 
 # --- API Builds ---
 
-release.build-api-x86_64:
+release.build-api-amd64:
   extends: .build-binary
   variables:
     TARGET: x86_64-unknown-linux-gnu
@@ -28,9 +83,9 @@ release.build-api-x86_64:
   script:
     - mkdir -p artifacts
     - cargo build --release --package hook0-api --target $TARGET
-    - cp target/$TARGET/release/hook0-api artifacts/hook0-api-x86_64-linux
+    - cp target/$TARGET/release/hook0-api artifacts/hook0-api-linux-amd64
 
-release.build-api-aarch64:
+release.build-api-arm64:
   extends: .build-binary
   variables:
     TARGET: aarch64-unknown-linux-gnu
@@ -39,22 +94,11 @@ release.build-api-aarch64:
     - mkdir -p artifacts
     - export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
     - cargo build --release --package hook0-api --target $TARGET
-    - cp target/$TARGET/release/hook0-api artifacts/hook0-api-aarch64-linux
-
-release.build-api-armv7:
-  extends: .build-binary
-  variables:
-    TARGET: armv7-unknown-linux-gnueabihf
-    CROSS_DEPS: "gcc-arm-linux-gnueabihf libc6-dev-armhf-cross"
-  script:
-    - mkdir -p artifacts
-    - export CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER=arm-linux-gnueabihf-gcc
-    - cargo build --release --package hook0-api --target $TARGET
-    - cp target/$TARGET/release/hook0-api artifacts/hook0-api-armv7-linux
+    - cp target/$TARGET/release/hook0-api artifacts/hook0-api-linux-arm64
 
 # --- Worker Builds ---
 
-release.build-worker-x86_64:
+release.build-worker-amd64:
   extends: .build-binary
   variables:
     TARGET: x86_64-unknown-linux-gnu
@@ -62,9 +106,9 @@ release.build-worker-x86_64:
   script:
     - mkdir -p artifacts
     - cargo build --release --package hook0-output-worker --target $TARGET
-    - cp target/$TARGET/release/hook0-output-worker artifacts/hook0-output-worker-x86_64-linux
+    - cp target/$TARGET/release/hook0-output-worker artifacts/hook0-output-worker-linux-amd64
 
-release.build-worker-aarch64:
+release.build-worker-arm64:
   extends: .build-binary
   variables:
     TARGET: aarch64-unknown-linux-gnu
@@ -73,18 +117,7 @@ release.build-worker-aarch64:
     - mkdir -p artifacts
     - export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
     - cargo build --release --package hook0-output-worker --target $TARGET
-    - cp target/$TARGET/release/hook0-output-worker artifacts/hook0-output-worker-aarch64-linux
-
-release.build-worker-armv7:
-  extends: .build-binary
-  variables:
-    TARGET: armv7-unknown-linux-gnueabihf
-    CROSS_DEPS: "gcc-arm-linux-gnueabihf libc6-dev-armhf-cross"
-  script:
-    - mkdir -p artifacts
-    - export CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER=arm-linux-gnueabihf-gcc
-    - cargo build --release --package hook0-output-worker --target $TARGET
-    - cp target/$TARGET/release/hook0-output-worker artifacts/hook0-output-worker-armv7-linux
+    - cp target/$TARGET/release/hook0-output-worker artifacts/hook0-output-worker-linux-arm64
 
 # --- Frontend Build ---
 
@@ -92,6 +125,8 @@ release.build-frontend:
   extends: .release-rules
   stage: build
   image: node:20-alpine
+  needs:
+    - job: release.verify-versions
   script:
     - cd frontend
     - npm ci
@@ -133,13 +168,13 @@ release.containers:
   services:
     - docker:dind
   needs:
-    - job: release.build-api-x86_64
+    - job: release.build-api-amd64
       artifacts: true
-    - job: release.build-api-aarch64
+    - job: release.build-api-arm64
       artifacts: true
-    - job: release.build-worker-x86_64
+    - job: release.build-worker-amd64
       artifacts: true
-    - job: release.build-worker-aarch64
+    - job: release.build-worker-arm64
       artifacts: true
   variables:
     DOCKER_HOST: tcp://docker:2375
@@ -151,16 +186,16 @@ release.containers:
     - docker login ghcr.io -u "$GITHUB_USERNAME" -p "$GITHUB_TOKEN"
     - docker buildx create --use --name multiarch --driver docker-container
   script:
-    # Prepare build context for API (rename to match TARGETARCH logic)
+    # Prepare build context for API
     - mkdir -p build-context/api
-    - cp artifacts/hook0-api-x86_64-linux build-context/api/hook0-api-amd64-linux
-    - cp artifacts/hook0-api-aarch64-linux build-context/api/hook0-api-arm64-linux
+    - cp artifacts/hook0-api-linux-amd64 build-context/api/
+    - cp artifacts/hook0-api-linux-arm64 build-context/api/
     - cp api/Dockerfile.release build-context/api/Dockerfile
 
     # Prepare build context for Worker
     - mkdir -p build-context/worker
-    - cp artifacts/hook0-output-worker-x86_64-linux build-context/worker/hook0-output-worker-amd64-linux
-    - cp artifacts/hook0-output-worker-aarch64-linux build-context/worker/hook0-output-worker-arm64-linux
+    - cp artifacts/hook0-output-worker-linux-amd64 build-context/worker/
+    - cp artifacts/hook0-output-worker-linux-arm64 build-context/worker/
     - cp output-worker/Dockerfile.release build-context/worker/Dockerfile
 
     # Build and push API
@@ -187,73 +222,7 @@ release.containers:
         --push \
         build-context/worker
 
-# --- Releases ---
-
-release.gitlab:
-  extends: .release-rules
-  stage: release
-  image: registry.gitlab.com/gitlab-org/release-cli:latest
-  needs:
-    - job: release.extract-notes
-      artifacts: true
-    - job: release.build-api-x86_64
-      artifacts: true
-    - job: release.build-api-aarch64
-      artifacts: true
-    - job: release.build-api-armv7
-      artifacts: true
-    - job: release.build-worker-x86_64
-      artifacts: true
-    - job: release.build-worker-aarch64
-      artifacts: true
-    - job: release.build-worker-armv7
-      artifacts: true
-    - job: release.build-frontend
-      artifacts: true
-    - job: release.containers
-  script:
-    - echo "Creating GitLab release for $CI_COMMIT_TAG"
-  release:
-    tag_name: $CI_COMMIT_TAG
-    name: "Release $CI_COMMIT_TAG"
-    description: ./artifacts/RELEASE_NOTES.md
-    assets:
-      links:
-        # Binaries
-        - name: "hook0-api-x86_64-linux"
-          url: "${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_TAG}/raw/artifacts/hook0-api-x86_64-linux?job=release.build-api-x86_64"
-          link_type: package
-        - name: "hook0-api-aarch64-linux"
-          url: "${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_TAG}/raw/artifacts/hook0-api-aarch64-linux?job=release.build-api-aarch64"
-          link_type: package
-        - name: "hook0-api-armv7-linux"
-          url: "${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_TAG}/raw/artifacts/hook0-api-armv7-linux?job=release.build-api-armv7"
-          link_type: package
-        - name: "hook0-output-worker-x86_64-linux"
-          url: "${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_TAG}/raw/artifacts/hook0-output-worker-x86_64-linux?job=release.build-worker-x86_64"
-          link_type: package
-        - name: "hook0-output-worker-aarch64-linux"
-          url: "${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_TAG}/raw/artifacts/hook0-output-worker-aarch64-linux?job=release.build-worker-aarch64"
-          link_type: package
-        - name: "hook0-output-worker-armv7-linux"
-          url: "${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_TAG}/raw/artifacts/hook0-output-worker-armv7-linux?job=release.build-worker-armv7"
-          link_type: package
-        - name: "frontend-dist.tar.gz"
-          url: "${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_TAG}/raw/artifacts/frontend-dist.tar.gz?job=release.build-frontend"
-          link_type: package
-        # Docker images
-        - name: "Docker: rbaumier/hook0-api"
-          url: "https://hub.docker.com/r/rbaumier/hook0-api"
-          link_type: image
-        - name: "Docker: rbaumier/output-worker"
-          url: "https://hub.docker.com/r/rbaumier/output-worker"
-          link_type: image
-        - name: "GHCR: ghcr.io/rbaumier/hook0-api"
-          url: "https://ghcr.io/rbaumier/hook0-api"
-          link_type: image
-        - name: "GHCR: ghcr.io/rbaumier/output-worker"
-          url: "https://ghcr.io/rbaumier/output-worker"
-          link_type: image
+# --- Release ---
 
 release.github:
   extends: .release-rules
@@ -262,17 +231,13 @@ release.github:
   needs:
     - job: release.extract-notes
       artifacts: true
-    - job: release.build-api-x86_64
+    - job: release.build-api-amd64
       artifacts: true
-    - job: release.build-api-aarch64
+    - job: release.build-api-arm64
       artifacts: true
-    - job: release.build-api-armv7
+    - job: release.build-worker-amd64
       artifacts: true
-    - job: release.build-worker-x86_64
-      artifacts: true
-    - job: release.build-worker-aarch64
-      artifacts: true
-    - job: release.build-worker-armv7
+    - job: release.build-worker-arm64
       artifacts: true
     - job: release.build-frontend
       artifacts: true
@@ -289,10 +254,10 @@ release.github:
 
       ## Docker Images
 
-      | Image | DockerHub | GHCR |
-      |-------|-----------|------|
-      | API | `rbaumier/hook0-api:${VERSION}` | `ghcr.io/rbaumier/hook0-api:${VERSION}` |
-      | Worker | `rbaumier/output-worker:${VERSION}` | `ghcr.io/rbaumier/output-worker:${VERSION}` |
+      | Image | DockerHub | GHCR | GitLab Registry |
+      |-------|-----------|------|-----------------|
+      | API | `rbaumier/hook0-api:${VERSION}` | `ghcr.io/rbaumier/hook0-api:${VERSION}` | `registry.gitlab.com/hook0/hook0/hook0-api:${VERSION}` |
+      | Worker | `rbaumier/output-worker:${VERSION}` | `ghcr.io/rbaumier/output-worker:${VERSION}` | `registry.gitlab.com/hook0/hook0/output-worker:${VERSION}` |
 
       ```bash
       # Pull from DockerHub
@@ -302,8 +267,60 @@ release.github:
       # Pull from GHCR
       docker pull ghcr.io/rbaumier/hook0-api:${VERSION}
       docker pull ghcr.io/rbaumier/output-worker:${VERSION}
+
+      # Pull from GitLab Registry
+      docker pull registry.gitlab.com/hook0/hook0/hook0-api:${VERSION}
+      docker pull registry.gitlab.com/hook0/hook0/output-worker:${VERSION}
       ```
       EOF
     - sed -i "s/\${VERSION}/$VERSION/g" artifacts/RELEASE_NOTES.md
     - echo "=== Creating GitHub Release ==="
     - gh release create $CI_COMMIT_TAG --repo rbaumier/hook0-release-test --title "Release $CI_COMMIT_TAG" --notes-file artifacts/RELEASE_NOTES.md artifacts/*
+
+# =============================================================================
+# Manual Release Jobs (master branch only)
+# =============================================================================
+# These jobs allow triggering a release by clicking a button in GitLab CI.
+# Flow:
+# 1. Calculate new version based on bump type (patch/minor/major)
+# 2. Run pre-release.sh to update frontend/package.json and generate changelog
+# 3. Run cargo-release to bump Cargo.toml versions, commit, tag, and push
+# 4. The tag triggers the release pipeline (builds, containers, releases)
+# =============================================================================
+
+.release-trigger:
+  stage: trigger-release
+  image: rust:$RUST_VERSION
+  rules:
+    # TODO: uncomment for production
+    # - if: $CI_COMMIT_BRANCH == "master"
+    #   when: manual
+    - when: manual
+  before_script:
+    # Install tools
+    - apt-get update && apt-get install -y jq
+    - cargo install cargo-release --version 0.25.17 --locked
+    # Install git-cliff
+    - curl -L https://github.com/orhun/git-cliff/releases/download/v2.7.0/git-cliff-2.7.0-x86_64-unknown-linux-gnu.tar.gz | tar xz
+    - mv git-cliff-*/git-cliff /usr/local/bin/
+    # Configure git for push (requires CI variable GITLAB_RELEASE_TOKEN with write_repository scope)
+    - git config user.email "ci@hook0.com"
+    - git config user.name "Hook0 CI"
+    - git remote set-url origin "https://oauth2:${GITLAB_RELEASE_TOKEN}@gitlab.com/${CI_PROJECT_PATH}.git"
+    # Fetch all tags to ensure cargo-release can determine current version
+    - git fetch --tags
+
+release:patch:
+  extends: .release-trigger
+  script:
+    - ./ci/pre-release.sh patch
+
+release:minor:
+  extends: .release-trigger
+  script:
+    - ./ci/pre-release.sh minor
+
+release:major:
+  extends: .release-trigger
+  script:
+    - ./ci/pre-release.sh major
