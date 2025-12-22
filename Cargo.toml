@@ -23,8 +23,4 @@ opt-level = 3
 [workspace.metadata.release]
 # Only release api and output-worker (SDKs have their own versioning)
 release = false
-tag-name = "v{{version}}"
-tag-message = "Release {{version}}"
-pre-release-commit-message = "chore(release): bump version to {{version}}"
 publish = false
-push = true
