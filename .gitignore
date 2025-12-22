@@ -28,3 +28,8 @@ api/.clever.json
 .docusaurus
 .DS_Store
 docs
+
+# GitLab CI artifacts
+gl-*.json
+**/gl-*.json
+git-cliff-*/
