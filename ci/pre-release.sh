@@ -36,6 +36,10 @@ esac
 
 echo "=== Starting $BUMP_TYPE release: $CURRENT -> $NEW_VERSION ==="
 
+# Bump Cargo.toml versions, commit, tag, and push
+echo "Running cargo release..."
+cargo release "$BUMP_TYPE" --execute --no-confirm
+
 # Update frontend/package.json version
 echo "Updating frontend/package.json..."
 jq ".version = \"${NEW_VERSION}\"" frontend/package.json > frontend/package.json.tmp && mv frontend/package.json.tmp frontend/package.json
@@ -46,12 +50,10 @@ echo "Generating CHANGELOG.md..."
 git-cliff -o CHANGELOG.md --tag "v${NEW_VERSION}"
 echo "  ✓ CHANGELOG.md generated"
 
-# Stage the changed files so they're included in cargo-release commit
+# Amend the release commit with frontend and changelog
 git add frontend/package.json CHANGELOG.md
-
-# Bump Cargo.toml versions, commit, tag, and push
-# --allow-dirty is needed because we staged frontend/package.json and CHANGELOG.md above
-echo "Running cargo release..."
-cargo release "$BUMP_TYPE" --execute --no-confirm --allow-dirty
+git commit --amend --no-edit
+git tag -f "v${NEW_VERSION}"
+git push --force-with-lease origin HEAD "v${NEW_VERSION}"
 
 echo "=== Release $NEW_VERSION completed ==="
