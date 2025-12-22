@@ -36,9 +36,9 @@ esac
 
 echo "=== Starting $BUMP_TYPE release: $CURRENT -> $NEW_VERSION ==="
 
-# Bump Cargo.toml versions, commit, tag, and push
-echo "Running cargo release..."
-cargo release "$BUMP_TYPE" --execute --no-confirm
+# Bump Cargo.toml versions only (no commit, no tag, no push)
+echo "Bumping Cargo.toml versions..."
+cargo release version "$BUMP_TYPE" --execute --no-confirm
 
 # Update frontend/package.json version
 echo "Updating frontend/package.json..."
@@ -50,10 +50,10 @@ echo "Generating CHANGELOG.md..."
 git-cliff -o CHANGELOG.md --tag "v${NEW_VERSION}"
 echo "  ✓ CHANGELOG.md generated"
 
-# Amend the release commit with frontend and changelog
-git add frontend/package.json CHANGELOG.md
-git commit --amend --no-edit
-git tag -f "v${NEW_VERSION}"
-git push --force-with-lease origin HEAD "v${NEW_VERSION}"
+# Commit all changes, tag, and push
+git add Cargo.lock api/Cargo.toml output-worker/Cargo.toml frontend/package.json CHANGELOG.md
+git commit -m "chore(release): bump version to ${NEW_VERSION}"
+git tag -a "v${NEW_VERSION}" -m "Release ${NEW_VERSION}"
+git push origin HEAD "v${NEW_VERSION}"
 
 echo "=== Release $NEW_VERSION completed ==="
