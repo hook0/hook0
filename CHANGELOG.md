@@ -5,7 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.3] - 2025-12-22
+## [2.0.4] - 2025-12-22
+
+### Other
+
+- Cleanup test comment
+
+## [2.0.0] - 2025-12-22
 
 ### Fixed
 
@@ -1281,7 +1287,8 @@ refactor(frontend): implement error handling for missing organization and applic
 - Feat add oss friends & code of conduct
 - Maj Pricing
 
-[2.0.3]: https://gitlab.com/hook0/hook0/-/compare/v2.0.2...v2.0.3
+[2.0.4]: https://gitlab.com/hook0/hook0/-/compare/v2.0.3...v2.0.4
+[2.0.0]: https://gitlab.com/hook0/hook0/-/compare/v2.0.2...v2.0.0
 [2.0.2]: https://gitlab.com/hook0/hook0/-/compare/v0.0.1-test...v2.0.2
 [0.0.1-test]: https://gitlab.com/hook0/hook0/-/compare/v1.0.0...v0.0.1-test
 
