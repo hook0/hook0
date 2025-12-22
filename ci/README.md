@@ -83,3 +83,4 @@ Tag pipeline triggered (vX.Y.Z)
 - `ghcr.io/rbaumier/output-worker:<version>` (GitHub Container Registry)
 - `$CI_REGISTRY_IMAGE/hook0-api:<version>` (GitLab Registry)
 - `$CI_REGISTRY_IMAGE/output-worker:<version>` (GitLab Registry)
+# Test commit
