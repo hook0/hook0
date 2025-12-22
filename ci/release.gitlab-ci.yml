@@ -299,7 +299,8 @@ release.github:
   before_script:
     # Install tools
     - apt-get update && apt-get install -y jq
-    - cargo install cargo-release --version 0.25.17 --locked
+    - curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+    - cargo binstall cargo-release --version 0.25.17 --no-confirm
     # Install git-cliff
     - curl -L https://github.com/orhun/git-cliff/releases/download/v2.7.0/git-cliff-2.7.0-x86_64-unknown-linux-gnu.tar.gz | tar xz
     - mv git-cliff-*/git-cliff /usr/local/bin/
