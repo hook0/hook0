@@ -10,6 +10,7 @@ import list_request_attempt from './events/list_request_attempt.js';
 import query_request_attempts from './database/query_request_attempts.js';
 import delete_application from './applications/delete_application.js';
 import get_quota from './unauthentified/quotas.js';
+import get_environment_variables from './unauthentified/environment_variables.js';
 
 export const config = getEnvironmentVariables();
 
@@ -146,6 +147,11 @@ function scenario_1() {
     let validation_quota = get_quota(h);
     if (!validation_quota) {
       throw new Error('Failed to verify quota response');
+    }
+
+    let validation_environment_variables = get_environment_variables(h);
+    if (!validation_environment_variables) {
+      throw new Error('Failed to verify environment_variables response');
     }
 
     if (application_id && !config.keepTestApplication) {
