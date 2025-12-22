@@ -291,6 +291,7 @@ release.github:
 .release-trigger:
   stage: trigger-release
   image: rust:$RUST_VERSION
+  allow_failure: true
   rules:
     # TODO: uncomment for production
     # - if: $CI_COMMIT_BRANCH == "master"
