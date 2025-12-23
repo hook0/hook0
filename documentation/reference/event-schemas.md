@@ -607,7 +607,7 @@ interface MaintenanceStartedPayload {
 }
 ```
 
-### system.error.emmitted
+### system.error.emitted
 
 Emitted when system errors occur.
 
@@ -633,7 +633,7 @@ interface SystemErrorPayload {
 
 When creating custom event types, follow these guidelines:
 
-1. **Use descriptive names**: `resource.action` format (e.g., `document.shared`, `meeting.scheduled`)
+1. **Use descriptive names**: `service.resource.action` format (e.g., `document.file.shared`, `calendar.meeting.scheduled`)
 2. **Include timestamps**: Always include relevant timestamp fields
 3. **Provide context**: Include sufficient context for downstream processing
 4. **Use consistent data types**: Maintain consistency across similar events
