@@ -12,7 +12,8 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const baseUrl = process.env.DOCUMENTATION_BASE_URL || "/hook0/";
+const url = process.env.DOCUMENTATION_URL || "http://localhost:3000/";
+const baseUrl = process.env.DOCUMENTATION_BASE_URL || "/";
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
@@ -22,7 +23,7 @@ const config = {
   favicon: "favicon.ico",
 
   // Set the production url of your site here
-  url: "https://hook0.gitlab.io",
+  url,
   // Set the /<baseUrl>/ pathname under which your site is served
   baseUrl,
 
