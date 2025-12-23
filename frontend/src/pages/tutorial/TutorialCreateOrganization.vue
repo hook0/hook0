@@ -19,8 +19,12 @@ import Hook0Select from '@/components/Hook0Select.vue';
 import Hook0ProgressBar from '@/components/Hook0ProgressBar.vue';
 import party from 'party-js';
 import { progressItems } from '@/pages/tutorial/TutorialService';
+import { useTracking } from '@/composables/useTracking';
 
 const router = useRouter();
+
+// Analytics tracking
+const { trackEvent } = useTracking();
 
 enum Sections {
   CreateOrganization = 'create_organization',
@@ -35,6 +39,7 @@ const currentSection = ref<Sections | null>(null);
 const goSecondStep = (organization_id: UUID) => {
   organizationId.value = organization_id;
   if (selected_organization_id.value) {
+    trackEvent('Tutorial', 'StepComplete', 'organization');
     push.success({
       title: 'Organization selected',
       message: 'You can now create your first application. 🎉',
@@ -50,6 +55,7 @@ const goSecondStep = (organization_id: UUID) => {
       params: { organization_id: selected_organization_id.value },
     });
   } else if (organizationId.value) {
+    trackEvent('Tutorial', 'StepComplete', 'organization');
     push.success({
       title: 'Organization created',
       message: 'You can now create your first application. 🎉',

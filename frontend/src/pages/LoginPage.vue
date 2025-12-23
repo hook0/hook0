@@ -9,8 +9,12 @@ import { push } from 'notivue';
 import * as OrganizationService from './organizations/OrganizationService';
 import * as ApplicationService from './organizations/applications/ApplicationService';
 import { useCardGlow } from '@/composables/useCardGlow';
+import { useTracking } from '@/composables/useTracking';
 
 const router = useRouter();
+
+// Analytics tracking
+const { trackEvent } = useTracking();
 
 // Form state
 const email = ref<string>('');
@@ -27,6 +31,7 @@ function submit() {
 
   login(email.value, password.value)
     .then(() => {
+      trackEvent('Auth', 'Login', 'success');
       push.success({
         title: 'Success',
         message: 'You have successfully logged in.',
@@ -54,6 +59,7 @@ function submit() {
     })
     .catch((err) => {
       const problem = handleError(err as AxiosError<AxiosResponse<Problem>>);
+      trackEvent('Auth', 'Login', 'error');
       displayError(problem);
     })
     .finally(() => {

@@ -11,8 +11,12 @@ import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import { push } from 'notivue';
+import { useTracking } from '@/composables/useTracking';
 
 const router = useRouter();
+
+// Analytics tracking
+const { trackEvent } = useTracking();
 const route = useRoute();
 
 interface Props {
@@ -35,16 +39,16 @@ function remove(e: Event) {
   loading.value = true;
 
   ApplicationsService.remove(props.applicationId)
-    .then(
-      () =>
-        router.push({
-          name: routes.OrganizationsDashboard,
-          params: {
-            organization_id: route.params.organization_id,
-          },
-        }),
-      displayError
-    )
+    .then(() => {
+      trackEvent('Application', 'Delete', props.applicationId);
+      return router.push({
+        name: routes.OrganizationsDashboard,
+        params: {
+          organization_id: route.params.organization_id,
+        },
+      });
+    })
+    .catch(displayError)
     // finally
     .finally(() => (loading.value = false));
 }

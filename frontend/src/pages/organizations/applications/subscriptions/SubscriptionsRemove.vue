@@ -11,9 +11,13 @@ import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import { push } from 'notivue';
+import { useTracking } from '@/composables/useTracking';
 
 const router = useRouter();
 const route = useRoute();
+
+// Analytics tracking
+const { trackEvent } = useTracking();
 
 interface Props {
   applicationId: string;
@@ -36,17 +40,16 @@ function remove(e: Event) {
   loading.value = true;
 
   SubscriptionsService.remove(props.applicationId, props.subscriptionId)
-    .then(
-      () =>
-        router.push({
-          name: routes.SubscriptionsList,
-          params: {
-            organization_id: route.params.organization_id,
-            application_id: route.params.application_id,
-          },
-        }),
-      displayError
-    )
+    .then(() => {
+      trackEvent('Subscription', 'Delete', props.subscriptionId);
+      return router.push({
+        name: routes.SubscriptionsList,
+        params: {
+          organization_id: route.params.organization_id,
+          application_id: route.params.application_id,
+        },
+      });
+    }, displayError)
     // finally
     .finally(() => (loading.value = false));
 }

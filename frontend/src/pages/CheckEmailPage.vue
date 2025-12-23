@@ -1,9 +1,19 @@
 <script setup lang="ts">
+import { onMounted } from 'vue';
 import { routes } from '@/routes.ts';
 import { useCardGlow } from '@/composables/useCardGlow';
+import { useTracking } from '@/composables/useTracking';
 
 // Mouse tracking for card glow effect
 const { cardRef, mouseX, mouseY, handleMouseMove } = useCardGlow();
+
+// Analytics tracking
+const { trackEvent, trackPageWithDimensions } = useTracking();
+
+onMounted(() => {
+  trackPageWithDimensions('auth', 'view', 'email-sent');
+  trackEvent('Signup', 'PageView', 'check-email');
+});
 </script>
 
 <template>

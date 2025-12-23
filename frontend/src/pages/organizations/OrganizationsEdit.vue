@@ -16,8 +16,12 @@ import Hook0Button from '@/components/Hook0Button.vue';
 import { push } from 'notivue';
 import { routes } from '@/routes.ts';
 import Hook0Consumption, { ComsumptionQuota } from '@/components/Hook0Consumption.vue';
+import { useTracking } from '@/composables/useTracking';
 
 const router = useRouter();
+
+// Analytics tracking
+const { trackEvent } = useTracking();
 const route = useRoute();
 
 const isNew = ref(true);
@@ -84,6 +88,7 @@ function upsert(e: Event) {
         name: organization.value.name,
       })
         .then((org) => {
+          trackEvent('Organization', 'Create', org.organization_id);
           if (props.tutorialMode) {
             emit('tutorial-organization-created', org.organization_id);
           } else {
@@ -104,6 +109,7 @@ function upsert(e: Event) {
         name: organization.value.name,
       })
         .then(() => {
+          trackEvent('Organization', 'Update', route.params.organization_id as string);
           push.success({
             title: 'Organization updated',
             message: `Organization ${organization.value.name} has been updated`,
