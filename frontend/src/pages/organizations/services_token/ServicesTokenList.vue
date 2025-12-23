@@ -22,8 +22,12 @@ import Hook0Error from '@/components/Hook0Error.vue';
 import { push } from 'notivue';
 import router from '@/router.ts';
 import { routes } from '@/routes.ts';
+import { useTracking } from '@/composables/useTracking';
 
 const route = useRoute();
+
+// Analytics tracking
+const { trackEvent } = useTracking();
 
 interface Props {
   // cache-burst
@@ -89,6 +93,7 @@ const columnDefs: ColDef[] = [
           organization_id: organization_id.value as string,
         })
           .then(() => {
+            trackEvent('ServiceToken', 'Update', row.token_id);
             _forceLoad();
           })
           .catch(displayError);
@@ -112,6 +117,7 @@ const columnDefs: ColDef[] = [
         ) {
           ServiceTokenService.remove(row.token_id, organization_id.value as string)
             .then(() => {
+              trackEvent('ServiceToken', 'Delete', row.token_id);
               _forceLoad();
             })
             .catch(displayError);
@@ -134,7 +140,8 @@ function createNew(event: Event) {
   }
 
   ServiceTokenService.create({ name: name, organization_id: organization_id.value as string })
-    .then(() => {
+    .then((resp) => {
+      trackEvent('ServiceToken', 'Create', resp.token_id);
       _forceLoad();
     })
     .catch(displayError);

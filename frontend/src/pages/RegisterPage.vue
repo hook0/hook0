@@ -9,6 +9,7 @@ import router from '@/router.ts';
 import VueTurnstile from 'vue-turnstile';
 import { getInstanceConfig } from '@/utils/instance-config';
 import { useCardGlow } from '@/composables/useCardGlow';
+import { useTracking } from '@/composables/useTracking';
 import IconCheck from '@/components/icons/IconCheck.vue';
 import IconCheckCircle from '@/components/icons/IconCheckCircle.vue';
 import IconShieldCheck from '@/components/icons/IconShieldCheck.vue';
@@ -28,7 +29,22 @@ const turnstile_token = ref<string>('');
 // Mouse tracking for card glow effect
 const { cardRef, mouseX, mouseY, handleMouseMove } = useCardGlow();
 
+// Analytics tracking
+const { trackEvent, trackPageWithDimensions } = useTracking();
+const formStarted = ref<boolean>(false);
+
+function handleFormStart() {
+  if (!formStarted.value) {
+    formStarted.value = true;
+    trackEvent('Signup', 'FormStart', 'register');
+  }
+}
+
 onMounted(() => {
+  // Track page view with custom dimensions
+  trackPageWithDimensions('auth', 'view', 'signup-form');
+  trackEvent('Signup', 'PageView', 'register');
+
   getInstanceConfig()
     .then((instanceConfig) => {
       if (instanceConfig.cloudflare_turnstile_site_key) {
@@ -42,6 +58,9 @@ function submit() {
   if (isLoading.value) return;
   isLoading.value = true;
 
+  // Track form submission attempt
+  trackEvent('Signup', 'FormSubmit', 'register');
+
   register(
     email.value,
     firstName.value,
@@ -49,9 +68,13 @@ function submit() {
     password.value,
     turnstile_token.value !== '' ? turnstile_token.value : undefined
   )
-    .then(() => router.push({ name: routes.CheckEmail }))
+    .then(() => {
+      trackEvent('Signup', 'FormSuccess', 'register');
+      return router.push({ name: routes.CheckEmail });
+    })
     .catch((err) => {
       const problem = handleError(err as AxiosError<AxiosResponse<Problem>>);
+      trackEvent('Signup', 'FormError', problem.title || 'unknown');
       displayError(problem);
     })
     .finally(() => {
@@ -135,6 +158,7 @@ function togglePasswordVisibility() {
               class="register-page__input"
               autocomplete="email"
               :disabled="isLoading"
+              @focus="handleFormStart"
             />
           </div>
 
