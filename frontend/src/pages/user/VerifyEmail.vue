@@ -7,8 +7,12 @@ import router from '@/router.ts';
 import { routes } from '@/routes.ts';
 import { push } from 'notivue';
 import { useCardGlow } from '@/composables/useCardGlow';
+import { useTracking } from '@/composables/useTracking';
 
 const route = useRoute();
+
+// Analytics tracking
+const { trackEvent, trackPageWithDimensions } = useTracking();
 
 // State
 const isLoading = ref<boolean>(true);
@@ -37,6 +41,8 @@ function displayError(err: Problem) {
 }
 
 function displaySuccess() {
+  trackPageWithDimensions('auth', 'view', 'email-verified');
+  trackEvent('Signup', 'EmailVerified');
   push.success({
     title: 'Email verified',
     message: 'You are successfully verified.',
