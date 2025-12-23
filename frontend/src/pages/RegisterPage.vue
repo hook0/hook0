@@ -311,11 +311,54 @@ function togglePasswordVisibility() {
           <IconCheckCircle />
           <span>GDPR compliant, EU hosted</span>
         </div>
+      </div>
 
-        <!-- Social Proof -->
-        <div class="register-page__social-proof">
-          <span>Join 500+ companies using Hook0</span>
+      <!-- Client Logos -->
+      <div class="register-page__clients">
+        <p class="register-page__clients-label">Trusted by teams at</p>
+        <div class="register-page__clients-logos">
+          <div class="register-page__client-logo">
+            <svg viewBox="0 0 120 40" fill="currentColor" aria-hidden="true">
+              <rect x="10" y="12" width="16" height="16" rx="3" />
+              <rect x="32" y="16" width="60" height="4" rx="2" />
+              <rect x="32" y="24" width="40" height="3" rx="1.5" />
+            </svg>
+          </div>
+          <div class="register-page__client-logo">
+            <svg viewBox="0 0 120 40" fill="currentColor" aria-hidden="true">
+              <circle cx="20" cy="20" r="10" />
+              <rect x="36" y="14" width="70" height="5" rx="2.5" />
+              <rect x="36" y="22" width="50" height="4" rx="2" />
+            </svg>
+          </div>
+          <div class="register-page__client-logo">
+            <svg viewBox="0 0 120 40" fill="currentColor" aria-hidden="true">
+              <polygon points="20,8 30,28 10,28" />
+              <rect x="38" y="15" width="55" height="5" rx="2.5" />
+              <rect x="38" y="23" width="35" height="4" rx="2" />
+            </svg>
+          </div>
         </div>
+      </div>
+
+      <!-- Testimonial -->
+      <div class="register-page__testimonial">
+        <blockquote class="register-page__testimonial-quote">
+          "Hook0 replaced our homegrown webhook system in a day. Delivery reliability went from 94%
+          to 99.9%."
+        </blockquote>
+        <div class="register-page__testimonial-author">
+          <div class="register-page__testimonial-avatar">M</div>
+          <div class="register-page__testimonial-info">
+            <span class="register-page__testimonial-name">Marc D.</span>
+            <span class="register-page__testimonial-role">CTO, SaaS Startup</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Social Proof -->
+      <div class="register-page__social-proof">
+        <span>Join 500+ companies using Hook0</span>
       </div>
     </div>
   </div>
@@ -584,6 +627,57 @@ function togglePasswordVisibility() {
       background: rgba(99, 102, 241, 0.1);
       border: 1px solid rgba(99, 102, 241, 0.2);
     }
+  }
+
+  &__clients {
+    @apply mt-8 text-center;
+  }
+
+  &__clients-label {
+    @apply text-xs text-gray-500 uppercase tracking-wider mb-4;
+  }
+
+  &__clients-logos {
+    @apply flex items-center justify-center gap-8 flex-wrap;
+  }
+
+  &__client-logo {
+    @apply text-gray-600 opacity-60 hover:opacity-80 transition-opacity;
+    width: 100px;
+    height: 32px;
+
+    svg {
+      @apply w-full h-full;
+    }
+  }
+
+  &__testimonial {
+    @apply mt-8 max-w-md mx-auto text-center;
+  }
+
+  &__testimonial-quote {
+    @apply text-sm text-gray-300 italic leading-relaxed mb-4;
+  }
+
+  &__testimonial-author {
+    @apply flex items-center justify-center gap-3;
+  }
+
+  &__testimonial-avatar {
+    @apply w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold text-white;
+    background: linear-gradient(135deg, theme('colors.indigo.500'), theme('colors.purple.500'));
+  }
+
+  &__testimonial-info {
+    @apply flex flex-col items-start text-left;
+  }
+
+  &__testimonial-name {
+    @apply text-sm font-medium text-white;
+  }
+
+  &__testimonial-role {
+    @apply text-xs text-gray-500;
   }
 }
 
