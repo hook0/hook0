@@ -11,7 +11,7 @@ const https = require('https');
 const http = require('http');
 
 // Configuration
-const OPENAPI_URL = process.env.HOOK0_API_URL 
+const OPENAPI_URL = process.env.HOOK0_API_URL
   ? `${process.env.HOOK0_API_URL}/api/v1/swagger.json`
   : process.env.NODE_ENV === 'production' || process.env.CI
     ? 'https://app.hook0.com/api/v1/swagger.json'
@@ -48,7 +48,7 @@ const createFallbackSpec = () => {
       }
     }
   };
-  
+
   fs.writeFileSync(OUTPUT_FILE, JSON.stringify(fallbackSpec, null, 2));
   console.log('   Created fallback OpenAPI spec');
 };
@@ -66,14 +66,14 @@ const fetchSpec = () => {
         // If we can't fetch from the API, use a fallback or skip
         console.warn(`⚠️  Could not fetch OpenAPI spec (status: ${res.statusCode})`);
         console.warn('   Using fallback or skipping API doc generation');
-        
+
         // Check if we have a cached version
         if (fs.existsSync(OUTPUT_FILE)) {
           console.log('   Using cached OpenAPI spec');
           resolve();
           return;
         }
-        
+
         // Create a minimal fallback spec
         createFallbackSpec();
         resolve();
@@ -88,21 +88,15 @@ const fetchSpec = () => {
       res.on('end', () => {
         try {
           const spec = JSON.parse(data);
-          
-          // Add server URL if not present
-          if (!spec.servers || spec.servers.length === 0) {
-            spec.servers = [
-              {
-                url: 'https://app.hook0.com/api/v1',
-                description: 'Production API'
-              },
-              {
-                url: 'http://localhost:8080/api/v1',
-                description: 'Local Development API'
-              }
-            ];
+
+          // Add production server URL if not present
+          if (!spec.servers || spec.servers.length === 0 || !spec.servers.some(s => s.url === 'https://app.hook0.com')) {
+            spec.servers.push({
+              url: 'https://app.hook0.com',
+              description: 'Production API'
+            });
           }
-          
+
           // Enhance the spec with better descriptions if needed
           if (spec.info) {
             spec.info.description = spec.info.description || 'Hook0 is a robust webhook infrastructure that handles event delivery, retries, and monitoring for your applications.';
@@ -116,7 +110,7 @@ const fetchSpec = () => {
               url: 'https://www.apache.org/licenses/LICENSE-2.0.html'
             };
           }
-          
+
           // Rename biscuit security schemes to API Token for better UX
           if (spec.components && spec.components.securitySchemes) {
             const schemes = spec.components.securitySchemes;
@@ -188,7 +182,7 @@ const fetchSpec = () => {
           resolve();
         } catch (error) {
           console.warn(`⚠️  Failed to parse OpenAPI spec: ${error.message}`);
-          
+
           // Check for cached version
           if (fs.existsSync(OUTPUT_FILE)) {
             console.log('   Using cached OpenAPI spec');
@@ -202,7 +196,7 @@ const fetchSpec = () => {
       });
     }).on('error', (error) => {
       console.warn(`⚠️  Network error fetching OpenAPI spec: ${error.message}`);
-      
+
       // Check for cached version
       if (fs.existsSync(OUTPUT_FILE)) {
         console.log('   Using cached OpenAPI spec');
@@ -226,13 +220,13 @@ fetchSpec()
   .catch((error) => {
     // This should rarely happen now as we handle most errors above
     console.error('❌ Unexpected error:', error.message);
-    
+
     // Even in worst case, try to create fallback
     if (!fs.existsSync(OUTPUT_FILE)) {
       console.log('   Creating emergency fallback OpenAPI spec');
       createFallbackSpec();
     }
-    
+
     // Exit with success to not break the build
     console.log('📄 Proceeding with available OpenAPI spec');
     process.exit(0);

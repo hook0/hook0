@@ -8,7 +8,7 @@ use serde::Deserialize;
 
 use crate::APP_TITLE;
 
-pub fn default_spec(hook0_client_api_url: &Option<Url>) -> DefaultApiRaw {
+pub fn default_spec(app_url: &Url) -> DefaultApiRaw {
     DefaultApiRaw {
         info: Info {
             title: APP_TITLE.to_owned(),
@@ -19,19 +19,17 @@ pub fn default_spec(hook0_client_api_url: &Option<Url>) -> DefaultApiRaw {
             version: crate_version!().to_owned(),
             ..Default::default()
         },
-        host: hook0_client_api_url
-            .as_ref()
-            .and_then(|url| url.host_str().map(|host| host.to_string())),
-        schemes: [hook0_client_api_url
-            .as_ref()
-            .and_then(|x| {
-                if x.scheme() == "https" {
-                    Some(OperationProtocol::Https)
-                } else {
-                    None
-                }
-            })
-            .unwrap_or(OperationProtocol::Http)]
+        host: if let Some(port) = app_url.port() {
+            app_url.host_str().map(|host| format!("{host}:{port}"))
+        } else {
+            app_url.host_str().map(|host| host.to_string())
+        },
+        schemes: [if app_url.scheme() == "https" {
+            Some(OperationProtocol::Https)
+        } else {
+            None
+        }
+        .unwrap_or(OperationProtocol::Http)]
         .into(),
         ..Default::default()
     }
