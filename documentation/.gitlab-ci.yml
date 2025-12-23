@@ -32,9 +32,9 @@ pages:
     paths:
       - public
   rules:
-    - changes:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
         - documentation/**/*
-      if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   environment:
     name: production
     url: https://hook0.gitlab.io/hook0

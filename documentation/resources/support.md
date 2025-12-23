@@ -58,7 +58,7 @@ We use the following definitions of severity:
 
 | Severity | Definition | Example |
 |----------|------------|---------|
-| **Sev 1 - Critical** | Critical impact/complete outage. Majority of users are impacted. There is no workaround. Customer's business is dramatically impacted. | Hook0 is inaccessible for the entire company applications. |
+| **Sev 1 - Critical** | Critical impact/complete outage. Majority of users are impacted. There is no workaround. Customer's business is dramatically impacted. | Hook0 is inaccessible for all company applications. |
 | **Sev 2 - High** | Severe impact or downgrade of services. Majority of users are impacted. A workaround may be available, but performance is degraded. | Large number of users can't access Hook0 services. |
 | **Sev 3 - Normal** | Restricted impact, most of the system is functioning properly. Something is not functioning as expected. | An application, a subscription or subset of users are experiencing poor latency when using Hook0 API. |
 | **Sev 4 - Low** | Low impact or informational request. Feature requests. | Product usability issues or use case inquiries. |

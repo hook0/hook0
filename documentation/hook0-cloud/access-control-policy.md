@@ -27,7 +27,7 @@ The policy is applicable to all internal and external personnel.
   - Public: 12 months
 - 2FA (Two Factor Authentication) must be used for systems holding Sensitive information
 
-# Requirements for user ID's
+# Requirements for user IDs
 
 - User names are created by concatenating the user's first and last name, separated by a period, all in lower case (e.g. maurice.pasman)
 - User names may not be shared or reused for systems holding Confidential or Sensitive information

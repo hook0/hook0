@@ -87,7 +87,7 @@ interface UserCreatedPayload {
 }
 ```
 
-### user.updated
+### user.account.updated
 
 Emitted when user profile information is modified.
 
@@ -128,7 +128,7 @@ interface UserUpdatedPayload {
 }
 ```
 
-### user.deleted
+### user.account.deleted
 
 Emitted when a user account is deleted.
 
@@ -201,7 +201,7 @@ interface UserEmailVerifiedPayload {
 
 ## Subscription and Billing Events
 
-### subscription.created
+### subscription.plan.created
 
 Emitted when a new subscription is created.
 
@@ -251,7 +251,7 @@ interface SubscriptionCreatedPayload {
 }
 ```
 
-### subscription.updated
+### subscription.plan.updated
 
 Emitted when subscription details change.
 
@@ -267,7 +267,7 @@ interface SubscriptionUpdatedPayload {
 }
 ```
 
-### subscription.canceled
+### subscription.plan.canceled
 
 Emitted when a subscription is canceled.
 
@@ -283,7 +283,7 @@ interface SubscriptionCanceledPayload {
 }
 ```
 
-### payment.succeeded
+### payment.transaction.succeeded
 
 Emitted when a payment is successfully processed.
 
@@ -332,7 +332,7 @@ interface PaymentSucceededPayload {
 }
 ```
 
-### payment.failed
+### payment.transaction.failed
 
 Emitted when a payment fails.
 
@@ -384,7 +384,7 @@ interface PaymentFailedPayload {
 
 ## E-commerce Events
 
-### order.created
+### order.purchase.created
 
 Emitted when a new order is placed.
 
@@ -469,7 +469,7 @@ interface OrderCreatedPayload {
 }
 ```
 
-### order.shipped
+### order.shipment.shipped
 
 Emitted when an order is shipped.
 
@@ -525,7 +525,7 @@ interface OrderShippedPayload {
 }
 ```
 
-### order.delivered
+### order.shipment.delivered
 
 Emitted when an order is successfully delivered.
 
@@ -545,7 +545,7 @@ interface OrderDeliveredPayload {
 
 ## Product and Inventory Events
 
-### product.created
+### shop.product.created
 
 Emitted when a new product is added to the catalog.
 
@@ -568,7 +568,7 @@ interface ProductCreatedPayload {
 }
 ```
 
-### inventory.low
+### shop.inventory.low
 
 Emitted when product inventory falls below threshold.
 
@@ -607,7 +607,7 @@ interface MaintenanceStartedPayload {
 }
 ```
 
-### system.error
+### system.error.emmitted
 
 Emitted when system errors occur.
 

@@ -31,7 +31,7 @@ For mobile devices that are used to store or process information classified as C
 - The device must be protected using a password, pin code and/or bio metrics
 - Only authorized repair shops may be used
 - Unlock codes or passwords may not be shared  
-  Remote device wipe is enabled
+- Remote device wipe is enabled
 
 ### Usage of own devices
 
