@@ -318,7 +318,7 @@ struct Config {
     #[clap(long, env, group = "client")]
     hook0_client_application_id: Option<Uuid>,
 
-    /// [Hook0 Client] Authentifcation token valid for a Hook0 application that will receive events from this Hook0 instance
+    /// [Hook0 Client] Authentication token valid for a Hook0 application that will receive events from this Hook0 instance
     #[clap(long, env, group = "client")]
     hook0_client_token: Option<String>,
 
@@ -462,7 +462,7 @@ struct Config {
     #[clap(long, env, default_value = "10")]
     max_authorization_time_in_ms: u64,
 
-    /// [Auth] If true, a trace log message containing authorizer context is emitted on each request; defaut is false because this feature implies a small overhead
+    /// [Auth] If true, a trace log message containing authorizer context is emitted on each request; default is false because this feature implies a small overhead
     #[clap(long, env, default_value_t = false)]
     debug_authorizer: bool,
 
