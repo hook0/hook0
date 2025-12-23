@@ -1003,7 +1003,7 @@ async fn main() -> anyhow::Result<()> {
             db: pool,
             pulsar: pulsar_config,
             object_storage: object_storage_config,
-            app_url: config.app_url,
+            app_url: config.app_url.clone(),
             biscuit_private_key,
             mailer,
             #[cfg(feature = "migrate-users-from-keycloak")]
@@ -1047,13 +1047,13 @@ async fn main() -> anyhow::Result<()> {
             cloudflare_turnstile_site_key: config.cloudflare_turnstile_site_key,
             cloudflare_turnstile_secret_key: config.cloudflare_turnstile_secret_key,
         };
-        let hook0_client_api_url = config.hook0_client_api_url;
 
         // Run web server
         let webapp_path = config.webapp_path.clone();
+        let app_url = config.app_url;
         HttpServer::new(move || {
             // Compute default OpenAPI spec
-            let spec = openapi::default_spec(&hook0_client_api_url);
+            let spec = openapi::default_spec(&app_url);
 
             // Prepare user IP extraction middleware
             let get_user_ip = middleware_get_user_ip::GetUserIp {
