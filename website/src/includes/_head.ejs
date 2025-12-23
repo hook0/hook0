@@ -99,6 +99,10 @@
     var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
     g.async=true; g.src=u+'piwik.js'; s.parentNode.insertBefore(g,s);
     })();
+    // Event tracking helper - silent fail to never break the site
+    window.trackEvent = function(category, action, name, value) {
+        try { if (window._paq) { window._paq.push(['trackEvent', category, action, name, value]); } } catch(e) {}
+    };
 </script>
 <!-- End Matomo Code -->
 <% } %>

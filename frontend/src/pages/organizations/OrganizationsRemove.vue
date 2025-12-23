@@ -11,6 +11,10 @@ import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import { push } from 'notivue';
 import router from '@/router.ts';
 import { routes } from '@/routes.ts';
+import { useTracking } from '@/composables/useTracking';
+
+// Analytics tracking
+const { trackEvent } = useTracking();
 
 interface Props {
   organizationId: string;
@@ -33,6 +37,7 @@ function remove(e: Event) {
 
   OrganizationService.remove(props.organizationId)
     .then(() => {
+      trackEvent('Organization', 'Delete', props.organizationId);
       push.success({
         title: 'Organization deleted',
         message: `Organization "${props.organizationName}" has been deleted.`,

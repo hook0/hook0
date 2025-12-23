@@ -21,9 +21,13 @@ import { progressItems } from '@/pages/tutorial/TutorialService';
 import { Alert } from '@/components/Hook0Alert';
 import ApplicationsEdit from '../organizations/applications/ApplicationsEdit.vue';
 import Hook0Alert from '@/components/Hook0Alert.vue';
+import { useTracking } from '@/composables/useTracking';
 
 const router = useRouter();
 const route = useRoute();
+
+// Analytics tracking
+const { trackEvent } = useTracking();
 
 const enum Section {
   CreateApplication,
@@ -87,6 +91,7 @@ function cancel() {
 const goThirdStep = (application_id: UUID) => {
   applicationId.value = application_id;
   if (organizationId.value && selected_application_id.value) {
+    trackEvent('Tutorial', 'StepComplete', 'application');
     push.success({
       title: 'Application selected',
       message: 'You can now create your first event type. 🎉',
@@ -105,6 +110,7 @@ const goThirdStep = (application_id: UUID) => {
       },
     });
   } else if (organizationId.value && applicationId.value) {
+    trackEvent('Tutorial', 'StepComplete', 'application');
     push.success({
       title: 'Application created',
       message: 'You can now create your first event type. 🎉',

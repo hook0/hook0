@@ -84,7 +84,7 @@ const notivue = createNotivue({
 
 app.use(notivue);
 
-import { getInstanceConfig } from './utils/biscuit_auth';
+import { getInstanceConfig } from './utils/instance-config';
 void getInstanceConfig().then((config) => {
   if (config.matomo) {
     app.use(VueMatomo, {
