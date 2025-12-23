@@ -176,6 +176,13 @@ release.containers:
       artifacts: true
     - job: release.build-worker-arm64
       artifacts: true
+    # Wait for tests to pass before releasing
+    - job: api.check
+      artifacts: false
+    - job: output_worker.check
+      artifacts: false
+    - job: frontend.check
+      artifacts: false
   variables:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
