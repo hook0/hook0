@@ -28,6 +28,10 @@ import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Icon from '@/components/Hook0Icon.vue';
 import { push } from 'notivue';
+import { useTracking } from '@/composables/useTracking';
+
+// Analytics tracking
+const { trackEvent } = useTracking();
 
 interface Props {
   tutorialMode?: boolean;
@@ -215,6 +219,7 @@ function upsert(e: Event) {
       is_enabled: subscription.value.is_enabled,
       event_types: EventTypeNamesFromSelectedEventTypes(eventTypes.value),
     }).then((_resp) => {
+      trackEvent('Subscription', 'Create', _resp.subscription_id);
       if (props.tutorialMode) {
         emit('tutorial-subscription-created');
       } else {
@@ -242,6 +247,7 @@ function upsert(e: Event) {
         : undefined,
     application_id: route.params.application_id as string,
   }).then((_resp) => {
+    trackEvent('Subscription', 'Update', subscription_id.value as string);
     cancel2();
   }, displayError);
 }

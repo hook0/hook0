@@ -24,7 +24,12 @@ import { isBefore } from 'date-fns';
 import Hook0Text from '@/components/Hook0Text.vue';
 import router from '@/router.ts';
 import { routes } from '@/routes.ts';
+import { useTracking } from '@/composables/useTracking';
+
 const route = useRoute();
+
+// Analytics tracking
+const { trackEvent } = useTracking();
 
 // Params references
 const organization_id = ref<null | UUID>(null);
@@ -135,6 +140,7 @@ function submit() {
       date_attenuation.value ? new Date(date_attenuation.value) : null,
       biscuit_public_key$.value
     );
+    trackEvent('ServiceToken', 'Attenuate', service_token_id.value as string);
     push.success({
       title: 'Service token generated',
       message: 'The service token has been generated',

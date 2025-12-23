@@ -21,10 +21,14 @@ import Hook0Loader from '@/components/Hook0Loader.vue';
 import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
 import Hook0Error from '@/components/Hook0Error.vue';
 import { push } from 'notivue';
+import { useTracking } from '@/composables/useTracking';
 // import Hook0Alert from '@/components/Hook0Alert.vue';
 // import { routes } from '@/routes';
 
 const route = useRoute();
+
+// Analytics tracking
+const { trackEvent } = useTracking();
 
 interface Props {
   // cache-burst
@@ -72,7 +76,7 @@ const columnDefs: ColDef[] = [
         if (confirm(`Are you sure to delete "${row.name as string}" API Key?`)) {
           ApplicationSecretService.remove(application_id.value as string, row.token)
             .then(() => {
-              // @TODO notify user of success
+              trackEvent('AppSecret', 'Delete');
               _forceLoad();
             })
             // @TODO proper error management
@@ -101,7 +105,10 @@ function createNew(event: Event) {
   ApplicationSecretService.create({
     application_id: application_id.value as string,
     name: name,
-  }).then(() => _forceLoad(), displayError);
+  }).then(() => {
+    trackEvent('AppSecret', 'Create');
+    _forceLoad();
+  }, displayError);
 }
 
 function _forceLoad() {

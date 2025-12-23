@@ -17,9 +17,13 @@ import EventsList from '@/pages/organizations/applications/events/EventsList.vue
 import Hook0ProgressBar from '@/components/Hook0ProgressBar.vue';
 import party from 'party-js';
 import { progressItems } from '@/pages/tutorial/TutorialService';
+import { useTracking } from '@/composables/useTracking';
 
 const router = useRouter();
 const route = useRoute();
+
+// Analytics tracking
+const { trackEvent } = useTracking();
 
 const disabled_button = ref<boolean>(true);
 
@@ -60,6 +64,7 @@ function cancel() {
 }
 
 function back_to_application() {
+  trackEvent('Tutorial', 'StepComplete', 'send-event');
   push.success({
     title: 'Event sent',
     message: 'Wow ! You just sent an event to your webhook ! 🎉🎉',
