@@ -85,16 +85,17 @@ release.build-api-amd64:
     - cargo build --release --package hook0-api --target $TARGET
     - cp target/$TARGET/release/hook0-api artifacts/hook0-api-linux-amd64
 
-release.build-api-arm64:
-  extends: .build-binary
-  variables:
-    TARGET: aarch64-unknown-linux-gnu
-    CROSS_DEPS: "gcc-aarch64-linux-gnu libc6-dev-arm64-cross"
-  script:
-    - mkdir -p artifacts
-    - export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
-    - cargo build --release --package hook0-api --target $TARGET
-    - cp target/$TARGET/release/hook0-api artifacts/hook0-api-linux-arm64
+# DISABLED: arm64 builds are too slow on CI
+# release.build-api-arm64:
+#   extends: .build-binary
+#   variables:
+#     TARGET: aarch64-unknown-linux-gnu
+#     CROSS_DEPS: "gcc-aarch64-linux-gnu libc6-dev-arm64-cross"
+#   script:
+#     - mkdir -p artifacts
+#     - export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
+#     - cargo build --release --package hook0-api --target $TARGET
+#     - cp target/$TARGET/release/hook0-api artifacts/hook0-api-linux-arm64
 
 # --- Worker Builds ---
 
@@ -108,16 +109,17 @@ release.build-worker-amd64:
     - cargo build --release --package hook0-output-worker --target $TARGET
     - cp target/$TARGET/release/hook0-output-worker artifacts/hook0-output-worker-linux-amd64
 
-release.build-worker-arm64:
-  extends: .build-binary
-  variables:
-    TARGET: aarch64-unknown-linux-gnu
-    CROSS_DEPS: "gcc-aarch64-linux-gnu libc6-dev-arm64-cross"
-  script:
-    - mkdir -p artifacts
-    - export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
-    - cargo build --release --package hook0-output-worker --target $TARGET
-    - cp target/$TARGET/release/hook0-output-worker artifacts/hook0-output-worker-linux-arm64
+# DISABLED: arm64 builds are too slow on CI
+# release.build-worker-arm64:
+#   extends: .build-binary
+#   variables:
+#     TARGET: aarch64-unknown-linux-gnu
+#     CROSS_DEPS: "gcc-aarch64-linux-gnu libc6-dev-arm64-cross"
+#   script:
+#     - mkdir -p artifacts
+#     - export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
+#     - cargo build --release --package hook0-output-worker --target $TARGET
+#     - cp target/$TARGET/release/hook0-output-worker artifacts/hook0-output-worker-linux-arm64
 
 # --- Frontend Build ---
 
@@ -170,12 +172,14 @@ release.containers:
   needs:
     - job: release.build-api-amd64
       artifacts: true
-    - job: release.build-api-arm64
-      artifacts: true
+    # DISABLED: arm64 builds are too slow on CI
+    # - job: release.build-api-arm64
+    #   artifacts: true
     - job: release.build-worker-amd64
       artifacts: true
-    - job: release.build-worker-arm64
-      artifacts: true
+    # DISABLED: arm64 builds are too slow on CI
+    # - job: release.build-worker-arm64
+    #   artifacts: true
     # Wait for tests to pass before releasing
     - job: api.check
       artifacts: false
@@ -196,18 +200,21 @@ release.containers:
     # Prepare build context for API
     - mkdir -p build-context/api
     - cp artifacts/hook0-api-linux-amd64 build-context/api/
-    - cp artifacts/hook0-api-linux-arm64 build-context/api/
+    # DISABLED: arm64 builds are too slow on CI
+    # - cp artifacts/hook0-api-linux-arm64 build-context/api/
     - cp api/Dockerfile.release build-context/api/Dockerfile
 
     # Prepare build context for Worker
     - mkdir -p build-context/worker
     - cp artifacts/hook0-output-worker-linux-amd64 build-context/worker/
-    - cp artifacts/hook0-output-worker-linux-arm64 build-context/worker/
+    # DISABLED: arm64 builds are too slow on CI
+    # - cp artifacts/hook0-output-worker-linux-arm64 build-context/worker/
     - cp output-worker/Dockerfile.release build-context/worker/Dockerfile
 
-    # Build and push API
+    # Build and push API (amd64 only - arm64 disabled)
+    # docker buildx build --platform linux/amd64,linux/arm64 \
     - |
-      docker buildx build --platform linux/amd64,linux/arm64 \
+      docker buildx build --platform linux/amd64 \
         --tag "$CI_REGISTRY_IMAGE/hook0-api:$VERSION" \
         --tag "$CI_REGISTRY_IMAGE/hook0-api:latest" \
         --tag "rbaumier/hook0-api:$VERSION" \
@@ -217,9 +224,10 @@ release.containers:
         --push \
         build-context/api
 
-    # Build and push Output Worker
+    # Build and push Output Worker (amd64 only - arm64 disabled)
+    # docker buildx build --platform linux/amd64,linux/arm64 \
     - |
-      docker buildx build --platform linux/amd64,linux/arm64 \
+      docker buildx build --platform linux/amd64 \
         --tag "$CI_REGISTRY_IMAGE/output-worker:$VERSION" \
         --tag "$CI_REGISTRY_IMAGE/output-worker:latest" \
         --tag "rbaumier/output-worker:$VERSION" \
@@ -240,12 +248,14 @@ release.github:
       artifacts: true
     - job: release.build-api-amd64
       artifacts: true
-    - job: release.build-api-arm64
-      artifacts: true
+    # DISABLED: arm64 builds are too slow on CI
+    # - job: release.build-api-arm64
+    #   artifacts: true
     - job: release.build-worker-amd64
       artifacts: true
-    - job: release.build-worker-arm64
-      artifacts: true
+    # DISABLED: arm64 builds are too slow on CI
+    # - job: release.build-worker-arm64
+    #   artifacts: true
     - job: release.build-frontend
       artifacts: true
     - job: release.containers
