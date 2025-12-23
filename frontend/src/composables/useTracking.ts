@@ -22,8 +22,12 @@ export function useTracking() {
    * @param value - Optional numeric value
    */
   function trackEvent(category: string, action: string, name?: string, value?: number) {
-    if (window._paq) {
-      window._paq.push(['trackEvent', category, action, name, value]);
+    try {
+      if (window._paq) {
+        window._paq.push(['trackEvent', category, action, name, value]);
+      }
+    } catch {
+      // Silent fail - tracking should never break the app
     }
   }
 
@@ -33,8 +37,12 @@ export function useTracking() {
    * @param value - Dimension value
    */
   function setCustomDimension(id: number, value: string) {
-    if (window._paq) {
-      window._paq.push(['setCustomDimension', id, value]);
+    try {
+      if (window._paq) {
+        window._paq.push(['setCustomDimension', id, value]);
+      }
+    } catch {
+      // Silent fail - tracking should never break the app
     }
   }
 
