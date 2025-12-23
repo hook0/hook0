@@ -318,7 +318,7 @@ struct Config {
     #[clap(long, env, group = "client")]
     hook0_client_application_id: Option<Uuid>,
 
-    /// [Hook0 Client] Authentifcation token valid for a Hook0 application that will receive events from this Hook0 instance
+    /// [Hook0 Client] Authentication token valid for a Hook0 application that will receive events from this Hook0 instance
     #[clap(long, env, group = "client")]
     hook0_client_token: Option<String>,
 
@@ -462,7 +462,7 @@ struct Config {
     #[clap(long, env, default_value = "10")]
     max_authorization_time_in_ms: u64,
 
-    /// [Auth] If true, a trace log message containing authorizer context is emitted on each request; defaut is false because this feature implies a small overhead
+    /// [Auth] If true, a trace log message containing authorizer context is emitted on each request; default is false because this feature implies a small overhead
     #[clap(long, env, default_value_t = false)]
     debug_authorizer: bool,
 
@@ -1003,7 +1003,7 @@ async fn main() -> anyhow::Result<()> {
             db: pool,
             pulsar: pulsar_config,
             object_storage: object_storage_config,
-            app_url: config.app_url,
+            app_url: config.app_url.clone(),
             biscuit_private_key,
             mailer,
             #[cfg(feature = "migrate-users-from-keycloak")]
@@ -1047,13 +1047,13 @@ async fn main() -> anyhow::Result<()> {
             cloudflare_turnstile_site_key: config.cloudflare_turnstile_site_key,
             cloudflare_turnstile_secret_key: config.cloudflare_turnstile_secret_key,
         };
-        let hook0_client_api_url = config.hook0_client_api_url;
 
         // Run web server
         let webapp_path = config.webapp_path.clone();
+        let app_url = config.app_url;
         HttpServer::new(move || {
             // Compute default OpenAPI spec
-            let spec = openapi::default_spec(&hook0_client_api_url);
+            let spec = openapi::default_spec(&app_url);
 
             // Prepare user IP extraction middleware
             let get_user_ip = middleware_get_user_ip::GetUserIp {
