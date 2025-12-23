@@ -201,14 +201,14 @@ const config = {
         darkTheme: poimandresTheme,
         additionalLanguages: ["rust", "bash", "json", "yaml", "toml"],
       },
-      announcementBar: {
-        id: "hook0_v2",
-        content:
-          '🚀 Hook0 v2.0 is now available! Check out the <a href="/tutorials/getting-started">updated getting started guide</a> and <a href="https://github.com/hook0/hook0/releases">release notes</a>.',
-        backgroundColor: "#4ade80",
-        textColor: "#ffffff",
-        isCloseable: true,
-      },
+      // announcementBar: {
+      //   id: "hook0_v2",
+      //   content:
+      //     '🚀 Hook0 v2.0 is now available! Check out the <a href="/tutorials/getting-started">updated getting started guide</a> and <a href="https://github.com/hook0/hook0/releases">release notes</a>.',
+      //   backgroundColor: "#4ade80",
+      //   textColor: "#ffffff",
+      //   isCloseable: true,
+      // },
       colorMode: {
         defaultMode: "dark",
         disableSwitch: false,
