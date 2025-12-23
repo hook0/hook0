@@ -344,7 +344,6 @@ async fn handle_message(
                     FROM webhook.request_attempt AS ra
                     INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
                     INNER JOIN event.application AS a ON a.application__id = s.application__id
-                    INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
                     LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = ra.subscription__id
                     LEFT JOIN iam.organization__worker AS ow ON ow.organization__id = a.organization__id AND ow.default = true
                     WHERE ra.request_attempt__id = $1
