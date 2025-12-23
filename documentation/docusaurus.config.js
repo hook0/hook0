@@ -32,7 +32,6 @@ const config = {
   projectName: "hook0",
 
   onBrokenLinks: "throw",
-  onBrokenMarkdownLinks: "warn",
 
   staticDirectories: ["static"],
 
@@ -118,6 +117,9 @@ const config = {
 
   markdown: {
     mermaid: true,
+    hooks: {
+      onBrokenMarkdownLinks: "warn",
+    },
   },
 
   // Matomo analytics script (injected in <head>)
