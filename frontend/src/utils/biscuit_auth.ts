@@ -1,31 +1,10 @@
 import { Biscuit, block, PublicKey, SignatureAlgorithm } from '@biscuit-auth/biscuit-wasm';
-import http, { handleError, Problem, UUID } from '@/http.ts';
+import { UUID } from '@/http.ts';
 import { parse } from 'uuid';
-import { AxiosError, AxiosResponse } from 'axios';
-import { components } from '@/types.ts';
 
-type definitions = components['schemas'];
-export type InstanceConfig = definitions['InstanceConfig'];
-
-let instanceConfigCache: Promise<InstanceConfig> | null = null;
-
-export function getInstanceConfig(): Promise<InstanceConfig> {
-  if (instanceConfigCache) {
-    return instanceConfigCache;
-  } else {
-    const promise = http.get('/instance', {}).then(
-      (res: AxiosResponse<InstanceConfig>) => {
-        return res.data;
-      },
-      (err: AxiosError<AxiosResponse<Problem>>) => {
-        instanceConfigCache = null;
-        return Promise.reject(handleError(err));
-      }
-    );
-    instanceConfigCache = promise;
-    return promise;
-  }
-}
+// Re-export from instance-config for backward compatibility
+export { getInstanceConfig } from './instance-config';
+export type { InstanceConfig } from './instance-config';
 
 export function attenuateBiscuit(
   biscuit_token: string,

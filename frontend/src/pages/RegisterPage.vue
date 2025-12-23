@@ -7,8 +7,18 @@ import { push } from 'notivue';
 import { routes } from '@/routes.ts';
 import router from '@/router.ts';
 import VueTurnstile from 'vue-turnstile';
-import { getInstanceConfig } from '@/utils/biscuit_auth';
+import { getInstanceConfig } from '@/utils/instance-config';
 import { useCardGlow } from '@/composables/useCardGlow';
+import { useTracking } from '@/composables/useTracking';
+import IconCheck from '@/components/icons/IconCheck.vue';
+import IconCheckCircle from '@/components/icons/IconCheckCircle.vue';
+import IconShieldCheck from '@/components/icons/IconShieldCheck.vue';
+import LogoFranceNuage from '@/components/logos/LogoFranceNuage.vue';
+import LogoWoodWing from '@/components/logos/LogoWoodWing.vue';
+import LogoOptery from '@/components/logos/LogoOptery.vue';
+import LogoOkoora from '@/components/logos/LogoOkoora.vue';
+import LogoIcona from '@/components/logos/LogoIcona.vue';
+import LogoActiveAnts from '@/components/logos/LogoActiveAnts.vue';
 
 // Form state
 const email = ref<string>('');
@@ -25,7 +35,22 @@ const turnstile_token = ref<string>('');
 // Mouse tracking for card glow effect
 const { cardRef, mouseX, mouseY, handleMouseMove } = useCardGlow();
 
+// Analytics tracking
+const { trackEvent, trackPageWithDimensions } = useTracking();
+const formStarted = ref<boolean>(false);
+
+function handleFormStart() {
+  if (!formStarted.value) {
+    formStarted.value = true;
+    trackEvent('Signup', 'FormStart', 'register');
+  }
+}
+
 onMounted(() => {
+  // Track page view with custom dimensions
+  trackPageWithDimensions('auth', 'view', 'signup-form');
+  trackEvent('Signup', 'PageView', 'register');
+
   getInstanceConfig()
     .then((instanceConfig) => {
       if (instanceConfig.cloudflare_turnstile_site_key) {
@@ -39,6 +64,9 @@ function submit() {
   if (isLoading.value) return;
   isLoading.value = true;
 
+  // Track form submission attempt
+  trackEvent('Signup', 'FormSubmit', 'register');
+
   register(
     email.value,
     firstName.value,
@@ -46,9 +74,13 @@ function submit() {
     password.value,
     turnstile_token.value !== '' ? turnstile_token.value : undefined
   )
-    .then(() => router.push({ name: routes.CheckEmail }))
+    .then(() => {
+      trackEvent('Signup', 'FormSuccess', 'register');
+      return router.push({ name: routes.CheckEmail });
+    })
     .catch((err) => {
       const problem = handleError(err as AxiosError<AxiosResponse<Problem>>);
+      trackEvent('Signup', 'FormError', problem.title || 'unknown');
       displayError(problem);
     })
     .finally(() => {
@@ -84,7 +116,7 @@ function togglePasswordVisibility() {
     <div class="register-page__content">
       <!-- Logo -->
       <div class="register-page__logo">
-        <img src="/logo.svg" alt="Hook0" class="h-12 w-auto" />
+        <img src="/logo.svg" alt="Hook0" class="w-auto h-12" />
       </div>
 
       <!-- Card -->
@@ -96,8 +128,26 @@ function togglePasswordVisibility() {
       >
         <!-- Header -->
         <div class="register-page__header">
-          <h1 class="register-page__title">Create your account</h1>
-          <p class="register-page__subtitle">Start sending webhooks in minutes</p>
+          <h1 class="register-page__title">Start Your Free Trial</h1>
+          <p class="register-page__subtitle register-page__subtitle--highlight">
+            No Credit Card Required
+          </p>
+
+          <!-- Benefits List -->
+          <ul class="register-page__benefits">
+            <li class="register-page__benefit">
+              <IconCheck />
+              <span>Up to 100 free events/day</span>
+            </li>
+            <li class="register-page__benefit">
+              <IconCheck />
+              <span>Set up in 5 minutes</span>
+            </li>
+            <li class="register-page__benefit">
+              <IconCheck />
+              <span>Cancel anytime</span>
+            </li>
+          </ul>
         </div>
 
         <!-- Form -->
@@ -114,6 +164,7 @@ function togglePasswordVisibility() {
               class="register-page__input"
               autocomplete="email"
               :disabled="isLoading"
+              @focus="handleFormStart"
             />
           </div>
 
@@ -170,7 +221,7 @@ function togglePasswordVisibility() {
                 <svg
                   v-if="!showPassword"
                   xmlns="http://www.w3.org/2000/svg"
-                  class="h-5 w-5"
+                  class="w-5 h-5"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -192,7 +243,7 @@ function togglePasswordVisibility() {
                 <svg
                   v-else
                   xmlns="http://www.w3.org/2000/svg"
-                  class="h-5 w-5"
+                  class="w-5 h-5"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -225,7 +276,7 @@ function togglePasswordVisibility() {
             <span v-if="!isLoading">Create account</span>
             <span v-else class="register-page__loading">
               <svg
-                class="animate-spin h-5 w-5"
+                class="w-5 h-5 animate-spin"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
@@ -260,7 +311,7 @@ function togglePasswordVisibility() {
           Sign in
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            class="h-4 w-4 ml-2"
+            class="ml-2 w-4 h-4"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -279,53 +330,98 @@ function togglePasswordVisibility() {
       <!-- Trust Indicators -->
       <div class="register-page__trust">
         <div class="register-page__trust-item">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-5 w-5 text-green-500"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-              clip-rule="evenodd"
-            />
-          </svg>
+          <IconShieldCheck />
           <span>Open Source, here to last</span>
         </div>
         <div class="register-page__trust-item">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-5 w-5 text-green-500"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-              clip-rule="evenodd"
-            />
-          </svg>
+          <IconCheckCircle />
           <span>No credit card required</span>
         </div>
         <div class="register-page__trust-item">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-5 w-5 text-green-500"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-              clip-rule="evenodd"
-            />
-          </svg>
+          <IconCheckCircle />
           <span>GDPR compliant, EU hosted</span>
         </div>
+      </div>
+
+      <!-- Client Logos -->
+      <div class="register-page__clients">
+        <p class="register-page__clients-label">Trusted by teams at</p>
+        <div class="register-page__clients-logos">
+          <a
+            href="https://github.com/France-Nuage/plateforme"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="register-page__client-logo"
+            title="France Nuage"
+          >
+            <LogoFranceNuage />
+          </a>
+          <a
+            href="https://www.woodwing.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="register-page__client-logo"
+            title="WoodWing"
+          >
+            <LogoWoodWing />
+          </a>
+          <a
+            href="https://www.optery.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="register-page__client-logo"
+            title="Optery"
+          >
+            <LogoOptery />
+          </a>
+          <a
+            href="https://www.icona.it/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="register-page__client-logo"
+            title="Icona"
+          >
+            <LogoIcona />
+          </a>
+          <a
+            href="https://okoora.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="register-page__client-logo"
+            title="Okoora"
+          >
+            <LogoOkoora />
+          </a>
+          <a
+            href="https://www.activeants.com/fr/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="register-page__client-logo"
+            title="ActiveAnts"
+          >
+            <LogoActiveAnts />
+          </a>
+        </div>
+      </div>
+
+      <!-- Testimonial -->
+      <div class="register-page__testimonial">
+        <blockquote class="register-page__testimonial-quote">
+          "Hook0 replaced our homegrown webhook system in a day. Delivery reliability went from 94%
+          to 99.9%."
+        </blockquote>
+        <div class="register-page__testimonial-author">
+          <div class="register-page__testimonial-avatar">M</div>
+          <div class="register-page__testimonial-info">
+            <span class="register-page__testimonial-name">Marc D.</span>
+            <span class="register-page__testimonial-role">CTO, SaaS Startup</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Social Proof -->
+      <div class="register-page__social-proof">
+        <span>Join 500+ companies using Hook0</span>
       </div>
     </div>
   </div>
@@ -437,6 +533,22 @@ function togglePasswordVisibility() {
 
   &__subtitle {
     @apply text-gray-400 text-sm;
+
+    &--highlight {
+      @apply text-green-400 font-medium;
+    }
+  }
+
+  &__benefits {
+    @apply mt-4 space-y-2 text-left;
+  }
+
+  &__benefit {
+    @apply flex items-center gap-2 text-sm text-gray-300;
+
+    svg {
+      @apply flex-shrink-0;
+    }
   }
 
   &__form {
@@ -568,6 +680,78 @@ function togglePasswordVisibility() {
 
   &__trust-item {
     @apply flex items-center gap-2 text-sm text-gray-400;
+  }
+
+  &__social-proof {
+    @apply mt-4 text-center text-sm text-gray-500;
+
+    span {
+      @apply px-3 py-1 rounded-full;
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+    }
+  }
+
+  &__clients {
+    @apply mt-8 text-center;
+  }
+
+  &__clients-label {
+    @apply text-xs text-gray-500 uppercase tracking-wider mb-4;
+  }
+
+  &__clients-logos {
+    @apply flex items-center justify-center gap-x-8 gap-y-4 flex-wrap;
+  }
+
+  &__client-logo {
+    @apply text-gray-400 opacity-60 hover:opacity-100 transition-all;
+    height: 24px;
+    display: flex;
+    align-items: center;
+
+    svg {
+      @apply h-full w-auto;
+    }
+  }
+
+  @media (max-width: 640px) {
+    &__clients-logos {
+      @apply gap-x-6 gap-y-3;
+    }
+
+    &__client-logo {
+      height: 18px;
+    }
+  }
+
+  &__testimonial {
+    @apply mt-8 max-w-md mx-auto text-center;
+  }
+
+  &__testimonial-quote {
+    @apply text-sm text-gray-300 italic leading-relaxed mb-4;
+  }
+
+  &__testimonial-author {
+    @apply flex items-center justify-center gap-3;
+  }
+
+  &__testimonial-avatar {
+    @apply w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold text-white;
+    background: linear-gradient(135deg, theme('colors.indigo.500'), theme('colors.purple.500'));
+  }
+
+  &__testimonial-info {
+    @apply flex flex-col items-start text-left;
+  }
+
+  &__testimonial-name {
+    @apply text-sm font-medium text-white;
+  }
+
+  &__testimonial-role {
+    @apply text-xs text-gray-500;
   }
 }
 

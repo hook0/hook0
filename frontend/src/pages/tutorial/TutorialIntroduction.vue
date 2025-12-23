@@ -9,13 +9,23 @@ import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import { useRouter } from 'vue-router';
 import { routes } from '@/routes.ts';
+import { useTracking } from '@/composables/useTracking';
 
 const router = useRouter();
 
+// Analytics tracking
+const { trackEvent } = useTracking();
+
 function startTutorial() {
+  trackEvent('Tutorial', 'Start');
   return router.push({
     name: routes.TutorialCreateOrganization,
   });
+}
+
+function skipTutorial() {
+  trackEvent('Tutorial', 'Skip');
+  return router.push({ name: routes.Home });
 }
 </script>
 
@@ -60,9 +70,7 @@ function startTutorial() {
       </Hook0CardContentLines>
     </Hook0CardContent>
     <Hook0CardFooter>
-      <Hook0Button class="secondary" type="button" @click="router.push({ name: routes.Home })"
-        >Skip</Hook0Button
-      >
+      <Hook0Button class="secondary" type="button" @click="skipTutorial">Skip</Hook0Button>
       <Hook0Button class="primary shadow-md" type="button" @click="startTutorial"
         >🚀 Start Step 1: Create Your Organization</Hook0Button
       >

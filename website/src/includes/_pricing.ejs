@@ -74,7 +74,7 @@
         <div class="animate-on-scroll flex justify-center mb-12">
             <div class="inline-flex gap-2 p-1.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
                 <button class="pricing-toggle-btn px-6 py-3 rounded-xl text-sm font-medium text-gray-400 border border-transparent
-                               hover:text-white transition-all duration-300 flex items-center gap-2" data-target="cloud">
+                               hover:text-white transition-all duration-300 flex items-center gap-2" data-target="cloud" onclick="trackEvent('Pricing', 'Toggle', 'cloud')">
                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 28 20">
                         <path fill-rule="evenodd" clip-rule="evenodd"
                               d="M21.9173 6.78008C21.1731 3.088 17.9111 0.307739 13.9998 0.307739C10.0884 0.307739 6.82638 3.08802 6.08221 6.78011C2.69016 6.97647 0 9.78942 0 13.2307C0 16.7993 2.89293 19.6922 6.46154 19.6922H21.5385C25.1071 19.6922 28 16.7993 28 13.2307C28 9.78925 25.3096 6.9762 21.9173 6.78008Z"></path>
@@ -82,7 +82,7 @@
                     Cloud
                 </button>
                 <button class="pricing-toggle-btn px-6 py-3 rounded-xl text-sm font-medium text-gray-400 border border-transparent
-                               hover:text-white transition-all duration-300 flex items-center gap-2" data-target="onpremise">
+                               hover:text-white transition-all duration-300 flex items-center gap-2" data-target="onpremise" onclick="trackEvent('Pricing', 'Toggle', 'onpremise')">
                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 26 22">
                         <path fill-rule="evenodd" clip-rule="evenodd"
                               d="M0 3C0 1.34314 1.34315 0 3 0H23C24.6569 0 26 1.34315 26 3V18.4783C26 20.1351 24.6569 21.4783 23 21.4783H3C1.34315 21.4783 0 20.1351 0 18.4783V3ZM7.08947 13.5652L5.73774 12.2959L8.74929 9.044L5.65212 5.81452L6.98165 4.5217L11.1591 8.87765L11.3043 9.01395L11.1892 9.13821L7.08947 13.5652ZM19.5001 14.6957H10.4566V16.9565H19.5001V14.6957Z"></path>
@@ -111,7 +111,7 @@
                         </div>
                     </div>
                     <div class="pricing-card__body flex-1 flex flex-col">
-                        <a href="#top" class="btn btn--primary w-full mb-6">Sign Up</a>
+                        <a href="#top" class="btn btn--primary w-full mb-6" onclick="trackEvent('Pricing', 'Click', 'cloud-developer-signup')">Sign Up</a>
                         <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">What's included</h4>
                         <ul class="pricing-card__features flex-1">
                             <li class="pricing-card__feature">
@@ -161,7 +161,7 @@
                         </div>
                     </div>
                     <div class="pricing-card__body flex-1 flex flex-col">
-                        <a href="<%= locals.subscriptionLinks.cloud.startup %>" class="btn btn--primary w-full mb-6">Subscribe</a>
+                        <a href="<%= locals.subscriptionLinks.cloud.startup %>" class="btn btn--primary w-full mb-6" onclick="trackEvent('Pricing', 'Click', 'cloud-startup-subscribe')">Subscribe</a>
                         <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">What's included</h4>
                         <ul class="pricing-card__features flex-1">
                             <li class="pricing-card__feature">
@@ -217,7 +217,7 @@
                         </p>
                     </div>
                     <div class="pricing-card__body flex-1 flex flex-col">
-                        <a href="<%= locals.subscriptionLinks.cloud.pro %>" class="btn btn--primary w-full mb-6">Subscribe</a>
+                        <a href="<%= locals.subscriptionLinks.cloud.pro %>" class="btn btn--primary w-full mb-6" onclick="trackEvent('Pricing', 'Click', 'cloud-pro-subscribe')">Subscribe</a>
                         <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">What's included</h4>
                         <ul class="pricing-card__features flex-1">
                             <li class="pricing-card__feature">
@@ -271,7 +271,7 @@
                         </div>
                     </div>
                     <div class="pricing-card__body flex-1 flex flex-col">
-                        <a href="<%= locals.meta.contact %>" class="btn btn--secondary w-full mb-6">Contact us</a>
+                        <a href="<%= locals.meta.contact %>" class="btn btn--secondary w-full mb-6" onclick="trackEvent('Pricing', 'Click', 'cloud-enterprise-contact')">Contact us</a>
                         <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">What's included</h4>
                         <ul class="pricing-card__features flex-1">
                             <li class="pricing-card__feature">
@@ -335,7 +335,7 @@
                         </div>
                     </div>
                     <div class="pricing-card__body flex-1 flex flex-col">
-                        <a href="https://documentation.hook0.com/docs/docker-compose" class="btn btn--secondary w-full mb-6">Get installation instructions</a>
+                        <a href="https://documentation.hook0.com/docs/docker-compose" class="btn btn--secondary w-full mb-6" onclick="trackEvent('Pricing', 'Click', 'onprem-selfhosted-install')">Get installation instructions</a>
                         <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">What's included</h4>
                         <ul class="pricing-card__features flex-1">
                             <li class="pricing-card__feature">
@@ -390,7 +390,7 @@
                         </p>
                     </div>
                     <div class="pricing-card__body flex-1 flex flex-col">
-                        <a href="<%= locals.subscriptionLinks.onprem.pro %>" class="btn btn--primary w-full mb-6">Subscribe</a>
+                        <a href="<%= locals.subscriptionLinks.onprem.pro %>" class="btn btn--primary w-full mb-6" onclick="trackEvent('Pricing', 'Click', 'onprem-pro-subscribe')">Subscribe</a>
                         <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">What's included</h4>
                         <ul class="pricing-card__features flex-1">
                             <li class="pricing-card__feature">
@@ -427,7 +427,7 @@
                         </div>
                     </div>
                     <div class="pricing-card__body flex-1 flex flex-col">
-                        <a href="<%= locals.meta.contact %>" class="btn btn--secondary w-full mb-6">Contact us</a>
+                        <a href="<%= locals.meta.contact %>" class="btn btn--secondary w-full mb-6" onclick="trackEvent('Pricing', 'Click', 'onprem-enterprise-contact')">Contact us</a>
                         <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">What's included</h4>
                         <ul class="pricing-card__features flex-1">
                             <li class="pricing-card__feature">

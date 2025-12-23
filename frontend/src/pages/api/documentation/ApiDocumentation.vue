@@ -10,8 +10,12 @@ import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import featureFlags from '@/feature-flags';
 import { getAccessToken } from '@/iam';
+import { useTracking } from '@/composables/useTracking';
 
 const route = useRoute();
+
+// Analytics tracking
+const { trackEvent } = useTracking();
 const swaggerUI = ref<null | SwaggerUI>(null);
 const container = ref<null | HTMLDivElement>(null);
 
@@ -75,6 +79,10 @@ function _load() {
     },
 
     requestInterceptor: (req: SwaggerUI.Request) => {
+      // Track API request from Swagger UI
+      const url = new URL(req.url as string);
+      trackEvent('APIDocs', 'TryRequest', url.pathname);
+
       const accessToken = getAccessToken().value;
       return Object.assign(
         {},

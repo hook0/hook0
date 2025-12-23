@@ -13,6 +13,7 @@ import { Problem, UUID } from '@/http';
 import { Alert } from '@/components/Hook0Alert';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Alert from '@/components/Hook0Alert.vue';
+import { useTracking } from '@/composables/useTracking';
 
 const alert = ref<Alert>({
   visible: false,
@@ -23,6 +24,9 @@ const alert = ref<Alert>({
 
 const router = useRouter();
 const route = useRoute();
+
+// Analytics tracking
+const { trackEvent } = useTracking();
 
 const organizationId = ref<UUID | null>(null);
 const applicationId = ref<UUID | null>(null);
@@ -53,6 +57,7 @@ function cancel() {
 }
 
 function goToApplicationDashboard() {
+  trackEvent('Tutorial', 'Complete');
   return router.push({
     name: routes.ApplicationsDashboard,
     params: { organization_id: organizationId.value as string },

@@ -17,9 +17,13 @@ import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import { push } from 'notivue';
+import { useTracking } from '@/composables/useTracking';
 
 const router = useRouter();
 const route = useRoute();
+
+// Analytics tracking
+const { trackEvent } = useTracking();
 
 interface Props {
   tutorialMode?: boolean;
@@ -41,6 +45,8 @@ function create(e: Event) {
   event_type.value.application_id = route.params.application_id as UUID;
 
   EventTypeService.create(event_type.value).then(async (_resp) => {
+    const eventTypeName = `${event_type.value.service}.${event_type.value.resource_type}.${event_type.value.verb}`;
+    trackEvent('EventType', 'Create', eventTypeName);
     if (props.tutorialMode) {
       emit('tutorial-event-type-created');
     } else {

@@ -1,38 +1,3 @@
-import ApplicationsList from '@/pages/organizations/applications/ApplicationsList.vue';
-import ApplicationsEdit from '@/pages/organizations/applications/ApplicationsEdit.vue';
-import ApplicationsDashboard from '@/pages/organizations/applications/ApplicationsDashboard.vue';
-
-import OrganizationsEdit from '@/pages/organizations/OrganizationsEdit.vue';
-import OrganizationsDashboard from '@/pages/organizations/OrganizationsDashboard.vue';
-
-import ApiDocumentation from '@/pages/api/documentation/ApiDocumentation.vue';
-import Error404 from '@/pages/Error404.vue';
-import Login from '@/pages/LoginPage.vue';
-import Register from '@/pages/RegisterPage.vue';
-import CheckEmail from './pages/CheckEmailPage.vue';
-import EventTypesList from '@/pages/organizations/applications/event_types/EventTypesList.vue';
-import EventTypesNew from '@/pages/organizations/applications/event_types/EventTypesNew.vue';
-import Home from '@/Home.vue';
-import UserSettings from '@/pages/user/UserSettings.vue';
-import SubscriptionsList from '@/pages/organizations/applications/subscriptions/SubscriptionsList.vue';
-import SubscriptionsEdit from '@/pages/organizations/applications/subscriptions/SubscriptionsEdit.vue';
-import LogList from '@/pages/organizations/applications/logs/LogList.vue';
-import ApplicationSecretsList from '@/pages/organizations/applications/application_secrets/ApplicationSecretsList.vue';
-import EventsList from '@/pages/organizations/applications/events/EventsList.vue';
-import EventsDetail from '@/pages/organizations/applications/events/EventsDetail.vue';
-import VerifyUser from '@/pages/user/VerifyEmail.vue';
-import BeginResetPassword from '@/pages/BeginResetPassword.vue';
-import ResetPassword from '@/pages/ResetPassword.vue';
-import ServicesTokenList from '@/pages/organizations/services_token/ServicesTokenList.vue';
-import ServiceTokenView from '@/pages/organizations/services_token/ServiceTokenView.vue';
-import TutorialIntroduction from '@/pages/tutorial/TutorialIntroduction.vue';
-import TutorialCreateOrganization from '@/pages/tutorial/TutorialCreateOrganization.vue';
-import TutorialCreateApplication from '@/pages/tutorial/TutorialCreateApplication.vue';
-import TutorialCreateEventType from '@/pages/tutorial/TutorialCreateEventType.vue';
-import TutorialCreateSubscription from '@/pages/tutorial/TutorialCreateSubscription.vue';
-import TutorialSendEvent from '@/pages/tutorial/TutorialSendEvent.vue';
-import TutorialSuccess from './pages/tutorial/TutorialSuccess.vue';
-
 export type Hook0Routes = string;
 
 export const routes: Record<Hook0Routes, string> = {
@@ -91,82 +56,82 @@ export default [
   {
     name: routes.Home,
     path: '/',
-    component: Home,
+    component: () => import('@/Home.vue'),
   },
   {
     name: routes.Tutorial,
     path: '/tutorial',
-    component: TutorialIntroduction,
+    component: () => import('@/pages/tutorial/TutorialIntroduction.vue'),
     meta: { tutorial: true },
   },
   {
     name: routes.TutorialCreateOrganization,
     path: '/tutorial/organization',
-    component: TutorialCreateOrganization,
+    component: () => import('@/pages/tutorial/TutorialCreateOrganization.vue'),
     meta: { tutorial: true },
   },
   {
     name: routes.TutorialCreateApplication,
     path: '/tutorial/application/organizations/:organization_id',
-    component: TutorialCreateApplication,
+    component: () => import('@/pages/tutorial/TutorialCreateApplication.vue'),
     meta: { tutorial: true },
   },
   {
     name: routes.TutorialCreateEventType,
     path: '/tutorial/event_type/organizations/:organization_id/applications/:application_id',
-    component: TutorialCreateEventType,
+    component: () => import('@/pages/tutorial/TutorialCreateEventType.vue'),
     meta: { tutorial: true },
   },
   {
     name: routes.TutorialCreateSubscription,
     path: '/tutorial/subscription/organizations/:organization_id/applications/:application_id',
-    component: TutorialCreateSubscription,
+    component: () => import('@/pages/tutorial/TutorialCreateSubscription.vue'),
     meta: { tutorial: true },
   },
   {
     name: routes.TutorialSendEvent,
     path: '/tutorial/event/organizations/:organization_id/applications/:application_id',
-    component: TutorialSendEvent,
+    component: () => import('@/pages/tutorial/TutorialSendEvent.vue'),
     meta: { tutorial: true },
   },
   {
     name: routes.TutorialSuccess,
     path: '/tutorial/success/organizations/:organization_id/applications/:application_id',
-    component: TutorialSuccess,
+    component: () => import('@/pages/tutorial/TutorialSuccess.vue'),
   },
   {
     name: routes.Login,
     path: '/login',
-    component: Login,
+    component: () => import('@/pages/LoginPage.vue'),
     meta: { requiresAuth: false },
   },
   {
     name: routes.Register,
     path: '/register',
-    component: Register,
+    component: () => import('@/pages/RegisterPage.vue'),
     meta: { requiresAuth: false },
   },
   {
     name: routes.VerifyEmail,
     path: '/verify-email',
-    component: VerifyUser,
+    component: () => import('@/pages/user/VerifyEmail.vue'),
     meta: { requiresAuth: false },
   },
   {
     name: routes.CheckEmail,
     path: '/check-email',
-    component: CheckEmail,
+    component: () => import('@/pages/CheckEmailPage.vue'),
     meta: { requiresAuth: false },
   },
   {
     name: routes.UserSettings,
     path: '/settings',
-    component: UserSettings,
+    component: () => import('@/pages/user/UserSettings.vue'),
   },
   {
     name: routes.BeginResetPassword,
     path: '/begin-reset-password',
-    component: BeginResetPassword,
+    component: () => import('@/pages/BeginResetPassword.vue'),
     meta: {
       requiresAuth: false,
       redirectIfLoggedIn: false,
@@ -175,7 +140,7 @@ export default [
   {
     name: routes.ResetPassword,
     path: '/reset-password',
-    component: ResetPassword,
+    component: () => import('@/pages/ResetPassword.vue'),
     meta: {
       requiresAuth: false,
       redirectIfLoggedIn: false,
@@ -184,113 +149,117 @@ export default [
   {
     name: routes.OrganizationsNew,
     path: '/organizations/new',
-    component: OrganizationsEdit,
+    component: () => import('@/pages/organizations/OrganizationsEdit.vue'),
   },
   {
     name: routes.ServicesTokenList,
     path: '/organizations/:organization_id/services_tokens',
-    component: ServicesTokenList,
+    component: () => import('@/pages/organizations/services_token/ServicesTokenList.vue'),
   },
   {
     name: routes.ServiceTokenView,
     path: '/organizations/:organization_id/services_tokens/:service_token_id',
-    component: ServiceTokenView,
+    component: () => import('@/pages/organizations/services_token/ServiceTokenView.vue'),
   },
   {
     name: routes.OrganizationsDetail,
     path: '/organizations/:organization_id/settings',
-    component: OrganizationsEdit,
+    component: () => import('@/pages/organizations/OrganizationsEdit.vue'),
   },
   {
     name: routes.OrganizationsDashboard,
     path: '/organizations/:organization_id/dashboard',
-    component: OrganizationsDashboard,
+    component: () => import('@/pages/organizations/OrganizationsDashboard.vue'),
   },
   {
     name: routes.ApplicationsList,
     path: '/organizations/:organization_id/applications',
-    component: ApplicationsList,
+    component: () => import('@/pages/organizations/applications/ApplicationsList.vue'),
   },
   {
     name: routes.ApplicationsNew,
     path: '/organizations/:organization_id/applications/new',
-    component: ApplicationsEdit,
+    component: () => import('@/pages/organizations/applications/ApplicationsEdit.vue'),
   },
   {
     name: routes.ApplicationsDashboard,
     path: '/organizations/:organization_id/applications/:application_id/dashboard',
-    component: ApplicationsDashboard,
+    component: () => import('@/pages/organizations/applications/ApplicationsDashboard.vue'),
   },
   {
     name: routes.ApplicationsDetail,
     path: '/organizations/:organization_id/applications/:application_id/settings',
-    component: ApplicationsEdit,
+    component: () => import('@/pages/organizations/applications/ApplicationsEdit.vue'),
   },
 
   {
     name: routes.ApplicationSecretsList,
     path: '/organizations/:organization_id/applications/:application_id/application_secrets',
-    component: ApplicationSecretsList,
+    component: () =>
+      import('@/pages/organizations/applications/application_secrets/ApplicationSecretsList.vue'),
   },
 
   {
     name: routes.EventsList,
     path: '/organizations/:organization_id/applications/:application_id/events',
-    component: EventsList,
+    component: () => import('@/pages/organizations/applications/events/EventsList.vue'),
   },
 
   {
     name: routes.EventsDetail,
     path: '/organizations/:organization_id/applications/:application_id/events/:event_id',
-    component: EventsDetail,
+    component: () => import('@/pages/organizations/applications/events/EventsDetail.vue'),
   },
 
   {
     name: routes.EventTypesList,
     path: '/organizations/:organization_id/applications/:application_id/event_types',
-    component: EventTypesList,
+    component: () => import('@/pages/organizations/applications/event_types/EventTypesList.vue'),
   },
   {
     // EventTypes are immutable, they can only be created or removed
     name: routes.EventTypesNew,
     path: '/organizations/:organization_id/applications/:application_id/event_types/new',
-    component: EventTypesNew,
+    component: () => import('@/pages/organizations/applications/event_types/EventTypesNew.vue'),
   },
 
   {
     name: routes.SubscriptionsList,
     path: '/organizations/:organization_id/applications/:application_id/subscriptions',
-    component: SubscriptionsList,
+    component: () =>
+      import('@/pages/organizations/applications/subscriptions/SubscriptionsList.vue'),
   },
   {
     name: routes.SubscriptionsNew,
     path: '/organizations/:organization_id/applications/:application_id/subscriptions/new',
-    component: SubscriptionsEdit,
+    component: () =>
+      import('@/pages/organizations/applications/subscriptions/SubscriptionsEdit.vue'),
   },
   {
     name: routes.SubscriptionsDetail,
     path: '/organizations/:organization_id/applications/:application_id/subscriptions/:subscription_id',
-    component: SubscriptionsEdit,
+    component: () =>
+      import('@/pages/organizations/applications/subscriptions/SubscriptionsEdit.vue'),
   },
   {
     name: routes.LogsList,
     path: '/organizations/:organization_id/applications/:application_id/logs',
-    component: LogList,
+    component: () => import('@/pages/organizations/applications/logs/LogList.vue'),
   },
 
   {
     name: routes.APIDocumentationForApplication,
     path: '/organizations/:organization_id/applications/:application_id/documentation',
-    component: ApiDocumentation,
+    component: () => import('@/pages/api/documentation/ApiDocumentation.vue'),
   },
   {
     name: routes.APIDocumentation,
     path: '/api/documentation',
-    component: ApiDocumentation,
+    component: () => import('@/pages/api/documentation/ApiDocumentation.vue'),
   },
   {
     name: routes.Error404,
     path: '/(.*)',
-    component: Error404,
+    component: () => import('@/pages/Error404.vue'),
   },
 ];
