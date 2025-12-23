@@ -12,6 +12,12 @@ import { useCardGlow } from '@/composables/useCardGlow';
 import IconCheck from '@/components/icons/IconCheck.vue';
 import IconCheckCircle from '@/components/icons/IconCheckCircle.vue';
 import IconShieldCheck from '@/components/icons/IconShieldCheck.vue';
+import LogoFranceNuage from '@/components/logos/LogoFranceNuage.vue';
+import LogoWoodWing from '@/components/logos/LogoWoodWing.vue';
+import LogoOptery from '@/components/logos/LogoOptery.vue';
+import LogoOkoora from '@/components/logos/LogoOkoora.vue';
+import LogoIcona from '@/components/logos/LogoIcona.vue';
+import LogoActiveAnts from '@/components/logos/LogoActiveAnts.vue';
 
 // Form state
 const email = ref<string>('');
@@ -87,7 +93,7 @@ function togglePasswordVisibility() {
     <div class="register-page__content">
       <!-- Logo -->
       <div class="register-page__logo">
-        <img src="/logo.svg" alt="Hook0" class="h-12 w-auto" />
+        <img src="/logo.svg" alt="Hook0" class="w-auto h-12" />
       </div>
 
       <!-- Card -->
@@ -135,6 +141,7 @@ function togglePasswordVisibility() {
               class="register-page__input"
               autocomplete="email"
               :disabled="isLoading"
+              autofocus
             />
           </div>
 
@@ -191,7 +198,7 @@ function togglePasswordVisibility() {
                 <svg
                   v-if="!showPassword"
                   xmlns="http://www.w3.org/2000/svg"
-                  class="h-5 w-5"
+                  class="w-5 h-5"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -213,7 +220,7 @@ function togglePasswordVisibility() {
                 <svg
                   v-else
                   xmlns="http://www.w3.org/2000/svg"
-                  class="h-5 w-5"
+                  class="w-5 h-5"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -246,7 +253,7 @@ function togglePasswordVisibility() {
             <span v-if="!isLoading">Create account</span>
             <span v-else class="register-page__loading">
               <svg
-                class="animate-spin h-5 w-5"
+                class="w-5 h-5 animate-spin"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
@@ -281,7 +288,7 @@ function togglePasswordVisibility() {
           Sign in
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            class="h-4 w-4 ml-2"
+            class="ml-2 w-4 h-4"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -317,27 +324,60 @@ function togglePasswordVisibility() {
       <div class="register-page__clients">
         <p class="register-page__clients-label">Trusted by teams at</p>
         <div class="register-page__clients-logos">
-          <div class="register-page__client-logo">
-            <svg viewBox="0 0 120 40" fill="currentColor" aria-hidden="true">
-              <rect x="10" y="12" width="16" height="16" rx="3" />
-              <rect x="32" y="16" width="60" height="4" rx="2" />
-              <rect x="32" y="24" width="40" height="3" rx="1.5" />
-            </svg>
-          </div>
-          <div class="register-page__client-logo">
-            <svg viewBox="0 0 120 40" fill="currentColor" aria-hidden="true">
-              <circle cx="20" cy="20" r="10" />
-              <rect x="36" y="14" width="70" height="5" rx="2.5" />
-              <rect x="36" y="22" width="50" height="4" rx="2" />
-            </svg>
-          </div>
-          <div class="register-page__client-logo">
-            <svg viewBox="0 0 120 40" fill="currentColor" aria-hidden="true">
-              <polygon points="20,8 30,28 10,28" />
-              <rect x="38" y="15" width="55" height="5" rx="2.5" />
-              <rect x="38" y="23" width="35" height="4" rx="2" />
-            </svg>
-          </div>
+          <a
+            href="https://github.com/France-Nuage/plateforme"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="register-page__client-logo"
+            title="France Nuage"
+          >
+            <LogoFranceNuage />
+          </a>
+          <a
+            href="https://www.woodwing.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="register-page__client-logo"
+            title="WoodWing"
+          >
+            <LogoWoodWing />
+          </a>
+          <a
+            href="https://www.optery.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="register-page__client-logo"
+            title="Optery"
+          >
+            <LogoOptery />
+          </a>
+          <a
+            href="https://www.icona.it/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="register-page__client-logo"
+            title="Icona"
+          >
+            <LogoIcona />
+          </a>
+          <a
+            href="https://okoora.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="register-page__client-logo"
+            title="Okoora"
+          >
+            <LogoOkoora />
+          </a>
+          <a
+            href="https://www.activeants.com/fr/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="register-page__client-logo"
+            title="ActiveAnts"
+          >
+            <LogoActiveAnts />
+          </a>
         </div>
       </div>
 
@@ -638,16 +678,27 @@ function togglePasswordVisibility() {
   }
 
   &__clients-logos {
-    @apply flex items-center justify-center gap-8 flex-wrap;
+    @apply flex items-center justify-center gap-x-8 gap-y-4 flex-wrap;
   }
 
   &__client-logo {
-    @apply text-gray-600 opacity-60 hover:opacity-80 transition-opacity;
-    width: 100px;
-    height: 32px;
+    @apply text-gray-400 opacity-60 hover:opacity-100 transition-all;
+    height: 24px;
+    display: flex;
+    align-items: center;
 
     svg {
-      @apply w-full h-full;
+      @apply h-full w-auto;
+    }
+  }
+
+  @media (max-width: 640px) {
+    &__clients-logos {
+      @apply gap-x-6 gap-y-3;
+    }
+
+    &__client-logo {
+      height: 18px;
     }
   }
 
