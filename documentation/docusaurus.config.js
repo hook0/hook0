@@ -191,7 +191,7 @@ const config = {
             className: "navbar__item--no-external-icon",
           },
           {
-            href: "https://www.hook0.com/sign_up",
+            href: "https://app.hook0.com/register",
             label: "Get Started →",
             position: "right",
             className: "navbar__item--primary navbar__item--no-external-icon",
