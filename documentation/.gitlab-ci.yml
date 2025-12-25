@@ -1,5 +1,5 @@
 documentation.build:
-  stage: documentation
+  stage: build
   image: node:${NODE_VERSION}
   cache:
     key: ${CI_COMMIT_REF_SLUG}-docs
@@ -21,7 +21,7 @@ documentation.build:
         - documentation/**/*
 
 pages:
-  stage: documentation
+  stage: release
   image: alpine:3.23
   needs:
     - documentation.build
