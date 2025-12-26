@@ -122,7 +122,14 @@ const config = {
     },
   },
 
+  // Client modules for Matomo advanced tracking
+  clientModules: process.env.DOCUMENTATION_MATOMO_URL
+    ? [require.resolve("./src/matomo/tracking.js")]
+    : [],
+
   // Matomo analytics script (injected in <head>)
+  // Uses same configuration as website (piwik.php/piwik.js)
+  // Site ID 3 is for documentation
   headTags:
     process.env.DOCUMENTATION_MATOMO_URL && process.env.DOCUMENTATION_MATOMO_SITE_ID
       ? [
@@ -131,14 +138,15 @@ const config = {
             attributes: {},
             innerHTML: `
               var _paq = window._paq = window._paq || [];
-              _paq.push(['trackPageView']);
+              /* Custom dimension 1 = Content Type (Diataxis) - set by tracking.js */
               _paq.push(['enableLinkTracking']);
+              _paq.push(['setLinkTrackingTimer', 500]);
               (function() {
                 var u="${process.env.DOCUMENTATION_MATOMO_URL}";
-                _paq.push(['setTrackerUrl', u+'matomo.php']);
+                _paq.push(['setTrackerUrl', u+'piwik.php']);
                 _paq.push(['setSiteId', '${process.env.DOCUMENTATION_MATOMO_SITE_ID}']);
                 var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
-                g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
+                g.async=true; g.src=u+'piwik.js'; s.parentNode.insertBefore(g,s);
               })();
             `,
           },
