@@ -195,9 +195,6 @@ function sendPerformanceMetrics() {
   if (entries.length > 0) {
     const timing = entries[0];
     const pageLoadTime = Math.round(timing.loadEventEnd - timing.startTime);
-    const dnsTime = Math.round(timing.domainLookupEnd - timing.domainLookupStart);
-    const connectTime = Math.round(timing.connectEnd - timing.connectStart);
-    const responseTime = Math.round(timing.responseEnd - timing.requestStart);
     const domInteractive = Math.round(timing.domInteractive - timing.startTime);
 
     if (pageLoadTime > 0) {
