@@ -25,9 +25,6 @@ export default function NotFoundWrapper(props) {
         referrer + ' -> ' + pathname,
         1,
       ]);
-
-      // Also track as page view so it appears in page reports
-      window._paq.push(['trackPageView']);
     }
   }, []);
 
