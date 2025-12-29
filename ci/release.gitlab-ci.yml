@@ -217,10 +217,10 @@ release.containers:
       docker buildx build --platform linux/amd64 \
         --tag "$CI_REGISTRY_IMAGE/hook0-api:$VERSION" \
         --tag "$CI_REGISTRY_IMAGE/hook0-api:latest" \
-        --tag "rbaumier/hook0-api:$VERSION" \
-        --tag "rbaumier/hook0-api:latest" \
-        --tag "ghcr.io/rbaumier/hook0-api:$VERSION" \
-        --tag "ghcr.io/rbaumier/hook0-api:latest" \
+        --tag "hook0/hook0-api:$VERSION" \
+        --tag "hook0/hook0-api:latest" \
+        --tag "ghcr.io/hook0/hook0-api:$VERSION" \
+        --tag "ghcr.io/hook0/hook0-api:latest" \
         --push \
         build-context/api
 
@@ -230,10 +230,10 @@ release.containers:
       docker buildx build --platform linux/amd64 \
         --tag "$CI_REGISTRY_IMAGE/output-worker:$VERSION" \
         --tag "$CI_REGISTRY_IMAGE/output-worker:latest" \
-        --tag "rbaumier/output-worker:$VERSION" \
-        --tag "rbaumier/output-worker:latest" \
-        --tag "ghcr.io/rbaumier/output-worker:$VERSION" \
-        --tag "ghcr.io/rbaumier/output-worker:latest" \
+        --tag "hook0/output-worker:$VERSION" \
+        --tag "hook0/output-worker:latest" \
+        --tag "ghcr.io/hook0/output-worker:$VERSION" \
+        --tag "ghcr.io/hook0/output-worker:latest" \
         --push \
         build-context/worker
 
@@ -273,17 +273,17 @@ release.github:
 
       | Image | DockerHub | GHCR | GitLab Registry |
       |-------|-----------|------|-----------------|
-      | API | `rbaumier/hook0-api:${VERSION}` | `ghcr.io/rbaumier/hook0-api:${VERSION}` | `registry.gitlab.com/hook0/hook0/hook0-api:${VERSION}` |
-      | Worker | `rbaumier/output-worker:${VERSION}` | `ghcr.io/rbaumier/output-worker:${VERSION}` | `registry.gitlab.com/hook0/hook0/output-worker:${VERSION}` |
+      | API | `hook0/hook0-api:${VERSION}` | `ghcr.io/hook0/hook0-api:${VERSION}` | `registry.gitlab.com/hook0/hook0/hook0-api:${VERSION}` |
+      | Worker | `hook0/output-worker:${VERSION}` | `ghcr.io/hook0/output-worker:${VERSION}` | `registry.gitlab.com/hook0/hook0/output-worker:${VERSION}` |
 
       ```bash
       # Pull from DockerHub
-      docker pull rbaumier/hook0-api:${VERSION}
-      docker pull rbaumier/output-worker:${VERSION}
+      docker pull hook0/hook0-api:${VERSION}
+      docker pull hook0/output-worker:${VERSION}
 
       # Pull from GHCR
-      docker pull ghcr.io/rbaumier/hook0-api:${VERSION}
-      docker pull ghcr.io/rbaumier/output-worker:${VERSION}
+      docker pull ghcr.io/hook0/hook0-api:${VERSION}
+      docker pull ghcr.io/hook0/output-worker:${VERSION}
 
       # Pull from GitLab Registry
       docker pull registry.gitlab.com/hook0/hook0/hook0-api:${VERSION}
@@ -292,7 +292,7 @@ release.github:
       EOF
     - sed -i "s/\${VERSION}/$VERSION/g" artifacts/RELEASE_NOTES.md
     - echo "=== Creating GitHub Release ==="
-    - gh release create $CI_COMMIT_TAG --repo rbaumier/hook0-release-test --title "Release $CI_COMMIT_TAG" --notes-file artifacts/RELEASE_NOTES.md artifacts/*
+    - gh release create $CI_COMMIT_TAG --repo hook0/hook0-release-test --title "Release $CI_COMMIT_TAG" --notes-file artifacts/RELEASE_NOTES.md artifacts/*
 
 # =============================================================================
 # Manual Release Jobs (master branch only)

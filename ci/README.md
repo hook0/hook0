@@ -77,10 +77,9 @@ Tag pipeline triggered (vX.Y.Z)
 - `frontend-dist.tar.gz`
 
 ### Docker Images
-- `rbaumier/hook0-api:<version>` (DockerHub)
-- `rbaumier/output-worker:<version>` (DockerHub)
-- `ghcr.io/rbaumier/hook0-api:<version>` (GitHub Container Registry)
-- `ghcr.io/rbaumier/output-worker:<version>` (GitHub Container Registry)
+- `hook0/hook0-api:<version>` (DockerHub)
+- `hook0/output-worker:<version>` (DockerHub)
+- `ghcr.io/hook0/hook0-api:<version>` (GitHub Container Registry)
+- `ghcr.io/hook0/output-worker:<version>` (GitHub Container Registry)
 - `$CI_REGISTRY_IMAGE/hook0-api:<version>` (GitLab Registry)
 - `$CI_REGISTRY_IMAGE/output-worker:<version>` (GitLab Registry)
-
