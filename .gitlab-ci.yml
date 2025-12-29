@@ -40,6 +40,7 @@ include:
   # - local: "documentation/.gitlab-ci.yml"
   - local: "ci/semver-checks.gitlab-ci.yml"
   - local: "ci/release.gitlab-ci.yml"
+  - local: "ci/release-sdk.gitlab-ci.yml"
 
 osv_dependency_scan:
   stage: test
