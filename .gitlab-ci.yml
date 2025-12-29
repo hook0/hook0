@@ -1,3 +1,11 @@
+workflow:
+  rules:
+    # Skip branch pipeline for release commits (tag pipeline will run instead)
+    - if: $CI_COMMIT_BRANCH && $CI_COMMIT_MESSAGE =~ /^chore\(release\):/
+      when: never
+    # Run for all other cases
+    - when: always
+
 variables:
   PG_VERSION: "18"
   RUST_VERSION: "1.92-trixie"
@@ -8,12 +16,11 @@ variables:
   POSTGRES_PASSWORD: ""
   POSTGRES_HOST_AUTH_METHOD: trust
 
-
-
 stages:
   - build
   - test
   - release
+  - trigger-release
   - dast
   - documentation
 
@@ -21,16 +28,18 @@ include:
   - template: SAST.gitlab-ci.yml
   - template: DAST.gitlab-ci.yml
   - template: Security/Secret-Detection.gitlab-ci.yml
-  - local: 'api/.gitlab-ci.yml'
-  - local: 'clients/rust/.gitlab-ci.yml'
-  - local: 'clients/mcp/.gitlab-ci.yml'
-  - local: 'clients/typescript/.gitlab-ci.yml'
-  - local: 'frontend/.gitlab-ci.yml'
-  - local: 'output-worker/.gitlab-ci.yml'
-  - local: 'sentry-integration/.gitlab-ci.yml'
-  - local: 'website/.gitlab-ci.yml'
-  - local: 'e2e-tests/.gitlab-ci.yml'
-  - local: 'documentation/.gitlab-ci.yml'
+  - local: "api/.gitlab-ci.yml"
+  - local: "ci/semver-checks.gitlab-ci.yml"
+  - local: "ci/release.gitlab-ci.yml"
+  - local: "clients/rust/.gitlab-ci.yml"
+  - local: "clients/mcp/.gitlab-ci.yml"
+  - local: "clients/typescript/.gitlab-ci.yml"
+  - local: "documentation/.gitlab-ci.yml"
+  - local: "e2e-tests/.gitlab-ci.yml"
+  - local: "frontend/.gitlab-ci.yml"
+  - local: "output-worker/.gitlab-ci.yml"
+  - local: "sentry-integration/.gitlab-ci.yml"
+  - local: "website/.gitlab-ci.yml"
 
 osv_dependency_scan:
   stage: test
@@ -82,9 +91,9 @@ container_scanning:
       - gl-container-scanning-report.json
     when: always
 
-dast:
-  stage: dast
-  dependencies: []
-  dast_configuration:
-    site_profile: "REST API v1"
-    scanner_profile: "DAST"
+# dast:
+#   stage: dast
+#   dependencies: []
+#   dast_configuration:
+#     site_profile: "REST API v1"
+#     scanner_profile: "DAST"

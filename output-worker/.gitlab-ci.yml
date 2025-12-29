@@ -19,6 +19,8 @@ output_worker.check:
   dependencies: []
   image: rust:$RUST_VERSION
   rules:
+    # Always run on release tags
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
     - changes:
         - output-worker/**/*
         - sentry-integration/**/*
