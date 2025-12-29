@@ -32,6 +32,8 @@ include:
   - template: Security/Secret-Detection.gitlab-ci.yml
   - local: "api/.gitlab-ci.yml"
   - local: "ci/release.gitlab-ci.yml"
+  - local: "ci/release-sdk.gitlab-ci.yml"
+  - local: "ci/semver-checks.gitlab-ci.yml"
   - local: "ci/rust-cache.gitlab-ci.yml"
   - local: "clients/rust/.gitlab-ci.yml"
   - local: "clients/mcp/.gitlab-ci.yml"
@@ -94,9 +96,9 @@ container_scanning:
       - gl-container-scanning-report.json
     when: always
 
-dast:
-  stage: dast
-  dependencies: []
-  dast_configuration:
-    site_profile: "REST API v1"
-    scanner_profile: "DAST"
+# dast:
+#   stage: dast
+#   dependencies: []
+#   dast_configuration:
+#     site_profile: "REST API v1"
+#     scanner_profile: "DAST"

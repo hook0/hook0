@@ -83,3 +83,20 @@ Tag pipeline triggered (vX.Y.Z)
 - `ghcr.io/hook0/output-worker:<version>` (GitHub Container Registry)
 - `$CI_REGISTRY_IMAGE/hook0-api:<version>` (GitLab Registry)
 - `$CI_REGISTRY_IMAGE/output-worker:<version>` (GitLab Registry)
+
+## SDK Release Process
+
+SDK releases are independent from main releases and publish the TypeScript and Rust clients.
+
+1. On the master branch pipeline, find the manual jobs in `trigger-release` stage:
+   - `sdk-release:patch` - Bumps patch version (1.0.0 → 1.0.1)
+   - `sdk-release:minor` - Bumps minor version (1.0.0 → 1.1.0)
+   - `sdk-release:major` - Bumps major version (1.0.0 → 2.0.0)
+2. Click the play button on the desired release type
+3. The job will:
+   - Bump versions in clients/rust/Cargo.toml and clients/typescript/package.json
+   - Create a commit with the version bump
+   - Create and push a git tag (e.g., sdk-v1.0.1)
+4. The tag triggers the SDK release pipeline which:
+   - Publishes `hook0-client` to npm
+   - Publishes `hook0-client` to crates.io
