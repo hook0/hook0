@@ -254,6 +254,18 @@ locals.footerLinks = {
       { label: 'Media Kit', href: 'https://www.hook0.com/mediakit' },
     ],
   },
+  guides: {
+    title: 'Guides',
+    items: [
+      { label: 'What is hook0?', href: 'https://documentation.hook0.com/explanation/what-is-hook0', docPath: '/explanation/what-is-hook0', icon: 'book' },
+      { label: 'Getting started', href: 'https://documentation.hook0.com/tutorials/getting-started', docPath: '/tutorials/getting-started', icon: 'bolt' },
+      { label: 'Your First Webhook', href: 'https://documentation.hook0.com/tutorials/first-webhook-integration', docPath: '/tutorials/first-webhook-integration', icon: 'code' },
+      { label: 'Events & Subscriptions', href: 'https://documentation.hook0.com/tutorials/event-types-subscriptions', docPath: '/tutorials/event-types-subscriptions', icon: 'api' },
+      { label: 'Authentication', href: 'https://documentation.hook0.com/tutorials/webhook-authentication', docPath: '/tutorials/webhook-authentication', icon: 'server' },
+      { label: 'Debugging Deliveries', href: 'https://documentation.hook0.com/how-to-guides/debug-failed-webhooks', docPath: '/how-to-guides/debug-failed-webhooks', icon: 'status' },
+      { label: 'Securing Endpoints', href: 'https://documentation.hook0.com/how-to-guides/secure-webhook-endpoints', docPath: '/how-to-guides/secure-webhook-endpoints', icon: 'conduct' },
+    ],
+  },
   developers: {
     title: 'Developers',
     items: [
