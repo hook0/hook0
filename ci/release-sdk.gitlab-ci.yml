@@ -1,0 +1,90 @@
+# =============================================================================
+# SDK Release Pipeline
+# =============================================================================
+# Triggered by tags matching sdk-vX.Y.Z (e.g., sdk-v1.0.0, sdk-v1.2.3)
+# Publishes hook0-client to:
+#   - npm (TypeScript SDK)
+#   - crates.io (Rust SDK)
+# =============================================================================
+
+.sdk-release-rules:
+  rules:
+    # Matches SDK tags: sdk-v1.0.0, sdk-v2.1.3 (strict semver after sdk-v prefix)
+    - if: $CI_COMMIT_TAG =~ /^sdk-v\d+\.\d+\.\d+$/
+
+# --- Publish to npm ---
+
+sdk-release.npm:
+  extends: .sdk-release-rules
+  stage: release
+  image: node:$NODE_VERSION
+  variables:
+    VERSION: ${CI_COMMIT_TAG#sdk-v}
+  script:
+    - cd clients/typescript
+    - npm ci
+    - npm run build
+    - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
+    - npm publish --access public
+    - echo "=== Published hook0-client@${VERSION} to npm ==="
+
+# --- Publish to crates.io ---
+
+sdk-release.cargo:
+  extends: .sdk-release-rules
+  stage: release
+  image: rust:$RUST_VERSION
+  variables:
+    VERSION: ${CI_COMMIT_TAG#sdk-v}
+  script:
+    - cd clients/rust
+    - cargo publish --token "${CARGO_TOKEN}"
+    - echo "=== Published hook0-client@${VERSION} to crates.io ==="
+
+# =============================================================================
+# Manual SDK Release Jobs (master branch only)
+# =============================================================================
+
+.sdk-release-trigger:
+  stage: trigger-release
+  image: alpine:latest
+  allow_failure: true
+  rules:
+    # Don't show on SDK tag pipelines (release already in progress)
+    - if: $CI_COMMIT_TAG =~ /^sdk-v/
+      when: never
+    # Don't show on main release tag pipelines
+    - if: $CI_COMMIT_TAG
+      when: never
+    # TODO: uncomment for production
+    # - if: $CI_COMMIT_BRANCH == "master"
+    #   when: manual
+    - when: manual
+  before_script:
+    # Install tools
+    - apk add --no-cache jq git sed
+    # Configure git for push (requires CI variable GITLAB_RELEASE_TOKEN with write_repository scope)
+    - git config user.email "ci@hook0.com"
+    - git config user.name "Hook0 CI"
+    - git remote set-url origin "https://oauth2:${GITLAB_RELEASE_TOKEN}@gitlab.com/${CI_PROJECT_PATH}.git"
+    # Disable LFS hooks (not needed for release, and git-lfs is not installed)
+    - rm -f .git/hooks/pre-push .git/hooks/post-commit
+    # Fetch all tags and checkout branch (GitLab CI clones in detached HEAD)
+    - git fetch --tags origin $CI_COMMIT_REF_NAME
+    - git checkout $CI_COMMIT_REF_NAME
+    - git reset --hard origin/$CI_COMMIT_REF_NAME
+
+sdk-release:patch:
+  extends: .sdk-release-trigger
+  script:
+    - ./ci/pre-release-sdk.sh patch
+
+sdk-release:minor:
+  extends: .sdk-release-trigger
+  script:
+    - ./ci/pre-release-sdk.sh minor
+
+sdk-release:major:
+  extends: .sdk-release-trigger
+  script:
+    - ./ci/pre-release-sdk.sh major
