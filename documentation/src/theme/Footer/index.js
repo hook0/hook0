@@ -13,6 +13,13 @@ const sharedSocial = sharedData.social;
 // Transform shared data for Docusaurus (use docPath for internal links when available)
 const footerLinks = {
   about: sharedFooterLinks.about,
+  guides: {
+    ...sharedFooterLinks.guides,
+    items: sharedFooterLinks.guides.items.map(item => ({
+      ...item,
+      to: item.docPath, // Use docPath for internal Docusaurus routing
+    })),
+  },
   developers: {
     ...sharedFooterLinks.developers,
     items: sharedFooterLinks.developers.items.map(item => ({
@@ -132,6 +139,7 @@ export default function Footer() {
 
           {/* Link Columns */}
           <FooterColumn {...footerLinks.about} />
+          <FooterColumn {...footerLinks.guides} />
           <FooterColumn {...footerLinks.developers} />
           <FooterColumn {...footerLinks.community} />
         </div>
