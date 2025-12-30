@@ -1,4 +1,5 @@
 client.rust.check:
+  extends: .rust-cache-pull-only
   stage: test
   dependencies: []
   image: rust:$RUST_VERSION
@@ -21,6 +22,7 @@ client.rust.check:
     - cargo test --all-targets --no-default-features --features reqwest-rustls-tls-webpki-roots,producer
 
 client.rust.semver-checks:
+  extends: .rust-cache-pull-only
   stage: test
   dependencies: []
   image: rust:$RUST_VERSION

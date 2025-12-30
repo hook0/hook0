@@ -16,6 +16,7 @@ include:
 
 
 api.check:
+  extends: .rust-cache-pull-only
   stage: test
   dependencies: []
   image: rust:$RUST_VERSION

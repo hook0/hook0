@@ -63,7 +63,9 @@ release.verify-versions:
       echo "=========================================="
 
 .build-binary:
-  extends: .release-rules
+  extends:
+    - .release-rules
+    - .rust-cache-pull-only
   stage: build
   image: rust:$RUST_VERSION
   timeout: 3h

@@ -1,4 +1,5 @@
 semver-checks:
+  extends: .rust-cache-pull-only
   stage: test
   image: rust:$RUST_VERSION
   variables:
