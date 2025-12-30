@@ -38,7 +38,6 @@ include:
   - local: "website/.gitlab-ci.yml"
   - local: "e2e-tests/.gitlab-ci.yml"
   # - local: "documentation/.gitlab-ci.yml"
-  - local: "ci/semver-checks.gitlab-ci.yml"
   - local: "ci/release.gitlab-ci.yml"
   - local: "ci/release-sdk.gitlab-ci.yml"
 
