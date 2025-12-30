@@ -1,4 +1,7 @@
 .release-rules:
+  variables:
+    GIT_CLIFF_VERSION: "2.7.0"
+    CARGO_RELEASE_VERSION: "0.25.17"
   rules:
     # Matches strict semver tags: v1.0.0, v2.1.3 (no suffixes)
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
@@ -10,7 +13,7 @@ release.verify-versions:
   stage: build
   image: alpine:latest
   before_script:
-    - apk add --no-cache grep sed
+    - apk add --no-cache jq
   script:
     - |
       # Extract version from git tag (remove 'v' prefix)
@@ -26,7 +29,7 @@ release.verify-versions:
       echo "Worker version: $WORKER_VERSION"
 
       # Get version from frontend/package.json
-      FRONTEND_VERSION=$(grep '"version"' frontend/package.json | head -1 | sed 's/.*"version": "\([^"]*\)".*/\1/')
+      FRONTEND_VERSION=$(jq -r '.version' frontend/package.json)
       echo "Frontend version: $FRONTEND_VERSION"
 
       # Check all versions match
@@ -149,7 +152,7 @@ release.extract-notes:
   image: alpine:latest
   before_script:
     - apk add --no-cache curl git
-    - curl -L https://github.com/orhun/git-cliff/releases/download/v2.7.0/git-cliff-2.7.0-x86_64-unknown-linux-musl.tar.gz | tar xz
+    - curl -L https://github.com/orhun/git-cliff/releases/download/v${GIT_CLIFF_VERSION}/git-cliff-${GIT_CLIFF_VERSION}-x86_64-unknown-linux-musl.tar.gz | tar xz
     - mv git-cliff-*/git-cliff /usr/local/bin/
   script:
     - mkdir -p artifacts
@@ -309,6 +312,9 @@ release.github:
   stage: trigger-release
   image: rust:$RUST_VERSION
   allow_failure: true
+  variables:
+    GIT_CLIFF_VERSION: "2.7.0"
+    CARGO_RELEASE_VERSION: "0.25.17"
   rules:
     # Don't show release jobs on tag pipelines (release already in progress)
     - if: $CI_COMMIT_TAG
@@ -319,9 +325,9 @@ release.github:
     # Install tools
     - apt-get update && apt-get install -y jq
     - curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
-    - cargo binstall cargo-release --version 0.25.17 --no-confirm
+    - cargo binstall cargo-release --version ${CARGO_RELEASE_VERSION} --no-confirm
     # Install git-cliff
-    - curl -L https://github.com/orhun/git-cliff/releases/download/v2.7.0/git-cliff-2.7.0-x86_64-unknown-linux-gnu.tar.gz | tar xz
+    - curl -L https://github.com/orhun/git-cliff/releases/download/v${GIT_CLIFF_VERSION}/git-cliff-${GIT_CLIFF_VERSION}-x86_64-unknown-linux-gnu.tar.gz | tar xz
     - mv git-cliff-*/git-cliff /usr/local/bin/
     # Configure git for push (requires CI variable GITLAB_RELEASE_TOKEN with write_repository scope)
     - git config user.email "ci@hook0.com"
