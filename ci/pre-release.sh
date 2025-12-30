@@ -29,6 +29,17 @@ fi
 # Get current version from api/Cargo.toml
 CURRENT=$(grep '^version = ' api/Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
 
+# Validate version format (must be X.Y.Z with numeric components)
+if [ -z "$CURRENT" ]; then
+    echo "ERROR: Could not extract version from api/Cargo.toml"
+    exit 1
+fi
+
+if ! echo "$CURRENT" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+    echo "ERROR: Invalid version format '$CURRENT'. Expected semver format (e.g., 1.2.3)"
+    exit 1
+fi
+
 # Calculate new version
 case "$BUMP_TYPE" in
     patch)
