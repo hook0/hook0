@@ -17,6 +17,13 @@ cd "$(dirname "$0")/.."
 # Get current version from api/Cargo.toml
 CURRENT=$(grep '^version = ' api/Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
 
+# Validate version was extracted
+if [ -z "$CURRENT" ] || ! [[ "$CURRENT" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "ERROR: Could not extract valid semver from api/Cargo.toml"
+    echo "Found: '$CURRENT'"
+    exit 1
+fi
+
 # Calculate new version
 case "$BUMP_TYPE" in
     patch)

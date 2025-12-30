@@ -51,9 +51,9 @@ osv_dependency_scan:
   script:
     - docker run -v $(pwd):/app -i ghcr.io/google/osv-scanner:v1.3.6 --recursive /app
 
-# dast:
-#   stage: dast
-#   dependencies: []
-#   dast_configuration:
-#     site_profile: "REST API v1"
-#     scanner_profile: "DAST"
+dast:
+  stage: dast
+  dependencies: []
+  dast_configuration:
+    site_profile: "REST API v1"
+    scanner_profile: "DAST"
