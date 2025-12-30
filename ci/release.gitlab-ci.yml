@@ -2,6 +2,9 @@
   variables:
     GIT_CLIFF_VERSION: "2.7.0"
     CARGO_RELEASE_VERSION: "0.25.17"
+    DOCKERHUB_PREFIX: "hook0"
+    GHCR_PREFIX: "ghcr.io/hook0"
+    GITHUB_REPO: "hook0/hook0"
   rules:
     # Matches strict semver tags: v1.0.0, v2.1.3 (no suffixes)
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
@@ -51,7 +54,7 @@ release.verify-versions:
         printf "$ERRORS"
         echo ""
         echo "All components must have the same version as the git tag."
-        echo "Run 'cargo release' to bump versions consistently."
+        echo "Trigger one of the release:patch, release:minor, or release:major CI jobs to bump versions consistently."
         exit 1
       fi
 
@@ -220,10 +223,10 @@ release.containers:
       docker buildx build --platform linux/amd64 \
         --tag "$CI_REGISTRY_IMAGE/hook0-api:$VERSION" \
         --tag "$CI_REGISTRY_IMAGE/hook0-api:latest" \
-        --tag "hook0/hook0-api:$VERSION" \
-        --tag "hook0/hook0-api:latest" \
-        --tag "ghcr.io/hook0/hook0-api:$VERSION" \
-        --tag "ghcr.io/hook0/hook0-api:latest" \
+        --tag "${DOCKERHUB_PREFIX}/hook0-api:$VERSION" \
+        --tag "${DOCKERHUB_PREFIX}/hook0-api:latest" \
+        --tag "${GHCR_PREFIX}/hook0-api:$VERSION" \
+        --tag "${GHCR_PREFIX}/hook0-api:latest" \
         --push \
         build-context/api
 
@@ -233,10 +236,10 @@ release.containers:
       docker buildx build --platform linux/amd64 \
         --tag "$CI_REGISTRY_IMAGE/output-worker:$VERSION" \
         --tag "$CI_REGISTRY_IMAGE/output-worker:latest" \
-        --tag "hook0/output-worker:$VERSION" \
-        --tag "hook0/output-worker:latest" \
-        --tag "ghcr.io/hook0/output-worker:$VERSION" \
-        --tag "ghcr.io/hook0/output-worker:latest" \
+        --tag "${DOCKERHUB_PREFIX}/output-worker:$VERSION" \
+        --tag "${DOCKERHUB_PREFIX}/output-worker:latest" \
+        --tag "${GHCR_PREFIX}/output-worker:$VERSION" \
+        --tag "${GHCR_PREFIX}/output-worker:latest" \
         --push \
         build-context/worker
 
@@ -270,32 +273,31 @@ release.github:
   script:
     # Append Docker images section to release notes
     - |
-      cat >> artifacts/RELEASE_NOTES.md << 'EOF'
+      cat >> artifacts/RELEASE_NOTES.md << EOF
 
       ## Docker Images
 
       | Image | DockerHub | GHCR | GitLab Registry |
       |-------|-----------|------|-----------------|
-      | API | `hook0/hook0-api:${VERSION}` | `ghcr.io/hook0/hook0-api:${VERSION}` | `registry.gitlab.com/hook0/hook0/hook0-api:${VERSION}` |
-      | Worker | `hook0/output-worker:${VERSION}` | `ghcr.io/hook0/output-worker:${VERSION}` | `registry.gitlab.com/hook0/hook0/output-worker:${VERSION}` |
+      | API | \`${DOCKERHUB_PREFIX}/hook0-api:${VERSION}\` | \`${GHCR_PREFIX}/hook0-api:${VERSION}\` | \`${CI_REGISTRY_IMAGE}/hook0-api:${VERSION}\` |
+      | Worker | \`${DOCKERHUB_PREFIX}/output-worker:${VERSION}\` | \`${GHCR_PREFIX}/output-worker:${VERSION}\` | \`${CI_REGISTRY_IMAGE}/output-worker:${VERSION}\` |
 
-      ```bash
+      \`\`\`bash
       # Pull from DockerHub
-      docker pull hook0/hook0-api:${VERSION}
-      docker pull hook0/output-worker:${VERSION}
+      docker pull ${DOCKERHUB_PREFIX}/hook0-api:${VERSION}
+      docker pull ${DOCKERHUB_PREFIX}/output-worker:${VERSION}
 
       # Pull from GHCR
-      docker pull ghcr.io/hook0/hook0-api:${VERSION}
-      docker pull ghcr.io/hook0/output-worker:${VERSION}
+      docker pull ${GHCR_PREFIX}/hook0-api:${VERSION}
+      docker pull ${GHCR_PREFIX}/output-worker:${VERSION}
 
       # Pull from GitLab Registry
-      docker pull registry.gitlab.com/hook0/hook0/hook0-api:${VERSION}
-      docker pull registry.gitlab.com/hook0/hook0/output-worker:${VERSION}
-      ```
+      docker pull ${CI_REGISTRY_IMAGE}/hook0-api:${VERSION}
+      docker pull ${CI_REGISTRY_IMAGE}/output-worker:${VERSION}
+      \`\`\`
       EOF
-    - sed -i "s/\${VERSION}/$VERSION/g" artifacts/RELEASE_NOTES.md
     - echo "=== Creating GitHub Release ==="
-    - gh release create $CI_COMMIT_TAG --repo hook0/hook0-release-test --title "Release $CI_COMMIT_TAG" --notes-file artifacts/RELEASE_NOTES.md artifacts/*
+    - gh release create $CI_COMMIT_TAG --repo ${GITHUB_REPO} --title "Release $CI_COMMIT_TAG" --notes-file artifacts/RELEASE_NOTES.md artifacts/*
 
 # =============================================================================
 # Manual Release Jobs (master branch only)
