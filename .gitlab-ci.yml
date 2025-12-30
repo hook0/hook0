@@ -25,10 +25,10 @@ stages:
   - documentation
 
 include:
-  # - template: SAST.gitlab-ci.yml
-  # - template: DAST.gitlab-ci.yml
-  # - template: Jobs/Container-Scanning.gitlab-ci.yml
-  # - template: Security/Secret-Detection.gitlab-ci.yml
+  - template: SAST.gitlab-ci.yml
+  - template: DAST.gitlab-ci.yml
+  - template: Jobs/Container-Scanning.gitlab-ci.yml
+  - template: Security/Secret-Detection.gitlab-ci.yml
   - local: "api/.gitlab-ci.yml"
   - local: "clients/rust/.gitlab-ci.yml"
   - local: "clients/typescript/.gitlab-ci.yml"
@@ -51,9 +51,9 @@ osv_dependency_scan:
   script:
     - docker run -v $(pwd):/app -i ghcr.io/google/osv-scanner:v1.3.6 --recursive /app
 
-# dast:
-#   stage: dast
-#   dependencies: []
-#   dast_configuration:
-#     site_profile: "REST API v1"
-#     scanner_profile: "DAST"
+dast:
+  stage: dast
+  dependencies: []
+  dast_configuration:
+    site_profile: "REST API v1"
+    scanner_profile: "DAST"
