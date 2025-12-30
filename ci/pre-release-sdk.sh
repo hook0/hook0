@@ -1,7 +1,7 @@
 #!/bin/bash
 # SDK Release script for Hook0
 # Usage: ./ci/pre-release-sdk.sh <patch|minor|major>
-set -e
+set -euo pipefail
 
 BUMP_TYPE="$1"
 
@@ -20,13 +20,13 @@ CURRENT=$(grep '^version = ' clients/rust/Cargo.toml | head -1 | sed 's/version 
 # Calculate new version
 case "$BUMP_TYPE" in
     patch)
-        NEW_VERSION=$(echo $CURRENT | awk -F. '{print $1"."$2"."$3+1}')
+        NEW_VERSION=$(echo "$CURRENT" | awk -F. '{print $1"."$2"."$3+1}')
         ;;
     minor)
-        NEW_VERSION=$(echo $CURRENT | awk -F. '{print $1"."$2+1".0"}')
+        NEW_VERSION=$(echo "$CURRENT" | awk -F. '{print $1"."$2+1".0"}')
         ;;
     major)
-        NEW_VERSION=$(echo $CURRENT | awk -F. '{print $1+1".0.0"}')
+        NEW_VERSION=$(echo "$CURRENT" | awk -F. '{print $1+1".0.0"}')
         ;;
     *)
         echo "ERROR: Invalid bump type '$BUMP_TYPE'. Use patch, minor, or major."

@@ -8,7 +8,7 @@ workflow:
 
 variables:
   PG_VERSION: "18"
-  RUST_VERSION: "1.91-trixie"
+  RUST_VERSION: "1.92-trixie"
   NODE_VERSION: "24-trixie"
   PROTOC_VERSION: "32.0"
   POSTGRES_DB: hook0-ci
@@ -25,10 +25,10 @@ stages:
   - documentation
 
 include:
-  # - template: SAST.gitlab-ci.yml
-  # - template: DAST.gitlab-ci.yml
-  # - template: Jobs/Container-Scanning.gitlab-ci.yml
-  # - template: Security/Secret-Detection.gitlab-ci.yml
+  - template: SAST.gitlab-ci.yml
+  - template: DAST.gitlab-ci.yml
+  - template: Jobs/Container-Scanning.gitlab-ci.yml
+  - template: Security/Secret-Detection.gitlab-ci.yml
   - local: "api/.gitlab-ci.yml"
   - local: "clients/rust/.gitlab-ci.yml"
   - local: "clients/typescript/.gitlab-ci.yml"

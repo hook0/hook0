@@ -1,13 +1,12 @@
 semver-checks:
   stage: test
-  image: rust:latest
+  image: rust:$RUST_VERSION
   variables:
     BINSTALL_DISABLE_TELEMETRY: "true"
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"
       changes:
-        - api/**/*
-        - output-worker/**/*
+        - clients/rust/**/*
         - Cargo.*
   before_script:
     - rustc --version && cargo --version
@@ -16,8 +15,6 @@ semver-checks:
     - git fetch origin master
   script:
     - echo "Checking semver compliance against origin/master..."
-    # Check API - strict
-    - cargo semver-checks --package hook0-api --baseline-rev origin/master || (echo "::warning::API has breaking changes - ensure MAJOR version bump" && exit 1)
-    # Check Worker - strict
-    - cargo semver-checks --package hook0-output-worker --baseline-rev origin/master || (echo "::warning::Output Worker has breaking changes - ensure MAJOR version bump" && exit 1)
+    # Check SDK - strict
+    - cargo semver-checks --package hook0-client --baseline-rev origin/master || (echo "WARNING: SDK has breaking changes - ensure MAJOR version bump" && exit 1)
   allow_failure: false

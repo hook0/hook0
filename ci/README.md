@@ -2,18 +2,25 @@
 
 ## Required CI Variables for Release Jobs
 
-The manual release jobs (`release:patch`, `release:minor`, `release:major`) require the following CI/CD variable:
+The manual release jobs (`release:patch`, `release:minor`, `release:major`) and SDK release jobs require the following CI/CD variables:
 
-### GITLAB_RELEASE_TOKEN (Required)
+| Variable | Description | Required For |
+|----------|-------------|--------------|
+| `GITLAB_RELEASE_TOKEN` | Personal access token with `write_repository` scope | All releases |
+| `NPM_TOKEN` | npm automation token for publishing | SDK release |
+| `CARGO_TOKEN` | crates.io API token | SDK release |
+| `DOCKERHUB_USERNAME` | Docker Hub username | Container release |
+| `DOCKERHUB_TOKEN` | Docker Hub access token | Container release |
+| `GITHUB_USERNAME` | GitHub username for GHCR | Container release |
+| `GITHUB_TOKEN` | GitHub PAT with `packages:write` scope | Container + GitHub release |
 
-Personal Access Token with `write_repository` scope.
+### Setup in GitLab
 
-**Setup in GitLab:**
 1. Go to https://gitlab.com/-/profile/personal_access_tokens
-2. Create a token with `write_repository` scope
+2. Create a token with `write_repository` scope for `GITLAB_RELEASE_TOKEN`
 3. Go to Settings > CI/CD > Variables
-4. Add variable `GITLAB_RELEASE_TOKEN` with the token value
-5. Mark as "Protected" and "Masked"
+4. Add each variable with its value
+5. Mark all as "Protected" and "Masked"
 
 ## Release Process
 
@@ -32,10 +39,10 @@ Personal Access Token with `write_repository` scope.
    - Create and push a git tag (e.g., v2.0.1)
 6. The tag triggers the release pipeline which:
    - Validates all component versions match the tag
-   - Builds binaries for linux/amd64 and linux/arm64
+   - Builds binaries for linux/amd64
    - Builds frontend
-   - Builds and pushes multi-arch Docker images
-   - Creates GitLab and GitHub releases with all artifacts
+   - Builds and pushes Docker images (amd64)
+   - Creates GitHub release with all artifacts
 
 ## Pipeline Flow
 
@@ -53,13 +60,11 @@ Tag pipeline triggered (vX.Y.Z)
     ├─► release.verify-versions (check api, worker, frontend match tag)
     │
     ├─► release.build-api-amd64
-    ├─► release.build-api-arm64
     ├─► release.build-worker-amd64
-    ├─► release.build-worker-arm64
     ├─► release.build-frontend
     ├─► release.extract-notes
     │
-    ├─► release.containers (multi-arch Docker images)
+    ├─► release.containers (Docker images - amd64)
     │       ├─► GitLab Registry
     │       ├─► DockerHub
     │       └─► GHCR
@@ -71,9 +76,7 @@ Tag pipeline triggered (vX.Y.Z)
 
 ### Binaries
 - `hook0-api-linux-amd64`
-- `hook0-api-linux-arm64`
 - `hook0-output-worker-linux-amd64`
-- `hook0-output-worker-linux-arm64`
 - `frontend-dist.tar.gz`
 
 ### Docker Images
@@ -84,3 +87,19 @@ Tag pipeline triggered (vX.Y.Z)
 - `$CI_REGISTRY_IMAGE/hook0-api:<version>` (GitLab Registry)
 - `$CI_REGISTRY_IMAGE/output-worker:<version>` (GitLab Registry)
 
+## SDK Release Process
+
+SDK releases are independent from main releases and publish the TypeScript and Rust clients.
+
+1. On the master branch pipeline, find the manual jobs in `trigger-release` stage:
+   - `sdk-release:patch` - Bumps patch version (1.0.0 → 1.0.1)
+   - `sdk-release:minor` - Bumps minor version (1.0.0 → 1.1.0)
+   - `sdk-release:major` - Bumps major version (1.0.0 → 2.0.0)
+2. Click the play button on the desired release type
+3. The job will:
+   - Bump versions in clients/rust/Cargo.toml and clients/typescript/package.json
+   - Create a commit with the version bump
+   - Create and push a git tag (e.g., sdk-v1.0.1)
+4. The tag triggers the SDK release pipeline which:
+   - Publishes `hook0-client` to npm
+   - Publishes `hook0-client` to crates.io

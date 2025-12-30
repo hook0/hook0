@@ -44,12 +44,17 @@ conventional_commits = true
 filter_unconventional = false
 split_commits = false
 commit_parsers = [
+    { message = "^.*!", group = "Breaking Changes" },
+    { body = "BREAKING CHANGE", group = "Breaking Changes" },
     { message = "^feat", group = "Added" },
     { message = "^fix", group = "Fixed" },
     { message = "^doc", group = "Documentation" },
     { message = "^perf", group = "Performance" },
     { message = "^refactor", group = "Changed" },
     { message = "^style", group = "Changed" },
+    { message = "^test", group = "Testing" },
+    { message = "^ci", group = "CI/CD" },
+    { message = "^build", group = "Build" },
     { message = "^chore\\(release\\)", skip = true },
     { message = "^chore", group = "Other" },
     { body = ".*security", group = "Security" },
