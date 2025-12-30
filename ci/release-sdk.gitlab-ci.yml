@@ -24,6 +24,13 @@ sdk-release.npm:
   script:
     - VERSION="${CI_COMMIT_TAG#sdk-v}"
     - cd clients/typescript
+    # Validate version matches package.json
+    - PKG_VERSION=$(jq -r .version package.json)
+    - |
+      if [ "$VERSION" != "$PKG_VERSION" ]; then
+        echo "ERROR: Tag version ($VERSION) != package.json version ($PKG_VERSION)"
+        exit 1
+      fi
     - npm ci
     - npm run build
     - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
@@ -43,6 +50,13 @@ sdk-release.cargo:
   script:
     - VERSION="${CI_COMMIT_TAG#sdk-v}"
     - cd clients/rust
+    # Validate version matches Cargo.toml
+    - CARGO_VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+    - |
+      if [ "$VERSION" != "$CARGO_VERSION" ]; then
+        echo "ERROR: Tag version ($VERSION) != Cargo.toml version ($CARGO_VERSION)"
+        exit 1
+      fi
     - cargo publish --token "${CARGO_TOKEN}"
     - echo "=== Published hook0-client@${VERSION} to crates.io ==="
 

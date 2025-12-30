@@ -2,6 +2,10 @@ FROM debian:trixie-slim
 ARG TARGETARCH
 ARG UID=10001
 
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN useradd \
     --no-create-home \
     --home-dir "/nonexistent" \
