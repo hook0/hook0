@@ -1,24 +1,28 @@
-semver-checks:
-  extends: .rust-cache-pull-only
-  stage: test
-  image: rust:$RUST_VERSION
-  variables:
-    BINSTALL_DISABLE_TELEMETRY: "true"
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"
-      changes:
-        - api/**/*
-        - output-worker/**/*
-        - Cargo.*
-  before_script:
-    - rustc --version && cargo --version
-    - curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
-    - cargo binstall --target x86_64-unknown-linux-musl --no-confirm cargo-semver-checks
-    - git fetch origin master
-  script:
-    - echo "Checking semver compliance against origin/master..."
-    # Check API - strict
-    - cargo semver-checks --package hook0-api --baseline-rev origin/master || (echo -e "\e[33mWARNING:\e[0m API has breaking changes - ensure MAJOR version bump" && exit 1)
-    # Check Worker - strict
-    - cargo semver-checks --package hook0-output-worker --baseline-rev origin/master || (echo -e "\e[33mWARNING:\e[0m Output Worker has breaking changes - ensure MAJOR version bump" && exit 1)
-  allow_failure: false
+# Disabled: cargo-semver-checks only works on library crates, not binaries
+# hook0-api and hook0-output-worker are binaries without public Rust API
+# TODO: Consider using oasdiff for OpenAPI breaking change detection
+#
+# semver-checks:
+#   extends: .rust-cache-pull-only
+#   stage: test
+#   image: rust:$RUST_VERSION
+#   variables:
+#     BINSTALL_DISABLE_TELEMETRY: "true"
+#   rules:
+#     - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"
+#       changes:
+#         - api/**/*
+#         - output-worker/**/*
+#         - Cargo.*
+#   before_script:
+#     - rustc --version && cargo --version
+#     - curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+#     - cargo binstall --target x86_64-unknown-linux-musl --no-confirm cargo-semver-checks
+#     - git fetch origin master
+#   script:
+#     - echo "Checking semver compliance against origin/master..."
+#     # Check API - strict
+#     - cargo semver-checks --package hook0-api --baseline-rev origin/master || (echo -e "\e[33mWARNING:\e[0m API has breaking changes - ensure MAJOR version bump" && exit 1)
+#     # Check Worker - strict
+#     - cargo semver-checks --package hook0-output-worker --baseline-rev origin/master || (echo -e "\e[33mWARNING:\e[0m Output Worker has breaking changes - ensure MAJOR version bump" && exit 1)
+#   allow_failure: false
