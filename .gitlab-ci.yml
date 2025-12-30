@@ -91,9 +91,9 @@ container_scanning:
       - gl-container-scanning-report.json
     when: always
 
-# dast:
-#   stage: dast
-#   dependencies: []
-#   dast_configuration:
-#     site_profile: "REST API v1"
-#     scanner_profile: "DAST"
+dast:
+  stage: dast
+  dependencies: []
+  dast_configuration:
+    site_profile: "REST API v1"
+    scanner_profile: "DAST"
