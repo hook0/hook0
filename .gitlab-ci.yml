@@ -29,8 +29,9 @@ include:
   - template: DAST.gitlab-ci.yml
   - template: Security/Secret-Detection.gitlab-ci.yml
   - local: "api/.gitlab-ci.yml"
-  - local: "ci/semver-checks.gitlab-ci.yml"
   - local: "ci/release.gitlab-ci.yml"
+  - local: "ci/rust-cache.gitlab-ci.yml"
+  - local: "ci/semver-checks.gitlab-ci.yml"
   - local: "clients/rust/.gitlab-ci.yml"
   - local: "clients/mcp/.gitlab-ci.yml"
   - local: "clients/typescript/.gitlab-ci.yml"
