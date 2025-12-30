@@ -3,7 +3,7 @@
 # Usage: ./ci/pre-release.sh <patch|minor|major>
 set -euo pipefail
 
-BUMP_TYPE="$1"
+BUMP_TYPE="${1:-}"
 
 if [ -z "$BUMP_TYPE" ]; then
     echo "ERROR: Bump type required"

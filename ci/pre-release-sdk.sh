@@ -3,7 +3,15 @@
 # Usage: ./ci/pre-release-sdk.sh <patch|minor|major>
 set -euo pipefail
 
-BUMP_TYPE="$1"
+# Check required tools
+for cmd in jq git sed awk; do
+    if ! command -v "$cmd" &> /dev/null; then
+        echo "ERROR: Required command '$cmd' not found"
+        exit 1
+    fi
+done
+
+BUMP_TYPE="${1:-}"
 
 if [ -z "$BUMP_TYPE" ]; then
     echo "ERROR: Bump type required"
@@ -16,6 +24,13 @@ cd "$(dirname "$0")/.."
 
 # Get current version from clients/rust/Cargo.toml
 CURRENT=$(grep '^version = ' clients/rust/Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+
+# Validate version was extracted
+if [ -z "$CURRENT" ] || ! [[ "$CURRENT" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "ERROR: Could not extract valid semver from clients/rust/Cargo.toml"
+    echo "Found: '$CURRENT'"
+    exit 1
+fi
 
 # Calculate new version
 case "$BUMP_TYPE" in
