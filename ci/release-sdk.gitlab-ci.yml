@@ -20,10 +20,9 @@ sdk-release.npm:
   image: node:$NODE_VERSION
   needs:
     - job: clients.typescript.build
-      optional: true
-  variables:
-    VERSION: ${CI_COMMIT_TAG#sdk-v}
+    - job: clients.typescript.check
   script:
+    - VERSION="${CI_COMMIT_TAG#sdk-v}"
     - cd clients/typescript
     - npm ci
     - npm run build
@@ -41,10 +40,8 @@ sdk-release.cargo:
   image: rust:$RUST_VERSION
   needs:
     - job: client.rust.check
-      optional: true
-  variables:
-    VERSION: ${CI_COMMIT_TAG#sdk-v}
   script:
+    - VERSION="${CI_COMMIT_TAG#sdk-v}"
     - cd clients/rust
     - cargo publish --token "${CARGO_TOKEN}"
     - echo "=== Published hook0-client@${VERSION} to crates.io ==="
@@ -68,7 +65,7 @@ sdk-release.cargo:
       when: manual
   before_script:
     # Install tools
-    - apk add --no-cache jq git sed
+    - apk add --no-cache jq git sed gawk
     # Configure git for push (requires CI variable GITLAB_RELEASE_TOKEN with write_repository scope)
     - git config user.email "ci@hook0.com"
     - git config user.name "Hook0 CI"
