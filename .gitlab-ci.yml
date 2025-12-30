@@ -31,7 +31,6 @@ include:
   - local: "api/.gitlab-ci.yml"
   - local: "ci/release.gitlab-ci.yml"
   - local: "ci/rust-cache.gitlab-ci.yml"
-  # - local: "ci/semver-checks.gitlab-ci.yml"  # Disabled: cargo-semver-checks doesn't work on binaries
   - local: "clients/rust/.gitlab-ci.yml"
   - local: "clients/mcp/.gitlab-ci.yml"
   - local: "clients/typescript/.gitlab-ci.yml"
