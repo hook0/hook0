@@ -1,6 +1,6 @@
 semver-checks:
   stage: test
-  image: rust:latest
+  image: rust:$RUST_VERSION
   variables:
     BINSTALL_DISABLE_TELEMETRY: "true"
   rules:

@@ -14,19 +14,31 @@ fi
 # Change to repo root (script is in ci/ folder)
 cd "$(dirname "$0")/.."
 
+# Safety checks
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [ "$CURRENT_BRANCH" != "master" ]; then
+    echo "ERROR: Releases must be created from master branch (currently on '$CURRENT_BRANCH')"
+    exit 1
+fi
+
+if [ -n "$(git status --porcelain)" ]; then
+    echo "ERROR: Working directory is not clean. Commit or stash changes first."
+    exit 1
+fi
+
 # Get current version from api/Cargo.toml
 CURRENT=$(grep '^version = ' api/Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
 
 # Calculate new version
 case "$BUMP_TYPE" in
     patch)
-        NEW_VERSION=$(echo $CURRENT | awk -F. '{print $1"."$2"."$3+1}')
+        NEW_VERSION=$(echo "$CURRENT" | awk -F. '{print $1"."$2"."$3+1}')
         ;;
     minor)
-        NEW_VERSION=$(echo $CURRENT | awk -F. '{print $1"."$2+1".0"}')
+        NEW_VERSION=$(echo "$CURRENT" | awk -F. '{print $1"."$2+1".0"}')
         ;;
     major)
-        NEW_VERSION=$(echo $CURRENT | awk -F. '{print $1+1".0.0"}')
+        NEW_VERSION=$(echo "$CURRENT" | awk -F. '{print $1+1".0.0"}')
         ;;
     *)
         echo "ERROR: Invalid bump type '$BUMP_TYPE'. Use patch, minor, or major."
