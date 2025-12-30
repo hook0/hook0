@@ -1,0 +1,23 @@
+FROM debian:trixie-slim
+ARG TARGETARCH
+ARG UID=10001
+
+RUN useradd \
+    --no-create-home \
+    --home-dir "/nonexistent" \
+    --shell "/sbin/nologin" \
+    --uid "${UID}" \
+    appuser
+
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Note: Artifacts are named hook0-api-linux-{amd64,arm64}
+COPY hook0-api-linux-${TARGETARCH} /hook0-api
+RUN chmod +x /hook0-api
+
+USER appuser
+ENV DISABLE_SERVING_WEBAPP=true
+
+CMD ["/hook0-api"]

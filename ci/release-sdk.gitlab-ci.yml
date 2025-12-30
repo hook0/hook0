@@ -18,6 +18,9 @@ sdk-release.npm:
   extends: .sdk-release-rules
   stage: release
   image: node:$NODE_VERSION
+  needs:
+    - job: clients.typescript.build
+      optional: true
   variables:
     VERSION: ${CI_COMMIT_TAG#sdk-v}
   script:
@@ -27,6 +30,8 @@ sdk-release.npm:
     - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
     - npm publish --access public
     - echo "=== Published hook0-client@${VERSION} to npm ==="
+  after_script:
+    - rm -f clients/typescript/.npmrc
 
 # --- Publish to crates.io ---
 
@@ -34,6 +39,9 @@ sdk-release.cargo:
   extends: .sdk-release-rules
   stage: release
   image: rust:$RUST_VERSION
+  needs:
+    - job: client.rust.check
+      optional: true
   variables:
     VERSION: ${CI_COMMIT_TAG#sdk-v}
   script:
@@ -48,7 +56,7 @@ sdk-release.cargo:
 .sdk-release-trigger:
   stage: trigger-release
   image: alpine:latest
-  allow_failure: true
+  allow_failure: false
   rules:
     # Don't show on SDK tag pipelines (release already in progress)
     - if: $CI_COMMIT_TAG =~ /^sdk-v/
@@ -56,10 +64,8 @@ sdk-release.cargo:
     # Don't show on main release tag pipelines
     - if: $CI_COMMIT_TAG
       when: never
-    # TODO: uncomment for production
-    # - if: $CI_COMMIT_BRANCH == "master"
-    #   when: manual
-    - when: manual
+    - if: $CI_COMMIT_BRANCH == "master"
+      when: manual
   before_script:
     # Install tools
     - apk add --no-cache jq git sed

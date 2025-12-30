@@ -1,7 +1,7 @@
 #!/bin/bash
 # Release script for Hook0
 # Usage: ./ci/pre-release.sh <patch|minor|major>
-set -e
+set -euo pipefail
 
 BUMP_TYPE="$1"
 
