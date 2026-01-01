@@ -133,7 +133,7 @@ export default function Footer() {
                   </clipPath>
                 </defs>
               </svg>
-              Made in France
+              Made in Europe
             </div>
           </div>
 
