@@ -10,7 +10,7 @@ use crate::prompts;
 use rmcp::model::*;
 use rmcp::service::RequestContext;
 use rmcp::{RoleServer, ServerHandler};
-use serde_json::{Map, Value, json};
+use serde_json::{json, Map, Value};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::{debug, info};
@@ -21,7 +21,7 @@ mod generated {
 }
 
 pub use generated::{
-    GENERATED_TOOLS, GeneratedToolInfo, get_tool_info, interpolate_path, is_write_tool,
+    get_tool_info, interpolate_path, is_write_tool, GeneratedToolInfo, GENERATED_TOOLS,
 };
 
 /// Hook0 MCP Server
