@@ -11,8 +11,9 @@
 <br/>
 <br/>
 
-[![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](../../LICENSE)
-[![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org/)
+[![Crates.io](https://img.shields.io/crates/v/hook0-mcp.svg)](https://crates.io/crates/hook0-mcp)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](../../LICENSE)
+[![Rust](https://img.shields.io/badge/rust-1.85%2B-orange.svg)](https://www.rust-lang.org/)
 [![MCP](https://img.shields.io/badge/MCP-compatible-green.svg)](https://modelcontextprotocol.io/)
 
 </div>
@@ -34,11 +35,10 @@ A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that l
 
 ## Quick Start
 
-### 1. Build the server
+### 1. Install via Cargo
 
 ```bash
-cd clients/mcp
-cargo build --release
+cargo install hook0-mcp
 ```
 
 ### 2. Get your API token
@@ -54,7 +54,7 @@ Grab your `HOOK0_API_TOKEN` from the [Hook0 dashboard](https://app.hook0.com/).
 {
   "mcpServers": {
     "hook0": {
-      "command": "/path/to/target/release/hook0-mcp",
+      "command": "hook0-mcp",
       "env": {
         "HOOK0_API_TOKEN": "your-api-token-here"
       }
