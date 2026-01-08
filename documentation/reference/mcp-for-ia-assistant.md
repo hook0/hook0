@@ -405,14 +405,14 @@ Your webhook is working correctly!
 
 Service tokens have full organization access by default. For production use, follow these security practices:
 
-1. **Use token attenuation** to restrict access to specific applications
-2. **Set expiration dates** for tokens used in temporary contexts
-3. **Create separate tokens** for different environments and team members
+1. **[Use token attenuation](../how-to-guides/manage-service-tokens.md#token-attenuation)** to restrict access to specific applications
+2. **[Set expiration dates](../how-to-guides/manage-service-tokens.md#how-to-attenuate-your-token)** for tokens used in temporary contexts
+3. **[Create separate tokens](../how-to-guides/manage-service-tokens.md#best-practices)** for different environments and team members
 
-For a complete guide on creating, attenuating, and managing service tokens, see **[Managing Service Tokens](../how-to-guides/manage-service-tokens.md)**.
+For the complete guide, see **[Managing Service Tokens](../how-to-guides/manage-service-tokens.md)**.
 
 :::warning Security Best Practice
-When using MCP with AI assistants, always attenuate your token to limit access to only the applications the assistant needs.
+When using MCP with AI assistants, always [attenuate your token](../how-to-guides/manage-service-tokens.md#token-attenuation) to limit access to only the applications the assistant needs.
 :::
 
 ### Environment-Specific Configuration
