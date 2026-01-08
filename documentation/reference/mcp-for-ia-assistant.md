@@ -403,18 +403,69 @@ Your webhook is working correctly!
 
 ### Token Attenuation
 
-Service tokens have full organization access by default. For production use, attenuate your token to restrict permissions:
+#### What is Token Attenuation?
+
+Token attenuation is a security feature that lets you create **restricted versions** of your service token. Think of it like giving someone a copy of your house key that only opens the front door, not the entire house.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      Root Service Token                         │
+│                    (Full organization access)                   │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+            ┌─────────────────┼─────────────────┐
+            ▼                 ▼                 ▼
+┌───────────────────┐ ┌───────────────────┐ ┌───────────────────┐
+│  Attenuated #1    │ │  Attenuated #2    │ │  Attenuated #3    │
+│  App: Order Svc   │ │  App: User Events │ │  All apps         │
+│  Expires: 30 days │ │  Expires: never   │ │  Expires: 1 hour  │
+└───────────────────┘ └───────────────────┘ └───────────────────┘
+```
+
+#### Why Does This Matter?
+
+Without attenuation, a service token gives **full access** to your entire organization:
+- All applications
+- All subscriptions
+- All events
+- Forever (no expiration)
+
+This is risky because:
+- If the token leaks, attackers have complete access
+- AI assistants see more data than necessary
+- No way to limit access for specific use cases
+
+#### How It Works
+
+Hook0 uses [Biscuit tokens](https://www.biscuitsec.org/), a cryptographic token format that supports **offline attenuation**. This means:
+
+1. **You don't need Hook0's permission** to create restricted tokens
+2. **Restrictions can only be added**, never removed
+3. **The original token remains unchanged**
+4. **Attenuated tokens are cryptographically linked** to their parent
+
+When you attenuate a token, you're essentially adding rules like:
+- "This token can only access application X"
+- "This token expires on date Y"
+
+These rules are embedded in the token itself and verified by Hook0's API on every request.
+
+#### How to Attenuate Your Token
 
 1. Go to **Service Tokens** in the Hook0 dashboard
 2. Click **Show** on your token
 3. Under **Attenuate your token**, select:
    - **Specific application** — Limit access to one app
    - **Expiration date** — Set an automatic expiry
-4. Generate the attenuated token
+4. Click **Generate** to create the attenuated token
 5. Use the new token in your MCP configuration
 
-:::tip
-Create separate attenuated tokens for different environments (development, staging, production).
+:::warning Important
+If you revoke the **root token**, all tokens derived from it are automatically invalidated. This gives you a single kill switch for all related tokens.
+:::
+
+:::tip Best Practice
+Create separate attenuated tokens for different environments (development, staging, production) and different team members.
 :::
 
 ### Environment-Specific Tokens
