@@ -43,7 +43,16 @@ cargo install hook0-mcp
 
 ### 2. Get your API token
 
-Grab your `HOOK0_API_TOKEN` from the [Hook0 dashboard](https://app.hook0.com/).
+Create a **Service Token** from the Hook0 dashboard:
+
+1. Log in to [Hook0](https://app.hook0.com/)
+2. Select your **Organization** from the dropdown
+3. Click **Service Tokens** in the left sidebar
+4. Click **Create Service Token**
+5. Give it a name (e.g., "Claude MCP")
+6. Copy the generated token - this is your `HOOK0_API_TOKEN`
+
+> **Note**: Service tokens are organization-scoped. The MCP server will only have access to applications within the organization associated with the token.
 
 ### 3. Add to Claude Desktop
 

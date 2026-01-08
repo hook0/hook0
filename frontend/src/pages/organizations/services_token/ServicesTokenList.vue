@@ -185,12 +185,86 @@ onUpdated(() => {
     </template>
     <!-- The default scoped slot will be used as the result -->
     <template #default="services_tokens">
+      <!-- AI Integration Banner -->
+      <Hook0Card class="mb-4">
+        <div
+          class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-t-lg px-6 py-4"
+        >
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+              <div class="bg-white/20 rounded-full p-2">
+                <Hook0Icon name="robot" class="text-white text-xl"></Hook0Icon>
+              </div>
+              <div>
+                <h3 class="text-white font-semibold text-lg">Use Hook0 with AI Assistants</h3>
+                <p class="text-white/80 text-sm">
+                  Connect Claude, ChatGPT, or any MCP-compatible AI to manage your webhooks
+                </p>
+              </div>
+            </div>
+            <Hook0Button
+              class="bg-white text-indigo-600 hover:bg-indigo-50 font-medium px-4 py-2 rounded-lg shadow-sm"
+              href="https://documentation.hook0.com/reference/mcp-for-ia-assistant"
+              target="_blank"
+            >
+              <Hook0Icon name="book" class="mr-2"></Hook0Icon>
+              Setup Guide
+            </Hook0Button>
+          </div>
+        </div>
+        <Hook0CardContent>
+          <Hook0CardContentLines>
+            <Hook0CardContentLine type="full-width">
+              <template #content>
+                <div class="flex flex-col space-y-3">
+                  <Hook0Text class="text-gray-600">
+                    With <strong>Hook0 MCP Server</strong>, you can let AI assistants interact with
+                    your webhook infrastructure using natural language:
+                  </Hook0Text>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+                    <div class="flex items-start space-x-2">
+                      <Hook0Icon name="check" class="text-green-500 mt-1"></Hook0Icon>
+                      <span class="text-sm text-gray-600"
+                        >List and inspect events, subscriptions, and delivery history</span
+                      >
+                    </div>
+                    <div class="flex items-start space-x-2">
+                      <Hook0Icon name="check" class="text-green-500 mt-1"></Hook0Icon>
+                      <span class="text-sm text-gray-600"
+                        >Create and manage webhook subscriptions via conversation</span
+                      >
+                    </div>
+                    <div class="flex items-start space-x-2">
+                      <Hook0Icon name="check" class="text-green-500 mt-1"></Hook0Icon>
+                      <span class="text-sm text-gray-600"
+                        >Debug failed deliveries and retry them instantly</span
+                      >
+                    </div>
+                  </div>
+                  <div
+                    class="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start space-x-2"
+                  >
+                    <Hook0Icon name="key" class="text-amber-600 mt-0.5"></Hook0Icon>
+                    <span class="text-sm text-amber-800">
+                      <strong>To get started:</strong> Create a service token below and use it as
+                      your <code class="bg-amber-100 px-1 rounded">HOOK0_API_TOKEN</code> in your
+                      MCP configuration.
+                    </span>
+                  </div>
+                </div>
+              </template>
+            </Hook0CardContentLine>
+          </Hook0CardContentLines>
+        </Hook0CardContent>
+      </Hook0Card>
+
+      <!-- Service Tokens List -->
       <Hook0Card>
         <Hook0CardHeader>
           <template #header> Service Tokens </template>
           <template #subtitle>
-            A service token is an organization-wide API key that allows other programs to send API
-            requests to Hook0.
+            Service tokens are organization-wide API keys that allow external programs to send API
+            requests to Hook0 without relying on user credentials.
           </template>
         </Hook0CardHeader>
 
@@ -208,9 +282,8 @@ onUpdated(() => {
             <Hook0CardContentLine type="full-width">
               <template #content>
                 <Hook0Text>
-                  You can (and should!) create a service token. A service token allows you to make
-                  API calls without relying on a user's login/password. You can also attenuate a
-                  service token in order to reduce its scope for improved security.
+                  You don't have any service tokens yet. Create one to start integrating with
+                  Hook0's API or to connect an AI assistant.
                 </Hook0Text>
               </template>
             </Hook0CardContentLine>
@@ -218,8 +291,9 @@ onUpdated(() => {
         </Hook0CardContent>
 
         <Hook0CardFooter>
-          <Hook0Button class="primary" type="button" @click="createNew"
-            >Create a new service token
+          <Hook0Button class="primary" type="button" @click="createNew">
+            <Hook0Icon name="plus" class="mr-1"></Hook0Icon>
+            Create Service Token
           </Hook0Button>
         </Hook0CardFooter>
       </Hook0Card>

@@ -24,6 +24,12 @@ client.mcp.semver-checks:
   stage: test
   dependencies: []
   image: rust:$RUST_VERSION
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+      - script_failure
   variables:
     BINSTALL_DISABLE_TELEMETRY: "true"
   rules:

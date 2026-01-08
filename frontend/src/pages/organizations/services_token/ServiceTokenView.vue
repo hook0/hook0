@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { onMounted, onUpdated, ref } from 'vue';
+import { computed, onMounted, onUpdated, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
+import Hook0Icon from '@/components/Hook0Icon.vue';
 import { handleError, Problem, UUID } from '@/http';
 import { attenuateBiscuit, getInstanceConfig, InstanceConfig } from '@/utils/biscuit_auth.ts';
 import { list } from '@/pages/organizations/applications/ApplicationService.ts';
@@ -47,6 +48,25 @@ const date_attenuation = ref<null | string>(null);
 
 // Attenuated token
 const attenuated_biscuit = ref<null | Biscuit>(null);
+
+// MCP Configuration example (computed)
+const mcpConfigExample = computed(() => {
+  const token = service_token$.value?.biscuit || 'YOUR_TOKEN_HERE';
+  return JSON.stringify(
+    {
+      mcpServers: {
+        hook0: {
+          command: 'hook0-mcp',
+          env: {
+            HOOK0_API_TOKEN: token,
+          },
+        },
+      },
+    },
+    null,
+    2
+  );
+});
 
 function _forceLoad() {
   organization_id.value = route.params.organization_id as UUID;
@@ -205,13 +225,63 @@ onUpdated(() => {
               This token can do everything in your organization.
               <br /><strong>Don't share with anyone.</strong>
             </Hook0Text>
-
-            <Hook0Text class="helpText mt-2 block"> </Hook0Text>
           </template>
           <template #content>
             <Hook0Code :code="service_token$.biscuit"></Hook0Code>
           </template>
         </Hook0CardContentLine>
+      </Hook0CardContent>
+    </Hook0Card>
+
+    <!-- AI Assistant Configuration -->
+    <Hook0Card v-if="service_token$">
+      <Hook0CardHeader>
+        <template #header>
+          <div class="flex items-center space-x-2">
+            <Hook0Icon name="robot" class="text-indigo-500"></Hook0Icon>
+            <span>Use with AI Assistants</span>
+          </div>
+        </template>
+        <template #subtitle>
+          <div class="text-sm text-gray-500">
+            Connect this token to Claude, ChatGPT, or any MCP-compatible AI assistant to manage your
+            webhooks using natural language.
+          </div>
+        </template>
+      </Hook0CardHeader>
+      <Hook0CardContent>
+        <Hook0CardContentLines>
+          <Hook0CardContentLine type="full-width">
+            <template #content>
+              <div class="space-y-4">
+                <div>
+                  <Hook0Text class="font-medium text-gray-700 mb-2 block"
+                    >Claude Desktop Configuration</Hook0Text
+                  >
+                  <Hook0Text class="text-sm text-gray-500 mb-2 block">
+                    Add this to your
+                    <code class="bg-gray-100 px-1 rounded">claude_desktop_config.json</code>:
+                  </Hook0Text>
+                  <Hook0Code :code="mcpConfigExample" language="json"></Hook0Code>
+                </div>
+                <div
+                  class="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-start space-x-2"
+                >
+                  <Hook0Icon name="book" class="text-blue-600 mt-0.5"></Hook0Icon>
+                  <span class="text-sm text-blue-800">
+                    For detailed setup instructions, see the
+                    <a
+                      href="https://documentation.hook0.com/reference/mcp-for-ia-assistant"
+                      target="_blank"
+                      class="font-medium underline hover:text-blue-900"
+                      >MCP Integration Guide</a
+                    >.
+                  </span>
+                </div>
+              </div>
+            </template>
+          </Hook0CardContentLine>
+        </Hook0CardContentLines>
       </Hook0CardContent>
     </Hook0Card>
 

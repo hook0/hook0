@@ -49,6 +49,7 @@ import {
   faPen,
   faCopy,
   faCircle,
+  faRobot,
 } from '@fortawesome/free-solid-svg-icons';
 import { faToggleOn } from '@fortawesome/free-solid-svg-icons/faToggleOn';
 import { faToggleOff } from '@fortawesome/free-solid-svg-icons/faToggleOff';
@@ -141,7 +142,10 @@ library.add(
   // Navigation
   faKey,
   faFileContract,
-  faSliders
+  faSliders,
+
+  // AI Integration
+  faRobot
 );
 
 // Vue - promised
