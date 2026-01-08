@@ -22,10 +22,9 @@ A comprehensive introduction to Hook0, including core concepts and fundamental u
 1. [What is Hook0?](what-is-hook0.md) - Core concepts
 2. [Hook0 Architecture](hook0-architecture.md) - System overview
 3. [Event Processing](event-processing.md) - How events flow
-4. [Event Labels](labels.md) - Filtering and routing
 
 **Advanced Path:**
-5. [Security Model](security-model.md) - Security architecture
+4. [Security Model](security-model.md) - Security architecture
 
 ---
 
@@ -52,18 +51,6 @@ Detailed explanation of how Hook0 processes events from creation to delivery.
 - Retry mechanisms and backoff strategies
 - Dead letter queues and failure handling
 - Performance characteristics
-
----
-
-### [Event Labels](labels.md)
-Understanding label-based filtering and routing for events.
-
-**Topics covered:**
-- What labels are and how they work
-- Multi-tenancy patterns
-- Environment-based routing
-- Geographic and priority routing
-- Best practices
 
 ---
 
