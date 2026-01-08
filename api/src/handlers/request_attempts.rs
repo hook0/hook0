@@ -114,11 +114,11 @@ pub struct Qs {
 
 #[api_v2_operation(
     summary = "List request attempts",
-    description = "Retrieves the most recent attempts to deliver events to subscriptions for a given application. Request attempts track the status and history of event deliveries, including retries and failures. This endpoint is paginated: the next URL is given in the `Link` header of the response, following HATEOAS conventions.",
-    operation_id = "requestAttempts.read",
+    description = "Retrieves webhook delivery attempts for an application. Each attempt shows the delivery status (pending, in_progress, successful, failed, waiting), retry count, and timestamps. Filter by event_id, subscription_id, date range, or event types. Paginated via Link header.",
+    operation_id = "requestAttempts.list",
     consumes = "application/json",
     produces = "application/json",
-    tags("Subscriptions Management")
+    tags("Subscriptions Management", "mcp")
 )]
 pub async fn list(
     state: Data<crate::State>,
