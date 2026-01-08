@@ -33,6 +33,14 @@ Implement multi-tenant webhook systems using Hook0's labels and subscriptions.
 
 ## Security & Reliability
 
+### [Managing Service Tokens](manage-service-tokens.md)
+Create, attenuate, and manage service tokens for API access.
+
+**When to use:** When setting up API access for automation, CI/CD, or AI assistants
+**Covers:** Token creation, token attenuation, least privilege, rotation, revocation
+
+---
+
 ### [Secure Webhook Endpoints](secure-webhook-endpoints.md)
 Implement robust security measures for webhook endpoints and payloads.
 
@@ -56,6 +64,7 @@ Implement robust error handling for Hook0 API responses.
 |---------|-------|------------|
 | Webhooks not delivering | [Debug Failed Webhooks](debug-failed-webhooks.md) | Beginner |
 | Need performance monitoring | [Monitor Webhook Performance](monitor-webhook-performance.md) | Intermediate |
+| Setting up API authentication | [Managing Service Tokens](manage-service-tokens.md) | Beginner |
 | Need security implementation | [Secure Webhook Endpoints](secure-webhook-endpoints.md) | Intermediate |
 | Need error handling in client | [Client-side Error Handling](client-error-handling.md) | Beginner |
 | Building multi-tenant SaaS | [Multi-Tenant Architecture](multi-tenant-architecture.md) | Intermediate |
