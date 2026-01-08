@@ -20,8 +20,6 @@ stages:
 include:
   - template: SAST.gitlab-ci.yml
   - template: DAST.gitlab-ci.yml
-  # Container-Scanning disabled: requires Docker DinD, incompatible with Kubernetes runner
-  # - template: Jobs/Container-Scanning.gitlab-ci.yml
   - template: Security/Secret-Detection.gitlab-ci.yml
   - local: 'api/.gitlab-ci.yml'
   - local: 'clients/rust/.gitlab-ci.yml'
@@ -48,6 +46,41 @@ osv_dependency_scan:
     - go install github.com/google/osv-scanner/cmd/osv-scanner@v1.9.2
   script:
     - osv-scanner --recursive .
+
+# Container scanning using Trivy (no Docker required, works on Kubernetes runners)
+container_scanning:
+  stage: test
+  dependencies: []
+  image:
+    name: aquasec/trivy:0.58.1
+    entrypoint: [""]
+  allow_failure: true
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+  variables:
+    TRIVY_NO_PROGRESS: "true"
+    TRIVY_CACHE_DIR: ".trivycache/"
+  cache:
+    paths:
+      - .trivycache/
+  before_script:
+    - trivy --version
+  script:
+    # Scan all Dockerfiles for misconfigurations
+    - trivy config --exit-code 0 --severity HIGH,CRITICAL .
+    # Scan filesystem for vulnerabilities in dependencies
+    - trivy fs --exit-code 0 --severity HIGH,CRITICAL --scanners vuln .
+    # Generate GitLab-compatible report
+    - trivy fs --exit-code 0 --format json --output gl-container-scanning-report.json .
+  artifacts:
+    reports:
+      container_scanning: gl-container-scanning-report.json
+    paths:
+      - gl-container-scanning-report.json
+    when: always
 
 dast:
   stage: dast
