@@ -559,7 +559,3 @@ Yes. Set `HOOK0_API_URL` to your self-hosted instance URL.
 - **GitHub Issues:** [Report Issues](https://github.com/hook0/hook0/issues)
 - **Community:** [Join Discord](https://www.hook0.com/community)
 - **Crates.io:** [hook0-mcp](https://crates.io/crates/hook0-mcp)
-
----
-
-*This page documents the Hook0 MCP Server v0.1.0+*
