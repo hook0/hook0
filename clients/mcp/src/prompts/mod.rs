@@ -90,23 +90,23 @@ pub fn get_prompt(
             let mut content =
                 String::from("I'll help you create a webhook subscription step by step.\n\n");
 
-            if app_id.is_none() {
+            if let Some(app_id) = app_id {
+                content.push_str(&format!("Using application: {}\n\n", app_id));
+            } else {
                 content.push_str(
                     "First, let's identify which application should receive the subscription.\n\
                      Please use the `list_applications` tool to see available applications, \
                      or provide an application_id if you already know it.\n\n",
                 );
-            } else {
-                content.push_str(&format!("Using application: {}\n\n", app_id.unwrap()));
             }
 
-            if target_url.is_none() {
+            if let Some(target_url) = target_url {
+                content.push_str(&format!("Target URL: {}\n\n", target_url));
+            } else {
                 content.push_str(
                     "Next, we need a target URL where webhooks will be sent.\n\
                      This should be an HTTPS endpoint that can receive POST requests.\n\n",
                 );
-            } else {
-                content.push_str(&format!("Target URL: {}\n\n", target_url.unwrap()));
             }
 
             content.push_str(
@@ -196,12 +196,11 @@ pub fn get_prompt(
                 );
             }
 
-            if org_id.is_some() && app_name.is_some() {
+            if let (Some(org_id), Some(app_name)) = (org_id, app_name) {
                 content.push_str(&format!(
                     "Ready to create application '{}' in organization '{}'.\n\
                      Use `create_application` with these values.\n\n",
-                    app_name.unwrap(),
-                    org_id.unwrap()
+                    app_name, org_id
                 ));
             }
 
