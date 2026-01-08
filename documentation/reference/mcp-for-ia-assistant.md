@@ -541,11 +541,11 @@ Currently, MCP is primarily supported by Claude (Anthropic), Cursor, Windsurf, a
 
 ### What happens if I delete something by accident?
 
-Hook0 maintains audit logs of all operations. While deleted resources cannot be automatically restored, you can contact support with the audit trail information.
+Deleted resources cannot be automatically restored. Use [read-only mode](#read-only-mode) to prevent accidental modifications, or create attenuated tokens with limited permissions.
 
 ### Can multiple team members use MCP?
 
-Yes! Each team member should create their own service token. This ensures proper audit trails and allows individual token revocation if needed.
+Yes! Each team member should create their own service token. This allows individual token revocation if needed and follows the principle of least privilege.
 
 ### Does this work with self-hosted Hook0?
 
