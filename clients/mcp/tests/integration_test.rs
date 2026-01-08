@@ -443,11 +443,8 @@ mod resources {
                 .as_array()
                 .expect("contents should be an array");
 
-            // Contents can be empty if no applications exist
-            assert!(
-                contents.is_empty() || !contents.is_empty(),
-                "Contents array should exist"
-            );
+            // Contents array validated above (as_array succeeds)
+            // Empty is valid if no applications exist
         }
     }
 

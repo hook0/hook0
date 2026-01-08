@@ -460,9 +460,11 @@ When using MCP with AI assistants, always [attenuate your token](../how-to-guide
 3. Ensure no extra whitespace in the config file
 4. For attenuated tokens, verify they haven't expired
 
-### "Read-only mode" Warning
+### "Tool not available in read-only mode" Error
 
-**Cause:** `HOOK0_READ_ONLY=true` is set but you're trying a write operation.
+**Cause:** `HOOK0_READ_ONLY=true` is set but you're trying to use a write operation tool.
+
+**Error message:** `Tool 'X' is not available in read-only mode. Set HOOK0_READ_ONLY=false to enable write operations.`
 
 **Fix:**
 - Set `HOOK0_READ_ONLY=false` if you need write access
@@ -550,12 +552,3 @@ Yes! Each team member should create their own service token. This allows individ
 ### Does this work with self-hosted Hook0?
 
 Yes. Set `HOOK0_API_URL` to your self-hosted instance URL.
-
----
-
-## Support
-
-- **Documentation:** [Hook0 Docs](https://documentation.hook0.com/)
-- **GitHub Issues:** [Report Issues](https://github.com/hook0/hook0/issues)
-- **Community:** [Join Discord](https://www.hook0.com/community)
-- **Crates.io:** [hook0-mcp](https://crates.io/crates/hook0-mcp)

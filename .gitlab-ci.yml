@@ -43,7 +43,7 @@ osv_dependency_scan:
       - runner_system_failure
       - stuck_or_timeout_failure
   before_script:
-    - go install github.com/google/osv-scanner/cmd/osv-scanner@v1.9.2
+    - go install github.com/google/osv-scanner/cmd/osv-scanner@v2.3.0
   script:
     - osv-scanner --recursive .
 
@@ -52,7 +52,7 @@ container_scanning:
   stage: test
   dependencies: []
   image:
-    name: aquasec/trivy:0.58.1
+    name: aquasec/trivy:0.68.2
     entrypoint: [""]
   allow_failure: true
   retry:
