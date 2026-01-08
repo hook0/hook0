@@ -437,13 +437,6 @@ When using MCP with AI assistants, always [attenuate your token](../how-to-guide
 }
 ```
 
-### Audit Trail
-
-All actions performed through the MCP server are logged in Hook0's audit trail. You can review:
-- What operations were performed
-- When they occurred
-- Which token was used
-
 ---
 
 ## Troubleshooting

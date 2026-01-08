@@ -172,14 +172,6 @@ For sensitive environments:
 3. Verify everything works
 4. Revoke the old token
 
-### 5. Monitor Token Usage
-
-Review the Hook0 audit trail regularly to:
-
-- Detect unauthorized access attempts
-- Verify tokens are being used as expected
-- Identify tokens that should be revoked
-
 ---
 
 ## Revoking Tokens
