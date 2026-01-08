@@ -2,6 +2,20 @@
 
 Technical reference documentation for Hook0. These information-oriented materials provide comprehensive details about APIs, configuration, schemas, and other technical specifications.
 
+## AI Assistant Integration
+
+### [MCP Server for AI Assistants](mcp-for-ia-assistant.md)
+Control Hook0 using natural language with Claude, Cursor, Windsurf, or any MCP-compatible AI assistant.
+
+**Includes:**
+- Quick start guide for all major AI assistants
+- Complete tool, resource, and prompt reference
+- Example conversations and workflows
+- Security best practices and token attenuation
+- Troubleshooting guide
+
+---
+
 ## API Documentation
 
 ### [API Reference](../openapi/intro)
