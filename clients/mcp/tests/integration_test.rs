@@ -437,14 +437,12 @@ mod resources {
             );
         } else {
             let result = response.result.expect("Should have result if no error");
-            let contents = result
+            // Validate contents exists and is an array (empty is valid if no applications exist)
+            result
                 .get("contents")
                 .expect("Result should have contents")
                 .as_array()
                 .expect("contents should be an array");
-
-            // Contents array validated above (as_array succeeds)
-            // Empty is valid if no applications exist
         }
     }
 
