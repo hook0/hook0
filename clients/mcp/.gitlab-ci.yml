@@ -7,6 +7,7 @@ client.mcp.check:
   rules:
     - changes:
         - clients/mcp/**/*
+        - api/**/*
         - Cargo.*
   before_script:
     - rustc --version && cargo --version
@@ -16,9 +17,67 @@ client.mcp.check:
     - pushd clients/mcp
     - cargo fmt --all -- --check
     - cargo clippy --all-targets --all-features -- -D warnings
-    - cargo test --all-targets --all-features
+    # Only run library unit tests here (not integration tests which require a running API)
+    - cargo test --lib --all-features
     - cargo build --release
     - popd
+
+# Build API for MCP integration tests
+mcp.build:
+  stage: build
+  dependencies: []
+  image: rust:$RUST_VERSION
+  rules:
+    - changes:
+        - clients/mcp/**/*
+        - api/**/*
+        - Cargo.*
+  before_script:
+    - rustc --version && cargo --version
+    - wget -O protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/protoc-$PROTOC_VERSION-linux-x86_64.zip && mkdir protoc && unzip protoc.zip -d protoc/
+    - export PROTOC="$(realpath ./protoc/bin/protoc)"
+  script:
+    - cargo build --release --no-default-features -F reqwest-rustls-tls-webpki-roots -F application-secret-compatibility
+  artifacts:
+    paths:
+      - target/release/hook0-api
+
+# Integration tests against local API
+client.mcp.integration:
+  stage: test
+  dependencies:
+    - mcp.build
+  image: rust:$RUST_VERSION
+  rules:
+    - changes:
+        - clients/mcp/**/*
+        - api/**/*
+        - Cargo.*
+  services:
+    - name: postgres:$PG_VERSION
+  variables:
+    POSTGRES_DB: hook0
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: postgres
+    POSTGRES_HOST: postgres
+    API_HOST: localhost
+    API_PORT: '8080'
+    MASTER_API_KEY: '00000000-0000-0000-0000-000000000000'
+    BISCUIT_PRIVATE_KEY: 'bee97db5398b2694cc2362918a2d9eed117b70f036e224407085ccb6800028fc'
+    DATABASE_URL: 'postgres://postgres:postgres@postgres:5432/hook0'
+    EMAIL_SENDER_ADDRESS: 'test@hook0.local'
+    SMTP_CONNECTION_URL: 'smtp://localhost:1025'
+    APP_URL: 'http://localhost:8080/'
+    DISABLE_SERVING_WEBAPP: 'true'
+    DISABLE_TARGET_IP_CHECK: 'true'
+  before_script:
+    - rustc --version && cargo --version
+    - apt-get update && apt-get install -y curl jq postgresql-client
+  script:
+    # Start API in background
+    - ./target/release/hook0-api &
+    # Run the shared integration test script
+    - clients/mcp/scripts/run_integration_tests.sh
 
 client.mcp.semver-checks:
   stage: test
