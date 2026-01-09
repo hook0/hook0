@@ -11,6 +11,7 @@ use std::env;
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::Duration;
 
 static REQUEST_ID: AtomicU64 = AtomicU64::new(1);
 
@@ -74,7 +75,7 @@ impl McpServerProcess {
             .env("MCP_TRANSPORT", "stdio")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
+            .stderr(Stdio::inherit()) // Print to test output to prevent pipe buffer blocking
             .spawn()
             .expect("Failed to start MCP server");
 
@@ -105,12 +106,30 @@ impl McpServerProcess {
         writeln!(self.stdin, "{}", request_json).expect("Failed to write request");
         self.stdin.flush().expect("Failed to flush");
 
-        // Read response
+        // Read response with timeout to prevent hanging forever
+        let timeout = Duration::from_secs(30);
         let mut line = String::new();
-        self.reader
-            .read_line(&mut line)
-            .expect("Failed to read response");
 
+        let result = std::thread::scope(|s| {
+            let reader = &mut self.reader;
+            let line_ref = &mut line;
+            let handle = s.spawn(move || reader.read_line(line_ref));
+
+            // Wait for thread with timeout
+            let start = std::time::Instant::now();
+            while !handle.is_finished() {
+                if start.elapsed() > timeout {
+                    panic!(
+                        "Timeout waiting for response from MCP server after {:?}",
+                        timeout
+                    );
+                }
+                std::thread::sleep(Duration::from_millis(10));
+            }
+            handle.join().expect("Reader thread panicked")
+        });
+
+        result.expect("Failed to read response");
         serde_json::from_str(&line).expect("Failed to parse response")
     }
 

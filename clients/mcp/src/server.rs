@@ -73,10 +73,17 @@ impl Hook0McpServer {
         let tool_info = get_tool_info(name).ok_or_else(|| McpError::tool_not_found(name))?;
 
         // Build path parameters map for interpolation
+        // Handle string, numeric, and boolean values for path parameters
         let mut path_params: HashMap<String, String> = HashMap::new();
         for (key, value) in args {
-            if let Some(s) = value.as_str() {
-                path_params.insert(key.clone(), s.to_string());
+            let string_value = match value {
+                Value::String(s) => Some(s.clone()),
+                Value::Number(n) => Some(n.to_string()),
+                Value::Bool(b) => Some(b.to_string()),
+                _ => None,
+            };
+            if let Some(s) = string_value {
+                path_params.insert(key.clone(), s);
             }
         }
 
