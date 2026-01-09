@@ -185,8 +185,48 @@ onUpdated(() => {
     </template>
     <!-- The default scoped slot will be used as the result -->
     <template #default="services_tokens">
-      <!-- AI Integration Banner -->
+      <!-- Service Tokens List -->
       <Hook0Card class="mb-4">
+        <Hook0CardHeader>
+          <template #header> Service Tokens </template>
+          <template #subtitle>
+            Service tokens are organization-wide API keys that allow external programs to send API
+            requests to Hook0 without relying on user credentials.
+          </template>
+        </Hook0CardHeader>
+
+        <Hook0CardContent v-if="services_tokens.length > 0">
+          <Hook0Table
+            :context="{ services_token$, columnDefs }"
+            :column-defs="columnDefs"
+            :row-data="services_tokens"
+          >
+          </Hook0Table>
+        </Hook0CardContent>
+
+        <Hook0CardContent v-else>
+          <Hook0CardContentLines>
+            <Hook0CardContentLine type="full-width">
+              <template #content>
+                <Hook0Text>
+                  You don't have any service tokens yet. Create one to start integrating with
+                  Hook0's API or to connect an AI assistant.
+                </Hook0Text>
+              </template>
+            </Hook0CardContentLine>
+          </Hook0CardContentLines>
+        </Hook0CardContent>
+
+        <Hook0CardFooter>
+          <Hook0Button class="primary" type="button" @click="createNew">
+            <Hook0Icon name="plus" class="mr-1"></Hook0Icon>
+            Create Service Token
+          </Hook0Button>
+        </Hook0CardFooter>
+      </Hook0Card>
+
+      <!-- AI Integration Banner -->
+      <Hook0Card>
         <div
           class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-t-lg px-6 py-4"
         >
@@ -246,7 +286,7 @@ onUpdated(() => {
                   >
                     <Hook0Icon name="key" class="text-amber-600 mt-0.5"></Hook0Icon>
                     <span class="text-sm text-amber-800">
-                      <strong>To get started:</strong> Create a service token below and use it as
+                      <strong>To get started:</strong> Create a service token above and use it as
                       your <code class="bg-amber-100 px-1 rounded">HOOK0_API_TOKEN</code> in your
                       MCP configuration.
                     </span>
@@ -256,46 +296,6 @@ onUpdated(() => {
             </Hook0CardContentLine>
           </Hook0CardContentLines>
         </Hook0CardContent>
-      </Hook0Card>
-
-      <!-- Service Tokens List -->
-      <Hook0Card>
-        <Hook0CardHeader>
-          <template #header> Service Tokens </template>
-          <template #subtitle>
-            Service tokens are organization-wide API keys that allow external programs to send API
-            requests to Hook0 without relying on user credentials.
-          </template>
-        </Hook0CardHeader>
-
-        <Hook0CardContent v-if="services_tokens.length > 0">
-          <Hook0Table
-            :context="{ services_token$, columnDefs }"
-            :column-defs="columnDefs"
-            :row-data="services_tokens"
-          >
-          </Hook0Table>
-        </Hook0CardContent>
-
-        <Hook0CardContent v-else>
-          <Hook0CardContentLines>
-            <Hook0CardContentLine type="full-width">
-              <template #content>
-                <Hook0Text>
-                  You don't have any service tokens yet. Create one to start integrating with
-                  Hook0's API or to connect an AI assistant.
-                </Hook0Text>
-              </template>
-            </Hook0CardContentLine>
-          </Hook0CardContentLines>
-        </Hook0CardContent>
-
-        <Hook0CardFooter>
-          <Hook0Button class="primary" type="button" @click="createNew">
-            <Hook0Icon name="plus" class="mr-1"></Hook0Icon>
-            Create Service Token
-          </Hook0Button>
-        </Hook0CardFooter>
       </Hook0Card>
     </template>
     <!-- The "rejected" scoped slot will be used if there is an error -->
