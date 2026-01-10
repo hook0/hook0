@@ -233,7 +233,3 @@ Service tokens belong to organizations, not users. Ensure you:
 - **[API Reference](../openapi/intro)** - Complete API documentation
 - **[MCP Server for AI Assistants](../reference/mcp-for-ia-assistant.md)** - Using tokens with AI assistants
 - **[Configuration Reference](../reference/configuration.md)** - Environment variable setup
-
----
-
-*Need help? Contact us through our [Discord community](https://www.hook0.com/community).*
