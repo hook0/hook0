@@ -76,11 +76,11 @@ pub struct OrganizationUser {
 
 #[api_v2_operation(
     summary = "List organizations",
-    description = "Retrieves all organizations the current API token has access to, with the associated roles.",
+    description = "Retrieves all organizations the current API token has access to, with the associated roles and plan information. Use this to discover which organizations you can manage.",
     operation_id = "organizations.list",
     consumes = "application/json",
     produces = "application/json",
-    tags("Organizations Management")
+    tags("Organizations Management", "mcp")
 )]
 pub async fn list(
     state: Data<crate::State>,
@@ -297,11 +297,11 @@ pub async fn create(
 
 #[api_v2_operation(
     summary = "Get organization's info by its ID",
-    description = "Retrieves details about a specific organization, including quotas and consumption statistics.",
+    description = "Retrieves details about a specific organization, including members, quotas, consumption statistics, and onboarding progress. Use this to check organization health and usage limits.",
     operation_id = "organizations.get",
     consumes = "application/json",
     produces = "application/json",
-    tags("Organizations Management")
+    tags("Organizations Management", "mcp")
 )]
 pub async fn get(
     state: Data<crate::State>,

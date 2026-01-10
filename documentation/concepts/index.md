@@ -30,4 +30,5 @@ This architecture allows you to decouple event producers from consumers, enablin
 - **[Events](events.md)** - Notifications sent from your applications to Hook0
 - **[Subscriptions](subscriptions.md)** - Configure where and how to receive notifications
 - **[Event Types](event-types.md)** - Categorize and structure your events
+- **[Labels](labels.md)** - Filter and route events to subscriptions
 - **[Metadata](metadata.md)** - Attach arbitrary key-value data to objects
