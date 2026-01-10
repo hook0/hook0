@@ -44,7 +44,7 @@ Service tokens authenticate the MCP server with your Hook0 organization.
 6. **Copy the token** — this is your `HOOK0_API_TOKEN`
 
 :::warning Security Best Practice
-Service tokens have full access to your organization. For production environments, consider using [token attenuation](#token-attenuation) to restrict permissions to specific applications.
+Service tokens have full access to your organization. For production environments, consider using [token attenuation](../how-to-guides/manage-service-tokens.md#token-attenuation) to restrict permissions to specific applications.
 :::
 
 ### 3. Configure Your AI Assistant
