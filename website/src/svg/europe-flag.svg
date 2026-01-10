@@ -1,3 +1,93 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:8ca14ebfe5f9b5c9fc10fa635c90266bfdd3e818f20844ab3a5783b26a724e25
-size 3634
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
+
+<svg
+   width="28"
+   height="20"
+   viewBox="0 -4 28 28"
+   fill="none"
+   version="1.1"
+   id="svg4"
+   sodipodi:docname="europe-flag.svg"
+   inkscape:version="1.4.2 (ebf0e94, 2025-05-08)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview4"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="41.964286"
+     inkscape:cx="13.988085"
+     inkscape:cy="13.428085"
+     inkscape:window-width="2560"
+     inkscape:window-height="1377"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg4" />
+  <g
+     clip-path="url(#clip0_503_2543)"
+     id="g4"
+     transform="translate(0,-4)">
+    <rect
+       width="28"
+       height="20"
+       rx="2"
+       fill="#ffffff"
+       id="rect1"
+       x="0"
+       y="0" />
+    <mask
+       id="mask0_503_2543"
+       maskUnits="userSpaceOnUse"
+       x="0"
+       y="0"
+       width="28"
+       height="20">
+      <rect
+         width="28"
+         height="20"
+         rx="2"
+         fill="#ffffff"
+         id="rect2"
+         x="0"
+         y="0" />
+    </mask>
+    <g
+       mask="url(#mask0_503_2543)"
+       id="g3">
+      <rect
+         width="28"
+         height="20"
+         fill="#043cae"
+         id="rect3"
+         x="0"
+         y="0" />
+      <path
+         fill-rule="evenodd"
+         clip-rule="evenodd"
+         d="M 13.0572,4.27615 14,4.00001 14.9428,4.27615 14.6666,3.33334 14.9428,2.39053 14,2.66668 13.0572,2.39053 13.3333,3.33334 Z m 0,13.33335 L 14,17.3333 14.9428,17.6095 14.6666,16.6667 14.9428,15.7239 14,16 13.0572,15.7239 13.3333,16.6667 Z M 20.6666,10.6667 19.7238,10.9428 20,10 19.7238,9.0572 20.6666,9.33334 21.6095,9.0572 21.3333,10 21.6095,10.9428 Z M 6.3905,10.9428 7.33331,10.6667 8.27612,10.9428 7.99998,10 8.27612,9.0572 7.33331,9.33334 6.3905,9.0572 6.66665,10 Z m 13.383,-3.60946 -0.9428,0.27614 0.2761,-0.9428 -0.2761,-0.94281 0.9428,0.27614 0.9428,-0.27614 -0.2762,0.94281 0.2762,0.9428 z M 7.28367,14.2762 8.22648,14 9.16929,14.2762 8.89314,13.3333 9.16929,12.3905 8.22648,12.6667 7.28367,12.3905 7.55981,13.3333 Z M 17.3333,4.89317 16.3905,5.16932 16.6666,4.22651 16.3905,3.2837 17.3333,3.55984 18.2761,3.2837 18,4.22651 18.2761,5.16932 Z m -7.60946,11.82313 0.94276,-0.2761 0.9429,0.2761 -0.2762,-0.9428 0.2762,-0.9428 -0.9429,0.2761 -0.94276,-0.2761 0.27614,0.9428 z M 19.7735,14 l -0.9428,0.2762 0.2761,-0.9429 -0.2761,-0.9428 0.9428,0.2762 0.9428,-0.2762 -0.2762,0.9428 0.2762,0.9429 z M 7.28367,7.60948 8.22648,7.33334 9.16929,7.60948 8.89314,6.66668 9.16929,5.72387 8.22648,6.00001 7.28367,5.72387 7.55981,6.66668 Z m 10.04963,8.83072 -0.9428,0.2761 0.2761,-0.9428 -0.2761,-0.9428 0.9428,0.2761 0.9428,-0.2761 L 18,15.7735 18.2761,16.7163 Z M 9.72384,5.16932 10.6666,4.89317 11.6095,5.16932 11.3333,4.22651 11.6095,3.2837 10.6666,3.55984 9.72384,3.2837 9.99998,4.22651 Z"
+         fill="#ffd429"
+         id="path3" />
+    </g>
+  </g>
+  <defs
+     id="defs4">
+    <clipPath
+       id="clip0_503_2543">
+      <rect
+         width="28"
+         height="20"
+         rx="2"
+         fill="white"
+         id="rect4" />
+    </clipPath>
+  </defs>
+</svg>
