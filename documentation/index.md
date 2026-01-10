@@ -29,6 +29,7 @@ Hook0 is a production-ready webhook server that ensures your events reach their 
 1. **[Event Types & Subscriptions](tutorials/event-types-subscriptions.md)** - Configure events
 2. **[API Reference](/api)** - Complete REST API docs
 3. **[JavaScript SDK](reference/sdk/javascript.md)** - Official client library
+4. **[MCP Server](reference/mcp.md)** - Control Hook0 with AI assistants
 
 </div>
 </div>
@@ -58,6 +59,7 @@ This documentation follows the [Diataxis methodology](https://diataxis.fr/):
 | **High Performance** | Rust-based, handles thousands of events/second |
 | **Flexible** | Event filtering, label-based routing |
 | **Open Source** | Self-host or use our cloud service |
+| **AI-Ready** | Control via Claude, Cursor, or any MCP-compatible assistant |
 
 ---
 
@@ -69,6 +71,7 @@ This documentation follows the [Diataxis methodology](https://diataxis.fr/):
 - [API Reference](/api) - REST API documentation
 - [JavaScript SDK](reference/sdk/javascript.md) - TypeScript/JS client
 - [Rust SDK](reference/sdk/rust.md) - Rust client library
+- [MCP Server](reference/mcp.md) - AI assistant integration
 - [Error Codes](reference/error-codes.md) - Troubleshooting
 
 **DevOps**

@@ -83,6 +83,7 @@ const sidebars = {
         "reference/event-schemas",
         "reference/configuration",
         "reference/error-codes",
+        "reference/mcp",
         {
           type: "category",
           label: "SDKs",

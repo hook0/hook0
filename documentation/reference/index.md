@@ -11,7 +11,7 @@ Technical specifications for Hook0. Use this reference when you need exact detai
 | Configure Hook0 | [Configuration](configuration.md) |
 | Understand an error | [Error Codes](error-codes.md) |
 | Define event payloads | [Event Schemas](event-schemas.md) |
-| Use AI assistants | [MCP Server](mcp-for-ia-assistant.md) |
+| Use AI assistants | [MCP Server](mcp.md) |
 
 ---
 
@@ -71,7 +71,7 @@ Complete list of HTTP status codes and Hook0-specific error codes with resolutio
 
 ## AI Assistant Integration
 
-### [MCP Server for AI Assistants](mcp-for-ia-assistant.md)
+### [MCP Server for AI Assistants](mcp.md)
 
 Control Hook0 using natural language with Claude, Cursor, Windsurf, or any MCP-compatible AI assistant.
 
