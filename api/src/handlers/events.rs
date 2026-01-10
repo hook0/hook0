@@ -75,11 +75,11 @@ impl PayloadContentType {
 
 #[api_v2_operation(
     summary = "List supported event payload content types",
-    description = "List of every possible content types that can be used in event payloads.",
+    description = "Returns the list of valid content types for event payloads: 'text/plain' for plain text, 'application/json' for JSON data, 'application/octet-stream+base64' for binary data encoded as base64.",
     operation_id = "payload_content_types.list",
     consumes = "application/json",
     produces = "application/json",
-    tags("Events Management")
+    tags("Events Management", "mcp")
 )]
 pub async fn payload_content_types() -> Result<Json<Vec<&'static str>>, Hook0Problem> {
     Ok(Json(PayloadContentType::VARIANTS.to_vec()))
@@ -132,11 +132,11 @@ pub struct Event {
 
 #[api_v2_operation(
     summary = "List latest events",
-    description = "Retrieves the last 100 ingested events for a given application.",
+    description = "Retrieves the 100 most recently ingested events for an application. Each event includes its type, payload content type, metadata, labels, and timestamps. Use application_id query parameter to filter by application.",
     operation_id = "events.list",
     consumes = "application/json",
     produces = "application/json",
-    tags("Events Management")
+    tags("Events Management", "mcp")
 )]
 pub async fn list(
     state: Data<crate::State>,
@@ -222,12 +222,12 @@ pub struct EventWithPayload {
 }
 
 #[api_v2_operation(
-    summary = "Get an event",
-    description = "Retrieves details of a specific event if it belongs to the specified application.",
+    summary = "Get an event by its ID",
+    description = "Retrieves full details of a specific event including its payload (base64-encoded), event type, content type, metadata, labels, and timestamps. The event must belong to the specified application.",
     operation_id = "events.get",
     consumes = "application/json",
     produces = "application/json",
-    tags("Events Management")
+    tags("Events Management", "mcp")
 )]
 pub async fn get(
     state: Data<crate::State>,
@@ -338,11 +338,11 @@ pub struct IngestedEvent {
 
 #[api_v2_operation(
     summary = "Ingest an event",
-    description = "Send an event to your Hook0 application. Matching subscriptions will be triggered, if any.",
+    description = "Sends an event to Hook0 for processing. The event will be matched against active subscriptions based on event type and labels, triggering webhook deliveries to matching endpoints. Requires event_type, payload, payload_content_type, labels, and occurred_at.",
     operation_id = "events.ingest",
     consumes = "application/json",
     produces = "application/json",
-    tags("Events Management")
+    tags("Events Management", "mcp")
 )]
 pub async fn ingest(
     state: Data<crate::State>,
@@ -567,10 +567,10 @@ pub struct ReplayEvent {
 
 #[api_v2_operation(
     summary = "Replay an event",
-    description = "Trigger existing subscriptions matching an existing event, which will result in webhook being send again.",
+    description = "Re-triggers webhook deliveries for an existing event. All active subscriptions matching the event type and labels will receive the event again. Useful for retrying failed deliveries or testing webhooks.",
     operation_id = "events.replay",
     consumes = "application/json",
-    tags("Events Management")
+    tags("Events Management", "mcp")
 )]
 pub async fn replay(
     state: Data<crate::State>,

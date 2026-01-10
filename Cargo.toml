@@ -4,6 +4,7 @@ members = [
   "output-worker",
   "sentry-integration",
   "clients/rust",
+  "clients/mcp",
   "protobuf"
 ]
 resolver = "3"
