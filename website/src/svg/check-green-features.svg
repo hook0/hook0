@@ -1,3 +1,7 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:af95e64277724facdb06047f27345fde09c096dac4311137887b5717f64c391e
-size 322
+<!-- Heroicon name: outline/check -->
+<svg class="absolute h-6 w-6 text-green-500" xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M5 13l4 4L19 7"/>
+</svg>
