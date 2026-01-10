@@ -231,5 +231,5 @@ Service tokens belong to organizations, not users. Ensure you:
 ## Related Resources
 
 - **[API Reference](../openapi/intro)** - Complete API documentation
-- **[MCP Server for AI Assistants](../reference/mcp-for-ia-assistant.md)** - Using tokens with AI assistants
+- **[MCP Server for AI Assistants](../reference/mcp.md)** - Using tokens with AI assistants
 - **[Configuration Reference](../reference/configuration.md)** - Environment variable setup
