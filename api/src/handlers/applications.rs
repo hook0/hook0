@@ -60,11 +60,11 @@ pub struct ApplicationPost {
 
 #[api_v2_operation(
     summary = "Create a new application",
-    description = "Registers a new application within an organization. An application emits events that customers can subscribe to using webhooks.",
+    description = "Creates a new Hook0 application within an organization. An application is the container for event types, subscriptions, and events. Use this when setting up a new service that will emit or receive webhook events.",
     operation_id = "applications.create",
     consumes = "application/json",
     produces = "application/json",
-    tags("Applications Management")
+    tags("Applications Management", "mcp")
 )]
 pub async fn create(
     state: Data<crate::State>,
@@ -149,11 +149,11 @@ pub async fn create(
 
 #[api_v2_operation(
     summary = "Get an application by its ID",
-    description = "Retrieves details about a specific application, including quotas and consumption statistics.",
+    description = "Retrieves details about a specific application, including quotas, consumption statistics, and onboarding progress. Use this to check application health and usage limits.",
     operation_id = "applications.get",
     consumes = "application/json",
     produces = "application/json",
-    tags("Applications Management")
+    tags("Applications Management", "mcp")
 )]
 pub async fn get(
     state: Data<crate::State>,
@@ -244,11 +244,11 @@ pub async fn get(
 
 #[api_v2_operation(
     summary = "List applications",
-    description = "Retrieves all applications.",
+    description = "Retrieves all applications within an organization. Each application contains event types, subscriptions, and events. Use organization_id query parameter to filter by organization.",
     operation_id = "applications.list",
     consumes = "application/json",
     produces = "application/json",
-    tags("Applications Management")
+    tags("Applications Management", "mcp")
 )]
 pub async fn list(
     state: Data<crate::State>,
@@ -282,11 +282,11 @@ pub async fn list(
 
 #[api_v2_operation(
     summary = "Edit an application",
-    description = "Updates the name of an existing application.",
+    description = "Updates the name of an existing application. Use this to rename applications for better organization.",
     operation_id = "applications.update",
     consumes = "application/json",
     produces = "application/json",
-    tags("Applications Management")
+    tags("Applications Management", "mcp")
 )]
 pub async fn edit(
     state: Data<crate::State>,
@@ -356,11 +356,11 @@ pub async fn edit(
 
 #[api_v2_operation(
     summary = "Delete an application",
-    description = "Marks an application as deleted. No more events will be emitted, and all active webhook subscriptions will be removed. All pending request attempts for all subscriptions belonging to this application will be automatically marked as failed.",
+    description = "Permanently deletes an application. No more events will be emitted, and all active webhook subscriptions will be removed. All pending request attempts will be automatically marked as failed. This action is irreversible.",
     operation_id = "applications.delete",
     consumes = "application/json",
     produces = "application/json",
-    tags("Applications Management")
+    tags("Applications Management", "mcp")
 )]
 pub async fn delete(
     state: Data<crate::State>,

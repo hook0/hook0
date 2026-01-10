@@ -184,11 +184,11 @@ pub struct Qs {
 
 #[api_v2_operation(
     summary = "List subscriptions",
-    description = "Retrieves all active event subscriptions for a given application. A subscription defines how and where event notifications will be sent.",
+    description = "Retrieves all active webhook subscriptions for an application. Each subscription defines which event types to listen for and where to deliver them (HTTP endpoint). Use application_id query parameter to filter by application.",
     operation_id = "subscriptions.list",
     consumes = "application/json",
     produces = "application/json",
-    tags("Subscriptions Management")
+    tags("Subscriptions Management", "mcp")
 )]
 pub async fn list(
     state: Data<crate::State>,
@@ -300,12 +300,12 @@ pub async fn list(
 }
 
 #[api_v2_operation(
-    summary = "Get a subscription by its id",
-    description = "Retrieves details of a specific subscription if it belongs to the specified application and has not been deleted.",
+    summary = "Get a subscription by its ID",
+    description = "Retrieves full details of a specific webhook subscription including target URL, HTTP method, headers, event types, labels, and metadata. The subscription must exist and not be deleted.",
     operation_id = "subscriptions.get",
     consumes = "application/json",
     produces = "application/json",
-    tags("Subscriptions Management")
+    tags("Subscriptions Management", "mcp")
 )]
 pub async fn get(
     state: Data<crate::State>,
@@ -463,11 +463,11 @@ pub struct SubscriptionPost {
 
 #[api_v2_operation(
     summary = "Create a new subscription",
-    description = "Creates a new event subscription for an application. This allows clients to receive event notifications via a webhook or another defined target.",
+    description = "Creates a webhook subscription that listens for specific event types and delivers them to an HTTP endpoint. Configure the target URL, HTTP method, headers, event type filters, labels for routing, and optional metadata.",
     operation_id = "subscriptions.create",
     consumes = "application/json",
     produces = "application/json",
-    tags("Subscriptions Management")
+    tags("Subscriptions Management", "mcp")
 )]
 pub async fn create(
     state: Data<crate::State>,
@@ -709,11 +709,11 @@ pub async fn create(
 
 #[api_v2_operation(
     summary = "Update a subscription",
-    description = "Modifies an existing subscription, including its event types, target configuration, or metadata. The subscription must belong to the specified application. When disabling a subscription, all pending and scheduled request attempts for this subscription will be automatically marked as failed; they won't be set back to a pending state if the subscription is re-enabled later.",
+    description = "Modifies an existing webhook subscription. You can update the target URL, HTTP method, headers, event types, labels, metadata, and enabled status. Disabling a subscription marks all pending webhook deliveries as failed (they won't retry if re-enabled).",
     operation_id = "subscriptions.update",
     consumes = "application/json",
     produces = "application/json",
-    tags("Subscriptions Management")
+    tags("Subscriptions Management", "mcp")
 )]
 pub async fn edit(
     state: Data<crate::State>,
@@ -1000,11 +1000,11 @@ pub async fn edit(
 
 #[api_v2_operation(
     summary = "Delete a subscription",
-    description = "Marks a subscription as deleted, preventing any further event notifications from being sent. All pending request attempts for this subscription will be automatically marked as failed. This operation is irreversible.",
+    description = "Permanently deletes a webhook subscription. No more events will be delivered to this endpoint, and all pending deliveries are marked as failed. This action is irreversible.",
     operation_id = "subscriptions.delete",
     consumes = "application/json",
     produces = "application/json",
-    tags("Subscriptions Management")
+    tags("Subscriptions Management", "mcp")
 )]
 pub async fn delete(
     state: Data<crate::State>,

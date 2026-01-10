@@ -158,16 +158,16 @@ const items = computed<Route[]>(() => {
     ].flat();
   } else if (route.params.organization_id) {
     return [
-      // {
-      //   name: 'Services Tokens',
-      //   icon: 'key',
-      //   route: {
-      //     name: routes.ServicesTokenList,
-      //     params: {
-      //       organization_id: route.params.organization_id,
-      //     },
-      //   },
-      // },
+      {
+        name: 'Service Tokens',
+        icon: 'key',
+        route: {
+          name: routes.ServicesTokenList,
+          params: {
+            organization_id: route.params.organization_id,
+          },
+        },
+      },
       {
         name: 'API Documentation',
         icon: 'book',

@@ -42,11 +42,11 @@ pub struct EventTypePost {
 
 #[api_v2_operation(
     summary = "Create a new event type",
-    description = "Defines a new event type for an application. Event types help categorize and structure emitted events, making them easier to manage and subscribe to.",
+    description = "Registers a new event type for an application. Event types follow the pattern 'service.resource.verb' (e.g., 'order.payment.completed'). Subscriptions can filter which event types trigger webhooks.",
     operation_id = "eventTypes.create",
     consumes = "application/json",
     produces = "application/json",
-    tags("Events Management")
+    tags("Events Management", "mcp")
 )]
 pub async fn create(
     state: Data<crate::State>,
@@ -185,11 +185,11 @@ pub async fn create(
 
 #[api_v2_operation(
     summary = "List event types",
-    description = "Retrieves all active event types registered for a given application. Each event type is uniquely identified by its service, resource type, and verb.",
+    description = "Retrieves all active event types for an application. Event types follow the pattern 'service.resource.verb'. Use application_id query parameter to filter by application.",
     operation_id = "eventTypes.list",
     consumes = "application/json",
     produces = "application/json",
-    tags("Events Management")
+    tags("Events Management", "mcp")
 )]
 pub async fn list(
     state: Data<crate::State>,
@@ -231,11 +231,11 @@ pub async fn list(
 
 #[api_v2_operation(
     summary = "Get an event type by its name",
-    description = "Retrieves details of a specific event type if it exists within the given application. Event types define the structure of emitted events.",
+    description = "Retrieves details of a specific event type by its name (e.g., 'order.payment.completed'). Returns the service, resource type, and verb components.",
     operation_id = "eventTypes.get",
     consumes = "application/json",
     produces = "application/json",
-    tags("Events Management")
+    tags("Events Management", "mcp")
 )]
 pub async fn get(
     state: Data<crate::State>,
@@ -281,11 +281,11 @@ pub async fn get(
 
 #[api_v2_operation(
     summary = "Delete an event type",
-    description = "Marks an event type as deactivated, preventing it from being used for new event emissions. Existing events using this type remain unaffected.",
+    description = "Deactivates an event type, preventing it from being used for new events. Existing events using this type remain unaffected. Use this to clean up unused event types.",
     operation_id = "eventTypes.delete",
     consumes = "application/json",
     produces = "application/json",
-    tags("Events Management")
+    tags("Events Management", "mcp")
 )]
 pub async fn delete(
     state: Data<crate::State>,
