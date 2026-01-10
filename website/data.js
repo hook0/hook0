@@ -107,7 +107,7 @@ locals.features = [
   {
     primary: true,
     title: 'Easy Integration',
-    description: 'Our <a href="https://documentation.hook0.com/reference/">JSON REST API</a>, <a href="https://documentation.hook0.com/reference/sdk/">SDKs</a>, and <a href="https://documentation.hook0.com/reference/mcp-for-ia-assistant">MCP Server for AI assistants</a> make it easy to trigger webhook events from your application and let your users connect to every available SaaS.',
+    description: 'Our <a href="https://documentation.hook0.com/reference/">JSON REST API</a>, <a href="https://documentation.hook0.com/reference/sdk/">SDKs</a>, and <a href="https://documentation.hook0.com/reference/mcp">MCP Server for AI assistants</a> make it easy to trigger webhook events from your application and let your users connect to every available SaaS.',
   },
   {
     primary: true,
@@ -272,6 +272,7 @@ locals.footerLinks = {
       { label: 'Quick Start', href: locals.meta.doc_getstarted, docPath: '/tutorials/getting-started', icon: 'bolt' },
       { label: 'Documentation', href: locals.meta.doc_guides, docPath: '/', icon: 'book' },
       { label: 'API Reference', href: locals.meta.doc_api_reference, docPath: '/api', icon: 'api' },
+      { label: 'MCP Server', href: 'https://documentation.hook0.com/reference/mcp', docPath: '/reference/mcp', icon: 'code' },
       { label: 'SDK & Libraries', href: locals.social.github.href, icon: 'code' },
       { label: 'Source Code', href: locals.social.github.repoHref, icon: 'github' },
       { label: 'Status Page', href: 'https://status.hook0.com', icon: 'status' },
