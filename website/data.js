@@ -107,7 +107,7 @@ locals.features = [
   {
     primary: true,
     title: 'Easy Integration',
-    description: 'Our JSON REST API and SDKs make it easy to trigger webhook events from your application and let your users connect to every available SaaS.',
+    description: 'Our <a href="https://documentation.hook0.com/reference/">JSON REST API</a>, <a href="https://documentation.hook0.com/reference/sdk/">SDKs</a>, and <a href="https://documentation.hook0.com/reference/mcp-for-ia-assistant">MCP Server for AI assistants</a> make it easy to trigger webhook events from your application and let your users connect to every available SaaS.',
   },
   {
     primary: true,
@@ -182,7 +182,7 @@ locals.features = [
   {
     title: 'High availability',
     description: "Hook0 won't miss the events you send it.",
-    wip: true,
+    wip: false,
   },
   {
     title: 'GDPR Compliant',

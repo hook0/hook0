@@ -22,3 +22,7 @@ api/.clever.json
 
 # playwright
 .playwright-mcp
+
+# for website & doc
+CLAUDE.local.md
+.claude
