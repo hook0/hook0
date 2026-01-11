@@ -88,7 +88,7 @@ function upsert(e: Event) {
         name: organization.value.name,
       })
         .then((org) => {
-          trackEvent('Organization', 'Create', org.organization_id);
+          trackEvent('organization', 'create', 'success');
           if (props.tutorialMode) {
             emit('tutorial-organization-created', org.organization_id);
           } else {
@@ -109,7 +109,7 @@ function upsert(e: Event) {
         name: organization.value.name,
       })
         .then(() => {
-          trackEvent('Organization', 'Update', route.params.organization_id as string);
+          trackEvent('organization', 'update', 'success');
           push.success({
             title: 'Organization updated',
             message: `Organization ${organization.value.name} has been updated`,
