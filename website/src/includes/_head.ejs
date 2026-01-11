@@ -121,13 +121,13 @@
     _paq.push(['trackPageView']);
     _paq.push(['enableLinkTracking']);
     (function(){var u="<%= process.env.MATOMO_URL %>";_paq.push(['setTrackerUrl',u+'piwik.php']);_paq.push(['setSiteId','<%= process.env.MATOMO_SITE_ID %>']);var d=document,g=d.createElement('script'),s=d.getElementsByTagName('script')[0];g.async=true;g.src=u+'piwik.js';s.parentNode.insertBefore(g,s)})();
-    window.trackEvent=function(c,a,n,v){try{_paq.push(['trackEvent',c,a,n,v])}catch(e){}};
+    window.trackEvent=function(c,a,n,v){try{if(window._paq)window._paq.push(['trackEvent',c,a,n,v])}catch(e){}};
     function show(){var b=document.getElementById('cookie-consent-banner');if(b)b.classList.add('is-visible')}
     function hide(){var b=document.getElementById('cookie-consent-banner');if(b)b.classList.remove('is-visible')}
     window.hook0Consent={
-        accept:function(){setConsent('granted');_paq.push(['setConsentGiven']);hide()},
-        deny:function(){setConsent('denied');_paq.push(['forgetConsentGiven']);hide()},
-        reset:function(){removeConsent();_paq.push(['forgetConsentGiven']);show()},
+        accept:function(){setConsent('granted');window._paq.push(['setConsentGiven']);hide()},
+        deny:function(){setConsent('denied');window._paq.push(['forgetConsentGiven']);hide()},
+        reset:function(){removeConsent();window._paq.push(['forgetConsentGiven']);show()},
         getStatus:function(){return getConsent()}
     };
     document.addEventListener('DOMContentLoaded',function(){

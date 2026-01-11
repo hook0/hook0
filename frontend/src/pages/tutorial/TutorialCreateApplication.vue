@@ -91,7 +91,7 @@ function cancel() {
 const goThirdStep = (application_id: UUID) => {
   applicationId.value = application_id;
   if (organizationId.value && selected_application_id.value) {
-    trackEvent('Tutorial', 'StepComplete', 'application');
+    trackEvent('tutorial', 'step-complete', 'application');
     push.success({
       title: 'Application selected',
       message: 'You can now create your first event type. 🎉',
@@ -110,7 +110,7 @@ const goThirdStep = (application_id: UUID) => {
       },
     });
   } else if (organizationId.value && applicationId.value) {
-    trackEvent('Tutorial', 'StepComplete', 'application');
+    trackEvent('tutorial', 'step-complete', 'application');
     push.success({
       title: 'Application created',
       message: 'You can now create your first event type. 🎉',

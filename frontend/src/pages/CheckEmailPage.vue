@@ -12,7 +12,7 @@ const { trackEvent, trackPageWithDimensions } = useTracking();
 
 onMounted(() => {
   trackPageWithDimensions('auth', 'view', 'email-sent');
-  trackEvent('Signup', 'PageView', 'check-email');
+  trackEvent('signup', 'page-view', 'check-email');
 });
 </script>
 

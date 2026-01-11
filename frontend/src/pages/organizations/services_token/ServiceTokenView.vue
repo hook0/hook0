@@ -160,7 +160,7 @@ function submit() {
       date_attenuation.value ? new Date(date_attenuation.value) : null,
       biscuit_public_key$.value
     );
-    trackEvent('ServiceToken', 'Attenuate', service_token_id.value as string);
+    trackEvent('service-token', 'attenuate', 'success');
     push.success({
       title: 'Service token generated',
       message: 'The service token has been generated',

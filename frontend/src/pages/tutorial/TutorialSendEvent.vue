@@ -64,7 +64,7 @@ function cancel() {
 }
 
 function back_to_application() {
-  trackEvent('Tutorial', 'StepComplete', 'send-event');
+  trackEvent('tutorial', 'step-complete', 'send-event');
   push.success({
     title: 'Event sent',
     message: 'Wow ! You just sent an event to your webhook ! 🎉🎉',
