@@ -76,10 +76,15 @@
                 <% if (process.env.MATOMO_URL && process.env.MATOMO_SITE_ID) { %>
                 <!-- Analytics -->
                 <div class="mb-8 p-6 rounded-xl bg-white/5 border border-white/10">
-                    <h2 class="text-2xl font-bold text-white mb-4">Analytics</h2>
+                    <h2 class="text-2xl font-bold text-white mb-4">Analytics & Cookies</h2>
                     <p class="text-gray-300 mb-4">
-                        We use a self-hosted instance of Matomo to track visits on this website. It is configured to be GDPR compliant and does not track any personal data.
+                        We use a self-hosted instance of Matomo to track visits on this website. It is configured to be GDPR compliant and does not track any personal data without your consent.
                     </p>
+                    <div class="flex flex-wrap gap-4 mb-4">
+                        <button type="button" onclick="window.hook0Consent && window.hook0Consent.reset()" class="btn btn--secondary btn--sm">
+                            Change Cookie Settings
+                        </button>
+                    </div>
                     <div id="matomo-opt-out" class="p-4 rounded-lg bg-surface-secondary"></div>
                     <script src="<%= process.env.MATOMO_URL %>/index.php?module=CoreAdminHome&action=optOutJS&divId=matomo-opt-out&language=auto&showIntro=1"></script>
                 </div>

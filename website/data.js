@@ -38,6 +38,7 @@ locals.social = {
 
 locals.meta = {
   login: 'https://app.hook0.com/',
+  app_url: 'https://app.hook0.com/',
   doc_api_reference: 'https://documentation.hook0.com/reference/',
   doc_guides: 'https://documentation.hook0.com/docs',
   doc_getstarted: 'https://documentation.hook0.com/docs/getting-started',

@@ -86,23 +86,78 @@
 <% } %>
 
 <% if (process.env.MATOMO_URL && process.env.MATOMO_SITE_ID) { %>
-<!-- Matomo -->
+<!-- Cookie Consent Banner -->
+<style>
+.cookie-banner{position:fixed;bottom:0;left:0;right:0;z-index:9999;padding:1rem;background:#111118;border-top:1px solid rgba(255,255,255,0.1);transform:translateY(100%);transition:transform 0.3s ease-out}
+.cookie-banner.is-visible{transform:translateY(0)}
+.cookie-banner__inner{max-width:72rem;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem}
+.cookie-banner__text{flex:1;min-width:280px;color:#9ca3af;font-size:0.875rem}
+.cookie-banner__text a{color:#818cf8;text-decoration:underline}
+.cookie-banner__buttons{display:flex;align-items:center;gap:1rem}
+.cookie-banner__btn--decline{background:none;border:none;color:#6b7280;font-size:0.875rem;cursor:pointer;text-decoration:underline;padding:0.5rem}
+.cookie-banner__btn--decline:hover{color:#9ca3af}
+.cookie-banner__btn--accept{background:#22c55e;color:#fff;border:none;padding:0.75rem 1.5rem;border-radius:0.75rem;font-weight:600;font-size:0.875rem;cursor:pointer;box-shadow:0 0 20px rgba(34,197,94,0.4);transition:all 0.2s}
+.cookie-banner__btn--accept:hover{background:#16a34a;box-shadow:0 0 30px rgba(34,197,94,0.6);transform:scale(1.02)}
+</style>
+<div id="cookie-consent-banner" class="cookie-banner" role="dialog" aria-label="Cookie consent">
+    <div class="cookie-banner__inner">
+        <div class="cookie-banner__text">We use cookies to analyze site usage and improve your experience. <a href="/privacy-policy">Privacy Policy</a></div>
+        <div class="cookie-banner__buttons">
+            <button type="button" class="cookie-banner__btn--decline" onclick="window.hook0Consent.deny()">Decline</button>
+            <button type="button" class="cookie-banner__btn--accept" onclick="window.hook0Consent.accept()">Accept</button>
+        </div>
+    </div>
+</div>
+<!-- Matomo with Consent -->
 <script>
-    var _paq = window._paq = window._paq || [];
-    /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+(function(){
+    var KEY='hook0_cookie_consent',_paq=window._paq=window._paq||[];
+    function getConsent(){try{return localStorage.getItem(KEY)}catch(e){return null}}
+    function setConsent(v){try{localStorage.setItem(KEY,v)}catch(e){}}
+    function removeConsent(){try{localStorage.removeItem(KEY)}catch(e){}}
+    _paq.push(['requireConsent']);
+    var consent=getConsent();
+    if(consent==='granted')_paq.push(['setConsentGiven']);
     _paq.push(['trackPageView']);
     _paq.push(['enableLinkTracking']);
-    (function() {
-    var u="<%= process.env.MATOMO_URL %>";
-    _paq.push(['setTrackerUrl', u+'piwik.php']);
-    _paq.push(['setSiteId', '<%= process.env.MATOMO_SITE_ID %>']);
-    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
-    g.async=true; g.src=u+'piwik.js'; s.parentNode.insertBefore(g,s);
-    })();
-    // Event tracking helper - silent fail to never break the site
-    window.trackEvent = function(category, action, name, value) {
-        try { if (window._paq) { window._paq.push(['trackEvent', category, action, name, value]); } } catch(e) {}
+    (function(){var u="<%= process.env.MATOMO_URL %>";_paq.push(['setTrackerUrl',u+'piwik.php']);_paq.push(['setSiteId','<%= process.env.MATOMO_SITE_ID %>']);var d=document,g=d.createElement('script'),s=d.getElementsByTagName('script')[0];g.async=true;g.src=u+'piwik.js';s.parentNode.insertBefore(g,s)})();
+    window.trackEvent=function(c,a,n,v){try{_paq.push(['trackEvent',c,a,n,v])}catch(e){}};
+    function show(){var b=document.getElementById('cookie-consent-banner');if(b)b.classList.add('is-visible')}
+    function hide(){var b=document.getElementById('cookie-consent-banner');if(b)b.classList.remove('is-visible')}
+    window.hook0Consent={
+        accept:function(){setConsent('granted');_paq.push(['setConsentGiven']);hide()},
+        deny:function(){setConsent('denied');_paq.push(['forgetConsentGiven']);hide()},
+        reset:function(){removeConsent();_paq.push(['forgetConsentGiven']);show()},
+        getStatus:function(){return getConsent()}
     };
+    document.addEventListener('DOMContentLoaded',function(){
+        if(!consent)show();
+        // Goal 1: Registration Click - tracked via inline onclick handlers
+        // Goal 2: Login Click - Event Name exact "Login"
+        document.querySelectorAll('a[href*="app.hook0.com/login"]').forEach(function(el){
+            el.addEventListener('click',function(){trackEvent('CTA','Click','Login')});
+        });
+        // Goal 3: Contact Support - Event Name exact "Contact Support"
+        document.querySelectorAll('a[href*="mailto:support@hook0.com"], a[href*="crisp.chat"]').forEach(function(el){
+            el.addEventListener('click',function(){trackEvent('CTA','Click','Contact Support')});
+        });
+        // Goal 4: Search Result Click - Event Name exact "Search Result Click"
+        document.querySelectorAll('a[href*="documentation.hook0.com"]').forEach(function(el){
+            el.addEventListener('click',function(){trackEvent('Documentation','Click','Search Result Click')});
+        });
+        // Goal 5: Full Page Read - Event Name exact "100%" (triggers at 90% scroll depth)
+        var scrollTracked=false;
+        window.addEventListener('scroll',function(){
+            if(scrollTracked)return;
+            var scrollTop=window.scrollY||document.documentElement.scrollTop;
+            var docHeight=document.documentElement.scrollHeight-window.innerHeight;
+            if(docHeight>0&&(scrollTop/docHeight)>=0.9){
+                scrollTracked=true;
+                trackEvent('Scroll','Depth','100%');
+            }
+        },{passive:true});
+    });
+})();
 </script>
 <!-- End Matomo Code -->
 <% } %>
