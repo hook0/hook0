@@ -41,7 +41,7 @@ function remove(e: Event) {
 
   SubscriptionsService.remove(props.applicationId, props.subscriptionId)
     .then(() => {
-      trackEvent('Subscription', 'Delete', props.subscriptionId);
+      trackEvent('subscription', 'delete', 'success');
       return router.push({
         name: routes.SubscriptionsList,
         params: {

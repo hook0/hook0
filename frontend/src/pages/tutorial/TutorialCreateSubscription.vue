@@ -65,7 +65,7 @@ function cancel() {
 
 function goFifthStep() {
   if (organizationId.value && applicationId.value) {
-    trackEvent('Tutorial', 'StepComplete', 'subscription');
+    trackEvent('tutorial', 'step-complete', 'subscription');
     disabled_button.value = false;
     push.success({
       title: 'Subscription created',

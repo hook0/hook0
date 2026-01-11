@@ -65,7 +65,7 @@ function cancel() {
 
 function goFourthStep() {
   if (organizationId.value && applicationId.value) {
-    trackEvent('Tutorial', 'StepComplete', 'event-type');
+    trackEvent('tutorial', 'step-complete', 'event-type');
     disabled_button.value = false;
     push.success({
       title: 'Event type created',

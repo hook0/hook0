@@ -76,7 +76,7 @@ const columnDefs: ColDef[] = [
         if (confirm(`Are you sure to delete "${row.name as string}" API Key?`)) {
           ApplicationSecretService.remove(application_id.value as string, row.token)
             .then(() => {
-              trackEvent('AppSecret', 'Delete');
+              trackEvent('app-secret', 'delete');
               _forceLoad();
             })
             // @TODO proper error management
@@ -106,7 +106,7 @@ function createNew(event: Event) {
     application_id: application_id.value as string,
     name: name,
   }).then(() => {
-    trackEvent('AppSecret', 'Create');
+    trackEvent('app-secret', 'create');
     _forceLoad();
   }, displayError);
 }

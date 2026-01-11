@@ -39,7 +39,7 @@ const currentSection = ref<Sections | null>(null);
 const goSecondStep = (organization_id: UUID) => {
   organizationId.value = organization_id;
   if (selected_organization_id.value) {
-    trackEvent('Tutorial', 'StepComplete', 'organization');
+    trackEvent('tutorial', 'step-complete', 'organization');
     push.success({
       title: 'Organization selected',
       message: 'You can now create your first application. 🎉',
@@ -55,7 +55,7 @@ const goSecondStep = (organization_id: UUID) => {
       params: { organization_id: selected_organization_id.value },
     });
   } else if (organizationId.value) {
-    trackEvent('Tutorial', 'StepComplete', 'organization');
+    trackEvent('tutorial', 'step-complete', 'organization');
     push.success({
       title: 'Organization created',
       message: 'You can now create your first application. 🎉',
