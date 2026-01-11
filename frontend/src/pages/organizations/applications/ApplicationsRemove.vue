@@ -40,7 +40,7 @@ function remove(e: Event) {
 
   ApplicationsService.remove(props.applicationId)
     .then(() => {
-      trackEvent('Application', 'Delete', props.applicationId);
+      trackEvent('application', 'delete', 'success');
       return router.push({
         name: routes.OrganizationsDashboard,
         params: {

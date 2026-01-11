@@ -42,14 +42,14 @@ const formStarted = ref<boolean>(false);
 function handleFormStart() {
   if (!formStarted.value) {
     formStarted.value = true;
-    trackEvent('Signup', 'FormStart', 'register');
+    trackEvent('signup', 'form-start', 'register');
   }
 }
 
 onMounted(() => {
   // Track page view with custom dimensions
   trackPageWithDimensions('auth', 'view', 'signup-form');
-  trackEvent('Signup', 'PageView', 'register');
+  trackEvent('signup', 'page-view', 'register');
 
   getInstanceConfig()
     .then((instanceConfig) => {
@@ -65,7 +65,7 @@ function submit() {
   isLoading.value = true;
 
   // Track form submission attempt
-  trackEvent('Signup', 'FormSubmit', 'register');
+  trackEvent('signup', 'form-submit', 'register');
 
   register(
     email.value,
@@ -75,12 +75,12 @@ function submit() {
     turnstile_token.value !== '' ? turnstile_token.value : undefined
   )
     .then(() => {
-      trackEvent('Signup', 'FormSuccess', 'register');
+      trackEvent('signup', 'form-success', 'register');
       return router.push({ name: routes.CheckEmail });
     })
     .catch((err) => {
       const problem = handleError(err as AxiosError<AxiosResponse<Problem>>);
-      trackEvent('Signup', 'FormError', problem.title || 'unknown');
+      trackEvent('signup', 'form-error', problem.title || 'unknown');
       displayError(problem);
     })
     .finally(() => {

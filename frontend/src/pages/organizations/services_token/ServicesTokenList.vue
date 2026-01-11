@@ -93,7 +93,7 @@ const columnDefs: ColDef[] = [
           organization_id: organization_id.value as string,
         })
           .then(() => {
-            trackEvent('ServiceToken', 'Update', row.token_id);
+            trackEvent('service-token', 'update', 'success');
             _forceLoad();
           })
           .catch(displayError);
@@ -117,7 +117,7 @@ const columnDefs: ColDef[] = [
         ) {
           ServiceTokenService.remove(row.token_id, organization_id.value as string)
             .then(() => {
-              trackEvent('ServiceToken', 'Delete', row.token_id);
+              trackEvent('service-token', 'delete', 'success');
               _forceLoad();
             })
             .catch(displayError);
@@ -140,8 +140,8 @@ function createNew(event: Event) {
   }
 
   ServiceTokenService.create({ name: name, organization_id: organization_id.value as string })
-    .then((resp) => {
-      trackEvent('ServiceToken', 'Create', resp.token_id);
+    .then((_resp) => {
+      trackEvent('service-token', 'create', 'success');
       _forceLoad();
     })
     .catch(displayError);
