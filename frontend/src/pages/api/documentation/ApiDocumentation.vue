@@ -81,7 +81,7 @@ function _load() {
     requestInterceptor: (req: SwaggerUI.Request) => {
       // Track API request from Swagger UI
       const url = new URL(req.url as string);
-      trackEvent('APIDocs', 'TryRequest', url.pathname);
+      trackEvent('api-docs', 'try-request', url.pathname);
 
       const accessToken = getAccessToken().value;
       return Object.assign(

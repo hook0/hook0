@@ -219,7 +219,7 @@ function upsert(e: Event) {
       is_enabled: subscription.value.is_enabled,
       event_types: EventTypeNamesFromSelectedEventTypes(eventTypes.value),
     }).then((_resp) => {
-      trackEvent('Subscription', 'Create', _resp.subscription_id);
+      trackEvent('subscription', 'create', 'success');
       if (props.tutorialMode) {
         emit('tutorial-subscription-created');
       } else {
@@ -247,7 +247,7 @@ function upsert(e: Event) {
         : undefined,
     application_id: route.params.application_id as string,
   }).then((_resp) => {
-    trackEvent('Subscription', 'Update', subscription_id.value as string);
+    trackEvent('subscription', 'update', 'success');
     cancel2();
   }, displayError);
 }

@@ -37,7 +37,7 @@ function remove(e: Event) {
 
   OrganizationService.remove(props.organizationId)
     .then(() => {
-      trackEvent('Organization', 'Delete', props.organizationId);
+      trackEvent('organization', 'delete', 'success');
       push.success({
         title: 'Organization deleted',
         message: `Organization "${props.organizationName}" has been deleted.`,

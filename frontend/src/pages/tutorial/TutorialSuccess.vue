@@ -57,7 +57,7 @@ function cancel() {
 }
 
 function goToApplicationDashboard() {
-  trackEvent('Tutorial', 'Complete');
+  trackEvent('tutorial', 'complete');
   return router.push({
     name: routes.ApplicationsDashboard,
     params: { organization_id: organizationId.value as string },

@@ -46,7 +46,7 @@ function create(e: Event) {
 
   EventTypeService.create(event_type.value).then(async (_resp) => {
     const eventTypeName = `${event_type.value.service}.${event_type.value.resource_type}.${event_type.value.verb}`;
-    trackEvent('EventType', 'Create', eventTypeName);
+    trackEvent('event-type', 'create', eventTypeName);
     if (props.tutorialMode) {
       emit('tutorial-event-type-created');
     } else {

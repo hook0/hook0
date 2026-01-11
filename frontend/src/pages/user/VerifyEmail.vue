@@ -42,7 +42,7 @@ function displayError(err: Problem) {
 
 function displaySuccess() {
   trackPageWithDimensions('auth', 'view', 'email-verified');
-  trackEvent('Signup', 'EmailVerified');
+  trackEvent('signup', 'email-verified');
   push.success({
     title: 'Email verified',
     message: 'You are successfully verified.',

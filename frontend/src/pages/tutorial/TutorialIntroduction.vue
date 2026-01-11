@@ -17,14 +17,14 @@ const router = useRouter();
 const { trackEvent } = useTracking();
 
 function startTutorial() {
-  trackEvent('Tutorial', 'Start');
+  trackEvent('tutorial', 'start');
   return router.push({
     name: routes.TutorialCreateOrganization,
   });
 }
 
 function skipTutorial() {
-  trackEvent('Tutorial', 'Skip');
+  trackEvent('tutorial', 'skip');
   return router.push({ name: routes.Home });
 }
 </script>

@@ -75,7 +75,7 @@ function upsert(e: Event) {
       name: application.value.name,
       organization_id: route.params.organization_id as string,
     }).then((_resp) => {
-      trackEvent('Application', 'Create', _resp.application_id);
+      trackEvent('application', 'create', 'success');
       if (props.tutorialMode) {
         emit('tutorial-application-created', _resp.application_id);
       } else {
@@ -100,7 +100,7 @@ function upsert(e: Event) {
     name: application.value.name,
     organization_id: route.params.organization_id as string,
   }).then((_resp) => {
-    trackEvent('Application', 'Update', application_id.value as string);
+    trackEvent('application', 'update', 'success');
     cancel();
   }, displayError);
 }

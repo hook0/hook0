@@ -31,7 +31,7 @@ function submit() {
 
   login(email.value, password.value)
     .then(() => {
-      trackEvent('Auth', 'Login', 'success');
+      trackEvent('auth', 'login', 'success');
       push.success({
         title: 'Success',
         message: 'You have successfully logged in.',
@@ -59,7 +59,7 @@ function submit() {
     })
     .catch((err) => {
       const problem = handleError(err as AxiosError<AxiosResponse<Problem>>);
-      trackEvent('Auth', 'Login', 'error');
+      trackEvent('auth', 'login', 'error');
       displayError(problem);
     })
     .finally(() => {
