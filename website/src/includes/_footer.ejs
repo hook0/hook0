@@ -95,8 +95,14 @@
                     <p class="mt-1">100% bootstrapped, no VCs. We are here to stay.</p>
                 </div>
 
-                <!-- Social Icons -->
+                <!-- Cookie Settings & Social Icons -->
                 <div class="flex items-center gap-4">
+                    <% if (process.env.MATOMO_URL && process.env.MATOMO_SITE_ID) { %>
+                    <button type="button" onclick="window.hook0Consent && window.hook0Consent.reset()" class="text-sm text-gray-500 hover:text-white transition-colors cursor-pointer bg-transparent border-none p-0 underline">
+                        Cookie Settings
+                    </button>
+                    <span class="text-gray-700">|</span>
+                    <% } %>
                     <% locals.socialLinks.forEach((social) => { %>
                         <a href="<%= social.href %>" target="_blank" class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:text-white hover:bg-white/5 transition-all" title="<%= social.name %>">
                             <span class="sr-only"><%= social.name %></span>
