@@ -15,6 +15,8 @@ variables:
   POSTGRES_USER: runner
   POSTGRES_PASSWORD: ""
   POSTGRES_HOST_AUTH_METHOD: trust
+  GIT_CLIFF_VERSION: "2.11.10"
+  CARGO_RELEASE_VERSION: "0.25.18"
 
 stages:
   - build
