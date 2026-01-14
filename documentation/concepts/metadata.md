@@ -5,32 +5,53 @@ description: Attach arbitrary key-value data to Hook0 objects
 
 # Metadata
 
-The metadata parameter allows attachment of arbitrary key-value data to Hook0 objects, including Events and Subscriptions.
+Metadata is a mechanism to attach arbitrary key-value data to Hook0 objects like [events](events.md) and [subscriptions](subscriptions.md). It allows you to store custom information alongside your webhook data without affecting Hook0's core functionality.
 
-## Specifications
+## Key Points
 
-- Maximum of 50 key-value pairs supported
-- Key names limited to 50 characters
-- Values limited to 50 characters
+- Metadata can be attached to [events](events.md) and [subscriptions](subscriptions.md)
+- Hook0 stores but does not process metadata
+- Metadata is searchable via the Search API
+- Not visible to webhook consumers unless explicitly exposed
 
-## Functionality
+## Metadata vs Labels
 
-Metadata serves as additional, structured information on an object. For example, you could store a user's unique identifier from your system on a Hook0 Customer object.
+A common question is when to use metadata versus [labels](labels.md). They serve different purposes:
 
-## Key Distinctions
+```
++-------------------+     +-------------------+
+|     Labels        |     |    Metadata       |
++-------------------+     +-------------------+
+| Used for routing  |     | Not used for      |
+| events to subs    |     | routing           |
++-------------------+     +-------------------+
+| Affects delivery  |     | No effect on      |
+|                   |     | delivery          |
++-------------------+     +-------------------+
+| Required (min 1)  |     | Optional          |
++-------------------+     +-------------------+
+```
 
-- Metadata is not used by Hook0 when forwarding events
-- The Search API does support metadata
-- Your users won't see metadata unless explicitly shown
-- A separate description parameter exists for human-readable annotations like "Receive new customer events and forward them to Slack channel General"
+Use **[labels](labels.md)** when you need to route [events](events.md) to specific [subscriptions](subscriptions.md).
+Use **metadata** when you need to store additional context for your own systems.
 
-:::warning
+## Common Use Cases
 
-Don't store any sensitive information (bank account numbers, card details, and so on) in metadata or in the description parameter.
+- **Correlation IDs** - Link [events](events.md) to external systems
+- **User context** - Store the user ID who triggered the [event](events.md)
+- **Debug info** - Include request IDs or trace identifiers
+- **Business context** - Store domain-specific identifiers
 
+## Description Field
+
+In addition to metadata, a separate `description` field exists for human-readable annotations. For example: "Customer onboarding webhook for Acme Corp".
+
+:::warning Security
+Don't store sensitive information (bank accounts, card details, passwords) in metadata or the description field.
 :::
 
 ## What's Next?
 
-- [Sending Events](/explanation/event-processing#1-event-creation)
-- [Subscriptions](subscriptions.md)
+- [Events](events.md) - Attach metadata to events
+- [Subscriptions](subscriptions.md) - Attach metadata to subscriptions
+- [Labels](labels.md) - Use labels for event routing
