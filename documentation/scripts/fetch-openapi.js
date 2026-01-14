@@ -172,6 +172,23 @@ const fetchSpec = () => {
             }
           }
 
+          // Remove "mcp" tag from operations (internal implementation detail)
+          if (spec.paths) {
+            for (const path in spec.paths) {
+              for (const method in spec.paths[path]) {
+                const operation = spec.paths[path][method];
+                if (operation.tags && Array.isArray(operation.tags)) {
+                  operation.tags = operation.tags.filter(tag => tag !== 'mcp');
+                }
+              }
+            }
+          }
+
+          // Remove "mcp" from global tags list if present
+          if (spec.tags && Array.isArray(spec.tags)) {
+            spec.tags = spec.tags.filter(tag => tag.name !== 'mcp');
+          }
+
           // Write the enhanced spec
           fs.writeFileSync(OUTPUT_FILE, JSON.stringify(spec, null, 2));
           console.log(`✅ OpenAPI spec saved to: ${OUTPUT_FILE}`);
