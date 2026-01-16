@@ -30,17 +30,20 @@ api.check:
         - Cargo.*
   variables:
     SQLX_OFFLINE: "true"
+    DATABASE_URL: "postgres://runner@postgres:5432/hook0-ci"
   services:
     - postgres:$PG_VERSION
   before_script:
     - rustc --version && cargo --version
     - rustup component add clippy
     - rustup component add rustfmt
+    - cargo install sqlx-cli --no-default-features --features postgres
     - wget -O protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/protoc-$PROTOC_VERSION-linux-x86_64.zip && mkdir protoc && unzip protoc.zip -d protoc/
     - export PROTOC="$(realpath ./protoc/bin/protoc)"
 
   script:
     - pushd api
+    - sqlx migrate run
     - cargo fmt --all -- --check
     - cargo clippy --all-targets --all-features -- -D warnings
     - cargo test
