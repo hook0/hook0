@@ -244,11 +244,10 @@ async fn user_exists_active(db: &PgPool, user_id: &Uuid) -> bool {
 }
 
 async fn user_is_anonymized(db: &PgPool, user_id: &Uuid) -> bool {
-    let email: String =
-        query_scalar!(r#"SELECT email FROM iam.user WHERE user__id = $1"#, user_id)
-            .fetch_one(db)
-            .await
-            .expect("Failed to get user email");
+    let email: String = query_scalar!(r#"SELECT email FROM iam.user WHERE user__id = $1"#, user_id)
+        .fetch_one(db)
+        .await
+        .expect("Failed to get user email");
 
     email.ends_with("@deleted.invalid")
 }
@@ -308,8 +307,7 @@ async fn test_user_deletion_after_grace_period_deletes_sole_member_org_and_data(
         "App should exist before cleanup"
     );
 
-    let (orgs_deleted, _, users_anonymized) =
-        run_cleanup_for_users(&db, 30, &[user_id]).await;
+    let (orgs_deleted, _, users_anonymized) = run_cleanup_for_users(&db, 30, &[user_id]).await;
 
     assert_eq!(orgs_deleted, 1, "Should delete 1 organization");
     assert_eq!(users_anonymized, 1, "Should anonymize 1 user");
@@ -334,16 +332,13 @@ async fn test_user_not_deleted_before_grace_period() {
     let db = get_db_pool().await;
     let test_id = Uuid::new_v4();
 
-    let user_id =
-        create_test_user(&db, &format!("test_not_deleted_{}@example.com", test_id)).await;
-    let org_id =
-        create_test_organization(&db, &format!("Test Org Not Deleted {}", test_id)).await;
+    let user_id = create_test_user(&db, &format!("test_not_deleted_{}@example.com", test_id)).await;
+    let org_id = create_test_organization(&db, &format!("Test Org Not Deleted {}", test_id)).await;
     link_user_to_organization(&db, &user_id, &org_id).await;
 
     set_deletion_requested(&db, &user_id, 10).await;
 
-    let (orgs_deleted, _, users_anonymized) =
-        run_cleanup_for_users(&db, 30, &[user_id]).await;
+    let (orgs_deleted, _, users_anonymized) = run_cleanup_for_users(&db, 30, &[user_id]).await;
 
     assert_eq!(orgs_deleted, 0, "Should not delete any organization");
     assert_eq!(users_anonymized, 0, "Should not anonymize any user");
