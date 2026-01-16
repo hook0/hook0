@@ -166,9 +166,9 @@ release.extract-notes:
 release.containers:
   extends: .release-rules
   stage: release
-  image: docker:latest
-  services:
-    - docker:dind
+  image:
+    name: moby/buildkit:rootless
+    entrypoint: ['sh', '-c']
   needs:
     - job: release.build-api-amd64
       artifacts: true
@@ -188,14 +188,16 @@ release.containers:
     - job: frontend.check
       artifacts: false
   variables:
-    DOCKER_HOST: tcp://docker:2375
-    DOCKER_TLS_CERTDIR: ""
+    BUILDKITD_FLAGS: --oci-worker-no-process-sandbox
   before_script:
     - export VERSION="${CI_COMMIT_TAG#v}"
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
-    - docker login -u "$DOCKERHUB_USERNAME" -p "$DOCKERHUB_TOKEN"
-    - docker login ghcr.io -u "$GITHUB_USERNAME" -p "$GITHUB_TOKEN"
-    - docker buildx create --use --name multiarch --driver docker-container
+    - mkdir -p ~/.docker
+    - |
+      echo "{\"auths\":{
+        \"$CI_REGISTRY\":{\"auth\":\"$(echo -n $CI_REGISTRY_USER:$CI_REGISTRY_PASSWORD | base64)\"},
+        \"https://index.docker.io/v1/\":{\"auth\":\"$(echo -n $DOCKERHUB_USERNAME:$DOCKERHUB_TOKEN | base64)\"},
+        \"ghcr.io\":{\"auth\":\"$(echo -n $GITHUB_USERNAME:$GITHUB_TOKEN | base64)\"}
+      }}" > ~/.docker/config.json
   script:
     # Prepare build context for API
     - mkdir -p build-context/api
@@ -211,31 +213,19 @@ release.containers:
     # - cp artifacts/hook0-output-worker-linux-arm64 build-context/worker/
     - cp output-worker/Dockerfile.release build-context/worker/Dockerfile
 
-    # Build and push API (amd64 only - arm64 disabled)
-    # docker buildx build --platform linux/amd64,linux/arm64 \
-    - |
-      docker buildx build --platform linux/amd64 \
-        --tag "$CI_REGISTRY_IMAGE/hook0-api:$VERSION" \
-        --tag "$CI_REGISTRY_IMAGE/hook0-api:latest" \
-        --tag "rbaumier/hook0-api:$VERSION" \
-        --tag "rbaumier/hook0-api:latest" \
-        --tag "ghcr.io/rbaumier/hook0-api:$VERSION" \
-        --tag "ghcr.io/rbaumier/hook0-api:latest" \
-        --push \
-        build-context/api
+    # Build and push API
+    - buildctl-daemonless.sh build
+        --frontend dockerfile.v0
+        --local context=build-context/api
+        --local dockerfile=build-context/api
+        --output type=image,"name=$CI_REGISTRY_IMAGE/hook0-api:$VERSION,$CI_REGISTRY_IMAGE/hook0-api:latest,hook0/hook0-api:$VERSION,hook0/hook0-api:latest,ghcr.io/hook0/hook0-api:$VERSION,ghcr.io/hook0/hook0-api:latest",push=true
 
-    # Build and push Output Worker (amd64 only - arm64 disabled)
-    # docker buildx build --platform linux/amd64,linux/arm64 \
-    - |
-      docker buildx build --platform linux/amd64 \
-        --tag "$CI_REGISTRY_IMAGE/output-worker:$VERSION" \
-        --tag "$CI_REGISTRY_IMAGE/output-worker:latest" \
-        --tag "rbaumier/output-worker:$VERSION" \
-        --tag "rbaumier/output-worker:latest" \
-        --tag "ghcr.io/rbaumier/output-worker:$VERSION" \
-        --tag "ghcr.io/rbaumier/output-worker:latest" \
-        --push \
-        build-context/worker
+    # Build and push Output Worker
+    - buildctl-daemonless.sh build
+        --frontend dockerfile.v0
+        --local context=build-context/worker
+        --local dockerfile=build-context/worker
+        --output type=image,"name=$CI_REGISTRY_IMAGE/output-worker:$VERSION,$CI_REGISTRY_IMAGE/output-worker:latest,hook0/output-worker:$VERSION,hook0/output-worker:latest,ghcr.io/hook0/output-worker:$VERSION,ghcr.io/hook0/output-worker:latest",push=true
 
 # --- Release ---
 
@@ -273,17 +263,17 @@ release.github:
 
       | Image | DockerHub | GHCR | GitLab Registry |
       |-------|-----------|------|-----------------|
-      | API | `rbaumier/hook0-api:${VERSION}` | `ghcr.io/rbaumier/hook0-api:${VERSION}` | `registry.gitlab.com/hook0/hook0/hook0-api:${VERSION}` |
-      | Worker | `rbaumier/output-worker:${VERSION}` | `ghcr.io/rbaumier/output-worker:${VERSION}` | `registry.gitlab.com/hook0/hook0/output-worker:${VERSION}` |
+      | API | `hook0/hook0-api:${VERSION}` | `ghcr.io/hook0/hook0-api:${VERSION}` | `registry.gitlab.com/hook0/hook0/hook0-api:${VERSION}` |
+      | Worker | `hook0/output-worker:${VERSION}` | `ghcr.io/hook0/output-worker:${VERSION}` | `registry.gitlab.com/hook0/hook0/output-worker:${VERSION}` |
 
       ```bash
       # Pull from DockerHub
-      docker pull rbaumier/hook0-api:${VERSION}
-      docker pull rbaumier/output-worker:${VERSION}
+      docker pull hook0/hook0-api:${VERSION}
+      docker pull hook0/output-worker:${VERSION}
 
       # Pull from GHCR
-      docker pull ghcr.io/rbaumier/hook0-api:${VERSION}
-      docker pull ghcr.io/rbaumier/output-worker:${VERSION}
+      docker pull ghcr.io/hook0/hook0-api:${VERSION}
+      docker pull ghcr.io/hook0/output-worker:${VERSION}
 
       # Pull from GitLab Registry
       docker pull registry.gitlab.com/hook0/hook0/hook0-api:${VERSION}
