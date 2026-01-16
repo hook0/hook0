@@ -1,14 +1,29 @@
 import http, { handleError, Problem } from '@/http.ts';
 import { AxiosError, AxiosResponse } from 'axios';
 
-export async function deleteUser(): Promise<void> {
-  return Promise.reject({
-    id: 'ComingSoon',
-    title: 'Not implemented yet',
-    status: 500,
-    detail:
-      'This feature is not implemented yet, please contact the support team to delete your account.',
-  });
+export interface AccountDeletionStatus {
+  deletion_requested: boolean;
+}
+
+export function getAccountDeletionStatus(): Promise<AccountDeletionStatus> {
+  return http.get('/api/v1/account/deletion-status').then(
+    (res: AxiosResponse<AccountDeletionStatus>) => res.data,
+    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
+  );
+}
+
+export function requestAccountDeletion(): Promise<void> {
+  return http.delete('/api/v1/account').then(
+    (res: AxiosResponse<void>) => res.data,
+    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
+  );
+}
+
+export function cancelAccountDeletion(): Promise<void> {
+  return http.post('/api/v1/account/cancel-deletion').then(
+    (res: AxiosResponse<void>) => res.data,
+    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
+  );
 }
 
 export async function changePassword(new_password: string): Promise<void> {

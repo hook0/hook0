@@ -170,6 +170,14 @@ const sidebars = {
             "hook0-cloud/statement-of-applicability",
           ],
         },
+        {
+          type: "category",
+          label: "GDPR Compliance",
+          items: [
+            "hook0-cloud/breach-notification-procedure",
+            "hook0-cloud/transfer-impact-assessments",
+          ],
+        },
       ],
     },
     {

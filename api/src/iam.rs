@@ -354,6 +354,9 @@ pub enum Action<'a> {
     AuthLogout,
     AuthChangePassword,
     //
+    AccountDelete,
+    AccountCancelDeletion,
+    //
     OrganizationList,
     OrganizationCreate,
     OrganizationGet,
@@ -471,6 +474,9 @@ impl Action<'_> {
             Self::AuthLogout => "auth:logout",
             Self::AuthChangePassword => "auth:change_password",
             //
+            Self::AccountDelete => "account:delete",
+            Self::AccountCancelDeletion => "account:cancel_deletion",
+            //
             Self::OrganizationList => "organization:list",
             Self::OrganizationCreate => "organization:create",
             Self::OrganizationGet => "organization:get",
@@ -537,6 +543,9 @@ impl Action<'_> {
             Self::AuthLogout => vec![],
             Self::AuthChangePassword => vec![],
             //
+            Self::AccountDelete => vec![],
+            Self::AccountCancelDeletion => vec![],
+            //
             Self::OrganizationList => vec![],
             Self::OrganizationCreate => vec![],
             Self::OrganizationGet => vec![Role::Viewer],
@@ -600,6 +609,9 @@ impl Action<'_> {
             Self::AuthLogout => true,
             Self::AuthChangePassword => true,
             //
+            Self::AccountDelete => true,
+            Self::AccountCancelDeletion => true,
+            //
             Self::OrganizationList => true,
             Self::OrganizationCreate => true,
             //
@@ -618,6 +630,9 @@ impl Action<'_> {
             //
             Self::AuthLogout => None,
             Self::AuthChangePassword => None,
+            //
+            Self::AccountDelete => None,
+            Self::AccountCancelDeletion => None,
             //
             Self::OrganizationList => None,
             Self::OrganizationCreate => None,
@@ -682,6 +697,9 @@ impl Action<'_> {
             //
             Self::AuthLogout => vec![],
             Self::AuthChangePassword => vec![],
+            //
+            Self::AccountDelete => vec![],
+            Self::AccountCancelDeletion => vec![],
             //
             Self::OrganizationList => vec![],
             Self::OrganizationCreate => vec![],

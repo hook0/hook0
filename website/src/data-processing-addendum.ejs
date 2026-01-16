@@ -90,7 +90,7 @@
             <svg class="w-4 h-4 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
             </svg>
-            Last Update: September 28th, 2024
+            Last Update: January 15th, 2026
         </div>
     </div>
 </section>
@@ -105,6 +105,13 @@
             <div class="legal-content">
 
                 <h2>DATA PROCESSING TERMS OF SERVICES</h2>
+
+                <!-- DPO Contact Box -->
+                <div class="p-6 rounded-xl bg-indigo-500/10 border border-indigo-500/20 mb-8">
+                    <h3 class="text-lg font-semibold text-white mb-2">Data Protection Officer</h3>
+                    <p class="text-gray-300 mb-2">Hook0's Data Protection Officer (DPO) is responsible for overseeing GDPR compliance:</p>
+                    <p class="text-gray-300"><strong class="text-white">Contact:</strong> <a href="mailto:dpo@hook0.com">dpo@hook0.com</a></p>
+                </div>
 
                 <p>The purpose of this DPA is to reflect the parties' agreement with regard to the processing of Personal Data in accordance with the requirements of Data Protection Regulations.</p>
 
@@ -375,6 +382,47 @@
                     <li>Implementing a Data Protection control framework that is audited on compliance on a yearly basis;</li>
                     <li>Having an emergency plan with procedures and allocation of responsibilities in place (backup contingency plan).</li>
                 </ul>
+
+                <h2>APPENDIX 3 - DATA RETENTION PERIODS</h2>
+
+                <p>Hook0 applies the following default data retention periods for different categories of data. These periods may be customized based on customer requirements and applicable regulations.</p>
+
+                <table class="legal-table">
+                    <tr>
+                        <th>Data Category</th>
+                        <td><strong>Default Retention Period</strong></td>
+                    </tr>
+                    <tr>
+                        <th>Customer Account Data</th>
+                        <td>Duration of the contract + 30 days grace period after account deletion request</td>
+                    </tr>
+                    <tr>
+                        <th>Webhook Event Data</th>
+                        <td>Configurable per application (default: 30 days). See <a href="https://documentation.hook0.com">documentation</a> for configuration options.</td>
+                    </tr>
+                    <tr>
+                        <th>Authentication Logs</th>
+                        <td>90 days</td>
+                    </tr>
+                    <tr>
+                        <th>API Access Logs</th>
+                        <td>90 days</td>
+                    </tr>
+                    <tr>
+                        <th>Error Tracking (Sentry)</th>
+                        <td>90 days</td>
+                    </tr>
+                    <tr>
+                        <th>Billing Records</th>
+                        <td>7 years (legal requirement)</td>
+                    </tr>
+                    <tr>
+                        <th>Database Backups</th>
+                        <td>30 days rolling retention</td>
+                    </tr>
+                </table>
+
+                <p><strong>Note:</strong> Customers can request immediate deletion of their data at any time by contacting our DPO at <a href="mailto:dpo@hook0.com">dpo@hook0.com</a>. Account deletion can be initiated directly from the Settings page in the Hook0 dashboard.</p>
 
             </div>
         </div>

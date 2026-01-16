@@ -1,0 +1,47 @@
+<mjml>
+    <mj-head>
+        <mj-title>Account Deletion Request</mj-title>
+        <mj-style inline="inline">
+            body {
+                margin: 0;
+                padding: 0;
+                width: 100% !important;
+                background-color: #f0f0f0;
+            }
+            h1 {
+                font-size: 24px;
+            }
+            h2 {
+                font-size: 18px;
+            }
+            p {
+                font-size: 16px;
+            }
+            .warning {
+                color: #dc3545;
+                font-weight: bold;
+            }
+        </mj-style>
+    </mj-head>
+    <mj-body>
+        <mj-section>
+            <mj-column>
+                <mj-image src="{ $logo_url }" alt="Hook0" width="150px" />
+                <mj-text align="center">
+                    <h1>Account Deletion Request Received</h1>
+                    <p>We have received your request to delete your Hook0 account.</p>
+                </mj-text>
+                <mj-text align="center">
+                    <p class="warning">Your account and all associated data will be permanently deleted in 30 days.</p>
+                </mj-text>
+                <mj-text align="center">
+                    <p>If you change your mind, you can cancel this request by logging into your account before the deletion date.</p>
+                </mj-text>
+                <mj-button background-color="#007bff" color="white" font-size="20px" border-radius="5px" href="{ $app_url }">Go to Hook0</mj-button>
+                <mj-text align="center">
+                    <p><small>If you did not request this deletion, please contact us immediately at { $support_email_address }.</small></p>
+                </mj-text>
+            </mj-column>
+        </mj-section>
+    </mj-body>
+</mjml>

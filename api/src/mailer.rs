@@ -34,6 +34,8 @@ pub enum Mail {
     ResetPassword {
         url: Url,
     },
+    AccountDeletionRequested,
+    AccountDeletionCancelled,
     // Welcome { name: String },
     QuotaEventsPerDayWarning {
         pricing_url_hash: String,
@@ -55,6 +57,12 @@ impl Mail {
         match self {
             Mail::VerifyUserEmail { .. } => include_str!("mail_templates/verify_user_email.mjml"),
             Mail::ResetPassword { .. } => include_str!("mail_templates/reset_password.mjml"),
+            Mail::AccountDeletionRequested => {
+                include_str!("mail_templates/account_deletion_requested.mjml")
+            }
+            Mail::AccountDeletionCancelled => {
+                include_str!("mail_templates/account_deletion_cancelled.mjml")
+            }
             // Mail::Welcome { .. } => include_str!("mail_templates/welcome.mjml"),
             Mail::QuotaEventsPerDayWarning { .. } => {
                 include_str!("mail_templates/quotas/events_per_day_warning.mjml")
@@ -69,6 +77,10 @@ impl Mail {
         match self {
             Mail::VerifyUserEmail { .. } => "[Hook0] Verify your email address".to_owned(),
             Mail::ResetPassword { .. } => "[Hook0] Reset your password".to_owned(),
+            Mail::AccountDeletionRequested => {
+                "[Hook0] Account deletion request received".to_owned()
+            }
+            Mail::AccountDeletionCancelled => "[Hook0] Account deletion cancelled".to_owned(),
             // Mail::Welcome { .. } => "Welcome to our platform".to_owned(),
             Mail::QuotaEventsPerDayWarning { .. } => "[Hook0] Quota Warning".to_owned(),
             Mail::QuotaEventsPerDayReached { .. } => "[Hook0] Quota Reached".to_owned(),
@@ -79,6 +91,8 @@ impl Mail {
         match self {
             Mail::VerifyUserEmail { url } => vec![("url".to_owned(), url.to_string())],
             Mail::ResetPassword { url } => vec![("url".to_owned(), url.to_string())],
+            Mail::AccountDeletionRequested => vec![],
+            Mail::AccountDeletionCancelled => vec![],
             // Mail::Welcome { name } => vec![("name".to_owned(), name.to_owned())],
             Mail::QuotaEventsPerDayWarning {
                 pricing_url_hash,
@@ -240,6 +254,8 @@ mod tests {
             Mail::ResetPassword {
                 url: Url::from_str("http://localhost/verify").unwrap(),
             },
+            Mail::AccountDeletionRequested,
+            Mail::AccountDeletionCancelled,
             Mail::QuotaEventsPerDayWarning {
                 pricing_url_hash: "test".to_owned(),
                 actual_consumption_percent: 0,

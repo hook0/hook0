@@ -90,21 +90,72 @@
                 </div>
                 <% } %>
 
+                <!-- Data Protection Officer -->
+                <div class="mb-8 p-6 rounded-xl bg-white/5 border border-white/10">
+                    <h2 class="text-2xl font-bold text-white mb-4">Data Protection Officer</h2>
+                    <p class="text-gray-300 mb-4">
+                        Our Data Protection Officer (DPO) is responsible for overseeing our data protection strategy and ensuring GDPR compliance. You can contact our DPO for any questions regarding your personal data or to exercise your rights:
+                    </p>
+                    <p class="text-gray-300">
+                        <strong class="text-white">DPO Contact:</strong> <a href="mailto:dpo@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">dpo@hook0.com</a>
+                    </p>
+                </div>
+
+                <!-- Your Rights under GDPR -->
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-white mb-4">Your Rights under GDPR</h2>
+                    <p class="text-gray-300 mb-4">
+                        Under the General Data Protection Regulation (GDPR), you have the following rights regarding your personal data:
+                    </p>
+                    <ul class="space-y-4">
+                        <li class="flex items-start gap-3">
+                            <%- include('./includes/_checkmark-icon.ejs') %>
+                            <span class="text-gray-300"><strong class="text-white">Right of Access (Art. 15):</strong> You can request a copy of all personal data we hold about you.</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <%- include('./includes/_checkmark-icon.ejs') %>
+                            <span class="text-gray-300"><strong class="text-white">Right to Rectification (Art. 16):</strong> You can request correction of inaccurate personal data.</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <%- include('./includes/_checkmark-icon.ejs') %>
+                            <span class="text-gray-300"><strong class="text-white">Right to Erasure (Art. 17):</strong> You can request deletion of your account. Go to your <strong>Settings</strong> page and click "Request account deletion". Your data will be permanently deleted after a 30-day grace period, during which you can cancel your request.</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <%- include('./includes/_checkmark-icon.ejs') %>
+                            <span class="text-gray-300"><strong class="text-white">Right to Data Portability (Art. 20):</strong> You can request an export of your data in a machine-readable format. Contact us at <a href="mailto:dpo@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">dpo@hook0.com</a> to request your data export.</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <%- include('./includes/_checkmark-icon.ejs') %>
+                            <span class="text-gray-300"><strong class="text-white">Right to Object (Art. 21):</strong> You can object to certain types of processing of your personal data.</span>
+                        </li>
+                    </ul>
+                    <p class="text-gray-300 mt-4">
+                        To exercise any of these rights, please contact our DPO at <a href="mailto:dpo@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">dpo@hook0.com</a>. We will respond to your request within 30 days.
+                    </p>
+                </div>
+
                 <!-- Security Breach Disclosure -->
                 <div class="mb-8">
-                    <h2 class="text-2xl font-bold text-white mb-4">Security & Breach Disclosure</h2>
+                    <h2 class="text-2xl font-bold text-white mb-4">Security & Breach Notification</h2>
+                    <p class="text-gray-300 mb-4">
+                        In compliance with GDPR Articles 33 and 34, we have established a formal breach notification procedure:
+                    </p>
                     <ul class="space-y-4">
                         <li class="flex items-start gap-3">
                             <%- include('./includes/_icon-wrapper.ejs', { color: 'indigo', iconPath: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' }) %>
-                            <span class="text-gray-300">If there is a privacy breach, we promise to disclose it as soon as possible on our <a href="https://twitter.com/hook0_" class="text-green-400 hover:text-green-300 transition-colors">Twitter</a> account.</span>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <%- include('./includes/_icon-wrapper.ejs', { color: 'indigo', iconPath: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16' }) %>
-                            <span class="text-gray-300">If you choose to delete your account, all your data will be removed after a 30-day waiting period.</span>
+                            <span class="text-gray-300"><strong class="text-white">Supervisory Authority Notification:</strong> In case of a data breach, we will notify the relevant supervisory authority (CNIL for EU data) within 72 hours of becoming aware of the breach, as required by GDPR Article 33.</span>
                         </li>
                         <li class="flex items-start gap-3">
                             <%- include('./includes/_icon-wrapper.ejs', { color: 'indigo', iconPath: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' }) %>
-                            <span class="text-gray-300">If you spot a privacy leak, please report it to <a href="mailto:support@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">support@hook0.com</a>.</span>
+                            <span class="text-gray-300"><strong class="text-white">Individual Notification:</strong> If a breach is likely to result in a high risk to your rights and freedoms, we will notify you directly via email without undue delay.</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <%- include('./includes/_icon-wrapper.ejs', { color: 'indigo', iconPath: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' }) %>
+                            <span class="text-gray-300"><strong class="text-white">Public Disclosure:</strong> We will also publicly disclose significant breaches on our <a href="https://twitter.com/hook0_" class="text-green-400 hover:text-green-300 transition-colors">Twitter</a> account and status page.</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <%- include('./includes/_icon-wrapper.ejs', { color: 'indigo', iconPath: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' }) %>
+                            <span class="text-gray-300"><strong class="text-white">Report a Vulnerability:</strong> If you discover a security vulnerability or data leak, please report it immediately to <a href="mailto:security@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">security@hook0.com</a>.</span>
                         </li>
                     </ul>
                 </div>

@@ -11,6 +11,11 @@ import query_request_attempts from './database/query_request_attempts.js';
 import delete_application from './applications/delete_application.js';
 import get_quota from './unauthentified/quotas.js';
 import get_environment_variables from './unauthentified/environment_variables.js';
+import login from './me/login.js';
+import get_deletion_status from './me/get_deletion_status.js';
+import request_deletion from './me/request_deletion.js';
+import cancel_deletion from './me/cancel_deletion.js';
+import account_isolation_test from './me/account_isolation_test.js';
 
 export const config = getEnvironmentVariables();
 
@@ -410,8 +415,71 @@ function scenario_subscription_disable() {
   }
 }
 
+function scenario_account_deletion() {
+  const h = config.apiOrigin;
+
+  try {
+    // 1. Login to get user access token
+    const loginResponse = login(h, config.testUserEmail, config.testUserPassword);
+    if (!loginResponse || !loginResponse.access_token) {
+      throw new Error('Failed to login');
+    }
+    const accessToken = loginResponse.access_token;
+
+    // 2. Get initial deletion status (should be false)
+    const initialStatus = get_deletion_status(h, accessToken);
+    if (initialStatus === null) {
+      throw new Error('Failed to get initial deletion status');
+    }
+    if (initialStatus.deletion_requested !== false) {
+      throw new Error('Expected initial deletion_requested to be false');
+    }
+
+    // 3. Request account deletion
+    const requestResult = request_deletion(h, accessToken);
+    if (!requestResult) {
+      throw new Error('Failed to request account deletion');
+    }
+
+    // 4. Verify deletion status is now true
+    const statusAfterRequest = get_deletion_status(h, accessToken);
+    if (statusAfterRequest === null) {
+      throw new Error('Failed to get deletion status after request');
+    }
+    if (statusAfterRequest.deletion_requested !== true) {
+      throw new Error('Expected deletion_requested to be true after request');
+    }
+
+    // 5. Cancel deletion request
+    const cancelResult = cancel_deletion(h, accessToken);
+    if (!cancelResult) {
+      throw new Error('Failed to cancel account deletion');
+    }
+
+    // 6. Verify deletion status is back to false
+    const finalStatus = get_deletion_status(h, accessToken);
+    if (finalStatus === null) {
+      throw new Error('Failed to get final deletion status');
+    }
+    if (finalStatus.deletion_requested !== false) {
+      throw new Error('Expected deletion_requested to be false after cancellation');
+    }
+
+    console.log('✓ Account deletion test passed');
+  } catch (error) {
+    console.error('Account deletion test failed:', error.message);
+    throw error;
+  }
+}
+
+function scenario_account_isolation() {
+  account_isolation_test(config);
+}
+
 export default function () {
   scenario_1();
   scenario_subscription_deletion();
   scenario_subscription_disable();
+  scenario_account_deletion();
+  scenario_account_isolation();
 }
