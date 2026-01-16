@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT user__id\n            FROM iam.user\n            WHERE deletion_requested_at IS NOT NULL\n                AND deleted_at IS NULL\n                AND deletion_requested_at + $1 < statement_timestamp()\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user__id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Interval"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "9c18c38fd4f49bf95e41be96ccf10153f5ffde005ecf4fe6cfabe93ab0407305"
+}

@@ -9,15 +9,33 @@ import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import * as UserService from '@/pages/user/UserService';
 import { Problem } from '@/http.ts';
 import { push } from 'notivue';
-import { getUserInfo, logout } from '@/iam.ts';
-import { ref } from 'vue';
+import { getUserInfo } from '@/iam.ts';
+import { ref, onMounted } from 'vue';
 
 const currentUser = getUserInfo();
 
 const new_password = ref<string>('');
 const confirm_new_password = ref<string>('');
+const deletionRequested = ref<boolean>(false);
+const loadingDeletionStatus = ref<boolean>(true);
 
-async function changePassword() {
+onMounted(() => {
+  if (currentUser) {
+    UserService.getAccountDeletionStatus()
+      .then((status) => {
+        deletionRequested.value = status.deletion_requested;
+        loadingDeletionStatus.value = false;
+      })
+      .catch((err: Problem) => {
+        displayError(err);
+        loadingDeletionStatus.value = false;
+      });
+  } else {
+    loadingDeletionStatus.value = false;
+  }
+});
+
+function changePassword() {
   if (new_password.value !== confirm_new_password.value) {
     push.error({
       title: 'Error',
@@ -27,37 +45,59 @@ async function changePassword() {
     return;
   }
 
-  await UserService.changePassword(new_password.value).catch(displayError);
-
-  push.success({
-    title: 'Success',
-    message: 'Your password was successfully changed.',
-    duration: 3000,
-  });
-}
-
-async function deleteAccount() {
-  if (!confirm(`Are you sure to delete your account?`)) {
-    return;
-  }
-
-  await UserService.deleteUser()
+  UserService.changePassword(new_password.value)
     .then(() => {
       push.success({
         title: 'Success',
-        message: 'Your account has been deleted. You will be logged out in 3 seconds.',
+        message: 'Your password was successfully changed.',
         duration: 3000,
       });
-      setTimeout(() => {
-        void logout();
-      }, 3000);
+    })
+    .catch(displayError);
+}
+
+function requestDeletion() {
+  if (
+    !confirm(
+      'Are you sure you want to request account deletion?\n\nYour account will be permanently deleted after 30 days. You can cancel this request during this period.'
+    )
+  ) {
+    return;
+  }
+
+  UserService.requestAccountDeletion()
+    .then(() => {
+      deletionRequested.value = true;
+      push.success({
+        title: 'Deletion requested',
+        message:
+          'Your account deletion has been requested. It will be permanently deleted in 30 days.',
+        duration: 5000,
+      });
+    })
+    .catch(displayError);
+}
+
+function cancelDeletion() {
+  if (!confirm('Are you sure you want to cancel your account deletion request?')) {
+    return;
+  }
+
+  UserService.cancelAccountDeletion()
+    .then(() => {
+      deletionRequested.value = false;
+      push.success({
+        title: 'Deletion cancelled',
+        message: 'Your account deletion request has been cancelled.',
+        duration: 3000,
+      });
     })
     .catch(displayError);
 }
 
 function displayError(err: Problem) {
   console.error(err);
-  let options = {
+  const options = {
     title: err.title,
     message: err.detail,
     duration: 5000,
@@ -179,23 +219,68 @@ function displayError(err: Problem) {
       </form>
     </Hook0Card>
 
-    <Hook0Card v-if="currentUser" data-test="delete-account-card">
-      <form data-test="delete-account-form" @submit.prevent="deleteAccount">
-        <Hook0CardHeader>
-          <template #header> Delete my account </template>
-          <template #subtitle>
-            This action <strong>delete your account</strong> and all your data linked to it.
-            <strong>This action irreversible.</strong>
-          </template>
-        </Hook0CardHeader>
-        <Hook0CardFooter>
-          <Hook0Button class="danger" submit data-test="delete-account-button">Delete</Hook0Button>
-        </Hook0CardFooter>
-      </form>
+    <Hook0Card v-if="currentUser && !loadingDeletionStatus" data-test="delete-account-card">
+      <!-- Deletion pending state -->
+      <template v-if="deletionRequested">
+        <form @submit.prevent="cancelDeletion">
+          <Hook0CardHeader>
+            <template #header> Account deletion pending </template>
+            <template #subtitle>
+              Your account is scheduled for deletion. It will be permanently deleted in 30 days. You
+              can cancel this request during this period.
+            </template>
+          </Hook0CardHeader>
+          <Hook0CardContent>
+            <div
+              class="flex items-center bg-orange-100 border-l-4 border-orange-500 text-orange-700 p-4 rounded"
+            >
+              <div>
+                <p class="font-bold">Deletion scheduled</p>
+                <p>
+                  Your account and all associated data will be permanently deleted after the 30-day
+                  grace period.
+                </p>
+              </div>
+            </div>
+          </Hook0CardContent>
+          <Hook0CardFooter>
+            <Hook0Button class="secondary" submit>Cancel deletion request</Hook0Button>
+          </Hook0CardFooter>
+        </form>
+      </template>
+
+      <!-- Normal state - request deletion -->
+      <template v-else>
+        <form data-test="delete-account-form" @submit.prevent="requestDeletion">
+          <Hook0CardHeader>
+            <template #header> Delete my account </template>
+            <template #subtitle>
+              Request the deletion of your account and all your data linked to it. You will have 30
+              days to cancel this request.
+            </template>
+          </Hook0CardHeader>
+          <Hook0CardContent>
+            <div
+              class="flex items-center bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded"
+            >
+              <div>
+                <p class="font-bold">Warning</p>
+                <p>
+                  After 30 days, this action is <strong>irreversible</strong>. All your data will be
+                  permanently deleted.
+                </p>
+              </div>
+            </div>
+          </Hook0CardContent>
+          <Hook0CardFooter>
+            <Hook0Button data-test="delete-account-button" class="danger" submit>Request account deletion</Hook0Button>
+          </Hook0CardFooter>
+        </form>
+      </template>
     </Hook0Card>
 
     <!-- If the user is not logged in, show a message -->
-    <Hook0Card v-else>
+    <Hook0Card v-if="!currentUser">
       <Hook0CardHeader>
         <template #header>Not logged in</template>
         <template #subtitle>You are not logged in. Please log in to view your settings.</template>

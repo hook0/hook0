@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO iam.user (email, password, first_name, last_name)\n            VALUES ($1, 'test_password_hash', 'Test', 'User')\n            RETURNING user__id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user__id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "63b0edfeab4a94a9bd5d4216d012da9d5c9ee7a056e46b361bae9bc592bcf1b0"
+}

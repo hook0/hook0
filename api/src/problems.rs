@@ -60,6 +60,10 @@ pub enum Hook0Problem {
     AuthFailedRefresh,
     AuthEmailExpired,
 
+    // Account management errors
+    AccountDeletionAlreadyRequested,
+    AccountDeletionNotRequested,
+
     // Quota errors
     TooManyMembersPerOrganization(QuotaValue),
     TooManyApplicationsPerOrganization(QuotaValue),
@@ -416,6 +420,22 @@ impl From<Hook0Problem> for Problem {
                     validation: None,
                     status: StatusCode::UNAUTHORIZED,
                 }
+            },
+
+            // Account management errors
+            Hook0Problem::AccountDeletionAlreadyRequested => Problem {
+                id: Hook0Problem::AccountDeletionAlreadyRequested,
+                title: "Account deletion already requested",
+                detail: "An account deletion request is already pending for this account. You can cancel it from your account settings.".into(),
+                validation: None,
+                status: StatusCode::CONFLICT,
+            },
+            Hook0Problem::AccountDeletionNotRequested => Problem {
+                id: Hook0Problem::AccountDeletionNotRequested,
+                title: "No account deletion request pending",
+                detail: "There is no pending account deletion request to cancel.".into(),
+                validation: None,
+                status: StatusCode::BAD_REQUEST,
             },
 
             // Quota errors

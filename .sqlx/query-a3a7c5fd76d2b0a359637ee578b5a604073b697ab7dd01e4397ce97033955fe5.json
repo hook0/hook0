@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                DELETE FROM iam.organization\n                WHERE organization__id IN (\n                    SELECT uo.organization__id\n                    FROM iam.user__organization uo\n                    WHERE uo.user__id = $1\n                    AND NOT EXISTS (\n                        SELECT 1 FROM iam.user__organization other\n                        WHERE other.organization__id = uo.organization__id\n                        AND other.user__id != $1\n                    )\n                )\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a3a7c5fd76d2b0a359637ee578b5a604073b697ab7dd01e4397ce97033955fe5"
+}

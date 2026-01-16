@@ -56,3 +56,37 @@ Configurable:
 - `TARGET_URL` : URL that will receive the webhook requests
 - `SERVICE_TOKEN` : Service Token is used for authenticated in your organization [this](https://documentation.hook0.com/docs/api-authentication) authentication method
 - `ORGANIZATION_ID` : Organization ID is used to identify the organization that the user belongs to [this](https://documentation.hook0.com/docs/api-authentication) authentication method
+
+### Account Deletion Test (Optional)
+
+To run the account deletion test (Scenario 4), you need to provide test user credentials:
+
+- `TEST_USER_EMAIL` : Email address of a test user account
+- `TEST_USER_PASSWORD` : Password of the test user account
+
+If these variables are not set, the account deletion test will be skipped.
+
+Example:
+```bash
+k6 run main.js -e TEST_USER_EMAIL=test@example.com -e TEST_USER_PASSWORD=testpassword123
+```
+
+### Account Isolation Test (Optional)
+
+To run the account isolation security test (Scenario 5), you need to provide credentials for **two different users**:
+
+- `TEST_USER_EMAIL` : Email address of User A
+- `TEST_USER_PASSWORD` : Password of User A
+- `TEST_USER_EMAIL_2` : Email address of User B
+- `TEST_USER_PASSWORD_2` : Password of User B
+
+If any of these variables are not set, the account isolation test will be skipped.
+
+Example:
+```bash
+k6 run main.js \
+  -e TEST_USER_EMAIL=usera@example.com \
+  -e TEST_USER_PASSWORD=passwordA \
+  -e TEST_USER_EMAIL_2=userb@example.com \
+  -e TEST_USER_PASSWORD_2=passwordB
+```

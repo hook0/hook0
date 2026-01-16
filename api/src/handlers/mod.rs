@@ -1,3 +1,4 @@
+pub mod account;
 pub mod applications;
 pub mod auth;
 pub mod environment_variables;

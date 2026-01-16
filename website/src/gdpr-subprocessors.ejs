@@ -56,7 +56,7 @@
             <svg class="w-4 h-4 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
             </svg>
-            Last Update: September 28th, 2024
+            Last Update: January 15th, 2026
         </div>
     </div>
 </section>
@@ -138,6 +138,8 @@
                                 <th>Subprocessor</th>
                                 <th>Country of Processing</th>
                                 <th>Purpose</th>
+                                <th>Legal Mechanism</th>
+                                <th>DPA</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -150,11 +152,15 @@
                                     </span>
                                 </td>
                                 <td>Hook0 customer database, API, and web application</td>
+                                <td>EU (No transfer)</td>
+                                <td><a href="https://www.clever.cloud/general-terms-and-conditions-of-use/clever-cloud-data-processing-agreement/" class="text-green-400 hover:text-green-300 transition-colors" target="_blank">View DPA</a></td>
                             </tr>
                             <tr>
                                 <td>Cloudflare</td>
                                 <td>USA</td>
                                 <td>DNS and DDoS protection</td>
+                                <td>SCC + DPF</td>
+                                <td><a href="../static/legal/Cloudflare_Customer_DPA_v6.3_June_20__2025.pdf" class="text-green-400 hover:text-green-300 transition-colors" target="_blank">View DPA</a></td>
                             </tr>
                         </tbody>
                     </table>
@@ -179,6 +185,8 @@
                                 <th>Subprocessor</th>
                                 <th>Country</th>
                                 <th>Purpose</th>
+                                <th>Legal Mechanism</th>
+                                <th>DPA</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -191,6 +199,8 @@
                                     </span>
                                 </td>
                                 <td>Workers that call the webhook subscription endpoints</td>
+                                <td>EU (No transfer)</td>
+                                <td><a href="https://www.clever.cloud/general-terms-and-conditions-of-use/clever-cloud-data-processing-agreement/" class="text-green-400 hover:text-green-300 transition-colors" target="_blank">View DPA</a></td>
                             </tr>
                             <tr>
                                 <td>Scaleway SAS</td>
@@ -201,11 +211,15 @@
                                     </span>
                                 </td>
                                 <td>Private dedicated workers that call the webhook subscription endpoints (only for relevant customers)</td>
+                                <td>EU (No transfer)</td>
+                                <td><a href="https://www.scaleway.com/en/contracts/" class="text-green-400 hover:text-green-300 transition-colors" target="_blank">View DPA</a></td>
                             </tr>
                             <tr>
                                 <td>Stripe Inc.</td>
                                 <td>USA</td>
                                 <td>Hook0's customer subscription management</td>
+                                <td>SCC + DPF</td>
+                                <td><a href="../static/legal/Stripe-DPA_2025-Nov-18_.pdf" class="text-green-400 hover:text-green-300 transition-colors" target="_blank">View DPA</a></td>
                             </tr>
                             <tr>
                                 <td>Brevo</td>
@@ -216,11 +230,15 @@
                                     </span>
                                 </td>
                                 <td>Automated emailing</td>
+                                <td>EU (No transfer)</td>
+                                <td><a href="https://www.brevo.com/legal/termsofuse/#data-processing-agreement" class="text-green-400 hover:text-green-300 transition-colors" target="_blank">View DPA</a></td>
                             </tr>
                             <tr>
                                 <td>Postmark</td>
                                 <td>USA</td>
                                 <td>Automated emailing</td>
+                                <td>SCC</td>
+                                <td><a href="https://postmarkapp.com/eu-privacy" class="text-green-400 hover:text-green-300 transition-colors" target="_blank">View DPA</a></td>
                             </tr>
                             <tr>
                                 <td>BetterUptime</td>
@@ -231,11 +249,15 @@
                                     </span>
                                 </td>
                                 <td>Uptime monitoring, status page, and on-call management</td>
+                                <td>EU (No transfer)</td>
+                                <td><a href="https://betterstack.com/dpa" class="text-green-400 hover:text-green-300 transition-colors" target="_blank">View DPA</a></td>
                             </tr>
                             <tr>
                                 <td>Sentry</td>
                                 <td>USA</td>
                                 <td>Error tracking</td>
+                                <td>SCC + DPF</td>
+                                <td><a href="../static/legal/sentry-dpa.pdf" class="text-green-400 hover:text-green-300 transition-colors" target="_blank">View DPA</a></td>
                             </tr>
                             <tr>
                                 <td>Crisp</td>
@@ -246,17 +268,24 @@
                                     </span>
                                 </td>
                                 <td>Customer relations management</td>
+                                <td>EU (No transfer)</td>
+                                <td><a href="https://crisp.chat/en/privacy/" class="text-green-400 hover:text-green-300 transition-colors" target="_blank">View DPA</a></td>
                             </tr>
                             <tr>
                                 <td>Gmail</td>
                                 <td>USA</td>
                                 <td>Support mailbox</td>
+                                <td>SCC + DPF</td>
+                                <td><a href="https://cloud.google.com/terms/data-processing-addendum" class="text-green-400 hover:text-green-300 transition-colors" target="_blank">View DPA</a></td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
                 <p class="text-gray-500 text-sm mt-4">
                     * Note, the list of subprocessors applies to any new Hook0 customers as of that date, or existing Hook0 customers who have not otherwise received notice of a different effective date of this list.
+                </p>
+                <p class="text-gray-500 text-sm mt-2">
+                    <strong>SCC</strong> = EU Standard Contractual Clauses (2021 version) | <strong>DPF</strong> = EU-U.S. Data Privacy Framework
                 </p>
             </div>
         </div>

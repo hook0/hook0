@@ -1,0 +1,45 @@
+<mjml>
+    <mj-head>
+        <mj-title>Account Deletion Cancelled</mj-title>
+        <mj-style inline="inline">
+            body {
+                margin: 0;
+                padding: 0;
+                width: 100% !important;
+                background-color: #f0f0f0;
+            }
+            h1 {
+                font-size: 24px;
+            }
+            h2 {
+                font-size: 18px;
+            }
+            p {
+                font-size: 16px;
+            }
+            .success {
+                color: #28a745;
+                font-weight: bold;
+            }
+        </mj-style>
+    </mj-head>
+    <mj-body>
+        <mj-section>
+            <mj-column>
+                <mj-image src="{ $logo_url }" alt="Hook0" width="150px" />
+                <mj-text align="center">
+                    <h1>Account Deletion Cancelled</h1>
+                    <p class="success">Your account deletion request has been successfully cancelled.</p>
+                </mj-text>
+                <mj-text align="center">
+                    <p>Your Hook0 account and all associated data will remain intact.</p>
+                    <p>You can continue using Hook0 as usual.</p>
+                </mj-text>
+                <mj-button background-color="#007bff" color="white" font-size="20px" border-radius="5px" href="{ $app_url }">Go to Hook0</mj-button>
+                <mj-text align="center">
+                    <p><small>If you have any questions, please contact us at { $support_email_address }.</small></p>
+                </mj-text>
+            </mj-column>
+        </mj-section>
+    </mj-body>
+</mjml>

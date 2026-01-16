@@ -27,6 +27,7 @@ use url::Url;
 use uuid::Uuid;
 
 mod cloudflare_turnstile;
+mod deleted_users_cleanup;
 mod expired_tokens_cleanup;
 mod extractor_user_ip;
 mod handlers;
@@ -430,6 +431,18 @@ struct Config {
     /// [Housekeeping] If true, unverified users will be reported and cleaned up; if false (default), they will only be reported
     #[clap(long, env, default_value = "false")]
     unverified_users_cleanup_report_and_delete: bool,
+
+    /// [Housekeeping] If true, users who requested account deletion will be soft-deleted after 30 days (GDPR Art. 17)
+    #[clap(long, env, default_value = "false")]
+    enable_deleted_users_cleanup: bool,
+
+    /// [Housekeeping] Duration (in seconds) to wait between deleted users cleanups
+    #[clap(long, env, default_value = "3600")]
+    deleted_users_cleanup_period_in_s: u64,
+
+    /// [Housekeeping] If true, users requesting deletion will be soft-deleted; if false (default), they will only be reported
+    #[clap(long, env, default_value = "false")]
+    deleted_users_cleanup_report_and_delete: bool,
 
     /// [Housekeeping] If true, soft-deleted applications will be removed from database after a while; otherwise they will be kept in database forever
     #[clap(long, env, default_value = "false")]
@@ -991,6 +1004,21 @@ async fn main() -> anyhow::Result<()> {
             });
         }
 
+        // Spawn task to soft-delete users who requested account deletion (GDPR Art. 17)
+        if config.enable_deleted_users_cleanup {
+            let clean_deleted_users_db = housekeeping_pool.clone();
+            let clean_deleted_users_semaphore = housekeeping_semaphore.clone();
+            actix_web::rt::spawn(async move {
+                deleted_users_cleanup::periodically_clean_up_deleted_users(
+                    &clean_deleted_users_semaphore,
+                    &clean_deleted_users_db,
+                    Duration::from_secs(config.deleted_users_cleanup_period_in_s),
+                    config.deleted_users_cleanup_report_and_delete,
+                )
+                .await;
+            });
+        }
+
         // Spawn task to clean up object storage
         // No housekeeping semaphore here because this task is not database-intensive and should be able to run for a long time without keeping other tasks from running
         if let Some(os) = &object_storage_config {
@@ -1187,6 +1215,31 @@ async fn main() -> anyhow::Result<()> {
                                         .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
                                         .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first
                                         .route(web::post().to(handlers::auth::change_password)),
+                                ),
+                        )
+                        .service(
+                            web::scope("/account")
+                                .service(
+                                    web::resource("")
+                                        .wrap(Compat::new(rate_limiters.token()))
+                                        .wrap(biscuit_auth.clone())
+                                        .route(
+                                            web::delete().to(handlers::account::request_deletion),
+                                        ),
+                                )
+                                .service(
+                                    web::resource("/deletion-status")
+                                        .wrap(Compat::new(rate_limiters.token()))
+                                        .wrap(biscuit_auth.clone())
+                                        .route(
+                                            web::get().to(handlers::account::get_deletion_status),
+                                        ),
+                                )
+                                .service(
+                                    web::resource("/cancel-deletion")
+                                        .wrap(Compat::new(rate_limiters.token()))
+                                        .wrap(biscuit_auth.clone())
+                                        .route(web::post().to(handlers::account::cancel_deletion)),
                                 ),
                         )
                         // no auth
