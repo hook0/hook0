@@ -36,6 +36,8 @@ api-integration-tests.test:
   services:
     - name: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/postgres:$PG_VERSION
       alias: postgres
+    - name: mailhog/mailhog:latest
+      alias: mailhog
   variables:
     ## postgres
     POSTGRES_DB: postgres
@@ -55,7 +57,7 @@ api-integration-tests.test:
     BISCUIT_PRIVATE_KEY: 'bee97db5398b2694cc2362918a2d9eed117b70f036e224407085ccb6800028fc'
     DATABASE_URL: 'postgres://postgres:postgres@postgres:5432/postgres'
     EMAIL_SENDER_ADDRESS: 'support@hook0.com'
-    SMTP_CONNECTION_URL: 'smtp://localhost:1025'
+    SMTP_CONNECTION_URL: 'smtp://mailhog:1025'
     APP_URL: 'http://localhost:8080/'
     DISABLE_SERVING_WEBAPP: true
     DISABLE_TARGET_IP_CHECK: true
