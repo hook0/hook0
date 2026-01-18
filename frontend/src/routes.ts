@@ -259,7 +259,7 @@ export default [
   },
   {
     name: routes.Error404,
-    path: '/(.*)',
+    path: '/:pathMatch(.*)*',
     component: () => import('@/pages/Error404.vue'),
   },
 ];
