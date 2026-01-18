@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>404 - This Hook Came Up Empty | Hook0</title>
+    <meta name="description" content="The page you're looking for doesn't exist. This hook came up empty!">
+    <%- include('./includes/_head.ejs') %>
+</head>
+<body class="error-404-page">
+<%- include('./includes/_header.ejs') %>
+
+<!-- 404 Hero Section -->
+<section class="error-404">
+    <!-- Underwater background effects -->
+    <div class="error-404__underwater">
+        <div class="error-404__bubble error-404__bubble--1"></div>
+        <div class="error-404__bubble error-404__bubble--2"></div>
+        <div class="error-404__bubble error-404__bubble--3"></div>
+        <div class="error-404__bubble error-404__bubble--4"></div>
+        <div class="error-404__bubble error-404__bubble--5"></div>
+        <div class="error-404__bubble error-404__bubble--6"></div>
+        <div class="error-404__bubble error-404__bubble--7"></div>
+        <div class="error-404__light-ray error-404__light-ray--1"></div>
+        <div class="error-404__light-ray error-404__light-ray--2"></div>
+        <div class="error-404__light-ray error-404__light-ray--3"></div>
+    </div>
+
+    <div class="error-404__content">
+        <!-- The fishing hook animation -->
+        <div class="error-404__hook-container">
+            <div class="error-404__fishing-line"></div>
+            <div class="error-404__hook">
+                <svg viewBox="0 0 60 100" class="error-404__hook-svg" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M30 0 L30 50 Q30 70 45 75 Q60 80 55 60 Q52 45 40 50" class="error-404__hook-path"/>
+                    <path d="M40 50 L35 45" class="error-404__hook-barb"/>
+                </svg>
+                <div class="error-404__empty-catch">
+                    <span>?</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fish swimming away -->
+        <div class="error-404__fish-container">
+            <div class="error-404__fish error-404__fish--1">
+                <svg viewBox="0 0 40 24" class="error-404__fish-svg">
+                    <path d="M35 12 Q40 12 35 6 L20 12 L35 18 Q40 12 35 12 M20 12 L5 6 Q0 12 5 18 L20 12" fill="currentColor"/>
+                    <circle cx="8" cy="11" r="2" fill="#0a0a0f"/>
+                </svg>
+            </div>
+            <div class="error-404__fish error-404__fish--2">
+                <svg viewBox="0 0 40 24" class="error-404__fish-svg">
+                    <path d="M35 12 Q40 12 35 6 L20 12 L35 18 Q40 12 35 12 M20 12 L5 6 Q0 12 5 18 L20 12" fill="currentColor"/>
+                    <circle cx="8" cy="11" r="2" fill="#0a0a0f"/>
+                </svg>
+            </div>
+            <div class="error-404__fish error-404__fish--3">
+                <svg viewBox="0 0 40 24" class="error-404__fish-svg">
+                    <path d="M35 12 Q40 12 35 6 L20 12 L35 18 Q40 12 35 12 M20 12 L5 6 Q0 12 5 18 L20 12" fill="currentColor"/>
+                    <circle cx="8" cy="11" r="2" fill="#0a0a0f"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- 404 Text -->
+        <div class="error-404__text">
+            <h1 class="error-404__code">
+                <span class="error-404__digit error-404__digit--1">4</span>
+                <span class="error-404__digit error-404__digit--2">0</span>
+                <span class="error-404__digit error-404__digit--3">4</span>
+            </h1>
+            <h2 class="error-404__title">This Hook Came Up Empty</h2>
+            <p class="error-404__description">
+                The endpoint you're looking for swam away...
+            </p>
+        </div>
+
+        <!-- Retry counter (webhook humor) -->
+        <div class="error-404__retry" id="retry-status">
+            <div class="error-404__retry-active" id="retry-active">
+                <div class="error-404__retry-spinner"></div>
+                <span>Retry attempt <span id="retry-count">1</span>/5...</span>
+            </div>
+            <div class="error-404__retry-failed" id="retry-failed" style="display: none;">
+                <span class="error-404__retry-icon">&#x2715;</span>
+                <span>Max retries exceeded. The page doesn't exist!</span>
+            </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="error-404__actions">
+            <a href="/" class="btn btn--primary btn--lg">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h3m10-11v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1"/>
+                </svg>
+                Go to Homepage
+            </a>
+            <button onclick="history.back()" class="btn btn--secondary btn--lg">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5m0 0l7 7m-7-7l7-7"/>
+                </svg>
+                Go Back
+            </button>
+        </div>
+    </div>
+</section>
+
+<!-- Retry Animation Script -->
+<script>
+(function() {
+    var count = 1;
+    var maxRetries = 5;
+    var retryCount = document.getElementById('retry-count');
+    var retryActive = document.getElementById('retry-active');
+    var retryFailed = document.getElementById('retry-failed');
+
+    var interval = setInterval(function() {
+        count++;
+        if (count <= maxRetries) {
+            retryCount.textContent = count;
+        } else {
+            clearInterval(interval);
+            retryActive.style.display = 'none';
+            retryFailed.style.display = 'flex';
+        }
+    }, 1500);
+})();
+</script>
+
+<%- include('./includes/_footer.ejs') %>
+
+</body>
+</html>
