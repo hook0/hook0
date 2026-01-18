@@ -15,7 +15,7 @@ import { check } from 'k6';
  */
 
 function register(baseUrl, email, password, firstName = 'E2E', lastName = 'Test') {
-  const url = `${baseUrl}api/v1/registrations`;
+  const url = `${baseUrl}api/v1/register`;
 
   const payload = JSON.stringify({
     email: email,
