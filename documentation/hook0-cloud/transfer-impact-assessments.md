@@ -46,7 +46,7 @@ Hook0's infrastructure is primarily hosted in the European Union (France). Howev
 | **EU-US Data Privacy Framework Certification** | Yes |
 | **Encryption in Transit** | Yes (TLS 1.3) |
 | **Encryption at Rest** | Yes |
-| **Data Minimization** | Applied (logs retained <4 hours) |
+| **Data Minimization** | Applied (logs retained less than 4 hours) |
 | **Contractual DPA** | [View DPA](https://www.hook0.com/legal/Cloudflare_Customer_DPA_v6.3_June_20__2025.pdf) |
 
 ### 4. Conclusion
