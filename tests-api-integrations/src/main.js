@@ -12,6 +12,7 @@ import delete_application from './applications/delete_application.js';
 import get_quota from './unauthentified/quotas.js';
 import get_environment_variables from './unauthentified/environment_variables.js';
 import login from './me/login.js';
+import register from './me/register.js';
 import get_deletion_status from './me/get_deletion_status.js';
 import request_deletion from './me/request_deletion.js';
 import cancel_deletion from './me/cancel_deletion.js';
@@ -419,6 +420,12 @@ function scenario_account_deletion() {
   const h = config.apiOrigin;
 
   try {
+    // 0. Register the test user (if not already existing)
+    const regResult = register(h, config.testUserEmail, config.testUserPassword);
+    if (!regResult) {
+      throw new Error('Failed to register test user');
+    }
+
     // 1. Login to get user access token
     const loginResponse = login(h, config.testUserEmail, config.testUserPassword);
     if (!loginResponse || !loginResponse.access_token) {

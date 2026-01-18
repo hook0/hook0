@@ -14,6 +14,32 @@ import { check } from 'k6';
  * - TEST_USER_EMAIL_2 / TEST_USER_PASSWORD_2 (User B)
  */
 
+function register(baseUrl, email, password, firstName = 'E2E', lastName = 'Test') {
+  const url = `${baseUrl}api/v1/registrations`;
+
+  const payload = JSON.stringify({
+    email: email,
+    password: password,
+    first_name: firstName,
+    last_name: lastName,
+  });
+
+  const params = {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  };
+
+  const res = http.post(url, payload, params);
+  // 201 = created, 409 = already exists (both are OK for our tests)
+  if (res.status !== 201 && res.status !== 409) {
+    console.warn('register response:', res.status, res.body);
+    return false;
+  }
+
+  return true;
+}
+
 function login(baseUrl, email, password) {
   const url = `${baseUrl}api/v1/auth/login`;
 
@@ -115,6 +141,15 @@ export default function (config) {
   const h = config.apiOrigin;
 
   try {
+    // 0. Register both test users (if not already existing)
+    console.log('Step 0: Registering test users...');
+    if (!register(h, config.testUserEmail, config.testUserPassword, 'E2E-A', 'TestUser')) {
+      throw new Error('Failed to register User A');
+    }
+    if (!register(h, config.testUserEmail2, config.testUserPassword2, 'E2E-B', 'TestUser')) {
+      throw new Error('Failed to register User B');
+    }
+
     // 1. Login as both users
     console.log('Step 1: Logging in as User A...');
     const loginA = login(h, config.testUserEmail, config.testUserPassword);
