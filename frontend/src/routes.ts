@@ -103,25 +103,25 @@ export default [
     name: routes.Login,
     path: '/login',
     component: () => import('@/pages/LoginPage.vue'),
-    meta: { requiresAuth: false },
+    meta: { requiresAuth: false, fullScreen: true },
   },
   {
     name: routes.Register,
     path: '/register',
     component: () => import('@/pages/RegisterPage.vue'),
-    meta: { requiresAuth: false },
+    meta: { requiresAuth: false, fullScreen: true },
   },
   {
     name: routes.VerifyEmail,
     path: '/verify-email',
     component: () => import('@/pages/user/VerifyEmail.vue'),
-    meta: { requiresAuth: false },
+    meta: { requiresAuth: false, fullScreen: true },
   },
   {
     name: routes.CheckEmail,
     path: '/check-email',
     component: () => import('@/pages/CheckEmailPage.vue'),
-    meta: { requiresAuth: false },
+    meta: { requiresAuth: false, fullScreen: true },
   },
   {
     name: routes.UserSettings,
@@ -135,6 +135,7 @@ export default [
     meta: {
       requiresAuth: false,
       redirectIfLoggedIn: false,
+      fullScreen: true,
     },
   },
   {
@@ -144,6 +145,7 @@ export default [
     meta: {
       requiresAuth: false,
       redirectIfLoggedIn: false,
+      fullScreen: true,
     },
   },
   {
@@ -261,5 +263,6 @@ export default [
     name: routes.Error404,
     path: '/:pathMatch(.*)*',
     component: () => import('@/pages/Error404.vue'),
+    meta: { fullScreen: true },
   },
 ];

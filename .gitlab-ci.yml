@@ -35,7 +35,7 @@ include:
 osv_dependency_scan:
   stage: test
   dependencies: []
-  image: golang:1.23
+  image: golang:1.25
   allow_failure: true
   retry:
     max: 2
@@ -43,7 +43,7 @@ osv_dependency_scan:
       - runner_system_failure
       - stuck_or_timeout_failure
   before_script:
-    - go install github.com/google/osv-scanner/cmd/osv-scanner@v2.3.0
+    - go install github.com/google/osv-scanner/v2/cmd/osv-scanner@v2.3.0
   script:
     - osv-scanner --recursive .
 
