@@ -48,6 +48,7 @@ api-integration-tests.test:
     SERVICE_TOKEN: '00000000-0000-0000-0000-000000000000'
     TARGET_URL: 'http://localhost:3000'
     ORGANIZATION_ID: '00000000-0000-0000-0000-000000000000'
+    MAILHOG_URL: 'http://mailhog:8025'
     VUS: 1
     ITERATIONS: 1
     DURATION: '1m'

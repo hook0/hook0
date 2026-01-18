@@ -13,10 +13,12 @@ import get_quota from './unauthentified/quotas.js';
 import get_environment_variables from './unauthentified/environment_variables.js';
 import login from './me/login.js';
 import register from './me/register.js';
+import verify_email from './me/verify_email.js';
 import get_deletion_status from './me/get_deletion_status.js';
 import request_deletion from './me/request_deletion.js';
 import cancel_deletion from './me/cancel_deletion.js';
 import account_isolation_test from './me/account_isolation_test.js';
+import deleteAllEmails from './mailhog/delete_all_emails.js';
 
 export const config = getEnvironmentVariables();
 
@@ -418,22 +420,34 @@ function scenario_subscription_disable() {
 
 function scenario_account_deletion() {
   const h = config.apiOrigin;
+  const m = config.mailhogUrl;
 
   try {
-    // 0. Register the test user (if not already existing)
+    // 0. Clear any existing emails in Mailhog
+    deleteAllEmails(m);
+
+    // 1. Register the test user (if not already existing)
     const regResult = register(h, config.testUserEmail, config.testUserPassword);
     if (!regResult) {
       throw new Error('Failed to register test user');
     }
 
-    // 1. Login to get user access token
+    // 2. Verify the user's email (only if user was newly registered)
+    if (!regResult.already_exists) {
+      const verifyResult = verify_email(h, m, config.testUserEmail);
+      if (!verifyResult) {
+        throw new Error('Failed to verify test user email');
+      }
+    }
+
+    // 3. Login to get user access token
     const loginResponse = login(h, config.testUserEmail, config.testUserPassword);
     if (!loginResponse || !loginResponse.access_token) {
       throw new Error('Failed to login');
     }
     const accessToken = loginResponse.access_token;
 
-    // 2. Get initial deletion status (should be false)
+    // 4. Get initial deletion status (should be false)
     const initialStatus = get_deletion_status(h, accessToken);
     if (initialStatus === null) {
       throw new Error('Failed to get initial deletion status');
@@ -442,13 +456,13 @@ function scenario_account_deletion() {
       throw new Error('Expected initial deletion_requested to be false');
     }
 
-    // 3. Request account deletion
+    // 5. Request account deletion
     const requestResult = request_deletion(h, accessToken);
     if (!requestResult) {
       throw new Error('Failed to request account deletion');
     }
 
-    // 4. Verify deletion status is now true
+    // 6. Verify deletion status is now true
     const statusAfterRequest = get_deletion_status(h, accessToken);
     if (statusAfterRequest === null) {
       throw new Error('Failed to get deletion status after request');
@@ -457,13 +471,13 @@ function scenario_account_deletion() {
       throw new Error('Expected deletion_requested to be true after request');
     }
 
-    // 5. Cancel deletion request
+    // 7. Cancel deletion request
     const cancelResult = cancel_deletion(h, accessToken);
     if (!cancelResult) {
       throw new Error('Failed to cancel account deletion');
     }
 
-    // 6. Verify deletion status is back to false
+    // 8. Verify deletion status is back to false
     const finalStatus = get_deletion_status(h, accessToken);
     if (finalStatus === null) {
       throw new Error('Failed to get final deletion status');

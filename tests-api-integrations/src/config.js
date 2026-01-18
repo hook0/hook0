@@ -41,6 +41,7 @@ export function getEnvironmentVariables() {
   const targetUrl = __ENV.TARGET_URL ? __ENV.TARGET_URL : null;
   const serviceToken = __ENV.SERVICE_TOKEN ? __ENV.SERVICE_TOKEN : null;
   const organizationId = __ENV.ORGANIZATION_ID ? __ENV.ORGANIZATION_ID : null;
+  const mailhogUrl = __ENV.MAILHOG_URL ? __ENV.MAILHOG_URL : null;
 
   // User credentials for account deletion tests (random defaults, can be overridden)
   const testUserEmail = __ENV.TEST_USER_EMAIL || testUserDefaults.testUserEmail;
@@ -50,9 +51,9 @@ export function getEnvironmentVariables() {
   const testUserEmail2 = __ENV.TEST_USER_EMAIL_2 || testUserDefaults.testUserEmail2;
   const testUserPassword2 = __ENV.TEST_USER_PASSWORD_2 || testUserDefaults.testUserPassword2;
 
-  if (!apiOrigin || !targetUrl || !serviceToken || !organizationId) {
+  if (!apiOrigin || !targetUrl || !serviceToken || !organizationId || !mailhogUrl) {
     throw new Error(
-      'Missing environment variables API_ORIGIN, TARGET_URL, SERVICE_TOKEN, ORGANIZATION_ID'
+      'Missing environment variables API_ORIGIN, TARGET_URL, SERVICE_TOKEN, ORGANIZATION_ID, MAILHOG_URL'
     );
   }
 
@@ -69,5 +70,6 @@ export function getEnvironmentVariables() {
     testUserPassword,
     testUserEmail2,
     testUserPassword2,
+    mailhogUrl: mailhogUrl.endsWith('/') ? mailhogUrl.slice(0, -1) : mailhogUrl,
   };
 }
