@@ -20,6 +20,10 @@ const route = useRoute();
 
 const is_logged_in = getAccessToken();
 
+const showFullScreen = computed(() => {
+  return !is_logged_in || route.meta.fullScreen === true;
+});
+
 interface Route {
   name: string;
   icon: string;
@@ -196,7 +200,7 @@ function toggleMobileSidebar() {
       <NotificationProgress :item="item" />
     </Notification>
   </Notivue>
-  <div v-if="is_logged_in">
+  <div v-if="!showFullScreen">
     <div class="h-screen flex overflow-hidden bg-gray-100">
       <div
         class="md:flex md:flex-shrink-0 transition-transform duration-300 md:w-64"
