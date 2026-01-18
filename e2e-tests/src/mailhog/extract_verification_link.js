@@ -194,20 +194,40 @@ export default function extractVerificationLink(email) {
   console.log('Decoded email body (first 500 chars):', fullDecodedBody.substring(0, 500));
 
   // Look for the verify-email URL pattern
-  // The URL contains the token as a query parameter
-  const urlPattern = /https?:\/\/[^\s<>"]+verify-email[^\s<>"]+token=[^\s<>"]+/gi;
-  const matches = fullDecodedBody.match(urlPattern);
+  // The URL is often line-wrapped in plain text emails, so we need to handle that
+  // First find the URL start, then extract the token which may span multiple lines
+  const urlStartPattern = /https?:\/\/[^\s<>"]*verify-email\?token=/gi;
+  const startMatch = urlStartPattern.exec(fullDecodedBody);
 
-  if (matches && matches.length > 0) {
-    // Clean up the URL (remove any trailing characters that might have been captured)
-    let url = matches[0];
-    // Remove common trailing artifacts
-    url = url.replace(/[&;]$/, '');
-    // Decode HTML entities if present
-    url = url.replace(/&amp;/g, '&');
+  if (startMatch) {
+    const urlStart = startMatch[0];
+    const tokenStartIndex = startMatch.index + urlStart.length;
 
-    console.log('Extracted verification URL:', url);
-    return url;
+    // Extract the token, which may be wrapped across lines
+    // Token characters: alphanumeric, +, /, =, -, _
+    // We need to skip whitespace that's part of line wrapping
+    let token = '';
+    let i = tokenStartIndex;
+    while (i < fullDecodedBody.length) {
+      const char = fullDecodedBody[i];
+      // Valid base64/URL-safe token characters
+      if (/[A-Za-z0-9+/=_-]/.test(char)) {
+        token += char;
+        i++;
+      } else if (/[\s\r\n]/.test(char)) {
+        // Skip whitespace (line wrapping)
+        i++;
+      } else {
+        // End of token
+        break;
+      }
+    }
+
+    if (token.length > 0) {
+      const url = urlStart + token;
+      console.log('Extracted verification URL:', url);
+      return url;
+    }
   }
 
   console.warn('Could not find verification link in email body');
