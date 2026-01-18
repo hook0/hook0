@@ -35,7 +35,7 @@ include:
 osv_dependency_scan:
   stage: test
   dependencies: []
-  image: golang:1.23
+  image: golang:1.25
   allow_failure: true
   retry:
     max: 2
