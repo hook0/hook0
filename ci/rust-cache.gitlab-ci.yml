@@ -1,0 +1,40 @@
+# =============================================================================
+# Rust Caching Configuration
+# =============================================================================
+# Two variants:
+# - .rust-cache-pull-push: downloads and uploads cache (for primary builder)
+# - .rust-cache-pull-only: downloads cache only (for parallel jobs to avoid contention)
+# =============================================================================
+
+.cache-config: &cache-config
+  key:
+    files:
+      - Cargo.lock
+    prefix: rust-${RUST_VERSION}
+  fallback_keys:
+    - rust-${RUST_VERSION}-
+  paths:
+    - .cargo/bin/
+    - .cargo/registry/index/
+    - .cargo/registry/cache/
+    - .cargo/git/db/
+    - target/
+  when: on_success
+
+.rust-cache-base:
+  variables:
+    CARGO_HOME: ${CI_PROJECT_DIR}/.cargo
+    CARGO_INCREMENTAL: "0"
+    CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
+
+.rust-cache-pull-push:
+  extends: .rust-cache-base
+  cache:
+    - <<: *cache-config
+      policy: pull-push
+
+.rust-cache-pull-only:
+  extends: .rust-cache-base
+  cache:
+    - <<: *cache-config
+      policy: pull
