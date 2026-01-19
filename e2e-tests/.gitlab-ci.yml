@@ -1,4 +1,5 @@
 e2e-ci.build:
+  extends: .rust-cache-pull-push
   stage: build
   dependencies: []
   image: rust:$RUST_VERSION
