@@ -20,3 +20,8 @@ split-debuginfo = "unpacked"
 
 [profile.dev.package.sqlx-macros]
 opt-level = 3
+
+[workspace.metadata.release]
+# Only release api and output-worker (SDKs have their own versioning)
+release = false
+publish = false
