@@ -170,6 +170,10 @@ struct Config {
     /// If true, will load waiting request attempts (that can be picked by this worker) from DB into Pulsar before starting working; this is usefull when migrating ta a Pulsar worker; has no effect if worker has not a pulsar queue type
     #[clap(long, env, default_value_t = false)]
     load_waiting_request_attempt_into_pulsar: bool,
+
+    /// Grace period to wait for database commit before dropping unfound request attempts (only for Pulsar workers)
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "5s")]
+    request_attempt_db_commit_grace_period: Duration,
 }
 
 #[derive(Debug, Clone)]
