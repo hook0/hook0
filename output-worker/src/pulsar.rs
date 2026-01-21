@@ -615,7 +615,9 @@ async fn handle_message(
                     Ok(())
                 }
                 RequestAttemptStatus::NotFound => {
-                    if attempt.created_at + Duration::from_secs(2) >= Utc::now() {
+                    if attempt.created_at + config.request_attempt_db_commit_grace_period
+                        >= Utc::now()
+                    {
                         trace!(
                             "Request attempt {} was not found in database; as it was created recently it may not have been committed into database yet so let's retry a bit later",
                             &attempt.request_attempt_id
