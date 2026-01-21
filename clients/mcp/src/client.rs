@@ -2,7 +2,7 @@
 
 use crate::config::Config;
 use crate::error::Hook0McpError;
-use reqwest::{header, Client, StatusCode};
+use reqwest::{Client, StatusCode, header};
 use serde_json::Value;
 use std::time::Duration;
 use tracing::{debug, warn};
