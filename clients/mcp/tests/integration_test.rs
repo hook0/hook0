@@ -6,7 +6,7 @@
 //! Tests run against the production Hook0 API using MCP_SERVICE_TOKEN.
 
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::env;
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, Command, Stdio};

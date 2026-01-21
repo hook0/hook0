@@ -7,8 +7,8 @@
 //! ```
 
 use hook0_mcp::{Config, Hook0Client, Hook0McpServer, Transport};
-use rmcp::transport::stdio;
 use rmcp::ServiceExt;
+use rmcp::transport::stdio;
 use tracing::{error, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
