@@ -26,3 +26,6 @@ api/.clever.json
 # for website & doc
 CLAUDE.local.md
 .claude
+.agents
+.gemini
+.opencode
