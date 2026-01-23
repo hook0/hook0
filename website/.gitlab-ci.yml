@@ -1,4 +1,8 @@
-# Production build - uses absolute URLs for www.hook0.com
+# Website build and deployment to Netlify
+# Production: pushes to master branch
+# MR Preview: merge request events
+# Immutable build: single build artifact used for both production and preview
+
 website.build:
   stage: build
   dependencies: []
@@ -6,117 +10,64 @@ website.build:
     - if: $CI_COMMIT_BRANCH == "master"
       changes:
         - website/**/*
-  image: node:$NODE_VERSION
-  script:
-    - pushd website/
-    - npm ci
-    - npm run build
-  cache:
-      key: ${CI_COMMIT_REF_SLUG}
-      policy: push
-      paths:
-        - .npm
-        - website/node_modules/
-        - website/.parcel-cache/
-  artifacts:
-      paths:
-        - website/dist
-
-# Preview build - uses relative URLs for GitLab artifacts
-website.build.preview:
-  stage: build
-  dependencies: []
-  rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - website/**/*
   image: node:$NODE_VERSION
   script:
-    - pushd website/
+    - cd website/
     - npm ci
-    # Build with relative paths for artifact preview
-    - npx parcel build src/*.ejs --public-url=./
-    # Post-build: Add .html extension to internal page links for GitLab artifacts browser
-    # Matches patterns like href="./page-name" and converts to href="./page-name.html"
-    - |
-      for f in dist/*.html; do
-        sed -i 's|href="\./\([a-z][a-z0-9-]*\)"|href="./\1.html"|g' "$f"
-        sed -i "s|href='\\./\\([a-z][a-z0-9-]*\\)'|href='./\\1.html'|g" "$f"
-      done
+    - npm run build
   cache:
-      key: ${CI_COMMIT_REF_SLUG}-preview
-      policy: push
-      paths:
-        - .npm
-        - website/node_modules/
-        - website/.parcel-cache/
+    key: ${CI_COMMIT_REF_SLUG}-website
+    paths:
+      - .npm
+      - website/node_modules/
+      - website/.parcel-cache/
   artifacts:
-      paths:
-        - website/dist
+    paths:
+      - website/dist
+    expire_in: 1 week
 
-.website-release-tmpl: &website-release-tmpl
+# Production deployment to Netlify (master branch)
+website.deploy:
   stage: release
   image: node:$NODE_VERSION
   needs:
     - job: website.build
       artifacts: true
-  before_script:
-    - pushd website/
-    # https://github.com/netlify/cli/issues/1870
-    - npm i -g --unsafe-perm netlify-cli
   script:
-    - netlify deploy --no-build --site $NETLIFY_SITE_ID --auth $NETLIFY_AUTH_TOKEN --prod --dir=dist/
+    - npm install -g netlify-cli
+    - netlify deploy --dir=website/dist --site="$NETLIFY_WEBSITE_SITE_ID" --auth="$NETLIFY_AUTH_TOKEN" --prod --message="Deploy from $CI_COMMIT_SHORT_SHA"
   environment:
-      name: production-website
-      url: https://www.hook0.com
+    name: production-website
+    url: https://www.hook0.com
   rules:
     - if: $CI_COMMIT_BRANCH == "master"
       changes:
         - website/**/*
 
-# GitLab Pages preview for merge requests
-website.preview:
+# Preview deployment to Netlify (MR)
+website.deploy.preview:
   stage: release
-  image: alpine:3.23
+  image: node:$NODE_VERSION
   needs:
-    - job: website.build.preview
+    - job: website.build
       artifacts: true
   script:
-    - mkdir -p public
-    - cp -r website/dist/* public/
-    - echo "Preview deployed successfully"
+    - npm install -g netlify-cli
+    - netlify deploy --dir=website/dist --site="$NETLIFY_WEBSITE_SITE_ID" --auth="$NETLIFY_AUTH_TOKEN" --json --message="Preview MR-$CI_MERGE_REQUEST_IID" > deploy_output.json
+    - cat deploy_output.json
+    - node -e "const d=require('./deploy_output.json'); console.log('DEPLOY_URL=' + d.deploy_url);" > deploy.env
+    - cat deploy.env
   artifacts:
-    paths:
-      - public
-    expose_as: 'Website Preview'
-    expire_in: 1 week
+    reports:
+      dotenv: deploy.env
   environment:
     name: preview/website-$CI_MERGE_REQUEST_IID
-    url: https://hook0.gitlab.io/-/hook0/-/jobs/$CI_JOB_ID/artifacts/public/index.html
-    on_stop: website.preview.stop
+    url: $DEPLOY_URL
     auto_stop_in: 1 week
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - website/**/*
-
-website.preview.stop:
-  stage: release
-  image: alpine:latest
-  script:
-    - echo "Preview environment stopped"
-  environment:
-    name: preview/website-$CI_MERGE_REQUEST_IID
-    action: stop
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes:
-        - website/**/*
-      when: manual
-
-website.release:
-  <<: *website-release-tmpl
-
-website.release.manual:
-  <<: *website-release-tmpl
-  when: manual
