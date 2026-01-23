@@ -42,6 +42,6 @@ cd "$MCP_DIR"
 HOOK0_OPENAPI_URL="${API_URL}/api/v1/swagger.json" cargo build --release
 
 echo "==> Running integration tests..."
-HOOK0_API_URL="$API_URL" MCP_SERVICE_TOKEN="$SERVICE_TOKEN" HOOK0_OPENAPI_URL="${API_URL}/api/v1/swagger.json" cargo test --all-features
+HOOK0_API_URL="$API_URL" MCP_SERVICE_TOKEN="$SERVICE_TOKEN" HOOK0_OPENAPI_URL="${API_URL}/api/v1/swagger.json" cargo test --all-features -- --ignored
 
 echo "==> All integration tests passed!"

@@ -184,6 +184,7 @@ mod server {
     use super::*;
 
     #[test]
+    #[ignore]
     fn test_server_info() {
         let mut server = McpServerProcess::start();
 
@@ -214,6 +215,7 @@ mod server {
     }
 
     #[test]
+    #[ignore]
     fn test_server_capabilities() {
         let mut server = McpServerProcess::start();
 
@@ -245,6 +247,7 @@ mod tools {
     use super::*;
 
     #[test]
+    #[ignore]
     fn test_list_tools() {
         let mut server = McpServerProcess::start();
         server.initialize();
@@ -302,6 +305,7 @@ mod tools {
     }
 
     #[test]
+    #[ignore]
     fn test_call_unknown_tool() {
         let mut server = McpServerProcess::start();
         server.initialize();
@@ -335,6 +339,7 @@ mod resources {
     use super::*;
 
     #[test]
+    #[ignore]
     fn test_list_resources() {
         let mut server = McpServerProcess::start();
         server.initialize();
@@ -384,6 +389,7 @@ mod resources {
     }
 
     #[test]
+    #[ignore]
     fn test_read_organizations_resource() {
         let mut server = McpServerProcess::start();
         server.initialize();
@@ -432,6 +438,7 @@ mod resources {
     }
 
     #[test]
+    #[ignore]
     fn test_read_applications_resource() {
         let mut server = McpServerProcess::start();
         server.initialize();
@@ -466,6 +473,7 @@ mod resources {
     }
 
     #[test]
+    #[ignore]
     fn test_read_unknown_resource() {
         let mut server = McpServerProcess::start();
         server.initialize();
@@ -495,6 +503,7 @@ mod prompts {
     use super::*;
 
     #[test]
+    #[ignore]
     fn test_list_prompts() {
         let mut server = McpServerProcess::start();
         server.initialize();
@@ -544,6 +553,7 @@ mod prompts {
     }
 
     #[test]
+    #[ignore]
     fn test_get_create_webhook_subscription_prompt() {
         let mut server = McpServerProcess::start();
         server.initialize();
@@ -587,6 +597,7 @@ mod prompts {
     }
 
     #[test]
+    #[ignore]
     fn test_get_debug_event_delivery_prompt() {
         let mut server = McpServerProcess::start();
         server.initialize();
@@ -609,6 +620,7 @@ mod prompts {
     }
 
     #[test]
+    #[ignore]
     fn test_get_setup_application_prompt() {
         let mut server = McpServerProcess::start();
         server.initialize();
@@ -631,6 +643,7 @@ mod prompts {
     }
 
     #[test]
+    #[ignore]
     fn test_get_unknown_prompt() {
         let mut server = McpServerProcess::start();
         server.initialize();
