@@ -36,6 +36,13 @@ website.build.preview:
     - npm ci
     # Build with relative paths for artifact preview
     - npx parcel build src/*.ejs --public-url=./
+    # Post-build: Add .html extension to internal page links for GitLab artifacts browser
+    # Matches patterns like href="./page-name" and converts to href="./page-name.html"
+    - |
+      for f in dist/*.html; do
+        sed -i 's|href="\./\([a-z][a-z0-9-]*\)"|href="./\1.html"|g' "$f"
+        sed -i "s|href='\\./\\([a-z][a-z0-9-]*\\)'|href='./\\1.html'|g" "$f"
+      done
   cache:
       key: ${CI_COMMIT_REF_SLUG}-preview
       policy: push
