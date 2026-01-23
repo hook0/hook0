@@ -1,6 +1,7 @@
-# Documentation build and deployment to hook0/pages/documentation
-# Production: pushes to main branch → GitLab Pages
-# MR Preview: pushes to preview/mr-{IID} branch → GitLab Pages
+# Documentation build and deployment to Netlify
+# Production: pushes to master branch
+# MR Preview: merge request events
+# Immutable build: single build artifact used for both production and preview
 
 documentation.build:
   stage: build
@@ -28,31 +29,16 @@ documentation.build:
       changes:
         - documentation/**/*
 
-# Production deployment to hook0/pages/documentation (main branch)
+# Production deployment to Netlify (master branch)
 documentation.deploy:
   stage: release
-  image: alpine:3.23
+  image: node:${NODE_VERSION}
   needs:
     - job: documentation.build
       artifacts: true
-  before_script:
-    - apk add --no-cache git
   script:
-    - |
-      git config --global user.email "bot@hook0.com"
-      git config --global user.name "Hook0 Bot"
-
-      git clone --depth 1 "https://oauth2:${PAGES_DEPLOY_TOKEN}@gitlab.com/hook0/pages/documentation.git" pages-repo
-      cd pages-repo
-
-      rm -rf public
-      mkdir -p public
-      cp -r ../documentation/build/* public/
-
-      git add -A
-      git commit -m "Deploy documentation from ${CI_PROJECT_PATH}@${CI_COMMIT_SHORT_SHA}" \
-                 -m "Source: ${CI_PIPELINE_URL}" || echo "No changes to commit"
-      git push origin main
+    - npm install -g netlify-cli
+    - netlify deploy --dir=documentation/build --site=$NETLIFY_DOCUMENTATION_SITE_ID --auth=$NETLIFY_AUTH_TOKEN --prod
   environment:
     name: production-documentation
     url: https://documentation.hook0.com
@@ -61,60 +47,28 @@ documentation.deploy:
       changes:
         - documentation/**/*
 
-# Preview deployment to hook0/pages/documentation (preview branch)
+# Preview deployment to Netlify (MR)
 documentation.deploy.preview:
   stage: release
-  image: alpine:3.23
+  image: node:${NODE_VERSION}
   needs:
     - job: documentation.build
       artifacts: true
-  before_script:
-    - apk add --no-cache git
   script:
+    - npm install -g netlify-cli
     - |
-      git config --global user.email "bot@hook0.com"
-      git config --global user.name "Hook0 Bot"
-
-      TARGET_BRANCH="preview/mr-${CI_MERGE_REQUEST_IID}"
-
-      git clone "https://oauth2:${PAGES_DEPLOY_TOKEN}@gitlab.com/hook0/pages/documentation.git" pages-repo
-      cd pages-repo
-
-      git checkout "$TARGET_BRANCH" 2>/dev/null || git checkout -b "$TARGET_BRANCH"
-
-      rm -rf public
-      mkdir -p public
-      cp -r ../documentation/build/* public/
-
-      git add -A
-      git commit -m "Preview documentation from ${CI_PROJECT_PATH}@${CI_COMMIT_SHORT_SHA}" \
-                 -m "MR: ${CI_MERGE_REQUEST_PROJECT_URL}/-/merge_requests/${CI_MERGE_REQUEST_IID}" || echo "No changes to commit"
-      git push -u origin "$TARGET_BRANCH" --force
+      DEPLOY_OUTPUT=$(netlify deploy --dir=documentation/build --site=$NETLIFY_DOCUMENTATION_SITE_ID --auth=$NETLIFY_AUTH_TOKEN --json)
+      DEPLOY_URL=$(echo "$DEPLOY_OUTPUT" | grep -o '"deploy_ssl_url":"[^"]*"' | cut -d'"' -f4)
+      echo "Preview URL: $DEPLOY_URL"
+      echo "DEPLOY_URL=$DEPLOY_URL" >> deploy.env
+  artifacts:
+    reports:
+      dotenv: deploy.env
   environment:
     name: preview/documentation-$CI_MERGE_REQUEST_IID
-    url: https://hook0.gitlab.io/pages/documentation/
-    on_stop: documentation.deploy.preview.stop
+    url: $DEPLOY_URL
     auto_stop_in: 1 week
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - documentation/**/*
-
-documentation.deploy.preview.stop:
-  stage: release
-  image: alpine:3.23
-  before_script:
-    - apk add --no-cache git
-  script:
-    - |
-      git clone --depth 1 "https://oauth2:${PAGES_DEPLOY_TOKEN}@gitlab.com/hook0/pages/documentation.git" pages-repo || true
-      cd pages-repo
-      git push origin --delete "preview/mr-${CI_MERGE_REQUEST_IID}" || echo "Branch already deleted"
-  environment:
-    name: preview/documentation-$CI_MERGE_REQUEST_IID
-    action: stop
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes:
-        - documentation/**/*
-      when: manual

@@ -1,6 +1,7 @@
-# Website build and deployment to hook0/pages/website
-# Production: pushes to main branch → GitLab Pages
-# MR Preview: pushes to preview/mr-{IID} branch → GitLab Pages
+# Website build and deployment to Netlify
+# Production: pushes to master branch
+# MR Preview: merge request events
+# Immutable build: single build artifact used for both production and preview
 
 website.build:
   stage: build
@@ -9,39 +10,16 @@ website.build:
     - if: $CI_COMMIT_BRANCH == "master"
       changes:
         - website/**/*
-  image: node:$NODE_VERSION
-  script:
-    - pushd website/
-    - npm ci
-    - npm run build
-  cache:
-    key: ${CI_COMMIT_REF_SLUG}-website
-    policy: push
-    paths:
-      - .npm
-      - website/node_modules/
-      - website/.parcel-cache/
-  artifacts:
-    paths:
-      - website/dist
-    expire_in: 1 week
-
-website.build.preview:
-  stage: build
-  dependencies: []
-  rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - website/**/*
   image: node:$NODE_VERSION
   script:
-    - pushd website/
+    - cd website/
     - npm ci
-    # Build with GitLab Pages URL for the preview branch
-    - npx parcel build src/*.ejs --public-url=https://hook0.gitlab.io/pages/website/
+    - npm run build
   cache:
-    key: ${CI_COMMIT_REF_SLUG}-website-preview
-    policy: push
+    key: ${CI_COMMIT_REF_SLUG}-website
     paths:
       - .npm
       - website/node_modules/
@@ -51,31 +29,16 @@ website.build.preview:
       - website/dist
     expire_in: 1 week
 
-# Production deployment to hook0/pages/website (main branch)
+# Production deployment to Netlify (master branch)
 website.deploy:
   stage: release
-  image: alpine:3.23
+  image: node:$NODE_VERSION
   needs:
     - job: website.build
       artifacts: true
-  before_script:
-    - apk add --no-cache git
   script:
-    - |
-      git config --global user.email "bot@hook0.com"
-      git config --global user.name "Hook0 Bot"
-
-      git clone --depth 1 "https://oauth2:${PAGES_DEPLOY_TOKEN}@gitlab.com/hook0/pages/website.git" pages-repo
-      cd pages-repo
-
-      rm -rf public
-      mkdir -p public
-      cp -r ../website/dist/* public/
-
-      git add -A
-      git commit -m "Deploy website from ${CI_PROJECT_PATH}@${CI_COMMIT_SHORT_SHA}" \
-                 -m "Source: ${CI_PIPELINE_URL}" || echo "No changes to commit"
-      git push origin main
+    - npm install -g netlify-cli
+    - netlify deploy --dir=website/dist --site=$NETLIFY_WEBSITE_SITE_ID --auth=$NETLIFY_AUTH_TOKEN --prod
   environment:
     name: production-website
     url: https://www.hook0.com
@@ -84,60 +47,28 @@ website.deploy:
       changes:
         - website/**/*
 
-# Preview deployment to hook0/pages/website (preview branch)
+# Preview deployment to Netlify (MR)
 website.deploy.preview:
   stage: release
-  image: alpine:3.23
+  image: node:$NODE_VERSION
   needs:
-    - job: website.build.preview
+    - job: website.build
       artifacts: true
-  before_script:
-    - apk add --no-cache git
   script:
+    - npm install -g netlify-cli
     - |
-      git config --global user.email "bot@hook0.com"
-      git config --global user.name "Hook0 Bot"
-
-      TARGET_BRANCH="preview/mr-${CI_MERGE_REQUEST_IID}"
-
-      git clone "https://oauth2:${PAGES_DEPLOY_TOKEN}@gitlab.com/hook0/pages/website.git" pages-repo
-      cd pages-repo
-
-      git checkout "$TARGET_BRANCH" 2>/dev/null || git checkout -b "$TARGET_BRANCH"
-
-      rm -rf public
-      mkdir -p public
-      cp -r ../website/dist/* public/
-
-      git add -A
-      git commit -m "Preview website from ${CI_PROJECT_PATH}@${CI_COMMIT_SHORT_SHA}" \
-                 -m "MR: ${CI_MERGE_REQUEST_PROJECT_URL}/-/merge_requests/${CI_MERGE_REQUEST_IID}" || echo "No changes to commit"
-      git push -u origin "$TARGET_BRANCH" --force
+      DEPLOY_OUTPUT=$(netlify deploy --dir=website/dist --site=$NETLIFY_WEBSITE_SITE_ID --auth=$NETLIFY_AUTH_TOKEN --json)
+      DEPLOY_URL=$(echo "$DEPLOY_OUTPUT" | grep -o '"deploy_ssl_url":"[^"]*"' | cut -d'"' -f4)
+      echo "Preview URL: $DEPLOY_URL"
+      echo "DEPLOY_URL=$DEPLOY_URL" >> deploy.env
+  artifacts:
+    reports:
+      dotenv: deploy.env
   environment:
     name: preview/website-$CI_MERGE_REQUEST_IID
-    url: https://hook0.gitlab.io/pages/website/
-    on_stop: website.deploy.preview.stop
+    url: $DEPLOY_URL
     auto_stop_in: 1 week
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - website/**/*
-
-website.deploy.preview.stop:
-  stage: release
-  image: alpine:3.23
-  before_script:
-    - apk add --no-cache git
-  script:
-    - |
-      git clone --depth 1 "https://oauth2:${PAGES_DEPLOY_TOKEN}@gitlab.com/hook0/pages/website.git" pages-repo || true
-      cd pages-repo
-      git push origin --delete "preview/mr-${CI_MERGE_REQUEST_IID}" || echo "Branch already deleted"
-  environment:
-    name: preview/website-$CI_MERGE_REQUEST_IID
-    action: stop
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes:
-        - website/**/*
-      when: manual
