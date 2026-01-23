@@ -1,4 +1,7 @@
-# Production build for GitLab Pages
+# Website build and deployment to hook0/pages/website
+# Production: pushes to main branch
+# MR Preview: pushes to preview/mr-{IID} branch
+
 website.build:
   stage: build
   dependencies: []
@@ -12,7 +15,7 @@ website.build:
     - npm ci
     - npm run build
   cache:
-    key: ${CI_COMMIT_REF_SLUG}
+    key: ${CI_COMMIT_REF_SLUG}-website
     policy: push
     paths:
       - .npm
@@ -21,8 +24,8 @@ website.build:
   artifacts:
     paths:
       - website/dist
+    expire_in: 1 week
 
-# Preview build - uses relative URLs for GitLab artifacts
 website.build.preview:
   stage: build
   dependencies: []
@@ -34,17 +37,15 @@ website.build.preview:
   script:
     - pushd website/
     - npm ci
-    # Build with relative paths for artifact preview
     - npx parcel build src/*.ejs --public-url=./
-    # Post-build: Add .html extension to internal page links for GitLab artifacts browser
-    # Matches patterns like href="./page-name" and converts to href="./page-name.html"
+    # Add .html extension to internal links for GitLab artifacts browser
     - |
       for f in dist/*.html; do
         sed -i 's|href="\./\([a-z][a-z0-9-]*\)"|href="./\1.html"|g' "$f"
         sed -i "s|href='\\./\\([a-z][a-z0-9-]*\\)'|href='./\\1.html'|g" "$f"
       done
   cache:
-    key: ${CI_COMMIT_REF_SLUG}-preview
+    key: ${CI_COMMIT_REF_SLUG}-website-preview
     policy: push
     paths:
       - .npm
@@ -53,20 +54,36 @@ website.build.preview:
   artifacts:
     paths:
       - website/dist
+    expire_in: 1 week
 
-# GitLab Pages production deployment
-pages:
+# Production deployment to hook0/pages/website (main branch)
+website.deploy:
   stage: release
   image: alpine:3.23
   needs:
     - job: website.build
       artifacts: true
+  before_script:
+    - apk add --no-cache git
   script:
-    - mkdir -p public
-    - cp -r website/dist/* public/
-  artifacts:
-    paths:
-      - public
+    - |
+      git config --global user.email "bot@hook0.com"
+      git config --global user.name "Hook0 Bot"
+
+      DEPLOY_TOKEN="${PAGES_DEPLOY_TOKEN:-$CI_JOB_TOKEN}"
+      git clone --depth 1 "https://oauth2:${DEPLOY_TOKEN}@gitlab.com/hook0/pages/website.git" pages-repo || {
+        git clone "https://oauth2:${DEPLOY_TOKEN}@gitlab.com/hook0/pages/website.git" pages-repo
+      }
+      cd pages-repo
+
+      rm -rf public
+      mkdir -p public
+      cp -r ../website/dist/* public/
+
+      git add -A
+      git commit -m "Deploy website from ${CI_PROJECT_PATH}@${CI_COMMIT_SHORT_SHA}" \
+                 -m "Source: ${CI_PIPELINE_URL}" || echo "No changes to commit"
+      git push origin main
   environment:
     name: production-website
     url: https://www.hook0.com
@@ -75,36 +92,57 @@ pages:
       changes:
         - website/**/*
 
-# GitLab Pages preview for merge requests
-website.preview:
+# Preview deployment to hook0/pages/website (preview branch)
+website.deploy.preview:
   stage: release
   image: alpine:3.23
   needs:
     - job: website.build.preview
       artifacts: true
+  before_script:
+    - apk add --no-cache git
   script:
-    - mkdir -p public
-    - cp -r website/dist/* public/
-  artifacts:
-    paths:
-      - public
-    expose_as: 'Website Preview'
-    expire_in: 1 week
+    - |
+      git config --global user.email "bot@hook0.com"
+      git config --global user.name "Hook0 Bot"
+
+      TARGET_BRANCH="preview/mr-${CI_MERGE_REQUEST_IID}"
+      DEPLOY_TOKEN="${PAGES_DEPLOY_TOKEN:-$CI_JOB_TOKEN}"
+
+      git clone "https://oauth2:${DEPLOY_TOKEN}@gitlab.com/hook0/pages/website.git" pages-repo
+      cd pages-repo
+
+      git checkout "$TARGET_BRANCH" 2>/dev/null || git checkout -b "$TARGET_BRANCH"
+
+      rm -rf public
+      mkdir -p public
+      cp -r ../website/dist/* public/
+
+      git add -A
+      git commit -m "Preview website from ${CI_PROJECT_PATH}@${CI_COMMIT_SHORT_SHA}" \
+                 -m "MR: ${CI_MERGE_REQUEST_PROJECT_URL}/-/merge_requests/${CI_MERGE_REQUEST_IID}" || echo "No changes to commit"
+      git push -u origin "$TARGET_BRANCH" --force
   environment:
     name: preview/website-$CI_MERGE_REQUEST_IID
-    url: https://hook0.gitlab.io/-/hook0/-/jobs/$CI_JOB_ID/artifacts/public/index.html
-    on_stop: website.preview.stop
+    url: https://hook0.gitlab.io/pages/website
+    on_stop: website.deploy.preview.stop
     auto_stop_in: 1 week
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - website/**/*
 
-website.preview.stop:
+website.deploy.preview.stop:
   stage: release
-  image: alpine:latest
+  image: alpine:3.23
+  before_script:
+    - apk add --no-cache git
   script:
-    - echo "Preview environment stopped"
+    - |
+      DEPLOY_TOKEN="${PAGES_DEPLOY_TOKEN:-$CI_JOB_TOKEN}"
+      git clone --depth 1 "https://oauth2:${DEPLOY_TOKEN}@gitlab.com/hook0/pages/website.git" pages-repo || true
+      cd pages-repo
+      git push origin --delete "preview/mr-${CI_MERGE_REQUEST_IID}" || echo "Branch already deleted"
   environment:
     name: preview/website-$CI_MERGE_REQUEST_IID
     action: stop
