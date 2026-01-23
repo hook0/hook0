@@ -58,9 +58,8 @@ website.deploy.preview:
     - npm install -g netlify-cli
     - netlify deploy --dir=website/dist --site="$NETLIFY_WEBSITE_SITE_ID" --auth="$NETLIFY_AUTH_TOKEN" --json --message="Preview MR-$CI_MERGE_REQUEST_IID" > deploy_output.json
     - cat deploy_output.json
-    - DEPLOY_URL=$(cat deploy_output.json | grep -o '"deploy_url":"[^"]*"' | cut -d'"' -f4)
-    - echo "Preview URL - $DEPLOY_URL"
-    - echo "DEPLOY_URL=$DEPLOY_URL" >> deploy.env
+    - node -e "const d=require('./deploy_output.json'); console.log('DEPLOY_URL=' + d.deploy_url);" > deploy.env
+    - cat deploy.env
   artifacts:
     reports:
       dotenv: deploy.env
