@@ -1,0 +1,51 @@
+{
+  "name": "Hook0 - Webhooks-as-a-Service",
+  "short_name": "Hook0",
+  "description": "Open-Source Webhooks-as-a-Service platform. Send webhooks with one API call.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#10b981",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["developer tools", "business", "productivity"],
+  "icons": [
+    {
+      "src": "/mediakit/logo/48x48-white.png",
+      "sizes": "48x48",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/mediakit/logo/64x64-white.png",
+      "sizes": "64x64",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/mediakit/logo/128x128-white.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/mediakit/logo/170x170-white.png",
+      "sizes": "170x170",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/mediakit/logo/256x256-white.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/mediakit/logo/512x512-white.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
