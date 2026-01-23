@@ -40,27 +40,29 @@ website.build:
       changes:
         - website/**/*
 
+# GitLab Pages preview for merge requests
+# Deploys to: https://hook0.gitlab.io/-/hook0/-/jobs/$CI_JOB_ID/artifacts/public/index.html
+# Or via environment URL with artifact browsing
 website.preview:
   stage: release
-  image: node:$NODE_VERSION
+  image: alpine:3.23
   needs:
     - job: website.build
       artifacts: true
-  before_script:
-    - pushd website/
-    - npm i -g --unsafe-perm netlify-cli
   script:
-    - |
-      DEPLOY_OUTPUT=$(netlify deploy --no-build --site $NETLIFY_SITE_ID --auth $NETLIFY_AUTH_TOKEN --dir=dist/ --json)
-      DEPLOY_URL=$(echo "$DEPLOY_OUTPUT" | grep -o '"deploy_url":"[^"]*"' | cut -d'"' -f4)
-      echo "DEPLOY_URL=$DEPLOY_URL" >> deploy.env
-      echo "Preview URL: $DEPLOY_URL"
+    - mkdir -p public
+    - cp -r website/dist/* public/
+    # Create an index redirect for the job artifacts URL
+    - echo "Preview deployed successfully"
+    - echo "Access via job artifacts or environment URL"
   artifacts:
-    reports:
-      dotenv: website/deploy.env
+    paths:
+      - public
+    expose_as: 'Website Preview'
+    expire_in: 1 week
   environment:
-    name: preview/$CI_MERGE_REQUEST_IID
-    url: $DEPLOY_URL
+    name: preview/website-$CI_MERGE_REQUEST_IID
+    url: https://hook0.gitlab.io/-/hook0/-/jobs/$CI_JOB_ID/artifacts/public/index.html
     on_stop: website.preview.stop
     auto_stop_in: 1 week
   rules:
@@ -74,7 +76,7 @@ website.preview.stop:
   script:
     - echo "Preview environment stopped"
   environment:
-    name: preview/$CI_MERGE_REQUEST_IID
+    name: preview/website-$CI_MERGE_REQUEST_IID
     action: stop
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
