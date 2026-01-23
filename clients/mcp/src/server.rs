@@ -7,7 +7,12 @@
 use crate::client::Hook0Client;
 use crate::error::{McpError, McpErrorExt};
 use crate::prompts;
-use rmcp::model::*;
+use rmcp::model::{
+    Annotated, CallToolRequestParams, CallToolResult, Content, GetPromptRequestParams,
+    GetPromptResult, Implementation, ListPromptsResult, ListResourcesResult, ListToolsResult,
+    PaginatedRequestParams, ProtocolVersion, RawResource, ReadResourceRequestParams,
+    ReadResourceResult, ResourceContents, ServerCapabilities, ServerInfo, Tool,
+};
 use rmcp::service::RequestContext;
 use rmcp::{RoleServer, ServerHandler};
 use serde_json::{Map, Value, json};
@@ -173,7 +178,7 @@ impl ServerHandler for Hook0McpServer {
 
     async fn list_tools(
         &self,
-        _request: Option<PaginatedRequestParam>,
+        _request: Option<PaginatedRequestParams>,
         _context: RequestContext<RoleServer>,
     ) -> Result<ListToolsResult, McpError> {
         info!("Listing tools (read_only: {})", self.read_only);
@@ -196,7 +201,7 @@ impl ServerHandler for Hook0McpServer {
 
     async fn call_tool(
         &self,
-        request: CallToolRequestParam,
+        request: CallToolRequestParams,
         _context: RequestContext<RoleServer>,
     ) -> Result<CallToolResult, McpError> {
         info!("Calling tool: {}", request.name);
@@ -219,7 +224,7 @@ impl ServerHandler for Hook0McpServer {
 
     async fn list_resources(
         &self,
-        _request: Option<PaginatedRequestParam>,
+        _request: Option<PaginatedRequestParams>,
         _context: RequestContext<RoleServer>,
     ) -> Result<ListResourcesResult, McpError> {
         info!("Listing resources");
@@ -246,7 +251,7 @@ impl ServerHandler for Hook0McpServer {
 
     async fn read_resource(
         &self,
-        request: ReadResourceRequestParam,
+        request: ReadResourceRequestParams,
         _context: RequestContext<RoleServer>,
     ) -> Result<ReadResourceResult, McpError> {
         info!("Reading resource: {}", request.uri);
@@ -300,20 +305,20 @@ impl ServerHandler for Hook0McpServer {
 
     async fn list_prompts(
         &self,
-        _request: Option<PaginatedRequestParam>,
+        _request: Option<PaginatedRequestParams>,
         _context: RequestContext<RoleServer>,
     ) -> Result<ListPromptsResult, McpError> {
         info!("Listing prompts");
         Ok(ListPromptsResult {
-            prompts: prompts::list_prompts(),
-            next_cursor: None,
             meta: None,
+            next_cursor: None,
+            prompts: prompts::list_prompts(),
         })
     }
 
     async fn get_prompt(
         &self,
-        request: GetPromptRequestParam,
+        request: GetPromptRequestParams,
         _context: RequestContext<RoleServer>,
     ) -> Result<GetPromptResult, McpError> {
         info!("Getting prompt: {}", request.name);
