@@ -1,8 +1,10 @@
+# Production build - uses absolute URLs for www.hook0.com
 website.build:
   stage: build
   dependencies: []
   rules:
-    - changes:
+    - if: $CI_COMMIT_BRANCH == "master"
+      changes:
         - website/**/*
   image: node:$NODE_VERSION
   script:
@@ -11,6 +13,38 @@ website.build:
     - npm run build
   cache:
       key: ${CI_COMMIT_REF_SLUG}
+      policy: push
+      paths:
+        - .npm
+        - website/node_modules/
+        - website/.parcel-cache/
+  artifacts:
+      paths:
+        - website/dist
+
+# Preview build - uses relative URLs for GitLab artifacts
+website.build.preview:
+  stage: build
+  dependencies: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - website/**/*
+  image: node:$NODE_VERSION
+  script:
+    - pushd website/
+    - npm ci
+    # Build with relative paths for artifact preview
+    - npx parcel build src/*.ejs --public-url=./
+    # Post-build: Add .html extension to internal page links for GitLab artifacts browser
+    # Matches patterns like href="./page-name" and converts to href="./page-name.html"
+    - |
+      for f in dist/*.html; do
+        sed -i 's|href="\./\([a-z][a-z0-9-]*\)"|href="./\1.html"|g' "$f"
+        sed -i "s|href='\\./\\([a-z][a-z0-9-]*\\)'|href='./\\1.html'|g" "$f"
+      done
+  cache:
+      key: ${CI_COMMIT_REF_SLUG}-preview
       policy: push
       paths:
         - .npm
@@ -39,6 +73,46 @@ website.build:
     - if: $CI_COMMIT_BRANCH == "master"
       changes:
         - website/**/*
+
+# GitLab Pages preview for merge requests
+website.preview:
+  stage: release
+  image: alpine:3.23
+  needs:
+    - job: website.build.preview
+      artifacts: true
+  script:
+    - mkdir -p public
+    - cp -r website/dist/* public/
+    - echo "Preview deployed successfully"
+  artifacts:
+    paths:
+      - public
+    expose_as: 'Website Preview'
+    expire_in: 1 week
+  environment:
+    name: preview/website-$CI_MERGE_REQUEST_IID
+    url: https://hook0.gitlab.io/-/hook0/-/jobs/$CI_JOB_ID/artifacts/public/index.html
+    on_stop: website.preview.stop
+    auto_stop_in: 1 week
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - website/**/*
+
+website.preview.stop:
+  stage: release
+  image: alpine:latest
+  script:
+    - echo "Preview environment stopped"
+  environment:
+    name: preview/website-$CI_MERGE_REQUEST_IID
+    action: stop
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - website/**/*
+      when: manual
 
 website.release:
   <<: *website-release-tmpl
