@@ -246,13 +246,13 @@ locals.footerLinks = {
     title: 'About',
     items: [
       { label: 'Contact', href: locals.meta.contact },
-      { label: 'Pricing', href: 'https://www.hook0.com/#pricing' },
+      { label: 'Pricing', href: './#pricing' },
       { label: 'Resources', href: locals.meta.doc_guides },
-      { label: 'Security & Compliance', href: 'https://www.hook0.com/security' },
-      { label: 'Privacy Policy', href: 'https://www.hook0.com/privacy-policy' },
-      { label: 'Terms of Service', href: 'https://www.hook0.com/terms' },
-      { label: 'Built to Last', href: 'https://www.hook0.com/built-to-last' },
-      { label: 'Media Kit', href: 'https://www.hook0.com/mediakit' },
+      { label: 'Security & Compliance', href: './security' },
+      { label: 'Privacy Policy', href: './privacy-policy' },
+      { label: 'Terms of Service', href: './terms' },
+      { label: 'Built to Last', href: './built-to-last' },
+      { label: 'Media Kit', href: './mediakit/' },
     ],
   },
   guides: {
@@ -284,7 +284,7 @@ locals.footerLinks = {
     title: 'Community',
     items: [
       { label: 'Code of Conduct', href: 'https://gitlab.com/hook0/hook0/-/blob/master/CODE_OF_CONDUCT.md', icon: 'conduct' },
-      { label: 'OSS Friends', href: 'https://www.hook0.com/oss-friends', icon: 'globe' },
+      { label: 'OSS Friends', href: './oss-friends', icon: 'globe' },
       { label: 'Discord', href: locals.social.discord.href, icon: 'discord' },
       { label: 'GitHub', href: locals.social.github.repoHref, icon: 'github' },
       { label: 'LinkedIn', href: locals.social.linkedin.href, icon: 'linkedin' },

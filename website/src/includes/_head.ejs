@@ -1,6 +1,11 @@
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <meta name="theme-color" content="<%= locals.seo.themeColor %>">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Hook0">
+<meta name="format-detection" content="telephone=no">
 
 <!-- SEO Meta Tags -->
 <% if (locals.pageDescription) { %>
@@ -72,9 +77,12 @@
 <!-- Stylesheet -->
 <link rel='stylesheet' href='./style.scss'/>
 
-<!-- Favicon -->
+<!-- Favicon and PWA -->
 <link rel="icon" type="image/png" href="./mediakit/logo/110x110-white.png">
-<link rel="apple-touch-icon" href="./mediakit/logo/110x110-white.png">
+<link rel="icon" type="image/png" sizes="32x32" href="./mediakit/logo/32x32-white.png">
+<link rel="icon" type="image/png" sizes="16x16" href="./mediakit/logo/16x16-white.png">
+<link rel="apple-touch-icon" sizes="180x180" href="./mediakit/logo/256x256-white.png">
+<%# PWA Manifest - added via JS to avoid Parcel resolution %>
 
 <% if (process.env.CRISP_WEBSITE_ID) { %>
 <!-- Crisp -->
@@ -101,7 +109,7 @@
 </style>
 <div id="cookie-consent-banner" class="cookie-banner" role="dialog" aria-label="Cookie consent">
     <div class="cookie-banner__inner">
-        <div class="cookie-banner__text">We use cookies to analyze site usage and improve your experience. <a href="/privacy-policy">Privacy Policy</a></div>
+        <div class="cookie-banner__text">We use cookies to analyze site usage and improve your experience. <a href="./privacy-policy">Privacy Policy</a></div>
         <div class="cookie-banner__buttons">
             <button type="button" class="cookie-banner__btn--decline" onclick="window.hook0Consent.deny()">Decline</button>
             <button type="button" class="cookie-banner__btn--accept" onclick="window.hook0Consent.accept()">Accept</button>
@@ -202,6 +210,31 @@
 }
 </script>
 <% } %>
+
+<!-- PWA: Service Worker & Manifest (added via JS to avoid Parcel resolution) -->
+<script>
+(function() {
+  // Add manifest link dynamically
+  var manifestLink = document.createElement('link');
+  manifestLink.rel = 'manifest';
+  manifestLink.href = ['', 'manifest.json'].join('/');
+  document.head.appendChild(manifestLink);
+
+  // Register Service Worker (using array join to avoid Parcel static analysis)
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      var swPath = ['', 'sw.js'].join('/');
+      navigator.serviceWorker.register(swPath)
+        .then(function(registration) {
+          console.log('SW registered: ', registration.scope);
+        })
+        .catch(function(error) {
+          console.log('SW registration failed: ', error);
+        });
+    });
+  }
+})();
+</script>
 
 <!-- Scroll Animation Script -->
 <script defer>
