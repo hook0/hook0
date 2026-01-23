@@ -43,11 +43,18 @@
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    // Prevent text size adjustment on orientation change
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   body {
     @apply font-sans text-gray-300 bg-surface-primary;
     font-feature-settings: 'cv11', 'ss01', 'ss03';
+    // Improve tap behavior on iOS
+    -webkit-tap-highlight-color: transparent;
+    // Prevent overscroll bounce on iOS
+    overscroll-behavior: none;
   }
 
   ::selection {
@@ -62,6 +69,26 @@
   // Remove default button styles
   button {
     @apply bg-transparent border-none cursor-pointer;
+    touch-action: manipulation;
+  }
+
+  // Ensure all interactive elements have minimum touch targets
+  a, button, input, select, textarea {
+    touch-action: manipulation;
+  }
+
+  // Improve readability on mobile
+  @media (max-width: 640px) {
+    // Slightly increase base font size on mobile for readability
+    body {
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    // Ensure paragraphs have good spacing on mobile
+    p {
+      margin-bottom: 1rem;
+    }
   }
 }
 
@@ -106,6 +133,9 @@
            text-base font-semibold rounded-xl
            transition-all duration-300 ease-smooth
            focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-surface-primary;
+    min-height: 44px; // Apple guidelines for touch targets
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 
     &--primary {
       @apply bg-green-500 text-white
@@ -115,28 +145,62 @@
       &:hover {
         box-shadow: var(--shadow-glow-green);
       }
+
+      // Remove hover transform on touch devices
+      @media (hover: none) {
+        &:hover {
+          transform: none;
+        }
+
+        &:active {
+          @apply bg-green-600;
+          transform: scale(0.98);
+        }
+      }
     }
 
     &--secondary {
       @apply bg-white/10 text-white border border-white/20
              hover:bg-white/20 hover:-translate-y-0.5
              focus:ring-white/50;
+
+      @media (hover: none) {
+        &:hover {
+          transform: none;
+        }
+
+        &:active {
+          @apply bg-white/30;
+          transform: scale(0.98);
+        }
+      }
     }
 
     &--ghost {
       @apply text-gray-300 hover:text-white hover:bg-white/5 px-4 py-2;
+      min-height: 44px;
+
+      @media (hover: none) {
+        &:active {
+          @apply bg-white/10;
+        }
+      }
     }
 
     &--lg {
       @apply px-8 py-4 text-lg rounded-2xl;
+      min-height: 56px;
     }
 
     &--sm {
-      @apply px-4 py-2 text-sm;
+      @apply px-5 py-2.5 text-sm;
+      min-height: 44px; // Still maintain minimum touch target
     }
 
     &--icon {
       @apply p-3;
+      min-width: 44px;
+      min-height: 44px;
     }
   }
 
@@ -312,6 +376,13 @@
       @apply border-white/10 -translate-y-1;
     }
 
+    // Disable hover transform on touch devices
+    @media (hover: none) {
+      &:hover {
+        transform: none;
+      }
+    }
+
     &--featured {
       @apply border-indigo-500/50 bg-gradient-to-b from-indigo-950/50 to-surface-tertiary;
 
@@ -326,6 +397,12 @@
       display: flex;
       flex-direction: column;
       min-height: 16rem;
+
+      // Reduce padding on mobile
+      @media (max-width: 640px) {
+        @apply p-6;
+        min-height: auto;
+      }
     }
 
     &__name {
@@ -336,6 +413,10 @@
     &__description {
       @apply text-sm text-gray-400 mt-2 text-left;
       min-height: 4rem;
+
+      @media (max-width: 640px) {
+        min-height: auto;
+      }
     }
 
     &__price {
@@ -347,10 +428,18 @@
 
       .amount {
         @apply text-4xl font-extrabold text-white;
+
+        @media (max-width: 640px) {
+          @apply text-3xl;
+        }
       }
 
       .period {
         @apply text-gray-400 ml-2;
+      }
+
+      @media (max-width: 640px) {
+        min-height: auto;
       }
     }
 
@@ -359,10 +448,18 @@
       display: flex;
       flex-direction: column;
       flex: 1;
+
+      @media (max-width: 640px) {
+        @apply p-6;
+      }
     }
 
     &__features {
       @apply space-y-4;
+
+      @media (max-width: 640px) {
+        @apply space-y-3;
+      }
     }
 
     &__feature {
@@ -372,8 +469,16 @@
         @apply w-5 h-5 text-green-500 flex-shrink-0 mt-0.5 mr-3;
       }
 
-      // Prevent text from wrapping onto multiple lines
-      white-space: nowrap;
+      // Allow text wrapping on mobile for better readability
+      @media (max-width: 640px) {
+        white-space: normal;
+        @apply text-base leading-relaxed;
+      }
+
+      // Prevent text from wrapping on larger screens
+      @media (min-width: 641px) {
+        white-space: nowrap;
+      }
 
       // Ensure no extra spacing around strong elements
       strong {
@@ -402,6 +507,9 @@
       @apply flex items-center justify-between p-6 cursor-pointer
              hover:bg-surface-elevated/80 transition-colors
              list-none;
+      min-height: 64px; // Touch-friendly
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
 
       &::-webkit-details-marker {
         display: none;
@@ -409,6 +517,13 @@
 
       &::marker {
         display: none;
+      }
+
+      // Better mobile touch feedback
+      @media (hover: none) {
+        &:active {
+          @apply bg-white/5;
+        }
       }
     }
 
@@ -418,6 +533,11 @@
 
     &__content {
       @apply px-6 pb-6 pt-2 text-gray-400;
+
+      // Improve readability on mobile
+      @media (max-width: 640px) {
+        @apply text-base leading-relaxed;
+      }
     }
   }
 
@@ -640,6 +760,92 @@ abbr {
 // ============================================
 .header-scrolled {
   @apply bg-surface-primary/80 backdrop-blur-xl border-b border-white/5;
+}
+
+// ============================================
+// MOBILE NAVIGATION
+// ============================================
+.mobile-menu {
+  @apply fixed inset-0 z-40;
+  pointer-events: none;
+  visibility: hidden;
+
+  &.is-open {
+    pointer-events: auto;
+    visibility: visible;
+
+    .mobile-menu__backdrop {
+      opacity: 1;
+    }
+
+    .mobile-menu__panel {
+      transform: translateX(0);
+    }
+  }
+
+  &__backdrop {
+    @apply absolute inset-0 bg-black/60 backdrop-blur-sm;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  &__panel {
+    @apply absolute top-0 right-0 bottom-0 w-full max-w-sm
+           bg-surface-primary border-l border-white/10
+           flex flex-col overflow-y-auto;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    padding-top: 5rem; // Below header
+  }
+
+  &__nav {
+    @apply flex-1 px-4 py-6;
+  }
+
+  &__link {
+    @apply flex items-center gap-4 px-4 py-4 text-base font-medium
+           text-gray-300 hover:text-white hover:bg-white/5
+           rounded-xl transition-colors;
+    min-height: 56px; // Touch-friendly
+
+    svg:first-child {
+      @apply text-gray-500;
+    }
+
+    &:hover svg:first-child {
+      @apply text-indigo-400;
+    }
+  }
+
+  &__auth {
+    @apply px-4 py-6 border-t border-white/10 space-y-3;
+  }
+
+  &__auth-btn {
+    @apply flex items-center justify-center w-full px-6 py-4
+           text-base font-semibold rounded-xl transition-all;
+    min-height: 56px; // Touch-friendly
+
+    &--primary {
+      @apply bg-green-500 text-white hover:bg-green-400;
+      box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+
+      &:hover {
+        box-shadow: 0 0 30px rgba(34, 197, 94, 0.4);
+      }
+    }
+
+    &--secondary {
+      @apply bg-white/10 text-white border border-white/20
+             hover:bg-white/20;
+    }
+  }
+}
+
+// Touch-friendly utilities
+.touch-manipulation {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 // ============================================
