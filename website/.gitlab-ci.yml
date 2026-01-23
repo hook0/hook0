@@ -40,6 +40,48 @@ website.build:
       changes:
         - website/**/*
 
+website.preview:
+  stage: release
+  image: node:$NODE_VERSION
+  needs:
+    - job: website.build
+      artifacts: true
+  before_script:
+    - pushd website/
+    - npm i -g --unsafe-perm netlify-cli
+  script:
+    - |
+      DEPLOY_OUTPUT=$(netlify deploy --no-build --site $NETLIFY_SITE_ID --auth $NETLIFY_AUTH_TOKEN --dir=dist/ --json)
+      DEPLOY_URL=$(echo "$DEPLOY_OUTPUT" | grep -o '"deploy_url":"[^"]*"' | cut -d'"' -f4)
+      echo "DEPLOY_URL=$DEPLOY_URL" >> deploy.env
+      echo "Preview URL: $DEPLOY_URL"
+  artifacts:
+    reports:
+      dotenv: website/deploy.env
+  environment:
+    name: preview/$CI_MERGE_REQUEST_IID
+    url: $DEPLOY_URL
+    on_stop: website.preview.stop
+    auto_stop_in: 1 week
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - website/**/*
+
+website.preview.stop:
+  stage: release
+  image: alpine:latest
+  script:
+    - echo "Preview environment stopped"
+  environment:
+    name: preview/$CI_MERGE_REQUEST_IID
+    action: stop
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - website/**/*
+      when: manual
+
 website.release:
   <<: *website-release-tmpl
 
