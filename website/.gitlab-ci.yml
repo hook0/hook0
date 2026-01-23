@@ -1,8 +1,10 @@
+# Production build - uses absolute URLs for www.hook0.com
 website.build:
   stage: build
   dependencies: []
   rules:
-    - changes:
+    - if: $CI_COMMIT_BRANCH == "master"
+      changes:
         - website/**/*
   image: node:$NODE_VERSION
   script:
@@ -11,6 +13,31 @@ website.build:
     - npm run build
   cache:
       key: ${CI_COMMIT_REF_SLUG}
+      policy: push
+      paths:
+        - .npm
+        - website/node_modules/
+        - website/.parcel-cache/
+  artifacts:
+      paths:
+        - website/dist
+
+# Preview build - uses relative URLs for GitLab artifacts
+website.build.preview:
+  stage: build
+  dependencies: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - website/**/*
+  image: node:$NODE_VERSION
+  script:
+    - pushd website/
+    - npm ci
+    # Build with relative paths for artifact preview
+    - npx parcel build src/*.ejs --public-url=./
+  cache:
+      key: ${CI_COMMIT_REF_SLUG}-preview
       policy: push
       paths:
         - .npm
@@ -41,20 +68,16 @@ website.build:
         - website/**/*
 
 # GitLab Pages preview for merge requests
-# Deploys to: https://hook0.gitlab.io/-/hook0/-/jobs/$CI_JOB_ID/artifacts/public/index.html
-# Or via environment URL with artifact browsing
 website.preview:
   stage: release
   image: alpine:3.23
   needs:
-    - job: website.build
+    - job: website.build.preview
       artifacts: true
   script:
     - mkdir -p public
     - cp -r website/dist/* public/
-    # Create an index redirect for the job artifacts URL
     - echo "Preview deployed successfully"
-    - echo "Access via job artifacts or environment URL"
   artifacts:
     paths:
       - public
