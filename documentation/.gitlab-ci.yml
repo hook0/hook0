@@ -1,3 +1,8 @@
+# Documentation build and deployment to Netlify
+# Production: pushes to master branch
+# MR Preview: merge request events
+# Immutable build: single build artifact used for both production and preview
+
 documentation.build:
   stage: build
   image: node:${NODE_VERSION}
@@ -17,24 +22,52 @@ documentation.build:
       - documentation/build/
     expire_in: 1 week
   rules:
-    - changes:
-        - documentation/**/*
-
-pages:
-  stage: release
-  image: alpine:3.23
-  needs:
-    - documentation.build
-  script:
-    - mkdir -p public
-    - cp -r documentation/build/* public/
-  artifacts:
-    paths:
-      - public
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH == "master"
       changes:
         - documentation/**/*
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - documentation/**/*
+
+# Production deployment to Netlify (master branch)
+documentation.deploy:
+  stage: release
+  image: node:${NODE_VERSION}
+  needs:
+    - job: documentation.build
+      artifacts: true
+  script:
+    - npm install -g netlify-cli
+    - netlify deploy --dir=documentation/build --site="$NETLIFY_DOCUMENTATION_SITE_ID" --auth="$NETLIFY_AUTH_TOKEN" --prod --message="Deploy from $CI_COMMIT_SHORT_SHA"
   environment:
-    name: production
-    url: https://hook0.gitlab.io/hook0
+    name: production-documentation
+    url: https://documentation.hook0.com
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+      changes:
+        - documentation/**/*
+
+# Preview deployment to Netlify (MR)
+documentation.deploy.preview:
+  stage: release
+  image: node:${NODE_VERSION}
+  needs:
+    - job: documentation.build
+      artifacts: true
+  script:
+    - npm install -g netlify-cli
+    - netlify deploy --dir=documentation/build --site="$NETLIFY_DOCUMENTATION_SITE_ID" --auth="$NETLIFY_AUTH_TOKEN" --json --message="Preview MR-$CI_MERGE_REQUEST_IID" > deploy_output.json
+    - cat deploy_output.json
+    - node -e "const d=require('./deploy_output.json'); console.log('DEPLOY_URL=' + d.deploy_url);" > deploy.env
+    - cat deploy.env
+  artifacts:
+    reports:
+      dotenv: deploy.env
+  environment:
+    name: preview/documentation-$CI_MERGE_REQUEST_IID
+    url: $DEPLOY_URL
+    auto_stop_in: 1 week
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - documentation/**/*
