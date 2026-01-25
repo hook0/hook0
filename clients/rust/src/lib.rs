@@ -4,14 +4,6 @@
 //! This is the Rust client for Hook0.
 //! It makes it easier to send events from a Rust application to a Hook0 instance.
 
-#[cfg(all(
-    not(feature = "reqwest-rustls-tls-webpki-roots"),
-    not(feature = "reqwest-rustls-tls-native-roots")
-))]
-compile_error!(
-    "at least one of feature \"reqwest-rustls-tls-webpki-roots\" and feature \"reqwest-rustls-tls-native-roots\" must be enabled"
-);
-
 #[cfg(all(not(feature = "producer"), not(feature = "consumer")))]
 compile_error!("at least one of feature \"producer\" and feature \"consumer\" must be enabled");
 

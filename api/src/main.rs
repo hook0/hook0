@@ -717,10 +717,6 @@ async fn main() -> anyhow::Result<()> {
             config.pulsar_tenant,
             config.pulsar_namespace,
         ) {
-            rustls::crypto::ring::default_provider()
-                .install_default()
-                .unwrap();
-
             match Pulsar::builder(pulsar_binary_url, TokioExecutor)
                 .with_connection_retry_options(ConnectionRetryOptions {
                     max_retries: PULSAR_CONNECTION_MAX_RETRIES,

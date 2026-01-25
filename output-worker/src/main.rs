@@ -331,10 +331,6 @@ async fn main() -> anyhow::Result<()> {
             &config.pulsar_tenant,
             &config.pulsar_namespace,
         ) {
-            rustls::crypto::ring::default_provider()
-                .install_default()
-                .unwrap();
-
             Some(Arc::new(PulsarConfig {
                 pulsar: Pulsar::builder(pulsar_binary_url.to_owned(), TokioExecutor)
                     .with_auth(Authentication {

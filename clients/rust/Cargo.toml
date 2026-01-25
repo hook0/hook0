@@ -15,7 +15,7 @@ hmac = { version = "0.12.1", optional = true }
 http = { version = "1.4.0", optional = true }
 lazy-regex = { version = "3.5.1", optional = true }
 log = "0.4.29"
-reqwest = { version = "0.12.28", default-features = false, features = ["hickory-dns", "json"], optional = true }
+reqwest = { version = "0.13.1", features = ["hickory-dns", "json", "query"], optional = true }
 serde = { version = "1.0.228", features = ["derive"], optional = true }
 sha2 = { version = "0.10.9", optional = true }
 thiserror = "2.0.18"
@@ -27,9 +27,7 @@ actix-web = { version = "4.12.1", default-features = false, features = ["macros"
 env_logger = "0.11.8"
 
 [features]
-default = ["reqwest-rustls-tls-webpki-roots", "producer", "consumer"]
-reqwest-rustls-tls-webpki-roots = ["reqwest/rustls-tls-webpki-roots"]
-reqwest-rustls-tls-native-roots = ["reqwest/rustls-tls-native-roots"]
+default = ["producer", "consumer"]
 consumer = ["hex", "hmac", "http", "sha2"]
 producer = ["lazy-regex", "reqwest", "serde", "url", "uuid"]
 
