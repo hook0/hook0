@@ -152,6 +152,7 @@ pub async fn get(
         };
 
         let headers = match raw_headers {
+            Some(Value::Null) => Some(HashMap::new()),
             Some(h) => match serde_json::from_value(h) {
                 Ok(hashmap) => Some(hashmap),
                 Err(e) => {
