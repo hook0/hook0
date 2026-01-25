@@ -139,3 +139,31 @@ pub fn report_cleaned_up_objects(amount: u64) {
         .build();
     counter.add(amount, &[]);
 }
+
+pub fn report_ingested_events(amount: u64) {
+    let meter = global::meter(crate_name!());
+    let counter = meter.u64_counter("events.ingested").build();
+    counter.add(amount, &[]);
+}
+
+pub fn report_event_payloads_stored_in_object_storage(amount: u64) {
+    let meter = global::meter(crate_name!());
+    let counter = meter
+        .u64_counter("events.payloads_stored_in_object_storage")
+        .build();
+    counter.add(amount, &[]);
+}
+
+pub fn report_request_attempts_sent_to_pulsar(amount: u64) {
+    let meter = global::meter(crate_name!());
+    let counter = meter
+        .u64_counter("events.request_attempts_sent_to_pulsar")
+        .build();
+    counter.add(amount, &[]);
+}
+
+pub fn report_replayed_events(amount: u64) {
+    let meter = global::meter(crate_name!());
+    let counter = meter.u64_counter("events.replayed").build();
+    counter.add(amount, &[]);
+}

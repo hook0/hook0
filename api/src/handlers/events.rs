@@ -26,6 +26,10 @@ use crate::extractor_user_ip::UserIp;
 use crate::iam::{Action, authorize_for_application};
 use crate::mailer::Mail;
 use crate::openapi::OaBiscuit;
+use crate::opentelemetry::{
+    report_event_payloads_stored_in_object_storage, report_ingested_events, report_replayed_events,
+    report_request_attempts_sent_to_pulsar,
+};
 use crate::problems::Hook0Problem;
 use crate::quotas::{Quota, QuotaNotificationType};
 use hook0_protobuf::RequestAttempt;
@@ -519,6 +523,7 @@ pub async fn ingest(
                     }
                     Hook0Problem::InternalServerError
                 })?;
+            report_event_payloads_stored_in_object_storage(1);
         }
 
         if let Some(pulsar) = &state.pulsar {
@@ -536,6 +541,7 @@ pub async fn ingest(
         }
 
         tx.commit().await?;
+        report_ingested_events(1);
         Ok(CreatedJson(event))
     } else {
         if state.enable_quota_based_email_notifications {
@@ -679,6 +685,7 @@ pub async fn replay(
                     .await?;
 
                     tx.commit().await?;
+                    report_replayed_events(1);
                     Ok(NoContent)
                 } else {
                     tx.rollback().await?;
@@ -686,6 +693,7 @@ pub async fn replay(
                 }
             } else {
                 tx.commit().await?;
+                report_replayed_events(1);
                 Ok(NoContent)
             }
         }
@@ -790,6 +798,7 @@ async fn send_request_attempts_to_pulsar<'a>(
                     error!("Error while sending a message to Pulsar: {e}");
                     Hook0Problem::InternalServerError
                 })?;
+            report_request_attempts_sent_to_pulsar(1);
         }
     }
 
