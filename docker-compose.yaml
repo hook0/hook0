@@ -45,7 +45,7 @@ services:
       context: .
       dockerfile: api/Dockerfile
       args:
-        FEATURES: "reqwest-rustls-tls-webpki-roots,application-secret-compatibility"
+        FEATURES: "application-secret-compatibility"
     environment:
       - IP=0.0.0.0
       - PORT=8081

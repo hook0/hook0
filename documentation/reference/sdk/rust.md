@@ -94,14 +94,12 @@ hook0-client = { version = "0.2", features = ["producer", "consumer"] }
 
 - **`producer`** (default): Enable features for sending events to Hook0 and upserting event types
 - **`consumer`** (default): Enable features for verifying webhook signatures
-- **`reqwest-rustls-tls-webpki-roots`** (default): Uses Rustls with WebPKI roots (Mozilla's root certificates)
-- **`reqwest-rustls-tls-native-roots`**: Uses Rustls with system's native root certificates
 
 ### Minimal Producer-Only Installation
 
 ```toml
 [dependencies]
-hook0-client = { version = "0.2", default-features = false, features = ["producer", "reqwest-rustls-tls-webpki-roots"] }
+hook0-client = { version = "0.2", default-features = false, features = ["producer"] }
 ```
 
 ### Minimal Consumer-Only Installation
@@ -569,15 +567,6 @@ let event = Event {
     occurred_at: None,
     labels: vec![],
 };
-```
-
-**Missing TLS Feature**
-```toml
-# If you get TLS errors, ensure one of these features is enabled:
-[dependencies]
-hook0-client = { version = "0.2", features = ["reqwest-rustls-tls-webpki-roots"] }
-# OR
-hook0-client = { version = "0.2", features = ["reqwest-rustls-tls-native-roots"] }
 ```
 
 **Async Runtime Issues**

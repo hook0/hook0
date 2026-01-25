@@ -16,10 +16,10 @@ client.rust.check:
     - cargo fmt --all -- --check
     - cargo clippy --all-targets --all-features -- -D warnings
     - cargo test --all-targets --all-features
-    - cargo clippy --all-targets --no-default-features --features reqwest-rustls-tls-webpki-roots,consumer -- -D warnings
-    - cargo test --all-targets --no-default-features --features reqwest-rustls-tls-webpki-roots,consumer
-    - cargo clippy --all-targets --no-default-features --features reqwest-rustls-tls-webpki-roots,producer -- -D warnings
-    - cargo test --all-targets --no-default-features --features reqwest-rustls-tls-webpki-roots,producer
+    - cargo clippy --all-targets --no-default-features --features consumer -- -D warnings
+    - cargo test --all-targets --no-default-features --features consumer
+    - cargo clippy --all-targets --no-default-features --features producer -- -D warnings
+    - cargo test --all-targets --no-default-features --features producer
 
 client.rust.semver-checks:
   extends: .rust-cache-pull-only
