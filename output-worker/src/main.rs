@@ -169,7 +169,7 @@ struct Config {
 
     /// If true, will load waiting request attempts (that can be picked by this worker) from DB into Pulsar before starting working; this is usefull when migrating ta a Pulsar worker; has no effect if worker has not a pulsar queue type
     #[clap(long, env, default_value_t = false)]
-    load_waiting_request_attempt_into_pulsar: bool,
+    load_waiting_request_attempts_into_pulsar: bool,
 
     /// Grace period to wait for database commit before dropping unfound request attempts (only for Pulsar workers)
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "5s")]
@@ -534,15 +534,30 @@ async fn main() -> anyhow::Result<()> {
             let wn = Arc::new(worker.name.to_owned());
             let wv = Arc::new(worker_version.to_owned());
             let pu = pulsar.clone();
-            tasks.spawn(async move {
-                if c.load_waiting_request_attempt_into_pulsar {
-                    info!("Loading waiting request attempts from database into Pulsar...");
-                    match pulsar::load_waiting_request_attempts_from_db(&po, &wid, &pu, &os).await {
-                        Ok(c) => info!("Loaded {c} waiting request attempts from database into Pulsar"),
-                        Err(e) => error!("Error while loading waiting request attempts from database into Pulsar: {e}"),
-                    }
-                }
 
+            if c.load_waiting_request_attempts_into_pulsar {
+                let po_clone = po.clone();
+                let wid_clone = wid.clone();
+                let pu_clone = pu.clone();
+                let os_clone = os.clone();
+                spawn(async move {
+                    info!("Loading waiting request attempts from database into Pulsar...");
+                    match pulsar::load_waiting_request_attempts_from_db(
+                        &po_clone, &wid_clone, &pu_clone, &os_clone,
+                    )
+                    .await
+                    {
+                        Ok(c) => {
+                            info!("Loaded {c} waiting request attempts from database into Pulsar")
+                        }
+                        Err(e) => error!(
+                            "Error while loading waiting request attempts from database into Pulsar: {e}"
+                        ),
+                    }
+                });
+            }
+
+            tasks.spawn(async move {
                 loop {
                     let result = pulsar::look_for_work(
                         &c,
