@@ -14,7 +14,7 @@ e2e-ci.build:
     - wget -O protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/protoc-$PROTOC_VERSION-linux-x86_64.zip && mkdir protoc && unzip protoc.zip -d protoc/
     - export PROTOC="$(realpath ./protoc/bin/protoc)"
   script:
-    - cargo build --release --no-default-features -F reqwest-rustls-tls-webpki-roots -F application-secret-compatibility
+    - cargo build --release --no-default-features -F application-secret-compatibility
   artifacts:
     paths:
       - target/release/hook0-api
