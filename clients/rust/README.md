@@ -20,8 +20,6 @@ To add the Hook0 client to your Rust project, run `cargo add hook0-client` in yo
 
 The client supports several optional features:
 
-- `reqwest-rustls-tls-webpki-roots` (**default**): Uses Rustls with WebPKI roots for TLS. This includes Mozilla's root certificates from [webpki-roots](https://github.com/rustls/webpki-roots).
-- `reqwest-rustls-tls-native-roots`: Uses Rustls with the system's root certificates, relying on [rustls-native-certs](https://github.com/rustls/webpki-roots).
 - `consumer` (**default**): Enable features related to webhook signature verification.
 - `producer` (**default**): Enable features related to upserting event types and sending events to Hook0.
 
