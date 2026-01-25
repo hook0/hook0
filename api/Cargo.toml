@@ -50,7 +50,7 @@ strum = { version = "0.27.2", features = ["derive"] }
 thiserror = "2.0.18"
 tokio = { version = "1.49.0" }
 url = "2.5.8"
-uuid = { version = "1.19.0", features = ["serde", "v4", "v7"] }
+uuid = { version = "1.20.0", features = ["serde", "v4", "v7"] }
 validator = { version = "0.20.0", features = ["derive", "unic"] }
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
