@@ -27,10 +27,11 @@ opentelemetry-otlp = { version = "0.31.0", default-features = false, features = 
 opentelemetry_sdk = { version = "0.31.0", default-features = false, features = ["trace", "metrics", "rt-tokio"] }
 pulsar = { version = "6.6.0", default-features = false, features = ["tokio-rustls-runtime"] }
 reqwest = { version = "0.13.1", features = ["hickory-dns", "json"] }
+rustls = { version = "0.23.36", default-features = false, features = ["std", "tls12", "logging", "prefer-post-quantum"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 sha2 = "0.10.9"
-sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "macros", "uuid", "chrono", "json"] }
+sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio", "tls-rustls-aws-lc-rs", "postgres", "macros", "uuid", "chrono", "json"] }
 strum = { version = "0.27.2", features = ["derive"] }
 tokio = { version = "1.49.0", features = ["rt-multi-thread", "macros", "time", "signal"] }
 tokio-util = { version = "0.7.18", features = ["rt"] }

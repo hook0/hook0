@@ -2337,6 +2337,7 @@ dependencies = [
  "pulsar",
  "regex",
  "reqwest 0.13.1",
+ "rustls 0.23.36",
  "sentry-actix",
  "serde",
  "serde_json",
@@ -2412,6 +2413,7 @@ dependencies = [
  "opentelemetry_sdk",
  "pulsar",
  "reqwest 0.13.1",
+ "rustls 0.23.36",
  "serde",
  "serde_json",
  "sha2 0.10.9",
@@ -3068,11 +3070,11 @@ dependencies = [
  "percent-encoding",
  "quoted_printable",
  "rustls 0.23.36",
+ "rustls-platform-verifier",
  "socket2 0.6.2",
  "tokio",
  "tokio-rustls 0.26.4",
  "url",
- "webpki-roots 1.0.5",
 ]
 
 [[package]]
