@@ -37,38 +37,16 @@ test.describe("Applications", () => {
     await page.locator('[data-test="login-password-input"]').fill(password);
     await page.locator('[data-test="login-submit-button"]').click();
 
-    // Wait for redirect
-    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
+    // Wait for redirect to organizations page (which contains the org ID in URL)
+    await expect(page).toHaveURL(/\/organizations\/[a-f0-9-]+/, {
       timeout: 15000,
     });
 
-    // Get organization - use page.evaluate to make fetch from browser context (includes cookies)
-    const orgs = await page.evaluate(async (apiUrl) => {
-      const response = await fetch(`${apiUrl}/organizations`, { credentials: "include" });
-      if (!response.ok) throw new Error(`Failed to get organizations: ${response.status}`);
-      return response.json();
-    }, API_BASE_URL);
-
-    let organizationId: string;
-    if (orgs.length === 0) {
-      // Create org via browser fetch (includes cookies)
-      organizationId = await page.evaluate(
-        async ({ apiUrl, orgName }) => {
-          const response = await fetch(`${apiUrl}/organizations`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name: orgName }),
-            credentials: "include",
-          });
-          if (!response.ok) throw new Error(`Failed to create org: ${response.status}`);
-          const data = await response.json();
-          return data.organization_id;
-        },
-        { apiUrl: API_BASE_URL, orgName: `Test Org ${timestamp}` }
-      );
-    } else {
-      organizationId = orgs[0].organization_id;
-    }
+    // Extract organization ID from URL
+    const url = page.url();
+    const match = url.match(/\/organizations\/([a-f0-9-]+)/);
+    const organizationId = match ? match[1] : "";
+    expect(organizationId).toBeTruthy();
 
     // Navigate to applications list
     await page.goto(`/organizations/${organizationId}/applications`);
@@ -103,36 +81,17 @@ test.describe("Applications", () => {
     await page.locator('[data-test="login-email-input"]').fill(email);
     await page.locator('[data-test="login-password-input"]').fill(password);
     await page.locator('[data-test="login-submit-button"]').click();
-    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
+
+    // Wait for redirect to organizations page (which contains the org ID in URL)
+    await expect(page).toHaveURL(/\/organizations\/[a-f0-9-]+/, {
       timeout: 15000,
     });
 
-    // Get or create organization - use page.evaluate for browser context (includes cookies)
-    const orgs = await page.evaluate(async (apiUrl) => {
-      const response = await fetch(`${apiUrl}/organizations`, { credentials: "include" });
-      if (!response.ok) throw new Error(`Failed to get organizations: ${response.status}`);
-      return response.json();
-    }, API_BASE_URL);
-
-    let organizationId: string;
-    if (orgs.length === 0) {
-      organizationId = await page.evaluate(
-        async ({ apiUrl, orgName }) => {
-          const response = await fetch(`${apiUrl}/organizations`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name: orgName }),
-            credentials: "include",
-          });
-          if (!response.ok) throw new Error(`Failed to create org: ${response.status}`);
-          const data = await response.json();
-          return data.organization_id;
-        },
-        { apiUrl: API_BASE_URL, orgName: `Test Org ${timestamp}` }
-      );
-    } else {
-      organizationId = orgs[0].organization_id;
-    }
+    // Extract organization ID from URL
+    const url = page.url();
+    const match = url.match(/\/organizations\/([a-f0-9-]+)/);
+    const organizationId = match ? match[1] : "";
+    expect(organizationId).toBeTruthy();
 
     // Navigate to applications list
     await page.goto(`/organizations/${organizationId}/applications`);
@@ -194,51 +153,41 @@ test.describe("Applications", () => {
     await page.locator('[data-test="login-email-input"]').fill(email);
     await page.locator('[data-test="login-password-input"]').fill(password);
     await page.locator('[data-test="login-submit-button"]').click();
-    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
+
+    // Wait for redirect to organizations page (which contains the org ID in URL)
+    await expect(page).toHaveURL(/\/organizations\/[a-f0-9-]+/, {
       timeout: 15000,
     });
 
-    // Get or create org - use page.evaluate for browser context (includes cookies)
-    const orgs = await page.evaluate(async (apiUrl) => {
-      const response = await fetch(`${apiUrl}/organizations`, { credentials: "include" });
-      if (!response.ok) throw new Error(`Failed to get organizations: ${response.status}`);
-      return response.json();
-    }, API_BASE_URL);
+    // Extract organization ID from URL
+    const url = page.url();
+    const match = url.match(/\/organizations\/([a-f0-9-]+)/);
+    const organizationId = match ? match[1] : "";
+    expect(organizationId).toBeTruthy();
 
-    let organizationId: string;
-    if (orgs.length === 0) {
-      organizationId = await page.evaluate(
-        async ({ apiUrl, orgName }) => {
-          const response = await fetch(`${apiUrl}/organizations`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name: orgName }),
-            credentials: "include",
-          });
-          if (!response.ok) throw new Error(`Failed to create org: ${response.status}`);
-          const data = await response.json();
-          return data.organization_id;
-        },
-        { apiUrl: API_BASE_URL, orgName: `Test Org ${timestamp}` }
-      );
-    } else {
-      organizationId = orgs[0].organization_id;
-    }
+    // Navigate to applications list and create application via UI
+    await page.goto(`/organizations/${organizationId}/applications`);
+    await expect(page.locator('[data-test="applications-create-button"]')).toBeVisible({
+      timeout: 10000,
+    });
+    await page.locator('[data-test="applications-create-button"]').click();
 
-    // Create application via browser fetch (includes cookies)
-    const app = await page.evaluate(
-      async ({ apiUrl, appName, orgId }) => {
-        const response = await fetch(`${apiUrl}/applications`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: appName, organization_id: orgId }),
-          credentials: "include",
-        });
-        if (!response.ok) throw new Error(`Failed to create application: ${response.status}`);
-        return response.json();
-      },
-      { apiUrl: API_BASE_URL, appName: originalName, orgId: organizationId }
+    // Wait for form and create application
+    await expect(page.locator('[data-test="application-form"]')).toBeVisible({
+      timeout: 10000,
+    });
+    await page.locator('[data-test="application-name-input"]').fill(originalName);
+
+    // Submit and wait for API response to get the application ID
+    const createResponsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/v1/applications") && response.request().method() === "POST",
+      { timeout: 15000 }
     );
+    await page.locator('[data-test="application-submit-button"]').click();
+    const createResponse = await createResponsePromise;
+    expect(createResponse.status()).toBeLessThan(400);
+    const app = await createResponse.json();
 
     // Navigate to settings
     await page.goto(`/organizations/${organizationId}/applications/${app.application_id}/settings`);
@@ -293,36 +242,16 @@ test.describe("Applications", () => {
     await page.locator('[data-test="login-email-input"]').fill(email);
     await page.locator('[data-test="login-password-input"]').fill(password);
     await page.locator('[data-test="login-submit-button"]').click();
-    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
+    // Wait for redirect to organizations page (which contains the org ID in URL)
+    await expect(page).toHaveURL(/\/organizations\/[a-f0-9-]+/, {
       timeout: 15000,
     });
 
-    // Get or create org - use page.evaluate for browser context (includes cookies)
-    const orgs = await page.evaluate(async (apiUrl) => {
-      const response = await fetch(`${apiUrl}/organizations`, { credentials: "include" });
-      if (!response.ok) throw new Error(`Failed to get organizations: ${response.status}`);
-      return response.json();
-    }, API_BASE_URL);
-
-    let organizationId: string;
-    if (orgs.length === 0) {
-      organizationId = await page.evaluate(
-        async ({ apiUrl, orgName }) => {
-          const response = await fetch(`${apiUrl}/organizations`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name: orgName }),
-            credentials: "include",
-          });
-          if (!response.ok) throw new Error(`Failed to create org: ${response.status}`);
-          const data = await response.json();
-          return data.organization_id;
-        },
-        { apiUrl: API_BASE_URL, orgName: `Test Org ${timestamp}` }
-      );
-    } else {
-      organizationId = orgs[0].organization_id;
-    }
+    // Extract organization ID from URL
+    const url = page.url();
+    const match = url.match(/\/organizations\/([a-f0-9-]+)/);
+    const organizationId = match ? match[1] : "";
+    expect(organizationId).toBeTruthy();
 
     // Navigate to create page
     await page.goto(`/organizations/${organizationId}/applications/new`);
