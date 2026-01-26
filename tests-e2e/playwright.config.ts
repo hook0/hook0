@@ -3,11 +3,8 @@ import { defineConfig, devices } from "@playwright/test";
 /**
  * Playwright configuration for Hook0 E2E tests.
  *
- * Tests run against the full Docker Compose stack:
- * - Frontend at http://localhost:8001
- * - API at http://localhost:8081
- * - PostgreSQL at localhost:5432
- * - Mailpit at localhost:8025 (SMTP UI)
+ * Local: Uses docker-compose.yaml to start the full stack
+ * CI: Services are started by the CI script (API + serve for frontend)
  */
 export default defineConfig({
   testDir: "./tests",
@@ -54,11 +51,16 @@ export default defineConfig({
     },
   ],
 
-  webServer: {
-    command:
-      "docker compose -f ../docker-compose.yaml up -d && docker compose -f ../docker-compose.yaml logs -f frontend",
-    url: "http://localhost:8001",
-    reuseExistingServer: !process.env.CI,
-    timeout: 180000,
-  },
+  // Only use webServer locally - in CI, services are started by the CI script
+  ...(process.env.CI
+    ? {}
+    : {
+        webServer: {
+          command:
+            "docker compose -f ../docker-compose.yaml up -d && docker compose -f ../docker-compose.yaml logs -f frontend",
+          url: "http://localhost:8001",
+          reuseExistingServer: true,
+          timeout: 180000,
+        },
+      }),
 });
