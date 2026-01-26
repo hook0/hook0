@@ -125,18 +125,11 @@ export async function verifyEmailViaMailpit(
           const message: MailpitMessage = await messageResponse.json();
           const content = message.Text || message.HTML || "";
 
-          const verificationLink = extractVerificationLink(content);
-          if (verificationLink) {
-            await request.get(verificationLink, {
-              timeout: 10000,
-              failOnStatusCode: false,
-            });
-            return;
-          }
-
+          // Always extract token and call API directly
+          // Don't use the verification link (frontend URL) as it won't execute JS
           const token = extractVerificationToken(content);
           if (token) {
-            await request.post("/api/v1/verify-email", {
+            await request.post(`${API_BASE_URL}/verify-email`, {
               data: { token },
               timeout: 10000,
               failOnStatusCode: false,
