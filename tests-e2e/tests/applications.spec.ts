@@ -6,6 +6,7 @@ import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verificat
  *
  * Tests for creating, viewing, updating, and deleting applications.
  * Uses UI-based login to avoid auth state conflicts.
+ * Gets organization ID from database during email verification.
  */
 test.describe("Applications", () => {
   test("should display applications list after navigating", async ({ page, request }) => {
@@ -25,8 +26,10 @@ test.describe("Applications", () => {
     });
     expect(registerResponse.status()).toBeLessThan(400);
 
-    // Verify email before login (required by API)
-    await verifyEmailViaMailpit(request, email);
+    // Verify email and get organization ID from database
+    const verificationResult = await verifyEmailViaMailpit(request, email);
+    const organizationId = verificationResult.organizationId;
+    expect(organizationId).toBeTruthy();
 
     // Login via UI
     await page.goto("/login");
@@ -37,18 +40,12 @@ test.describe("Applications", () => {
     await page.locator('[data-test="login-password-input"]').fill(password);
     await page.locator('[data-test="login-submit-button"]').click();
 
-    // Wait for redirect to organizations page (which contains the org ID in URL)
-    await expect(page).toHaveURL(/\/organizations\/[a-f0-9-]+/, {
+    // Wait for redirect to authenticated area (could be tutorial, dashboard, or organizations)
+    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
       timeout: 15000,
     });
 
-    // Extract organization ID from URL
-    const url = page.url();
-    const match = url.match(/\/organizations\/([a-f0-9-]+)/);
-    const organizationId = match ? match[1] : "";
-    expect(organizationId).toBeTruthy();
-
-    // Navigate to applications list
+    // Navigate to applications list using the organization ID from database
     await page.goto(`/organizations/${organizationId}/applications`);
 
     // Verify applications card is visible
@@ -65,15 +62,17 @@ test.describe("Applications", () => {
     const password = `TestPassword123!${timestamp}`;
     const appName = `Test App ${timestamp}`;
 
-    // Register and verify email
+    // Register and verify email, get organization ID
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
       data: { email, first_name: "Test", last_name: "User", password },
     });
     expect(registerResponse.status()).toBeLessThan(400);
 
-    // Verify email before login (required by API)
-    await verifyEmailViaMailpit(request, email);
+    const verificationResult = await verifyEmailViaMailpit(request, email);
+    const organizationId = verificationResult.organizationId;
+    expect(organizationId).toBeTruthy();
 
+    // Login via UI
     await page.goto("/login");
     await expect(page.locator('[data-test="login-form"]')).toBeVisible({
       timeout: 10000,
@@ -82,18 +81,12 @@ test.describe("Applications", () => {
     await page.locator('[data-test="login-password-input"]').fill(password);
     await page.locator('[data-test="login-submit-button"]').click();
 
-    // Wait for redirect to organizations page (which contains the org ID in URL)
-    await expect(page).toHaveURL(/\/organizations\/[a-f0-9-]+/, {
+    // Wait for redirect to authenticated area
+    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
       timeout: 15000,
     });
 
-    // Extract organization ID from URL
-    const url = page.url();
-    const match = url.match(/\/organizations\/([a-f0-9-]+)/);
-    const organizationId = match ? match[1] : "";
-    expect(organizationId).toBeTruthy();
-
-    // Navigate to applications list
+    // Navigate to applications list using the organization ID from database
     await page.goto(`/organizations/${organizationId}/applications`);
     await expect(page.locator('[data-test="applications-create-button"]')).toBeVisible({
       timeout: 10000,
@@ -136,14 +129,15 @@ test.describe("Applications", () => {
     const originalName = `Original App ${timestamp}`;
     const updatedName = `Updated App ${timestamp}`;
 
-    // Register
+    // Register and get organization ID
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
       data: { email, first_name: "Test", last_name: "User", password },
     });
     expect(registerResponse.status()).toBeLessThan(400);
 
-    // Verify email before login (required by API)
-    await verifyEmailViaMailpit(request, email);
+    const verificationResult = await verifyEmailViaMailpit(request, email);
+    const organizationId = verificationResult.organizationId;
+    expect(organizationId).toBeTruthy();
 
     // Login
     await page.goto("/login");
@@ -154,16 +148,10 @@ test.describe("Applications", () => {
     await page.locator('[data-test="login-password-input"]').fill(password);
     await page.locator('[data-test="login-submit-button"]').click();
 
-    // Wait for redirect to organizations page (which contains the org ID in URL)
-    await expect(page).toHaveURL(/\/organizations\/[a-f0-9-]+/, {
+    // Wait for redirect to authenticated area
+    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
       timeout: 15000,
     });
-
-    // Extract organization ID from URL
-    const url = page.url();
-    const match = url.match(/\/organizations\/([a-f0-9-]+)/);
-    const organizationId = match ? match[1] : "";
-    expect(organizationId).toBeTruthy();
 
     // Navigate to applications list and create application via UI
     await page.goto(`/organizations/${organizationId}/applications`);
@@ -225,14 +213,15 @@ test.describe("Applications", () => {
     const email = `test-apps-validation-${timestamp}@hook0.local`;
     const password = `TestPassword123!${timestamp}`;
 
-    // Register
+    // Register and get organization ID
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
       data: { email, first_name: "Test", last_name: "User", password },
     });
     expect(registerResponse.status()).toBeLessThan(400);
 
-    // Verify email before login (required by API)
-    await verifyEmailViaMailpit(request, email);
+    const verificationResult = await verifyEmailViaMailpit(request, email);
+    const organizationId = verificationResult.organizationId;
+    expect(organizationId).toBeTruthy();
 
     // Login
     await page.goto("/login");
@@ -242,18 +231,13 @@ test.describe("Applications", () => {
     await page.locator('[data-test="login-email-input"]').fill(email);
     await page.locator('[data-test="login-password-input"]').fill(password);
     await page.locator('[data-test="login-submit-button"]').click();
-    // Wait for redirect to organizations page (which contains the org ID in URL)
-    await expect(page).toHaveURL(/\/organizations\/[a-f0-9-]+/, {
+
+    // Wait for redirect to authenticated area
+    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
       timeout: 15000,
     });
 
-    // Extract organization ID from URL
-    const url = page.url();
-    const match = url.match(/\/organizations\/([a-f0-9-]+)/);
-    const organizationId = match ? match[1] : "";
-    expect(organizationId).toBeTruthy();
-
-    // Navigate to create page
+    // Navigate to create page using the organization ID from database
     await page.goto(`/organizations/${organizationId}/applications/new`);
 
     // Wait for form
