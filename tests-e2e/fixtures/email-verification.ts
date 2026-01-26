@@ -24,6 +24,9 @@ export const API_BASE_URL = process.env.CI ? "http://localhost:8081/api/v1" : "/
  * This is the most reliable method in CI where SMTP delivery may be slow/unreliable.
  */
 export async function verifyEmailViaDatabase(email: string): Promise<void> {
+  console.log(`[DB Verify] Attempting database verification for ${email}`);
+  console.log(`[DB Verify] DATABASE_URL: ${DATABASE_URL}`);
+
   const client = new Client({
     connectionString: DATABASE_URL,
   });
@@ -31,18 +34,20 @@ export async function verifyEmailViaDatabase(email: string): Promise<void> {
   return client
     .connect()
     .then(() => {
+      console.log(`[DB Verify] Connected to database`);
       return client.query(
         "UPDATE iam.user SET email_verified_at = NOW() WHERE email = $1 AND email_verified_at IS NULL",
         [email]
       );
     })
     .then((result) => {
+      console.log(`[DB Verify] Update result rowCount: ${result.rowCount}`);
       if (result.rowCount === 0) {
-        console.warn(`No user found with email ${email} or already verified`);
+        console.warn(`[DB Verify] No user found with email ${email} or already verified`);
       }
     })
     .catch((error) => {
-      console.warn(`Database verification failed for ${email}:`, error);
+      console.error(`[DB Verify] Database verification failed for ${email}:`, error);
       throw new Error(`Failed to verify email via database for ${email}`);
     })
     .finally(() => {
