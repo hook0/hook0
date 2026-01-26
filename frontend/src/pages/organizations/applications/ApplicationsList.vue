@@ -110,7 +110,7 @@ onUpdated(() => {
     </template>
     <!-- The default scoped slot will be used as the result -->
     <template #default="applications">
-      <Hook0Card>
+      <Hook0Card data-test="applications-card">
         <Hook0CardHeader>
           <template #header> Applications </template>
           <template #subtitle>
@@ -122,6 +122,7 @@ onUpdated(() => {
         <Hook0CardContent v-if="applications.length > 0">
           <transition name="ease">
             <Hook0Table
+              data-test="applications-table"
               :context="{ applications$, columnDefs }"
               :column-defs="columnDefs"
               :row-data="applications"
@@ -148,6 +149,7 @@ onUpdated(() => {
           <Hook0Button
             class="primary"
             type="button"
+            data-test="applications-create-button"
             :to="{
               name: routes.ApplicationsNew,
               params: {

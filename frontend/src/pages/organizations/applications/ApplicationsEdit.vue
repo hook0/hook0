@@ -126,8 +126,8 @@ onUpdated(() => {
 
 <template>
   <div>
-    <form @submit="upsert">
-      <Hook0Card>
+    <form data-test="application-form" @submit="upsert">
+      <Hook0Card data-test="application-card">
         <Hook0CardHeader>
           <template v-if="isNew" #header> Create new application </template>
           <template v-else #header> Edit application </template>
@@ -144,6 +144,7 @@ onUpdated(() => {
                 type="text"
                 placeholder="my awesome api - production"
                 required
+                data-test="application-name-input"
               >
                 <template #helpText
                   >Name of your company's product or API. Don't forget also to specify the
@@ -155,7 +156,7 @@ onUpdated(() => {
         </Hook0CardContent>
 
         <Hook0CardFooter>
-          <Hook0Button v-if="!tutorialMode" class="secondary" type="button" @click="cancel()"
+          <Hook0Button v-if="!tutorialMode" class="secondary" type="button" data-test="application-cancel-button" @click="cancel()"
             >Cancel</Hook0Button
           >
           <Hook0Button
@@ -163,6 +164,7 @@ onUpdated(() => {
             class="primary"
             type="button"
             :disabled="!application.name"
+            data-test="application-submit-button"
             @click="upsert($event)"
             >{{ isNew ? 'Create' : 'Update' }}
           </Hook0Button>
@@ -173,6 +175,7 @@ onUpdated(() => {
             type="button"
             :disabled="!application.name"
             tooltip="ℹ️ To continue, you need to add a name for your application."
+            data-test="application-submit-button"
             @click="upsert($event)"
             >Create Your First Application 🎉
           </Hook0Button>

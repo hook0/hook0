@@ -4,11 +4,14 @@ import { test as base, expect, APIRequestContext } from "@playwright/test";
  * Test fixtures for Hook0 E2E tests.
  *
  * Provides authenticated user context and API helpers.
+ * Uses data-test selectors for stability.
  */
 
 export interface TestUser {
   email: string;
   password: string;
+  firstName: string;
+  lastName: string;
   organizationId?: string;
 }
 
@@ -25,18 +28,21 @@ async function createTestUser(request: APIRequestContext): Promise<TestUser> {
   const timestamp = Date.now();
   const email = `test-${timestamp}@hook0.local`;
   const password = `TestPassword123!${timestamp}`;
+  const firstName = "Test";
+  const lastName = "User";
 
   const response = await request.post("/api/v1/register", {
     data: {
       email,
+      first_name: firstName,
+      last_name: lastName,
       password,
-      password_confirmation: password,
     },
   });
 
   expect(response.status()).toBeLessThan(400);
 
-  return { email, password };
+  return { email, password, firstName, lastName };
 }
 
 /**
@@ -50,11 +56,39 @@ export const authTest = base.extend<AuthFixtures>({
 
   authenticatedPage: async ({ page, testUser }, use) => {
     await page.goto("/login");
-    await page.locator('[data-test="email-input"]').fill(testUser.email);
-    await page.locator('[data-test="password-input"]').fill(testUser.password);
-    await page.locator('[data-test="login-button"]').click();
 
-    await expect(page).toHaveURL(/\/dashboard|\/organizations/);
+    // Wait for login form to be visible
+    await expect(page.locator('[data-test="login-form"]')).toBeVisible({
+      timeout: 10000,
+    });
+
+    // Fill login form using data-test selectors
+    await page
+      .locator('[data-test="login-email-input"]')
+      .fill(testUser.email);
+    await page
+      .locator('[data-test="login-password-input"]')
+      .fill(testUser.password);
+
+    // Submit and wait for API response
+    const responsePromise = page.waitForResponse(
+      (response) =>
+        (response.url().includes("/api/v1/login") ||
+          response.url().includes("/iam/login")) &&
+        response.request().method() === "POST",
+      { timeout: 15000 }
+    );
+
+    await page.locator('[data-test="login-submit-button"]').click();
+
+    const response = await responsePromise;
+    expect(response.status()).toBeLessThan(400);
+
+    // Wait for redirect to authenticated area
+    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
+      timeout: 15000,
+    });
+
     await use(page);
   },
 

@@ -151,7 +151,7 @@ function togglePasswordVisibility() {
         </div>
 
         <!-- Form -->
-        <form class="register-page__form" @submit.prevent="submit">
+        <form class="register-page__form" data-test="register-form" @submit.prevent="submit">
           <!-- Email Field -->
           <div class="register-page__field">
             <label for="email" class="register-page__label">Email</label>
@@ -163,6 +163,7 @@ function togglePasswordVisibility() {
               placeholder="you@company.com"
               class="register-page__input"
               autocomplete="email"
+              data-test="register-email-input"
               :disabled="isLoading"
               @focus="handleFormStart"
             />
@@ -180,6 +181,7 @@ function togglePasswordVisibility() {
                 placeholder="John"
                 class="register-page__input"
                 autocomplete="given-name"
+                data-test="register-firstname-input"
                 :disabled="isLoading"
               />
             </div>
@@ -193,6 +195,7 @@ function togglePasswordVisibility() {
                 placeholder="Doe"
                 class="register-page__input"
                 autocomplete="family-name"
+                data-test="register-lastname-input"
                 :disabled="isLoading"
               />
             </div>
@@ -210,6 +213,7 @@ function togglePasswordVisibility() {
                 placeholder="Create a strong password"
                 class="register-page__input register-page__input--password"
                 autocomplete="new-password"
+                data-test="register-password-input"
                 :disabled="isLoading"
               />
               <button
@@ -272,7 +276,7 @@ function togglePasswordVisibility() {
           </div>
 
           <!-- Submit Button -->
-          <button type="submit" class="register-page__submit" :disabled="isLoading">
+          <button type="submit" class="register-page__submit" data-test="register-submit-button" :disabled="isLoading">
             <span v-if="!isLoading">Create account</span>
             <span v-else class="register-page__loading">
               <svg
@@ -307,7 +311,7 @@ function togglePasswordVisibility() {
         </div>
 
         <!-- Sign in link -->
-        <router-link :to="{ name: routes.Login }" class="register-page__signin">
+        <router-link :to="{ name: routes.Login }" class="register-page__signin" data-test="register-login-link">
           Sign in
           <svg
             xmlns="http://www.w3.org/2000/svg"
