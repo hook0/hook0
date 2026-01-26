@@ -33,6 +33,7 @@ e2e-playwright.test:
     DISABLE_SERVING_WEBAPP: "false"
     ## Playwright configuration
     BASE_URL: "http://localhost:8001"
+    MAILPIT_URL: "http://mailpit:8025"
     CI: "true"
   rules:
     - changes:
@@ -114,6 +115,7 @@ e2e-playwright.visual-regression:
     DISABLE_TARGET_IP_CHECK: "true"
     DISABLE_SERVING_WEBAPP: "false"
     BASE_URL: "http://localhost:8001"
+    MAILPIT_URL: "http://mailpit:8025"
     CI: "true"
   rules:
     - changes:

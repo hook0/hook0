@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { verifyEmailViaMailpit } from "../fixtures/email-verification";
 
 /**
  * Authentication E2E tests for Hook0.
@@ -128,6 +129,9 @@ test.describe("Authentication", () => {
         },
       });
       expect(registerResponse.status()).toBeLessThan(400);
+
+      // Verify email before login (required by API)
+      await verifyEmailViaMailpit(request, email);
 
       // Navigate to login page
       await page.goto("/login");

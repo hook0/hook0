@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { verifyEmailViaMailpit } from "../fixtures/email-verification";
 
 /**
  * Application management E2E tests for Hook0.
@@ -26,6 +27,9 @@ test.describe("Applications", () => {
       },
     });
     expect(registerResponse.status()).toBeLessThan(400);
+
+    // Verify email before login (required by API)
+    await verifyEmailViaMailpit(request, email);
 
     // Login via UI
     await page.goto("/login");
@@ -83,11 +87,14 @@ test.describe("Applications", () => {
     const password = `TestPassword123!${timestamp}`;
     const appName = `Test App ${timestamp}`;
 
-    // Register and login
+    // Register and verify email
     const registerResponse = await request.post("/api/v1/register", {
       data: { email, first_name: "Test", last_name: "User", password },
     });
     expect(registerResponse.status()).toBeLessThan(400);
+
+    // Verify email before login (required by API)
+    await verifyEmailViaMailpit(request, email);
 
     await page.goto("/login");
     await expect(page.locator('[data-test="login-form"]')).toBeVisible({
@@ -168,6 +175,9 @@ test.describe("Applications", () => {
     });
     expect(registerResponse.status()).toBeLessThan(400);
 
+    // Verify email before login (required by API)
+    await verifyEmailViaMailpit(request, email);
+
     // Login
     await page.goto("/login");
     await expect(page.locator('[data-test="login-form"]')).toBeVisible({
@@ -247,6 +257,9 @@ test.describe("Applications", () => {
       data: { email, first_name: "Test", last_name: "User", password },
     });
     expect(registerResponse.status()).toBeLessThan(400);
+
+    // Verify email before login (required by API)
+    await verifyEmailViaMailpit(request, email);
 
     // Login
     await page.goto("/login");
