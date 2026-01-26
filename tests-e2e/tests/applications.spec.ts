@@ -43,14 +43,15 @@ test.describe("Applications", () => {
     });
 
     // Get organization from URL or navigate to find it
-    const orgsResponse = await page.request.get(`${API_BASE_URL}/organizations`);
+    // Use relative URL for page.request to ensure cookies are sent (same origin)
+    const orgsResponse = await page.request.get(`/api/v1/organizations`);
     expect(orgsResponse.status()).toBeLessThan(400);
     const orgs = await orgsResponse.json();
 
     let organizationId: string;
     if (orgs.length === 0) {
       // Create org via API
-      const createOrgResponse = await page.request.post(`${API_BASE_URL}/organizations`, {
+      const createOrgResponse = await page.request.post(`/api/v1/organizations`, {
         data: { name: `Test Org ${timestamp}` },
       });
       expect(createOrgResponse.status()).toBeLessThan(400);
@@ -97,12 +98,13 @@ test.describe("Applications", () => {
     });
 
     // Get or create organization
-    const orgsResponse = await page.request.get(`${API_BASE_URL}/organizations`);
+    // Use relative URL for page.request to ensure cookies are sent (same origin)
+    const orgsResponse = await page.request.get(`/api/v1/organizations`);
     expect(orgsResponse.status()).toBeLessThan(400);
     const orgs = await orgsResponse.json();
     let organizationId: string;
     if (orgs.length === 0) {
-      const createOrgResponse = await page.request.post(`${API_BASE_URL}/organizations`, {
+      const createOrgResponse = await page.request.post(`/api/v1/organizations`, {
         data: { name: `Test Org ${timestamp}` },
       });
       organizationId = (await createOrgResponse.json()).organization_id;
@@ -175,11 +177,12 @@ test.describe("Applications", () => {
     });
 
     // Get or create org
-    const orgsResponse = await page.request.get(`${API_BASE_URL}/organizations`);
+    // Use relative URL for page.request to ensure cookies are sent (same origin)
+    const orgsResponse = await page.request.get(`/api/v1/organizations`);
     const orgs = await orgsResponse.json();
     let organizationId: string;
     if (orgs.length === 0) {
-      const createOrgResponse = await page.request.post(`${API_BASE_URL}/organizations`, {
+      const createOrgResponse = await page.request.post(`/api/v1/organizations`, {
         data: { name: `Test Org ${timestamp}` },
       });
       organizationId = (await createOrgResponse.json()).organization_id;
@@ -188,7 +191,8 @@ test.describe("Applications", () => {
     }
 
     // Create application via API
-    const createResponse = await page.request.post(`${API_BASE_URL}/applications`, {
+    // Use relative URL for page.request to ensure cookies are sent (same origin)
+    const createResponse = await page.request.post(`/api/v1/applications`, {
       data: { name: originalName, organization_id: organizationId },
     });
     expect(createResponse.status()).toBeLessThan(400);
@@ -252,11 +256,12 @@ test.describe("Applications", () => {
     });
 
     // Get or create org
-    const orgsResponse = await page.request.get(`${API_BASE_URL}/organizations`);
+    // Use relative URL for page.request to ensure cookies are sent (same origin)
+    const orgsResponse = await page.request.get(`/api/v1/organizations`);
     const orgs = await orgsResponse.json();
     let organizationId: string;
     if (orgs.length === 0) {
-      const createOrgResponse = await page.request.post(`${API_BASE_URL}/organizations`, {
+      const createOrgResponse = await page.request.post(`/api/v1/organizations`, {
         data: { name: `Test Org ${timestamp}` },
       });
       organizationId = (await createOrgResponse.json()).organization_id;
