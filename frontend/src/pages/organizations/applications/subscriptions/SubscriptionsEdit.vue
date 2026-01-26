@@ -273,8 +273,8 @@ onUpdated(() => {
 
 <template>
   <div>
-    <form @submit="upsert">
-      <Hook0Card>
+    <form data-test="subscription-form" @submit="upsert">
+      <Hook0Card data-test="subscription-card">
         <Hook0CardHeader>
           <template v-if="isNew" #header> Create new subscription (webhook) </template>
           <template v-else #header> Edit subscription (webhook) </template>
@@ -291,6 +291,7 @@ onUpdated(() => {
                 type="text"
                 placeholder="my awesome api - production"
                 required
+                data-test="subscription-description-input"
               >
                 <template #helpText>
                   Describe what your subscription will do so you can distinguish it from others.
@@ -344,6 +345,7 @@ onUpdated(() => {
                   v-model="subscription.target.method"
                   class="flex-none width-small"
                   :options="httpTarget.METHODS"
+                  data-test="subscription-method-select"
                 ></Hook0Select>
                 <Hook0Input
                   v-model="subscription.target.url"
@@ -351,6 +353,7 @@ onUpdated(() => {
                   class="w-full ml-1"
                   placeholder="https://"
                   required
+                  data-test="subscription-url-input"
                 >
                 </Hook0Input>
               </div>
@@ -451,7 +454,7 @@ onUpdated(() => {
           </template>
         </Hook0CardContentLine>
         <Hook0CardFooter>
-          <Hook0Button v-if="!props.tutorialMode" class="secondary" type="button" @click="cancel2()"
+          <Hook0Button v-if="!props.tutorialMode" class="secondary" type="button" data-test="subscription-cancel-button" @click="cancel2()"
             >Cancel</Hook0Button
           >
           <Hook0Button
@@ -465,6 +468,7 @@ onUpdated(() => {
               !eventTypes.some((et) => et.selected)
             "
             tooltip="ℹ️ To continue, you need to fill in all required fields"
+            data-test="subscription-submit-button"
             @click="upsert($event)"
             >{{ isNew ? 'Create' : 'Update' }}
           </Hook0Button>
@@ -480,6 +484,7 @@ onUpdated(() => {
               !eventTypes.some((et) => et.selected)
             "
             tooltip="ℹ️ To continue, you need to fill in all required fields"
+            data-test="subscription-submit-button"
             @click="upsert($event)"
             >Create Your First Subscription 🎉
           </Hook0Button>

@@ -1,4 +1,4 @@
-import { test as base, expect, APIRequestContext } from "@playwright/test";
+import { test as base, expect, APIRequestContext, Page } from "@playwright/test";
 
 /**
  * Test fixtures for Hook0 E2E tests.
@@ -17,7 +17,7 @@ export interface TestUser {
 
 export interface AuthFixtures {
   testUser: TestUser;
-  authenticatedPage: Awaited<ReturnType<typeof base.extend>>["page"];
+  authenticatedPage: Page;
   apiContext: APIRequestContext;
 }
 

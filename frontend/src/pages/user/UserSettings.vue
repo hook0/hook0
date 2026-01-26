@@ -68,7 +68,7 @@ function displayError(err: Problem) {
 
 <template>
   <div>
-    <Hook0Card v-if="currentUser">
+    <Hook0Card v-if="currentUser" data-test="user-info-card">
       <Hook0CardHeader>
         <template #header> Personal information </template>
         <template #subtitle>
@@ -85,6 +85,7 @@ function displayError(err: Problem) {
               placeholder="Email"
               disabled
               class="w-full disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200 disabled:shadow-none"
+              data-test="user-email-input"
             >
             </Hook0Input>
           </template>
@@ -120,8 +121,8 @@ function displayError(err: Problem) {
       </Hook0CardContent>
     </Hook0Card>
 
-    <Hook0Card v-if="currentUser">
-      <form @submit.prevent="changePassword">
+    <Hook0Card v-if="currentUser" data-test="change-password-card">
+      <form data-test="change-password-form" @submit.prevent="changePassword">
         <Hook0CardHeader>
           <template #header>Change password</template>
           <template #subtitle>Set a new password to your user account.</template>
@@ -136,6 +137,7 @@ function displayError(err: Problem) {
                 placeholder="New password"
                 required
                 class="w-full"
+                data-test="new-password-input"
               >
               </Hook0Input>
             </template>
@@ -150,6 +152,7 @@ function displayError(err: Problem) {
                 placeholder="Confirm new password"
                 required
                 class="w-full"
+                data-test="confirm-password-input"
               >
               </Hook0Input>
             </template>
@@ -164,15 +167,15 @@ function displayError(err: Problem) {
               <p>You will be disconnected from all browsers/devices including the current one.</p>
             </div>
           </div>
-          <Hook0Button class="primary" submit aria-label="Change Password" title="Change Password"
+          <Hook0Button class="primary" submit aria-label="Change Password" title="Change Password" data-test="change-password-button"
             >Change password</Hook0Button
           >
         </Hook0CardFooter>
       </form>
     </Hook0Card>
 
-    <Hook0Card v-if="currentUser">
-      <form @submit.prevent="deleteAccount">
+    <Hook0Card v-if="currentUser" data-test="delete-account-card">
+      <form data-test="delete-account-form" @submit.prevent="deleteAccount">
         <Hook0CardHeader>
           <template #header> Delete my account </template>
           <template #subtitle>
@@ -181,7 +184,7 @@ function displayError(err: Problem) {
           </template>
         </Hook0CardHeader>
         <Hook0CardFooter>
-          <Hook0Button class="danger" submit>Delete</Hook0Button>
+          <Hook0Button class="danger" submit data-test="delete-account-button">Delete</Hook0Button>
         </Hook0CardFooter>
       </form>
     </Hook0Card>

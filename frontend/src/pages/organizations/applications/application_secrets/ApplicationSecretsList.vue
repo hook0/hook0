@@ -170,7 +170,7 @@ onUpdated(() => {
     </template>
     <!-- The default scoped slot will be used as the result -->
     <template #default="application_secrets">
-      <Hook0Card>
+      <Hook0Card data-test="api-keys-card">
         <Hook0CardHeader>
           <template #header> API Keys </template>
           <template #subtitle>
@@ -180,6 +180,7 @@ onUpdated(() => {
 
         <Hook0CardContent v-if="application_secrets.length > 0">
           <Hook0Table
+            data-test="api-keys-table"
             :context="{ application_secrets$, columnDefs }"
             :column-defs="columnDefs"
             :row-data="application_secrets"
@@ -204,7 +205,7 @@ onUpdated(() => {
         </Hook0CardContent>
 
         <Hook0CardFooter>
-          <Hook0Button class="primary" type="button" @click="createNew"
+          <Hook0Button class="primary" type="button" data-test="api-keys-create-button" @click="createNew"
             >Create new API Key
           </Hook0Button>
         </Hook0CardFooter>
