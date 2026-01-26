@@ -156,7 +156,12 @@ onUpdated(() => {
         </Hook0CardContent>
 
         <Hook0CardFooter>
-          <Hook0Button v-if="!tutorialMode" class="secondary" type="button" data-test="application-cancel-button" @click="cancel()"
+          <Hook0Button
+            v-if="!tutorialMode"
+            class="secondary"
+            type="button"
+            data-test="application-cancel-button"
+            @click="cancel()"
             >Cancel</Hook0Button
           >
           <Hook0Button

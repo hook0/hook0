@@ -196,13 +196,22 @@ function togglePasswordVisibility() {
 
           <!-- Forgot password link -->
           <div class="login-page__options">
-            <router-link :to="{ name: routes.BeginResetPassword }" class="login-page__forgot" data-test="login-forgot-password-link">
+            <router-link
+              :to="{ name: routes.BeginResetPassword }"
+              class="login-page__forgot"
+              data-test="login-forgot-password-link"
+            >
               Forgot password?
             </router-link>
           </div>
 
           <!-- Submit Button -->
-          <button type="submit" class="login-page__submit" data-test="login-submit-button" :disabled="isLoading">
+          <button
+            type="submit"
+            class="login-page__submit"
+            data-test="login-submit-button"
+            :disabled="isLoading"
+          >
             <span v-if="!isLoading">Sign in</span>
             <span v-else class="login-page__loading">
               <svg
@@ -237,7 +246,11 @@ function togglePasswordVisibility() {
         </div>
 
         <!-- Sign up link -->
-        <router-link :to="{ name: routes.Register }" class="login-page__signup" data-test="login-register-link">
+        <router-link
+          :to="{ name: routes.Register }"
+          class="login-page__signup"
+          data-test="login-register-link"
+        >
           Create an account
           <svg
             xmlns="http://www.w3.org/2000/svg"
