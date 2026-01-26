@@ -1,0 +1,120 @@
+# Note: CI uses Kubernetes executor without Docker-in-Docker support.
+# Tests run against GitLab CI services (postgres, mailpit) with API/frontend as processes.
+# See CLAUDE.md for details.
+
+e2e-playwright.test:
+  stage: test
+  image: mcr.microsoft.com/playwright:v1.49.1-noble
+  needs:
+    - job: api-integration-tests.build
+      artifacts: true
+    - job: frontend.build
+      artifacts: true
+  services:
+    - name: postgres:$PG_VERSION
+      alias: postgres
+    - name: axllent/mailpit:v1.28
+      alias: mailpit
+  variables:
+    ## PostgreSQL
+    POSTGRES_DB: hook0
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: postgres
+    ## API configuration
+    DATABASE_URL: "postgres://postgres:postgres@postgres:5432/hook0"
+    SMTP_CONNECTION_URL: "smtp://mailpit:1025"
+    EMAIL_SENDER_ADDRESS: "sender@hook0.local"
+    APP_URL: "http://localhost:8001"
+    BISCUIT_PRIVATE_KEY: "bbea79cd66926b219b3219a3186decb36136d774dd7c35a8239e512090fa8854"
+    IP: "0.0.0.0"
+    PORT: "8081"
+    CORS_ALLOWED_ORIGINS: "http://localhost:8001"
+    DISABLE_TARGET_IP_CHECK: "true"
+    DISABLE_SERVING_WEBAPP: "false"
+    ## Playwright configuration
+    BASE_URL: "http://localhost:8001"
+    CI: "true"
+  rules:
+    - changes:
+        - tests-e2e/**/*
+        - frontend/**/*
+        - api/**/*
+        - output-worker/**/*
+  before_script:
+    - cd tests-e2e
+    - npm ci
+  script:
+    # Start API in background
+    - chmod +x ../target/release/hook0-api
+    - ../target/release/hook0-api &
+    - sleep 5
+    # Serve frontend static files
+    - npx serve ../frontend/dist -l 8001 &
+    - sleep 2
+    # Run tests
+    - npm run test -- --project=chromium
+  artifacts:
+    when: always
+    paths:
+      - tests-e2e/playwright-report/
+      - tests-e2e/test-results/
+    reports:
+      junit: tests-e2e/test-results/junit.xml
+    expire_in: 30 days
+  cache:
+    key: playwright-${CI_COMMIT_REF_SLUG}
+    paths:
+      - tests-e2e/node_modules/
+
+e2e-playwright.visual-regression:
+  stage: test
+  image: mcr.microsoft.com/playwright:v1.49.1-noble
+  needs:
+    - job: api-integration-tests.build
+      artifacts: true
+    - job: frontend.build
+      artifacts: true
+  services:
+    - name: postgres:$PG_VERSION
+      alias: postgres
+    - name: axllent/mailpit:v1.28
+      alias: mailpit
+  variables:
+    POSTGRES_DB: hook0
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: postgres
+    DATABASE_URL: "postgres://postgres:postgres@postgres:5432/hook0"
+    SMTP_CONNECTION_URL: "smtp://mailpit:1025"
+    EMAIL_SENDER_ADDRESS: "sender@hook0.local"
+    APP_URL: "http://localhost:8001"
+    BISCUIT_PRIVATE_KEY: "bbea79cd66926b219b3219a3186decb36136d774dd7c35a8239e512090fa8854"
+    IP: "0.0.0.0"
+    PORT: "8081"
+    CORS_ALLOWED_ORIGINS: "http://localhost:8001"
+    DISABLE_TARGET_IP_CHECK: "true"
+    DISABLE_SERVING_WEBAPP: "false"
+    BASE_URL: "http://localhost:8001"
+    CI: "true"
+  rules:
+    - changes:
+        - tests-e2e/**/*
+        - frontend/**/*
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  before_script:
+    - cd tests-e2e
+    - npm ci
+  script:
+    - chmod +x ../target/release/hook0-api
+    - ../target/release/hook0-api &
+    - sleep 5
+    - npx serve ../frontend/dist -l 8001 &
+    - sleep 2
+    - npm run test -- --project=chromium --grep="@visual"
+  artifacts:
+    when: always
+    paths:
+      - tests-e2e/playwright-report/
+      - tests-e2e/test-results/
+      - tests-e2e/__snapshots__/
+    expire_in: 30 days
+  allow_failure: true

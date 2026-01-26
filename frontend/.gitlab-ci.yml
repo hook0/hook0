@@ -4,6 +4,7 @@ frontend.build:
   rules:
     - changes:
         - frontend/**/*
+        - tests-e2e/**/*
   image: node:$NODE_VERSION
   script:
     - pushd frontend/
