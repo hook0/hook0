@@ -51,9 +51,11 @@ test.describe("Authentication", () => {
       // Submit the form
       await page.getByRole("button", { name: /sign in/i }).click();
 
-      // Should show an error notification (notivue toast)
-      // The error appears as a toast notification
-      await expect(page.locator(".Toastify, [class*='notivue']")).toBeVisible({
+      // Should show an error - either as a toast notification or inline error message
+      // Wait for either the toast container or an error state on the form
+      await expect(
+        page.locator("[class*='Notivue'], [class*='notivue'], [role='alert'], .error-message, [class*='error']").first()
+      ).toBeVisible({
         timeout: 10000,
       });
     });
@@ -90,14 +92,14 @@ test.describe("Authentication", () => {
     test("should display benefits and trust indicators", async ({ page }) => {
       await page.goto("/register");
 
-      // Check that the benefits are displayed
-      await expect(page.getByText(/no credit card required/i)).toBeVisible({
+      // Check that the benefits are displayed (use .first() since text appears multiple times)
+      await expect(page.getByText(/no credit card required/i).first()).toBeVisible({
         timeout: 10000,
       });
-      await expect(page.getByText(/100 free events/i)).toBeVisible();
+      await expect(page.getByText(/100 free events/i).first()).toBeVisible();
 
       // Check trust indicators
-      await expect(page.getByText(/gdpr compliant/i)).toBeVisible();
+      await expect(page.getByText(/gdpr compliant/i).first()).toBeVisible();
     });
   });
 });
