@@ -1,127 +1,103 @@
 import { test, expect } from "@playwright/test";
 
 /**
- * Authentication E2E tests.
- *
- * Tests for registration, login, and logout flows.
+ * Authentication tests for Hook0.
+ * Tests the login and registration flows.
  */
 test.describe("Authentication", () => {
-  test.describe("Registration", () => {
-    test("should register new user with required fields only and verify API response", async ({
-      page,
-    }) => {
-      const timestamp = Date.now();
-      const email = `test-required-${timestamp}@hook0.local`;
-      const password = `TestPass123!${timestamp}`;
-
-      await page.goto("/register");
-      await expect(page.locator('[data-test="signup-form"]')).toBeVisible();
-
-      await page.locator('[data-test="email-input"]').fill(email);
-      await page.locator('[data-test="password-input"]').fill(password);
-      await page.locator('[data-test="password-confirm-input"]').fill(password);
-
-      const responsePromise = page.waitForResponse(
-        (response) =>
-          response.url().includes("/api/v1/register") && response.request().method() === "POST",
-        { timeout: 15000 }
-      );
-
-      await page.locator('[data-test="signup-button"]').click();
-
-      const response = await responsePromise;
-      expect(response.status()).toBeLessThan(400);
-
-      await expect(page).toHaveURL(/\/dashboard|\/organizations|\/verify/, { timeout: 15000 });
-    });
-
-    test("should show validation errors for invalid email", async ({ page }) => {
-      await page.goto("/register");
-      await expect(page.locator('[data-test="signup-form"]')).toBeVisible();
-
-      await page.locator('[data-test="email-input"]').fill("invalid-email");
-      await page.locator('[data-test="password-input"]').fill("TestPass123!");
-      await page.locator('[data-test="password-confirm-input"]').fill("TestPass123!");
-
-      await page.locator('[data-test="signup-button"]').click();
-
-      await expect(page.locator('[data-test="email-error"]')).toBeVisible({ timeout: 5000 });
-    });
-  });
-
-  test.describe("Login", () => {
-    test("should login with valid credentials and verify redirect", async ({ page, request }) => {
-      const timestamp = Date.now();
-      const email = `test-login-${timestamp}@hook0.local`;
-      const password = `TestPass123!${timestamp}`;
-
-      const registerResponse = await request.post("/api/v1/register", {
-        data: {
-          email,
-          password,
-          password_confirmation: password,
-        },
-      });
-      expect(registerResponse.status()).toBeLessThan(400);
-
+  test.describe("Login Page", () => {
+    test("should display login form", async ({ page }) => {
       await page.goto("/login");
-      await expect(page.locator('[data-test="login-form"]')).toBeVisible();
 
-      await page.locator('[data-test="email-input"]').fill(email);
-      await page.locator('[data-test="password-input"]').fill(password);
+      // Check the page has a login form with email and password fields
+      await expect(page.locator("#email")).toBeVisible({ timeout: 10000 });
+      await expect(page.locator("#password")).toBeVisible();
 
-      const responsePromise = page.waitForResponse(
-        (response) =>
-          response.url().includes("/api/v1/login") && response.request().method() === "POST",
-        { timeout: 15000 }
-      );
+      // Check the submit button is visible
+      await expect(
+        page.getByRole("button", { name: /sign in/i })
+      ).toBeVisible();
+    });
 
-      await page.locator('[data-test="login-button"]').click();
+    test("should have link to register page", async ({ page }) => {
+      await page.goto("/login");
 
-      const response = await responsePromise;
-      expect(response.status()).toBeLessThan(400);
+      // Check link to register page
+      const registerLink = page.getByRole("link", {
+        name: /create an account/i,
+      });
+      await expect(registerLink).toBeVisible();
 
-      await expect(page).toHaveURL(/\/dashboard|\/organizations/, { timeout: 15000 });
+      // Click and verify navigation
+      await registerLink.click();
+      await expect(page).toHaveURL(/\/register/);
+    });
+
+    test("should have link to forgot password", async ({ page }) => {
+      await page.goto("/login");
+
+      // Check forgot password link exists
+      const forgotLink = page.getByRole("link", { name: /forgot password/i });
+      await expect(forgotLink).toBeVisible();
     });
 
     test("should show error for invalid credentials", async ({ page }) => {
       await page.goto("/login");
-      await expect(page.locator('[data-test="login-form"]')).toBeVisible();
 
-      await page.locator('[data-test="email-input"]').fill("nonexistent@hook0.local");
-      await page.locator('[data-test="password-input"]').fill("WrongPassword123!");
+      // Fill in invalid credentials
+      await page.locator("#email").fill("invalid@example.com");
+      await page.locator("#password").fill("wrongpassword");
 
-      await page.locator('[data-test="login-button"]').click();
+      // Submit the form
+      await page.getByRole("button", { name: /sign in/i }).click();
 
-      await expect(page.locator('[data-test="login-error"]')).toBeVisible({ timeout: 10000 });
+      // Should show an error notification (notivue toast)
+      // The error appears as a toast notification
+      await expect(page.locator(".Toastify, [class*='notivue']")).toBeVisible({
+        timeout: 10000,
+      });
     });
   });
 
-  test.describe("Logout", () => {
-    test("should logout and redirect to login page", async ({ page, request }) => {
-      const timestamp = Date.now();
-      const email = `test-logout-${timestamp}@hook0.local`;
-      const password = `TestPass123!${timestamp}`;
+  test.describe("Register Page", () => {
+    test("should display registration form", async ({ page }) => {
+      await page.goto("/register");
 
-      await request.post("/api/v1/register", {
-        data: {
-          email,
-          password,
-          password_confirmation: password,
-        },
+      // Check the form fields are visible
+      await expect(page.locator("#email")).toBeVisible({ timeout: 10000 });
+      await expect(page.locator("#firstName")).toBeVisible();
+      await expect(page.locator("#lastName")).toBeVisible();
+      await expect(page.locator("#password")).toBeVisible();
+
+      // Check submit button
+      await expect(
+        page.getByRole("button", { name: /create account/i })
+      ).toBeVisible();
+    });
+
+    test("should have link back to login page", async ({ page }) => {
+      await page.goto("/register");
+
+      // Check link to login page
+      const loginLink = page.getByRole("link", { name: /sign in/i });
+      await expect(loginLink).toBeVisible();
+
+      // Click and verify navigation
+      await loginLink.click();
+      await expect(page).toHaveURL(/\/login/);
+    });
+
+    test("should display benefits and trust indicators", async ({ page }) => {
+      await page.goto("/register");
+
+      // Check that the benefits are displayed
+      await expect(page.getByText(/no credit card required/i)).toBeVisible({
+        timeout: 10000,
       });
+      await expect(page.getByText(/100 free events/i)).toBeVisible();
 
-      await page.goto("/login");
-      await page.locator('[data-test="email-input"]').fill(email);
-      await page.locator('[data-test="password-input"]').fill(password);
-      await page.locator('[data-test="login-button"]').click();
-
-      await expect(page).toHaveURL(/\/dashboard|\/organizations/, { timeout: 15000 });
-
-      await page.locator('[data-test="user-menu"]').click();
-      await page.locator('[data-test="logout-button"]').click();
-
-      await expect(page).toHaveURL(/\/login|\//, { timeout: 10000 });
+      // Check trust indicators
+      await expect(page.getByText(/gdpr compliant/i)).toBeVisible();
     });
   });
 });

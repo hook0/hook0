@@ -1,33 +1,35 @@
 import { test, expect } from "@playwright/test";
 
 /**
- * Homepage E2E tests.
- *
- * Basic smoke tests to verify the application loads correctly.
+ * Homepage tests for Hook0.
+ * Note: The homepage (/) requires authentication and redirects to login if not logged in.
  */
 test.describe("Homepage", () => {
-  test("should load the homepage", async ({ page }) => {
+  test("should redirect to login when not authenticated", async ({ page }) => {
     await page.goto("/");
 
-    await expect(page).toHaveTitle(/Hook0/);
-    await expect(page.locator('[data-test="login-link"], [data-test="signup-link"]')).toBeVisible({
+    // Should redirect to login page when not authenticated
+    await expect(page).toHaveURL(/\/login/);
+  });
+
+  test("should display login page title", async ({ page }) => {
+    await page.goto("/login");
+
+    // Check the page loads with Hook0 branding
+    await expect(page.locator("img[alt='Hook0']")).toBeVisible({
       timeout: 10000,
     });
   });
 
-  test("should navigate to login page", async ({ page }) => {
-    await page.goto("/");
+  test("should have working navigation to register from login", async ({
+    page,
+  }) => {
+    await page.goto("/login");
 
-    await page.locator('[data-test="login-link"]').click();
-    await expect(page).toHaveURL(/\/login/);
-    await expect(page.locator('[data-test="login-form"]')).toBeVisible();
-  });
+    // Click "Create an account" link
+    await page.getByRole("link", { name: /create an account/i }).click();
 
-  test("should navigate to signup page", async ({ page }) => {
-    await page.goto("/");
-
-    await page.locator('[data-test="signup-link"]').click();
-    await expect(page).toHaveURL(/\/register|\/signup/);
-    await expect(page.locator('[data-test="signup-form"]')).toBeVisible();
+    // Should navigate to register page
+    await expect(page).toHaveURL(/\/register/);
   });
 });
