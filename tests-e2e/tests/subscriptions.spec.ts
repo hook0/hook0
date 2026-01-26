@@ -99,10 +99,46 @@ test.describe("Subscriptions", () => {
     };
   }
 
-  test("should display subscriptions list page", async ({ page, request }) => {
+  test("should display subscriptions list with created subscription", async ({ page, request }) => {
     const env = await setupTestEnvironment(page, request, "list");
+    const description = `Test Subscription ${env.timestamp}`;
+    const webhookUrl = "https://webhook.site/test-list";
 
-    // Navigate to subscriptions list
+    // Step 1: CREATE a subscription via UI
+    await page.goto(
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions/new`
+    );
+
+    await expect(page.locator('[data-test="subscription-form"]')).toBeVisible({
+      timeout: 10000,
+    });
+
+    await page.locator('[data-test="subscription-description-input"]').fill(description);
+    await page.locator('[data-test="subscription-method-select"]').selectOption("POST");
+    await page.locator('[data-test="subscription-url-input"]').fill(webhookUrl);
+
+    // Add a label
+    const labelKeyInput = page.locator('input[placeholder="Label key"]').first();
+    const labelValueInput = page.locator('input[placeholder="Label value"]').first();
+    await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
+    await labelKeyInput.fill("env");
+    await labelValueInput.fill("test");
+
+    // Select an event type
+    const eventTypeCheckbox = page.locator('input[type="checkbox"]').first();
+    await expect(eventTypeCheckbox).toBeVisible({ timeout: 5000 });
+    await eventTypeCheckbox.click();
+
+    const createResponsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/v1/subscriptions") && response.request().method() === "POST",
+      { timeout: 15000 }
+    );
+    await page.locator('[data-test="subscription-submit-button"]').click();
+    const createResponse = await createResponsePromise;
+    expect(createResponse.status()).toBeLessThan(400);
+
+    // Step 2: Navigate to subscriptions list
     await page.goto(
       `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions`
     );
@@ -112,6 +148,15 @@ test.describe("Subscriptions", () => {
 
     // Verify create button is present
     await expect(page.locator('[data-test="subscriptions-create-button"]')).toBeVisible();
+
+    // Step 3: Verify list has at least 1 row (AG Grid uses .ag-row class)
+    const rows = page.locator('[data-test="subscriptions-table"] .ag-row');
+    const rowCount = await rows.count();
+    expect(rowCount).toBeGreaterThanOrEqual(1);
+
+    // Step 4: Verify first row contains expected subscription data
+    const firstRow = rows.first();
+    await expect(firstRow).toContainText(description);
   });
 
   test("should display subscription form with all required elements", async ({ page, request }) => {

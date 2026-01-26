@@ -9,11 +9,12 @@ import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verificat
  * Gets organization ID from database during email verification.
  */
 test.describe("Applications", () => {
-  test("should display applications list after navigating", async ({ page, request }) => {
+  test("should display applications list with created application", async ({ page, request }) => {
     // Setup: Create test user
     const timestamp = Date.now();
     const email = `test-apps-list-${timestamp}@hook0.local`;
     const password = `TestPassword123!${timestamp}`;
+    const appName = `List Test App ${timestamp}`;
 
     // Register via API
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
@@ -45,7 +46,24 @@ test.describe("Applications", () => {
       timeout: 15000,
     });
 
-    // Navigate to applications list using the organization ID from database
+    // Step 1: CREATE at least one application via UI before verifying list
+    await page.goto(`/organizations/${organizationId}/applications/new`);
+    await expect(page.locator('[data-test="application-form"]')).toBeVisible({
+      timeout: 10000,
+    });
+    await page.locator('[data-test="application-name-input"]').fill(appName);
+
+    const createResponsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/v1/applications") && response.request().method() === "POST",
+      { timeout: 15000 }
+    );
+    await page.locator('[data-test="application-submit-button"]').click();
+    const createResponse = await createResponsePromise;
+    expect(createResponse.status()).toBeLessThan(400);
+    const createdApp = await createResponse.json();
+
+    // Step 2: Navigate to applications list
     await page.goto(`/organizations/${organizationId}/applications`);
 
     // Verify applications card is visible
@@ -53,6 +71,15 @@ test.describe("Applications", () => {
 
     // Verify create button is present
     await expect(page.locator('[data-test="applications-create-button"]')).toBeVisible();
+
+    // Step 3: Verify list has at least 1 row (AG Grid uses .ag-row class)
+    const rows = page.locator('[data-test="applications-table"] .ag-row');
+    const rowCount = await rows.count();
+    expect(rowCount).toBeGreaterThanOrEqual(1);
+
+    // Step 4: Verify first row contains expected application data
+    const firstRow = rows.first();
+    await expect(firstRow).toContainText(appName);
   });
 
   test("should create new application and verify API response", async ({ page, request }) => {

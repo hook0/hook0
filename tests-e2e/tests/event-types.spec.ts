@@ -8,11 +8,15 @@ import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verificat
  * Following the Three-Step Verification Pattern.
  */
 test.describe("Event Types", () => {
-  test("should display event types list page", async ({ page, request }) => {
+  test("should display event types list with created event type", async ({ page, request }) => {
     // Setup: Create test user and application
     const timestamp = Date.now();
     const email = `test-event-types-list-${timestamp}@hook0.local`;
     const password = `TestPassword123!${timestamp}`;
+    const service = "user";
+    const resourceType = "account";
+    const verb = "created";
+    const expectedEventTypeName = `${service}.${resourceType}.${verb}`;
 
     // Register via API
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
@@ -65,7 +69,27 @@ test.describe("Event Types", () => {
     expect(appResponse.status()).toBeLessThan(400);
     const app = await appResponse.json();
 
-    // Navigate to event types list
+    // Step 1: CREATE an event type via UI
+    await page.goto(
+      `/organizations/${organizationId}/applications/${app.application_id}/event_types/new`
+    );
+    await expect(page.locator('[data-test="event-type-form"]')).toBeVisible({
+      timeout: 10000,
+    });
+    await page.locator('[data-test="event-type-service-input"]').fill(service);
+    await page.locator('[data-test="event-type-resource-input"]').fill(resourceType);
+    await page.locator('[data-test="event-type-verb-input"]').fill(verb);
+
+    const createEventTypeResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/v1/event_types") && response.request().method() === "POST",
+      { timeout: 15000 }
+    );
+    await page.locator('[data-test="event-type-submit-button"]').click();
+    const eventTypeResponse = await createEventTypeResponse;
+    expect(eventTypeResponse.status()).toBeLessThan(400);
+
+    // Step 2: Navigate to event types list
     await page.goto(
       `/organizations/${organizationId}/applications/${app.application_id}/event_types`
     );
@@ -75,6 +99,15 @@ test.describe("Event Types", () => {
 
     // Verify create button is present
     await expect(page.locator('[data-test="event-types-create-button"]')).toBeVisible();
+
+    // Step 3: Verify list has at least 1 row (AG Grid uses .ag-row class)
+    const rows = page.locator('[data-test="event-types-table"] .ag-row');
+    const rowCount = await rows.count();
+    expect(rowCount).toBeGreaterThanOrEqual(1);
+
+    // Step 4: Verify first row contains expected event type data
+    const firstRow = rows.first();
+    await expect(firstRow).toContainText(expectedEventTypeName);
   });
 
   test("should create new event type with required fields and verify API response", async ({
