@@ -1,5 +1,5 @@
 import { APIRequestContext } from "@playwright/test";
-import { execSync } from "child_process";
+import { Client } from "pg";
 
 /**
  * Email verification helper for E2E tests.
@@ -9,25 +9,38 @@ import { execSync } from "child_process";
  */
 
 const MAILPIT_URL = process.env.MAILPIT_URL || "http://localhost:8025";
-const DATABASE_URL = process.env.DATABASE_URL || "postgres://postgres:postgres@localhost:5432/hook0";
+const DATABASE_URL =
+  process.env.DATABASE_URL || "postgres://postgres:postgres@localhost:5432/hook0";
 
 /**
  * Verify user email directly via PostgreSQL.
  * This is the most reliable method in CI where SMTP delivery may be slow/unreliable.
  */
 export async function verifyEmailViaDatabase(email: string): Promise<void> {
-  const sql = `UPDATE iam.user SET email_verified_at = NOW() WHERE email = '${email.replace(/'/g, "''")}' AND email_verified_at IS NULL`;
+  const client = new Client({
+    connectionString: DATABASE_URL,
+  });
 
-  try {
-    // Use psql to execute the query
-    execSync(`psql "${DATABASE_URL}" -c "${sql}"`, {
-      encoding: "utf-8",
-      timeout: 10000,
+  return client
+    .connect()
+    .then(() => {
+      return client.query(
+        "UPDATE iam.user SET email_verified_at = NOW() WHERE email = $1 AND email_verified_at IS NULL",
+        [email]
+      );
+    })
+    .then((result) => {
+      if (result.rowCount === 0) {
+        console.warn(`No user found with email ${email} or already verified`);
+      }
+    })
+    .catch((error) => {
+      console.warn(`Database verification failed for ${email}:`, error);
+      throw new Error(`Failed to verify email via database for ${email}`);
+    })
+    .finally(() => {
+      return client.end();
     });
-  } catch (error) {
-    console.warn(`Database verification failed for ${email}:`, error);
-    throw new Error(`Failed to verify email via database for ${email}`);
-  }
 }
 
 interface MailpitMessage {
@@ -82,52 +95,49 @@ export async function verifyEmailViaMailpit(
   const startTime = Date.now();
 
   while (Date.now() - startTime < maxWaitMs) {
-    try {
-      const messagesResponse = await request.get(`${MAILPIT_URL}/api/v1/messages`, {
+    const messagesResponse = await request
+      .get(`${MAILPIT_URL}/api/v1/messages`, {
         timeout: 5000,
-      });
+      })
+      .catch(() => null);
 
-      if (messagesResponse.ok()) {
-        const result: MailpitSearchResult = await messagesResponse.json();
-        const messages = result.messages || [];
+    if (messagesResponse && messagesResponse.ok()) {
+      const result: MailpitSearchResult = await messagesResponse.json();
+      const messages = result.messages || [];
 
-        const userEmail = messages.find((m) =>
-          m.To?.some((t) => t.Address.toLowerCase() === email.toLowerCase())
-        );
+      const userEmail = messages.find((m) =>
+        m.To?.some((t) => t.Address.toLowerCase() === email.toLowerCase())
+      );
 
-        if (userEmail) {
-          const messageResponse = await request.get(
-            `${MAILPIT_URL}/api/v1/message/${userEmail.ID}`,
-            { timeout: 5000 }
-          );
+      if (userEmail) {
+        const messageResponse = await request
+          .get(`${MAILPIT_URL}/api/v1/message/${userEmail.ID}`, { timeout: 5000 })
+          .catch(() => null);
 
-          if (messageResponse.ok()) {
-            const message: MailpitMessage = await messageResponse.json();
-            const content = message.Text || message.HTML || "";
+        if (messageResponse && messageResponse.ok()) {
+          const message: MailpitMessage = await messageResponse.json();
+          const content = message.Text || message.HTML || "";
 
-            const verificationLink = extractVerificationLink(content);
-            if (verificationLink) {
-              await request.get(verificationLink, {
-                timeout: 10000,
-                failOnStatusCode: false,
-              });
-              return;
-            }
+          const verificationLink = extractVerificationLink(content);
+          if (verificationLink) {
+            await request.get(verificationLink, {
+              timeout: 10000,
+              failOnStatusCode: false,
+            });
+            return;
+          }
 
-            const token = extractVerificationToken(content);
-            if (token) {
-              await request.post("/api/v1/verify-email", {
-                data: { token },
-                timeout: 10000,
-                failOnStatusCode: false,
-              });
-              return;
-            }
+          const token = extractVerificationToken(content);
+          if (token) {
+            await request.post("/api/v1/verify-email", {
+              data: { token },
+              timeout: 10000,
+              failOnStatusCode: false,
+            });
+            return;
           }
         }
       }
-    } catch (e) {
-      console.warn(`Mailpit check failed: ${e}`);
     }
 
     await sleep(500);
