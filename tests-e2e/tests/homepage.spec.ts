@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { verifyEmailViaMailpit } from "../fixtures/email-verification";
+import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verification";
 
 /**
  * Homepage E2E tests for Hook0.
@@ -28,15 +28,10 @@ test.describe("Homepage", () => {
     });
 
     // Verify logo has correct alt text
-    await expect(page.locator('[data-test="login-logo"]')).toHaveAttribute(
-      "alt",
-      "Hook0"
-    );
+    await expect(page.locator('[data-test="login-logo"]')).toHaveAttribute("alt", "Hook0");
   });
 
-  test("should have complete navigation flow from login to register and back", async ({
-    page,
-  }) => {
+  test("should have complete navigation flow from login to register and back", async ({ page }) => {
     // Start at login page
     await page.goto("/login");
     await expect(page.locator('[data-test="login-form"]')).toBeVisible({
@@ -54,16 +49,13 @@ test.describe("Homepage", () => {
     await expect(page.locator('[data-test="login-form"]')).toBeVisible();
   });
 
-  test("should preserve redirect after authentication", async ({
-    page,
-    request,
-  }) => {
+  test("should preserve redirect after authentication", async ({ page, request }) => {
     // Setup: Create a test user
     const timestamp = Date.now();
     const email = `test-redirect-${timestamp}@hook0.local`;
     const password = `TestPassword123!${timestamp}`;
 
-    const registerResponse = await request.post("/api/v1/register", {
+    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
       data: {
         email,
         first_name: "Test",
@@ -86,8 +78,7 @@ test.describe("Homepage", () => {
 
     const responsePromise = page.waitForResponse(
       (response) =>
-        (response.url().includes("/api/v1/auth/login") ||
-          response.url().includes("/auth/login")) &&
+        (response.url().includes("/api/v1/auth/login") || response.url().includes("/auth/login")) &&
         response.request().method() === "POST",
       { timeout: 15000 }
     );

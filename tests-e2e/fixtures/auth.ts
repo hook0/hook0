@@ -25,10 +25,7 @@ export interface AuthFixtures {
  * Verify user email via Mailpit API.
  * Fetches the latest email sent to the user and extracts the verification link.
  */
-async function verifyEmailViaMailpit(
-  request: APIRequestContext,
-  email: string
-): Promise<void> {
+async function verifyEmailViaMailpit(request: APIRequestContext, email: string): Promise<void> {
   const mailpitUrl = process.env.MAILPIT_URL || "http://localhost:8025";
 
   // Wait a bit for the email to arrive
@@ -50,18 +47,16 @@ async function verifyEmailViaMailpit(
       throw new Error(`Failed to fetch emails from Mailpit`);
     }
     const messages = await messagesResponse.json();
-    const userEmail = messages.messages?.find(
-      (m: { To: Array<{ Address: string }> }) =>
-        m.To?.some((t) => t.Address === email)
+    const userEmail = messages.messages?.find((m: { To: Array<{ Address: string }> }) =>
+      m.To?.some((t) => t.Address === email)
     );
     if (!userEmail) {
       throw new Error(`No email found for ${email}`);
     }
     // Get the full message
-    const messageResponse = await request.get(
-      `${mailpitUrl}/api/v1/message/${userEmail.ID}`,
-      { timeout: 10000 }
-    );
+    const messageResponse = await request.get(`${mailpitUrl}/api/v1/message/${userEmail.ID}`, {
+      timeout: 10000,
+    });
     const message = await messageResponse.json();
     const verificationLink = extractVerificationLink(message.Text || message.HTML);
     if (verificationLink) {
@@ -77,10 +72,9 @@ async function verifyEmailViaMailpit(
 
   // Get the latest email
   const latestEmail = searchResult.messages[0];
-  const messageResponse = await request.get(
-    `${mailpitUrl}/api/v1/message/${latestEmail.ID}`,
-    { timeout: 10000 }
-  );
+  const messageResponse = await request.get(`${mailpitUrl}/api/v1/message/${latestEmail.ID}`, {
+    timeout: 10000,
+  });
 
   if (!messageResponse.ok()) {
     throw new Error(`Failed to fetch email content`);
@@ -168,18 +162,13 @@ export const authTest = base.extend<AuthFixtures>({
     });
 
     // Fill login form using data-test selectors
-    await page
-      .locator('[data-test="login-email-input"]')
-      .fill(testUser.email);
-    await page
-      .locator('[data-test="login-password-input"]')
-      .fill(testUser.password);
+    await page.locator('[data-test="login-email-input"]').fill(testUser.email);
+    await page.locator('[data-test="login-password-input"]').fill(testUser.password);
 
     // Submit and wait for API response
     const responsePromise = page.waitForResponse(
       (response) =>
-        (response.url().includes("/api/v1/auth/login") ||
-          response.url().includes("/auth/login")) &&
+        (response.url().includes("/api/v1/auth/login") || response.url().includes("/auth/login")) &&
         response.request().method() === "POST",
       { timeout: 15000 }
     );

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { verifyEmailViaMailpit } from "../fixtures/email-verification";
+import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verification";
 
 /**
  * Authentication E2E tests for Hook0.
@@ -12,9 +12,7 @@ import { verifyEmailViaMailpit } from "../fixtures/email-verification";
  */
 test.describe("Authentication", () => {
   test.describe("Login Page", () => {
-    test("should display login form with all required elements", async ({
-      page,
-    }) => {
+    test("should display login form with all required elements", async ({ page }) => {
       await page.goto("/login");
 
       // Verify form is visible
@@ -23,31 +21,19 @@ test.describe("Authentication", () => {
       });
 
       // Verify all form elements are present
-      await expect(
-        page.locator('[data-test="login-email-input"]')
-      ).toBeVisible();
-      await expect(
-        page.locator('[data-test="login-password-input"]')
-      ).toBeVisible();
-      await expect(
-        page.locator('[data-test="login-submit-button"]')
-      ).toBeVisible();
-      await expect(
-        page.locator('[data-test="login-forgot-password-link"]')
-      ).toBeVisible();
-      await expect(
-        page.locator('[data-test="login-register-link"]')
-      ).toBeVisible();
+      await expect(page.locator('[data-test="login-email-input"]')).toBeVisible();
+      await expect(page.locator('[data-test="login-password-input"]')).toBeVisible();
+      await expect(page.locator('[data-test="login-submit-button"]')).toBeVisible();
+      await expect(page.locator('[data-test="login-forgot-password-link"]')).toBeVisible();
+      await expect(page.locator('[data-test="login-register-link"]')).toBeVisible();
     });
 
-    test("should navigate to register page when clicking create account link", async ({
-      page,
-    }) => {
+    test("should navigate to register page when clicking create account link", async ({ page }) => {
       await page.goto("/login");
 
-      await expect(
-        page.locator('[data-test="login-register-link"]')
-      ).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('[data-test="login-register-link"]')).toBeVisible({
+        timeout: 10000,
+      });
 
       await page.locator('[data-test="login-register-link"]').click();
 
@@ -58,9 +44,9 @@ test.describe("Authentication", () => {
     test("should navigate to forgot password page", async ({ page }) => {
       await page.goto("/login");
 
-      await expect(
-        page.locator('[data-test="login-forgot-password-link"]')
-      ).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('[data-test="login-forgot-password-link"]')).toBeVisible({
+        timeout: 10000,
+      });
 
       await page.locator('[data-test="login-forgot-password-link"]').click();
 
@@ -77,18 +63,13 @@ test.describe("Authentication", () => {
       });
 
       // Step 1: Fill form fields
-      await page
-        .locator('[data-test="login-email-input"]')
-        .fill("nonexistent@example.com");
-      await page
-        .locator('[data-test="login-password-input"]')
-        .fill("WrongPassword123!");
+      await page.locator('[data-test="login-email-input"]').fill("nonexistent@example.com");
+      await page.locator('[data-test="login-password-input"]').fill("WrongPassword123!");
 
       // Step 2: Submit and wait for API response
       const responsePromise = page.waitForResponse(
         (response) =>
-          response.url().includes("/api/v1/auth/login") ||
-          response.url().includes("/auth/login"),
+          response.url().includes("/api/v1/auth/login") || response.url().includes("/auth/login"),
         { timeout: 15000 }
       );
 
@@ -120,7 +101,7 @@ test.describe("Authentication", () => {
       const email = `test-login-${timestamp}@hook0.local`;
       const password = `TestPassword123!${timestamp}`;
 
-      const registerResponse = await request.post("/api/v1/register", {
+      const registerResponse = await request.post(`${API_BASE_URL}/register`, {
         data: {
           email,
           first_name: "Test",
@@ -167,9 +148,7 @@ test.describe("Authentication", () => {
   });
 
   test.describe("Register Page", () => {
-    test("should display registration form with all required elements", async ({
-      page,
-    }) => {
+    test("should display registration form with all required elements", async ({ page }) => {
       await page.goto("/register");
 
       // Verify form is visible
@@ -178,34 +157,20 @@ test.describe("Authentication", () => {
       });
 
       // Verify all form elements are present
-      await expect(
-        page.locator('[data-test="register-email-input"]')
-      ).toBeVisible();
-      await expect(
-        page.locator('[data-test="register-firstname-input"]')
-      ).toBeVisible();
-      await expect(
-        page.locator('[data-test="register-lastname-input"]')
-      ).toBeVisible();
-      await expect(
-        page.locator('[data-test="register-password-input"]')
-      ).toBeVisible();
-      await expect(
-        page.locator('[data-test="register-submit-button"]')
-      ).toBeVisible();
-      await expect(
-        page.locator('[data-test="register-login-link"]')
-      ).toBeVisible();
+      await expect(page.locator('[data-test="register-email-input"]')).toBeVisible();
+      await expect(page.locator('[data-test="register-firstname-input"]')).toBeVisible();
+      await expect(page.locator('[data-test="register-lastname-input"]')).toBeVisible();
+      await expect(page.locator('[data-test="register-password-input"]')).toBeVisible();
+      await expect(page.locator('[data-test="register-submit-button"]')).toBeVisible();
+      await expect(page.locator('[data-test="register-login-link"]')).toBeVisible();
     });
 
-    test("should navigate to login page when clicking sign in link", async ({
-      page,
-    }) => {
+    test("should navigate to login page when clicking sign in link", async ({ page }) => {
       await page.goto("/register");
 
-      await expect(
-        page.locator('[data-test="register-login-link"]')
-      ).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('[data-test="register-login-link"]')).toBeVisible({
+        timeout: 10000,
+      });
 
       await page.locator('[data-test="register-login-link"]').click();
 
@@ -227,19 +192,14 @@ test.describe("Authentication", () => {
 
       // Step 1: Fill form fields (required only)
       await page.locator('[data-test="register-email-input"]').fill(email);
-      await page
-        .locator('[data-test="register-firstname-input"]')
-        .fill("Test");
+      await page.locator('[data-test="register-firstname-input"]').fill("Test");
       await page.locator('[data-test="register-lastname-input"]').fill("User");
-      await page
-        .locator('[data-test="register-password-input"]')
-        .fill(password);
+      await page.locator('[data-test="register-password-input"]').fill(password);
 
       // Step 2: Submit and wait for API response
       const responsePromise = page.waitForResponse(
         (response) =>
-          response.url().includes("/api/v1/register") &&
-          response.request().method() === "POST",
+          response.url().includes("/api/v1/register") && response.request().method() === "POST",
         { timeout: 15000 }
       );
 
@@ -251,10 +211,9 @@ test.describe("Authentication", () => {
       expect(response.status()).toBeLessThan(400);
 
       // Verify redirect to check-email or dashboard
-      await expect(page).toHaveURL(
-        /\/check-email|\/verify|\/dashboard|\/organizations/,
-        { timeout: 15000 }
-      );
+      await expect(page).toHaveURL(/\/check-email|\/verify|\/dashboard|\/organizations/, {
+        timeout: 15000,
+      });
     });
 
     test("should register new user with all fields and verify API response body", async ({
@@ -273,21 +232,14 @@ test.describe("Authentication", () => {
 
       // Step 1: Fill ALL form fields
       await page.locator('[data-test="register-email-input"]').fill(email);
-      await page
-        .locator('[data-test="register-firstname-input"]')
-        .fill(firstName);
-      await page
-        .locator('[data-test="register-lastname-input"]')
-        .fill(lastName);
-      await page
-        .locator('[data-test="register-password-input"]')
-        .fill(password);
+      await page.locator('[data-test="register-firstname-input"]').fill(firstName);
+      await page.locator('[data-test="register-lastname-input"]').fill(lastName);
+      await page.locator('[data-test="register-password-input"]').fill(password);
 
       // Step 2: Submit and wait for API response
       const responsePromise = page.waitForResponse(
         (response) =>
-          response.url().includes("/api/v1/register") &&
-          response.request().method() === "POST",
+          response.url().includes("/api/v1/register") && response.request().method() === "POST",
         { timeout: 15000 }
       );
 
@@ -303,22 +255,18 @@ test.describe("Authentication", () => {
       expect(responseBody).toBeDefined();
 
       // Verify redirect
-      await expect(page).toHaveURL(
-        /\/check-email|\/verify|\/dashboard|\/organizations/,
-        { timeout: 15000 }
-      );
+      await expect(page).toHaveURL(/\/check-email|\/verify|\/dashboard|\/organizations/, {
+        timeout: 15000,
+      });
     });
 
-    test("should handle duplicate email registration gracefully", async ({
-      page,
-      request,
-    }) => {
+    test("should handle duplicate email registration gracefully", async ({ page, request }) => {
       // Setup: Create a user first via direct API call
       const timestamp = Date.now();
       const email = `test-duplicate-${timestamp}@hook0.local`;
       const password = `TestPassword123!${timestamp}`;
 
-      const registerResponse = await request.post("/api/v1/register", {
+      const registerResponse = await request.post(`${API_BASE_URL}/register`, {
         data: {
           email,
           first_name: "First",
@@ -336,19 +284,14 @@ test.describe("Authentication", () => {
 
       // Step 1: Fill form with duplicate email
       await page.locator('[data-test="register-email-input"]').fill(email);
-      await page
-        .locator('[data-test="register-firstname-input"]')
-        .fill("Second");
+      await page.locator('[data-test="register-firstname-input"]').fill("Second");
       await page.locator('[data-test="register-lastname-input"]').fill("User");
-      await page
-        .locator('[data-test="register-password-input"]')
-        .fill(password);
+      await page.locator('[data-test="register-password-input"]').fill(password);
 
       // Step 2: Submit and wait for API response
       const responsePromise = page.waitForResponse(
         (response) =>
-          response.url().includes("/api/v1/register") &&
-          response.request().method() === "POST",
+          response.url().includes("/api/v1/register") && response.request().method() === "POST",
         { timeout: 15000 }
       );
 

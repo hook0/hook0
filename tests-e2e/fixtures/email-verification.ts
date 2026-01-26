@@ -13,13 +13,17 @@ const DATABASE_URL =
   process.env.DATABASE_URL || "postgres://postgres:postgres@localhost:5432/hook0";
 
 /**
+ * API base URL for direct API calls in tests.
+ * In CI, the API runs on port 8081 while frontend is on 8001.
+ * Locally with docker-compose, the frontend proxies to the API.
+ */
+export const API_BASE_URL = process.env.CI ? "http://localhost:8081/api/v1" : "/api/v1";
+
+/**
  * Verify user email directly via PostgreSQL.
  * This is the most reliable method in CI where SMTP delivery may be slow/unreliable.
  */
 export async function verifyEmailViaDatabase(email: string): Promise<void> {
-  console.log(`Attempting database verification for ${email}`);
-  console.log(`DATABASE_URL: ${DATABASE_URL}`);
-
   const client = new Client({
     connectionString: DATABASE_URL,
   });
@@ -27,25 +31,6 @@ export async function verifyEmailViaDatabase(email: string): Promise<void> {
   return client
     .connect()
     .then(() => {
-      console.log(`Connected to database successfully`);
-      // First, check if user exists
-      return client.query("SELECT user__id, email, email_verified_at FROM iam.user WHERE email = $1", [
-        email,
-      ]);
-    })
-    .then((selectResult) => {
-      console.log(`User lookup result: ${JSON.stringify(selectResult.rows)}`);
-      if (selectResult.rows.length === 0) {
-        console.warn(`No user found with email ${email} in database`);
-        // List all users for debugging
-        return client
-          .query("SELECT email FROM iam.user LIMIT 10")
-          .then((allUsers) => {
-            console.log(`Users in database: ${JSON.stringify(allUsers.rows)}`);
-            return { rowCount: 0 };
-          });
-      }
-      // User exists, update email_verified_at
       return client.query(
         "UPDATE iam.user SET email_verified_at = NOW() WHERE email = $1 AND email_verified_at IS NULL",
         [email]
@@ -54,13 +39,11 @@ export async function verifyEmailViaDatabase(email: string): Promise<void> {
     .then((result) => {
       if (result.rowCount === 0) {
         console.warn(`No user found with email ${email} or already verified`);
-      } else {
-        console.log(`Successfully verified email for ${email}`);
       }
     })
     .catch((error) => {
-      console.error(`Database verification failed for ${email}:`, error);
-      throw new Error(`Failed to verify email via database for ${email}: ${error.message}`);
+      console.warn(`Database verification failed for ${email}:`, error);
+      throw new Error(`Failed to verify email via database for ${email}`);
     })
     .finally(() => {
       return client.end();
@@ -184,7 +167,7 @@ export async function registerAndVerifyUser(
     lastName: string;
   }
 ): Promise<typeof userData> {
-  const registerResponse = await request.post("/api/v1/register", {
+  const registerResponse = await request.post(`${API_BASE_URL}/register`, {
     data: {
       email: userData.email,
       first_name: userData.firstName,

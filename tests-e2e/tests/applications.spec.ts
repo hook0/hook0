@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { verifyEmailViaMailpit } from "../fixtures/email-verification";
+import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verification";
 
 /**
  * Application management E2E tests for Hook0.
@@ -8,17 +8,14 @@ import { verifyEmailViaMailpit } from "../fixtures/email-verification";
  * Uses UI-based login to avoid auth state conflicts.
  */
 test.describe("Applications", () => {
-  test("should display applications list after navigating", async ({
-    page,
-    request,
-  }) => {
+  test("should display applications list after navigating", async ({ page, request }) => {
     // Setup: Create test user
     const timestamp = Date.now();
     const email = `test-apps-list-${timestamp}@hook0.local`;
     const password = `TestPassword123!${timestamp}`;
 
     // Register via API
-    const registerResponse = await request.post("/api/v1/register", {
+    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
       data: {
         email,
         first_name: "Test",
@@ -46,17 +43,16 @@ test.describe("Applications", () => {
     });
 
     // Get organization from URL or navigate to find it
-    const orgsResponse = await page.request.get("/api/v1/organizations");
+    const orgsResponse = await page.request.get(`${API_BASE_URL}/organizations`);
     expect(orgsResponse.status()).toBeLessThan(400);
     const orgs = await orgsResponse.json();
 
     let organizationId: string;
     if (orgs.length === 0) {
       // Create org via API
-      const createOrgResponse = await page.request.post(
-        "/api/v1/organizations",
-        { data: { name: `Test Org ${timestamp}` } }
-      );
+      const createOrgResponse = await page.request.post(`${API_BASE_URL}/organizations`, {
+        data: { name: `Test Org ${timestamp}` },
+      });
       expect(createOrgResponse.status()).toBeLessThan(400);
       organizationId = (await createOrgResponse.json()).organization_id;
     } else {
@@ -67,20 +63,13 @@ test.describe("Applications", () => {
     await page.goto(`/organizations/${organizationId}/applications`);
 
     // Verify applications card is visible
-    await expect(
-      page.locator('[data-test="applications-card"]')
-    ).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-test="applications-card"]')).toBeVisible({ timeout: 10000 });
 
     // Verify create button is present
-    await expect(
-      page.locator('[data-test="applications-create-button"]')
-    ).toBeVisible();
+    await expect(page.locator('[data-test="applications-create-button"]')).toBeVisible();
   });
 
-  test("should create new application and verify API response", async ({
-    page,
-    request,
-  }) => {
+  test("should create new application and verify API response", async ({ page, request }) => {
     // Setup
     const timestamp = Date.now();
     const email = `test-apps-create-${timestamp}@hook0.local`;
@@ -88,7 +77,7 @@ test.describe("Applications", () => {
     const appName = `Test App ${timestamp}`;
 
     // Register and verify email
-    const registerResponse = await request.post("/api/v1/register", {
+    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
       data: { email, first_name: "Test", last_name: "User", password },
     });
     expect(registerResponse.status()).toBeLessThan(400);
@@ -108,15 +97,14 @@ test.describe("Applications", () => {
     });
 
     // Get or create organization
-    const orgsResponse = await page.request.get("/api/v1/organizations");
+    const orgsResponse = await page.request.get(`${API_BASE_URL}/organizations`);
     expect(orgsResponse.status()).toBeLessThan(400);
     const orgs = await orgsResponse.json();
     let organizationId: string;
     if (orgs.length === 0) {
-      const createOrgResponse = await page.request.post(
-        "/api/v1/organizations",
-        { data: { name: `Test Org ${timestamp}` } }
-      );
+      const createOrgResponse = await page.request.post(`${API_BASE_URL}/organizations`, {
+        data: { name: `Test Org ${timestamp}` },
+      });
       organizationId = (await createOrgResponse.json()).organization_id;
     } else {
       organizationId = orgs[0].organization_id;
@@ -124,9 +112,9 @@ test.describe("Applications", () => {
 
     // Navigate to applications list
     await page.goto(`/organizations/${organizationId}/applications`);
-    await expect(
-      page.locator('[data-test="applications-create-button"]')
-    ).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-test="applications-create-button"]')).toBeVisible({
+      timeout: 10000,
+    });
 
     // Click create button
     await page.locator('[data-test="applications-create-button"]').click();
@@ -142,8 +130,7 @@ test.describe("Applications", () => {
     // Submit and wait for API response
     const responsePromise = page.waitForResponse(
       (response) =>
-        response.url().includes("/api/v1/applications") &&
-        response.request().method() === "POST",
+        response.url().includes("/api/v1/applications") && response.request().method() === "POST",
       { timeout: 15000 }
     );
 
@@ -158,10 +145,7 @@ test.describe("Applications", () => {
     expect(responseBody.name).toBe(appName);
   });
 
-  test("should update application name and verify persistence", async ({
-    page,
-    request,
-  }) => {
+  test("should update application name and verify persistence", async ({ page, request }) => {
     // Setup
     const timestamp = Date.now();
     const email = `test-apps-update-${timestamp}@hook0.local`;
@@ -170,7 +154,7 @@ test.describe("Applications", () => {
     const updatedName = `Updated App ${timestamp}`;
 
     // Register
-    const registerResponse = await request.post("/api/v1/register", {
+    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
       data: { email, first_name: "Test", last_name: "User", password },
     });
     expect(registerResponse.status()).toBeLessThan(400);
@@ -191,30 +175,27 @@ test.describe("Applications", () => {
     });
 
     // Get or create org
-    const orgsResponse = await page.request.get("/api/v1/organizations");
+    const orgsResponse = await page.request.get(`${API_BASE_URL}/organizations`);
     const orgs = await orgsResponse.json();
     let organizationId: string;
     if (orgs.length === 0) {
-      const createOrgResponse = await page.request.post(
-        "/api/v1/organizations",
-        { data: { name: `Test Org ${timestamp}` } }
-      );
+      const createOrgResponse = await page.request.post(`${API_BASE_URL}/organizations`, {
+        data: { name: `Test Org ${timestamp}` },
+      });
       organizationId = (await createOrgResponse.json()).organization_id;
     } else {
       organizationId = orgs[0].organization_id;
     }
 
     // Create application via API
-    const createResponse = await page.request.post("/api/v1/applications", {
+    const createResponse = await page.request.post(`${API_BASE_URL}/applications`, {
       data: { name: originalName, organization_id: organizationId },
     });
     expect(createResponse.status()).toBeLessThan(400);
     const app = await createResponse.json();
 
     // Navigate to settings
-    await page.goto(
-      `/organizations/${organizationId}/applications/${app.application_id}/settings`
-    );
+    await page.goto(`/organizations/${organizationId}/applications/${app.application_id}/settings`);
 
     // Wait for form
     await expect(page.locator('[data-test="application-form"]')).toBeVisible({
@@ -243,17 +224,14 @@ test.describe("Applications", () => {
     expect(responseBody.name).toBe(updatedName);
   });
 
-  test("should show disabled submit when name is empty", async ({
-    page,
-    request,
-  }) => {
+  test("should show disabled submit when name is empty", async ({ page, request }) => {
     // Setup
     const timestamp = Date.now();
     const email = `test-apps-validation-${timestamp}@hook0.local`;
     const password = `TestPassword123!${timestamp}`;
 
     // Register
-    const registerResponse = await request.post("/api/v1/register", {
+    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
       data: { email, first_name: "Test", last_name: "User", password },
     });
     expect(registerResponse.status()).toBeLessThan(400);
@@ -274,14 +252,13 @@ test.describe("Applications", () => {
     });
 
     // Get or create org
-    const orgsResponse = await page.request.get("/api/v1/organizations");
+    const orgsResponse = await page.request.get(`${API_BASE_URL}/organizations`);
     const orgs = await orgsResponse.json();
     let organizationId: string;
     if (orgs.length === 0) {
-      const createOrgResponse = await page.request.post(
-        "/api/v1/organizations",
-        { data: { name: `Test Org ${timestamp}` } }
-      );
+      const createOrgResponse = await page.request.post(`${API_BASE_URL}/organizations`, {
+        data: { name: `Test Org ${timestamp}` },
+      });
       organizationId = (await createOrgResponse.json()).organization_id;
     } else {
       organizationId = orgs[0].organization_id;
@@ -296,16 +273,12 @@ test.describe("Applications", () => {
     });
 
     // Verify submit is disabled when empty
-    await expect(
-      page.locator('[data-test="application-submit-button"]')
-    ).toBeDisabled();
+    await expect(page.locator('[data-test="application-submit-button"]')).toBeDisabled();
 
     // Clear if any value
     await page.locator('[data-test="application-name-input"]').clear();
 
     // Still disabled
-    await expect(
-      page.locator('[data-test="application-submit-button"]')
-    ).toBeDisabled();
+    await expect(page.locator('[data-test="application-submit-button"]')).toBeDisabled();
   });
 });
