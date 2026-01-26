@@ -47,10 +47,30 @@ e2e-playwright.test:
     # Start API in background
     - chmod +x ../target/release/hook0-api
     - ../target/release/hook0-api &
-    - sleep 5
-    # Serve frontend static files
-    - npx serve ../frontend/dist -l 8001 &
-    - sleep 2
+    # Wait for API to be ready
+    - |
+      echo "Waiting for API to be ready..."
+      for i in $(seq 1 30); do
+        if curl -sf http://localhost:8081/api/v1/swagger.json -o /dev/null 2>&1; then
+          echo "API is ready!"
+          break
+        fi
+        echo "Waiting for API... ($i/30)"
+        sleep 2
+      done
+    # Serve frontend static files (SPA mode for client-side routing)
+    - npx serve -s ../frontend/dist -l 8001 &
+    # Wait for frontend to be ready
+    - |
+      echo "Waiting for frontend to be ready..."
+      for i in $(seq 1 15); do
+        if curl -s http://localhost:8001 > /dev/null 2>&1; then
+          echo "Frontend is ready!"
+          break
+        fi
+        echo "Waiting for frontend... ($i/15)"
+        sleep 1
+      done
     # Run tests
     - npm run test -- --project=chromium
   artifacts:
@@ -104,11 +124,33 @@ e2e-playwright.visual-regression:
     - cd tests-e2e
     - npm ci
   script:
+    # Start API in background
     - chmod +x ../target/release/hook0-api
     - ../target/release/hook0-api &
-    - sleep 5
-    - npx serve ../frontend/dist -l 8001 &
-    - sleep 2
+    # Wait for API to be ready
+    - |
+      echo "Waiting for API to be ready..."
+      for i in $(seq 1 30); do
+        if curl -sf http://localhost:8081/api/v1/swagger.json -o /dev/null 2>&1; then
+          echo "API is ready!"
+          break
+        fi
+        echo "Waiting for API... ($i/30)"
+        sleep 2
+      done
+    # Serve frontend static files (SPA mode for client-side routing)
+    - npx serve -s ../frontend/dist -l 8001 &
+    # Wait for frontend to be ready
+    - |
+      echo "Waiting for frontend to be ready..."
+      for i in $(seq 1 15); do
+        if curl -s http://localhost:8001 > /dev/null 2>&1; then
+          echo "Frontend is ready!"
+          break
+        fi
+        echo "Waiting for frontend... ($i/15)"
+        sleep 1
+      done
     - npm run test -- --project=chromium --grep="@visual"
   artifacts:
     when: always
