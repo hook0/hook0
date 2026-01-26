@@ -82,8 +82,8 @@ test.describe("Homepage", () => {
 
     const responsePromise = page.waitForResponse(
       (response) =>
-        (response.url().includes("/api/v1/login") ||
-          response.url().includes("/iam/login")) &&
+        (response.url().includes("/api/v1/auth/login") ||
+          response.url().includes("/auth/login")) &&
         response.request().method() === "POST",
       { timeout: 15000 }
     );
