@@ -11,9 +11,9 @@ e2e-playwright.test:
     - job: frontend.build
       artifacts: true
   services:
-    - name: postgres:$PG_VERSION
+    - name: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/postgres:$PG_VERSION
       alias: postgres
-    - name: axllent/mailpit:v1.28
+    - name: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/axllent/mailpit:v1.28
       alias: mailpit
   variables:
     ## PostgreSQL
@@ -95,9 +95,9 @@ e2e-playwright.visual-regression:
     - job: frontend.build
       artifacts: true
   services:
-    - name: postgres:$PG_VERSION
+    - name: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/postgres:$PG_VERSION
       alias: postgres
-    - name: axllent/mailpit:v1.28
+    - name: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/axllent/mailpit:v1.28
       alias: mailpit
   variables:
     POSTGRES_DB: hook0
