@@ -42,20 +42,30 @@ test.describe("Applications", () => {
       timeout: 15000,
     });
 
-    // Get organization from URL or navigate to find it
-    // Use full API URL - page.request shares browser cookies for localhost
-    const orgsResponse = await page.request.get(`${API_BASE_URL}/organizations`);
-    expect(orgsResponse.status()).toBeLessThan(400);
-    const orgs = await orgsResponse.json();
+    // Get organization - use page.evaluate to make fetch from browser context (includes cookies)
+    const orgs = await page.evaluate(async (apiUrl) => {
+      const response = await fetch(`${apiUrl}/organizations`, { credentials: "include" });
+      if (!response.ok) throw new Error(`Failed to get organizations: ${response.status}`);
+      return response.json();
+    }, API_BASE_URL);
 
     let organizationId: string;
     if (orgs.length === 0) {
-      // Create org via API
-      const createOrgResponse = await page.request.post(`${API_BASE_URL}/organizations`, {
-        data: { name: `Test Org ${timestamp}` },
-      });
-      expect(createOrgResponse.status()).toBeLessThan(400);
-      organizationId = (await createOrgResponse.json()).organization_id;
+      // Create org via browser fetch (includes cookies)
+      organizationId = await page.evaluate(
+        async ({ apiUrl, orgName }) => {
+          const response = await fetch(`${apiUrl}/organizations`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: orgName }),
+            credentials: "include",
+          });
+          if (!response.ok) throw new Error(`Failed to create org: ${response.status}`);
+          const data = await response.json();
+          return data.organization_id;
+        },
+        { apiUrl: API_BASE_URL, orgName: `Test Org ${timestamp}` }
+      );
     } else {
       organizationId = orgs[0].organization_id;
     }
@@ -97,17 +107,29 @@ test.describe("Applications", () => {
       timeout: 15000,
     });
 
-    // Get or create organization
-    // Use full API URL - page.request shares browser cookies for localhost
-    const orgsResponse = await page.request.get(`${API_BASE_URL}/organizations`);
-    expect(orgsResponse.status()).toBeLessThan(400);
-    const orgs = await orgsResponse.json();
+    // Get or create organization - use page.evaluate for browser context (includes cookies)
+    const orgs = await page.evaluate(async (apiUrl) => {
+      const response = await fetch(`${apiUrl}/organizations`, { credentials: "include" });
+      if (!response.ok) throw new Error(`Failed to get organizations: ${response.status}`);
+      return response.json();
+    }, API_BASE_URL);
+
     let organizationId: string;
     if (orgs.length === 0) {
-      const createOrgResponse = await page.request.post(`${API_BASE_URL}/organizations`, {
-        data: { name: `Test Org ${timestamp}` },
-      });
-      organizationId = (await createOrgResponse.json()).organization_id;
+      organizationId = await page.evaluate(
+        async ({ apiUrl, orgName }) => {
+          const response = await fetch(`${apiUrl}/organizations`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: orgName }),
+            credentials: "include",
+          });
+          if (!response.ok) throw new Error(`Failed to create org: ${response.status}`);
+          const data = await response.json();
+          return data.organization_id;
+        },
+        { apiUrl: API_BASE_URL, orgName: `Test Org ${timestamp}` }
+      );
     } else {
       organizationId = orgs[0].organization_id;
     }
@@ -176,27 +198,47 @@ test.describe("Applications", () => {
       timeout: 15000,
     });
 
-    // Get or create org
-    // Use full API URL - page.request shares browser cookies for localhost
-    const orgsResponse = await page.request.get(`${API_BASE_URL}/organizations`);
-    const orgs = await orgsResponse.json();
+    // Get or create org - use page.evaluate for browser context (includes cookies)
+    const orgs = await page.evaluate(async (apiUrl) => {
+      const response = await fetch(`${apiUrl}/organizations`, { credentials: "include" });
+      if (!response.ok) throw new Error(`Failed to get organizations: ${response.status}`);
+      return response.json();
+    }, API_BASE_URL);
+
     let organizationId: string;
     if (orgs.length === 0) {
-      const createOrgResponse = await page.request.post(`${API_BASE_URL}/organizations`, {
-        data: { name: `Test Org ${timestamp}` },
-      });
-      organizationId = (await createOrgResponse.json()).organization_id;
+      organizationId = await page.evaluate(
+        async ({ apiUrl, orgName }) => {
+          const response = await fetch(`${apiUrl}/organizations`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: orgName }),
+            credentials: "include",
+          });
+          if (!response.ok) throw new Error(`Failed to create org: ${response.status}`);
+          const data = await response.json();
+          return data.organization_id;
+        },
+        { apiUrl: API_BASE_URL, orgName: `Test Org ${timestamp}` }
+      );
     } else {
       organizationId = orgs[0].organization_id;
     }
 
-    // Create application via API
-    // Use full API URL - page.request shares browser cookies for localhost
-    const createResponse = await page.request.post(`${API_BASE_URL}/applications`, {
-      data: { name: originalName, organization_id: organizationId },
-    });
-    expect(createResponse.status()).toBeLessThan(400);
-    const app = await createResponse.json();
+    // Create application via browser fetch (includes cookies)
+    const app = await page.evaluate(
+      async ({ apiUrl, appName, orgId }) => {
+        const response = await fetch(`${apiUrl}/applications`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: appName, organization_id: orgId }),
+          credentials: "include",
+        });
+        if (!response.ok) throw new Error(`Failed to create application: ${response.status}`);
+        return response.json();
+      },
+      { apiUrl: API_BASE_URL, appName: originalName, orgId: organizationId }
+    );
 
     // Navigate to settings
     await page.goto(`/organizations/${organizationId}/applications/${app.application_id}/settings`);
@@ -255,16 +297,29 @@ test.describe("Applications", () => {
       timeout: 15000,
     });
 
-    // Get or create org
-    // Use full API URL - page.request shares browser cookies for localhost
-    const orgsResponse = await page.request.get(`${API_BASE_URL}/organizations`);
-    const orgs = await orgsResponse.json();
+    // Get or create org - use page.evaluate for browser context (includes cookies)
+    const orgs = await page.evaluate(async (apiUrl) => {
+      const response = await fetch(`${apiUrl}/organizations`, { credentials: "include" });
+      if (!response.ok) throw new Error(`Failed to get organizations: ${response.status}`);
+      return response.json();
+    }, API_BASE_URL);
+
     let organizationId: string;
     if (orgs.length === 0) {
-      const createOrgResponse = await page.request.post(`${API_BASE_URL}/organizations`, {
-        data: { name: `Test Org ${timestamp}` },
-      });
-      organizationId = (await createOrgResponse.json()).organization_id;
+      organizationId = await page.evaluate(
+        async ({ apiUrl, orgName }) => {
+          const response = await fetch(`${apiUrl}/organizations`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: orgName }),
+            credentials: "include",
+          });
+          if (!response.ok) throw new Error(`Failed to create org: ${response.status}`);
+          const data = await response.json();
+          return data.organization_id;
+        },
+        { apiUrl: API_BASE_URL, orgName: `Test Org ${timestamp}` }
+      );
     } else {
       organizationId = orgs[0].organization_id;
     }
