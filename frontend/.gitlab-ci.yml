@@ -6,6 +6,9 @@ frontend.build:
         - frontend/**/*
         - tests-e2e/**/*
   image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/node:$NODE_VERSION
+  variables:
+    # API endpoint for E2E tests - must match the port used in tests-e2e/.gitlab-ci.yml
+    VITE_API_ENDPOINT: "http://localhost:8081/api/v1"
   script:
     - pushd frontend/
     - npm ci
