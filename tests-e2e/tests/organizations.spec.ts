@@ -239,4 +239,180 @@ test.describe("Organizations", () => {
       "true"
     );
   });
+
+  test("should display delete organization card on settings page", async ({ page, request }) => {
+    // Setup
+    const timestamp = Date.now();
+    const email = `test-org-delete-display-${timestamp}@hook0.local`;
+    const password = `TestPassword123!${timestamp}`;
+
+    // Register and get organization ID
+    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      data: { email, first_name: "Test", last_name: "User", password },
+    });
+    expect(registerResponse.status()).toBeLessThan(400);
+
+    const verificationResult = await verifyEmailViaMailpit(request, email);
+    const organizationId = verificationResult.organizationId;
+    expect(organizationId).toBeTruthy();
+
+    // Login
+    await page.goto("/login");
+    await expect(page.locator('[data-test="login-form"]')).toBeVisible({
+      timeout: 10000,
+    });
+    await page.locator('[data-test="login-email-input"]').fill(email);
+    await page.locator('[data-test="login-password-input"]').fill(password);
+    await page.locator('[data-test="login-submit-button"]').click();
+
+    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
+      timeout: 15000,
+    });
+
+    // Navigate to organization settings
+    await page.goto(`/organizations/${organizationId}/settings`);
+    await expect(page.locator('[data-test="organization-form"]')).toBeVisible({
+      timeout: 10000,
+    });
+
+    // Verify delete card is visible
+    await expect(page.locator('[data-test="organization-delete-card"]')).toBeVisible();
+    await expect(page.locator('[data-test="organization-delete-button"]')).toBeVisible();
+  });
+
+  test("should delete organization and verify API response and redirect", async ({
+    page,
+    request,
+  }) => {
+    // Setup - create a NEW organization to delete (don't delete the auto-created one)
+    const timestamp = Date.now();
+    const email = `test-org-delete-${timestamp}@hook0.local`;
+    const password = `TestPassword123!${timestamp}`;
+    const orgName = `Deletable Org ${timestamp}`;
+
+    // Register and verify email
+    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      data: { email, first_name: "Test", last_name: "User", password },
+    });
+    expect(registerResponse.status()).toBeLessThan(400);
+    await verifyEmailViaMailpit(request, email);
+
+    // Login
+    await page.goto("/login");
+    await expect(page.locator('[data-test="login-form"]')).toBeVisible({
+      timeout: 10000,
+    });
+    await page.locator('[data-test="login-email-input"]').fill(email);
+    await page.locator('[data-test="login-password-input"]').fill(password);
+    await page.locator('[data-test="login-submit-button"]').click();
+
+    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
+      timeout: 15000,
+    });
+
+    // Create a new organization to delete
+    await page.goto("/organizations/new");
+    await expect(page.locator('[data-test="organization-form"]')).toBeVisible({
+      timeout: 10000,
+    });
+    await page.locator('[data-test="organization-name-input"]').fill(orgName);
+
+    const createResponsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/v1/organizations") && response.request().method() === "POST",
+      { timeout: 15000 }
+    );
+    await page.locator('[data-test="organization-submit-button"]').click();
+
+    const createResponse = await createResponsePromise;
+    expect(createResponse.status()).toBeLessThan(400);
+    const createdOrg = await createResponse.json();
+    const newOrgId = createdOrg.organization_id;
+
+    // Navigate to the new organization's settings
+    await page.goto(`/organizations/${newOrgId}/settings`);
+    await expect(page.locator('[data-test="organization-delete-card"]')).toBeVisible({
+      timeout: 10000,
+    });
+
+    // Setup dialog handler for delete confirmation
+    page.on("dialog", (dialog) => {
+      dialog.accept();
+    });
+
+    // Step 2: Click delete and wait for API response
+    const deleteResponsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes(`/api/v1/organizations/${newOrgId}`) &&
+        response.request().method() === "DELETE",
+      { timeout: 15000 }
+    );
+
+    await page.locator('[data-test="organization-delete-button"]').click();
+
+    const deleteResponse = await deleteResponsePromise;
+
+    // Step 3: Verify API response
+    expect(deleteResponse.status()).toBeLessThan(400);
+
+    // Verify redirect to home/organizations list
+    await expect(page).toHaveURL(/\/organizations$|^\/$/, {
+      timeout: 15000,
+    });
+  });
+
+  test("should cancel organization deletion when dialog is dismissed", async ({
+    page,
+    request,
+  }) => {
+    // Setup
+    const timestamp = Date.now();
+    const email = `test-org-cancel-delete-${timestamp}@hook0.local`;
+    const password = `TestPassword123!${timestamp}`;
+
+    // Register and get organization ID
+    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      data: { email, first_name: "Test", last_name: "User", password },
+    });
+    expect(registerResponse.status()).toBeLessThan(400);
+
+    const verificationResult = await verifyEmailViaMailpit(request, email);
+    const organizationId = verificationResult.organizationId;
+    expect(organizationId).toBeTruthy();
+
+    // Login
+    await page.goto("/login");
+    await expect(page.locator('[data-test="login-form"]')).toBeVisible({
+      timeout: 10000,
+    });
+    await page.locator('[data-test="login-email-input"]').fill(email);
+    await page.locator('[data-test="login-password-input"]').fill(password);
+    await page.locator('[data-test="login-submit-button"]').click();
+
+    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
+      timeout: 15000,
+    });
+
+    // Navigate to organization settings
+    await page.goto(`/organizations/${organizationId}/settings`);
+    await expect(page.locator('[data-test="organization-delete-card"]')).toBeVisible({
+      timeout: 10000,
+    });
+
+    // Setup dialog handler to DISMISS the confirmation
+    page.on("dialog", (dialog) => {
+      dialog.dismiss();
+    });
+
+    // Click delete button
+    await page.locator('[data-test="organization-delete-button"]').click();
+
+    // Should still be on settings page (not redirected)
+    await expect(page).toHaveURL(new RegExp(`/organizations/${organizationId}/settings`), {
+      timeout: 5000,
+    });
+
+    // Delete card should still be visible
+    await expect(page.locator('[data-test="organization-delete-card"]')).toBeVisible();
+  });
 });

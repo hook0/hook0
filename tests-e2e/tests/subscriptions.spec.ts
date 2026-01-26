@@ -15,7 +15,13 @@ test.describe("Subscriptions", () => {
     page: import("@playwright/test").Page,
     request: import("@playwright/test").APIRequestContext,
     testId: string
-  ) {
+  ): Promise<{
+    email: string;
+    password: string;
+    organizationId: string;
+    applicationId: string;
+    timestamp: number;
+  }> {
     const timestamp = Date.now();
     const email = `test-sub-${testId}-${timestamp}@hook0.local`;
     const password = `TestPassword123!${timestamp}`;
@@ -35,6 +41,9 @@ test.describe("Subscriptions", () => {
     const verificationResult = await verifyEmailViaMailpit(request, email);
     const organizationId = verificationResult.organizationId;
     expect(organizationId).toBeTruthy();
+    if (!organizationId) {
+      throw new Error("Organization ID is required");
+    }
 
     // Login via UI
     await page.goto("/login");
@@ -296,5 +305,211 @@ test.describe("Subscriptions", () => {
     await expect(page).toHaveURL(/\/subscriptions$/, {
       timeout: 10000,
     });
+  });
+
+  /**
+   * Helper to create a subscription and return its ID
+   */
+  async function createSubscription(
+    page: import("@playwright/test").Page,
+    env: { organizationId: string; applicationId: string; timestamp: number },
+    description: string
+  ): Promise<string> {
+    await page.goto(
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions/new`
+    );
+
+    await expect(page.locator('[data-test="subscription-form"]')).toBeVisible({
+      timeout: 10000,
+    });
+
+    await page.locator('[data-test="subscription-description-input"]').fill(description);
+    await page.locator('[data-test="subscription-method-select"]').selectOption("POST");
+    await page.locator('[data-test="subscription-url-input"]').fill("https://webhook.site/test");
+
+    const labelKeyInput = page.locator('input[placeholder="Label key"]').first();
+    const labelValueInput = page.locator('input[placeholder="Label value"]').first();
+    await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
+    await labelKeyInput.fill("env");
+    await labelValueInput.fill("test");
+
+    const eventTypeCheckbox = page.locator('input[type="checkbox"]').first();
+    await expect(eventTypeCheckbox).toBeVisible({ timeout: 5000 });
+    await eventTypeCheckbox.click();
+
+    const createResponsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/v1/subscriptions") && response.request().method() === "POST",
+      { timeout: 15000 }
+    );
+    await page.locator('[data-test="subscription-submit-button"]').click();
+
+    const createResponse = await createResponsePromise;
+    expect(createResponse.status()).toBeLessThan(400);
+
+    const responseBody = await createResponse.json();
+    return responseBody.subscription_id;
+  }
+
+  test("should update subscription description and verify API response", async ({
+    page,
+    request,
+  }) => {
+    const env = await setupTestEnvironment(page, request, "update");
+    const originalDescription = `Original Subscription ${env.timestamp}`;
+    const updatedDescription = `Updated Subscription ${env.timestamp}`;
+
+    // Create a subscription first
+    const subscriptionId = await createSubscription(page, env, originalDescription);
+
+    // Navigate to subscription edit page
+    await page.goto(
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions/${subscriptionId}`
+    );
+
+    await expect(page.locator('[data-test="subscription-form"]')).toBeVisible({
+      timeout: 10000,
+    });
+
+    // Step 1: Update the description
+    await page.locator('[data-test="subscription-description-input"]').clear();
+    await page.locator('[data-test="subscription-description-input"]').fill(updatedDescription);
+
+    // Step 2: Submit and wait for API response
+    const responsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes(`/api/v1/subscriptions/${subscriptionId}`) &&
+        response.request().method() === "PUT",
+      { timeout: 15000 }
+    );
+
+    await page.locator('[data-test="subscription-submit-button"]').click();
+
+    const response = await responsePromise;
+
+    // Step 3: Verify API response
+    expect(response.status()).toBeLessThan(400);
+    const responseBody = await response.json();
+    expect(responseBody.description).toBe(updatedDescription);
+  });
+
+  test("should update subscription URL and verify API response", async ({ page, request }) => {
+    const env = await setupTestEnvironment(page, request, "update-url");
+    const description = `URL Update Test ${env.timestamp}`;
+    const updatedUrl = "https://webhook.site/updated-endpoint";
+
+    // Create a subscription first
+    const subscriptionId = await createSubscription(page, env, description);
+
+    // Navigate to subscription edit page
+    await page.goto(
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions/${subscriptionId}`
+    );
+
+    await expect(page.locator('[data-test="subscription-form"]')).toBeVisible({
+      timeout: 10000,
+    });
+
+    // Step 1: Update the URL
+    await page.locator('[data-test="subscription-url-input"]').clear();
+    await page.locator('[data-test="subscription-url-input"]').fill(updatedUrl);
+
+    // Step 2: Submit and wait for API response
+    const responsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes(`/api/v1/subscriptions/${subscriptionId}`) &&
+        response.request().method() === "PUT",
+      { timeout: 15000 }
+    );
+
+    await page.locator('[data-test="subscription-submit-button"]').click();
+
+    const response = await responsePromise;
+
+    // Step 3: Verify API response
+    expect(response.status()).toBeLessThan(400);
+    const responseBody = await response.json();
+    expect(responseBody.target.url).toBe(updatedUrl);
+  });
+
+  test("should delete subscription and verify API response", async ({ page, request }) => {
+    const env = await setupTestEnvironment(page, request, "delete");
+    const description = `Delete Test Subscription ${env.timestamp}`;
+
+    // Create a subscription first
+    const subscriptionId = await createSubscription(page, env, description);
+
+    // Navigate to subscription edit page (where delete button is)
+    await page.goto(
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions/${subscriptionId}`
+    );
+
+    await expect(page.locator('[data-test="subscription-form"]')).toBeVisible({
+      timeout: 10000,
+    });
+
+    // Verify delete card is visible
+    await expect(page.locator('[data-test="subscription-delete-card"]')).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(page.locator('[data-test="subscription-delete-button"]')).toBeVisible();
+
+    // Setup dialog handler for confirmation
+    page.on("dialog", (dialog) => {
+      dialog.accept();
+    });
+
+    // Step 2: Click delete and wait for API response
+    const responsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes(`/api/v1/subscriptions`) &&
+        response.request().method() === "DELETE",
+      { timeout: 15000 }
+    );
+
+    await page.locator('[data-test="subscription-delete-button"]').click();
+
+    const response = await responsePromise;
+
+    // Step 3: Verify API response
+    expect(response.status()).toBeLessThan(400);
+
+    // Verify redirect to subscriptions list
+    await expect(page).toHaveURL(/\/subscriptions$/, {
+      timeout: 15000,
+    });
+  });
+
+  test("should cancel delete when dialog is dismissed", async ({ page, request }) => {
+    const env = await setupTestEnvironment(page, request, "delete-cancel");
+    const description = `Cancel Delete Test ${env.timestamp}`;
+
+    // Create a subscription first
+    const subscriptionId = await createSubscription(page, env, description);
+
+    // Navigate to subscription edit page
+    await page.goto(
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions/${subscriptionId}`
+    );
+
+    await expect(page.locator('[data-test="subscription-delete-card"]')).toBeVisible({
+      timeout: 10000,
+    });
+
+    // Setup dialog handler to DISMISS the confirmation
+    page.on("dialog", (dialog) => {
+      dialog.dismiss();
+    });
+
+    // Click delete button
+    await page.locator('[data-test="subscription-delete-button"]').click();
+
+    // Should still be on the edit page (not redirected)
+    await expect(page).toHaveURL(new RegExp(`/subscriptions/${subscriptionId}$`), {
+      timeout: 5000,
+    });
+
+    // Form should still be visible
+    await expect(page.locator('[data-test="subscription-form"]')).toBeVisible();
   });
 });

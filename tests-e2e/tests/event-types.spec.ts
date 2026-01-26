@@ -370,4 +370,216 @@ test.describe("Event Types", () => {
       timeout: 10000,
     });
   });
+
+  test("should deactivate event type and verify API response", async ({ page, request }) => {
+    // Setup
+    const timestamp = Date.now();
+    const email = `test-event-types-deactivate-${timestamp}@hook0.local`;
+    const password = `TestPassword123!${timestamp}`;
+    const service = "notification";
+    const resourceType = "email";
+    const verb = "sent";
+    const eventTypeName = `${service}.${resourceType}.${verb}`;
+
+    // Register and verify
+    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      data: { email, first_name: "Test", last_name: "User", password },
+    });
+    expect(registerResponse.status()).toBeLessThan(400);
+
+    const verificationResult = await verifyEmailViaMailpit(request, email);
+    const organizationId = verificationResult.organizationId;
+    expect(organizationId).toBeTruthy();
+
+    // Login
+    await page.goto("/login");
+    await expect(page.locator('[data-test="login-form"]')).toBeVisible({
+      timeout: 10000,
+    });
+    await page.locator('[data-test="login-email-input"]').fill(email);
+    await page.locator('[data-test="login-password-input"]').fill(password);
+    await page.locator('[data-test="login-submit-button"]').click();
+
+    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
+      timeout: 15000,
+    });
+
+    // Create an application first
+    await page.goto(`/organizations/${organizationId}/applications`);
+    await expect(page.locator('[data-test="applications-create-button"]')).toBeVisible({
+      timeout: 10000,
+    });
+    await page.locator('[data-test="applications-create-button"]').click();
+
+    await expect(page.locator('[data-test="application-form"]')).toBeVisible({
+      timeout: 10000,
+    });
+    await page.locator('[data-test="application-name-input"]').fill(`Test App ${timestamp}`);
+
+    const createAppResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/v1/applications") && response.request().method() === "POST",
+      { timeout: 15000 }
+    );
+    await page.locator('[data-test="application-submit-button"]').click();
+    const appResponse = await createAppResponse;
+    expect(appResponse.status()).toBeLessThan(400);
+    const app = await appResponse.json();
+
+    // Create an event type to deactivate
+    await page.goto(
+      `/organizations/${organizationId}/applications/${app.application_id}/event_types/new`
+    );
+    await expect(page.locator('[data-test="event-type-form"]')).toBeVisible({
+      timeout: 10000,
+    });
+    await page.locator('[data-test="event-type-service-input"]').fill(service);
+    await page.locator('[data-test="event-type-resource-input"]').fill(resourceType);
+    await page.locator('[data-test="event-type-verb-input"]').fill(verb);
+
+    const createEventTypeResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/v1/event_types") && response.request().method() === "POST",
+      { timeout: 15000 }
+    );
+    await page.locator('[data-test="event-type-submit-button"]').click();
+    await createEventTypeResponse;
+
+    // Navigate to event types list
+    await page.goto(
+      `/organizations/${organizationId}/applications/${app.application_id}/event_types`
+    );
+    await expect(page.locator('[data-test="event-types-card"]')).toBeVisible({ timeout: 10000 });
+
+    // Verify the event type exists in the list
+    const rows = page.locator('[data-test="event-types-table"] .ag-row');
+    const rowCount = await rows.count();
+    expect(rowCount).toBeGreaterThanOrEqual(1);
+
+    // Find the row with our event type
+    const targetRow = rows.filter({ hasText: eventTypeName });
+    await expect(targetRow).toBeVisible();
+
+    // Setup dialog handler for deactivate confirmation
+    page.on("dialog", (dialog) => {
+      dialog.accept();
+    });
+
+    // Click deactivate button (it's in the row, text "Deactivate")
+    const deactivateResponsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/v1/event_types") &&
+        response.url().includes(encodeURIComponent(eventTypeName)) &&
+        response.request().method() === "DELETE",
+      { timeout: 15000 }
+    );
+
+    await targetRow.locator('text=Deactivate').click();
+
+    const deactivateResponse = await deactivateResponsePromise;
+
+    // Verify API response
+    expect(deactivateResponse.status()).toBeLessThan(400);
+
+    // Verify the event type is no longer in the list
+    await expect(targetRow).not.toBeVisible({ timeout: 10000 });
+  });
+
+  test("should cancel deactivation when dialog is dismissed", async ({ page, request }) => {
+    // Setup
+    const timestamp = Date.now();
+    const email = `test-event-types-cancel-deact-${timestamp}@hook0.local`;
+    const password = `TestPassword123!${timestamp}`;
+    const service = "order";
+    const resourceType = "payment";
+    const verb = "received";
+    const eventTypeName = `${service}.${resourceType}.${verb}`;
+
+    // Register and verify
+    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      data: { email, first_name: "Test", last_name: "User", password },
+    });
+    expect(registerResponse.status()).toBeLessThan(400);
+
+    const verificationResult = await verifyEmailViaMailpit(request, email);
+    const organizationId = verificationResult.organizationId;
+    expect(organizationId).toBeTruthy();
+
+    // Login
+    await page.goto("/login");
+    await expect(page.locator('[data-test="login-form"]')).toBeVisible({
+      timeout: 10000,
+    });
+    await page.locator('[data-test="login-email-input"]').fill(email);
+    await page.locator('[data-test="login-password-input"]').fill(password);
+    await page.locator('[data-test="login-submit-button"]').click();
+
+    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
+      timeout: 15000,
+    });
+
+    // Create an application first
+    await page.goto(`/organizations/${organizationId}/applications`);
+    await expect(page.locator('[data-test="applications-create-button"]')).toBeVisible({
+      timeout: 10000,
+    });
+    await page.locator('[data-test="applications-create-button"]').click();
+
+    await expect(page.locator('[data-test="application-form"]')).toBeVisible({
+      timeout: 10000,
+    });
+    await page.locator('[data-test="application-name-input"]').fill(`Test App ${timestamp}`);
+
+    const createAppResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/v1/applications") && response.request().method() === "POST",
+      { timeout: 15000 }
+    );
+    await page.locator('[data-test="application-submit-button"]').click();
+    const appResponse = await createAppResponse;
+    expect(appResponse.status()).toBeLessThan(400);
+    const app = await appResponse.json();
+
+    // Create an event type
+    await page.goto(
+      `/organizations/${organizationId}/applications/${app.application_id}/event_types/new`
+    );
+    await expect(page.locator('[data-test="event-type-form"]')).toBeVisible({
+      timeout: 10000,
+    });
+    await page.locator('[data-test="event-type-service-input"]').fill(service);
+    await page.locator('[data-test="event-type-resource-input"]').fill(resourceType);
+    await page.locator('[data-test="event-type-verb-input"]').fill(verb);
+
+    const createEventTypeResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/v1/event_types") && response.request().method() === "POST",
+      { timeout: 15000 }
+    );
+    await page.locator('[data-test="event-type-submit-button"]').click();
+    await createEventTypeResponse;
+
+    // Navigate to event types list
+    await page.goto(
+      `/organizations/${organizationId}/applications/${app.application_id}/event_types`
+    );
+    await expect(page.locator('[data-test="event-types-card"]')).toBeVisible({ timeout: 10000 });
+
+    // Find the row with our event type
+    const rows = page.locator('[data-test="event-types-table"] .ag-row');
+    const targetRow = rows.filter({ hasText: eventTypeName });
+    await expect(targetRow).toBeVisible();
+
+    // Setup dialog handler to DISMISS the confirmation
+    page.on("dialog", (dialog) => {
+      dialog.dismiss();
+    });
+
+    // Click deactivate button
+    await targetRow.locator('text=Deactivate').click();
+
+    // Verify the event type is still in the list (deactivation was cancelled)
+    await expect(targetRow).toBeVisible();
+    await expect(targetRow).toContainText(eventTypeName);
+  });
 });

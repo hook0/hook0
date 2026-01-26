@@ -210,6 +210,121 @@ test.describe("User Settings", () => {
       timeout: 10000,
     });
   });
+
+  test("should delete user account and verify API response", async ({ page, request }) => {
+    // Setup - create a dedicated user for deletion
+    const timestamp = Date.now();
+    const email = `test-delete-account-${timestamp}@hook0.local`;
+    const password = `TestPassword123!${timestamp}`;
+
+    // Register and verify
+    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      data: { email, first_name: "Test", last_name: "User", password },
+    });
+    expect(registerResponse.status()).toBeLessThan(400);
+    await verifyEmailViaMailpit(request, email);
+
+    // Login
+    await page.goto("/login");
+    await expect(page.locator('[data-test="login-form"]')).toBeVisible({
+      timeout: 10000,
+    });
+    await page.locator('[data-test="login-email-input"]').fill(email);
+    await page.locator('[data-test="login-password-input"]').fill(password);
+    await page.locator('[data-test="login-submit-button"]').click();
+
+    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
+      timeout: 15000,
+    });
+
+    // Navigate to settings
+    await page.goto("/settings");
+
+    await expect(page.locator('[data-test="delete-account-card"]')).toBeVisible({
+      timeout: 10000,
+    });
+
+    // Setup dialog handler for delete confirmation
+    page.on("dialog", (dialog) => {
+      dialog.accept();
+    });
+
+    // Step 2: Click delete and wait for API response
+    const deleteResponsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/v1/user") && response.request().method() === "DELETE",
+      { timeout: 15000 }
+    );
+
+    await page.locator('[data-test="delete-account-button"]').click();
+
+    const deleteResponse = await deleteResponsePromise;
+
+    // Step 3: Verify API response
+    expect(deleteResponse.status()).toBeLessThan(400);
+
+    // Verify success notification is shown
+    await expect(
+      page.locator('[class*="Notivue"], [class*="notivue"], [role="alert"]').first()
+    ).toBeVisible({
+      timeout: 10000,
+    });
+
+    // Wait for logout redirect (the app logs out after 3 seconds)
+    await expect(page).toHaveURL(/\/login|^\/$/, {
+      timeout: 10000,
+    });
+  });
+
+  test("should cancel account deletion when dialog is dismissed", async ({ page, request }) => {
+    // Setup
+    const timestamp = Date.now();
+    const email = `test-cancel-delete-${timestamp}@hook0.local`;
+    const password = `TestPassword123!${timestamp}`;
+
+    // Register and verify
+    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      data: { email, first_name: "Test", last_name: "User", password },
+    });
+    expect(registerResponse.status()).toBeLessThan(400);
+    await verifyEmailViaMailpit(request, email);
+
+    // Login
+    await page.goto("/login");
+    await expect(page.locator('[data-test="login-form"]')).toBeVisible({
+      timeout: 10000,
+    });
+    await page.locator('[data-test="login-email-input"]').fill(email);
+    await page.locator('[data-test="login-password-input"]').fill(password);
+    await page.locator('[data-test="login-submit-button"]').click();
+
+    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
+      timeout: 15000,
+    });
+
+    // Navigate to settings
+    await page.goto("/settings");
+
+    await expect(page.locator('[data-test="delete-account-card"]')).toBeVisible({
+      timeout: 10000,
+    });
+
+    // Setup dialog handler to DISMISS the confirmation
+    page.on("dialog", (dialog) => {
+      dialog.dismiss();
+    });
+
+    // Click delete button
+    await page.locator('[data-test="delete-account-button"]').click();
+
+    // Should still be on settings page (not logged out)
+    await expect(page).toHaveURL(/\/settings/, {
+      timeout: 5000,
+    });
+
+    // Delete account card should still be visible
+    await expect(page.locator('[data-test="delete-account-card"]')).toBeVisible();
+  });
 });
 
 test.describe("Password Reset Flow", () => {
