@@ -219,7 +219,12 @@ onUpdated(() => {
         </Hook0CardContent>
 
         <Hook0CardFooter>
-          <Hook0Button class="primary" type="button" data-test="service-tokens-create-button" @click="createNew">
+          <Hook0Button
+            class="primary"
+            type="button"
+            data-test="service-tokens-create-button"
+            @click="createNew"
+          >
             <Hook0Icon name="plus" class="mr-1"></Hook0Icon>
             Create Service Token
           </Hook0Button>

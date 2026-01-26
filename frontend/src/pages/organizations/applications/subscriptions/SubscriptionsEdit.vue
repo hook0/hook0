@@ -454,7 +454,12 @@ onUpdated(() => {
           </template>
         </Hook0CardContentLine>
         <Hook0CardFooter>
-          <Hook0Button v-if="!props.tutorialMode" class="secondary" type="button" data-test="subscription-cancel-button" @click="cancel2()"
+          <Hook0Button
+            v-if="!props.tutorialMode"
+            class="secondary"
+            type="button"
+            data-test="subscription-cancel-button"
+            @click="cancel2()"
             >Cancel</Hook0Button
           >
           <Hook0Button

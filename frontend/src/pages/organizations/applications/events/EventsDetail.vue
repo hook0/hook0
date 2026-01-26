@@ -59,7 +59,10 @@ onUpdated(() => {
         <Hook0Card data-test="event-detail-card">
           <Hook0CardHeader>
             <template #header>
-              Event of type <Hook0Text class="code" data-test="event-detail-type">{{ event.event_type_name }}</Hook0Text>
+              Event of type
+              <Hook0Text class="code" data-test="event-detail-type">{{
+                event.event_type_name
+              }}</Hook0Text>
             </template>
             <template #subtitle>
               <Hook0Text class="block">

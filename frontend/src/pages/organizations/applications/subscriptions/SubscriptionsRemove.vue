@@ -76,7 +76,12 @@ function displayError(err: Problem) {
       </template>
     </Hook0CardHeader>
     <Hook0CardFooter>
-      <Hook0Button class="danger" type="button" :loading="loading" data-test="subscription-delete-button" @click="remove($event)"
+      <Hook0Button
+        class="danger"
+        type="button"
+        :loading="loading"
+        data-test="subscription-delete-button"
+        @click="remove($event)"
         >Delete</Hook0Button
       >
     </Hook0CardFooter>

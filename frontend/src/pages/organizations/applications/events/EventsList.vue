@@ -268,7 +268,11 @@ function toMap(pairs: Hook0KeyValueKeyValuePair[]): Record<string, string> {
             <Hook0CardContentLine>
               <template #label> Event Type </template>
               <template #content>
-                <Hook0Select v-model="selected_event_type" :options="event_types" data-test="send-event-type-select"></Hook0Select>
+                <Hook0Select
+                  v-model="selected_event_type"
+                  :options="event_types"
+                  data-test="send-event-type-select"
+                ></Hook0Select>
               </template>
             </Hook0CardContentLine>
             <Hook0CardContentLine>
@@ -296,7 +300,11 @@ function toMap(pairs: Hook0KeyValueKeyValuePair[]): Record<string, string> {
             <Hook0CardContentLine>
               <template #label> Occurred At </template>
               <template #content>
-                <Hook0Input v-model="occurred_at" type="datetime-local" data-test="send-event-occurred-at-input" />
+                <Hook0Input
+                  v-model="occurred_at"
+                  type="datetime-local"
+                  data-test="send-event-occurred-at-input"
+                />
               </template>
             </Hook0CardContentLine>
             <Hook0CardContentLine>
@@ -315,7 +323,11 @@ function toMap(pairs: Hook0KeyValueKeyValuePair[]): Record<string, string> {
           </Hook0CardContent>
 
           <Hook0CardFooter>
-            <Hook0Button v-if="!props.tutorialMode" class="secondary" data-test="send-event-cancel-button" @click="cancel_test"
+            <Hook0Button
+              v-if="!props.tutorialMode"
+              class="secondary"
+              data-test="send-event-cancel-button"
+              @click="cancel_test"
               >Cancel</Hook0Button
             >
 
@@ -382,7 +394,9 @@ function toMap(pairs: Hook0KeyValueKeyValuePair[]): Record<string, string> {
         </Hook0CardContent>
 
         <Hook0CardFooter>
-          <Hook0Button class="primary" data-test="events-send-button" @click="display_event_form">Send an event</Hook0Button>
+          <Hook0Button class="primary" data-test="events-send-button" @click="display_event_form"
+            >Send an event</Hook0Button
+          >
         </Hook0CardFooter>
       </Hook0Card>
     </template>

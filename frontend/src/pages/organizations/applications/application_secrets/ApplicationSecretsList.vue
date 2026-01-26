@@ -205,7 +205,11 @@ onUpdated(() => {
         </Hook0CardContent>
 
         <Hook0CardFooter>
-          <Hook0Button class="primary" type="button" data-test="api-keys-create-button" @click="createNew"
+          <Hook0Button
+            class="primary"
+            type="button"
+            data-test="api-keys-create-button"
+            @click="createNew"
             >Create new API Key
           </Hook0Button>
         </Hook0CardFooter>

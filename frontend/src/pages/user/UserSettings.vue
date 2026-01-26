@@ -167,7 +167,12 @@ function displayError(err: Problem) {
               <p>You will be disconnected from all browsers/devices including the current one.</p>
             </div>
           </div>
-          <Hook0Button class="primary" submit aria-label="Change Password" title="Change Password" data-test="change-password-button"
+          <Hook0Button
+            class="primary"
+            submit
+            aria-label="Change Password"
+            title="Change Password"
+            data-test="change-password-button"
             >Change password</Hook0Button
           >
         </Hook0CardFooter>
