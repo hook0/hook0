@@ -10,58 +10,38 @@ import { test, expect } from "@playwright/test";
  * 3. Verify response.status < 400 AND verify data persistence
  */
 test.describe("Applications", () => {
-  let testUserEmail: string;
-  let testUserPassword: string;
-  let organizationId: string;
-
-  test.beforeAll(async ({ request }) => {
-    // Create a test user and get their organization
+  // Each test creates its own user to avoid state conflicts
+  async function createTestUserAndLogin(
+    page: import("@playwright/test").Page,
+    request: import("@playwright/test").APIRequestContext
+  ): Promise<{
+    email: string;
+    password: string;
+    organizationId: string;
+  }> {
     const timestamp = Date.now();
-    testUserEmail = `test-apps-${timestamp}@hook0.local`;
-    testUserPassword = `TestPassword123!${timestamp}`;
+    const email = `test-apps-${timestamp}@hook0.local`;
+    const password = `TestPassword123!${timestamp}`;
 
+    // Create user via API
     const registerResponse = await request.post("/api/v1/register", {
       data: {
-        email: testUserEmail,
+        email,
         first_name: "Test",
         last_name: "User",
-        password: testUserPassword,
+        password,
       },
     });
     expect(registerResponse.status()).toBeLessThan(400);
 
-    // Login to get the organization ID
-    const loginResponse = await request.post("/api/v1/login", {
-      data: {
-        email: testUserEmail,
-        password: testUserPassword,
-      },
-    });
-    expect(loginResponse.status()).toBeLessThan(400);
-
-    // Get organizations to find the user's org
-    const orgsResponse = await request.get("/api/v1/organizations");
-    if (orgsResponse.status() < 400) {
-      const orgs = await orgsResponse.json();
-      if (orgs.length > 0) {
-        organizationId = orgs[0].organization_id;
-      }
-    }
-  });
-
-  test.beforeEach(async ({ page }) => {
-    // Login before each test
+    // Login via UI to establish session
     await page.goto("/login");
     await expect(page.locator('[data-test="login-form"]')).toBeVisible({
       timeout: 10000,
     });
 
-    await page
-      .locator('[data-test="login-email-input"]')
-      .fill(testUserEmail);
-    await page
-      .locator('[data-test="login-password-input"]')
-      .fill(testUserPassword);
+    await page.locator('[data-test="login-email-input"]').fill(email);
+    await page.locator('[data-test="login-password-input"]').fill(password);
 
     const loginResponsePromise = page.waitForResponse(
       (response) =>
@@ -76,19 +56,51 @@ test.describe("Applications", () => {
     const loginResponse = await loginResponsePromise;
     expect(loginResponse.status()).toBeLessThan(400);
 
+    // Wait for redirect and get the organization ID from the URL or API
     await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
       timeout: 15000,
     });
-  });
 
-  test("should display applications list after login", async ({ page }) => {
-    // Navigate to applications list
-    if (organizationId) {
-      await page.goto(`/organizations/${organizationId}/applications`);
+    // Get organization ID from API (now we have session cookies)
+    const orgsResponse = await page.request.get("/api/v1/organizations");
+    expect(orgsResponse.status()).toBeLessThan(400);
+    const orgs = await orgsResponse.json();
+
+    // If no orgs exist yet, the user is in tutorial mode - create one
+    let organizationId: string;
+    if (orgs.length === 0) {
+      // Create an organization via the tutorial flow or API
+      const createOrgResponse = await page.request.post(
+        "/api/v1/organizations",
+        {
+          data: {
+            name: `Test Org ${timestamp}`,
+          },
+        }
+      );
+      expect(createOrgResponse.status()).toBeLessThan(400);
+      const newOrg = await createOrgResponse.json();
+      organizationId = newOrg.organization_id;
+    } else {
+      organizationId = orgs[0].organization_id;
     }
 
+    return { email, password, organizationId };
+  }
+
+  test("should display applications list after login", async ({
+    page,
+    request,
+  }) => {
+    const { organizationId } = await createTestUserAndLogin(page, request);
+
+    // Navigate to applications list
+    await page.goto(`/organizations/${organizationId}/applications`);
+
     // Verify applications card is visible
-    await expect(page.locator('[data-test="applications-card"]')).toBeVisible({
+    await expect(
+      page.locator('[data-test="applications-card"]')
+    ).toBeVisible({
       timeout: 10000,
     });
 
@@ -100,14 +112,14 @@ test.describe("Applications", () => {
 
   test("should create new application with required fields and verify API response", async ({
     page,
+    request,
   }) => {
+    const { organizationId } = await createTestUserAndLogin(page, request);
     const timestamp = Date.now();
     const appName = `Test App ${timestamp}`;
 
     // Navigate to applications list
-    if (organizationId) {
-      await page.goto(`/organizations/${organizationId}/applications`);
-    }
+    await page.goto(`/organizations/${organizationId}/applications`);
 
     await expect(
       page.locator('[data-test="applications-create-button"]')
@@ -154,11 +166,12 @@ test.describe("Applications", () => {
     page,
     request,
   }) => {
+    const { organizationId } = await createTestUserAndLogin(page, request);
     const timestamp = Date.now();
     const appName = `Details App ${timestamp}`;
 
-    // Create application via API
-    const createResponse = await request.post("/api/v1/applications", {
+    // Create application via API (using page.request for session context)
+    const createResponse = await page.request.post("/api/v1/applications", {
       data: {
         name: appName,
         organization_id: organizationId,
@@ -185,12 +198,13 @@ test.describe("Applications", () => {
     page,
     request,
   }) => {
+    const { organizationId } = await createTestUserAndLogin(page, request);
     const timestamp = Date.now();
     const originalName = `Original App ${timestamp}`;
     const updatedName = `Updated App ${timestamp}`;
 
-    // Create application via API
-    const createResponse = await request.post("/api/v1/applications", {
+    // Create application via API (using page.request for session context)
+    const createResponse = await page.request.post("/api/v1/applications", {
       data: {
         name: originalName,
         organization_id: organizationId,
@@ -211,7 +225,9 @@ test.describe("Applications", () => {
 
     // Step 1: Update the name
     await page.locator('[data-test="application-name-input"]').clear();
-    await page.locator('[data-test="application-name-input"]').fill(updatedName);
+    await page
+      .locator('[data-test="application-name-input"]')
+      .fill(updatedName);
 
     // Step 2: Submit and wait for API response
     const responsePromise = page.waitForResponse(
@@ -232,7 +248,7 @@ test.describe("Applications", () => {
     expect(responseBody.name).toBe(updatedName);
 
     // Verify the change persisted by fetching the application
-    const getResponse = await request.get(
+    const getResponse = await page.request.get(
       `/api/v1/applications/${app.application_id}`
     );
     expect(getResponse.status()).toBeLessThan(400);
@@ -244,11 +260,12 @@ test.describe("Applications", () => {
     page,
     request,
   }) => {
+    const { organizationId } = await createTestUserAndLogin(page, request);
     const timestamp = Date.now();
     const appName = `Delete App ${timestamp}`;
 
     // Create application via API
-    const createResponse = await request.post("/api/v1/applications", {
+    const createResponse = await page.request.post("/api/v1/applications", {
       data: {
         name: appName,
         organization_id: organizationId,
@@ -261,7 +278,9 @@ test.describe("Applications", () => {
     await page.goto(`/organizations/${organizationId}/applications`);
 
     // Wait for table to be visible
-    await expect(page.locator('[data-test="applications-table"]')).toBeVisible({
+    await expect(
+      page.locator('[data-test="applications-table"]')
+    ).toBeVisible({
       timeout: 10000,
     });
 
@@ -296,7 +315,7 @@ test.describe("Applications", () => {
     });
 
     // Verify via API that app no longer exists
-    const getResponse = await request.get(
+    const getResponse = await page.request.get(
       `/api/v1/applications/${app.application_id}`
     );
     expect(getResponse.status()).toBeGreaterThanOrEqual(400);
@@ -304,11 +323,12 @@ test.describe("Applications", () => {
 
   test("should show validation error when creating application without name", async ({
     page,
+    request,
   }) => {
+    const { organizationId } = await createTestUserAndLogin(page, request);
+
     // Navigate to create application page
-    if (organizationId) {
-      await page.goto(`/organizations/${organizationId}/applications/new`);
-    }
+    await page.goto(`/organizations/${organizationId}/applications/new`);
 
     // Wait for form to be visible
     await expect(page.locator('[data-test="application-form"]')).toBeVisible({
@@ -331,11 +351,12 @@ test.describe("Applications", () => {
 
   test("should cancel application creation and return to previous page", async ({
     page,
+    request,
   }) => {
+    const { organizationId } = await createTestUserAndLogin(page, request);
+
     // Navigate to applications list first
-    if (organizationId) {
-      await page.goto(`/organizations/${organizationId}/applications`);
-    }
+    await page.goto(`/organizations/${organizationId}/applications`);
 
     await expect(
       page.locator('[data-test="applications-create-button"]')
@@ -358,7 +379,9 @@ test.describe("Applications", () => {
     await page.locator('[data-test="application-cancel-button"]').click();
 
     // Verify we're back to applications list
-    await expect(page.locator('[data-test="applications-card"]')).toBeVisible({
+    await expect(
+      page.locator('[data-test="applications-card"]')
+    ).toBeVisible({
       timeout: 10000,
     });
   });

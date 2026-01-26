@@ -63,7 +63,7 @@ test.describe("Authentication", () => {
 
       await page.locator('[data-test="login-forgot-password-link"]').click();
 
-      await expect(page).toHaveURL(/\/reset-password|\/forgot/);
+      await expect(page).toHaveURL(/\/begin-reset-password|\/reset-password|\/forgot/);
     });
 
     test("should show error notification for invalid credentials and verify API response", async ({
