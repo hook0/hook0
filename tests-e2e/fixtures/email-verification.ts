@@ -129,7 +129,7 @@ export async function verifyEmailViaMailpit(
           // Don't use the verification link (frontend URL) as it won't execute JS
           const token = extractVerificationToken(content);
           if (token) {
-            await request.post(`${API_BASE_URL}/verify-email`, {
+            await request.post(`${API_BASE_URL}/auth/verify-email`, {
               data: { token },
               timeout: 10000,
               failOnStatusCode: false,
