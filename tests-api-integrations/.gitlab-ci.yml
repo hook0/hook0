@@ -2,7 +2,7 @@ api-integration-tests.build:
   extends: .rust-cache-pull-push
   stage: build
   dependencies: []
-  image: rust:$RUST_VERSION
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/rust:$RUST_VERSION
   rules:
     - changes:
         - tests-api-integrations/**/*
@@ -25,7 +25,7 @@ api-integration-tests.test:
   stage: test
   dependencies:
     - api-integration-tests.build
-  image: node:$NODE_VERSION
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/node:$NODE_VERSION
   rules:
     - changes:
         - tests-api-integrations/**/*
@@ -33,7 +33,8 @@ api-integration-tests.test:
         - output-worker/**/*
         - Cargo.*
   services:
-    - name: postgres:$PG_VERSION
+    - name: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/postgres:$PG_VERSION
+      alias: postgres
   variables:
     ## postgres
     POSTGRES_DB: postgres
