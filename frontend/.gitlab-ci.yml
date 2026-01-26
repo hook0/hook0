@@ -5,7 +5,7 @@ frontend.build:
     - changes:
         - frontend/**/*
         - tests-e2e/**/*
-  image: node:$NODE_VERSION
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/node:$NODE_VERSION
   script:
     - pushd frontend/
     - npm ci
@@ -23,7 +23,7 @@ frontend.check:
   rules:
     - changes:
         - frontend/**/*
-  image: node:$NODE_VERSION
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/node:$NODE_VERSION
   script:
     - pushd frontend/
     - npm run check
