@@ -70,8 +70,18 @@ function skipTutorial() {
       </Hook0CardContentLines>
     </Hook0CardContent>
     <Hook0CardFooter>
-      <Hook0Button class="secondary" type="button" @click="skipTutorial">Skip</Hook0Button>
-      <Hook0Button class="primary shadow-md" type="button" @click="startTutorial"
+      <Hook0Button
+        class="secondary"
+        type="button"
+        data-test="tutorial-skip-button"
+        @click="skipTutorial"
+        >Skip</Hook0Button
+      >
+      <Hook0Button
+        class="primary shadow-md"
+        type="button"
+        data-test="tutorial-start-button"
+        @click="startTutorial"
         >🚀 Start Step 1: Create Your Organization</Hook0Button
       >
     </Hook0CardFooter>

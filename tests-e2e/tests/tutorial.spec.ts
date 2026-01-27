@@ -69,8 +69,8 @@ test.describe("Tutorial", () => {
 
     // Verify tutorial page contains expected elements
     await expect(page.locator("text=Welcome to Hook0")).toBeVisible({ timeout: 10000 });
-    await expect(page.locator("text=Start")).toBeVisible();
-    await expect(page.locator("text=Skip")).toBeVisible();
+    await expect(page.locator('[data-test="tutorial-start-button"]')).toBeVisible();
+    await expect(page.locator('[data-test="tutorial-skip-button"]')).toBeVisible();
   });
 
   test("should skip tutorial and redirect to organizations dashboard", async ({ page, request }) => {
@@ -80,10 +80,10 @@ test.describe("Tutorial", () => {
     await page.goto("/tutorial");
 
     // Wait for tutorial page to load
-    await expect(page.locator("text=Skip")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-test="tutorial-skip-button"]')).toBeVisible({ timeout: 10000 });
 
     // Click skip button
-    await page.locator("text=Skip").click();
+    await page.locator('[data-test="tutorial-skip-button"]').click();
 
     // Should be redirected to home/organizations
     await expect(page).toHaveURL(/\/organizations|\/dashboard/, {
@@ -101,10 +101,10 @@ test.describe("Tutorial", () => {
     await page.goto("/tutorial");
 
     // Wait for tutorial page to load
-    await expect(page.locator("button:has-text('Start')")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-test="tutorial-start-button"]')).toBeVisible({ timeout: 10000 });
 
     // Click start button
-    await page.locator("button:has-text('Start')").click();
+    await page.locator('[data-test="tutorial-start-button"]').click();
 
     // Should be redirected to the first tutorial step (create organization)
     await expect(page).toHaveURL(/\/tutorial\/create-organization|\/organizations\/new/, {
@@ -122,8 +122,8 @@ test.describe("Tutorial", () => {
     await page.goto("/tutorial");
 
     // Wait for tutorial page to load and click Start
-    await expect(page.locator("button:has-text('Start')")).toBeVisible({ timeout: 10000 });
-    await page.locator("button:has-text('Start')").click();
+    await expect(page.locator('[data-test="tutorial-start-button"]')).toBeVisible({ timeout: 10000 });
+    await page.locator('[data-test="tutorial-start-button"]').click();
 
     // Wait for create organization step
     await expect(page).toHaveURL(/\/tutorial\/create-organization|\/organizations\/new/, {
