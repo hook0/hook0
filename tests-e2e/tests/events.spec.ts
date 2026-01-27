@@ -180,23 +180,23 @@ test.describe("Events", () => {
     await page.locator('[data-test="send-event-type-select"]').selectOption(env.eventTypeName);
 
     // Add labels (required for event submission)
-    // Use focus + keyboard input to properly trigger Vue's v-model reactivity
+    // Use clear + fill + blur to properly trigger Vue's v-model reactivity and debounced emit
     const labelKeyInput = page.locator('input[placeholder="Label key"]').first();
     const labelValueInput = page.locator('input[placeholder="Label value"]').first();
     await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
 
-    // Focus and type into key input using keyboard
-    await labelKeyInput.focus();
-    await labelKeyInput.selectText();
-    await page.keyboard.type("env");
+    // Clear and fill key input, then blur to trigger debounced emit
+    await labelKeyInput.clear();
+    await labelKeyInput.fill("env");
+    await labelKeyInput.blur();
 
-    // Focus and type into value input using keyboard
-    await labelValueInput.focus();
-    await labelValueInput.selectText();
-    await page.keyboard.type("test");
+    // Clear and fill value input, then blur to trigger debounced emit
+    await labelValueInput.clear();
+    await labelValueInput.fill("test");
+    await labelValueInput.blur();
 
-    // Wait for debounced label input to be processed (lodash debounce default wait time)
-    await page.waitForTimeout(500);
+    // Wait for debounced label input to be processed (lodash debounce default wait + some buffer)
+    await page.waitForTimeout(400);
 
     // Set occurred_at to current date/time
     const now = new Date();
@@ -246,25 +246,23 @@ test.describe("Events", () => {
     await page.locator('[data-test="send-event-type-select"]').selectOption(env.eventTypeName);
 
     // Add labels (required for event submission)
-    // Use evaluate to set value and trigger Vue's v-model reactivity directly
+    // Use clear + fill + blur to properly trigger Vue's v-model reactivity and debounced emit
     const labelKeyInput = page.locator('input[placeholder="Label key"]').first();
     const labelValueInput = page.locator('input[placeholder="Label value"]').first();
     await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
 
-    // Set label key value and trigger input event
-    await labelKeyInput.evaluate((el: HTMLInputElement) => {
-      el.value = "env";
-      el.dispatchEvent(new Event("input", { bubbles: true }));
-    });
+    // Clear and fill key input, then blur to trigger debounced emit
+    await labelKeyInput.clear();
+    await labelKeyInput.fill("env");
+    await labelKeyInput.blur();
 
-    // Set label value and trigger input event
-    await labelValueInput.evaluate((el: HTMLInputElement) => {
-      el.value = "test";
-      el.dispatchEvent(new Event("input", { bubbles: true }));
-    });
+    // Clear and fill value input, then blur to trigger debounced emit
+    await labelValueInput.clear();
+    await labelValueInput.fill("test");
+    await labelValueInput.blur();
 
-    // Wait for debounced label input to be processed
-    await page.waitForTimeout(500);
+    // Wait for debounced label input to be processed (lodash debounce default wait + some buffer)
+    await page.waitForTimeout(400);
 
     const now = new Date();
     const dateTimeValue = now.toISOString().slice(0, 16);
@@ -334,25 +332,23 @@ test.describe("Events", () => {
     await page.locator('[data-test="send-event-type-select"]').selectOption(env.eventTypeName);
 
     // Add labels (required for event submission)
-    // Use evaluate to set value and trigger Vue's v-model reactivity directly
+    // Use clear + fill + blur to properly trigger Vue's v-model reactivity and debounced emit
     const labelKeyInput = page.locator('input[placeholder="Label key"]').first();
     const labelValueInput = page.locator('input[placeholder="Label value"]').first();
     await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
 
-    // Set label key value and trigger input event
-    await labelKeyInput.evaluate((el: HTMLInputElement) => {
-      el.value = "env";
-      el.dispatchEvent(new Event("input", { bubbles: true }));
-    });
+    // Clear and fill key input, then blur to trigger debounced emit
+    await labelKeyInput.clear();
+    await labelKeyInput.fill("env");
+    await labelKeyInput.blur();
 
-    // Set label value and trigger input event
-    await labelValueInput.evaluate((el: HTMLInputElement) => {
-      el.value = "test";
-      el.dispatchEvent(new Event("input", { bubbles: true }));
-    });
+    // Clear and fill value input, then blur to trigger debounced emit
+    await labelValueInput.clear();
+    await labelValueInput.fill("test");
+    await labelValueInput.blur();
 
-    // Wait for debounced label input to be processed
-    await page.waitForTimeout(500);
+    // Wait for debounced label input to be processed (lodash debounce default wait + some buffer)
+    await page.waitForTimeout(400);
 
     const now = new Date();
     const dateTimeValue = now.toISOString().slice(0, 16);

@@ -439,14 +439,15 @@ test.describe("Subscriptions", () => {
         }
       }
 
-      // If href extraction failed, try clicking and waiting for navigation
+      // If href extraction failed, try clicking and waiting for detail page element
       if (!subscriptionId) {
         await linkInRow.click();
-        // Wait for Vue Router navigation to complete
-        await page.waitForURL(/\/subscriptions\/[^/]+$/, { timeout: 15000 });
+        // Wait for subscription detail page element to appear (Vue Router navigation completed)
+        await expect(page.locator('[data-test="subscription-form"]')).toBeVisible({ timeout: 15000 });
 
+        // Extract subscription ID from the URL after navigation
         const currentUrl = page.url();
-        const urlMatch = currentUrl.match(/\/subscriptions\/([^/]+)$/);
+        const urlMatch = currentUrl.match(/\/subscriptions\/([^/]+)/);
         if (urlMatch) {
           subscriptionId = urlMatch[1];
         }
