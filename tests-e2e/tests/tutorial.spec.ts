@@ -87,7 +87,8 @@ test.describe("Tutorial", () => {
 
     // Should be redirected to home (which is "/" - the Home route)
     // Note: The Home route in Hook0 is "/" which redirects based on user state
-    await expect(page).toHaveURL(/^\/$|\/organizations|\/dashboard/, {
+    // The full URL is like "http://localhost:8001/" so we match the path ending with / or continuing
+    await expect(page).toHaveURL(/\/$|\/organizations|\/dashboard/, {
       timeout: 15000,
     });
   });
@@ -133,6 +134,12 @@ test.describe("Tutorial", () => {
       timeout: 15000,
     });
 
+    // Select "Create a new organization" option (radio button)
+    // The form is only shown after selecting this option
+    const createOrgRadio = page.locator('input[type="radio"][value="create_organization"]');
+    await expect(createOrgRadio).toBeVisible({ timeout: 10000 });
+    await createOrgRadio.click();
+
     // Fill organization name
     await expect(page.locator('[data-test="organization-name-input"]')).toBeVisible({
       timeout: 10000,
@@ -140,9 +147,18 @@ test.describe("Tutorial", () => {
     await page.locator('[data-test="organization-name-input"]').fill(`Tutorial Org ${env.timestamp}`);
 
     // Submit and wait for API response
+    // Capture response body inside the predicate to avoid race condition with navigation
+    let responseBody: { organization_id?: string } = {};
     const orgResponsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/v1/organizations") && response.request().method() === "POST",
+      async (response) => {
+        if (response.url().includes("/api/v1/organizations") && response.request().method() === "POST") {
+          if (response.status() < 400) {
+            responseBody = await response.json();
+          }
+          return true;
+        }
+        return false;
+      },
       { timeout: 15000 }
     );
 
@@ -152,7 +168,6 @@ test.describe("Tutorial", () => {
 
     // Verify API response
     expect(orgResponse.status()).toBeLessThan(400);
-    const responseBody = await orgResponse.json();
     expect(responseBody).toHaveProperty("organization_id");
 
     // Should proceed to next tutorial step

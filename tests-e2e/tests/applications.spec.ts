@@ -131,9 +131,18 @@ test.describe("Applications", () => {
     await page.locator('[data-test="application-name-input"]').fill(appName);
 
     // Submit and wait for API response
+    // Capture response body inside the predicate to avoid race condition with navigation
+    let responseBody: { application_id?: string; name?: string } = {};
     const responsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/v1/applications") && response.request().method() === "POST",
+      async (response) => {
+        if (response.url().includes("/api/v1/applications") && response.request().method() === "POST") {
+          if (response.status() < 400) {
+            responseBody = await response.json();
+          }
+          return true;
+        }
+        return false;
+      },
       { timeout: 15000 }
     );
 
@@ -143,7 +152,6 @@ test.describe("Applications", () => {
 
     // Verify API response
     expect(response.status()).toBeLessThan(400);
-    const responseBody = await response.json();
     expect(responseBody).toHaveProperty("application_id");
     expect(responseBody.name).toBe(appName);
   });
@@ -217,10 +225,18 @@ test.describe("Applications", () => {
     await page.locator('[data-test="application-name-input"]').fill(updatedName);
 
     // Submit and wait for response
+    // Capture response body inside the predicate to avoid race condition with navigation
+    let responseBody: { name?: string } = {};
     const responsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes(`/api/v1/applications/${app.application_id}`) &&
-        response.request().method() === "PUT",
+      async (response) => {
+        if (response.url().includes(`/api/v1/applications/${app.application_id}`) && response.request().method() === "PUT") {
+          if (response.status() < 400) {
+            responseBody = await response.json();
+          }
+          return true;
+        }
+        return false;
+      },
       { timeout: 15000 }
     );
 
@@ -230,7 +246,6 @@ test.describe("Applications", () => {
 
     // Verify
     expect(response.status()).toBeLessThan(400);
-    const responseBody = await response.json();
     expect(responseBody.name).toBe(updatedName);
   });
 

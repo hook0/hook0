@@ -61,21 +61,30 @@ test.describe("Logs", () => {
     });
     await page.locator('[data-test="application-name-input"]').fill(`Test App ${timestamp}`);
 
+    // Capture response body inside the predicate to avoid race condition with navigation
+    let applicationId: string = "";
     const createAppResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/v1/applications") && response.request().method() === "POST",
+      async (response) => {
+        if (response.url().includes("/api/v1/applications") && response.request().method() === "POST") {
+          if (response.status() < 400) {
+            const app = await response.json();
+            applicationId = app.application_id;
+          }
+          return true;
+        }
+        return false;
+      },
       { timeout: 15000 }
     );
     await page.locator('[data-test="application-submit-button"]').click();
     const appResponse = await createAppResponse;
     expect(appResponse.status()).toBeLessThan(400);
-    const app = await appResponse.json();
 
     return {
       email,
       password,
       organizationId,
-      applicationId: app.application_id,
+      applicationId,
       timestamp,
     };
   }

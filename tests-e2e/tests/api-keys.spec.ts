@@ -61,21 +61,30 @@ test.describe("API Keys", () => {
     });
     await page.locator('[data-test="application-name-input"]').fill(`Test App ${timestamp}`);
 
+    // Capture response body inside the predicate to avoid race condition with navigation
+    let applicationId: string = "";
     const createAppResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/v1/applications") && response.request().method() === "POST",
+      async (response) => {
+        if (response.url().includes("/api/v1/applications") && response.request().method() === "POST") {
+          if (response.status() < 400) {
+            const app = await response.json();
+            applicationId = app.application_id;
+          }
+          return true;
+        }
+        return false;
+      },
       { timeout: 15000 }
     );
     await page.locator('[data-test="application-submit-button"]').click();
     const appResponse = await createAppResponse;
     expect(appResponse.status()).toBeLessThan(400);
-    const app = await appResponse.json();
 
     return {
       email,
       password,
       organizationId,
-      applicationId: app.application_id,
+      applicationId,
       timestamp,
     };
   }
@@ -151,10 +160,18 @@ test.describe("API Keys", () => {
     });
 
     // Step 2: Click create and wait for API response
+    // Capture response body inside the predicate to avoid race condition with navigation
+    let responseBody: { token?: string; name?: string } = {};
     const responsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/v1/application_secrets") &&
-        response.request().method() === "POST",
+      async (response) => {
+        if (response.url().includes("/api/v1/application_secrets") && response.request().method() === "POST") {
+          if (response.status() < 400) {
+            responseBody = await response.json();
+          }
+          return true;
+        }
+        return false;
+      },
       { timeout: 15000 }
     );
 
@@ -164,7 +181,6 @@ test.describe("API Keys", () => {
 
     // Step 3: Verify API response
     expect(response.status()).toBeLessThan(400);
-    const responseBody = await response.json();
     expect(responseBody).toHaveProperty("token");
     expect(responseBody.name).toBe(keyName);
   });

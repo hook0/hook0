@@ -234,9 +234,18 @@ test.describe("Subscriptions", () => {
     await eventTypeCheckbox.click();
 
     // Step 2: Submit and wait for API response
+    // Capture response body inside the predicate to avoid race condition with navigation
+    let responseBody: { subscription_id?: string; description?: string; target?: { url?: string; method?: string } } = {};
     const responsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/v1/subscriptions") && response.request().method() === "POST",
+      async (response) => {
+        if (response.url().includes("/api/v1/subscriptions") && response.request().method() === "POST") {
+          if (response.status() < 400) {
+            responseBody = await response.json();
+          }
+          return true;
+        }
+        return false;
+      },
       { timeout: 15000 }
     );
 
@@ -246,11 +255,10 @@ test.describe("Subscriptions", () => {
 
     // Step 3: Verify API response
     expect(response.status()).toBeLessThan(400);
-    const responseBody = await response.json();
     expect(responseBody).toHaveProperty("subscription_id");
     expect(responseBody.description).toBe(description);
-    expect(responseBody.target.url).toBe(webhookUrl);
-    expect(responseBody.target.method).toBe("POST");
+    expect(responseBody.target?.url).toBe(webhookUrl);
+    expect(responseBody.target?.method).toBe("POST");
   });
 
   test("should show disabled submit when required fields are empty", async ({ page, request }) => {
@@ -341,9 +349,19 @@ test.describe("Subscriptions", () => {
     await expect(eventTypeCheckbox).toBeVisible({ timeout: 5000 });
     await eventTypeCheckbox.click();
 
+    // Capture response and parse JSON immediately to avoid race condition with navigation
+    let subscriptionId: string = "";
     const createResponsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/v1/subscriptions") && response.request().method() === "POST",
+      async (response) => {
+        if (response.url().includes("/api/v1/subscriptions") && response.request().method() === "POST") {
+          if (response.status() < 400) {
+            const body = await response.json();
+            subscriptionId = body.subscription_id;
+          }
+          return true;
+        }
+        return false;
+      },
       { timeout: 15000 }
     );
     await page.locator('[data-test="subscription-submit-button"]').click();
@@ -351,12 +369,10 @@ test.describe("Subscriptions", () => {
     const createResponse = await createResponsePromise;
     expect(createResponse.status()).toBeLessThan(400);
 
-    const responseBody = await createResponse.json();
-
     // Wait for navigation after subscription creation (router.back() is called)
     await expect(page).not.toHaveURL(/\/subscriptions\/new/, { timeout: 10000 });
 
-    return responseBody.subscription_id;
+    return subscriptionId;
   }
 
   test("should update subscription description and verify API response", async ({
@@ -384,10 +400,18 @@ test.describe("Subscriptions", () => {
     await page.locator('[data-test="subscription-description-input"]').fill(updatedDescription);
 
     // Step 2: Submit and wait for API response
+    // Capture response body inside the predicate to avoid race condition with navigation
+    let responseBody: { description?: string } = {};
     const responsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes(`/api/v1/subscriptions/${subscriptionId}`) &&
-        response.request().method() === "PUT",
+      async (response) => {
+        if (response.url().includes(`/api/v1/subscriptions/${subscriptionId}`) && response.request().method() === "PUT") {
+          if (response.status() < 400) {
+            responseBody = await response.json();
+          }
+          return true;
+        }
+        return false;
+      },
       { timeout: 15000 }
     );
 
@@ -397,7 +421,6 @@ test.describe("Subscriptions", () => {
 
     // Step 3: Verify API response
     expect(response.status()).toBeLessThan(400);
-    const responseBody = await response.json();
     expect(responseBody.description).toBe(updatedDescription);
   });
 
@@ -423,10 +446,18 @@ test.describe("Subscriptions", () => {
     await page.locator('[data-test="subscription-url-input"]').fill(updatedUrl);
 
     // Step 2: Submit and wait for API response
+    // Capture response body inside the predicate to avoid race condition with navigation
+    let responseBody: { target?: { url?: string } } = {};
     const responsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes(`/api/v1/subscriptions/${subscriptionId}`) &&
-        response.request().method() === "PUT",
+      async (response) => {
+        if (response.url().includes(`/api/v1/subscriptions/${subscriptionId}`) && response.request().method() === "PUT") {
+          if (response.status() < 400) {
+            responseBody = await response.json();
+          }
+          return true;
+        }
+        return false;
+      },
       { timeout: 15000 }
     );
 
@@ -436,8 +467,7 @@ test.describe("Subscriptions", () => {
 
     // Step 3: Verify API response
     expect(response.status()).toBeLessThan(400);
-    const responseBody = await response.json();
-    expect(responseBody.target.url).toBe(updatedUrl);
+    expect(responseBody.target?.url).toBe(updatedUrl);
   });
 
   test("should delete subscription and verify API response", async ({ page, request }) => {

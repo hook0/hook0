@@ -168,9 +168,18 @@ test.describe("Service Tokens", () => {
     });
 
     // Step 2: Click create and wait for API response
+    // Capture response body inside the predicate to avoid race condition with navigation
+    let responseBody: { token_id?: string; name?: string } = {};
     const responsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/v1/service_token") && response.request().method() === "POST",
+      async (response) => {
+        if (response.url().includes("/api/v1/service_token") && response.request().method() === "POST") {
+          if (response.status() < 400) {
+            responseBody = await response.json();
+          }
+          return true;
+        }
+        return false;
+      },
       { timeout: 15000 }
     );
 
@@ -180,7 +189,6 @@ test.describe("Service Tokens", () => {
 
     // Step 3: Verify API response
     expect(response.status()).toBeLessThan(400);
-    const responseBody = await response.json();
     expect(responseBody).toHaveProperty("token_id");
     expect(responseBody.name).toBe(tokenName);
   });

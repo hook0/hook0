@@ -98,9 +98,18 @@ test.describe("Organizations", () => {
     await page.locator('[data-test="organization-name-input"]').fill(orgName);
 
     // Step 2: Submit and wait for API response
+    // Capture response body inside the predicate to avoid race condition with navigation
+    let responseBody: { organization_id?: string; name?: string } = {};
     const responsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/v1/organizations") && response.request().method() === "POST",
+      async (response) => {
+        if (response.url().includes("/api/v1/organizations") && response.request().method() === "POST") {
+          if (response.status() < 400) {
+            responseBody = await response.json();
+          }
+          return true;
+        }
+        return false;
+      },
       { timeout: 15000 }
     );
 
@@ -110,7 +119,6 @@ test.describe("Organizations", () => {
 
     // Step 3: Verify API response
     expect(response.status()).toBeLessThan(400);
-    const responseBody = await response.json();
     expect(responseBody).toHaveProperty("organization_id");
     expect(responseBody.name).toBe(orgName);
 
@@ -172,10 +180,18 @@ test.describe("Organizations", () => {
     await page.locator('[data-test="organization-name-input"]').fill(updatedName);
 
     // Submit and wait for response
+    // Capture response body inside the predicate to avoid race condition with navigation
+    let responseBody: { name?: string } = {};
     const responsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes(`/api/v1/organizations/${organizationId}`) &&
-        response.request().method() === "PUT",
+      async (response) => {
+        if (response.url().includes(`/api/v1/organizations/${organizationId}`) && response.request().method() === "PUT") {
+          if (response.status() < 400) {
+            responseBody = await response.json();
+          }
+          return true;
+        }
+        return false;
+      },
       { timeout: 15000 }
     );
 
@@ -185,7 +201,6 @@ test.describe("Organizations", () => {
 
     // Verify
     expect(response.status()).toBeLessThan(400);
-    const responseBody = await response.json();
     expect(responseBody.name).toBe(updatedName);
   });
 
