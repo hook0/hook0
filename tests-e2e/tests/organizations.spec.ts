@@ -344,6 +344,15 @@ test.describe("Organizations", () => {
     const createdOrg = await createResponse.json();
     const newOrgId = createdOrg.organization_id;
 
+    // The frontend automatically refreshes the token after creating an organization.
+    // Wait for navigation to complete (frontend redirects after org creation).
+    // The refresh happens automatically, so we just wait for the page to settle.
+    await expect(page).toHaveURL(/\/tutorial|\/organizations\/[^/]+/, {
+      timeout: 15000,
+    });
+    // Wait for the frontend refresh to complete by checking that the auth token was updated
+    await page.waitForTimeout(1000);
+
     // Navigate to the new organization's settings
     await page.goto(`/organizations/${newOrgId}/settings`);
     await expect(page.locator('[data-test="organization-delete-card"]')).toBeVisible({

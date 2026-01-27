@@ -357,6 +357,10 @@ test.describe("Applications", () => {
     expect(createResponse.status()).toBeLessThan(400);
     const app = await createResponse.json();
 
+    // Wait for frontend's auto-refresh to complete after app creation
+    // The frontend automatically refreshes the token when an application is created
+    await page.waitForTimeout(1000);
+
     // Navigate to application settings page (where delete option is)
     await page.goto(`/organizations/${organizationId}/applications/${app.application_id}/settings`);
 
