@@ -110,7 +110,7 @@ test.describe("API Keys", () => {
 
     // Navigate to API keys page
     await page.goto(
-      `/organizations/${env.organizationId}/applications/${env.applicationId}/secrets`
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/application_secrets`
     );
 
     // Verify API keys card is visible
@@ -149,7 +149,7 @@ test.describe("API Keys", () => {
 
     // Navigate to API keys page
     await page.goto(
-      `/organizations/${env.organizationId}/applications/${env.applicationId}/secrets`
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/application_secrets`
     );
 
     // Verify page elements
@@ -163,7 +163,7 @@ test.describe("API Keys", () => {
 
     // Navigate to API keys page
     await page.goto(
-      `/organizations/${env.organizationId}/applications/${env.applicationId}/secrets`
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/application_secrets`
     );
     await expect(page.locator('[data-test="api-keys-create-button"]')).toBeVisible({
       timeout: 10000,
@@ -205,7 +205,7 @@ test.describe("API Keys", () => {
 
     // Navigate to API keys page
     await page.goto(
-      `/organizations/${env.organizationId}/applications/${env.applicationId}/secrets`
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/application_secrets`
     );
     await expect(page.locator('[data-test="api-keys-create-button"]')).toBeVisible({
       timeout: 10000,
@@ -220,7 +220,7 @@ test.describe("API Keys", () => {
     await page.locator('[data-test="api-keys-create-button"]').click();
 
     // Should still be on the same page
-    await expect(page).toHaveURL(/\/secrets/, {
+    await expect(page).toHaveURL(/\/application_secrets/, {
       timeout: 5000,
     });
 
@@ -234,7 +234,7 @@ test.describe("API Keys", () => {
 
     // Navigate to API keys page
     await page.goto(
-      `/organizations/${env.organizationId}/applications/${env.applicationId}/secrets`
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/application_secrets`
     );
 
     // Create an API key first
