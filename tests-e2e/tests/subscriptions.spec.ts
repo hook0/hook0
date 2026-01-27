@@ -354,6 +354,7 @@ test.describe("Subscriptions", () => {
    */
   async function createSubscription(
     page: import("@playwright/test").Page,
+    request: import("@playwright/test").APIRequestContext,
     env: { organizationId: string; applicationId: string; timestamp: number },
     description: string
   ): Promise<string> {
@@ -406,12 +407,19 @@ test.describe("Subscriptions", () => {
     // Wait for navigation after subscription creation (router.back() is called)
     await expect(page).not.toHaveURL(/\/subscriptions\/new/, { timeout: 10000 });
 
-    // If subscriptionId wasn't captured from response, extract from URL
+    // If subscriptionId wasn't captured from response, query the API to find it
     if (!subscriptionId) {
-      const url = page.url();
-      const match = url.match(/\/subscriptions\/([^/]+)/);
-      if (match) {
-        subscriptionId = match[1];
+      // Query the subscriptions list API to find the newly created subscription by description
+      const listResponse = await request.get(
+        `${API_BASE_URL}/subscriptions?application_id=${env.applicationId}`
+      );
+      expect(listResponse.status()).toBeLessThan(400);
+      const subscriptions = await listResponse.json();
+      const createdSub = subscriptions.find(
+        (s: { description: string }) => s.description === description
+      );
+      if (createdSub) {
+        subscriptionId = createdSub.subscription_id;
       }
     }
     expect(subscriptionId).toBeTruthy();
@@ -428,7 +436,7 @@ test.describe("Subscriptions", () => {
     const updatedDescription = `Updated Subscription ${env.timestamp}`;
 
     // Create a subscription first
-    const subscriptionId = await createSubscription(page, env, originalDescription);
+    const subscriptionId = await createSubscription(page, request, env, originalDescription);
 
     // Navigate to subscription edit page
     await page.goto(
@@ -474,7 +482,7 @@ test.describe("Subscriptions", () => {
     const updatedUrl = "https://webhook.site/updated-endpoint";
 
     // Create a subscription first
-    const subscriptionId = await createSubscription(page, env, description);
+    const subscriptionId = await createSubscription(page, request, env, description);
 
     // Navigate to subscription edit page
     await page.goto(
@@ -519,7 +527,7 @@ test.describe("Subscriptions", () => {
     const description = `Delete Test Subscription ${env.timestamp}`;
 
     // Create a subscription first
-    const subscriptionId = await createSubscription(page, env, description);
+    const subscriptionId = await createSubscription(page, request, env, description);
 
     // Navigate to subscription edit page (where delete button is)
     await page.goto(
@@ -567,7 +575,7 @@ test.describe("Subscriptions", () => {
     const description = `Cancel Delete Test ${env.timestamp}`;
 
     // Create a subscription first
-    const subscriptionId = await createSubscription(page, env, description);
+    const subscriptionId = await createSubscription(page, request, env, description);
 
     // Navigate to subscription edit page
     await page.goto(

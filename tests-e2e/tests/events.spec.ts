@@ -179,6 +179,13 @@ test.describe("Events", () => {
     // Step 1: Fill form
     await page.locator('[data-test="send-event-type-select"]').selectOption(env.eventTypeName);
 
+    // Add labels (required for event submission)
+    const labelKeyInput = page.locator('input[placeholder="Label key"]').first();
+    const labelValueInput = page.locator('input[placeholder="Label value"]').first();
+    await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
+    await labelKeyInput.fill("env");
+    await labelValueInput.fill("test");
+
     // Set occurred_at to current date/time
     const now = new Date();
     const dateTimeValue = now.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:MM
@@ -225,6 +232,13 @@ test.describe("Events", () => {
     // Wait for form and fill it
     await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 10000 });
     await page.locator('[data-test="send-event-type-select"]').selectOption(env.eventTypeName);
+
+    // Add labels (required for event submission)
+    const labelKeyInput = page.locator('input[placeholder="Label key"]').first();
+    const labelValueInput = page.locator('input[placeholder="Label value"]').first();
+    await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
+    await labelKeyInput.fill("env");
+    await labelValueInput.fill("test");
 
     const now = new Date();
     const dateTimeValue = now.toISOString().slice(0, 16);
@@ -293,6 +307,13 @@ test.describe("Events", () => {
     await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 10000 });
     await page.locator('[data-test="send-event-type-select"]').selectOption(env.eventTypeName);
 
+    // Add labels (required for event submission)
+    const labelKeyInput = page.locator('input[placeholder="Label key"]').first();
+    const labelValueInput = page.locator('input[placeholder="Label value"]').first();
+    await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
+    await labelKeyInput.fill("env");
+    await labelValueInput.fill("test");
+
     const now = new Date();
     const dateTimeValue = now.toISOString().slice(0, 16);
     await page.locator('[data-test="send-event-occurred-at-input"]').fill(dateTimeValue);
@@ -306,7 +327,6 @@ test.describe("Events", () => {
     await page.locator('[data-test="send-event-submit-button"]').click();
     const response = await responsePromise;
     expect(response.status()).toBeLessThan(400);
-    const eventData = await response.json();
 
     // Wait for events list to show
     await expect(page.locator('[data-test="events-card"]')).toBeVisible({ timeout: 10000 });

@@ -208,6 +208,13 @@ test.describe("Logs", () => {
       .locator('[data-test="send-event-type-select"]')
       .selectOption("billing.invoice.created");
 
+    // Add labels (required for event submission, and must match subscription labels)
+    const eventLabelKeyInput = page.locator('input[placeholder="Label key"]').first();
+    const eventLabelValueInput = page.locator('input[placeholder="Label value"]').first();
+    await expect(eventLabelKeyInput).toBeVisible({ timeout: 5000 });
+    await eventLabelKeyInput.fill("all");
+    await eventLabelValueInput.fill("yes");
+
     const now = new Date();
     const dateTimeValue = now.toISOString().slice(0, 16);
     await page.locator('[data-test="send-event-occurred-at-input"]').fill(dateTimeValue);
