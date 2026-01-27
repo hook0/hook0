@@ -67,8 +67,12 @@ test.describe("Logs", () => {
       async (response) => {
         if (response.url().includes("/api/v1/applications") && response.request().method() === "POST") {
           if (response.status() < 400) {
-            const app = await response.json();
-            applicationId = app.application_id;
+            try {
+              const app = await response.json();
+              applicationId = app.application_id;
+            } catch {
+              // Response body may be unavailable due to navigation
+            }
           }
           return true;
         }
@@ -79,6 +83,17 @@ test.describe("Logs", () => {
     await page.locator('[data-test="application-submit-button"]').click();
     const appResponse = await createAppResponse;
     expect(appResponse.status()).toBeLessThan(400);
+
+    // If applicationId wasn't captured, extract from URL after navigation
+    if (!applicationId) {
+      await expect(page).toHaveURL(/\/applications\/[^/]+/, { timeout: 10000 });
+      const url = page.url();
+      const match = url.match(/\/applications\/([^/]+)/);
+      if (match) {
+        applicationId = match[1];
+      }
+    }
+    expect(applicationId).toBeTruthy();
 
     return {
       email,

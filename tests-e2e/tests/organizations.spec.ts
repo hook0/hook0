@@ -371,7 +371,8 @@ test.describe("Organizations", () => {
     expect(deleteResponse.status()).toBeLessThan(400);
 
     // Verify redirect to home/organizations list
-    await expect(page).toHaveURL(/\/organizations$|^\/$/, {
+    // Regex matches full URL ending with /organizations or ending with /
+    await expect(page).toHaveURL(/\/organizations$|\/$/, {
       timeout: 15000,
     });
   });
