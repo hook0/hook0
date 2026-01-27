@@ -422,27 +422,19 @@ test.describe("Subscriptions", () => {
       });
       await expect(subscriptionRow.first()).toBeVisible({ timeout: 10000 });
 
-      // Extract subscription ID from the link's href attribute
-      // The link href pattern is: /organizations/{org}/applications/{app}/subscriptions/{subscription_id}
-      // Wait for the link to have an href attribute (Vue Router needs time to resolve the route)
+      // Click on the subscription link and extract ID from the URL we navigate to
       const linkInRow = subscriptionRow.first().locator("a").first();
       await expect(linkInRow).toBeVisible({ timeout: 5000 });
+      await linkInRow.click();
 
-      // Poll for href attribute since Vue Router might not have resolved it yet
-      let href: string | null = null;
-      for (let i = 0; i < 10; i++) {
-        href = await linkInRow.getAttribute("href");
-        if (href && href.includes("/subscriptions/")) {
-          break;
-        }
-        await page.waitForTimeout(200);
-      }
+      // Wait for navigation to subscription detail page
+      await expect(page).toHaveURL(/\/subscriptions\/[^/]+$/, { timeout: 10000 });
 
-      if (href) {
-        const match = href.match(/\/subscriptions\/([^/]+)$/);
-        if (match) {
-          subscriptionId = match[1];
-        }
+      // Extract subscription ID from the current URL
+      const currentUrl = page.url();
+      const match = currentUrl.match(/\/subscriptions\/([^/]+)$/);
+      if (match) {
+        subscriptionId = match[1];
       }
     }
     expect(subscriptionId).toBeTruthy();

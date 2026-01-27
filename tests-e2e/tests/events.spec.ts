@@ -180,20 +180,22 @@ test.describe("Events", () => {
     await page.locator('[data-test="send-event-type-select"]').selectOption(env.eventTypeName);
 
     // Add labels (required for event submission)
-    // Use clear + type to properly trigger Vue's v-model reactivity
+    // Use evaluate to set value and trigger Vue's v-model reactivity directly
     const labelKeyInput = page.locator('input[placeholder="Label key"]').first();
     const labelValueInput = page.locator('input[placeholder="Label value"]').first();
     await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
 
-    // Focus and type into key input (clear first in case there's existing value)
-    await labelKeyInput.click();
-    await labelKeyInput.clear();
-    await labelKeyInput.type("env", { delay: 20 });
+    // Set label key value and trigger input event
+    await labelKeyInput.evaluate((el: HTMLInputElement) => {
+      el.value = "env";
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+    });
 
-    // Focus and type into value input
-    await labelValueInput.click();
-    await labelValueInput.clear();
-    await labelValueInput.type("test", { delay: 20 });
+    // Set label value and trigger input event
+    await labelValueInput.evaluate((el: HTMLInputElement) => {
+      el.value = "test";
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+    });
 
     // Wait for debounced label input to be processed (lodash debounce default wait time)
     await page.waitForTimeout(500);
@@ -246,20 +248,22 @@ test.describe("Events", () => {
     await page.locator('[data-test="send-event-type-select"]').selectOption(env.eventTypeName);
 
     // Add labels (required for event submission)
-    // Use clear + type to properly trigger Vue's v-model reactivity
+    // Use evaluate to set value and trigger Vue's v-model reactivity directly
     const labelKeyInput = page.locator('input[placeholder="Label key"]').first();
     const labelValueInput = page.locator('input[placeholder="Label value"]').first();
     await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
 
-    // Focus and type into key input (clear first in case there's existing value)
-    await labelKeyInput.click();
-    await labelKeyInput.clear();
-    await labelKeyInput.type("env", { delay: 20 });
+    // Set label key value and trigger input event
+    await labelKeyInput.evaluate((el: HTMLInputElement) => {
+      el.value = "env";
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+    });
 
-    // Focus and type into value input
-    await labelValueInput.click();
-    await labelValueInput.clear();
-    await labelValueInput.type("test", { delay: 20 });
+    // Set label value and trigger input event
+    await labelValueInput.evaluate((el: HTMLInputElement) => {
+      el.value = "test";
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+    });
 
     // Wait for debounced label input to be processed
     await page.waitForTimeout(500);
@@ -332,20 +336,22 @@ test.describe("Events", () => {
     await page.locator('[data-test="send-event-type-select"]').selectOption(env.eventTypeName);
 
     // Add labels (required for event submission)
-    // Use clear + type to properly trigger Vue's v-model reactivity
+    // Use evaluate to set value and trigger Vue's v-model reactivity directly
     const labelKeyInput = page.locator('input[placeholder="Label key"]').first();
     const labelValueInput = page.locator('input[placeholder="Label value"]').first();
     await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
 
-    // Focus and type into key input (clear first in case there's existing value)
-    await labelKeyInput.click();
-    await labelKeyInput.clear();
-    await labelKeyInput.type("env", { delay: 20 });
+    // Set label key value and trigger input event
+    await labelKeyInput.evaluate((el: HTMLInputElement) => {
+      el.value = "env";
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+    });
 
-    // Focus and type into value input
-    await labelValueInput.click();
-    await labelValueInput.clear();
-    await labelValueInput.type("test", { delay: 20 });
+    // Set label value and trigger input event
+    await labelValueInput.evaluate((el: HTMLInputElement) => {
+      el.value = "test";
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+    });
 
     // Wait for debounced label input to be processed
     await page.waitForTimeout(500);
