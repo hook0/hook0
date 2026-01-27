@@ -351,10 +351,11 @@ test.describe("Subscriptions", () => {
 
   /**
    * Helper to create a subscription and return its ID
+   * Note: Uses page.request for API calls to share auth cookies with the browser context
    */
   async function createSubscription(
     page: import("@playwright/test").Page,
-    request: import("@playwright/test").APIRequestContext,
+    _request: import("@playwright/test").APIRequestContext,
     env: { organizationId: string; applicationId: string; timestamp: number },
     description: string
   ): Promise<string> {
@@ -410,7 +411,8 @@ test.describe("Subscriptions", () => {
     // If subscriptionId wasn't captured from response, query the API to find it
     if (!subscriptionId) {
       // Query the subscriptions list API to find the newly created subscription by description
-      const listResponse = await request.get(
+      // Use page.request to share auth cookies with the browser context
+      const listResponse = await page.request.get(
         `${API_BASE_URL}/subscriptions?application_id=${env.applicationId}`
       );
       expect(listResponse.status()).toBeLessThan(400);

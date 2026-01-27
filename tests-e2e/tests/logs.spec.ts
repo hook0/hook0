@@ -215,6 +215,9 @@ test.describe("Logs", () => {
     await eventLabelKeyInput.fill("all");
     await eventLabelValueInput.fill("yes");
 
+    // Wait for debounced label input to be processed
+    await page.waitForTimeout(500);
+
     const now = new Date();
     const dateTimeValue = now.toISOString().slice(0, 16);
     await page.locator('[data-test="send-event-occurred-at-input"]').fill(dateTimeValue);

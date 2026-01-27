@@ -186,6 +186,9 @@ test.describe("Events", () => {
     await labelKeyInput.fill("env");
     await labelValueInput.fill("test");
 
+    // Wait for debounced label input to be processed
+    await page.waitForTimeout(500);
+
     // Set occurred_at to current date/time
     const now = new Date();
     const dateTimeValue = now.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:MM
@@ -239,6 +242,9 @@ test.describe("Events", () => {
     await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
     await labelKeyInput.fill("env");
     await labelValueInput.fill("test");
+
+    // Wait for debounced label input to be processed
+    await page.waitForTimeout(500);
 
     const now = new Date();
     const dateTimeValue = now.toISOString().slice(0, 16);
@@ -313,6 +319,9 @@ test.describe("Events", () => {
     await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
     await labelKeyInput.fill("env");
     await labelValueInput.fill("test");
+
+    // Wait for debounced label input to be processed
+    await page.waitForTimeout(500);
 
     const now = new Date();
     const dateTimeValue = now.toISOString().slice(0, 16);
