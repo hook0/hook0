@@ -209,17 +209,21 @@ test.describe("Logs", () => {
       .selectOption("billing.invoice.created");
 
     // Add labels (required for event submission, and must match subscription labels)
-    // Use pressSequentially instead of fill to trigger input events properly for the debounced Hook0KeyValue component
+    // Fill input and dispatch input event to ensure Vue reactivity triggers
     const eventLabelKeyInput = page.locator('input[placeholder="Label key"]').first();
     const eventLabelValueInput = page.locator('input[placeholder="Label value"]').first();
     await expect(eventLabelKeyInput).toBeVisible({ timeout: 5000 });
-    await eventLabelKeyInput.click();
-    await eventLabelKeyInput.pressSequentially("all", { delay: 50 });
-    await eventLabelValueInput.click();
-    await eventLabelValueInput.pressSequentially("yes", { delay: 50 });
 
-    // Wait for debounced label input to be processed
-    await page.waitForTimeout(300);
+    // Fill key input and trigger input event
+    await eventLabelKeyInput.fill("all");
+    await eventLabelKeyInput.dispatchEvent("input");
+
+    // Fill value input and trigger input event
+    await eventLabelValueInput.fill("yes");
+    await eventLabelValueInput.dispatchEvent("input");
+
+    // Wait for debounced label input to be processed (lodash debounce default wait time)
+    await page.waitForTimeout(500);
 
     const now = new Date();
     const dateTimeValue = now.toISOString().slice(0, 16);

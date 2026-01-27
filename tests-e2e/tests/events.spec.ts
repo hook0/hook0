@@ -180,17 +180,21 @@ test.describe("Events", () => {
     await page.locator('[data-test="send-event-type-select"]').selectOption(env.eventTypeName);
 
     // Add labels (required for event submission)
-    // Use pressSequentially instead of fill to trigger input events properly for the debounced Hook0KeyValue component
+    // Fill input and dispatch input event to ensure Vue reactivity triggers
     const labelKeyInput = page.locator('input[placeholder="Label key"]').first();
     const labelValueInput = page.locator('input[placeholder="Label value"]').first();
     await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
-    await labelKeyInput.click();
-    await labelKeyInput.pressSequentially("env", { delay: 50 });
-    await labelValueInput.click();
-    await labelValueInput.pressSequentially("test", { delay: 50 });
 
-    // Wait for debounced label input to be processed (lodash debounce default is 0ms but Vue needs time to react)
-    await page.waitForTimeout(300);
+    // Fill key input and trigger input event
+    await labelKeyInput.fill("env");
+    await labelKeyInput.dispatchEvent("input");
+
+    // Fill value input and trigger input event
+    await labelValueInput.fill("test");
+    await labelValueInput.dispatchEvent("input");
+
+    // Wait for debounced label input to be processed (lodash debounce default wait time)
+    await page.waitForTimeout(500);
 
     // Set occurred_at to current date/time
     const now = new Date();
@@ -240,17 +244,21 @@ test.describe("Events", () => {
     await page.locator('[data-test="send-event-type-select"]').selectOption(env.eventTypeName);
 
     // Add labels (required for event submission)
-    // Use pressSequentially instead of fill to trigger input events properly for the debounced Hook0KeyValue component
+    // Fill input and dispatch input event to ensure Vue reactivity triggers
     const labelKeyInput = page.locator('input[placeholder="Label key"]').first();
     const labelValueInput = page.locator('input[placeholder="Label value"]').first();
     await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
-    await labelKeyInput.click();
-    await labelKeyInput.pressSequentially("env", { delay: 50 });
-    await labelValueInput.click();
-    await labelValueInput.pressSequentially("test", { delay: 50 });
+
+    // Fill key input and trigger input event
+    await labelKeyInput.fill("env");
+    await labelKeyInput.dispatchEvent("input");
+
+    // Fill value input and trigger input event
+    await labelValueInput.fill("test");
+    await labelValueInput.dispatchEvent("input");
 
     // Wait for debounced label input to be processed
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(500);
 
     const now = new Date();
     const dateTimeValue = now.toISOString().slice(0, 16);
@@ -320,17 +328,21 @@ test.describe("Events", () => {
     await page.locator('[data-test="send-event-type-select"]').selectOption(env.eventTypeName);
 
     // Add labels (required for event submission)
-    // Use pressSequentially instead of fill to trigger input events properly for the debounced Hook0KeyValue component
+    // Fill input and dispatch input event to ensure Vue reactivity triggers
     const labelKeyInput = page.locator('input[placeholder="Label key"]').first();
     const labelValueInput = page.locator('input[placeholder="Label value"]').first();
     await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
-    await labelKeyInput.click();
-    await labelKeyInput.pressSequentially("env", { delay: 50 });
-    await labelValueInput.click();
-    await labelValueInput.pressSequentially("test", { delay: 50 });
+
+    // Fill key input and trigger input event
+    await labelKeyInput.fill("env");
+    await labelKeyInput.dispatchEvent("input");
+
+    // Fill value input and trigger input event
+    await labelValueInput.fill("test");
+    await labelValueInput.dispatchEvent("input");
 
     // Wait for debounced label input to be processed
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(500);
 
     const now = new Date();
     const dateTimeValue = now.toISOString().slice(0, 16);

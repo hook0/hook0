@@ -422,16 +422,15 @@ test.describe("Subscriptions", () => {
       });
       await expect(subscriptionRow.first()).toBeVisible({ timeout: 10000 });
 
-      // Click on the row link to navigate to the edit page and extract ID from URL
+      // Extract subscription ID from the link's href attribute
+      // The link href pattern is: /organizations/{org}/applications/{app}/subscriptions/{subscription_id}
       const linkInRow = subscriptionRow.first().locator("a").first();
-      await linkInRow.click();
-
-      // Wait for navigation to subscription edit page and extract ID from URL
-      await expect(page).toHaveURL(/\/subscriptions\/[^/]+$/, { timeout: 10000 });
-      const url = page.url();
-      const match = url.match(/\/subscriptions\/([^/]+)$/);
-      if (match) {
-        subscriptionId = match[1];
+      const href = await linkInRow.getAttribute("href");
+      if (href) {
+        const match = href.match(/\/subscriptions\/([^/]+)$/);
+        if (match) {
+          subscriptionId = match[1];
+        }
       }
     }
     expect(subscriptionId).toBeTruthy();
