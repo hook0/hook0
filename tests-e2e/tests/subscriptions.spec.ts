@@ -512,13 +512,17 @@ test.describe("Subscriptions", () => {
     // Step 3: Verify API response status (body may not be available due to navigation)
     expect(response.status()).toBeLessThan(400);
 
-    // Verify by fetching the subscription via API to confirm the update persisted
-    const getResponse = await request.get(
-      `http://localhost:8081/api/v1/subscriptions/${subscriptionId}`
+    // Step 4: Verify the update persisted by navigating back to the subscription
+    // (API request would need auth context, so we use UI verification instead)
+    await page.goto(
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions/${subscriptionId}`
     );
-    expect(getResponse.status()).toBeLessThan(400);
-    const subscription = await getResponse.json();
-    expect(subscription.description).toBe(updatedDescription);
+    await expect(page.locator('[data-test="subscription-form"]')).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(page.locator('[data-test="subscription-description-input"]')).toHaveValue(
+      updatedDescription
+    );
   });
 
   test("should update subscription URL and verify API response", async ({ page, request }) => {
@@ -558,13 +562,15 @@ test.describe("Subscriptions", () => {
     // Step 3: Verify API response status (body may not be available due to navigation)
     expect(response.status()).toBeLessThan(400);
 
-    // Verify by fetching the subscription via API to confirm the update persisted
-    const getResponse = await request.get(
-      `http://localhost:8081/api/v1/subscriptions/${subscriptionId}`
+    // Step 4: Verify the update persisted by navigating back to the subscription
+    // (API request would need auth context, so we use UI verification instead)
+    await page.goto(
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions/${subscriptionId}`
     );
-    expect(getResponse.status()).toBeLessThan(400);
-    const subscription = await getResponse.json();
-    expect(subscription.target.url).toBe(updatedUrl);
+    await expect(page.locator('[data-test="subscription-form"]')).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(page.locator('[data-test="subscription-url-input"]')).toHaveValue(updatedUrl);
   });
 
   test("should delete subscription and verify API response", async ({ page, request }) => {
