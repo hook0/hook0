@@ -209,14 +209,17 @@ test.describe("Logs", () => {
       .selectOption("billing.invoice.created");
 
     // Add labels (required for event submission, and must match subscription labels)
+    // Use pressSequentially instead of fill to trigger input events properly for the debounced Hook0KeyValue component
     const eventLabelKeyInput = page.locator('input[placeholder="Label key"]').first();
     const eventLabelValueInput = page.locator('input[placeholder="Label value"]').first();
     await expect(eventLabelKeyInput).toBeVisible({ timeout: 5000 });
-    await eventLabelKeyInput.fill("all");
-    await eventLabelValueInput.fill("yes");
+    await eventLabelKeyInput.click();
+    await eventLabelKeyInput.pressSequentially("all", { delay: 50 });
+    await eventLabelValueInput.click();
+    await eventLabelValueInput.pressSequentially("yes", { delay: 50 });
 
     // Wait for debounced label input to be processed
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(300);
 
     const now = new Date();
     const dateTimeValue = now.toISOString().slice(0, 16);

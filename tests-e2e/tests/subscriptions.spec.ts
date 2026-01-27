@@ -351,7 +351,7 @@ test.describe("Subscriptions", () => {
 
   /**
    * Helper to create a subscription and return its ID
-   * Note: Uses page.request for API calls to share auth cookies with the browser context
+   * Extracts ID from response body or from the subscriptions list page UI
    */
   async function createSubscription(
     page: import("@playwright/test").Page,
@@ -408,20 +408,30 @@ test.describe("Subscriptions", () => {
     // Wait for navigation after subscription creation (router.back() is called)
     await expect(page).not.toHaveURL(/\/subscriptions\/new/, { timeout: 10000 });
 
-    // If subscriptionId wasn't captured from response, query the API to find it
+    // If subscriptionId wasn't captured from response, extract it from the subscriptions list UI
     if (!subscriptionId) {
-      // Query the subscriptions list API to find the newly created subscription by description
-      // Use page.request to share auth cookies with the browser context
-      const listResponse = await page.request.get(
-        `${API_BASE_URL}/subscriptions?application_id=${env.applicationId}`
+      // Navigate to subscriptions list and find the row with our description
+      await page.goto(
+        `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions`
       );
-      expect(listResponse.status()).toBeLessThan(400);
-      const subscriptions = await listResponse.json();
-      const createdSub = subscriptions.find(
-        (s: { description: string }) => s.description === description
-      );
-      if (createdSub) {
-        subscriptionId = createdSub.subscription_id;
+      await expect(page.locator('[data-test="subscriptions-card"]')).toBeVisible({ timeout: 10000 });
+
+      // Wait for the table to load and find our subscription row
+      const subscriptionRow = page.locator('[data-test="subscriptions-table"] .ag-row').filter({
+        hasText: description,
+      });
+      await expect(subscriptionRow.first()).toBeVisible({ timeout: 10000 });
+
+      // Click on the row link to navigate to the edit page and extract ID from URL
+      const linkInRow = subscriptionRow.first().locator("a").first();
+      await linkInRow.click();
+
+      // Wait for navigation to subscription edit page and extract ID from URL
+      await expect(page).toHaveURL(/\/subscriptions\/[^/]+$/, { timeout: 10000 });
+      const url = page.url();
+      const match = url.match(/\/subscriptions\/([^/]+)$/);
+      if (match) {
+        subscriptionId = match[1];
       }
     }
     expect(subscriptionId).toBeTruthy();

@@ -180,14 +180,17 @@ test.describe("Events", () => {
     await page.locator('[data-test="send-event-type-select"]').selectOption(env.eventTypeName);
 
     // Add labels (required for event submission)
+    // Use pressSequentially instead of fill to trigger input events properly for the debounced Hook0KeyValue component
     const labelKeyInput = page.locator('input[placeholder="Label key"]').first();
     const labelValueInput = page.locator('input[placeholder="Label value"]').first();
     await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
-    await labelKeyInput.fill("env");
-    await labelValueInput.fill("test");
+    await labelKeyInput.click();
+    await labelKeyInput.pressSequentially("env", { delay: 50 });
+    await labelValueInput.click();
+    await labelValueInput.pressSequentially("test", { delay: 50 });
 
-    // Wait for debounced label input to be processed
-    await page.waitForTimeout(500);
+    // Wait for debounced label input to be processed (lodash debounce default is 0ms but Vue needs time to react)
+    await page.waitForTimeout(300);
 
     // Set occurred_at to current date/time
     const now = new Date();
@@ -237,14 +240,17 @@ test.describe("Events", () => {
     await page.locator('[data-test="send-event-type-select"]').selectOption(env.eventTypeName);
 
     // Add labels (required for event submission)
+    // Use pressSequentially instead of fill to trigger input events properly for the debounced Hook0KeyValue component
     const labelKeyInput = page.locator('input[placeholder="Label key"]').first();
     const labelValueInput = page.locator('input[placeholder="Label value"]').first();
     await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
-    await labelKeyInput.fill("env");
-    await labelValueInput.fill("test");
+    await labelKeyInput.click();
+    await labelKeyInput.pressSequentially("env", { delay: 50 });
+    await labelValueInput.click();
+    await labelValueInput.pressSequentially("test", { delay: 50 });
 
     // Wait for debounced label input to be processed
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(300);
 
     const now = new Date();
     const dateTimeValue = now.toISOString().slice(0, 16);
@@ -314,14 +320,17 @@ test.describe("Events", () => {
     await page.locator('[data-test="send-event-type-select"]').selectOption(env.eventTypeName);
 
     // Add labels (required for event submission)
+    // Use pressSequentially instead of fill to trigger input events properly for the debounced Hook0KeyValue component
     const labelKeyInput = page.locator('input[placeholder="Label key"]').first();
     const labelValueInput = page.locator('input[placeholder="Label value"]').first();
     await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
-    await labelKeyInput.fill("env");
-    await labelValueInput.fill("test");
+    await labelKeyInput.click();
+    await labelKeyInput.pressSequentially("env", { delay: 50 });
+    await labelValueInput.click();
+    await labelValueInput.pressSequentially("test", { delay: 50 });
 
     // Wait for debounced label input to be processed
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(300);
 
     const now = new Date();
     const dateTimeValue = now.toISOString().slice(0, 16);
