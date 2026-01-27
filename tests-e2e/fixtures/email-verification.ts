@@ -14,10 +14,10 @@ const DATABASE_URL =
 
 /**
  * API base URL for direct API calls in tests.
- * In CI, the API runs on port 8081 while frontend is on 8001.
- * Locally with docker-compose, the frontend proxies to the API.
+ * The API always runs on port 8081 (both locally and in CI).
+ * The frontend is served on port 8001 but doesn't proxy API requests.
  */
-export const API_BASE_URL = process.env.CI ? "http://localhost:8081/api/v1" : "/api/v1";
+export const API_BASE_URL = "http://localhost:8081/api/v1";
 
 /**
  * Result of database verification including organization ID.
