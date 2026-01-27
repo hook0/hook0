@@ -209,18 +209,20 @@ test.describe("Logs", () => {
       .selectOption("billing.invoice.created");
 
     // Add labels (required for event submission, and must match subscription labels)
-    // Fill input and dispatch input event to ensure Vue reactivity triggers
+    // Use clear + type to properly trigger Vue's v-model reactivity
     const eventLabelKeyInput = page.locator('input[placeholder="Label key"]').first();
     const eventLabelValueInput = page.locator('input[placeholder="Label value"]').first();
     await expect(eventLabelKeyInput).toBeVisible({ timeout: 5000 });
 
-    // Fill key input and trigger input event
-    await eventLabelKeyInput.fill("all");
-    await eventLabelKeyInput.dispatchEvent("input");
+    // Focus and type into key input (clear first in case there's existing value)
+    await eventLabelKeyInput.click();
+    await eventLabelKeyInput.clear();
+    await eventLabelKeyInput.type("all", { delay: 20 });
 
-    // Fill value input and trigger input event
-    await eventLabelValueInput.fill("yes");
-    await eventLabelValueInput.dispatchEvent("input");
+    // Focus and type into value input
+    await eventLabelValueInput.click();
+    await eventLabelValueInput.clear();
+    await eventLabelValueInput.type("yes", { delay: 20 });
 
     // Wait for debounced label input to be processed (lodash debounce default wait time)
     await page.waitForTimeout(500);

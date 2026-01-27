@@ -180,18 +180,20 @@ test.describe("Events", () => {
     await page.locator('[data-test="send-event-type-select"]').selectOption(env.eventTypeName);
 
     // Add labels (required for event submission)
-    // Fill input and dispatch input event to ensure Vue reactivity triggers
+    // Use clear + type to properly trigger Vue's v-model reactivity
     const labelKeyInput = page.locator('input[placeholder="Label key"]').first();
     const labelValueInput = page.locator('input[placeholder="Label value"]').first();
     await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
 
-    // Fill key input and trigger input event
-    await labelKeyInput.fill("env");
-    await labelKeyInput.dispatchEvent("input");
+    // Focus and type into key input (clear first in case there's existing value)
+    await labelKeyInput.click();
+    await labelKeyInput.clear();
+    await labelKeyInput.type("env", { delay: 20 });
 
-    // Fill value input and trigger input event
-    await labelValueInput.fill("test");
-    await labelValueInput.dispatchEvent("input");
+    // Focus and type into value input
+    await labelValueInput.click();
+    await labelValueInput.clear();
+    await labelValueInput.type("test", { delay: 20 });
 
     // Wait for debounced label input to be processed (lodash debounce default wait time)
     await page.waitForTimeout(500);
@@ -244,18 +246,20 @@ test.describe("Events", () => {
     await page.locator('[data-test="send-event-type-select"]').selectOption(env.eventTypeName);
 
     // Add labels (required for event submission)
-    // Fill input and dispatch input event to ensure Vue reactivity triggers
+    // Use clear + type to properly trigger Vue's v-model reactivity
     const labelKeyInput = page.locator('input[placeholder="Label key"]').first();
     const labelValueInput = page.locator('input[placeholder="Label value"]').first();
     await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
 
-    // Fill key input and trigger input event
-    await labelKeyInput.fill("env");
-    await labelKeyInput.dispatchEvent("input");
+    // Focus and type into key input (clear first in case there's existing value)
+    await labelKeyInput.click();
+    await labelKeyInput.clear();
+    await labelKeyInput.type("env", { delay: 20 });
 
-    // Fill value input and trigger input event
-    await labelValueInput.fill("test");
-    await labelValueInput.dispatchEvent("input");
+    // Focus and type into value input
+    await labelValueInput.click();
+    await labelValueInput.clear();
+    await labelValueInput.type("test", { delay: 20 });
 
     // Wait for debounced label input to be processed
     await page.waitForTimeout(500);
@@ -328,18 +332,20 @@ test.describe("Events", () => {
     await page.locator('[data-test="send-event-type-select"]').selectOption(env.eventTypeName);
 
     // Add labels (required for event submission)
-    // Fill input and dispatch input event to ensure Vue reactivity triggers
+    // Use clear + type to properly trigger Vue's v-model reactivity
     const labelKeyInput = page.locator('input[placeholder="Label key"]').first();
     const labelValueInput = page.locator('input[placeholder="Label value"]').first();
     await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
 
-    // Fill key input and trigger input event
-    await labelKeyInput.fill("env");
-    await labelKeyInput.dispatchEvent("input");
+    // Focus and type into key input (clear first in case there's existing value)
+    await labelKeyInput.click();
+    await labelKeyInput.clear();
+    await labelKeyInput.type("env", { delay: 20 });
 
-    // Fill value input and trigger input event
-    await labelValueInput.fill("test");
-    await labelValueInput.dispatchEvent("input");
+    // Focus and type into value input
+    await labelValueInput.click();
+    await labelValueInput.clear();
+    await labelValueInput.type("test", { delay: 20 });
 
     // Wait for debounced label input to be processed
     await page.waitForTimeout(500);
