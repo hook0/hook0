@@ -497,18 +497,11 @@ test.describe("Subscriptions", () => {
     await page.locator('[data-test="subscription-description-input"]').fill(updatedDescription);
 
     // Step 2: Submit and wait for API response
-    // Capture response body inside the predicate to avoid race condition with navigation
-    let responseBody: { description?: string } = {};
+    // Use simple predicate - don't try to access response body in predicate due to navigation race condition
     const responsePromise = page.waitForResponse(
-      async (response) => {
-        if (response.url().includes(`/api/v1/subscriptions/${subscriptionId}`) && response.request().method() === "PUT") {
-          if (response.status() < 400) {
-            responseBody = await response.json();
-          }
-          return true;
-        }
-        return false;
-      },
+      (response) =>
+        response.url().includes(`/api/v1/subscriptions/${subscriptionId}`) &&
+        response.request().method() === "PUT",
       { timeout: 15000 }
     );
 
@@ -516,9 +509,16 @@ test.describe("Subscriptions", () => {
 
     const response = await responsePromise;
 
-    // Step 3: Verify API response
+    // Step 3: Verify API response status (body may not be available due to navigation)
     expect(response.status()).toBeLessThan(400);
-    expect(responseBody.description).toBe(updatedDescription);
+
+    // Verify by fetching the subscription via API to confirm the update persisted
+    const getResponse = await request.get(
+      `http://localhost:8081/api/v1/subscriptions/${subscriptionId}`
+    );
+    expect(getResponse.status()).toBeLessThan(400);
+    const subscription = await getResponse.json();
+    expect(subscription.description).toBe(updatedDescription);
   });
 
   test("should update subscription URL and verify API response", async ({ page, request }) => {
@@ -543,18 +543,11 @@ test.describe("Subscriptions", () => {
     await page.locator('[data-test="subscription-url-input"]').fill(updatedUrl);
 
     // Step 2: Submit and wait for API response
-    // Capture response body inside the predicate to avoid race condition with navigation
-    let responseBody: { target?: { url?: string } } = {};
+    // Use simple predicate - don't try to access response body in predicate due to navigation race condition
     const responsePromise = page.waitForResponse(
-      async (response) => {
-        if (response.url().includes(`/api/v1/subscriptions/${subscriptionId}`) && response.request().method() === "PUT") {
-          if (response.status() < 400) {
-            responseBody = await response.json();
-          }
-          return true;
-        }
-        return false;
-      },
+      (response) =>
+        response.url().includes(`/api/v1/subscriptions/${subscriptionId}`) &&
+        response.request().method() === "PUT",
       { timeout: 15000 }
     );
 
@@ -562,9 +555,16 @@ test.describe("Subscriptions", () => {
 
     const response = await responsePromise;
 
-    // Step 3: Verify API response
+    // Step 3: Verify API response status (body may not be available due to navigation)
     expect(response.status()).toBeLessThan(400);
-    expect(responseBody.target?.url).toBe(updatedUrl);
+
+    // Verify by fetching the subscription via API to confirm the update persisted
+    const getResponse = await request.get(
+      `http://localhost:8081/api/v1/subscriptions/${subscriptionId}`
+    );
+    expect(getResponse.status()).toBeLessThan(400);
+    const subscription = await getResponse.json();
+    expect(subscription.target.url).toBe(updatedUrl);
   });
 
   test("should delete subscription and verify API response", async ({ page, request }) => {
