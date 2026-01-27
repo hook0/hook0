@@ -83,7 +83,7 @@ test.describe("Authentication", () => {
 
       // Verify error notification is shown to user
       await expect(
-        page.locator('[class*="Notivue"], [class*="notivue"], [role="alert"]').first()
+        page.locator('[data-test="toast-notification"]').first()
       ).toBeVisible({
         timeout: 10000,
       });
@@ -299,28 +299,19 @@ test.describe("Authentication", () => {
 
       const response = await responsePromise;
 
-      // Step 3: API should return 409 Conflict for duplicate email
-      // If it returns 201, the API may be designed to prevent email enumeration
-      const status = response.status();
+      // Step 3: For duplicate email registration, API should return 409 Conflict
+      // This is the expected behavior for Hook0 - it explicitly rejects duplicate emails
+      expect(response.status()).toBe(409);
 
-      if (status >= 400 && status < 500) {
-        // API explicitly rejects duplicate emails - verify error is shown
-        await expect(
-          page.locator('[class*="Notivue"], [class*="notivue"], [role="alert"]').first()
-        ).toBeVisible({
-          timeout: 10000,
-        });
-        // Should stay on register page
-        await expect(page).toHaveURL(/\/register/);
-      } else {
-        // API accepts registration (for email enumeration protection)
-        // User should be redirected to check-email or similar page
-        expect(status).toBeLessThan(400);
-        await expect(page).toHaveURL(
-          /\/check-email|\/verify|\/dashboard|\/organizations|\/register/,
-          { timeout: 15000 }
-        );
-      }
+      // Verify error notification is shown to user
+      await expect(
+        page.locator('[data-test="toast-notification"]').first()
+      ).toBeVisible({
+        timeout: 10000,
+      });
+
+      // Should stay on register page (not redirected)
+      await expect(page).toHaveURL(/\/register/);
     });
   });
 });

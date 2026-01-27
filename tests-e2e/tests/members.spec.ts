@@ -17,12 +17,19 @@ import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verificat
  * 2. Set MEMBERS_FEATURE_ENABLED=true environment variable
  */
 
-// Skip all members tests if the feature is not enabled in the test environment
+// Members feature requires environment variable to be set
 const membersFeatureEnabled = process.env.MEMBERS_FEATURE_ENABLED === "true";
 
 test.describe("Members", () => {
-  // Skip all tests in this describe block if members feature is not enabled
-  test.skip(!membersFeatureEnabled, "Members feature requires MEMBERS_FEATURE_ENABLED=true");
+  // Fail-fast if members feature is not enabled - tests should not silently skip
+  test.beforeAll(() => {
+    if (!membersFeatureEnabled) {
+      throw new Error(
+        "Members feature tests require MEMBERS_FEATURE_ENABLED=true environment variable. " +
+        "Set this variable in .envrc or your CI configuration to enable these tests."
+      );
+    }
+  });
 
   /**
    * Helper to setup test environment with a user who has members quota > 1

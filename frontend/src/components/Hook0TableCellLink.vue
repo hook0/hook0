@@ -39,6 +39,11 @@ interface ExtraParams<T> {
    * If true, link will be disabled
    */
   disabled?: boolean;
+
+  /**
+   * data-test attribute for E2E testing
+   */
+  dataTest?: string | ((row: T) => string);
 }
 
 type Hook0TableCellDateParameter<T> = ICellRendererParams & ExtraParams<T>;
@@ -82,6 +87,13 @@ function onClick(event: Event) {
           ? params.colDef.cellRendererParams.disabled(params.data)
           : undefined,
     }"
+    :data-test="
+      params.colDef?.cellRendererParams && params.colDef.cellRendererParams.dataTest
+        ? typeof params.colDef.cellRendererParams.dataTest === 'function'
+          ? params.colDef.cellRendererParams.dataTest(params.data)
+          : params.colDef.cellRendererParams.dataTest
+        : undefined
+    "
     style="width: fit-content"
   >
     <template

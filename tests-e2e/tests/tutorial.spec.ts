@@ -67,8 +67,9 @@ test.describe("Tutorial", () => {
     // Verify tutorial page URL
     await expect(page).toHaveURL(/\/tutorial/, { timeout: 10000 });
 
-    // Verify tutorial page contains expected elements
-    await expect(page.locator("text=Welcome to Hook0")).toBeVisible({ timeout: 10000 });
+    // Verify tutorial page contains expected elements using data-test selectors
+    await expect(page.locator('[data-test="tutorial-card"]')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-test="tutorial-header"]')).toBeVisible();
     await expect(page.locator('[data-test="tutorial-start-button"]')).toBeVisible();
     await expect(page.locator('[data-test="tutorial-skip-button"]')).toBeVisible();
   });
@@ -134,9 +135,8 @@ test.describe("Tutorial", () => {
       timeout: 15000,
     });
 
-    // Select "Create a new organization" option (radio button)
-    // The form is only shown after selecting this option
-    const createOrgRadio = page.locator('input[type="radio"][value="create_organization"]');
+    // Select "Create a new organization" option (radio button) using data-test selector
+    const createOrgRadio = page.locator('[data-test="tutorial-create-org-radio"]');
     await expect(createOrgRadio).toBeVisible({ timeout: 10000 });
     await createOrgRadio.click();
 
@@ -185,7 +185,7 @@ test.describe("Tutorial", () => {
     // Verify tutorial page is accessible and loaded
     await expect(page).toHaveURL(/\/tutorial/, { timeout: 10000 });
 
-    // Verify main content is present
-    await expect(page.locator("text=Hook0")).toBeVisible({ timeout: 10000 });
+    // Verify main content is present using data-test selector
+    await expect(page.locator('[data-test="tutorial-card"]')).toBeVisible({ timeout: 10000 });
   });
 });

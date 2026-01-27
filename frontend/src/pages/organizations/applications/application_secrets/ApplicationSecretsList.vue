@@ -72,6 +72,7 @@ const columnDefs: ColDef[] = [
     cellRendererParams: {
       value: 'Delete',
       icon: 'trash',
+      dataTest: 'api-key-delete-button',
       onClick: (row: ApplicationSecret): void => {
         if (confirm(`Are you sure to delete "${row.name as string}" API Key?`)) {
           ApplicationSecretService.remove(application_id.value as string, row.token)

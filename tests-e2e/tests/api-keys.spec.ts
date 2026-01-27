@@ -133,11 +133,12 @@ test.describe("API Keys", () => {
     const createResponse = await createResponsePromise;
     expect(createResponse.status()).toBeLessThan(400);
 
-    // Step 2: Verify list has at least 1 row
-    await page.waitForTimeout(1000); // Wait for UI to refresh
+    // Step 2: Verify list has at least 1 row (wait for UI to refresh using expect.toPass)
     const rows = page.locator('[data-test="api-keys-table"] .ag-row');
-    const rowCount = await rows.count();
-    expect(rowCount).toBeGreaterThanOrEqual(1);
+    await expect(async () => {
+      const rowCount = await rows.count();
+      expect(rowCount).toBeGreaterThanOrEqual(1);
+    }).toPass({ timeout: 10000 });
 
     // Step 3: Verify first row contains expected key name
     const firstRow = rows.first();
@@ -261,11 +262,12 @@ test.describe("API Keys", () => {
     const createResponse = await createResponsePromise;
     expect(createResponse.status()).toBeLessThan(400);
 
-    // Wait for table to show the key
-    await page.waitForTimeout(1000);
+    // Wait for table to show the key using expect.toPass
     const rows = page.locator('[data-test="api-keys-table"] .ag-row');
-    const rowCount = await rows.count();
-    expect(rowCount).toBeGreaterThanOrEqual(1);
+    await expect(async () => {
+      const rowCount = await rows.count();
+      expect(rowCount).toBeGreaterThanOrEqual(1);
+    }).toPass({ timeout: 10000 });
 
     // Click delete on the first row
     const deleteResponsePromise = page.waitForResponse(
@@ -275,8 +277,8 @@ test.describe("API Keys", () => {
       { timeout: 15000 }
     );
 
-    // Find and click the delete link in the first row
-    const deleteLink = rows.first().locator('text="Delete"');
+    // Find and click the delete link in the first row using data-test selector
+    const deleteLink = rows.first().locator('[data-test="api-key-delete-button"]');
     await deleteLink.click();
 
     const deleteResponse = await deleteResponsePromise;

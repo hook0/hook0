@@ -157,7 +157,7 @@ test.describe("User Settings", () => {
 
     // Verify success notification is shown
     await expect(
-      page.locator('[class*="Notivue"], [class*="notivue"], [role="alert"]').first()
+      page.locator('[data-test="toast-notification"]').first()
     ).toBeVisible({
       timeout: 10000,
     });
@@ -205,7 +205,7 @@ test.describe("User Settings", () => {
 
     // Verify error notification is shown
     await expect(
-      page.locator('[class*="Notivue"], [class*="notivue"], [role="alert"]').first()
+      page.locator('[data-test="toast-notification"]').first()
     ).toBeVisible({
       timeout: 10000,
     });
@@ -258,7 +258,7 @@ test.describe("User Settings", () => {
 
     // Verify error notification is shown (not implemented feature)
     await expect(
-      page.locator('[class*="Notivue"], [class*="notivue"], [role="alert"]').first()
+      page.locator('[data-test="toast-notification"]').first()
     ).toBeVisible({
       timeout: 10000,
     });
@@ -376,7 +376,7 @@ test.describe("Password Reset Flow", () => {
 
     // Verify success notification is shown
     await expect(
-      page.locator('[class*="Notivue"], [class*="notivue"], [role="alert"]').first()
+      page.locator('[data-test="toast-notification"]').first()
     ).toBeVisible({
       timeout: 10000,
     });

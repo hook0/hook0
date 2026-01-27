@@ -150,15 +150,15 @@ test.describe("Subscriptions", () => {
     await page.locator('[data-test="subscription-method-select"]').selectOption("POST");
     await page.locator('[data-test="subscription-url-input"]').fill(webhookUrl);
 
-    // Add a label
-    const labelKeyInput = page.locator('input[placeholder="Label key"]').first();
-    const labelValueInput = page.locator('input[placeholder="Label value"]').first();
+    // Add a label using data-test selectors
+    const labelKeyInput = page.locator('[data-test="subscription-labels"] [data-test="kv-key-input-0"]');
+    const labelValueInput = page.locator('[data-test="subscription-labels"] [data-test="kv-value-input-0"]');
     await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
     await labelKeyInput.fill("env");
     await labelValueInput.fill("test");
 
-    // Select an event type
-    const eventTypeCheckbox = page.locator('input[type="checkbox"]').first();
+    // Select an event type using data-test selector
+    const eventTypeCheckbox = page.locator('[data-test="event-type-checkbox-0"]');
     await expect(eventTypeCheckbox).toBeVisible({ timeout: 5000 });
     await eventTypeCheckbox.click();
 
@@ -243,17 +243,16 @@ test.describe("Subscriptions", () => {
     // Fill webhook URL
     await page.locator('[data-test="subscription-url-input"]').fill(webhookUrl);
 
-    // Add a label (required for subscriptions)
-    // Labels are in Hook0KeyValue component - let's find the first key/value inputs
-    const labelKeyInput = page.locator('input[placeholder="Label key"]').first();
-    const labelValueInput = page.locator('input[placeholder="Label value"]').first();
+    // Add a label (required for subscriptions) using data-test selectors
+    const labelKeyInput = page.locator('[data-test="subscription-labels"] [data-test="kv-key-input-0"]');
+    const labelValueInput = page.locator('[data-test="subscription-labels"] [data-test="kv-value-input-0"]');
 
     await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
     await labelKeyInput.fill("env");
     await labelValueInput.fill("test");
 
-    // Select an event type (checkbox)
-    const eventTypeCheckbox = page.locator('input[type="checkbox"]').first();
+    // Select an event type using data-test selector
+    const eventTypeCheckbox = page.locator('[data-test="event-type-checkbox-0"]');
     await expect(eventTypeCheckbox).toBeVisible({ timeout: 5000 });
     await eventTypeCheckbox.click();
 
@@ -371,35 +370,42 @@ test.describe("Subscriptions", () => {
     await page.locator('[data-test="subscription-method-select"]').selectOption("POST");
     await page.locator('[data-test="subscription-url-input"]').fill("https://webhook.site/test");
 
-    const labelKeyInput = page.locator('input[placeholder="Label key"]').first();
-    const labelValueInput = page.locator('input[placeholder="Label value"]').first();
+    // Add label using data-test selectors (scoped to subscription-labels container)
+    const labelKeyInput = page.locator(
+      '[data-test="subscription-labels"] [data-test="kv-key-input-0"]'
+    );
+    const labelValueInput = page.locator(
+      '[data-test="subscription-labels"] [data-test="kv-value-input-0"]'
+    );
     await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
-    await labelKeyInput.fill("env");
-    await labelValueInput.fill("test");
 
-    const eventTypeCheckbox = page.locator('input[type="checkbox"]').first();
+    // Clear and fill key input, then blur to trigger debounced emit
+    await labelKeyInput.clear();
+    await labelKeyInput.fill("env");
+    await labelKeyInput.blur();
+
+    // Clear and fill value input, then blur to trigger debounced emit
+    await labelValueInput.clear();
+    await labelValueInput.fill("test");
+    await labelValueInput.blur();
+
+    // Wait for debounced label input to be processed
+    await expect(labelKeyInput).toHaveValue("env");
+    await expect(labelValueInput).toHaveValue("test");
+
+    // Select event type using data-test selector
+    const eventTypeCheckbox = page.locator('[data-test="event-type-checkbox-0"]');
     await expect(eventTypeCheckbox).toBeVisible({ timeout: 5000 });
     await eventTypeCheckbox.click();
 
-    // Capture response and parse JSON immediately to avoid race condition with navigation
-    let subscriptionId: string = "";
+    // Submit the form and wait for API response
     const createResponsePromise = page.waitForResponse(
-      async (response) => {
-        if (response.url().includes("/api/v1/subscriptions") && response.request().method() === "POST") {
-          if (response.status() < 400) {
-            try {
-              const body = await response.json();
-              subscriptionId = body.subscription_id;
-            } catch {
-              // Response body may be unavailable due to navigation
-            }
-          }
-          return true;
-        }
-        return false;
-      },
+      (response) =>
+        response.url().includes("/api/v1/subscriptions") &&
+        response.request().method() === "POST",
       { timeout: 15000 }
     );
+
     await page.locator('[data-test="subscription-submit-button"]').click();
 
     const createResponse = await createResponsePromise;
@@ -408,66 +414,29 @@ test.describe("Subscriptions", () => {
     // Wait for navigation after subscription creation (router.back() is called)
     await expect(page).not.toHaveURL(/\/subscriptions\/new/, { timeout: 10000 });
 
-    // If subscriptionId wasn't captured from response, extract it from the subscriptions list UI
-    if (!subscriptionId) {
-      // Navigate to subscriptions list and find the row with our description
-      await page.goto(
-        `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions`
-      );
-      await expect(page.locator('[data-test="subscriptions-card"]')).toBeVisible({ timeout: 10000 });
+    // Navigate to subscriptions list and find our subscription by description
+    await page.goto(
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions`
+    );
+    await expect(page.locator('[data-test="subscriptions-card"]')).toBeVisible({ timeout: 10000 });
 
-      // Wait for the table to load and find our subscription row
-      const subscriptionRow = page.locator('[data-test="subscriptions-table"] .ag-row').filter({
-        hasText: description,
-      });
-      await expect(subscriptionRow.first()).toBeVisible({ timeout: 10000 });
+    // Find the subscription row with our description
+    const subscriptionRow = page.locator('[data-test="subscriptions-table"] .ag-row').filter({
+      hasText: description,
+    });
+    await expect(subscriptionRow.first()).toBeVisible({ timeout: 10000 });
 
-      // Extract subscription ID from the link's href attribute
-      // The href is computed by Vue Router from the `to` prop
-      const linkInRow = subscriptionRow.first().locator("a").first();
-      await expect(linkInRow).toBeVisible({ timeout: 5000 });
+    // Get the link in the description column and wait for href to be set
+    const descriptionLink = subscriptionRow.first().locator('a[href*="/subscriptions/"]').first();
+    await expect(descriptionLink).toBeVisible({ timeout: 10000 });
 
-      // Wait for Vue Router to resolve the href (might need a moment after render)
-      await page.waitForTimeout(500);
+    // Extract subscription ID from the href attribute
+    const href = await descriptionLink.getAttribute("href");
+    expect(href, "Link href attribute is missing").toBeTruthy();
 
-      // Get the href attribute which contains the subscription ID
-      const href = await linkInRow.getAttribute("href");
-      if (href) {
-        const match = href.match(/\/subscriptions\/([^/]+)$/);
-        if (match) {
-          subscriptionId = match[1];
-        }
-      }
-
-      // If href extraction failed, use a fallback: get all links and find one with subscription ID pattern
-      if (!subscriptionId) {
-        // Try getting any link that matches the subscription URL pattern
-        const allLinks = await subscriptionRow.first().locator("a").all();
-        for (const link of allLinks) {
-          const linkHref = await link.getAttribute("href");
-          if (linkHref) {
-            const linkMatch = linkHref.match(/\/subscriptions\/([a-f0-9-]+)/);
-            if (linkMatch) {
-              subscriptionId = linkMatch[1];
-              break;
-            }
-          }
-        }
-      }
-
-      // If still no ID, try waiting longer for Vue Router to resolve the href
-      if (!subscriptionId) {
-        await page.waitForTimeout(1000);
-        const href2 = await linkInRow.getAttribute("href");
-        if (href2) {
-          const match2 = href2.match(/\/subscriptions\/([a-f0-9-]+)/);
-          if (match2) {
-            subscriptionId = match2[1];
-          }
-        }
-      }
-    }
-    expect(subscriptionId).toBeTruthy();
+    const match = href!.match(/\/subscriptions\/([a-f0-9-]+)$/);
+    const subscriptionId = match ? match[1] : "";
+    expect(subscriptionId, "Could not extract subscription_id from href").toBeTruthy();
 
     return subscriptionId;
   }

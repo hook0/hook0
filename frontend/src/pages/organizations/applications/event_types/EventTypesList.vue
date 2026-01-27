@@ -48,6 +48,7 @@ const columnDefs: ColDef[] = [
     cellRendererParams: {
       value: 'Deactivate',
       icon: 'trash',
+      dataTest: 'event-type-deactivate-button',
       onClick: (row: EventType): void => {
         if (confirm(`Are you sure to deactivate "${row.event_type_name}" event?`)) {
           EventTypeService.deactivate(application_id.value as string, row.event_type_name)

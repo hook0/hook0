@@ -66,11 +66,12 @@ test.describe("Service Tokens", () => {
     const createResponse = await createResponsePromise;
     expect(createResponse.status()).toBeLessThan(400);
 
-    // Step 2: Verify list has at least 1 row
-    await page.waitForTimeout(1000); // Wait for UI to refresh
+    // Step 2: Verify list has at least 1 row (wait for UI to refresh using expect.toPass)
     const rows = page.locator('[data-test="service-tokens-table"] .ag-row');
-    const rowCount = await rows.count();
-    expect(rowCount).toBeGreaterThanOrEqual(1);
+    await expect(async () => {
+      const rowCount = await rows.count();
+      expect(rowCount).toBeGreaterThanOrEqual(1);
+    }).toPass({ timeout: 10000 });
 
     // Step 3: Verify first row contains expected token name
     const firstRow = rows.first();

@@ -400,6 +400,7 @@ onUpdated(() => {
                 :value="labels"
                 key-placeholder="Label key"
                 value-placeholder="Label value"
+                data-test="subscription-labels"
                 @update:model-value="subscription.labels = toMap($event)"
               ></Hook0KeyValue>
             </template>
@@ -420,18 +421,24 @@ onUpdated(() => {
             </template>
             <template #content>
               <Hook0Loader v-if="eventTypes === null"></Hook0Loader>
-              <Hook0List v-else>
-                <Hook0ListItem v-for="(eventType, index) in eventTypes" :key="index">
+              <Hook0List v-else data-test="event-types-list">
+                <Hook0ListItem
+                  v-for="(eventType, index) in eventTypes"
+                  :key="index"
+                  :data-test="`event-type-item-${index}`"
+                >
                   <template #left>
                     <Hook0Input
                       :id="'event_' + index"
                       type="checkbox"
                       :value="eventType.selected"
+                      :data-test="`event-type-checkbox-${index}`"
                       @input="eventType.selected = !eventType.selected"
                     ></Hook0Input>
                     <label
                       :for="'event_' + index"
                       class="font-medium text-gray-700 select-none ml-2 cursor-pointer"
+                      :data-test="`event-type-label-${index}`"
                     >
                       <Hook0Text>{{ eventType.event_type_name }}</Hook0Text>
                     </label>

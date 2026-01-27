@@ -30,9 +30,9 @@ function skipTutorial() {
 </script>
 
 <template>
-  <Hook0Card>
-    <Hook0CardHeader>
-      <template #header>Welcome to Hook0 🎉 - Let’s Get Started!</template>
+  <Hook0Card data-test="tutorial-card">
+    <Hook0CardHeader data-test="tutorial-header">
+      <template #header>Welcome to Hook0 🎉 - Let's Get Started!</template>
       <template #subtitle>This tutorial will help you get started quickly with Hook0.</template>
     </Hook0CardHeader>
     <Hook0CardContent>

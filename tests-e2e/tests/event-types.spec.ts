@@ -483,7 +483,7 @@ test.describe("Event Types", () => {
       { timeout: 15000 }
     );
 
-    await targetRow.locator('text=Deactivate').click();
+    await targetRow.locator('[data-test="event-type-deactivate-button"]').click();
 
     const deactivateResponse = await deactivateResponsePromise;
 
@@ -585,7 +585,7 @@ test.describe("Event Types", () => {
     });
 
     // Click deactivate button
-    await targetRow.locator('text=Deactivate').click();
+    await targetRow.locator('[data-test="event-type-deactivate-button"]').click();
 
     // Verify the event type is still in the list (deactivation was cancelled)
     await expect(targetRow).toBeVisible();

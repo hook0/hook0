@@ -173,10 +173,9 @@ test.describe("Logs", () => {
     await page.locator('[data-test="subscription-method-select"]').selectOption("POST");
     await page.locator('[data-test="subscription-url-input"]').fill("https://webhook.site/test");
 
-    // Add a label
-    // Use clear + fill + blur to properly trigger Vue's v-model reactivity and debounced emit
-    const labelKeyInput = page.locator('input[placeholder="Label key"]').first();
-    const labelValueInput = page.locator('input[placeholder="Label value"]').first();
+    // Add a label using data-test selectors (scoped to subscription-labels container)
+    const labelKeyInput = page.locator('[data-test="subscription-labels"] [data-test="kv-key-input-0"]');
+    const labelValueInput = page.locator('[data-test="subscription-labels"] [data-test="kv-value-input-0"]');
     await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
 
     // Clear and fill key input, then blur to trigger debounced emit
@@ -189,11 +188,12 @@ test.describe("Logs", () => {
     await labelValueInput.fill("yes");
     await labelValueInput.blur();
 
-    // Wait for debounced label input to be processed (lodash debounce default wait + some buffer)
-    await page.waitForTimeout(400);
+    // Wait for debounced label input to be processed
+    await expect(labelKeyInput).toHaveValue("all");
+    await expect(labelValueInput).toHaveValue("yes");
 
-    // Select event type
-    const eventTypeCheckbox = page.locator('input[type="checkbox"]').first();
+    // Select event type using data-test selector
+    const eventTypeCheckbox = page.locator('[data-test="event-type-checkbox-0"]');
     await expect(eventTypeCheckbox).toBeVisible({ timeout: 5000 });
     await eventTypeCheckbox.click();
 
@@ -221,9 +221,9 @@ test.describe("Logs", () => {
       .selectOption("billing.invoice.created");
 
     // Add labels (required for event submission, and must match subscription labels)
-    // Use clear + fill + blur to properly trigger Vue's v-model reactivity and debounced emit
-    const eventLabelKeyInput = page.locator('input[placeholder="Label key"]').first();
-    const eventLabelValueInput = page.locator('input[placeholder="Label value"]').first();
+    // Use data-test selectors (scoped to send-event-labels container)
+    const eventLabelKeyInput = page.locator('[data-test="send-event-labels"] [data-test="kv-key-input-0"]');
+    const eventLabelValueInput = page.locator('[data-test="send-event-labels"] [data-test="kv-value-input-0"]');
     await expect(eventLabelKeyInput).toBeVisible({ timeout: 5000 });
 
     // Clear and fill key input, then blur to trigger debounced emit
@@ -236,8 +236,9 @@ test.describe("Logs", () => {
     await eventLabelValueInput.fill("yes");
     await eventLabelValueInput.blur();
 
-    // Wait for debounced label input to be processed (lodash debounce default wait + some buffer)
-    await page.waitForTimeout(400);
+    // Wait for debounced label input to be processed
+    await expect(eventLabelKeyInput).toHaveValue("all");
+    await expect(eventLabelValueInput).toHaveValue("yes");
 
     const now = new Date();
     const dateTimeValue = now.toISOString().slice(0, 16);
@@ -251,14 +252,13 @@ test.describe("Logs", () => {
     await page.locator('[data-test="send-event-submit-button"]').click();
     await sendEventResponse;
 
-    // Wait a bit for the webhook to be sent
-    await page.waitForTimeout(2000);
-
-    // Navigate to logs page
+    // Navigate to logs page and poll for data to appear (webhook processing takes time)
     await page.goto(`/organizations/${env.organizationId}/applications/${env.applicationId}/logs`);
-
-    // Verify logs card is visible
     await expect(page.locator('[data-test="logs-card"]')).toBeVisible({ timeout: 10000 });
+
+    // Poll for at least one row to appear (webhook might take a moment to be processed)
+    // Use expect with longer timeout instead of arbitrary waitForTimeout
+    await expect(page.locator('[data-test="logs-table"] .ag-row').first()).toBeVisible({ timeout: 15000 });
 
     // The logs table should have at least 1 row (the webhook request)
     const rows = page.locator('[data-test="logs-table"] .ag-row');
