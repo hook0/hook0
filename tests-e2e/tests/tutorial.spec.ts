@@ -85,8 +85,9 @@ test.describe("Tutorial", () => {
     // Click skip button
     await page.locator('[data-test="tutorial-skip-button"]').click();
 
-    // Should be redirected to home/organizations
-    await expect(page).toHaveURL(/\/organizations|\/dashboard/, {
+    // Should be redirected to home (which is "/" - the Home route)
+    // Note: The Home route in Hook0 is "/" which redirects based on user state
+    await expect(page).toHaveURL(/^\/$|\/organizations|\/dashboard/, {
       timeout: 15000,
     });
   });
@@ -107,7 +108,8 @@ test.describe("Tutorial", () => {
     await page.locator('[data-test="tutorial-start-button"]').click();
 
     // Should be redirected to the first tutorial step (create organization)
-    await expect(page).toHaveURL(/\/tutorial\/create-organization|\/organizations\/new/, {
+    // The actual route is /tutorial/organization
+    await expect(page).toHaveURL(/\/tutorial\/organization/, {
       timeout: 15000,
     });
   });
@@ -126,7 +128,8 @@ test.describe("Tutorial", () => {
     await page.locator('[data-test="tutorial-start-button"]').click();
 
     // Wait for create organization step
-    await expect(page).toHaveURL(/\/tutorial\/create-organization|\/organizations\/new/, {
+    // The actual route is /tutorial/organization
+    await expect(page).toHaveURL(/\/tutorial\/organization/, {
       timeout: 15000,
     });
 

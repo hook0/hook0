@@ -147,6 +147,10 @@ test.describe("Subscriptions", () => {
     const createResponse = await createResponsePromise;
     expect(createResponse.status()).toBeLessThan(400);
 
+    // Wait for navigation after subscription creation (router.back() is called)
+    // The form will redirect back, so wait for the URL to change from /new
+    await expect(page).not.toHaveURL(/\/subscriptions\/new/, { timeout: 10000 });
+
     // Step 2: Navigate to subscriptions list
     await page.goto(
       `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions`
@@ -348,6 +352,10 @@ test.describe("Subscriptions", () => {
     expect(createResponse.status()).toBeLessThan(400);
 
     const responseBody = await createResponse.json();
+
+    // Wait for navigation after subscription creation (router.back() is called)
+    await expect(page).not.toHaveURL(/\/subscriptions\/new/, { timeout: 10000 });
+
     return responseBody.subscription_id;
   }
 

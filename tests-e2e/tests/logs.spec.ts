@@ -169,6 +169,9 @@ test.describe("Logs", () => {
     await page.locator('[data-test="subscription-submit-button"]').click();
     await createSubResponse;
 
+    // Wait for navigation after subscription creation (router.back() is called)
+    await expect(page).not.toHaveURL(/\/subscriptions\/new/, { timeout: 10000 });
+
     // Send an event
     await page.goto(
       `/organizations/${env.organizationId}/applications/${env.applicationId}/events`

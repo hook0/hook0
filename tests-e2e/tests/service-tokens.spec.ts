@@ -57,7 +57,7 @@ test.describe("Service Tokens", () => {
 
     const createResponsePromise = page.waitForResponse(
       (response) =>
-        response.url().includes("/api/v1/service_tokens") && response.request().method() === "POST",
+        response.url().includes("/api/v1/service_token") && response.request().method() === "POST",
       { timeout: 15000 }
     );
 
@@ -170,7 +170,7 @@ test.describe("Service Tokens", () => {
     // Step 2: Click create and wait for API response
     const responsePromise = page.waitForResponse(
       (response) =>
-        response.url().includes("/api/v1/service_tokens") && response.request().method() === "POST",
+        response.url().includes("/api/v1/service_token") && response.request().method() === "POST",
       { timeout: 15000 }
     );
 
