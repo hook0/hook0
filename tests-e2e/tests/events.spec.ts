@@ -180,22 +180,20 @@ test.describe("Events", () => {
     await page.locator('[data-test="send-event-type-select"]').selectOption(env.eventTypeName);
 
     // Add labels (required for event submission)
-    // Use evaluate to set value and trigger Vue's v-model reactivity directly
+    // Use focus + keyboard input to properly trigger Vue's v-model reactivity
     const labelKeyInput = page.locator('input[placeholder="Label key"]').first();
     const labelValueInput = page.locator('input[placeholder="Label value"]').first();
     await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
 
-    // Set label key value and trigger input event
-    await labelKeyInput.evaluate((el: HTMLInputElement) => {
-      el.value = "env";
-      el.dispatchEvent(new Event("input", { bubbles: true }));
-    });
+    // Focus and type into key input using keyboard
+    await labelKeyInput.focus();
+    await labelKeyInput.selectText();
+    await page.keyboard.type("env");
 
-    // Set label value and trigger input event
-    await labelValueInput.evaluate((el: HTMLInputElement) => {
-      el.value = "test";
-      el.dispatchEvent(new Event("input", { bubbles: true }));
-    });
+    // Focus and type into value input using keyboard
+    await labelValueInput.focus();
+    await labelValueInput.selectText();
+    await page.keyboard.type("test");
 
     // Wait for debounced label input to be processed (lodash debounce default wait time)
     await page.waitForTimeout(500);

@@ -174,22 +174,20 @@ test.describe("Logs", () => {
     await page.locator('[data-test="subscription-url-input"]').fill("https://webhook.site/test");
 
     // Add a label
-    // Use evaluate to set value and trigger Vue's v-model reactivity directly
+    // Use focus + keyboard input to properly trigger Vue's v-model reactivity
     const labelKeyInput = page.locator('input[placeholder="Label key"]').first();
     const labelValueInput = page.locator('input[placeholder="Label value"]').first();
     await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
 
-    // Set label key value and trigger input event
-    await labelKeyInput.evaluate((el: HTMLInputElement) => {
-      el.value = "all";
-      el.dispatchEvent(new Event("input", { bubbles: true }));
-    });
+    // Focus and type into key input using keyboard
+    await labelKeyInput.focus();
+    await labelKeyInput.selectText();
+    await page.keyboard.type("all");
 
-    // Set label value and trigger input event
-    await labelValueInput.evaluate((el: HTMLInputElement) => {
-      el.value = "yes";
-      el.dispatchEvent(new Event("input", { bubbles: true }));
-    });
+    // Focus and type into value input using keyboard
+    await labelValueInput.focus();
+    await labelValueInput.selectText();
+    await page.keyboard.type("yes");
 
     // Wait for debounced label input to be processed
     await page.waitForTimeout(500);
@@ -223,22 +221,20 @@ test.describe("Logs", () => {
       .selectOption("billing.invoice.created");
 
     // Add labels (required for event submission, and must match subscription labels)
-    // Use evaluate to set value and trigger Vue's v-model reactivity directly
+    // Use focus + keyboard input to properly trigger Vue's v-model reactivity
     const eventLabelKeyInput = page.locator('input[placeholder="Label key"]').first();
     const eventLabelValueInput = page.locator('input[placeholder="Label value"]').first();
     await expect(eventLabelKeyInput).toBeVisible({ timeout: 5000 });
 
-    // Set label key value and trigger input event
-    await eventLabelKeyInput.evaluate((el: HTMLInputElement) => {
-      el.value = "all";
-      el.dispatchEvent(new Event("input", { bubbles: true }));
-    });
+    // Focus and type into key input using keyboard
+    await eventLabelKeyInput.focus();
+    await eventLabelKeyInput.selectText();
+    await page.keyboard.type("all");
 
-    // Set label value and trigger input event
-    await eventLabelValueInput.evaluate((el: HTMLInputElement) => {
-      el.value = "yes";
-      el.dispatchEvent(new Event("input", { bubbles: true }));
-    });
+    // Focus and type into value input using keyboard
+    await eventLabelValueInput.focus();
+    await eventLabelValueInput.selectText();
+    await page.keyboard.type("yes");
 
     // Wait for debounced label input to be processed (lodash debounce default wait time)
     await page.waitForTimeout(500);
