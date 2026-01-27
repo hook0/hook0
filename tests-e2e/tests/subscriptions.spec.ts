@@ -439,17 +439,31 @@ test.describe("Subscriptions", () => {
         }
       }
 
-      // If href extraction failed, try clicking and waiting for detail page element
+      // If href extraction failed, use a fallback: get all links and find one with subscription ID pattern
       if (!subscriptionId) {
-        await linkInRow.click();
-        // Wait for subscription detail page element to appear (Vue Router navigation completed)
-        await expect(page.locator('[data-test="subscription-form"]')).toBeVisible({ timeout: 15000 });
+        // Try getting any link that matches the subscription URL pattern
+        const allLinks = await subscriptionRow.first().locator("a").all();
+        for (const link of allLinks) {
+          const linkHref = await link.getAttribute("href");
+          if (linkHref) {
+            const linkMatch = linkHref.match(/\/subscriptions\/([a-f0-9-]+)/);
+            if (linkMatch) {
+              subscriptionId = linkMatch[1];
+              break;
+            }
+          }
+        }
+      }
 
-        // Extract subscription ID from the URL after navigation
-        const currentUrl = page.url();
-        const urlMatch = currentUrl.match(/\/subscriptions\/([^/]+)/);
-        if (urlMatch) {
-          subscriptionId = urlMatch[1];
+      // If still no ID, try waiting longer for Vue Router to resolve the href
+      if (!subscriptionId) {
+        await page.waitForTimeout(1000);
+        const href2 = await linkInRow.getAttribute("href");
+        if (href2) {
+          const match2 = href2.match(/\/subscriptions\/([a-f0-9-]+)/);
+          if (match2) {
+            subscriptionId = match2[1];
+          }
         }
       }
     }

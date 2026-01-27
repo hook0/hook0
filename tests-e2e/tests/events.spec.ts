@@ -206,7 +206,7 @@ test.describe("Events", () => {
     // Step 2: Submit and wait for API response
     const responsePromise = page.waitForResponse(
       (response) =>
-        response.url().includes("/api/v1/events") && response.request().method() === "POST",
+        response.url().includes("/api/v1/event") && response.request().method() === "POST" && !response.url().includes("/api/v1/event_types"),
       { timeout: 15000 }
     );
 
@@ -271,7 +271,7 @@ test.describe("Events", () => {
     // Submit
     const responsePromise = page.waitForResponse(
       (response) =>
-        response.url().includes("/api/v1/events") && response.request().method() === "POST",
+        response.url().includes("/api/v1/event") && response.request().method() === "POST" && !response.url().includes("/api/v1/event_types"),
       { timeout: 15000 }
     );
 
@@ -356,7 +356,7 @@ test.describe("Events", () => {
 
     const responsePromise = page.waitForResponse(
       (response) =>
-        response.url().includes("/api/v1/events") && response.request().method() === "POST",
+        response.url().includes("/api/v1/event") && response.request().method() === "POST" && !response.url().includes("/api/v1/event_types"),
       { timeout: 15000 }
     );
 

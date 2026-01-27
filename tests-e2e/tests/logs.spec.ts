@@ -245,7 +245,7 @@ test.describe("Logs", () => {
 
     const sendEventResponse = page.waitForResponse(
       (response) =>
-        response.url().includes("/api/v1/events") && response.request().method() === "POST",
+        response.url().includes("/api/v1/event") && response.request().method() === "POST" && !response.url().includes("/api/v1/event_types"),
       { timeout: 15000 }
     );
     await page.locator('[data-test="send-event-submit-button"]').click();
