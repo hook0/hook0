@@ -512,8 +512,11 @@ test.describe("Subscriptions", () => {
     // Step 3: Verify API response status (body may not be available due to navigation)
     expect(response.status()).toBeLessThan(400);
 
-    // Step 4: Verify the update persisted by navigating back to the subscription
-    // (API request would need auth context, so we use UI verification instead)
+    // Step 4: Wait for the router.back() navigation that happens after form submission
+    // This navigates to the subscriptions list page
+    await expect(page).toHaveURL(/\/subscriptions$/, { timeout: 10000 });
+
+    // Step 5: Verify the update persisted by navigating back to the subscription
     await page.goto(
       `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions/${subscriptionId}`
     );
@@ -562,8 +565,11 @@ test.describe("Subscriptions", () => {
     // Step 3: Verify API response status (body may not be available due to navigation)
     expect(response.status()).toBeLessThan(400);
 
-    // Step 4: Verify the update persisted by navigating back to the subscription
-    // (API request would need auth context, so we use UI verification instead)
+    // Step 4: Wait for the router.back() navigation that happens after form submission
+    // This navigates to the subscriptions list page
+    await expect(page).toHaveURL(/\/subscriptions$/, { timeout: 10000 });
+
+    // Step 5: Verify the update persisted by navigating back to the subscription
     await page.goto(
       `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions/${subscriptionId}`
     );
