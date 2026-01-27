@@ -357,9 +357,9 @@ test.describe("Applications", () => {
     expect(createResponse.status()).toBeLessThan(400);
     const app = await createResponse.json();
 
-    // Wait for frontend's auto-refresh to complete after app creation
-    // The frontend automatically refreshes the token when an application is created
-    await page.waitForTimeout(2000);
+    // Wait for navigation after app creation to complete before proceeding
+    // The frontend redirects after creation, so we wait for that redirect
+    await expect(page).toHaveURL(/\/applications\/[^/]+/, { timeout: 10000 });
 
     // Navigate to application settings page (where delete option is)
     // The navigation itself waits for the page to load
@@ -453,8 +453,8 @@ test.describe("Applications", () => {
     expect(createResponse.status()).toBeLessThan(400);
     const app = await createResponse.json();
 
-    // Wait for frontend's auto-refresh to complete after app creation
-    await page.waitForTimeout(2000);
+    // Wait for navigation after app creation to complete before proceeding
+    await expect(page).toHaveURL(/\/applications\/[^/]+/, { timeout: 10000 });
 
     // Navigate to application settings page
     await page.goto(`/organizations/${organizationId}/applications/${app.application_id}/settings`);
