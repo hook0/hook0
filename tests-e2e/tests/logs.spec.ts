@@ -84,11 +84,13 @@ test.describe("Logs", () => {
     const appResponse = await createAppResponse;
     expect(appResponse.status()).toBeLessThan(400);
 
-    // Always extract applicationId from URL (most reliable due to navigation timing)
-    await expect(page).toHaveURL(/\/applications\/[^/]+/, { timeout: 10000 });
+    // Wait for redirect to complete - URL should contain a UUID application ID, not "new"
+    // UUID pattern: 8-4-4-4-12 hex characters
+    const uuidPattern = /\/applications\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
+    await expect(page).toHaveURL(uuidPattern, { timeout: 15000 });
     const url = page.url();
-    const match = url.match(/\/applications\/([^/]+)/);
-    expect(match, "Failed to extract application ID from URL").toBeTruthy();
+    const match = url.match(uuidPattern);
+    expect(match, "Failed to extract application ID (UUID) from URL").toBeTruthy();
     applicationId = match![1];
 
     return {
@@ -153,7 +155,14 @@ test.describe("Logs", () => {
       { timeout: 15000 }
     );
     await page.locator('[data-test="event-type-submit-button"]').click();
-    await createEventTypeResponse;
+    const eventTypeResponse = await createEventTypeResponse;
+    expect(eventTypeResponse.status()).toBeLessThan(400);
+
+    // Wait for navigation after event type creation
+    await expect(page).toHaveURL(/\/event_types$/, { timeout: 10000 });
+
+    // Verify event type appears in the list (confirms data is persisted)
+    await expect(page.locator('[data-test="event-types-table"]')).toBeVisible({ timeout: 10000 });
 
     // Create a subscription
     await page.goto(
