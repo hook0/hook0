@@ -1,0 +1,260 @@
+stages:
+  - test
+  - build
+  - package
+  - release
+
+variables:
+  CARGO_HOME: $CI_PROJECT_DIR/.cargo
+  RUST_VERSION: "1.83"
+  PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/hook0-cli"
+
+.rust-cache:
+  cache:
+    key: "$CI_JOB_NAME-$RUST_VERSION"
+    paths:
+      - .cargo/
+      - target/
+
+# =============================================================================
+# Test Stage
+# =============================================================================
+
+test:
+  stage: test
+  image: rust:$RUST_VERSION
+  extends: .rust-cache
+  script:
+    - cd cli
+    - cargo fmt --check
+    - cargo clippy -- -D warnings
+    - cargo test --all-features
+  rules:
+    - changes:
+        - cli/**/*
+
+# =============================================================================
+# Build Stage - Cross-compilation matrix
+# =============================================================================
+
+.build-template:
+  stage: build
+  extends: .rust-cache
+  script:
+    - cd cli
+    - rustup target add $TARGET || true
+    - cargo build --release --target $TARGET
+    - mkdir -p ../dist
+    - cp target/$TARGET/release/hook0$SUFFIX ../dist/hook0-$ARTIFACT_NAME
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 week
+  rules:
+    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+build:linux-amd64:
+  extends: .build-template
+  image: rust:$RUST_VERSION
+  variables:
+    TARGET: x86_64-unknown-linux-gnu
+    SUFFIX: ""
+    ARTIFACT_NAME: linux-amd64
+
+build:linux-arm64:
+  extends: .build-template
+  image: rust:$RUST_VERSION
+  variables:
+    TARGET: aarch64-unknown-linux-gnu
+    SUFFIX: ""
+    ARTIFACT_NAME: linux-arm64
+  before_script:
+    - apt-get update && apt-get install -y gcc-aarch64-linux-gnu
+    - export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
+
+build:darwin-amd64:
+  extends: .build-template
+  tags:
+    - macos
+  variables:
+    TARGET: x86_64-apple-darwin
+    SUFFIX: ""
+    ARTIFACT_NAME: darwin-amd64
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: manual
+      allow_failure: true
+
+build:darwin-arm64:
+  extends: .build-template
+  tags:
+    - macos-arm64
+  variables:
+    TARGET: aarch64-apple-darwin
+    SUFFIX: ""
+    ARTIFACT_NAME: darwin-arm64
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: manual
+      allow_failure: true
+
+build:windows-amd64:
+  extends: .build-template
+  image: rust:$RUST_VERSION
+  variables:
+    TARGET: x86_64-pc-windows-gnu
+    SUFFIX: ".exe"
+    ARTIFACT_NAME: windows-amd64.exe
+  before_script:
+    - apt-get update && apt-get install -y mingw-w64
+    - rustup target add x86_64-pc-windows-gnu
+
+# =============================================================================
+# Package Stage
+# =============================================================================
+
+package:deb:
+  stage: package
+  image: rust:$RUST_VERSION
+  needs: ["build:linux-amd64", "build:linux-arm64"]
+  script:
+    - cd cli
+    - cargo install cargo-deb
+    - cargo deb --target x86_64-unknown-linux-gnu --no-build
+    - cargo deb --target aarch64-unknown-linux-gnu --no-build
+    - mv target/debian/*.deb ../dist/
+  artifacts:
+    paths:
+      - dist/*.deb
+    expire_in: 1 week
+  rules:
+    - if: $CI_COMMIT_TAG
+
+package:rpm:
+  stage: package
+  image: fedora:latest
+  needs: ["build:linux-amd64", "build:linux-arm64"]
+  script:
+    - dnf install -y rust cargo rpm-build
+    - cd cli
+    - cargo install cargo-generate-rpm
+    - cargo generate-rpm
+    - mv target/generate-rpm/*.rpm ../dist/
+  artifacts:
+    paths:
+      - dist/*.rpm
+    expire_in: 1 week
+  rules:
+    - if: $CI_COMMIT_TAG
+  allow_failure: true
+
+package:docker:
+  stage: package
+  image: docker:latest
+  services:
+    - docker:dind
+  needs: ["build:linux-amd64", "build:linux-arm64"]
+  script:
+    - cd cli
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $CI_REGISTRY_IMAGE/cli:$CI_COMMIT_TAG -t $CI_REGISTRY_IMAGE/cli:latest .
+    - docker push $CI_REGISTRY_IMAGE/cli:$CI_COMMIT_TAG
+    - docker push $CI_REGISTRY_IMAGE/cli:latest
+  rules:
+    - if: $CI_COMMIT_TAG
+
+# =============================================================================
+# Release Stage
+# =============================================================================
+
+release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - build:linux-amd64
+    - build:linux-arm64
+    - build:windows-amd64
+  script:
+    - echo "Creating release for $CI_COMMIT_TAG"
+  release:
+    tag_name: $CI_COMMIT_TAG
+    name: "CLI Release $CI_COMMIT_TAG"
+    description: |
+      ## Hook0 CLI $CI_COMMIT_TAG
+
+      ### Installation
+
+      **Homebrew (macOS/Linux)**
+      ```bash
+      brew install hook0/tap/hook0
+      ```
+
+      **Cargo (Rust)**
+      ```bash
+      cargo install hook0-cli
+      ```
+
+      **Direct Download**
+      Download the appropriate binary for your platform below.
+
+      **Docker**
+      ```bash
+      docker run -it hook0/cli:$CI_COMMIT_TAG --help
+      ```
+
+      ### Checksums
+      See the checksums.txt asset for SHA256 checksums of all binaries.
+    assets:
+      links:
+        - name: "Linux AMD64"
+          url: "${PACKAGE_REGISTRY_URL}/${CI_COMMIT_TAG}/hook0-linux-amd64"
+          link_type: package
+        - name: "Linux ARM64"
+          url: "${PACKAGE_REGISTRY_URL}/${CI_COMMIT_TAG}/hook0-linux-arm64"
+          link_type: package
+        - name: "Windows AMD64"
+          url: "${PACKAGE_REGISTRY_URL}/${CI_COMMIT_TAG}/hook0-windows-amd64.exe"
+          link_type: package
+  rules:
+    - if: $CI_COMMIT_TAG
+
+upload-binaries:
+  stage: release
+  image: curlimages/curl:latest
+  needs:
+    - build:linux-amd64
+    - build:linux-arm64
+    - build:windows-amd64
+  script:
+    - |
+      for file in dist/*; do
+        filename=$(basename "$file")
+        curl --header "JOB-TOKEN: $CI_JOB_TOKEN" \
+             --upload-file "$file" \
+             "${PACKAGE_REGISTRY_URL}/${CI_COMMIT_TAG}/${filename}"
+      done
+  rules:
+    - if: $CI_COMMIT_TAG
+
+# =============================================================================
+# Checksums
+# =============================================================================
+
+generate-checksums:
+  stage: release
+  image: alpine:latest
+  needs:
+    - build:linux-amd64
+    - build:linux-arm64
+    - build:windows-amd64
+  script:
+    - apk add --no-cache coreutils
+    - cd dist && sha256sum * > checksums.txt
+    - cat checksums.txt
+  artifacts:
+    paths:
+      - dist/checksums.txt
+    expire_in: 1 year
+  rules:
+    - if: $CI_COMMIT_TAG
