@@ -84,11 +84,13 @@ test.describe("API Keys", () => {
     const appResponse = await createAppResponse;
     expect(appResponse.status()).toBeLessThan(400);
 
-    // Always extract applicationId from URL (most reliable due to navigation timing)
-    await expect(page).toHaveURL(/\/applications\/[^/]+/, { timeout: 10000 });
+    // Wait for redirect to complete - URL should contain a UUID application ID, not "new"
+    // UUID pattern: 8-4-4-4-12 hex characters
+    const uuidPattern = /\/applications\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
+    await expect(page).toHaveURL(uuidPattern, { timeout: 15000 });
     const url = page.url();
-    const match = url.match(/\/applications\/([^/]+)/);
-    expect(match, "Failed to extract application ID from URL").toBeTruthy();
+    const match = url.match(uuidPattern);
+    expect(match, "Failed to extract application ID (UUID) from URL").toBeTruthy();
     applicationId = match![1];
 
     return {

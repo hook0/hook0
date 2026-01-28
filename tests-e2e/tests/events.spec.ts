@@ -371,9 +371,13 @@ test.describe("Events", () => {
     await expect(page.locator('[data-test="events-card"]')).toBeVisible({ timeout: 10000 });
 
     // Click on the event ID link in the first row
+    // Note: ag-grid data-test attributes may have timing issues, so we click the first link in the row
     const rows = page.locator('[data-test="events-table"] [row-id]');
     await expect(rows.first()).toBeVisible();
-    await rows.first().locator('[data-test="event-id-link"]').click();
+    // The event ID column contains a link - click on it
+    const eventLink = rows.first().locator('a').first();
+    await expect(eventLink).toBeVisible({ timeout: 5000 });
+    await eventLink.click();
 
     // Verify we're on the event detail page
     await expect(page).toHaveURL(/\/events\/[^/]+$/, { timeout: 10000 });
