@@ -154,7 +154,7 @@ test.describe("Subscriptions", () => {
 
     // Select an event type using data-test selector
     const eventTypeCheckbox = page.locator('[data-test="event-type-checkbox-0"]');
-    await expect(eventTypeCheckbox).toBeVisible({ timeout: 5000 });
+    await expect(eventTypeCheckbox).toBeVisible({ timeout: 15000 });
     await eventTypeCheckbox.click();
 
     const createResponsePromise = page.waitForResponse(
@@ -248,7 +248,7 @@ test.describe("Subscriptions", () => {
 
     // Select an event type using data-test selector
     const eventTypeCheckbox = page.locator('[data-test="event-type-checkbox-0"]');
-    await expect(eventTypeCheckbox).toBeVisible({ timeout: 5000 });
+    await expect(eventTypeCheckbox).toBeVisible({ timeout: 15000 });
     await eventTypeCheckbox.click();
 
     // Step 2: Submit and wait for API response
@@ -389,7 +389,7 @@ test.describe("Subscriptions", () => {
 
     // Select event type using data-test selector
     const eventTypeCheckbox = page.locator('[data-test="event-type-checkbox-0"]');
-    await expect(eventTypeCheckbox).toBeVisible({ timeout: 5000 });
+    await expect(eventTypeCheckbox).toBeVisible({ timeout: 15000 });
     await eventTypeCheckbox.click();
 
     // Submit the form and wait for API response

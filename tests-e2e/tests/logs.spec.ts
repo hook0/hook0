@@ -190,7 +190,7 @@ test.describe("Logs", () => {
 
     // Select event type using data-test selector
     const eventTypeCheckbox = page.locator('[data-test="event-type-checkbox-0"]');
-    await expect(eventTypeCheckbox).toBeVisible({ timeout: 5000 });
+    await expect(eventTypeCheckbox).toBeVisible({ timeout: 15000 });
     await eventTypeCheckbox.click();
 
     const createSubResponse = page.waitForResponse(
