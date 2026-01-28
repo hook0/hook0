@@ -30,7 +30,7 @@ const props = defineProps<Props>();
 const getRowId = props.rowIdField
   ? (params: GetRowIdParams) => {
       const row = params.data as Record<string, unknown>;
-      return String(row[props.rowIdField!] ?? params.node?.rowIndex ?? '');
+      return String(row[props.rowIdField!] ?? '');
     }
   : undefined;
 const domLayout = 'autoHeight';
