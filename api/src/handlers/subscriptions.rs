@@ -44,6 +44,7 @@ pub struct Subscription {
     pub labels: HashMap<String, String>,
     pub target: Target,
     pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub dedicated_workers: Vec<String>,
 }
 
@@ -222,6 +223,7 @@ pub async fn list(
         labels: Value,
         target_json: Option<Value>,
         created_at: DateTime<Utc>,
+        updated_at: DateTime<Utc>,
         dedicated_workers: Option<Vec<String>>,
     }
 
@@ -230,7 +232,7 @@ pub async fn list(
         r#"
             WITH subs AS (
                 SELECT
-                    s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.target__id, s.created_at,
+                    s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.target__id, s.created_at, s.updated_at,
                     CASE WHEN length((array_agg(set.event_type__name))[1]) > 0
                         THEN array_agg(set.event_type__name)
                         ELSE ARRAY[]::text[] END AS event_types,
@@ -253,7 +255,7 @@ pub async fn list(
                 ) AS target_json FROM webhook.target_http
                 WHERE target__id IN (SELECT target__id FROM subs)
             )
-            SELECT subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.labels AS "labels!", subs.created_at AS "created_at!", subs.event_types, targets.target_json, subs.dedicated_workers
+            SELECT subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.labels AS "labels!", subs.created_at AS "created_at!", subs.updated_at AS "updated_at!", subs.event_types, targets.target_json, subs.dedicated_workers
             FROM subs
             INNER JOIN targets ON subs.target__id = targets.target__id
         "#, // Column aliases ending with "!" are there because sqlx does not seem to infer correctly that these columns' types are not options
@@ -291,6 +293,7 @@ pub async fn list(
                 target: serde_json::from_value(s.target_json.unwrap())
                     .expect("Could not parse subscription target"),
                 created_at: s.created_at,
+                updated_at: s.updated_at,
                 dedicated_workers: s.dedicated_workers.unwrap_or_default(),
             }
         })
@@ -360,6 +363,7 @@ pub async fn get(
         labels: Value,
         target_json: Option<Value>,
         created_at: DateTime<Utc>,
+        updated_at: DateTime<Utc>,
         dedicated_workers: Option<Vec<String>>,
     }
 
@@ -368,7 +372,7 @@ pub async fn get(
         r#"
             WITH subs AS (
                 SELECT
-                    s.application__id, s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.target__id, s.created_at,
+                    s.application__id, s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.target__id, s.created_at, s.updated_at,
                     CASE WHEN length((array_agg(set.event_type__name))[1]) > 0
                         THEN array_agg(set.event_type__name)
                         ELSE ARRAY[]::text[] END AS event_types,
@@ -391,7 +395,7 @@ pub async fn get(
                 ) AS target_json FROM webhook.target_http
                 WHERE target__id IN (SELECT target__id FROM subs)
             )
-            SELECT subs.application__id AS "application__id!", subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.labels AS "labels!", subs.created_at AS "created_at!", subs.event_types, targets.target_json, subs.dedicated_workers
+            SELECT subs.application__id AS "application__id!", subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.labels AS "labels!", subs.created_at AS "created_at!", subs.updated_at AS "updated_at!", subs.event_types, targets.target_json, subs.dedicated_workers
             FROM subs
             INNER JOIN targets ON subs.target__id = targets.target__id
             LIMIT 1
@@ -430,6 +434,7 @@ pub async fn get(
                 target: serde_json::from_value(s.target_json.unwrap())
                     .expect("Could not parse subscription target"),
                 created_at: s.created_at,
+                updated_at: s.updated_at,
                 dedicated_workers: s.dedicated_workers.unwrap_or_default(),
             }))
         }

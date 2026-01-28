@@ -141,6 +141,19 @@ const columnDefs: ColDef[] = [
     valueFormatter: () => 'unreachable',
   },
   {
+    field: 'updated_at',
+    suppressMovable: true,
+    sortable: true,
+    resizable: true,
+    headerName: 'Updated',
+    width: 180,
+    valueFormatter: (params: ValueFormatterParams<Subscription, string>) => {
+      if (!params.value) return '';
+      const date = new Date(params.value);
+      return date.toLocaleString();
+    },
+  },
+  {
     suppressMovable: true,
     headerName: 'Options',
     cellRenderer: Hook0TableCellLink,
