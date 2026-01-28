@@ -30,7 +30,13 @@ impl RequestStatus {
         match self {
             RequestStatus::Pending => "Pending".to_string(),
             RequestStatus::Forwarding => "Forwarding".to_string(),
-            RequestStatus::Success { status_code, .. } => format!("{} OK", status_code),
+            RequestStatus::Success { status_code, .. } => {
+                if *status_code >= 400 {
+                    format!("{} ERR", status_code)
+                } else {
+                    format!("{} OK", status_code)
+                }
+            }
             RequestStatus::Failed { .. } => "Failed".to_string(),
         }
     }
@@ -104,6 +110,14 @@ impl InspectedRequest {
         }
         self.response_headers = Some(result.headers.clone());
         self.response_body = result.body.clone();
+    }
+
+    /// Mark this request as failed with an error message
+    pub fn mark_failed(&mut self, error: &str) {
+        self.status = RequestStatus::Failed {
+            error: error.to_string(),
+            elapsed_ms: 0,
+        };
     }
 }
 

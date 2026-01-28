@@ -120,6 +120,10 @@ package:deb:
   needs: ["build:linux-amd64", "build:linux-arm64"]
   script:
     - cd cli
+    # Stage pre-built binaries into target directories for cargo-deb
+    - mkdir -p target/x86_64-unknown-linux-gnu/release target/aarch64-unknown-linux-gnu/release
+    - cp ../dist/hook0-linux-amd64 target/x86_64-unknown-linux-gnu/release/hook0
+    - cp ../dist/hook0-linux-arm64 target/aarch64-unknown-linux-gnu/release/hook0
     - cargo install cargo-deb
     - cargo deb --target x86_64-unknown-linux-gnu --no-build
     - cargo deb --target aarch64-unknown-linux-gnu --no-build
@@ -172,9 +176,7 @@ release:
   stage: release
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   needs:
-    - build:linux-amd64
-    - build:linux-arm64
-    - build:windows-amd64
+    - upload-binaries
   script:
     - echo "Creating release for $CI_COMMIT_TAG"
   release:
@@ -216,6 +218,9 @@ release:
         - name: "Windows AMD64"
           url: "${PACKAGE_REGISTRY_URL}/${CI_COMMIT_TAG}/hook0-windows-amd64.exe"
           link_type: package
+        - name: "SHA256 Checksums"
+          url: "${PACKAGE_REGISTRY_URL}/${CI_COMMIT_TAG}/checksums.txt"
+          link_type: other
   rules:
     - if: $CI_COMMIT_TAG
 
@@ -226,6 +231,7 @@ upload-binaries:
     - build:linux-amd64
     - build:linux-arm64
     - build:windows-amd64
+    - generate-checksums
   script:
     - |
       for file in dist/*; do

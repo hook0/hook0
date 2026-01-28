@@ -222,12 +222,14 @@ pub async fn login(cli: &Cli, args: &LoginArgs) -> Result<()> {
             _ => anyhow!("Failed to validate credentials: {}", e),
         })?;
 
-    output_success(&format!(
-        "Authenticated successfully!\n  Application: {} ({})\n  Organization: {}",
-        app.name,
-        app.application_id,
-        app.organization_id
-    ));
+    if cli.output != OutputFormat::Json {
+        output_success(&format!(
+            "Authenticated successfully!\n  Application: {} ({})\n  Organization: {}",
+            app.name,
+            app.application_id,
+            app.organization_id
+        ));
+    }
 
     // Save to config
     let mut config = Config::load().unwrap_or_default();
@@ -240,15 +242,10 @@ pub async fn login(cli: &Cli, args: &LoginArgs) -> Result<()> {
     );
 
     config.set_profile(&args.profile_name, profile);
-    config.save()?;
 
-    // Store secret in keyring
+    // Store secret in keyring first, then save config (avoid inconsistent state)
     Config::store_secret(&args.profile_name, &app.application_id, &secret)?;
-
-    output_success(&format!(
-        "Credentials saved to profile '{}'",
-        args.profile_name
-    ));
+    config.save()?;
 
     if cli.output == OutputFormat::Json {
         println!(
@@ -262,6 +259,11 @@ pub async fn login(cli: &Cli, args: &LoginArgs) -> Result<()> {
                 "api_url": api_url,
             })
         );
+    } else {
+        output_success(&format!(
+            "Credentials saved to profile '{}'",
+            args.profile_name
+        ));
     }
 
     Ok(())

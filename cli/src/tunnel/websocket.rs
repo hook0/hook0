@@ -2,11 +2,13 @@ use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
 use futures_util::{SinkExt, StreamExt};
-use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tokio::sync::mpsc;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 use uuid::Uuid;
+
+// Re-use StreamMessage from models to avoid duplication
+pub use crate::api::models::StreamMessage;
 
 #[derive(Error, Debug)]
 pub enum StreamError {
@@ -24,40 +26,6 @@ pub enum StreamError {
 
     #[error("Send error: {0}")]
     SendError(String),
-}
-
-/// Messages sent/received over the WebSocket stream
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum StreamMessage {
-    /// Server sends connection info
-    Connected {
-        webhook_url: String,
-        session_id: String,
-    },
-    /// Server sends an incoming webhook
-    WebhookReceived {
-        request_id: String,
-        event_id: Uuid,
-        event_type: String,
-        payload: String,
-        headers: HashMap<String, String>,
-        received_at: DateTime<Utc>,
-    },
-    /// Client sends the response after forwarding
-    WebhookResponse {
-        request_id: String,
-        status_code: u16,
-        headers: HashMap<String, String>,
-        body: Option<String>,
-        elapsed_ms: i64,
-    },
-    /// Ping for keepalive
-    Ping,
-    /// Pong response
-    Pong,
-    /// Error message
-    Error { message: String },
 }
 
 /// Events emitted by the stream client
@@ -108,13 +76,14 @@ impl StreamClient {
 
         // Channel for sending responses back to the server
         let (tx, mut rx) = mpsc::channel::<StreamMessage>(32);
-        self.tx = Some(tx);
+        self.tx = Some(tx.clone());
 
         // Channel for emitting events to the caller
         let (event_tx, event_rx) = mpsc::channel::<StreamEvent>(32);
 
         // Spawn task to handle incoming messages
         let event_tx_clone = event_tx.clone();
+        let pong_tx = tx; // Clone for sending pong responses
         tokio::spawn(async move {
             while let Some(msg) = read.next().await {
                 match msg {
@@ -141,7 +110,8 @@ impl StreamClient {
                                         received_at,
                                     },
                                     StreamMessage::Ping => {
-                                        // Respond with pong (handled in write task)
+                                        // Respond with pong
+                                        let _ = pong_tx.send(StreamMessage::Pong).await;
                                         continue;
                                     }
                                     StreamMessage::Pong => continue,

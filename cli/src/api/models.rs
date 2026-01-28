@@ -540,12 +540,21 @@ pub fn base64_encode(input: &str) -> String {
     STANDARD.encode(input.as_bytes())
 }
 
+/// Error type for base64 decoding that preserves UTF-8 error details
+#[derive(Debug, thiserror::Error)]
+pub enum Base64DecodeError {
+    #[error("Base64 decode error: {0}")]
+    DecodeError(#[from] base64::DecodeError),
+    #[error("Invalid UTF-8: {0}")]
+    Utf8Error(#[from] std::string::FromUtf8Error),
+}
+
 /// Base64 decode a string
-pub fn base64_decode(input: &str) -> Result<String, base64::DecodeError> {
+pub fn base64_decode(input: &str) -> Result<String, Base64DecodeError> {
     use base64::engine::general_purpose::STANDARD;
     use base64::Engine;
     let bytes = STANDARD.decode(input)?;
-    String::from_utf8(bytes).map_err(|_| base64::DecodeError::InvalidByte(0, 0))
+    Ok(String::from_utf8(bytes)?)
 }
 
 #[cfg(test)]

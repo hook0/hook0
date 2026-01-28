@@ -136,12 +136,11 @@ impl Forwarder {
     /// Check if the target URL is reachable
     pub async fn health_check(&self) -> bool {
         match self.client.get(&self.target_url).send().await {
-            Ok(_) => true,
-            Err(e) => {
-                // Connection refused is expected if server isn't running
-                // but we want to detect other errors
-                !e.is_connect()
+            Ok(resp) => {
+                // Consider success if we got any response (even 4xx/5xx means server is up)
+                resp.status().is_success() || resp.status().is_client_error() || resp.status().is_server_error()
             }
+            Err(_) => false,
         }
     }
 
@@ -166,7 +165,11 @@ pub fn parse_target(target: &str) -> Result<String, ForwardError> {
     }
 
     // Assume it's a hostname:port or just a hostname
-    if target.contains(':') {
+    // Check for host:port pattern (but not IPv6 literal like ::1)
+    if target.contains(':') && !target.contains("::") && !target.starts_with('[') {
+        Ok(format!("http://{}", target))
+    } else if target.starts_with('[') {
+        // Bracketed IPv6 like [::1]:8080
         Ok(format!("http://{}", target))
     } else {
         Ok(format!("http://{}:3000", target))

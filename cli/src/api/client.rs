@@ -243,10 +243,13 @@ impl ApiClient {
     ) -> Result<(), ApiError> {
         let response = self
             .client
-            .delete(self.url(&format!(
-                "/event_types?application_id={}&service={}&resource_type={}&verb={}",
-                application_id, service, resource_type, verb
-            )))
+            .delete(self.url("/event_types"))
+            .query(&[
+                ("application_id", application_id.to_string()),
+                ("service", service.to_string()),
+                ("resource_type", resource_type.to_string()),
+                ("verb", verb.to_string()),
+            ])
             .bearer_auth(&self.secret)
             .send()
             .await?;
@@ -511,10 +514,11 @@ impl ApiClient {
     pub async fn delete_application_secret(&self, application_id: &Uuid, token: &Uuid) -> Result<(), ApiError> {
         let response = self
             .client
-            .delete(self.url(&format!(
-                "/application_secrets?application_id={}&token={}",
-                application_id, token
-            )))
+            .delete(self.url("/application_secrets"))
+            .query(&[
+                ("application_id", application_id.to_string()),
+                ("token", token.to_string()),
+            ])
             .bearer_auth(&self.secret)
             .send()
             .await?;
@@ -549,6 +553,11 @@ impl ApiClient {
     // =========================================================================
 
     /// Get WebSocket URL for streaming (if the server supports it)
+    ///
+    /// NOTE: The token is passed as a query parameter for now. This is acceptable
+    /// because the browser WebSocket API doesn't support Authorization headers,
+    /// and the connection is over TLS (wss://). A future improvement would be
+    /// to use message-based authentication after connection establishment.
     pub fn get_stream_url(&self, application_id: &Uuid) -> String {
         let base = self.base_url.replace("https://", "wss://").replace("http://", "ws://");
         format!("{}/stream?application_id={}&token={}", base, application_id, self.secret)

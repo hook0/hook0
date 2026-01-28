@@ -52,6 +52,9 @@ fn parse_duration(s: &str) -> Result<Duration> {
     if s.is_empty() {
         return Err(anyhow!("Empty duration string"));
     }
+    if s.len() < 2 {
+        return Err(anyhow!("Duration must include a number and unit (e.g., '1h', '7d')"));
+    }
 
     let (num_str, unit) = s.split_at(s.len() - 1);
     let num: i64 = num_str

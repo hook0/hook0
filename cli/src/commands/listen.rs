@@ -171,12 +171,20 @@ async fn run_interactive_mode(
                         .await;
 
                     // Update inspector with result
-                    if let Ok(result) = result {
-                        inspector_clone.update(&request_id, |r| {
-                            r.update_from_result(&result);
-                        });
-                        let _ = update_tx.send(()).await;
+                    match result {
+                        Ok(result) => {
+                            inspector_clone.update(&request_id, |r| {
+                                r.update_from_result(&result);
+                            });
+                        }
+                        Err(e) => {
+                            tracing::error!("Forward error for {}: {}", request_id, e);
+                            inspector_clone.update(&request_id, |r| {
+                                r.mark_failed(&e.to_string());
+                            });
+                        }
                     }
+                    let _ = update_tx.send(()).await;
                 }
                 StreamEvent::Disconnected => {
                     break;
@@ -341,11 +349,11 @@ async fn run_json_mode(
                 println!("{}", json);
             }
             StreamEvent::Disconnected => {
-                println!(r#"{{"type": "disconnected"}}"#);
+                println!("{}", serde_json::json!({"type": "disconnected"}));
                 break;
             }
             StreamEvent::Error(e) => {
-                println!(r#"{{"type": "error", "message": "{}"}}"#, e);
+                println!("{}", serde_json::json!({"type": "error", "message": e.to_string()}));
             }
             _ => {}
         }

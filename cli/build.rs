@@ -208,7 +208,7 @@ fn generate_api_info(spec: &OpenApiSpec) -> String {
             method.name,
             method.http_method,
             method.path,
-            method.summary.replace('\"', "\\\"").replace('\n', " ")
+            method.summary.replace('\\', "\\\\").replace('\"', "\\\"").replace('\n', " ")
         ));
     }
 

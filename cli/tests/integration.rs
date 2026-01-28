@@ -338,9 +338,15 @@ fn test_login_stores_profile() {
     let temp_home = tempfile::tempdir().expect("Failed to create temp dir");
 
     // Login should create profile
+    // Set appropriate env vars based on OS for config directory resolution
     let mut login_cmd = Command::cargo_bin("hook0").expect("binary should exist");
+    login_cmd.env("HOME", temp_home.path());
+
+    // On Windows, dirs crate uses APPDATA, not HOME
+    #[cfg(target_os = "windows")]
+    login_cmd.env("APPDATA", temp_home.path());
+
     login_cmd
-        .env("HOME", temp_home.path())
         .args([
             "login",
             "--secret",
@@ -357,8 +363,11 @@ fn test_login_stores_profile() {
     // Verify config file was created (path varies by OS)
     // macOS: ~/Library/Application Support/hook0/config.toml
     // Linux: ~/.config/hook0/config.toml
+    // Windows: %APPDATA%/hook0/config.toml
     let config_path = if cfg!(target_os = "macos") {
         temp_home.path().join("Library/Application Support/hook0/config.toml")
+    } else if cfg!(target_os = "windows") {
+        temp_home.path().join("hook0/config.toml")
     } else {
         temp_home.path().join(".config/hook0/config.toml")
     };
