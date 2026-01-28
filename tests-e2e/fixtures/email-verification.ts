@@ -263,3 +263,67 @@ export function generateTestUser() {
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+/**
+ * Extract password reset token from email sent to Mailpit.
+ * Password reset tokens are Biscuit cryptographic tokens sent via email,
+ * not stored in the database, so we must extract them from the email content.
+ *
+ * This function specifically looks for emails containing "reset-password" links
+ * to distinguish from verification emails.
+ *
+ * Note: The token in text emails may span multiple lines, so we need to
+ * remove line breaks before extracting.
+ */
+export async function getPasswordResetTokenFromMailpit(
+  request: APIRequestContext,
+  email: string,
+  maxWaitMs = 15000
+): Promise<string> {
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < maxWaitMs) {
+    const messagesResponse = await request
+      .get(`${MAILPIT_URL}/api/v1/messages`, { timeout: 5000 })
+      .catch(() => null);
+
+    if (messagesResponse && messagesResponse.ok()) {
+      const result: MailpitSearchResult = await messagesResponse.json();
+      const messages = result.messages || [];
+
+      // Find all emails for this user
+      const userEmails = messages.filter((m) =>
+        m.To?.some((t) => t.Address.toLowerCase() === email.toLowerCase())
+      );
+
+      // Check each email to find the password reset one
+      for (const userEmail of userEmails) {
+        const messageResponse = await request
+          .get(`${MAILPIT_URL}/api/v1/message/${userEmail.ID}`, { timeout: 5000 })
+          .catch(() => null);
+
+        if (messageResponse && messageResponse.ok()) {
+          const message: MailpitMessage = await messageResponse.json();
+          const content = message.Text || message.HTML || "";
+
+          // Only consider emails that contain reset-password link (not verify-email)
+          if (content.includes("reset-password")) {
+            // Remove line breaks to handle multi-line tokens
+            const cleanedContent = content.replace(/[\r\n]+/g, "");
+
+            const tokenMatch = cleanedContent.match(
+              /reset-password\?token=([A-Za-z0-9_\-+/=]+)/i
+            );
+            if (tokenMatch) {
+              return tokenMatch[1];
+            }
+          }
+        }
+      }
+    }
+
+    await sleep(500);
+  }
+
+  throw new Error(`Password reset email not found for ${email} within ${maxWaitMs}ms`);
+}

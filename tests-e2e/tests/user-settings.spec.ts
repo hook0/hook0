@@ -1,5 +1,9 @@
 import { test, expect } from "@playwright/test";
-import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verification";
+import {
+  verifyEmailViaMailpit,
+  API_BASE_URL,
+  getPasswordResetTokenFromMailpit,
+} from "../fixtures/email-verification";
 
 /**
  * User Settings E2E tests for Hook0.
@@ -380,5 +384,96 @@ test.describe("Password Reset Flow", () => {
     ).toBeVisible({
       timeout: 10000,
     });
+  });
+
+  test("should complete password reset flow with valid token and login with new password", async ({
+    page,
+    request,
+  }) => {
+    // Step 1: Create a verified user first
+    const timestamp = Date.now();
+    const email = `test-reset-complete-${timestamp}@hook0.local`;
+    const originalPassword = `OriginalPass123!${timestamp}`;
+    const newPassword = `NewSecurePass456!${timestamp}`;
+
+    // Register via API
+    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      data: {
+        email,
+        first_name: "Reset",
+        last_name: "Tester",
+        password: originalPassword,
+      },
+    });
+    expect(registerResponse.status()).toBeLessThan(400);
+
+    // Verify email
+    await verifyEmailViaMailpit(request, email);
+
+    // Step 2: Initiate password reset via API
+    const beginResetResponse = await request.post(
+      `${API_BASE_URL}/auth/begin-reset-password`,
+      {
+        data: { email },
+      }
+    );
+    expect(beginResetResponse.status()).toBeLessThan(400);
+
+    // Step 3: Get the password reset token from Mailpit
+    const resetToken = await getPasswordResetTokenFromMailpit(request, email, 20000);
+    expect(resetToken).toBeTruthy();
+
+    // Step 4: Navigate to the reset password page with token
+    await page.goto(`/reset-password?token=${resetToken}`);
+
+    // Verify form is visible
+    await expect(page.locator('[data-test="reset-password-form"]')).toBeVisible({
+      timeout: 10000,
+    });
+
+    // Step 5: Fill in new password
+    await page.locator('[data-test="reset-password-new-password-input"]').fill(newPassword);
+    await page
+      .locator('[data-test="reset-password-confirm-password-input"]')
+      .fill(newPassword);
+
+    // Step 6: Submit and wait for API response
+    const resetResponsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/v1/auth/reset-password") &&
+        response.request().method() === "POST",
+      { timeout: 15000 }
+    );
+
+    await page.locator('[data-test="reset-password-submit-button"]').click();
+
+    const resetResponse = await resetResponsePromise;
+    expect(resetResponse.status()).toBeLessThan(400);
+
+    // Step 7: Should redirect to login page
+    await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
+
+    // Step 8: Login with new password
+    await expect(page.locator('[data-test="login-form"]')).toBeVisible({
+      timeout: 10000,
+    });
+
+    await page.locator('[data-test="login-email-input"]').fill(email);
+    await page.locator('[data-test="login-password-input"]').fill(newPassword);
+
+    const loginResponsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/v1/auth/login") &&
+        response.request().method() === "POST",
+      { timeout: 15000 }
+    );
+
+    await page.locator('[data-test="login-submit-button"]').click();
+
+    const loginResponse = await loginResponsePromise;
+    expect(loginResponse.status()).toBeLessThan(400);
+
+    // Step 9: Verify login succeeded - should redirect to dashboard/home
+    await expect(page).toHaveURL(/\/(organizations|tutorial)/, { timeout: 15000 });
   });
 });
