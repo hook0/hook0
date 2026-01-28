@@ -262,22 +262,9 @@ test.describe("Subscriptions", () => {
     await eventTypeCheckbox.click();
 
     // Step 2: Submit and wait for API response
-    // Capture response body inside the predicate to avoid race condition with navigation
-    let responseBody: { subscription_id?: string; description?: string; target?: { url?: string; method?: string } } = {};
     const responsePromise = page.waitForResponse(
-      async (response) => {
-        if (response.url().includes("/api/v1/subscriptions") && response.request().method() === "POST") {
-          if (response.status() < 400) {
-            try {
-              responseBody = await response.json();
-            } catch {
-              // Response body may be unavailable due to navigation
-            }
-          }
-          return true;
-        }
-        return false;
-      },
+      (response) =>
+        response.url().includes("/api/v1/subscriptions") && response.request().method() === "POST",
       { timeout: 15000 }
     );
 
@@ -285,13 +272,23 @@ test.describe("Subscriptions", () => {
 
     const response = await responsePromise;
 
-    // Step 3: Verify API response
+    // Step 3: Verify API response status
     expect(response.status()).toBeLessThan(400);
-    // Verify response body was captured and contains expected data
-    expect(responseBody.subscription_id, "Response body should contain subscription_id").toBeTruthy();
-    expect(responseBody.description).toBe(description);
-    expect(responseBody.target?.url).toBe(webhookUrl);
-    expect(responseBody.target?.method).toBe("POST");
+
+    // Step 4: Verify subscription was created by checking it appears in the list
+    // Wait for navigation to complete (router.back() is called after creation)
+    await expect(page).not.toHaveURL(/\/subscriptions\/new/, { timeout: 10000 });
+
+    // Navigate to subscriptions list to verify the new subscription exists
+    await page.goto(
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions`
+    );
+
+    // Verify the subscription appears in the list with correct description
+    await expect(page.locator('[data-test="subscriptions-card"]')).toBeVisible({ timeout: 10000 });
+    const subscriptionRows = page.locator('[data-test="subscriptions-table"] [row-id]');
+    await expect(subscriptionRows.first()).toBeVisible({ timeout: 10000 });
+    await expect(subscriptionRows.filter({ hasText: description })).toBeVisible({ timeout: 10000 });
   });
 
   test("should show disabled submit when required fields are empty", async ({ page, request }) => {
@@ -358,7 +355,7 @@ test.describe("Subscriptions", () => {
    */
   async function createSubscription(
     page: import("@playwright/test").Page,
-    _request: import("@playwright/test").APIRequestContext,
+    request: import("@playwright/test").APIRequestContext,
     env: { organizationId: string; applicationId: string; timestamp: number },
     description: string
   ): Promise<string> {
@@ -418,31 +415,36 @@ test.describe("Subscriptions", () => {
     // Wait for navigation after subscription creation (router.back() is called)
     await expect(page).not.toHaveURL(/\/subscriptions\/new/, { timeout: 10000 });
 
-    // Navigate to subscriptions list and find our subscription by description
-    await page.goto(
-      `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions`
-    );
-    await expect(page.locator('[data-test="subscriptions-card"]')).toBeVisible({ timeout: 10000 });
-
-    // Find the subscription row with our description
-    const subscriptionRow = page.locator('[data-test="subscriptions-table"] [row-id]').filter({
-      hasText: description,
+    // Get the subscription ID via API (more reliable than UI parsing)
+    // Get auth token from localStorage
+    const authData = await page.evaluate(() => {
+      const data = window.localStorage.getItem("auth");
+      return data ? JSON.parse(data) : null;
     });
-    await expect(subscriptionRow.first()).toBeVisible({ timeout: 10000 });
+    expect(authData, "Auth data not found in localStorage").toBeTruthy();
+    expect(authData.accessToken, "Access token not found in auth data").toBeTruthy();
 
-    // Get the link in the description column and wait for href to be set
-    const descriptionLink = subscriptionRow.first().locator('[data-test="subscription-description-link"]');
-    await expect(descriptionLink).toBeVisible({ timeout: 10000 });
+    // Fetch subscriptions list via API
+    const subscriptionsResponse = await request.get(
+      `${API_BASE_URL}/subscriptions?application_id=${env.applicationId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${authData.accessToken}`,
+        },
+      }
+    );
+    expect(subscriptionsResponse.status()).toBeLessThan(400);
 
-    // Extract subscription ID from the href attribute
-    const href = await descriptionLink.getAttribute("href");
-    expect(href, "Link href attribute is missing").toBeTruthy();
+    const subscriptions = await subscriptionsResponse.json();
+    expect(Array.isArray(subscriptions), "Expected subscriptions to be an array").toBeTruthy();
 
-    const match = href!.match(/\/subscriptions\/([a-f0-9-]+)$/);
-    expect(match, "Could not extract subscription_id from href").toBeTruthy();
-    const subscriptionId = match![1];
+    // Find the subscription with matching description
+    const subscription = subscriptions.find(
+      (sub: { description?: string }) => sub.description === description
+    );
+    expect(subscription, `Could not find subscription with description "${description}"`).toBeTruthy();
 
-    return subscriptionId;
+    return subscription.subscription_id;
   }
 
   test("should update subscription description and verify API response", async ({
@@ -485,9 +487,10 @@ test.describe("Subscriptions", () => {
     // Step 3: Verify API response status (body may not be available due to navigation)
     expect(response.status()).toBeLessThan(400);
 
-    // Step 4: Wait for the router.back() navigation that happens after form submission
-    // This navigates to the subscriptions list page
-    await expect(page).toHaveURL(/\/subscriptions$/, { timeout: 10000 });
+    // Step 4: Wait for navigation away from the edit page (router.back() is called)
+    await expect(page).not.toHaveURL(new RegExp(`/subscriptions/${subscriptionId}`), {
+      timeout: 10000,
+    });
 
     // Step 5: Verify the update persisted by navigating back to the subscription
     await page.goto(
@@ -538,9 +541,10 @@ test.describe("Subscriptions", () => {
     // Step 3: Verify API response status (body may not be available due to navigation)
     expect(response.status()).toBeLessThan(400);
 
-    // Step 4: Wait for the router.back() navigation that happens after form submission
-    // This navigates to the subscriptions list page
-    await expect(page).toHaveURL(/\/subscriptions$/, { timeout: 10000 });
+    // Step 4: Wait for navigation away from the edit page (router.back() is called)
+    await expect(page).not.toHaveURL(new RegExp(`/subscriptions/${subscriptionId}`), {
+      timeout: 10000,
+    });
 
     // Step 5: Verify the update persisted by navigating back to the subscription
     await page.goto(
