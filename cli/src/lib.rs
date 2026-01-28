@@ -12,10 +12,19 @@ pub use output::OutputFormat;
 
 use clap::{Parser, Subcommand};
 
-/// CLI for Hook0 webhooks platform
+const BANNER: &str = r#"
+  _   _             _     ___
+ | | | | ___   ___ | | __/ _ \
+ | |_| |/ _ \ / _ \| |/ / | | |
+ |  _  | (_) | (_) |   <| |_| |
+ |_| |_|\___/ \___/|_|\_\\___/
+
+ Webhooks as a Service - https://hook0.com
+"#;
+
 #[derive(Parser)]
 #[command(name = "hook0")]
-#[command(author, version, about, long_about = None)]
+#[command(author, version, about = BANNER, long_about = None)]
 #[command(propagate_version = true)]
 pub struct Cli {
     /// Profile to use
