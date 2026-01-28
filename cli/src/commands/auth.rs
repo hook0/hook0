@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use clap::Args;
-use dialoguer::Password;
+use dialoguer::{Confirm, Input, Password};
 use uuid::Uuid;
 
 use crate::api::ApiClient;
@@ -11,11 +11,11 @@ use crate::Cli;
 #[derive(Args, Debug)]
 pub struct LoginArgs {
     /// Application Secret (UUID token)
-    #[arg(long, env = "HOOK0_SECRET")]
+    #[arg(long)]
     pub secret: Option<String>,
 
     /// API URL
-    #[arg(long, env = "HOOK0_API_URL", default_value = "https://app.hook0.com/api/v1")]
+    #[arg(long, default_value = "https://app.hook0.com/api/v1")]
     pub api_url: String,
 
     /// Profile name to save credentials
@@ -23,8 +23,8 @@ pub struct LoginArgs {
     pub profile_name: String,
 
     /// Application ID (required - the Application Secret is tied to this application)
-    #[arg(long, env = "HOOK0_APPLICATION_ID")]
-    pub application_id: Uuid,
+    #[arg(long)]
+    pub application_id: Option<Uuid>,
 }
 
 #[derive(Args, Debug)]
@@ -41,41 +41,183 @@ pub struct LogoutArgs {
 #[derive(Args, Debug)]
 pub struct WhoamiArgs {}
 
+/// Check if we're running in an interactive terminal
+fn is_interactive() -> bool {
+    atty::is(atty::Stream::Stdin)
+}
+
+/// Helper to get a value from CLI arg, env var (with confirmation), or interactive prompt
+fn get_value_interactive(
+    cli_value: Option<&str>,
+    env_var_name: &str,
+    prompt_message: &str,
+    is_secret: bool,
+) -> Result<String> {
+    // If CLI arg provided, use it directly
+    if let Some(value) = cli_value {
+        return Ok(value.to_string());
+    }
+
+    // Check for environment variable
+    if let Ok(env_value) = std::env::var(env_var_name) {
+        // In non-interactive mode, use env var directly
+        if !is_interactive() {
+            return Ok(env_value);
+        }
+
+        let display_value = if is_secret {
+            format!("{}...{}", &env_value[..8.min(env_value.len())], &env_value[env_value.len().saturating_sub(4)..])
+        } else {
+            env_value.clone()
+        };
+
+        let use_env = Confirm::new()
+            .with_prompt(format!(
+                "Found {} in environment: {}. Use this value?",
+                env_var_name, display_value
+            ))
+            .default(true)
+            .interact()?;
+
+        if use_env {
+            return Ok(env_value);
+        }
+    }
+
+    // Non-interactive mode without value available
+    if !is_interactive() {
+        return Err(anyhow!(
+            "{} is required. Provide via --{} or {} environment variable.",
+            prompt_message,
+            prompt_message.to_lowercase().replace(' ', "-"),
+            env_var_name
+        ));
+    }
+
+    // Interactive prompt
+    if is_secret {
+        output_info("You can find this in the Hook0 dashboard under Application > Settings > Secrets.");
+        Ok(Password::new()
+            .with_prompt(prompt_message)
+            .interact()?)
+    } else {
+        Ok(Input::new()
+            .with_prompt(prompt_message)
+            .interact_text()?)
+    }
+}
+
+/// Helper to get application_id from CLI arg, env var (with confirmation), or interactive prompt
+fn get_application_id_interactive(cli_value: Option<Uuid>) -> Result<Uuid> {
+    // If CLI arg provided, use it directly
+    if let Some(value) = cli_value {
+        return Ok(value);
+    }
+
+    // Check for environment variable
+    if let Ok(env_value) = std::env::var("HOOK0_APPLICATION_ID") {
+        // In non-interactive mode, use env var directly
+        if !is_interactive() {
+            return Uuid::parse_str(&env_value)
+                .map_err(|_| anyhow!("Invalid HOOK0_APPLICATION_ID format. Expected a UUID."));
+        }
+
+        let use_env = Confirm::new()
+            .with_prompt(format!(
+                "Found HOOK0_APPLICATION_ID in environment: {}. Use this value?",
+                env_value
+            ))
+            .default(true)
+            .interact()?;
+
+        if use_env {
+            return Uuid::parse_str(&env_value)
+                .map_err(|_| anyhow!("Invalid HOOK0_APPLICATION_ID format. Expected a UUID."));
+        }
+    }
+
+    // Non-interactive mode without value available
+    if !is_interactive() {
+        return Err(anyhow!(
+            "Application ID is required. Provide via --application-id or HOOK0_APPLICATION_ID environment variable."
+        ));
+    }
+
+    // Interactive prompt
+    output_info("You can find the Application ID in the Hook0 dashboard under Application > Settings.");
+    let input: String = Input::new()
+        .with_prompt("Application ID")
+        .interact_text()?;
+
+    Uuid::parse_str(&input)
+        .map_err(|_| anyhow!("Invalid Application ID format. Expected a UUID."))
+}
+
 /// Login command - authenticate with an Application Secret
 pub async fn login(cli: &Cli, args: &LoginArgs) -> Result<()> {
-    // Get secret interactively if not provided
-    let secret = match &args.secret {
-        Some(s) => s.clone(),
-        None => {
-            output_info("Enter your Application Secret to authenticate.");
-            output_info("You can find this in the Hook0 dashboard under Application > Settings > Secrets.");
+    output_info("Hook0 CLI Login");
+    output_info("===============");
 
-            Password::new()
-                .with_prompt("Application Secret")
-                .interact()?
-        }
-    };
+    // Get secret (CLI arg > env var with confirmation > interactive prompt)
+    let secret = get_value_interactive(
+        args.secret.as_deref(),
+        "HOOK0_SECRET",
+        "Application Secret",
+        true,
+    )?;
 
     // Validate the secret format (should be a UUID)
     let _secret_uuid = Uuid::parse_str(&secret)
         .map_err(|_| anyhow!("Invalid secret format. Expected a UUID."))?;
 
+    // Get application_id (CLI arg > env var with confirmation > interactive prompt)
+    let application_id = get_application_id_interactive(args.application_id)?;
+
+    // Get API URL (check env var if default value is used)
+    let api_url = if args.api_url == "https://app.hook0.com/api/v1" {
+        // Default value, check if env var is set
+        if let Ok(env_value) = std::env::var("HOOK0_API_URL") {
+            // In non-interactive mode, use env var directly
+            if !is_interactive() {
+                env_value
+            } else {
+                let use_env = Confirm::new()
+                    .with_prompt(format!(
+                        "Found HOOK0_API_URL in environment: {}. Use this value?",
+                        env_value
+                    ))
+                    .default(true)
+                    .interact()?;
+
+                if use_env {
+                    env_value
+                } else {
+                    args.api_url.clone()
+                }
+            }
+        } else {
+            args.api_url.clone()
+        }
+    } else {
+        args.api_url.clone()
+    };
+
     // Create API client to validate credentials
-    let client = ApiClient::new(&args.api_url, &secret);
+    let client = ApiClient::new(&api_url, &secret);
 
     // Validate credentials by fetching the application
     // Application Secrets are tied to a specific application, so we use get_current_application
     output_info("Validating credentials...");
 
     let app = client
-        .get_current_application(&args.application_id)
+        .get_current_application(&application_id)
         .await
         .map_err(|e| match e {
             crate::ApiError::Unauthorized => {
                 anyhow!("Authentication failed: invalid secret or application ID mismatch.")
             }
             crate::ApiError::NotFound(_) => {
-                anyhow!("Application not found with ID: {}", args.application_id)
+                anyhow!("Application not found with ID: {}", application_id)
             }
             _ => anyhow!("Failed to validate credentials: {}", e),
         })?;
@@ -91,7 +233,7 @@ pub async fn login(cli: &Cli, args: &LoginArgs) -> Result<()> {
     let mut config = Config::load().unwrap_or_default();
 
     let profile = Profile::with_details(
-        args.api_url.clone(),
+        api_url.clone(),
         app.application_id,
         Some(app.organization_id),
         Some(format!("Application: {}", app.name)),
@@ -117,7 +259,7 @@ pub async fn login(cli: &Cli, args: &LoginArgs) -> Result<()> {
                 "application_id": app.application_id,
                 "application_name": app.name,
                 "organization_id": app.organization_id,
-                "api_url": args.api_url,
+                "api_url": api_url,
             })
         );
     }
@@ -219,12 +361,12 @@ mod tests {
             secret: None,
             api_url: "https://app.hook0.com/api/v1".to_string(),
             profile_name: "default".to_string(),
-            application_id: app_id,
+            application_id: Some(app_id),
         };
 
         assert!(args.secret.is_none());
         assert_eq!(args.profile_name, "default");
-        assert_eq!(args.application_id, app_id);
+        assert_eq!(args.application_id, Some(app_id));
     }
 
     #[test]
