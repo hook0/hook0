@@ -22,9 +22,9 @@ pub struct LoginArgs {
     #[arg(long, short = 'n', default_value = "default")]
     pub profile_name: String,
 
-    /// Application ID (optional, will be detected from secret)
-    #[arg(long)]
-    pub application_id: Option<Uuid>,
+    /// Application ID (required - the Application Secret is tied to this application)
+    #[arg(long, env = "HOOK0_APPLICATION_ID")]
+    pub application_id: Uuid,
 }
 
 #[derive(Args, Debug)]
@@ -63,46 +63,22 @@ pub async fn login(cli: &Cli, args: &LoginArgs) -> Result<()> {
     // Create API client to validate credentials
     let client = ApiClient::new(&args.api_url, &secret);
 
-    // Try to get application info
-    // First, we need to figure out which application this secret belongs to
-    // We'll try to list organizations and applications
+    // Validate credentials by fetching the application
+    // Application Secrets are tied to a specific application, so we use get_current_application
     output_info("Validating credentials...");
 
-    let orgs = client.list_organizations().await?;
-
-    if orgs.is_empty() {
-        return Err(anyhow!("No organizations found for this secret."));
-    }
-
-    // Find the application
-    let mut found_app = None;
-    for org in &orgs {
-        let apps = client.list_applications(&org.organization_id).await?;
-        for app in apps {
-            // If application_id was provided, match it
-            if let Some(app_id) = args.application_id {
-                if app.application_id == app_id {
-                    found_app = Some(app);
-                    break;
-                }
-            } else {
-                // Use the first application found
-                found_app = Some(app);
-                break;
+    let app = client
+        .get_current_application(&args.application_id)
+        .await
+        .map_err(|e| match e {
+            crate::ApiError::Unauthorized => {
+                anyhow!("Authentication failed: invalid secret or application ID mismatch.")
             }
-        }
-        if found_app.is_some() {
-            break;
-        }
-    }
-
-    let app = found_app.ok_or_else(|| {
-        if args.application_id.is_some() {
-            anyhow!("Application not found with the provided ID.")
-        } else {
-            anyhow!("No applications found for this secret.")
-        }
-    })?;
+            crate::ApiError::NotFound(_) => {
+                anyhow!("Application not found with ID: {}", args.application_id)
+            }
+            _ => anyhow!("Failed to validate credentials: {}", e),
+        })?;
 
     output_success(&format!(
         "Authenticated successfully!\n  Application: {} ({})\n  Organization: {}",
@@ -238,15 +214,17 @@ mod tests {
 
     #[test]
     fn test_login_args_defaults() {
+        let app_id = Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap();
         let args = LoginArgs {
             secret: None,
             api_url: "https://app.hook0.com/api/v1".to_string(),
             profile_name: "default".to_string(),
-            application_id: None,
+            application_id: app_id,
         };
 
         assert!(args.secret.is_none());
         assert_eq!(args.profile_name, "default");
+        assert_eq!(args.application_id, app_id);
     }
 
     #[test]

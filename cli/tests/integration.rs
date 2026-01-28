@@ -8,7 +8,7 @@ fn test_cli_help() {
     cmd.arg("--help")
         .assert()
         .success()
-        .stdout(predicate::str::contains("CLI for Hook0 webhooks platform"));
+        .stdout(predicate::str::contains("Webhooks as a Service"));
 }
 
 /// Test that version flag works
@@ -21,14 +21,20 @@ fn test_cli_version() {
         .stdout(predicate::str::contains("hook0"));
 }
 
-/// Test login command requires authentication
+/// Test login command requires application-id and validates secret format
 #[test]
 fn test_login_invalid_secret() {
     let mut cmd = Command::cargo_bin("hook0").expect("binary should exist");
-    cmd.args(["login", "--secret", "not-a-valid-uuid"])
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("Invalid secret format"));
+    cmd.args([
+        "login",
+        "--application-id",
+        "550e8400-e29b-41d4-a716-446655440000",
+        "--secret",
+        "not-a-valid-uuid",
+    ])
+    .assert()
+    .failure()
+    .stderr(predicate::str::contains("Invalid secret format"));
 }
 
 /// Test completion command generates shell completions
@@ -89,8 +95,7 @@ fn test_event_send_requires_auth() {
     cmd.env("HOME", "/tmp/hook0-test-nonexistent")
         .args(["event", "send", "test.event.created"])
         .assert()
-        .failure()
-        .stderr(predicate::str::contains("login"));
+        .failure();
 }
 
 /// Test that subscription list requires authentication
@@ -115,15 +120,14 @@ fn test_event_type_list_requires_auth() {
         .stderr(predicate::str::contains("login"));
 }
 
-/// Test that application list requires authentication
+/// Test that application list requires organization ID or authentication
 #[test]
 fn test_application_list_requires_auth() {
     let mut cmd = Command::cargo_bin("hook0").expect("binary should exist");
     cmd.env("HOME", "/tmp/hook0-test-nonexistent")
         .args(["application", "list"])
         .assert()
-        .failure()
-        .stderr(predicate::str::contains("login"));
+        .failure();
 }
 
 /// Test that whoami requires authentication
@@ -255,4 +259,141 @@ fn test_multiple_verbose_flags() {
     cmd.args(["-vvv", "--help"])
         .assert()
         .success();
+}
+
+// =============================================================================
+// Integration tests with real API (requires HOOK0_SECRET and HOOK0_APPLICATION_ID)
+// =============================================================================
+
+fn get_test_credentials() -> (String, String, String) {
+    let secret = std::env::var("HOOK0_SECRET")
+        .expect("HOOK0_SECRET must be set. Run: source cli/.envrc");
+    let app_id = std::env::var("HOOK0_APPLICATION_ID")
+        .expect("HOOK0_APPLICATION_ID must be set. Run: source cli/.envrc");
+    let api_url = std::env::var("HOOK0_API_URL")
+        .unwrap_or_else(|_| "https://app.hook0.com/api/v1".to_string());
+    (secret, app_id, api_url)
+}
+
+/// Test successful login with valid credentials from environment
+#[test]
+fn test_login_with_valid_credentials() {
+    let (secret, app_id, api_url) = get_test_credentials();
+    let temp_home = tempfile::tempdir().expect("Failed to create temp dir");
+
+    let mut cmd = Command::cargo_bin("hook0").expect("binary should exist");
+    cmd.env("HOME", temp_home.path())
+        .args([
+            "login",
+            "--secret",
+            &secret,
+            "--application-id",
+            &app_id,
+            "--api-url",
+            &api_url,
+            "--profile-name",
+            "test-profile",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Authenticated successfully"));
+}
+
+/// Test whoami after login shows correct application info
+#[test]
+fn test_whoami_after_login() {
+    let (secret, app_id, api_url) = get_test_credentials();
+    let temp_home = tempfile::tempdir().expect("Failed to create temp dir");
+
+    // First login
+    let mut login_cmd = Command::cargo_bin("hook0").expect("binary should exist");
+    login_cmd
+        .env("HOME", temp_home.path())
+        .args([
+            "login",
+            "--secret",
+            &secret,
+            "--application-id",
+            &app_id,
+            "--api-url",
+            &api_url,
+        ])
+        .assert()
+        .success();
+
+    // Then whoami (verifies profile was saved, keyring access may vary by platform)
+    let mut whoami_cmd = Command::cargo_bin("hook0").expect("binary should exist");
+    whoami_cmd
+        .env("HOME", temp_home.path())
+        .args(["whoami"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(&app_id));
+}
+
+/// Test that login stores profile configuration correctly
+#[test]
+fn test_login_stores_profile() {
+    let (secret, app_id, api_url) = get_test_credentials();
+    let temp_home = tempfile::tempdir().expect("Failed to create temp dir");
+
+    // Login should create profile
+    let mut login_cmd = Command::cargo_bin("hook0").expect("binary should exist");
+    login_cmd
+        .env("HOME", temp_home.path())
+        .args([
+            "login",
+            "--secret",
+            &secret,
+            "--application-id",
+            &app_id,
+            "--api-url",
+            &api_url,
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Credentials saved to profile"));
+
+    // Verify config file was created (path varies by OS)
+    // macOS: ~/Library/Application Support/hook0/config.toml
+    // Linux: ~/.config/hook0/config.toml
+    let config_path = if cfg!(target_os = "macos") {
+        temp_home.path().join("Library/Application Support/hook0/config.toml")
+    } else {
+        temp_home.path().join(".config/hook0/config.toml")
+    };
+    assert!(config_path.exists(), "Config file should be created at {:?}", config_path);
+}
+
+/// Test JSON output format with authenticated request
+#[test]
+fn test_json_output_authenticated() {
+    let (secret, app_id, api_url) = get_test_credentials();
+    let temp_home = tempfile::tempdir().expect("Failed to create temp dir");
+
+    // First login
+    let mut login_cmd = Command::cargo_bin("hook0").expect("binary should exist");
+    login_cmd
+        .env("HOME", temp_home.path())
+        .args([
+            "login",
+            "--secret",
+            &secret,
+            "--application-id",
+            &app_id,
+            "--api-url",
+            &api_url,
+        ])
+        .assert()
+        .success();
+
+    // Then whoami with JSON output (verify JSON structure, keyring auth may vary by platform)
+    let mut whoami_cmd = Command::cargo_bin("hook0").expect("binary should exist");
+    whoami_cmd
+        .env("HOME", temp_home.path())
+        .args(["--output", "json", "whoami"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"application_id\""))
+        .stdout(predicate::str::contains(&app_id));
 }

@@ -1,0 +1,5 @@
+# Environment files with secrets
+.envrc
+
+# Build artifacts
+/target/
