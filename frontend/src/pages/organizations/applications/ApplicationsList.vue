@@ -126,6 +126,7 @@ onUpdated(() => {
               :context="{ applications$, columnDefs }"
               :column-defs="columnDefs"
               :row-data="applications"
+              row-id-field="application_id"
             >
             </Hook0Table>
           </transition>

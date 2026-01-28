@@ -9,6 +9,7 @@ import {
   ColumnAutoSizeModule,
   ValidationModule,
   themeAlpine,
+  GetRowIdParams,
 } from 'ag-grid-community';
 import { computed } from 'vue';
 
@@ -20,9 +21,18 @@ interface Props {
   columnDefs: ColDef[];
   rowData: unknown[];
   context: object;
+  rowIdField?: string;
 }
 
 const props = defineProps<Props>();
+
+// Create getRowId callback if rowIdField is provided
+const getRowId = props.rowIdField
+  ? (params: GetRowIdParams) => {
+      const row = params.data as Record<string, unknown>;
+      return String(row[props.rowIdField!] ?? params.node?.rowIndex ?? '');
+    }
+  : undefined;
 const domLayout = 'autoHeight';
 const modules = [ClientSideRowModelModule];
 ModuleRegistry.registerModules([ValidationModule, ColumnAutoSizeModule]);
@@ -62,6 +72,7 @@ function onFirstDataRendered(params: AgGridEvent<unknown>) {
     :suppress-cell-focus="true"
     :grid-options="gridOptions"
     :theme="themeAlpine"
+    :get-row-id="getRowId"
     @first-data-rendered="onFirstDataRendered"
   >
   </AgGridVue>

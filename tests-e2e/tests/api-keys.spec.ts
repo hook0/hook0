@@ -84,16 +84,12 @@ test.describe("API Keys", () => {
     const appResponse = await createAppResponse;
     expect(appResponse.status()).toBeLessThan(400);
 
-    // If applicationId wasn't captured, extract from URL after navigation
-    if (!applicationId) {
-      await expect(page).toHaveURL(/\/applications\/[^/]+/, { timeout: 10000 });
-      const url = page.url();
-      const match = url.match(/\/applications\/([^/]+)/);
-      if (match) {
-        applicationId = match[1];
-      }
-    }
-    expect(applicationId).toBeTruthy();
+    // Always extract applicationId from URL (most reliable due to navigation timing)
+    await expect(page).toHaveURL(/\/applications\/[^/]+/, { timeout: 10000 });
+    const url = page.url();
+    const match = url.match(/\/applications\/([^/]+)/);
+    expect(match, "Failed to extract application ID from URL").toBeTruthy();
+    applicationId = match![1];
 
     return {
       email,
@@ -134,7 +130,7 @@ test.describe("API Keys", () => {
     expect(createResponse.status()).toBeLessThan(400);
 
     // Step 2: Verify list has at least 1 row (wait for UI to refresh using expect.toPass)
-    const rows = page.locator('[data-test="api-keys-table"] .ag-row');
+    const rows = page.locator('[data-test="api-keys-table"] [row-id]');
     await expect(async () => {
       const rowCount = await rows.count();
       expect(rowCount).toBeGreaterThanOrEqual(1);
@@ -263,7 +259,7 @@ test.describe("API Keys", () => {
     expect(createResponse.status()).toBeLessThan(400);
 
     // Wait for table to show the key using expect.toPass
-    const rows = page.locator('[data-test="api-keys-table"] .ag-row');
+    const rows = page.locator('[data-test="api-keys-table"] [row-id]');
     await expect(async () => {
       const rowCount = await rows.count();
       expect(rowCount).toBeGreaterThanOrEqual(1);

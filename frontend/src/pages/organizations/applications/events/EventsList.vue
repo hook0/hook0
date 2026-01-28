@@ -77,6 +77,7 @@ const columnDefs: ColDef[] = [
           },
         };
       },
+      dataTest: 'event-id-link',
     },
   },
   {
@@ -377,6 +378,7 @@ function toMap(pairs: Hook0KeyValueKeyValuePair[]): Record<string, string> {
             :context="{ events$, columnDefs }"
             :column-defs="columnDefs"
             :row-data="event_types"
+            row-id-field="event_id"
           >
           </Hook0Table>
         </Hook0CardContent>

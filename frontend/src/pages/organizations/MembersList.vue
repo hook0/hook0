@@ -207,6 +207,7 @@ onUpdated(() => {
               :context="{ members$, columnDefs }"
               :column-defs="columnDefs"
               :row-data="members.members"
+              row-id-field="user_id"
             >
             </Hook0Table>
           </transition>

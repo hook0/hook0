@@ -109,8 +109,8 @@ test.describe("Event Types", () => {
     // Verify create button is present
     await expect(page.locator('[data-test="event-types-create-button"]')).toBeVisible();
 
-    // Step 3: Verify list has at least 1 row (AG Grid uses .ag-row class)
-    const rows = page.locator('[data-test="event-types-table"] .ag-row');
+    // Step 3: Verify list has at least 1 row (AG Grid uses [row-id] class)
+    const rows = page.locator('[data-test="event-types-table"] [row-id]');
     const rowCount = await rows.count();
     expect(rowCount).toBeGreaterThanOrEqual(1);
 
@@ -461,7 +461,7 @@ test.describe("Event Types", () => {
     await expect(page.locator('[data-test="event-types-card"]')).toBeVisible({ timeout: 10000 });
 
     // Verify the event type exists in the list
-    const rows = page.locator('[data-test="event-types-table"] .ag-row');
+    const rows = page.locator('[data-test="event-types-table"] [row-id]');
     const rowCount = await rows.count();
     expect(rowCount).toBeGreaterThanOrEqual(1);
 
@@ -575,7 +575,7 @@ test.describe("Event Types", () => {
     await expect(page.locator('[data-test="event-types-card"]')).toBeVisible({ timeout: 10000 });
 
     // Find the row with our event type
-    const rows = page.locator('[data-test="event-types-table"] .ag-row');
+    const rows = page.locator('[data-test="event-types-table"] [row-id]');
     const targetRow = rows.filter({ hasText: eventTypeName });
     await expect(targetRow).toBeVisible();
 

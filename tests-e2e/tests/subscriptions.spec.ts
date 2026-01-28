@@ -92,17 +92,12 @@ test.describe("Subscriptions", () => {
     await page.locator('[data-test="application-submit-button"]').click();
     const appResponse = await createAppResponse;
     expect(appResponse.status()).toBeLessThan(400);
-    // If we didn't capture applicationId, we need to get it from URL after navigation
-    if (!applicationId) {
-      // Wait for navigation to application page
-      await expect(page).toHaveURL(/\/applications\/[^/]+/, { timeout: 10000 });
-      const url = page.url();
-      const match = url.match(/\/applications\/([^/]+)/);
-      if (match) {
-        applicationId = match[1];
-      }
-    }
-    expect(applicationId).toBeTruthy();
+    // Always extract applicationId from URL (most reliable due to navigation timing)
+    await expect(page).toHaveURL(/\/applications\/[^/]+/, { timeout: 10000 });
+    const url = page.url();
+    const match = url.match(/\/applications\/([^/]+)/);
+    expect(match, "Failed to extract application ID from URL").toBeTruthy();
+    applicationId = match![1];
 
     // Create an event type (required for subscriptions)
     await page.goto(
@@ -186,8 +181,8 @@ test.describe("Subscriptions", () => {
     // Verify create button is present
     await expect(page.locator('[data-test="subscriptions-create-button"]')).toBeVisible();
 
-    // Step 3: Verify list has at least 1 row (AG Grid uses .ag-row class)
-    const rows = page.locator('[data-test="subscriptions-table"] .ag-row');
+    // Step 3: Verify list has at least 1 row (AG Grid uses [row-id] class)
+    const rows = page.locator('[data-test="subscriptions-table"] [row-id]');
     const rowCount = await rows.count();
     expect(rowCount).toBeGreaterThanOrEqual(1);
 
@@ -282,12 +277,11 @@ test.describe("Subscriptions", () => {
 
     // Step 3: Verify API response
     expect(response.status()).toBeLessThan(400);
-    // Only verify response body if it was captured successfully
-    if (responseBody.subscription_id) {
-      expect(responseBody.description).toBe(description);
-      expect(responseBody.target?.url).toBe(webhookUrl);
-      expect(responseBody.target?.method).toBe("POST");
-    }
+    // Verify response body was captured and contains expected data
+    expect(responseBody.subscription_id, "Response body should contain subscription_id").toBeTruthy();
+    expect(responseBody.description).toBe(description);
+    expect(responseBody.target?.url).toBe(webhookUrl);
+    expect(responseBody.target?.method).toBe("POST");
   });
 
   test("should show disabled submit when required fields are empty", async ({ page, request }) => {
@@ -421,13 +415,13 @@ test.describe("Subscriptions", () => {
     await expect(page.locator('[data-test="subscriptions-card"]')).toBeVisible({ timeout: 10000 });
 
     // Find the subscription row with our description
-    const subscriptionRow = page.locator('[data-test="subscriptions-table"] .ag-row').filter({
+    const subscriptionRow = page.locator('[data-test="subscriptions-table"] [row-id]').filter({
       hasText: description,
     });
     await expect(subscriptionRow.first()).toBeVisible({ timeout: 10000 });
 
     // Get the link in the description column and wait for href to be set
-    const descriptionLink = subscriptionRow.first().locator('a[href*="/subscriptions/"]').first();
+    const descriptionLink = subscriptionRow.first().locator('[data-test="subscription-description-link"]');
     await expect(descriptionLink).toBeVisible({ timeout: 10000 });
 
     // Extract subscription ID from the href attribute
@@ -435,8 +429,8 @@ test.describe("Subscriptions", () => {
     expect(href, "Link href attribute is missing").toBeTruthy();
 
     const match = href!.match(/\/subscriptions\/([a-f0-9-]+)$/);
-    const subscriptionId = match ? match[1] : "";
-    expect(subscriptionId, "Could not extract subscription_id from href").toBeTruthy();
+    expect(match, "Could not extract subscription_id from href").toBeTruthy();
+    const subscriptionId = match![1];
 
     return subscriptionId;
   }

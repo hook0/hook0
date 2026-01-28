@@ -72,8 +72,8 @@ test.describe("Applications", () => {
     // Verify create button is present
     await expect(page.locator('[data-test="applications-create-button"]')).toBeVisible();
 
-    // Step 3: Verify list has at least 1 row (AG Grid uses .ag-row class)
-    const rows = page.locator('[data-test="applications-table"] .ag-row');
+    // Step 3: Verify list has at least 1 row (AG Grid uses [row-id] class)
+    const rows = page.locator('[data-test="applications-table"] [row-id]');
     const rowCount = await rows.count();
     expect(rowCount).toBeGreaterThanOrEqual(1);
 

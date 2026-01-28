@@ -84,16 +84,12 @@ test.describe("Logs", () => {
     const appResponse = await createAppResponse;
     expect(appResponse.status()).toBeLessThan(400);
 
-    // If applicationId wasn't captured, extract from URL after navigation
-    if (!applicationId) {
-      await expect(page).toHaveURL(/\/applications\/[^/]+/, { timeout: 10000 });
-      const url = page.url();
-      const match = url.match(/\/applications\/([^/]+)/);
-      if (match) {
-        applicationId = match[1];
-      }
-    }
-    expect(applicationId).toBeTruthy();
+    // Always extract applicationId from URL (most reliable due to navigation timing)
+    await expect(page).toHaveURL(/\/applications\/[^/]+/, { timeout: 10000 });
+    const url = page.url();
+    const match = url.match(/\/applications\/([^/]+)/);
+    expect(match, "Failed to extract application ID from URL").toBeTruthy();
+    applicationId = match![1];
 
     return {
       email,
@@ -258,10 +254,10 @@ test.describe("Logs", () => {
 
     // Poll for at least one row to appear (webhook might take a moment to be processed)
     // Use expect with longer timeout instead of arbitrary waitForTimeout
-    await expect(page.locator('[data-test="logs-table"] .ag-row').first()).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-test="logs-table"] [row-id]').first()).toBeVisible({ timeout: 15000 });
 
     // The logs table should have at least 1 row (the webhook request)
-    const rows = page.locator('[data-test="logs-table"] .ag-row');
+    const rows = page.locator('[data-test="logs-table"] [row-id]');
     const rowCount = await rows.count();
     expect(rowCount).toBeGreaterThanOrEqual(1);
   });

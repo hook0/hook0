@@ -201,6 +201,7 @@ onUpdated(() => {
             :context="{ services_token$, columnDefs }"
             :column-defs="columnDefs"
             :row-data="services_tokens"
+            row-id-field="service_token_id"
           >
           </Hook0Table>
         </Hook0CardContent>

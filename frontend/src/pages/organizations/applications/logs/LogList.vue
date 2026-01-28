@@ -197,6 +197,7 @@ onUpdated(() => {
             :context="{ request_attempts$, columnDefs }"
             :column-defs="columnDefs"
             :row-data="request_attempts"
+            row-id-field="event_id"
           >
           </Hook0Table>
         </Hook0CardContent>

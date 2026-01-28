@@ -84,16 +84,12 @@ test.describe("Events", () => {
     const appResponse = await createAppResponse;
     expect(appResponse.status()).toBeLessThan(400);
 
-    // If applicationId wasn't captured, extract from URL after navigation
-    if (!applicationId) {
-      await expect(page).toHaveURL(/\/applications\/[^/]+/, { timeout: 10000 });
-      const url = page.url();
-      const match = url.match(/\/applications\/([^/]+)/);
-      if (match) {
-        applicationId = match[1];
-      }
-    }
-    expect(applicationId).toBeTruthy();
+    // Always extract applicationId from URL (most reliable due to navigation timing)
+    await expect(page).toHaveURL(/\/applications\/[^/]+/, { timeout: 10000 });
+    const url = page.url();
+    const match = url.match(/\/applications\/([^/]+)/);
+    expect(match, "Failed to extract application ID from URL").toBeTruthy();
+    applicationId = match![1];
 
     // Create an event type
     await page.goto(
@@ -281,7 +277,7 @@ test.describe("Events", () => {
     await expect(page.locator('[data-test="events-card"]')).toBeVisible({ timeout: 10000 });
 
     // Verify events table has at least 1 row
-    const rows = page.locator('[data-test="events-table"] .ag-row');
+    const rows = page.locator('[data-test="events-table"] [row-id]');
     const rowCount = await rows.count();
     expect(rowCount).toBeGreaterThanOrEqual(1);
 
@@ -366,9 +362,9 @@ test.describe("Events", () => {
     await expect(page.locator('[data-test="events-card"]')).toBeVisible({ timeout: 10000 });
 
     // Click on the event ID link in the first row
-    const rows = page.locator('[data-test="events-table"] .ag-row');
+    const rows = page.locator('[data-test="events-table"] [row-id]');
     await expect(rows.first()).toBeVisible();
-    await rows.first().locator("a").first().click();
+    await rows.first().locator('[data-test="event-id-link"]').click();
 
     // Verify we're on the event detail page
     await expect(page).toHaveURL(/\/events\/[^/]+$/, { timeout: 10000 });

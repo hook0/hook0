@@ -112,6 +112,7 @@ onUpdated(() => {
             :context="{ event_types$, columnDefs }"
             :column-defs="columnDefs"
             :row-data="event_types"
+            row-id-field="event_type_name"
           >
           </Hook0Table>
         </Hook0CardContent>

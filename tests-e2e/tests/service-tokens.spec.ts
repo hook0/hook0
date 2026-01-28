@@ -67,7 +67,7 @@ test.describe("Service Tokens", () => {
     expect(createResponse.status()).toBeLessThan(400);
 
     // Step 2: Verify list has at least 1 row (wait for UI to refresh using expect.toPass)
-    const rows = page.locator('[data-test="service-tokens-table"] .ag-row');
+    const rows = page.locator('[data-test="service-tokens-table"] [row-id]');
     await expect(async () => {
       const rowCount = await rows.count();
       expect(rowCount).toBeGreaterThanOrEqual(1);

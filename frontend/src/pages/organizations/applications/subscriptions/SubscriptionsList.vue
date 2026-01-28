@@ -88,6 +88,7 @@ const columnDefs: ColDef[] = [
           },
         };
       },
+      dataTest: 'subscription-description-link',
     },
   },
   {
@@ -222,6 +223,7 @@ onUpdated(() => {
             :context="{ subscriptions$, columnDefs }"
             :column-defs="columnDefs"
             :row-data="subscriptions"
+            row-id-field="subscription_id"
           >
           </Hook0Table>
         </Hook0CardContent>

@@ -89,7 +89,7 @@ test.describe("Members", () => {
     await expect(page.locator('[data-test="members-card"]')).toBeVisible({ timeout: 10000 });
 
     // Verify members table has at least 1 row (the current user)
-    const rows = page.locator('[data-test="members-table"] .ag-row');
+    const rows = page.locator('[data-test="members-table"] [row-id]');
     const rowCount = await rows.count();
     expect(rowCount).toBeGreaterThanOrEqual(1);
 
