@@ -140,7 +140,11 @@ impl Config {
     }
 
     /// Store a secret in the OS keyring
-    pub fn store_secret(profile_name: &str, application_id: &Uuid, secret: &str) -> Result<(), ConfigError> {
+    pub fn store_secret(
+        profile_name: &str,
+        application_id: &Uuid,
+        secret: &str,
+    ) -> Result<(), ConfigError> {
         let key = format!("{}-{}", profile_name, application_id);
         let entry = Entry::new(KEYRING_SERVICE, &key)
             .map_err(|e| ConfigError::KeyringError(e.to_string()))?;
@@ -201,7 +205,10 @@ mod tests {
 
         let mut config = Config::default();
         let app_id = Uuid::new_v4();
-        config.set_profile("dev", Profile::new("https://api.dev.com".to_string(), app_id));
+        config.set_profile(
+            "dev",
+            Profile::new("https://api.dev.com".to_string(), app_id),
+        );
 
         config.save_to(&config_path).expect("save should work");
 
@@ -220,16 +227,26 @@ mod tests {
     fn test_get_profile() {
         let mut config = Config::default();
         let app_id = Uuid::new_v4();
-        config.set_profile("dev", Profile::new("https://api.dev.com".to_string(), app_id));
-        config.set_profile("prod", Profile::new("https://api.prod.com".to_string(), app_id));
+        config.set_profile(
+            "dev",
+            Profile::new("https://api.dev.com".to_string(), app_id),
+        );
+        config.set_profile(
+            "prod",
+            Profile::new("https://api.prod.com".to_string(), app_id),
+        );
 
         // Get specific profile
-        let (name, profile) = config.get_profile(Some("prod")).expect("profile should exist");
+        let (name, profile) = config
+            .get_profile(Some("prod"))
+            .expect("profile should exist");
         assert_eq!(name, "prod");
         assert_eq!(profile.api_url, "https://api.prod.com");
 
         // Get default profile
-        let (name, _) = config.get_profile(None).expect("default profile should exist");
+        let (name, _) = config
+            .get_profile(None)
+            .expect("default profile should exist");
         assert_eq!(name, "dev");
     }
 
@@ -244,8 +261,14 @@ mod tests {
     fn test_remove_profile() {
         let mut config = Config::default();
         let app_id = Uuid::new_v4();
-        config.set_profile("dev", Profile::new("https://api.dev.com".to_string(), app_id));
-        config.set_profile("prod", Profile::new("https://api.prod.com".to_string(), app_id));
+        config.set_profile(
+            "dev",
+            Profile::new("https://api.dev.com".to_string(), app_id),
+        );
+        config.set_profile(
+            "prod",
+            Profile::new("https://api.prod.com".to_string(), app_id),
+        );
 
         assert_eq!(config.default_profile, Some("dev".to_string()));
 
@@ -258,10 +281,18 @@ mod tests {
     fn test_set_default_profile() {
         let mut config = Config::default();
         let app_id = Uuid::new_v4();
-        config.set_profile("dev", Profile::new("https://api.dev.com".to_string(), app_id));
-        config.set_profile("prod", Profile::new("https://api.prod.com".to_string(), app_id));
+        config.set_profile(
+            "dev",
+            Profile::new("https://api.dev.com".to_string(), app_id),
+        );
+        config.set_profile(
+            "prod",
+            Profile::new("https://api.prod.com".to_string(), app_id),
+        );
 
-        config.set_default_profile("prod").expect("should set default");
+        config
+            .set_default_profile("prod")
+            .expect("should set default");
         assert_eq!(config.default_profile, Some("prod".to_string()));
     }
 
@@ -276,8 +307,14 @@ mod tests {
     fn test_list_profiles() {
         let mut config = Config::default();
         let app_id = Uuid::new_v4();
-        config.set_profile("dev", Profile::new("https://api.dev.com".to_string(), app_id));
-        config.set_profile("prod", Profile::new("https://api.prod.com".to_string(), app_id));
+        config.set_profile(
+            "dev",
+            Profile::new("https://api.dev.com".to_string(), app_id),
+        );
+        config.set_profile(
+            "prod",
+            Profile::new("https://api.prod.com".to_string(), app_id),
+        );
 
         let profiles = config.list_profiles();
         assert_eq!(profiles.len(), 2);

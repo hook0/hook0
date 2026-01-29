@@ -51,15 +51,13 @@ async fn main() -> Result<()> {
                     hook0_cli::ApiError::Unauthorized => {
                         Err(anyhow!("{e}\n\nHint: Run 'hook0 login' to authenticate."))
                     }
-                    hook0_cli::ApiError::NotFound(resource) => {
-                        Err(anyhow!("{e}\n\nHint: The {resource} was not found. Check the ID and try again."))
-                    }
-                    hook0_cli::ApiError::ValidationError(msg) => {
-                        Err(anyhow!("{e}\n\nHint: {msg}"))
-                    }
-                    hook0_cli::ApiError::NetworkError(_) => {
-                        Err(anyhow!("{e}\n\nHint: Check your internet connection and API URL."))
-                    }
+                    hook0_cli::ApiError::NotFound(resource) => Err(anyhow!(
+                        "{e}\n\nHint: The {resource} was not found. Check the ID and try again."
+                    )),
+                    hook0_cli::ApiError::ValidationError(msg) => Err(anyhow!("{e}\n\nHint: {msg}")),
+                    hook0_cli::ApiError::NetworkError(_) => Err(anyhow!(
+                        "{e}\n\nHint: Check your internet connection and API URL."
+                    )),
                     _ => Err(e),
                 }
             } else {

@@ -86,7 +86,10 @@ mod tests {
         assert_eq!(profile.api_url, "https://api.example.com");
         assert_eq!(profile.application_id, app_id);
         assert_eq!(profile.organization_id, Some(org_id));
-        assert_eq!(profile.description, Some("Production environment".to_string()));
+        assert_eq!(
+            profile.description,
+            Some("Production environment".to_string())
+        );
     }
 
     #[test]

@@ -63,14 +63,19 @@ impl ApiClient {
     }
 
     /// Handle API response
-    async fn handle_response<T: DeserializeOwned>(&self, response: Response) -> Result<T, ApiError> {
+    async fn handle_response<T: DeserializeOwned>(
+        &self,
+        response: Response,
+    ) -> Result<T, ApiError> {
         let status = response.status();
 
         match status {
             StatusCode::OK | StatusCode::CREATED => {
                 let body = response.text().await?;
                 serde_json::from_str(&body).map_err(|e| {
-                    ApiError::UnexpectedResponse(format!("Failed to parse response: {e}, body: {body}"))
+                    ApiError::UnexpectedResponse(format!(
+                        "Failed to parse response: {e}, body: {body}"
+                    ))
                 })
             }
             StatusCode::NO_CONTENT => {
@@ -79,9 +84,7 @@ impl ApiClient {
                     ApiError::UnexpectedResponse(format!("Failed to handle no content: {e}"))
                 })
             }
-            StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => {
-                Err(ApiError::Unauthorized)
-            }
+            StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => Err(ApiError::Unauthorized),
             StatusCode::NOT_FOUND => {
                 let body = response.text().await.unwrap_or_default();
                 Err(ApiError::NotFound(body))
@@ -98,7 +101,10 @@ impl ApiClient {
     }
 
     /// Handle API response that might return empty
-    async fn handle_response_optional<T: DeserializeOwned>(&self, response: Response) -> Result<Option<T>, ApiError> {
+    async fn handle_response_optional<T: DeserializeOwned>(
+        &self,
+        response: Response,
+    ) -> Result<Option<T>, ApiError> {
         let status = response.status();
 
         match status {
@@ -126,7 +132,10 @@ impl ApiClient {
     // =========================================================================
 
     /// Get current application (verify authentication)
-    pub async fn get_current_application(&self, application_id: &Uuid) -> Result<Application, ApiError> {
+    pub async fn get_current_application(
+        &self,
+        application_id: &Uuid,
+    ) -> Result<Application, ApiError> {
         let response = self
             .client
             .get(self.url(&format!("/applications/{}", application_id)))
@@ -138,7 +147,10 @@ impl ApiClient {
     }
 
     /// List applications for an organization
-    pub async fn list_applications(&self, organization_id: &Uuid) -> Result<Vec<Application>, ApiError> {
+    pub async fn list_applications(
+        &self,
+        organization_id: &Uuid,
+    ) -> Result<Vec<Application>, ApiError> {
         let response = self
             .client
             .get(self.url("/applications"))
@@ -208,7 +220,10 @@ impl ApiClient {
     // =========================================================================
 
     /// List event types for an application
-    pub async fn list_event_types(&self, application_id: &Uuid) -> Result<Vec<EventType>, ApiError> {
+    pub async fn list_event_types(
+        &self,
+        application_id: &Uuid,
+    ) -> Result<Vec<EventType>, ApiError> {
         let response = self
             .client
             .get(self.url("/event_types"))
@@ -221,7 +236,10 @@ impl ApiClient {
     }
 
     /// Create an event type
-    pub async fn create_event_type(&self, event_type: &EventTypePost) -> Result<EventType, ApiError> {
+    pub async fn create_event_type(
+        &self,
+        event_type: &EventTypePost,
+    ) -> Result<EventType, ApiError> {
         let response = self
             .client
             .post(self.url("/event_types"))
@@ -353,7 +371,10 @@ impl ApiClient {
     }
 
     /// Create a subscription
-    pub async fn create_subscription(&self, subscription: &SubscriptionPost) -> Result<Subscription, ApiError> {
+    pub async fn create_subscription(
+        &self,
+        subscription: &SubscriptionPost,
+    ) -> Result<Subscription, ApiError> {
         let response = self
             .client
             .post(self.url("/subscriptions"))
@@ -401,7 +422,10 @@ impl ApiClient {
     }
 
     /// Enable a subscription
-    pub async fn enable_subscription(&self, subscription_id: &Uuid) -> Result<Subscription, ApiError> {
+    pub async fn enable_subscription(
+        &self,
+        subscription_id: &Uuid,
+    ) -> Result<Subscription, ApiError> {
         let sub = self.get_subscription(subscription_id).await?;
         let update = SubscriptionPut {
             event_types: sub.event_types,
@@ -416,7 +440,10 @@ impl ApiClient {
     }
 
     /// Disable a subscription
-    pub async fn disable_subscription(&self, subscription_id: &Uuid) -> Result<Subscription, ApiError> {
+    pub async fn disable_subscription(
+        &self,
+        subscription_id: &Uuid,
+    ) -> Result<Subscription, ApiError> {
         let sub = self.get_subscription(subscription_id).await?;
         let update = SubscriptionPut {
             event_types: sub.event_types,
@@ -457,7 +484,10 @@ impl ApiClient {
     }
 
     /// Get a request attempt by ID
-    pub async fn get_request_attempt(&self, request_attempt_id: &Uuid) -> Result<RequestAttempt, ApiError> {
+    pub async fn get_request_attempt(
+        &self,
+        request_attempt_id: &Uuid,
+    ) -> Result<RequestAttempt, ApiError> {
         let response = self
             .client
             .get(self.url(&format!("/request_attempts/{}", request_attempt_id)))
@@ -485,7 +515,10 @@ impl ApiClient {
     // =========================================================================
 
     /// List application secrets
-    pub async fn list_application_secrets(&self, application_id: &Uuid) -> Result<Vec<ApplicationSecret>, ApiError> {
+    pub async fn list_application_secrets(
+        &self,
+        application_id: &Uuid,
+    ) -> Result<Vec<ApplicationSecret>, ApiError> {
         let response = self
             .client
             .get(self.url("/application_secrets"))
@@ -498,7 +531,10 @@ impl ApiClient {
     }
 
     /// Create an application secret
-    pub async fn create_application_secret(&self, secret: &ApplicationSecretPost) -> Result<ApplicationSecret, ApiError> {
+    pub async fn create_application_secret(
+        &self,
+        secret: &ApplicationSecretPost,
+    ) -> Result<ApplicationSecret, ApiError> {
         let response = self
             .client
             .post(self.url("/application_secrets"))
@@ -511,7 +547,11 @@ impl ApiClient {
     }
 
     /// Delete an application secret
-    pub async fn delete_application_secret(&self, application_id: &Uuid, token: &Uuid) -> Result<(), ApiError> {
+    pub async fn delete_application_secret(
+        &self,
+        application_id: &Uuid,
+        token: &Uuid,
+    ) -> Result<(), ApiError> {
         let response = self
             .client
             .delete(self.url("/application_secrets"))
@@ -537,7 +577,10 @@ impl ApiClient {
     // =========================================================================
 
     /// Get a response by ID
-    pub async fn get_response(&self, response_id: &Uuid) -> Result<Option<super::models::Response>, ApiError> {
+    pub async fn get_response(
+        &self,
+        response_id: &Uuid,
+    ) -> Result<Option<super::models::Response>, ApiError> {
         let response = self
             .client
             .get(self.url(&format!("/responses/{}", response_id)))
@@ -547,7 +590,6 @@ impl ApiClient {
 
         self.handle_response_optional(response).await
     }
-
 }
 
 #[cfg(test)]
@@ -560,5 +602,4 @@ mod tests {
         assert_eq!(client.base_url(), "https://api.hook0.com/v1");
         assert_eq!(client.url("/events"), "https://api.hook0.com/v1/events");
     }
-
 }

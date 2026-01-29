@@ -59,7 +59,9 @@ async fn list(cli: &Cli, args: &ListArgs) -> Result<()> {
     let org_id = args
         .organization_id
         .or(profile.organization_id)
-        .ok_or_else(|| anyhow::anyhow!("No organization ID available. Specify with --organization-id"))?;
+        .ok_or_else(|| {
+            anyhow::anyhow!("No organization ID available. Specify with --organization-id")
+        })?;
 
     let applications = client.list_applications(&org_id).await?;
 
@@ -166,7 +168,10 @@ async fn current(cli: &Cli, _args: &CurrentArgs) -> Result<()> {
         );
     } else {
         println!("Profile: {}", profile_name);
-        println!("Application: {} ({})", application.name, application.application_id);
+        println!(
+            "Application: {} ({})",
+            application.name, application.application_id
+        );
         println!("Organization: {}", application.organization_id);
     }
 

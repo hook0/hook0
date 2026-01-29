@@ -66,7 +66,11 @@ fn get_value_interactive(
         }
 
         let display_value = if is_secret {
-            format!("{}...{}", &env_value[..8.min(env_value.len())], &env_value[env_value.len().saturating_sub(4)..])
+            format!(
+                "{}...{}",
+                &env_value[..8.min(env_value.len())],
+                &env_value[env_value.len().saturating_sub(4)..]
+            )
         } else {
             env_value.clone()
         };
@@ -96,14 +100,12 @@ fn get_value_interactive(
 
     // Interactive prompt
     if is_secret {
-        output_info("You can find this in the Hook0 dashboard under Application > Settings > Secrets.");
-        Ok(Password::new()
-            .with_prompt(prompt_message)
-            .interact()?)
+        output_info(
+            "You can find this in the Hook0 dashboard under Application > Settings > Secrets.",
+        );
+        Ok(Password::new().with_prompt(prompt_message).interact()?)
     } else {
-        Ok(Input::new()
-            .with_prompt(prompt_message)
-            .interact_text()?)
+        Ok(Input::new().with_prompt(prompt_message).interact_text()?)
     }
 }
 
@@ -144,13 +146,12 @@ fn get_application_id_interactive(cli_value: Option<Uuid>) -> Result<Uuid> {
     }
 
     // Interactive prompt
-    output_info("You can find the Application ID in the Hook0 dashboard under Application > Settings.");
-    let input: String = Input::new()
-        .with_prompt("Application ID")
-        .interact_text()?;
+    output_info(
+        "You can find the Application ID in the Hook0 dashboard under Application > Settings.",
+    );
+    let input: String = Input::new().with_prompt("Application ID").interact_text()?;
 
-    Uuid::parse_str(&input)
-        .map_err(|_| anyhow!("Invalid Application ID format. Expected a UUID."))
+    Uuid::parse_str(&input).map_err(|_| anyhow!("Invalid Application ID format. Expected a UUID."))
 }
 
 /// Login command - authenticate with an Application Secret
@@ -167,8 +168,8 @@ pub async fn login(cli: &Cli, args: &LoginArgs) -> Result<()> {
     )?;
 
     // Validate the secret format (should be a UUID)
-    let _secret_uuid = Uuid::parse_str(&secret)
-        .map_err(|_| anyhow!("Invalid secret format. Expected a UUID."))?;
+    let _secret_uuid =
+        Uuid::parse_str(&secret).map_err(|_| anyhow!("Invalid secret format. Expected a UUID."))?;
 
     // Get application_id (CLI arg > env var with confirmation > interactive prompt)
     let application_id = get_application_id_interactive(args.application_id)?;
@@ -225,9 +226,7 @@ pub async fn login(cli: &Cli, args: &LoginArgs) -> Result<()> {
     if cli.output != OutputFormat::Json {
         output_success(&format!(
             "Authenticated successfully!\n  Application: {} ({})\n  Organization: {}",
-            app.name,
-            app.application_id,
-            app.organization_id
+            app.name, app.application_id, app.organization_id
         ));
     }
 
@@ -275,7 +274,11 @@ pub async fn logout(_cli: &Cli, args: &LogoutArgs) -> Result<()> {
 
     if args.all {
         // Remove all profiles and their secrets
-        let profiles: Vec<String> = config.list_profiles().iter().map(|s| s.to_string()).collect();
+        let profiles: Vec<String> = config
+            .list_profiles()
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
 
         for name in &profiles {
             if let Ok((_, profile)) = config.get_profile(Some(name)) {
@@ -288,7 +291,8 @@ pub async fn logout(_cli: &Cli, args: &LogoutArgs) -> Result<()> {
         output_success("All credentials have been removed.");
     } else {
         // Get profile name first to avoid borrowing issues
-        let profile_name = args.profile_name
+        let profile_name = args
+            .profile_name
             .clone()
             .or_else(|| config.default_profile.clone())
             .unwrap_or_else(|| "default".to_string());
@@ -305,7 +309,10 @@ pub async fn logout(_cli: &Cli, args: &LogoutArgs) -> Result<()> {
         config.remove_profile(&profile_name);
         config.save()?;
 
-        output_success(&format!("Credentials for profile '{}' have been removed.", profile_name));
+        output_success(&format!(
+            "Credentials for profile '{}' have been removed.",
+            profile_name
+        ));
     }
 
     Ok(())

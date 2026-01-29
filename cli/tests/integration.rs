@@ -228,27 +228,21 @@ fn test_config_help() {
 #[test]
 fn test_invalid_subcommand() {
     let mut cmd = Command::cargo_bin("hook0").expect("binary should exist");
-    cmd.args(["invalid-command"])
-        .assert()
-        .failure();
+    cmd.args(["invalid-command"]).assert().failure();
 }
 
 /// Test verbose flag
 #[test]
 fn test_verbose_flag() {
     let mut cmd = Command::cargo_bin("hook0").expect("binary should exist");
-    cmd.args(["-v", "--help"])
-        .assert()
-        .success();
+    cmd.args(["-v", "--help"]).assert().success();
 }
 
 /// Test multiple verbose flags
 #[test]
 fn test_multiple_verbose_flags() {
     let mut cmd = Command::cargo_bin("hook0").expect("binary should exist");
-    cmd.args(["-vvv", "--help"])
-        .assert()
-        .success();
+    cmd.args(["-vvv", "--help"]).assert().success();
 }
 
 // =============================================================================
@@ -256,8 +250,8 @@ fn test_multiple_verbose_flags() {
 // =============================================================================
 
 fn get_test_credentials() -> (String, String, String) {
-    let secret = std::env::var("HOOK0_SECRET")
-        .expect("HOOK0_SECRET must be set. Run: source cli/.envrc");
+    let secret =
+        std::env::var("HOOK0_SECRET").expect("HOOK0_SECRET must be set. Run: source cli/.envrc");
     let app_id = std::env::var("HOOK0_APPLICATION_ID")
         .expect("HOOK0_APPLICATION_ID must be set. Run: source cli/.envrc");
     let api_url = std::env::var("HOOK0_API_URL")
@@ -355,13 +349,19 @@ fn test_login_stores_profile() {
     // Linux: ~/.config/hook0/config.toml
     // Windows: %APPDATA%/hook0/config.toml
     let config_path = if cfg!(target_os = "macos") {
-        temp_home.path().join("Library/Application Support/hook0/config.toml")
+        temp_home
+            .path()
+            .join("Library/Application Support/hook0/config.toml")
     } else if cfg!(target_os = "windows") {
         temp_home.path().join("hook0/config.toml")
     } else {
         temp_home.path().join(".config/hook0/config.toml")
     };
-    assert!(config_path.exists(), "Config file should be created at {:?}", config_path);
+    assert!(
+        config_path.exists(),
+        "Config file should be created at {:?}",
+        config_path
+    );
 }
 
 /// Test JSON output format with authenticated request

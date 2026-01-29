@@ -108,8 +108,14 @@ mod tests {
     #[test]
     fn test_table_creation() {
         let items = vec![
-            TestItem { id: 1, name: "one".to_string() },
-            TestItem { id: 2, name: "two".to_string() },
+            TestItem {
+                id: 1,
+                name: "one".to_string(),
+            },
+            TestItem {
+                id: 2,
+                name: "two".to_string(),
+            },
         ];
 
         // Just test that table creation doesn't panic
@@ -127,10 +133,7 @@ mod tests {
 
     #[test]
     fn test_details_table() {
-        let pairs = vec![
-            ("Name", "Test".to_string()),
-            ("ID", "123".to_string()),
-        ];
+        let pairs = vec![("Name", "Test".to_string()), ("ID", "123".to_string())];
 
         let mut table = comfy_table::Table::new();
         table.set_header(vec!["Field", "Value"]);

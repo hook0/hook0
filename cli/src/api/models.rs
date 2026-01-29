@@ -290,7 +290,11 @@ impl Target {
         }
     }
 
-    pub fn http_with_headers(url: String, method: String, headers: HashMap<String, String>) -> Self {
+    pub fn http_with_headers(
+        url: String,
+        method: String,
+        headers: HashMap<String, String>,
+    ) -> Self {
         Self::Http {
             method,
             url,
@@ -557,7 +561,11 @@ mod tests {
     #[test]
     fn test_target_http() {
         let target = Target::http("https://example.com/webhook".to_string());
-        let Target::Http { method, url, headers } = target;
+        let Target::Http {
+            method,
+            url,
+            headers,
+        } = target;
         assert_eq!(method, "POST");
         assert_eq!(url, "https://example.com/webhook");
         assert!(headers.is_empty());
@@ -609,7 +617,9 @@ mod tests {
     fn test_event_filters() {
         let mut filters = EventFilters::default();
         filters.event_type = Some("user.account.created".to_string());
-        filters.labels.insert("tenant_id".to_string(), "org123".to_string());
+        filters
+            .labels
+            .insert("tenant_id".to_string(), "org123".to_string());
 
         let query = filters.to_query_params();
         assert!(query.len() >= 2);

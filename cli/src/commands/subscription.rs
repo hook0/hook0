@@ -184,7 +184,11 @@ async fn create(cli: &Cli, args: &CreateArgs) -> Result<()> {
         event_types: args.events.clone(),
         is_enabled: !args.disabled,
         description: args.description.clone(),
-        labels: if labels.is_empty() { None } else { Some(labels) },
+        labels: if labels.is_empty() {
+            None
+        } else {
+            Some(labels)
+        },
         metadata: None,
         target: Target::http_with_headers(args.url.clone(), args.method.clone(), headers),
         dedicated_workers: None,
@@ -198,7 +202,11 @@ async fn create(cli: &Cli, args: &CreateArgs) -> Result<()> {
         output_success(&format!(
             "Subscription created successfully!\n  ID: {}\n  Status: {}",
             result.subscription_id,
-            if result.is_enabled { "Enabled" } else { "Disabled" }
+            if result.is_enabled {
+                "Enabled"
+            } else {
+                "Disabled"
+            }
         ));
     }
 
@@ -235,7 +243,11 @@ async fn get(cli: &Cli, args: &GetArgs) -> Result<()> {
         output_one(&subscription, cli.output);
     } else {
         let target_info = match &subscription.target {
-            Target::Http { method, url, headers } => {
+            Target::Http {
+                method,
+                url,
+                headers,
+            } => {
                 let header_str = headers
                     .iter()
                     .map(|(k, v)| format!("{}: {}", k, v))
@@ -245,7 +257,11 @@ async fn get(cli: &Cli, args: &GetArgs) -> Result<()> {
                     "{} {}\n  Headers:\n    {}",
                     method,
                     url,
-                    if header_str.is_empty() { "(none)" } else { &header_str }
+                    if header_str.is_empty() {
+                        "(none)"
+                    } else {
+                        &header_str
+                    }
                 )
             }
         };
@@ -259,11 +275,27 @@ async fn get(cli: &Cli, args: &GetArgs) -> Result<()> {
 
         TableOutput::print_details(vec![
             ("Subscription ID", subscription.subscription_id.to_string()),
-            ("Enabled", if subscription.is_enabled { "Yes" } else { "No" }.to_string()),
-            ("Description", subscription.description.clone().unwrap_or_else(|| "-".to_string())),
+            (
+                "Enabled",
+                if subscription.is_enabled { "Yes" } else { "No" }.to_string(),
+            ),
+            (
+                "Description",
+                subscription
+                    .description
+                    .clone()
+                    .unwrap_or_else(|| "-".to_string()),
+            ),
             ("Event Types", subscription.event_types.join(", ")),
             ("Target", target_info),
-            ("Labels", if labels_str.is_empty() { "-".to_string() } else { labels_str }),
+            (
+                "Labels",
+                if labels_str.is_empty() {
+                    "-".to_string()
+                } else {
+                    labels_str
+                },
+            ),
             ("Secret", subscription.secret.to_string()),
             ("Created At", subscription.created_at.to_rfc3339()),
         ]);
@@ -289,7 +321,11 @@ async fn update(cli: &Cli, args: &UpdateArgs) -> Result<()> {
 
     // Build updated target
     let (current_method, current_url, current_headers) = match current.target {
-        Target::Http { method, url, headers } => (method, url, headers),
+        Target::Http {
+            method,
+            url,
+            headers,
+        } => (method, url, headers),
     };
 
     let new_url = args.url.clone().unwrap_or(current_url);
@@ -319,7 +355,9 @@ async fn update(cli: &Cli, args: &UpdateArgs) -> Result<()> {
         dedicated_workers: Some(current.dedicated_workers),
     };
 
-    let result = client.update_subscription(&args.subscription_id, &update).await?;
+    let result = client
+        .update_subscription(&args.subscription_id, &update)
+        .await?;
 
     if cli.output == OutputFormat::Json {
         output_one(&result, cli.output);

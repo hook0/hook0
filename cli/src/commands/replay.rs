@@ -53,7 +53,9 @@ fn parse_duration(s: &str) -> Result<Duration> {
         return Err(anyhow!("Empty duration string"));
     }
     if s.len() < 2 {
-        return Err(anyhow!("Duration must include a number and unit (e.g., '1h', '7d')"));
+        return Err(anyhow!(
+            "Duration must include a number and unit (e.g., '1h', '7d')"
+        ));
     }
 
     let (num_str, unit) = s.split_at(s.len() - 1);
@@ -167,7 +169,11 @@ pub async fn execute(cli: &Cli, args: &ReplayArgs) -> Result<()> {
             Ok(attempts) => {
                 total_attempts += attempts.len();
                 if cli.output != OutputFormat::Json {
-                    println!("  Replayed {} ({} attempts)", event.event_id, attempts.len());
+                    println!(
+                        "  Replayed {} ({} attempts)",
+                        event.event_id,
+                        attempts.len()
+                    );
                 }
             }
             Err(e) => {

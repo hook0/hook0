@@ -97,7 +97,10 @@ async fn create(cli: &Cli, args: &CreateArgs) -> Result<()> {
     if cli.output == crate::output::OutputFormat::Json {
         output_one(&result, cli.output);
     } else {
-        output_success(&format!("Event type '{}' created successfully!", result.full_name()));
+        output_success(&format!(
+            "Event type '{}' created successfully!",
+            result.full_name()
+        ));
     }
 
     Ok(())

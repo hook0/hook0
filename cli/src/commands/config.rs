@@ -1,4 +1,3 @@
-
 use anyhow::{anyhow, Result};
 use clap::{Args, Subcommand};
 use dialoguer::{Confirm, Input, Password, Select};
@@ -99,7 +98,10 @@ async fn list(cli: &Cli, _args: &ListArgs) -> Result<()> {
                 })
             })
             .collect();
-        println!("{}", serde_json::to_string_pretty(&profiles).expect("json serialization"));
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&profiles).expect("json serialization")
+        );
     } else {
         let headers = vec!["Profile", "API URL", "Application ID", "Default"];
         let rows: Vec<Vec<String>> = config
@@ -134,19 +136,21 @@ async fn show(cli: &Cli, _args: &ShowArgs) -> Result<()> {
             "default_profile": config.default_profile,
             "profiles": config.profiles.keys().collect::<Vec<_>>(),
         });
-        println!("{}", serde_json::to_string_pretty(&json).expect("json serialization"));
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&json).expect("json serialization")
+        );
     } else {
         println!("Configuration file: {}", config_file_path().display());
-        println!("Default profile: {}", config.default_profile.as_deref().unwrap_or("(none)"));
+        println!(
+            "Default profile: {}",
+            config.default_profile.as_deref().unwrap_or("(none)")
+        );
         println!("Profiles: {}", config.profiles.len());
 
         for (name, profile) in &config.profiles {
             let is_default = config.default_profile.as_deref() == Some(name.as_str());
-            println!(
-                "\n[{}]{}",
-                name,
-                if is_default { " (default)" } else { "" }
-            );
+            println!("\n[{}]{}", name, if is_default { " (default)" } else { "" });
             println!("  API URL: {}", profile.api_url);
             println!("  Application ID: {}", profile.application_id);
             if let Some(org_id) = &profile.organization_id {
@@ -224,7 +228,9 @@ pub async fn init(_cli: &Cli, args: &InitArgs) -> Result<()> {
         .interact_text()?;
 
     // Step 2: Get secret
-    output_info("Enter your Application Secret (found in Dashboard > Application > Settings > Secrets)");
+    output_info(
+        "Enter your Application Secret (found in Dashboard > Application > Settings > Secrets)",
+    );
     let secret: String = Password::new()
         .with_prompt("Application Secret")
         .interact()?;
@@ -280,7 +286,10 @@ pub async fn init(_cli: &Cli, args: &InitArgs) -> Result<()> {
     config.save()?;
     Config::store_secret(&profile_name, &app.application_id, &secret)?;
 
-    output_success(&format!("Configuration saved to profile '{}'", profile_name));
+    output_success(&format!(
+        "Configuration saved to profile '{}'",
+        profile_name
+    ));
 
     // Step 5: Optional - Create event type
     let create_event_type = Confirm::new()
@@ -290,12 +299,12 @@ pub async fn init(_cli: &Cli, args: &InitArgs) -> Result<()> {
 
     if create_event_type {
         // Dynamically fetch existing event types from the API to suggest
-        let existing_types = client.list_event_types(&app.application_id).await.unwrap_or_default();
+        let existing_types = client
+            .list_event_types(&app.application_id)
+            .await
+            .unwrap_or_default();
 
-        let mut suggestions: Vec<String> = existing_types
-            .iter()
-            .map(|et| et.full_name())
-            .collect();
+        let mut suggestions: Vec<String> = existing_types.iter().map(|et| et.full_name()).collect();
 
         // If no existing types, provide some common patterns as examples
         if suggestions.is_empty() {
@@ -304,7 +313,11 @@ pub async fn init(_cli: &Cli, args: &InitArgs) -> Result<()> {
             let common_verbs = ["created", "updated", "deleted"];
             suggestions = common_services
                 .iter()
-                .flat_map(|s| common_verbs.iter().map(move |v| format!("{}.account.{}", s, v)))
+                .flat_map(|s| {
+                    common_verbs
+                        .iter()
+                        .map(move |v| format!("{}.account.{}", s, v))
+                })
                 .take(4)
                 .collect();
         }
@@ -358,7 +371,13 @@ pub async fn quickstart(cli: &Cli, args: &QuickstartArgs) -> Result<()> {
             Ok(result) => result,
             Err(_) => {
                 output_warning("No valid credentials found. Running setup wizard...");
-                init(cli, &InitArgs { non_interactive: false }).await?;
+                init(
+                    cli,
+                    &InitArgs {
+                        non_interactive: false,
+                    },
+                )
+                .await?;
                 crate::commands::require_auth(cli)?
             }
         }
@@ -374,9 +393,13 @@ pub async fn quickstart(cli: &Cli, args: &QuickstartArgs) -> Result<()> {
 
         // Get first application
         let orgs = client.list_organizations().await?;
-        let org = orgs.first().ok_or_else(|| anyhow!("No organizations found"))?;
+        let org = orgs
+            .first()
+            .ok_or_else(|| anyhow!("No organizations found"))?;
         let apps = client.list_applications(&org.organization_id).await?;
-        let app = apps.first().ok_or_else(|| anyhow!("No applications found"))?;
+        let app = apps
+            .first()
+            .ok_or_else(|| anyhow!("No applications found"))?;
 
         // Save config
         let mut config = Config::default();

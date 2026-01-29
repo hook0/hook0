@@ -39,10 +39,6 @@ pub fn get_api_client(
 
 /// Get API client, requiring authentication
 pub fn require_auth(cli: &crate::Cli) -> Result<(ApiClient, String, Profile)> {
-    get_api_client(cli, None).map_err(|e| {
-        anyhow!(
-            "{}\n\nHint: Run 'hook0 login' to authenticate first.",
-            e
-        )
-    })
+    get_api_client(cli, None)
+        .map_err(|e| anyhow!("{}\n\nHint: Run 'hook0 login' to authenticate first.", e))
 }

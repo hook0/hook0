@@ -109,7 +109,10 @@ impl Outputable for Organization {
             self.organization_id.to_string(),
             self.name.clone(),
             self.role.clone().unwrap_or_else(|| "-".to_string()),
-            self.plan.as_ref().map(|p| p.name.clone()).unwrap_or_else(|| "-".to_string()),
+            self.plan
+                .as_ref()
+                .map(|p| p.name.clone())
+                .unwrap_or_else(|| "-".to_string()),
         ]
     }
 
@@ -154,7 +157,11 @@ impl Outputable for Event {
             self.event_id.to_string(),
             self.event_type_name.clone(),
             self.occurred_at.format("%Y-%m-%d %H:%M:%S").to_string(),
-            if labels.is_empty() { "-".to_string() } else { labels },
+            if labels.is_empty() {
+                "-".to_string()
+            } else {
+                labels
+            },
         ]
     }
 
@@ -190,7 +197,11 @@ impl Outputable for Subscription {
             if self.is_enabled { "Yes" } else { "No" }.to_string(),
             self.event_types.join(", "),
             target_url,
-            if labels.is_empty() { "-".to_string() } else { labels },
+            if labels.is_empty() {
+                "-".to_string()
+            } else {
+                labels
+            },
         ]
     }
 
@@ -201,7 +212,11 @@ impl Outputable for Subscription {
         format!(
             "{}\t{}\t{}",
             self.subscription_id,
-            if self.is_enabled { "enabled" } else { "disabled" },
+            if self.is_enabled {
+                "enabled"
+            } else {
+                "disabled"
+            },
             target_url
         )
     }
@@ -246,11 +261,7 @@ impl Outputable for ApplicationSecret {
     }
 
     fn compact_line(&self) -> String {
-        format!(
-            "{}\t{}",
-            self.token,
-            self.name.as_deref().unwrap_or("-")
-        )
+        format!("{}\t{}", self.token, self.name.as_deref().unwrap_or("-"))
     }
 }
 

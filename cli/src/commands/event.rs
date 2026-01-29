@@ -252,7 +252,8 @@ async fn get(cli: &Cli, args: &GetArgs) -> Result<()> {
             );
         } else {
             // Show event details
-            let payload_decoded = base64_decode(&event.payload).unwrap_or_else(|_| event.payload.clone());
+            let payload_decoded =
+                base64_decode(&event.payload).unwrap_or_else(|_| event.payload.clone());
 
             TableOutput::print_details(vec![
                 ("Event ID", event.event_id.to_string()),
@@ -284,7 +285,8 @@ async fn get(cli: &Cli, args: &GetArgs) -> Result<()> {
         if cli.output == OutputFormat::Json {
             output_one(&event, cli.output);
         } else {
-            let payload_decoded = base64_decode(&event.payload).unwrap_or_else(|_| event.payload.clone());
+            let payload_decoded =
+                base64_decode(&event.payload).unwrap_or_else(|_| event.payload.clone());
 
             TableOutput::print_details(vec![
                 ("Event ID", event.event_id.to_string()),
@@ -344,8 +346,14 @@ mod tests {
         assert_eq!(parse_duration("24h").expect("should parse").num_hours(), 24);
         assert_eq!(parse_duration("7d").expect("should parse").num_days(), 7);
         assert_eq!(parse_duration("1w").expect("should parse").num_weeks(), 1);
-        assert_eq!(parse_duration("30m").expect("should parse").num_minutes(), 30);
-        assert_eq!(parse_duration("60s").expect("should parse").num_seconds(), 60);
+        assert_eq!(
+            parse_duration("30m").expect("should parse").num_minutes(),
+            30
+        );
+        assert_eq!(
+            parse_duration("60s").expect("should parse").num_seconds(),
+            60
+        );
     }
 
     #[test]

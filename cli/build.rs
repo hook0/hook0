@@ -108,8 +108,8 @@ struct ApiMethod {
     path: String,
     summary: String,
     // Following fields are parsed for future full client generation
-    path_params: Vec<(String, String)>,  // (name, rust_type)
-    query_params: Vec<(String, String, bool)>,  // (name, rust_type, required)
+    path_params: Vec<(String, String)>,        // (name, rust_type)
+    query_params: Vec<(String, String, bool)>, // (name, rust_type, required)
     request_body_type: Option<String>,
     response_type: String,
     returns_optional: bool,
@@ -135,7 +135,10 @@ fn load_openapi_spec() -> OpenApiSpec {
     // First try local file (for offline builds and CI)
     if let Ok(content) = fs::read_to_string(OPENAPI_FALLBACK_PATH) {
         if let Ok(spec) = serde_json::from_str(&content) {
-            println!("cargo:warning=Using local OpenAPI spec from {}", OPENAPI_FALLBACK_PATH);
+            println!(
+                "cargo:warning=Using local OpenAPI spec from {}",
+                OPENAPI_FALLBACK_PATH
+            );
             return spec;
         }
     }
@@ -144,7 +147,10 @@ fn load_openapi_spec() -> OpenApiSpec {
     match download_spec() {
         Ok(spec) => spec,
         Err(e) => {
-            println!("cargo:warning=Failed to download OpenAPI spec: {}. Using empty spec.", e);
+            println!(
+                "cargo:warning=Failed to download OpenAPI spec: {}. Using empty spec.",
+                e
+            );
             OpenApiSpec {
                 paths: HashMap::new(),
                 components: Components::default(),
@@ -159,10 +165,7 @@ fn download_spec() -> Result<OpenApiSpec, String> {
         .build()
         .map_err(|e| e.to_string())?;
 
-    let response = client
-        .get(OPENAPI_URL)
-        .send()
-        .map_err(|e| e.to_string())?;
+    let response = client.get(OPENAPI_URL).send().map_err(|e| e.to_string())?;
 
     if !response.status().is_success() {
         return Err(format!("HTTP {}", response.status()));
@@ -211,7 +214,11 @@ fn generate_api_info(spec: &OpenApiSpec) -> String {
             method.name,
             method.http_method,
             method.path,
-            method.summary.replace('\\', "\\\\").replace('\"', "\\\"").replace('\n', " ")
+            method
+                .summary
+                .replace('\\', "\\\\")
+                .replace('\"', "\\\"")
+                .replace('\n', " ")
         ));
     }
 

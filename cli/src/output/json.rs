@@ -50,8 +50,14 @@ mod tests {
     #[test]
     fn test_json_array_serialization() {
         let items = vec![
-            TestItem { id: 1, name: "one".to_string() },
-            TestItem { id: 2, name: "two".to_string() },
+            TestItem {
+                id: 1,
+                name: "one".to_string(),
+            },
+            TestItem {
+                id: 2,
+                name: "two".to_string(),
+            },
         ];
 
         let json = serde_json::to_string_pretty(&items).expect("serialization should work");

@@ -28,7 +28,7 @@ mod tests {
             "applications_list",
             "applications_create",
             "events_list",
-            "events_ingest",  // "create" is called "ingest" in the API
+            "events_ingest", // "create" is called "ingest" in the API
             "event_types_list",
             "subscriptions_list",
             "subscriptions_create",
@@ -59,7 +59,10 @@ mod tests {
     fn test_endpoint_info_structure() {
         for endpoint in API_ENDPOINTS {
             // Verify each endpoint has valid data
-            assert!(!endpoint.name.is_empty(), "Endpoint name should not be empty");
+            assert!(
+                !endpoint.name.is_empty(),
+                "Endpoint name should not be empty"
+            );
             assert!(
                 ["GET", "POST", "PUT", "DELETE", "PATCH"].contains(&endpoint.method),
                 "Invalid HTTP method: {}",
