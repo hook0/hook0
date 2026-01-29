@@ -160,16 +160,6 @@ fn test_output_format_table() {
         .success();
 }
 
-/// Test that listen command requires target URL
-#[test]
-fn test_listen_requires_target() {
-    let mut cmd = Command::cargo_bin("hook0").expect("binary should exist");
-    cmd.env("HOME", "/tmp/hook0-test-nonexistent")
-        .args(["listen"])
-        .assert()
-        .failure();
-}
-
 /// Test help for subcommands
 #[test]
 fn test_event_help() {

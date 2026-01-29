@@ -2,8 +2,6 @@ pub mod api;
 pub mod commands;
 pub mod config;
 pub mod output;
-pub mod tui;
-pub mod tunnel;
 
 pub use api::client::ApiClient;
 pub use api::ApiError;
@@ -77,9 +75,6 @@ pub enum Commands {
     /// Manage applications
     #[command(subcommand)]
     Application(commands::application::ApplicationCommands),
-
-    /// Receive webhooks locally (tunneling)
-    Listen(commands::listen::ListenArgs),
 
     /// Replay failed events
     Replay(commands::replay::ReplayArgs),

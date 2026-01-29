@@ -3,7 +3,7 @@ use clap::Parser;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 use hook0_cli::commands::{
-    application, auth, completion, config, event, event_type, listen, replay, subscription,
+    application, auth, completion, config, event, event_type, replay, subscription,
 };
 use hook0_cli::{Cli, Commands};
 
@@ -35,7 +35,6 @@ async fn main() -> Result<()> {
         Commands::EventType(cmd) => event_type::execute(&cli, cmd).await,
         Commands::Subscription(cmd) => subscription::execute(&cli, cmd).await,
         Commands::Application(cmd) => application::execute(&cli, cmd).await,
-        Commands::Listen(args) => listen::execute(&cli, args).await,
         Commands::Replay(args) => replay::execute(&cli, args).await,
         Commands::Config(cmd) => config::execute(&cli, cmd).await,
         Commands::Completion(args) => completion::execute(args),

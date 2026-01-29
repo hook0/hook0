@@ -548,20 +548,6 @@ impl ApiClient {
         self.handle_response_optional(response).await
     }
 
-    // =========================================================================
-    // Stream/Tunnel endpoints (if available)
-    // =========================================================================
-
-    /// Get WebSocket URL for streaming (if the server supports it)
-    ///
-    /// NOTE: The token is passed as a query parameter for now. This is acceptable
-    /// because the browser WebSocket API doesn't support Authorization headers,
-    /// and the connection is over TLS (wss://). A future improvement would be
-    /// to use message-based authentication after connection establishment.
-    pub fn get_stream_url(&self, application_id: &Uuid) -> String {
-        let base = self.base_url.replace("https://", "wss://").replace("http://", "ws://");
-        format!("{}/stream?application_id={}&token={}", base, application_id, self.secret)
-    }
 }
 
 #[cfg(test)]
@@ -575,12 +561,4 @@ mod tests {
         assert_eq!(client.url("/events"), "https://api.hook0.com/v1/events");
     }
 
-    #[test]
-    fn test_api_client_stream_url() {
-        let client = ApiClient::new("https://api.hook0.com/v1", "secret123");
-        let app_id = Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").expect("valid uuid");
-        let stream_url = client.get_stream_url(&app_id);
-        assert!(stream_url.starts_with("wss://"));
-        assert!(stream_url.contains("stream"));
-    }
 }

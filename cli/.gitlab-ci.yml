@@ -69,9 +69,9 @@ build:linux-arm64:
     TARGET: aarch64-unknown-linux-gnu
     SUFFIX: ""
     ARTIFACT_NAME: linux-arm64
+    CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
   before_script:
     - apt-get update && apt-get install -y gcc-aarch64-linux-gnu
-    - export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
 
 build:darwin-amd64:
   extends: .build-template
@@ -142,9 +142,14 @@ package:rpm:
   script:
     - dnf install -y rust cargo rpm-build
     - cd cli
+    # Stage pre-built binaries into target directories for cargo-generate-rpm
+    - mkdir -p target/x86_64-unknown-linux-gnu/release target/aarch64-unknown-linux-gnu/release
+    - cp ../dist/hook0-linux-amd64 target/x86_64-unknown-linux-gnu/release/hook0
+    - cp ../dist/hook0-linux-arm64 target/aarch64-unknown-linux-gnu/release/hook0
     - cargo install cargo-generate-rpm
-    - cargo generate-rpm
-    - mv target/generate-rpm/*.rpm ../dist/
+    - cargo generate-rpm --target x86_64-unknown-linux-gnu
+    - cargo generate-rpm --target aarch64-unknown-linux-gnu
+    - mv target/generate-rpm/*.rpm ../dist/ || mv target/*/generate-rpm/*.rpm ../dist/
   artifacts:
     paths:
       - dist/*.rpm

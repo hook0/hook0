@@ -170,8 +170,11 @@ fn download_spec() -> Result<OpenApiSpec, String> {
 
     let text = response.text().map_err(|e| e.to_string())?;
 
-    // Save raw JSON for future builds
-    let _ = fs::write(OPENAPI_FALLBACK_PATH, &text);
+    // Save to OUT_DIR for caching (don't modify source tree)
+    if let Ok(out_dir) = env::var("OUT_DIR") {
+        let cache_path = std::path::Path::new(&out_dir).join("openapi_cache.json");
+        let _ = fs::write(cache_path, &text);
+    }
 
     serde_json::from_str(&text).map_err(|e| e.to_string())
 }
@@ -342,7 +345,7 @@ fn schema_to_rust_type(schema: Option<&Schema>) -> String {
             (Some("string"), _) => "String".to_string(),
             (Some("integer"), _) => "i64".to_string(),
             (Some("boolean"), _) => "bool".to_string(),
-            (Some("array"), _) => "Vec<_>".to_string(),
+            (Some("array"), _) => "Vec<serde_json::Value>".to_string(),
             (Some("object"), _) => "serde_json::Value".to_string(),
             _ => "String".to_string(),
         },

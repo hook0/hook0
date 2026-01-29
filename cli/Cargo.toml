@@ -27,19 +27,11 @@ tokio = { version = "1.35", features = ["full"] }
 # HTTP Client
 reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
 
-# WebSocket (tunneling)
-tokio-tungstenite = { version = "0.24", features = ["rustls-tls-webpki-roots"] }
-futures-util = "0.3"
-
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 toml = "0.8"
 base64 = "0.22"
-
-# TUI
-ratatui = "0.29"
-crossterm = "0.28"
 
 # Output formatting
 comfy-table = "7.1"

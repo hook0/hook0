@@ -61,10 +61,6 @@ pub struct InitArgs {
 
 #[derive(Args, Debug)]
 pub struct QuickstartArgs {
-    /// Local port to forward webhooks to
-    #[arg(default_value = "3000")]
-    pub port: u16,
-
     /// Event type to create (optional)
     #[arg(long)]
     pub event_type: Option<String>,
@@ -343,27 +339,10 @@ pub async fn init(_cli: &Cli, args: &InitArgs) -> Result<()> {
         output_success(&format!("Event type '{}' created!", event_type_name));
     }
 
-    // Step 6: Optional - Set up local listener
-    let setup_listener = Confirm::new()
-        .with_prompt("Set up local webhook listening?")
-        .default(true)
-        .interact()?;
-
-    if setup_listener {
-        let port: u16 = Input::new()
-            .with_prompt("Local port")
-            .default(3000)
-            .interact_text()?;
-
-        println!("\nTo start receiving webhooks locally, run:");
-        println!("  hook0 listen {}", port);
-    }
-
     println!("\nSetup complete! Here are some useful commands:");
     println!("  hook0 event send user.account.created --payload '{{\"user_id\": 123}}'");
     println!("  hook0 event-type list");
     println!("  hook0 subscription list");
-    println!("  hook0 listen 3000");
 
     Ok(())
 }
@@ -434,19 +413,14 @@ pub async fn quickstart(cli: &Cli, args: &QuickstartArgs) -> Result<()> {
         }
     }
 
-    // Start listener
-    println!("\nStarting local listener on port {}...", args.port);
+    output_success("Quickstart complete! You're ready to send events.");
+    println!("\nNext steps:");
+    println!("  1. Create a subscription to receive webhooks:");
+    println!("     hook0 subscription create --url https://your-endpoint.com/webhook");
+    println!("  2. Send a test event:");
+    println!("     hook0 event send user.account.created --payload '{{\"user_id\": 123}}'");
 
-    let listen_args = crate::commands::listen::ListenArgs {
-        target: format!("http://localhost:{}", args.port),
-        events: Vec::new(),
-        label: Vec::new(),
-        mode: crate::commands::listen::ListenMode::Interactive,
-        since: None,
-        insecure: false,
-    };
-
-    crate::commands::listen::execute(cli, &listen_args).await
+    Ok(())
 }
 
 #[cfg(test)]

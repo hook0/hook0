@@ -61,6 +61,10 @@ fn parse_duration(s: &str) -> Result<Duration> {
         .parse()
         .map_err(|_| anyhow!("Invalid duration number: {}", num_str))?;
 
+    if num <= 0 {
+        return Err(anyhow!("Duration must be a positive number"));
+    }
+
     match unit {
         "s" => Ok(Duration::seconds(num)),
         "m" => Ok(Duration::minutes(num)),
@@ -211,5 +215,7 @@ mod tests {
     fn test_parse_duration_invalid() {
         assert!(parse_duration("invalid").is_err());
         assert!(parse_duration("").is_err());
+        assert!(parse_duration("-1h").is_err());
+        assert!(parse_duration("0d").is_err());
     }
 }

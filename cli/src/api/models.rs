@@ -494,42 +494,6 @@ impl EventFilters {
 }
 
 // =============================================================================
-// WebSocket Messages (for tunnel/listen)
-// =============================================================================
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum StreamMessage {
-    /// Server sends connection info
-    Connected {
-        webhook_url: String,
-        session_id: String,
-    },
-    /// Server sends an incoming webhook
-    WebhookReceived {
-        request_id: String,
-        event_id: Uuid,
-        event_type: String,
-        payload: String,
-        headers: HashMap<String, String>,
-        received_at: DateTime<Utc>,
-    },
-    /// Client sends the response after forwarding
-    WebhookResponse {
-        request_id: String,
-        status_code: u16,
-        headers: HashMap<String, String>,
-        body: Option<String>,
-        elapsed_ms: i64,
-    },
-    /// Ping/Pong for keepalive
-    Ping,
-    Pong,
-    /// Error message
-    Error { message: String },
-}
-
-// =============================================================================
 // Helper Functions
 // =============================================================================
 
