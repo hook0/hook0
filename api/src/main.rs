@@ -39,6 +39,7 @@ mod object_storage_cleanup;
 mod old_events_cleanup;
 mod onboarding;
 mod openapi;
+mod openapi_postprocess;
 mod opentelemetry;
 mod pagination;
 mod problems;
@@ -1052,8 +1053,9 @@ async fn main() -> anyhow::Result<()> {
         let webapp_path = config.webapp_path.clone();
         let app_url = config.app_url;
         HttpServer::new(move || {
-            // Compute default OpenAPI spec
-            let spec = openapi::default_spec(&app_url);
+            // Compute default OpenAPI spec and apply post-processing
+            let mut spec = openapi::default_spec(&app_url);
+            openapi_postprocess::enrich_openapi_spec(&mut spec);
 
             // Prepare user IP extraction middleware
             let get_user_ip = middleware_get_user_ip::GetUserIp {

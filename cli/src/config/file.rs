@@ -37,7 +37,7 @@ pub enum ConfigError {
 }
 
 /// Main configuration structure
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Config {
     /// Default profile name
     #[serde(default)]
@@ -46,15 +46,6 @@ pub struct Config {
     /// Map of profile name to profile configuration
     #[serde(default)]
     pub profiles: HashMap<String, Profile>,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            default_profile: None,
-            profiles: HashMap::new(),
-        }
-    }
 }
 
 impl Config {
@@ -100,7 +91,7 @@ impl Config {
         self.profiles
             .get(&profile_name)
             .map(|p| (profile_name.clone(), p))
-            .ok_or_else(|| ConfigError::ProfileNotFound(profile_name))
+            .ok_or(ConfigError::ProfileNotFound(profile_name))
     }
 
     /// Add or update a profile

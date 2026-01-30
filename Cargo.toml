@@ -2,6 +2,7 @@
 members = [
   "api",
   "cli",
+  "play",
   "output-worker",
   "sentry-integration",
   "clients/rust",

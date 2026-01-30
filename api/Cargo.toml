@@ -5,6 +5,7 @@ description = "Core REST API of Hook0 — Open-Source Webhooks as a service for 
 repository = "https://gitlab.com/hook0/hook0/-/tree/master/api"
 homepage = "https://www.hook0.com/"
 edition = "2024"
+authors = ["David Sferruzza <david@hook0.com>", "François-Guillaume Ribreau <fg@hook0.com>"]
 license = "SSPL-1.0"
 keywords = ["webhooks", "webhook", "webhook-server", "events", "saas"]
 
@@ -60,6 +61,7 @@ pprof = { version = "0.15.0", features = ["protobuf-codec"], optional = true }
 tikv-jemallocator = { version = "0.6.1", optional = true }
 
 [dev-dependencies]
+insta = { version = "1.42", features = ["json"] }
 test-log = { version = "0.2.19", features = ["unstable"] }
 
 [features]

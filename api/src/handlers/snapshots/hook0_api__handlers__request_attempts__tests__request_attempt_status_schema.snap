@@ -1,0 +1,44 @@
+---
+source: api/src/handlers/request_attempts.rs
+expression: "serde_json::to_value(&schema).unwrap()"
+---
+{
+  "description": "Status of a request attempt. The 'type' field indicates the status variant. - waiting: {type, since, until} - Scheduled for future delivery - pending: {type, since} - Ready to be processed - in_progress: {type, since} - Currently being delivered - successful: {type, at, full_processing_ms} - Delivered successfully - failed: {type, at, full_processing_ms} - Delivery failed",
+  "properties": {
+    "at": {
+      "description": "Timestamp when completed (present in successful, failed)",
+      "format": "date-time",
+      "type": "string"
+    },
+    "full_processing_ms": {
+      "description": "Total processing time in milliseconds (present in successful, failed)",
+      "format": "int64",
+      "type": "integer"
+    },
+    "since": {
+      "description": "Timestamp when the status started (present in waiting, pending, in_progress)",
+      "format": "date-time",
+      "type": "string"
+    },
+    "type": {
+      "description": "Status type discriminator. One of: waiting, pending, in_progress, successful, failed",
+      "enum": [
+        "waiting",
+        "pending",
+        "in_progress",
+        "successful",
+        "failed"
+      ],
+      "type": "string"
+    },
+    "until": {
+      "description": "Timestamp until which waiting (only present in waiting status)",
+      "format": "date-time",
+      "type": "string"
+    }
+  },
+  "required": [
+    "type"
+  ],
+  "type": "object"
+}

@@ -1,0 +1,56 @@
+play.check:
+  stage: test
+  dependencies: []
+  image: rust:$RUST_VERSION
+  extends: .rust-cache-pull-only
+  rules:
+    - changes:
+        - play/**/*
+        - Cargo.*
+  before_script:
+    - rustc --version && cargo --version
+    - rustup component add clippy rustfmt
+  script:
+    - cargo fmt -p hook0-play -- --check
+    - cargo clippy -p hook0-play --all-targets --all-features -- -D warnings
+    - cargo test -p hook0-play --all-features
+
+play.e2e:
+  stage: test
+  dependencies: []
+  image: rust:$RUST_VERSION
+  extends: .rust-cache-pull-only
+  rules:
+    - changes:
+        - play/**/*
+        - cli/**/*
+        - Cargo.*
+  before_script:
+    - rustc --version && cargo --version
+  script:
+    - cargo build -p hook0-cli
+    - cargo test -p hook0-cli --test e2e_hooks -- --nocapture
+
+play.docker:
+  stage: build
+  dependencies: []
+  image: docker:latest
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  rules:
+    - changes:
+        - play/**/*
+        - Cargo.*
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+    - >
+      docker build
+      -f play/Dockerfile
+      -t "$CI_REGISTRY_IMAGE/play:$CI_COMMIT_SHORT_SHA"
+      -t "$CI_REGISTRY_IMAGE/play:latest"
+      .
+    - docker push "$CI_REGISTRY_IMAGE/play:$CI_COMMIT_SHORT_SHA"
+    - docker push "$CI_REGISTRY_IMAGE/play:latest"

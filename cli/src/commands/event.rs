@@ -281,32 +281,30 @@ async fn get(cli: &Cli, args: &GetArgs) -> Result<()> {
                 println!("\nNo request attempts yet.");
             }
         }
+    } else if cli.output == OutputFormat::Json {
+        output_one(&event, cli.output);
     } else {
-        if cli.output == OutputFormat::Json {
-            output_one(&event, cli.output);
-        } else {
-            let payload_decoded =
-                base64_decode(&event.payload).unwrap_or_else(|_| event.payload.clone());
+        let payload_decoded =
+            base64_decode(&event.payload).unwrap_or_else(|_| event.payload.clone());
 
-            TableOutput::print_details(vec![
-                ("Event ID", event.event_id.to_string()),
-                ("Type", event.event_type_name.clone()),
-                ("Content Type", event.payload_content_type.clone()),
-                ("Occurred At", event.occurred_at.to_rfc3339()),
-                ("Received At", event.received_at.to_rfc3339()),
-                (
-                    "Labels",
-                    event
-                        .labels
-                        .iter()
-                        .map(|(k, v)| format!("{}={}", k, v))
-                        .collect::<Vec<_>>()
-                        .join(", "),
-                ),
-            ]);
+        TableOutput::print_details(vec![
+            ("Event ID", event.event_id.to_string()),
+            ("Type", event.event_type_name.clone()),
+            ("Content Type", event.payload_content_type.clone()),
+            ("Occurred At", event.occurred_at.to_rfc3339()),
+            ("Received At", event.received_at.to_rfc3339()),
+            (
+                "Labels",
+                event
+                    .labels
+                    .iter()
+                    .map(|(k, v)| format!("{}={}", k, v))
+                    .collect::<Vec<_>>()
+                    .join(", "),
+            ),
+        ]);
 
-            println!("\nPayload:\n{}", payload_decoded);
-        }
+        println!("\nPayload:\n{}", payload_decoded);
     }
 
     Ok(())

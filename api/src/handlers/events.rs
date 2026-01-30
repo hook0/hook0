@@ -21,6 +21,9 @@ use strum::{IntoStaticStr, VariantNames};
 use uuid::Uuid;
 use validator::Validate;
 
+use paperclip::v2::models::{DataType, DefaultSchemaRaw};
+use paperclip::v2::schema::Apiv2Schema;
+
 use crate::PulsarConfig;
 use crate::extractor_user_ip::UserIp;
 use crate::iam::{Action, authorize_for_application};
@@ -57,6 +60,25 @@ impl FromStr for PayloadContentType {
             s if s == json => Ok(Self::Json),
             s if s == binary => Ok(Self::Binary),
             _ => Err(Hook0Problem::EventInvalidPayloadContentType),
+        }
+    }
+}
+
+impl Apiv2Schema for PayloadContentType {
+    fn name() -> Option<String> {
+        Some("PayloadContentType".to_owned())
+    }
+
+    fn raw_schema() -> DefaultSchemaRaw {
+        DefaultSchemaRaw {
+            data_type: Some(DataType::String),
+            enum_: vec![
+                serde_json::Value::String("text/plain".to_owned()),
+                serde_json::Value::String("application/json".to_owned()),
+                serde_json::Value::String("application/octet-stream+base64".to_owned()),
+            ],
+            description: Some("Content type of the event payload".to_owned()),
+            ..Default::default()
         }
     }
 }
@@ -316,19 +338,28 @@ pub async fn get(
     }
 }
 
+/// Event to be ingested into Hook0.
 #[derive(Debug, Deserialize, Apiv2Schema, Validate)]
 pub struct EventPost {
+    /// UUID of the application this event belongs to.
     application_id: Uuid,
+    /// Unique identifier for this event (client-generated UUID).
     event_id: Uuid,
+    /// The type of event (e.g., 'user.created', 'order.completed'). Length: 1-200 characters.
     #[validate(non_control_character, length(min = 1, max = 200))]
     event_type: String,
+    /// The event payload. For binary content, use base64 encoding. Max length: 699050 characters (512 KiB base64-encoded).
     #[validate(length(max = 699_050))] // 512 kio of payload * 4/3 (base64) in bytes
     payload: String,
+    /// Content type of the payload. Valid values: text/plain, application/json, application/octet-stream+base64. Length: 1-100 characters.
     #[validate(non_control_character, length(min = 1, max = 100))]
     payload_content_type: String,
+    /// Optional metadata key-value pairs associated with the event.
     #[validate(custom(function = "crate::validators::metadata"))]
     metadata: Option<HashMap<String, String>>,
+    /// Timestamp when the event occurred.
     occurred_at: DateTime<Utc>,
+    /// Labels for event filtering and routing to subscriptions.
     #[validate(custom(function = "crate::validators::labels"))]
     labels: HashMap<String, String>,
 }
@@ -810,6 +841,49 @@ mod tests {
     use super::*;
 
     use strum::VariantNames;
+
+    #[test]
+    fn payload_content_type_schema_contract() {
+        let schema = PayloadContentType::raw_schema();
+
+        // Verify it's a string type
+        assert_eq!(schema.data_type, Some(DataType::String));
+
+        // Verify enum values are present and correct
+        let enum_values = &schema.enum_;
+        assert!(
+            !enum_values.is_empty(),
+            "PayloadContentType should have enum values"
+        );
+        assert_eq!(enum_values.len(), 3);
+
+        let values: Vec<&str> = enum_values
+            .iter()
+            .map(|v| v.as_str().expect("Enum value should be a string"))
+            .collect();
+
+        assert!(values.contains(&"text/plain"), "Missing text/plain");
+        assert!(
+            values.contains(&"application/json"),
+            "Missing application/json"
+        );
+        assert!(
+            values.contains(&"application/octet-stream+base64"),
+            "Missing application/octet-stream+base64"
+        );
+
+        // Verify description is set
+        assert!(schema.description.is_some());
+    }
+
+    #[test]
+    fn payload_content_type_schema_snapshot() {
+        let schema = PayloadContentType::raw_schema();
+        insta::assert_json_snapshot!(
+            "payload_content_type_schema",
+            serde_json::to_value(&schema).unwrap()
+        );
+    }
 
     #[test]
     fn payload_content_type_parsing() {

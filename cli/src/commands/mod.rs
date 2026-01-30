@@ -4,6 +4,8 @@ pub mod completion;
 pub mod config;
 pub mod event;
 pub mod event_type;
+pub mod example;
+pub mod listen;
 pub mod replay;
 pub mod subscription;
 
