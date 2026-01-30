@@ -15,11 +15,8 @@ RUN --mount=type=bind,source=Cargo.toml,target=Cargo.toml \
     --mount=type=bind,source=protobuf,target=protobuf \
     --mount=type=cache,sharing=private,target=/app/target/ \
     --mount=type=cache,sharing=private,target=/usr/local/cargo/registry/ \
-    <<EOF
-set -e
-cargo build --locked --release -p hook0-play
-cp ./target/release/hook0-play /
-EOF
+    cargo build --locked --release -p hook0-play && \
+    cp ./target/release/hook0-play /
 
 FROM debian:trixie-slim
 ARG UID=10001
