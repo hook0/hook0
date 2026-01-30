@@ -34,38 +34,27 @@ play.e2e:
 play.docker:
   stage: build
   dependencies: []
-  image: docker:latest
-  services:
-    - docker:dind
-  variables:
-    DOCKER_HOST: tcp://docker:2375
-    DOCKER_TLS_CERTDIR: ""
+  image:
+    name: gcr.io/kaniko-project/executor:v1.23.2-debug
+    entrypoint: [""]
   retry:
     max: 2
     when:
       - runner_system_failure
       - stuck_or_timeout_failure
-      - script_failure
   rules:
     - changes:
         - play/**/*
         - Cargo.*
-  before_script:
-    - |
-      echo "Waiting for Docker daemon..."
-      for i in $(seq 1 30); do
-        docker info >/dev/null 2>&1 && break
-        echo "  attempt $i/30..."
-        sleep 2
-      done
-      docker info >/dev/null 2>&1 || (echo "Docker daemon not available" && exit 1)
   script:
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+    - mkdir -p /kaniko/.docker
+    - |
+      echo "{\"auths\":{\"${CI_REGISTRY}\":{\"auth\":\"$(printf '%s:%s' "${CI_REGISTRY_USER}" "${CI_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
     - >
-      docker build
-      -f play/Dockerfile
-      -t "$CI_REGISTRY_IMAGE/play:$CI_COMMIT_SHORT_SHA"
-      -t "$CI_REGISTRY_IMAGE/play:latest"
-      .
-    - docker push "$CI_REGISTRY_IMAGE/play:$CI_COMMIT_SHORT_SHA"
-    - docker push "$CI_REGISTRY_IMAGE/play:latest"
+      /kaniko/executor
+      --context "${CI_PROJECT_DIR}"
+      --dockerfile "${CI_PROJECT_DIR}/play/Dockerfile"
+      --destination "${CI_REGISTRY_IMAGE}/play:${CI_COMMIT_SHORT_SHA}"
+      --destination "${CI_REGISTRY_IMAGE}/play:latest"
+      --cache=true
+      --cache-repo="${CI_REGISTRY_IMAGE}/play/cache"
