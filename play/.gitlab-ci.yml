@@ -40,10 +40,25 @@ play.docker:
   variables:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+      - script_failure
   rules:
     - changes:
         - play/**/*
         - Cargo.*
+  before_script:
+    - |
+      echo "Waiting for Docker daemon..."
+      for i in $(seq 1 30); do
+        docker info >/dev/null 2>&1 && break
+        echo "  attempt $i/30..."
+        sleep 2
+      done
+      docker info >/dev/null 2>&1 || (echo "Docker daemon not available" && exit 1)
   script:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
     - >
