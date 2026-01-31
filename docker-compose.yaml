@@ -74,6 +74,8 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+    environment:
+      - API_ENDPOINT=http://localhost:8001
     ports:
       - "8001:80"
     networks:
