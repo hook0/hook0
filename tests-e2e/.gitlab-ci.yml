@@ -58,6 +58,10 @@ e2e-playwright.test:
         fi
         echo "Waiting for API... ($i/30)"
         sleep 2
+        if [ $i -eq 30 ]; then
+          echo "ERROR: API failed to start within timeout"
+          exit 1
+        fi
       done
     # Serve frontend static files (SPA mode for client-side routing)
     - npx serve -s ../frontend/dist -l 8001 &
@@ -71,6 +75,10 @@ e2e-playwright.test:
         fi
         echo "Waiting for frontend... ($i/15)"
         sleep 1
+        if [ $i -eq 15 ]; then
+          echo "ERROR: Frontend failed to start within timeout"
+          exit 1
+        fi
       done
     # Run tests
     - npm run test -- --project=chromium
