@@ -772,8 +772,7 @@ async fn do_change_password<'a, A: Acquire<'a, Database = Postgres>>(
                 UPDATE iam.token
                 SET expired_at = statement_timestamp()
                 WHERE user__id = $1
-                AND expired_at IS NULL
-                OR expired_at > statement_timestamp()
+                    AND (expired_at IS NULL OR expired_at > statement_timestamp())
             ",
             &user_id,
         )
