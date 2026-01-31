@@ -8,4 +8,4 @@ find /usr/share/caddy/ -name "*.js" -exec sed -i "s|API_ENDPOINT_PLACEHOLDER|${A
 find /usr/share/caddy/ -name "*.js" -exec sed -i "s|API_TIMEOUT_PLACEHOLDER|${API_TIMEOUT:-3000}|g" {} \;
 
 # Run Caddy to serve the app
-caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
+exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
