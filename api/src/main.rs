@@ -788,6 +788,7 @@ async fn main() -> anyhow::Result<()> {
             );
             let region = Region::from_static("none");
             let s3_config = aws_sdk_s3::Config::builder()
+                .behavior_version_latest()
                 .region(region)
                 .credentials_provider(credentials)
                 .app_name(app_name)
