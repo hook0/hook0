@@ -16,17 +16,17 @@ actix-web = "4.12.1"
 anyhow = "1.0.100"
 argon2 = "0.5.3"
 async-recursion = "1.1.1"
-aws-sdk-s3 = { version = "1.120.0", features = ["behavior-version-latest"] }
+aws-sdk-s3 = { version = "1.121.0", features = ["behavior-version-latest"] }
 base64 = "0.22.1"
 biscuit-auth = { version = "6.0.0", features = ["uuid"] }
 chrono = { version = "0.4.43", features = ["serde"] }
-clap = { version = "4.5.54", features = ["derive", "env", "cargo", "wrap_help"] }
+clap = { version = "4.5.56", features = ["derive", "env", "cargo", "wrap_help"] }
 derive_more = { version = "2.1.1", features = ["into"] }
 futures-util = "0.3.31"
 hook0-client = { path = "../clients/rust", version = "0.2.0", default-features = false, features = ["producer"] }
 hook0-protobuf = { path = "../protobuf" }
 hook0-sentry-integration = { path = "../sentry-integration", version = "0.1.0" }
-html2text = "0.16.6"
+html2text = "0.16.7"
 http-api-problem = { version = "0.57.0", features = ["actix-web"] }
 http-serde = "2.1.1"
 humantime = "2.3.0"

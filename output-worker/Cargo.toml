@@ -11,9 +11,9 @@ keywords = ["webhooks", "webhook", "webhook-server", "events", "saas"]
 
 [dependencies]
 anyhow = "1.0.100"
-aws-sdk-s3 = { version = "1.120.0", features = ["behavior-version-latest"] }
+aws-sdk-s3 = { version = "1.121.0", features = ["behavior-version-latest"] }
 chrono = { version = "0.4.43", features = ["serde"] }
-clap = { version = "4.5.54", features = ["derive", "env", "cargo", "wrap_help"] }
+clap = { version = "4.5.56", features = ["derive", "env", "cargo", "wrap_help"] }
 futures = "0.3.31"
 hex = "0.4.3"
 hmac = "0.12.1"
