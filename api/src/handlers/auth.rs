@@ -1,3 +1,4 @@
+use actix_web::rt::task::spawn_blocking;
 use actix_web::web::ReqData;
 use argon2::password_hash::PasswordHashString;
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
@@ -130,18 +131,30 @@ pub async fn login(
     .map_err(Hook0Problem::from)?;
 
     if let Some(user) = user_lookup {
-        let password_hash = PasswordHash::new(&user.password_hash).map_err(|e| {
-            error!(
-                "Password hash of user {} is not in the right format: {e}",
-                &user.user_id
-            );
-            Hook0Problem::InternalServerError
-        })?;
+        let password = body.password.clone();
+        let password_hash = user.password_hash.clone();
+        let user_id = user.user_id;
 
-        if Argon2::default()
-            .verify_password(body.password.as_bytes(), &password_hash)
-            .is_ok()
-        {
+        let password_valid = spawn_blocking(move || -> Result<bool, Hook0Problem> {
+            let parsed_hash = PasswordHash::new(&password_hash).map_err(|e| {
+                error!(
+                    "Password hash of user {} is not in the right format: {e}",
+                    &user_id
+                );
+                Hook0Problem::InternalServerError
+            })?;
+
+            Ok(Argon2::default()
+                .verify_password(password.as_bytes(), &parsed_hash)
+                .is_ok())
+        })
+        .await
+        .map_err(|e| {
+            error!("Failed to run password verification task: {e}");
+            Hook0Problem::InternalServerError
+        })??;
+
+        if password_valid {
             if user.email_verified_at.is_some() {
                 do_login(&state.db, &state.biscuit_private_key, user, None).await
             } else {
@@ -224,10 +237,7 @@ async fn import_user_from_keycloak(
             &groups.into_iter().map(|g| g.path).collect::<Vec<_>>(),
         );
 
-        let password_hash = generate_hashed_password(password).map_err(|e| {
-            error!("Error trying to hash user password: {e}");
-            Hook0Problem::InternalServerError
-        })?;
+        let password_hash = generate_hashed_password(password).await?;
 
         let mut tx = state.db.begin().await?;
 
@@ -740,13 +750,9 @@ async fn do_change_password<'a, A: Acquire<'a, Database = Postgres>>(
     user_id: Uuid,
 ) -> Result<(), Hook0Problem> {
     if new_password.len() >= usize::from(password_minimum_length) {
-        let password_hash = generate_hashed_password(new_password).map_err(|e| {
-            error!("Error trying to hash user password: {e}");
-            Hook0Problem::InternalServerError
-        })?;
+        let password_hash = generate_hashed_password(new_password).await?;
 
         let mut db = db.acquire().await?;
-
         let mut tx = db.begin().await?;
 
         query!(
@@ -782,16 +788,24 @@ async fn do_change_password<'a, A: Acquire<'a, Database = Postgres>>(
     }
 }
 
-fn generate_hashed_password(password: &str) -> Result<PasswordHashString, Hook0Problem> {
-    let salt =
-        argon2::password_hash::SaltString::generate(&mut argon2::password_hash::rand_core::OsRng);
-    let password_hash = Argon2::default()
-        .hash_password(password.as_bytes(), &salt)
-        .map_err(|e| {
-            error!("Error trying to hash user password: {e}");
-            Hook0Problem::InternalServerError
-        })?
-        .serialize();
+async fn generate_hashed_password(password: &str) -> Result<PasswordHashString, Hook0Problem> {
+    let password = password.to_owned();
 
-    Ok(password_hash)
+    spawn_blocking(move || {
+        let salt = argon2::password_hash::SaltString::generate(
+            &mut argon2::password_hash::rand_core::OsRng,
+        );
+        Argon2::default()
+            .hash_password(password.as_bytes(), &salt)
+            .map_err(|e| {
+                error!("Error trying to hash user password: {e}");
+                Hook0Problem::InternalServerError
+            })
+            .map(|h| h.serialize())
+    })
+    .await
+    .map_err(|e| {
+        error!("Failed to run password hashing task: {e}");
+        Hook0Problem::InternalServerError
+    })?
 }
