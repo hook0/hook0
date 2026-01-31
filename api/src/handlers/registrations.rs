@@ -1,3 +1,4 @@
+use actix_web::rt::task::spawn_blocking;
 use argon2::password_hash::SaltString;
 use argon2::password_hash::rand_core::OsRng;
 use argon2::{Argon2, PasswordHasher};
@@ -76,17 +77,25 @@ pub async fn register(
     })?;
 
     if body.password.len() >= usize::from(state.password_minimum_length) {
-        let mut tx = state.db.begin().await?;
-
         let user_id = Uuid::new_v4();
-        let salt = SaltString::generate(&mut OsRng);
-        let password_hash = Argon2::default()
-            .hash_password(body.password.as_bytes(), &salt)
-            .map_err(|e| {
-                error!("Error trying to hash user password: {e}");
-                Hook0Problem::InternalServerError
-            })?
-            .serialize();
+        let password = body.password.clone();
+        let password_hash = spawn_blocking(move || {
+            let salt = SaltString::generate(&mut OsRng);
+            Argon2::default()
+                .hash_password(password.as_bytes(), &salt)
+                .map_err(|e| {
+                    error!("Error trying to hash user password: {e}");
+                    Hook0Problem::InternalServerError
+                })
+                .map(|h| h.serialize())
+        })
+        .await
+        .map_err(|e| {
+            error!("Failed to run password hashing task: {e}");
+            Hook0Problem::InternalServerError
+        })??;
+
+        let mut tx = state.db.begin().await?;
         let user_insert = query!(
             "
                 INSERT INTO iam.user (user__id, email, password, first_name, last_name)
