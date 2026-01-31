@@ -3,7 +3,8 @@ ARG CADDY_VERSION=2.10
 
 FROM node:${NODE_VERSION} AS build
 WORKDIR /app
-ENV API_ENDPOINT=API_ENDPOINT_PLACEHOLDER
+ENV VITE_API_ENDPOINT=API_ENDPOINT_PLACEHOLDER
+ENV VITE_API_TIMEOUT=API_TIMEOUT_PLACEHOLDER
 COPY frontend/ ./
 RUN --mount=type=bind,source=mediakit,target=/mediakit \
     rm -rf -- dist/ && npm ci && npm run build
