@@ -181,7 +181,7 @@ onMounted(() => {
         </div>
 
         <!-- Form -->
-        <form class="reset-page__form" @submit.prevent="submit">
+        <form class="reset-page__form" data-test="reset-password-form" @submit.prevent="submit">
           <!-- New Password Field -->
           <div class="reset-page__field">
             <label for="new_password" class="reset-page__label">New password</label>
@@ -194,6 +194,7 @@ onMounted(() => {
                 placeholder="Enter your new password"
                 class="reset-page__input reset-page__input--password"
                 autocomplete="new-password"
+                data-test="reset-password-new-password-input"
                 :disabled="isLoading"
               />
               <button
@@ -256,6 +257,7 @@ onMounted(() => {
                 placeholder="Confirm your new password"
                 class="reset-page__input reset-page__input--password"
                 autocomplete="new-password"
+                data-test="reset-password-confirm-password-input"
                 :disabled="isLoading"
               />
               <button
@@ -307,7 +309,12 @@ onMounted(() => {
           </div>
 
           <!-- Submit Button -->
-          <button type="submit" class="reset-page__submit" :disabled="isLoading">
+          <button
+            type="submit"
+            class="reset-page__submit"
+            data-test="reset-password-submit-button"
+            :disabled="isLoading"
+          >
             <span v-if="!isLoading">Set new password</span>
             <span v-else class="reset-page__loading">
               <svg

@@ -182,7 +182,7 @@ onUpdated(() => {
     </template>
     <!-- The default scoped slot will be used as the result -->
     <template #default="request_attempts">
-      <Hook0Card>
+      <Hook0Card data-test="logs-card">
         <Hook0CardHeader>
           <template #header>Request Attempts</template>
           <template #subtitle>
@@ -193,9 +193,11 @@ onUpdated(() => {
 
         <Hook0CardContent v-if="request_attempts.length > 0">
           <Hook0Table
+            data-test="logs-table"
             :context="{ request_attempts$, columnDefs }"
             :column-defs="columnDefs"
             :row-data="request_attempts"
+            row-id-field="event_id"
           >
           </Hook0Table>
         </Hook0CardContent>

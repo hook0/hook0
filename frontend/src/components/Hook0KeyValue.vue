@@ -119,12 +119,18 @@ function add() {
 
 <template>
   <div class="w-full">
-    <div v-for="(item, index) in state.pairs" :key="index" class="kv-item">
+    <div
+      v-for="(item, index) in state.pairs"
+      :key="index"
+      class="kv-item"
+      :data-test="`kv-item-${index}`"
+    >
       <Hook0Input
         v-model="item.key"
         type="text"
         class="col-span-4"
         :placeholder="keyPlaceholder"
+        :data-test="`kv-key-input-${index}`"
         @input="emit()"
       ></Hook0Input>
       <Hook0Input
@@ -132,16 +138,18 @@ function add() {
         type="text"
         class="col-span-4"
         :placeholder="valuePlaceholder"
+        :data-test="`kv-value-input-${index}`"
         @input="emit()"
       ></Hook0Input>
       <Hook0Button
         :disabled="state.pairs.length === 1"
         class="white col-span-1"
+        :data-test="`kv-remove-button-${index}`"
         @click="remove(index)"
       >
         <Hook0Icon name="fa-minus"></Hook0Icon>
       </Hook0Button>
-      <Hook0Button class="white col-span-1" @click="add()">
+      <Hook0Button class="white col-span-1" :data-test="`kv-add-button-${index}`" @click="add()">
         <Hook0Icon name="fa-plus"></Hook0Icon>
       </Hook0Button>
     </div>

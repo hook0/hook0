@@ -66,7 +66,7 @@ function displayError(err: Problem) {
 </script>
 
 <template>
-  <Hook0Card>
+  <Hook0Card data-test="subscription-delete-card">
     <Hook0CardHeader>
       <template #header> Delete this subscription </template>
       <template #subtitle>
@@ -76,7 +76,12 @@ function displayError(err: Problem) {
       </template>
     </Hook0CardHeader>
     <Hook0CardFooter>
-      <Hook0Button class="danger" type="button" :loading="loading" @click="remove($event)"
+      <Hook0Button
+        class="danger"
+        type="button"
+        :loading="loading"
+        data-test="subscription-delete-button"
+        @click="remove($event)"
         >Delete</Hook0Button
       >
     </Hook0CardFooter>

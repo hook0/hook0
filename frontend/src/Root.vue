@@ -196,7 +196,7 @@ function toggleMobileSidebar() {
 
 <template>
   <Notivue v-slot="item">
-    <Notification :item="item">
+    <Notification :item="item" data-test="toast-notification">
       <NotificationProgress :item="item" />
     </Notification>
   </Notivue>

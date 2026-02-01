@@ -130,6 +130,7 @@ onMounted(() => {
               <div class="grid grid-cols-1 sm:grid-cols-2">
                 <label
                   class="flex items-center p-4 w-full border-b sm:border-b-0 sm:border-r cursor-pointer"
+                  data-test="tutorial-create-org-option"
                 >
                   <input
                     v-model="currentSection"
@@ -137,6 +138,7 @@ onMounted(() => {
                     name="organization_selection"
                     :value="Sections.CreateOrganization"
                     class="h-4 w-4 border-gray-300 rounded focus:ring-indigo-500"
+                    data-test="tutorial-create-org-radio"
                   />
                   <span class="ml-2 text-sm font-medium text-gray-700">
                     Create a new organization
@@ -144,6 +146,7 @@ onMounted(() => {
                 </label>
                 <label
                   class="flex items-center p-4 w-full border-t sm:border-t-0 sm:border-l cursor-pointer"
+                  data-test="tutorial-select-org-option"
                 >
                   <input
                     v-model="currentSection"
@@ -151,6 +154,7 @@ onMounted(() => {
                     name="organization_selection"
                     :value="Sections.SelectExistingOrganization"
                     class="h-4 w-4 border-gray-300 rounded focus:ring-indigo-500"
+                    data-test="tutorial-select-org-radio"
                   />
                   <span class="ml-2 text-sm font-medium text-gray-700">
                     Select an existing organization already linked to your account

@@ -69,8 +69,8 @@ function displayError(err: Problem) {
 </script>
 
 <template>
-  <form ref="form" @submit="create">
-    <Hook0Card>
+  <form ref="form" data-test="event-type-form" @submit="create">
+    <Hook0Card data-test="event-type-card">
       <Hook0CardHeader>
         <template #header>Create new event type</template>
         <template #subtitle>Each event sent through a webhook must have an event type.</template>
@@ -88,6 +88,7 @@ function displayError(err: Problem) {
               placeholder="billing"
               required
               class="flex-grow-1"
+              data-test="event-type-service-input"
             >
             </Hook0Input>
             <Hook0Text class="bold flex-grow-0">.</Hook0Text>
@@ -97,6 +98,7 @@ function displayError(err: Problem) {
               placeholder="invoice"
               required
               class="flex-grow-1"
+              data-test="event-type-resource-input"
             >
             </Hook0Input>
             <Hook0Text class="bold flex-grow-0">.</Hook0Text>
@@ -106,6 +108,7 @@ function displayError(err: Problem) {
               placeholder="created"
               required
               class="flex-grow-1"
+              data-test="event-type-verb-input"
             >
             </Hook0Input>
           </div>
@@ -116,6 +119,7 @@ function displayError(err: Problem) {
           v-if="!props.tutorialMode"
           class="secondary"
           type="button"
+          data-test="event-type-cancel-button"
           @click="$router.back()"
           >Cancel</Hook0Button
         >
@@ -124,6 +128,7 @@ function displayError(err: Problem) {
           class="primary"
           type="button"
           :disabled="!event_type.service || !event_type.resource_type || !event_type.verb"
+          data-test="event-type-submit-button"
           @click="create($event)"
           >Create event type
         </Hook0Button>
@@ -134,6 +139,7 @@ function displayError(err: Problem) {
           type="submit"
           :disabled="!event_type.service || !event_type.resource_type || !event_type.verb"
           tooltip="ℹ️ To continue, you need to fill in all required fields"
+          data-test="event-type-submit-button"
           @click="create($event)"
           >Create Your First Event Type 🎉</Hook0Button
         >

@@ -1,5 +1,5 @@
 {
-  "name": "e2e-tests",
+  "name": "tests-api-integrations",
   "version": "1.0.0",
   "description": "",
   "main": "src/main.js",
