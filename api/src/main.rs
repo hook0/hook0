@@ -5,6 +5,7 @@ use actix_web::middleware::{Compat, Logger, NormalizePath};
 use actix_web::{App, HttpServer, http, middleware};
 use aws_sdk_s3::Client;
 use aws_sdk_s3::config::retry::RetryConfig;
+use aws_sdk_s3::config::timeout::TimeoutConfig;
 use aws_sdk_s3::config::{AppName, Credentials, Region};
 use biscuit_auth::{KeyPair, PrivateKey};
 use clap::builder::{BoolValueParser, TypedValueParser};
@@ -178,6 +179,22 @@ struct Config {
     /// [Object Storage] Maximum number of attempts for object storage operations
     #[clap(long, env, default_value_t = 3)]
     object_storage_max_attempts: u32,
+
+    /// [Object Storage] Connect timeout for object storage operations (time to initiate socket connection)
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "3s")]
+    object_storage_connect_timeout: Duration,
+
+    /// [Object Storage] Read timeout for object storage operations (time to first byte)
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "5s")]
+    object_storage_read_timeout: Duration,
+
+    /// [Object Storage] Operation attempt timeout for object storage operations
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "10s")]
+    object_storage_operation_attempt_timeout: Duration,
+
+    /// [Object Storage] Operation timeout for object storage operations
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "30s")]
+    object_storage_operation_timeout: Duration,
 
     /// [Object Storage] Bucket name of the S3-like object storage
     #[clap(long, env)]
@@ -801,6 +818,14 @@ async fn main() -> anyhow::Result<()> {
                     },
                 ))
                 .force_path_style(true)
+                .timeout_config(
+                    TimeoutConfig::builder()
+                        .connect_timeout(config.object_storage_connect_timeout)
+                        .read_timeout(config.object_storage_read_timeout)
+                        .operation_attempt_timeout(config.object_storage_operation_attempt_timeout)
+                        .operation_timeout(config.object_storage_operation_timeout)
+                        .build(),
+                )
                 .retry_config(
                     RetryConfig::standard()
                         .with_max_attempts(config.object_storage_max_attempts)
