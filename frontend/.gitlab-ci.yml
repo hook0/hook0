@@ -3,8 +3,10 @@ frontend.build:
   dependencies: []
   rules:
     - changes:
-        - frontend/**/*
         - tests-e2e/**/*
+        - frontend/**/*
+        - api/**/*
+        - output-worker/**/*
   image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/node:$NODE_VERSION
   variables:
     # API endpoint for E2E tests - must match the port used in tests-e2e/.gitlab-ci.yml
