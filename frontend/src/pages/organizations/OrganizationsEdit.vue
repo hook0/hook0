@@ -147,8 +147,8 @@ onUpdated(() => {
 
 <template>
   <div>
-    <form ref="form" @submit="upsert">
-      <Hook0Card>
+    <form ref="form" data-test="organization-form" @submit="upsert">
+      <Hook0Card data-test="organization-card">
         <Hook0CardHeader>
           <template v-if="isNew" #header> Create new organization </template>
           <template v-else #header> Edit organization </template>
@@ -163,6 +163,7 @@ onUpdated(() => {
                 type="text"
                 placeholder="My Awesome Product"
                 required
+                data-test="organization-name-input"
               >
                 <template #helpText></template>
               </Hook0Input>
@@ -177,6 +178,7 @@ onUpdated(() => {
             type="button"
             :loading="loading"
             :disabled="!organization.name"
+            data-test="organization-submit-button"
             @click="upsert($event)"
             >{{ isNew ? 'Create' : 'Update' }}
           </Hook0Button>
@@ -188,6 +190,7 @@ onUpdated(() => {
             :disabled="!organization.name"
             tooltip="ℹ️ To continue, you need to add a name for your organization or select an existing one."
             type="button"
+            data-test="organization-submit-button"
             @click="upsert($event)"
           >
             Create Your First Organization 🎉

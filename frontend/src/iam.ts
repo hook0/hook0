@@ -26,6 +26,7 @@ const localStorageKey = 'auth';
 
 const state = ref<null | State>(null);
 let refreshTimerId: null | number = null;
+let refreshInProgress: Promise<void> | null = null;
 
 function readStateFromStorage(): State | null {
   const data = window.localStorage.getItem(localStorageKey);
@@ -148,22 +149,33 @@ export async function register(
 }
 
 export async function refresh(): Promise<void> {
+  // Prevent concurrent refresh calls - return existing promise if refresh is already in progress
+  if (refreshInProgress) {
+    return refreshInProgress;
+  }
+
   if (state.value) {
-    const res = await http.withRefreshToken.post<LoginResponse>('/auth/refresh');
-    state.value = {
-      accessToken: res.data.access_token,
-      accessTokenExpiration: new Date(res.data.access_token_expiration),
-      refreshToken: res.data.refresh_token,
-      refreshTokenExpiration: new Date(res.data.refresh_token_expiration),
-      userId: res.data.user_id,
-      email: res.data.email,
-      firstName: res.data.first_name,
-      lastName: res.data.last_name,
-    };
-    if (state.value) {
-      writeStateToStorage(state.value);
-      await scheduleAutoRefresh();
-    }
+    refreshInProgress = (async () => {
+      const res = await http.withRefreshToken.post<LoginResponse>('/auth/refresh');
+      state.value = {
+        accessToken: res.data.access_token,
+        accessTokenExpiration: new Date(res.data.access_token_expiration),
+        refreshToken: res.data.refresh_token,
+        refreshTokenExpiration: new Date(res.data.refresh_token_expiration),
+        userId: res.data.user_id,
+        email: res.data.email,
+        firstName: res.data.first_name,
+        lastName: res.data.last_name,
+      };
+      if (state.value) {
+        writeStateToStorage(state.value);
+        await scheduleAutoRefresh();
+      }
+    })();
+
+    return refreshInProgress.finally(() => {
+      refreshInProgress = null;
+    });
   }
 }
 
