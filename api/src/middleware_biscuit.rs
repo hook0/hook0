@@ -1,5 +1,3 @@
-use crate::iam::create_master_access_token;
-use crate::problems::Hook0Problem;
 use actix_web::body::BoxBody;
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
 use actix_web::{Error, HttpMessage};
@@ -14,6 +12,10 @@ use std::pin::Pin;
 use std::rc::Rc;
 use std::task::{Context, Poll};
 use uuid::Uuid;
+
+use crate::iam::create_master_access_token;
+use crate::problems::Hook0Problem;
+use crate::rate_limiting::RateLimiterTokenKey;
 
 #[derive(Debug, Clone)]
 pub struct BiscuitAuth {
@@ -123,6 +125,11 @@ where
                                                 );
                                                 set_user_from_token(&token_id.to_string());
                                                 let mut extensions = req.extensions_mut();
+                                                extensions.insert(
+                                                    RateLimiterTokenKey::BiscuitRootRevocationId(
+                                                        revocation_id,
+                                                    ),
+                                                );
                                                 extensions.insert(biscuit);
                                             }
                                             srv.call(req).await
@@ -159,6 +166,8 @@ where
                                                 {
                                                     debug!("Auth with master API key succeeded");
                                                     let mut extensions = req.extensions_mut();
+                                                    extensions
+                                                        .insert(RateLimiterTokenKey::MasterApiKey);
                                                     extensions.insert(biscuit);
                                                 }
                                                 srv.call(req).await
@@ -235,6 +244,7 @@ where
                                                                     );
                                                                     let mut extensions =
                                                                         req.extensions_mut();
+                                                                    extensions.insert(RateLimiterTokenKey::ApplicationSecret(application_secret_token));
                                                                     extensions.insert(biscuit);
                                                                 }
                                                                 srv.call(req).await

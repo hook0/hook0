@@ -5,7 +5,6 @@ use actix_governor::{
 use actix_web::HttpMessage;
 use actix_web::middleware::Condition;
 use actix_web::rt::time::sleep;
-use biscuit_auth::Biscuit;
 use log::{debug, trace, warn};
 use std::net::IpAddr;
 use std::time::Duration;
@@ -156,11 +155,27 @@ impl KeyExtractor for UserIpKeyExtractor {
     }
 }
 
+/// Represents the key used for per-token rate limiting.
+/// This allows different authentication methods to specify their rate limit identity.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum RateLimiterTokenKey {
+    /// For regular Biscuit tokens - uses only the root revocation identifier
+    /// (first block) to prevent bypassing rate limits via token attenuation
+    BiscuitRootRevocationId(Vec<u8>),
+
+    #[cfg(feature = "application-secret-compatibility")]
+    /// For application secrets - uses the secret's UUID for stable identity
+    ApplicationSecret(uuid::Uuid),
+
+    /// For master API key - unique across all requests using it
+    MasterApiKey,
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct TokenKeyExtractor;
 
 impl KeyExtractor for TokenKeyExtractor {
-    type Key = Vec<Vec<u8>>;
+    type Key = RateLimiterTokenKey;
     type KeyExtractionError = Hook0Problem;
 
     fn extract(
@@ -168,8 +183,12 @@ impl KeyExtractor for TokenKeyExtractor {
         req: &actix_web::dev::ServiceRequest,
     ) -> Result<Self::Key, Self::KeyExtractionError> {
         req.extensions()
-            .get::<Biscuit>()
-            .map(|biscuit| biscuit.revocation_identifiers())
+            .get::<RateLimiterTokenKey>()
+            .cloned()
             .ok_or(Hook0Problem::InternalServerError)
+    }
+
+    fn whitelisted_keys(&self) -> Vec<Self::Key> {
+        vec![RateLimiterTokenKey::MasterApiKey]
     }
 }
