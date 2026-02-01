@@ -194,7 +194,7 @@ onUpdated(() => {
     </template>
     <!-- The default scoped slot will be used as the result -->
     <template #default="members">
-      <Hook0Card>
+      <Hook0Card data-test="members-card">
         <Hook0CardHeader>
           <template #header>Members</template>
           <template #subtitle>Your organization can be used by multiple users.</template>
@@ -203,9 +203,11 @@ onUpdated(() => {
         <Hook0CardContent v-if="members.members.length > 0">
           <transition name="ease">
             <Hook0Table
+              data-test="members-table"
               :context="{ members$, columnDefs }"
               :column-defs="columnDefs"
               :row-data="members.members"
+              row-id-field="user_id"
             >
             </Hook0Table>
           </transition>
@@ -225,7 +227,7 @@ onUpdated(() => {
           </Hook0CardContentLines>
         </Hook0CardContent>
 
-        <form @submit.prevent="invite">
+        <form data-test="members-invite-form" @submit.prevent="invite">
           <Hook0CardFooter>
             <Hook0Input
               v-model="invitation$.email"
@@ -233,16 +235,19 @@ onUpdated(() => {
               placeholder="Email address"
               required
               class="flex-grow-1"
+              data-test="members-invite-email-input"
             />
             <Hook0Select
               v-model="invitation$.role"
               class="flex-none width-small"
               :options="roles"
+              data-test="members-invite-role-select"
             />
             <Hook0Button
               class="primary"
               submit
               :disabled="invitation$.email === '' || invitation$.role === ''"
+              data-test="members-invite-button"
               >Invite a user
             </Hook0Button>
           </Hook0CardFooter>

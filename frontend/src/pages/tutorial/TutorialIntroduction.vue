@@ -30,9 +30,9 @@ function skipTutorial() {
 </script>
 
 <template>
-  <Hook0Card>
-    <Hook0CardHeader>
-      <template #header>Welcome to Hook0 🎉 - Let’s Get Started!</template>
+  <Hook0Card data-test="tutorial-card">
+    <Hook0CardHeader data-test="tutorial-header">
+      <template #header>Welcome to Hook0 🎉 - Let's Get Started!</template>
       <template #subtitle>This tutorial will help you get started quickly with Hook0.</template>
     </Hook0CardHeader>
     <Hook0CardContent>
@@ -70,8 +70,18 @@ function skipTutorial() {
       </Hook0CardContentLines>
     </Hook0CardContent>
     <Hook0CardFooter>
-      <Hook0Button class="secondary" type="button" @click="skipTutorial">Skip</Hook0Button>
-      <Hook0Button class="primary shadow-md" type="button" @click="startTutorial"
+      <Hook0Button
+        class="secondary"
+        type="button"
+        data-test="tutorial-skip-button"
+        @click="skipTutorial"
+        >Skip</Hook0Button
+      >
+      <Hook0Button
+        class="primary shadow-md"
+        type="button"
+        data-test="tutorial-start-button"
+        @click="startTutorial"
         >🚀 Start Step 1: Create Your Organization</Hook0Button
       >
     </Hook0CardFooter>

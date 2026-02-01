@@ -88,6 +88,7 @@ const columnDefs: ColDef[] = [
           },
         };
       },
+      dataTest: 'subscription-description-link',
     },
   },
   {
@@ -208,7 +209,7 @@ onUpdated(() => {
     </template>
     <!-- The default scoped slot will be used as the result -->
     <template #default="subscriptions">
-      <Hook0Card>
+      <Hook0Card data-test="subscriptions-card">
         <Hook0CardHeader>
           <template #header> Subscriptions </template>
           <template #subtitle>
@@ -218,9 +219,11 @@ onUpdated(() => {
 
         <Hook0CardContent v-if="subscriptions.length > 0">
           <Hook0Table
+            data-test="subscriptions-table"
             :context="{ subscriptions$, columnDefs }"
             :column-defs="columnDefs"
             :row-data="subscriptions"
+            row-id-field="subscription_id"
           >
           </Hook0Table>
         </Hook0CardContent>
@@ -242,6 +245,7 @@ onUpdated(() => {
           <Hook0Button
             class="primary"
             type="button"
+            data-test="subscriptions-create-button"
             @click="$router.push({ name: routes.SubscriptionsNew })"
             >Create new subscription (webhook)
           </Hook0Button>
