@@ -8,6 +8,7 @@ api-integration-tests.build:
         - tests-api-integrations/**/*
         - tests-e2e/**/*
         - api/**/*
+        - frontend/**/*
         - output-worker/**/*
         - Cargo.*
   before_script:
