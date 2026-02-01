@@ -1,0 +1,96 @@
+# Note: CI uses Kubernetes executor without Docker-in-Docker support.
+# Tests run against GitLab CI services (postgres, mailpit) with API/frontend as processes.
+# See CLAUDE.md for details.
+
+e2e-playwright.test:
+  stage: test
+  image: mcr.microsoft.com/playwright:v1.49.1-noble
+  needs:
+    - job: api-integration-tests.build
+      artifacts: true
+    - job: frontend.build
+      artifacts: true
+  services:
+    - name: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/postgres:$PG_VERSION
+      alias: postgres
+    - name: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/axllent/mailpit:v1.28
+      alias: mailpit
+  variables:
+    ## PostgreSQL
+    POSTGRES_DB: hook0
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: postgres
+    ## API configuration
+    DATABASE_URL: "postgres://postgres:postgres@postgres:5432/hook0"
+    SMTP_CONNECTION_URL: "smtp://mailpit:1025"
+    EMAIL_SENDER_ADDRESS: "sender@hook0.local"
+    APP_URL: "http://localhost:8001"
+    BISCUIT_PRIVATE_KEY: "bbea79cd66926b219b3219a3186decb36136d774dd7c35a8239e512090fa8854"
+    IP: "0.0.0.0"
+    PORT: "8081"
+    CORS_ALLOWED_ORIGINS: "http://localhost:8001"
+    DISABLE_TARGET_IP_CHECK: "true"
+    DISABLE_SERVING_WEBAPP: "false"
+    ## Playwright configuration
+    BASE_URL: "http://localhost:8001"
+    MAILPIT_URL: "http://mailpit:8025"
+    CI: "true"
+  rules:
+    - changes:
+        - tests-e2e/**/*
+        - frontend/**/*
+        - api/**/*
+        - output-worker/**/*
+  before_script:
+    - cd tests-e2e
+    - npm ci
+  script:
+    # Start API in background
+    - chmod +x ../target/release/hook0-api
+    - ../target/release/hook0-api &
+    # Wait for API to be ready
+    - |
+      echo "Waiting for API to be ready..."
+      for i in $(seq 1 30); do
+        if curl -sf http://localhost:8081/api/v1/swagger.json -o /dev/null 2>&1; then
+          echo "API is ready!"
+          break
+        fi
+        echo "Waiting for API... ($i/30)"
+        sleep 2
+        if [ $i -eq 30 ]; then
+          echo "ERROR: API failed to start within timeout"
+          exit 1
+        fi
+      done
+    # Serve frontend static files (SPA mode for client-side routing)
+    - npx serve -s ../frontend/dist -l 8001 &
+    # Wait for frontend to be ready
+    - |
+      echo "Waiting for frontend to be ready..."
+      for i in $(seq 1 15); do
+        if curl -s http://localhost:8001 > /dev/null 2>&1; then
+          echo "Frontend is ready!"
+          break
+        fi
+        echo "Waiting for frontend... ($i/15)"
+        sleep 1
+        if [ $i -eq 15 ]; then
+          echo "ERROR: Frontend failed to start within timeout"
+          exit 1
+        fi
+      done
+    # Run tests
+    - npm run test -- --project=chromium
+  artifacts:
+    when: always
+    paths:
+      - tests-e2e/playwright-report/
+      - tests-e2e/test-results/
+    reports:
+      junit: tests-e2e/test-results/junit.xml
+    expire_in: 30 days
+  cache:
+    key: playwright-${CI_COMMIT_REF_SLUG}
+    paths:
+      - tests-e2e/node_modules/

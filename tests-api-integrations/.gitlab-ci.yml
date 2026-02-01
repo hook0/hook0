@@ -1,11 +1,12 @@
-e2e-ci.build:
+api-integration-tests.build:
   extends: .rust-cache-pull-push
   stage: build
   dependencies: []
-  image: rust:$RUST_VERSION
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/rust:$RUST_VERSION
   rules:
     - changes:
-        - e2e-tests/**/*
+        - tests-api-integrations/**/*
+        - tests-e2e/**/*
         - api/**/*
         - output-worker/**/*
         - Cargo.*
@@ -20,25 +21,26 @@ e2e-ci.build:
       - target/release/hook0-api
       - target/release/hook0-output-worker
 
-e2e-ci.test:
+api-integration-tests.test:
   stage: test
   dependencies:
-    - e2e-ci.build
-  image: node:$NODE_VERSION
+    - api-integration-tests.build
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/node:$NODE_VERSION
   rules:
     - changes:
-        - e2e-tests/**/*
+        - tests-api-integrations/**/*
         - api/**/*
         - output-worker/**/*
         - Cargo.*
   services:
-    - name: postgres:$PG_VERSION
+    - name: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/postgres:$PG_VERSION
+      alias: postgres
   variables:
     ## postgres
     POSTGRES_DB: postgres
     POSTGRES_USER: postgres
     POSTGRES_PASSWORD: postgres
-    ## e2e-tests variables
+    ## api integration tests variables
     API_ORIGIN: 'http://localhost:8080'
     SERVICE_TOKEN: '00000000-0000-0000-0000-000000000000'
     TARGET_URL: 'http://localhost:3000'
@@ -62,7 +64,7 @@ e2e-ci.test:
     - echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | tee /etc/apt/sources.list.d/k6.list
     - apt-get update && apt-get install k6 -y
   script:
-    - pushd e2e-tests
+    - pushd tests-api-integrations
     - npm ci
     - npm run check
     - npm run test

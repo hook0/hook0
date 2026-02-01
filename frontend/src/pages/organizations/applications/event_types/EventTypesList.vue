@@ -48,6 +48,7 @@ const columnDefs: ColDef[] = [
     cellRendererParams: {
       value: 'Deactivate',
       icon: 'trash',
+      dataTest: 'event-type-deactivate-button',
       onClick: (row: EventType): void => {
         if (confirm(`Are you sure to deactivate "${row.event_type_name}" event?`)) {
           EventTypeService.deactivate(application_id.value as string, row.event_type_name)
@@ -97,7 +98,7 @@ onUpdated(() => {
     </template>
     <!-- The default scoped slot will be used as the result -->
     <template #default="event_types">
-      <Hook0Card>
+      <Hook0Card data-test="event-types-card">
         <Hook0CardHeader>
           <template #header>Event Types</template>
           <template #subtitle>
@@ -107,9 +108,11 @@ onUpdated(() => {
 
         <Hook0CardContent v-if="event_types.length > 0">
           <Hook0Table
+            data-test="event-types-table"
             :context="{ event_types$, columnDefs }"
             :column-defs="columnDefs"
             :row-data="event_types"
+            row-id-field="event_type_name"
           >
           </Hook0Table>
         </Hook0CardContent>
@@ -132,6 +135,7 @@ onUpdated(() => {
           <Hook0Button
             class="primary"
             type="button"
+            data-test="event-types-create-button"
             @click="router.push({ name: routes.EventTypesNew })"
             >Create new event type
           </Hook0Button>
