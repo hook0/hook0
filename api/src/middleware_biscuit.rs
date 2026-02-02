@@ -2,6 +2,7 @@ use actix_web::body::BoxBody;
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
 use actix_web::{Error, HttpMessage};
 use anyhow::anyhow;
+use biscuit_auth::macros::rule;
 use biscuit_auth::{Biscuit, PrivateKey, PublicKey};
 use futures_util::future::{Ready, ok, ready};
 use hook0_sentry_integration::set_user_from_token;
@@ -15,7 +16,7 @@ use uuid::Uuid;
 
 use crate::iam::create_master_access_token;
 use crate::problems::Hook0Problem;
-use crate::rate_limiting::RateLimiterTokenKey;
+use crate::rate_limiting::{RateLimiterOrganizationKey, RateLimiterTokenKey};
 
 #[derive(Debug, Clone)]
 pub struct BiscuitAuth {
@@ -130,6 +131,10 @@ where
                                                         revocation_id,
                                                     ),
                                                 );
+                                                // Extract organization ID from token if it's a service token
+                                                let org_key =
+                                                    extract_organization_id_from_biscuit(&biscuit);
+                                                extensions.insert(org_key);
                                                 extensions.insert(biscuit);
                                             }
                                             srv.call(req).await
@@ -168,6 +173,9 @@ where
                                                     let mut extensions = req.extensions_mut();
                                                     extensions
                                                         .insert(RateLimiterTokenKey::MasterApiKey);
+                                                    extensions.insert(
+                                                        RateLimiterOrganizationKey::MasterApiKey,
+                                                    );
                                                     extensions.insert(biscuit);
                                                 }
                                                 srv.call(req).await
@@ -245,6 +253,7 @@ where
                                                                     let mut extensions =
                                                                         req.extensions_mut();
                                                                     extensions.insert(RateLimiterTokenKey::ApplicationSecret(application_secret_token));
+                                                                    extensions.insert(RateLimiterOrganizationKey::Organization(application_secret.organization_id));
                                                                     extensions.insert(biscuit);
                                                                 }
                                                                 srv.call(req).await
@@ -308,4 +317,22 @@ where
             }
         }
     }
+}
+
+/// Extracts the organization ID from a Biscuit token for rate limiting.
+/// - Service tokens have `organization_id` fact directly -> returns `Organization(org_id)`
+/// - User tokens don't have `organization_id` fact -> returns `NoOrganization`
+fn extract_organization_id_from_biscuit(biscuit: &Biscuit) -> RateLimiterOrganizationKey {
+    biscuit
+        .authorizer()
+        .ok()
+        .and_then(|mut authorizer| {
+            authorizer
+                .query(rule!("data($id) <- organization_id($id)"))
+                .ok()
+        })
+        .and_then(|orgs: Vec<(Vec<u8>,)>| orgs.into_iter().next())
+        .and_then(|(org_bytes,)| Uuid::from_slice(&org_bytes).ok())
+        .map(RateLimiterOrganizationKey::Organization)
+        .unwrap_or(RateLimiterOrganizationKey::NoOrganization)
 }
