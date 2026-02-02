@@ -73,7 +73,7 @@ release.verify-versions:
     SQLX_OFFLINE: "true"
   before_script:
     - rustup target add $TARGET
-    - apt-get update && apt-get install -y protobuf-compiler cmake $CROSS_DEPS
+    - apt-get update && apt-get install -y cmake $CROSS_DEPS
   artifacts:
     paths:
       - artifacts/
@@ -87,6 +87,8 @@ release.build-api-amd64:
     TARGET: x86_64-unknown-linux-gnu
     CROSS_DEPS: ""
   script:
+    - wget -O protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/protoc-$PROTOC_VERSION-linux-x86_64.zip && mkdir protoc && unzip protoc.zip -d protoc/
+    - export PROTOC="$(realpath ./protoc/bin/protoc)"
     - mkdir -p artifacts
     - cargo build --release --package hook0-api --target $TARGET
     - cp target/$TARGET/release/hook0-api artifacts/hook0-api-linux-amd64
@@ -99,6 +101,8 @@ release.build-api-amd64:
 #     CROSS_DEPS: "gcc-aarch64-linux-gnu libc6-dev-arm64-cross"
 #   script:
 #     - mkdir -p artifacts
+#     - wget -O protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/protoc-$PROTOC_VERSION-linux-aarch_64.zip && mkdir protoc && unzip protoc.zip -d protoc/
+#     - export PROTOC="$(realpath ./protoc/bin/protoc)"
 #     - export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
 #     - cargo build --release --package hook0-api --target $TARGET
 #     - cp target/$TARGET/release/hook0-api artifacts/hook0-api-linux-arm64
@@ -111,6 +115,8 @@ release.build-worker-amd64:
     TARGET: x86_64-unknown-linux-gnu
     CROSS_DEPS: ""
   script:
+    - wget -O protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/protoc-$PROTOC_VERSION-linux-x86_64.zip && mkdir protoc && unzip protoc.zip -d protoc/
+    - export PROTOC="$(realpath ./protoc/bin/protoc)"
     - mkdir -p artifacts
     - cargo build --release --package hook0-output-worker --target $TARGET
     - cp target/$TARGET/release/hook0-output-worker artifacts/hook0-output-worker-linux-amd64
@@ -123,6 +129,8 @@ release.build-worker-amd64:
 #     CROSS_DEPS: "gcc-aarch64-linux-gnu libc6-dev-arm64-cross"
 #   script:
 #     - mkdir -p artifacts
+#     - wget -O protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/protoc-$PROTOC_VERSION-linux-aarch_64.zip && mkdir protoc && unzip protoc.zip -d protoc/
+#     - export PROTOC="$(realpath ./protoc/bin/protoc)"
 #     - export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
 #     - cargo build --release --package hook0-output-worker --target $TARGET
 #     - cp target/$TARGET/release/hook0-output-worker artifacts/hook0-output-worker-linux-arm64
