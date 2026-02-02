@@ -36,6 +36,7 @@ mod mailer;
 mod materialized_views;
 mod middleware_biscuit;
 mod middleware_get_user_ip;
+mod middleware_organization_id;
 mod object_storage_cleanup;
 mod old_events_cleanup;
 mod onboarding;
@@ -318,6 +319,18 @@ struct Config {
     /// [Rate Limiting] Duration (in millisecond) after which one API call per token is restored in the quota (must be ≥ 1)
     #[clap(long, env, default_value = "100")]
     api_rate_limiting_token_replenish_period_in_ms: u64,
+
+    /// [Rate Limiting] Set to true to disable per-organization API rate limiting
+    #[clap(long, env)]
+    disable_api_rate_limiting_organization: bool,
+
+    /// [Rate Limiting] Quota of API calls per organization before rate limiting blocks incoming requests (must be ≥ 1)
+    #[clap(long, env, default_value = "100")]
+    api_rate_limiting_organization_burst_size: u32,
+
+    /// [Rate Limiting] Duration after which one API call per organization is restored in the quota (must be ≥ 1ns)
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "50ms")]
+    api_rate_limiting_organization_replenish_period: Duration,
 
     /// [Rate Limiting] Duration to wait beetween rate limiters housekeeping
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "5m")]
@@ -665,6 +678,9 @@ async fn main() -> anyhow::Result<()> {
             config.disable_api_rate_limiting_token,
             config.api_rate_limiting_token_burst_size,
             config.api_rate_limiting_token_replenish_period_in_ms,
+            config.disable_api_rate_limiting_organization,
+            config.api_rate_limiting_organization_burst_size,
+            config.api_rate_limiting_organization_replenish_period,
         );
 
         // Create a DB connection pool for housekeeping tasks (no timeout)
@@ -1250,6 +1266,8 @@ async fn main() -> anyhow::Result<()> {
                                 )
                                 .service(
                                     web::scope("/{organization_id}")
+                                        .wrap(Compat::new(rate_limiters.organization())) // Middleware order is counter intuitive: this is executed second
+                                        .wrap(middleware_organization_id::GetOrganizationId) // Middleware order is counter intuitive: this is executed first
                                         .service(
                                             web::resource("")
                                                 .route(web::get().to(handlers::organizations::get))
@@ -1277,6 +1295,7 @@ async fn main() -> anyhow::Result<()> {
                         )
                         .service(
                             web::scope("/applications")
+                                .wrap(Compat::new(rate_limiters.organization())) // Middleware order is counter intuitive: this is executed third
                                 .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
                                 .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first
                                 .service(
@@ -1293,8 +1312,9 @@ async fn main() -> anyhow::Result<()> {
                         )
                         .service(
                             web::scope("/event_types")
+                                .wrap(Compat::new(rate_limiters.organization())) // Middleware order is counter intuitive: this is executed third
                                 .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
-                                .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first/ Middleware order is counter intuitive: this is executed first
+                                .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first
                                 .service(
                                     web::resource("")
                                         .route(web::get().to(handlers::event_types::list))
@@ -1309,8 +1329,9 @@ async fn main() -> anyhow::Result<()> {
                         .service(
                             #[cfg(feature = "application-secret-compatibility")]
                             web::scope("/application_secrets")
+                                .wrap(Compat::new(rate_limiters.organization())) // Middleware order is counter intuitive: this is executed third
                                 .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
-                                .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first/ Middleware order is counter intuitive: this is executed first
+                                .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first
                                 .service(
                                     web::resource("")
                                         .route(web::get().to(handlers::application_secrets::list))
@@ -1330,6 +1351,7 @@ async fn main() -> anyhow::Result<()> {
                         )
                         .service(
                             web::scope("/service_token")
+                                .wrap(Compat::new(rate_limiters.organization())) // Middleware order is counter intuitive: this is executed third
                                 .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
                                 .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first
                                 .service(
@@ -1346,8 +1368,9 @@ async fn main() -> anyhow::Result<()> {
                         )
                         .service(
                             web::scope("/events")
+                                .wrap(Compat::new(rate_limiters.organization())) // Middleware order is counter intuitive: this is executed third
                                 .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
-                                .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first/ Middleware order is counter intuitive: this is executed first
+                                .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first
                                 .service(
                                     web::resource("").route(web::get().to(handlers::events::list)),
                                 )
@@ -1362,9 +1385,9 @@ async fn main() -> anyhow::Result<()> {
                         )
                         .service(
                             web::scope("/event")
-                                .wrap(Compat::new(rate_limiters.token()))
+                                .wrap(Compat::new(rate_limiters.organization())) // Middleware order is counter intuitive: this is executed third
                                 .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
-                                .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first/ Middleware order is counter intuitive: this is executed first
+                                .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first
                                 .service(
                                     web::resource("")
                                         .route(web::post().to(handlers::events::ingest)),
@@ -1372,6 +1395,7 @@ async fn main() -> anyhow::Result<()> {
                         )
                         .service(
                             web::scope("/subscriptions")
+                                .wrap(Compat::new(rate_limiters.organization())) // Middleware order is counter intuitive: this is executed third
                                 .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
                                 .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first
                                 .service(
@@ -1388,8 +1412,9 @@ async fn main() -> anyhow::Result<()> {
                         )
                         .service(
                             web::scope("/request_attempts")
+                                .wrap(Compat::new(rate_limiters.organization())) // Middleware order is counter intuitive: this is executed third
                                 .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
-                                .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first/ Middleware order is counter intuitive: this is executed first
+                                .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first
                                 .service(
                                     web::resource("")
                                         .route(web::get().to(handlers::request_attempts::list)),
@@ -1397,8 +1422,9 @@ async fn main() -> anyhow::Result<()> {
                         )
                         .service(
                             web::scope("/responses")
+                                .wrap(Compat::new(rate_limiters.organization())) // Middleware order is counter intuitive: this is executed third
                                 .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
-                                .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first/ Middleware order is counter intuitive: this is executed first
+                                .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first
                                 .service(
                                     web::resource("/{response_id}")
                                         .route(web::get().to(handlers::responses::get)),

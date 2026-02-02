@@ -8,6 +8,7 @@ use actix_web::rt::time::sleep;
 use log::{debug, trace, warn};
 use std::net::IpAddr;
 use std::time::Duration;
+use uuid::Uuid;
 
 use crate::opentelemetry::report_rate_limiters_metrics;
 use crate::problems::Hook0Problem;
@@ -18,9 +19,11 @@ pub struct Hook0RateLimiters {
     disable_api_rate_limiting_global: bool,
     disable_api_rate_limiting_ip: bool,
     disable_api_rate_limiting_token: bool,
+    disable_api_rate_limiting_organization: bool,
     global: GovernorConfig<GlobalKeyExtractor, NoOpMiddleware>,
     ip: GovernorConfig<UserIpKeyExtractor, NoOpMiddleware>,
     token: GovernorConfig<TokenKeyExtractor, NoOpMiddleware>,
+    organization: GovernorConfig<OrganizationKeyExtractor, NoOpMiddleware>,
 }
 
 impl Hook0RateLimiters {
@@ -36,6 +39,9 @@ impl Hook0RateLimiters {
         disable_api_rate_limiting_token: bool,
         api_rate_limiting_token_burst_size: u32,
         api_rate_limiting_token_replenish_period_in_ms: u64,
+        disable_api_rate_limiting_organization: bool,
+        api_rate_limiting_organization_burst_size: u32,
+        api_rate_limiting_organization_replenish_period: Duration,
     ) -> Self {
         let global = GovernorConfigBuilder::default()
             .key_extractor(GlobalKeyExtractor)
@@ -55,6 +61,12 @@ impl Hook0RateLimiters {
             .milliseconds_per_request(api_rate_limiting_token_replenish_period_in_ms)
             .finish()
             .expect("Could not build per-token rate limiter; check configuration");
+        let organization = GovernorConfigBuilder::default()
+            .key_extractor(OrganizationKeyExtractor)
+            .burst_size(api_rate_limiting_organization_burst_size)
+            .period(api_rate_limiting_organization_replenish_period)
+            .finish()
+            .expect("Could not build per-organization rate limiter; check configuration");
 
         if disable_api_rate_limiting {
             warn!("API rate limiting is disabled");
@@ -68,6 +80,9 @@ impl Hook0RateLimiters {
             if disable_api_rate_limiting_token {
                 warn!("Per-token API rate limiting is disabled");
             }
+            if disable_api_rate_limiting_organization {
+                warn!("Per-organization API rate limiting is disabled");
+            }
         }
 
         Self {
@@ -75,9 +90,11 @@ impl Hook0RateLimiters {
             disable_api_rate_limiting_global,
             disable_api_rate_limiting_ip,
             disable_api_rate_limiting_token,
+            disable_api_rate_limiting_organization,
             global,
             ip,
             token,
+            organization,
         }
     }
 
@@ -102,6 +119,13 @@ impl Hook0RateLimiters {
         )
     }
 
+    pub fn organization(&self) -> Condition<Governor<OrganizationKeyExtractor, NoOpMiddleware>> {
+        Condition::new(
+            !self.disable_api_rate_limiting && !self.disable_api_rate_limiting_organization,
+            Governor::new(&self.organization),
+        )
+    }
+
     pub fn spawn_housekeeping_task(&self, interval: Duration) {
         let self_clone = self.clone();
         actix_web::rt::spawn(async move {
@@ -111,10 +135,12 @@ impl Hook0RateLimiters {
                 trace!("Removing old entries from rate limiters...");
                 self_clone.ip.limiter().retain_recent();
                 self_clone.token.limiter().retain_recent();
+                self_clone.organization.limiter().retain_recent();
 
                 trace!("Shrinking rate limiters internal's structures...");
                 self_clone.ip.limiter().shrink_to_fit();
                 self_clone.token.limiter().shrink_to_fit();
+                self_clone.organization.limiter().shrink_to_fit();
 
                 debug!("Rate limiters housekeeping done");
             }
@@ -131,6 +157,7 @@ impl Hook0RateLimiters {
                 report_rate_limiters_metrics(&[
                     ("ip", self_clone.ip.limiter().len()),
                     ("token", self_clone.token.limiter().len()),
+                    ("organization", self_clone.organization.limiter().len()),
                 ]);
             }
         });
@@ -190,5 +217,44 @@ impl KeyExtractor for TokenKeyExtractor {
 
     fn whitelisted_keys(&self) -> Vec<Self::Key> {
         vec![RateLimiterTokenKey::MasterApiKey]
+    }
+}
+
+/// Represents the key used for per-organization rate limiting.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum RateLimiterOrganizationKey {
+    /// For requests where the organization ID is known
+    Organization(Uuid),
+
+    /// For master API key
+    MasterApiKey,
+
+    /// For requests where the organization cannot be determined (e.g., user tokens
+    /// on endpoints that don't have organization in path)
+    NoOrganization,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct OrganizationKeyExtractor;
+
+impl KeyExtractor for OrganizationKeyExtractor {
+    type Key = RateLimiterOrganizationKey;
+    type KeyExtractionError = Hook0Problem;
+
+    fn extract(
+        &self,
+        req: &actix_web::dev::ServiceRequest,
+    ) -> Result<Self::Key, Self::KeyExtractionError> {
+        req.extensions()
+            .get::<RateLimiterOrganizationKey>()
+            .copied()
+            .ok_or(Hook0Problem::InternalServerError)
+    }
+
+    fn whitelisted_keys(&self) -> Vec<Self::Key> {
+        vec![
+            RateLimiterOrganizationKey::MasterApiKey,
+            RateLimiterOrganizationKey::NoOrganization,
+        ]
     }
 }
