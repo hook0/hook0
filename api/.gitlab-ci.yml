@@ -21,8 +21,8 @@ api.check:
   dependencies: []
   image: rust:$RUST_VERSION
   rules:
-    # Always run on release tags
-    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+    # Always run on release tags (including pre-releases)
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-(?:alpha|beta|rc)(?:\.\d+)?)?$/
     - changes:
         - api/**/*
         - sentry-integration/**/*
