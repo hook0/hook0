@@ -6,12 +6,18 @@ defineSlots<{
 
 <template>
   <div class="hook0-card-footer">
-    <slot></slot>
+    <slot />
   </div>
 </template>
 
-<style lang="scss" scoped>
+<style scoped>
 .hook0-card-footer {
-  @apply mt-6 flex items-center justify-end space-x-4 px-4 py-5 sm:p-6;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  background-color: var(--color-bg-secondary);
+  border-top: 1px solid var(--color-border);
 }
 </style>

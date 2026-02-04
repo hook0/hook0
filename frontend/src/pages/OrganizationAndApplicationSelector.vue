@@ -1,8 +1,15 @@
 <script setup lang="ts">
-import * as Option from 'fp-ts/Option';
-import { flow } from 'fp-ts/function';
 import { RouteLocationRaw, RouteParams, useRoute, useRouter } from 'vue-router';
 import { onMounted, onUnmounted, onUpdated, ref, watch } from 'vue';
+import {
+  Box,
+  Plus,
+  ChevronRight,
+  Package,
+  Layers,
+  ChevronDown,
+  FolderKanban,
+} from 'lucide-vue-next';
 
 import * as OrganizationService from './organizations/OrganizationService';
 import * as ApplicationService from './organizations/applications/ApplicationService';
@@ -11,17 +18,22 @@ import { Organization } from './organizations/OrganizationService';
 import { Application } from './organizations/applications/ApplicationService';
 import { routes } from '@/routes';
 import Hook0DropdownOptions from '@/components/Hook0DropdownOptions';
-import Hook0Text from '@/components/Hook0Text.vue';
 import Hook0DropdownMenuItemLink from '@/components/Hook0DropdownMenuItemLink.vue';
 import Hook0Dropdown from '@/components/Hook0Dropdown.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
-import Hook0Icon from '@/components/Hook0Icon.vue';
-import { getAccessToken } from '@/iam';
 import Hook0Card from '@/components/Hook0Card.vue';
-import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
-import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
-import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
+import Hook0Avatar from '@/components/Hook0Avatar.vue';
+import Hook0Badge from '@/components/Hook0Badge.vue';
+import Hook0Stack from '@/components/Hook0Stack.vue';
+import Hook0ListItem from '@/components/Hook0ListItem.vue';
+import Hook0EmptyState from '@/components/Hook0EmptyState.vue';
+import Hook0Text from '@/components/Hook0Text.vue';
+import Hook0CardContent from '@/components/Hook0CardContent.vue';
+import { useAuthStore } from '@/stores/auth';
 import { isPricingEnabled } from '@/instance';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 type ApplicationsPerOrganization = {
   organization: Organization;
@@ -43,11 +55,13 @@ const props = defineProps<{
 }>();
 
 watch(
-  () => getAccessToken().value,
-  async (newToken, oldToken) => {
+  () => useAuthStore().accessToken,
+  (newToken, oldToken) => {
     if (newToken !== oldToken) {
       if (newToken) {
-        applicationsPerOrganization.value = await getApplicationsPerOrganization();
+        void getApplicationsPerOrganization().then((result) => {
+          applicationsPerOrganization.value = result;
+        });
       } else {
         applicationsPerOrganization.value = null;
       }
@@ -109,43 +123,95 @@ function goto(parent: Hook0DropdownOptions, route: RouteLocationRaw) {
 
 function _updateDropdown(params: RouteParams) {
   if (applicationsPerOrganization.value !== null) {
-    const organizationGroup = applicationsPerOrganization.value;
-    const org_name = flow(
-      Option.map((_organization_id) =>
-        Option.fromNullable(
-          organizationGroup.find(
-            (group) => group.organization.organization_id === params.organization_id
-          )
-        )
-      ),
-      Option.flatten,
-      Option.map((organizationGroup) => organizationGroup.organization.name)
-    )(Option.fromNullable(params.organization_id as UUID));
+    const groups = applicationsPerOrganization.value;
+    const orgId = params.organization_id as UUID | undefined;
 
-    organization_name.value = Option.getOrElse(() => '')(org_name);
+    if (orgId) {
+      const matchedGroup = groups.find((group) => group.organization.organization_id === orgId);
+      organization_name.value = matchedGroup ? matchedGroup.organization.name : '';
+    } else {
+      organization_name.value = '';
+    }
 
-    const app_name = flow(Option.map((application: Application) => application.name))(
-      Option.fromNullable(
-        organizationGroup
-          .flatMap((group) => group.applications)
-          .find((application) => application.application_id === params.application_id)
-      )
-    );
+    const matchedApp = groups
+      .flatMap((group) => group.applications)
+      .find((application) => application.application_id === params.application_id);
 
-    application_name.value = Option.getOrElse(() => 'Select an application')(app_name);
+    application_name.value = matchedApp ? matchedApp.name : 'Select an application';
   }
 }
 
-onMounted(async () => {
-  if (getAccessToken().value) {
-    applicationsPerOrganization.value = await getApplicationsPerOrganization();
+// Map of application-level features for preserving context when switching apps
+const APP_LEVEL_FEATURES: Record<string, string> = {
+  [routes.EventsList]: routes.EventsList,
+  [routes.EventsDetail]: routes.EventsList, // Falls back to list
+  [routes.EventTypesList]: routes.EventTypesList,
+  [routes.EventTypesNew]: routes.EventTypesList, // Falls back to list
+  [routes.SubscriptionsList]: routes.SubscriptionsList,
+  [routes.SubscriptionsNew]: routes.SubscriptionsList, // Falls back to list
+  [routes.SubscriptionsDetail]: routes.SubscriptionsList, // Falls back to list
+  [routes.LogsList]: routes.LogsList,
+  [routes.ApplicationSecretsList]: routes.ApplicationSecretsList,
+  [routes.ApplicationSecretsDetail]: routes.ApplicationSecretsList, // Falls back to list
+  [routes.ApplicationSecretsNew]: routes.ApplicationSecretsList, // Falls back to list
+  [routes.ApplicationsDashboard]: routes.ApplicationsDashboard,
+  [routes.ApplicationsDetail]: routes.ApplicationsDetail,
+};
+
+function navigateToOrg(orgId: UUID) {
+  void router.push({
+    name: routes.OrganizationsDashboard,
+    params: { organization_id: orgId },
+  });
+}
+
+function navigateToApp(orgId: UUID, appId: UUID) {
+  // Try to preserve the current feature when switching apps
+  const currentRouteName = route.name as string;
+  const preservedFeature = APP_LEVEL_FEATURES[currentRouteName];
+
+  if (preservedFeature) {
+    // Navigate to the same feature in the new app
+    void router.push({
+      name: preservedFeature,
+      params: {
+        organization_id: orgId,
+        application_id: appId,
+      },
+    });
+  } else {
+    // Fallback to app dashboard
+    void router.push({
+      name: routes.ApplicationsDashboard,
+      params: {
+        organization_id: orgId,
+        application_id: appId,
+      },
+    });
+  }
+}
+
+function navigateToNewApp(orgId: UUID) {
+  void router.push({
+    name: routes.ApplicationsNew,
+    params: { organization_id: orgId },
+  });
+}
+
+onMounted(() => {
+  if (useAuthStore().accessToken) {
+    void getApplicationsPerOrganization().then((result) => {
+      applicationsPerOrganization.value = result;
+    });
   }
 
   removeRouterGuard.value = router.afterEach(() => {
     return _updateDropdown(route.params);
   });
 
-  pricingEnabled.value = await isPricingEnabled();
+  void isPricingEnabled().then((enabled) => {
+    pricingEnabled.value = enabled;
+  });
 
   return _updateDropdown(route.params);
 });
@@ -159,126 +225,183 @@ onUnmounted(() => {
     removeRouterGuard.value();
   }
 });
+
+const avatarGradients = [
+  'linear-gradient(135deg, #4f46e5, #7c3aed)',
+  'linear-gradient(135deg, #059669, #10b981)',
+  'linear-gradient(135deg, #d97706, #f59e0b)',
+  'linear-gradient(135deg, #dc2626, #ef4444)',
+  'linear-gradient(135deg, #2563eb, #3b82f6)',
+  'linear-gradient(135deg, #7c3aed, #a855f7)',
+  'linear-gradient(135deg, #0891b2, #06b6d4)',
+  'linear-gradient(135deg, #c2410c, #ea580c)',
+];
+
+function getGradient(index: number): string {
+  return avatarGradients[index % avatarGradients.length];
+}
 </script>
 
 <template>
+  <!-- ==================== CARD VIEW ==================== -->
   <template v-if="applicationsPerOrganization !== null && props.displayAsCards">
-    <div class="flex flex-col justify-between p-4">
-      <div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-fr">
-          <div
-            v-for="(organizationGroup, index) in applicationsPerOrganization"
-            :key="index"
-            class="flex flex-col mb-2"
+    <Hook0Stack layout="grid" gap="lg" grid-size="wide">
+      <!-- Organization Cards -->
+      <Hook0Card
+        v-for="(organizationGroup, index) in applicationsPerOrganization"
+        :key="organizationGroup.organization.organization_id"
+        variant="interactive"
+      >
+        <!-- Card Header -->
+        <Hook0CardContent>
+          <Hook0Stack
+            direction="row"
+            align="center"
+            gap="md"
+            role="button"
+            tabindex="0"
+            class="org-card__header"
+            @click="navigateToOrg(organizationGroup.organization.organization_id)"
+            @keydown.enter="navigateToOrg(organizationGroup.organization.organization_id)"
           >
-            <Hook0Card class="h-full">
-              <Hook0CardHeader>
-                <template #header>
-                  <Hook0Button
-                    class="flex items-center text-lg"
-                    @click="
-                      router.push({
-                        name: routes.OrganizationsDashboard,
-                        params: { organization_id: organizationGroup.organization.organization_id },
-                      })
-                    "
-                  >
-                    <Hook0Icon name="sitemap"></Hook0Icon>
-                    <Hook0Text class="ml-1">{{ organizationGroup.organization.name }}</Hook0Text>
-                    <template v-if="pricingEnabled">
-                      <span
-                        v-if="organizationGroup.organization.plan"
-                        class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10"
-                        :title="'Plan: ' + organizationGroup.organization.plan?.label || ''"
-                        >{{ organizationGroup.organization.plan?.label || '' }}</span
-                      >
-                      <span
-                        v-else
-                        class="ml-2 inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10"
-                        title="Plan: Developer"
-                        >Developer</span
-                      >
-                    </template>
-                  </Hook0Button>
+            <Hook0Avatar
+              :name="organizationGroup.organization.name"
+              size="lg"
+              variant="square"
+              :gradient="getGradient(index)"
+            />
+            <Hook0Stack direction="column" gap="none" style="flex: 1; min-width: 0">
+              <Hook0Stack direction="row" align="center" gap="sm" wrap>
+                <Hook0Text variant="primary" size="md" weight="semibold">
+                  {{ organizationGroup.organization.name }}
+                </Hook0Text>
+                <Hook0Badge
+                  v-if="pricingEnabled && organizationGroup.organization.plan"
+                  variant="primary"
+                  size="sm"
+                >
+                  {{ organizationGroup.organization.plan?.label || '' }}
+                </Hook0Badge>
+                <Hook0Badge v-else-if="pricingEnabled" variant="default" size="sm">
+                  {{ t('orgAppSelector.developer') }}
+                </Hook0Badge>
+              </Hook0Stack>
+              <Hook0Stack direction="row" align="center" gap="xs" inline>
+                <Layers :size="13" aria-hidden="true" />
+                <Hook0Text variant="muted" size="sm">
+                  {{ t('orgAppSelector.appsCount', organizationGroup.applications.length) }}
+                </Hook0Text>
+              </Hook0Stack>
+            </Hook0Stack>
+            <ChevronRight :size="16" aria-hidden="true" />
+          </Hook0Stack>
+        </Hook0CardContent>
+
+        <!-- Applications List -->
+        <Hook0CardContent>
+          <Hook0Stack direction="column" gap="xs">
+            <template v-if="organizationGroup.applications.length > 0">
+              <Hook0ListItem
+                v-for="application in organizationGroup.applications"
+                :key="application.application_id"
+                show-chevron
+                @click="
+                  navigateToApp(
+                    organizationGroup.organization.organization_id,
+                    application.application_id
+                  )
+                "
+              >
+                <template #icon>
+                  <Box :size="16" aria-hidden="true" />
                 </template>
-                <template #subtitle> </template>
-              </Hook0CardHeader>
-              <Hook0CardContentLines>
-                <Hook0CardContentLine type="full-width">
-                  <template v-if="organizationGroup.applications.length > 0" #content>
-                    <Hook0Button
-                      v-for="(application, appIndex) in organizationGroup.applications"
-                      :key="appIndex"
-                      class="flex items-center"
-                      @click="
-                        router.push({
-                          name: routes.ApplicationsDashboard,
-                          params: {
-                            application_id: application.application_id,
-                            organization_id: organizationGroup.organization.organization_id,
-                          },
-                        })
-                      "
-                    >
-                      <Hook0Text class="ml-1">{{ application.name }}</Hook0Text>
-                    </Hook0Button>
-                  </template>
-                  <template v-else #content>
-                    <div class="flex flex-col items-center">
-                      <Hook0Text class="text-gray-500 mb-2">No application found</Hook0Text>
-                      <Hook0Button
-                        @click="
-                          router.push({
-                            name: routes.ApplicationsNew,
-                            params: {
-                              organization_id: organizationGroup.organization.organization_id,
-                            },
-                          })
-                        "
-                      >
-                        <Hook0Icon name="plus"></Hook0Icon>
-                        <Hook0Text class="ml-1">Create New Application</Hook0Text>
-                      </Hook0Button>
-                    </div>
-                  </template>
-                </Hook0CardContentLine>
-              </Hook0CardContentLines>
-            </Hook0Card>
-          </div>
-        </div>
-      </div>
-      <div class="flex justify-end">
-        <Hook0Button class="primary" @click="router.push({ name: routes.OrganizationsNew })">
-          <Hook0Icon name="plus"></Hook0Icon>
-          <Hook0Text class="ml-1">New Organization</Hook0Text>
-        </Hook0Button>
-      </div>
-    </div>
+                <template #left>
+                  <Hook0Text variant="primary" size="sm" weight="medium">
+                    {{ application.name }}
+                  </Hook0Text>
+                </template>
+              </Hook0ListItem>
+            </template>
+
+            <!-- Empty State -->
+            <Hook0EmptyState
+              v-else
+              :title="t('orgAppSelector.noApplicationFound')"
+              :description="t('orgAppSelector.noApplicationDescription')"
+            >
+              <template #icon>
+                <Package :size="24" aria-hidden="true" />
+              </template>
+            </Hook0EmptyState>
+
+            <!-- Create App Button -->
+            <Hook0ListItem
+              variant="action"
+              separated
+              @click="navigateToNewApp(organizationGroup.organization.organization_id)"
+            >
+              <template #icon>
+                <Plus :size="14" aria-hidden="true" />
+              </template>
+              <template #left>
+                {{ t('orgAppSelector.createNewApplication') }}
+              </template>
+            </Hook0ListItem>
+          </Hook0Stack>
+        </Hook0CardContent>
+      </Hook0Card>
+
+      <!-- New Organization Card -->
+      <Hook0Card
+        variant="dashed"
+        as="button"
+        @click="void router.push({ name: routes.OrganizationsNew })"
+      >
+        <Hook0CardContent>
+          <Hook0Stack direction="column" align="center" justify="center" gap="sm">
+            <Hook0Avatar name="+" size="xl" variant="rounded" />
+            <Hook0Text variant="primary" size="md" weight="semibold">
+              {{ t('orgAppSelector.newOrganization') }}
+            </Hook0Text>
+            <Hook0Text variant="muted" size="sm">
+              {{ t('orgAppSelector.newOrganizationDescription') }}
+            </Hook0Text>
+          </Hook0Stack>
+        </Hook0CardContent>
+      </Hook0Card>
+    </Hook0Stack>
   </template>
+
+  <!-- ==================== DROPDOWN VIEW ==================== -->
   <Hook0Dropdown
     v-else-if="applicationsPerOrganization !== null && !props.displayAsCards"
-    class="container darkmode"
     justify="left"
   >
     <template #menu="parent">
-      <Hook0Button class="dropdown" @click="parent.toggle">
+      <Hook0Button @click="parent.toggle">
         <template #default>
-          <div class="flex flex-col">
-            <Hook0Text class="def">{{ organization_name }}</Hook0Text>
-            <Hook0Text class="darkmode">{{ application_name }}</Hook0Text>
-          </div>
+          <Hook0Stack direction="column" gap="none" align="start">
+            <Hook0Text variant="muted" size="sm">{{ organization_name }}</Hook0Text>
+            <Hook0Text variant="primary" size="md" weight="medium">{{
+              application_name
+            }}</Hook0Text>
+          </Hook0Stack>
         </template>
         <template #right>
-          <Hook0Icon name="chevron-down" class="darkmode"></Hook0Icon>
+          <ChevronDown :size="16" aria-hidden="true" />
         </template>
       </Hook0Button>
     </template>
 
     <template #dropdown="parent">
-      <div class="max-h-96 overflow-y-scroll">
-        <div v-for="(organizationGroup, index) in applicationsPerOrganization" :key="index">
+      <Hook0Stack direction="column" gap="none">
+        <Hook0Stack
+          v-for="(organizationGroup, index) in applicationsPerOrganization"
+          :key="index"
+          direction="column"
+          gap="none"
+        >
           <Hook0DropdownMenuItemLink
-            class="flex justify-between darkmode"
             @click="
               goto(parent, {
                 name: routes.OrganizationsDashboard,
@@ -286,15 +409,18 @@ onUnmounted(() => {
               })
             "
           >
-            <Hook0Icon name="sitemap" class="darkmode"></Hook0Icon>
-            <Hook0Text class="ml-1 darkmode">{{ organizationGroup.organization.name }}</Hook0Text>
+            <Hook0Stack direction="row" align="center" gap="sm">
+              <FolderKanban :size="16" aria-hidden="true" />
+              <Hook0Text variant="primary" size="md">
+                {{ organizationGroup.organization.name }}
+              </Hook0Text>
+            </Hook0Stack>
           </Hook0DropdownMenuItemLink>
 
-          <div class="pl-2">
+          <Hook0Stack direction="column" gap="none" style="padding-left: 0.5rem">
             <Hook0DropdownMenuItemLink
               v-for="(application, appIndex) in organizationGroup.applications"
               :key="appIndex"
-              class="darkmode"
               @click="
                 goto(parent, {
                   name: routes.ApplicationsDashboard,
@@ -305,28 +431,48 @@ onUnmounted(() => {
                 })
               "
             >
-              <Hook0Text class="ml-1 darkmode">{{ application.name }}</Hook0Text>
-              <Hook0Text class="ml-1 def darkmode">application</Hook0Text>
+              <Hook0Stack direction="row" align="center" gap="xs">
+                <Hook0Text variant="primary" size="md">{{ application.name }}</Hook0Text>
+                <Hook0Text variant="muted" size="sm">application</Hook0Text>
+              </Hook0Stack>
             </Hook0DropdownMenuItemLink>
-          </div>
-        </div>
-      </div>
-      <Hook0DropdownMenuItemLink :to="{ name: routes.OrganizationsNew }" class="darkmode">
-        <Hook0Icon name="plus" class="darkmode"></Hook0Icon>
-        <Hook0Text class="ml-1 darkmode">New Organization</Hook0Text>
+          </Hook0Stack>
+        </Hook0Stack>
+      </Hook0Stack>
+      <Hook0DropdownMenuItemLink :to="{ name: routes.OrganizationsNew }">
+        <Hook0Stack direction="row" align="center" gap="sm">
+          <Plus :size="16" aria-hidden="true" />
+          <Hook0Text variant="primary" size="md">{{
+            t('orgAppSelector.newOrganization')
+          }}</Hook0Text>
+        </Hook0Stack>
       </Hook0DropdownMenuItemLink>
     </template>
   </Hook0Dropdown>
 </template>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
-<style lang="scss" scoped>
-.container {
-  height: 67px;
-  @apply max-w-lg block w-full cursor-pointer;
+<style scoped>
+/* Organization Card Header - interactive clickable area */
+.org-card__header {
+  cursor: pointer;
+  margin: calc(-1 * var(--spacing-md));
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  transition: all 0.15s ease;
+}
 
-  &.loader {
-    @apply flex flex-grow justify-center items-center;
-  }
+.org-card__header:hover {
+  background-color: var(--color-bg-secondary);
+}
+
+.org-card__header:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  background-color: var(--color-bg-secondary);
+}
+
+.org-card__header:active {
+  transform: scale(0.99);
+  background-color: var(--color-bg-tertiary);
 }
 </style>

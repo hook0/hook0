@@ -17,5 +17,3 @@ const valueHumanized = computed(() => formatISO9075(parseISO(props.value)));
 <template>
   <Hook0Text :title="value">{{ valueHumanized }}</Hook0Text>
 </template>
-
-<style lang="scss" scoped></style>

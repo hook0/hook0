@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { omit } from 'ramda';
-import { computed, onMounted, onUpdated, ref } from 'vue';
+import { computed, onMounted, onUpdated } from 'vue';
 
 import {
   firstValue,
@@ -16,9 +15,15 @@ defineOptions({
 
 interface Props {
   options: Array<Hook0SelectSingleOption | Hook0SelectGroupedOption>;
+  label?: string;
+  error?: string;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  label: undefined,
+  error: undefined,
+});
+
 const simpleOptions = computed(() =>
   (props.options as Hook0SelectSingleOption[]).filter(isSimpleOption)
 );
@@ -26,14 +31,11 @@ const groupedOptions = computed(() =>
   (props.options as Hook0SelectGroupedOption[]).filter(isGroupedOptions)
 );
 
-const select = ref<null | HTMLSelectElement>(null);
-
-function omitOptions($props: Partial<Record<string, unknown>>) {
-  return omit(['options'], $props);
-}
-
 function isSimpleOption(option: Hook0SelectSingleOption) {
-  return option.hasOwnProperty('value') && option.hasOwnProperty('label');
+  return (
+    Object.prototype.hasOwnProperty.call(option, 'value') &&
+    Object.prototype.hasOwnProperty.call(option, 'label')
+  );
 }
 
 function isGroupedOptions(option: Hook0SelectGroupedOption) {
@@ -55,30 +57,79 @@ onUpdated(() => {
 </script>
 
 <template>
-  <select
-    v-bind="{ ...omitOptions($props), ...$attrs }"
-    ref="select"
-    v-model="model"
-    class="hook0-select"
-  >
-    <optgroup v-for="group in groupedOptions" :key="group.label" :label="group.label">
-      <option v-for="option in group.options" :key="option.value" :value="option.value">
+  <div>
+    <label v-if="label" class="hook0-select-label">{{ label }}</label>
+    <select
+      v-bind="$attrs"
+      v-model="model"
+      class="hook0-select"
+      :class="{ 'hook0-select-error': error }"
+      :aria-invalid="!!error"
+    >
+      <optgroup v-for="group in groupedOptions" :key="group.label" :label="group.label">
+        <option v-for="option in group.options" :key="option.value" :value="option.value">
+          {{ option.label }}
+        </option>
+      </optgroup>
+
+      <option v-for="option in simpleOptions" :key="option.value" :value="option.value">
         {{ option.label }}
       </option>
-    </optgroup>
-
-    <option v-for="option in simpleOptions" :key="option.value" :value="option.value">
-      {{ option.label }}
-    </option>
-  </select>
+    </select>
+    <p v-if="error" class="hook0-select-error-text" role="alert">{{ error }}</p>
+  </div>
 </template>
 
-<style lang="scss" scoped>
+<style scoped>
 .hook0-select {
-  @apply block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md;
+  display: block;
+  width: 100%;
+  padding: 0.5rem 2.5rem 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
 
-  &.width-small {
-    @apply w-32;
-  }
+.hook0-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow:
+    0 0 0 1px var(--color-primary),
+    var(--shadow-sm);
+}
+
+.hook0-select.width-small {
+  width: 8rem;
+}
+
+.hook0-select-error {
+  border-color: var(--color-danger);
+}
+
+.hook0-select-error-text {
+  margin-top: 0.375rem;
+  font-size: 0.75rem;
+  color: var(--color-danger);
+}
+
+.hook0-select-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  margin-bottom: 0.375rem;
 }
 </style>

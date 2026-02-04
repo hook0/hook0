@@ -1,43 +1,55 @@
 <script setup lang="ts">
+import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { onMounted, onUpdated, ref, defineEmits, defineProps } from 'vue';
-import { head } from 'ramda';
+import { useI18n } from 'vue-i18n';
+import { RefreshCw } from 'lucide-vue-next';
 
-import { Problem, UUID } from '@/http';
-import * as SubscriptionService from './SubscriptionService';
-import { Subscription } from './SubscriptionService';
+import { displayError } from '@/utils/displayError';
+import type { Problem } from '@/http';
+import {
+  useSubscriptionDetail,
+  useCreateSubscription,
+  useUpdateSubscription,
+} from './useSubscriptionQueries';
+import { useEventTypeList } from '../event_types/useEventTypeQueries';
+import type { EventType } from '../event_types/EventTypeService';
 import { routes } from '@/routes';
+import { intersectWith } from '@/utils/fp';
+import { useTracking } from '@/composables/useTracking';
+import type { Hook0SelectSingleOption } from '@/components/Hook0Select';
+import type { Hook0KeyValueKeyValuePair } from '@/components/Hook0KeyValue';
+
 import SubscriptionsRemove from './SubscriptionsRemove.vue';
-import * as EventTypeService from '../event_types/EventTypeService';
-import { EventType } from '../event_types/EventTypeService';
 import Hook0Loader from '@/components/Hook0Loader.vue';
 import Hook0List from '@/components/Hook0List.vue';
 import Hook0ListItem from '@/components/Hook0ListItem.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
-import Hook0Text from '@/components/Hook0Text.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0Select from '@/components/Hook0Select.vue';
 import Hook0KeyValue from '@/components/Hook0KeyValue.vue';
-import { Hook0SelectSingleOption } from '@/components/Hook0Select';
-import { Hook0KeyValueKeyValuePair } from '@/components/Hook0KeyValue';
-import { intersectWith } from '@/utils/fp';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
-import Hook0Icon from '@/components/Hook0Icon.vue';
-import { push } from 'notivue';
-import { useTracking } from '@/composables/useTracking';
+import Hook0Skeleton from '@/components/Hook0Skeleton.vue';
+import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
+import Hook0Stack from '@/components/Hook0Stack.vue';
+import Hook0Checkbox from '@/components/Hook0Checkbox.vue';
+import Hook0HelpText from '@/components/Hook0HelpText.vue';
+import Hook0Text from '@/components/Hook0Text.vue';
+import Hook0Form from '@/components/Hook0Form.vue';
 
-// Analytics tracking
+const { t } = useI18n();
 const { trackEvent } = useTracking();
 
 interface Props {
   tutorialMode?: boolean;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  tutorialMode: false,
+});
 
 const emit = defineEmits(['tutorial-subscription-created']);
 
@@ -50,46 +62,56 @@ function EventTypeNamesFromSelectedEventTypes(
 ): string[] {
   return selectableEventTypes
     .filter((eventType) => eventType.selected)
-    .map((eventType) => EventTypeFromSelectableEventType(eventType).event_type_name);
-}
-
-function EventTypeFromSelectableEventType(selectableEventTypes: SelectableEventType) {
-  return {
-    event_type_name: selectableEventTypes.event_type_name,
-    resource_type_name: selectableEventTypes.resource_type_name,
-    service_name: selectableEventTypes.service_name,
-    verb_name: selectableEventTypes.verb_name,
-  };
+    .map((eventType) => eventType.event_type_name);
 }
 
 function SelectedEventTypesFromEventTypeNames(eventTypeNames: string[]): SelectableEventType[] {
-  return eventTypeNames.map((eventTypeName) => SelectableEventTypeFromEventTypeName(eventTypeName));
-}
-
-function SelectableEventTypeFromEventTypeName(eventTypeName: string): SelectableEventType {
-  const [resource_type_name, service_name, verb_name] = eventTypeName.split('.');
-
-  return {
-    event_type_name: eventTypeName,
-    resource_type_name,
-    service_name,
-    verb_name,
-    selected: true,
-  };
+  return eventTypeNames.map((eventTypeName) => {
+    const [resource_type_name, service_name, verb_name] = eventTypeName.split('.');
+    return {
+      event_type_name: eventTypeName,
+      resource_type_name,
+      service_name,
+      verb_name,
+      selected: true,
+    };
+  });
 }
 
 function toOption(val: string): Hook0SelectSingleOption {
-  return {
-    value: val,
-    label: val,
-  };
+  return { value: val, label: val };
 }
 
 const router = useRouter();
 const route = useRoute();
 
-const isNew = ref(true);
-const subscription_id = ref<UUID | null>(null);
+const subscriptionId = computed(() => {
+  const id = route.params.subscription_id;
+  return typeof id === 'string' ? id : '';
+});
+const applicationId = computed(() => route.params.application_id as string);
+const isNew = computed(() => !subscriptionId.value);
+
+// Queries
+const {
+  data: subscriptionData,
+  isLoading: subLoading,
+  error: subError,
+  refetch: refetchSub,
+} = useSubscriptionDetail(subscriptionId);
+
+const {
+  data: rawEventTypes,
+  isLoading: etLoading,
+  error: etError,
+  refetch: refetchEt,
+} = useEventTypeList(applicationId);
+
+// Mutations
+const createMutation = useCreateSubscription();
+const updateMutation = useUpdateSubscription();
+
+// Form state
 const subscription = ref({
   created_at: '',
   secret: '',
@@ -98,83 +120,71 @@ const subscription = ref({
   event_types: [] as string[],
   dedicated_workers: [] as string[],
   is_enabled: true,
-  labels: {}, // K/V as object
-  metadata: {}, // K/V as object
+  labels: {} as Record<string, string>,
+  metadata: {} as Record<string, string>,
   target: {
     type: 'http',
     method: '',
     url: '',
-    headers: {},
+    headers: {} as Record<string, string>,
   },
 });
-const eventTypes = ref<SelectableEventType[]>([]);
 
-const labels = ref([] as Hook0KeyValueKeyValuePair[]);
-const metadata = ref([] as Hook0KeyValueKeyValuePair[]);
+const eventTypes = ref<SelectableEventType[]>([]);
+const labels = ref<Hook0KeyValueKeyValuePair[]>([]);
+const metadata = ref<Hook0KeyValueKeyValuePair[]>([]);
 
 const httpTarget = ref({
   METHODS: 'GET,PATCH,POST,PUT,DELETE,OPTIONS,HEAD'.split(',').map(toOption),
-  headers: [] as Hook0KeyValueKeyValuePair[], // K/V
+  headers: [] as Hook0KeyValueKeyValuePair[],
 });
 
-function _load() {
-  function mapper(eventType: EventType): SelectableEventType {
-    return {
-      ...eventType,
-      selected: false,
+// Populate form from subscription data (edit mode)
+// Clone data to avoid readonly proxy from TanStack Query cache
+watch(subscriptionData, (sub) => {
+  if (sub) {
+    subscription.value.secret = sub.secret;
+    subscription.value.created_at = sub.created_at;
+    subscription.value.description = sub.description || '';
+    subscription.value.event_types = [...sub.event_types];
+    subscription.value.is_enabled = sub.is_enabled;
+    labels.value = fromMap(sub.labels);
+    subscription.value.labels = { ...sub.labels };
+    metadata.value = fromMap(sub.metadata);
+    subscription.value.metadata = { ...sub.metadata };
+    subscription.value.dedicated_workers = [...sub.dedicated_workers];
+    subscription.value.target = {
+      type: sub.target.type,
+      method: sub.target.method,
+      url: sub.target.url,
+      headers: { ...sub.target.headers },
     };
+    httpTarget.value.headers = fromMap(sub.target.headers);
   }
+});
 
-  if (subscription_id.value !== route.params.subscription_id) {
-    subscription_id.value = route.params.subscription_id as UUID;
-    isNew.value = !subscription_id.value;
-    eventTypes.value = [];
+// Merge event types with subscription selection
+watch(
+  [rawEventTypes, subscriptionData],
+  ([et]) => {
+    if (!et) return;
 
-    // first load the subscription if in edit mode
-    (!isNew.value
-      ? SubscriptionService.get(subscription_id.value).then((sub: Subscription) => {
-          // We do the mapping bellow (instead of a single-line assignment) to stay in control of what we manage
-          subscription.value.secret = sub.secret;
-          subscription.value.created_at = sub.created_at;
-          subscription.value.description = sub.description || '';
+    function mapper(eventType: EventType): SelectableEventType {
+      return { ...eventType, selected: false };
+    }
 
-          subscription.value.event_types = sub.event_types;
-
-          subscription.value.is_enabled = sub.is_enabled;
-          labels.value = fromMap(sub.labels);
-          subscription.value.labels = sub.labels;
-          metadata.value = fromMap(sub.metadata);
-          subscription.value.metadata = sub.metadata;
-          subscription.value.dedicated_workers = sub.dedicated_workers;
-
-          subscription.value.target = sub.target;
-          httpTarget.value.headers = fromMap(subscription.value.target.headers);
-        })
-      : Promise.resolve()
-    )
-      // then (always) load the eventTypes
-      .then(() => EventTypeService.list(route.params.application_id as string))
-      .then((et) => {
-        // apply selection if any event_types were already selected (edit mode)
-        // this will display previously selected event type names that are not available anymore
-        eventTypes.value = intersectWith<SelectableEventType, SelectableEventType, string>(
-          (a) => a.event_type_name,
-
-          // depending on the user event type selection, for a single event type we might have one or more events
-          (selectableType: SelectableEventType[]) => {
-            return {
-              ...(head(selectableType) as SelectableEventType),
-              selected: selectableType.some((type) => type.selected),
-            };
-          },
-
-          et.map(mapper),
-          SelectedEventTypesFromEventTypeNames(subscription.value.event_types)
-        );
-      })
-      .catch(displayError);
-  }
-}
+    eventTypes.value = intersectWith<SelectableEventType, SelectableEventType, string>(
+      (a) => a.event_type_name,
+      (selectableType: SelectableEventType[]) => ({
+        ...selectableType[0],
+        selected: selectableType.some((type) => type.selected),
+      }),
+      et.map(mapper),
+      SelectedEventTypesFromEventTypeNames(subscription.value.event_types)
+    );
+  },
+  { immediate: true }
+);
 
 function cancel2() {
   router.back();
@@ -187,12 +197,16 @@ function fromMap(headers: Record<string, unknown>): Hook0KeyValueKeyValuePair[] 
   }));
 }
 
-function toMap(pairs: Hook0KeyValueKeyValuePair[]): Record<string, string> {
-  return pairs.reduce((m, { key, value }) => {
-    // @ts-ignore
-    m[key] = value;
-    return m;
-  }, {});
+function toMap(
+  pairs: Hook0KeyValueKeyValuePair[] | Record<string, string>
+): Record<string, string> {
+  if (Array.isArray(pairs)) {
+    return pairs.reduce<Record<string, string>>((m, { key, value }) => {
+      m[key] = value;
+      return m;
+    }, {});
+  }
+  return pairs;
 }
 
 function upsert(e: Event) {
@@ -204,315 +218,314 @@ function upsert(e: Event) {
   }
 
   if (isNew.value) {
-    SubscriptionService.create({
-      application_id: route.params.application_id as string,
-
-      target: {
-        type: 'http',
-        method: subscription.value.target.method,
-        url: subscription.value.target.url,
-        headers: subscription.value.target.headers,
+    createMutation.mutate(
+      {
+        application_id: applicationId.value,
+        target: {
+          type: 'http' as const,
+          method: subscription.value.target.method,
+          url: subscription.value.target.url,
+          headers: subscription.value.target.headers as unknown as Record<string, never>,
+        },
+        description: subscription.value.description,
+        metadata: subscription.value.metadata as unknown as Record<string, never>,
+        labels: subscription.value.labels as unknown as Record<string, never>,
+        is_enabled: subscription.value.is_enabled,
+        event_types: EventTypeNamesFromSelectedEventTypes(eventTypes.value),
       },
-      description: subscription.value.description,
-      metadata: subscription.value.metadata,
-      labels: subscription.value.labels,
-      is_enabled: subscription.value.is_enabled,
-      event_types: EventTypeNamesFromSelectedEventTypes(eventTypes.value),
-    }).then((_resp) => {
-      trackEvent('subscription', 'create', 'success');
-      if (props.tutorialMode) {
-        emit('tutorial-subscription-created');
-      } else {
-        cancel2();
+      {
+        onSuccess: () => {
+          trackEvent('subscription', 'create', 'success');
+          if (props.tutorialMode) {
+            emit('tutorial-subscription-created');
+          } else {
+            cancel2();
+          }
+        },
+        onError: (err) => {
+          displayError(err as unknown as Problem);
+        },
       }
-    }, displayError);
+    );
     return;
   }
 
-  SubscriptionService.update(subscription_id.value as UUID, {
-    target: {
-      type: 'http',
-      method: subscription.value.target.method,
-      url: subscription.value.target.url,
-      headers: subscription.value.target.headers,
+  updateMutation.mutate(
+    {
+      subscriptionId: subscriptionId.value,
+      subscription: {
+        target: {
+          type: 'http' as const,
+          method: subscription.value.target.method,
+          url: subscription.value.target.url,
+          headers: subscription.value.target.headers as unknown as Record<string, never>,
+        },
+        description: subscription.value.description,
+        metadata: subscription.value.metadata as unknown as Record<string, never>,
+        labels: subscription.value.labels as unknown as Record<string, never>,
+        is_enabled: subscription.value.is_enabled,
+        event_types: EventTypeNamesFromSelectedEventTypes(eventTypes.value),
+        dedicated_workers:
+          subscription.value.dedicated_workers.length > 0
+            ? subscription.value.dedicated_workers
+            : undefined,
+        application_id: applicationId.value,
+      },
     },
-    description: subscription.value.description,
-    metadata: subscription.value.metadata,
-    labels: subscription.value.labels,
-    is_enabled: subscription.value.is_enabled,
-    event_types: EventTypeNamesFromSelectedEventTypes(eventTypes.value),
-    dedicated_workers:
-      subscription.value.dedicated_workers.length > 0
-        ? subscription.value.dedicated_workers
-        : undefined,
-    application_id: route.params.application_id as string,
-  }).then((_resp) => {
-    trackEvent('subscription', 'update', 'success');
-    cancel2();
-  }, displayError);
+    {
+      onSuccess: () => {
+        trackEvent('subscription', 'update', 'success');
+        cancel2();
+      },
+      onError: (err) => {
+        displayError(err as unknown as Problem);
+      },
+    }
+  );
 }
-
-function displayError(err: Problem) {
-  console.error(err);
-  let options = {
-    title: err.title,
-    message: err.detail,
-    duration: 5000,
-  };
-  err.status >= 500 ? push.error(options) : push.warning(options);
-}
-
-onMounted(() => {
-  _load();
-});
-
-onUpdated(() => {
-  _load();
-});
 </script>
 
 <template>
-  <div>
-    <form data-test="subscription-form" @submit="upsert">
-      <Hook0Card data-test="subscription-card">
-        <Hook0CardHeader>
-          <template v-if="isNew" #header> Create new subscription (webhook) </template>
-          <template v-else #header> Edit subscription (webhook) </template>
-          <template #subtitle>
-            A subscription (webhook) receives all events sent to Hook0 that match its filters.
-          </template>
-        </Hook0CardHeader>
-        <Hook0CardContent>
-          <Hook0CardContentLine>
-            <template #label>Subscription description</template>
-            <template #content>
-              <Hook0Input
-                v-model="subscription.description"
-                type="text"
-                placeholder="my awesome api - production"
-                required
-                data-test="subscription-description-input"
-              >
-                <template #helpText>
-                  Describe what your subscription will do so you can distinguish it from others.
-                </template>
-              </Hook0Input>
-            </template>
-          </Hook0CardContentLine>
+  <Hook0Stack direction="column" gap="lg">
+    <!-- Loading subscription for edit mode -->
+    <Hook0Card v-if="!isNew && subLoading">
+      <Hook0CardHeader>
+        <template #header>{{ t('subscriptions.editTitle') }}</template>
+      </Hook0CardHeader>
+      <Hook0CardContent>
+        <Hook0Stack direction="column" gap="md">
+          <Hook0Skeleton size="hero" />
+          <Hook0Skeleton size="heading" />
+          <Hook0Skeleton size="heading" />
+        </Hook0Stack>
+      </Hook0CardContent>
+    </Hook0Card>
 
-          <Hook0CardContentLine v-if="!isNew">
-            <template #label>
-              Subscription secret
+    <!-- Error loading subscription -->
+    <Hook0ErrorCard v-else-if="!isNew && subError" :error="subError" @retry="refetchSub()" />
 
-              <Hook0Text class="helpText mt-2 block">
-                The secret is used to
-                <Hook0Button
-                  href="https://documentation.hook0.com/docs/verifying-webhook-signatures"
-                  target="_blank"
-                  >authenticate the webhooks</Hook0Button
-                >
-                sent by Hook0.
-                <em>Do not share this secret with anyone.</em>
-              </Hook0Text>
-            </template>
-
-            <template #content>
-              <div class="flex flex-row">
+    <!-- Form -->
+    <template v-else>
+      <Hook0Form data-test="subscription-form" @submit="upsert">
+        <Hook0Card data-test="subscription-card">
+          <Hook0CardHeader>
+            <template v-if="isNew" #header>{{ t('subscriptions.createTitle') }}</template>
+            <template v-else #header>{{ t('subscriptions.editTitle') }}</template>
+            <template #subtitle>{{ t('subscriptions.formSubtitle') }}</template>
+          </Hook0CardHeader>
+          <Hook0CardContent>
+            <Hook0CardContentLine>
+              <template #label>{{ t('subscriptions.descriptionLabel') }}</template>
+              <template #content>
                 <Hook0Input
-                  v-model="subscription.secret"
+                  v-model="subscription.description"
                   type="text"
-                  class="w-full disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200 disabled:shadow-none"
-                  disabled
-                >
-                </Hook0Input>
-              </div>
-            </template>
-          </Hook0CardContentLine>
-
-          <Hook0CardContentLine>
-            <template #label>
-              Endpoint HTTP verb and URL
-
-              <Hook0Text class="helpText mt-2 block">
-                When this subscription is triggered by an event, Hook0 will send a webhook to this
-                endpoint.
-                <br />
-              </Hook0Text>
-            </template>
-            <template #content>
-              <div class="flex flex-row">
-                <Hook0Select
-                  v-model="subscription.target.method"
-                  class="flex-none width-small"
-                  :options="httpTarget.METHODS"
-                  data-test="subscription-method-select"
-                ></Hook0Select>
-                <Hook0Input
-                  v-model="subscription.target.url"
-                  type="text"
-                  class="w-full ml-1"
-                  placeholder="https://"
+                  :placeholder="t('subscriptions.descriptionPlaceholder')"
                   required
-                  data-test="subscription-url-input"
+                  data-test="subscription-description-input"
                 >
+                  <template #helpText>
+                    {{ t('subscriptions.descriptionHelpText') }}
+                  </template>
                 </Hook0Input>
-              </div>
-              <div class="flex flex-row mt-1">
-                <Hook0Text class="helpText">
+              </template>
+            </Hook0CardContentLine>
+
+            <Hook0CardContentLine v-if="!isNew">
+              <template #label>
+                {{ t('subscriptions.secretLabel') }}
+
+                <Hook0HelpText>
+                  {{ t('subscriptions.secretDescription') }}
+                  <Hook0Button
+                    href="https://documentation.hook0.com/docs/verifying-webhook-signatures"
+                    target="_blank"
+                    >{{ t('subscriptions.authenticateWebhooks') }}</Hook0Button
+                  >.
+                  <Hook0HelpText tone="emphasis">{{
+                    t('subscriptions.secretWarning')
+                  }}</Hook0HelpText>
+                </Hook0HelpText>
+              </template>
+
+              <template #content>
+                <Hook0Stack direction="row" gap="xs">
+                  <Hook0Input v-model="subscription.secret" type="text" disabled> </Hook0Input>
+                </Hook0Stack>
+              </template>
+            </Hook0CardContentLine>
+
+            <Hook0CardContentLine>
+              <template #label>
+                {{ t('subscriptions.httpEndpoint') }}
+                <Hook0HelpText>{{ t('subscriptions.httpEndpointHelp') }}</Hook0HelpText>
+              </template>
+              <template #content>
+                <Hook0Stack direction="row" gap="xs">
+                  <Hook0Select
+                    v-model="subscription.target.method"
+                    :options="httpTarget.METHODS"
+                    data-test="subscription-method-select"
+                  ></Hook0Select>
+                  <Hook0Input
+                    v-model="subscription.target.url"
+                    type="text"
+                    placeholder="https://"
+                    required
+                    data-test="subscription-url-input"
+                  >
+                  </Hook0Input>
+                </Hook0Stack>
+                <Hook0HelpText>
                   If you just want to run some tests, you can go to
                   <Hook0Button href="https://webhook.site" target="_blank"
                     >Webhook.site</Hook0Button
                   >
                   to obtain a unique URL. Keep the page open and use the unique URL here with any
                   HTTP verb!
-                </Hook0Text>
-              </div>
-            </template>
-          </Hook0CardContentLine>
+                </Hook0HelpText>
+              </template>
+            </Hook0CardContentLine>
+
+            <Hook0CardContentLine>
+              <template #label>{{ t('subscriptions.endpointHeaders') }}</template>
+              <template #content>
+                <Hook0KeyValue
+                  :value="httpTarget.headers"
+                  key-placeholder="header name"
+                  value-placeholder="value"
+                  @update:model-value="subscription.target.headers = toMap($event)"
+                ></Hook0KeyValue>
+              </template>
+            </Hook0CardContentLine>
+
+            <Hook0CardContentLine>
+              <template #label>
+                {{ t('subscriptions.subscriptionLabels') }}
+                <Hook0HelpText>{{ t('subscriptions.subscriptionLabelsHelp') }}</Hook0HelpText>
+              </template>
+              <template #content>
+                <Hook0KeyValue
+                  :value="labels"
+                  key-placeholder="Label key"
+                  value-placeholder="Label value"
+                  data-test="subscription-labels"
+                  @update:model-value="subscription.labels = toMap($event)"
+                ></Hook0KeyValue>
+              </template>
+            </Hook0CardContentLine>
+
+            <Hook0CardContentLine>
+              <template #label>
+                <Hook0Stack direction="row" gap="xs" align="center">
+                  <Hook0Text variant="primary">{{ t('subscriptions.selectEventTypes') }}</Hook0Text>
+                  <Hook0Button :to="{ name: routes.EventTypesList }" target="_blank">{{
+                    t('eventTypes.title')
+                  }}</Hook0Button>
+                  <Hook0Button @click="refetchEt()">
+                    <RefreshCw :size="14" aria-hidden="true" />
+                  </Hook0Button>
+                </Hook0Stack>
+              </template>
+              <template #content>
+                <!-- Loading event types -->
+                <Hook0Loader v-if="etLoading"></Hook0Loader>
+
+                <!-- Error loading event types -->
+                <Hook0ErrorCard v-else-if="etError" :error="etError" @retry="refetchEt()" />
+
+                <!-- Event types list -->
+                <Hook0List v-else data-test="event-types-list">
+                  <Hook0ListItem
+                    v-for="(eventType, index) in eventTypes"
+                    :key="index"
+                    :data-test="`event-type-item-${index}`"
+                  >
+                    <template #left>
+                      <Hook0Checkbox
+                        v-model="eventType.selected"
+                        :data-test="`event-type-checkbox-${index}`"
+                      >
+                        <Hook0Text
+                          variant="primary"
+                          weight="medium"
+                          :data-test="`event-type-label-${index}`"
+                        >
+                          {{ eventType.event_type_name }}
+                        </Hook0Text>
+                      </Hook0Checkbox>
+                    </template>
+                  </Hook0ListItem>
+                </Hook0List>
+              </template>
+            </Hook0CardContentLine>
+          </Hook0CardContent>
 
           <Hook0CardContentLine>
-            <template #label> Endpoint headers </template>
+            <template #label>{{ t('subscriptions.metadataLabel') }}</template>
             <template #content>
               <Hook0KeyValue
-                :value="httpTarget.headers"
-                key-placeholder="header name"
+                :value="metadata"
+                key-placeholder="key"
                 value-placeholder="value"
-                @update:model-value="subscription.target.headers = toMap($event)"
+                @update:model-value="subscription.metadata = toMap($event)"
               ></Hook0KeyValue>
             </template>
           </Hook0CardContentLine>
+          <Hook0CardFooter>
+            <Hook0Button
+              v-if="!props.tutorialMode"
+              variant="secondary"
+              type="button"
+              data-test="subscription-cancel-button"
+              @click="cancel2()"
+              >{{ t('common.cancel') }}</Hook0Button
+            >
+            <Hook0Button
+              v-if="!tutorialMode"
+              variant="primary"
+              type="button"
+              :loading="createMutation.isPending.value || updateMutation.isPending.value"
+              :disabled="
+                !subscription.target.url ||
+                !subscription.description ||
+                Object.keys(subscription.labels).length <= 0 ||
+                !eventTypes.some((et) => et.selected)
+              "
+              data-test="subscription-submit-button"
+              @click="upsert($event)"
+              >{{ isNew ? t('common.create') : t('common.edit') }}
+            </Hook0Button>
 
-          <Hook0CardContentLine>
-            <template #label>
-              Subscription labels
+            <Hook0Button
+              v-else
+              variant="primary"
+              type="submit"
+              :loading="createMutation.isPending.value"
+              :disabled="
+                !subscription.target.url ||
+                !subscription.description ||
+                Object.keys(subscription.labels).length <= 0 ||
+                !eventTypes.some((et) => et.selected)
+              "
+              data-test="subscription-submit-button"
+              @click="upsert($event)"
+              >{{ t('subscriptions.createFirstSubscription') }}
+            </Hook0Button>
+          </Hook0CardFooter>
+        </Hook0Card>
+      </Hook0Form>
 
-              <Hook0Text class="helpText mt-2 block">
-                Hook0 will only forward events to subscriptions that have the same labels as
-                specified in the event. If you specify multiple labels here, events will need to
-                have <em>at least</em> the same labels to trigger this subscription (but they can
-                have more).
-              </Hook0Text>
-
-              <Hook0Text class="helpText mt-2 block"> </Hook0Text>
-            </template>
-            <template #content>
-              <Hook0KeyValue
-                :value="labels"
-                key-placeholder="Label key"
-                value-placeholder="Label value"
-                data-test="subscription-labels"
-                @update:model-value="subscription.labels = toMap($event)"
-              ></Hook0KeyValue>
-            </template>
-          </Hook0CardContentLine>
-
-          <Hook0CardContentLine>
-            <template #label>
-              <Hook0Text>
-                Select
-                <Hook0Button :to="{ name: routes.EventTypesList }" target="_blank"
-                  >event types</Hook0Button
-                >
-                to listen to
-                <Hook0Button @click="_load()">
-                  <Hook0Icon name="fa-arrows-rotate"></Hook0Icon>
-                </Hook0Button>
-              </Hook0Text>
-            </template>
-            <template #content>
-              <Hook0Loader v-if="eventTypes === null"></Hook0Loader>
-              <Hook0List v-else data-test="event-types-list">
-                <Hook0ListItem
-                  v-for="(eventType, index) in eventTypes"
-                  :key="index"
-                  :data-test="`event-type-item-${index}`"
-                >
-                  <template #left>
-                    <Hook0Input
-                      :id="'event_' + index"
-                      type="checkbox"
-                      :value="eventType.selected"
-                      :data-test="`event-type-checkbox-${index}`"
-                      @input="eventType.selected = !eventType.selected"
-                    ></Hook0Input>
-                    <label
-                      :for="'event_' + index"
-                      class="font-medium text-gray-700 select-none ml-2 cursor-pointer"
-                      :data-test="`event-type-label-${index}`"
-                    >
-                      <Hook0Text>{{ eventType.event_type_name }}</Hook0Text>
-                    </label>
-                  </template>
-                </Hook0ListItem>
-              </Hook0List>
-            </template>
-          </Hook0CardContentLine>
-        </Hook0CardContent>
-
-        <Hook0CardContentLine>
-          <template #label> Metadata </template>
-          <template #content>
-            <Hook0KeyValue
-              :value="metadata"
-              key-placeholder="key"
-              value-placeholder="value"
-              @update:model-value="subscription.metadata = toMap($event)"
-            ></Hook0KeyValue>
-          </template>
-        </Hook0CardContentLine>
-        <Hook0CardFooter>
-          <Hook0Button
-            v-if="!props.tutorialMode"
-            class="secondary"
-            type="button"
-            data-test="subscription-cancel-button"
-            @click="cancel2()"
-            >Cancel</Hook0Button
-          >
-          <Hook0Button
-            v-if="!tutorialMode"
-            class="primary"
-            type="button"
-            :disabled="
-              !subscription.target.url ||
-              !subscription.description ||
-              Object.keys(subscription.labels).length <= 0 ||
-              !eventTypes.some((et) => et.selected)
-            "
-            tooltip="ℹ️ To continue, you need to fill in all required fields"
-            data-test="subscription-submit-button"
-            @click="upsert($event)"
-            >{{ isNew ? 'Create' : 'Update' }}
-          </Hook0Button>
-
-          <Hook0Button
-            v-else
-            class="primary"
-            type="submit"
-            :disabled="
-              !subscription.target.url ||
-              !subscription.description ||
-              Object.keys(subscription.labels).length <= 0 ||
-              !eventTypes.some((et) => et.selected)
-            "
-            tooltip="ℹ️ To continue, you need to fill in all required fields"
-            data-test="subscription-submit-button"
-            @click="upsert($event)"
-            >Create Your First Subscription 🎉
-          </Hook0Button>
-        </Hook0CardFooter>
-      </Hook0Card>
-    </form>
-
-    <SubscriptionsRemove
-      v-if="!isNew && subscription_id"
-      :subscription-id="subscription_id"
-      :subscription-name="subscription.description"
-      :application-id="
-        Array.isArray(route.params.application_id)
-          ? route.params.application_id[0]
-          : route.params.application_id
-      "
-    ></SubscriptionsRemove>
-  </div>
+      <SubscriptionsRemove
+        v-if="!isNew && subscriptionId"
+        :subscription-id="subscriptionId"
+        :subscription-name="subscription.description"
+        :application-id="applicationId"
+      ></SubscriptionsRemove>
+    </template>
+  </Hook0Stack>
 </template>
+
+<style scoped>
+/* No custom CSS - using Hook0* components only */
+</style>

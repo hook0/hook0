@@ -1,150 +1,142 @@
 <script setup lang="ts">
-import { ColDef } from 'ag-grid-community';
-import { onMounted, onUpdated, ref } from 'vue';
+import { computed, h } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
+import type { ColumnDef } from '@tanstack/vue-table';
 
-import Hook0Button from '@/components/Hook0Button.vue';
-import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
+import { useEventTypeList, useDeactivateEventType } from './useEventTypeQueries';
+import type { EventType } from './EventTypeService';
+import { routes } from '@/routes';
+import { displayError } from '@/utils/displayError';
+import type { Problem } from '@/http';
+import { push } from 'notivue';
+
+import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
+import Hook0Card from '@/components/Hook0Card.vue';
+import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
-import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
-import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0Table from '@/components/Hook0Table.vue';
-import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 import Hook0TableCellCode from '@/components/Hook0TableCellCode.vue';
-import { UUID } from '@/http';
-import Hook0Text from '@/components/Hook0Text.vue';
-import { routes } from '@/routes';
-import * as EventTypeService from './EventTypeService';
-import { EventType } from './EventTypeService';
-import Hook0Loader from '@/components/Hook0Loader.vue';
-import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
-import Hook0Error from '@/components/Hook0Error.vue';
+import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
+import Hook0Button from '@/components/Hook0Button.vue';
+import Hook0EmptyState from '@/components/Hook0EmptyState.vue';
+import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
+import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
 
-const router = useRouter();
+const { t } = useI18n();
 const route = useRoute();
+const router = useRouter();
 
-interface Props {
-  // cache-burst
-  burst?: string | string[];
+const applicationId = computed(() => route.params.application_id as string);
+const { data: eventTypes, isLoading, error, refetch } = useEventTypeList(applicationId);
+
+const deactivateMutation = useDeactivateEventType();
+
+function handleDeactivate(row: EventType) {
+  if (!confirm(t('eventTypes.confirmDeactivate', { name: row.event_type_name }))) return;
+
+  deactivateMutation.mutate(
+    { applicationId: applicationId.value, eventTypeName: row.event_type_name },
+    {
+      onSuccess: () => {
+        push.success({
+          title: t('common.success'),
+          message: t('eventTypes.deactivated', { name: row.event_type_name }),
+          duration: 3000,
+        });
+      },
+      onError: (err) => {
+        displayError(err as unknown as Problem);
+      },
+    }
+  );
 }
 
-defineProps<Props>();
-const columnDefs: ColDef[] = [
+const columns: ColumnDef<EventType, unknown>[] = [
   {
-    field: 'event_type_name',
-    suppressMovable: true,
-    cellRenderer: Hook0TableCellCode,
-    minWidth: 360,
-    sortable: true,
-    headerName: 'Name',
+    accessorKey: 'event_type_name',
+    header: t('common.name'),
+    enableSorting: true,
+    cell: (info) => h(Hook0TableCellCode, { value: String(info.getValue()) }),
   },
   {
-    suppressMovable: true,
-    suppressSizeToFit: true,
-    width: 130,
-    headerName: 'Options',
-    cellRenderer: Hook0TableCellLink,
-    cellRendererParams: {
-      value: 'Deactivate',
-      icon: 'trash',
-      dataTest: 'event-type-deactivate-button',
-      onClick: (row: EventType): void => {
-        if (confirm(`Are you sure to deactivate "${row.event_type_name}" event?`)) {
-          EventTypeService.deactivate(application_id.value as string, row.event_type_name)
-            .then(() => {
-              // @TODO notify user of success
-              _forceLoad();
-            })
-            // @TODO proper error management
-            .catch((err) => {
-              window.alert(err);
-              throw err;
-            });
-        }
-      },
-    },
+    id: 'options',
+    header: t('common.actions'),
+    cell: (info) =>
+      h(Hook0TableCellLink, {
+        value: t('eventTypes.deactivate'),
+        icon: 'trash',
+        dataTest: 'event-type-deactivate-button',
+        onClick: () => handleDeactivate(info.row.original),
+      }),
   },
 ];
-
-const event_types$ = ref<Promise<Array<EventType>>>();
-const application_id = ref<null | UUID>(null);
-
-function _forceLoad() {
-  application_id.value = route.params.application_id as UUID;
-  event_types$.value = EventTypeService.list(application_id.value);
-}
-
-function _load() {
-  if (application_id.value !== route.params.application_id) {
-    _forceLoad();
-  }
-}
-
-onMounted(() => {
-  _load();
-});
-
-onUpdated(() => {
-  _load();
-});
 </script>
 
 <template>
-  <Promised :promise="event_types$">
-    <!-- Use the "pending" slot to display a loading message -->
-    <template #pending>
-      <Hook0Loader></Hook0Loader>
-    </template>
-    <!-- The default scoped slot will be used as the result -->
-    <template #default="event_types">
+  <Hook0PageLayout :title="t('eventTypes.title')">
+    <!-- Error state (check FIRST - errors take priority) -->
+    <Hook0ErrorCard v-if="error && !isLoading" :error="error" @retry="refetch()" />
+
+    <!-- Loading skeleton (also shown when query is disabled and data is undefined) -->
+    <Hook0Card v-else-if="isLoading || !eventTypes" data-test="event-types-card">
+      <Hook0CardHeader>
+        <template #header>{{ t('eventTypes.title') }}</template>
+      </Hook0CardHeader>
+      <Hook0CardContent>
+        <Hook0SkeletonGroup :count="3" />
+      </Hook0CardContent>
+    </Hook0Card>
+
+    <!-- Data loaded (eventTypes is guaranteed to be defined here) -->
+    <template v-else>
       <Hook0Card data-test="event-types-card">
         <Hook0CardHeader>
-          <template #header>Event Types</template>
-          <template #subtitle>
-            Each event sent through a webhook must have an event type.
-          </template>
+          <template #header>{{ t('eventTypes.title') }}</template>
+          <template #subtitle>{{ t('eventTypes.subtitle') }}</template>
         </Hook0CardHeader>
 
-        <Hook0CardContent v-if="event_types.length > 0">
+        <Hook0CardContent v-if="eventTypes.length > 0">
           <Hook0Table
             data-test="event-types-table"
-            :context="{ event_types$, columnDefs }"
-            :column-defs="columnDefs"
-            :row-data="event_types"
+            :columns="columns"
+            :data="eventTypes"
             row-id-field="event_type_name"
-          >
-          </Hook0Table>
+          />
         </Hook0CardContent>
 
         <Hook0CardContent v-else>
-          <Hook0CardContentLines>
-            <Hook0CardContentLine type="full-width">
-              <template #content>
-                <Hook0Text
-                  >Your application will send events to Hook0 that will forward these events to
-                  registered subscriptions (webhooks), each of these event must have a type (e.g.
-                  "billing.invoice.created"), it's time to create your first event type!
-                </Hook0Text>
-              </template>
-            </Hook0CardContentLine>
-          </Hook0CardContentLines>
+          <Hook0EmptyState
+            :title="t('eventTypes.empty.title')"
+            :description="t('eventTypes.empty.description')"
+          >
+            <template #action>
+              <Hook0Button
+                variant="primary"
+                type="button"
+                data-test="event-types-create-button"
+                @click="void router.push({ name: routes.EventTypesNew })"
+              >
+                {{ t('eventTypes.create') }}
+              </Hook0Button>
+            </template>
+          </Hook0EmptyState>
         </Hook0CardContent>
 
-        <Hook0CardFooter>
+        <Hook0CardFooter v-if="eventTypes.length > 0">
           <Hook0Button
-            class="primary"
+            variant="primary"
             type="button"
             data-test="event-types-create-button"
-            @click="router.push({ name: routes.EventTypesNew })"
-            >Create new event type
+            @click="void router.push({ name: routes.EventTypesNew })"
+          >
+            {{ t('eventTypes.create') }}
           </Hook0Button>
         </Hook0CardFooter>
       </Hook0Card>
     </template>
-    <!-- The "rejected" scoped slot will be used if there is an error -->
-    <template #rejected="error">
-      <Hook0Error :error="error"></Hook0Error>
-    </template>
-  </Promised>
+  </Hook0PageLayout>
 </template>
+
+<style scoped></style>

@@ -5,13 +5,18 @@ defineSlots<{
 </script>
 
 <template>
-  <div class="card-content">
-    <slot></slot>
+  <div class="hook0-card-content">
+    <slot />
   </div>
 </template>
 
-<style lang="scss" scoped>
-.card-content {
-  @apply border-t border-gray-200 px-4 py-5 sm:p-0;
+<style scoped>
+.hook0-card-content {
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.hook0-card-content:first-child {
+  border-top: none;
 }
 </style>

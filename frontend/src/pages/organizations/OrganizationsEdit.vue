@@ -1,219 +1,246 @@
 <script setup lang="ts">
-import { onMounted, onUpdated, ref, defineProps, defineEmits } from 'vue';
-
-import * as OrganizationService from './OrganizationService';
-import { OrganizationInfo } from './OrganizationService';
-import { Problem, UUID } from '@/http';
-import OrganizationRemove from './OrganizationsRemove.vue';
+import { computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import Hook0Input from '@/components/Hook0Input.vue';
-import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
+import { useI18n } from 'vue-i18n';
+import { useForm } from 'vee-validate';
+import { push } from 'notivue';
+
+import {
+  useOrganizationDetail,
+  useCreateOrganization,
+  useUpdateOrganization,
+} from './useOrganizationQueries';
+import { organizationSchema } from './organization.schema';
+import { toTypedSchema } from '@/utils/zod-adapter';
+import { routes } from '@/routes';
+import { displayError } from '@/utils/displayError';
+import type { Problem } from '@/http';
+import { useTracking } from '@/composables/useTracking';
+
 import Hook0Card from '@/components/Hook0Card.vue';
+import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
-import { push } from 'notivue';
-import { routes } from '@/routes.ts';
-import Hook0Consumption, { ComsumptionQuota } from '@/components/Hook0Consumption.vue';
-import { useTracking } from '@/composables/useTracking';
+import Hook0Input from '@/components/Hook0Input.vue';
+import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
+import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
+import Hook0Consumption, { type ComsumptionQuota } from '@/components/Hook0Consumption.vue';
+import Hook0Stack from '@/components/Hook0Stack.vue';
+import OrganizationRemove from './OrganizationsRemove.vue';
+import Hook0Form from '@/components/Hook0Form.vue';
 
+const { t } = useI18n();
 const router = useRouter();
-
-// Analytics tracking
-const { trackEvent } = useTracking();
 const route = useRoute();
-
-const isNew = ref(true);
-const loading = ref(false);
-const organization_id = ref<UUID | null>(null);
-const organization = ref({
-  name: '',
-});
+const { trackEvent } = useTracking();
 
 interface Props {
   tutorialMode?: boolean;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  tutorialMode: false,
+});
 
 const emit = defineEmits(['tutorial-organization-created']);
 
-const consumptions = ref<ComsumptionQuota[]>([]);
+const organizationId = computed(() => {
+  const id = route.params.organization_id;
+  return typeof id === 'string' ? id : '';
+});
+const isNew = computed(() => !organizationId.value);
 
-function _load() {
-  if (organization_id.value !== route.params.organization_id) {
-    organization_id.value = route.params.organization_id as UUID;
-    isNew.value = !organization_id.value;
+// Load existing organization for edit mode
+const {
+  data: orgDetail,
+  isLoading,
+  error: loadError,
+  refetch,
+} = useOrganizationDetail(organizationId);
 
-    if (!isNew.value) {
-      OrganizationService.get(organization_id.value)
-        .then((org: OrganizationInfo) => {
-          organization.value.name = org.name;
-          consumptions.value = [
-            {
-              icon: 'users',
-              name: 'Members',
-              comsumption: org.consumption.members || 0,
-              quota: org.quotas.members_per_organization_limit,
-            },
-            {
-              icon: 'rocket',
-              name: 'Applications',
-              comsumption: org.consumption.applications || 0,
-              quota: org.quotas.applications_per_organization_limit,
-            },
-            {
-              icon: 'file-lines',
-              name: 'Events per day',
-              comsumption: org.consumption.events_per_day || 0,
-              quota: org.quotas.events_per_day_limit,
-            },
-          ];
-        })
-        .catch(displayError);
-    }
+// VeeValidate form with Zod schema
+const { errors, defineField, handleSubmit, resetForm } = useForm({
+  validationSchema: toTypedSchema(organizationSchema),
+});
+
+const [name, nameAttrs] = defineField('name');
+
+// Populate form when org data loads
+watch(orgDetail, (org) => {
+  if (org) {
+    resetForm({ values: { name: org.name } });
   }
-}
+});
 
-function upsert(e: Event) {
-  e.preventDefault();
-  e.stopImmediatePropagation();
+// Consumptions computed from org detail
+const consumptions = computed<ComsumptionQuota[]>(() => {
+  if (!orgDetail.value) return [];
+  return [
+    {
+      icon: 'users',
+      name: t('organizations.consumptionMembers'),
+      comsumption: orgDetail.value.consumption.members || 0,
+      quota: orgDetail.value.quotas.members_per_organization_limit,
+    },
+    {
+      icon: 'rocket',
+      name: t('organizations.consumptionApplications'),
+      comsumption: orgDetail.value.consumption.applications || 0,
+      quota: orgDetail.value.quotas.applications_per_organization_limit,
+    },
+    {
+      icon: 'file-lines',
+      name: t('organizations.consumptionEventsPerDay'),
+      comsumption: orgDetail.value.consumption.events_per_day || 0,
+      quota: orgDetail.value.quotas.events_per_day_limit,
+    },
+  ];
+});
 
-  loading.value = true;
+// Mutations
+const createMutation = useCreateOrganization();
+const updateMutation = useUpdateOrganization();
 
-  (isNew.value
-    ? // create
-      OrganizationService.create({
-        name: organization.value.name,
-      })
-        .then((org) => {
+const onSubmit = handleSubmit((values) => {
+  if (isNew.value) {
+    createMutation.mutate(
+      { name: values.name },
+      {
+        onSuccess: (org) => {
           trackEvent('organization', 'create', 'success');
           if (props.tutorialMode) {
             emit('tutorial-organization-created', org.organization_id);
           } else {
             push.success({
-              title: 'Organization created',
-              message: `Organization ${organization.value.name} has been created successfully`,
+              title: t('organizations.created'),
+              message: t('organizations.createdMessage', { name: values.name }),
               duration: 5000,
             });
-            return router.push({
+            void router.push({
               name: routes.TutorialCreateApplication,
               params: { organization_id: org.organization_id },
             });
           }
-        })
-        .catch(displayError)
-    : // update
-      OrganizationService.update(route.params.organization_id as string, {
-        name: organization.value.name,
-      })
-        .then(() => {
+        },
+        onError: (err) => {
+          displayError(err as unknown as Problem);
+        },
+      }
+    );
+  } else {
+    updateMutation.mutate(
+      { organizationId: organizationId.value, organization: { name: values.name } },
+      {
+        onSuccess: () => {
           trackEvent('organization', 'update', 'success');
           push.success({
-            title: 'Organization updated',
-            message: `Organization ${organization.value.name} has been updated`,
+            title: t('organizations.updated'),
+            message: t('organizations.updatedMessage', { name: values.name }),
             duration: 5000,
           });
-          return router.push({
+          void router.push({
             name: routes.OrganizationsDashboard,
-            params: { organization_id: route.params.organization_id },
+            params: { organization_id: organizationId.value },
           });
-        })
-        .catch(displayError)
-  )
-    // finally
-    .finally(() => (loading.value = false));
-}
-
-function displayError(err: Problem) {
-  console.error(err);
-  let options = {
-    title: err.title,
-    message: err.detail,
-    duration: 5000,
-  };
-  err.status >= 500 ? push.error(options) : push.warning(options);
-}
-
-onMounted(() => {
-  _load();
-});
-
-onUpdated(() => {
-  _load();
+        },
+        onError: (err) => {
+          displayError(err as unknown as Problem);
+        },
+      }
+    );
+  }
 });
 </script>
 
 <template>
-  <div>
-    <form ref="form" data-test="organization-form" @submit="upsert">
-      <Hook0Card data-test="organization-card">
-        <Hook0CardHeader>
-          <template v-if="isNew" #header> Create new organization </template>
-          <template v-else #header> Edit organization </template>
-          <template #subtitle>An organization holds your team members and plan.</template>
-        </Hook0CardHeader>
-        <Hook0CardContent>
-          <Hook0CardContentLine>
-            <template #label> Organization Name </template>
-            <template #content>
-              <Hook0Input
-                v-model="organization.name"
-                type="text"
-                placeholder="My Awesome Product"
-                required
-                data-test="organization-name-input"
-              >
-                <template #helpText></template>
-              </Hook0Input>
-            </template>
-          </Hook0CardContentLine>
-        </Hook0CardContent>
+  <Hook0Stack direction="column" gap="xl">
+    <!-- Loading for edit mode -->
+    <Hook0Card v-if="!isNew && isLoading">
+      <Hook0CardHeader>
+        <template #header>{{ t('organizations.editTitle') }}</template>
+      </Hook0CardHeader>
+      <Hook0CardContent>
+        <Hook0SkeletonGroup :count="2" />
+      </Hook0CardContent>
+    </Hook0Card>
 
-        <Hook0CardFooter>
-          <Hook0Button
-            v-if="!tutorialMode"
-            class="primary"
-            type="button"
-            :loading="loading"
-            :disabled="!organization.name"
-            data-test="organization-submit-button"
-            @click="upsert($event)"
-            >{{ isNew ? 'Create' : 'Update' }}
-          </Hook0Button>
+    <!-- Error loading org -->
+    <Hook0ErrorCard v-else-if="!isNew && loadError" :error="loadError" @retry="refetch()" />
 
-          <Hook0Button
-            v-else
-            class="primary"
-            :loading="loading"
-            :disabled="!organization.name"
-            tooltip="ℹ️ To continue, you need to add a name for your organization or select an existing one."
-            type="button"
-            data-test="organization-submit-button"
-            @click="upsert($event)"
-          >
-            Create Your First Organization 🎉
-          </Hook0Button>
-        </Hook0CardFooter>
-      </Hook0Card>
-    </form>
+    <!-- Form -->
+    <template v-else>
+      <Hook0Form data-test="organization-form" @submit="onSubmit">
+        <Hook0Card data-test="organization-card">
+          <Hook0CardHeader>
+            <template #header>{{
+              isNew ? t('organizations.createTitle') : t('organizations.editTitle')
+            }}</template>
+            <template #subtitle>{{ t('organizations.formSubtitle') }}</template>
+          </Hook0CardHeader>
+          <Hook0CardContent>
+            <Hook0CardContentLine>
+              <template #label>{{ t('organizations.name') }}</template>
+              <template #content>
+                <Hook0Input
+                  v-model="name"
+                  v-bind="nameAttrs"
+                  type="text"
+                  :placeholder="t('organizations.namePlaceholder')"
+                  :error="errors.name"
+                  data-test="organization-name-input"
+                >
+                  <template #helpText></template>
+                </Hook0Input>
+              </template>
+            </Hook0CardContentLine>
+          </Hook0CardContent>
 
-    <Hook0Consumption
-      v-if="!isNew && organization_id"
-      :title="`Consumption of organization ${organization.name}`"
-      entity-type="organization"
-      :consomptions="consumptions"
-    />
+          <Hook0CardFooter>
+            <Hook0Button
+              v-if="!tutorialMode"
+              variant="primary"
+              type="button"
+              :loading="createMutation.isPending.value || updateMutation.isPending.value"
+              :disabled="!name"
+              data-test="organization-submit-button"
+              @click="onSubmit"
+              >{{ isNew ? t('common.create') : t('common.edit') }}
+            </Hook0Button>
 
-    <OrganizationRemove
-      v-if="!isNew"
-      :organization-id="
-        Array.isArray(route.params.organization_id)
-          ? route.params.organization_id[0]
-          : route.params.organization_id
-      "
-      :organization-name="organization.name"
-    ></OrganizationRemove>
-  </div>
+            <Hook0Button
+              v-else
+              variant="primary"
+              :loading="createMutation.isPending.value"
+              :disabled="!name"
+              :tooltip="t('organizations.createTooltip')"
+              type="button"
+              data-test="organization-submit-button"
+              @click="onSubmit"
+            >
+              {{ t('organizations.createFirstOrg') }}
+            </Hook0Button>
+          </Hook0CardFooter>
+        </Hook0Card>
+      </Hook0Form>
+
+      <Hook0Consumption
+        v-if="!isNew && organizationId && orgDetail"
+        :title="t('organizations.consumptionTitle', { name: orgDetail.name })"
+        entity-type="organization"
+        :consomptions="consumptions"
+      />
+
+      <OrganizationRemove
+        v-if="!isNew"
+        :organization-id="organizationId"
+        :organization-name="orgDetail?.name ?? ''"
+      />
+    </template>
+  </Hook0Stack>
 </template>
+
+<style scoped>
+/* Hook0Stack handles all layout */
+</style>

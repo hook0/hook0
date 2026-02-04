@@ -15,10 +15,15 @@ import { routes } from '@/routes.ts';
 import EventTypesNew from '@/pages/organizations/applications/event_types/EventTypesNew.vue';
 import { push } from 'notivue';
 import Hook0ProgressBar from '@/components/Hook0ProgressBar.vue';
-import party from 'party-js';
 import { progressItems } from '@/pages/tutorial/TutorialService';
 import { useTracking } from '@/composables/useTracking';
+import { useI18n } from 'vue-i18n';
+import { FolderTree, ArrowRight, X } from 'lucide-vue-next';
+import Hook0Badge from '@/components/Hook0Badge.vue';
+import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
+import Hook0Stack from '@/components/Hook0Stack.vue';
 
+const { t } = useI18n();
 const router = useRouter();
 const route = useRoute();
 
@@ -44,8 +49,8 @@ function _load() {
     displayError({
       id: 'FieldsRequired',
       status: 400,
-      title: 'Organization ID and Application ID are required',
-      detail: 'Something went wrong. Please try again. If the problem persists, contact support.',
+      title: t('tutorial.orgAppIdRequired'),
+      detail: t('tutorial.somethingWentWrong'),
     });
   }
 }
@@ -68,14 +73,9 @@ function goFourthStep() {
     trackEvent('tutorial', 'step-complete', 'event-type');
     disabled_button.value = false;
     push.success({
-      title: 'Event type created',
-      message: 'You can now create your first subscription. 🎉',
+      title: t('tutorial.step3.eventTypeCreated'),
+      message: t('tutorial.step3.canCreateSubscription'),
       duration: 5000,
-    });
-    party.confetti(party.Rect.fromScreen(), {
-      count: 80,
-      spread: 40,
-      size: party.variation.range(1.2, 1.6),
     });
     return router.push({
       name: routes.TutorialCreateSubscription,
@@ -86,8 +86,8 @@ function goFourthStep() {
     });
   } else {
     push.error({
-      title: 'Organization ID and Application ID are required',
-      message: 'Something went wrong. Please try again. If the problem persists, contact support.',
+      title: t('tutorial.orgAppIdRequired'),
+      message: t('tutorial.somethingWentWrong'),
       duration: 5000,
     });
   }
@@ -99,59 +99,87 @@ onMounted(() => {
 </script>
 
 <template>
-  <Hook0CardContent v-if="alert.visible">
-    <Hook0Alert
-      :type="alert.type"
-      :title="alert.title"
-      :description="alert.description"
-    ></Hook0Alert>
-    <Hook0Button class="secondary" type="button" @click="cancel">Close</Hook0Button>
-  </Hook0CardContent>
-  <Hook0Card v-else>
-    <Hook0CardHeader>
-      <template #header>Step 3: Create your first event type</template>
-      <template #subtitle
-        >Event types are categories of events. For each subscription, you will then be able choose
-        among your declared event types to receive only the right events. Every webhook sent by
-        Hook0 will have its event type provided as a header so that applications that consume
-        webhooks may use it (for example, this is a good way to know which structure/schema should
-        be expected for the webhook's body).</template
-      >
-    </Hook0CardHeader>
-    <Hook0CardContent>
-      <Hook0CardContentLines>
-        <Hook0CardContentLine type="full-width">
-          <template #content>
-            <Hook0ProgressBar :current="3" :items="progressItems" class="mb-20" />
-            <EventTypesNew
-              v-if="organizationId && applicationId && disabled_button"
-              :tutorial-mode="true"
-              @tutorial-event-type-created="goFourthStep"
-            />
-          </template>
-        </Hook0CardContentLine>
-      </Hook0CardContentLines>
+  <Hook0Stack direction="column" gap="none">
+    <Hook0CardContent v-if="alert.visible">
+      <Hook0Alert
+        :type="alert.type"
+        :title="alert.title"
+        :description="alert.description"
+      ></Hook0Alert>
+      <Hook0Button variant="secondary" type="button" @click="cancel">{{
+        t('tutorial.close')
+      }}</Hook0Button>
     </Hook0CardContent>
-    <Hook0CardFooter>
-      <Hook0Button
-        class="secondary"
-        type="button"
-        @click="
-          router.push({
-            name: routes.ApplicationsDashboard,
-            params: { organization_id: organizationId, application_id: applicationId },
-          })
-        "
-        >Skip</Hook0Button
-      >
-      <Hook0Button
-        v-if="organizationId && applicationId && !disabled_button"
-        class="primary"
-        type="button"
-        :disabled="!organizationId || !applicationId || disabled_button"
-        @click="goFourthStep"
-        >🚀 Continue Step 4: Create Your Subscription</Hook0Button
-      >
-    </Hook0CardFooter>
-  </Hook0Card>
+    <Hook0Card v-else>
+      <Hook0CardHeader>
+        <template #header>
+          <Hook0Stack direction="row" align="center" gap="sm">
+            <Hook0Badge display="step" variant="primary">3</Hook0Badge>
+            <Hook0Stack direction="row" align="center" gap="none">
+              {{ t('tutorial.step3.title') }}
+            </Hook0Stack>
+          </Hook0Stack>
+        </template>
+        <template #subtitle>{{ t('tutorial.step3.subtitle') }}</template>
+      </Hook0CardHeader>
+      <Hook0CardContent>
+        <Hook0CardContentLines>
+          <Hook0CardContentLine type="full-width">
+            <template #content>
+              <Hook0Stack direction="column" gap="lg">
+                <Hook0ProgressBar :current="3" :items="progressItems" />
+                <Hook0Stack
+                  v-if="organizationId && applicationId && disabled_button"
+                  direction="column"
+                  gap="md"
+                >
+                  <Hook0Stack direction="row" align="center" gap="sm">
+                    <Hook0IconBadge variant="primary">
+                      <FolderTree :size="18" aria-hidden="true" />
+                    </Hook0IconBadge>
+                    <Hook0Stack direction="row" align="center" gap="none">
+                      {{ t('tutorial.step3.title') }}
+                    </Hook0Stack>
+                  </Hook0Stack>
+                  <EventTypesNew
+                    :tutorial-mode="true"
+                    @tutorial-event-type-created="goFourthStep"
+                  />
+                </Hook0Stack>
+              </Hook0Stack>
+            </template>
+          </Hook0CardContentLine>
+        </Hook0CardContentLines>
+      </Hook0CardContent>
+      <Hook0CardFooter>
+        <Hook0Button
+          variant="secondary"
+          type="button"
+          @click="
+            router.push({
+              name: routes.ApplicationsDashboard,
+              params: { organization_id: organizationId, application_id: applicationId },
+            })
+          "
+        >
+          <X :size="16" />
+          {{ t('tutorial.step3.skip') }}
+        </Hook0Button>
+        <Hook0Button
+          v-if="organizationId && applicationId && !disabled_button"
+          variant="primary"
+          type="button"
+          :disabled="!organizationId || !applicationId || disabled_button"
+          @click="goFourthStep"
+        >
+          {{ t('tutorial.step3.continueStep4') }}
+          <ArrowRight :size="16" />
+        </Hook0Button>
+      </Hook0CardFooter>
+    </Hook0Card>
+  </Hook0Stack>
 </template>
+
+<style scoped>
+/* No custom styles - using Hook0* components only */
+</style>

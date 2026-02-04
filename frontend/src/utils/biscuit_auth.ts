@@ -1,6 +1,14 @@
 import { Biscuit, block, PublicKey, SignatureAlgorithm } from '@biscuit-auth/biscuit-wasm';
 import { UUID } from '@/http.ts';
-import { parse } from 'uuid';
+
+function uuidParse(uuid: string): Uint8Array {
+  const hex = uuid.replace(/-/g, '');
+  const bytes = new Uint8Array(16);
+  for (let i = 0; i < 16; i++) {
+    bytes[i] = parseInt(hex.substring(i * 2, i * 2 + 2), 16);
+  }
+  return bytes;
+}
 
 // Re-export from instance-config for backward compatibility
 export { getInstanceConfig } from './instance-config';
@@ -22,8 +30,7 @@ export function attenuateBiscuit(
     );
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const application_id_bytes = application_id ? parse(application_id) : null;
+  const application_id_bytes = application_id ? uuidParse(application_id) : null;
 
   if (application_id_bytes && expired_at) {
     return biscuit.appendBlock(

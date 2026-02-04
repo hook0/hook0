@@ -1,14 +1,18 @@
 <script setup lang="ts">
-import { defineProps, ref } from 'vue';
-
-import { Problem, UUID } from '@/http';
-import { routes } from '@/routes';
-import Hook0ListItem from '@/components/Hook0ListItem.vue';
-import Hook0List from '@/components/Hook0List.vue';
-import { EventTypePost } from './EventTypeService';
-import * as EventTypeService from './EventTypeService';
 import { useRoute, useRouter } from 'vue-router';
-import Hook0Text from '@/components/Hook0Text.vue';
+import { useI18n } from 'vue-i18n';
+import { useForm } from 'vee-validate';
+
+import { useCreateEventType } from './useEventTypeQueries';
+import { eventTypeSchema } from './eventType.schema';
+import { toTypedSchema } from '@/utils/zod-adapter';
+import { routes } from '@/routes';
+import { displayError } from '@/utils/displayError';
+import type { Problem, UUID } from '@/http';
+import { useTracking } from '@/composables/useTracking';
+
+import Hook0List from '@/components/Hook0List.vue';
+import Hook0ListItem from '@/components/Hook0ListItem.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
@@ -16,133 +20,146 @@ import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
-import { push } from 'notivue';
-import { useTracking } from '@/composables/useTracking';
+import Hook0Stack from '@/components/Hook0Stack.vue';
+import Hook0InputRow from '@/components/Hook0InputRow.vue';
+import Hook0Text from '@/components/Hook0Text.vue';
+import Hook0HelpText from '@/components/Hook0HelpText.vue';
+import Hook0Code from '@/components/Hook0Code.vue';
+import Hook0Form from '@/components/Hook0Form.vue';
 
 const router = useRouter();
 const route = useRoute();
-
-// Analytics tracking
+const { t } = useI18n();
 const { trackEvent } = useTracking();
 
 interface Props {
   tutorialMode?: boolean;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  tutorialMode: false,
+});
+
 const emit = defineEmits(['tutorial-event-type-created']);
 
-const event_type = ref<EventTypePost>({
-  application_id: '',
-  service: '',
-  resource_type: '',
-  verb: '',
+// VeeValidate form with Zod schema
+const { errors, defineField, handleSubmit } = useForm({
+  validationSchema: toTypedSchema(eventTypeSchema),
 });
-function create(e: Event) {
-  e.preventDefault();
-  e.stopImmediatePropagation();
 
-  event_type.value.application_id = route.params.application_id as UUID;
+const [service, serviceAttrs] = defineField('service');
+const [resourceType, resourceTypeAttrs] = defineField('resource_type');
+const [verb, verbAttrs] = defineField('verb');
 
-  EventTypeService.create(event_type.value).then(async (_resp) => {
-    const eventTypeName = `${event_type.value.service}.${event_type.value.resource_type}.${event_type.value.verb}`;
-    trackEvent('event-type', 'create', eventTypeName);
-    if (props.tutorialMode) {
-      emit('tutorial-event-type-created');
-    } else {
-      await router.push({
-        name: routes.EventTypesList,
-      });
+// Mutation
+const createMutation = useCreateEventType();
+
+const onSubmit = handleSubmit((values) => {
+  createMutation.mutate(
+    {
+      application_id: route.params.application_id as UUID,
+      service: values.service,
+      resource_type: values.resource_type,
+      verb: values.verb,
+    },
+    {
+      onSuccess: () => {
+        const eventTypeName = `${values.service}.${values.resource_type}.${values.verb}`;
+        trackEvent('event-type', 'create', eventTypeName);
+        if (props.tutorialMode) {
+          emit('tutorial-event-type-created');
+        } else {
+          void router.push({
+            name: routes.EventTypesList,
+          });
+        }
+      },
+      onError: (err) => {
+        displayError(err as unknown as Problem);
+      },
     }
-  }, displayError);
-}
-
-function displayError(err: Problem) {
-  console.error(err);
-  let options = {
-    title: err.title,
-    message: err.detail,
-    duration: 5000,
-  };
-  err.status >= 500 ? push.error(options) : push.warning(options);
-}
+  );
+});
 </script>
 
 <template>
-  <form ref="form" data-test="event-type-form" @submit="create">
+  <Hook0Form data-test="event-type-form" @submit="onSubmit">
     <Hook0Card data-test="event-type-card">
       <Hook0CardHeader>
-        <template #header>Create new event type</template>
-        <template #subtitle>Each event sent through a webhook must have an event type.</template>
+        <template #header>{{ t('eventTypes.createTitle') }}</template>
+        <template #subtitle>{{ t('eventTypes.createSubtitle') }}</template>
       </Hook0CardHeader>
 
       <Hook0CardContentLine>
         <template #label>
-          <Hook0Text>Event Type</Hook0Text>
+          <Hook0Text variant="primary" weight="medium">{{
+            t('eventTypes.eventTypeLabel')
+          }}</Hook0Text>
         </template>
         <template #content>
-          <div class="flex flex-row justify-start items-baseline">
+          <Hook0InputRow gap="sm">
             <Hook0Input
-              v-model="event_type.service"
+              v-model="service"
+              v-bind="serviceAttrs"
               type="text"
-              placeholder="billing"
-              required
-              class="flex-grow-1"
+              :placeholder="t('eventTypes.servicePlaceholder')"
+              :error="errors.service"
               data-test="event-type-service-input"
-            >
-            </Hook0Input>
-            <Hook0Text class="bold flex-grow-0">.</Hook0Text>
+            />
+            <Hook0Text variant="primary" weight="bold" size="lg">.</Hook0Text>
             <Hook0Input
-              v-model="event_type.resource_type"
+              v-model="resourceType"
+              v-bind="resourceTypeAttrs"
               type="text"
-              placeholder="invoice"
-              required
-              class="flex-grow-1"
+              :placeholder="t('eventTypes.resourceTypePlaceholder')"
+              :error="errors.resource_type"
               data-test="event-type-resource-input"
-            >
-            </Hook0Input>
-            <Hook0Text class="bold flex-grow-0">.</Hook0Text>
+            />
+            <Hook0Text variant="primary" weight="bold" size="lg">.</Hook0Text>
             <Hook0Input
-              v-model="event_type.verb"
+              v-model="verb"
+              v-bind="verbAttrs"
               type="text"
-              placeholder="created"
-              required
-              class="flex-grow-1"
+              :placeholder="t('eventTypes.verbPlaceholder')"
+              :error="errors.verb"
               data-test="event-type-verb-input"
-            >
-            </Hook0Input>
-          </div>
+            />
+          </Hook0InputRow>
         </template>
       </Hook0CardContentLine>
       <Hook0CardFooter>
         <Hook0Button
           v-if="!props.tutorialMode"
-          class="secondary"
+          variant="secondary"
           type="button"
           data-test="event-type-cancel-button"
           @click="$router.back()"
-          >Cancel</Hook0Button
         >
+          {{ t('common.cancel') }}
+        </Hook0Button>
         <Hook0Button
           v-if="!tutorialMode"
-          class="primary"
+          variant="primary"
           type="button"
-          :disabled="!event_type.service || !event_type.resource_type || !event_type.verb"
+          :loading="createMutation.isPending.value"
+          :disabled="!service || !resourceType || !verb"
           data-test="event-type-submit-button"
-          @click="create($event)"
-          >Create event type
+          @click="onSubmit"
+        >
+          {{ t('eventTypes.create') }}
         </Hook0Button>
 
         <Hook0Button
           v-else
-          class="primary"
+          variant="primary"
           type="submit"
-          :disabled="!event_type.service || !event_type.resource_type || !event_type.verb"
-          tooltip="ℹ️ To continue, you need to fill in all required fields"
+          :loading="createMutation.isPending.value"
+          :disabled="!service || !resourceType || !verb"
           data-test="event-type-submit-button"
-          @click="create($event)"
-          >Create Your First Event Type 🎉</Hook0Button
+          @click="onSubmit"
         >
+          {{ t('eventTypes.createFirstEventType') }}
+        </Hook0Button>
       </Hook0CardFooter>
     </Hook0Card>
 
@@ -150,20 +167,17 @@ function displayError(err: Problem) {
       <Hook0CardContent>
         <Hook0CardContentLine type="full-width">
           <template #content>
-            <Hook0Text class="block"
-              >An event is something that has happened in your application. In the past.</Hook0Text
-            >
-            <Hook0Text class="mt-2">Event types should be in the form of:</Hook0Text>
-            <Hook0Text class="code"> &lt;service&gt;.&lt;resourceType&gt;.&lt;verb&gt; </Hook0Text>
+            <Hook0Text variant="primary" block>{{ t('eventTypes.helpDescription') }}</Hook0Text>
+            <Hook0HelpText>{{ t('eventTypes.helpFormat') }}</Hook0HelpText>
+            <Hook0Code inline :code="'<service>.<resourceType>.<verb>'" />
           </template>
         </Hook0CardContentLine>
         <Hook0CardContentLine type="columns">
           <template #content>
-            <div>
-              <!--            https://cloud.google.com/iam/docs/permissions-reference -->
-              <Hook0Text class="mt-4 block bold">
-                <Hook0Text class="code">&lt;service&gt;</Hook0Text>
-                examples
+            <Hook0Stack direction="column" gap="sm">
+              <Hook0Text variant="primary" weight="bold" block>
+                <Hook0Code inline code="<service>" />
+                {{ t('eventTypes.serviceExamples') }}
               </Hook0Text>
 
               <Hook0List>
@@ -204,12 +218,12 @@ function displayError(err: Problem) {
                   <template #left>workflows</template>
                 </Hook0ListItem>
               </Hook0List>
-            </div>
+            </Hook0Stack>
 
-            <div>
-              <Hook0Text class="mt-4 block bold">
-                <Hook0Text class="code">&lt;resourceType&gt;</Hook0Text>
-                examples
+            <Hook0Stack direction="column" gap="sm">
+              <Hook0Text variant="primary" weight="bold" block>
+                <Hook0Code inline code="<resourceType>" />
+                {{ t('eventTypes.resourceTypeExamples') }}
               </Hook0Text>
               <Hook0List>
                 <Hook0ListItem>
@@ -228,12 +242,12 @@ function displayError(err: Problem) {
                   <template #left>teammember</template>
                 </Hook0ListItem>
               </Hook0List>
-            </div>
+            </Hook0Stack>
 
-            <div>
-              <Hook0Text class="mt-4 block bold">
-                <Hook0Text class="code">&lt;verb&gt;</Hook0Text>
-                examples
+            <Hook0Stack direction="column" gap="sm">
+              <Hook0Text variant="primary" weight="bold" block>
+                <Hook0Code inline code="<verb>" />
+                {{ t('eventTypes.verbExamples') }}
               </Hook0Text>
               <Hook0List>
                 <Hook0ListItem>
@@ -258,11 +272,15 @@ function displayError(err: Problem) {
                   <template #left>completed</template>
                 </Hook0ListItem>
               </Hook0List>
-            </div>
+            </Hook0Stack>
           </template>
         </Hook0CardContentLine>
       </Hook0CardContent>
       <Hook0CardFooter> </Hook0CardFooter>
     </Hook0Card>
-  </form>
+  </Hook0Form>
 </template>
+
+<style scoped>
+/* No custom styles - Hook0 components handle layout */
+</style>

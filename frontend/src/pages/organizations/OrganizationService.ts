@@ -3,7 +3,7 @@ import http, { handleError, Problem, UUID } from '@/http';
 import type { components } from '@/types';
 
 type definitions = components['schemas'];
-import { refresh } from '@/iam';
+import { useAuthStore } from '@/stores/auth';
 
 export type Organization = definitions['Organization'];
 export type OrganizationPost = definitions['OrganizationPost'];
@@ -18,7 +18,9 @@ export function create(organization: OrganizationPost): Promise<OrganizationInfo
     )
     .then((organization) => {
       // we currently have to force the user token refresh so it contains the organization
-      return refresh().then(() => organization);
+      return useAuthStore()
+        .refresh()
+        .then(() => organization);
     });
 }
 
@@ -48,7 +50,9 @@ export function update(
     )
     .then((organization) => {
       // we currently have to force the user token refresh so it contains the organization
-      return refresh().then(() => organization);
+      return useAuthStore()
+        .refresh()
+        .then(() => organization);
     });
 }
 
@@ -61,6 +65,8 @@ export function remove(organization_id: UUID): Promise<void> {
     )
     .then((organization) => {
       // we currently have to force the user token refresh so it contains the organization
-      return refresh().then(() => organization);
+      return useAuthStore()
+        .refresh()
+        .then(() => organization);
     });
 }

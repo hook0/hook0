@@ -4,20 +4,30 @@ import path from 'path';
 import checker from 'vite-plugin-checker';
 import wasm from 'vite-plugin-wasm';
 import topLevelAwait from 'vite-plugin-top-level-await';
+import tailwindcss from '@tailwindcss/vite';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  server: {
+    port: 3000,
+    strictPort: true,
+  },
   build: {
     sourcemap: true,
     rollupOptions: {
       output: {
         manualChunks: (id: string) => {
           if (id.includes('@biscuit-auth/biscuit-wasm')) return 'vendor-biscuit';
-          if (id.includes('ag-grid')) return 'vendor-ag-grid';
-          if (id.includes('swagger-ui')) return 'vendor-swagger';
           if (id.includes('codemirror') || id.includes('@codemirror')) return 'vendor-codemirror';
+          if (id.includes('chart.js') || id.includes('vue-chartjs')) return 'vendor-charts';
           if (id.includes('node_modules')) {
-            if (id.includes('vue') || id.includes('vue-router') || id.includes('axios')) {
+            if (
+              id.includes('vue') ||
+              id.includes('vue-router') ||
+              id.includes('pinia') ||
+              id.includes('@tanstack/vue-query') ||
+              id.includes('axios')
+            ) {
               return 'vendor-core';
             }
           }
@@ -27,6 +37,7 @@ export default defineConfig({
   },
   plugins: [
     vue(),
+    tailwindcss(),
     checker({
       eslint: {
         lintCommand: 'eslint --ext .js,.ts,.vue --ignore-path .gitignore ./src',

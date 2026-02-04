@@ -10,8 +10,10 @@ defineSlots<{
   </dl>
 </template>
 
-<style lang="scss" scoped>
-.hook0-card-content-lines {
-  @apply sm:divide-y sm:divide-gray-200;
+<style scoped>
+@media (min-width: 640px) {
+  .hook0-card-content-lines :deep(> * + *) {
+    border-top: 1px solid #e5e7eb;
+  }
 }
 </style>

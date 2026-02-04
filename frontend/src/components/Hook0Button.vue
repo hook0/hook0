@@ -1,28 +1,46 @@
 <script setup lang="ts">
 import { RouteLocationRaw, useRouter } from 'vue-router';
 import { ref, computed, onMounted, onUpdated, useSlots } from 'vue';
-import { omit } from 'ramda';
 
-import Hook0Icon from '@/components/Hook0Icon.vue';
+import Hook0Spinner from '@/components/Hook0Spinner.vue';
+
+type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'link' | 'icon';
+type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface Props {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
   loading?: boolean | Promise<unknown>;
   to?: RouteLocationRaw;
   href?: string;
   disabled?: boolean;
   submit?: boolean;
   tooltip?: string;
+  fullWidth?: boolean;
 }
+
 const router = useRouter();
-const props = defineProps<Props>();
-const emit = defineEmits(['click']);
+const props = withDefaults(defineProps<Props>(), {
+  variant: 'secondary',
+  size: 'md',
+  loading: false,
+  to: undefined,
+  href: undefined,
+  disabled: false,
+  submit: false,
+  tooltip: undefined,
+  fullWidth: false,
+});
+const emit = defineEmits<{
+  click: [e: MouseEvent];
+}>();
 defineSlots<{
   default(): unknown;
   left(): unknown;
   right(): unknown;
 }>();
 
-const href = computed(() => {
+const resolvedHref = computed(() => {
   if (props.href) {
     return props.href;
   }
@@ -32,32 +50,25 @@ const href = computed(() => {
   }
 
   const { href } = router.resolve(props.to);
-  return href; // for accessibility
+  return href;
 });
-const loading = computed(() => props.loading ?? false);
 
+const loading = computed(() => props.loading ?? false);
 const loadingStatus = ref(false);
 
-async function _forwardPromiseState() {
+function forwardPromiseState() {
   if (!(loading.value instanceof Promise)) {
     loadingStatus.value = loading.value;
     return;
   }
 
-  const setStatus = (state: boolean) => () => {
+  loadingStatus.value = true;
+  void loading.value.finally(() => {
     if (!(loading.value instanceof Promise)) {
       return;
     }
-
-    loadingStatus.value = state;
-  };
-
-  setStatus(true)();
-  await loading.value.finally(setStatus(false));
-}
-
-function omitOnClick(props: Record<string, unknown>) {
-  return omit(['onClick'], props);
+    loadingStatus.value = false;
+  });
 }
 
 function onClick(e: MouseEvent) {
@@ -66,21 +77,18 @@ function onClick(e: MouseEvent) {
     e.stopImmediatePropagation();
   }
 
-  if (props.loading || props.disabled) {
-    // do nothing
+  if (loadingStatus.value || props.disabled) {
     return;
   }
 
-  if (!href.value) {
-    // no href so bubble-up event
+  if (!resolvedHref.value) {
     emit('click', e);
     return;
   }
 
-  if (e.metaKey && href.value) {
-    // support for power-user that want to open links in another tab
-    window.open(href.value);
-    return true;
+  if (e.metaKey && resolvedHref.value) {
+    window.open(resolvedHref.value);
+    return;
   }
 
   if (props.to) {
@@ -89,142 +97,223 @@ function onClick(e: MouseEvent) {
     });
   }
 }
+
 function hasSlot(name: string): boolean {
   return !!useSlots()[name];
 }
 
 onMounted(() => {
-  void _forwardPromiseState();
+  forwardPromiseState();
 });
 
 onUpdated(() => {
-  void _forwardPromiseState();
+  forwardPromiseState();
 });
+
+const sizeClasses: Record<ButtonSize, string> = {
+  sm: 'px-3 py-1.5 text-sm',
+  md: 'px-4 py-2 text-sm',
+  lg: 'px-5 py-2.5 text-base',
+};
+
+const spinnerSize: Record<ButtonSize, number> = {
+  sm: 14,
+  md: 16,
+  lg: 18,
+};
 </script>
 
 <template>
   <button
     v-if="submit"
-    class="hook0-button"
     type="submit"
-    :class="{ loading: loadingStatus, 'hook0-button-split': hasSlot('right') || hasSlot('left') }"
+    class="hook0-button"
+    :class="[
+      variant,
+      variant !== 'icon' ? sizeClasses[size] : '',
+      { loading: loadingStatus, 'full-width': fullWidth },
+    ]"
     :disabled="loadingStatus || disabled"
-    :title="props.tooltip"
+    :aria-disabled="loadingStatus || disabled"
+    :aria-busy="loadingStatus"
+    :title="tooltip"
+    v-bind="$attrs"
   >
-    <div v-if="hasSlot('left') && !loadingStatus" class="hook0-button-left">
-      <slot name="left"></slot>
-    </div>
-    <div class="hook0-button-center">
-      <slot v-if="!loadingStatus"></slot>
-    </div>
-    <div v-if="hasSlot('right') || loadingStatus" class="hook0-button-right">
-      <Hook0Icon v-if="loadingStatus" name="spinner" spin class="animate-spin"></Hook0Icon>
-      <slot name="right"></slot>
-    </div>
+    <span v-if="hasSlot('left') && !loadingStatus" class="hook0-button-left">
+      <slot name="left" />
+    </span>
+    <Hook0Spinner v-if="loadingStatus" :size="spinnerSize[size]" />
+    <span v-else class="hook0-button-center">
+      <slot />
+    </span>
+    <span v-if="hasSlot('right') && !loadingStatus" class="hook0-button-right">
+      <slot name="right" />
+    </span>
   </button>
   <a
     v-else
     class="hook0-button"
-    :class="{ loading: loadingStatus, 'hook0-button-split': hasSlot('right') || hasSlot('left') }"
-    v-bind="omitOnClick({ ...$props, ...$attrs })"
-    :disabled="loadingStatus || disabled"
-    :href="href"
-    :title="props.tooltip"
+    :class="[
+      variant,
+      variant !== 'icon' ? sizeClasses[size] : '',
+      { loading: loadingStatus, 'full-width': fullWidth },
+    ]"
+    :disabled="loadingStatus || disabled || undefined"
+    :aria-disabled="loadingStatus || disabled"
+    :aria-busy="loadingStatus"
+    :href="resolvedHref"
+    :title="tooltip"
+    v-bind="$attrs"
     @click="onClick($event)"
   >
-    <div v-if="hasSlot('left') && !loadingStatus" class="hook0-button-left">
-      <slot name="left"></slot>
-    </div>
-    <div class="hook0-button-center">
-      <slot v-if="!loadingStatus"></slot>
-    </div>
-    <div v-if="hasSlot('right') || loadingStatus" class="hook0-button-right">
-      <Hook0Icon v-if="loadingStatus" name="spinner" spin class="animate-spin"></Hook0Icon>
-      <slot name="right"></slot>
-    </div>
+    <span v-if="hasSlot('left') && !loadingStatus" class="hook0-button-left">
+      <slot name="left" />
+    </span>
+    <Hook0Spinner v-if="loadingStatus" :size="spinnerSize[size]" />
+    <span v-else class="hook0-button-center">
+      <slot />
+    </span>
+    <span v-if="hasSlot('right') && !loadingStatus" class="hook0-button-right">
+      <slot name="right" />
+    </span>
   </a>
 </template>
 
-<style lang="scss" scoped>
+<style scoped>
 .hook0-button {
-  @apply select-none cursor-pointer font-medium text-indigo-600 hover:text-indigo-500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.1s ease;
+  user-select: none;
+  text-decoration: none;
+  white-space: nowrap;
+  outline: none;
+}
 
-  .hook0-button-left {
-    @apply inline-block;
-  }
+.hook0-button:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--color-bg-primary),
+    0 0 0 4px var(--color-primary);
+}
 
-  .hook0-button-center {
-    @apply inline-block;
-  }
+.hook0-button:active:not([disabled]):not([aria-disabled='true']) {
+  transform: scale(0.98);
+}
 
-  .hook0-button-right {
-    @apply inline-block;
-  }
+.hook0-button[disabled],
+.hook0-button[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
 
-  &.dropdown {
-    @apply max-w-lg block w-full sm:max-w-xs cursor-pointer py-4 pl-4 pr-4;
-  }
+/* Variants */
+.hook0-button.primary {
+  background-color: var(--color-primary);
+  color: white;
+  border: 1px solid var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
 
-  /** must be after dropdown **/
-  &.hook0-button-split {
-    @apply flex justify-between items-stretch;
+.hook0-button.primary:hover:not([disabled]) {
+  background-color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
 
-    .hook0-button-left {
-      @apply justify-self-start self-center;
-    }
+.hook0-button.secondary {
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
 
-    .hook0-button-center {
-      @apply justify-self-start self-center;
-    }
+.hook0-button.secondary:hover:not([disabled]) {
+  background-color: var(--color-bg-secondary);
+}
 
-    .hook0-button-right {
-      @apply justify-self-end self-center;
-    }
-  }
+.hook0-button.danger {
+  background-color: var(--color-danger);
+  color: white;
+  border: 1px solid var(--color-danger);
+  box-shadow: var(--shadow-sm);
+}
 
-  &.link {
-    @apply hover:bg-indigo-100 hover:text-gray-900 text-gray-700 block mb-0 px-4 py-2 text-sm;
+.hook0-button.danger:hover:not([disabled]) {
+  background-color: var(--color-danger-hover);
+  border-color: var(--color-danger-hover);
+}
 
-    &.darkmode {
-      @apply hover:bg-gray-800 hover:text-gray-500;
-    }
-  }
+.hook0-button.ghost {
+  background-color: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid transparent;
+}
 
-  &.primary {
-    @apply inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer;
-  }
+.hook0-button.ghost:hover:not([disabled]) {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
 
-  &.secondary {
-    @apply inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer;
-  }
+.hook0-button.link {
+  background-color: transparent;
+  color: var(--color-primary);
+  border: 1px solid transparent;
+  padding-left: 0;
+  padding-right: 0;
+}
 
-  &.danger {
-    @apply inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 cursor-pointer;
-  }
+.hook0-button.link:hover:not([disabled]) {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
 
-  &.white {
-    @apply inline-flex items-center justify-center px-4 py-2 bg-white text-sm font-medium border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 outline-none cursor-pointer;
+.hook0-button.icon {
+  background-color: transparent;
+  color: var(--color-text-tertiary);
+  border: none;
+  padding: 0;
+  opacity: 0.6;
+  border-radius: 0;
+}
 
-    &.center {
-      @apply rounded-none;
-    }
+.hook0-button.icon:hover:not([disabled]) {
+  opacity: 1;
+}
 
-    &.left {
-      @apply rounded-none rounded-l-lg;
-    }
+.hook0-button.icon:active:not([disabled]) {
+  transform: none;
+}
 
-    &.right {
-      @apply rounded-none rounded-r-lg;
-    }
+/* Legacy class support for backwards compatibility */
+.hook0-button.white {
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
 
-    &.active {
-      @apply bg-gray-50 border-gray-300;
-    }
-  }
+.hook0-button.white:hover:not([disabled]) {
+  background-color: var(--color-bg-secondary);
+}
 
-  &[disabled='disabled'],
-  &[disabled='true'] {
-    @apply opacity-20 transition-all;
-  }
+.hook0-button-left,
+.hook0-button-right {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Full width variant */
+.hook0-button.full-width {
+  width: 100%;
 }
 </style>

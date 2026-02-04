@@ -1,10 +1,22 @@
 <script setup lang="ts">
+import { computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { onMounted, onUpdated, ref, defineProps, defineEmits } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useForm } from 'vee-validate';
+import { push } from 'notivue';
 
-import { Problem, UUID } from '@/http';
-import * as ApplicationService from './ApplicationService';
-import ApplicationsRemove from '@/pages/organizations/applications/ApplicationsRemove.vue';
+import {
+  useApplicationDetail,
+  useCreateApplication,
+  useUpdateApplication,
+} from './useApplicationQueries';
+import { applicationSchema } from './application.schema';
+import { toTypedSchema } from '@/utils/zod-adapter';
+import { routes } from '@/routes';
+import { displayError } from '@/utils/displayError';
+import type { Problem } from '@/http';
+import { useTracking } from '@/composables/useTracking';
+
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
@@ -12,193 +24,226 @@ import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
-import { push } from 'notivue';
-import { routes } from '@/routes';
-import Hook0Consumption, { ComsumptionQuota } from '@/components/Hook0Consumption.vue';
-import { useTracking } from '@/composables/useTracking';
+import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
+import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
+import Hook0Consumption, { type ComsumptionQuota } from '@/components/Hook0Consumption.vue';
+import Hook0Stack from '@/components/Hook0Stack.vue';
+import ApplicationsRemove from '@/pages/organizations/applications/ApplicationsRemove.vue';
+import Hook0Form from '@/components/Hook0Form.vue';
 
+const { t } = useI18n();
 const router = useRouter();
-
-// Analytics tracking
-const { trackEvent } = useTracking();
 const route = useRoute();
-
-const isNew = ref(true);
-const application_id = ref<UUID | null>(null);
-const application = ref({
-  name: '',
-});
+const { trackEvent } = useTracking();
 
 interface Props {
   tutorialMode?: boolean;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  tutorialMode: false,
+});
 
 const emit = defineEmits(['tutorial-application-created']);
 
-const consumptions = ref<ComsumptionQuota[]>([]);
+const organizationId = computed(() => {
+  const id = route.params.organization_id;
+  return typeof id === 'string' ? id : '';
+});
 
-function _load() {
-  if (application_id.value !== route.params.application_id) {
-    application_id.value = route.params.application_id as UUID;
-    isNew.value = !application_id.value;
+const applicationId = computed(() => {
+  const id = route.params.application_id;
+  return typeof id === 'string' ? id : '';
+});
 
-    if (!isNew.value) {
-      ApplicationService.get(application_id.value)
-        .then((app: ApplicationService.ApplicationInfo) => {
-          application.value.name = app.name;
-          consumptions.value = [
-            {
-              icon: 'file-lines',
-              name: 'Events per day',
-              comsumption: app.consumption.events_per_day || 0,
-              quota: app.quotas.events_per_day_limit,
-            },
-          ];
-        })
-        .catch(displayError);
-    }
+const isNew = computed(() => !applicationId.value);
+
+// Load existing application for edit mode
+const {
+  data: appDetail,
+  isLoading,
+  error: loadError,
+  refetch,
+} = useApplicationDetail(applicationId);
+
+// VeeValidate form with Zod schema
+const { errors, defineField, handleSubmit, resetForm } = useForm({
+  validationSchema: toTypedSchema(applicationSchema),
+});
+
+const [name, nameAttrs] = defineField('name');
+
+// Populate form when app data loads
+watch(appDetail, (app) => {
+  if (app) {
+    resetForm({ values: { name: app.name } });
   }
-}
+});
+
+// Consumptions computed from app detail
+const consumptions = computed<ComsumptionQuota[]>(() => {
+  if (!appDetail.value) return [];
+  return [
+    {
+      icon: 'file-lines',
+      name: t('applications.consumptionEventsPerDay'),
+      comsumption: appDetail.value.consumption.events_per_day || 0,
+      quota: appDetail.value.quotas.events_per_day_limit,
+    },
+  ];
+});
 
 function cancel() {
   router.back();
 }
 
-function upsert(e: Event) {
-  e.preventDefault();
-  e.stopImmediatePropagation();
+// Mutations
+const createMutation = useCreateApplication();
+const updateMutation = useUpdateApplication();
 
+const onSubmit = handleSubmit((values) => {
   if (isNew.value) {
-    ApplicationService.create({
-      name: application.value.name,
-      organization_id: route.params.organization_id as string,
-    }).then((_resp) => {
-      trackEvent('application', 'create', 'success');
-      if (props.tutorialMode) {
-        emit('tutorial-application-created', _resp.application_id);
-      } else {
-        push.success({
-          title: 'Application created',
-          message: `Application ${application.value.name} has been created successfully`,
-          duration: 5000,
-        });
-        return router.push({
-          name: routes.TutorialCreateEventType,
-          params: {
-            organization_id: route.params.organization_id,
-            application_id: _resp.application_id,
-          },
-        });
+    createMutation.mutate(
+      { name: values.name, organization_id: organizationId.value },
+      {
+        onSuccess: (app) => {
+          trackEvent('application', 'create', 'success');
+          if (props.tutorialMode) {
+            emit('tutorial-application-created', app.application_id);
+          } else {
+            push.success({
+              title: t('applications.created'),
+              message: t('applications.createdMessage', { name: values.name }),
+              duration: 5000,
+            });
+            void router.push({
+              name: routes.TutorialCreateEventType,
+              params: {
+                organization_id: organizationId.value,
+                application_id: app.application_id,
+              },
+            });
+          }
+        },
+        onError: (err) => {
+          displayError(err as unknown as Problem);
+        },
       }
-    }, displayError);
-    return;
+    );
+  } else {
+    updateMutation.mutate(
+      {
+        applicationId: applicationId.value,
+        application: { name: values.name, organization_id: organizationId.value },
+      },
+      {
+        onSuccess: () => {
+          trackEvent('application', 'update', 'success');
+          cancel();
+        },
+        onError: (err) => {
+          displayError(err as unknown as Problem);
+        },
+      }
+    );
   }
-
-  ApplicationService.update(application_id.value as UUID, {
-    name: application.value.name,
-    organization_id: route.params.organization_id as string,
-  }).then((_resp) => {
-    trackEvent('application', 'update', 'success');
-    cancel();
-  }, displayError);
-}
-
-function displayError(err: Problem) {
-  console.error(err);
-  let options = {
-    title: err.title,
-    message: err.detail,
-    duration: 5000,
-  };
-  err.status >= 500 ? push.error(options) : push.warning(options);
-}
-
-onMounted(() => {
-  _load();
-});
-
-onUpdated(() => {
-  _load();
 });
 </script>
 
 <template>
-  <div>
-    <form data-test="application-form" @submit="upsert">
-      <Hook0Card data-test="application-card">
-        <Hook0CardHeader>
-          <template v-if="isNew" #header> Create new application </template>
-          <template v-else #header> Edit application </template>
-          <template #subtitle>
-            An application is an isolated environment that contains everything webhook-related.
-          </template>
-        </Hook0CardHeader>
-        <Hook0CardContent>
-          <Hook0CardContentLine>
-            <template #label> Application Name </template>
-            <template #content>
-              <Hook0Input
-                v-model="application.name"
-                type="text"
-                placeholder="my awesome api - production"
-                required
-                data-test="application-name-input"
-              >
-                <template #helpText
-                  >Name of your company's product or API. Don't forget also to specify the
-                  environment, for example: "facebook-production"
-                </template>
-              </Hook0Input>
-            </template>
-          </Hook0CardContentLine>
-        </Hook0CardContent>
+  <Hook0Stack direction="column" gap="xl">
+    <!-- Loading for edit mode -->
+    <Hook0Card v-if="!isNew && isLoading">
+      <Hook0CardHeader>
+        <template #header>{{ t('applications.editTitle') }}</template>
+      </Hook0CardHeader>
+      <Hook0CardContent>
+        <Hook0SkeletonGroup :count="2" />
+      </Hook0CardContent>
+    </Hook0Card>
 
-        <Hook0CardFooter>
-          <Hook0Button
-            v-if="!tutorialMode"
-            class="secondary"
-            type="button"
-            data-test="application-cancel-button"
-            @click="cancel()"
-            >Cancel</Hook0Button
-          >
-          <Hook0Button
-            v-if="!tutorialMode"
-            class="primary"
-            type="button"
-            :disabled="!application.name"
-            data-test="application-submit-button"
-            @click="upsert($event)"
-            >{{ isNew ? 'Create' : 'Update' }}
-          </Hook0Button>
+    <!-- Error loading app -->
+    <Hook0ErrorCard v-else-if="!isNew && loadError" :error="loadError" @retry="refetch()" />
 
-          <Hook0Button
-            v-else
-            class="primary"
-            type="button"
-            :disabled="!application.name"
-            tooltip="ℹ️ To continue, you need to add a name for your application."
-            data-test="application-submit-button"
-            @click="upsert($event)"
-            >Create Your First Application 🎉
-          </Hook0Button>
-        </Hook0CardFooter>
-      </Hook0Card>
-    </form>
+    <!-- Form -->
+    <template v-else>
+      <Hook0Form data-test="application-form" @submit="onSubmit">
+        <Hook0Card data-test="application-card">
+          <Hook0CardHeader>
+            <template #header>{{
+              isNew ? t('applications.createTitle') : t('applications.editTitle')
+            }}</template>
+            <template #subtitle>{{ t('applications.formSubtitle') }}</template>
+          </Hook0CardHeader>
+          <Hook0CardContent>
+            <Hook0CardContentLine>
+              <template #label>{{ t('applications.name') }}</template>
+              <template #content>
+                <Hook0Input
+                  v-model="name"
+                  v-bind="nameAttrs"
+                  type="text"
+                  :placeholder="t('applications.namePlaceholder')"
+                  :error="errors.name"
+                  data-test="application-name-input"
+                >
+                  <template #helpText>{{ t('applications.nameHelpText') }}</template>
+                </Hook0Input>
+              </template>
+            </Hook0CardContentLine>
+          </Hook0CardContent>
 
-    <Hook0Consumption
-      v-if="!isNew && application_id"
-      :title="`Consumption of application ${application.name}`"
-      entity-type="application"
-      :consomptions="consumptions"
-    />
+          <Hook0CardFooter>
+            <Hook0Button
+              v-if="!tutorialMode"
+              variant="secondary"
+              type="button"
+              data-test="application-cancel-button"
+              @click="cancel()"
+              >{{ t('common.cancel') }}</Hook0Button
+            >
+            <Hook0Button
+              v-if="!tutorialMode"
+              variant="primary"
+              type="button"
+              :loading="createMutation.isPending.value || updateMutation.isPending.value"
+              :disabled="!name"
+              data-test="application-submit-button"
+              @click="onSubmit"
+              >{{ isNew ? t('common.create') : t('common.edit') }}
+            </Hook0Button>
 
-    <ApplicationsRemove
-      v-if="!isNew && application_id"
-      :application-id="application_id"
-      :application-name="application.name"
-    ></ApplicationsRemove>
-  </div>
+            <Hook0Button
+              v-else
+              variant="primary"
+              type="button"
+              :loading="createMutation.isPending.value"
+              :disabled="!name"
+              :tooltip="t('applications.createTooltip')"
+              data-test="application-submit-button"
+              @click="onSubmit"
+              >{{ t('applications.createFirstApp') }}
+            </Hook0Button>
+          </Hook0CardFooter>
+        </Hook0Card>
+      </Hook0Form>
+
+      <Hook0Consumption
+        v-if="!isNew && applicationId && appDetail"
+        :title="t('applications.consumptionTitle', { name: appDetail.name })"
+        entity-type="application"
+        :consomptions="consumptions"
+      />
+
+      <ApplicationsRemove
+        v-if="!isNew && applicationId"
+        :application-id="applicationId"
+        :application-name="appDetail?.name ?? ''"
+      ></ApplicationsRemove>
+    </template>
+  </Hook0Stack>
 </template>
+
+<style scoped>
+/* Hook0Stack handles all layout */
+</style>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ICellRendererParams } from 'ag-grid-community';
+import { RouteLocation } from 'vue-router';
 
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 
@@ -7,10 +7,18 @@ defineOptions({
   inheritAttrs: false,
 });
 
-type Hook0TableCellDateParameter = ICellRendererParams;
+interface LinkParams {
+  value: string;
+  icon?: string;
+  onClick?: () => void;
+  href?: string;
+  to?: RouteLocation;
+  disabled?: boolean;
+  dataTest?: string;
+}
 
 interface Props {
-  params: { parameters: Hook0TableCellDateParameter };
+  links: LinkParams[];
 }
 
 defineProps<Props>();
@@ -19,10 +27,15 @@ defineProps<Props>();
 <template>
   <div class="grid grid-flow-col auto-cols-max gap-1">
     <Hook0TableCellLink
-      v-for="(param, index) in params.parameters"
+      v-for="(link, index) in links"
       :key="index"
-      :params="{ ...param }"
-    >
-    </Hook0TableCellLink>
+      :value="link.value"
+      :icon="link.icon"
+      :on-click="link.onClick"
+      :href="link.href"
+      :to="link.to"
+      :disabled="link.disabled"
+      :data-test="link.dataTest"
+    />
   </div>
 </template>

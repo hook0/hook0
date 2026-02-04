@@ -1,254 +1,226 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useRoute } from 'vue-router';
-import { onMounted, onUpdated, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { Building2, CreditCard, Users, FolderOpen, FileText, Database } from 'lucide-vue-next';
 
-import Hook0Text from '@/components/Hook0Text.vue';
-import { Problem, UUID } from '@/http';
-import * as OrganizationService from '@/pages/organizations/OrganizationService';
-import * as ServiceTokenService from '@/pages/organizations/services_token/ServicesTokenService.ts';
-import { OrganizationInfo } from '@/pages/organizations/OrganizationService';
-import Hook0CardContent from '@/components/Hook0CardContent.vue';
-import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
-import Hook0List from '@/components/Hook0List.vue';
-import Hook0ListItem from '@/components/Hook0ListItem.vue';
-import ApplicationsList from '@/pages/organizations/applications/ApplicationsList.vue';
+import { useOrganizationDetail } from './useOrganizationQueries';
+import { useInstanceConfig } from '@/composables/useInstanceConfig';
+import { organizationSteps } from '@/pages/tutorial/TutorialService';
 import { routes } from '@/routes';
-import { getSupportEmailAddress, isPricingEnabled } from '@/instance';
-import Hook0Icon from '@/components/Hook0Icon.vue';
-import Hook0Button from '@/components/Hook0Button.vue';
-import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
+
+import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
+import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
+import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
-import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
-import MembersList from '@/pages/organizations/MembersList.vue';
-import { push } from 'notivue';
+import Hook0CardSkeleton from '@/components/Hook0CardSkeleton.vue';
+import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
+import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0TutorialWidget from '@/components/Hook0TutorialWidget.vue';
-import { organizationSteps, Step } from '@/pages/tutorial/TutorialService';
+import Hook0Badge from '@/components/Hook0Badge.vue';
+import Hook0Stack from '@/components/Hook0Stack.vue';
+import Hook0Text from '@/components/Hook0Text.vue';
+import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
+import ApplicationsList from '@/pages/organizations/applications/ApplicationsList.vue';
+import MembersList from '@/pages/organizations/MembersList.vue';
 
+const { t } = useI18n();
 const route = useRoute();
-const pricingEnabled = ref<boolean>(false);
-const support_email_address = ref<string | null>(null);
 
-const has_service_token = ref(true);
-const organization_id = ref<UUID | null>(null);
-const organization = ref({
-  name: '',
-  plan: '',
-  quotas: {
-    members_per_organization_limit: 0,
-    applications_per_organization_limit: 0,
-    events_per_day_limit: 0,
-    days_of_events_retention_limit: 0,
-  },
-});
+const organizationId = computed(() => route.params.organization_id as string);
 
-const widgetItems = ref<Step[]>([]);
+const {
+  data: organization,
+  isLoading: orgLoading,
+  error: orgError,
+  refetch: refetchOrg,
+} = useOrganizationDetail(organizationId);
 
-function _load() {
-  if (organization_id.value !== route.params.organization_id) {
-    organization_id.value = route.params.organization_id as UUID;
+const { data: instanceConfig } = useInstanceConfig();
 
-    OrganizationService.get(organization_id.value)
-      .then((org: OrganizationInfo) => {
-        organization.value.name = org.name;
-        organization.value.plan = org.plan?.label || '';
-        organization.value.quotas = org.quotas;
-        widgetItems.value = organizationSteps(org);
-      })
-      .catch(displayError);
+const pricingEnabled = computed(() => instanceConfig.value?.quota_enforcement ?? false);
+const supportEmailAddress = computed(() => instanceConfig.value?.support_email_address ?? '');
 
-    ServiceTokenService.list(organization_id.value)
-      .then((tokens) => {
-        has_service_token.value = tokens.length > 0;
-      })
-      .catch(displayError);
-  }
-}
-
-function displayError(err: Problem) {
-  console.error(err);
-  let options = {
-    title: err.title,
-    message: err.detail,
-    duration: 5000,
-  };
-  err.status >= 500 ? push.error(options) : push.warning(options);
-}
-
-onMounted(async () => {
-  pricingEnabled.value = await isPricingEnabled();
-  support_email_address.value = await getSupportEmailAddress();
-  _load();
-});
-
-onUpdated(() => {
-  _load();
+const widgetItems = computed(() => {
+  if (!organization.value) return [];
+  return organizationSteps(organization.value);
 });
 </script>
 
 <template>
-  <div>
-    <Hook0Card>
-      <Hook0CardHeader>
-        <template #header>
-          <Hook0Icon name="sitemap"></Hook0Icon>
-          Organization
-          <Hook0Text class="bold">{{ organization.name }}</Hook0Text>
-          <template v-if="pricingEnabled">
-            <span
-              v-if="organization.plan"
-              class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10"
-              :title="'Plan: ' + organization.plan"
-              >{{ organization.plan }}</span
-            >
-            <span
-              v-else
-              class="ml-2 inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10"
-              title="Plan: Developer"
-              >Developer</span
-            >
+  <Hook0PageLayout :title="t('organizations.dashboard')">
+    <!-- Loading -->
+    <Hook0CardSkeleton v-if="orgLoading" :lines="4" />
+
+    <!-- Error -->
+    <Hook0ErrorCard v-else-if="orgError" :error="orgError" @retry="refetchOrg()" />
+
+    <!-- Data loaded -->
+    <template v-else-if="organization">
+      <Hook0Card data-test="organization-dashboard-card">
+        <Hook0CardHeader>
+          <template #header>
+            <Hook0Stack direction="row" align="center" gap="sm">
+              <Hook0IconBadge variant="primary" size="sm">
+                <Building2 :size="14" aria-hidden="true" />
+              </Hook0IconBadge>
+              <Hook0Text variant="secondary" size="sm">{{ t('organizations.title') }}</Hook0Text>
+              <Hook0Text variant="primary" size="md" weight="semibold">{{
+                organization.name
+              }}</Hook0Text>
+              <template v-if="pricingEnabled">
+                <Hook0Badge
+                  v-if="organization.plan"
+                  variant="primary"
+                  size="sm"
+                  :title="`${t('organizations.plan')}: ${organization.plan.label}`"
+                >
+                  {{ organization.plan.label }}
+                </Hook0Badge>
+                <Hook0Badge
+                  v-else
+                  variant="default"
+                  size="sm"
+                  :title="`${t('organizations.plan')}: ${t('organizations.planDeveloper')}`"
+                >
+                  {{ t('organizations.planDeveloper') }}
+                </Hook0Badge>
+              </template>
+            </Hook0Stack>
           </template>
-        </template>
-        <template #actions>
+          <template #actions>
+            <Hook0Button
+              :to="{
+                name: routes.OrganizationsDetail,
+                params: { organization_id: $route.params.organization_id },
+              }"
+            >
+              {{ t('common.settings') }}
+            </Hook0Button>
+          </template>
+        </Hook0CardHeader>
+        <Hook0CardContent v-if="widgetItems.length > 0">
+          <Hook0TutorialWidget :steps="widgetItems" />
+        </Hook0CardContent>
+      </Hook0Card>
+
+      <Hook0Card v-if="pricingEnabled && !organization.plan">
+        <Hook0CardHeader>
+          <template #header>
+            <Hook0Stack direction="row" align="center" gap="sm">
+              <Hook0IconBadge variant="warning" size="sm">
+                <CreditCard :size="14" aria-hidden="true" />
+              </Hook0IconBadge>
+              <Hook0Text variant="secondary" size="sm">{{
+                t('organizations.developerPlanNotice')
+              }}</Hook0Text>
+            </Hook0Stack>
+          </template>
+        </Hook0CardHeader>
+
+        <Hook0CardContent>
+          <Hook0Stack direction="column" gap="md">
+            <Hook0Text variant="secondary" size="sm">{{
+              t('organizations.currentlyLimitedTo')
+            }}</Hook0Text>
+            <Hook0Stack layout="grid" grid-size="compact" gap="sm">
+              <Hook0Card>
+                <Hook0CardContent>
+                  <Hook0Stack direction="row" align="center" gap="md">
+                    <Hook0IconBadge variant="primary" size="md">
+                      <Users :size="16" aria-hidden="true" />
+                    </Hook0IconBadge>
+                    <Hook0Stack direction="column" gap="none">
+                      <Hook0Text variant="primary" size="lg" weight="bold">{{
+                        organization.quotas.members_per_organization_limit
+                      }}</Hook0Text>
+                      <Hook0Text variant="muted" size="xs">{{
+                        t('organizations.consumptionMembers').toLowerCase()
+                      }}</Hook0Text>
+                    </Hook0Stack>
+                  </Hook0Stack>
+                </Hook0CardContent>
+              </Hook0Card>
+              <Hook0Card>
+                <Hook0CardContent>
+                  <Hook0Stack direction="row" align="center" gap="md">
+                    <Hook0IconBadge variant="primary" size="md">
+                      <FolderOpen :size="16" aria-hidden="true" />
+                    </Hook0IconBadge>
+                    <Hook0Stack direction="column" gap="none">
+                      <Hook0Text variant="primary" size="lg" weight="bold">{{
+                        organization.quotas.applications_per_organization_limit
+                      }}</Hook0Text>
+                      <Hook0Text variant="muted" size="xs">{{
+                        t('organizations.consumptionApplications').toLowerCase()
+                      }}</Hook0Text>
+                    </Hook0Stack>
+                  </Hook0Stack>
+                </Hook0CardContent>
+              </Hook0Card>
+              <Hook0Card>
+                <Hook0CardContent>
+                  <Hook0Stack direction="row" align="center" gap="md">
+                    <Hook0IconBadge variant="primary" size="md">
+                      <FileText :size="16" aria-hidden="true" />
+                    </Hook0IconBadge>
+                    <Hook0Stack direction="column" gap="none">
+                      <Hook0Text variant="primary" size="lg" weight="bold">{{
+                        organization.quotas.events_per_day_limit
+                      }}</Hook0Text>
+                      <Hook0Text variant="muted" size="xs">{{
+                        t('organizations.consumptionEventsPerDay').toLowerCase()
+                      }}</Hook0Text>
+                    </Hook0Stack>
+                  </Hook0Stack>
+                </Hook0CardContent>
+              </Hook0Card>
+              <Hook0Card>
+                <Hook0CardContent>
+                  <Hook0Stack direction="row" align="center" gap="md">
+                    <Hook0IconBadge variant="primary" size="md">
+                      <Database :size="16" aria-hidden="true" />
+                    </Hook0IconBadge>
+                    <Hook0Stack direction="column" gap="none">
+                      <Hook0Text variant="primary" size="lg" weight="bold">{{
+                        organization.quotas.days_of_events_retention_limit
+                      }}</Hook0Text>
+                      <Hook0Text variant="muted" size="xs">{{
+                        t('organizations.consumptionRetention').toLowerCase()
+                      }}</Hook0Text>
+                    </Hook0Stack>
+                  </Hook0Stack>
+                </Hook0CardContent>
+              </Hook0Card>
+            </Hook0Stack>
+          </Hook0Stack>
+        </Hook0CardContent>
+
+        <Hook0CardFooter>
+          <Hook0Button type="button" href="https://www.hook0.com/#pricing" target="_blank">{{
+            t('organizations.availablePlans')
+          }}</Hook0Button>
           <Hook0Button
-            :to="{
-              name: routes.OrganizationsDetail,
-              params: { organization_id: $route.params.organization_id },
-            }"
+            v-if="supportEmailAddress"
+            variant="primary"
+            type="button"
+            :href="`mailto:${supportEmailAddress}`"
+            >{{ t('organizations.subscribeBetterPlan') }}</Hook0Button
           >
-            Settings
-          </Hook0Button>
-        </template>
-      </Hook0CardHeader>
-      <Hook0CardContent v-if="widgetItems.length > 0">
-        <Hook0CardContentLines>
-          <Hook0CardContentLine type="full-width">
-            <template #content>
-              <Hook0TutorialWidget :steps="widgetItems" />
-            </template>
-          </Hook0CardContentLine>
-        </Hook0CardContentLines>
-      </Hook0CardContent>
-    </Hook0Card>
+        </Hook0CardFooter>
+      </Hook0Card>
 
-    <Hook0Card v-if="pricingEnabled && !organization.plan">
-      <Hook0CardHeader>
-        <template #header>
-          <Hook0Icon name="money-check-dollar"></Hook0Icon>
-          Your organization is on the <strong>Developer</strong> plan!
-        </template>
-      </Hook0CardHeader>
+      <MembersList
+        v-if="organization.quotas.members_per_organization_limit > 1"
+        :burst="$route.params.organization_id"
+      />
 
-      <Hook0CardContent>
-        <Hook0CardContentLines>
-          <Hook0CardContentLine type="full-width">
-            <template #content>
-              <Hook0Text>You are currently limited to:</Hook0Text>
-              <Hook0List>
-                <Hook0ListItem>
-                  <template #left>
-                    <Hook0Icon name="users" class="mr-1"></Hook0Icon>
-                    <Hook0Text>
-                      <strong>{{ organization.quotas.members_per_organization_limit }}</strong>
-                      member{{ organization.quotas.members_per_organization_limit > 1 ? 's' : '' }}
-                    </Hook0Text>
-                  </template>
-                </Hook0ListItem>
-                <Hook0ListItem>
-                  <template #left>
-                    <Hook0Icon name="folder" class="mr-1"></Hook0Icon>
-                    <Hook0Text>
-                      <strong>{{ organization.quotas.applications_per_organization_limit }}</strong>
-                      application{{
-                        organization.quotas.applications_per_organization_limit > 1 ? 's' : ''
-                      }}
-                    </Hook0Text>
-                  </template>
-                </Hook0ListItem>
-                <Hook0ListItem>
-                  <template #left>
-                    <Hook0Icon name="file-lines" class="mr-1"></Hook0Icon>
-                    <Hook0Text>
-                      <strong>{{ organization.quotas.events_per_day_limit }}</strong>
-                      event{{ organization.quotas.events_per_day_limit > 1 ? 's' : '' }} per day
-                    </Hook0Text>
-                  </template>
-                </Hook0ListItem>
-                <Hook0ListItem>
-                  <template #left>
-                    <Hook0Icon name="database" class="mr-1"></Hook0Icon>
-                    <Hook0Text>
-                      <strong>{{ organization.quotas.days_of_events_retention_limit }}</strong>
-                      day{{ organization.quotas.days_of_events_retention_limit > 1 ? 's' : '' }} of
-                      event retention
-                    </Hook0Text>
-                  </template>
-                </Hook0ListItem>
-              </Hook0List>
-            </template>
-          </Hook0CardContentLine>
-        </Hook0CardContentLines>
-      </Hook0CardContent>
-
-      <Hook0CardFooter>
-        <Hook0Button
-          class="secondary"
-          type="button"
-          href="https://www.hook0.com/#pricing"
-          target="_blank"
-          >Available plans</Hook0Button
-        >
-        <Hook0Button
-          v-if="support_email_address"
-          class="primary"
-          type="button"
-          :href="`mailto:${support_email_address}`"
-          >Subscribe to a better plan
-        </Hook0Button>
-      </Hook0CardFooter>
-    </Hook0Card>
-
-    <MembersList
-      v-if="organization.quotas.members_per_organization_limit > 1"
-      :burst="$route.params.organization_id"
-    >
-    </MembersList>
-
-    <ApplicationsList :burst="$route.params.organization_id"> </ApplicationsList>
-
-    <!--
-    <Hook0Card v-if="!has_service_token">
-      <Hook0CardHeader>
-        <template #header>
-          <Hook0Icon name="key"></Hook0Icon>
-          Service Tokens
-        </template>
-      </Hook0CardHeader>
-
-      <Hook0CardContent>
-        <Hook0CardContentLines>
-          <Hook0CardContentLine type="full-width">
-            <template #content>
-              <Hook0Text>
-                Service tokens are used to authenticate your applications with Hook0. You can create
-                as many as you need.
-              </Hook0Text>
-            </template>
-          </Hook0CardContentLine>
-        </Hook0CardContentLines>
-      </Hook0CardContent>
-
-      <Hook0CardFooter>
-        <Hook0Button
-          class="primary"
-          :to="{
-            name: routes.ServicesTokenList,
-            params: { organization_id },
-          }"
-          >Create your first service token
-        </Hook0Button>
-      </Hook0CardFooter>
-    </Hook0Card>
-    -->
-  </div>
+      <ApplicationsList :burst="$route.params.organization_id" />
+    </template>
+  </Hook0PageLayout>
 </template>
+
+<style scoped>
+/* Component uses Hook0* components exclusively - no custom styles needed */
+</style>

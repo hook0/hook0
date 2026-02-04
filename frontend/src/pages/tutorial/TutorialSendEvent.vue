@@ -15,10 +15,15 @@ import { routes } from '@/routes.ts';
 import { push } from 'notivue';
 import EventsList from '@/pages/organizations/applications/events/EventsList.vue';
 import Hook0ProgressBar from '@/components/Hook0ProgressBar.vue';
-import party from 'party-js';
 import { progressItems } from '@/pages/tutorial/TutorialService';
 import { useTracking } from '@/composables/useTracking';
+import { useI18n } from 'vue-i18n';
+import { FileText, ArrowRight, X } from 'lucide-vue-next';
+import Hook0Badge from '@/components/Hook0Badge.vue';
+import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
+import Hook0Stack from '@/components/Hook0Stack.vue';
 
+const { t } = useI18n();
 const router = useRouter();
 const route = useRoute();
 
@@ -44,8 +49,8 @@ function _load() {
     displayError({
       id: 'FieldsRequired',
       status: 400,
-      title: 'Organization ID and Application ID are required',
-      detail: 'Something went wrong. Please try again. If the problem persists, contact support.',
+      title: t('tutorial.orgAppIdRequired'),
+      detail: t('tutorial.somethingWentWrong'),
     });
   }
 }
@@ -66,13 +71,9 @@ function cancel() {
 function back_to_application() {
   trackEvent('tutorial', 'step-complete', 'send-event');
   push.success({
-    title: 'Event sent',
-    message: 'Wow ! You just sent an event to your webhook ! 🎉🎉',
+    title: t('tutorial.step5.eventSent'),
+    message: t('tutorial.step5.eventSentMessage'),
     duration: 5000,
-  });
-  party.sparkles(party.Rect.fromScreen(), {
-    count: 80,
-    size: party.variation.range(1.2, 1.6),
   });
   return router.push({
     name: routes.TutorialSuccess,
@@ -89,56 +90,84 @@ onMounted(() => {
 </script>
 
 <template>
-  <Hook0CardContent v-if="alert.visible">
-    <Hook0Alert
-      :type="alert.type"
-      :title="alert.title"
-      :description="alert.description"
-    ></Hook0Alert>
-    <Hook0Button class="secondary" type="button" @click="cancel">Close</Hook0Button>
-  </Hook0CardContent>
-  <Hook0Card v-else>
-    <Hook0CardHeader>
-      <template #header>Step 5: Send an event</template>
-      <template #subtitle>
-        In this step, you will send a test event. You should make it match your subscription's event
-        type and label so that you receive a webhook!
-      </template>
-    </Hook0CardHeader>
-    <Hook0CardContent>
-      <Hook0CardContentLines>
-        <Hook0CardContentLine type="full-width">
-          <template #content>
-            <Hook0ProgressBar :current="5" :items="progressItems" class="mb-20" />
-            <EventsList
-              v-if="organizationId && applicationId && disabled_button"
-              :tutorial-mode="true"
-              @tutorial-event-sent="back_to_application"
-            />
-          </template>
-        </Hook0CardContentLine>
-      </Hook0CardContentLines>
+  <Hook0Stack direction="column" gap="none">
+    <Hook0CardContent v-if="alert.visible">
+      <Hook0Alert
+        :type="alert.type"
+        :title="alert.title"
+        :description="alert.description"
+      ></Hook0Alert>
+      <Hook0Button variant="secondary" type="button" @click="cancel">{{
+        t('tutorial.close')
+      }}</Hook0Button>
     </Hook0CardContent>
-    <Hook0CardFooter>
-      <Hook0Button
-        class="secondary"
-        type="button"
-        @click="
-          router.push({
-            name: routes.ApplicationsDashboard,
-            params: { organization_id: organizationId, application_id: applicationId },
-          })
-        "
-        >Skip</Hook0Button
-      >
-      <Hook0Button
-        v-if="!disabled_button"
-        class="primary"
-        type="button"
-        :disabled="disabled_button"
-        @click="back_to_application"
-        >🚀 Back To Application</Hook0Button
-      >
-    </Hook0CardFooter>
-  </Hook0Card>
+    <Hook0Card v-else>
+      <Hook0CardHeader>
+        <template #header>
+          <Hook0Stack direction="row" align="center" gap="sm">
+            <Hook0Badge display="step" variant="primary">5</Hook0Badge>
+            <Hook0Stack direction="row" align="center" gap="none">
+              {{ t('tutorial.step5.title') }}
+            </Hook0Stack>
+          </Hook0Stack>
+        </template>
+        <template #subtitle>{{ t('tutorial.step5.subtitle') }}</template>
+      </Hook0CardHeader>
+      <Hook0CardContent>
+        <Hook0CardContentLines>
+          <Hook0CardContentLine type="full-width">
+            <template #content>
+              <Hook0Stack direction="column" gap="lg">
+                <Hook0ProgressBar :current="5" :items="progressItems" />
+                <Hook0Stack
+                  v-if="organizationId && applicationId && disabled_button"
+                  direction="column"
+                  gap="md"
+                >
+                  <Hook0Stack direction="row" align="center" gap="sm">
+                    <Hook0IconBadge variant="primary">
+                      <FileText :size="18" aria-hidden="true" />
+                    </Hook0IconBadge>
+                    <Hook0Stack direction="row" align="center" gap="none">
+                      {{ t('tutorial.step5.title') }}
+                    </Hook0Stack>
+                  </Hook0Stack>
+                  <EventsList :tutorial-mode="true" @tutorial-event-sent="back_to_application" />
+                </Hook0Stack>
+              </Hook0Stack>
+            </template>
+          </Hook0CardContentLine>
+        </Hook0CardContentLines>
+      </Hook0CardContent>
+      <Hook0CardFooter>
+        <Hook0Button
+          variant="secondary"
+          type="button"
+          @click="
+            router.push({
+              name: routes.ApplicationsDashboard,
+              params: { organization_id: organizationId, application_id: applicationId },
+            })
+          "
+        >
+          <X :size="16" />
+          {{ t('tutorial.step5.skip') }}
+        </Hook0Button>
+        <Hook0Button
+          v-if="!disabled_button"
+          variant="primary"
+          type="button"
+          :disabled="disabled_button"
+          @click="back_to_application"
+        >
+          {{ t('tutorial.step5.backToApplication') }}
+          <ArrowRight :size="16" />
+        </Hook0Button>
+      </Hook0CardFooter>
+    </Hook0Card>
+  </Hook0Stack>
 </template>
+
+<style scoped>
+/* No custom styles - using Hook0* components only */
+</style>

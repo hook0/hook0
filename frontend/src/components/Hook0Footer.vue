@@ -2,7 +2,9 @@
 import Hook0Button from '@/components/Hook0Button.vue';
 import { getSupportEmailAddress } from '@/instance';
 import { onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n();
 const support_email_address = ref<string | null>(null);
 
 onMounted(async () => {
@@ -16,11 +18,11 @@ onMounted(async () => {
       <nav class="footer-items" aria-label="Footer">
         <div class="footer-item">
           <Hook0Button v-if="support_email_address" :href="`mailto:${support_email_address}`">
-            Contact us
+            {{ t('footer.contactUs') }}
           </Hook0Button>
           -
           <Hook0Button href="https://gitlab.com/hook0/hook0/-/issues/new">
-            Report issue
+            {{ t('footer.reportIssue') }}
           </Hook0Button>
         </div>
       </nav>
@@ -52,33 +54,64 @@ onMounted(async () => {
           </svg>
         </a>
       </div>
-      <p class="footer-text">Open-source always win in the end.</p>
+      <p class="footer-text">{{ t('footer.openSourceTagline') }}</p>
     </div>
   </footer>
 </template>
 
-<style lang="scss" scoped>
+<style scoped>
 .footer-container {
-  @apply max-w-7xl mx-auto py-12 px-4 overflow-hidden sm:px-6 lg:px-8;
+  max-width: 80rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 3rem 1rem;
+  overflow: hidden;
+}
+
+@media (min-width: 640px) {
+  .footer-container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .footer-container {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
 }
 
 .footer-icons {
-  @apply mt-8 flex justify-center space-x-6;
+  margin-top: 2rem;
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
 }
 
 .footer-icon {
-  @apply text-gray-400 hover:text-gray-500;
+  color: #9ca3af;
+}
+
+.footer-icon:hover {
+  color: #6b7280;
 }
 
 .footer-text {
-  @apply mt-8 text-center text-base text-gray-400;
+  margin-top: 2rem;
+  text-align: center;
+  font-size: 1rem;
+  color: #9ca3af;
 }
 
 .footer-items {
-  @apply -mx-5 -my-2 flex flex-wrap justify-center;
+  margin: -0.5rem -1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .footer-item {
-  @apply px-5 py-2;
+  padding: 0.5rem 1.25rem;
 }
 </style>

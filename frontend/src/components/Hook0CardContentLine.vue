@@ -27,37 +27,56 @@ defineSlots<{
   </div>
 </template>
 
-<style lang="scss" scoped>
+<style scoped>
 .hook0-card-content-line {
-  @apply py-4 sm:py-5 sm:px-6;
+  padding: 1rem 0;
+}
 
-  &.stacked {
-    @apply grid-rows-2;
-  }
-
-  &.columns .hook0-card-content-line-content {
-    @apply grid grid-flow-col auto-cols-auto gap-x-7;
-  }
-
-  &.split,
-  &.split-content-component {
-    @apply sm:grid sm:grid-cols-3 sm:gap-4;
-  }
-
-  &.full-width {
-    .hook0-card-content-line-content {
-      @apply py-4;
-    }
-  }
-
-  &.split-content-component {
-    .hook0-card-content-line-content {
-      @apply pt-0 mt-0;
-    }
+@media (min-width: 640px) {
+  .hook0-card-content-line {
+    padding: 1.25rem 1.5rem;
   }
 }
 
+.hook0-card-content-line.stacked {
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
+.hook0-card-content-line.columns .hook0-card-content-line-content {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: auto;
+  column-gap: 1.75rem;
+}
+
+@media (min-width: 640px) {
+  .hook0-card-content-line.split,
+  .hook0-card-content-line.split-content-component {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+  }
+}
+
+.hook0-card-content-line.full-width .hook0-card-content-line-content {
+  padding: 1rem 0;
+}
+
+.hook0-card-content-line.split-content-component .hook0-card-content-line-content {
+  padding-top: 0;
+  margin-top: 0;
+}
+
 .hook0-card-content-line-content {
-  @apply mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2;
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: #111827;
+}
+
+@media (min-width: 640px) {
+  .hook0-card-content-line-content {
+    margin-top: 0;
+    grid-column: span 2 / span 2;
+  }
 }
 </style>

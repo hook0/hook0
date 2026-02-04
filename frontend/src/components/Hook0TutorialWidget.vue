@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
+import { Check } from 'lucide-vue-next';
 import { Step } from '@/pages/tutorial/TutorialService';
 import Hook0Button from './Hook0Button.vue';
 
@@ -45,7 +45,7 @@ const isLastStep = (index: number) => {
                 ]"
               >
                 <span v-if="step.isActive">
-                  <FontAwesomeIcon :icon="['fas', 'check']" color="white" size="lg" />
+                  <Check :size="20" color="white" />
                 </span>
                 <span
                   v-else

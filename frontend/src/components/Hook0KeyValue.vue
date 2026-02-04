@@ -1,18 +1,11 @@
 <script setup lang="ts">
-import debounce from 'lodash.debounce';
-import { isString } from 'fp-ts/string';
 import { ref, watch } from 'vue';
 
 import { Hook0KeyValueKeyValuePair } from '@/components/Hook0KeyValue';
 import Hook0Input from '@/components/Hook0Input.vue';
-import Hook0Icon from '@/components/Hook0Icon.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
+import { Minus, Plus } from 'lucide-vue-next';
 
-/**
- * Hook0-Key-Value can manipulate either:
- * - an object
- * - an array of key-value pairs object (Hook0KeyValueKeyValuePair)
- */
 function getDefaultItem(): Hook0KeyValueKeyValuePair {
   return { key: '', value: '' };
 }
@@ -35,8 +28,11 @@ const MODE = {
     is(val: Hook0KeyValueKeyValuePair[]) {
       return (
         Array.isArray(val) &&
-        // eslint-disable-next-line no-prototype-builtins
-        val.every((item) => item.hasOwnProperty('key') && item.hasOwnProperty('value'))
+        val.every(
+          (item) =>
+            Object.prototype.hasOwnProperty.call(item, 'key') &&
+            Object.prototype.hasOwnProperty.call(item, 'value')
+        )
       );
     },
     init(val: Hook0KeyValueKeyValuePair[]) {
@@ -50,7 +46,9 @@ const MODE = {
     is(val: Hook0KeyValuePlainObject) {
       return (
         typeof val === 'object' &&
-        Object.entries(val).every(([key, value]) => isString(key) && isString(value))
+        Object.entries(val).every(
+          ([key, value]) => typeof key === 'string' && typeof value === 'string'
+        )
       );
     },
     init(val: Hook0KeyValuePlainObject) {
@@ -60,8 +58,7 @@ const MODE = {
         : entries.map(([key, value]) => ({ key, value }));
     },
     write(val: Hook0KeyValueKeyValuePair[]): Hook0KeyValuePlainObject {
-      return <Hook0KeyValuePlainObject>val.reduce((m, { key, value }) => {
-        // @ts-ignore
+      return val.reduce<Hook0KeyValuePlainObject>((m, { key, value }) => {
         m[key] = value;
         return m;
       }, {});
@@ -74,7 +71,6 @@ function getNewInternalState(val: Hook0KeyValueKeyValuePair[] | Hook0KeyValuePla
     ? MODE[RWMode.ARRAY]
     : MODE[RWMode.OBJECT];
 
-  //  always start with at least one element
   const pairs = encoder.init(val as Hook0KeyValueKeyValuePair[] & Hook0KeyValuePlainObject);
   return { encoder, pairs };
 }
@@ -85,35 +81,43 @@ interface Props {
   valuePlaceholder?: string;
 }
 
-const props = defineProps<Props>();
-const rawEmit = defineEmits(['update:modelValue']);
+const props = withDefaults(defineProps<Props>(), {
+  keyPlaceholder: 'Key',
+  valuePlaceholder: 'Value',
+});
+const rawEmit = defineEmits<{
+  'update:modelValue': [value: Hook0KeyValueKeyValuePair[] | Hook0KeyValuePlainObject];
+}>();
 
 const state = ref(getNewInternalState(props.value));
 
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
 watch(
   () => props.value,
-  (_newVal, _oldVal) => {
-    const newState = getNewInternalState(props.value);
-    state.value = newState;
+  () => {
+    state.value = getNewInternalState(props.value);
   }
 );
 
-function _emit() {
-  rawEmit(
-    'update:modelValue',
-    state.value.encoder.write(state.value.pairs.filter(({ key }) => key.length > 0))
-  );
+function emitUpdate() {
+  if (debounceTimer) clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    rawEmit(
+      'update:modelValue',
+      state.value.encoder.write(state.value.pairs.filter(({ key }) => key.length > 0))
+    );
+  }, 150);
 }
-const emit = debounce(_emit);
 
 function remove(index: number) {
   state.value.pairs.splice(index, 1);
-  emit();
+  emitUpdate();
 }
 
 function add() {
   state.value.pairs.push(getDefaultItem());
-  emit();
+  emitUpdate();
 }
 </script>
 
@@ -131,33 +135,44 @@ function add() {
         class="col-span-4"
         :placeholder="keyPlaceholder"
         :data-test="`kv-key-input-${index}`"
-        @input="emit()"
-      ></Hook0Input>
+        @input="emitUpdate()"
+      />
       <Hook0Input
         v-model="item.value"
         type="text"
         class="col-span-4"
         :placeholder="valuePlaceholder"
         :data-test="`kv-value-input-${index}`"
-        @input="emit()"
-      ></Hook0Input>
+        @input="emitUpdate()"
+      />
       <Hook0Button
         :disabled="state.pairs.length === 1"
-        class="white col-span-1"
+        variant="secondary"
+        size="sm"
+        class="col-span-1"
         :data-test="`kv-remove-button-${index}`"
         @click="remove(index)"
       >
-        <Hook0Icon name="fa-minus"></Hook0Icon>
+        <Minus :size="16" aria-hidden="true" />
       </Hook0Button>
-      <Hook0Button class="white col-span-1" :data-test="`kv-add-button-${index}`" @click="add()">
-        <Hook0Icon name="fa-plus"></Hook0Icon>
+      <Hook0Button
+        variant="secondary"
+        size="sm"
+        class="col-span-1"
+        :data-test="`kv-add-button-${index}`"
+        @click="add()"
+      >
+        <Plus :size="16" aria-hidden="true" />
       </Hook0Button>
     </div>
   </div>
 </template>
 
-<style lang="scss" scoped>
+<style scoped>
 .kv-item {
-  @apply grid grid-cols-10 gap-4 mb-4;
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 </style>

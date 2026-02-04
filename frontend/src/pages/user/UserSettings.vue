@@ -1,205 +1,235 @@
 <script setup lang="ts">
+import { ref, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { push } from 'notivue';
+import { User, Lock, AlertTriangle, Trash2 } from 'lucide-vue-next';
+
+import * as UserService from '@/pages/user/UserService';
+import { useAuthStore } from '@/stores/auth';
+import { displayError } from '@/utils/displayError';
+import type { Problem } from '@/http';
+
+import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
-import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
+import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
+import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
-import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
-import * as UserService from '@/pages/user/UserService';
-import { Problem } from '@/http.ts';
-import { push } from 'notivue';
-import { getUserInfo, logout } from '@/iam.ts';
-import { ref } from 'vue';
+import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
+import Hook0Stack from '@/components/Hook0Stack.vue';
+import Hook0Alert from '@/components/Hook0Alert.vue';
+import Hook0Text from '@/components/Hook0Text.vue';
+import Hook0Form from '@/components/Hook0Form.vue';
 
-const currentUser = getUserInfo();
+const { t } = useI18n();
+const authStore = useAuthStore();
+const currentUser = computed(() => authStore.userInfo);
 
-const new_password = ref<string>('');
-const confirm_new_password = ref<string>('');
+const new_password = ref('');
+const confirm_new_password = ref('');
 
-async function changePassword() {
+function changePassword() {
   if (new_password.value !== confirm_new_password.value) {
     push.error({
-      title: 'Error',
-      message: 'Passwords do not match.',
+      title: t('common.error'),
+      message: t('userSettings.passwordMismatch'),
       duration: 5000,
     });
     return;
   }
 
-  await UserService.changePassword(new_password.value).catch(displayError);
-
-  push.success({
-    title: 'Success',
-    message: 'Your password was successfully changed.',
-    duration: 3000,
-  });
+  UserService.changePassword(new_password.value)
+    .then(() => {
+      push.success({
+        title: t('common.success'),
+        message: t('userSettings.passwordChanged'),
+        duration: 3000,
+      });
+    })
+    .catch((err) => displayError(err as Problem));
 }
 
-async function deleteAccount() {
-  if (!confirm(`Are you sure to delete your account?`)) {
+function deleteAccount() {
+  if (!confirm(t('userSettings.deleteAccountConfirm'))) {
     return;
   }
 
-  await UserService.deleteUser()
+  UserService.deleteUser()
     .then(() => {
       push.success({
-        title: 'Success',
-        message: 'Your account has been deleted. You will be logged out in 3 seconds.',
+        title: t('common.success'),
+        message: t('userSettings.accountDeleted'),
         duration: 3000,
       });
       setTimeout(() => {
-        void logout();
+        void authStore.logout();
       }, 3000);
     })
-    .catch(displayError);
-}
-
-function displayError(err: Problem) {
-  console.error(err);
-  let options = {
-    title: err.title,
-    message: err.detail,
-    duration: 5000,
-  };
-  err.status >= 500 ? push.error(options) : push.warning(options);
+    .catch((err) => displayError(err as Problem));
 }
 </script>
 
 <template>
-  <div>
+  <Hook0PageLayout :title="t('userSettings.title')">
+    <!-- Personal Information -->
     <Hook0Card v-if="currentUser" data-test="user-info-card">
       <Hook0CardHeader>
-        <template #header> Personal information </template>
-        <template #subtitle>
-          This is your personal information. Contact support to change it.
+        <template #header>
+          <Hook0Stack direction="row" align="center" gap="sm">
+            <Hook0IconBadge variant="info">
+              <User :size="18" aria-hidden="true" />
+            </Hook0IconBadge>
+            <Hook0Text>{{ t('userSettings.personalInfo') }}</Hook0Text>
+          </Hook0Stack>
         </template>
+        <template #subtitle>{{ t('userSettings.personalInfoSubtitle') }}</template>
       </Hook0CardHeader>
       <Hook0CardContent>
         <Hook0CardContentLine>
-          <template #label> Email </template>
+          <template #label>{{ t('userSettings.email') }}</template>
           <template #content>
             <Hook0Input
               v-model="currentUser.email"
               type="text"
-              placeholder="Email"
+              :placeholder="t('userSettings.email')"
               disabled
-              class="w-full disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200 disabled:shadow-none"
               data-test="user-email-input"
-            >
-            </Hook0Input>
+            />
           </template>
         </Hook0CardContentLine>
 
         <Hook0CardContentLine>
-          <template #label> First Name </template>
+          <template #label>{{ t('userSettings.firstName') }}</template>
           <template #content>
             <Hook0Input
               v-model="currentUser.firstName"
               type="text"
-              placeholder="First Name"
+              :placeholder="t('userSettings.firstName')"
               disabled
-              class="w-full disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200 disabled:shadow-none"
-            >
-            </Hook0Input>
+            />
           </template>
         </Hook0CardContentLine>
 
         <Hook0CardContentLine>
-          <template #label> Last Name </template>
+          <template #label>{{ t('userSettings.lastName') }}</template>
           <template #content>
             <Hook0Input
               v-model="currentUser.lastName"
               type="text"
-              placeholder="Last Name"
+              :placeholder="t('userSettings.lastName')"
               disabled
-              class="w-full disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200 disabled:shadow-none"
-            >
-            </Hook0Input>
+            />
           </template>
         </Hook0CardContentLine>
       </Hook0CardContent>
     </Hook0Card>
 
+    <!-- Change Password -->
     <Hook0Card v-if="currentUser" data-test="change-password-card">
-      <form data-test="change-password-form" @submit.prevent="changePassword">
+      <Hook0Form data-test="change-password-form" @submit="changePassword">
         <Hook0CardHeader>
-          <template #header>Change password</template>
-          <template #subtitle>Set a new password to your user account.</template>
+          <template #header>
+            <Hook0Stack direction="row" align="center" gap="sm">
+              <Hook0IconBadge variant="warning">
+                <Lock :size="18" aria-hidden="true" />
+              </Hook0IconBadge>
+              <Hook0Text>{{ t('userSettings.changePassword') }}</Hook0Text>
+            </Hook0Stack>
+          </template>
+          <template #subtitle>{{ t('userSettings.changePasswordSubtitle') }}</template>
         </Hook0CardHeader>
         <Hook0CardContent>
           <Hook0CardContentLine>
-            <template #label> New password </template>
+            <template #label>{{ t('userSettings.newPassword') }}</template>
             <template #content>
               <Hook0Input
                 v-model="new_password"
                 type="password"
-                placeholder="New password"
+                :placeholder="t('userSettings.newPasswordPlaceholder')"
                 required
-                class="w-full"
                 data-test="new-password-input"
-              >
-              </Hook0Input>
+              />
             </template>
           </Hook0CardContentLine>
 
           <Hook0CardContentLine>
-            <template #label> Confirm new password </template>
+            <template #label>{{ t('userSettings.confirmPassword') }}</template>
             <template #content>
               <Hook0Input
                 v-model="confirm_new_password"
                 type="password"
-                placeholder="Confirm new password"
+                :placeholder="t('userSettings.confirmPasswordPlaceholder')"
                 required
-                class="w-full"
                 data-test="confirm-password-input"
-              >
-              </Hook0Input>
+              />
             </template>
           </Hook0CardContentLine>
         </Hook0CardContent>
-        <Hook0CardFooter class="!justify-between">
-          <div
-            class="flex items-center bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded"
-          >
-            <div>
-              <p class="font-bold">Warning</p>
-              <p>You will be disconnected from all browsers/devices including the current one.</p>
-            </div>
-          </div>
-          <Hook0Button
-            class="primary"
-            submit
-            aria-label="Change Password"
-            title="Change Password"
-            data-test="change-password-button"
-            >Change password</Hook0Button
-          >
-        </Hook0CardFooter>
-      </form>
-    </Hook0Card>
-
-    <Hook0Card v-if="currentUser" data-test="delete-account-card">
-      <form data-test="delete-account-form" @submit.prevent="deleteAccount">
-        <Hook0CardHeader>
-          <template #header> Delete my account </template>
-          <template #subtitle>
-            This action <strong>delete your account</strong> and all your data linked to it.
-            <strong>This action irreversible.</strong>
-          </template>
-        </Hook0CardHeader>
         <Hook0CardFooter>
-          <Hook0Button class="danger" submit data-test="delete-account-button">Delete</Hook0Button>
+          <Hook0Stack direction="row" align="center" justify="between" gap="md">
+            <Hook0Alert type="warning" :title="t('common.warning')">
+              <template #description>{{ t('userSettings.changePasswordWarning') }}</template>
+            </Hook0Alert>
+            <Hook0Button
+              variant="primary"
+              submit
+              :aria-label="t('userSettings.changePassword')"
+              :title="t('userSettings.changePassword')"
+              data-test="change-password-button"
+            >
+              <Lock :size="16" aria-hidden="true" />
+              {{ t('userSettings.changePassword') }}
+            </Hook0Button>
+          </Hook0Stack>
         </Hook0CardFooter>
-      </form>
+      </Hook0Form>
     </Hook0Card>
 
-    <!-- If the user is not logged in, show a message -->
-    <Hook0Card v-else>
+    <!-- Delete Account (Danger Zone) -->
+    <Hook0Card v-if="currentUser" data-test="delete-account-card">
+      <Hook0Form data-test="delete-account-form" @submit="deleteAccount">
+        <Hook0CardHeader>
+          <template #header>
+            <Hook0Stack direction="row" align="center" gap="sm">
+              <Hook0IconBadge variant="danger">
+                <AlertTriangle :size="18" aria-hidden="true" />
+              </Hook0IconBadge>
+              <Hook0Text>{{ t('userSettings.deleteAccount') }}</Hook0Text>
+            </Hook0Stack>
+          </template>
+          <template #subtitle>{{ t('userSettings.deleteAccountSubtitle') }}</template>
+        </Hook0CardHeader>
+        <Hook0CardContent>
+          <Hook0Alert type="alert">
+            <template #description>
+              {{
+                t('userSettings.deleteAccountWarningDetail') ||
+                t('userSettings.deleteAccountSubtitle')
+              }}
+            </template>
+          </Hook0Alert>
+        </Hook0CardContent>
+        <Hook0CardFooter>
+          <Hook0Button variant="danger" submit data-test="delete-account-button">
+            <Trash2 :size="16" aria-hidden="true" />
+            {{ t('common.delete') }}
+          </Hook0Button>
+        </Hook0CardFooter>
+      </Hook0Form>
+    </Hook0Card>
+
+    <!-- Not logged in -->
+    <Hook0Card v-if="!currentUser">
       <Hook0CardHeader>
-        <template #header>Not logged in</template>
-        <template #subtitle>You are not logged in. Please log in to view your settings.</template>
+        <template #header>{{ t('userSettings.notLoggedIn') }}</template>
+        <template #subtitle>{{ t('userSettings.notLoggedInSubtitle') }}</template>
       </Hook0CardHeader>
     </Hook0Card>
-  </div>
+  </Hook0PageLayout>
 </template>
+
+<style scoped>
+/* No custom CSS - using Hook0* components only */
+</style>

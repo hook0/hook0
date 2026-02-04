@@ -1,7 +1,7 @@
 import { AxiosError, AxiosResponse } from 'axios';
 import http, { handleError, Problem, UUID } from '@/http';
 import type { components } from '@/types';
-import { refresh } from '@/iam.ts';
+import { useAuthStore } from '@/stores/auth';
 
 type definitions = components['schemas'];
 
@@ -18,7 +18,9 @@ export function create(application: ApplicationPost): Promise<Application> {
     )
     .then((application) => {
       // we force the user token refresh so that the org/app selector refreshes its options
-      return refresh().then(() => application);
+      return useAuthStore()
+        .refresh()
+        .then(() => application);
     });
 }
 
@@ -51,7 +53,9 @@ export function update(application_id: UUID, application: ApplicationPost): Prom
     )
     .then((application) => {
       // we force the user token refresh so that the org/app selector refreshes its options
-      return refresh().then(() => application);
+      return useAuthStore()
+        .refresh()
+        .then(() => application);
     });
 }
 
@@ -64,6 +68,8 @@ export function remove(application_id: UUID): Promise<void> {
     )
     .then((application) => {
       // we force the user token refresh so that the org/app selector refreshes its options
-      return refresh().then(() => application);
+      return useAuthStore()
+        .refresh()
+        .then(() => application);
     });
 }

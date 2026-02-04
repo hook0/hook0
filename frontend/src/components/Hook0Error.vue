@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import ProblemFactory from '@/utils/problemFactory';
-import Hook0Text from '@/components/Hook0Text.vue';
 import Hook0Alert from '@/components/Hook0Alert.vue';
+import Hook0Text from '@/components/Hook0Text.vue';
+import type { Problem } from '@/http';
 
 interface Props {
-  error: ProblemFactory;
+  error: Problem;
 }
 
 const props = defineProps<Props>();
@@ -16,7 +16,7 @@ const props = defineProps<Props>();
     <template #description>
       <Hook0Text>{{ props.error.detail }}</Hook0Text>
       <br />
-      <Hook0Text class="def">{{ props.error.type }}</Hook0Text>
+      <Hook0Text class="def">{{ props.error.id }}</Hook0Text>
     </template>
   </Hook0Alert>
 </template>

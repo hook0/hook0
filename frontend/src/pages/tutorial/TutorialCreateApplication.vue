@@ -1,32 +1,35 @@
 <script setup lang="ts">
-import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
-import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
-import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
-import Hook0CardContent from '@/components/Hook0CardContent.vue';
-import Hook0Card from '@/components/Hook0Card.vue';
-import { onMounted, ref } from 'vue';
-import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
-import Hook0Button from '@/components/Hook0Button.vue';
-import { routes } from '@/routes.ts';
+import { computed, ref, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { Problem, UUID } from '@/http.ts';
+import { useI18n } from 'vue-i18n';
 import { push } from 'notivue';
-import { list } from '@/pages/organizations/applications/ApplicationService.ts';
-import Hook0Loader from '@/components/Hook0Loader.vue';
-import Hook0Error from '@/components/Hook0Error.vue';
-import Hook0Select from '@/components/Hook0Select.vue';
-import Hook0ProgressBar from '@/components/Hook0ProgressBar.vue';
-import party from 'party-js';
+
+import { useApplicationList } from '@/pages/organizations/applications/useApplicationQueries';
+import { routes } from '@/routes';
+import { UUID } from '@/http';
 import { progressItems } from '@/pages/tutorial/TutorialService';
-import { Alert } from '@/components/Hook0Alert';
-import ApplicationsEdit from '../organizations/applications/ApplicationsEdit.vue';
-import Hook0Alert from '@/components/Hook0Alert.vue';
 import { useTracking } from '@/composables/useTracking';
 
+import Hook0Card from '@/components/Hook0Card.vue';
+import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
+import Hook0CardContent from '@/components/Hook0CardContent.vue';
+import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
+import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
+import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
+import Hook0Button from '@/components/Hook0Button.vue';
+import Hook0Select from '@/components/Hook0Select.vue';
+import Hook0ProgressBar from '@/components/Hook0ProgressBar.vue';
+import Hook0Skeleton from '@/components/Hook0Skeleton.vue';
+import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
+import Hook0Badge from '@/components/Hook0Badge.vue';
+import Hook0Stack from '@/components/Hook0Stack.vue';
+import Hook0ListItem from '@/components/Hook0ListItem.vue';
+import ApplicationsEdit from '@/pages/organizations/applications/ApplicationsEdit.vue';
+import { AppWindow, Plus, List, ArrowRight, X } from 'lucide-vue-next';
+
+const { t } = useI18n();
 const router = useRouter();
 const route = useRoute();
-
-// Analytics tracking
 const { trackEvent } = useTracking();
 
 const enum Section {
@@ -34,94 +37,52 @@ const enum Section {
   SelectExistingApplication,
 }
 
-const organizationId = ref<UUID | null>(null);
+const organizationId = computed(() => route.params.organization_id as UUID);
 const applicationId = ref<UUID | null>(null);
-const applications_list = ref<Promise<Array<{ label: string; value: UUID }>>>(Promise.resolve([]));
-const selected_application_id = ref<UUID | null>(null);
+const selectedApplicationId = ref<UUID | null>(null);
 const currentSection = ref<Section | null>(null);
 
-const alert = ref<Alert>({
-  visible: false,
-  type: 'alert',
-  title: '',
-  description: '',
+const { data: rawApplications, isLoading, error, refetch } = useApplicationList(organizationId);
+
+const applicationOptions = computed(() => {
+  const apps = rawApplications.value ?? [];
+  return [
+    { label: '', value: '' },
+    ...apps.map((a) => ({ label: a.name, value: a.application_id })),
+  ];
 });
 
-function _load() {
-  organizationId.value = route.params.organization_id as UUID;
-  if (!organizationId.value) {
-    return displayError({
-      id: 'OrganizationIdRequired',
-      status: 400,
-      title: 'Organization ID is required',
-      detail: 'Something went wrong. Please try again. If the problem persists, contact support.',
-    });
+// Auto-select "create" if no applications exist
+watch(rawApplications, (apps) => {
+  if ((apps ?? []).length <= 0 && currentSection.value === null) {
+    currentSection.value = Section.CreateApplication;
   }
+});
 
-  applications_list.value = list(organizationId.value)
-    .then((applications) => {
-      if (applications.length <= 0) {
-        currentSection.value = Section.CreateApplication;
-      }
-      return applications;
-    })
-    .then((applications) => [
-      { label: '', value: '' },
-      ...applications.map((a) => ({ label: a.name, value: a.application_id })),
-    ])
-    .catch((error) => {
-      displayError(error as Problem);
-      return [];
-    });
-}
-
-function displayError(err: Problem) {
-  console.error(err);
-  alert.value.visible = true;
-
-  alert.value.type = err.status >= 500 ? 'alert' : 'warning';
-  alert.value.title = err.title;
-  alert.value.description = err.detail;
-}
-
-function cancel() {
-  router.back();
-}
-
-const goThirdStep = (application_id: UUID) => {
+function goThirdStep(application_id: UUID) {
   applicationId.value = application_id;
-  if (organizationId.value && selected_application_id.value) {
+  if (organizationId.value && selectedApplicationId.value) {
     trackEvent('tutorial', 'step-complete', 'application');
     push.success({
-      title: 'Application selected',
-      message: 'You can now create your first event type. 🎉',
+      title: t('tutorial.applicationSelected'),
+      message: t('tutorial.continueToEventType'),
       duration: 5000,
     });
-    party.confetti(party.Rect.fromScreen(), {
-      count: 80,
-      spread: 40,
-      size: party.variation.range(1.2, 1.6),
-    });
-    return router.push({
+    void router.push({
       name: routes.TutorialCreateEventType,
       params: {
         organization_id: organizationId.value,
-        application_id: selected_application_id.value,
+        application_id: selectedApplicationId.value,
       },
     });
   } else if (organizationId.value && applicationId.value) {
     trackEvent('tutorial', 'step-complete', 'application');
     push.success({
-      title: 'Application created',
-      message: 'You can now create your first event type. 🎉',
+      title: t('tutorial.applicationCreated'),
+      message: t('tutorial.continueToEventType'),
       duration: 5000,
     });
-    party.confetti(party.Rect.fromScreen(), {
-      count: 80,
-      spread: 40,
-      size: party.variation.range(1.2, 1.6),
-    });
-    return router.push({
+    void router.push({
       name: routes.TutorialCreateEventType,
       params: {
         organization_id: organizationId.value,
@@ -130,150 +91,164 @@ const goThirdStep = (application_id: UUID) => {
     });
   } else {
     push.error({
-      title: 'Organization ID and Application ID are required',
-      message: 'Something went wrong. Please try again. If the problem persists, contact support.',
+      title: t('tutorial.orgAppIdRequired'),
+      message: t('common.somethingWentWrong'),
       duration: 5000,
     });
   }
-};
-
-onMounted(() => {
-  _load();
-});
+}
 </script>
 
 <template>
-  <Hook0CardContent v-if="alert.visible">
-    <Hook0Alert
-      :type="alert.type"
-      :title="alert.title"
-      :description="alert.description"
-    ></Hook0Alert>
-    <Hook0Button class="secondary" type="button" @click="cancel">Close</Hook0Button>
-  </Hook0CardContent>
-  <Hook0Card v-else>
-    <Hook0CardHeader>
-      <template #header>
-        <div class="flex items-center justify-between">Step 2: Create your first application</div>
-      </template>
-      <template #subtitle>
-        An application is an isolated environment in Hook0. It has its own event types, events,
-        subscriptions and request attempts. If your plan allows it, you can create multiple
-        applications in order to isolate multiple environments or systems inside the same
-        organization.
-      </template>
-    </Hook0CardHeader>
-    <Hook0CardContent>
-      <Hook0CardContentLine type="full-width">
-        <template #content>
-          <Hook0ProgressBar :current="2" :items="progressItems" class="mb-20" />
-          <Promised v-if="organizationId" :promise="applications_list">
-            <template #pending>
-              <Hook0Loader></Hook0Loader>
-            </template>
-            <template #default="applications">
-              <Hook0Card
-                v-if="organizationId && !applicationId && applications.length > 1"
-                class="mb-4"
-              >
+  <!-- Loading -->
+  <Hook0Stack direction="column" gap="none">
+    <Hook0Card v-if="isLoading">
+      <Hook0CardHeader>
+        <template #header>
+          <Hook0Stack direction="row" align="center" gap="sm">
+            <Hook0Badge display="step" variant="primary">2</Hook0Badge>
+            <Hook0Stack direction="row" align="center" gap="none">
+              {{ t('tutorial.step2Title') }}
+            </Hook0Stack>
+          </Hook0Stack>
+        </template>
+      </Hook0CardHeader>
+      <Hook0CardContent>
+        <Hook0Stack direction="column" gap="md">
+          <Hook0Skeleton size="hero" />
+          <Hook0Skeleton size="heading" />
+          <Hook0Skeleton size="heading" />
+        </Hook0Stack>
+      </Hook0CardContent>
+    </Hook0Card>
+
+    <!-- Error -->
+    <Hook0ErrorCard v-else-if="error" :error="error" @retry="refetch()" />
+
+    <!-- Data loaded -->
+    <Hook0Card v-else>
+      <Hook0CardHeader>
+        <template #header>
+          <Hook0Stack direction="row" align="center" gap="sm">
+            <Hook0Badge display="step" variant="primary">2</Hook0Badge>
+            <Hook0Stack direction="row" align="center" gap="none">
+              {{ t('tutorial.step2Title') }}
+            </Hook0Stack>
+          </Hook0Stack>
+        </template>
+        <template #subtitle>
+          {{ t('tutorial.step2Description') }}
+        </template>
+      </Hook0CardHeader>
+      <Hook0CardContent>
+        <Hook0CardContentLine type="full-width">
+          <template #content>
+            <Hook0Stack direction="column" gap="lg">
+              <Hook0ProgressBar :current="2" :items="progressItems" />
+
+              <Hook0Card v-if="organizationId && !applicationId && applicationOptions.length > 1">
                 <Hook0CardHeader>
-                  <template #header>Let's choose an application!</template>
+                  <template #header>
+                    <Hook0Stack direction="row" align="center" gap="sm">
+                      <AppWindow :size="18" aria-hidden="true" />
+                      <Hook0Stack direction="row" align="center" gap="none">
+                        {{ t('tutorial.chooseApplication') }}
+                      </Hook0Stack>
+                    </Hook0Stack>
+                  </template>
                 </Hook0CardHeader>
-                <Hook0CardContent class="p-4 border space-y-4">
-                  <div class="grid grid-cols-1 sm:grid-cols-2">
-                    <label
-                      class="flex items-center p-4 w-full border-b sm:border-b-0 sm:border-r cursor-pointer"
+                <Hook0CardContent>
+                  <Hook0Stack layout="grid" gap="md" grid-size="compact">
+                    <Hook0ListItem
+                      variant="selectable"
+                      name="application_selection"
+                      :selected="currentSection === Section.CreateApplication"
+                      @select="currentSection = Section.CreateApplication"
                     >
-                      <input
-                        v-model="currentSection"
-                        type="radio"
-                        name="application_selection"
-                        :value="Section.CreateApplication"
-                        class="h-4 w-4 border-gray-300 rounded focus:ring-indigo-500"
-                      />
-                      <span class="ml-2 text-sm font-medium text-gray-700">
-                        Create a new application
-                      </span>
-                    </label>
-                    <label
-                      class="flex items-center p-4 w-full border-t sm:border-t-0 sm:border-l cursor-pointer"
+                      <template #icon>
+                        <Plus :size="18" />
+                      </template>
+                      <template #left>
+                        {{ t('tutorial.createNewApplication') }}
+                      </template>
+                    </Hook0ListItem>
+                    <Hook0ListItem
+                      variant="selectable"
+                      name="application_selection"
+                      :selected="currentSection === Section.SelectExistingApplication"
+                      @select="currentSection = Section.SelectExistingApplication"
                     >
-                      <input
-                        v-model="currentSection"
-                        type="radio"
-                        name="application_selection"
-                        :value="Section.SelectExistingApplication"
-                        class="h-4 w-4 border-gray-300 rounded focus:ring-indigo-500"
-                      />
-                      <span class="ml-2 text-sm font-medium text-gray-700">
-                        Select an existing application
-                      </span>
-                    </label>
-                  </div>
+                      <template #icon>
+                        <List :size="18" />
+                      </template>
+                      <template #left>
+                        {{ t('tutorial.selectExistingApplication') }}
+                      </template>
+                    </Hook0ListItem>
+                  </Hook0Stack>
                 </Hook0CardContent>
               </Hook0Card>
+
               <ApplicationsEdit
                 v-if="organizationId && currentSection === Section.CreateApplication"
                 :tutorial-mode="true"
-                class="mt-12"
                 @tutorial-application-created="goThirdStep($event)"
-              /> </template
-          ></Promised>
-        </template>
-      </Hook0CardContentLine>
-      <Promised
-        v-if="organizationId && currentSection === Section.SelectExistingApplication"
-        :promise="applications_list"
-      >
-        <template #pending>
-          <Hook0Loader></Hook0Loader>
-        </template>
-        <template #default="applications">
-          <div class="px-6">
+              />
+            </Hook0Stack>
+          </template>
+        </Hook0CardContentLine>
+
+        <!-- Select existing application -->
+        <template v-if="organizationId && currentSection === Section.SelectExistingApplication">
+          <Hook0Stack direction="column" gap="none">
             <Hook0Card>
               <Hook0CardContent>
                 <Hook0CardContentLines>
                   <Hook0CardContentLine type="full-width">
                     <template #label>
-                      You can also select an existing application to continue the tutorial.
+                      {{ t('tutorial.selectApplication') }}
                     </template>
                     <template #content>
                       <Hook0Select
-                        v-model="selected_application_id"
-                        :options="applications"
+                        v-model="selectedApplicationId"
+                        :options="applicationOptions"
                       ></Hook0Select>
                     </template>
                   </Hook0CardContentLine>
                 </Hook0CardContentLines>
               </Hook0CardContent>
             </Hook0Card>
-          </div>
+          </Hook0Stack>
         </template>
-        <template #rejected="error">
-          <Hook0Error :error="error"></Hook0Error>
-        </template>
-      </Promised>
-    </Hook0CardContent>
-    <Hook0CardFooter>
-      <Hook0Button
-        class="secondary"
-        type="button"
-        @click="
-          router.push({
-            name: routes.OrganizationsDashboard,
-            params: { organization_id: organizationId },
-          })
-        "
-        >Skip</Hook0Button
-      >
-      <Hook0Button
-        v-if="organizationId && (applicationId || selected_application_id)"
-        class="primary"
-        type="button"
-        @click="goThirdStep"
-      >
-        🚀 Continue Step 3: Create Your First Event Type
-      </Hook0Button>
-    </Hook0CardFooter>
-  </Hook0Card>
+      </Hook0CardContent>
+      <Hook0CardFooter>
+        <Hook0Button
+          variant="secondary"
+          type="button"
+          @click="
+            router.push({
+              name: routes.OrganizationsDashboard,
+              params: { organization_id: organizationId },
+            })
+          "
+        >
+          <X :size="16" />
+          {{ t('tutorial.skip') }}
+        </Hook0Button>
+        <Hook0Button
+          v-if="organizationId && (applicationId || selectedApplicationId)"
+          variant="primary"
+          type="button"
+          @click="goThirdStep(applicationId ?? selectedApplicationId ?? ('' as UUID))"
+        >
+          {{ t('tutorial.continueStep3') }}
+          <ArrowRight :size="16" />
+        </Hook0Button>
+      </Hook0CardFooter>
+    </Hook0Card>
+  </Hook0Stack>
 </template>
+
+<style scoped>
+/* No custom styles - using Hook0* components only */
+</style>

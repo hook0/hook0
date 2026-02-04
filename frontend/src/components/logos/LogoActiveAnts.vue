@@ -1,7 +1,7 @@
 <script setup lang="ts"></script>
 
 <template>
-  <svg viewBox="0 0 180 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <svg width="180" height="40" viewBox="0 0 180 40" fill="none" xmlns="http://www.w3.org/2000/svg">
     <!-- Ant icon -->
     <g fill="currentColor">
       <!-- Body -->

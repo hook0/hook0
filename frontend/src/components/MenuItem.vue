@@ -16,16 +16,24 @@ defineProps<Props>();
   </Hook0Button>
 </template>
 
-<style lang="scss" scoped>
+<style scoped>
 .default {
-  @apply text-gray-300 text-white flex items-center px-2 py-2 text-sm font-medium rounded-md cursor-pointer;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  padding: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 0.375rem;
+  cursor: pointer;
 }
 
 .active {
-  @apply bg-gray-900;
+  background-color: #111827;
 }
 
-.inactive {
-  @apply hover:text-white hover:bg-gray-700;
+.inactive:hover {
+  color: #ffffff;
+  background-color: #374151;
 }
 </style>

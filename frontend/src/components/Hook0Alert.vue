@@ -1,90 +1,109 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { AlertCircle, AlertTriangle, CheckCircle, Info } from 'lucide-vue-next';
+
+type AlertType = 'alert' | 'warning' | 'success' | 'info';
 
 interface Props {
   title?: string;
   description?: string;
-  type?: 'alert' | 'warning' | 'success';
+  type?: AlertType;
 }
 
-const props = defineProps<Props>();
-const type = computed(() => props.type ?? 'alert');
+const props = withDefaults(defineProps<Props>(), {
+  title: undefined,
+  description: undefined,
+  type: 'alert',
+});
+
+const alertIcon = computed(() => {
+  const map = {
+    alert: AlertCircle,
+    warning: AlertTriangle,
+    success: CheckCircle,
+    info: Info,
+  };
+  return map[props.type];
+});
 </script>
 
 <template>
-  <div class="hook0-alert">
-    <div class="flex">
-      <div class="flex-shrink-0">
-        <!-- Heroicon name: solid/x-circle -->
-        <svg
-          v-if="type === 'alert'"
-          class="h-5 w-5 text-red-400"
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 20 20"
-          fill="currentColor"
-          aria-hidden="true"
-        >
-          <path
-            fill-rule="evenodd"
-            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-            clip-rule="evenodd"
-          />
-        </svg>
-
-        <!-- Heroicon name: solid/exclamation -->
-        <svg
-          v-if="type === 'warning'"
-          class="h-5 w-5 text-yellow-400"
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 20 20"
-          fill="currentColor"
-          aria-hidden="true"
-        >
-          <path
-            fill-rule="evenodd"
-            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-            clip-rule="evenodd"
-          />
-        </svg>
-
-        <!-- Heroicon name: solid/check-circle -->
-        <svg
-          v-if="type === 'success'"
-          class="h-5 w-5 text-green-400"
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 20 20"
-          fill="currentColor"
-          aria-hidden="true"
-        >
-          <path
-            fill-rule="evenodd"
-            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-            clip-rule="evenodd"
-          />
-        </svg>
+  <div class="hook0-alert" :class="type" role="alert">
+    <div class="hook0-alert-inner">
+      <div class="hook0-alert-icon">
+        <component :is="alertIcon" :size="20" aria-hidden="true" />
       </div>
-      <div class="ml-3">
-        <h3 class="text-sm font-medium text-yellow-800">
+      <div class="hook0-alert-content">
+        <h3 v-if="title" class="hook0-alert-title">
           {{ title }}
-          <slot name="title"></slot>
+          <slot name="title" />
         </h3>
-        <div class="mt-2 text-sm text-yellow-700">
+        <div v-if="description" class="hook0-alert-description">
           <p>
             {{ description }}
-            <slot name="description"></slot>
+            <slot name="description" />
           </p>
+        </div>
+        <div v-else class="hook0-alert-description">
+          <slot name="description" />
         </div>
       </div>
     </div>
   </div>
 </template>
 
-<style lang="scss" scoped>
+<style scoped>
 .hook0-alert {
-  @apply rounded-md bg-yellow-50 p-4;
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid;
+}
 
-  &.primary {
-    @apply inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500;
-  }
+.hook0-alert-inner {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.hook0-alert-icon {
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.hook0-alert-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.hook0-alert-description {
+  font-size: 0.875rem;
+}
+
+/* Alert (error) */
+.hook0-alert.alert {
+  background-color: color-mix(in srgb, var(--color-danger) 8%, var(--color-bg-primary));
+  border-color: color-mix(in srgb, var(--color-danger) 25%, transparent);
+  color: var(--color-danger);
+}
+
+/* Warning */
+.hook0-alert.warning {
+  background-color: color-mix(in srgb, var(--color-warning) 8%, var(--color-bg-primary));
+  border-color: color-mix(in srgb, var(--color-warning) 25%, transparent);
+  color: var(--color-warning);
+}
+
+/* Success */
+.hook0-alert.success {
+  background-color: color-mix(in srgb, var(--color-success) 8%, var(--color-bg-primary));
+  border-color: color-mix(in srgb, var(--color-success) 25%, transparent);
+  color: var(--color-success);
+}
+
+/* Info */
+.hook0-alert.info {
+  background-color: color-mix(in srgb, var(--color-info) 8%, var(--color-bg-primary));
+  border-color: color-mix(in srgb, var(--color-info) 25%, transparent);
+  color: var(--color-info);
 }
 </style>

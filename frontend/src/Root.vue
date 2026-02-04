@@ -11,14 +11,17 @@ import Hook0LoginMenu from '@/components/Hook0LoginMenu.vue';
 import Hook0Icon from '@/components/Hook0Icon.vue';
 import { Notivue, Notification, NotificationProgress, push } from 'notivue';
 import Hook0Button from './components/Hook0Button.vue';
-import { getAccessToken } from '@/iam';
+import { useAuthStore } from '@/stores/auth';
 import { InstanceConfig, getInstanceConfig } from './utils/biscuit_auth';
 import { UUID } from './http';
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
+import { Copy } from 'lucide-vue-next';
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n();
 const route = useRoute();
 
-const is_logged_in = getAccessToken();
+const authStore = useAuthStore();
+const is_logged_in = authStore.isAuthenticated;
 
 const showFullScreen = computed(() => {
   return !is_logged_in || route.meta.fullScreen === true;
@@ -42,13 +45,13 @@ async function copyToClipboard(id: UUID) {
     await navigator.clipboard.writeText(id);
 
     push.success({
-      title: 'Copied!',
-      message: 'The ID has been copied to the clipboard.',
+      title: t('common.copied'),
+      message: t('common.idCopied'),
     });
   } catch (err) {
     push.error({
-      title: 'Error',
-      message: 'An error occurred while copying to the clipboard.',
+      title: t('common.error'),
+      message: t('common.clipboardCopyError'),
     });
   }
 }
@@ -278,7 +281,7 @@ function toggleMobileSidebar() {
               >
                 <span class="text-gray-600 px-3 py-2 text-sm">Org ID</span>
                 <button v-if="organization_id" class="text-indigo-600">
-                  <FontAwesomeIcon :icon="['fas', 'copy']" />
+                  <Copy :size="16" />
                 </button>
               </div>
 
@@ -289,7 +292,7 @@ function toggleMobileSidebar() {
               >
                 <span class="text-gray-600 px-3 py-2 text-sm">App ID</span>
                 <button v-if="application_id" class="text-indigo-600">
-                  <FontAwesomeIcon :icon="['fas', 'copy']" />
+                  <Copy :size="16" />
                 </button>
               </div>
             </div>
@@ -310,7 +313,7 @@ function toggleMobileSidebar() {
                   class="px-3 py-1 bg-indigo-600 text-white hover:bg-indigo-500"
                   @click="copyToClipboard(organization_id)"
                 >
-                  <FontAwesomeIcon :icon="['fas', 'copy']" />
+                  <Copy :size="16" />
                 </button>
               </div>
 
@@ -327,7 +330,7 @@ function toggleMobileSidebar() {
                   class="px-3 py-1 bg-indigo-600 text-white hover:bg-indigo-500"
                   @click="copyToClipboard(application_id)"
                 >
-                  <FontAwesomeIcon :icon="['fas', 'copy']" />
+                  <Copy :size="16" />
                 </button>
               </div>
             </div>
@@ -392,28 +395,33 @@ function toggleMobileSidebar() {
 </template>
 
 <style>
-/* shared */
+/* shared transition classes */
 .ease-enter-active {
-  @apply transition ease-out duration-100 z-50;
+  transition: all 100ms ease-out;
+  z-index: 50;
 }
 
 .ease-enter {
-  @apply transform opacity-0 scale-95 duration-75;
+  opacity: 0;
+  transform: scale(0.95);
+  transition-duration: 75ms;
 }
 
 .ease-enter-to {
-  @apply transform opacity-100 scale-100;
+  opacity: 1;
+  transform: scale(1);
 }
 
 .ease-leave-active {
-  @apply transition ease-in duration-75;
+  transition: all 75ms ease-in;
 }
 
 .ease-leave {
-  @apply transition ease-in duration-75;
+  transition: all 75ms ease-in;
 }
 
 .ease-leave-to {
-  @apply transform opacity-0 scale-95;
+  opacity: 0;
+  transform: scale(0.95);
 }
 </style>

@@ -10,8 +10,13 @@ defineSlots<{
   </ul>
 </template>
 
-<style lang="scss" scoped>
+<style scoped>
 .list {
-  @apply border border-gray-200 rounded-md divide-y divide-gray-200;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+}
+
+.list :deep(> * + *) {
+  border-top: 1px solid #e5e7eb;
 }
 </style>
