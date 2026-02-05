@@ -356,6 +356,7 @@ pub enum Action<'a> {
     //
     AccountDelete,
     AccountCancelDeletion,
+    AccountDeletionStatus,
     //
     OrganizationList,
     OrganizationCreate,
@@ -476,6 +477,7 @@ impl Action<'_> {
             //
             Self::AccountDelete => "account:delete",
             Self::AccountCancelDeletion => "account:cancel_deletion",
+            Self::AccountDeletionStatus => "account:account_deletion_status",
             //
             Self::OrganizationList => "organization:list",
             Self::OrganizationCreate => "organization:create",
@@ -545,6 +547,7 @@ impl Action<'_> {
             //
             Self::AccountDelete => vec![],
             Self::AccountCancelDeletion => vec![],
+            Self::AccountDeletionStatus => vec![],
             //
             Self::OrganizationList => vec![],
             Self::OrganizationCreate => vec![],
@@ -611,6 +614,7 @@ impl Action<'_> {
             //
             Self::AccountDelete => true,
             Self::AccountCancelDeletion => true,
+            Self::AccountDeletionStatus => true,
             //
             Self::OrganizationList => true,
             Self::OrganizationCreate => true,
@@ -633,6 +637,7 @@ impl Action<'_> {
             //
             Self::AccountDelete => None,
             Self::AccountCancelDeletion => None,
+            Self::AccountDeletionStatus => None,
             //
             Self::OrganizationList => None,
             Self::OrganizationCreate => None,
@@ -700,6 +705,7 @@ impl Action<'_> {
             //
             Self::AccountDelete => vec![],
             Self::AccountCancelDeletion => vec![],
+            Self::AccountDeletionStatus => vec![],
             //
             Self::OrganizationList => vec![],
             Self::OrganizationCreate => vec![],

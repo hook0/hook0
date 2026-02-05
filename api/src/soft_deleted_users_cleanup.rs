@@ -18,7 +18,7 @@ const DELETION_GRACE_PERIOD_DAYS: i64 = 30;
 /// 1. Deletes organizations where the user is the sole member (cascades to all Hook0 data)
 /// 2. Removes user from organizations with multiple members
 /// 3. Anonymizes user personal data (email, name, password)
-pub async fn periodically_clean_up_deleted_users(
+pub async fn periodically_clean_up_soft_deleted_users(
     housekeeping_semaphore: &Semaphore,
     db: &PgPool,
     period: Duration,
@@ -29,7 +29,7 @@ pub async fn periodically_clean_up_deleted_users(
     match PgInterval::try_from(TimeDelta::days(DELETION_GRACE_PERIOD_DAYS)) {
         Ok(grace_period) => {
             while let Ok(permit) = housekeeping_semaphore.acquire().await {
-                if let Err(e) = clean_up_deleted_users(db, &grace_period, delete).await {
+                if let Err(e) = clean_up_soft_deleted_users(db, &grace_period, delete).await {
                     error!("Could not clean up deleted users: {e}");
                 }
                 drop(permit);
@@ -45,7 +45,7 @@ pub async fn periodically_clean_up_deleted_users(
     }
 }
 
-async fn clean_up_deleted_users(
+async fn clean_up_soft_deleted_users(
     db: &PgPool,
     grace_period: &PgInterval,
     delete: bool,
@@ -57,56 +57,42 @@ async fn clean_up_deleted_users(
 
     // Step 1: Get users eligible for deletion
     let users_to_delete = get_users_to_delete(&mut *tx, grace_period).await?;
-    let total_users = users_to_delete.len();
 
-    if total_users == 0 {
+    if users_to_delete.is_empty() {
         tx.rollback().await?;
         trace!("No users to clean up");
-        return Ok(());
-    }
-
-    // Step 2: For each user, delete their associated data
-    let mut total_orgs_deleted = 0u64;
-    let mut total_memberships_removed = 0u64;
-
-    for user_id in &users_to_delete {
-        // Delete organizations where user is sole member (CASCADE handles all Hook0 data)
-        let orgs_deleted = delete_sole_member_organizations(&mut *tx, user_id).await?;
-        total_orgs_deleted += orgs_deleted;
-
-        // Remove user from organizations with multiple members
-        let memberships_removed = remove_user_from_organizations(&mut *tx, user_id).await?;
-        total_memberships_removed += memberships_removed;
-    }
-
-    // Step 3: Anonymize user personal data
-    let total_erased = erase_user_personal_data(&mut *tx, grace_period).await?;
-
-    if delete {
-        tx.commit().await?;
-
-        if total_users > 0 {
-            debug!("Running vacuum analyze...");
-            vacuum_analyze(db).await?;
-        }
-
-        info!(
-            "Deleted {total_users} users in {:?}: {} orgs deleted, {} memberships removed, {} users anonymized",
-            start.elapsed(),
-            total_orgs_deleted,
-            total_memberships_removed,
-            total_erased
-        );
+        Ok(())
     } else {
-        tx.rollback().await?;
-        info!(
-            "Would delete {total_users} users in {:?}: {} orgs, {} memberships (rolled back)",
-            start.elapsed(),
-            total_orgs_deleted,
-            total_memberships_removed
-        );
+        // Step 2: Remove each user from their organizations
+        let total_memberships_removed =
+            remove_users_from_organizations(&mut *tx, &users_to_delete).await?;
+
+        // Step 3: Anonymize user personal data
+        let total_erased = erase_user_personal_data(&mut *tx, grace_period).await?;
+
+        if delete {
+            tx.commit().await?;
+
+            if users_to_delete.is_empty() {
+                debug!("Running vacuum analyze...");
+                vacuum_analyze(db).await?;
+            }
+
+            info!(
+                "Deleted {} users in {:?}: {total_memberships_removed} memberships removed, {total_erased} users anonymized",
+                users_to_delete.len(),
+                start.elapsed(),
+            );
+        } else {
+            tx.rollback().await?;
+            info!(
+                "Would delete {} users in {:?}: {total_memberships_removed} memberships (rolled back)",
+                users_to_delete.len(),
+                start.elapsed(),
+            );
+        }
+        Ok(())
     }
-    Ok(())
 }
 
 /// Returns user IDs eligible for deletion (requested > grace_period ago, not yet deleted)
@@ -132,55 +118,21 @@ async fn get_users_to_delete<'a, A: Acquire<'a, Database = Postgres>>(
     Ok(users)
 }
 
-/// Deletes organizations where the user is the sole member.
-/// Due to CASCADE constraints, this also deletes:
-/// - Applications (and their secrets, event_types, events, services, verbs, resource_types)
-/// - Subscriptions (and their event_type mappings, worker assignments)
-/// - Request attempts
-/// - Quota notifications
-async fn delete_sole_member_organizations<'a, A: Acquire<'a, Database = Postgres>>(
-    db: A,
-    user_id: &Uuid,
-) -> Result<u64, sqlx::Error> {
-    let mut db = db.acquire().await?;
-
-    let res = query!(
-        "
-            DELETE FROM iam.organization
-            WHERE organization__id IN (
-                -- Organizations where this user is the ONLY member
-                SELECT uo.organization__id
-                FROM iam.user__organization uo
-                WHERE uo.user__id = $1
-                AND NOT EXISTS (
-                    SELECT 1 FROM iam.user__organization other
-                    WHERE other.organization__id = uo.organization__id
-                    AND other.user__id != $1
-                )
-            )
-        ",
-        user_id,
-    )
-    .execute(&mut *db)
-    .await?;
-
-    Ok(res.rows_affected())
-}
-
-/// Removes user from organizations where they are not the sole member.
+/// Removes users from all organizations.
 /// This preserves the organization and its data for other members.
-async fn remove_user_from_organizations<'a, A: Acquire<'a, Database = Postgres>>(
+/// If the user was the sole member of the organization, it will be deleted by the `periodically_clean_up_unverified_users` task.
+async fn remove_users_from_organizations<'a, A: Acquire<'a, Database = Postgres>>(
     db: A,
-    user_id: &Uuid,
+    user_ids: &[Uuid],
 ) -> Result<u64, sqlx::Error> {
     let mut db = db.acquire().await?;
 
     let res = query!(
         "
             DELETE FROM iam.user__organization
-            WHERE user__id = $1
+            WHERE user__id = ANY($1)
         ",
-        user_id,
+        user_ids,
     )
     .execute(&mut *db)
     .await?;
@@ -207,7 +159,7 @@ async fn erase_user_personal_data<'a, A: Acquire<'a, Database = Postgres>>(
             UPDATE iam.user
             SET
                 deleted_at = statement_timestamp(),
-                email = 'deleted-' || user__id::text || '@deleted.invalid',
+                email = 'deleted-' || user__id::text || '-' || extract(epoch from statement_timestamp()) || '@deleted.invalid',
                 first_name = '',
                 last_name = '',
                 password = ''
@@ -226,7 +178,9 @@ async fn erase_user_personal_data<'a, A: Acquire<'a, Database = Postgres>>(
 async fn vacuum_analyze<'a, A: Acquire<'a, Database = Postgres>>(db: A) -> Result<(), sqlx::Error> {
     let mut db = db.acquire().await?;
 
-    query!("VACUUM ANALYZE iam.user").execute(&mut *db).await?;
+    query!("VACUUM ANALYZE iam.user, iam.user__organization")
+        .execute(&mut *db)
+        .await?;
 
     Ok(())
 }

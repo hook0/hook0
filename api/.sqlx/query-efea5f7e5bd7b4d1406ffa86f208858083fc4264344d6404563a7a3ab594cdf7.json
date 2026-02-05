@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE iam.user\n            SET\n                deleted_at = statement_timestamp(),\n                email = 'deleted-' || user__id::text || '-' || extract(epoch from statement_timestamp()) || '@deleted.invalid',\n                first_name = '',\n                last_name = '',\n                password = ''\n            WHERE deletion_requested_at IS NOT NULL\n                AND deleted_at IS NULL\n                AND deletion_requested_at + $1 < statement_timestamp()\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Interval"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "efea5f7e5bd7b4d1406ffa86f208858083fc4264344d6404563a7a3ab594cdf7"
+}

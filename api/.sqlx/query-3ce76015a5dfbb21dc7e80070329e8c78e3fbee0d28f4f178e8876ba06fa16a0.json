@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM iam.user__organization WHERE user__id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3ce76015a5dfbb21dc7e80070329e8c78e3fbee0d28f4f178e8876ba06fa16a0"
+}

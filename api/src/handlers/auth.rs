@@ -123,6 +123,7 @@ pub async fn login(
             SELECT user__id AS user_id, password AS password_hash, email, first_name, last_name, email_verified_at
             FROM iam.user
             WHERE email = $1
+                AND deleted_at IS NULL
         ",
         &body.email,
     )
@@ -440,6 +441,7 @@ pub async fn refresh(
                 SELECT user__id AS user_id, password AS password_hash, email, first_name, last_name, email_verified_at
                 FROM iam.user
                 WHERE user__id = $1
+                    AND deleted_at IS NULL
             ",
             &token.user_id,
         )
@@ -584,6 +586,7 @@ pub async fn begin_reset_password(
             SELECT user__id AS user_id, email, first_name, last_name
             FROM iam.user
             WHERE email = $1
+                AND deleted_at IS NULL
         ",
         &body.email,
     )
@@ -662,6 +665,7 @@ pub async fn reset_password(
                 SELECT user__id
                 FROM iam.user
                 WHERE user__id = $1
+                    AND deleted_at IS NULL
             ",
             &token.user_id,
         )
@@ -760,6 +764,7 @@ async fn do_change_password<'a, A: Acquire<'a, Database = Postgres>>(
                 UPDATE iam.user
                 SET password = $1
                 WHERE user__id = $2
+                    AND deleted_at IS NULL
             ",
             password_hash.as_str(),
             &user_id,

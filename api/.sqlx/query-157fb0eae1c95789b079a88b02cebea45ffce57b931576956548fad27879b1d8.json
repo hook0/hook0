@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT user__id AS user_id, email, first_name, last_name\n            FROM iam.user\n            WHERE email = $1\n        ",
+  "query": "\n            SELECT user__id AS user_id, email, first_name, last_name\n            FROM iam.user\n            WHERE email = $1\n                AND deleted_at IS NULL\n        ",
   "describe": {
     "columns": [
       {
@@ -36,5 +36,5 @@
       false
     ]
   },
-  "hash": "eec1707a7762a25dda7efd1e23580178d532158f6b9ee86cc7a3703bb33875f7"
+  "hash": "157fb0eae1c95789b079a88b02cebea45ffce57b931576956548fad27879b1d8"
 }

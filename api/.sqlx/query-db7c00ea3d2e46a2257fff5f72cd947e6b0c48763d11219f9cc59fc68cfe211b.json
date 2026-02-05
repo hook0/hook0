@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                UPDATE iam.user\n                SET password = $1\n                WHERE user__id = $2\n                    AND deleted_at IS NULL\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "db7c00ea3d2e46a2257fff5f72cd947e6b0c48763d11219f9cc59fc68cfe211b"
+}

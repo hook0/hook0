@@ -3,7 +3,7 @@ use biscuit_auth::Biscuit;
 use lettre::Address;
 use lettre::message::Mailbox;
 use log::error;
-use paperclip::actix::web::Data;
+use paperclip::actix::web::{Data, Json};
 use paperclip::actix::{Apiv2Schema, NoContent, api_v2_operation};
 use serde::{Deserialize, Serialize};
 use sqlx::query;
@@ -57,44 +57,47 @@ pub async fn request_deletion(
 
     // Check if deletion was already requested
     if user.deletion_requested_at.is_some() {
-        return Err(Hook0Problem::AccountDeletionAlreadyRequested);
-    }
+        Err(Hook0Problem::AccountDeletionAlreadyRequested)
+    } else {
+        let mut tx = state.db.begin().await?;
 
-    // Mark the account for deletion
-    query!(
-        "
-            UPDATE iam.user
-            SET deletion_requested_at = statement_timestamp()
-            WHERE user__id = $1
-                AND deleted_at IS NULL
-                AND deletion_requested_at IS NULL
-        ",
-        &token.user_id,
-    )
-    .execute(&state.db)
-    .await
-    .map_err(Hook0Problem::from)?;
-
-    // Send confirmation email
-    let address = Address::from_str(&user.email).map_err(|e| {
-        error!("Error trying to parse email address: {e}");
-        Hook0Problem::InternalServerError
-    })?;
-    let recipient = Mailbox::new(
-        Some(format!("{} {}", user.first_name, user.last_name)),
-        address,
-    );
-
-    state
-        .mailer
-        .send_mail(Mail::AccountDeletionRequested, recipient)
+        // Mark the account for deletion
+        query!(
+            "
+                UPDATE iam.user
+                SET deletion_requested_at = statement_timestamp()
+                WHERE user__id = $1
+                    AND deleted_at IS NULL
+                    AND deletion_requested_at IS NULL
+            ",
+            &token.user_id,
+        )
+        .execute(&mut *tx)
         .await
-        .map_err(|e| {
-            error!("Error trying to send account deletion confirmation email: {e}");
+        .map_err(Hook0Problem::from)?;
+
+        // Send confirmation email
+        let address = Address::from_str(&user.email).map_err(|e| {
+            error!("Error trying to parse email address: {e}");
             Hook0Problem::InternalServerError
         })?;
+        let recipient = Mailbox::new(
+            Some(format!("{} {}", user.first_name, user.last_name)),
+            address,
+        );
 
-    Ok(NoContent)
+        state
+            .mailer
+            .send_mail(Mail::AccountDeletionRequested, recipient)
+            .await
+            .map_err(|e| {
+                error!("Error trying to send account deletion confirmation email: {e}");
+                Hook0Problem::InternalServerError
+            })?;
+
+        tx.commit().await?;
+        Ok(NoContent)
+    }
 }
 
 #[api_v2_operation(
@@ -135,44 +138,44 @@ pub async fn cancel_deletion(
 
     // Check if deletion was actually requested
     if user.deletion_requested_at.is_none() {
-        return Err(Hook0Problem::AccountDeletionNotRequested);
-    }
-
-    // Cancel the deletion request
-    query!(
-        "
-            UPDATE iam.user
-            SET deletion_requested_at = NULL
-            WHERE user__id = $1
-                AND deleted_at IS NULL
-                AND deletion_requested_at IS NOT NULL
-        ",
-        &token.user_id,
-    )
-    .execute(&state.db)
-    .await
-    .map_err(Hook0Problem::from)?;
-
-    // Send confirmation email
-    let address = Address::from_str(&user.email).map_err(|e| {
-        error!("Error trying to parse email address: {e}");
-        Hook0Problem::InternalServerError
-    })?;
-    let recipient = Mailbox::new(
-        Some(format!("{} {}", user.first_name, user.last_name)),
-        address,
-    );
-
-    state
-        .mailer
-        .send_mail(Mail::AccountDeletionCancelled, recipient)
+        Err(Hook0Problem::AccountDeletionNotRequested)
+    } else {
+        // Cancel the deletion request
+        query!(
+            "
+                UPDATE iam.user
+                SET deletion_requested_at = NULL
+                WHERE user__id = $1
+                    AND deleted_at IS NULL
+                    AND deletion_requested_at IS NOT NULL
+            ",
+            &token.user_id,
+        )
+        .execute(&state.db)
         .await
-        .map_err(|e| {
-            error!("Error trying to send account deletion cancellation email: {e}");
+        .map_err(Hook0Problem::from)?;
+
+        // Send confirmation email
+        let address = Address::from_str(&user.email).map_err(|e| {
+            error!("Error trying to parse email address: {e}");
             Hook0Problem::InternalServerError
         })?;
+        let recipient = Mailbox::new(
+            Some(format!("{} {}", user.first_name, user.last_name)),
+            address,
+        );
 
-    Ok(NoContent)
+        state
+            .mailer
+            .send_mail(Mail::AccountDeletionCancelled, recipient)
+            .await
+            .map_err(|e| {
+                error!("Error trying to send account deletion cancellation email: {e}");
+                Hook0Problem::InternalServerError
+            })?;
+
+        Ok(NoContent)
+    }
 }
 
 #[api_v2_operation(
@@ -186,11 +189,11 @@ pub async fn get_deletion_status(
     state: Data<crate::State>,
     _: OaBiscuitUserAccess,
     biscuit: ReqData<Biscuit>,
-) -> Result<paperclip::actix::web::Json<AccountDeletionStatus>, Hook0Problem> {
+) -> Result<Json<AccountDeletionStatus>, Hook0Problem> {
     let token = authorize_only_user(
         &biscuit,
         None,
-        Action::AccountDelete,
+        Action::AccountDeletionStatus,
         state.max_authorization_time_in_ms,
         state.debug_authorizer,
     )
@@ -210,7 +213,7 @@ pub async fn get_deletion_status(
     .map_err(Hook0Problem::from)?
     .ok_or(Hook0Problem::NotFound)?;
 
-    Ok(paperclip::actix::web::Json(AccountDeletionStatus {
+    Ok(Json(AccountDeletionStatus {
         deletion_requested: user.deletion_requested_at.is_some(),
     }))
 }

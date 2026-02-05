@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    INSERT INTO pricing.plan (name, label)\n                    VALUES ('Test Plan', 'Test')\n                    RETURNING plan__id\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "plan__id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "30be4ab78db6949d5778908bd6c147ad379c5db54925b2ae2a753cc9f2a06f57"
+}

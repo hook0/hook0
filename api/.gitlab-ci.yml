@@ -70,4 +70,4 @@ api.integration-test:
     - sqlx migrate run --source api/migrations
   script:
     - pushd api
-    - cargo test --test deleted_users_cleanup_test
+    - cargo test --test deleted_users_cleanup_test -- --ignored

@@ -27,7 +27,6 @@ use url::Url;
 use uuid::Uuid;
 
 mod cloudflare_turnstile;
-mod deleted_users_cleanup;
 mod expired_tokens_cleanup;
 mod extractor_user_ip;
 mod handlers;
@@ -47,6 +46,7 @@ mod problems;
 mod quotas;
 mod rate_limiting;
 mod soft_deleted_applications_cleanup;
+mod soft_deleted_users_cleanup;
 mod unverified_users_cleanup;
 mod validators;
 
@@ -433,15 +433,15 @@ struct Config {
     unverified_users_cleanup_report_and_delete: bool,
 
     /// [Housekeeping] If true, users who requested account deletion will be soft-deleted after 30 days (GDPR Art. 17)
-    #[clap(long, env, default_value = "false")]
+    #[clap(long, env, default_value_t = false)]
     enable_deleted_users_cleanup: bool,
 
-    /// [Housekeeping] Duration (in seconds) to wait between deleted users cleanups
-    #[clap(long, env, default_value = "3600")]
-    deleted_users_cleanup_period_in_s: u64,
+    /// [Housekeeping] Duration to wait between deleted users cleanups
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "1h")]
+    deleted_users_cleanup_period: Duration,
 
     /// [Housekeeping] If true, users requesting deletion will be soft-deleted; if false (default), they will only be reported
-    #[clap(long, env, default_value = "false")]
+    #[clap(long, env, default_value_t = false)]
     deleted_users_cleanup_report_and_delete: bool,
 
     /// [Housekeeping] If true, soft-deleted applications will be removed from database after a while; otherwise they will be kept in database forever
@@ -1009,10 +1009,10 @@ async fn main() -> anyhow::Result<()> {
             let clean_deleted_users_db = housekeeping_pool.clone();
             let clean_deleted_users_semaphore = housekeeping_semaphore.clone();
             actix_web::rt::spawn(async move {
-                deleted_users_cleanup::periodically_clean_up_deleted_users(
+                soft_deleted_users_cleanup::periodically_clean_up_soft_deleted_users(
                     &clean_deleted_users_semaphore,
                     &clean_deleted_users_db,
-                    Duration::from_secs(config.deleted_users_cleanup_period_in_s),
+                    config.deleted_users_cleanup_period,
                     config.deleted_users_cleanup_report_and_delete,
                 )
                 .await;

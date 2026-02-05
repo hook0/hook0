@@ -5,7 +5,7 @@
 //! 2. Organizations where they are the sole member are deleted (CASCADE to all Hook0 data)
 //! 3. They are removed from shared organizations
 //!
-//! Run with: DATABASE_URL="postgres://postgres:postgres@localhost:5432/hook0" cargo test --test deleted_users_cleanup_test
+//! Run with: DATABASE_URL="postgres://postgres:postgres@localhost:5432/hook0" cargo test --test deleted_users_cleanup_test --ignored
 
 use chrono::{TimeDelta, Utc};
 use sqlx::postgres::types::PgInterval;
@@ -24,11 +24,11 @@ async fn get_db_pool() -> PgPool {
 /// Creates a test user and returns their user_id
 async fn create_test_user(db: &PgPool, email: &str) -> Uuid {
     query_scalar!(
-        r#"
+        "
             INSERT INTO iam.user (email, password, first_name, last_name)
             VALUES ($1, 'test_password_hash', 'Test', 'User')
             RETURNING user__id
-        "#,
+        ",
         email
     )
     .fetch_one(db)
@@ -39,7 +39,7 @@ async fn create_test_user(db: &PgPool, email: &str) -> Uuid {
 /// Creates a test organization and returns its organization_id
 async fn create_test_organization(db: &PgPool, name: &str) -> Uuid {
     // Get or create a test price
-    let price_id = query_scalar!(r#"SELECT price__id FROM pricing.price LIMIT 1"#)
+    let price_id = query_scalar!("SELECT price__id FROM pricing.price LIMIT 1")
         .fetch_optional(db)
         .await
         .expect("Failed to query prices");
@@ -49,11 +49,11 @@ async fn create_test_organization(db: &PgPool, name: &str) -> Uuid {
         None => {
             // Create a test plan first
             let plan_id = query_scalar!(
-                r#"
+                "
                     INSERT INTO pricing.plan (name, label)
                     VALUES ('Test Plan', 'Test')
                     RETURNING plan__id
-                "#
+                "
             )
             .fetch_one(db)
             .await
@@ -61,11 +61,11 @@ async fn create_test_organization(db: &PgPool, name: &str) -> Uuid {
 
             // Create a test price
             query_scalar!(
-                r#"
+                "
                     INSERT INTO pricing.price (plan__id, amount, time_basis)
                     VALUES ($1, 0.00, 'month')
                     RETURNING price__id
-                "#,
+                ",
                 plan_id
             )
             .fetch_one(db)
@@ -75,11 +75,11 @@ async fn create_test_organization(db: &PgPool, name: &str) -> Uuid {
     };
 
     query_scalar!(
-        r#"
+        "
             INSERT INTO iam.organization (name, price__id)
             VALUES ($1, $2)
             RETURNING organization__id
-        "#,
+        ",
         name,
         price_id
     )
@@ -91,10 +91,10 @@ async fn create_test_organization(db: &PgPool, name: &str) -> Uuid {
 /// Links a user to an organization
 async fn link_user_to_organization(db: &PgPool, user_id: &Uuid, org_id: &Uuid) {
     query!(
-        r#"
+        "
             INSERT INTO iam.user__organization (user__id, organization__id, role)
             VALUES ($1, $2, 'editor')
-        "#,
+        ",
         user_id,
         org_id
     )
@@ -106,11 +106,11 @@ async fn link_user_to_organization(db: &PgPool, user_id: &Uuid, org_id: &Uuid) {
 /// Creates a test application in an organization
 async fn create_test_application(db: &PgPool, org_id: &Uuid, name: &str) -> Uuid {
     query_scalar!(
-        r#"
+        "
             INSERT INTO event.application (organization__id, name)
             VALUES ($1, $2)
             RETURNING application__id
-        "#,
+        ",
         org_id,
         name
     )
@@ -124,11 +124,11 @@ async fn set_deletion_requested(db: &PgPool, user_id: &Uuid, days_ago: i64) {
     let requested_at = Utc::now() - TimeDelta::days(days_ago);
 
     query!(
-        r#"
+        "
             UPDATE iam.user
             SET deletion_requested_at = $1
             WHERE user__id = $2
-        "#,
+        ",
         requested_at,
         user_id
     )
@@ -150,14 +150,14 @@ async fn run_cleanup_for_users(
 
     // Only consider users from the provided list
     let users_to_delete: Vec<Uuid> = query_scalar!(
-        r#"
+        "
             SELECT user__id
             FROM iam.user
             WHERE user__id = ANY($1)
                 AND deletion_requested_at IS NOT NULL
                 AND deleted_at IS NULL
                 AND deletion_requested_at + $2 < statement_timestamp()
-        "#,
+        ",
         user_ids,
         &grace_period,
     )
@@ -170,7 +170,7 @@ async fn run_cleanup_for_users(
 
     for user_id in &users_to_delete {
         let orgs = query!(
-            r#"
+            "
                 DELETE FROM iam.organization
                 WHERE organization__id IN (
                     SELECT uo.organization__id
@@ -182,7 +182,7 @@ async fn run_cleanup_for_users(
                         AND other.user__id != $1
                     )
                 )
-            "#,
+            ",
             user_id,
         )
         .execute(&mut *tx)
@@ -191,7 +191,7 @@ async fn run_cleanup_for_users(
         total_orgs_deleted += orgs.rows_affected();
 
         let memberships = query!(
-            r#"DELETE FROM iam.user__organization WHERE user__id = $1"#,
+            "DELETE FROM iam.user__organization WHERE user__id = $1",
             user_id,
         )
         .execute(&mut *tx)
@@ -202,7 +202,7 @@ async fn run_cleanup_for_users(
 
     // Only anonymize users from the provided list
     let erased = query!(
-        r#"
+        "
             UPDATE iam.user
             SET
                 deleted_at = statement_timestamp(),
@@ -214,7 +214,7 @@ async fn run_cleanup_for_users(
                 AND deletion_requested_at IS NOT NULL
                 AND deleted_at IS NULL
                 AND deletion_requested_at + $2 < statement_timestamp()
-        "#,
+        ",
         user_ids,
         &grace_period,
     )
@@ -277,18 +277,19 @@ async fn application_exists(db: &PgPool, app_id: &Uuid) -> bool {
 }
 
 async fn cleanup_test_user(db: &PgPool, user_id: &Uuid) {
-    let _ = query!(r#"DELETE FROM iam.user WHERE user__id = $1"#, user_id)
+    let _ = query!("DELETE FROM iam.user WHERE user__id = $1", user_id)
         .execute(db)
         .await;
 }
 
+#[ignore]
 #[tokio::test]
 async fn test_user_deletion_after_grace_period_deletes_sole_member_org_and_data() {
     let db = get_db_pool().await;
     let test_id = Uuid::new_v4();
 
-    let user_id = create_test_user(&db, &format!("test_deletion_{}@example.com", test_id)).await;
-    let org_id = create_test_organization(&db, &format!("Test Org {}", test_id)).await;
+    let user_id = create_test_user(&db, &format!("test_deletion_{test_id}@example.com")).await;
+    let org_id = create_test_organization(&db, &format!("Test Org {test_id}")).await;
     link_user_to_organization(&db, &user_id, &org_id).await;
     let app_id = create_test_application(&db, &org_id, "Test App").await;
 
@@ -327,13 +328,14 @@ async fn test_user_deletion_after_grace_period_deletes_sole_member_org_and_data(
     cleanup_test_user(&db, &user_id).await;
 }
 
+#[ignore]
 #[tokio::test]
 async fn test_user_not_deleted_before_grace_period() {
     let db = get_db_pool().await;
     let test_id = Uuid::new_v4();
 
-    let user_id = create_test_user(&db, &format!("test_not_deleted_{}@example.com", test_id)).await;
-    let org_id = create_test_organization(&db, &format!("Test Org Not Deleted {}", test_id)).await;
+    let user_id = create_test_user(&db, &format!("test_not_deleted_{test_id}@example.com")).await;
+    let org_id = create_test_organization(&db, &format!("Test Org Not Deleted {test_id}")).await;
     link_user_to_organization(&db, &user_id, &org_id).await;
 
     set_deletion_requested(&db, &user_id, 10).await;
@@ -353,7 +355,7 @@ async fn test_user_not_deleted_before_grace_period() {
 
     // Cleanup: cancel deletion and delete test data
     query!(
-        r#"UPDATE iam.user SET deletion_requested_at = NULL WHERE user__id = $1"#,
+        "UPDATE iam.user SET deletion_requested_at = NULL WHERE user__id = $1",
         &user_id
     )
     .execute(&db)
@@ -362,14 +364,15 @@ async fn test_user_not_deleted_before_grace_period() {
     cleanup_test_user(&db, &user_id).await;
 }
 
+#[ignore]
 #[tokio::test]
 async fn test_shared_org_preserved_when_user_deleted() {
     let db = get_db_pool().await;
     let test_id = Uuid::new_v4();
 
-    let user1_id = create_test_user(&db, &format!("test_shared1_{}@example.com", test_id)).await;
-    let user2_id = create_test_user(&db, &format!("test_shared2_{}@example.com", test_id)).await;
-    let shared_org_id = create_test_organization(&db, &format!("Shared Org {}", test_id)).await;
+    let user1_id = create_test_user(&db, &format!("test_shared1_{test_id}@example.com")).await;
+    let user2_id = create_test_user(&db, &format!("test_shared2_{test_id}@example.com")).await;
+    let shared_org_id = create_test_organization(&db, &format!("Shared Org {test_id}")).await;
     link_user_to_organization(&db, &user1_id, &shared_org_id).await;
     link_user_to_organization(&db, &user2_id, &shared_org_id).await;
     let app_id = create_test_application(&db, &shared_org_id, "Shared App").await;
