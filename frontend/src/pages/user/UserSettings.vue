@@ -273,7 +273,9 @@ function displayError(err: Problem) {
             </div>
           </Hook0CardContent>
           <Hook0CardFooter>
-            <Hook0Button data-test="delete-account-button" class="danger" submit>Request account deletion</Hook0Button>
+            <Hook0Button data-test="delete-account-button" class="danger" submit
+              >Request account deletion</Hook0Button
+            >
           </Hook0CardFooter>
         </form>
       </template>
