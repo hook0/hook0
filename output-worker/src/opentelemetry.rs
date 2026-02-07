@@ -12,6 +12,7 @@ use opentelemetry_sdk::Resource;
 use opentelemetry_sdk::error::OTelSdkResult;
 use opentelemetry_sdk::metrics::SdkMeterProvider;
 use opentelemetry_sdk::trace::SdkTracerProvider;
+use pulsar::proto::CommandConsumerStatsResponse;
 use sqlx::PgPool;
 use std::collections::HashMap;
 use std::time::Duration;
@@ -144,6 +145,55 @@ pub fn gather_pool_metrics(pool: &PgPool) {
             .u64_gauge("db.active_connections")
             .build()
             .record(value, &[]);
+    }
+}
+
+pub fn gather_pulsar_consumer_metrics(stats: &[CommandConsumerStatsResponse]) {
+    let meter = global::meter(crate_name!());
+
+    for stat in stats {
+        if let Some(value) = stat.unacked_messages {
+            meter
+                .u64_gauge("pulsar.request_attempt_consumer.unacked_messages")
+                .build()
+                .record(value, &[]);
+        }
+        if let Some(value) = stat.blocked_consumer_on_unacked_msgs {
+            meter
+                .u64_gauge("pulsar.request_attempt_consumer.blocked_consumer_on_unacked_msgs")
+                .build()
+                .record(u64::from(value), &[]);
+        }
+        if let Some(value) = stat.msg_rate_out {
+            meter
+                .f64_gauge("pulsar.request_attempt_consumer.msg_rate_out")
+                .build()
+                .record(value, &[]);
+        }
+        if let Some(value) = stat.msg_throughput_out {
+            meter
+                .f64_gauge("pulsar.request_attempt_consumer.msg_throughput_out")
+                .build()
+                .record(value, &[]);
+        }
+        if let Some(value) = stat.msg_rate_redeliver {
+            meter
+                .f64_gauge("pulsar.request_attempt_consumer.msg_rate_redeliver")
+                .build()
+                .record(value, &[]);
+        }
+        if let Some(value) = stat.message_ack_rate {
+            meter
+                .f64_gauge("pulsar.request_attempt_consumer.message_ack_rate")
+                .build()
+                .record(value, &[]);
+        }
+        if let Some(value) = stat.available_permits {
+            meter
+                .u64_gauge("pulsar.request_attempt_consumer.available_permits")
+                .build()
+                .record(value, &[]);
+        }
     }
 }
 
