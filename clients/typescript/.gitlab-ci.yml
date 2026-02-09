@@ -12,7 +12,7 @@ clients.typescript.build:
     - npm test
     - npm run build
   artifacts:
-    name: "$CI_BUILD_NAME"
+    name: "$CI_JOB_NAME"
     paths:
       - clients/typescript/node_modules/
       - clients/typescript/dist/
