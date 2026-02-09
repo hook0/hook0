@@ -3,6 +3,7 @@ semver-checks:
   image: rust:$RUST_VERSION
   variables:
     BINSTALL_DISABLE_TELEMETRY: "true"
+    GIT_DEPTH: 0
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"
       changes:
