@@ -67,9 +67,14 @@ esac
 
 echo "=== Starting $BUMP_TYPE release: $CURRENT -> $NEW_VERSION ==="
 
-# Bump Cargo.toml versions only (no commit, no tag, no push)
-echo "Bumping Cargo.toml versions..."
-cargo release version "$BUMP_TYPE" --execute --no-confirm
+# Bump Cargo.toml versions to exact version (no commit, no tag, no push)
+echo "Bumping Cargo.toml versions to $NEW_VERSION..."
+cargo release version "$NEW_VERSION" --execute --no-confirm
+
+# Regenerate Cargo.lock after version bump
+echo "Updating Cargo.lock..."
+cargo update --workspace
+echo "  ✓ Cargo.lock updated"
 
 # Update frontend/package.json version
 echo "Updating frontend/package.json..."
