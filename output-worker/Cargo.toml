@@ -9,6 +9,10 @@ edition = "2024"
 license = "SSPL-1.0"
 keywords = ["webhooks", "webhook", "webhook-server", "events", "saas"]
 
+[package.metadata.release]
+release = true
+publish = false
+
 [dependencies]
 anyhow = "1.0.100"
 aws-sdk-s3 = { version = "1.121.0", features = ["behavior-version-latest"] }
