@@ -69,6 +69,8 @@ sdk-release.cargo:
   stage: trigger-release
   image: rust:$RUST_VERSION
   allow_failure: false
+  variables:
+    GIT_LFS_SKIP_SMUDGE: "1"
   rules:
     # Don't show on SDK tag pipelines (release already in progress)
     - if: $CI_COMMIT_TAG =~ /^sdk-v/
