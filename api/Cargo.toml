@@ -27,7 +27,7 @@ chrono = { version = "0.4.43", features = ["serde"] }
 clap = { version = "4.5.56", features = ["derive", "env", "cargo", "wrap_help"] }
 derive_more = { version = "2.1.1", features = ["into"] }
 futures-util = "0.3.31"
-hook0-client = { path = "../clients/rust", version = "1.0.1", default-features = false, features = ["producer"] }
+hook0-client = { path = "../clients/rust", version = "1.0.0", default-features = false, features = ["producer"] }
 hook0-protobuf = { path = "../protobuf" }
 hook0-sentry-integration = { path = "../sentry-integration", version = "0.1.0" }
 html2text = "0.16.7"
