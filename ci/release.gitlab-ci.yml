@@ -342,8 +342,8 @@ release.github:
     - git config user.email "ci@hook0.com"
     - git config user.name "Hook0 CI"
     - git remote set-url origin "https://oauth2:${GITLAB_RELEASE_TOKEN}@gitlab.com/${CI_PROJECT_PATH}.git"
-    # Disable LFS hooks (not needed for release, and git-lfs is not installed)
-    - rm -f .git/hooks/pre-push .git/hooks/post-commit
+    # Disable all git hooks (git-lfs is not installed, hooks would fail)
+    - git config core.hooksPath /dev/null
     # Fetch all tags and checkout branch (GitLab CI clones in detached HEAD)
     - git fetch --tags origin $CI_COMMIT_REF_NAME
     - git checkout $CI_COMMIT_REF_NAME
