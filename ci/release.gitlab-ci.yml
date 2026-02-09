@@ -281,27 +281,27 @@ release.github:
     - |
       cat >> artifacts/RELEASE_NOTES.md << EOF
 
-## Docker Images
+      ## Docker Images
 
-| Image | DockerHub | GHCR | GitLab Registry |
-|-------|-----------|------|-----------------|
-| API | \`${DOCKERHUB_PREFIX}/hook0-api:${VERSION}\` | \`${GHCR_PREFIX}/hook0-api:${VERSION}\` | \`${CI_REGISTRY_IMAGE}/hook0-api:${VERSION}\` |
-| Worker | \`${DOCKERHUB_PREFIX}/output-worker:${VERSION}\` | \`${GHCR_PREFIX}/output-worker:${VERSION}\` | \`${CI_REGISTRY_IMAGE}/output-worker:${VERSION}\` |
+      | Image | DockerHub | GHCR | GitLab Registry |
+      |-------|-----------|------|-----------------|
+      | API | \`${DOCKERHUB_PREFIX}/hook0-api:${VERSION}\` | \`${GHCR_PREFIX}/hook0-api:${VERSION}\` | \`${CI_REGISTRY_IMAGE}/hook0-api:${VERSION}\` |
+      | Worker | \`${DOCKERHUB_PREFIX}/output-worker:${VERSION}\` | \`${GHCR_PREFIX}/output-worker:${VERSION}\` | \`${CI_REGISTRY_IMAGE}/output-worker:${VERSION}\` |
 
-\`\`\`bash
-# Pull from DockerHub
-docker pull ${DOCKERHUB_PREFIX}/hook0-api:${VERSION}
-docker pull ${DOCKERHUB_PREFIX}/output-worker:${VERSION}
+      \`\`\`bash
+      # Pull from DockerHub
+      docker pull ${DOCKERHUB_PREFIX}/hook0-api:${VERSION}
+      docker pull ${DOCKERHUB_PREFIX}/output-worker:${VERSION}
 
-# Pull from GHCR
-docker pull ${GHCR_PREFIX}/hook0-api:${VERSION}
-docker pull ${GHCR_PREFIX}/output-worker:${VERSION}
+      # Pull from GHCR
+      docker pull ${GHCR_PREFIX}/hook0-api:${VERSION}
+      docker pull ${GHCR_PREFIX}/output-worker:${VERSION}
 
-# Pull from GitLab Registry
-docker pull ${CI_REGISTRY_IMAGE}/hook0-api:${VERSION}
-docker pull ${CI_REGISTRY_IMAGE}/output-worker:${VERSION}
-\`\`\`
-EOF
+      # Pull from GitLab Registry
+      docker pull ${CI_REGISTRY_IMAGE}/hook0-api:${VERSION}
+      docker pull ${CI_REGISTRY_IMAGE}/output-worker:${VERSION}
+      \`\`\`
+      EOF
     - echo "=== Creating GitHub Release ==="
     - gh release create "$CI_COMMIT_TAG" --repo "${GITHUB_REPO}" --title "Release $CI_COMMIT_TAG" --notes-file artifacts/RELEASE_NOTES.md artifacts/hook0-api-linux-amd64 artifacts/hook0-output-worker-linux-amd64 artifacts/frontend-dist.tar.gz
 
