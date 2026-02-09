@@ -8,7 +8,7 @@ clients.typescript.build:
   image: node:$NODE_VERSION
   script:
     - pushd clients/typescript/
-    - npm install
+    - npm ci
     - npm test
     - npm run build
   artifacts:

@@ -11,7 +11,7 @@ semver-checks:
   before_script:
     - rustc --version && cargo --version
     - curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
-    - cargo binstall --target x86_64-unknown-linux-musl --no-confirm cargo-semver-checks
+    - cargo binstall --target x86_64-unknown-linux-musl --no-confirm cargo-semver-checks@0.44.0
     - git fetch origin master
   script:
     - echo "Checking semver compliance against origin/master..."
