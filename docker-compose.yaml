@@ -13,7 +13,7 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=hook0
     ports:
-      - "5432:5432"
+      - "5434:5432"
     networks:
       - hook0
     restart: unless-stopped
@@ -30,8 +30,8 @@ services:
       - MP_DATABASE=/data/mailpit.db
       - POSTGRES_DB=hook0
     ports:
-      - "8025:8025"
-      - "1025:1025"
+      - "8026:8025"
+      - "1026:1025"
     networks:
       - hook0
     restart: unless-stopped
@@ -49,14 +49,14 @@ services:
     environment:
       - IP=0.0.0.0
       - PORT=8081
-      - CORS_ALLOWED_ORIGINS=http://localhost:8001
+      - CORS_ALLOWED_ORIGINS=http://localhost:8002
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/hook0
       - SMTP_CONNECTION_URL=smtp://mailpit:1025
       - EMAIL_SENDER_ADDRESS=sender@hook0.local
-      - APP_URL=http://localhost:8001
+      - APP_URL=http://localhost:8002
       - BISCUIT_PRIVATE_KEY=bbea79cd66926b219b3219a3186decb36136d774dd7c35a8239e512090fa8854  # DO NOT USE THIS KEY IN PRODUCTION
     ports:
-      - "8081:8081"
+      - "8082:8081"
     networks:
       - hook0
     restart: unless-stopped
@@ -75,9 +75,9 @@ services:
       context: .
       dockerfile: frontend/Dockerfile
     environment:
-      - API_ENDPOINT=http://localhost:8001
+      - API_ENDPOINT=http://localhost:8082/api/v1
     ports:
-      - "8001:80"
+      - "8002:80"
     networks:
       - hook0
     restart: unless-stopped
