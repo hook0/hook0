@@ -181,7 +181,7 @@ release.containers:
   extends: .release-rules
   stage: release
   image:
-    name: moby/buildkit:rootless
+    name: moby/buildkit:v0.21.1-rootless
     entrypoint: ['sh', '-c']
   needs:
     - job: release.build-api-amd64
@@ -208,9 +208,9 @@ release.containers:
     - mkdir -p ~/.docker
     - |
       echo "{\"auths\":{
-        \"$CI_REGISTRY\":{\"auth\":\"$(echo -n $CI_REGISTRY_USER:$CI_REGISTRY_PASSWORD | base64)\"},
-        \"https://index.docker.io/v1/\":{\"auth\":\"$(echo -n $DOCKERHUB_USERNAME:$DOCKERHUB_TOKEN | base64)\"},
-        \"ghcr.io\":{\"auth\":\"$(echo -n $GITHUB_USERNAME:$GITHUB_TOKEN | base64)\"}
+        \"$CI_REGISTRY\":{\"auth\":\"$(printf '%s' "$CI_REGISTRY_USER:$CI_REGISTRY_PASSWORD" | base64 -w0)\"},
+        \"https://index.docker.io/v1/\":{\"auth\":\"$(printf '%s' "$DOCKERHUB_USERNAME:$DOCKERHUB_TOKEN" | base64 -w0)\"},
+        \"ghcr.io\":{\"auth\":\"$(printf '%s' "$GITHUB_USERNAME:$GITHUB_TOKEN" | base64 -w0)\"}
       }}" > ~/.docker/config.json
   script:
     # Prepare build context for API
@@ -229,6 +229,7 @@ release.containers:
 
     # Build and push API
     - buildctl-daemonless.sh build
+        --progress=plain
         --frontend dockerfile.v0
         --local context=build-context/api
         --local dockerfile=build-context/api
@@ -236,6 +237,7 @@ release.containers:
 
     # Build and push Output Worker
     - buildctl-daemonless.sh build
+        --progress=plain
         --frontend dockerfile.v0
         --local context=build-context/worker
         --local dockerfile=build-context/worker
