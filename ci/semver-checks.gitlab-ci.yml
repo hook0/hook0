@@ -16,6 +16,7 @@ semver-checks:
     - git fetch origin master
   script:
     - echo "Checking semver compliance against origin/master..."
-    # Check SDK - strict
-    - cargo semver-checks --package hook0-client --baseline-rev origin/master || (echo "WARNING: SDK has breaking changes - ensure MAJOR version bump" && exit 1)
+    - >-
+      cargo semver-checks --package hook0-client --baseline-rev origin/master
+      || (echo "WARNING - SDK has breaking changes, ensure MAJOR version bump" && exit 1)
   allow_failure: false
