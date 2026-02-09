@@ -67,7 +67,7 @@ sdk-release.cargo:
 
 .sdk-release-trigger:
   stage: trigger-release
-  image: alpine:3.23
+  image: rust:$RUST_VERSION
   allow_failure: false
   rules:
     # Don't show on SDK tag pipelines (release already in progress)
@@ -80,7 +80,7 @@ sdk-release.cargo:
       when: manual
   before_script:
     # Install tools
-    - apk add --no-cache jq git sed gawk
+    - apt-get update && apt-get install -y jq
     # Configure git for push (requires CI variable GITLAB_RELEASE_TOKEN with write_repository scope)
     - git config user.email "ci@hook0.com"
     - git config user.name "Hook0 CI"

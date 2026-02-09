@@ -208,9 +208,9 @@ release.containers:
     - mkdir -p ~/.docker
     - |
       echo "{\"auths\":{
-        \"$CI_REGISTRY\":{\"auth\":\"$(printf '%s' "$CI_REGISTRY_USER:$CI_REGISTRY_PASSWORD" | base64 -w0)\"},
-        \"https://index.docker.io/v1/\":{\"auth\":\"$(printf '%s' "$DOCKERHUB_USERNAME:$DOCKERHUB_TOKEN" | base64 -w0)\"},
-        \"ghcr.io\":{\"auth\":\"$(printf '%s' "$GITHUB_USERNAME:$GITHUB_TOKEN" | base64 -w0)\"}
+        \"$CI_REGISTRY\":{\"auth\":\"$(printf '%s' "$CI_REGISTRY_USER:$CI_REGISTRY_PASSWORD" | base64 | tr -d '\n')\"},
+        \"https://index.docker.io/v1/\":{\"auth\":\"$(printf '%s' "$DOCKERHUB_USERNAME:$DOCKERHUB_TOKEN" | base64 | tr -d '\n')\"},
+        \"ghcr.io\":{\"auth\":\"$(printf '%s' "$GITHUB_USERNAME:$GITHUB_TOKEN" | base64 | tr -d '\n')\"}
       }}" > ~/.docker/config.json
   script:
     # Prepare build context for API

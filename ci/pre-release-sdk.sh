@@ -4,7 +4,7 @@
 set -euo pipefail
 
 # Check required tools
-for cmd in jq git sed awk; do
+for cmd in jq git sed awk cargo; do
     if ! command -v "$cmd" &> /dev/null; then
         echo "ERROR: Required command '$cmd' not found"
         exit 1
