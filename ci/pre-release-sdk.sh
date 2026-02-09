@@ -23,10 +23,10 @@ fi
 cd "$(dirname "$0")/.."
 
 # Safety checks
-# TODO: revert to master-only before merge
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 if [ "$CURRENT_BRANCH" != "master" ]; then
-    echo "WARNING: Releasing from non-master branch '$CURRENT_BRANCH' (testing mode)"
+    echo "ERROR: SDK releases must be created from master branch (currently on '$CURRENT_BRANCH')"
+    exit 1
 fi
 
 if [ -n "$(git status --porcelain)" ]; then

@@ -78,9 +78,7 @@ sdk-release.cargo:
     # Don't show on main release tag pipelines
     - if: $CI_COMMIT_TAG
       when: never
-    # TODO: revert to master-only before merge
-    # - if: $CI_COMMIT_BRANCH == "master"
-    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_BRANCH == "master"
       when: manual
   before_script:
     # Install tools
