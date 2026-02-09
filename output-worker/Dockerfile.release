@@ -1,4 +1,4 @@
-FROM debian:trixie-slim
+FROM debian:trixie-20250203-slim
 ARG TARGETARCH
 ARG UID=10001
 
@@ -14,8 +14,7 @@ RUN useradd \
     appuser
 
 # Note: Artifacts are named hook0-output-worker-linux-{amd64,arm64}
-COPY hook0-output-worker-linux-${TARGETARCH} /hook0-output-worker
-RUN chmod +x /hook0-output-worker
+COPY --chmod=755 hook0-output-worker-linux-${TARGETARCH} /hook0-output-worker
 
 USER appuser
 
