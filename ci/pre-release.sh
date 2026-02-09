@@ -3,6 +3,14 @@
 # Usage: ./ci/pre-release.sh <patch|minor|major>
 set -euo pipefail
 
+# Check required tools
+for cmd in jq cargo git-cliff; do
+    if ! command -v "$cmd" &> /dev/null; then
+        echo "ERROR: Required command '$cmd' not found"
+        exit 1
+    fi
+done
+
 BUMP_TYPE="${1:-}"
 
 if [ -z "$BUMP_TYPE" ]; then

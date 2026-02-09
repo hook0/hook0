@@ -22,6 +22,18 @@ fi
 # Change to repo root (script is in ci/ folder)
 cd "$(dirname "$0")/.."
 
+# Safety checks
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [ "$CURRENT_BRANCH" != "master" ]; then
+    echo "ERROR: SDK releases must be created from master branch (currently on '$CURRENT_BRANCH')"
+    exit 1
+fi
+
+if [ -n "$(git status --porcelain)" ]; then
+    echo "ERROR: Working directory is not clean. Commit or stash changes first."
+    exit 1
+fi
+
 # Get current version from clients/rust/Cargo.toml
 CURRENT=$(grep '^version = ' clients/rust/Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
 
@@ -62,8 +74,19 @@ echo "Updating clients/typescript/package.json..."
 jq ".version = \"${NEW_VERSION}\"" clients/typescript/package.json > clients/typescript/package.json.tmp && mv clients/typescript/package.json.tmp clients/typescript/package.json
 echo "  ✓ clients/typescript/package.json updated"
 
+# Update api/Cargo.toml hook0-client dependency version
+echo "Updating api/Cargo.toml hook0-client dependency..."
+sed -i.bak "s/\(hook0-client.*version = \"\)$CURRENT/\1$NEW_VERSION/" api/Cargo.toml
+rm -f api/Cargo.toml.bak
+echo "  ✓ api/Cargo.toml updated"
+
+# Regenerate Cargo.lock
+echo "Updating Cargo.lock..."
+cargo update -p hook0-client
+echo "  ✓ Cargo.lock updated"
+
 # Commit all changes, tag, and push
-git add clients/rust/Cargo.toml clients/typescript/package.json
+git add clients/rust/Cargo.toml clients/typescript/package.json api/Cargo.toml Cargo.lock
 git commit -m "chore(release): bump SDK version to ${NEW_VERSION}"
 git tag -a "sdk-v${NEW_VERSION}" -m "SDK Release ${NEW_VERSION}"
 git push origin HEAD "sdk-v${NEW_VERSION}"
