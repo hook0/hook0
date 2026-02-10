@@ -1,0 +1,21 @@
+FROM debian:trixie-20250203-slim
+ARG TARGETARCH
+ARG UID=10001
+
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN useradd \
+    --no-create-home \
+    --home-dir "/nonexistent" \
+    --shell "/sbin/nologin" \
+    --uid "${UID}" \
+    appuser
+
+# Note: Artifacts are named hook0-output-worker-linux-{amd64,arm64}
+COPY --chmod=755 hook0-output-worker-linux-${TARGETARCH} /hook0-output-worker
+
+USER appuser
+
+CMD ["/hook0-output-worker"]
