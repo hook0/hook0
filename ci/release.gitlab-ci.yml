@@ -230,22 +230,24 @@ release.containers:
     - cp output-worker/Dockerfile.release build-context/worker/Dockerfile
 
     # Build and push API
-    - buildctl-daemonless.sh build
-        --progress=plain
-        --frontend dockerfile.v0
-        --opt platform=linux/amd64
-        --local context=build-context/api
-        --local dockerfile=build-context/api
-        --output type=image,"name=$CI_REGISTRY_IMAGE/hook0-api:$VERSION,$CI_REGISTRY_IMAGE/hook0-api:latest,${DOCKERHUB_PREFIX}/hook0-api:$VERSION,${DOCKERHUB_PREFIX}/hook0-api:latest,${GHCR_PREFIX}/hook0-api:$VERSION,${GHCR_PREFIX}/hook0-api:latest",push=true
+    - |
+      buildctl-daemonless.sh build \
+        --progress=plain \
+        --frontend dockerfile.v0 \
+        --opt platform=linux/amd64 \
+        --local context=build-context/api \
+        --local dockerfile=build-context/api \
+        --output "type=image,\"name=$CI_REGISTRY_IMAGE/hook0-api:$VERSION,$CI_REGISTRY_IMAGE/hook0-api:latest,${DOCKERHUB_PREFIX}/hook0-api:$VERSION,${DOCKERHUB_PREFIX}/hook0-api:latest,${GHCR_PREFIX}/hook0-api:$VERSION,${GHCR_PREFIX}/hook0-api:latest\",push=true"
 
     # Build and push Output Worker
-    - buildctl-daemonless.sh build
-        --progress=plain
-        --frontend dockerfile.v0
-        --opt platform=linux/amd64
-        --local context=build-context/worker
-        --local dockerfile=build-context/worker
-        --output type=image,"name=$CI_REGISTRY_IMAGE/output-worker:$VERSION,$CI_REGISTRY_IMAGE/output-worker:latest,${DOCKERHUB_PREFIX}/output-worker:$VERSION,${DOCKERHUB_PREFIX}/output-worker:latest,${GHCR_PREFIX}/output-worker:$VERSION,${GHCR_PREFIX}/output-worker:latest",push=true
+    - |
+      buildctl-daemonless.sh build \
+        --progress=plain \
+        --frontend dockerfile.v0 \
+        --opt platform=linux/amd64 \
+        --local context=build-context/worker \
+        --local dockerfile=build-context/worker \
+        --output "type=image,\"name=$CI_REGISTRY_IMAGE/output-worker:$VERSION,$CI_REGISTRY_IMAGE/output-worker:latest,${DOCKERHUB_PREFIX}/output-worker:$VERSION,${DOCKERHUB_PREFIX}/output-worker:latest,${GHCR_PREFIX}/output-worker:$VERSION,${GHCR_PREFIX}/output-worker:latest\",push=true"
   after_script:
     - rm -f ~/.docker/config.json
 
