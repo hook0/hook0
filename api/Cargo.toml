@@ -10,17 +10,17 @@ keywords = ["webhooks", "webhook", "webhook-server", "events", "saas"]
 
 [dependencies]
 actix-cors = "0.7.1"
-actix-files = "0.6.9"
+actix-files = "0.6.10"
 actix-governor = "0.10.0"
 actix-web = "4.12.1"
-anyhow = "1.0.100"
+anyhow = "1.0.101"
 argon2 = "0.5.3"
 async-recursion = "1.1.1"
-aws-sdk-s3 = { version = "1.121.0", features = ["behavior-version-latest"] }
+aws-sdk-s3 = { version = "1.123.0", features = ["behavior-version-latest"] }
 base64 = "0.22.1"
 biscuit-auth = { version = "6.0.0", features = ["uuid"] }
 chrono = { version = "0.4.43", features = ["serde"] }
-clap = { version = "4.5.56", features = ["derive", "env", "cargo", "wrap_help"] }
+clap = { version = "4.5.58", features = ["derive", "env", "cargo", "wrap_help"] }
 derive_more = { version = "2.1.1", features = ["into"] }
 futures-util = "0.3.31"
 hook0-client = { path = "../clients/rust", version = "0.2.0", default-features = false, features = ["producer"] }
@@ -40,10 +40,10 @@ opentelemetry-otlp = { version = "0.31.0", default-features = false, features = 
 opentelemetry_sdk = { version = "0.31.0", default-features = false, features = ["trace", "metrics", "rt-tokio"] }
 paperclip = { version = "0.9.5", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
 pulsar = { version = "6.6.0", default-features = false, features = ["tokio-rustls-runtime"] }
-regex = "1.12.2"
-reqwest = { version = "0.13.1", features = ["hickory-dns", "form"] }
+regex = "1.12.3"
+reqwest = { version = "0.13.2", features = ["hickory-dns", "form"] }
 rustls = { version = "0.23.36", default-features = false, features = ["std", "tls12", "logging", "prefer-post-quantum"] }
-sentry-actix = "0.46.1"
+sentry-actix = "0.46.2"
 serde = "1.0.228"
 serde_json = "1.0.149"
 sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio", "tls-rustls-aws-lc-rs", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "migrate"] }
@@ -55,7 +55,7 @@ uuid = { version = "1.20.0", features = ["serde", "v4", "v7"] }
 validator = { version = "0.20.0", features = ["derive", "unic"] }
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
-jemalloc_pprof = { version = "0.8.1", features = ["symbolize"], optional = true }
+jemalloc_pprof = { version = "0.8.2", features = ["symbolize"], optional = true }
 pprof = { version = "0.15.0", features = ["protobuf-codec"], optional = true }
 tikv-jemallocator = { version = "0.6.1", optional = true }
 
