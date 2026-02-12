@@ -12,7 +12,7 @@
 release.verify-versions:
   extends: .release-rules
   stage: build
-  image: alpine:3.23
+  image: alpine:$ALPINE_VERSION
   before_script:
     - apk add --no-cache jq
   script:
@@ -160,7 +160,7 @@ release.build-frontend:
 release.extract-notes:
   extends: .release-rules
   stage: build
-  image: alpine:3.23
+  image: alpine:$ALPINE_VERSION
   variables:
     GIT_DEPTH: "0"
   before_script:
@@ -183,7 +183,7 @@ release.containers:
   extends: .release-rules
   stage: release
   image:
-    name: moby/buildkit:v0.21.1-rootless
+    name: moby/buildkit:$BUILDKIT_VERSION
     entrypoint: ['sh', '-c']
   needs:
     - job: release.build-api-amd64
@@ -274,7 +274,7 @@ release.containers:
 release.github:
   extends: .release-rules
   stage: release
-  image: alpine:3.23
+  image: alpine:$ALPINE_VERSION
   needs:
     - job: release.extract-notes
       artifacts: true
