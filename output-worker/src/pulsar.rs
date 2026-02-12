@@ -15,12 +15,14 @@ use std::time::Duration;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{Sender, channel};
 use tokio::sync::{Mutex, OwnedSemaphorePermit, Semaphore};
-use tokio::time::sleep;
+use tokio::time::{Instant, interval_at, sleep};
 use tokio::{select, spawn};
 use tokio_util::task::TaskTracker;
 use uuid::Uuid;
 
-use crate::opentelemetry::{end_request_attempt_span, start_request_attempt_span};
+use crate::opentelemetry::{
+    end_request_attempt_span, gather_pulsar_consumer_metrics, start_request_attempt_span,
+};
 use crate::work::work;
 use crate::{
     Config, ObjectStorageConfig, PulsarConfig, RequestAttempt, RequestAttemptWithOptionalPayload,
@@ -241,6 +243,11 @@ pub async fn look_for_work(
         });
     }
 
+    let mut stats_interval = interval_at(
+        Instant::now() + config.pulsar_consumer_stats_interval,
+        config.pulsar_consumer_stats_interval,
+    );
+
     loop {
         // We prepare a future to acquire a permit from the semaphore and then get a message from the Pulsar consumer
         // This future is not awaited yet!
@@ -270,6 +277,18 @@ pub async fn look_for_work(
                 // After we have (N)ACK the first item, we check if there are more waiting so we can (N)ACK them immediately (because going back to the select! is slower)
                 while let Ok(msg_ack) = ack_rx.try_recv() {
                     ack_message(&mut consumer, &topic, &heartbeat_tx, msg_ack).await?;
+                }
+            },
+            _ = stats_interval.tick() => {
+                // Note: get_stats() blocks the select loop, but it's a lightweight
+                // binary protocol call over the existing connection.
+                match consumer.get_stats().await {
+                    Ok(stats) => {
+                        gather_pulsar_consumer_metrics(&stats);
+                    }
+                    Err(e) => {
+                        warn!("Could not get Pulsar consumer stats: {e}");
+                    }
                 }
             },
             Ok((permit, msg_opt)) = next_msg, if !task_tracker.is_closed() => {
