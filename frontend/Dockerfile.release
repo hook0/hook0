@@ -1,0 +1,12 @@
+# Same config as existing ./Dockerfile but no build stage.
+ARG CADDY_VERSION=2.10
+
+FROM caddy:${CADDY_VERSION}
+RUN sed -i '/file_server/i try_files {path} /index.html' /etc/caddy/Caddyfile
+RUN apk --no-cache add curl
+COPY dist/ /usr/share/caddy/
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+EXPOSE 80
+CMD ["/docker-entrypoint.sh"]
