@@ -285,10 +285,10 @@ release.github:
 
       ## Docker Images
 
-      | Image | DockerHub | GHCR | GitLab Registry |
+      | Image | DockerHub | GitHub Container Registry | GitLab Registry |
       |-------|-----------|------|-----------------|
-      | API | `hook0/hook0-api` | `ghcr.io/hook0/hook0-api` | GitLab Registry |
-      | Worker | `hook0/output-worker` | `ghcr.io/hook0/output-worker` | GitLab Registry |
+      | API | `hook0/hook0-api` | `ghcr.io/hook0/hook0-api` | `registry.gitlab.com/hook0/hook0/hook0-api` |
+      | Output Worker | `hook0/output-worker` | `ghcr.io/hook0/hook0-output-worker` | `registry.gitlab.com/hook0/hook0/hook0-output-worker` |
       EOF
     - echo "=== Creating GitHub Release ==="
     - gh release create "$CI_COMMIT_TAG" --repo "${GITHUB_REPO}" --title "Release $CI_COMMIT_TAG" --notes-file artifacts/RELEASE_NOTES.md artifacts/hook0-api-linux-amd64 artifacts/hook0-output-worker-linux-amd64 artifacts/frontend-dist.tar.gz
