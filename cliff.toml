@@ -51,7 +51,9 @@ commit_parsers = [
     { message = "^refactor", group = "Changed" },
     { message = "^style", group = "Changed" },
     { message = "^chore\\(release\\)", skip = true },
+    { message = "^release", skip = true },
     { message = "^chore", group = "Other" },
+    { message = "^ci", group = "CI" },
     { body = ".*security", group = "Security" },
 ]
 filter_commits = false
