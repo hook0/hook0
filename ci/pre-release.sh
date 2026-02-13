@@ -70,7 +70,7 @@ echo "  ✓ frontend/package.json updated"
 
 # Generate changelog with git-cliff
 echo "Generating CHANGELOG.md..."
-git-cliff -o CHANGELOG.md --tag "v${NEW_VERSION}"
+git-cliff --unreleased --prepend CHANGELOG.md --tag "v${NEW_VERSION}"
 echo "  ✓ CHANGELOG.md generated"
 
 # Commit all changes, tag, and push
