@@ -179,7 +179,7 @@ release.extract-notes:
       | Image | DockerHub | GitHub Container Registry | GitLab Registry |
       |-------|-----------|------|-----------------|
       | API | `hook0/hook0-api` | `ghcr.io/hook0/hook0-api` | `registry.gitlab.com/hook0/hook0/hook0-api` |
-      | Output Worker | `hook0/output-worker` | `ghcr.io/hook0/hook0-output-worker` | `registry.gitlab.com/hook0/hook0/hook0-output-worker` |
+      | Output Worker | `hook0/hook0-output-worker` | `ghcr.io/hook0/hook0-output-worker` | `registry.gitlab.com/hook0/hook0/hook0-output-worker` |
       | Frontend | `hook0/hook0-frontend` | `ghcr.io/hook0/hook0-frontend` | `registry.gitlab.com/hook0/hook0/hook0-frontend` |
       EOF
     - echo "--- Release notes for $CI_COMMIT_TAG ---"
@@ -333,6 +333,7 @@ release.gitlab:
       artifacts: true
     - job: release.containers
   script:
+    - apk --no-cache add curl
     - echo "Creating GitLab release for $CI_COMMIT_TAG"
     # Upload artifacts to GitLab's generic package registry so we can link them in the release
     - |
