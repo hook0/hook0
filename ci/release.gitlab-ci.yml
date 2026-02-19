@@ -267,7 +267,7 @@ release.containers:
         --opt platform=linux/amd64 \
         --local context=build-context/worker \
         --local dockerfile=build-context/worker \
-        --output "type=image,\"name=$CI_REGISTRY_IMAGE/output-worker:$VERSION,$CI_REGISTRY_IMAGE/output-worker:latest,${DOCKERHUB_PREFIX}/output-worker:$VERSION,${DOCKERHUB_PREFIX}/output-worker:latest,${GHCR_PREFIX}/output-worker:$VERSION,${GHCR_PREFIX}/output-worker:latest\",push=true"
+        --output "type=image,\"name=$CI_REGISTRY_IMAGE/hook0-output-worker:$VERSION,$CI_REGISTRY_IMAGE/hook0-output-worker:latest,${DOCKERHUB_PREFIX}/hook0-output-worker:$VERSION,${DOCKERHUB_PREFIX}/hook0-output-worker:latest,${GHCR_PREFIX}/hook0-output-worker:$VERSION,${GHCR_PREFIX}/hook0-output-worker:latest\",push=true"
 
     # Build and push Frontend
     - |
