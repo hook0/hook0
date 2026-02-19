@@ -1,6 +1,6 @@
 [package]
 name = "hook0-output-worker"
-version = "1.0.0-alpha.2"
+version = "1.0.0-alpha.3"
 authors = ["David Sferruzza <david@hook0.com>", "François-Guillaume Ribreau <fg@hook0.com>"]
 repository = "https://gitlab.com/hook0/hook0/-/tree/master/output-worker"
 homepage = "https://www.hook0.com/"

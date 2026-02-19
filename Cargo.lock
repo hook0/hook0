@@ -2318,7 +2318,7 @@ dependencies = [
 
 [[package]]
 name = "hook0-api"
-version = "1.0.0-alpha.2"
+version = "1.0.0-alpha.3"
 dependencies = [
  "actix-cors",
  "actix-files",
@@ -2412,7 +2412,7 @@ dependencies = [
 
 [[package]]
 name = "hook0-output-worker"
-version = "1.0.0-alpha.2"
+version = "1.0.0-alpha.3"
 dependencies = [
  "anyhow",
  "aws-sdk-s3",
