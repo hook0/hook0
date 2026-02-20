@@ -1,4 +1,5 @@
 use anyhow::bail;
+use aws_sdk_s3::error::DisplayErrorContext;
 use aws_sdk_s3::primitives::ByteStream;
 use chrono::{DateTime, Utc};
 use futures::TryStreamExt;
@@ -29,6 +30,7 @@ use crate::{
     compute_next_retry,
 };
 use hook0_protobuf::ObjectStorageResponse;
+use hook0_sentry_integration::log_object_storage_error_with_context;
 
 type AckMessage = (MessageIdData, Option<OwnedSemaphorePermit>, bool);
 
@@ -112,22 +114,20 @@ pub async fn load_waiting_request_attempts_from_db(
                 Ok(obj) => match obj.body.collect().await {
                     Ok(ab) => Some(ab.to_vec()),
                     Err(e) => {
-                        error!(
-                            "Error while getting payload body from object storage for key '{key}': {e}",
+                        log_object_storage_error_with_context!(
+                            "S3 GET OBJECT body collect failed",
+                            error_chain = format!("{e}"),
+                            object_key = &key,
                         );
                         None
                     }
                 },
                 Err(e) => {
-                    if let Some(se) = e.as_service_error() {
-                        error!(
-                            "Error while getting payload object from object storage for key '{key}': (service error) {se}",
-                        );
-                    } else {
-                        error!(
-                            "Error while getting payload object from object storage for key '{key}': {e}",
-                        );
-                    }
+                    log_object_storage_error_with_context!(
+                        "S3 GET OBJECT failed",
+                        error_chain = DisplayErrorContext(&e).to_string(),
+                        object_key = &key,
+                    );
                     None
                 }
             }
@@ -481,15 +481,11 @@ async fn handle_message(
                             .send()
                             .await
                             .inspect_err(|e| {
-                                if let Some(se) = e.as_service_error(){
-                                    error!(
-                                        "Error while putting response to object storage for key '{key}': (service error) {se}"
-                                    );
-                                } else {
-                                    error!(
-                                        "Error while putting response to object storage for key '{key}': {e}"
-                                    );
-                                }
+                                log_object_storage_error_with_context!(
+                                    "S3 PUT OBJECT failed",
+                                    error_chain = DisplayErrorContext(e).to_string(),
+                                    object_key = &key,
+                                );
                             })?;
                     }
 

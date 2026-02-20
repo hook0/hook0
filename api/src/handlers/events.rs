@@ -1,5 +1,6 @@
 use actix_web::rt::time::timeout;
 use actix_web::web::ReqData;
+use aws_sdk_s3::error::DisplayErrorContext;
 use aws_sdk_s3::primitives::ByteStream;
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as Base64;
@@ -33,6 +34,7 @@ use crate::opentelemetry::{
 use crate::problems::Hook0Problem;
 use crate::quotas::{Quota, QuotaNotificationType};
 use hook0_protobuf::RequestAttempt;
+use hook0_sentry_integration::log_object_storage_error_with_context;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, IntoStaticStr, VariantNames)]
 pub enum PayloadContentType {
@@ -282,28 +284,33 @@ pub async fn get(
                     re.received_at.naive_utc().date()
                 );
                 let payload_object = object_storage
-                        .client
-                        .get_object()
-                        .bucket(&object_storage.bucket)
-                        .key(&key)
-                        .send()
-                        .await
-                        .map_err(|e| {
-                            if let Some(se) = e.as_service_error() {
-                                error!("Error while getting payload object from object storage for key '{key}': (service error) {se}");
-                            } else {
-                                error!("Error while getting payload object from object storage for key '{key}': {e}");
-                            }
-                            Hook0Problem::InternalServerError
-                        })?;
-                let payload = payload_object.body
-                        .collect()
-                        .await
-                        .map_err(|e| {
-                            error!("Error while getting payload body from object storage for key '{key}': {e}");
-                            Hook0Problem::InternalServerError
-                        })?
-                        .to_vec();
+                    .client
+                    .get_object()
+                    .bucket(&object_storage.bucket)
+                    .key(&key)
+                    .send()
+                    .await
+                    .map_err(|e| {
+                        log_object_storage_error_with_context!(
+                            "S3 GET OBJECT failed",
+                            error_chain = DisplayErrorContext(&e).to_string(),
+                            object_key = &key,
+                        );
+                        Hook0Problem::InternalServerError
+                    })?;
+                let payload = payload_object
+                    .body
+                    .collect()
+                    .await
+                    .map_err(|e| {
+                        log_object_storage_error_with_context!(
+                            "S3 GET OBJECT body collect failed",
+                            error_chain = format!("{e}"),
+                            object_key = &key,
+                        );
+                        Hook0Problem::InternalServerError
+                    })?
+                    .to_vec();
                 Ok(Json(re.to_event(&payload)))
             } else {
                 error!(
@@ -512,15 +519,11 @@ pub async fn ingest(
                 .send()
                 .await
                 .map_err(|e| {
-                    if let Some(se) = e.as_service_error() {
-                        error!(
-                            "Error while putting payload body to object storage for key '{key}': (service error) {se}"
-                        );
-                    } else {
-                        error!(
-                            "Error while putting payload body to object storage for key '{key}': {e}"
-                        );
-                    }
+                    log_object_storage_error_with_context!(
+                        "S3 PUT OBJECT failed",
+                        error_chain = DisplayErrorContext(&e).to_string(),
+                        object_key = &key,
+                    );
                     Hook0Problem::InternalServerError
                 })?;
             report_event_payloads_stored_in_object_storage(1);
@@ -648,22 +651,20 @@ pub async fn replay(
                         Ok(obj) => match obj.body.collect().await {
                             Ok(ab) => Some(ab.to_vec()),
                             Err(e) => {
-                                error!(
-                                    "Error while getting payload body from object storage for key '{key}': {e}",
+                                log_object_storage_error_with_context!(
+                                    "S3 GET OBJECT body collect failed",
+                                    error_chain = format!("{e}"),
+                                    object_key = &key,
                                 );
                                 None
                             }
                         },
                         Err(e) => {
-                            if let Some(se) = e.as_service_error() {
-                                error!(
-                                    "Error while getting payload object from object storage for key '{key}': (service error) {se}",
-                                );
-                            } else {
-                                error!(
-                                    "Error while getting payload object from object storage for key '{key}': {e}",
-                                );
-                            }
+                            log_object_storage_error_with_context!(
+                                "S3 GET OBJECT failed",
+                                error_chain = DisplayErrorContext(&e).to_string(),
+                                object_key = &key,
+                            );
                             None
                         }
                     }

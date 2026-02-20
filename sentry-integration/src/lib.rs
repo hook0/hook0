@@ -5,7 +5,7 @@
 
 use log::{info, warn};
 use sentry::protocol::Value;
-use sentry::{ClientInitGuard, User, configure_scope};
+use sentry::{ClientInitGuard, Level, User, configure_scope};
 use std::collections::BTreeMap;
 
 /// Initialise a logger with default level at INFO
@@ -111,4 +111,109 @@ pub fn set_user_from_token(token_id: &str) {
             ..Default::default()
         }));
     });
+}
+
+/// Logs an object storage error event with static message (for Sentry grouping) and attaches extra context (error chain, object key) to the Sentry event.
+/// Also emits a warn-level log line with all details for stdout/log aggregation.
+pub fn _log_object_storage_error_with_context(
+    module_path: &str,
+    file: &str,
+    line: u32,
+    static_msg: &str,
+    error_chain: &str,
+    object_key: Option<&str>,
+    prefix: Option<&str>,
+) {
+    sentry::with_scope(
+        |scope| {
+            scope.set_extra("error_chain", Value::String(error_chain.to_owned()));
+            if let Some(key) = object_key {
+                scope.set_extra("object_key", Value::String(key.to_owned()));
+            }
+            if let Some(pfx) = prefix {
+                scope.set_extra("prefix", Value::String(pfx.to_owned()));
+            }
+        },
+        || {
+            sentry::capture_message(static_msg, Level::Error);
+        },
+    );
+
+    let mut detail_parts = Vec::new();
+    if let Some(key) = object_key {
+        detail_parts.push(format!("object_key={key}"));
+    }
+    if let Some(pfx) = prefix {
+        detail_parts.push(format!("prefix={pfx}"));
+    }
+    detail_parts.push(format!("error_chain={error_chain}"));
+    let detail = format!("{static_msg} [{}]", detail_parts.join(", "));
+    log::logger().log(
+        &log::Record::builder()
+            .args(format_args!("{detail}"))
+            .level(log::Level::Warn)
+            .target(module_path)
+            .module_path(Some(module_path))
+            .file(Some(file))
+            .line(Some(line))
+            .build(),
+    );
+}
+
+/// Logs an S3/object-storage error with a static message for Sentry grouping
+/// and a detailed warn-level line for stdout/log aggregation.
+#[macro_export]
+macro_rules! log_object_storage_error_with_context {
+    ($static_msg:literal, error_chain = $chain:expr, object_key = $key:expr, prefix = $prefix:expr $(,)?) => {{
+        let __chain: String = $chain;
+        let __key: &str = $key;
+        let __prefix: &str = $prefix;
+        $crate::_log_object_storage_error_with_context(
+            module_path!(),
+            file!(),
+            line!(),
+            $static_msg,
+            &__chain,
+            Some(__key),
+            Some(__prefix),
+        )
+    }};
+    ($static_msg:literal, error_chain = $chain:expr, object_key = $key:expr $(,)?) => {{
+        let __chain: String = $chain;
+        let __key: &str = $key;
+        $crate::_log_object_storage_error_with_context(
+            module_path!(),
+            file!(),
+            line!(),
+            $static_msg,
+            &__chain,
+            Some(__key),
+            None,
+        )
+    }};
+    ($static_msg:literal, error_chain = $chain:expr, prefix = $prefix:expr $(,)?) => {{
+        let __chain: String = $chain;
+        let __prefix: &str = $prefix;
+        $crate::_log_object_storage_error_with_context(
+            module_path!(),
+            file!(),
+            line!(),
+            $static_msg,
+            &__chain,
+            None,
+            Some(__prefix),
+        )
+    }};
+    ($static_msg:literal, error_chain = $chain:expr $(,)?) => {{
+        let __chain: String = $chain;
+        $crate::_log_object_storage_error_with_context(
+            module_path!(),
+            file!(),
+            line!(),
+            $static_msg,
+            &__chain,
+            None,
+            None,
+        )
+    }};
 }
