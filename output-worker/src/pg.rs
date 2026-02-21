@@ -1,6 +1,7 @@
 use anyhow::anyhow;
+use aws_sdk_s3::error::DisplayErrorContext;
 use aws_sdk_s3::primitives::ByteStream;
-use log::{debug, error, info, trace, warn};
+use log::{debug, info, trace, warn};
 use sqlx::postgres::types::PgInterval;
 use sqlx::{PgPool, query, query_as};
 use std::time::Duration;
@@ -15,6 +16,7 @@ use crate::{
     compute_next_retry,
 };
 use hook0_protobuf::{ObjectStorageResponse, RequestAttempt};
+use hook0_sentry_integration::log_object_storage_error_with_context;
 
 /// Minimum duration to wait when there are no unprocessed items to pick
 const MIN_POLLING_SLEEP: Duration = Duration::from_secs(1);
@@ -174,22 +176,20 @@ pub async fn look_for_work(
                     Ok(obj) => match obj.body.collect().await {
                         Ok(ab) => Some(ab.to_vec()),
                         Err(e) => {
-                            error!(
-                                "Error while getting payload body from object storage for key '{key}': {e}",
+                            log_object_storage_error_with_context!(
+                                "S3 GET OBJECT body collect failed",
+                                error_chain = format!("{e}"),
+                                object_key = &key,
                             );
                             None
                         }
                     },
                     Err(e) => {
-                        if let Some(se) = e.as_service_error() {
-                            error!(
-                                "Error while getting payload object from object storage for key '{key}': (service error) {se}",
-                            );
-                        } else {
-                            error!(
-                                "Error while getting payload object from object storage for key '{key}': {e}",
-                            );
-                        }
+                        log_object_storage_error_with_context!(
+                            "S3 GET OBJECT failed",
+                            error_chain = DisplayErrorContext(&e).to_string(),
+                            object_key = &key,
+                        );
                         None
                     }
                 }
@@ -293,15 +293,11 @@ pub async fn look_for_work(
                         .send()
                         .await
                         .inspect_err(|e| {
-                            if let Some(se) = e.as_service_error() {
-                                error!(
-                                    "Error while putting response to object storage for key '{key}': (service error) {se}"
-                                );
-                            } else {
-                                error!(
-                                    "Error while putting response to object storage for key '{key}': {e}"
-                                );
-                            }
+                            log_object_storage_error_with_context!(
+                                "S3 PUT OBJECT failed",
+                                error_chain = DisplayErrorContext(e).to_string(),
+                                object_key = &key,
+                            );
                         })?;
                 }
 

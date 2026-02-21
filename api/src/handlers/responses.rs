@@ -1,11 +1,11 @@
 use actix_web::web::ReqData;
+use aws_sdk_s3::error::DisplayErrorContext;
 use aws_sdk_s3::operation::get_object::GetObjectError;
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as Base64;
 use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};
-use hook0_protobuf::ObjectStorageResponse;
-use log::{error, warn};
+use log::warn;
 use paperclip::actix::web::{Data, Json, Path, Query};
 use paperclip::actix::{Apiv2Schema, api_v2_operation};
 use serde::{Deserialize, Serialize};
@@ -17,6 +17,8 @@ use uuid::Uuid;
 use crate::iam::{Action, authorize_for_application};
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
+use hook0_protobuf::ObjectStorageResponse;
+use hook0_sentry_integration::log_object_storage_error_with_context;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct Response {
@@ -112,32 +114,42 @@ pub async fn get(
                 .key(&key)
                 .send()
                 .await;
-            match payload_object.map_err(|e| e.into_service_error()) {
-                Ok(object) => {
-                    object
-                        .body
-                        .collect()
-                        .await
-                        .map_err(|e| {
-                            error!("Error while getting response body from object storage for key '{key}': {e}");
-                            Hook0Problem::InternalServerError
-                        })
-                        .and_then(|p| {
-                            let res: Result<Option<ObjectStorageResponse>, _> = p
-                                    .to_vec()
-                                    .as_slice()
-                                    .try_into()
-                                    .map(Some)
-                                    .map_err(|e| {
-                                        error!("Error while decoding response from object storage for key '{key}': {e}");
-                                        Hook0Problem::InternalServerError
-                                    });
-                            res
-                        })
-                },
-                Err(GetObjectError::NoSuchKey(_)) => Ok(None),
+            match payload_object {
+                Ok(object) => object
+                    .body
+                    .collect()
+                    .await
+                    .map_err(|e| {
+                        log_object_storage_error_with_context!(
+                            "S3 GET OBJECT body collect failed",
+                            error_chain = format!("{e}"),
+                            object_key = &key,
+                        );
+                        Hook0Problem::InternalServerError
+                    })
+                    .and_then(|p| {
+                        let res: Result<Option<ObjectStorageResponse>, _> =
+                            p.to_vec().as_slice().try_into().map(Some).map_err(|e| {
+                                log_object_storage_error_with_context!(
+                                    "S3 response decode failed",
+                                    error_chain = format!("{e}"),
+                                    object_key = &key,
+                                );
+                                Hook0Problem::InternalServerError
+                            });
+                        res
+                    }),
+                Err(ref e)
+                    if matches!(e.as_service_error(), Some(GetObjectError::NoSuchKey(_))) =>
+                {
+                    Ok(None)
+                }
                 Err(e) => {
-                    error!("Error while getting response object from object storage for key '{key}': (service error) {e}");
+                    log_object_storage_error_with_context!(
+                        "S3 GET OBJECT failed",
+                        error_chain = DisplayErrorContext(&e).to_string(),
+                        object_key = &key,
+                    );
                     Err(Hook0Problem::InternalServerError)
                 }
             }

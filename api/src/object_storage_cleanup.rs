@@ -1,4 +1,5 @@
 use actix_web::rt::time::sleep;
+use aws_sdk_s3::error::DisplayErrorContext;
 use aws_sdk_s3::types::{Delete, ObjectIdentifier};
 use chrono::NaiveDate;
 use log::{error, info, trace};
@@ -10,6 +11,7 @@ use uuid::Uuid;
 
 use crate::ObjectStorageConfig;
 use crate::opentelemetry::report_cleaned_up_objects;
+use hook0_sentry_integration::log_object_storage_error_with_context;
 
 const STARTUP_GRACE_PERIOD: Duration = Duration::from_secs(2 * 60);
 
@@ -79,7 +81,13 @@ async fn delete_dangling_objects_from_object_storage(
                 .delimiter("/")
                 .set_continuation_token(if ct.is_empty() { None } else { Some(ct) })
                 .send()
-                .await?;
+                .await
+                .inspect_err(|e| {
+                    log_object_storage_error_with_context!(
+                        "S3 LIST OBJECTS v2 failed while listing applications",
+                        error_chain = DisplayErrorContext(e).to_string(),
+                    );
+                })?;
             applications.append(
                 &mut applications_list
                     .common_prefixes()
@@ -143,6 +151,7 @@ async fn delete_dangling_objects_from_object_storage(
         let mut event_prefixes = {
             let mut dates = Vec::new();
             let mut continuation_token = Some(String::new());
+            let pfx = format!("{application_id}/event/");
 
             while let Some(ct) = continuation_token {
                 let dates_list = object_storage
@@ -150,10 +159,17 @@ async fn delete_dangling_objects_from_object_storage(
                     .list_objects_v2()
                     .bucket(&object_storage.bucket)
                     .delimiter("/")
-                    .prefix(format!("{application_id}/event/"))
+                    .prefix(&pfx)
                     .set_continuation_token(if ct.is_empty() { None } else { Some(ct) })
                     .send()
-                    .await?;
+                    .await
+                    .inspect_err(|e| {
+                        log_object_storage_error_with_context!(
+                            "S3 LIST OBJECTS v2 failed while listing event date prefixes",
+                            error_chain = DisplayErrorContext(e).to_string(),
+                            prefix = pfx.as_str(),
+                        );
+                    })?;
                 dates.append(
                     &mut dates_list
                         .common_prefixes()
@@ -181,16 +197,24 @@ async fn delete_dangling_objects_from_object_storage(
             let mut dates = Vec::new();
             let mut continuation_token = Some(String::new());
 
+            let pfx = format!("{application_id}/response/");
             while let Some(ct) = continuation_token {
                 let dates_list = object_storage
                     .client
                     .list_objects_v2()
                     .bucket(&object_storage.bucket)
                     .delimiter("/")
-                    .prefix(format!("{application_id}/response/"))
+                    .prefix(&pfx)
                     .set_continuation_token(if ct.is_empty() { None } else { Some(ct) })
                     .send()
-                    .await?;
+                    .await
+                    .inspect_err(|e| {
+                        log_object_storage_error_with_context!(
+                            "S3 LIST OBJECTS v2 failed while listing response date prefixes",
+                            error_chain = DisplayErrorContext(e).to_string(),
+                            prefix = pfx.as_str(),
+                        );
+                    })?;
                 dates.append(
                     &mut dates_list
                         .common_prefixes()
@@ -242,7 +266,14 @@ async fn delete_dangling_objects_from_object_storage(
                     .prefix(prefix)
                     .set_continuation_token(if ct.is_empty() { None } else { Some(ct) })
                     .send()
-                    .await?;
+                    .await
+                    .inspect_err(|e| {
+                        log_object_storage_error_with_context!(
+                            "S3 LIST OBJECTS v2 failed while listing objects to delete",
+                            error_chain = DisplayErrorContext(e).to_string(),
+                            prefix = prefix.as_str(),
+                        );
+                    })?;
                 let delete = {
                     let mut d = Delete::builder();
                     for oi in objects
@@ -266,7 +297,14 @@ async fn delete_dangling_objects_from_object_storage(
                         .bucket(&object_storage.bucket)
                         .delete(del)
                         .send()
-                        .await?;
+                        .await
+                        .inspect_err(|e| {
+                            log_object_storage_error_with_context!(
+                                "S3 DELETE OBJECTS failed",
+                                error_chain = DisplayErrorContext(e).to_string(),
+                                prefix = prefix.as_str(),
+                            );
+                        })?;
 
                     report_cleaned_up_objects(deleted_amount.try_into().unwrap_or(0));
                 };
