@@ -12,17 +12,17 @@ keywords = ["webhooks", "webhook", "webhook-server", "events", "saas"]
 actix-cors = "0.7.1"
 actix-files = "0.6.10"
 actix-governor = "0.10.0"
-actix-web = "4.12.1"
-anyhow = "1.0.101"
+actix-web = "4.13.0"
+anyhow = "1.0.102"
 argon2 = "0.5.3"
 async-recursion = "1.1.1"
-aws-sdk-s3 = { version = "1.123.0", features = ["behavior-version-latest"] }
+aws-sdk-s3 = { version = "1.124.0", features = ["behavior-version-latest"] }
 base64 = "0.22.1"
 biscuit-auth = { version = "6.0.0", features = ["uuid"] }
 chrono = { version = "0.4.43", features = ["serde"] }
-clap = { version = "4.5.58", features = ["derive", "env", "cargo", "wrap_help"] }
+clap = { version = "4.5.60", features = ["derive", "env", "cargo", "wrap_help"] }
 derive_more = { version = "2.1.1", features = ["into"] }
-futures-util = "0.3.31"
+futures-util = "0.3.32"
 hook0-client = { path = "../clients/rust", version = "0.2.0", default-features = false, features = ["producer"] }
 hook0-protobuf = { path = "../protobuf" }
 hook0-sentry-integration = { path = "../sentry-integration", version = "0.1.0" }
@@ -51,7 +51,7 @@ strum = { version = "0.27.2", features = ["derive"] }
 thiserror = "2.0.18"
 tokio = { version = "1.49.0" }
 url = "2.5.8"
-uuid = { version = "1.20.0", features = ["serde", "v4", "v7"] }
+uuid = { version = "1.21.0", features = ["serde", "v4", "v7"] }
 validator = { version = "0.20.0", features = ["derive", "unic"] }
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]

@@ -40,7 +40,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 url = "2.5"
 
 # UUID
-uuid = { version = "1.20", features = ["serde", "v4"] }
+uuid = { version = "1.21", features = ["serde", "v4"] }
 
 # DateTime
 chrono = { version = "0.4", features = ["serde"] }

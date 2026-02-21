@@ -10,11 +10,11 @@ license = "SSPL-1.0"
 keywords = ["webhooks", "webhook", "webhook-server", "events", "saas"]
 
 [dependencies]
-anyhow = "1.0.101"
-aws-sdk-s3 = { version = "1.123.0", features = ["behavior-version-latest"] }
+anyhow = "1.0.102"
+aws-sdk-s3 = { version = "1.124.0", features = ["behavior-version-latest"] }
 chrono = { version = "0.4.43", features = ["serde"] }
-clap = { version = "4.5.58", features = ["derive", "env", "cargo", "wrap_help"] }
-futures = "0.3.31"
+clap = { version = "4.5.60", features = ["derive", "env", "cargo", "wrap_help"] }
+futures = "0.3.32"
 hex = "0.4.3"
 hmac = "0.12.1"
 hook0-protobuf = { path = "../protobuf" }
@@ -35,4 +35,4 @@ sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio
 strum = { version = "0.27.2", features = ["derive"] }
 tokio = { version = "1.49.0", features = ["rt-multi-thread", "macros", "time", "signal"] }
 tokio-util = { version = "0.7.18", features = ["rt"] }
-uuid = { version = "1.20.0", features = ["v4", "v7"] }
+uuid = { version = "1.21.0", features = ["v4", "v7"] }
