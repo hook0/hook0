@@ -2,6 +2,7 @@ mod monitoring;
 mod opentelemetry;
 mod pg;
 mod pulsar;
+mod throughput_log;
 mod work;
 
 use ::pulsar::{Authentication, Pulsar, TokioExecutor};
@@ -195,6 +196,10 @@ struct Config {
     /// Period of Pulsar consumer stats collection (only for Pulsar workers)
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "15s")]
     pulsar_consumer_stats_interval: Duration,
+
+    /// Interval between periodic throughput log lines (set to "0s" to disable)
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "60s")]
+    throughput_log_interval: Duration,
 }
 
 #[derive(Debug, Clone)]
@@ -483,6 +488,17 @@ async fn main() -> anyhow::Result<()> {
     // Create a TaskTracker to be able to track inflight webhook tasks so it is possible to gracefully shutdown when required
     let task_tracker = TaskTracker::new();
 
+    // Create throughput stats and spawn periodic log task
+    let stats = Arc::new(throughput_log::ThroughputStats::new(config.concurrent));
+    if !config.throughput_log_interval.is_zero() {
+        let stats_clone = stats.clone();
+        let interval = config.throughput_log_interval;
+        let tt = task_tracker.clone();
+        tasks.spawn(async move {
+            throughput_log::run_throughput_log(&stats_clone, interval, &tt).await;
+        });
+    }
+
     // This task waits for a soft termination signal
     let task_tracker_signal = task_tracker.clone();
     tasks.spawn(async move {
@@ -587,6 +603,7 @@ async fn main() -> anyhow::Result<()> {
                 });
             }
 
+            let stats_pulsar = stats.clone();
             tasks.spawn(async move {
                 loop {
                     let result = pulsar::look_for_work(
@@ -599,6 +616,7 @@ async fn main() -> anyhow::Result<()> {
                         &pu,
                         heartbeat_tx.clone(),
                         &task_tracker_main,
+                        &stats_pulsar,
                     )
                     .await;
                     if let Err(ref e) = result {
@@ -626,13 +644,24 @@ async fn main() -> anyhow::Result<()> {
             let tx = heartbeat_tx.to_owned();
             let cfg = config.to_owned();
             let tt = task_tracker_main.clone();
+            let stats_pg = stats.clone();
             task_tracker_main.spawn(async move {
                 // Start units progressively
                 sleep(Duration::from_millis(u64::from(unit_id) * 100)).await;
 
                 loop {
-                    let t =
-                        pg::look_for_work(&cfg, unit_id, &p, &os, &w, &wv, tx.clone(), &tt).await;
+                    let t = pg::look_for_work(
+                        &cfg,
+                        unit_id,
+                        &p,
+                        &os,
+                        &w,
+                        &wv,
+                        tx.clone(),
+                        &tt,
+                        &stats_pg,
+                    )
+                    .await;
                     if let Err(ref e) = t {
                         error!("Unit {unit_id} crashed: {e}");
                     }
