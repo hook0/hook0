@@ -24,6 +24,7 @@ use uuid::Uuid;
 use crate::opentelemetry::{
     end_request_attempt_span, gather_pulsar_consumer_metrics, start_request_attempt_span,
 };
+use crate::throughput_log::ThroughputStats;
 use crate::work::work;
 use crate::{
     Config, ObjectStorageConfig, PulsarConfig, RequestAttempt, RequestAttemptWithOptionalPayload,
@@ -178,6 +179,7 @@ pub async fn look_for_work(
     pulsar: &Arc<PulsarConfig>,
     heartbeat_tx: Option<Sender<u16>>,
     task_tracker: &TaskTracker,
+    stats: &Arc<ThroughputStats>,
 ) -> anyhow::Result<()> {
     info!("Begin looking for work");
     let topic = format!(
@@ -303,6 +305,7 @@ pub async fn look_for_work(
                     let wn = worker_name.clone();
                     let wv = worker_version.clone();
                     let rp = retry_producer.clone();
+                    let st = stats.clone();
 
                     // We handle the request attempt in a new Tokio task
                     task_tracker.spawn(async move {
@@ -316,6 +319,7 @@ pub async fn look_for_work(
                             msg,
                             permit,
                             ack_tx,
+                            &st,
                         )
                         .await
                         {
@@ -356,8 +360,10 @@ async fn handle_message(
     msg: Message<RequestAttempt>,
     permit: OwnedSemaphorePermit,
     ack_tx: Sender<AckMessage>,
+    stats: &ThroughputStats,
 ) -> anyhow::Result<()> {
     let picked_at = Utc::now();
+    let _slot_guard = stats.slot_enter();
 
     match msg.deserialize() {
         Ok(attempt) => {
@@ -601,6 +607,12 @@ async fn handle_message(
                     }
 
                     tx.commit().await?;
+
+                    stats.record_attempt(
+                        response.is_success(),
+                        attempt.retry_count,
+                        response.elapsed_time,
+                    );
 
                     // End OpenTelemetry span
                     end_request_attempt_span(span, &response);

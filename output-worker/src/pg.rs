@@ -10,6 +10,7 @@ use tokio::time::sleep;
 use tokio_util::task::TaskTracker;
 
 use crate::opentelemetry::{end_request_attempt_span, start_request_attempt_span};
+use crate::throughput_log::ThroughputStats;
 use crate::work::work;
 use crate::{
     Config, ObjectStorageConfig, RequestAttemptWithOptionalPayload, Worker, WorkerScope,
@@ -34,6 +35,7 @@ pub async fn look_for_work(
     worker_version: &str,
     heartbeat_tx: Option<Sender<u16>>,
     task_tracker: &TaskTracker,
+    stats: &ThroughputStats,
 ) -> anyhow::Result<()> {
     info!("[unit={unit_id}] Begin looking for work");
     loop {
@@ -134,6 +136,8 @@ pub async fn look_for_work(
         };
 
         if let Some(attempt) = next_attempt {
+            let _slot_guard = stats.slot_enter();
+
             // Set picked_at
             trace!(
                 "[unit={unit_id}] Picking request attempt {}",
@@ -385,6 +389,12 @@ pub async fn look_for_work(
 
                 // Commit transaction
                 tx.commit().await?;
+
+                stats.record_attempt(
+                    response.is_success(),
+                    attempt.retry_count,
+                    response.elapsed_time,
+                );
 
                 // End OpenTelemetry span
                 end_request_attempt_span(span, &response);
