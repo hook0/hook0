@@ -11,7 +11,7 @@ keywords = ["webhooks", "webhook", "webhook-server", "events", "saas"]
 
 [dependencies]
 anyhow = "1.0.102"
-aws-sdk-s3 = { version = "1.124.0", features = ["behavior-version-latest"] }
+aws-sdk-s3 = { version = "1.125.0", features = ["behavior-version-latest"] }
 chrono = { version = "0.4.44", features = ["serde"] }
 clap = { version = "4.5.60", features = ["derive", "env", "cargo", "wrap_help"] }
 futures = "0.3.32"
@@ -33,6 +33,6 @@ serde_json = "1.0.149"
 sha2 = "0.10.9"
 sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio", "tls-rustls-aws-lc-rs", "postgres", "macros", "uuid", "chrono", "json"] }
 strum = { version = "0.28.0", features = ["derive"] }
-tokio = { version = "1.49.0", features = ["rt-multi-thread", "macros", "time", "signal"] }
+tokio = { version = "1.50.0", features = ["rt-multi-thread", "macros", "time", "signal"] }
 tokio-util = { version = "0.7.18", features = ["rt"] }
-uuid = { version = "1.21.0", features = ["v4", "v7"] }
+uuid = { version = "1.22.0", features = ["v4", "v7"] }
