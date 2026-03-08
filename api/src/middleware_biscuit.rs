@@ -5,12 +5,12 @@ use anyhow::anyhow;
 use biscuit_auth::{Biscuit, PrivateKey, PublicKey};
 use futures_util::future::{Ready, ok, ready};
 use hook0_sentry_integration::set_user_from_token;
-use log::{debug, error, trace};
 use sqlx::{PgPool, query_scalar};
 use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
 use std::task::{Context, Poll};
+use tracing::{debug, error, trace};
 use uuid::Uuid;
 
 use crate::iam::create_master_access_token;

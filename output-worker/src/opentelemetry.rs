@@ -1,5 +1,4 @@
 use clap::crate_name;
-use log::{info, warn};
 use opentelemetry::global::BoxedSpan;
 use opentelemetry::trace::noop::NoopTracerProvider;
 use opentelemetry::trace::{Span, Tracer};
@@ -16,6 +15,7 @@ use pulsar::proto::CommandConsumerStatsResponse;
 use sqlx::PgPool;
 use std::collections::HashMap;
 use std::time::Duration;
+use tracing::{info, warn};
 
 use crate::work::Response;
 use crate::{Config, RequestAttempt};

@@ -10,6 +10,6 @@ edition = "2024"
 license = "SSPL-1.0"
 
 [dependencies]
-env_logger = "0.11.9"
-log = "0.4.29"
-sentry = { version = "0.46.2", default-features = false, features = ["backtrace", "contexts", "panic", "reqwest", "rustls", "log", "anyhow"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.22", features = ["env-filter", "fmt"] }
+sentry = { version = "0.46.2", default-features = false, features = ["backtrace", "contexts", "panic", "reqwest", "rustls", "tracing", "anyhow"] }

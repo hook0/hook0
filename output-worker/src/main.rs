@@ -13,7 +13,6 @@ use aws_sdk_s3::config::timeout::TimeoutConfig;
 use aws_sdk_s3::config::{AppName, Credentials, Region};
 use chrono::{DateTime, Utc};
 use clap::{ArgGroup, Parser, ValueEnum, crate_name, crate_version};
-use log::{debug, error, info, warn};
 use reqwest::Url;
 use reqwest::header::HeaderName;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
@@ -30,6 +29,7 @@ use tokio::task::JoinSet;
 use tokio::time::sleep;
 use tokio::{select, spawn};
 use tokio_util::task::TaskTracker;
+use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
 use hook0_protobuf::RequestAttempt;
@@ -300,7 +300,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Initialize app logger as well as Sentry integration
     // Return value *must* be kept in a variable or else it will be dropped and Sentry integration won't work
-    let _sentry = hook0_sentry_integration::init(crate_name!(), &config.sentry_dsn, &None);
+    let _sentry = hook0_sentry_integration::init(&config.sentry_dsn, &None);
 
     // Init OpenTelemetry
     let otlp_exporters = opentelemetry::init(&config, &worker_version)?;

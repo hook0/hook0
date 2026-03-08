@@ -4,13 +4,13 @@ use async_recursion::async_recursion;
 use chrono::{DateTime, Utc};
 use clap::crate_version;
 use hook0_client::{Hook0Client, Hook0ClientError};
-use log::{error, info, trace, warn};
 use reqwest::Url;
 use serde::Serialize;
 use serde_json::to_string;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::time::Duration;
+use tracing::{error, info, trace, warn};
 use uuid::Uuid;
 
 use crate::handlers::subscriptions::Target;

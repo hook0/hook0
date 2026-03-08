@@ -1,12 +1,12 @@
 use anyhow::bail;
 use chrono::Utc;
-use log::{trace, warn};
 use reqwest::Url;
 use serde::Serialize;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::spawn;
 use tokio::sync::mpsc::Receiver;
+use tracing::{trace, warn};
 
 #[derive(Debug, Clone, Serialize)]
 struct HearbeatBody<'a> {

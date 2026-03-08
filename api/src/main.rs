@@ -1,7 +1,7 @@
 use ::hook0_client::Hook0Client;
 use actix_cors::Cors;
 use actix_files::{Files, NamedFile};
-use actix_web::middleware::{Compat, Logger, NormalizePath};
+use actix_web::middleware::{Compat, NormalizePath};
 use actix_web::{App, HttpServer, http, middleware};
 use aws_sdk_s3::Client;
 use aws_sdk_s3::config::retry::RetryConfig;
@@ -12,7 +12,6 @@ use clap::builder::{BoolValueParser, TypedValueParser};
 use clap::{ArgGroup, Parser, crate_name, crate_version};
 use ipnetwork::IpNetwork;
 use lettre::Address;
-use log::{debug, error, info, trace, warn};
 use paperclip::actix::{OpenApiExt, web};
 use pulsar::{
     Authentication, ConnectionRetryOptions, MultiTopicProducer, ProducerOptions, Pulsar,
@@ -23,6 +22,8 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::{Mutex, Semaphore};
+use tracing::{debug, error, info, trace, warn};
+use tracing_actix_web::TracingLogger;
 use url::Url;
 use uuid::Uuid;
 
@@ -607,11 +608,8 @@ async fn main() -> anyhow::Result<()> {
     if let Some(biscuit_private_key) = config.biscuit_private_key {
         // Initialize app logger as well as Sentry integration
         // Return value *must* be kept in a variable or else it will be dropped and Sentry integration won't work
-        let _sentry = hook0_sentry_integration::init(
-            crate_name!(),
-            &config.sentry_dsn,
-            &config.sentry_traces_sample_rate,
-        );
+        let _sentry =
+            hook0_sentry_integration::init(&config.sentry_dsn, &config.sentry_traces_sample_rate);
 
         // Init OpenTelemetry
         opentelemetry::init(
@@ -1142,7 +1140,7 @@ async fn main() -> anyhow::Result<()> {
                 .wrap(hsts_header_condition)
                 .wrap(security_headers_condition)
                 .wrap(cors)
-                .wrap(Logger::default())
+                .wrap(TracingLogger::default())
                 .wrap(NormalizePath::trim())
                 .wrap(sentry_actix::Sentry::new())
                 .wrap_api_with_spec(spec)

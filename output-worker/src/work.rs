@@ -2,7 +2,6 @@ use chrono::{DateTime, Utc};
 use clap::{crate_name, crate_version};
 use hex::ToHex;
 use hmac::{Hmac, Mac};
-use log::{debug, error, trace, warn};
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue, InvalidHeaderValue};
 use reqwest::{Client, Method, Url};
 use serde_json::Value;
@@ -12,6 +11,7 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::str::FromStr;
 use std::time::{Duration, Instant};
 use strum::VariantNames;
+use tracing::{debug, error, trace, warn};
 
 use crate::{Config, RequestAttempt, SignatureVersion};
 
@@ -191,13 +191,13 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
                 let msg =
                     format!("Could not construct header '{e}' because it has an invalid value");
                 warn!["{msg}"];
-                Response {
+                Box::new(Response {
                     response_error: Some(ResponseError::InvalidHeader),
                     http_code: None,
                     headers: None,
                     body: Some(msg.into_bytes()),
                     elapsed_time: start.elapsed(),
-                }
+                })
             })
             .and_then(|sig| {
                 sig.to_header_value(
@@ -208,12 +208,14 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
                         .enabled_signature_versions
                         .contains(&SignatureVersion::V1),
                 )
-                .map_err(|_| Response {
-                    response_error: Some(ResponseError::InvalidHeader),
-                    http_code: None,
-                    headers: None,
-                    body: None,
-                    elapsed_time: start.elapsed(),
+                .map_err(|_| {
+                    Box::new(Response {
+                        response_error: Some(ResponseError::InvalidHeader),
+                        http_code: None,
+                        headers: None,
+                        body: None,
+                        elapsed_time: start.elapsed(),
+                    })
                 })
             });
 
@@ -291,7 +293,7 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
                         }
                     }
                 }
-                Err(e) => e,
+                Err(e) => *e,
             }
         }
         (Err(e), _, _, _, _) => {

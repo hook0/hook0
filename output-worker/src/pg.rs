@@ -1,13 +1,13 @@
 use anyhow::anyhow;
 use aws_sdk_s3::error::DisplayErrorContext;
 use aws_sdk_s3::primitives::ByteStream;
-use log::{debug, info, trace, warn};
 use sqlx::postgres::types::PgInterval;
 use sqlx::{PgPool, query, query_as};
 use std::time::Duration;
 use tokio::sync::mpsc::Sender;
 use tokio::time::sleep;
 use tokio_util::task::TaskTracker;
+use tracing::{debug, info, trace, warn};
 
 use crate::opentelemetry::{end_request_attempt_span, start_request_attempt_span};
 use crate::throughput_log::ThroughputStats;

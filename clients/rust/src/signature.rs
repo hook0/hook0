@@ -1,9 +1,9 @@
 use hmac::{Hmac, Mac};
 use http::HeaderName;
-use log::trace;
 use sha2::Sha256;
 use std::collections::HashMap;
 use std::str::FromStr;
+use tracing::trace;
 
 use crate::Hook0ClientError;
 

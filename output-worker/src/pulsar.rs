@@ -3,7 +3,6 @@ use aws_sdk_s3::error::DisplayErrorContext;
 use aws_sdk_s3::primitives::ByteStream;
 use chrono::{DateTime, Utc};
 use futures::TryStreamExt;
-use log::{debug, error, info, trace, warn};
 use pulsar::consumer::{InitialPosition, Message};
 use pulsar::proto::MessageIdData;
 use pulsar::{
@@ -19,6 +18,7 @@ use tokio::sync::{Mutex, OwnedSemaphorePermit, Semaphore};
 use tokio::time::{Instant, interval_at, sleep};
 use tokio::{select, spawn};
 use tokio_util::task::TaskTracker;
+use tracing::{debug, error, info, trace, warn};
 use uuid::Uuid;
 
 use crate::opentelemetry::{

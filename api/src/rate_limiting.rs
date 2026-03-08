@@ -5,9 +5,9 @@ use actix_governor::{
 use actix_web::HttpMessage;
 use actix_web::middleware::Condition;
 use actix_web::rt::time::sleep;
-use log::{debug, trace, warn};
 use std::net::IpAddr;
 use std::time::Duration;
+use tracing::{debug, trace, warn};
 
 use crate::opentelemetry::report_rate_limiters_metrics;
 use crate::problems::Hook0Problem;
