@@ -33,7 +33,8 @@ humantime = "2.3.0"
 ipnetwork = "0.21.1"
 lazy_static = "1.5.0"
 lettre = { version = "0.11.19", default-features = false, features = ["builder", "smtp-transport", "pool", "tokio1-rustls", "aws-lc-rs", "rustls-platform-verifier"] }
-log = "0.4.29"
+tracing = "0.1.44"
+tracing-actix-web = "0.7.21"
 mrml = "5.1.0"
 opentelemetry = { version = "0.31.0", default-features = false, features = ["trace", "metrics"] }
 opentelemetry-otlp = { version = "0.31.0", default-features = false, features = ["trace", "metrics", "http-proto", "zstd-http", "internal-logs", "reqwest-blocking-client", "reqwest-rustls-webpki-roots"] }
@@ -60,7 +61,7 @@ pprof = { version = "0.15.0", features = ["protobuf-codec"], optional = true }
 tikv-jemallocator = { version = "0.6.1", optional = true }
 
 [dev-dependencies]
-test-log = { version = "0.2.19", features = ["unstable"] }
+test-log = { version = "0.2.19", default-features = false, features = ["trace", "color", "unstable"] }
 
 [features]
 default = ["application-secret-compatibility", "jemalloc"]

@@ -3,7 +3,6 @@ use biscuit_auth::builder_ext::AuthorizerExt;
 use biscuit_auth::macros::{authorizer, authorizer_merge, biscuit, fact, rule};
 use biscuit_auth::{AuthorizerLimits, Biscuit, KeyPair, PrivateKey};
 use chrono::{DateTime, Utc};
-use log::{error, trace, warn};
 use paperclip::v2::schema::TypedData;
 use serde::Serialize;
 use sqlx::{PgPool, query_scalar};
@@ -11,6 +10,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::str::FromStr;
 use std::time::{Duration, SystemTime};
 use strum::{AsRefStr, EnumIter, EnumString, VariantNames};
+use tracing::{error, trace, warn};
 use uuid::Uuid;
 
 #[cfg(feature = "migrate-users-from-keycloak")]

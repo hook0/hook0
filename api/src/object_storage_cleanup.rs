@@ -2,11 +2,11 @@ use actix_web::rt::time::sleep;
 use aws_sdk_s3::error::DisplayErrorContext;
 use aws_sdk_s3::types::{Delete, ObjectIdentifier};
 use chrono::NaiveDate;
-use log::{error, info, trace};
 use sqlx::{PgPool, query, query_as};
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::time::{Duration, Instant};
+use tracing::{error, info, trace};
 use uuid::Uuid;
 
 use crate::ObjectStorageConfig;

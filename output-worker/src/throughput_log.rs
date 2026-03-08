@@ -1,7 +1,7 @@
-use log::info;
 use std::sync::atomic::{AtomicU64, Ordering::Relaxed};
 use std::time::{Duration, Instant};
 use tokio_util::task::TaskTracker;
+use tracing::info;
 
 pub struct ThroughputStats {
     processed: AtomicU64,

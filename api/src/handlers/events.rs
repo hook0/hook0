@@ -7,7 +7,6 @@ use base64::engine::general_purpose::STANDARD as Base64;
 use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};
 use futures_util::TryStreamExt;
-use log::error;
 use paperclip::actix::web::{Data, Json, Path, Query};
 use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
 use serde::{Deserialize, Serialize};
@@ -19,6 +18,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 use strum::{IntoStaticStr, VariantNames};
+use tracing::error;
 use uuid::Uuid;
 use validator::Validate;
 

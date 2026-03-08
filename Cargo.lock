@@ -1753,7 +1753,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a1c3cc8e57274ec99de65301228b537f1e4eedc1b8e0f9411c6caac8ae7308f"
 dependencies = [
  "log",
- "regex",
 ]
 
 [[package]]
@@ -1765,7 +1764,6 @@ dependencies = [
  "anstream",
  "anstyle",
  "env_filter",
- "jiff",
  "log",
 ]
 
@@ -2365,7 +2363,6 @@ dependencies = [
  "jemalloc_pprof",
  "lazy_static",
  "lettre",
- "log",
  "mrml",
  "opentelemetry",
  "opentelemetry-otlp",
@@ -2385,6 +2382,8 @@ dependencies = [
  "thiserror 2.0.18",
  "tikv-jemallocator",
  "tokio",
+ "tracing",
+ "tracing-actix-web",
  "url",
  "uuid 1.22.0",
  "validator",
@@ -2396,16 +2395,16 @@ version = "0.2.0"
 dependencies = [
  "actix-web",
  "chrono",
- "env_logger",
  "hex",
  "hmac",
  "http 1.4.0",
  "lazy-regex",
- "log",
  "reqwest 0.13.2",
  "serde",
  "sha2 0.10.9",
  "thiserror 2.0.18",
+ "tracing",
+ "tracing-subscriber",
  "url",
  "uuid 1.22.0",
 ]
@@ -2445,7 +2444,6 @@ dependencies = [
  "hook0-sentry-integration",
  "humantime",
  "itertools 0.14.0",
- "log",
  "opentelemetry",
  "opentelemetry-otlp",
  "opentelemetry_sdk",
@@ -2459,6 +2457,7 @@ dependencies = [
  "strum 0.28.0",
  "tokio",
  "tokio-util",
+ "tracing",
  "uuid 1.22.0",
 ]
 
@@ -2483,9 +2482,9 @@ dependencies = [
 name = "hook0-sentry-integration"
 version = "0.1.0"
 dependencies = [
- "env_logger",
- "log",
  "sentry",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -2989,30 +2988,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "jiff"
-version = "0.2.23"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a3546dc96b6d42c5f24902af9e2538e82e39ad350b0c766eb3fbf2d8f3d8359"
-dependencies = [
- "jiff-static",
- "log",
- "portable-atomic",
- "portable-atomic-util",
- "serde_core",
-]
-
-[[package]]
-name = "jiff-static"
-version = "0.2.23"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a8c8b344124222efd714b73bb41f8b5120b27a7cc1c75593a6ff768d9d05aa4"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.117",
-]
-
-[[package]]
 name = "jni"
 version = "0.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3372,6 +3347,12 @@ name = "murmur3"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9252111cf132ba0929b6f8e030cac2a24b507f3a4d6db6fb2896f27b354c714b"
+
+[[package]]
+name = "mutually_exclusive_features"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e94e1e6445d314f972ff7395df2de295fe51b71821694f0b0e1e79c4f12c8577"
 
 [[package]]
 name = "new_debug_unreachable"
@@ -4166,15 +4147,6 @@ name = "portable-atomic"
 version = "1.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c33a9471896f1c69cecef8d20cbe2f7accd12527ce60845ff44c153bb2a21b49"
-
-[[package]]
-name = "portable-atomic-util"
-version = "0.2.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a9db96d7fa8782dd8c15ce32ffe8680bbd1e978a43bf51a34d39483540495f5"
-dependencies = [
- "portable-atomic",
-]
 
 [[package]]
 name = "potential_utf"
@@ -5293,7 +5265,6 @@ dependencies = [
  "sentry-backtrace",
  "sentry-contexts",
  "sentry-core",
- "sentry-log",
  "sentry-panic",
  "sentry-tracing",
  "tokio",
@@ -5360,17 +5331,6 @@ dependencies = [
  "serde",
  "serde_json",
  "url",
-]
-
-[[package]]
-name = "sentry-log"
-version = "0.46.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e200860daf76e09f9ad111bce25928f96bedbb84bc5934b37f05bb445727c70e"
-dependencies = [
- "bitflags 2.11.0",
- "log",
- "sentry-core",
 ]
 
 [[package]]
@@ -6436,6 +6396,19 @@ dependencies = [
  "pin-project-lite",
  "tracing-attributes",
  "tracing-core",
+]
+
+[[package]]
+name = "tracing-actix-web"
+version = "0.7.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1ca6b15407f9bfcb35f82d0e79e603e1629ece4e91cc6d9e58f890c184dd20af"
+dependencies = [
+ "actix-web",
+ "mutually_exclusive_features",
+ "pin-project",
+ "tracing",
+ "uuid 1.22.0",
 ]
 
 [[package]]

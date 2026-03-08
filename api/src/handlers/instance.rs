@@ -305,7 +305,7 @@ pub async fn pprof_heap(
                     .await;
                 if prof_ctl.activated() {
                     let pprof = prof_ctl.dump_pprof().map_err(|err| {
-                        log::error!("{err}");
+                        tracing::error!("{err}");
                         Hook0Problem::InternalServerError
                     })?;
                     Ok(actix_web::HttpResponse::Ok()
@@ -350,7 +350,7 @@ pub async fn pprof_cpu(
                             .body(pprof)
                     })
                     .map_err(|e| {
-                        log::error!("{e}");
+                        tracing::error!("{e}");
                         Hook0Problem::InternalServerError
                     })
             } else {
