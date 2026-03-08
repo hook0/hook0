@@ -663,7 +663,7 @@ async fn main() -> anyhow::Result<()> {
                     )
                     .await;
                     if let Err(ref e) = t {
-                        error!("Unit {unit_id} crashed: {e}");
+                        error!(unit_id, "Unit crashed: {e}");
                     }
 
                     if tt.is_closed() {
@@ -671,7 +671,7 @@ async fn main() -> anyhow::Result<()> {
                     }
 
                     sleep(Duration::from_secs(1)).await;
-                    info!("Restarting unit {unit_id}...");
+                    info!(unit_id, "Restarting unit...");
                 }
 
                 debug!("Main worker task terminated");
@@ -761,10 +761,7 @@ async fn compute_next_retry(
                 .as_ref()
                 .and_then(|bytes| str::from_utf8(bytes).ok())
                 .unwrap_or("???");
-            error!(
-                "Could not construct signature for request attempt {} ({msg}); giving up",
-                attempt.request_attempt_id
-            );
+            error!(request_attempt_id = %attempt.request_attempt_id, "Could not construct signature ({msg}); giving up");
             Ok(None)
         }
         _ => {
@@ -775,10 +772,7 @@ async fn compute_next_retry(
                     .as_ref()
                     .and_then(|bytes| str::from_utf8(bytes).ok())
                     .unwrap_or("???");
-                warn!(
-                    "Invalid target for request attempt {} ({msg}); continuing as normal",
-                    attempt.request_attempt_id
-                );
+                warn!(request_attempt_id = %attempt.request_attempt_id, "Invalid target ({msg}); continuing as normal");
             }
 
             let sub = query!(

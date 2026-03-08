@@ -27,7 +27,7 @@ pub async fn heartbeat_sender(
     let worker_version = Arc::new(worker_version.to_owned());
 
     while let Some(unit_id) = rx.recv().await {
-        trace!("Ping received from unit {unit_id}");
+        trace!(unit_id, "Ping received");
 
         if last_heartbeat + heartbeat_min_period <= Utc::now() {
             trace!("Sending heartbeat...");

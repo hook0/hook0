@@ -37,9 +37,9 @@ pub async fn look_for_work(
     task_tracker: &TaskTracker,
     stats: &ThroughputStats,
 ) -> anyhow::Result<()> {
-    info!("[unit={unit_id}] Begin looking for work");
+    info!(unit_id, "Begin looking for work");
     loop {
-        trace!("[unit={unit_id}] Fetching next unprocessed request attempt...");
+        trace!(unit_id, "Fetching next unprocessed request attempt...");
         let mut tx = pool.begin().await?;
 
         let next_attempt = match worker.scope {
@@ -139,10 +139,7 @@ pub async fn look_for_work(
             let _slot_guard = stats.slot_enter();
 
             // Set picked_at
-            trace!(
-                "[unit={unit_id}] Picking request attempt {}",
-                &attempt.request_attempt_id
-            );
+            trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, "Picking request attempt");
             query!(
                 "
                     UPDATE webhook.request_attempt
@@ -155,10 +152,7 @@ pub async fn look_for_work(
             )
             .execute(&mut *tx)
             .await?;
-            debug!(
-                "[unit={unit_id}] Picked request attempt {}",
-                &attempt.request_attempt_id
-            );
+            debug!(unit_id, request_attempt_id = %attempt.request_attempt_id, "Picked request attempt");
 
             let payload = if let Some(p) = attempt.payload {
                 Some(p)
@@ -224,17 +218,10 @@ pub async fn look_for_work(
 
                 // Work
                 let response = work(config, &attempt_with_payload).await;
-                trace!(
-                    "[unit={unit_id}] Got a response for request attempt {} in {} ms",
-                    &attempt.request_attempt_id,
-                    &response.elapsed_time_ms()
-                );
+                trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, elapsed_ms = response.elapsed_time_ms(), "Got response for request attempt");
 
                 // Store response
-                trace!(
-                    "[unit={unit_id}] Storing response for request attempt {}",
-                    &attempt.request_attempt_id
-                );
+                trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, "Storing response");
                 let response_headers = response.headers();
                 let response_contents_to_insert = if let Some(true) =
                     object_storage.as_ref().map(|object_storage| {
@@ -306,10 +293,7 @@ pub async fn look_for_work(
                 }
 
                 // Associate response and request attempt
-                trace!(
-                    "[unit={unit_id}] Associating response {response_id} with request attempt {}",
-                    &attempt.request_attempt_id
-                );
+                trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, %response_id, "Associating response with request attempt");
                 query!(
                     "UPDATE webhook.request_attempt SET response__id = $1 WHERE request_attempt__id = $2",
                     response_id, attempt.request_attempt_id
@@ -319,10 +303,7 @@ pub async fn look_for_work(
 
                 if response.is_success() {
                     // Mark attempt as completed
-                    trace!(
-                        "[unit={unit_id}] Completing request attempt {}",
-                        &attempt.request_attempt_id
-                    );
+                    trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, "Completing request attempt");
                     query!(
                         "UPDATE webhook.request_attempt SET succeeded_at = statement_timestamp() WHERE request_attempt__id = $1",
                         attempt.request_attempt_id
@@ -330,16 +311,10 @@ pub async fn look_for_work(
                     .execute(&mut *tx)
                     .await?;
 
-                    debug!(
-                        "[unit={unit_id}] Request attempt {} was completed sucessfully",
-                        &attempt.request_attempt_id
-                    );
+                    debug!(unit_id, request_attempt_id = %attempt.request_attempt_id, "Request attempt completed successfully");
                 } else {
                     // Mark attempt as failed
-                    trace!(
-                        "[unit={unit_id}] Failing request attempt {}",
-                        &attempt.request_attempt_id
-                    );
+                    trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, "Failing request attempt");
                     query!(
                         "UPDATE webhook.request_attempt SET failed_at = statement_timestamp() WHERE request_attempt__id = $1",
                         attempt.request_attempt_id
@@ -374,16 +349,9 @@ pub async fn look_for_work(
                         .await?
                         .request_attempt__id;
 
-                        debug!(
-                            "[unit={unit_id}] Request attempt {} failed; retry #{next_retry_count} created as {retry_id} to be picked in {}s",
-                            &attempt.request_attempt_id,
-                            &retry_in.as_secs(),
-                        );
+                        debug!(unit_id, request_attempt_id = %attempt.request_attempt_id, retry_count = next_retry_count, %retry_id, retry_in_secs = retry_in.as_secs(), "Request attempt failed; retry created");
                     } else {
-                        info!(
-                            "[unit={unit_id}] Request attempt {} failed after {} attempts; giving up",
-                            &attempt.request_attempt_id, &attempt.retry_count,
-                        );
+                        info!(unit_id, request_attempt_id = %attempt.request_attempt_id, retry_count = attempt.retry_count, "Request attempt failed; giving up");
                     }
                 }
 
@@ -399,11 +367,11 @@ pub async fn look_for_work(
                 // End OpenTelemetry span
                 end_request_attempt_span(span, &response);
             } else {
-                warn!("Could not get payload for event {}", attempt.event_id);
+                warn!(event_id = %attempt.event_id, "Could not get payload for event");
                 tx.rollback().await?;
             }
         } else {
-            trace!("[unit={unit_id}] No unprocessed attempt found");
+            trace!(unit_id, "No unprocessed attempt found");
 
             // Commit transaction
             tx.commit().await?;

@@ -7,11 +7,12 @@ use reqwest::{Client, Method, Url};
 use serde_json::Value;
 use sha2::Sha256;
 use std::collections::HashMap;
+use std::fmt;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::str::FromStr;
 use std::time::{Duration, Instant};
 use strum::VariantNames;
-use tracing::{debug, error, trace, warn};
+use tracing::{debug, error, instrument, trace, warn};
 
 use crate::{Config, RequestAttempt, SignatureVersion};
 
@@ -78,8 +79,9 @@ impl Response {
     }
 }
 
+#[instrument(skip_all, fields(request_attempt_id = %attempt.request_attempt_id))]
 pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
-    debug!("Processing request attempt {}", &attempt.request_attempt_id);
+    debug!("Processing request attempt");
     let start = Instant::now();
 
     let m = Method::from_str(attempt.http_method.as_str());
@@ -224,9 +226,21 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
                     headers.insert(&config.signature_header_name, sig);
 
                     debug!("Calling webhook...");
+                    let redacted_headers = RedactedHeaders {
+                        headers: &headers,
+                        safe_headers: &[
+                            HeaderName::from_static("content-type"),
+                            HeaderName::from_static("x-event-id"),
+                            HeaderName::from_static("x-event-type"),
+                            config.signature_header_name.clone(),
+                        ],
+                    };
                     trace!(
-                        "HTTP {} {url} {headers:?}",
-                        &method.to_string().to_uppercase(),
+                        http_method = %method.to_string().to_uppercase(),
+                        %url,
+                        headers = ?redacted_headers,
+                        headers_count = headers.len(),
+                        "Calling webhook"
                     );
                     let response = client
                         .request(method, url)
@@ -251,7 +265,7 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
                                     elapsed_time: start.elapsed(),
                                 }
                             } else {
-                                warn!("Webhook call failed with HTTP code {status}");
+                                warn!(http_status = %status, "Webhook call failed with HTTP error");
                                 Response {
                                     response_error: Some(ResponseError::Http),
                                     http_code: Some(status.as_u16()),
@@ -361,6 +375,25 @@ fn mk_http_client(connect_timeout: Duration, timeout: Duration) -> reqwest::Resu
         .user_agent(USER_AGENT)
         .tcp_keepalive(None)
         .build()
+}
+
+struct RedactedHeaders<'a> {
+    headers: &'a HeaderMap,
+    safe_headers: &'a [HeaderName],
+}
+
+impl fmt::Debug for RedactedHeaders<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut map = f.debug_map();
+        for (name, value) in self.headers.iter() {
+            if self.safe_headers.iter().any(|s| s == name) {
+                map.entry(&name.as_str(), &value);
+            } else {
+                map.entry(&name.as_str(), &"[REDACTED]");
+            }
+        }
+        map.finish()
+    }
 }
 
 /// Parse headers of HTTP target from JSON and prepare them to be fed to reqwest

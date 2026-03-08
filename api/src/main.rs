@@ -480,7 +480,7 @@ struct Config {
     #[clap(long, env, default_value = "10")]
     max_authorization_time_in_ms: u64,
 
-    /// [Auth] If true, a trace log message containing authorizer context is emitted on each request; default is false because this feature implies a small overhead
+    /// [Auth] If true, a trace log message containing authorizer context is emitted on each request; default is false because this feature implies a small overhead and might expose PII in logs
     #[clap(long, env, default_value_t = false)]
     debug_authorizer: bool,
 
