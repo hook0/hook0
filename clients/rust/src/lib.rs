@@ -584,7 +584,7 @@ pub enum Hook0ClientError {
 
 #[cfg(feature = "producer")]
 impl Hook0ClientError {
-    /// Log the error (using the log crate) and return it as a result of this function's call
+    /// Log the error (using the tracing crate) and return it as a result of this function's call
     pub fn log_and_return(self) -> Self {
         error!("{self}");
         self
