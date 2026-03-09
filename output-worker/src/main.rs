@@ -53,6 +53,14 @@ struct Config {
     #[clap(long, env)]
     sentry_dsn: Option<String>,
 
+    /// Enable Sentry SDK debug mode
+    #[clap(long, env, default_value_t = false)]
+    sentry_debug: bool,
+
+    /// Send default PII (IP addresses, cookies, etc.) to Sentry
+    #[clap(long, env, default_value_t = false)]
+    sentry_send_default_pii: bool,
+
     /// Optional OTLP endpoint that will receive metrics
     #[clap(long, env)]
     otlp_metrics_endpoint: Option<Url>,
@@ -300,7 +308,13 @@ async fn main() -> anyhow::Result<()> {
 
     // Initialize app logger as well as Sentry integration
     // Return value *must* be kept in a variable or else it will be dropped and Sentry integration won't work
-    let _sentry = hook0_sentry_integration::init(&config.sentry_dsn, &None);
+    let _sentry = hook0_sentry_integration::init(
+        &config.sentry_dsn,
+        &None,
+        config.sentry_debug,
+        config.sentry_send_default_pii,
+        false,
+    );
 
     // Init OpenTelemetry
     let otlp_exporters = opentelemetry::init(&config, &worker_version)?;

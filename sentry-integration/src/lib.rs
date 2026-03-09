@@ -15,6 +15,9 @@ use tracing_subscriber::{EnvFilter, fmt};
 pub fn init(
     sentry_dsn: &Option<String>,
     traces_sample_rate: &Option<f32>,
+    debug: bool,
+    send_default_pii: bool,
+    enable_spans: bool,
 ) -> Option<ClientInitGuard> {
     let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
 
@@ -22,9 +25,9 @@ pub fn init(
         sentry::init((
             dsn,
             sentry::ClientOptions {
-                send_default_pii: true,
+                send_default_pii,
                 attach_stacktrace: true,
-                debug: true,
+                debug,
                 traces_sample_rate: traces_sample_rate.unwrap_or(0.0),
                 ..Default::default()
             },
@@ -33,7 +36,7 @@ pub fn init(
 
     let sentry_layer = client
         .as_ref()
-        .map(|_| sentry::integrations::tracing::layer());
+        .map(|_| sentry::integrations::tracing::layer().span_filter(move |_| enable_spans));
 
     tracing_subscriber::registry()
         .with(env_filter)
