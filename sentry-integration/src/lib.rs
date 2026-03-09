@@ -34,7 +34,7 @@ pub fn init(
 
     let sentry_layer = client
         .as_ref()
-        .map(|_| sentry::integrations::tracing::layer());
+        .map(|_| sentry::integrations::tracing::layer().span_filter(|_| false));
 
     tracing_subscriber::registry()
         .with(env_filter)
