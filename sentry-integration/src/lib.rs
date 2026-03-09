@@ -16,6 +16,7 @@ pub fn init(
     sentry_dsn: &Option<String>,
     traces_sample_rate: &Option<f32>,
     debug: bool,
+    send_default_pii: bool,
 ) -> Option<ClientInitGuard> {
     let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
 
@@ -23,7 +24,7 @@ pub fn init(
         sentry::init((
             dsn,
             sentry::ClientOptions {
-                send_default_pii: true,
+                send_default_pii,
                 attach_stacktrace: true,
                 debug,
                 traces_sample_rate: traces_sample_rate.unwrap_or(0.0),
