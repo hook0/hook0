@@ -5,13 +5,13 @@ use base64::Engine;
 use base64::engine::general_purpose::STANDARD as Base64;
 use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};
-use log::warn;
 use paperclip::actix::web::{Data, Json, Path, Query};
 use paperclip::actix::{Apiv2Schema, api_v2_operation};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::query_as;
 use std::collections::HashMap;
+use tracing::warn;
 use uuid::Uuid;
 
 use crate::iam::{Action, authorize_for_application};

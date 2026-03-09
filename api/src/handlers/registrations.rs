@@ -4,12 +4,12 @@ use argon2::password_hash::rand_core::OsRng;
 use argon2::{Argon2, PasswordHasher};
 use lettre::Address;
 use lettre::message::Mailbox;
-use log::{error, warn};
 use paperclip::actix::web::{Data, Json};
 use paperclip::actix::{Apiv2Schema, CreatedJson, api_v2_operation};
 use serde::{Deserialize, Serialize};
 use sqlx::query;
 use std::str::FromStr;
+use tracing::{error, warn};
 use uuid::Uuid;
 use validator::Validate;
 

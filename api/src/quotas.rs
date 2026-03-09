@@ -1,12 +1,12 @@
 use actix_web::web::Data;
 use lettre::{Address, message::Mailbox};
-use log::error;
 use paperclip::actix::web::Json;
 use paperclip::actix::{Apiv2Schema, api_v2_operation};
 use serde::Serialize;
 use sqlx::{Acquire, Postgres, query, query_as, query_scalar};
 use std::str::FromStr;
 use strum::Display;
+use tracing::error;
 use uuid::Uuid;
 
 use crate::mailer::Mail;

@@ -3,7 +3,6 @@ use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
 use actix_web::{Error, HttpMessage, HttpResponse};
 use futures_util::future::{Ready, ok, ready};
 use ipnetwork::IpNetwork;
-use log::{debug, error, trace};
 use std::cell::LazyCell;
 use std::future::Future;
 use std::net::{AddrParseError, IpAddr, SocketAddr};
@@ -11,6 +10,7 @@ use std::pin::Pin;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::task::{Context, Poll};
+use tracing::{debug, error, trace};
 
 const CLOUDFLARE_IP_HEADER: &str = "CF-Connecting-IP";
 

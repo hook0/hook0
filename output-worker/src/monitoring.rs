@@ -1,12 +1,12 @@
 use anyhow::bail;
 use chrono::Utc;
-use log::{trace, warn};
 use reqwest::Url;
 use serde::Serialize;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::spawn;
 use tokio::sync::mpsc::Receiver;
+use tracing::{trace, warn};
 
 #[derive(Debug, Clone, Serialize)]
 struct HearbeatBody<'a> {
@@ -27,7 +27,7 @@ pub async fn heartbeat_sender(
     let worker_version = Arc::new(worker_version.to_owned());
 
     while let Some(unit_id) = rx.recv().await {
-        trace!("Ping received from unit {unit_id}");
+        trace!(unit_id, "Ping received");
 
         if last_heartbeat + heartbeat_min_period <= Utc::now() {
             trace!("Sending heartbeat...");

@@ -3,70 +3,51 @@
 
 //! This is a collection of helpers related to Sentry.
 
-use log::{info, warn};
 use sentry::protocol::Value;
 use sentry::{ClientInitGuard, Level, User, configure_scope};
 use std::collections::BTreeMap;
-
-/// Initialise a logger with default level at INFO
-fn mk_log_builder() -> env_logger::Builder {
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
-}
-
-/// Register Sentry logger as the global logger
-fn init_sentry_logger(crate_name: &'static str) {
-    let logger = sentry::integrations::log::SentryLogger::with_dest(mk_log_builder().build())
-        .filter(move |md| match (md.target(), md.level()) {
-            (_, log::Level::Error) => sentry::integrations::log::LogFilter::Event,
-            (target, _) if target == crate_name => sentry::integrations::log::LogFilter::Breadcrumb,
-            (_, log::Level::Warn) | (_, log::Level::Info) => {
-                sentry::integrations::log::LogFilter::Breadcrumb
-            }
-            (_, log::Level::Debug) | (_, log::Level::Trace) => {
-                sentry::integrations::log::LogFilter::Ignore
-            }
-        });
-
-    log::set_boxed_logger(Box::new(logger)).unwrap();
-    log::set_max_level(log::LevelFilter::Trace);
-}
+use tracing::{info, warn};
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::{EnvFilter, fmt};
 
 /// Initialize Sentry integration
 pub fn init(
-    crate_name: &'static str,
     sentry_dsn: &Option<String>,
     traces_sample_rate: &Option<f32>,
 ) -> Option<ClientInitGuard> {
-    let client;
-    match sentry_dsn {
-        Some(dsn) => {
-            init_sentry_logger(crate_name);
+    let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
 
-            client = sentry::init((
-                dsn.as_str(),
-                sentry::ClientOptions {
-                    send_default_pii: true,
-                    attach_stacktrace: true,
-                    debug: true,
-                    traces_sample_rate: traces_sample_rate.unwrap_or(0.0),
-                    ..Default::default()
-                },
-            ));
+    let client = sentry_dsn.as_deref().map(|dsn| {
+        sentry::init((
+            dsn,
+            sentry::ClientOptions {
+                send_default_pii: true,
+                attach_stacktrace: true,
+                debug: true,
+                traces_sample_rate: traces_sample_rate.unwrap_or(0.0),
+                ..Default::default()
+            },
+        ))
+    });
 
-            if client.is_enabled() {
-                info!("Sentry integration initialized");
-            } else {
-                unreachable!();
-            }
+    let sentry_layer = client
+        .as_ref()
+        .map(|_| sentry::integrations::tracing::layer());
 
-            Some(client)
-        }
-        None => {
-            mk_log_builder().init();
-            warn!("Could not initialize Sentry integration");
-            None
-        }
+    tracing_subscriber::registry()
+        .with(env_filter)
+        .with(fmt::layer())
+        .with(sentry_layer)
+        .init();
+
+    if client.as_ref().map(|c| c.is_enabled()).unwrap_or(false) {
+        info!("Sentry integration initialized");
+    } else {
+        warn!("Could not initialize Sentry integration");
     }
+
+    client
 }
 
 const AUTH_TYPE_PROPERTY: &str = "auth_type";
@@ -114,11 +95,8 @@ pub fn set_user_from_token(token_id: &str) {
 }
 
 /// Logs an object storage error event with static message (for Sentry grouping) and attaches extra context (error chain, object key) to the Sentry event.
-/// Also emits a warn-level log line with all details for stdout/log aggregation.
+/// Also emits a warn-level tracing event with all details for stdout/log aggregation.
 pub fn _log_object_storage_error_with_context(
-    module_path: &str,
-    file: &str,
-    line: u32,
     static_msg: &str,
     error_chain: &str,
     object_key: Option<&str>,
@@ -139,24 +117,11 @@ pub fn _log_object_storage_error_with_context(
         },
     );
 
-    let mut detail_parts = Vec::new();
-    if let Some(key) = object_key {
-        detail_parts.push(format!("object_key={key}"));
-    }
-    if let Some(pfx) = prefix {
-        detail_parts.push(format!("prefix={pfx}"));
-    }
-    detail_parts.push(format!("error_chain={error_chain}"));
-    let detail = format!("{static_msg} [{}]", detail_parts.join(", "));
-    log::logger().log(
-        &log::Record::builder()
-            .args(format_args!("{detail}"))
-            .level(log::Level::Warn)
-            .target(module_path)
-            .module_path(Some(module_path))
-            .file(Some(file))
-            .line(Some(line))
-            .build(),
+    warn!(
+        error_chain = %error_chain,
+        object_key = object_key.unwrap_or(""),
+        prefix = prefix.unwrap_or(""),
+        "{static_msg}",
     );
 }
 
@@ -169,9 +134,6 @@ macro_rules! log_object_storage_error_with_context {
         let __key: &str = $key;
         let __prefix: &str = $prefix;
         $crate::_log_object_storage_error_with_context(
-            module_path!(),
-            file!(),
-            line!(),
             $static_msg,
             &__chain,
             Some(__key),
@@ -181,39 +143,15 @@ macro_rules! log_object_storage_error_with_context {
     ($static_msg:literal, error_chain = $chain:expr, object_key = $key:expr $(,)?) => {{
         let __chain: String = $chain;
         let __key: &str = $key;
-        $crate::_log_object_storage_error_with_context(
-            module_path!(),
-            file!(),
-            line!(),
-            $static_msg,
-            &__chain,
-            Some(__key),
-            None,
-        )
+        $crate::_log_object_storage_error_with_context($static_msg, &__chain, Some(__key), None)
     }};
     ($static_msg:literal, error_chain = $chain:expr, prefix = $prefix:expr $(,)?) => {{
         let __chain: String = $chain;
         let __prefix: &str = $prefix;
-        $crate::_log_object_storage_error_with_context(
-            module_path!(),
-            file!(),
-            line!(),
-            $static_msg,
-            &__chain,
-            None,
-            Some(__prefix),
-        )
+        $crate::_log_object_storage_error_with_context($static_msg, &__chain, None, Some(__prefix))
     }};
     ($static_msg:literal, error_chain = $chain:expr $(,)?) => {{
         let __chain: String = $chain;
-        $crate::_log_object_storage_error_with_context(
-            module_path!(),
-            file!(),
-            line!(),
-            $static_msg,
-            &__chain,
-            None,
-            None,
-        )
+        $crate::_log_object_storage_error_with_context($static_msg, &__chain, None, None)
     }};
 }

@@ -1,8 +1,8 @@
-use log::debug;
 use reqwest::Client;
 use serde::Deserialize;
 use serde_json::json;
 use std::net::IpAddr;
+use tracing::debug;
 
 use crate::problems::Hook0Problem;
 

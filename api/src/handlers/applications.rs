@@ -1,10 +1,10 @@
 use actix_web::web::ReqData;
 use biscuit_auth::Biscuit;
-use log::error;
 use paperclip::actix::web::{Data, Json, Path, Query};
 use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
 use serde::{Deserialize, Serialize};
 use sqlx::{query, query_as};
+use tracing::error;
 use uuid::Uuid;
 use validator::Validate;
 
