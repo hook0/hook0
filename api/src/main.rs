@@ -129,6 +129,10 @@ struct Config {
     #[clap(long, env, default_value_t = false)]
     sentry_send_default_pii: bool,
 
+    /// [Monitoring] Enable sending tracing spans to Sentry
+    #[clap(long, env, default_value_t = false)]
+    sentry_enable_spans: bool,
+
     /// [Monitoring] Optional OTLP endpoint that will receive metrics
     #[clap(long, env)]
     otlp_metrics_endpoint: Option<Url>,
@@ -621,6 +625,7 @@ async fn main() -> anyhow::Result<()> {
             &config.sentry_traces_sample_rate,
             config.sentry_debug,
             config.sentry_send_default_pii,
+            config.sentry_enable_spans,
         );
 
         // Init OpenTelemetry
