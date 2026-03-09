@@ -121,6 +121,18 @@ struct Config {
     #[clap(long, env)]
     sentry_traces_sample_rate: Option<f32>,
 
+    /// [Monitoring] Enable Sentry SDK debug mode
+    #[clap(long, env, default_value_t = false)]
+    sentry_debug: bool,
+
+    /// [Monitoring] Send default PII (IP addresses, cookies, etc.) to Sentry
+    #[clap(long, env, default_value_t = false)]
+    sentry_send_default_pii: bool,
+
+    /// [Monitoring] Enable sending tracing spans to Sentry
+    #[clap(long, env, default_value_t = false)]
+    sentry_enable_spans: bool,
+
     /// [Monitoring] Optional OTLP endpoint that will receive metrics
     #[clap(long, env)]
     otlp_metrics_endpoint: Option<Url>,
@@ -608,8 +620,13 @@ async fn main() -> anyhow::Result<()> {
     if let Some(biscuit_private_key) = config.biscuit_private_key {
         // Initialize app logger as well as Sentry integration
         // Return value *must* be kept in a variable or else it will be dropped and Sentry integration won't work
-        let _sentry =
-            hook0_sentry_integration::init(&config.sentry_dsn, &config.sentry_traces_sample_rate);
+        let _sentry = hook0_sentry_integration::init(
+            &config.sentry_dsn,
+            &config.sentry_traces_sample_rate,
+            config.sentry_debug,
+            config.sentry_send_default_pii,
+            config.sentry_enable_spans,
+        );
 
         // Init OpenTelemetry
         opentelemetry::init(
