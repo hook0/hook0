@@ -1,11 +1,11 @@
 use actix_web::rt::time::sleep;
 use clap::crate_name;
-use log::{debug, error, trace};
 use opentelemetry::trace::Tracer;
 use opentelemetry::{global, trace::TraceContextExt};
 use sqlx::{PgPool, query};
 use std::time::{Duration, Instant};
 use tokio::sync::Semaphore;
+use tracing::{debug, error, trace};
 
 const STARTUP_GRACE_PERIOD: Duration = Duration::from_secs(10);
 

@@ -1,7 +1,7 @@
-use log::{error, trace};
 use reqwest::header::{AUTHORIZATION, HeaderMap, HeaderValue};
 use reqwest::{Client, Url};
 use serde::Deserialize;
+use tracing::{error, trace};
 use uuid::Uuid;
 
 use crate::problems::Hook0Problem;

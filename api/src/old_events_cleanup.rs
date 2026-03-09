@@ -1,8 +1,8 @@
 use actix_web::rt::time::sleep;
-use log::{debug, error, info, trace};
 use sqlx::{Acquire, PgPool, Postgres, query};
 use std::time::{Duration, Instant};
 use tokio::sync::Semaphore;
+use tracing::{debug, error, info, trace};
 
 const STARTUP_GRACE_PERIOD: Duration = Duration::from_secs(30);
 
