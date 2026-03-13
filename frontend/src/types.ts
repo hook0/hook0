@@ -61,13 +61,13 @@ export interface paths {
     };
     /**
      * List applications
-     * @description Retrieves all applications.
+     * @description Retrieves all applications within an organization. Each application contains event types, subscriptions, and events. Use organization_id query parameter to filter by organization.
      */
     get: operations['applications.list'];
     put?: never;
     /**
      * Create a new application
-     * @description Registers a new application within an organization. An application emits events that customers can subscribe to using webhooks.
+     * @description Creates a new Hook0 application within an organization. An application is the container for event types, subscriptions, and events. Use this when setting up a new service that will emit or receive webhook events.
      */
     post: operations['applications.create'];
     delete?: never;
@@ -85,18 +85,18 @@ export interface paths {
     };
     /**
      * Get an application by its ID
-     * @description Retrieves details about a specific application, including quotas and consumption statistics.
+     * @description Retrieves details about a specific application, including quotas, consumption statistics, and onboarding progress. Use this to check application health and usage limits.
      */
     get: operations['applications.get'];
     /**
      * Edit an application
-     * @description Updates the name of an existing application.
+     * @description Updates the name of an existing application. Use this to rename applications for better organization.
      */
     put: operations['applications.update'];
     post?: never;
     /**
      * Delete an application
-     * @description Marks an application as deleted. No more events will be emitted, and all active webhook subscriptions will be removed.
+     * @description Permanently deletes an application. No more events will be emitted, and all active webhook subscriptions will be removed. All pending request attempts will be automatically marked as failed. This action is irreversible.
      */
     delete: operations['applications.delete'];
     options?: never;
@@ -244,6 +244,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/environment_variables/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List environment variables metadata
+     * @description Returns metadata for all environment variables read by the API
+     */
+    get: operations['environment_variables.list'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/errors/': {
     parameters: {
       query?: never;
@@ -275,7 +295,7 @@ export interface paths {
     put?: never;
     /**
      * Ingest an event
-     * @description Send an event to your Hook0 application. Matching subscriptions will be triggered, if any.
+     * @description Sends an event to Hook0 for processing. The event will be matched against active subscriptions based on event type and labels, triggering webhook deliveries to matching endpoints. Requires event_type, payload, payload_content_type, labels, and occurred_at.
      */
     post: operations['events.ingest'];
     delete?: never;
@@ -293,13 +313,13 @@ export interface paths {
     };
     /**
      * List event types
-     * @description Retrieves all active event types registered for a given application. Each event type is uniquely identified by its service, resource type, and verb.
+     * @description Retrieves all active event types for an application. Event types follow the pattern 'service.resource.verb'. Use application_id query parameter to filter by application.
      */
     get: operations['eventTypes.list'];
     put?: never;
     /**
      * Create a new event type
-     * @description Defines a new event type for an application. Event types help categorize and structure emitted events, making them easier to manage and subscribe to.
+     * @description Registers a new event type for an application. Event types follow the pattern 'service.resource.verb' (e.g., 'order.payment.completed'). Subscriptions can filter which event types trigger webhooks.
      */
     post: operations['eventTypes.create'];
     delete?: never;
@@ -317,14 +337,14 @@ export interface paths {
     };
     /**
      * Get an event type by its name
-     * @description Retrieves details of a specific event type if it exists within the given application. Event types define the structure of emitted events.
+     * @description Retrieves details of a specific event type by its name (e.g., 'order.payment.completed'). Returns the service, resource type, and verb components.
      */
     get: operations['eventTypes.get'];
     put?: never;
     post?: never;
     /**
      * Delete an event type
-     * @description Marks an event type as deactivated, preventing it from being used for new event emissions. Existing events using this type remain unaffected.
+     * @description Deactivates an event type, preventing it from being used for new events. Existing events using this type remain unaffected. Use this to clean up unused event types.
      */
     delete: operations['eventTypes.delete'];
     options?: never;
@@ -341,7 +361,7 @@ export interface paths {
     };
     /**
      * List latest events
-     * @description Retrieves the last 100 ingested events for a given application.
+     * @description Retrieves the 100 most recently ingested events for an application. Each event includes its type, payload content type, metadata, labels, and timestamps. Use application_id query parameter to filter by application.
      */
     get: operations['events.list'];
     put?: never;
@@ -360,8 +380,8 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * Get an event
-     * @description Retrieves details of a specific event if it belongs to the specified application.
+     * Get an event by its ID
+     * @description Retrieves full details of a specific event including its payload (base64-encoded), event type, content type, metadata, labels, and timestamps. The event must belong to the specified application.
      */
     get: operations['events.get'];
     put?: never;
@@ -383,9 +403,49 @@ export interface paths {
     put?: never;
     /**
      * Replay an event
-     * @description Trigger existing subscriptions matching an existing event, which will result in webhook being send again.
+     * @description Re-triggers webhook deliveries for an existing event. All active subscriptions matching the event type and labels will receive the event again. Useful for retrying failed deliveries or testing webhooks.
      */
     post: operations['events.replay'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/events_per_day/application': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List events per day for an application
+     * @description Retrieves the number of events ingested per day for a specific application.
+     */
+    get: operations['events_per_day.list_for_application'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/events_per_day/organization': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List events per day for an organization
+     * @description Retrieves the number of events ingested per day across all applications in an organization.
+     */
+    get: operations['events_per_day.list_for_organization'];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -441,7 +501,7 @@ export interface paths {
     };
     /**
      * List organizations
-     * @description Retrieves all organizations the current API token has access to, with the associated roles.
+     * @description Retrieves all organizations the current API token has access to, with the associated roles and plan information. Use this to discover which organizations you can manage.
      */
     get: operations['organizations.list'];
     put?: never;
@@ -465,7 +525,7 @@ export interface paths {
     };
     /**
      * Get organization's info by its ID
-     * @description Retrieves details about a specific organization, including quotas and consumption statistics.
+     * @description Retrieves details about a specific organization, including members, quotas, consumption statistics, and onboarding progress. Use this to check organization health and usage limits.
      */
     get: operations['organizations.get'];
     /**
@@ -521,7 +581,7 @@ export interface paths {
     };
     /**
      * List supported event payload content types
-     * @description List of every possible content types that can be used in event payloads.
+     * @description Returns the list of valid content types for event payloads: 'text/plain' for plain text, 'application/json' for JSON data, 'application/octet-stream+base64' for binary data encoded as base64.
      */
     get: operations['payload_content_types.list'];
     put?: never;
@@ -581,7 +641,7 @@ export interface paths {
     };
     /**
      * List request attempts
-     * @description Retrieves the most recent attempts to deliver events to subscriptions for a given application. Request attempts track the status and history of event deliveries, including retries and failures. This endpoint is paginated: the next URL is given in the `Link` header of the response, following HATEOAS conventions.
+     * @description Retrieves webhook delivery attempts for an application. Each attempt shows the delivery status (pending, in_progress, successful, failed, waiting), retry count, and timestamps. Filter by event_id, subscription_id, date range, or event types. Paginated via Link header.
      */
     get: operations['requestAttempts.read'];
     put?: never;
@@ -673,13 +733,13 @@ export interface paths {
     };
     /**
      * List subscriptions
-     * @description Retrieves all active event subscriptions for a given application. A subscription defines how and where event notifications will be sent.
+     * @description Retrieves all active webhook subscriptions for an application. Each subscription defines which event types to listen for and where to deliver them (HTTP endpoint). Use application_id query parameter to filter by application.
      */
     get: operations['subscriptions.list'];
     put?: never;
     /**
      * Create a new subscription
-     * @description Creates a new event subscription for an application. This allows clients to receive event notifications via a webhook or another defined target.
+     * @description Creates a webhook subscription that listens for specific event types and delivers them to an HTTP endpoint. Configure the target URL, HTTP method, headers, event type filters, labels for routing, and optional metadata.
      */
     post: operations['subscriptions.create'];
     delete?: never;
@@ -696,19 +756,19 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * Get a subscription by its id
-     * @description Retrieves details of a specific subscription if it belongs to the specified application and has not been deleted.
+     * Get a subscription by its ID
+     * @description Retrieves full details of a specific webhook subscription including target URL, HTTP method, headers, event types, labels, and metadata. The subscription must exist and not be deleted.
      */
     get: operations['subscriptions.get'];
     /**
      * Update a subscription
-     * @description Modifies an existing subscription, including its event types, target configuration, or metadata. The subscription must belong to the specified application.
+     * @description Modifies an existing webhook subscription. You can update the target URL, HTTP method, headers, event types, labels, metadata, and enabled status. Disabling a subscription marks all pending webhook deliveries as failed (they won't retry if re-enabled).
      */
     put: operations['subscriptions.update'];
     post?: never;
     /**
      * Delete a subscription
-     * @description Marks a subscription as deleted, preventing any further event notifications from being sent. This operation is irreversible.
+     * @description Permanently deletes a webhook subscription. No more events will be delivered to this endpoint, and all pending deliveries are marked as failed. This action is irreversible.
      */
     delete: operations['subscriptions.delete'];
     options?: never;
@@ -780,6 +840,15 @@ export interface components {
     EmailVerificationPost: {
       token: string;
     };
+    EnvVarMetadata: {
+      default?: string;
+      description?: string;
+      env_var: string;
+      group?: string;
+      name: string;
+      required: boolean;
+      sensitive: boolean;
+    };
     Event: {
       /** Format: uuid */
       event_id: string;
@@ -837,8 +906,19 @@ export interface components {
       /** Format: date-time */
       received_at: string;
     };
+    EventsPerDayEntry: {
+      /** Format: int32 */
+      amount: number;
+      /** Format: uuid */
+      application_id: string;
+      application_name: string;
+      /** Format: date */
+      date: string;
+      is_provisional: boolean;
+    };
     HealthCheck: {
       database: boolean;
+      object_storage?: boolean;
       pulsar?: boolean;
     };
     IngestedEvent: {
@@ -995,6 +1075,11 @@ export interface components {
       created_at: string;
       /** Format: date-time */
       delay_until?: string;
+      event: {
+        /** Format: uuid */
+        event_id: string;
+        event_type_name: string;
+      };
       /** Format: uuid */
       event_id: string;
       /** Format: date-time */
@@ -2039,6 +2124,61 @@ export interface operations {
       };
     };
   };
+  'environment_variables.list': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EnvVarMetadata'][];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   'errors.list': {
     parameters: {
       query?: never;
@@ -2522,6 +2662,128 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  'events_per_day.list_for_application': {
+    parameters: {
+      query: {
+        application_id: string;
+        /** @description Start of date range (inclusive). Defaults to 30 days before `to`. */
+        from?: string;
+        /** @description End of date range (inclusive). Defaults to today. */
+        to?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EventsPerDayEntry'][];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  'events_per_day.list_for_organization': {
+    parameters: {
+      query: {
+        /** @description Start of date range (inclusive). Defaults to 30 days before `to`. */
+        from?: string;
+        organization_id: string;
+        /** @description End of date range (inclusive). Defaults to today. */
+        to?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EventsPerDayEntry'][];
+        };
       };
       /** @description Bad Request */
       400: {
@@ -3322,6 +3584,8 @@ export interface operations {
     parameters: {
       query: {
         application_id: string;
+        /** @description Comma-separated event types */
+        'event.event_type_names'?: string;
         event_id?: string;
         max_created_at?: string;
         min_created_at?: string;

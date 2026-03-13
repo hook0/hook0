@@ -50,6 +50,7 @@ import {
   faCopy,
   faCircle,
   faRobot,
+  faChartBar,
 } from '@fortawesome/free-solid-svg-icons';
 import { faToggleOn } from '@fortawesome/free-solid-svg-icons/faToggleOn';
 import { faToggleOff } from '@fortawesome/free-solid-svg-icons/faToggleOff';
@@ -145,7 +146,9 @@ library.add(
   faSliders,
 
   // AI Integration
-  faRobot
+  faRobot,
+
+  faChartBar
 );
 
 // Vue - promised
