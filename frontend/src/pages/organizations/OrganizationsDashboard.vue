@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router';
-import { onMounted, onUpdated, ref } from 'vue';
+import { onMounted, onUpdated, ref, watch } from 'vue';
+import { format, subDays } from 'date-fns';
 
 import Hook0Text from '@/components/Hook0Text.vue';
 import { Problem, UUID } from '@/http';
 import * as OrganizationService from '@/pages/organizations/OrganizationService';
 import * as ServiceTokenService from '@/pages/organizations/services_token/ServicesTokenService.ts';
 import { OrganizationInfo } from '@/pages/organizations/OrganizationService';
+import * as EventsPerDayService from '@/pages/organizations/applications/EventsPerDayService';
+import { EventsPerDayEntry } from '@/pages/organizations/applications/EventsPerDayService';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0List from '@/components/Hook0List.vue';
@@ -24,6 +27,8 @@ import MembersList from '@/pages/organizations/MembersList.vue';
 import { push } from 'notivue';
 import Hook0TutorialWidget from '@/components/Hook0TutorialWidget.vue';
 import { organizationSteps, Step } from '@/pages/tutorial/TutorialService';
+import Hook0EventsPerDayChart from '@/components/Hook0EventsPerDayChart.vue';
+import Hook0SimpleProgressBar from '@/components/Hook0SimpleProgressBar.vue';
 
 const route = useRoute();
 const pricingEnabled = ref<boolean>(false);
@@ -40,9 +45,38 @@ const organization = ref({
     events_per_day_limit: 0,
     days_of_events_retention_limit: 0,
   },
+  consumption: {
+    members: 0,
+    applications: 0,
+    events_per_day: 0,
+  },
 });
 
 const widgetItems = ref<Step[]>([]);
+
+const eventsPerDayDays = ref(30);
+const eventsPerDayData = ref<EventsPerDayEntry[]>([]);
+const eventsPerDayFrom = ref(format(subDays(new Date(), 30), 'yyyy-MM-dd'));
+const eventsPerDayTo = ref(format(new Date(), 'yyyy-MM-dd'));
+
+function loadEventsPerDay() {
+  if (!organization_id.value) return;
+  EventsPerDayService.organization(
+    organization_id.value,
+    eventsPerDayFrom.value,
+    eventsPerDayTo.value
+  )
+    .then((data: EventsPerDayEntry[]) => {
+      eventsPerDayData.value = data;
+    })
+    .catch(displayError);
+}
+
+watch(eventsPerDayDays, (days) => {
+  eventsPerDayFrom.value = format(subDays(new Date(), days), 'yyyy-MM-dd');
+  eventsPerDayTo.value = format(new Date(), 'yyyy-MM-dd');
+  loadEventsPerDay();
+});
 
 function _load() {
   if (organization_id.value !== route.params.organization_id) {
@@ -53,6 +87,11 @@ function _load() {
         organization.value.name = org.name;
         organization.value.plan = org.plan?.label || '';
         organization.value.quotas = org.quotas;
+        organization.value.consumption = {
+          members: org.consumption.members || 0,
+          applications: org.consumption.applications || 0,
+          events_per_day: org.consumption.events_per_day || 0,
+        };
         widgetItems.value = organizationSteps(org);
       })
       .catch(displayError);
@@ -62,7 +101,29 @@ function _load() {
         has_service_token.value = tokens.length > 0;
       })
       .catch(displayError);
+
+    loadEventsPerDay();
   }
+}
+
+function refresh() {
+  if (!organization_id.value) return;
+
+  OrganizationService.get(organization_id.value)
+    .then((org: OrganizationInfo) => {
+      organization.value.name = org.name;
+      organization.value.plan = org.plan?.label || '';
+      organization.value.quotas = org.quotas;
+      organization.value.consumption = {
+        members: org.consumption.members || 0,
+        applications: org.consumption.applications || 0,
+        events_per_day: org.consumption.events_per_day || 0,
+      };
+      widgetItems.value = organizationSteps(org);
+    })
+    .catch(displayError);
+
+  loadEventsPerDay();
 }
 
 function displayError(err: Problem) {
@@ -206,6 +267,112 @@ onUpdated(() => {
           >Subscribe to a better plan
         </Hook0Button>
       </Hook0CardFooter>
+    </Hook0Card>
+
+    <Hook0Card>
+      <Hook0CardHeader>
+        <template #header>
+          <Hook0Icon name="chart-bar"></Hook0Icon>
+          Organization Consumption
+        </template>
+        <template #actions>
+          <Hook0Button class="secondary" @click="refresh()">
+            <Hook0Icon name="arrows-rotate" class="mr-1"></Hook0Icon>
+            Refresh
+          </Hook0Button>
+        </template>
+      </Hook0CardHeader>
+      <Hook0CardContent>
+        <Hook0CardContentLines>
+          <Hook0CardContentLine type="full-width">
+            <template #content>
+              <Hook0EventsPerDayChart
+                :entries="eventsPerDayData"
+                :stacked="true"
+                :from="eventsPerDayFrom"
+                :to="eventsPerDayTo"
+                :days="eventsPerDayDays"
+                :quota-limit="organization.quotas.events_per_day_limit"
+                @update:days="eventsPerDayDays = $event"
+              />
+            </template>
+          </Hook0CardContentLine>
+        </Hook0CardContentLines>
+      </Hook0CardContent>
+      <Hook0CardContent>
+        <Hook0CardContentLines>
+          <Hook0CardContentLine type="full-width">
+            <template #content>
+              <div class="flex items-center w-full flex-col sm:flex-row">
+                <div class="w-full sm:w-1/3 mb-2 sm:mb-0">
+                  <Hook0Icon name="users" class="mr-1"></Hook0Icon>
+                  <Hook0Text class="text-md">
+                    <strong>Members</strong>: {{ organization.consumption.members }} /
+                    {{ organization.quotas.members_per_organization_limit }}
+                    ({{
+                      organization.quotas.members_per_organization_limit > 0
+                        ? Math.round(
+                            (organization.consumption.members /
+                              organization.quotas.members_per_organization_limit) *
+                              100
+                          )
+                        : 0
+                    }}%)
+                  </Hook0Text>
+                </div>
+                <div class="w-full sm:w-2/3">
+                  <Hook0SimpleProgressBar
+                    :percentage="
+                      organization.quotas.members_per_organization_limit > 0
+                        ? Math.floor(
+                            (organization.consumption.members /
+                              organization.quotas.members_per_organization_limit) *
+                              100
+                          )
+                        : 0
+                    "
+                  />
+                </div>
+              </div>
+            </template>
+          </Hook0CardContentLine>
+          <Hook0CardContentLine type="full-width">
+            <template #content>
+              <div class="flex items-center w-full flex-col sm:flex-row">
+                <div class="w-full sm:w-1/3 mb-2 sm:mb-0">
+                  <Hook0Icon name="rocket" class="mr-1"></Hook0Icon>
+                  <Hook0Text class="text-md">
+                    <strong>Applications</strong>: {{ organization.consumption.applications }} /
+                    {{ organization.quotas.applications_per_organization_limit }}
+                    ({{
+                      organization.quotas.applications_per_organization_limit > 0
+                        ? Math.round(
+                            (organization.consumption.applications /
+                              organization.quotas.applications_per_organization_limit) *
+                              100
+                          )
+                        : 0
+                    }}%)
+                  </Hook0Text>
+                </div>
+                <div class="w-full sm:w-2/3">
+                  <Hook0SimpleProgressBar
+                    :percentage="
+                      organization.quotas.applications_per_organization_limit > 0
+                        ? Math.floor(
+                            (organization.consumption.applications /
+                              organization.quotas.applications_per_organization_limit) *
+                              100
+                          )
+                        : 0
+                    "
+                  />
+                </div>
+              </div>
+            </template>
+          </Hook0CardContentLine>
+        </Hook0CardContentLines>
+      </Hook0CardContent>
     </Hook0Card>
 
     <MembersList

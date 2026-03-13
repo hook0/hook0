@@ -4,6 +4,7 @@ pub mod environment_variables;
 pub mod errors;
 pub mod event_types;
 pub mod events;
+pub mod events_per_day;
 pub mod instance;
 pub mod organizations;
 pub mod registrations;
