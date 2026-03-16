@@ -293,7 +293,11 @@ router.afterEach(() => {
             <div class="hook0-topnav__dropdown-user-email">{{ authStore.userInfo?.email }}</div>
           </div>
           <div class="hook0-topnav__dropdown-divider" />
-          <router-link :to="{ name: routes.UserSettings }" class="hook0-topnav__dropdown-item" role="menuitem">
+          <router-link
+            :to="{ name: routes.UserSettings }"
+            class="hook0-topnav__dropdown-item"
+            role="menuitem"
+          >
             <Settings :size="16" aria-hidden="true" />
             {{ t('nav.settings') }}
           </router-link>

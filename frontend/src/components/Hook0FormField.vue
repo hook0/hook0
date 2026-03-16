@@ -16,7 +16,11 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 defineSlots<{
-  default(props: { fieldId: string; errorId: string | undefined; helpId: string | undefined }): unknown;
+  default(props: {
+    fieldId: string;
+    errorId: string | undefined;
+    helpId: string | undefined;
+  }): unknown;
 }>();
 
 const fieldId = `hook0-form-field-${useId()}`;
@@ -34,7 +38,11 @@ const helpId = `${fieldId}-help`;
     <!-- aria-describedby should be set on the slotted input element, not the wrapper div.
          Use the scoped slot props: :field-id for the input's id, :error-id / :help-id for aria-describedby. -->
     <div class="hook0-form-field__control">
-      <slot :field-id="fieldId" :error-id="props.error ? errorId : undefined" :help-id="props.helpText ? helpId : undefined" />
+      <slot
+        :field-id="fieldId"
+        :error-id="props.error ? errorId : undefined"
+        :help-id="props.helpText ? helpId : undefined"
+      />
     </div>
 
     <p v-if="props.error" :id="errorId" class="hook0-form-field__error" role="alert">

@@ -123,7 +123,15 @@ onBeforeUnmount(() => {
 <template>
   <div :class="$attrs.class" class="hook0-dropdown">
     <div ref="toggler" class="hook0-toggler">
-      <slot name="menu" :open="open" :close="close" :route="route" :toggle="toggle" :aria-expanded="show" :aria-haspopup="'true'"></slot>
+      <slot
+        name="menu"
+        :open="open"
+        :close="close"
+        :route="route"
+        :toggle="toggle"
+        :aria-expanded="show"
+        :aria-haspopup="'true'"
+      ></slot>
     </div>
 
     <div ref="dropdown">
