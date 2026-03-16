@@ -170,4 +170,21 @@ const { query, selectedIndex, filteredCommands, groupedCommands, close, onKeydow
   background-color: var(--color-bg-tertiary);
   color: var(--color-text-primary);
 }
+
+@media (max-width: 767px) {
+  .hook0-command-palette-overlay {
+    padding-top: 0;
+    align-items: stretch;
+  }
+  .hook0-command-palette {
+    max-width: 100%;
+    margin: 0;
+    border-radius: 0;
+    height: 100vh;
+    max-height: 100vh;
+  }
+  .hook0-command-palette-list {
+    max-height: calc(100vh - 4rem);
+  }
+}
 </style>

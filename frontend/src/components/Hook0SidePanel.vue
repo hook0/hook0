@@ -209,7 +209,7 @@ onBeforeUnmount(() => {
 }
 
 /* Full-screen on mobile */
-@media (max-width: 639px) {
+@media (max-width: 767px) {
   .side-panel {
     max-width: 100%;
     border-left: none;
