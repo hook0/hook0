@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Check } from 'lucide-vue-next';
 import type { Step } from '@/pages/tutorial/TutorialService';
-import Hook0Button from './Hook0Button.vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
@@ -34,9 +33,10 @@ const isLastStep = (index: number) => {
           :class="[isLastStep(index) ? '' : step.isCompleted ? 'bg-indigo-600' : 'bg-gray-300']"
         ></div>
         <component
-          :is="isNextStep(index) && step.route ? Hook0Button : 'div'"
-          :to="step.route"
-          :class="{ 'relative z-10 rounded-lg bg-white': isNextStep(index) }"
+          :is="isNextStep(index) && step.route ? 'router-link' : 'div'"
+          :to="isNextStep(index) && step.route ? step.route : undefined"
+          class="relative"
+          :style="isNextStep(index) ? 'text-decoration: none; color: inherit; display: block;' : ''"
         >
           <div class="relative flex items-start">
             <span class="flex h-9 items-center">
@@ -47,7 +47,7 @@ const isLastStep = (index: number) => {
                   step.isCompleted
                     ? ''
                     : isNextStep(index)
-                      ? 'border-indigo-600 bg-white'
+                      ? 'border-indigo-600 bg-white ring-3 ring-indigo-100'
                       : 'border-gray-300 bg-white',
                 ]"
               >
