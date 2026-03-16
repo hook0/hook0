@@ -2,13 +2,13 @@
 import { type Component } from 'vue';
 import { Check } from 'lucide-vue-next';
 
-type Step = {
+type ProgressStep = {
   icon: Component;
   label: string;
 };
 
 type Props = {
-  steps: Step[];
+  steps: ProgressStep[];
   current: number;
 };
 
@@ -26,7 +26,7 @@ function stepState(index: number): 'completed' | 'current' | 'future' {
     <ol class="step-progress__list">
       <li
         v-for="(step, index) in steps"
-        :key="index"
+        :key="step.label"
         class="step-progress__item"
       >
         <div
@@ -37,13 +37,11 @@ function stepState(index: number): 'completed' | 'current' | 'future' {
           }"
         />
 
-        <button
+        <div
           class="step-progress__circle"
           :class="[`step-progress__circle--${stepState(index)}`]"
-          type="button"
           :aria-current="index === current ? 'step' : undefined"
           :aria-label="step.label"
-          disabled
         >
           <Check
             v-if="stepState(index) === 'completed'"
@@ -56,7 +54,7 @@ function stepState(index: number): 'completed' | 'current' | 'future' {
             :size="16"
             aria-hidden="true"
           />
-        </button>
+        </div>
 
         <span
           class="step-progress__label"
@@ -121,17 +119,17 @@ function stepState(index: number): 'completed' | 'current' | 'future' {
   border: 2px solid transparent;
   cursor: default;
   flex-shrink: 0;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .step-progress__circle--completed {
   background-color: var(--color-success);
-  color: #ffffff;
+  color: var(--color-bg-primary);
 }
 
 .step-progress__circle--current {
   background-color: var(--color-primary);
-  color: #ffffff;
+  color: var(--color-bg-primary);
   box-shadow: 0 0 0 4px var(--color-primary-light);
 }
 
@@ -176,7 +174,21 @@ function stepState(index: number): 'completed' | 'current' | 'future' {
   }
 
   .step-progress__label {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step-progress__circle {
+    transition: none;
   }
 }
 </style>
