@@ -23,7 +23,13 @@ defineEmits<{
     :data-test="dataTest"
     @click="$emit('update:modelValue')"
   >
-    <input type="radio" :name="name" :checked="modelValue" class="selectable-card__radio" />
+    <input
+      type="radio"
+      :name="name"
+      :checked="modelValue"
+      :aria-label="label"
+      class="selectable-card__radio"
+    />
     <span class="selectable-card__icon" :class="{ 'selectable-card__icon--selected': modelValue }">
       <component :is="icon" :size="18" aria-hidden="true" />
     </span>

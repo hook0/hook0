@@ -57,7 +57,7 @@ const {
 } = useOrganizationList();
 
 const organizationOptions = computed(() => [
-  { label: '', value: '' },
+  { label: t('tutorial.selectOrganization'), value: null },
   ...(rawOrganizations.value ?? []).map((o) => ({ label: o.name, value: o.organization_id })),
 ]);
 

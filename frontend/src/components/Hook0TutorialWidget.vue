@@ -2,10 +2,13 @@
 import { Check } from 'lucide-vue-next';
 import type { Step } from '@/pages/tutorial/TutorialService';
 import Hook0Button from './Hook0Button.vue';
+import { useI18n } from 'vue-i18n';
 
-interface Props {
+const { t } = useI18n();
+
+type Props = {
   steps: Step[];
-}
+};
 
 const props = defineProps<Props>();
 
@@ -66,9 +69,9 @@ const isLastStep = (index: number) => {
                       : 'text-gray-500'
                 "
               >
-                {{ step.title }}
+                {{ t(step.title) }}
               </span>
-              <span class="text-sm text-gray-500">{{ step.details }}</span>
+              <span class="text-sm text-gray-500">{{ t(step.details) }}</span>
             </span>
           </div>
         </component>

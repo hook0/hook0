@@ -614,6 +614,16 @@
       "sendEvent": "Send Event",
       "success": "Done"
     },
+    "widget": {
+      "applicationTitle": "Create an application",
+      "applicationDetails": "Isolated environment that contains everything webhook-related.",
+      "eventTypeTitle": "Create an event type",
+      "eventTypeDetails": "Category of events you can pick or not when subscribing.",
+      "subscriptionTitle": "Create a subscription",
+      "subscriptionDetails": "Filter events and choose where you want them dispatched as webhooks.",
+      "eventTitle": "Send an event",
+      "eventDetails": "Something that happened in your application and could end up as a webhook."
+    },
     "title": "Get Started with Hook0",
     "welcome": {
       "title": "Welcome to Hook0!",

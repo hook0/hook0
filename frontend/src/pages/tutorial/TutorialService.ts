@@ -1,17 +1,9 @@
 import { markRaw, type Component } from 'vue';
 import type { RouteLocationRaw } from 'vue-router';
-import { Building2, AppWindow, FolderTree, Link, FileText } from 'lucide-vue-next';
+import { AppWindow, FolderTree, Link, FileText } from 'lucide-vue-next';
 import type { ApplicationInfo } from '@/pages/organizations/applications/ApplicationService';
 import { routes } from '@/routes';
 import type { OrganizationInfo } from '@/pages/organizations/OrganizationService';
-
-export const progressItems = [
-  { icon: markRaw(Building2), title: 'Organization' },
-  { icon: markRaw(AppWindow), title: 'Application' },
-  { icon: markRaw(FolderTree), title: 'Event Type' },
-  { icon: markRaw(Link), title: 'Subscription' },
-  { icon: markRaw(FileText), title: 'Event' },
-];
 
 export type Step = {
   title: string;
@@ -43,8 +35,8 @@ function tutorialAppRoute(organization_id: string) {
 
 function applicationStep(organization_id: string, isCompleted: boolean): Step {
   return {
-    title: 'Create an application',
-    details: 'Isolated environment that contains everything webhook-related.',
+    title: 'tutorial.widget.applicationTitle',
+    details: 'tutorial.widget.applicationDetails',
     isCompleted,
     icon: markRaw(AppWindow),
     route: {
@@ -62,8 +54,8 @@ function eventTypeStep(
   isCompleted: boolean
 ): Step {
   return {
-    title: 'Create an event type',
-    details: 'Category of events you can pick or not when subscribing.',
+    title: 'tutorial.widget.eventTypeTitle',
+    details: 'tutorial.widget.eventTypeDetails',
     isCompleted,
     icon: markRaw(FolderTree),
     route:
@@ -85,8 +77,8 @@ function subscriptionStep(
   isCompleted: boolean
 ): Step {
   return {
-    title: 'Create a subscription',
-    details: 'Filter events and choose where you want them dispatched as webhooks.',
+    title: 'tutorial.widget.subscriptionTitle',
+    details: 'tutorial.widget.subscriptionDetails',
     isCompleted,
     icon: markRaw(Link),
     route:
@@ -108,8 +100,8 @@ function eventStep(
   isCompleted: boolean
 ): Step {
   return {
-    title: 'Send an event',
-    details: 'Something that happened in your application and could end up as a webhook.',
+    title: 'tutorial.widget.eventTitle',
+    details: 'tutorial.widget.eventDetails',
     isCompleted,
     icon: markRaw(FileText),
     route:

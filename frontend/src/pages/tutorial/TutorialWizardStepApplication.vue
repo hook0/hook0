@@ -62,7 +62,7 @@ const {
 const applicationOptions = computed(() => {
   const apps = rawApplications.value ?? [];
   return [
-    { label: '', value: '' },
+    { label: t('tutorial.selectApplication'), value: null },
     ...apps.map((a) => ({ label: a.name, value: a.application_id })),
   ];
 });
