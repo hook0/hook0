@@ -159,8 +159,8 @@ const onSubmit = handleSubmit((values) => {
 <template>
   <Hook0PageLayout :title="isNew ? t('applications.createTitle') : t('applications.settings')">
     <Hook0Stack direction="column" gap="xl">
-      <!-- Loading for edit mode -->
-      <Hook0Card v-if="!isNew && isLoading">
+      <!-- Loading for edit mode (also shown when query is disabled and data is undefined) -->
+      <Hook0Card v-if="!isNew && (isLoading || !appDetail)">
         <Hook0CardHeader>
           <template #header>{{ t('applications.editTitle') }}</template>
         </Hook0CardHeader>

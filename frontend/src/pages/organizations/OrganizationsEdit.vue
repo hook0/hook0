@@ -163,8 +163,8 @@ const onSubmit = handleSubmit((values) => {
 <template>
   <Hook0PageLayout :title="isNew ? t('organizations.createTitle') : t('organizations.settings')">
     <Hook0Stack direction="column" gap="xl">
-      <!-- Loading for edit mode -->
-      <Hook0Card v-if="!isNew && isLoading">
+      <!-- Loading for edit mode (also shown when query is disabled and data is undefined) -->
+      <Hook0Card v-if="!isNew && (isLoading || !orgDetail)">
         <Hook0CardHeader>
           <template #header>{{ t('organizations.editTitle') }}</template>
         </Hook0CardHeader>
