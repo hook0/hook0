@@ -21,7 +21,15 @@ import {
   Sun,
   Moon,
   Menu,
+  FileText,
+  Link,
+  FolderTree,
+  ScrollText,
+  Key,
+  LayoutDashboard,
+  KeyRound,
 } from 'lucide-vue-next';
+import type { Component } from 'vue';
 import { routes } from '@/routes';
 import { useAuthStore } from '@/stores/auth';
 import { useContextStore } from '@/stores/context';
@@ -54,6 +62,7 @@ const userDropdownOpen = ref(false);
 interface NavTab {
   id: string;
   label: string;
+  icon: Component;
   to: { name: string; params?: Record<string, string> };
   active: boolean;
   badge?: string;
@@ -71,12 +80,14 @@ const navTabs = computed<NavTab[]>(() => {
       {
         id: 'events',
         label: t('nav.events'),
+        icon: FileText,
         to: { name: routes.EventsList, params },
         active: route.name === routes.EventsList || route.name === routes.EventsDetail,
       },
       {
         id: 'subscriptions',
         label: t('nav.subscriptions'),
+        icon: Link,
         to: { name: routes.SubscriptionsList, params },
         active:
           route.name === routes.SubscriptionsList ||
@@ -86,12 +97,14 @@ const navTabs = computed<NavTab[]>(() => {
       {
         id: 'event-types',
         label: t('nav.eventTypes'),
+        icon: FolderTree,
         to: { name: routes.EventTypesList, params },
         active: route.name === routes.EventTypesList || route.name === routes.EventTypesNew,
       },
       {
         id: 'logs',
         label: t('nav.logs'),
+        icon: ScrollText,
         to: { name: routes.LogsList, params },
         active: route.name === routes.LogsList,
       },
@@ -101,6 +114,7 @@ const navTabs = computed<NavTab[]>(() => {
       tabs.push({
         id: 'api-keys',
         label: t('nav.apiKeys'),
+        icon: KeyRound,
         to: { name: routes.ApplicationSecretsList, params },
         active: route.name === routes.ApplicationSecretsList,
       });
@@ -109,6 +123,7 @@ const navTabs = computed<NavTab[]>(() => {
     tabs.push({
       id: 'settings',
       label: t('nav.settings'),
+      icon: Settings,
       to: { name: routes.ApplicationsDashboard, params },
       active:
         route.name === routes.ApplicationsDashboard || route.name === routes.ApplicationsDetail,
@@ -124,18 +139,21 @@ const navTabs = computed<NavTab[]>(() => {
       {
         id: 'applications',
         label: t('nav.applications'),
+        icon: LayoutDashboard,
         to: { name: routes.ApplicationsList, params },
         active: route.name === routes.ApplicationsList,
       },
       {
         id: 'service-tokens',
         label: t('nav.serviceTokens'),
+        icon: Key,
         to: { name: routes.ServicesTokenList, params },
         active: route.name === routes.ServicesTokenList || route.name === routes.ServiceTokenView,
       },
       {
         id: 'org-settings',
         label: t('nav.settings'),
+        icon: Settings,
         to: { name: routes.OrganizationsDashboard, params },
         active:
           route.name === routes.OrganizationsDashboard || route.name === routes.OrganizationsDetail,
@@ -188,8 +206,10 @@ router.afterEach(() => {
         :to="tab.to"
         class="hook0-topnav__tab"
         :class="{ active: tab.active }"
+        :title="tab.label"
       >
-        {{ tab.label }}
+        <component :is="tab.icon" :size="16" class="hook0-topnav__tab-icon" aria-hidden="true" />
+        <span class="hook0-topnav__tab-label">{{ tab.label }}</span>
         <span v-if="tab.badge" class="hook0-topnav__tab-badge">{{ tab.badge }}</span>
       </router-link>
     </nav>
@@ -354,9 +374,23 @@ router.afterEach(() => {
   margin-left: 1.5rem;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 768px) {
   .hook0-topnav__tabs {
     display: flex;
+  }
+}
+
+.hook0-topnav__tab-icon {
+  flex-shrink: 0;
+}
+
+.hook0-topnav__tab-label {
+  display: none;
+}
+
+@media (min-width: 1280px) {
+  .hook0-topnav__tab-label {
+    display: inline;
   }
 }
 
@@ -478,7 +512,7 @@ router.afterEach(() => {
   display: none;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1280px) {
   .hook0-topnav__nav-link-text {
     display: inline;
   }
@@ -489,7 +523,7 @@ router.afterEach(() => {
   display: none;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1280px) {
   .hook0-topnav__nav-link-external {
     display: inline;
   }

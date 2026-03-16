@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
-import { Home, FolderTree, FileText, Link, Settings } from 'lucide-vue-next';
+import { Home, FolderTree, FileText, Link, Settings, Menu } from 'lucide-vue-next';
 import { routes } from '@/routes';
 import { useContextStore } from '@/stores/context';
+import { useUiStore } from '@/stores/ui';
+import { useI18n } from 'vue-i18n';
 
 const route = useRoute();
 const contextStore = useContextStore();
+const uiStore = useUiStore();
+const { t } = useI18n();
 
 interface TabItem {
   name: string;
@@ -103,6 +107,16 @@ const tabs = computed<TabItem[]>(() => {
         <component :is="tab.icon" :size="20" aria-hidden="true" />
         <span class="hook0-mobile-tab-label">{{ tab.name }}</span>
       </router-link>
+      <button
+        v-if="contextStore.organizationId && contextStore.applicationId"
+        class="hook0-mobile-tab"
+        role="tab"
+        :aria-selected="false"
+        @click="uiStore.toggleMobileDrawer()"
+      >
+        <Menu :size="20" aria-hidden="true" />
+        <span class="hook0-mobile-tab-label">{{ t('nav.more') }}</span>
+      </button>
     </div>
   </nav>
 </template>
@@ -145,6 +159,9 @@ const tabs = computed<TabItem[]>(() => {
   font-size: 0.625rem;
   font-weight: 500;
   transition: color 0.15s ease;
+  border: none;
+  background: none;
+  cursor: pointer;
 }
 
 .hook0-mobile-tab :deep(svg) {

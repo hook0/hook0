@@ -198,7 +198,8 @@
     "apiReference": "API Reference",
     "lightMode": "Light mode",
     "darkMode": "Dark mode",
-    "logout": "Log out"
+    "logout": "Log out",
+    "more": "More"
   },
   "organizations": {
     "title": "Organizations",
