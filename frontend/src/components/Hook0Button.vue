@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RouteLocationRaw, useRouter } from 'vue-router';
-import { ref, computed, onMounted, onUpdated, useSlots } from 'vue';
+import { ref, computed, onMounted, onUpdated, useSlots, useAttrs } from 'vue';
 
 import Hook0Spinner from '@/components/Hook0Spinner.vue';
 
@@ -40,6 +40,8 @@ defineSlots<{
   right(): unknown;
 }>();
 
+const attrs = useAttrs();
+
 const resolvedHref = computed(() => {
   if (props.href) {
     return props.href;
@@ -51,6 +53,51 @@ const resolvedHref = computed(() => {
 
   const { href } = router.resolve(props.to);
   return href;
+});
+
+/**
+ * Determine whether to render as <button> or <a>.
+ *
+ * Render as <a> only when the button has navigation behavior (href or to).
+ * Otherwise always render as <button> for correct semantics, accessibility,
+ * and keyboard interaction.
+ */
+const isLink = computed(() => {
+  return !!props.href || !!props.to;
+});
+
+/**
+ * Compute the button type attribute.
+ * - If submit prop is true, use "submit"
+ * - If type is explicitly passed in $attrs, use that
+ * - Otherwise default to "button"
+ */
+type ButtonType = 'submit' | 'button' | 'reset';
+
+const buttonType = computed((): ButtonType => {
+  if (props.submit) return 'submit';
+  if (
+    attrs.type &&
+    typeof attrs.type === 'string' &&
+    ['submit', 'button', 'reset'].includes(attrs.type)
+  ) {
+    return attrs.type as ButtonType;
+  }
+  return 'button';
+});
+
+/**
+ * Filter out 'type' from $attrs when rendering as <button>,
+ * since we handle it explicitly via :type="buttonType".
+ */
+const filteredAttrs = computed(() => {
+  const result: Record<string, unknown> = {};
+  for (const key of Object.keys(attrs)) {
+    if (key !== 'type') {
+      result[key] = attrs[key];
+    }
+  }
+  return result;
 });
 
 const loading = computed(() => props.loading ?? false);
@@ -72,30 +119,33 @@ function forwardPromiseState() {
 }
 
 function onClick(e: MouseEvent) {
-  if (!props.href) {
-    e.preventDefault();
-    e.stopImmediatePropagation();
-  }
-
   if (loadingStatus.value || props.disabled) {
+    e.preventDefault();
     return;
   }
 
-  if (!resolvedHref.value) {
-    emit('click', e);
+  // For links, handle navigation
+  if (isLink.value) {
+    if (e.metaKey && resolvedHref.value) {
+      e.preventDefault();
+      window.open(resolvedHref.value);
+      return;
+    }
+
+    if (props.to) {
+      e.preventDefault();
+      router.push(props.to).catch((err) => {
+        console.error(err);
+      });
+      return;
+    }
+
+    // External href - let the browser handle it
     return;
   }
 
-  if (e.metaKey && resolvedHref.value) {
-    window.open(resolvedHref.value);
-    return;
-  }
-
-  if (props.to) {
-    router.push(props.to).catch((err) => {
-      console.error(err);
-    });
-  }
+  // For buttons, emit click
+  emit('click', e);
 }
 
 function hasSlot(name: string): boolean {
@@ -124,45 +174,20 @@ const spinnerSize: Record<ButtonSize, number> = {
 </script>
 
 <template>
-  <button
-    v-if="submit"
-    type="submit"
-    class="hook0-button"
-    :class="[
-      variant,
-      variant !== 'icon' ? sizeClasses[size] : '',
-      { loading: loadingStatus, 'full-width': fullWidth },
-    ]"
-    :disabled="loadingStatus || disabled"
-    :aria-disabled="loadingStatus || disabled"
-    :aria-busy="loadingStatus"
-    :title="tooltip"
-    v-bind="$attrs"
-  >
-    <span v-if="hasSlot('left') && !loadingStatus" class="hook0-button-left">
-      <slot name="left" />
-    </span>
-    <Hook0Spinner v-if="loadingStatus" :size="spinnerSize[size]" />
-    <span v-else class="hook0-button-center">
-      <slot />
-    </span>
-    <span v-if="hasSlot('right') && !loadingStatus" class="hook0-button-right">
-      <slot name="right" />
-    </span>
-  </button>
+  <!-- Render as <a> when the button has navigation behavior (href or to) -->
   <a
-    v-else
+    v-if="isLink"
     class="hook0-button"
     :class="[
       variant,
       variant !== 'icon' ? sizeClasses[size] : '',
       { loading: loadingStatus, 'full-width': fullWidth },
     ]"
-    :disabled="loadingStatus || disabled || undefined"
-    :aria-disabled="loadingStatus || disabled"
-    :aria-busy="loadingStatus"
+    :aria-disabled="loadingStatus || disabled || undefined"
+    :aria-busy="loadingStatus || undefined"
     :href="resolvedHref"
     :title="tooltip"
+    :tabindex="loadingStatus || disabled ? -1 : undefined"
     v-bind="$attrs"
     @click="onClick($event)"
   >
@@ -177,6 +202,34 @@ const spinnerSize: Record<ButtonSize, number> = {
       <slot name="right" />
     </span>
   </a>
+  <!-- Render as <button> for all other cases (actions, submit, etc.) -->
+  <button
+    v-else
+    :type="buttonType"
+    class="hook0-button"
+    :class="[
+      variant,
+      variant !== 'icon' ? sizeClasses[size] : '',
+      { loading: loadingStatus, 'full-width': fullWidth },
+    ]"
+    :disabled="loadingStatus || disabled"
+    :aria-disabled="loadingStatus || disabled || undefined"
+    :aria-busy="loadingStatus || undefined"
+    :title="tooltip"
+    v-bind="filteredAttrs"
+    @click="onClick($event)"
+  >
+    <span v-if="hasSlot('left') && !loadingStatus" class="hook0-button-left">
+      <slot name="left" />
+    </span>
+    <Hook0Spinner v-if="loadingStatus" :size="spinnerSize[size]" />
+    <span v-else class="hook0-button-center">
+      <slot />
+    </span>
+    <span v-if="hasSlot('right') && !loadingStatus" class="hook0-button-right">
+      <slot name="right" />
+    </span>
+  </button>
 </template>
 
 <style scoped>
@@ -184,6 +237,7 @@ const spinnerSize: Record<ButtonSize, number> = {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: nowrap;
   gap: 0.5rem;
   font-weight: 500;
   border-radius: var(--radius-md);
@@ -193,7 +247,7 @@ const spinnerSize: Record<ButtonSize, number> = {
     color 0.15s ease,
     border-color 0.15s ease,
     box-shadow 0.15s ease,
-    transform 0.1s ease;
+    transform 50ms ease;
   user-select: none;
   text-decoration: none;
   white-space: nowrap;
@@ -310,6 +364,19 @@ const spinnerSize: Record<ButtonSize, number> = {
 .hook0-button-right {
   display: inline-flex;
   align-items: center;
+  flex-shrink: 0;
+}
+
+.hook0-button :deep(svg) {
+  flex-shrink: 0;
+}
+
+.hook0-button-center {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* Full width variant */

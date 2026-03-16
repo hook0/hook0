@@ -1,11 +1,16 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useForm } from 'vee-validate';
 import { push } from 'notivue';
-import { User, Lock, AlertTriangle, Trash2 } from 'lucide-vue-next';
+import { User, Lock, AlertTriangle, Trash2, Palette } from 'lucide-vue-next';
 
 import * as UserService from '@/pages/user/UserService';
+import { passwordChangeSchema } from '@/pages/user/passwordChange.schema';
+import { toTypedSchema } from '@/utils/zod-adapter';
 import { useAuthStore } from '@/stores/auth';
+import { useUiStore } from '@/stores/ui';
+import type { ColorMode } from '@/stores/ui';
 import { displayError } from '@/utils/displayError';
 import type { Problem } from '@/http';
 
@@ -20,41 +25,56 @@ import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
 import Hook0Alert from '@/components/Hook0Alert.vue';
-import Hook0Text from '@/components/Hook0Text.vue';
 import Hook0Form from '@/components/Hook0Form.vue';
+import Hook0Select from '@/components/Hook0Select.vue';
+import Hook0Dialog from '@/components/Hook0Dialog.vue';
 
 const { t } = useI18n();
 const authStore = useAuthStore();
+const uiStore = useUiStore();
 const currentUser = computed(() => authStore.userInfo);
 
-const new_password = ref('');
-const confirm_new_password = ref('');
+// Appearance preferences
+const colorModeValue = computed({
+  get: () => uiStore.colorMode,
+  set: (value: string) => uiStore.setColorMode(value as ColorMode),
+});
 
-function changePassword() {
-  if (new_password.value !== confirm_new_password.value) {
-    push.error({
-      title: t('common.error'),
-      message: t('userSettings.passwordMismatch'),
-      duration: 5000,
-    });
-    return;
-  }
+const colorModeOptions = computed(() => [
+  { label: t('userSettings.themeSystem'), value: 'system' },
+  { label: t('userSettings.themeLight'), value: 'light' },
+  { label: t('userSettings.themeDark'), value: 'dark' },
+]);
 
-  UserService.changePassword(new_password.value)
+// VeeValidate form with Zod schema for password change
+const { errors, defineField, handleSubmit, resetForm } = useForm({
+  validationSchema: toTypedSchema(passwordChangeSchema),
+});
+
+const [newPassword, newPasswordAttrs] = defineField('new_password');
+const [confirmNewPassword, confirmNewPasswordAttrs] = defineField('confirm_new_password');
+
+const onChangePassword = handleSubmit((values) => {
+  UserService.changePassword(values.new_password)
     .then(() => {
       push.success({
         title: t('common.success'),
         message: t('userSettings.passwordChanged'),
         duration: 3000,
       });
+      resetForm();
     })
     .catch((err) => displayError(err as Problem));
-}
+});
+
+const showDeleteAccountDialog = ref(false);
 
 function deleteAccount() {
-  if (!confirm(t('userSettings.deleteAccountConfirm'))) {
-    return;
-  }
+  showDeleteAccountDialog.value = true;
+}
+
+function confirmDeleteAccount() {
+  showDeleteAccountDialog.value = false;
 
   UserService.deleteUser()
     .then(() => {
@@ -81,7 +101,7 @@ function deleteAccount() {
             <Hook0IconBadge variant="info">
               <User :size="18" aria-hidden="true" />
             </Hook0IconBadge>
-            <Hook0Text>{{ t('userSettings.personalInfo') }}</Hook0Text>
+            <span>{{ t('userSettings.personalInfo') }}</span>
           </Hook0Stack>
         </template>
         <template #subtitle>{{ t('userSettings.personalInfoSubtitle') }}</template>
@@ -126,16 +146,54 @@ function deleteAccount() {
       </Hook0CardContent>
     </Hook0Card>
 
+    <!-- Appearance Preferences -->
+    <Hook0Card data-test="appearance-card">
+      <Hook0CardHeader>
+        <template #header>
+          <Hook0Stack direction="row" align="center" gap="sm">
+            <Hook0IconBadge variant="primary">
+              <Palette :size="18" aria-hidden="true" />
+            </Hook0IconBadge>
+            <span>{{ t('userSettings.appearance') }}</span>
+          </Hook0Stack>
+        </template>
+        <template #subtitle>{{ t('userSettings.appearanceSubtitle') }}</template>
+      </Hook0CardHeader>
+      <Hook0CardContent>
+        <Hook0CardContentLine>
+          <template #label>{{ t('userSettings.theme') }}</template>
+          <template #content>
+            <Hook0Select
+              v-model="colorModeValue"
+              :options="colorModeOptions"
+              data-test="theme-select"
+            />
+          </template>
+        </Hook0CardContentLine>
+        <Hook0CardContentLine>
+          <template #label>{{ t('userSettings.language') }}</template>
+          <template #content>
+            <Hook0Select
+              model-value="en"
+              :options="[{ label: 'English', value: 'en' }]"
+              disabled
+              data-test="language-select"
+            />
+          </template>
+        </Hook0CardContentLine>
+      </Hook0CardContent>
+    </Hook0Card>
+
     <!-- Change Password -->
     <Hook0Card v-if="currentUser" data-test="change-password-card">
-      <Hook0Form data-test="change-password-form" @submit="changePassword">
+      <Hook0Form data-test="change-password-form" @submit="onChangePassword">
         <Hook0CardHeader>
           <template #header>
             <Hook0Stack direction="row" align="center" gap="sm">
               <Hook0IconBadge variant="warning">
                 <Lock :size="18" aria-hidden="true" />
               </Hook0IconBadge>
-              <Hook0Text>{{ t('userSettings.changePassword') }}</Hook0Text>
+              <span>{{ t('userSettings.changePassword') }}</span>
             </Hook0Stack>
           </template>
           <template #subtitle>{{ t('userSettings.changePasswordSubtitle') }}</template>
@@ -145,10 +203,11 @@ function deleteAccount() {
             <template #label>{{ t('userSettings.newPassword') }}</template>
             <template #content>
               <Hook0Input
-                v-model="new_password"
+                v-model="newPassword"
+                v-bind="newPasswordAttrs"
                 type="password"
                 :placeholder="t('userSettings.newPasswordPlaceholder')"
-                required
+                :error="errors.new_password"
                 data-test="new-password-input"
               />
             </template>
@@ -158,10 +217,11 @@ function deleteAccount() {
             <template #label>{{ t('userSettings.confirmPassword') }}</template>
             <template #content>
               <Hook0Input
-                v-model="confirm_new_password"
+                v-model="confirmNewPassword"
+                v-bind="confirmNewPasswordAttrs"
                 type="password"
                 :placeholder="t('userSettings.confirmPasswordPlaceholder')"
-                required
+                :error="errors.confirm_new_password"
                 data-test="confirm-password-input"
               />
             </template>
@@ -196,7 +256,7 @@ function deleteAccount() {
               <Hook0IconBadge variant="danger">
                 <AlertTriangle :size="18" aria-hidden="true" />
               </Hook0IconBadge>
-              <Hook0Text>{{ t('userSettings.deleteAccount') }}</Hook0Text>
+              <span>{{ t('userSettings.deleteAccount') }}</span>
             </Hook0Stack>
           </template>
           <template #subtitle>{{ t('userSettings.deleteAccountSubtitle') }}</template>
@@ -227,6 +287,16 @@ function deleteAccount() {
         <template #subtitle>{{ t('userSettings.notLoggedInSubtitle') }}</template>
       </Hook0CardHeader>
     </Hook0Card>
+
+    <Hook0Dialog
+      :open="showDeleteAccountDialog"
+      variant="danger"
+      :title="t('userSettings.deleteAccount')"
+      @close="showDeleteAccountDialog = false"
+      @confirm="confirmDeleteAccount()"
+    >
+      <p>{{ t('userSettings.deleteAccountConfirm') }}</p>
+    </Hook0Dialog>
   </Hook0PageLayout>
 </template>
 

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, h } from 'vue';
+import { computed, h, markRaw, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
+import { Trash2 } from 'lucide-vue-next';
 
 import { useSecretList, useCreateSecret, useRemoveSecret } from './useSecretQueries';
 import type { ApplicationSecret } from './ApplicationSecretService';
@@ -10,6 +11,7 @@ import { displayError } from '@/utils/displayError';
 import type { Problem } from '@/http';
 import { push } from 'notivue';
 import { useTracking } from '@/composables/useTracking';
+import { usePermissions } from '@/composables/usePermissions';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -24,10 +26,15 @@ import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0EmptyState from '@/components/Hook0EmptyState.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
+import Hook0Dialog from '@/components/Hook0Dialog.vue';
+import Hook0Input from '@/components/Hook0Input.vue';
 
 const { t } = useI18n();
 const route = useRoute();
 const { trackEvent } = useTracking();
+
+// Permissions
+const { canCreate, canDelete } = usePermissions();
 
 const applicationId = computed(() => route.params.application_id as string);
 const { data: secrets, isLoading, error, refetch } = useSecretList(applicationId);
@@ -35,11 +42,23 @@ const { data: secrets, isLoading, error, refetch } = useSecretList(applicationId
 const createMutation = useCreateSecret();
 const removeMutation = useRemoveSecret();
 
+const showCreateDialog = ref(false);
+const newSecretName = ref('');
+
+const showDeleteDialog = ref(false);
+const secretToDelete = ref<ApplicationSecret | null>(null);
+
 function createNew(event: MouseEvent) {
   event.stopImmediatePropagation();
   event.preventDefault();
+  newSecretName.value = '';
+  showCreateDialog.value = true;
+}
 
-  const name = prompt(t('apiKeys.createPrompt'));
+function confirmCreate() {
+  const name = newSecretName.value.trim();
+  showCreateDialog.value = false;
+  newSecretName.value = '';
   if (!name) return;
 
   createMutation.mutate(
@@ -61,7 +80,15 @@ function createNew(event: MouseEvent) {
 }
 
 function handleDelete(row: ApplicationSecret) {
-  if (!confirm(t('apiKeys.deleteConfirm'))) return;
+  secretToDelete.value = row;
+  showDeleteDialog.value = true;
+}
+
+function confirmDelete() {
+  const row = secretToDelete.value;
+  showDeleteDialog.value = false;
+  secretToDelete.value = null;
+  if (!row) return;
 
   removeMutation.mutate(
     { applicationId: applicationId.value, token: row.token },
@@ -99,17 +126,21 @@ const columns: ColumnDef<ApplicationSecret, unknown>[] = [
     enableSorting: true,
     cell: (info) => h(Hook0TableCellDate, { value: info.getValue() as string | null }),
   },
-  {
-    id: 'options',
-    header: t('common.actions'),
-    cell: (info) =>
-      h(Hook0TableCellLink, {
-        value: t('common.delete'),
-        icon: 'trash',
-        dataTest: 'api-key-delete-button',
-        onClick: () => handleDelete(info.row.original),
-      }),
-  },
+  ...(canDelete('application_secret')
+    ? [
+        {
+          id: 'options',
+          header: t('common.actions'),
+          cell: (info: { row: { original: ApplicationSecret } }) =>
+            h(Hook0TableCellLink, {
+              value: t('common.delete'),
+              icon: markRaw(Trash2),
+              dataTest: 'api-key-delete-button',
+              onClick: () => handleDelete(info.row.original),
+            }),
+        },
+      ]
+    : []),
 ];
 </script>
 
@@ -152,7 +183,7 @@ const columns: ColumnDef<ApplicationSecret, unknown>[] = [
             :title="t('apiKeys.empty.title')"
             :description="t('apiKeys.empty.description')"
           >
-            <template #action>
+            <template v-if="canCreate('application_secret')" #action>
               <Hook0Button
                 variant="primary"
                 type="button"
@@ -165,7 +196,7 @@ const columns: ColumnDef<ApplicationSecret, unknown>[] = [
           </Hook0EmptyState>
         </Hook0CardContent>
 
-        <Hook0CardFooter v-if="secrets && secrets.length > 0">
+        <Hook0CardFooter v-if="secrets && secrets.length > 0 && canCreate('application_secret')">
           <Hook0Button
             variant="primary"
             type="button"
@@ -177,6 +208,38 @@ const columns: ColumnDef<ApplicationSecret, unknown>[] = [
         </Hook0CardFooter>
       </Hook0Card>
     </template>
+
+    <Hook0Dialog
+      :open="showCreateDialog"
+      variant="default"
+      :title="t('apiKeys.create')"
+      @close="
+        showCreateDialog = false;
+        newSecretName = '';
+      "
+      @confirm="confirmCreate()"
+    >
+      <Hook0Input
+        v-model="newSecretName"
+        :placeholder="t('common.name')"
+        :label="t('common.name')"
+        data-test="api-key-name-input"
+        @keydown.enter="confirmCreate()"
+      />
+    </Hook0Dialog>
+
+    <Hook0Dialog
+      :open="showDeleteDialog"
+      variant="danger"
+      :title="t('apiKeys.delete')"
+      @close="
+        showDeleteDialog = false;
+        secretToDelete = null;
+      "
+      @confirm="confirmDelete()"
+    >
+      <p>{{ t('apiKeys.deleteConfirm') }}</p>
+    </Hook0Dialog>
   </Hook0PageLayout>
 </template>
 

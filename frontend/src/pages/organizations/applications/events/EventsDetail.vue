@@ -15,7 +15,6 @@ import Hook0DateTime from '@/components/Hook0DateTime.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
-import Hook0Text from '@/components/Hook0Text.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
 
 const { t } = useI18n();
@@ -54,22 +53,22 @@ const { data: event, isLoading, error, refetch } = useEventDetail(eventId, appli
             <template #subtitle>
               <Hook0Stack direction="column" gap="xs">
                 <Hook0Stack direction="row" align="baseline" gap="xs">
-                  <Hook0Text variant="secondary">{{ t('events.id') }}:</Hook0Text>
+                  <span class="event-detail__label">{{ t('events.id') }}:</span>
                   <Hook0Code inline :code="event.event_id" />
                 </Hook0Stack>
 
                 <Hook0Stack direction="row" align="baseline" gap="xs">
-                  <Hook0Text variant="secondary">{{ t('events.occurredAt') }}:</Hook0Text>
+                  <span class="event-detail__label">{{ t('events.occurredAt') }}:</span>
                   <Hook0DateTime :value="event.occurred_at" />
                 </Hook0Stack>
 
                 <Hook0Stack direction="row" align="baseline" gap="xs">
-                  <Hook0Text variant="secondary">{{ t('events.receivedAt') }}:</Hook0Text>
+                  <span class="event-detail__label">{{ t('events.receivedAt') }}:</span>
                   <Hook0DateTime :value="event.received_at" />
                 </Hook0Stack>
 
                 <Hook0Stack direction="row" align="baseline" gap="xs">
-                  <Hook0Text variant="secondary">{{ t('events.sourceIp') }}:</Hook0Text>
+                  <span class="event-detail__label">{{ t('events.sourceIp') }}:</span>
                   <Hook0Code inline :code="event.ip" />
                 </Hook0Stack>
               </Hook0Stack>
@@ -148,5 +147,10 @@ const { data: event, isLoading, error, refetch } = useEventDetail(eventId, appli
 </template>
 
 <style scoped>
-/* Hook0 components handle all styling */
+.event-detail__label {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
 </style>

@@ -65,8 +65,8 @@ function _onLoad() {
     displayError({
       id: 'InvalidToken',
       status: 400,
-      title: 'Invalid token',
-      detail: 'Token is required to verify email',
+      title: t('auth.verifyEmail.invalidToken'),
+      detail: t('auth.verifyEmail.tokenRequired'),
     });
     return;
   }

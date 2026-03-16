@@ -12,17 +12,21 @@ import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
 import Hook0Alert from '@/components/Hook0Alert.vue';
-import Hook0Text from '@/components/Hook0Text.vue';
+import Hook0Dialog from '@/components/Hook0Dialog.vue';
 import { push } from 'notivue';
 import router from '@/router.ts';
 import { routes } from '@/routes.ts';
 import { useTracking } from '@/composables/useTracking';
+import { usePermissions } from '@/composables/usePermissions';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 
 // Analytics tracking
 const { trackEvent } = useTracking();
+
+// Permissions
+const { canDelete } = usePermissions();
 
 interface Props {
   organizationId: string;
@@ -32,23 +36,24 @@ interface Props {
 const props = defineProps<Props>();
 
 const loading = ref(false);
+const showDeleteDialog = ref(false);
 
 function remove(e: Event) {
   e.preventDefault();
   e.stopImmediatePropagation();
+  showDeleteDialog.value = true;
+}
 
-  if (!confirm(`Are you sure to delete "${props.organizationName}" organization?`)) {
-    return;
-  }
-
+function confirmRemove() {
+  showDeleteDialog.value = false;
   loading.value = true;
 
   OrganizationService.remove(props.organizationId)
     .then(() => {
       trackEvent('organization', 'delete', 'success');
       push.success({
-        title: 'Organization deleted',
-        message: `Organization "${props.organizationName}" has been deleted.`,
+        title: t('remove.organizationDeleted'),
+        message: t('remove.organizationDeletedMessage', { name: props.organizationName }),
         duration: 5000,
       });
       return router.push({ name: routes.Home });
@@ -70,19 +75,19 @@ function displayError(err: Problem) {
 </script>
 
 <template>
-  <Hook0Card data-test="organization-delete-card">
+  <Hook0Card v-if="canDelete('organization')" data-test="organization-delete-card">
     <Hook0CardHeader>
       <template #header>
         <Hook0Stack direction="row" align="center" gap="sm">
           <Hook0IconBadge variant="danger">
             <AlertTriangle :size="18" aria-hidden="true" />
           </Hook0IconBadge>
-          <Hook0Text>{{ t('remove.deleteOrganization') }}</Hook0Text>
+          <span class="org-remove__title">{{ t('remove.deleteOrganization') }}</span>
         </Hook0Stack>
       </template>
       <template #subtitle>
         {{ t('remove.deleteOrganizationWarning', { name: organizationName }) || '' }}
-        <Hook0Text variant="primary" weight="semibold">{{ organizationName }}</Hook0Text>
+        <span class="org-remove__name">{{ organizationName }}</span>
       </template>
     </Hook0CardHeader>
     <Hook0CardContent>
@@ -107,9 +112,31 @@ function displayError(err: Problem) {
         {{ t('common.delete') }}
       </Hook0Button>
     </Hook0CardFooter>
+
+    <Hook0Dialog
+      :open="showDeleteDialog"
+      variant="danger"
+      :title="t('remove.deleteOrganization')"
+      @close="showDeleteDialog = false"
+      @confirm="confirmRemove()"
+    >
+      <p>{{ t('remove.confirmDeleteOrganization', { name: organizationName }) }}</p>
+    </Hook0Dialog>
   </Hook0Card>
 </template>
 
 <style scoped>
-/* Hook0Text handles all text styling */
+.org-remove__title {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.org-remove__name {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
 </style>

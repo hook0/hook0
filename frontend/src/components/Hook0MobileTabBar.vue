@@ -89,32 +89,39 @@ const tabs = computed<TabItem[]>(() => {
 
 <template>
   <nav class="hook0-mobile-tab-bar" aria-label="Mobile navigation">
-    <router-link
-      v-for="tab in tabs"
-      :key="tab.name"
-      :to="tab.to"
-      class="hook0-mobile-tab"
-      :class="{ active: tab.active }"
-      :aria-current="tab.active ? 'page' : undefined"
-    >
-      <component :is="tab.icon" :size="20" aria-hidden="true" />
-      <span class="hook0-mobile-tab-label">{{ tab.name }}</span>
-    </router-link>
+    <div role="tablist" class="hook0-mobile-tab-list">
+      <router-link
+        v-for="tab in tabs"
+        :key="tab.name"
+        :to="tab.to"
+        class="hook0-mobile-tab"
+        :class="{ active: tab.active }"
+        role="tab"
+        :aria-selected="tab.active"
+        :aria-current="tab.active ? 'page' : undefined"
+      >
+        <component :is="tab.icon" :size="20" aria-hidden="true" />
+        <span class="hook0-mobile-tab-label">{{ tab.name }}</span>
+      </router-link>
+    </div>
   </nav>
 </template>
 
 <style scoped>
 .hook0-mobile-tab-bar {
-  display: flex;
-  align-items: stretch;
   background-color: var(--color-bg-primary);
   border-top: 1px solid var(--color-border);
-  padding: 0.25rem 0;
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   z-index: 40;
+}
+
+.hook0-mobile-tab-list {
+  display: flex;
+  align-items: stretch;
+  padding: 0.25rem 0;
 }
 
 @media (min-width: 768px) {
@@ -129,6 +136,8 @@ const tabs = computed<TabItem[]>(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
   gap: 0.125rem;
   padding: 0.5rem 0.25rem;
   color: var(--color-text-muted);
@@ -136,6 +145,10 @@ const tabs = computed<TabItem[]>(() => {
   font-size: 0.625rem;
   font-weight: 500;
   transition: color 0.15s ease;
+}
+
+.hook0-mobile-tab :deep(svg) {
+  flex-shrink: 0;
 }
 
 .hook0-mobile-tab:hover {

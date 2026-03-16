@@ -2,7 +2,7 @@
 /**
  * Hook0HelpText - Contextual help text for form fields and UI elements
  *
- * Wraps Hook0Text with semantic tones for different types of feedback.
+ * Provides semantic tones for different types of feedback.
  * Use below form fields, in card headers, or anywhere contextual help is needed.
  *
  * @example
@@ -10,7 +10,6 @@
  * <Hook0HelpText tone="warning">This action cannot be undone</Hook0HelpText>
  * <Hook0HelpText tone="info">Learn more about webhooks</Hook0HelpText>
  */
-import Hook0Text from '@/components/Hook0Text.vue';
 
 type HelpTextTone = 'neutral' | 'warning' | 'info' | 'emphasis';
 
@@ -32,26 +31,24 @@ defineSlots<{
 </script>
 
 <template>
-  <Hook0Text
-    variant="secondary"
-    size="md"
-    :weight="tone === 'emphasis' ? 'medium' : 'normal'"
-    block
-    class="hook0-help-text"
-    :class="[`hook0-help-text--${tone}`]"
-  >
+  <p class="hook0-help-text" :class="[`hook0-help-text--${tone}`]">
     <slot>{{ text }}</slot>
-  </Hook0Text>
+  </p>
 </template>
 
 <style scoped>
 .hook0-help-text {
   margin-top: 0.5rem;
+  color: var(--color-text-secondary);
+  font-weight: 400;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  display: block;
 }
 
 /* Tones */
 .hook0-help-text--neutral {
-  /* Uses Hook0Text secondary defaults */
+  /* Uses secondary defaults */
 }
 
 .hook0-help-text--warning {
@@ -64,5 +61,6 @@ defineSlots<{
 
 .hook0-help-text--emphasis {
   font-style: italic;
+  font-weight: 500;
 }
 </style>

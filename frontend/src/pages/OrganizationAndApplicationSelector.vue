@@ -25,9 +25,7 @@ import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0Avatar from '@/components/Hook0Avatar.vue';
 import Hook0Badge from '@/components/Hook0Badge.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
-import Hook0ListItem from '@/components/Hook0ListItem.vue';
 import Hook0EmptyState from '@/components/Hook0EmptyState.vue';
-import Hook0Text from '@/components/Hook0Text.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import { useAuthStore } from '@/stores/auth';
 import { isPricingEnabled } from '@/instance';
@@ -137,7 +135,7 @@ function _updateDropdown(params: RouteParams) {
       .flatMap((group) => group.applications)
       .find((application) => application.application_id === params.application_id);
 
-    application_name.value = matchedApp ? matchedApp.name : 'Select an application';
+    application_name.value = matchedApp ? matchedApp.name : t('orgAppSelector.selectAnApplication');
   }
 }
 
@@ -272,9 +270,9 @@ function getGradient(index: number): string {
             />
             <Hook0Stack direction="column" gap="none" style="flex: 1; min-width: 0">
               <Hook0Stack direction="row" align="center" gap="sm" wrap>
-                <Hook0Text variant="primary" size="md" weight="semibold">
+                <span class="org-selector__org-name">
                   {{ organizationGroup.organization.name }}
-                </Hook0Text>
+                </span>
                 <Hook0Badge
                   v-if="pricingEnabled && organizationGroup.organization.plan"
                   variant="primary"
@@ -288,9 +286,9 @@ function getGradient(index: number): string {
               </Hook0Stack>
               <Hook0Stack direction="row" align="center" gap="xs" inline>
                 <Layers :size="13" aria-hidden="true" />
-                <Hook0Text variant="muted" size="sm">
+                <span class="org-selector__apps-count">
                   {{ t('orgAppSelector.appsCount', organizationGroup.applications.length) }}
-                </Hook0Text>
+                </span>
               </Hook0Stack>
             </Hook0Stack>
             <ChevronRight :size="16" aria-hidden="true" />
@@ -301,26 +299,35 @@ function getGradient(index: number): string {
         <Hook0CardContent>
           <Hook0Stack direction="column" gap="xs">
             <template v-if="organizationGroup.applications.length > 0">
-              <Hook0ListItem
-                v-for="application in organizationGroup.applications"
-                :key="application.application_id"
-                show-chevron
-                @click="
-                  navigateToApp(
-                    organizationGroup.organization.organization_id,
-                    application.application_id
-                  )
-                "
-              >
-                <template #icon>
-                  <Box :size="16" aria-hidden="true" />
-                </template>
-                <template #left>
-                  <Hook0Text variant="primary" size="sm" weight="medium">
+              <ul class="app-list">
+                <li
+                  v-for="application in organizationGroup.applications"
+                  :key="application.application_id"
+                  class="app-list__item"
+                  role="button"
+                  tabindex="0"
+                  @click="
+                    navigateToApp(
+                      organizationGroup.organization.organization_id,
+                      application.application_id
+                    )
+                  "
+                  @keydown.enter="
+                    navigateToApp(
+                      organizationGroup.organization.organization_id,
+                      application.application_id
+                    )
+                  "
+                >
+                  <span class="app-list__icon">
+                    <Box :size="16" aria-hidden="true" />
+                  </span>
+                  <span class="app-list__name">
                     {{ application.name }}
-                  </Hook0Text>
-                </template>
-              </Hook0ListItem>
+                  </span>
+                  <ChevronRight :size="14" aria-hidden="true" class="app-list__chevron" />
+                </li>
+              </ul>
             </template>
 
             <!-- Empty State -->
@@ -335,18 +342,18 @@ function getGradient(index: number): string {
             </Hook0EmptyState>
 
             <!-- Create App Button -->
-            <Hook0ListItem
-              variant="action"
-              separated
+            <button
+              type="button"
+              class="app-list__action"
               @click="navigateToNewApp(organizationGroup.organization.organization_id)"
             >
-              <template #icon>
+              <span class="app-list__action-icon">
                 <Plus :size="14" aria-hidden="true" />
-              </template>
-              <template #left>
+              </span>
+              <span class="app-list__action-label">
                 {{ t('orgAppSelector.createNewApplication') }}
-              </template>
-            </Hook0ListItem>
+              </span>
+            </button>
           </Hook0Stack>
         </Hook0CardContent>
       </Hook0Card>
@@ -360,12 +367,12 @@ function getGradient(index: number): string {
         <Hook0CardContent>
           <Hook0Stack direction="column" align="center" justify="center" gap="sm">
             <Hook0Avatar name="+" size="xl" variant="rounded" />
-            <Hook0Text variant="primary" size="md" weight="semibold">
+            <span class="org-selector__org-name">
               {{ t('orgAppSelector.newOrganization') }}
-            </Hook0Text>
-            <Hook0Text variant="muted" size="sm">
+            </span>
+            <span class="org-selector__apps-count">
               {{ t('orgAppSelector.newOrganizationDescription') }}
-            </Hook0Text>
+            </span>
           </Hook0Stack>
         </Hook0CardContent>
       </Hook0Card>
@@ -381,10 +388,8 @@ function getGradient(index: number): string {
       <Hook0Button @click="parent.toggle">
         <template #default>
           <Hook0Stack direction="column" gap="none" align="start">
-            <Hook0Text variant="muted" size="sm">{{ organization_name }}</Hook0Text>
-            <Hook0Text variant="primary" size="md" weight="medium">{{
-              application_name
-            }}</Hook0Text>
+            <span class="org-selector__dropdown-org">{{ organization_name }}</span>
+            <span class="org-selector__dropdown-app">{{ application_name }}</span>
           </Hook0Stack>
         </template>
         <template #right>
@@ -411,9 +416,9 @@ function getGradient(index: number): string {
           >
             <Hook0Stack direction="row" align="center" gap="sm">
               <FolderKanban :size="16" aria-hidden="true" />
-              <Hook0Text variant="primary" size="md">
+              <span class="org-selector__dropdown-item">
                 {{ organizationGroup.organization.name }}
-              </Hook0Text>
+              </span>
             </Hook0Stack>
           </Hook0DropdownMenuItemLink>
 
@@ -432,8 +437,10 @@ function getGradient(index: number): string {
               "
             >
               <Hook0Stack direction="row" align="center" gap="xs">
-                <Hook0Text variant="primary" size="md">{{ application.name }}</Hook0Text>
-                <Hook0Text variant="muted" size="sm">application</Hook0Text>
+                <span class="org-selector__dropdown-item">{{ application.name }}</span>
+                <span class="org-selector__dropdown-label">{{
+                  t('orgAppSelector.applicationLabel')
+                }}</span>
               </Hook0Stack>
             </Hook0DropdownMenuItemLink>
           </Hook0Stack>
@@ -442,9 +449,7 @@ function getGradient(index: number): string {
       <Hook0DropdownMenuItemLink :to="{ name: routes.OrganizationsNew }">
         <Hook0Stack direction="row" align="center" gap="sm">
           <Plus :size="16" aria-hidden="true" />
-          <Hook0Text variant="primary" size="md">{{
-            t('orgAppSelector.newOrganization')
-          }}</Hook0Text>
+          <span class="org-selector__dropdown-item">{{ t('orgAppSelector.newOrganization') }}</span>
         </Hook0Stack>
       </Hook0DropdownMenuItemLink>
     </template>
@@ -459,6 +464,7 @@ function getGradient(index: number): string {
   padding: var(--spacing-md);
   border-radius: var(--radius-md);
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
 .org-card__header:hover {
@@ -474,5 +480,164 @@ function getGradient(index: number): string {
 .org-card__header:active {
   transform: scale(0.99);
   background-color: var(--color-bg-tertiary);
+}
+
+/* Application List */
+.app-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.app-list__item {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background-color 0.15s ease;
+}
+
+.app-list__item:hover {
+  background-color: var(--color-bg-secondary);
+}
+
+.app-list__item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.app-list__icon {
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-right: 0.625rem;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+  transition: all 0.15s ease;
+}
+
+.app-list__item:hover .app-list__icon {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.app-list__name {
+  flex: 1;
+  min-width: 0;
+  color: var(--color-text-primary);
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.app-list__chevron {
+  flex-shrink: 0;
+  margin-left: 0.5rem;
+  color: var(--color-text-tertiary);
+  opacity: 0;
+  transition: all 0.15s ease;
+}
+
+.app-list__item:hover .app-list__chevron {
+  opacity: 1;
+  color: var(--color-text-secondary);
+}
+
+/* Create App Action Button */
+.app-list__action {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  margin-top: 0.125rem;
+  border: none;
+  border-top: 1px solid var(--color-border);
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.8125rem;
+  transition: background-color 0.15s ease;
+}
+
+.app-list__action:hover {
+  background-color: var(--color-primary-light);
+}
+
+.app-list__action:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.app-list__action-icon {
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-right: 0.625rem;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px dashed var(--color-border-strong);
+  color: var(--color-text-tertiary);
+  transition: all 0.15s ease;
+}
+
+.app-list__action:hover .app-list__action-icon {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.app-list__action-label {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.app-list__action:hover .app-list__action-label {
+  color: var(--color-primary);
+}
+
+/* Organization Selector Text */
+.org-selector__org-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.org-selector__apps-count {
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+}
+
+.org-selector__dropdown-org {
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+}
+
+.org-selector__dropdown-app {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.org-selector__dropdown-item {
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+}
+
+.org-selector__dropdown-label {
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
 }
 </style>

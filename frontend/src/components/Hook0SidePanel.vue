@@ -1,72 +1,179 @@
 <script setup lang="ts">
-import { X } from 'lucide-vue-next';
-
 /**
- * Hook0SidePanel - A slide-out side panel component
+ * Hook0SidePanel - Slide-out right panel for detail views
  *
- * Displays content in a panel that slides in from the side of the screen.
- * Commonly used for detail views, forms, or settings.
+ * Accessible side panel with:
+ * - role="dialog", aria-modal="true"
+ * - Escape key to close
+ * - Focus trap (tab cycles within panel)
+ * - Focus returns to trigger element on close
+ * - Backdrop overlay (click to close)
+ * - Slots: header, default (content), footer
+ * - Slides in from right (250ms ease-out)
+ * - Full-screen on mobile
  */
+import { ref, watch, nextTick, onBeforeUnmount } from 'vue';
+import { X } from 'lucide-vue-next';
+import { useI18n } from 'vue-i18n';
+import Hook0Button from '@/components/Hook0Button.vue';
 
 interface Props {
   open: boolean;
   title?: string;
-  side?: 'left' | 'right';
   width?: string;
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   title: undefined,
-  side: 'right',
-  width: '400px',
+  width: '32rem',
 });
 
 const emit = defineEmits<{
   close: [];
 }>();
 
-function handleClose() {
-  emit('close');
+defineSlots<{
+  header(): unknown;
+  default(): unknown;
+  footer(): unknown;
+}>();
+
+const { t } = useI18n();
+
+const panelRef = ref<HTMLElement | null>(null);
+const previouslyFocusedElement = ref<HTMLElement | null>(null);
+
+function getFocusableElements(): HTMLElement[] {
+  if (!panelRef.value) return [];
+  const selectors = [
+    'a[href]',
+    'button:not([disabled])',
+    'input:not([disabled])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])',
+  ].join(', ');
+  return Array.from(panelRef.value.querySelectorAll<HTMLElement>(selectors));
+}
+
+function handleKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    event.stopPropagation();
+    emit('close');
+    return;
+  }
+
+  if (event.key === 'Tab') {
+    const focusableElements = getFocusableElements();
+    if (focusableElements.length === 0) {
+      event.preventDefault();
+      return;
+    }
+
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+
+    if (event.shiftKey) {
+      if (document.activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      }
+    } else {
+      if (document.activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    }
+  }
 }
 
 function handleBackdropClick(event: MouseEvent) {
   if (event.target === event.currentTarget) {
-    handleClose();
+    emit('close');
   }
 }
+
+watch(
+  () => props.open,
+  (isOpen) => {
+    if (isOpen) {
+      previouslyFocusedElement.value = document.activeElement as HTMLElement | null;
+      document.body.style.overflow = 'hidden';
+
+      void nextTick().then(() => {
+        if (!panelRef.value) return;
+        const focusableElements = getFocusableElements();
+        if (focusableElements.length > 0) {
+          focusableElements[0].focus();
+        } else {
+          panelRef.value.focus();
+        }
+      });
+    } else {
+      document.body.style.overflow = '';
+      if (previouslyFocusedElement.value) {
+        void nextTick().then(() => {
+          if (previouslyFocusedElement.value) {
+            previouslyFocusedElement.value.focus();
+            previouslyFocusedElement.value = null;
+          }
+        });
+      }
+    }
+  }
+);
+
+onBeforeUnmount(() => {
+  document.body.style.overflow = '';
+  if (props.open && previouslyFocusedElement.value) {
+    previouslyFocusedElement.value.focus();
+    previouslyFocusedElement.value = null;
+  }
+});
 </script>
 
 <template>
   <Teleport to="body">
-    <Transition name="backdrop">
-      <div v-if="open" class="hook0-side-panel-backdrop" @click="handleBackdropClick">
-        <Transition :name="`slide-${side}`">
+    <Transition name="side-panel-backdrop">
+      <div v-if="open" class="side-panel__backdrop" @click="handleBackdropClick">
+        <Transition name="side-panel" appear>
           <div
             v-if="open"
-            class="hook0-side-panel"
-            :class="`hook0-side-panel--${side}`"
-            :style="{ width }"
+            ref="panelRef"
+            class="side-panel"
+            :style="{ '--side-panel-width': width }"
             role="dialog"
             aria-modal="true"
+            :aria-label="title"
+            tabindex="-1"
+            data-test="side-panel"
+            @keydown="handleKeydown"
           >
-            <div class="hook0-side-panel__header">
-              <h2 v-if="title" class="hook0-side-panel__title">{{ title }}</h2>
-              <slot name="header" />
-              <button
-                class="hook0-side-panel__close"
-                type="button"
-                aria-label="Close panel"
-                @click="handleClose"
+            <!-- Header -->
+            <div class="side-panel__header">
+              <slot name="header">
+                <h2 v-if="title" class="side-panel__title">{{ title }}</h2>
+              </slot>
+              <Hook0Button
+                variant="ghost"
+                size="sm"
+                class="side-panel__close"
+                :aria-label="t('common.close')"
+                data-test="side-panel-close"
+                @click="emit('close')"
               >
-                <X :size="20" aria-hidden="true" />
-              </button>
+                <X :size="18" aria-hidden="true" />
+              </Hook0Button>
             </div>
 
-            <div class="hook0-side-panel__content">
+            <!-- Content -->
+            <div class="side-panel__content">
               <slot />
             </div>
 
-            <div v-if="$slots.footer" class="hook0-side-panel__footer">
+            <!-- Footer (optional) -->
+            <div v-if="$slots.footer" class="side-panel__footer">
               <slot name="footer" />
             </div>
           </div>
@@ -77,110 +184,106 @@ function handleBackdropClick(event: MouseEvent) {
 </template>
 
 <style scoped>
-.hook0-side-panel-backdrop {
+.side-panel__backdrop {
   position: fixed;
   inset: 0;
   z-index: 40;
-  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: flex-end;
+  background-color: rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(2px);
 }
 
-.hook0-side-panel {
-  position: fixed;
-  top: 0;
-  bottom: 0;
-  z-index: 50;
+.side-panel {
+  position: relative;
+  width: 100%;
+  max-width: var(--side-panel-width, 32rem);
+  height: 100%;
   display: flex;
   flex-direction: column;
   background-color: var(--color-bg-primary);
-  box-shadow: var(--shadow-xl);
-}
-
-.hook0-side-panel--left {
-  left: 0;
-  border-right: 1px solid var(--color-border);
-}
-
-.hook0-side-panel--right {
-  right: 0;
   border-left: 1px solid var(--color-border);
+  box-shadow: var(--shadow-xl);
+  outline: none;
+  overflow: hidden;
 }
 
-.hook0-side-panel__header {
+/* Full-screen on mobile */
+@media (max-width: 639px) {
+  .side-panel {
+    max-width: 100%;
+    border-left: none;
+  }
+}
+
+.side-panel__header {
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 1rem 1.5rem;
+  padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
 }
 
-.hook0-side-panel__title {
+.side-panel__title {
   flex: 1;
   margin: 0;
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-weight: 600;
+  line-height: 1.4;
   color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.hook0-side-panel__close {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  padding: 0;
-  border: none;
-  background: transparent;
-  border-radius: var(--radius-md);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: all 0.15s ease;
+.side-panel__close {
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
-.hook0-side-panel__close:hover {
-  background-color: var(--color-bg-secondary);
-  color: var(--color-text-primary);
-}
-
-.hook0-side-panel__content {
+.side-panel__content {
   flex: 1;
   overflow-y: auto;
-  padding: 1.5rem;
+  padding: 1.25rem;
 }
 
-.hook0-side-panel__footer {
-  padding: 1rem 1.5rem;
+.side-panel__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
   border-top: 1px solid var(--color-border);
+  background-color: var(--color-bg-secondary);
+  flex-shrink: 0;
 }
 
-/* Transitions */
-.backdrop-enter-active,
-.backdrop-leave-active {
+/* Backdrop transition */
+.side-panel-backdrop-enter-active,
+.side-panel-backdrop-leave-active {
   transition: opacity 0.2s ease;
 }
 
-.backdrop-enter-from,
-.backdrop-leave-to {
+.side-panel-backdrop-enter-from,
+.side-panel-backdrop-leave-to {
   opacity: 0;
 }
 
-.slide-right-enter-active,
-.slide-right-leave-active {
-  transition: transform 0.3s ease;
+/* Panel slide-in transition */
+.side-panel-enter-active {
+  transition: transform 0.25s ease-out;
 }
 
-.slide-right-enter-from,
-.slide-right-leave-to {
+.side-panel-leave-active {
+  transition: transform 0.2s ease-in;
+}
+
+.side-panel-enter-from {
   transform: translateX(100%);
 }
 
-.slide-left-enter-active,
-.slide-left-leave-active {
-  transition: transform 0.3s ease;
-}
-
-.slide-left-enter-from,
-.slide-left-leave-to {
-  transform: translateX(-100%);
+.side-panel-leave-to {
+  transform: translateX(100%);
 }
 </style>

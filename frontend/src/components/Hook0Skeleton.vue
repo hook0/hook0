@@ -6,6 +6,9 @@
  * Never use CSS-like props (width, height) - use size variant instead.
  */
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 type SkeletonSize =
   | 'text' // Single line of text (1rem height, 100% width)
@@ -61,7 +64,9 @@ const config = computed(() => sizeMap[props.size]);
     class="hook0-skeleton"
     :class="[`hook0-skeleton--radius-${config.radius}`, `hook0-skeleton--${variant}`]"
     :style="{ width: config.width, height: config.height }"
-    aria-hidden="true"
+    role="status"
+    aria-busy="true"
+    :aria-label="t('common.loading')"
   />
 </template>
 

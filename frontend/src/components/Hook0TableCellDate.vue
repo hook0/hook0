@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { formatISO9075, formatDistance, parseISO } from 'date-fns';
 
-import Hook0Text from '@/components/Hook0Text.vue';
-
 defineOptions({
   inheritAttrs: false,
 });
@@ -32,12 +30,19 @@ function formatHumanReadableDate(value: string | null): string {
 </script>
 
 <template>
-  <abbr v-if="props.value" :title="formatDate(props.value)">
-    <Hook0Text>
-      {{ formatHumanReadableDate(props.value) }}
-    </Hook0Text>
+  <abbr v-if="props.value" class="table-cell-date__value" :title="formatDate(props.value)">
+    {{ formatHumanReadableDate(props.value) }}
   </abbr>
-  <Hook0Text v-else>
+  <span v-else class="table-cell-date__value">
     {{ props.defaultText ?? '' }}
-  </Hook0Text>
+  </span>
 </template>
+
+<style scoped>
+.table-cell-date__value {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+</style>

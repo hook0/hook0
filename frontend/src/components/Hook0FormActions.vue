@@ -1,44 +1,65 @@
 <script setup lang="ts">
-/**
- * Hook0FormActions - Form action buttons container
- *
- * Provides consistent layout for form submit/cancel buttons.
- * Supports left/right alignment and loading states.
- */
+import { useI18n } from 'vue-i18n';
+
+import Hook0Button from '@/components/Hook0Button.vue';
+
+type FormActionsVariant = 'default' | 'danger';
 
 interface Props {
-  align?: 'left' | 'right' | 'space-between';
+  submitLabel: string;
+  cancelLabel: string;
+  loading: boolean;
+  disabled: boolean;
+  variant: FormActionsVariant;
 }
 
-withDefaults(defineProps<Props>(), {
-  align: 'right',
+const props = withDefaults(defineProps<Props>(), {
+  submitLabel: '',
+  cancelLabel: '',
+  loading: false,
+  disabled: false,
+  variant: 'default',
 });
+
+const emit = defineEmits<{
+  submit: [];
+  cancel: [];
+}>();
+
+const { t } = useI18n();
+
+function resolvedSubmitLabel(): string {
+  return props.submitLabel || t('common.save');
+}
+
+function resolvedCancelLabel(): string {
+  return props.cancelLabel || t('common.cancel');
+}
 </script>
 
 <template>
-  <div class="hook0-form-actions" :class="`hook0-form-actions--${align}`">
-    <slot />
+  <div class="hook0-form-actions">
+    <Hook0Button variant="secondary" :disabled="props.loading" @click="emit('cancel')">
+      {{ resolvedCancelLabel() }}
+    </Hook0Button>
+    <Hook0Button
+      :variant="props.variant === 'danger' ? 'danger' : 'primary'"
+      :loading="props.loading"
+      :disabled="props.disabled"
+      submit
+      @click="emit('submit')"
+    >
+      {{ resolvedSubmitLabel() }}
+    </Hook0Button>
   </div>
 </template>
 
 <style scoped>
 .hook0-form-actions {
   display: flex;
-  gap: 0.75rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--color-border);
-  margin-top: 0.5rem;
-}
-
-.hook0-form-actions--left {
-  justify-content: flex-start;
-}
-
-.hook0-form-actions--right {
+  align-items: center;
   justify-content: flex-end;
-}
-
-.hook0-form-actions--space-between {
-  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 0;
 }
 </style>

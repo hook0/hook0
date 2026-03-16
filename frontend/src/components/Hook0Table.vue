@@ -138,6 +138,7 @@ interface Props {
   loading?: boolean;
   skeletonRows?: number;
   globalFilter?: string;
+  clickableRows?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -150,11 +151,22 @@ const props = withDefaults(defineProps<Props>(), {
   loading: false,
   skeletonRows: 5,
   globalFilter: '',
+  clickableRows: false,
 });
+
+const emit = defineEmits<{
+  'row-click': [row: T];
+}>();
 
 defineOptions({
   inheritAttrs: false,
 });
+
+function handleRowClick(row: T) {
+  if (props.clickableRows) {
+    emit('row-click', row);
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Effective columns / data (prefer new props, fall back to legacy)
@@ -286,7 +298,14 @@ const rows = computed(() => table.getRowModel().rows);
 
         <!-- Data rows -->
         <template v-else>
-          <tr v-for="row in rows" :key="row.id" :row-id="row.id" class="hook0-table-tr">
+          <tr
+            v-for="row in rows"
+            :key="row.id"
+            :row-id="row.id"
+            class="hook0-table-tr"
+            :class="{ 'hook0-table-tr--clickable': clickableRows }"
+            @click="handleRowClick(row.original)"
+          >
             <td v-for="cell in row.getVisibleCells()" :key="cell.id" class="hook0-table-td">
               <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
             </td>
@@ -358,6 +377,10 @@ const rows = computed(() => table.getRowModel().rows);
 
 .hook0-table-tr:hover {
   background-color: var(--color-bg-secondary);
+}
+
+.hook0-table-tr--clickable {
+  cursor: pointer;
 }
 
 .hook0-table-td {

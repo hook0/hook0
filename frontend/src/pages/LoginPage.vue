@@ -6,8 +6,11 @@ import { AxiosError, AxiosResponse } from 'axios';
 import { useRouter } from 'vue-router';
 import { routes } from '@/routes';
 import { push } from 'notivue';
+import { useForm } from 'vee-validate';
 import * as OrganizationService from './organizations/OrganizationService';
 import * as ApplicationService from './organizations/applications/ApplicationService';
+import { loginSchema } from './login.schema';
+import { toTypedSchema } from '@/utils/zod-adapter';
 import { useTracking } from '@/composables/useTracking';
 import { useI18n } from 'vue-i18n';
 import { ArrowRight, Shield, CheckCircle } from 'lucide-vue-next';
@@ -32,17 +35,22 @@ const authStore = useAuthStore();
 // Analytics tracking
 const { trackEvent } = useTracking();
 
-// Form state
-const email = ref<string>('');
-const password = ref<string>('');
+// VeeValidate form with Zod schema
+const { errors, defineField, handleSubmit } = useForm({
+  validationSchema: toTypedSchema(loginSchema),
+});
+
+const [email, emailAttrs] = defineField('email');
+const [password, passwordAttrs] = defineField('password');
+
 const isLoading = ref<boolean>(false);
 
-function submit() {
+const onSubmit = handleSubmit((values) => {
   if (isLoading.value) return;
   isLoading.value = true;
 
   authStore
-    .login(email.value, password.value)
+    .login(values.email, values.password)
     .then(() => {
       trackEvent('auth', 'login', 'success');
       push.success({
@@ -78,7 +86,7 @@ function submit() {
     .finally(() => {
       isLoading.value = false;
     });
-}
+});
 
 function displayError(err: Problem) {
   console.error(err);
@@ -105,14 +113,16 @@ function displayError(err: Problem) {
       />
 
       <Hook0CardContent>
-        <Hook0Form data-test="login-form" :loading="isLoading" @submit="submit">
+        <Hook0Form data-test="login-form" :loading="isLoading" @submit="onSubmit">
           <Hook0Input
             id="email"
             v-model="email"
+            v-bind="emailAttrs"
             type="email"
             required
             :label="t('auth.login.email')"
             :placeholder="t('auth.login.emailPlaceholder')"
+            :error="errors.email"
             autocomplete="email"
             data-test="login-email-input"
             :disabled="isLoading"
@@ -121,11 +131,13 @@ function displayError(err: Problem) {
           <Hook0Input
             id="password"
             v-model="password"
+            v-bind="passwordAttrs"
             type="password"
             required
             show-password-toggle
             :label="t('auth.login.password')"
             :placeholder="t('auth.login.passwordPlaceholder')"
+            :error="errors.password"
             autocomplete="current-password"
             data-test="login-password-input"
             :disabled="isLoading"

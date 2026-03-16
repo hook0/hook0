@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed, h } from 'vue';
+import { computed, h, markRaw, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
-import { Plus, Bot, BookOpen, Check, Key } from 'lucide-vue-next';
+import { Plus, Bot, BookOpen, Check, Key, Eye, Pencil, Trash2 } from 'lucide-vue-next';
 
 import {
   useServiceTokenList,
@@ -17,6 +17,7 @@ import { displayError } from '@/utils/displayError';
 import type { Problem } from '@/http';
 import { push } from 'notivue';
 import { useTracking } from '@/composables/useTracking';
+import { usePermissions } from '@/composables/usePermissions';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -34,11 +35,16 @@ import Hook0Stack from '@/components/Hook0Stack.vue';
 import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
 import Hook0Badge from '@/components/Hook0Badge.vue';
 import Hook0Alert from '@/components/Hook0Alert.vue';
+import Hook0Dialog from '@/components/Hook0Dialog.vue';
+import Hook0Input from '@/components/Hook0Input.vue';
 
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const { trackEvent } = useTracking();
+
+// Permissions
+const { canCreate, canEdit, canDelete } = usePermissions();
 
 const organizationId = computed(() => route.params.organization_id as string);
 const { data: serviceTokens, isLoading, error, refetch } = useServiceTokenList(organizationId);
@@ -47,11 +53,27 @@ const createMutation = useCreateServiceToken();
 const updateMutation = useUpdateServiceToken();
 const removeMutation = useRemoveServiceToken();
 
+const showCreateDialog = ref(false);
+const newTokenName = ref('');
+
+const showEditDialog = ref(false);
+const editTokenName = ref('');
+const tokenToEdit = ref<ServiceToken | null>(null);
+
+const showDeleteDialog = ref(false);
+const tokenToDelete = ref<ServiceToken | null>(null);
+
 function createNew(event: MouseEvent) {
   event.stopImmediatePropagation();
   event.preventDefault();
+  newTokenName.value = '';
+  showCreateDialog.value = true;
+}
 
-  const name = prompt(t('serviceTokens.createPrompt'));
+function confirmCreate() {
+  const name = newTokenName.value.trim();
+  showCreateDialog.value = false;
+  newTokenName.value = '';
   if (!name) return;
 
   createMutation.mutate(
@@ -73,8 +95,18 @@ function createNew(event: MouseEvent) {
 }
 
 function handleEdit(row: ServiceToken) {
-  const name = prompt(t('serviceTokens.editPrompt'), row.name);
-  if (!name) return;
+  tokenToEdit.value = row;
+  editTokenName.value = row.name;
+  showEditDialog.value = true;
+}
+
+function confirmEdit() {
+  const row = tokenToEdit.value;
+  const name = editTokenName.value.trim();
+  showEditDialog.value = false;
+  tokenToEdit.value = null;
+  editTokenName.value = '';
+  if (!row || !name) return;
 
   updateMutation.mutate(
     { tokenId: row.token_id, token: { name, organization_id: organizationId.value } },
@@ -95,7 +127,15 @@ function handleEdit(row: ServiceToken) {
 }
 
 function handleDelete(row: ServiceToken) {
-  if (!confirm(t('serviceTokens.deleteConfirm'))) return;
+  tokenToDelete.value = row;
+  showDeleteDialog.value = true;
+}
+
+function confirmDelete() {
+  const row = tokenToDelete.value;
+  showDeleteDialog.value = false;
+  tokenToDelete.value = null;
+  if (!row) return;
 
   removeMutation.mutate(
     { tokenId: row.token_id, organizationId: organizationId.value },
@@ -143,30 +183,38 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
     cell: (info) =>
       h(Hook0TableCellLink, {
         value: t('serviceTokens.show'),
-        icon: 'eye',
+        icon: markRaw(Eye),
         onClick: () => handleShow(info.row.original),
       }),
   },
-  {
-    id: 'edit',
-    header: '',
-    cell: (info) =>
-      h(Hook0TableCellLink, {
-        value: t('serviceTokens.editAction'),
-        icon: 'pen',
-        onClick: () => handleEdit(info.row.original),
-      }),
-  },
-  {
-    id: 'delete',
-    header: '',
-    cell: (info) =>
-      h(Hook0TableCellLink, {
-        value: t('common.delete'),
-        icon: 'trash',
-        onClick: () => handleDelete(info.row.original),
-      }),
-  },
+  ...(canEdit('service_token')
+    ? [
+        {
+          id: 'edit',
+          header: '',
+          cell: (info: { row: { original: ServiceToken } }) =>
+            h(Hook0TableCellLink, {
+              value: t('serviceTokens.editAction'),
+              icon: markRaw(Pencil),
+              onClick: () => handleEdit(info.row.original),
+            }),
+        },
+      ]
+    : []),
+  ...(canDelete('service_token')
+    ? [
+        {
+          id: 'delete',
+          header: '',
+          cell: (info: { row: { original: ServiceToken } }) =>
+            h(Hook0TableCellLink, {
+              value: t('common.delete'),
+              icon: markRaw(Trash2),
+              onClick: () => handleDelete(info.row.original),
+            }),
+        },
+      ]
+    : []),
 ];
 </script>
 
@@ -211,7 +259,7 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
               :title="t('serviceTokens.empty.title')"
               :description="t('serviceTokens.empty.description')"
             >
-              <template #action>
+              <template v-if="canCreate('service_token')" #action>
                 <Hook0Button
                   variant="primary"
                   type="button"
@@ -227,7 +275,7 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
             </Hook0EmptyState>
           </Hook0CardContent>
 
-          <Hook0CardFooter v-if="serviceTokens.length > 0">
+          <Hook0CardFooter v-if="serviceTokens.length > 0 && canCreate('service_token')">
             <Hook0Button
               variant="primary"
               type="button"
@@ -312,6 +360,58 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
         </Hook0Card>
       </Hook0Stack>
     </template>
+
+    <Hook0Dialog
+      :open="showCreateDialog"
+      variant="default"
+      :title="t('serviceTokens.create')"
+      @close="
+        showCreateDialog = false;
+        newTokenName = '';
+      "
+      @confirm="confirmCreate()"
+    >
+      <Hook0Input
+        v-model="newTokenName"
+        :placeholder="t('common.name')"
+        :label="t('common.name')"
+        data-test="service-token-name-input"
+        @keydown.enter="confirmCreate()"
+      />
+    </Hook0Dialog>
+
+    <Hook0Dialog
+      :open="showEditDialog"
+      variant="default"
+      :title="t('serviceTokens.editAction')"
+      @close="
+        showEditDialog = false;
+        tokenToEdit = null;
+        editTokenName = '';
+      "
+      @confirm="confirmEdit()"
+    >
+      <Hook0Input
+        v-model="editTokenName"
+        :placeholder="t('common.name')"
+        :label="t('common.name')"
+        data-test="service-token-edit-name-input"
+        @keydown.enter="confirmEdit()"
+      />
+    </Hook0Dialog>
+
+    <Hook0Dialog
+      :open="showDeleteDialog"
+      variant="danger"
+      :title="t('common.delete')"
+      @close="
+        showDeleteDialog = false;
+        tokenToDelete = null;
+      "
+      @confirm="confirmDelete()"
+    >
+      <p>{{ t('serviceTokens.deleteConfirm') }}</p>
+    </Hook0Dialog>
   </Hook0PageLayout>
 </template>
 

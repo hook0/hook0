@@ -259,6 +259,14 @@ export default [
     path: '/api/documentation',
     component: () => import('@/pages/api/documentation/ApiDocumentation.vue'),
   },
+  // Route for component visual testing (used by Playwright E2E tests)
+  {
+    name: 'ComponentShowcase',
+    path: '/__dev/components',
+    component: () => import('@/pages/ComponentShowcase.vue'),
+    meta: { requiresAuth: false, fullScreen: true },
+  },
+
   {
     name: routes.Error404,
     path: '/:pathMatch(.*)*',

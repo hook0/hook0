@@ -17,7 +17,6 @@ import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0TutorialWidget from '@/components/Hook0TutorialWidget.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
-import Hook0Text from '@/components/Hook0Text.vue';
 import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
 import EventTypesList from '@/pages/organizations/applications/event_types/EventTypesList.vue';
 import EventsList from '@/pages/organizations/applications/events/EventsList.vue';
@@ -59,8 +58,8 @@ const widgetItems = computed(() => {
               <Hook0IconBadge variant="primary">
                 <Rocket :size="18" aria-hidden="true" />
               </Hook0IconBadge>
-              <Hook0Text variant="secondary" size="sm">{{ t('applications.title') }}</Hook0Text>
-              <Hook0Text variant="primary" weight="semibold">{{ application.name }}</Hook0Text>
+              <span class="app-dashboard__label">{{ t('applications.title') }}</span>
+              <span class="app-dashboard__name">{{ application.name }}</span>
             </Hook0Stack>
           </template>
           <template #actions>
@@ -91,5 +90,17 @@ const widgetItems = computed(() => {
 </template>
 
 <style scoped>
-/* No custom CSS - using Hook0* components only */
+.app-dashboard__label {
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.app-dashboard__name {
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
 </style>

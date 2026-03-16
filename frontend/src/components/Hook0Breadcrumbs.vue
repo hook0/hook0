@@ -780,6 +780,8 @@ onUnmounted(() => {
 .hook0-breadcrumbs__link {
   display: inline-flex;
   align-items: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
   gap: 0.25rem;
   font-size: 0.8125rem;
   color: var(--color-text-muted);
@@ -794,6 +796,8 @@ onUnmounted(() => {
 .hook0-breadcrumbs__current {
   display: inline-flex;
   align-items: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
   gap: 0.25rem;
   font-size: 0.8125rem;
   color: var(--color-text-secondary);
@@ -817,6 +821,8 @@ onUnmounted(() => {
 .hook0-breadcrumbs__dropdown-trigger {
   display: inline-flex;
   align-items: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
   gap: 0.25rem;
   font-size: 0.8125rem;
   font-family: inherit;
@@ -897,6 +903,8 @@ onUnmounted(() => {
 .hook0-breadcrumbs__dropdown-item {
   display: flex;
   align-items: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
   gap: 0.5rem;
   width: 100%;
   padding: 0.5rem 0.75rem;
@@ -909,6 +917,10 @@ onUnmounted(() => {
   cursor: pointer;
   text-align: left;
   transition: all 0.15s ease;
+}
+
+.hook0-breadcrumbs__dropdown-item :deep(svg) {
+  flex-shrink: 0;
 }
 
 .hook0-breadcrumbs__dropdown-item:hover {

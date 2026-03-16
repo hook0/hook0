@@ -1,158 +1,290 @@
 <script setup lang="ts">
-import { watch, ref, onMounted, onUnmounted } from 'vue';
+/**
+ * Hook0Dialog - Confirmation dialog / modal component
+ *
+ * Accessible dialog with:
+ * - role="dialog", aria-modal="true"
+ * - Escape key to close
+ * - Focus trap (tab cycles within dialog)
+ * - Focus returns to trigger element on close
+ * - Backdrop overlay (click to close unless persistent)
+ * - Slots: title, default (content), actions
+ * - Variants: default, danger (for delete confirmations)
+ * - Animations: scale(0.95) opacity(0) -> scale(1) opacity(1) in 200ms
+ */
+import { ref, watch, nextTick, onBeforeUnmount } from 'vue';
 import { X } from 'lucide-vue-next';
+import { useI18n } from 'vue-i18n';
+import Hook0Button from '@/components/Hook0Button.vue';
+
+type DialogVariant = 'default' | 'danger';
 
 interface Props {
-  open?: boolean;
+  open: boolean;
+  variant?: DialogVariant;
   title?: string;
+  persistent?: boolean;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  variant: 'default',
+  title: undefined,
+  persistent: false,
+});
+
 const emit = defineEmits<{
   close: [];
+  confirm: [];
 }>();
+
 defineSlots<{
+  title(): unknown;
   default(): unknown;
-  footer(): unknown;
+  actions(): unknown;
 }>();
 
-const dialogRef = ref<HTMLDialogElement | null>(null);
+const { t } = useI18n();
 
-function close() {
+const dialogRef = ref<HTMLElement | null>(null);
+const previouslyFocusedElement = ref<HTMLElement | null>(null);
+
+/**
+ * Get all focusable elements within the dialog.
+ */
+function getFocusableElements(): HTMLElement[] {
+  if (!dialogRef.value) return [];
+  const selectors = [
+    'a[href]',
+    'button:not([disabled])',
+    'input:not([disabled])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])',
+  ].join(', ');
+  return Array.from(dialogRef.value.querySelectorAll<HTMLElement>(selectors));
+}
+
+/**
+ * Handle keyboard events for focus trap and escape key.
+ */
+function handleKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    event.stopPropagation();
+    emitClose();
+    return;
+  }
+
+  if (event.key === 'Tab') {
+    const focusableElements = getFocusableElements();
+    if (focusableElements.length === 0) {
+      event.preventDefault();
+      return;
+    }
+
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+
+    if (event.shiftKey) {
+      // Shift+Tab: if focus is on the first element, wrap to last
+      if (document.activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      }
+    } else {
+      // Tab: if focus is on the last element, wrap to first
+      if (document.activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    }
+  }
+}
+
+function emitClose() {
   emit('close');
 }
 
-function onBackdropClick(e: MouseEvent) {
-  if (e.target === dialogRef.value) {
-    close();
+function emitConfirm() {
+  emit('confirm');
+}
+
+function handleBackdropClick(event: MouseEvent) {
+  if (props.persistent) return;
+  if (event.target === event.currentTarget) {
+    emitClose();
   }
 }
 
-function onKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape' && props.open) {
-    e.preventDefault();
-    close();
-  }
-}
-
+/**
+ * When the dialog opens, store the previously focused element and move focus
+ * into the dialog. When it closes, restore focus.
+ */
 watch(
   () => props.open,
   (isOpen) => {
-    if (!dialogRef.value) return;
     if (isOpen) {
-      dialogRef.value.showModal();
+      previouslyFocusedElement.value = document.activeElement as HTMLElement | null;
+
+      void nextTick().then(() => {
+        if (!dialogRef.value) return;
+
+        // Focus the first focusable element, or the dialog itself
+        const focusableElements = getFocusableElements();
+        if (focusableElements.length > 0) {
+          focusableElements[0].focus();
+        } else {
+          dialogRef.value.focus();
+        }
+      });
     } else {
-      dialogRef.value.close();
+      // Restore focus to the previously focused element
+      if (previouslyFocusedElement.value) {
+        void nextTick().then(() => {
+          if (previouslyFocusedElement.value) {
+            previouslyFocusedElement.value.focus();
+            previouslyFocusedElement.value = null;
+          }
+        });
+      }
     }
   }
 );
 
-onMounted(() => {
-  document.addEventListener('keydown', onKeydown);
-  if (props.open && dialogRef.value) {
-    dialogRef.value.showModal();
+onBeforeUnmount(() => {
+  // Restore focus if component unmounts while open
+  if (props.open && previouslyFocusedElement.value) {
+    previouslyFocusedElement.value.focus();
+    previouslyFocusedElement.value = null;
   }
-});
-
-onUnmounted(() => {
-  document.removeEventListener('keydown', onKeydown);
 });
 </script>
 
 <template>
   <Teleport to="body">
-    <dialog
-      ref="dialogRef"
-      class="hook0-dialog"
-      aria-modal="true"
-      :aria-label="title"
-      @click="onBackdropClick"
-    >
-      <div class="hook0-dialog-panel">
-        <div class="hook0-dialog-header">
-          <h2 class="hook0-dialog-title">{{ title }}</h2>
-          <button class="hook0-dialog-close" aria-label="Close dialog" type="button" @click="close">
-            <X :size="20" aria-hidden="true" />
-          </button>
-        </div>
-        <div class="hook0-dialog-body">
-          <slot />
-        </div>
-        <div v-if="$slots.footer" class="hook0-dialog-footer">
-          <slot name="footer" />
-        </div>
+    <Transition name="dialog-overlay">
+      <div v-if="open" class="hook0-dialog__backdrop" @click="handleBackdropClick">
+        <Transition name="dialog" appear>
+          <div
+            v-if="open"
+            ref="dialogRef"
+            class="hook0-dialog"
+            :class="{ 'hook0-dialog--danger': variant === 'danger' }"
+            role="dialog"
+            aria-modal="true"
+            :aria-label="title"
+            tabindex="-1"
+            @keydown="handleKeydown"
+          >
+            <!-- Header -->
+            <div class="hook0-dialog__header">
+              <h2 class="hook0-dialog__title">
+                <slot name="title">{{ title }}</slot>
+              </h2>
+              <Hook0Button
+                variant="ghost"
+                size="sm"
+                class="hook0-dialog__close"
+                :aria-label="t('common.close')"
+                @click="emitClose"
+              >
+                <X :size="18" aria-hidden="true" />
+              </Hook0Button>
+            </div>
+
+            <!-- Content -->
+            <div class="hook0-dialog__content">
+              <slot />
+            </div>
+
+            <!-- Actions -->
+            <div class="hook0-dialog__actions">
+              <slot name="actions">
+                <Hook0Button variant="secondary" @click="emitClose">
+                  {{ t('common.cancel') }}
+                </Hook0Button>
+                <Hook0Button
+                  :variant="variant === 'danger' ? 'danger' : 'primary'"
+                  @click="emitConfirm"
+                >
+                  {{ variant === 'danger' ? t('common.delete') : t('common.confirm') }}
+                </Hook0Button>
+              </slot>
+            </div>
+          </div>
+        </Transition>
       </div>
-    </dialog>
+    </Transition>
   </Teleport>
 </template>
 
 <style scoped>
-.hook0-dialog {
-  border: none;
-  padding: 0;
-  margin: auto;
-  max-width: 32rem;
-  width: calc(100% - 2rem);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xl);
-  background-color: var(--color-bg-primary);
-  color: var(--color-text-primary);
-}
-
-.hook0-dialog::backdrop {
-  background-color: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-}
-
-.hook0-dialog[open] {
-  animation: dialog-enter 0.2s ease-out;
-}
-
-.hook0-dialog-panel {
-  display: flex;
-  flex-direction: column;
-}
-
-.hook0-dialog-header {
+.hook0-dialog__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  padding: 1rem;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+}
+
+.hook0-dialog {
+  position: relative;
+  width: 100%;
+  max-width: 28rem;
+  max-height: calc(100vh - 2rem);
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  outline: none;
+  overflow: hidden;
+}
+
+/* Danger variant: subtle red accent on the header border */
+.hook0-dialog--danger .hook0-dialog__header {
+  border-bottom-color: var(--color-error-light);
+}
+
+.hook0-dialog--danger .hook0-dialog__title {
+  color: var(--color-error);
+}
+
+.hook0-dialog__header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
   padding: 1.25rem 1.5rem;
   border-bottom: 1px solid var(--color-border);
 }
 
-.hook0-dialog-title {
-  font-size: 1.125rem;
+.hook0-dialog__title {
+  flex: 1;
+  margin: 0;
+  font-size: 1.0625rem;
   font-weight: 600;
+  line-height: 1.4;
   color: var(--color-text-primary);
 }
 
-.hook0-dialog-close {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: var(--radius-md);
-  border: none;
-  background: transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
+.hook0-dialog__close {
+  flex-shrink: 0;
 }
 
-.hook0-dialog-close:hover {
-  background-color: var(--color-bg-tertiary);
-  color: var(--color-text-primary);
-}
-
-.hook0-dialog-body {
+.hook0-dialog__content {
   padding: 1.5rem;
+  overflow-y: auto;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
 }
 
-.hook0-dialog-footer {
+.hook0-dialog__actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -160,17 +292,5 @@ onUnmounted(() => {
   padding: 1rem 1.5rem;
   border-top: 1px solid var(--color-border);
   background-color: var(--color-bg-secondary);
-  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-}
-
-@keyframes dialog-enter {
-  from {
-    opacity: 0;
-    transform: scale(0.95) translateY(-0.5rem);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
 }
 </style>

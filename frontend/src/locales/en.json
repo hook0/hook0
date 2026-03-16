@@ -11,6 +11,7 @@
     "back": "Back",
     "next": "Next",
     "loading": "Loading...",
+    "loadingTable": "Loading table data",
     "retry": "Retry",
     "search": "Search",
     "noResults": "No results found",
@@ -20,10 +21,13 @@
     "clipboardCopyError": "An error occurred while copying to the clipboard.",
     "clipboardCodeCopyError": "An error occurred while copying the code to the clipboard.",
     "idCopied": "The ID has been copied to the clipboard.",
+    "noData": "No data",
+    "getStarted": "Get started by creating your first item.",
     "error": "Error",
     "success": "Success",
     "warning": "Warning",
     "actions": "Actions",
+    "navigation": "Navigation",
     "name": "Name",
     "createdAt": "Created at",
     "updatedAt": "Updated at",
@@ -107,7 +111,15 @@
       "testimonialQuote": "Hook0 replaced our homegrown webhook system in a day. Delivery reliability went from 94% to 99.9%.",
       "testimonialAuthor": "Marc D.",
       "testimonialRole": "CTO, SaaS Startup",
-      "socialProof": "Join 500+ companies using Hook0"
+      "socialProof": "Join 500+ companies using Hook0",
+      "customers": {
+        "franceNuage": "France Nuage",
+        "woodWing": "WoodWing",
+        "optery": "Optery",
+        "icona": "Icona",
+        "okoora": "Okoora",
+        "activeAnts": "ActiveAnts"
+      }
     },
     "forgotPassword": {
       "title": "Reset your password",
@@ -142,7 +154,9 @@
       "verified": "Email verified successfully!",
       "error": "Verification failed",
       "redirecting": "Redirecting to dashboard...",
-      "backToLogin": "Back to login"
+      "backToLogin": "Back to login",
+      "invalidToken": "Invalid token",
+      "tokenRequired": "Token is required to verify email"
     },
     "checkEmail": {
       "title": "Check your email",
@@ -253,8 +267,11 @@
     "createFirstApp": "Create Your First Application",
     "consumptionTitle": "Consumption of application {name}",
     "consumptionEventsPerDay": "Events per day",
+    "id": "Id",
     "delete": "Delete application",
     "deleteConfirm": "Are you sure you want to delete this application? This action cannot be undone.",
+    "deleted": "Application deleted",
+    "deletedMessage": "Application {name} has been deleted.",
     "subtitle": "Each application sends events to the Hook0 API. Hook0 dispatches these events to customers through webhooks.",
     "empty": {
       "title": "No applications",
@@ -352,6 +369,7 @@
     "httpEndpoint": "Endpoint HTTP verb and URL",
     "httpEndpointHelp": "When this subscription is triggered by an event, Hook0 will send a webhook to this endpoint.",
     "webhookSiteHelp": "If you just want to run some tests, you can go to {link} to obtain a unique URL. Keep the page open and use the unique URL here with any HTTP verb!",
+    "webhookSiteName": "Webhook.site",
     "endpointHeaders": "Endpoint headers",
     "subscriptionLabels": "Subscription labels",
     "subscriptionLabelsHelp": "Hook0 will only forward events to subscriptions that have the same labels as specified in the event. If you specify multiple labels here, events will need to have at least the same labels to trigger this subscription (but they can have more).",
@@ -372,6 +390,7 @@
     "labelsColumn": "Labels",
     "targetColumn": "Target",
     "disableConfirm": "Are you sure you want to disable {name}? All pending and scheduled webhook deliveries will be marked as failed and stay in this state even if you re-enable the subscription later.",
+    "disableTitle": "Disable subscription",
     "deleted": "Subscription deleted.",
     "label": "Label",
     "url": "Endpoint URL",
@@ -387,6 +406,12 @@
     "noDescription": "[no description]",
     "testSuccess": "Endpoint responded successfully",
     "testFailed": "Endpoint test failed",
+    "testResponse": "Response",
+    "testStatus": "Status",
+    "testLatency": "Latency",
+    "testBodyPreview": "Body Preview",
+    "testCorsWarning": "The endpoint may be reachable but blocked by browser CORS policy. Deploy and test via the API for accurate results.",
+    "testUrlRequired": "Enter a URL before testing",
     "empty": {
       "title": "No subscriptions yet",
       "description": "Create a webhook subscription to start receiving events.",
@@ -462,6 +487,20 @@
       "custom": "Custom"
     },
     "generate": "Generate Token",
+    "modeToggleLabel": "Configuration mode",
+    "simpleDescription": "Quickly scope your token to a single application with preset expiry durations.",
+    "advancedDescription": "Full control over Biscuit attenuation with custom Datalog claims and detailed token inspection.",
+    "customDatalogClaims": "Custom Datalog claims",
+    "customDatalogClaimsHelp": "Add custom Biscuit Datalog checks and rules. Each line should be a valid Datalog statement (e.g., check if time($t), $t < 2025-01-01T00:00:00Z).",
+    "customDatalogClaimsPlaceholder": "check if time($t), $t < 2025-12-31T23:59:59Z;",
+    "tokenPreview": "Token Preview",
+    "tokenPreviewDecoded": "Decoded blocks",
+    "tokenPreviewRaw": "Raw (Base64)",
+    "blockNumber": "Block {index}",
+    "noExpiry": "No expiry",
+    "customExpiryDate": "Custom expiry date",
+    "tokenDisplayWarning": "This token is shown only once. Copy it now.",
+    "tokenPlaceholder": "YOUR_TOKEN_HERE",
     "copyWarning": "Make sure to copy your token now. You won't be able to see it again.",
     "subtitle": "Service tokens are organization-wide API keys that allow external programs to send API requests to Hook0 without relying on user credentials.",
     "show": "Show",
@@ -520,7 +559,9 @@
     "roleEditor": "Editor",
     "currentUser": "(current user)",
     "revokeConfirm": "Are you sure to revoke access of {email} from this organization?",
+    "revokeTitle": "Revoke member access",
     "roleChangeConfirm": "Are you sure to change {email}'s role to {role}?",
+    "roleChangeTitle": "Change member role",
     "roleChanged": "Role of {email} has been updated to {role}.",
     "roleAlreadySet": "Role of {email} is already {role}.",
     "invited": "User invited successfully.",
@@ -534,6 +575,7 @@
     "title": "User Settings",
     "profile": "Profile",
     "appearance": "Appearance",
+    "appearanceSubtitle": "Customize how Hook0 looks and feels.",
     "theme": "Theme",
     "themeLight": "Light",
     "themeDark": "Dark",
@@ -714,7 +756,24 @@
     "userSettings": "User Settings",
     "switchToLight": "Switch to Light Mode",
     "switchToDark": "Switch to Dark Mode",
-    "logout": "Logout"
+    "logout": "Logout",
+    "quickActions": "Quick Actions",
+    "createSubscription": "Create Subscription",
+    "createEventType": "Create Event Type",
+    "sendTestEvent": "Send Test Event",
+    "copyApiKey": "Copy API Key",
+    "keyboardShortcuts": "Keyboard Shortcuts"
+  },
+  "shortcuts": {
+    "title": "Keyboard Shortcuts",
+    "general": "General",
+    "navigation": "Navigation",
+    "openCommandPalette": "Open command palette",
+    "showShortcuts": "Show keyboard shortcuts",
+    "closeOverlay": "Close overlay",
+    "navigateList": "Navigate list",
+    "selectItem": "Select item",
+    "nextField": "Next field"
   },
   "loginMenu": {
     "hi": "Hi",
@@ -729,7 +788,9 @@
     "createNewApplication": "Create Application",
     "newOrganization": "New Organization",
     "newOrganizationDescription": "Set up a new team workspace",
-    "appsCount": "{count} application | {count} applications"
+    "appsCount": "{count} application | {count} applications",
+    "selectAnApplication": "Select an application",
+    "applicationLabel": "application"
   },
   "remove": {
     "deleteApplication": "Delete this application",
@@ -738,6 +799,11 @@
     "deleteOrganizationWarning": "Are you sure you want to delete the organization \"{name}\"? This will delete all applications and data within this organization.",
     "deleteSubscription": "Delete this subscription",
     "deleteSubscriptionWarning": "Are you sure you want to delete the subscription \"{name}\"? Events will no longer be delivered to this endpoint.",
-    "irreversibleWarning": "This action is irreversible and cannot be undone."
+    "irreversibleWarning": "This action is irreversible and cannot be undone.",
+    "confirmDeleteOrganization": "Are you sure to delete \"{name}\" organization?",
+    "confirmDeleteApplication": "Are you sure to delete \"{name}\" application?",
+    "confirmDeleteSubscription": "Are you sure to delete \"{name}\" subscription?",
+    "organizationDeleted": "Organization deleted",
+    "organizationDeletedMessage": "Organization \"{name}\" has been deleted."
   }
 }

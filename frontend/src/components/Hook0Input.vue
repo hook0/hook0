@@ -152,7 +152,8 @@ const modelStr = computed({
 }
 
 .hook0-input::placeholder {
-  color: var(--color-text-muted);
+  color: var(--color-text-muted, #9ca3af) !important;
+  opacity: 1;
 }
 
 .hook0-input:focus {

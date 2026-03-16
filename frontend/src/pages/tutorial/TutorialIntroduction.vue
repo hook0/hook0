@@ -8,7 +8,6 @@ import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
 import Hook0Illustration from '@/components/Hook0Illustration.vue';
-import Hook0ListItem from '@/components/Hook0ListItem.vue';
 import { useRouter } from 'vue-router';
 import { routes } from '@/routes.ts';
 import { useTracking } from '@/composables/useTracking';
@@ -85,18 +84,14 @@ function skipTutorial() {
               <Hook0Stack direction="column" gap="md">
                 {{ t('tutorial.intro.inThisTutorial') }}
               </Hook0Stack>
-              <Hook0Stack direction="column" gap="none">
-                <Hook0ListItem v-for="step in tutorialSteps" :key="step.label">
-                  <template #icon>
+              <ul class="tutorial-steps">
+                <li v-for="step in tutorialSteps" :key="step.label" class="tutorial-steps__item">
+                  <span class="tutorial-steps__icon">
                     <component :is="step.icon" :size="16" aria-hidden="true" />
-                  </template>
-                  <template #left>
-                    <Hook0Stack direction="row" align="center" gap="none">
-                      {{ t(step.label) }}
-                    </Hook0Stack>
-                  </template>
-                </Hook0ListItem>
-              </Hook0Stack>
+                  </span>
+                  <span class="tutorial-steps__label">{{ t(step.label) }}</span>
+                </li>
+              </ul>
               <Hook0Stack direction="column" gap="none">
                 <i18n-t keypath="tutorial.intro.skipNote" tag="span">
                   <template #link>
@@ -140,5 +135,35 @@ function skipTutorial() {
 </template>
 
 <style scoped>
-/* No custom styles - using Hook0* components only */
+.tutorial-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tutorial-steps__item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  border-radius: var(--radius-md);
+  transition: background-color 0.15s ease;
+}
+
+.tutorial-steps__icon {
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-right: 0.625rem;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+}
+
+.tutorial-steps__label {
+  color: var(--color-text-primary);
+}
 </style>

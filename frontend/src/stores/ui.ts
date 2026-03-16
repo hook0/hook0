@@ -90,6 +90,21 @@ export const useUiStore = defineStore('ui', () => {
     commandPaletteOpen.value = !commandPaletteOpen.value;
   }
 
+  // Keyboard shortcuts cheat sheet
+  const shortcutsCheatSheetOpen = ref(false);
+
+  function openShortcutsCheatSheet(): void {
+    shortcutsCheatSheetOpen.value = true;
+  }
+
+  function closeShortcutsCheatSheet(): void {
+    shortcutsCheatSheetOpen.value = false;
+  }
+
+  function toggleShortcutsCheatSheet(): void {
+    shortcutsCheatSheetOpen.value = !shortcutsCheatSheetOpen.value;
+  }
+
   // Recent pages
   const recentPages = ref<RecentPage[]>(
     JSON.parse(window.localStorage.getItem('hook0-recent-pages') ?? '[]') as RecentPage[]
@@ -188,6 +203,11 @@ export const useUiStore = defineStore('ui', () => {
     openCommandPalette,
     closeCommandPalette,
     toggleCommandPalette,
+    // Keyboard shortcuts cheat sheet
+    shortcutsCheatSheetOpen,
+    openShortcutsCheatSheet,
+    closeShortcutsCheatSheet,
+    toggleShortcutsCheatSheet,
     // Recent pages
     recentPages,
     addRecentPage,

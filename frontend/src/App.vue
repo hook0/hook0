@@ -12,6 +12,7 @@ import Hook0Breadcrumbs from '@/components/Hook0Breadcrumbs.vue';
 import Hook0MobileTabBar from '@/components/Hook0MobileTabBar.vue';
 import Hook0MobileDrawer from '@/components/Hook0MobileDrawer.vue';
 import Hook0CommandPalette from '@/components/Hook0CommandPalette.vue';
+import Hook0ShortcutsCheatSheet from '@/components/Hook0ShortcutsCheatSheet.vue';
 
 const route = useRoute();
 const authStore = useAuthStore();
@@ -59,6 +60,9 @@ const showFullScreen = computed(() => {
   <!-- Command Palette (global overlay) -->
   <Hook0CommandPalette v-if="authStore.isAuthenticated" />
 
+  <!-- Keyboard Shortcuts Cheat Sheet -->
+  <Hook0ShortcutsCheatSheet />
+
   <!-- Authenticated layout -->
   <div v-if="!showFullScreen" class="hook0-app" style="background-color: var(--color-bg-secondary)">
     <!-- Top Navigation (Stripe-style) -->
@@ -72,8 +76,9 @@ const showFullScreen = computed(() => {
 
         <!-- Page content -->
         <RouterView v-slot="{ Component }">
-          <!-- TEMP: Disabled transition for debugging blank page issue -->
-          <component :is="Component" :key="route.fullPath" />
+          <Transition name="page" mode="out-in">
+            <component :is="Component" :key="route.fullPath" />
+          </Transition>
         </RouterView>
       </div>
     </main>

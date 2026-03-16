@@ -10,9 +10,8 @@ import { routes } from '@/routes';
 import { displayError } from '@/utils/displayError';
 import type { Problem, UUID } from '@/http';
 import { useTracking } from '@/composables/useTracking';
+import { usePermissions } from '@/composables/usePermissions';
 
-import Hook0List from '@/components/Hook0List.vue';
-import Hook0ListItem from '@/components/Hook0ListItem.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
@@ -22,15 +21,18 @@ import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
 import Hook0InputRow from '@/components/Hook0InputRow.vue';
-import Hook0Text from '@/components/Hook0Text.vue';
 import Hook0HelpText from '@/components/Hook0HelpText.vue';
 import Hook0Code from '@/components/Hook0Code.vue';
 import Hook0Form from '@/components/Hook0Form.vue';
+import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 
 const router = useRouter();
 const route = useRoute();
 const { t } = useI18n();
 const { trackEvent } = useTracking();
+
+// Permissions
+const { canCreate } = usePermissions();
 
 interface Props {
   tutorialMode?: boolean;
@@ -83,204 +85,202 @@ const onSubmit = handleSubmit((values) => {
 </script>
 
 <template>
-  <Hook0Form data-test="event-type-form" @submit="onSubmit">
-    <Hook0Card data-test="event-type-card">
-      <Hook0CardHeader>
-        <template #header>{{ t('eventTypes.createTitle') }}</template>
-        <template #subtitle>{{ t('eventTypes.createSubtitle') }}</template>
-      </Hook0CardHeader>
+  <Hook0PageLayout :title="t('eventTypes.createTitle')">
+    <Hook0Form data-test="event-type-form" @submit="onSubmit">
+      <Hook0Card data-test="event-type-card">
+        <Hook0CardHeader>
+          <template #header>{{ t('eventTypes.createTitle') }}</template>
+          <template #subtitle>{{ t('eventTypes.createSubtitle') }}</template>
+        </Hook0CardHeader>
 
-      <Hook0CardContentLine>
-        <template #label>
-          <Hook0Text variant="primary" weight="medium">{{
-            t('eventTypes.eventTypeLabel')
-          }}</Hook0Text>
-        </template>
-        <template #content>
-          <Hook0InputRow gap="sm">
-            <Hook0Input
-              v-model="service"
-              v-bind="serviceAttrs"
-              type="text"
-              :placeholder="t('eventTypes.servicePlaceholder')"
-              :error="errors.service"
-              data-test="event-type-service-input"
-            />
-            <Hook0Text variant="primary" weight="bold" size="lg">.</Hook0Text>
-            <Hook0Input
-              v-model="resourceType"
-              v-bind="resourceTypeAttrs"
-              type="text"
-              :placeholder="t('eventTypes.resourceTypePlaceholder')"
-              :error="errors.resource_type"
-              data-test="event-type-resource-input"
-            />
-            <Hook0Text variant="primary" weight="bold" size="lg">.</Hook0Text>
-            <Hook0Input
-              v-model="verb"
-              v-bind="verbAttrs"
-              type="text"
-              :placeholder="t('eventTypes.verbPlaceholder')"
-              :error="errors.verb"
-              data-test="event-type-verb-input"
-            />
-          </Hook0InputRow>
-        </template>
-      </Hook0CardContentLine>
-      <Hook0CardFooter>
-        <Hook0Button
-          v-if="!props.tutorialMode"
-          variant="secondary"
-          type="button"
-          data-test="event-type-cancel-button"
-          @click="$router.back()"
-        >
-          {{ t('common.cancel') }}
-        </Hook0Button>
-        <Hook0Button
-          v-if="!tutorialMode"
-          variant="primary"
-          type="button"
-          :loading="createMutation.isPending.value"
-          :disabled="!service || !resourceType || !verb"
-          data-test="event-type-submit-button"
-          @click="onSubmit"
-        >
-          {{ t('eventTypes.create') }}
-        </Hook0Button>
-
-        <Hook0Button
-          v-else
-          variant="primary"
-          type="submit"
-          :loading="createMutation.isPending.value"
-          :disabled="!service || !resourceType || !verb"
-          data-test="event-type-submit-button"
-          @click="onSubmit"
-        >
-          {{ t('eventTypes.createFirstEventType') }}
-        </Hook0Button>
-      </Hook0CardFooter>
-    </Hook0Card>
-
-    <Hook0Card>
-      <Hook0CardContent>
-        <Hook0CardContentLine type="full-width">
+        <Hook0CardContentLine>
+          <template #label>
+            <span class="event-type-new__field-label">{{ t('eventTypes.eventTypeLabel') }}</span>
+          </template>
           <template #content>
-            <Hook0Text variant="primary" block>{{ t('eventTypes.helpDescription') }}</Hook0Text>
-            <Hook0HelpText>{{ t('eventTypes.helpFormat') }}</Hook0HelpText>
-            <Hook0Code inline :code="'<service>.<resourceType>.<verb>'" />
+            <Hook0InputRow gap="sm">
+              <Hook0Input
+                v-model="service"
+                v-bind="serviceAttrs"
+                type="text"
+                :placeholder="t('eventTypes.servicePlaceholder')"
+                :error="errors.service"
+                data-test="event-type-service-input"
+              />
+              <span class="event-type-new__separator">.</span>
+              <Hook0Input
+                v-model="resourceType"
+                v-bind="resourceTypeAttrs"
+                type="text"
+                :placeholder="t('eventTypes.resourceTypePlaceholder')"
+                :error="errors.resource_type"
+                data-test="event-type-resource-input"
+              />
+              <span class="event-type-new__separator">.</span>
+              <Hook0Input
+                v-model="verb"
+                v-bind="verbAttrs"
+                type="text"
+                :placeholder="t('eventTypes.verbPlaceholder')"
+                :error="errors.verb"
+                data-test="event-type-verb-input"
+              />
+            </Hook0InputRow>
           </template>
         </Hook0CardContentLine>
-        <Hook0CardContentLine type="columns">
-          <template #content>
-            <Hook0Stack direction="column" gap="sm">
-              <Hook0Text variant="primary" weight="bold" block>
-                <Hook0Code inline code="<service>" />
-                {{ t('eventTypes.serviceExamples') }}
-              </Hook0Text>
+        <Hook0CardFooter>
+          <Hook0Button
+            v-if="!props.tutorialMode"
+            variant="secondary"
+            type="button"
+            data-test="event-type-cancel-button"
+            @click="$router.back()"
+          >
+            {{ t('common.cancel') }}
+          </Hook0Button>
+          <Hook0Button
+            v-if="!tutorialMode && canCreate('event_type')"
+            variant="primary"
+            type="button"
+            :loading="createMutation.isPending.value"
+            :disabled="!service || !resourceType || !verb"
+            data-test="event-type-submit-button"
+            @click="onSubmit"
+          >
+            {{ t('eventTypes.create') }}
+          </Hook0Button>
 
-              <Hook0List>
-                <Hook0ListItem>
-                  <template #left>billing</template>
-                </Hook0ListItem>
-                <Hook0ListItem>
-                  <template #left>chat</template>
-                </Hook0ListItem>
-                <Hook0ListItem>
-                  <template #left>contacts</template>
-                </Hook0ListItem>
-                <Hook0ListItem>
-                  <template #left>connectors</template>
-                </Hook0ListItem>
-                <Hook0ListItem>
-                  <template #left>file</template>
-                </Hook0ListItem>
-                <Hook0ListItem>
-                  <template #left>iam</template>
-                </Hook0ListItem>
-                <Hook0ListItem>
-                  <template #left>iap</template>
-                </Hook0ListItem>
-                <Hook0ListItem>
-                  <template #left>integrations</template>
-                </Hook0ListItem>
-                <Hook0ListItem>
-                  <template #left>logging</template>
-                </Hook0ListItem>
-                <Hook0ListItem>
-                  <template #left>monitoring</template>
-                </Hook0ListItem>
-                <Hook0ListItem>
-                  <template #left>storage</template>
-                </Hook0ListItem>
-                <Hook0ListItem>
-                  <template #left>workflows</template>
-                </Hook0ListItem>
-              </Hook0List>
-            </Hook0Stack>
+          <Hook0Button
+            v-else
+            variant="primary"
+            type="submit"
+            :loading="createMutation.isPending.value"
+            :disabled="!service || !resourceType || !verb"
+            data-test="event-type-submit-button"
+            @click="onSubmit"
+          >
+            {{ t('eventTypes.createFirstEventType') }}
+          </Hook0Button>
+        </Hook0CardFooter>
+      </Hook0Card>
 
-            <Hook0Stack direction="column" gap="sm">
-              <Hook0Text variant="primary" weight="bold" block>
-                <Hook0Code inline code="<resourceType>" />
-                {{ t('eventTypes.resourceTypeExamples') }}
-              </Hook0Text>
-              <Hook0List>
-                <Hook0ListItem>
-                  <template #left>project</template>
-                </Hook0ListItem>
-                <Hook0ListItem>
-                  <template #left>action</template>
-                </Hook0ListItem>
-                <Hook0ListItem>
-                  <template #left>comment</template>
-                </Hook0ListItem>
-                <Hook0ListItem>
-                  <template #left>collaborator</template>
-                </Hook0ListItem>
-                <Hook0ListItem>
-                  <template #left>teammember</template>
-                </Hook0ListItem>
-              </Hook0List>
-            </Hook0Stack>
+      <Hook0Card>
+        <Hook0CardContent>
+          <Hook0CardContentLine type="full-width">
+            <template #content>
+              <p class="event-type-new__help-description">{{ t('eventTypes.helpDescription') }}</p>
+              <Hook0HelpText>{{ t('eventTypes.helpFormat') }}</Hook0HelpText>
+              <Hook0Code inline :code="'<service>.<resourceType>.<verb>'" />
+            </template>
+          </Hook0CardContentLine>
+          <Hook0CardContentLine type="columns">
+            <template #content>
+              <Hook0Stack direction="column" gap="sm">
+                <p class="event-type-new__example-title">
+                  <Hook0Code inline code="<service>" />
+                  {{ t('eventTypes.serviceExamples') }}
+                </p>
 
-            <Hook0Stack direction="column" gap="sm">
-              <Hook0Text variant="primary" weight="bold" block>
-                <Hook0Code inline code="<verb>" />
-                {{ t('eventTypes.verbExamples') }}
-              </Hook0Text>
-              <Hook0List>
-                <Hook0ListItem>
-                  <template #left>created</template>
-                </Hook0ListItem>
-                <Hook0ListItem>
-                  <template #left>updated</template>
-                </Hook0ListItem>
-                <Hook0ListItem>
-                  <template #left>deleted</template>
-                </Hook0ListItem>
-                <Hook0ListItem>
-                  <template #left>copied</template>
-                </Hook0ListItem>
-                <Hook0ListItem>
-                  <template #left>versioned</template>
-                </Hook0ListItem>
-                <Hook0ListItem>
-                  <template #left>executed</template>
-                </Hook0ListItem>
-                <Hook0ListItem>
-                  <template #left>completed</template>
-                </Hook0ListItem>
-              </Hook0List>
-            </Hook0Stack>
-          </template>
-        </Hook0CardContentLine>
-      </Hook0CardContent>
-      <Hook0CardFooter> </Hook0CardFooter>
-    </Hook0Card>
-  </Hook0Form>
+                <ul class="example-list">
+                  <li class="example-list__item">billing</li>
+                  <li class="example-list__item">chat</li>
+                  <li class="example-list__item">contacts</li>
+                  <li class="example-list__item">connectors</li>
+                  <li class="example-list__item">file</li>
+                  <li class="example-list__item">iam</li>
+                  <li class="example-list__item">iap</li>
+                  <li class="example-list__item">integrations</li>
+                  <li class="example-list__item">logging</li>
+                  <li class="example-list__item">monitoring</li>
+                  <li class="example-list__item">storage</li>
+                  <li class="example-list__item">workflows</li>
+                </ul>
+              </Hook0Stack>
+
+              <Hook0Stack direction="column" gap="sm">
+                <p class="event-type-new__example-title">
+                  <Hook0Code inline code="<resourceType>" />
+                  {{ t('eventTypes.resourceTypeExamples') }}
+                </p>
+                <ul class="example-list">
+                  <li class="example-list__item">project</li>
+                  <li class="example-list__item">action</li>
+                  <li class="example-list__item">comment</li>
+                  <li class="example-list__item">collaborator</li>
+                  <li class="example-list__item">teammember</li>
+                </ul>
+              </Hook0Stack>
+
+              <Hook0Stack direction="column" gap="sm">
+                <p class="event-type-new__example-title">
+                  <Hook0Code inline code="<verb>" />
+                  {{ t('eventTypes.verbExamples') }}
+                </p>
+                <ul class="example-list">
+                  <li class="example-list__item">created</li>
+                  <li class="example-list__item">updated</li>
+                  <li class="example-list__item">deleted</li>
+                  <li class="example-list__item">copied</li>
+                  <li class="example-list__item">versioned</li>
+                  <li class="example-list__item">executed</li>
+                  <li class="example-list__item">completed</li>
+                </ul>
+              </Hook0Stack>
+            </template>
+          </Hook0CardContentLine>
+        </Hook0CardContent>
+        <Hook0CardFooter> </Hook0CardFooter>
+      </Hook0Card>
+    </Hook0Form>
+  </Hook0PageLayout>
 </template>
 
 <style scoped>
-/* No custom styles - Hook0 components handle layout */
+.event-type-new__field-label {
+  color: var(--color-text-primary);
+  font-weight: 500;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.event-type-new__separator {
+  color: var(--color-text-primary);
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.event-type-new__help-description {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  display: block;
+}
+
+.event-type-new__example-title {
+  color: var(--color-text-primary);
+  font-weight: 700;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  display: block;
+}
+
+.example-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.example-list__item {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+}
+
+.example-list__item + .example-list__item {
+  border-top: 1px solid var(--color-border);
+}
 </style>

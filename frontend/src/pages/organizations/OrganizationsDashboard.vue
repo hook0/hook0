@@ -20,7 +20,6 @@ import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0TutorialWidget from '@/components/Hook0TutorialWidget.vue';
 import Hook0Badge from '@/components/Hook0Badge.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
-import Hook0Text from '@/components/Hook0Text.vue';
 import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
 import ApplicationsList from '@/pages/organizations/applications/ApplicationsList.vue';
 import MembersList from '@/pages/organizations/MembersList.vue';
@@ -65,10 +64,8 @@ const widgetItems = computed(() => {
               <Hook0IconBadge variant="primary" size="sm">
                 <Building2 :size="14" aria-hidden="true" />
               </Hook0IconBadge>
-              <Hook0Text variant="secondary" size="sm">{{ t('organizations.title') }}</Hook0Text>
-              <Hook0Text variant="primary" size="md" weight="semibold">{{
-                organization.name
-              }}</Hook0Text>
+              <span class="org-dashboard__label">{{ t('organizations.title') }}</span>
+              <span class="org-dashboard__name">{{ organization.name }}</span>
               <template v-if="pricingEnabled">
                 <Hook0Badge
                   v-if="organization.plan"
@@ -112,18 +109,14 @@ const widgetItems = computed(() => {
               <Hook0IconBadge variant="warning" size="sm">
                 <CreditCard :size="14" aria-hidden="true" />
               </Hook0IconBadge>
-              <Hook0Text variant="secondary" size="sm">{{
-                t('organizations.developerPlanNotice')
-              }}</Hook0Text>
+              <span class="org-dashboard__label">{{ t('organizations.developerPlanNotice') }}</span>
             </Hook0Stack>
           </template>
         </Hook0CardHeader>
 
         <Hook0CardContent>
           <Hook0Stack direction="column" gap="md">
-            <Hook0Text variant="secondary" size="sm">{{
-              t('organizations.currentlyLimitedTo')
-            }}</Hook0Text>
+            <span class="org-dashboard__label">{{ t('organizations.currentlyLimitedTo') }}</span>
             <Hook0Stack layout="grid" grid-size="compact" gap="sm">
               <Hook0Card>
                 <Hook0CardContent>
@@ -132,12 +125,12 @@ const widgetItems = computed(() => {
                       <Users :size="16" aria-hidden="true" />
                     </Hook0IconBadge>
                     <Hook0Stack direction="column" gap="none">
-                      <Hook0Text variant="primary" size="lg" weight="bold">{{
+                      <span class="org-dashboard__quota-value">{{
                         organization.quotas.members_per_organization_limit
-                      }}</Hook0Text>
-                      <Hook0Text variant="muted" size="xs">{{
+                      }}</span>
+                      <span class="org-dashboard__quota-label">{{
                         t('organizations.consumptionMembers').toLowerCase()
-                      }}</Hook0Text>
+                      }}</span>
                     </Hook0Stack>
                   </Hook0Stack>
                 </Hook0CardContent>
@@ -149,12 +142,12 @@ const widgetItems = computed(() => {
                       <FolderOpen :size="16" aria-hidden="true" />
                     </Hook0IconBadge>
                     <Hook0Stack direction="column" gap="none">
-                      <Hook0Text variant="primary" size="lg" weight="bold">{{
+                      <span class="org-dashboard__quota-value">{{
                         organization.quotas.applications_per_organization_limit
-                      }}</Hook0Text>
-                      <Hook0Text variant="muted" size="xs">{{
+                      }}</span>
+                      <span class="org-dashboard__quota-label">{{
                         t('organizations.consumptionApplications').toLowerCase()
-                      }}</Hook0Text>
+                      }}</span>
                     </Hook0Stack>
                   </Hook0Stack>
                 </Hook0CardContent>
@@ -166,12 +159,12 @@ const widgetItems = computed(() => {
                       <FileText :size="16" aria-hidden="true" />
                     </Hook0IconBadge>
                     <Hook0Stack direction="column" gap="none">
-                      <Hook0Text variant="primary" size="lg" weight="bold">{{
+                      <span class="org-dashboard__quota-value">{{
                         organization.quotas.events_per_day_limit
-                      }}</Hook0Text>
-                      <Hook0Text variant="muted" size="xs">{{
+                      }}</span>
+                      <span class="org-dashboard__quota-label">{{
                         t('organizations.consumptionEventsPerDay').toLowerCase()
-                      }}</Hook0Text>
+                      }}</span>
                     </Hook0Stack>
                   </Hook0Stack>
                 </Hook0CardContent>
@@ -183,12 +176,12 @@ const widgetItems = computed(() => {
                       <Database :size="16" aria-hidden="true" />
                     </Hook0IconBadge>
                     <Hook0Stack direction="column" gap="none">
-                      <Hook0Text variant="primary" size="lg" weight="bold">{{
+                      <span class="org-dashboard__quota-value">{{
                         organization.quotas.days_of_events_retention_limit
-                      }}</Hook0Text>
-                      <Hook0Text variant="muted" size="xs">{{
+                      }}</span>
+                      <span class="org-dashboard__quota-label">{{
                         t('organizations.consumptionRetention').toLowerCase()
-                      }}</Hook0Text>
+                      }}</span>
                     </Hook0Stack>
                   </Hook0Stack>
                 </Hook0CardContent>
@@ -222,5 +215,31 @@ const widgetItems = computed(() => {
 </template>
 
 <style scoped>
-/* Component uses Hook0* components exclusively - no custom styles needed */
+.org-dashboard__label {
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.org-dashboard__name {
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.org-dashboard__quota-value {
+  color: var(--color-text-primary);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.org-dashboard__quota-label {
+  color: var(--color-text-tertiary);
+  font-size: 0.6875rem;
+  font-weight: 400;
+  line-height: 1.5;
+}
 </style>

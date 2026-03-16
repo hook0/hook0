@@ -71,7 +71,7 @@ const model = defineModel<boolean>({ default: false });
 }
 
 .hook0-switch-error {
-  box-shadow: 0 0 0 2px var(--color-danger);
+  box-shadow: 0 0 0 2px var(--color-error);
 }
 
 .hook0-switch-thumb {
@@ -98,6 +98,6 @@ const model = defineModel<boolean>({ default: false });
 .hook0-switch-error-text {
   margin-top: 0.375rem;
   font-size: 0.75rem;
-  color: var(--color-danger);
+  color: var(--color-error);
 }
 </style>

@@ -12,8 +12,28 @@ export function useKeyboardShortcuts() {
       return;
     }
 
+    // ? - Show keyboard shortcuts cheat sheet (only when not typing in an input)
+    if (
+      e.key === '?' &&
+      !e.metaKey &&
+      !e.ctrlKey &&
+      !e.altKey &&
+      !(e.target instanceof HTMLInputElement) &&
+      !(e.target instanceof HTMLTextAreaElement) &&
+      !(e.target instanceof HTMLSelectElement) &&
+      !(e.target as HTMLElement)?.isContentEditable
+    ) {
+      e.preventDefault();
+      uiStore.toggleShortcutsCheatSheet();
+      return;
+    }
+
     // Escape - Close overlays
     if (e.key === 'Escape') {
+      if (uiStore.shortcutsCheatSheetOpen) {
+        uiStore.closeShortcutsCheatSheet();
+        return;
+      }
       if (uiStore.commandPaletteOpen) {
         uiStore.closeCommandPalette();
         return;

@@ -18,6 +18,10 @@ import {
   Building2,
   Box,
   History,
+  Plus,
+  Send,
+  Copy,
+  Keyboard,
 } from 'lucide-vue-next';
 import { routes } from '@/routes';
 import { useAuthStore } from '@/stores/auth';
@@ -244,6 +248,41 @@ const commands = computed<CommandItem[]>(() => {
     );
   }
 
+  // Quick actions (context-aware)
+  if (orgId && appId) {
+    const params = { organization_id: orgId, application_id: appId };
+    items.push(
+      {
+        id: 'quick-create-subscription',
+        label: t('commandPalette.createSubscription'),
+        icon: Plus,
+        category: t('commandPalette.quickActions'),
+        action: () => navigate({ name: routes.SubscriptionsNew, params }),
+      },
+      {
+        id: 'quick-create-event-type',
+        label: t('commandPalette.createEventType'),
+        icon: Plus,
+        category: t('commandPalette.quickActions'),
+        action: () => navigate({ name: routes.EventTypesNew, params }),
+      },
+      {
+        id: 'quick-send-test-event',
+        label: t('commandPalette.sendTestEvent'),
+        icon: Send,
+        category: t('commandPalette.quickActions'),
+        action: () => navigate({ name: routes.EventsList, params }),
+      },
+      {
+        id: 'quick-copy-api-key',
+        label: t('commandPalette.copyApiKey'),
+        icon: Copy,
+        category: t('commandPalette.quickActions'),
+        action: () => navigate({ name: routes.ApplicationSecretsList, params }),
+      }
+    );
+  }
+
   // Actions
   items.push(
     {
@@ -264,6 +303,16 @@ const commands = computed<CommandItem[]>(() => {
       action: () => {
         uiStore.toggleColorMode();
         close();
+      },
+    },
+    {
+      id: 'action-shortcuts',
+      label: t('commandPalette.keyboardShortcuts'),
+      icon: Keyboard,
+      category: t('commandPalette.actions'),
+      action: () => {
+        close();
+        uiStore.openShortcutsCheatSheet();
       },
     },
     {
@@ -443,7 +492,8 @@ watch(query, () => {
 }
 
 .hook0-command-palette-input::placeholder {
-  color: var(--color-text-muted);
+  color: var(--color-text-muted, #9ca3af) !important;
+  opacity: 1;
 }
 
 .hook0-command-palette-list {
@@ -471,6 +521,8 @@ watch(query, () => {
 .hook0-command-palette-item {
   display: flex;
   align-items: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
   gap: 0.75rem;
   width: 100%;
   padding: 0.625rem 0.75rem;
@@ -482,6 +534,10 @@ watch(query, () => {
   cursor: pointer;
   transition: all 0.1s ease;
   text-align: left;
+}
+
+.hook0-command-palette-item :deep(svg) {
+  flex-shrink: 0;
 }
 
 .hook0-command-palette-item:hover,

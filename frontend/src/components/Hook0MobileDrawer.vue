@@ -20,7 +20,9 @@ import {
   FileText,
   Key,
   Settings,
-  HelpCircle,
+  BookOpen,
+  Code2,
+  ExternalLink,
   LogOut,
   Sun,
   Moon,
@@ -277,7 +279,7 @@ function handleBackdropClick(event: MouseEvent) {
 
               <!-- Navigation -->
               <div v-if="navItems.length > 0" class="hook0-mobile-drawer__section">
-                <div class="hook0-mobile-drawer__section-header">Navigation</div>
+                <div class="hook0-mobile-drawer__section-header">{{ t('common.navigation') }}</div>
                 <div class="hook0-mobile-drawer__list">
                   <Hook0Button
                     v-for="item in navItems"
@@ -295,15 +297,45 @@ function handleBackdropClick(event: MouseEvent) {
 
               <!-- Quick Actions -->
               <div class="hook0-mobile-drawer__section">
+                <div class="hook0-mobile-drawer__section-header">
+                  <BookOpen :size="14" aria-hidden="true" />
+                  {{ t('nav.documentation') }}
+                </div>
                 <div class="hook0-mobile-drawer__list">
-                  <Hook0Button
-                    variant="link"
+                  <a
                     href="https://documentation.hook0.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     class="hook0-mobile-drawer__item"
                   >
-                    <HelpCircle :size="18" aria-hidden="true" />
+                    <BookOpen :size="18" aria-hidden="true" />
                     {{ t('nav.documentation') }}
-                  </Hook0Button>
+                    <ExternalLink
+                      :size="14"
+                      class="hook0-mobile-drawer__item-chevron"
+                      aria-hidden="true"
+                    />
+                  </a>
+                  <a
+                    href="https://documentation.hook0.com/api"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="hook0-mobile-drawer__item"
+                  >
+                    <Code2 :size="18" aria-hidden="true" />
+                    {{ t('nav.apiReference') }}
+                    <ExternalLink
+                      :size="14"
+                      class="hook0-mobile-drawer__item-chevron"
+                      aria-hidden="true"
+                    />
+                  </a>
+                </div>
+              </div>
+
+              <!-- Preferences -->
+              <div class="hook0-mobile-drawer__section">
+                <div class="hook0-mobile-drawer__list">
                   <Hook0Button
                     variant="ghost"
                     class="hook0-mobile-drawer__item"
@@ -431,6 +463,8 @@ function handleBackdropClick(event: MouseEvent) {
 .hook0-mobile-drawer__section-header {
   display: flex;
   align-items: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
   font-size: 0.6875rem;
@@ -438,6 +472,10 @@ function handleBackdropClick(event: MouseEvent) {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--color-text-muted);
+}
+
+.hook0-mobile-drawer__section-header :deep(svg) {
+  flex-shrink: 0;
 }
 
 .hook0-mobile-drawer__list {
@@ -449,6 +487,7 @@ function handleBackdropClick(event: MouseEvent) {
 .hook0-mobile-drawer__item {
   display: flex;
   align-items: center;
+  flex-wrap: nowrap;
   justify-content: flex-start;
   gap: 0.75rem;
   padding: 0.75rem;
@@ -463,6 +502,10 @@ function handleBackdropClick(event: MouseEvent) {
   width: 100%;
   text-align: left;
   white-space: nowrap;
+}
+
+.hook0-mobile-drawer__item :deep(svg) {
+  flex-shrink: 0;
 }
 
 .hook0-mobile-drawer__item:hover {

@@ -3,8 +3,7 @@
  * Hook0TopNav - Stripe-inspired top navigation bar
  *
  * Features:
- * - Horizontal layout with logo, workspace selector, nav tabs, and user menu
- * - Workspace selector shows org/app context with easy switching
+ * - Horizontal layout with logo, nav tabs, and user menu
  * - Navigation tabs adapt based on context (org-level vs app-level)
  * - Integrated search trigger (Cmd+K)
  * - Clean, minimal design like Stripe Dashboard
@@ -13,27 +12,20 @@ import { computed, ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   Webhook,
-  ChevronDown,
   Search,
-  HelpCircle,
   BookOpen,
+  Code2,
   ExternalLink,
   Settings,
   LogOut,
   Sun,
   Moon,
   Menu,
-  Plus,
-  Check,
-  Building2,
-  Box,
 } from 'lucide-vue-next';
 import { routes } from '@/routes';
 import { useAuthStore } from '@/stores/auth';
 import { useContextStore } from '@/stores/context';
 import { useUiStore } from '@/stores/ui';
-import { useOrganizationList } from '@/pages/organizations/useOrganizationQueries';
-import { useApplicationList } from '@/pages/organizations/applications/useApplicationQueries';
 import { InstanceConfig, getInstanceConfig } from '@/utils/biscuit_auth';
 import { useI18n } from 'vue-i18n';
 import Hook0Button from '@/components/Hook0Button.vue';
@@ -55,21 +47,8 @@ onMounted(() => {
     .catch(console.error);
 });
 
-// Workspace data
-const { data: organizations } = useOrganizationList();
-const { data: applications } = useApplicationList(
-  computed(() => contextStore.organizationId ?? '')
-);
-
 // Dropdown states
-const workspaceDropdownOpen = ref(false);
 const userDropdownOpen = ref(false);
-const helpDropdownOpen = ref(false);
-
-// Current context
-const currentOrgName = computed(() => contextStore.organizationName ?? t('nav.selectOrganization'));
-const currentAppName = computed(() => contextStore.applicationName);
-const hasAppContext = computed(() => !!contextStore.applicationId);
 
 // Navigation tabs based on context
 interface NavTab {
@@ -168,9 +147,7 @@ const navTabs = computed<NavTab[]>(() => {
 });
 
 function closeDropdowns() {
-  workspaceDropdownOpen.value = false;
   userDropdownOpen.value = false;
-  helpDropdownOpen.value = false;
 }
 
 function handleClickOutside(event: MouseEvent) {
@@ -203,118 +180,6 @@ router.afterEach(() => {
       <span class="hook0-topnav__logo-text">Hook0</span>
     </router-link>
 
-    <!-- Workspace Selector -->
-    <div class="hook0-dropdown hook0-topnav__workspace">
-      <button
-        class="hook0-topnav__workspace-trigger"
-        :aria-expanded="workspaceDropdownOpen"
-        aria-haspopup="true"
-        @click.stop="workspaceDropdownOpen = !workspaceDropdownOpen"
-      >
-        <div class="hook0-topnav__workspace-context">
-          <span class="hook0-topnav__workspace-org">{{ currentOrgName }}</span>
-          <template v-if="hasAppContext">
-            <span class="hook0-topnav__workspace-separator">/</span>
-            <span class="hook0-topnav__workspace-app">{{ currentAppName }}</span>
-          </template>
-        </div>
-        <ChevronDown
-          :size="16"
-          class="hook0-topnav__workspace-chevron"
-          :class="{ rotated: workspaceDropdownOpen }"
-          aria-hidden="true"
-        />
-      </button>
-
-      <!-- Workspace Dropdown -->
-      <Transition name="dropdown">
-        <div
-          v-if="workspaceDropdownOpen"
-          class="hook0-topnav__dropdown hook0-topnav__dropdown--workspace"
-        >
-          <div class="hook0-topnav__dropdown-section">
-            <div class="hook0-topnav__dropdown-header">
-              <Building2 :size="14" aria-hidden="true" />
-              {{ t('nav.organizations') }}
-            </div>
-            <div class="hook0-topnav__dropdown-list">
-              <Hook0Button
-                v-for="org in organizations"
-                :key="org.organization_id"
-                variant="link"
-                :to="{
-                  name: routes.ApplicationsList,
-                  params: { organization_id: org.organization_id },
-                }"
-                class="hook0-topnav__dropdown-item"
-                :class="{ active: org.organization_id === contextStore.organizationId }"
-              >
-                <span class="hook0-topnav__dropdown-item-name">{{ org.name }}</span>
-                <Check
-                  v-if="org.organization_id === contextStore.organizationId"
-                  :size="16"
-                  class="hook0-topnav__dropdown-item-check"
-                  aria-hidden="true"
-                />
-              </Hook0Button>
-              <Hook0Button
-                variant="link"
-                :to="{ name: routes.OrganizationsNew }"
-                class="hook0-topnav__dropdown-item hook0-topnav__dropdown-item--create"
-              >
-                <Plus :size="16" aria-hidden="true" />
-                {{ t('nav.newOrganization') }}
-              </Hook0Button>
-            </div>
-          </div>
-
-          <div
-            v-if="contextStore.organizationId && applications && applications.length > 0"
-            class="hook0-topnav__dropdown-divider"
-          />
-
-          <div v-if="contextStore.organizationId" class="hook0-topnav__dropdown-section">
-            <div class="hook0-topnav__dropdown-header">
-              <Box :size="14" aria-hidden="true" />
-              {{ t('nav.applications') }}
-            </div>
-            <div class="hook0-topnav__dropdown-list">
-              <Hook0Button
-                v-for="app in applications"
-                :key="app.application_id"
-                variant="link"
-                :to="{
-                  name: routes.EventsList,
-                  params: { organization_id: contextStore.organizationId!, application_id: app.application_id },
-                }"
-                class="hook0-topnav__dropdown-item"
-                :class="{ active: app.application_id === contextStore.applicationId }"
-              >
-                <span class="hook0-topnav__dropdown-item-name">{{ app.name }}</span>
-                <Check
-                  v-if="app.application_id === contextStore.applicationId"
-                  :size="16"
-                  class="hook0-topnav__dropdown-item-check"
-                  aria-hidden="true"
-                />
-              </Hook0Button>
-              <Hook0Button
-                variant="link"
-                :to="{
-                  name: routes.ApplicationsNew,
-                  params: { organization_id: contextStore.organizationId! },
-                }"
-                class="hook0-topnav__dropdown-item hook0-topnav__dropdown-item--create"
-              >
-                <Plus :size="16" aria-hidden="true" />
-                {{ t('nav.newApplication') }}
-              </Hook0Button>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </div>
-
     <!-- Navigation Tabs -->
     <nav v-if="navTabs.length > 0" class="hook0-topnav__tabs" aria-label="Main navigation">
       <router-link
@@ -343,43 +208,27 @@ router.afterEach(() => {
       <kbd class="hook0-topnav__search-kbd">⌘K</kbd>
     </button>
 
-    <!-- Help Dropdown -->
-    <div class="hook0-dropdown hook0-topnav__help">
-      <button
-        class="hook0-topnav__icon-btn"
-        :aria-expanded="helpDropdownOpen"
-        aria-haspopup="true"
-        :aria-label="t('nav.help')"
-        @click.stop="helpDropdownOpen = !helpDropdownOpen"
-      >
-        <HelpCircle :size="20" aria-hidden="true" />
-      </button>
-
-      <Transition name="dropdown">
-        <div v-if="helpDropdownOpen" class="hook0-topnav__dropdown hook0-topnav__dropdown--right">
-          <a
-            href="https://documentation.hook0.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="hook0-topnav__dropdown-item"
-          >
-            <BookOpen :size="16" aria-hidden="true" />
-            {{ t('nav.documentation') }}
-            <ExternalLink :size="12" class="hook0-topnav__dropdown-external" aria-hidden="true" />
-          </a>
-          <a
-            href="https://documentation.hook0.com/api"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="hook0-topnav__dropdown-item"
-          >
-            <BookOpen :size="16" aria-hidden="true" />
-            {{ t('nav.apiReference') }}
-            <ExternalLink :size="12" class="hook0-topnav__dropdown-external" aria-hidden="true" />
-          </a>
-        </div>
-      </Transition>
-    </div>
+    <!-- Documentation & API Reference Links -->
+    <a
+      href="https://documentation.hook0.com/"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="hook0-topnav__nav-link"
+    >
+      <BookOpen :size="16" aria-hidden="true" />
+      <span class="hook0-topnav__nav-link-text">{{ t('nav.documentation') }}</span>
+      <ExternalLink :size="12" class="hook0-topnav__nav-link-external" aria-hidden="true" />
+    </a>
+    <a
+      href="https://documentation.hook0.com/api"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="hook0-topnav__nav-link"
+    >
+      <Code2 :size="16" aria-hidden="true" />
+      <span class="hook0-topnav__nav-link-text">{{ t('nav.apiReference') }}</span>
+      <ExternalLink :size="12" class="hook0-topnav__nav-link-external" aria-hidden="true" />
+    </a>
 
     <!-- User Menu -->
     <div class="hook0-dropdown hook0-topnav__user">
@@ -497,77 +346,6 @@ router.afterEach(() => {
   }
 }
 
-/* Workspace Selector */
-.hook0-topnav__workspace {
-  position: relative;
-  margin-left: 0.5rem;
-}
-
-.hook0-topnav__workspace-trigger {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.375rem 0.625rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background-color: var(--color-bg-secondary);
-  cursor: pointer;
-  transition: all 0.15s ease;
-  max-width: 16rem;
-}
-
-.hook0-topnav__workspace-trigger:hover {
-  border-color: var(--color-border-strong);
-  background-color: var(--color-bg-tertiary);
-}
-
-.hook0-topnav__workspace-context {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  min-width: 0;
-  overflow: hidden;
-}
-
-.hook0-topnav__workspace-org {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.hook0-topnav__workspace-separator {
-  color: var(--color-text-muted);
-  flex-shrink: 0;
-}
-
-.hook0-topnav__workspace-app {
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--color-text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.hook0-topnav__workspace-chevron {
-  color: var(--color-text-muted);
-  flex-shrink: 0;
-  transition: transform 0.2s ease;
-}
-
-.hook0-topnav__workspace-chevron.rotated {
-  transform: rotate(180deg);
-}
-
-@media (max-width: 640px) {
-  .hook0-topnav__workspace {
-    display: none;
-  }
-}
-
 /* Navigation Tabs */
 .hook0-topnav__tabs {
   display: none;
@@ -670,24 +448,51 @@ router.afterEach(() => {
   }
 }
 
-/* Icon button */
-.hook0-topnav__icon-btn {
-  display: flex;
+/* Nav links (Documentation, API Reference) */
+.hook0-topnav__nav-link {
+  display: none;
   align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border: none;
-  background: none;
+  gap: 0.375rem;
+  padding: 0.375rem 0.625rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
   color: var(--color-text-secondary);
-  cursor: pointer;
+  text-decoration: none;
   border-radius: var(--radius-md);
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
-.hook0-topnav__icon-btn:hover {
-  background-color: var(--color-bg-tertiary);
+@media (min-width: 768px) {
+  .hook0-topnav__nav-link {
+    display: flex;
+  }
+}
+
+.hook0-topnav__nav-link:hover {
   color: var(--color-text-primary);
+  background-color: var(--color-bg-tertiary);
+}
+
+.hook0-topnav__nav-link-text {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .hook0-topnav__nav-link-text {
+    display: inline;
+  }
+}
+
+.hook0-topnav__nav-link-external {
+  color: var(--color-text-muted);
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .hook0-topnav__nav-link-external {
+    display: inline;
+  }
 }
 
 /* User avatar */
@@ -748,38 +553,14 @@ router.afterEach(() => {
   right: 0;
 }
 
-.hook0-topnav__dropdown--workspace {
-  min-width: 16rem;
-}
-
 .hook0-topnav__dropdown--user {
   min-width: 12rem;
-}
-
-.hook0-topnav__dropdown-section {
-  padding: 0.25rem 0;
-}
-
-.hook0-topnav__dropdown-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-text-muted);
-}
-
-.hook0-topnav__dropdown-list {
-  display: flex;
-  flex-direction: column;
 }
 
 .hook0-topnav__dropdown-item {
   display: flex;
   align-items: center;
+  flex-wrap: nowrap;
   justify-content: flex-start;
   gap: 0.625rem;
   padding: 0.5rem 0.75rem;
@@ -796,18 +577,13 @@ router.afterEach(() => {
   white-space: nowrap;
 }
 
+.hook0-topnav__dropdown-item :deep(svg) {
+  flex-shrink: 0;
+}
+
 .hook0-topnav__dropdown-item:hover {
   background-color: var(--color-bg-tertiary);
   color: var(--color-text-primary);
-}
-
-.hook0-topnav__dropdown-item.active {
-  background-color: color-mix(in srgb, var(--color-primary) 10%, transparent);
-  color: var(--color-primary);
-}
-
-.hook0-topnav__dropdown-item--create {
-  color: var(--color-primary);
 }
 
 .hook0-topnav__dropdown-item--danger {
@@ -817,23 +593,6 @@ router.afterEach(() => {
 .hook0-topnav__dropdown-item--danger:hover {
   background-color: var(--color-error-light);
   color: var(--color-error);
-}
-
-.hook0-topnav__dropdown-item-name {
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.hook0-topnav__dropdown-item-check {
-  color: var(--color-primary);
-  flex-shrink: 0;
-}
-
-.hook0-topnav__dropdown-external {
-  color: var(--color-text-muted);
-  margin-left: auto;
 }
 
 .hook0-topnav__dropdown-divider {

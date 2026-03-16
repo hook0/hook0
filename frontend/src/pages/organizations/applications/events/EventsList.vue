@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, h, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { computed, h, markRaw, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
+import { RefreshCw, ExternalLink } from 'lucide-vue-next';
 
-import { useEventList, useReplayEvent, useSendEvent } from './useEventQueries';
+import { useEventList, useEventDetail, useReplayEvent, useSendEvent } from './useEventQueries';
 import { useEventTypeList } from '../event_types/useEventTypeQueries';
 import type { Event } from './EventsService';
 import { routes } from '@/routes';
@@ -25,6 +26,7 @@ import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0EmptyState from '@/components/Hook0EmptyState.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
+import Hook0SidePanel from '@/components/Hook0SidePanel.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0Select from '@/components/Hook0Select.vue';
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
@@ -32,6 +34,7 @@ import Hook0KeyValue from '@/components/Hook0KeyValue.vue';
 import type { Hook0KeyValueKeyValuePair } from '@/components/Hook0KeyValue';
 import Hook0HelpText from '@/components/Hook0HelpText.vue';
 import Hook0Form from '@/components/Hook0Form.vue';
+import Hook0Skeleton from '@/components/Hook0Skeleton.vue';
 import { Codemirror } from 'vue-codemirror';
 import { json } from '@codemirror/lang-json';
 import { EditorView } from 'codemirror';
@@ -51,8 +54,42 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const route = useRoute();
+const router = useRouter();
 
 const applicationId = computed(() => route.params.application_id as string);
+
+// Side panel state
+const sidePanelOpen = ref(false);
+const selectedEventId = ref('');
+const selectedEventIdRef = computed(() => selectedEventId.value);
+
+const { data: selectedEventData, isLoading: selectedEventLoading } = useEventDetail(
+  selectedEventIdRef,
+  applicationId
+);
+
+function handleRowClick(row: Event) {
+  selectedEventId.value = row.event_id;
+  sidePanelOpen.value = true;
+}
+
+function closeSidePanel() {
+  sidePanelOpen.value = false;
+}
+
+function openFullPage() {
+  sidePanelOpen.value = false;
+  void router.push({
+    name: routes.EventsDetail,
+    params: {
+      application_id: route.params.application_id,
+      organization_id: route.params.organization_id,
+      event_id: selectedEventId.value,
+    },
+  });
+}
+
+const readOnlyExtensions = [json(), EditorView.lineWrapping, EditorView.editable.of(false)];
 
 // Events list query
 const { data: events, isLoading, error, refetch } = useEventList(applicationId);
@@ -208,7 +245,7 @@ const columns: ColumnDef<Event, unknown>[] = [
     cell: (info) =>
       h(Hook0TableCellLink, {
         value: t('events.replay'),
-        icon: 'arrows-rotate',
+        icon: markRaw(RefreshCw),
         onClick: () => handleReplay(info.row.original),
       }),
   },
@@ -353,6 +390,8 @@ const columns: ColumnDef<Event, unknown>[] = [
               :columns="columns"
               :data="events"
               row-id-field="event_id"
+              clickable-rows
+              @row-click="handleRowClick"
             />
           </Hook0CardContent>
 
@@ -381,9 +420,179 @@ const columns: ColumnDef<Event, unknown>[] = [
         </Hook0Card>
       </template>
     </template>
+
+    <!-- Event side panel -->
+    <Hook0SidePanel
+      :open="sidePanelOpen"
+      :title="t('events.detail')"
+      width="36rem"
+      @close="closeSidePanel"
+    >
+      <template #header>
+        <h2 class="event-panel__title">{{ t('events.detail') }}</h2>
+        <Hook0Button
+          variant="ghost"
+          size="sm"
+          :aria-label="t('events.openFullPage')"
+          data-test="event-panel-full-page"
+          @click="openFullPage"
+        >
+          <ExternalLink :size="16" aria-hidden="true" />
+          {{ t('events.openFullPage') }}
+        </Hook0Button>
+      </template>
+
+      <!-- Loading -->
+      <template v-if="selectedEventLoading || !selectedEventData">
+        <div class="event-panel__section">
+          <Hook0Skeleton size="text-truncated" />
+          <Hook0Skeleton size="text" />
+          <Hook0Skeleton size="text-truncated" />
+        </div>
+        <div class="event-panel__section">
+          <Hook0Skeleton size="block" />
+        </div>
+      </template>
+
+      <!-- Event loaded -->
+      <template v-else>
+        <!-- Metadata -->
+        <div class="event-panel__section">
+          <h3 class="event-panel__section-title">{{ t('events.metadata') }}</h3>
+          <div class="event-panel__meta">
+            <div class="event-panel__meta-row">
+              <span class="event-panel__meta-label">{{ t('events.id') }}</span>
+              <code class="event-panel__meta-value event-panel__meta-value--mono">{{
+                selectedEventData.event_id
+              }}</code>
+            </div>
+            <div class="event-panel__meta-row">
+              <span class="event-panel__meta-label">{{ t('events.type') }}</span>
+              <code class="event-panel__meta-value event-panel__meta-value--mono">{{
+                selectedEventData.event_type_name
+              }}</code>
+            </div>
+            <div class="event-panel__meta-row">
+              <span class="event-panel__meta-label">{{ t('events.receivedAt') }}</span>
+              <span class="event-panel__meta-value">{{ selectedEventData.received_at }}</span>
+            </div>
+            <div class="event-panel__meta-row">
+              <span class="event-panel__meta-label">{{ t('events.occurredAt') }}</span>
+              <span class="event-panel__meta-value">{{ selectedEventData.occurred_at }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Labels -->
+        <div
+          v-if="
+            selectedEventData.labels && Object.keys(selectedEventData.labels as Record<string, string>).length > 0
+          "
+          class="event-panel__section"
+        >
+          <h3 class="event-panel__section-title">{{ t('events.labels') }}</h3>
+          <div class="event-panel__labels">
+            <span
+              v-for="(val, key) in (selectedEventData.labels as Record<string, string>)"
+              :key="String(key)"
+              class="event-panel__label-badge"
+            >
+              {{ key }}={{ val }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Payload -->
+        <div class="event-panel__section">
+          <h3 class="event-panel__section-title">{{ t('events.payload') }}</h3>
+          <Codemirror
+            :model-value="selectedEventData.payload_decoded"
+            :extensions="readOnlyExtensions"
+            :tab-size="2"
+            class="event-panel__code"
+          />
+        </div>
+      </template>
+    </Hook0SidePanel>
   </Hook0PageLayout>
 </template>
 
 <style scoped>
-/* Hook0 components handle all styling */
+.event-panel__title {
+  flex: 1;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.event-panel__section {
+  margin-bottom: 1.25rem;
+}
+
+.event-panel__section:last-child {
+  margin-bottom: 0;
+}
+
+.event-panel__section-title {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin: 0 0 0.75rem;
+}
+
+.event-panel__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.event-panel__meta-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.event-panel__meta-label {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  min-width: 6rem;
+  flex-shrink: 0;
+}
+
+.event-panel__meta-value {
+  font-size: 0.8125rem;
+  color: var(--color-text-primary);
+  word-break: break-all;
+}
+
+.event-panel__meta-value--mono {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.event-panel__labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.event-panel__label-badge {
+  display: inline-flex;
+  padding: 0.125rem 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--color-primary);
+  background-color: var(--color-primary-light);
+  border-radius: var(--radius-full);
+}
+
+.event-panel__code {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
 </style>

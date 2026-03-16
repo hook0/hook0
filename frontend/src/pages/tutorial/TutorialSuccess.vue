@@ -2,7 +2,6 @@
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
-import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import { useRouter, useRoute } from 'vue-router';
@@ -24,6 +23,7 @@ import {
 } from 'lucide-vue-next';
 import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
+import { useCelebration } from '@/composables/useCelebration';
 
 const { t } = useI18n();
 
@@ -76,8 +76,15 @@ function goToApplicationDashboard() {
   });
 }
 
+const { celebrate } = useCelebration();
+
+function celebrateSuccess() {
+  celebrate(100);
+}
+
 onMounted(() => {
   _load();
+  celebrateSuccess();
 });
 </script>
 
@@ -127,46 +134,44 @@ onMounted(() => {
         </template>
       </Hook0CardHeader>
       <Hook0CardContent>
-        <Hook0CardContentLines>
-          <Hook0CardContentLine type="full-width">
-            <template #content>
-              <Hook0Stack direction="column" gap="md">
-                <i18n-t keypath="tutorial.congrats.feedback" tag="span">
-                  <template #discussions>
-                    <Hook0Button
-                      variant="link"
-                      href="https://documentation.hook0.com/discuss"
-                      target="_blank"
-                    >
-                      <BookOpen :size="14" aria-hidden="true" />
-                      {{ t('tutorial.congrats.discussions') }}
-                    </Hook0Button>
-                  </template>
-                  <template #changelog>
-                    <Hook0Button
-                      variant="link"
-                      href="https://documentation.hook0.com/changelog"
-                      target="_blank"
-                    >
-                      <Newspaper :size="14" aria-hidden="true" />
-                      {{ t('tutorial.congrats.changelog') }}
-                    </Hook0Button>
-                  </template>
-                  <template #documentation>
-                    <Hook0Button
-                      variant="link"
-                      href="https://documentation.hook0.com/docs/events"
-                      target="_blank"
-                    >
-                      <BookOpen :size="14" aria-hidden="true" />
-                      {{ t('tutorial.congrats.documentation') }}
-                    </Hook0Button>
-                  </template>
-                </i18n-t>
-              </Hook0Stack>
-            </template>
-          </Hook0CardContentLine>
-        </Hook0CardContentLines>
+        <Hook0CardContentLine type="full-width">
+          <template #content>
+            <Hook0Stack direction="column" gap="md">
+              <i18n-t keypath="tutorial.congrats.feedback" tag="span">
+                <template #discussions>
+                  <Hook0Button
+                    variant="link"
+                    href="https://documentation.hook0.com/discuss"
+                    target="_blank"
+                  >
+                    <BookOpen :size="14" aria-hidden="true" />
+                    {{ t('tutorial.congrats.discussions') }}
+                  </Hook0Button>
+                </template>
+                <template #changelog>
+                  <Hook0Button
+                    variant="link"
+                    href="https://documentation.hook0.com/changelog"
+                    target="_blank"
+                  >
+                    <Newspaper :size="14" aria-hidden="true" />
+                    {{ t('tutorial.congrats.changelog') }}
+                  </Hook0Button>
+                </template>
+                <template #documentation>
+                  <Hook0Button
+                    variant="link"
+                    href="https://documentation.hook0.com/docs/events"
+                    target="_blank"
+                  >
+                    <BookOpen :size="14" aria-hidden="true" />
+                    {{ t('tutorial.congrats.documentation') }}
+                  </Hook0Button>
+                </template>
+              </i18n-t>
+            </Hook0Stack>
+          </template>
+        </Hook0CardContentLine>
       </Hook0CardContent>
       <Hook0CardFooter>
         <Hook0Button variant="primary" type="button" @click="goToApplicationDashboard">

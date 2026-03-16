@@ -1,15 +1,22 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { Inbox } from 'lucide-vue-next';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 interface Props {
   title?: string;
   description?: string;
 }
 
-withDefaults(defineProps<Props>(), {
-  title: 'No data',
-  description: 'Get started by creating your first item.',
+const props = withDefaults(defineProps<Props>(), {
+  title: undefined,
+  description: undefined,
 });
+
+const resolvedTitle = computed(() => props.title ?? t('common.noData'));
+const resolvedDescription = computed(() => props.description ?? t('common.getStarted'));
 
 defineSlots<{
   illustration(): unknown;
@@ -31,8 +38,8 @@ defineSlots<{
         <Inbox :size="48" aria-hidden="true" />
       </slot>
     </div>
-    <h3 class="hook0-empty-state-title">{{ title }}</h3>
-    <p class="hook0-empty-state-description">{{ description }}</p>
+    <h3 class="hook0-empty-state-title">{{ resolvedTitle }}</h3>
+    <p class="hook0-empty-state-description">{{ resolvedDescription }}</p>
     <div v-if="$slots.code" class="hook0-empty-state-code">
       <slot name="code" />
     </div>

@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import Hook0Text from '@/components/Hook0Text.vue';
-
 interface Props {
   type?: 'split' | 'full-width' | 'split-content-component' | 'stacked' | 'columns';
 }
@@ -16,10 +14,8 @@ defineSlots<{
 
 <template>
   <div class="hook0-card-content-line" :class="type">
-    <dt>
-      <Hook0Text class="label">
-        <slot name="label"></slot>
-      </Hook0Text>
+    <dt class="hook0-card-content-line__label">
+      <slot name="label"></slot>
     </dt>
     <dd class="hook0-card-content-line-content">
       <slot name="content"></slot>
@@ -67,10 +63,17 @@ defineSlots<{
   margin-top: 0;
 }
 
+.hook0-card-content-line__label {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
 .hook0-card-content-line-content {
   margin-top: 0.25rem;
   font-size: 0.875rem;
-  color: #111827;
+  color: var(--color-text-primary);
 }
 
 @media (min-width: 640px) {

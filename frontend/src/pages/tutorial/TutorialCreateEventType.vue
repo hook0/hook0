@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
@@ -22,6 +21,7 @@ import { FolderTree, ArrowRight, X } from 'lucide-vue-next';
 import Hook0Badge from '@/components/Hook0Badge.vue';
 import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
+import { useCelebration } from '@/composables/useCelebration';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -68,6 +68,12 @@ function cancel() {
   router.back();
 }
 
+const { celebrate } = useCelebration();
+
+function celebrateStep() {
+  celebrate();
+}
+
 function goFourthStep() {
   if (organizationId.value && applicationId.value) {
     trackEvent('tutorial', 'step-complete', 'event-type');
@@ -77,6 +83,7 @@ function goFourthStep() {
       message: t('tutorial.step3.canCreateSubscription'),
       duration: 5000,
     });
+    celebrateStep();
     return router.push({
       name: routes.TutorialCreateSubscription,
       params: {
@@ -123,33 +130,28 @@ onMounted(() => {
         <template #subtitle>{{ t('tutorial.step3.subtitle') }}</template>
       </Hook0CardHeader>
       <Hook0CardContent>
-        <Hook0CardContentLines>
-          <Hook0CardContentLine type="full-width">
-            <template #content>
-              <Hook0Stack direction="column" gap="lg">
-                <Hook0ProgressBar :current="3" :items="progressItems" />
-                <Hook0Stack
-                  v-if="organizationId && applicationId && disabled_button"
-                  direction="column"
-                  gap="md"
-                >
-                  <Hook0Stack direction="row" align="center" gap="sm">
-                    <Hook0IconBadge variant="primary">
-                      <FolderTree :size="18" aria-hidden="true" />
-                    </Hook0IconBadge>
-                    <Hook0Stack direction="row" align="center" gap="none">
-                      {{ t('tutorial.step3.title') }}
-                    </Hook0Stack>
+        <Hook0CardContentLine type="full-width">
+          <template #content>
+            <Hook0Stack direction="column" gap="lg">
+              <Hook0ProgressBar :current="3" :items="progressItems" />
+              <Hook0Stack
+                v-if="organizationId && applicationId && disabled_button"
+                direction="column"
+                gap="md"
+              >
+                <Hook0Stack direction="row" align="center" gap="sm">
+                  <Hook0IconBadge variant="primary">
+                    <FolderTree :size="18" aria-hidden="true" />
+                  </Hook0IconBadge>
+                  <Hook0Stack direction="row" align="center" gap="none">
+                    {{ t('tutorial.step3.title') }}
                   </Hook0Stack>
-                  <EventTypesNew
-                    :tutorial-mode="true"
-                    @tutorial-event-type-created="goFourthStep"
-                  />
                 </Hook0Stack>
+                <EventTypesNew :tutorial-mode="true" @tutorial-event-type-created="goFourthStep" />
               </Hook0Stack>
-            </template>
-          </Hook0CardContentLine>
-        </Hook0CardContentLines>
+            </Hook0Stack>
+          </template>
+        </Hook0CardContentLine>
       </Hook0CardContent>
       <Hook0CardFooter>
         <Hook0Button

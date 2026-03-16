@@ -14,9 +14,10 @@ import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
 import Hook0Alert from '@/components/Hook0Alert.vue';
-import Hook0Text from '@/components/Hook0Text.vue';
+import Hook0Dialog from '@/components/Hook0Dialog.vue';
 import { push } from 'notivue';
 import { useTracking } from '@/composables/useTracking';
+import { usePermissions } from '@/composables/usePermissions';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
@@ -25,6 +26,9 @@ const route = useRoute();
 
 // Analytics tracking
 const { trackEvent } = useTracking();
+
+// Permissions
+const { canDelete } = usePermissions();
 
 interface Props {
   applicationId: string;
@@ -35,15 +39,16 @@ interface Props {
 const props = defineProps<Props>();
 
 const loading = ref(false);
+const showDeleteDialog = ref(false);
 
 function remove(e: Event) {
   e.preventDefault();
   e.stopImmediatePropagation();
+  showDeleteDialog.value = true;
+}
 
-  if (!confirm(`Are you sure to delete "${props.subscriptionName}" subscription?`)) {
-    return;
-  }
-
+function confirmRemove() {
+  showDeleteDialog.value = false;
   loading.value = true;
 
   SubscriptionsService.remove(props.applicationId, props.subscriptionId)
@@ -73,19 +78,19 @@ function displayError(err: Problem) {
 </script>
 
 <template>
-  <Hook0Card data-test="subscription-delete-card">
+  <Hook0Card v-if="canDelete('subscription')" data-test="subscription-delete-card">
     <Hook0CardHeader>
       <template #header>
         <Hook0Stack direction="row" align="center" gap="sm">
           <Hook0IconBadge variant="danger">
             <AlertTriangle :size="18" aria-hidden="true" />
           </Hook0IconBadge>
-          <Hook0Text>{{ t('remove.deleteSubscription') }}</Hook0Text>
+          <span class="sub-remove__title">{{ t('remove.deleteSubscription') }}</span>
         </Hook0Stack>
       </template>
       <template #subtitle>
         {{ t('remove.deleteSubscriptionWarning', { name: subscriptionName }) || '' }}
-        <Hook0Text variant="primary" weight="semibold">{{ subscriptionName }}</Hook0Text>
+        <span class="sub-remove__name">{{ subscriptionName }}</span>
       </template>
     </Hook0CardHeader>
     <Hook0CardContent>
@@ -110,9 +115,31 @@ function displayError(err: Problem) {
         {{ t('common.delete') }}
       </Hook0Button>
     </Hook0CardFooter>
+
+    <Hook0Dialog
+      :open="showDeleteDialog"
+      variant="danger"
+      :title="t('remove.deleteSubscription')"
+      @close="showDeleteDialog = false"
+      @confirm="confirmRemove()"
+    >
+      <p>{{ t('remove.confirmDeleteSubscription', { name: subscriptionName }) }}</p>
+    </Hook0Dialog>
   </Hook0Card>
 </template>
 
 <style scoped>
-/* Hook0Text handles all text styling */
+.sub-remove__title {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.sub-remove__name {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
 </style>

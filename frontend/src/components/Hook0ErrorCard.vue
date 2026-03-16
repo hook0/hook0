@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { AlertCircle, RefreshCw } from 'lucide-vue-next';
+import { useI18n } from 'vue-i18n';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import type { Problem } from '@/http';
+
+const { t } = useI18n();
 
 interface Props {
   error: Problem | Error | string;
@@ -18,8 +21,8 @@ const emit = defineEmits<{
 }>();
 
 function getTitle(): string {
-  if (typeof props.error === 'string') return 'Error';
-  if (props.error instanceof Error) return 'Error';
+  if (typeof props.error === 'string') return t('common.error');
+  if (props.error instanceof Error) return t('common.error');
   return `${props.error.title} (${props.error.status})`;
 }
 
@@ -42,7 +45,7 @@ function getDetail(): string {
         <template #left>
           <RefreshCw :size="14" aria-hidden="true" />
         </template>
-        Retry
+        {{ t('common.retry') }}
       </Hook0Button>
     </div>
   </Hook0Card>
@@ -59,7 +62,7 @@ function getDetail(): string {
 }
 
 .hook0-error-card-icon {
-  color: var(--color-danger);
+  color: var(--color-error);
   opacity: 0.6;
 }
 

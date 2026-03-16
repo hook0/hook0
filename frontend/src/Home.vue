@@ -49,7 +49,7 @@ const { t } = useI18n();
   position: relative;
   padding: 2rem 2.5rem;
   border-radius: var(--radius-xl);
-  background: linear-gradient(135deg, var(--color-primary) 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary) 100%);
   margin-bottom: 2.5rem;
   overflow: hidden;
 }
@@ -72,7 +72,7 @@ const { t } = useI18n();
 .home__title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #ffffff;
+  color: white;
   margin-bottom: 0.375rem;
   letter-spacing: -0.01em;
 }
@@ -84,7 +84,7 @@ const { t } = useI18n();
 }
 
 .home__link {
-  color: #ffffff;
+  color: white;
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 2px;

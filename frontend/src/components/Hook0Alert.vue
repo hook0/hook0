@@ -81,9 +81,9 @@ const alertIcon = computed(() => {
 
 /* Alert (error) */
 .hook0-alert.alert {
-  background-color: color-mix(in srgb, var(--color-danger) 8%, var(--color-bg-primary));
-  border-color: color-mix(in srgb, var(--color-danger) 25%, transparent);
-  color: var(--color-danger);
+  background-color: var(--color-error-light);
+  border-color: var(--color-error);
+  color: var(--color-error);
 }
 
 /* Warning */

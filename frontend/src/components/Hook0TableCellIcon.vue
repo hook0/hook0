@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import Hook0Icon from '@/components/Hook0Icon.vue';
+import type { Component } from 'vue';
 
 defineOptions({
   inheritAttrs: false,
 });
 
 interface Props {
-  icon: string;
+  icon: Component;
   title: string;
 }
 
@@ -14,5 +14,5 @@ defineProps<Props>();
 </script>
 
 <template>
-  <Hook0Icon :title="title" :name="icon" />
+  <component :is="icon" :size="16" aria-hidden="true" :title="title" />
 </template>

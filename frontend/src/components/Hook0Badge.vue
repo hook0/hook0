@@ -1,19 +1,27 @@
 <script setup lang="ts">
+import { computed } from 'vue';
+
 type BadgeVariant = 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info';
 type BadgeSize = 'sm' | 'md';
 type BadgeDisplay = 'badge' | 'trust' | 'step';
+
+const statusVariants: ReadonlySet<string> = new Set(['success', 'warning', 'danger', 'info']);
 
 interface Props {
   variant?: BadgeVariant;
   size?: BadgeSize;
   display?: BadgeDisplay;
+  ariaLabel?: string;
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   variant: 'default',
   size: 'md',
   display: 'badge',
+  ariaLabel: undefined,
 });
+
+const isStatusBadge = computed(() => statusVariants.has(props.variant));
 
 defineSlots<{
   default(): unknown;
@@ -27,6 +35,8 @@ defineSlots<{
     v-if="display === 'step'"
     class="hook0-badge-step"
     :class="[`hook0-badge-step--${variant}`]"
+    :role="isStatusBadge ? 'status' : undefined"
+    :aria-label="ariaLabel"
   >
     <slot />
   </span>
@@ -36,6 +46,8 @@ defineSlots<{
     v-else-if="display === 'trust'"
     class="hook0-badge-trust"
     :class="[`hook0-badge-trust--${variant}`]"
+    :role="isStatusBadge ? 'status' : undefined"
+    :aria-label="ariaLabel"
   >
     <span v-if="$slots.icon" class="hook0-badge-trust__icon">
       <slot name="icon" />
@@ -44,7 +56,13 @@ defineSlots<{
   </span>
 
   <!-- Standard badge display -->
-  <span v-else class="hook0-badge" :class="[variant, size]">
+  <span
+    v-else
+    class="hook0-badge"
+    :class="[variant, size]"
+    :role="isStatusBadge ? 'status' : undefined"
+    :aria-label="ariaLabel"
+  >
     <slot />
   </span>
 </template>
@@ -105,6 +123,8 @@ defineSlots<{
 .hook0-badge-trust {
   display: inline-flex;
   align-items: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
   gap: 0.5rem;
   font-size: 0.875rem;
   color: var(--color-text-secondary);

@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import type { Component } from 'vue';
 import type { RouteLocationRaw } from 'vue-router';
 
-import Hook0Icon from '@/components/Hook0Icon.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 
 defineOptions({
@@ -10,7 +10,7 @@ defineOptions({
 
 interface Props {
   value: string;
-  icon?: string;
+  icon?: Component;
   onClick?: () => void;
   href?: string;
   to?: RouteLocationRaw;
@@ -43,7 +43,7 @@ function handleClick(event: Event) {
     style="width: fit-content"
   >
     <template v-if="props.icon" #left>
-      <Hook0Icon class="mr-1" :name="props.icon" />
+      <component :is="props.icon" :size="14" aria-hidden="true" class="mr-1" />
     </template>
     <template #default>
       {{ props.value }}

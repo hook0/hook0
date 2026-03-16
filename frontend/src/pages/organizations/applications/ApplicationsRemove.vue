@@ -14,9 +14,10 @@ import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
 import Hook0Alert from '@/components/Hook0Alert.vue';
-import Hook0Text from '@/components/Hook0Text.vue';
+import Hook0Dialog from '@/components/Hook0Dialog.vue';
 import { push } from 'notivue';
 import { useTracking } from '@/composables/useTracking';
+import { usePermissions } from '@/composables/usePermissions';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
@@ -26,6 +27,9 @@ const router = useRouter();
 const { trackEvent } = useTracking();
 const route = useRoute();
 
+// Permissions
+const { canDelete } = usePermissions();
+
 interface Props {
   applicationId: string;
   applicationName: string;
@@ -34,15 +38,16 @@ interface Props {
 const props = defineProps<Props>();
 
 const loading = ref(false);
+const showDeleteDialog = ref(false);
 
 function remove(e: Event) {
   e.preventDefault();
   e.stopImmediatePropagation();
+  showDeleteDialog.value = true;
+}
 
-  if (!confirm(`Are you sure to delete "${props.applicationName}" application?`)) {
-    return;
-  }
-
+function confirmRemove() {
+  showDeleteDialog.value = false;
   loading.value = true;
 
   ApplicationsService.remove(props.applicationId)
@@ -72,19 +77,19 @@ function displayError(err: Problem) {
 </script>
 
 <template>
-  <Hook0Card data-test="application-delete-card">
+  <Hook0Card v-if="canDelete('application')" data-test="application-delete-card">
     <Hook0CardHeader>
       <template #header>
         <Hook0Stack direction="row" align="center" gap="sm">
           <Hook0IconBadge variant="danger">
             <AlertTriangle :size="18" aria-hidden="true" />
           </Hook0IconBadge>
-          <Hook0Text>{{ t('remove.deleteApplication') }}</Hook0Text>
+          <span class="app-remove__title">{{ t('remove.deleteApplication') }}</span>
         </Hook0Stack>
       </template>
       <template #subtitle>
         {{ t('remove.deleteApplicationWarning', { name: applicationName }) || '' }}
-        <Hook0Text variant="primary" weight="semibold">{{ applicationName }}</Hook0Text>
+        <span class="app-remove__name">{{ applicationName }}</span>
       </template>
     </Hook0CardHeader>
     <Hook0CardContent>
@@ -109,9 +114,31 @@ function displayError(err: Problem) {
         {{ t('common.delete') }}
       </Hook0Button>
     </Hook0CardFooter>
+
+    <Hook0Dialog
+      :open="showDeleteDialog"
+      variant="danger"
+      :title="t('remove.deleteApplication')"
+      @close="showDeleteDialog = false"
+      @confirm="confirmRemove()"
+    >
+      <p>{{ t('remove.confirmDeleteApplication', { name: applicationName }) }}</p>
+    </Hook0Dialog>
   </Hook0Card>
 </template>
 
 <style scoped>
-/* Hook0Text handles all text styling */
+.app-remove__title {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.app-remove__name {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
 </style>

@@ -183,6 +183,18 @@ code, pre, kbd, samp {
 }
 
 /* ========================================
+   Placeholder styles (light gray across all inputs)
+   ======================================== */
+
+input::placeholder,
+textarea::placeholder,
+select::placeholder,
+::placeholder {
+  color: var(--color-text-muted, #9ca3af) !important;
+  opacity: 1 !important;
+}
+
+/* ========================================
    Focus styles (WCAG 2.1 AA)
    ======================================== */
 

@@ -6,6 +6,9 @@ import { handleError, Problem } from '@/http';
 import { push } from 'notivue';
 import { routes } from '@/routes';
 import router from '@/router';
+import { useForm } from 'vee-validate';
+import { registerSchema } from './register.schema';
+import { toTypedSchema } from '@/utils/zod-adapter';
 import { useTracking } from '@/composables/useTracking';
 import { useI18n } from 'vue-i18n';
 import { ArrowRight, Check, Shield, CheckCircle } from 'lucide-vue-next';
@@ -18,7 +21,6 @@ import Hook0CardDivider from '@/components/Hook0CardDivider.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0Badge from '@/components/Hook0Badge.vue';
-import Hook0ListItem from '@/components/Hook0ListItem.vue';
 import Hook0TrustSection from '@/components/Hook0TrustSection.vue';
 import Hook0Testimonial from '@/components/Hook0Testimonial.vue';
 import Hook0Logo from '@/components/Hook0Logo.vue';
@@ -27,22 +29,22 @@ import Hook0InputRow from '@/components/Hook0InputRow.vue';
 import Hook0Captcha from '@/components/Hook0Captcha.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
 
-import LogoFranceNuage from '@/components/logos/LogoFranceNuage.vue';
-import LogoWoodWing from '@/components/logos/LogoWoodWing.vue';
-import LogoOptery from '@/components/logos/LogoOptery.vue';
-import LogoOkoora from '@/components/logos/LogoOkoora.vue';
-import LogoIcona from '@/components/logos/LogoIcona.vue';
-import LogoActiveAnts from '@/components/logos/LogoActiveAnts.vue';
+import CustomerLogo from '@/components/logos/CustomerLogo.vue';
 
 const { t } = useI18n();
 
 const authStore = useAuthStore();
 
-// Form state
-const email = ref<string>('');
-const firstName = ref<string>('');
-const lastName = ref<string>('');
-const password = ref<string>('');
+// VeeValidate form with Zod schema
+const { errors, defineField, handleSubmit } = useForm({
+  validationSchema: toTypedSchema(registerSchema),
+});
+
+const [email, emailAttrs] = defineField('email');
+const [firstName, firstNameAttrs] = defineField('firstName');
+const [lastName, lastNameAttrs] = defineField('lastName');
+const [password, passwordAttrs] = defineField('password');
+
 const isLoading = ref<boolean>(false);
 
 // Captcha token
@@ -64,7 +66,7 @@ onMounted(() => {
   trackEvent('signup', 'page-view', 'register');
 });
 
-function submit() {
+const onSubmit = handleSubmit((values) => {
   if (isLoading.value) return;
   isLoading.value = true;
 
@@ -72,10 +74,10 @@ function submit() {
 
   authStore
     .register(
-      email.value,
-      firstName.value,
-      lastName.value,
-      password.value,
+      values.email,
+      values.firstName,
+      values.lastName,
+      values.password,
       captchaToken.value !== '' ? captchaToken.value : undefined
     )
     .then(() => {
@@ -90,7 +92,7 @@ function submit() {
     .finally(() => {
       isLoading.value = false;
     });
-}
+});
 
 function displayError(err: Problem) {
   console.error(err);
@@ -114,38 +116,34 @@ function displayError(err: Problem) {
         <template #header>{{ t('auth.register.title') }}</template>
         <template #subtitle>
           <Hook0Badge variant="success">{{ t('auth.register.subtitle') }}</Hook0Badge>
-          <Hook0Stack direction="column" gap="sm" align="start">
-            <Hook0ListItem>
-              <template #icon>
-                <Check :size="16" aria-hidden="true" />
-              </template>
-              <template #left>{{ t('auth.register.benefit1') }}</template>
-            </Hook0ListItem>
-            <Hook0ListItem>
-              <template #icon>
-                <Check :size="16" aria-hidden="true" />
-              </template>
-              <template #left>{{ t('auth.register.benefit2') }}</template>
-            </Hook0ListItem>
-            <Hook0ListItem>
-              <template #icon>
-                <Check :size="16" aria-hidden="true" />
-              </template>
-              <template #left>{{ t('auth.register.benefit3') }}</template>
-            </Hook0ListItem>
-          </Hook0Stack>
+          <ul class="benefit-list">
+            <li class="benefit-list__item">
+              <Check :size="16" aria-hidden="true" class="benefit-list__icon" />
+              <span class="benefit-list__text">{{ t('auth.register.benefit1') }}</span>
+            </li>
+            <li class="benefit-list__item">
+              <Check :size="16" aria-hidden="true" class="benefit-list__icon" />
+              <span class="benefit-list__text">{{ t('auth.register.benefit2') }}</span>
+            </li>
+            <li class="benefit-list__item">
+              <Check :size="16" aria-hidden="true" class="benefit-list__icon" />
+              <span class="benefit-list__text">{{ t('auth.register.benefit3') }}</span>
+            </li>
+          </ul>
         </template>
       </Hook0CardHeader>
 
       <Hook0CardContent>
-        <Hook0Form data-test="register-form" :loading="isLoading" @submit="submit">
+        <Hook0Form data-test="register-form" :loading="isLoading" @submit="onSubmit">
           <Hook0Input
             id="email"
             v-model="email"
+            v-bind="emailAttrs"
             type="email"
             required
             :label="t('auth.register.email')"
             :placeholder="t('auth.register.emailPlaceholder')"
+            :error="errors.email"
             autocomplete="email"
             data-test="register-email-input"
             :disabled="isLoading"
@@ -156,10 +154,12 @@ function displayError(err: Problem) {
             <Hook0Input
               id="firstName"
               v-model="firstName"
+              v-bind="firstNameAttrs"
               type="text"
               required
               :label="t('auth.register.firstName')"
               :placeholder="t('auth.register.firstNamePlaceholder')"
+              :error="errors.firstName"
               autocomplete="given-name"
               data-test="register-firstname-input"
               :disabled="isLoading"
@@ -167,10 +167,12 @@ function displayError(err: Problem) {
             <Hook0Input
               id="lastName"
               v-model="lastName"
+              v-bind="lastNameAttrs"
               type="text"
               required
               :label="t('auth.register.lastName')"
               :placeholder="t('auth.register.lastNamePlaceholder')"
+              :error="errors.lastName"
               autocomplete="family-name"
               data-test="register-lastname-input"
               :disabled="isLoading"
@@ -180,11 +182,13 @@ function displayError(err: Problem) {
           <Hook0Input
             id="password"
             v-model="password"
+            v-bind="passwordAttrs"
             type="password"
             required
             show-password-toggle
             :label="t('auth.register.password')"
             :placeholder="t('auth.register.passwordPlaceholder')"
+            :error="errors.password"
             autocomplete="new-password"
             data-test="register-password-input"
             :disabled="isLoading"
@@ -252,54 +256,54 @@ function displayError(err: Problem) {
           href="https://github.com/France-Nuage/plateforme"
           target="_blank"
           rel="noopener noreferrer"
-          :tooltip="'France Nuage'"
+          :tooltip="t('auth.register.customers.franceNuage')"
         >
-          <LogoFranceNuage />
+          <CustomerLogo variant="france-nuage" />
         </Hook0Button>
         <Hook0Button
           variant="icon"
           href="https://www.woodwing.com/"
           target="_blank"
           rel="noopener noreferrer"
-          :tooltip="'WoodWing'"
+          :tooltip="t('auth.register.customers.woodWing')"
         >
-          <LogoWoodWing />
+          <CustomerLogo variant="woodwing" />
         </Hook0Button>
         <Hook0Button
           variant="icon"
           href="https://www.optery.com/"
           target="_blank"
           rel="noopener noreferrer"
-          :tooltip="'Optery'"
+          :tooltip="t('auth.register.customers.optery')"
         >
-          <LogoOptery />
+          <CustomerLogo variant="optery" />
         </Hook0Button>
         <Hook0Button
           variant="icon"
           href="https://www.icona.it/"
           target="_blank"
           rel="noopener noreferrer"
-          :tooltip="'Icona'"
+          :tooltip="t('auth.register.customers.icona')"
         >
-          <LogoIcona />
+          <CustomerLogo variant="icona" />
         </Hook0Button>
         <Hook0Button
           variant="icon"
           href="https://okoora.com/"
           target="_blank"
           rel="noopener noreferrer"
-          :tooltip="'Okoora'"
+          :tooltip="t('auth.register.customers.okoora')"
         >
-          <LogoOkoora />
+          <CustomerLogo variant="okoora" />
         </Hook0Button>
         <Hook0Button
           variant="icon"
           href="https://www.activeants.com/fr/"
           target="_blank"
           rel="noopener noreferrer"
-          :tooltip="'ActiveAnts'"
+          :tooltip="t('auth.register.customers.activeAnts')"
         >
-          <LogoActiveAnts />
+          <CustomerLogo variant="active-ants" />
         </Hook0Button>
       </Hook0TrustSection>
 
@@ -320,5 +324,31 @@ function displayError(err: Problem) {
 </template>
 
 <style scoped>
-/* All styling is handled by Hook0* components and Hook0PageLayout */
+.benefit-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.benefit-list__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0;
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+}
+
+.benefit-list__icon {
+  flex-shrink: 0;
+  color: var(--color-success);
+}
+
+.benefit-list__text {
+  color: var(--color-text-primary);
+}
 </style>

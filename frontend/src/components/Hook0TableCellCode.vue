@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import Hook0Text from '@/components/Hook0Text.vue';
-
 defineOptions({
   inheritAttrs: false,
 });
@@ -13,5 +11,18 @@ defineProps<Props>();
 </script>
 
 <template>
-  <Hook0Text class="code" style="width: fit-content">{{ value }}</Hook0Text>
+  <code class="table-cell-code__value">{{ value }}</code>
 </template>
+
+<style scoped>
+.table-cell-code__value {
+  color: var(--color-text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.5;
+  width: fit-content;
+  white-space: nowrap;
+  user-select: text;
+}
+</style>

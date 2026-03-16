@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, h } from 'vue';
+import { computed, h, markRaw, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
+import { Trash2 } from 'lucide-vue-next';
 
 import { useApplicationList, useRemoveApplication } from './useApplicationQueries';
 import type { Application } from './ApplicationService';
@@ -10,6 +11,7 @@ import { routes } from '@/routes';
 import { displayError } from '@/utils/displayError';
 import type { Problem } from '@/http';
 import { push } from 'notivue';
+import { usePermissions } from '@/composables/usePermissions';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -23,24 +25,39 @@ import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0EmptyState from '@/components/Hook0EmptyState.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
+import Hook0Dialog from '@/components/Hook0Dialog.vue';
 
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
+
+// Permissions
+const { canCreate, canDelete } = usePermissions();
 
 const organizationId = computed(() => route.params.organization_id as string);
 const { data: applications, isLoading, error, refetch } = useApplicationList(organizationId);
 
 const removeMutation = useRemoveApplication();
 
+const showDeleteDialog = ref(false);
+const applicationToDelete = ref<Application | null>(null);
+
 function handleDelete(app: Application) {
-  if (!confirm(t('applications.deleteConfirm'))) return;
+  applicationToDelete.value = app;
+  showDeleteDialog.value = true;
+}
+
+function confirmDelete() {
+  const app = applicationToDelete.value;
+  showDeleteDialog.value = false;
+  applicationToDelete.value = null;
+  if (!app) return;
 
   removeMutation.mutate(app.application_id, {
     onSuccess: () => {
       push.success({
-        title: t('common.success'),
-        message: `${app.name} deleted.`,
+        title: t('applications.deleted'),
+        message: t('applications.deletedMessage', { name: app.name }),
         duration: 3000,
       });
     },
@@ -68,19 +85,23 @@ const columns: ColumnDef<Application, unknown>[] = [
   },
   {
     accessorKey: 'application_id',
-    header: 'Id',
+    header: t('applications.id'),
     cell: (info) => h(Hook0TableCellCode, { value: String(info.getValue()) }),
   },
-  {
-    id: 'options',
-    header: t('common.actions'),
-    cell: (info) =>
-      h(Hook0TableCellLink, {
-        value: t('common.delete'),
-        icon: 'trash',
-        onClick: () => handleDelete(info.row.original),
-      }),
-  },
+  ...(canDelete('application')
+    ? [
+        {
+          id: 'options',
+          header: t('common.actions'),
+          cell: (info: { row: { original: Application } }) =>
+            h(Hook0TableCellLink, {
+              value: t('common.delete'),
+              icon: markRaw(Trash2),
+              onClick: () => handleDelete(info.row.original),
+            }),
+        },
+      ]
+    : []),
 ];
 </script>
 
@@ -126,7 +147,7 @@ const columns: ColumnDef<Application, unknown>[] = [
             :title="t('applications.empty.title')"
             :description="t('applications.empty.description')"
           >
-            <template #action>
+            <template v-if="canCreate('application')" #action>
               <Hook0Button
                 variant="primary"
                 type="button"
@@ -144,7 +165,7 @@ const columns: ColumnDef<Application, unknown>[] = [
           </Hook0EmptyState>
         </Hook0CardContent>
 
-        <Hook0CardFooter v-if="applications.length > 0">
+        <Hook0CardFooter v-if="applications.length > 0 && canCreate('application')">
           <Hook0Button
             variant="primary"
             type="button"
@@ -159,6 +180,19 @@ const columns: ColumnDef<Application, unknown>[] = [
         </Hook0CardFooter>
       </Hook0Card>
     </template>
+
+    <Hook0Dialog
+      :open="showDeleteDialog"
+      variant="danger"
+      :title="t('applications.delete')"
+      @close="
+        showDeleteDialog = false;
+        applicationToDelete = null;
+      "
+      @confirm="confirmDelete()"
+    >
+      <p>{{ t('applications.deleteConfirm') }}</p>
+    </Hook0Dialog>
   </Hook0PageLayout>
 </template>
 

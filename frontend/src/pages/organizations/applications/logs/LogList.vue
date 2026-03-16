@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, h } from 'vue';
+import { computed, h, markRaw, type Component } from 'vue';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
+import { Calendar, Pause, Loader2, X, Check, HelpCircle } from 'lucide-vue-next';
 
 import { useLogList } from './useLogQueries';
 import type { RequestAttemptTypeFixed } from './LogService';
@@ -48,20 +49,20 @@ function statusTitle(row: RequestAttemptTypeFixed): string {
   }
 }
 
-function statusIcon(row: RequestAttemptTypeFixed): string {
+function statusIcon(row: RequestAttemptTypeFixed): Component {
   switch (row.status.type) {
     case RequestAttemptStatusType.Waiting:
-      return 'calendar';
+      return markRaw(Calendar);
     case RequestAttemptStatusType.Pending:
-      return 'pause';
+      return markRaw(Pause);
     case RequestAttemptStatusType.InProgress:
-      return 'spinner';
+      return markRaw(Loader2);
     case RequestAttemptStatusType.Failed:
-      return 'times';
+      return markRaw(X);
     case RequestAttemptStatusType.Successful:
-      return 'check';
+      return markRaw(Check);
     default:
-      return 'question-circle';
+      return markRaw(HelpCircle);
   }
 }
 

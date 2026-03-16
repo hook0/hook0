@@ -29,7 +29,17 @@ function handleChange(event: Event) {
       class: $attrs.class,
     }"
   />
-  <div v-else class="border-gray-300 border rounded-md pl-3 pr-10 text-gray-400">
+  <div v-else class="hook0-table-cell-select--disabled">
     {{ props.modelValue.charAt(0).toUpperCase() + props.modelValue.slice(1) }}
   </div>
 </template>
+
+<style scoped>
+.hook0-table-cell-select--disabled {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding-left: 0.75rem;
+  padding-right: 2.5rem;
+  color: var(--color-text-muted);
+}
+</style>

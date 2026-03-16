@@ -1,22 +1,23 @@
-import { ref } from 'vue';
+import { markRaw, ref, type Component } from 'vue';
 import { RouteLocationRaw } from 'vue-router';
+import { Building2, AppWindow, FolderTree, Link, FileText } from 'lucide-vue-next';
 import { ApplicationInfo } from '../organizations/applications/ApplicationService';
 import { routes } from '@/routes';
 import { OrganizationInfo } from '../organizations/OrganizationService';
 
 export const progressItems = ref([
-  { icon: 'sitemap', title: 'Organization' },
-  { icon: 'rocket', title: 'Application' },
-  { icon: 'folder-tree', title: 'Event Type' },
-  { icon: 'link', title: 'Subscription' },
-  { icon: 'file-lines', title: 'Event' },
+  { icon: markRaw(Building2), title: 'Organization' },
+  { icon: markRaw(AppWindow), title: 'Application' },
+  { icon: markRaw(FolderTree), title: 'Event Type' },
+  { icon: markRaw(Link), title: 'Subscription' },
+  { icon: markRaw(FileText), title: 'Event' },
 ]);
 
 export interface Step {
   title: string;
   details: string;
   isActive: boolean;
-  icon?: string;
+  icon?: Component;
   route?: RouteLocationRaw;
 }
 
@@ -43,7 +44,7 @@ function applicationStep(organization_id: string, isActive: boolean): Step {
     title: 'Create an application',
     details: 'Isolated environment that contains everything webhook-related.',
     isActive,
-    icon: 'rocket',
+    icon: markRaw(AppWindow),
     route: {
       name: routes.TutorialCreateApplication,
       params: {
@@ -62,7 +63,7 @@ function eventTypeStep(
     title: 'Create an event type',
     details: 'Category of events you can pick or not when subscribing.',
     isActive,
-    icon: 'folder-tree',
+    icon: markRaw(FolderTree),
     route:
       application_id !== null
         ? {
@@ -85,7 +86,7 @@ function subscriptionStep(
     title: 'Create a subscription',
     details: 'Filter events and choose where you want them dispatched as webhooks.',
     isActive,
-    icon: 'link',
+    icon: markRaw(Link),
     route:
       application_id !== null
         ? {
@@ -108,7 +109,7 @@ function eventStep(
     title: 'Send an event',
     details: 'Something that happened in your application and could end up as a webhook.',
     isActive,
-    icon: 'file-lines',
+    icon: markRaw(FileText),
     route:
       application_id !== null
         ? {

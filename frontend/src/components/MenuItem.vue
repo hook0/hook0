@@ -18,9 +18,12 @@ defineProps<Props>();
 
 <style scoped>
 .default {
-  color: #ffffff;
+  color: var(--color-primary-text);
   display: flex;
   align-items: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  gap: 0.5rem;
   padding: 0.5rem;
   font-size: 0.875rem;
   font-weight: 500;
@@ -28,12 +31,16 @@ defineProps<Props>();
   cursor: pointer;
 }
 
+.default :deep(svg) {
+  flex-shrink: 0;
+}
+
 .active {
-  background-color: #111827;
+  background-color: var(--color-text-primary);
 }
 
 .inactive:hover {
-  color: #ffffff;
-  background-color: #374151;
+  color: var(--color-primary-text);
+  background-color: var(--color-text-secondary);
 }
 </style>
