@@ -9,8 +9,37 @@ const { t } = useI18n();
 const uiStore = useUiStore();
 
 const inputRef = ref<HTMLInputElement | null>(null);
+const overlayRef = ref<HTMLElement | null>(null);
 const { query, selectedIndex, filteredCommands, groupedCommands, close, onKeydown } =
   useCommandPalette(inputRef);
+
+function onOverlayKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    close();
+    return;
+  }
+
+  if (e.key === 'Tab' && overlayRef.value) {
+    const focusable = overlayRef.value.querySelectorAll<HTMLElement>(
+      'input, button, [tabindex]:not([tabindex="-1"])'
+    );
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else {
+      if (document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  }
+}
 </script>
 
 <template>
@@ -18,8 +47,10 @@ const { query, selectedIndex, filteredCommands, groupedCommands, close, onKeydow
     <Transition name="command-palette">
       <div
         v-if="uiStore.commandPaletteOpen"
+        ref="overlayRef"
         class="hook0-command-palette-overlay"
         @click.self="close"
+        @keydown="onOverlayKeydown"
       >
         <div
           class="hook0-command-palette"

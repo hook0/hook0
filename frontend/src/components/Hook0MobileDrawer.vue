@@ -7,7 +7,7 @@
  * - Navigation links based on context
  * - User menu options
  */
-import { computed, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import {
   X,
@@ -164,6 +164,53 @@ function handleBackdropClick(event: MouseEvent) {
     handleClose();
   }
 }
+
+const drawerRef = ref<HTMLElement | null>(null);
+
+function onDrawerKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    handleClose();
+    return;
+  }
+
+  if (e.key === 'Tab' && drawerRef.value) {
+    const focusable = drawerRef.value.querySelectorAll<HTMLElement>(
+      'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else {
+      if (document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  }
+}
+
+// Move focus into the drawer when it opens
+watch(
+  () => uiStore.mobileDrawerOpen,
+  (isOpen) => {
+    if (isOpen) {
+      void nextTick(() => {
+        const el = drawerRef.value;
+        if (!el) return;
+        const first = el.querySelector<HTMLElement>(
+          'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        first?.focus();
+      });
+    }
+  }
+);
 </script>
 
 <template>
@@ -177,9 +224,11 @@ function handleBackdropClick(event: MouseEvent) {
         <Transition name="drawer">
           <div
             v-if="uiStore.mobileDrawerOpen"
+            ref="drawerRef"
             class="hook0-mobile-drawer"
             role="dialog"
             aria-modal="true"
+            @keydown="onDrawerKeydown"
           >
             <!-- Handle -->
             <div class="hook0-mobile-drawer__handle" />

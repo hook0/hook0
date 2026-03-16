@@ -199,7 +199,9 @@
     "lightMode": "Light mode",
     "darkMode": "Dark mode",
     "logout": "Log out",
-    "more": "More"
+    "more": "More",
+    "userMenu": "User menu",
+    "skipToContent": "Skip to content"
   },
   "organizations": {
     "title": "Organizations",

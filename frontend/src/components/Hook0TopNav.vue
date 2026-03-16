@@ -8,7 +8,7 @@
  * - Integrated search trigger (Cmd+K)
  * - Clean, minimal design like Stripe Dashboard
  */
-import { computed, ref, onMounted } from 'vue';
+import { computed, ref, onBeforeUnmount, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   Webhook,
@@ -46,6 +46,7 @@ const contextStore = useContextStore();
 const uiStore = useUiStore();
 
 const instanceConfig = ref<InstanceConfig | null>(null);
+const userTriggerRef = ref<HTMLButtonElement | null>(null);
 
 onMounted(() => {
   getInstanceConfig()
@@ -175,6 +176,22 @@ function handleClickOutside(event: MouseEvent) {
   }
 }
 
+function onKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape' && userDropdownOpen.value) {
+    event.preventDefault();
+    closeDropdowns();
+    userTriggerRef.value?.focus();
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', onKeydown);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', onKeydown);
+});
+
 // Close dropdowns on route change
 router.afterEach(() => {
   closeDropdowns();
@@ -253,9 +270,11 @@ router.afterEach(() => {
     <!-- User Menu -->
     <div class="hook0-dropdown hook0-topnav__user">
       <button
+        ref="userTriggerRef"
         class="hook0-topnav__user-trigger"
         :aria-expanded="userDropdownOpen"
         aria-haspopup="true"
+        :aria-label="t('nav.userMenu')"
         @click.stop="userDropdownOpen = !userDropdownOpen"
       >
         <div class="hook0-topnav__user-avatar">
@@ -267,18 +286,21 @@ router.afterEach(() => {
         <div
           v-if="userDropdownOpen"
           class="hook0-topnav__dropdown hook0-topnav__dropdown--right hook0-topnav__dropdown--user"
+          role="menu"
+          aria-orientation="vertical"
         >
           <div class="hook0-topnav__dropdown-user-info">
             <div class="hook0-topnav__dropdown-user-email">{{ authStore.userInfo?.email }}</div>
           </div>
           <div class="hook0-topnav__dropdown-divider" />
-          <router-link :to="{ name: routes.UserSettings }" class="hook0-topnav__dropdown-item">
+          <router-link :to="{ name: routes.UserSettings }" class="hook0-topnav__dropdown-item" role="menuitem">
             <Settings :size="16" aria-hidden="true" />
             {{ t('nav.settings') }}
           </router-link>
           <Hook0Button
             variant="ghost"
             class="hook0-topnav__dropdown-item"
+            role="menuitem"
             @click="uiStore.toggleColorMode()"
           >
             <Sun v-if="uiStore.effectiveColorMode === 'dark'" :size="16" aria-hidden="true" />
@@ -289,6 +311,7 @@ router.afterEach(() => {
           <Hook0Button
             variant="ghost"
             class="hook0-topnav__dropdown-item hook0-topnav__dropdown-item--danger"
+            role="menuitem"
             @click="authStore.logout()"
           >
             <LogOut :size="16" aria-hidden="true" />

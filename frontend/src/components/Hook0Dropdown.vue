@@ -17,7 +17,7 @@ const dropdown = ref<HTMLElement | null>(null);
 const router = useRouter();
 
 defineSlots<{
-  menu(props: Hook0DropdownOptions): unknown;
+  menu(props: Hook0DropdownOptions & { ariaExpanded: boolean; ariaHaspopup: 'true' }): unknown;
   dropdown(props: Hook0DropdownOptions): unknown;
 }>();
 
@@ -122,8 +122,8 @@ onBeforeUnmount(() => {
 
 <template>
   <div :class="$attrs.class" class="hook0-dropdown">
-    <div ref="toggler" class="hook0-toggler" :aria-expanded="show" aria-haspopup="true">
-      <slot name="menu" :open="open" :close="close" :route="route" :toggle="toggle"></slot>
+    <div ref="toggler" class="hook0-toggler">
+      <slot name="menu" :open="open" :close="close" :route="route" :toggle="toggle" :aria-expanded="show" :aria-haspopup="'true'"></slot>
     </div>
 
     <div ref="dropdown">

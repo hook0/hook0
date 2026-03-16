@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { RouterView, useRoute } from 'vue-router';
 import { computed, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Notivue, Notification, NotificationProgress } from 'notivue';
 import { useAuthStore } from '@/stores/auth';
 import { useContextStore } from '@/stores/context';
@@ -14,6 +15,7 @@ import Hook0MobileDrawer from '@/components/Hook0MobileDrawer.vue';
 import Hook0CommandPalette from '@/components/Hook0CommandPalette.vue';
 import Hook0ShortcutsCheatSheet from '@/components/Hook0ShortcutsCheatSheet.vue';
 
+const { t } = useI18n();
 const route = useRoute();
 const authStore = useAuthStore();
 const contextStore = useContextStore();
@@ -65,11 +67,13 @@ const showFullScreen = computed(() => {
 
   <!-- Authenticated layout -->
   <div v-if="!showFullScreen" class="hook0-app" style="background-color: var(--color-bg-secondary)">
+    <a href="#main-content" class="skip-link">{{ t('nav.skipToContent') }}</a>
+
     <!-- Top Navigation (Stripe-style) -->
     <Hook0TopNav />
 
     <!-- Main content area -->
-    <main class="hook0-app__main" tabindex="0">
+    <main id="main-content" class="hook0-app__main">
       <div class="hook0-app__container">
         <!-- Breadcrumbs -->
         <Hook0Breadcrumbs />
@@ -105,6 +109,22 @@ const showFullScreen = computed(() => {
 </template>
 
 <style scoped>
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  padding: 0.5rem 1rem;
+  background: var(--color-primary);
+  color: var(--color-bg-primary);
+  z-index: 100;
+  border-radius: var(--radius-md);
+}
+
+.skip-link:focus {
+  top: 0.5rem;
+  left: 0.5rem;
+}
+
 .hook0-app {
   display: flex;
   flex-direction: column;

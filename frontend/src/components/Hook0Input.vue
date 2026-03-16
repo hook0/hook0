@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUpdated, ref, useAttrs, useSlots } from 'vue';
+import { computed, onMounted, onUpdated, ref, useAttrs, useId, useSlots } from 'vue';
 import { Eye, EyeOff } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 
@@ -31,7 +31,10 @@ defineSlots<{
   helpText(): unknown;
 }>();
 
+const generatedId = `hook0-input-${useId()}`;
+
 const attrs = useAttrs();
+const inputId = computed(() => (attrs.id as string) || generatedId);
 const inputAttrs = computed(() => {
   const { class: _cls, style: _sty, type: _type, ...rest } = attrs;
   return rest;
@@ -91,12 +94,13 @@ const modelStr = computed({
 
 <template>
   <div :class="$attrs.class">
-    <label v-if="label" class="hook0-label">{{ label }}</label>
+    <label v-if="label" :for="inputId" class="hook0-label">{{ label }}</label>
     <div
       class="hook0-input-wrapper"
       :class="{ 'hook0-input-wrapper--with-toggle': isPasswordWithToggle }"
     >
       <input
+        :id="inputId"
         ref="ipt"
         v-bind="inputAttrs"
         v-model="modelStr"
@@ -107,7 +111,7 @@ const modelStr = computed({
           'hook0-input--with-toggle': isPasswordWithToggle,
         }"
         :aria-invalid="!!error"
-        :aria-describedby="error ? `${String($attrs.id || '')}-error` : undefined"
+        :aria-describedby="error ? `${inputId}-error` : undefined"
       />
       <button
         v-if="isPasswordWithToggle"
@@ -122,7 +126,7 @@ const modelStr = computed({
     </div>
     <p
       v-if="error"
-      :id="`${String($attrs.id || '')}-error`"
+      :id="`${inputId}-error`"
       class="hook0-input-error-text"
       role="alert"
     >

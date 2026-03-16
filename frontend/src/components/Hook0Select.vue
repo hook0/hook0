@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUpdated } from 'vue';
+import { computed, onMounted, onUpdated, useId } from 'vue';
 
 import {
   firstValue,
@@ -23,6 +23,8 @@ const props = withDefaults(defineProps<Props>(), {
   label: undefined,
   error: undefined,
 });
+
+const selectId = `hook0-select-${useId()}`;
 
 const simpleOptions = computed(() =>
   (props.options as Hook0SelectSingleOption[]).filter(isSimpleOption)
@@ -58,13 +60,15 @@ onUpdated(() => {
 
 <template>
   <div>
-    <label v-if="label" class="hook0-select-label">{{ label }}</label>
+    <label v-if="label" :for="selectId" class="hook0-select-label">{{ label }}</label>
     <select
+      :id="selectId"
       v-bind="$attrs"
       v-model="model"
       class="hook0-select"
       :class="{ 'hook0-select-error': error }"
       :aria-invalid="!!error"
+      :aria-describedby="error ? `${selectId}-error` : undefined"
     >
       <optgroup v-for="group in groupedOptions" :key="group.label" :label="group.label">
         <option v-for="option in group.options" :key="option.value" :value="option.value">
@@ -76,7 +80,9 @@ onUpdated(() => {
         {{ option.label }}
       </option>
     </select>
-    <p v-if="error" class="hook0-select-error-text" role="alert">{{ error }}</p>
+    <p v-if="error" :id="`${selectId}-error`" class="hook0-select-error-text" role="alert">
+      {{ error }}
+    </p>
   </div>
 </template>
 
