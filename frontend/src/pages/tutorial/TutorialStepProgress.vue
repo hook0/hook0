@@ -60,11 +60,9 @@ function stepState(index: number): 'completed' | 'current' | 'future' {
 .step-progress__list {
   display: flex;
   align-items: flex-start;
-  justify-content: center;
   list-style: none;
   margin: 0;
   padding: 0;
-  gap: 0;
 }
 
 .step-progress__item {
@@ -79,12 +77,11 @@ function stepState(index: number): 'completed' | 'current' | 'future' {
 .step-progress__connector {
   position: absolute;
   top: 1.125rem;
+  left: -50%;
   right: 50%;
-  width: 100%;
   height: 2px;
   background-color: var(--color-border);
   z-index: 0;
-  transform: translateX(-50%);
 }
 
 .step-progress__connector--completed {
