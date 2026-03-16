@@ -360,7 +360,7 @@ function focusFirstElement() {
   background-color: var(--color-bg-primary);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-xl);
-  max-width: 48rem;
+  max-width: 60rem;
   width: 100%;
   max-height: 85vh;
   display: flex;

@@ -377,6 +377,7 @@
     "subscriptionLabels": "Subscription labels",
     "subscriptionLabelsHelp": "Hook0 will only forward events to subscriptions that have the same labels as specified in the event. If you specify multiple labels here, events will need to have at least the same labels to trigger this subscription (but they can have more).",
     "selectEventTypes": "Select event types to listen to",
+    "selectEventTypesWithLink": "Select {link} to listen to",
     "refreshEventTypes": "Refresh",
     "metadataLabel": "Metadata",
     "created": "Subscription created",

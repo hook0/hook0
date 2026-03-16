@@ -635,14 +635,19 @@ const testStatusVariant = computed(() => {
 
             <Hook0CardContentLine>
               <template #label>
-                <Hook0Stack direction="row" gap="xs" align="center">
-                  <span class="sub-edit__field-label">{{
-                    t('subscriptions.selectEventTypes')
-                  }}</span>
-                  <Hook0Button :to="{ name: routes.EventTypesList }" target="_blank">{{
-                    t('eventTypes.title')
-                  }}</Hook0Button>
-                  <Hook0Button @click="refetchEt()">
+                <Hook0Stack direction="column" gap="xs">
+                  <span class="sub-edit__field-label">
+                    <i18n-t keypath="subscriptions.selectEventTypesWithLink" tag="span">
+                      <template #link>
+                        <Hook0Button
+                          variant="link"
+                          :to="{ name: routes.EventTypesList }"
+                          target="_blank"
+                        >{{ t('eventTypes.title') }}</Hook0Button>
+                      </template>
+                    </i18n-t>
+                  </span>
+                  <Hook0Button :aria-label="t('subscriptions.refreshEventTypes')" @click="refetchEt()">
                     <RefreshCw :size="14" aria-hidden="true" />
                   </Hook0Button>
                 </Hook0Stack>
@@ -874,6 +879,7 @@ const testStatusVariant = computed(() => {
   font-size: 0.875rem;
   line-height: 1.5;
 }
+
 
 .sub-edit__event-type-label {
   color: var(--color-text-primary);
