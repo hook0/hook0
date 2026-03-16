@@ -29,3 +29,6 @@ CLAUDE.local.md
 .agents
 .gemini
 .opencode
+
+# worktrees
+.worktrees
