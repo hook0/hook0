@@ -5,7 +5,7 @@ const isFetching = useIsFetching();
 </script>
 
 <template>
-  <div v-if="isFetching.value > 0" class="refetch-bar" />
+  <div v-if="isFetching > 0" class="refetch-bar" />
 </template>
 
 <style scoped>
