@@ -191,4 +191,15 @@ const columns: ColumnDef<EventType, unknown>[] = [
   </Hook0PageLayout>
 </template>
 
-<style scoped></style>
+<style scoped>
+/* Prevent deactivate button text from being clipped on narrow screens */
+@media (max-width: 767px) {
+  :deep([data-test='event-type-deactivate-button']) {
+    font-size: 0;
+  }
+
+  :deep([data-test='event-type-deactivate-button'] svg) {
+    font-size: 1rem;
+  }
+}
+</style>

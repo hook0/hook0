@@ -26,15 +26,26 @@ export function useEntityContext() {
   const applicationId = computed(() => (route.params.application_id as string) || '');
 
   // Use TanStack Query to fetch entity details (leverages caching)
-  const { data: organization, isLoading: orgLoading } = useOrganizationDetail(organizationId);
-  const { data: application, isLoading: appLoading } = useApplicationDetail(applicationId);
+  const {
+    data: organization,
+    isLoading: orgLoading,
+    error: orgError,
+  } = useOrganizationDetail(organizationId);
+  const {
+    data: application,
+    isLoading: appLoading,
+    error: appError,
+  } = useApplicationDetail(applicationId);
 
   // Sync organization name to context store
+  // Falls back to truncated ID when entity not found (prevents permanent "Loading...")
   watch(
-    [organization, organizationId],
-    ([org, id]) => {
+    [organization, organizationId, orgError],
+    ([org, id, err]) => {
       if (id && org) {
         contextStore.setOrganizationWithName(id, org.name);
+      } else if (id && err) {
+        contextStore.setOrganizationWithName(id, `${id.substring(0, 8)}...`);
       } else if (!id) {
         contextStore.setOrganizationWithName(null, null);
       }
@@ -44,10 +55,12 @@ export function useEntityContext() {
 
   // Sync application name to context store
   watch(
-    [application, applicationId],
-    ([app, id]) => {
+    [application, applicationId, appError],
+    ([app, id, err]) => {
       if (id && app) {
         contextStore.setApplicationWithName(id, app.name);
+      } else if (id && err) {
+        contextStore.setApplicationWithName(id, `${id.substring(0, 8)}...`);
       } else if (!id) {
         contextStore.setApplicationWithName(null, null);
       }

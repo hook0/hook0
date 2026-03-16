@@ -532,6 +532,7 @@ router.afterEach(() => {
     color 0.15s ease,
     background-color 0.15s ease;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 @media (min-width: 768px) {
@@ -547,6 +548,9 @@ router.afterEach(() => {
 
 .hook0-topnav__nav-link-text {
   display: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @media (min-width: 1280px) {

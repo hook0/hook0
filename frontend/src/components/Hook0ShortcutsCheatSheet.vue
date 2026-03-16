@@ -99,7 +99,7 @@ function close() {
   width: 100%;
   max-width: 28rem;
   margin: 0 1rem;
-  background-color: var(--color-bg-primary);
+  background-color: var(--color-bg-elevated);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-xl);
   border: 1px solid var(--color-border);

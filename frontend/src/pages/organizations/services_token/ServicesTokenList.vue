@@ -416,5 +416,11 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
 </template>
 
 <style scoped>
-/* Component uses Hook0* components exclusively - no custom styles needed */
+/* Ensure MCP feature badges stack properly at narrow widths */
+:deep(.hook0-badge-trust) {
+  display: flex;
+  align-items: flex-start;
+  white-space: normal;
+  min-width: 0;
+}
 </style>
