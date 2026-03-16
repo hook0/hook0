@@ -832,7 +832,7 @@ onUnmounted(() => {
   margin: -0.125rem -0.25rem;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: color 0.15s ease, background-color 0.15s ease;
 }
 
 .hook0-breadcrumbs__dropdown-trigger--link {
@@ -916,7 +916,7 @@ onUnmounted(() => {
   border-radius: var(--radius-sm);
   cursor: pointer;
   text-align: left;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease;
 }
 
 .hook0-breadcrumbs__dropdown-item :deep(svg) {

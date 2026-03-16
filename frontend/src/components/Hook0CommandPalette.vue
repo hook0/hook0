@@ -157,7 +157,7 @@ const { query, selectedIndex, filteredCommands, groupedCommands, close, onKeydow
   color: var(--color-text-secondary);
   font-size: 0.875rem;
   cursor: pointer;
-  transition: all 0.1s ease;
+  transition: background-color 0.1s ease, color 0.1s ease;
   text-align: left;
 }
 

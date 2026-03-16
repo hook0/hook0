@@ -326,7 +326,7 @@ router.afterEach(() => {
   color: var(--color-text-secondary);
   cursor: pointer;
   border-radius: var(--radius-md);
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .hook0-topnav__mobile-toggle:hover {
@@ -404,7 +404,7 @@ router.afterEach(() => {
   color: var(--color-text-secondary);
   text-decoration: none;
   border-radius: var(--radius-md);
-  transition: all 0.15s ease;
+  transition: color 0.15s ease, background-color 0.15s ease;
   white-space: nowrap;
 }
 
@@ -443,7 +443,7 @@ router.afterEach(() => {
   background-color: var(--color-bg-secondary);
   color: var(--color-text-muted);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: border-color 0.15s ease;
   font-size: 0.8125rem;
 }
 
@@ -493,7 +493,7 @@ router.afterEach(() => {
   color: var(--color-text-secondary);
   text-decoration: none;
   border-radius: var(--radius-md);
-  transition: all 0.15s ease;
+  transition: color 0.15s ease, background-color 0.15s ease;
   white-space: nowrap;
 }
 
@@ -555,7 +555,7 @@ router.afterEach(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s ease;
+  transition: box-shadow 0.15s ease;
 }
 
 .hook0-topnav__user-trigger:hover .hook0-topnav__user-avatar {
@@ -605,7 +605,7 @@ router.afterEach(() => {
   background: none;
   cursor: pointer;
   border-radius: var(--radius-md);
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
   width: 100%;
   text-align: left;
   white-space: nowrap;
@@ -651,7 +651,7 @@ router.afterEach(() => {
 /* Dropdown animation */
 .dropdown-enter-active,
 .dropdown-leave-active {
-  transition: all 0.15s ease;
+  transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .dropdown-enter-from,

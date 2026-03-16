@@ -441,7 +441,7 @@ function handleBackdropClick(event: MouseEvent) {
   border-radius: var(--radius-md);
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .hook0-mobile-drawer__close:hover {
@@ -498,7 +498,7 @@ function handleBackdropClick(event: MouseEvent) {
   background: none;
   cursor: pointer;
   border-radius: var(--radius-md);
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
   width: 100%;
   text-align: left;
   white-space: nowrap;
@@ -550,7 +550,7 @@ function handleBackdropClick(event: MouseEvent) {
   background: transparent;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease;
 }
 
 .hook0-mobile-drawer__logout:hover {

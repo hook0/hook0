@@ -463,7 +463,7 @@ function getGradient(index: number): string {
   margin: calc(-1 * var(--spacing-md));
   padding: var(--spacing-md);
   border-radius: var(--radius-md);
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease;
   white-space: nowrap;
 }
 
@@ -521,7 +521,7 @@ function getGradient(index: number): string {
   justify-content: center;
   background-color: var(--color-bg-tertiary);
   color: var(--color-text-secondary);
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .app-list__item:hover .app-list__icon {
@@ -542,7 +542,7 @@ function getGradient(index: number): string {
   margin-left: 0.5rem;
   color: var(--color-text-tertiary);
   opacity: 0;
-  transition: all 0.15s ease;
+  transition: opacity 0.15s ease, color 0.15s ease;
 }
 
 .app-list__item:hover .app-list__chevron {
@@ -589,7 +589,7 @@ function getGradient(index: number): string {
   justify-content: center;
   border: 1.5px dashed var(--color-border-strong);
   color: var(--color-text-tertiary);
-  transition: all 0.15s ease;
+  transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
 }
 
 .app-list__action:hover .app-list__action-icon {
