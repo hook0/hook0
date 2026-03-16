@@ -33,7 +33,11 @@ const isLastStep = (index: number) => {
           class="absolute left-4 top-4 -ml-px mt-0.5 h-full w-0.5"
           :class="[isLastStep(index) ? '' : step.isCompleted ? 'bg-indigo-600' : 'bg-gray-300']"
         ></div>
-        <component :is="isNextStep(index) && step.route ? Hook0Button : 'div'" :to="step.route">
+        <component
+          :is="isNextStep(index) && step.route ? Hook0Button : 'div'"
+          :to="step.route"
+          :class="{ 'relative z-10 rounded-lg bg-white': isNextStep(index) }"
+        >
           <div class="relative flex items-start">
             <span class="flex h-9 items-center">
               <span
