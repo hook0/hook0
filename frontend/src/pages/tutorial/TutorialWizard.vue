@@ -200,7 +200,10 @@ const {
 
 const applicationOptions = computed(() => {
   const apps = rawApplications.value ?? [];
-  return [{ label: '', value: '' }, ...apps.map((a) => ({ label: a.name, value: a.application_id }))];
+  return [
+    { label: '', value: '' },
+    ...apps.map((a) => ({ label: a.name, value: a.application_id })),
+  ];
 });
 
 // Auto-select "create" if no applications exist
@@ -276,29 +279,33 @@ function validateParamsForStep(alertRef: typeof step3Alert) {
 }
 
 // Reset alerts on step change
-watch(currentStep, (step) => {
-  if (step === 3) {
-    step3Alert.value.visible = false;
-    step3Done.value = false;
-    validateParamsForStep(step3Alert);
-  }
-  if (step === 4) {
-    step4Alert.value.visible = false;
-    step4Done.value = false;
-    validateParamsForStep(step4Alert);
-  }
-  if (step === 5) {
-    step5Alert.value.visible = false;
-    step5Done.value = false;
-    validateParamsForStep(step5Alert);
-  }
-  if (step === 6) {
-    step6Alert.value.visible = false;
-    validateParamsForStep(step6Alert);
-    celebrate(100);
-    trackEvent('tutorial', 'complete');
-  }
-}, { immediate: true });
+watch(
+  currentStep,
+  (step) => {
+    if (step === 3) {
+      step3Alert.value.visible = false;
+      step3Done.value = false;
+      validateParamsForStep(step3Alert);
+    }
+    if (step === 4) {
+      step4Alert.value.visible = false;
+      step4Done.value = false;
+      validateParamsForStep(step4Alert);
+    }
+    if (step === 5) {
+      step5Alert.value.visible = false;
+      step5Done.value = false;
+      validateParamsForStep(step5Alert);
+    }
+    if (step === 6) {
+      step6Alert.value.visible = false;
+      validateParamsForStep(step6Alert);
+      celebrate(100);
+      trackEvent('tutorial', 'complete');
+    }
+  },
+  { immediate: true }
+);
 
 // ---------------------------------------------------------------------------
 // Step 3 — Event Type
@@ -384,7 +391,7 @@ function goToStep6() {
 function goToApplicationDashboard() {
   void router.push({
     name: routes.ApplicationsDashboard,
-    params: { organization_id: paramOrgId.value as string },
+    params: { organization_id: paramOrgId.value },
   });
 }
 
@@ -454,9 +461,9 @@ function handleOverlayClick(e: MouseEvent) {
 <template>
   <Teleport to="body">
     <Transition name="dialog-overlay">
-      <div class="wizard-overlay" @click="handleOverlayClick">
+      <div v-if="currentStep >= 0" class="wizard-overlay" @click="handleOverlayClick">
         <Transition name="dialog" appear>
-          <div class="wizard-modal">
+          <div v-if="currentStep >= 0" class="wizard-modal">
             <!-- ============================================================ -->
             <!-- STEP 0 — Intro                                               -->
             <!-- ============================================================ -->
@@ -512,7 +519,8 @@ function handleOverlayClick(e: MouseEvent) {
                           variant="link"
                           target="_blank"
                           href="https://documentation.hook0.com/docs/getting-started"
-                        >{{ t('tutorial.intro.programmatically') }}</Hook0Button>
+                          >{{ t('tutorial.intro.programmatically') }}</Hook0Button
+                        >
                       </template>
                     </i18n-t>
                   </Hook0Stack>
@@ -582,7 +590,8 @@ function handleOverlayClick(e: MouseEvent) {
                         <label
                           class="selectable-card"
                           :class="{
-                            'selectable-card--selected': orgSection === OrgSection.CreateOrganization,
+                            'selectable-card--selected':
+                              orgSection === OrgSection.CreateOrganization,
                           }"
                           data-test="tutorial-create-org-option"
                           @click="orgSection = OrgSection.CreateOrganization"
@@ -675,10 +684,7 @@ function handleOverlayClick(e: MouseEvent) {
                         <Hook0CardContentLine type="full-width">
                           <template #label>{{ t('tutorial.selectOrganization') }}</template>
                           <template #content>
-                            <Hook0Select
-                              v-model="selectedOrgId"
-                              :options="organizationOptions"
-                            />
+                            <Hook0Select v-model="selectedOrgId" :options="organizationOptions" />
                           </template>
                         </Hook0CardContentLine>
                       </Hook0CardContent>
@@ -740,9 +746,7 @@ function handleOverlayClick(e: MouseEvent) {
 
                   <TutorialStepProgress :steps="PROGRESS_STEPS" :current="1" />
 
-                  <Hook0Card
-                    v-if="step2OrgId && !appId && applicationOptions.length > 1"
-                  >
+                  <Hook0Card v-if="step2OrgId && !appId && applicationOptions.length > 1">
                     <Hook0CardHeader>
                       <template #header>
                         <Hook0Stack direction="row" align="center" gap="sm">
@@ -758,7 +762,8 @@ function handleOverlayClick(e: MouseEvent) {
                         <label
                           class="selectable-card"
                           :class="{
-                            'selectable-card--selected': appSection === AppSection.CreateApplication,
+                            'selectable-card--selected':
+                              appSection === AppSection.CreateApplication,
                           }"
                           @click="appSection = AppSection.CreateApplication"
                         >
@@ -833,7 +838,9 @@ function handleOverlayClick(e: MouseEvent) {
                   />
 
                   <!-- Select existing application -->
-                  <template v-if="step2OrgId && appSection === AppSection.SelectExistingApplication">
+                  <template
+                    v-if="step2OrgId && appSection === AppSection.SelectExistingApplication"
+                  >
                     <Hook0Card>
                       <Hook0CardContent>
                         <Hook0CardContentLine type="full-width">
@@ -841,10 +848,7 @@ function handleOverlayClick(e: MouseEvent) {
                             {{ t('tutorial.selectApplication') }}
                           </template>
                           <template #content>
-                            <Hook0Select
-                              v-model="selectedAppId"
-                              :options="applicationOptions"
-                            />
+                            <Hook0Select v-model="selectedAppId" :options="applicationOptions" />
                           </template>
                         </Hook0CardContentLine>
                       </Hook0CardContent>
@@ -919,10 +923,7 @@ function handleOverlayClick(e: MouseEvent) {
                         {{ t('tutorial.step3.title') }}
                       </Hook0Stack>
                     </Hook0Stack>
-                    <EventTypesNew
-                      :tutorial-mode="true"
-                      @tutorial-event-type-created="goToStep4"
-                    />
+                    <EventTypesNew :tutorial-mode="true" @tutorial-event-type-created="goToStep4" />
                   </Hook0Stack>
                 </Hook0Stack>
               </div>
@@ -1067,10 +1068,7 @@ function handleOverlayClick(e: MouseEvent) {
                         {{ t('tutorial.step5.title') }}
                       </Hook0Stack>
                     </Hook0Stack>
-                    <EventsList
-                      :tutorial-mode="true"
-                      @tutorial-event-sent="goToStep6"
-                    />
+                    <EventsList :tutorial-mode="true" @tutorial-event-sent="goToStep6" />
                   </Hook0Stack>
                 </Hook0Stack>
               </div>
@@ -1080,12 +1078,7 @@ function handleOverlayClick(e: MouseEvent) {
                   <X :size="16" aria-hidden="true" />
                   {{ t('tutorial.step5.skip') }}
                 </Hook0Button>
-                <Hook0Button
-                  v-if="step5Done"
-                  variant="primary"
-                  type="button"
-                  @click="goToStep6"
-                >
+                <Hook0Button v-if="step5Done" variant="primary" type="button" @click="goToStep6">
                   {{ t('tutorial.step5.backToApplication') }}
                   <ArrowRight :size="16" aria-hidden="true" />
                 </Hook0Button>
@@ -1185,11 +1178,7 @@ function handleOverlayClick(e: MouseEvent) {
               </div>
 
               <div class="wizard-modal__footer">
-                <Hook0Button
-                  variant="primary"
-                  type="button"
-                  @click="goToApplicationDashboard"
-                >
+                <Hook0Button variant="primary" type="button" @click="goToApplicationDashboard">
                   {{ t('tutorial.congrats.goToDashboard') }}
                   <ArrowRight :size="16" aria-hidden="true" />
                 </Hook0Button>
