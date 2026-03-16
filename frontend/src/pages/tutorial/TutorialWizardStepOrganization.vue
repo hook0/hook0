@@ -57,7 +57,7 @@ const {
 } = useOrganizationList();
 
 const organizationOptions = computed(() => [
-  { label: t('tutorial.selectOrganization'), value: null },
+  { label: t('tutorial.selectOrganization'), value: '' },
   ...(rawOrganizations.value ?? []).map((o) => ({ label: o.name, value: o.organization_id })),
 ]);
 
@@ -175,7 +175,7 @@ function handleAdvance() {
       {{ t('tutorial.skip') }}
     </Hook0Button>
     <Hook0Button
-      v-if="orgId || selectedOrgId"
+      v-if="orgId || (selectedOrgId && selectedOrgId !== '')"
       variant="primary"
       type="button"
       @click="handleAdvance"

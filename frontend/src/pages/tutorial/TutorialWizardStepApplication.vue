@@ -62,7 +62,7 @@ const {
 const applicationOptions = computed(() => {
   const apps = rawApplications.value ?? [];
   return [
-    { label: t('tutorial.selectApplication'), value: null },
+    { label: t('tutorial.selectApplication'), value: '' },
     ...apps.map((a) => ({ label: a.name, value: a.application_id })),
   ];
 });
@@ -182,7 +182,7 @@ function handleAdvance() {
       {{ t('tutorial.skip') }}
     </Hook0Button>
     <Hook0Button
-      v-if="organizationId && (appId || selectedAppId)"
+      v-if="organizationId && (appId || (selectedAppId && selectedAppId !== ''))"
       variant="primary"
       type="button"
       @click="handleAdvance"
