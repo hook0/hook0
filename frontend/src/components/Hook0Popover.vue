@@ -18,6 +18,8 @@ defineSlots<{
     close: () => void;
     toggle: () => void;
     isOpen: boolean;
+    ariaExpanded: boolean;
+    ariaControls: string;
   }): unknown;
   default(): unknown;
 }>();
@@ -86,7 +88,15 @@ onBeforeUnmount(() => {
 <template>
   <div ref="containerRef" class="hook0-popover">
     <div ref="triggerRef" class="hook0-popover__trigger">
-      <slot name="trigger" :open="open" :close="close" :toggle="toggle" :is-open="isOpen" />
+      <slot
+        name="trigger"
+        :open="open"
+        :close="close"
+        :toggle="toggle"
+        :is-open="isOpen"
+        :aria-expanded="isOpen"
+        :aria-controls="popoverId"
+      />
     </div>
 
     <transition name="hook0-popover-fade">
@@ -97,6 +107,7 @@ onBeforeUnmount(() => {
         class="hook0-popover__content"
         :class="[`hook0-popover__content--${props.position}`]"
         role="dialog"
+        aria-label="Popover"
         tabindex="-1"
       >
         <span
@@ -130,6 +141,9 @@ onBeforeUnmount(() => {
   box-shadow: var(--shadow-lg);
   z-index: 9999;
   min-width: 12rem;
+}
+
+.hook0-popover__content:focus:not(:focus-visible) {
   outline: none;
 }
 

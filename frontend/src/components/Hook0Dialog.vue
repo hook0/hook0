@@ -172,13 +172,13 @@ onBeforeUnmount(() => {
             :class="{ 'hook0-dialog--danger': variant === 'danger' }"
             role="dialog"
             aria-modal="true"
-            :aria-label="title"
+            aria-labelledby="hook0-dialog-title"
             tabindex="-1"
             @keydown="handleKeydown"
           >
             <!-- Header -->
             <div class="hook0-dialog__header">
-              <h2 class="hook0-dialog__title">
+              <h2 id="hook0-dialog-title" class="hook0-dialog__title">
                 <slot name="title">{{ title }}</slot>
               </h2>
               <Hook0Button

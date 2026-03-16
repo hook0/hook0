@@ -155,8 +155,11 @@ const modelStr = computed({
   opacity: 1;
 }
 
-.hook0-input:focus {
+.hook0-input:focus:not(:focus-visible) {
   outline: none;
+}
+
+.hook0-input:focus {
   border-color: var(--color-primary);
   box-shadow:
     0 0 0 1px var(--color-primary),

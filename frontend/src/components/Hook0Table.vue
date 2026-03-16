@@ -256,15 +256,18 @@ const rows = computed(() => table.getRowModel().rows);
                   ? 'descending'
                   : 'none'
             "
-            @click="header.column.getToggleSortingHandler()?.($event)"
           >
-            <div class="hook0-table-th-content">
+            <button
+              v-if="header.column.getCanSort()"
+              class="hook0-table-sort-button"
+              @click="header.column.getToggleSortingHandler()?.($event)"
+            >
               <FlexRender
                 v-if="!header.isPlaceholder"
                 :render="header.column.columnDef.header"
                 :props="header.getContext()"
               />
-              <span v-if="header.column.getCanSort()" class="hook0-table-sort-icon">
+              <span class="hook0-table-sort-icon">
                 <ArrowUp
                   v-if="header.column.getIsSorted() === 'asc'"
                   :size="14"
@@ -277,6 +280,13 @@ const rows = computed(() => table.getRowModel().rows);
                 />
                 <ArrowUpDown v-else :size="14" aria-hidden="true" class="hook0-table-sort-idle" />
               </span>
+            </button>
+            <div v-else class="hook0-table-th-content">
+              <FlexRender
+                v-if="!header.isPlaceholder"
+                :render="header.column.columnDef.header"
+                :props="header.getContext()"
+              />
             </div>
           </th>
         </tr>
@@ -304,7 +314,10 @@ const rows = computed(() => table.getRowModel().rows);
             :row-id="row.id"
             class="hook0-table-tr"
             :class="{ 'hook0-table-tr--clickable': clickableRows }"
+            :tabindex="clickableRows ? 0 : undefined"
+            :role="clickableRows ? 'row' : undefined"
             @click="handleRowClick(row.original)"
+            @keydown.enter="handleRowClick(row.original)"
           >
             <td v-for="cell in row.getVisibleCells()" :key="cell.id" class="hook0-table-td">
               <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
@@ -343,13 +356,27 @@ const rows = computed(() => table.getRowModel().rows);
   border-bottom: 1px solid var(--color-border);
 }
 
-.hook0-table-th.sortable {
+.hook0-table-sort-button {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: none;
+  border: none;
   cursor: pointer;
+  font: inherit;
+  color: inherit;
+  padding: 0;
   user-select: none;
 }
 
-.hook0-table-th.sortable:hover {
+.hook0-table-sort-button:hover {
   color: var(--color-text-primary);
+}
+
+.hook0-table-sort-button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
 }
 
 .hook0-table-th-content {

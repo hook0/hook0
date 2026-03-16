@@ -758,6 +758,7 @@
     "logout": "Logout"
   },
   "commandPalette": {
+    "title": "Command palette",
     "placeholder": "Type a command or search...",
     "noResults": "No results found.",
     "recent": "Recent",

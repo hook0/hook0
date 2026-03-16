@@ -42,6 +42,7 @@ function handleSubmit(event: Event) {
       'hook0-form--disabled': disabled,
       'hook0-form--loading': loading,
     }"
+    :aria-busy="loading"
     @submit="handleSubmit"
   >
     <slot />
@@ -54,8 +55,7 @@ function handleSubmit(event: Event) {
   flex-direction: column;
 }
 
-.hook0-form--disabled,
-.hook0-form--loading {
+.hook0-form--disabled {
   pointer-events: none;
 }
 

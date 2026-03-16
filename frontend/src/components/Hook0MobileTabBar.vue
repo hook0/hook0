@@ -93,15 +93,13 @@ const tabs = computed<TabItem[]>(() => {
 
 <template>
   <nav class="hook0-mobile-tab-bar" aria-label="Mobile navigation">
-    <div role="tablist" class="hook0-mobile-tab-list">
+    <div class="hook0-mobile-tab-list">
       <router-link
         v-for="tab in tabs"
         :key="tab.name"
         :to="tab.to"
         class="hook0-mobile-tab"
         :class="{ active: tab.active }"
-        role="tab"
-        :aria-selected="tab.active"
         :aria-current="tab.active ? 'page' : undefined"
       >
         <component :is="tab.icon" :size="20" aria-hidden="true" />
@@ -110,8 +108,6 @@ const tabs = computed<TabItem[]>(() => {
       <button
         v-if="contextStore.organizationId && contextStore.applicationId"
         class="hook0-mobile-tab"
-        role="tab"
-        :aria-selected="false"
         @click="uiStore.toggleMobileDrawer()"
       >
         <Menu :size="20" aria-hidden="true" />

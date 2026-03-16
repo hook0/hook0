@@ -55,7 +55,7 @@ function onOverlayKeydown(e: KeyboardEvent) {
         <div
           class="hook0-command-palette"
           role="dialog"
-          aria-label="Command palette"
+          :aria-label="t('commandPalette.title')"
           @keydown="onKeydown"
         >
           <div class="hook0-command-palette-input-wrapper">
@@ -70,6 +70,11 @@ function onOverlayKeydown(e: KeyboardEvent) {
               aria-expanded="true"
               aria-controls="command-list"
               aria-autocomplete="list"
+              :aria-activedescendant="
+                filteredCommands[selectedIndex]?.id
+                  ? 'cmd-item-' + filteredCommands[selectedIndex].id
+                  : undefined
+              "
             />
           </div>
 
@@ -82,6 +87,7 @@ function onOverlayKeydown(e: KeyboardEvent) {
               <div class="hook0-command-palette-group-label">{{ category }}</div>
               <button
                 v-for="item in items"
+                :id="'cmd-item-' + item.id"
                 :key="item.id"
                 class="hook0-command-palette-item"
                 :class="{ selected: filteredCommands.indexOf(item) === selectedIndex }"

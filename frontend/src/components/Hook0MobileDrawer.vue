@@ -231,7 +231,7 @@ watch(
             @keydown="onDrawerKeydown"
           >
             <!-- Handle -->
-            <div class="hook0-mobile-drawer__handle" />
+            <div class="hook0-mobile-drawer__handle" aria-hidden="true" />
 
             <!-- Header -->
             <div class="hook0-mobile-drawer__header">

@@ -170,8 +170,11 @@ onBeforeUnmount(() => {
     0 4px 6px -2px rgba(0, 0, 0, 0.05);
   background-color: var(--color-bg-primary);
   ring: 1px solid rgba(0, 0, 0, 0.05);
-  outline: none;
   z-index: 50;
+}
+
+.hook0-dropdown-panel:focus:not(:focus-visible) {
+  outline: none;
 }
 
 .hook0-dropdown-panel :deep(> * + *) {

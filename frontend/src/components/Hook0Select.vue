@@ -109,8 +109,11 @@ onUpdated(() => {
     box-shadow 0.15s ease;
 }
 
-.hook0-select:focus {
+.hook0-select:focus:not(:focus-visible) {
   outline: none;
+}
+
+.hook0-select:focus {
   border-color: var(--color-primary);
   box-shadow:
     0 0 0 1px var(--color-primary),

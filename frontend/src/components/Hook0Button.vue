@@ -251,6 +251,9 @@ const spinnerSize: Record<ButtonSize, number> = {
   user-select: none;
   text-decoration: none;
   white-space: nowrap;
+}
+
+.hook0-button:focus:not(:focus-visible) {
   outline: none;
 }
 
@@ -268,7 +271,6 @@ const spinnerSize: Record<ButtonSize, number> = {
 .hook0-button[aria-disabled='true'] {
   opacity: 0.5;
   cursor: not-allowed;
-  pointer-events: none;
 }
 
 /* Variants */

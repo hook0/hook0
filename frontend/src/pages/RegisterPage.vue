@@ -257,6 +257,7 @@ function displayError(err: Problem) {
           target="_blank"
           rel="noopener noreferrer"
           :tooltip="t('auth.register.customers.franceNuage')"
+          :aria-label="t('auth.register.customers.franceNuage')"
         >
           <CustomerLogo variant="france-nuage" />
         </Hook0Button>
@@ -266,6 +267,7 @@ function displayError(err: Problem) {
           target="_blank"
           rel="noopener noreferrer"
           :tooltip="t('auth.register.customers.woodWing')"
+          :aria-label="t('auth.register.customers.woodWing')"
         >
           <CustomerLogo variant="woodwing" />
         </Hook0Button>
@@ -275,6 +277,7 @@ function displayError(err: Problem) {
           target="_blank"
           rel="noopener noreferrer"
           :tooltip="t('auth.register.customers.optery')"
+          :aria-label="t('auth.register.customers.optery')"
         >
           <CustomerLogo variant="optery" />
         </Hook0Button>
@@ -284,6 +287,7 @@ function displayError(err: Problem) {
           target="_blank"
           rel="noopener noreferrer"
           :tooltip="t('auth.register.customers.icona')"
+          :aria-label="t('auth.register.customers.icona')"
         >
           <CustomerLogo variant="icona" />
         </Hook0Button>
@@ -293,6 +297,7 @@ function displayError(err: Problem) {
           target="_blank"
           rel="noopener noreferrer"
           :tooltip="t('auth.register.customers.okoora')"
+          :aria-label="t('auth.register.customers.okoora')"
         >
           <CustomerLogo variant="okoora" />
         </Hook0Button>
@@ -302,6 +307,7 @@ function displayError(err: Problem) {
           target="_blank"
           rel="noopener noreferrer"
           :tooltip="t('auth.register.customers.activeAnts')"
+          :aria-label="t('auth.register.customers.activeAnts')"
         >
           <CustomerLogo variant="active-ants" />
         </Hook0Button>
