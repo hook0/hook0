@@ -21,7 +21,11 @@ import { intersectWith } from '@/utils/fp';
 import { useTracking } from '@/composables/useTracking';
 import { usePermissions } from '@/composables/usePermissions';
 import type { Hook0SelectSingleOption } from '@/components/Hook0Select';
-import type { Hook0KeyValueKeyValuePair } from '@/components/Hook0KeyValue';
+import {
+  kvPairsToRecord,
+  recordToKvPairs,
+  type Hook0KeyValueKeyValuePair,
+} from '@/components/Hook0KeyValue';
 
 import SubscriptionsRemove from './SubscriptionsRemove.vue';
 import Hook0Loader from '@/components/Hook0Loader.vue';
@@ -154,11 +158,11 @@ watch(subscriptionData, (sub) => {
     createdAt.value = sub.created_at;
     isEnabled.value = sub.is_enabled;
     dedicatedWorkers.value = [...sub.dedicated_workers];
-    labels.value = fromMap(sub.labels);
+    labels.value = recordToKvPairs(sub.labels);
     labelsMap.value = { ...sub.labels };
-    metadata.value = fromMap(sub.metadata);
+    metadata.value = recordToKvPairs(sub.metadata);
     metadataMap.value = { ...sub.metadata };
-    headersKv.value = fromMap(sub.target.headers);
+    headersKv.value = recordToKvPairs(sub.target.headers);
     headersMap.value = { ...sub.target.headers } as unknown as Record<string, string>;
   }
 });
@@ -194,35 +198,16 @@ function cancel2() {
   router.back();
 }
 
-function fromMap(headers: Record<string, unknown>): Hook0KeyValueKeyValuePair[] {
-  return Object.entries(headers).map(([key, value]) => ({
-    key,
-    value: typeof value === 'string' ? value : JSON.stringify(value),
-  }));
-}
-
-function toMap(
-  pairs: Hook0KeyValueKeyValuePair[] | Record<string, string>
-): Record<string, string> {
-  if (Array.isArray(pairs)) {
-    return pairs.reduce<Record<string, string>>((m, { key, value }) => {
-      m[key] = value;
-      return m;
-    }, {});
-  }
-  return pairs;
-}
-
 function onHeadersUpdate(pairs: Hook0KeyValueKeyValuePair[] | Record<string, string>) {
-  headersMap.value = toMap(pairs);
+  headersMap.value = Array.isArray(pairs) ? kvPairsToRecord(pairs) : pairs;
 }
 
 function onLabelsUpdate(pairs: Hook0KeyValueKeyValuePair[] | Record<string, string>) {
-  labelsMap.value = toMap(pairs);
+  labelsMap.value = Array.isArray(pairs) ? kvPairsToRecord(pairs) : pairs;
 }
 
 function onMetadataUpdate(pairs: Hook0KeyValueKeyValuePair[] | Record<string, string>) {
-  metadataMap.value = toMap(pairs);
+  metadataMap.value = Array.isArray(pairs) ? kvPairsToRecord(pairs) : pairs;
 }
 
 /**
