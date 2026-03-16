@@ -114,7 +114,7 @@ function handleAdvance() {
           </template>
         </Hook0CardHeader>
         <Hook0CardContent>
-          <Hook0Stack layout="grid" gap="md" grid-size="compact" role="radiogroup">
+          <Hook0Stack layout="grid" gap="md" grid-size="cards" role="radiogroup">
             <SelectableCard
               :model-value="orgSection === OrgSection.CreateOrganization"
               :label="t('tutorial.createNewOrganization')"
