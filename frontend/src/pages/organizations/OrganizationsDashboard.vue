@@ -49,8 +49,8 @@ const widgetItems = computed(() => {
 
 <template>
   <Hook0PageLayout :title="t('organizations.dashboard')">
-    <!-- Loading -->
-    <Hook0CardSkeleton v-if="orgLoading" :lines="4" />
+    <!-- Loading (also shown when query is disabled and data is undefined) -->
+    <Hook0CardSkeleton v-if="orgLoading || (!organization && !orgError)" :lines="4" />
 
     <!-- Error -->
     <Hook0ErrorCard v-else-if="orgError" :error="orgError" @retry="refetchOrg()" />

@@ -508,6 +508,8 @@ watch(
   overflow-y: auto;
   padding: 0.75rem;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 
 .hook0-mobile-drawer__section {

@@ -121,7 +121,7 @@ defineSlots<{
 
 /* Trust indicator styles */
 .hook0-badge-trust {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   flex-wrap: nowrap;
   white-space: nowrap;

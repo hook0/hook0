@@ -30,6 +30,14 @@ import 'notivue/notification-progress.css';
 // Root component
 import App from './App.vue';
 
+// Apply color mode from localStorage before app renders to prevent flash
+{
+  const theme = window.localStorage.getItem('hook0-theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const isDark = theme === 'dark' || (theme !== 'light' && prefersDark);
+  document.documentElement.classList.toggle('dark', isDark);
+}
+
 // Create app
 const app = createApp(App);
 

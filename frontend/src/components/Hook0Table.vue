@@ -416,6 +416,9 @@ const rows = computed(() => table.getRowModel().rows);
   color: var(--color-text-primary);
   border-bottom: 1px solid var(--color-border);
   vertical-align: middle;
+  max-width: 20rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 

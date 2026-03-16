@@ -54,11 +54,12 @@ const barStyle = computed(() => ({
 }
 
 .hook0-progress-bar__fill--low {
-  color: var(--color-text-primary);
+  min-width: 2.5rem;
 }
 
 .hook0-progress-bar__fill--empty {
   background-color: transparent;
+  color: var(--color-text-secondary);
 }
 
 .hook0-progress-bar__fill--normal {
