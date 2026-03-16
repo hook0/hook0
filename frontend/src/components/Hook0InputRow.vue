@@ -42,7 +42,7 @@ const gapMap: Record<Gap, string> = {
 
 .hook0-input-row > :deep(*) {
   flex: 1;
-  min-width: 0;
+  min-width: 6rem;
 }
 
 @media (max-width: 640px) {

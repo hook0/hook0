@@ -326,6 +326,7 @@ const spinnerSize: Record<ButtonSize, number> = {
   border: 1px solid transparent;
   padding-left: 0;
   padding-right: 0;
+  font-size: inherit;
 }
 
 .hook0-button.link:hover:not([disabled]) {
