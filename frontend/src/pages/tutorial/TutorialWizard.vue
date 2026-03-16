@@ -1,5 +1,13 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, markRaw, nextTick, ref, onMounted, onUnmounted } from 'vue';
+import {
+  computed,
+  defineAsyncComponent,
+  markRaw,
+  nextTick,
+  ref,
+  onMounted,
+  onUnmounted,
+} from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { push } from 'notivue';
@@ -283,60 +291,55 @@ function focusFirstElement() {
 
 <template>
   <Teleport to="body">
-    <Transition name="dialog-overlay" appear>
-      <div v-show="true" ref="overlayRef" class="wizard-overlay" @click="handleOverlayClick">
-        <Transition name="dialog" appear>
-          <div
-            v-show="true"
-            ref="modalRef"
-            class="wizard-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="wizard-step-title"
-            @keydown="handleFocusTrap"
-          >
-            <TutorialWizardStepIntro
-              v-if="currentStep === 0"
-              @start="handleIntroStart"
-              @skip="dismiss"
-            />
+    <div ref="overlayRef" class="wizard-overlay" @click="handleOverlayClick">
+      <div
+        ref="modalRef"
+        class="wizard-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="wizard-step-title"
+        @keydown="handleFocusTrap"
+      >
+        <TutorialWizardStepIntro
+          v-if="currentStep === 0"
+          @start="handleIntroStart"
+          @skip="dismiss"
+        />
 
-            <TutorialWizardStepOrganization
-              v-else-if="currentStep === 1"
-              :progress-steps="PROGRESS_STEPS"
-              @advance="handleOrgAdvance"
-              @skip="dismiss"
-            />
+        <TutorialWizardStepOrganization
+          v-else-if="currentStep === 1"
+          :progress-steps="PROGRESS_STEPS"
+          @advance="handleOrgAdvance"
+          @skip="dismiss"
+        />
 
-            <TutorialWizardStepApplication
-              v-else-if="currentStep === 2"
-              :organization-id="paramOrgId"
-              :progress-steps="PROGRESS_STEPS"
-              @advance="handleAppAdvance"
-              @skip="dismiss"
-            />
+        <TutorialWizardStepApplication
+          v-else-if="currentStep === 2"
+          :organization-id="paramOrgId"
+          :progress-steps="PROGRESS_STEPS"
+          @advance="handleAppAdvance"
+          @skip="dismiss"
+        />
 
-            <TutorialWizardStepForm
-              v-else-if="currentStep >= 3 && currentStep <= 5"
-              :key="currentStep"
-              :step="currentStep as 3 | 4 | 5"
-              :organization-id="paramOrgId"
-              :application-id="paramAppId"
-              :progress-steps="PROGRESS_STEPS"
-              @advance="handleFormAdvance"
-              @skip="dismiss"
-            />
+        <TutorialWizardStepForm
+          v-else-if="currentStep >= 3 && currentStep <= 5"
+          :key="currentStep"
+          :step="(currentStep as 3 | 4 | 5)"
+          :organization-id="paramOrgId"
+          :application-id="paramAppId"
+          :progress-steps="PROGRESS_STEPS"
+          @advance="handleFormAdvance"
+          @skip="dismiss"
+        />
 
-            <TutorialWizardStepSuccess
-              v-else-if="currentStep === 6"
-              :organization-id="paramOrgId"
-              :application-id="paramAppId"
-              @dismiss="dismiss"
-            />
-          </div>
-        </Transition>
+        <TutorialWizardStepSuccess
+          v-else-if="currentStep === 6"
+          :organization-id="paramOrgId"
+          :application-id="paramAppId"
+          @dismiss="dismiss"
+        />
       </div>
-    </Transition>
+    </div>
   </Teleport>
 </template>
 
