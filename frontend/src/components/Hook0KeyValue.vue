@@ -9,8 +9,14 @@ import { Minus, Plus } from 'lucide-vue-next';
 
 const { t } = useI18n();
 
-function getDefaultItem(): Hook0KeyValueKeyValuePair {
-  return { key: '', value: '' };
+let pairIdCounter = 0;
+
+interface InternalPair extends Hook0KeyValueKeyValuePair {
+  _id: number;
+}
+
+function getDefaultItem(): InternalPair {
+  return { key: '', value: '', _id: pairIdCounter++ };
 }
 
 type Hook0KeyValuePlainObject = Record<string, string>;
@@ -74,7 +80,10 @@ function getNewInternalState(val: Hook0KeyValueKeyValuePair[] | Hook0KeyValuePla
     ? MODE[RWMode.ARRAY]
     : MODE[RWMode.OBJECT];
 
-  const pairs = encoder.init(val as Hook0KeyValueKeyValuePair[] & Hook0KeyValuePlainObject);
+  const raw = encoder.init(val as Hook0KeyValueKeyValuePair[] & Hook0KeyValuePlainObject);
+  const pairs: InternalPair[] = raw.map((p) =>
+    '_id' in p ? (p as InternalPair) : { ...p, _id: pairIdCounter++ }
+  );
   return { encoder, pairs };
 }
 
@@ -128,7 +137,7 @@ function add() {
   <div class="w-full">
     <div
       v-for="(item, index) in state.pairs"
-      :key="index"
+      :key="item._id"
       class="kv-item"
       :data-test="`kv-item-${index}`"
     >
@@ -153,6 +162,7 @@ function add() {
         variant="secondary"
         size="sm"
         class="col-span-1"
+        :aria-label="t('common.remove')"
         :data-test="`kv-remove-button-${index}`"
         @click="remove(index)"
       >
@@ -162,6 +172,7 @@ function add() {
         variant="secondary"
         size="sm"
         class="col-span-1"
+        :aria-label="t('common.add')"
         :data-test="`kv-add-button-${index}`"
         @click="add()"
       >

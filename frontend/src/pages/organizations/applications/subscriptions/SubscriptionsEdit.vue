@@ -649,7 +649,10 @@ const testStatusVariant = computed(() => {
                     </i18n-t>
                   </span>
                   <Hook0Button
+                    variant="ghost"
+                    size="sm"
                     :aria-label="t('subscriptions.refreshEventTypes')"
+                    :title="t('subscriptions.refreshEventTypes')"
                     @click="refetchEt()"
                   >
                     <RefreshCw :size="14" aria-hidden="true" />
@@ -693,8 +696,8 @@ const testStatusVariant = computed(() => {
             <template #content>
               <Hook0KeyValue
                 :value="metadata"
-                key-placeholder="key"
-                value-placeholder="value"
+                :key-placeholder="t('common.key')"
+                :value-placeholder="t('common.value')"
                 @update:model-value="onMetadataUpdate($event)"
               ></Hook0KeyValue>
             </template>

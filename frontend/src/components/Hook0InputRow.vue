@@ -45,7 +45,7 @@ const gapMap: Record<Gap, string> = {
   min-width: 6rem;
 }
 
-.hook0-input-row > :deep(span) {
+.hook0-input-row > :deep(.hook0-input-row__separator) {
   flex: 0;
   min-width: auto;
 }

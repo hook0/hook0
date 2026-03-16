@@ -32,6 +32,7 @@ const organizationId = computed(() => route.params.organization_id as string);
 const {
   data: organization,
   isLoading: orgLoading,
+  isFetched: orgFetched,
   error: orgError,
   refetch: refetchOrg,
 } = useOrganizationDetail(organizationId);
@@ -50,10 +51,20 @@ const widgetItems = computed(() => {
 <template>
   <Hook0PageLayout :title="t('organizations.dashboard')">
     <!-- Loading (also shown when query is disabled and data is undefined) -->
-    <Hook0CardSkeleton v-if="orgLoading || (!organization && !orgError)" :lines="4" />
+    <Hook0CardSkeleton
+      v-if="orgLoading || (!organization && !orgError && !orgFetched)"
+      :lines="4"
+    />
 
     <!-- Error -->
     <Hook0ErrorCard v-else-if="orgError" :error="orgError" @retry="refetchOrg()" />
+
+    <!-- Not found (fetched but no data and no error) -->
+    <Hook0ErrorCard
+      v-else-if="!organization"
+      :error="new Error(t('organizations.notFound'))"
+      @retry="refetchOrg()"
+    />
 
     <!-- Data loaded -->
     <template v-else-if="organization">

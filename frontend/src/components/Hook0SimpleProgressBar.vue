@@ -22,7 +22,13 @@ const barStyle = computed(() => ({
 </script>
 
 <template>
-  <div class="hook0-progress-bar">
+  <div
+    class="hook0-progress-bar"
+    role="progressbar"
+    :aria-valuenow="clampedPercentage"
+    aria-valuemin="0"
+    aria-valuemax="100"
+  >
     <div
       class="hook0-progress-bar__fill"
       :class="[
@@ -50,7 +56,7 @@ const barStyle = computed(() => ({
   line-height: 1;
   border-radius: var(--radius-lg);
   font-weight: 800;
-  color: white;
+  color: var(--color-primary-text);
 }
 
 .hook0-progress-bar__fill--low {

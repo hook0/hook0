@@ -2,12 +2,13 @@ import { defineStore } from 'pinia';
 import { ref, computed, watch } from 'vue';
 import { useMediaQuery } from '@vueuse/core';
 
-const LOCAL_STORAGE_KEY_THEME = 'hook0-theme';
+import { LOCAL_STORAGE_KEY_THEME, resolveIsDark } from '@/constants/theme';
+export type { ColorMode } from '@/constants/theme';
+import type { ColorMode } from '@/constants/theme';
+
 const LOCAL_STORAGE_KEY_RECENT_WORKSPACES = 'hook0-recent-workspaces';
 const MAX_RECENT_PAGES = 5;
 const MAX_RECENT_WORKSPACES = 5;
-
-export type ColorMode = 'light' | 'dark' | 'system';
 
 export interface RecentPage {
   path: string;
@@ -30,9 +31,10 @@ export const useUiStore = defineStore('ui', () => {
   const colorMode = ref<ColorMode>(storedTheme ?? 'system');
 
   function applyColorMode(): void {
-    const isDark =
-      colorMode.value === 'dark' || (colorMode.value === 'system' && prefersDark.value);
-    document.documentElement.classList.toggle('dark', isDark);
+    document.documentElement.classList.toggle(
+      'dark',
+      resolveIsDark(colorMode.value, prefersDark.value)
+    );
   }
 
   function setColorMode(mode: ColorMode): void {

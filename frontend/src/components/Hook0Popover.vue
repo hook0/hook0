@@ -9,10 +9,12 @@ type PopoverPosition = 'top' | 'bottom' | 'left' | 'right';
 
 interface Props {
   position?: PopoverPosition;
+  ariaLabel?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   position: 'bottom',
+  ariaLabel: undefined,
 });
 
 defineSlots<{
@@ -110,7 +112,7 @@ onBeforeUnmount(() => {
         class="hook0-popover__content"
         :class="[`hook0-popover__content--${props.position}`]"
         role="dialog"
-        :aria-label="t('common.popover')"
+        :aria-label="props.ariaLabel ?? t('common.popover')"
         tabindex="-1"
       >
         <span

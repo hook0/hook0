@@ -367,6 +367,12 @@ function focusFirstElement() {
   flex-direction: column;
 }
 
+@media (max-width: 1024px) {
+  .wizard-modal {
+    max-width: 90vw;
+  }
+}
+
 .wizard-modal :deep(.wizard-modal__header) {
   display: flex;
   align-items: center;

@@ -76,7 +76,8 @@ const tabs = computed<TabItem[]>(() => {
         name: t('nav.settings'),
         icon: Settings,
         to: { name: routes.OrganizationsDetail, params },
-        active: route.name === routes.OrganizationsDetail,
+        active:
+          route.name === routes.OrganizationsDashboard || route.name === routes.OrganizationsDetail,
       },
     ];
   }

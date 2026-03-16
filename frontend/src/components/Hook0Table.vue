@@ -416,10 +416,13 @@ const rows = computed(() => table.getRowModel().rows);
   color: var(--color-text-primary);
   border-bottom: 1px solid var(--color-border);
   vertical-align: middle;
+  white-space: nowrap;
+}
+
+.hook0-table-td--truncate {
   max-width: 20rem;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .hook0-table-tr:last-child .hook0-table-td {

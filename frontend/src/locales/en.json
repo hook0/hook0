@@ -5,6 +5,7 @@
     "delete": "Delete",
     "create": "Create",
     "edit": "Edit",
+    "add": "Add",
     "remove": "Remove",
     "close": "Close",
     "confirm": "Confirm",
@@ -223,6 +224,7 @@
   "organizations": {
     "title": "Organizations",
     "dashboard": "Organization Dashboard",
+    "notFound": "Organization not found.",
     "settings": "Organization Settings",
     "name": "Organization name",
     "namePlaceholder": "My Awesome Product",

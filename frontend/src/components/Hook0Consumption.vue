@@ -10,17 +10,17 @@ import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 
-export interface ComsumptionQuota {
+export interface ConsumptionQuota {
   icon?: Component;
   name: string;
-  comsumption: number;
+  consumption: number;
   quota: number;
 }
 
 interface Props {
   title: string;
   entityType: string;
-  consomptions: ComsumptionQuota[];
+  consumptions: ConsumptionQuota[];
 }
 
 const props = defineProps<Props>();
@@ -35,7 +35,7 @@ const props = defineProps<Props>();
       </template>
     </Hook0CardHeader>
     <Hook0CardContent>
-      <Hook0CardContentLine v-for="quota in props.consomptions" :key="quota.name" type="full-width">
+      <Hook0CardContentLine v-for="quota in props.consumptions" :key="quota.name" type="full-width">
         <template #content>
           <div class="consumption__row">
             <div class="consumption__info">
@@ -48,14 +48,16 @@ const props = defineProps<Props>();
               />
               <span class="consumption__text">
                 <strong>{{ quota.name }}</strong
-                >: {{ quota.comsumption }} / {{ quota.quota }} ({{
-                  Math.round((quota.comsumption / quota.quota) * 100)
+                >: {{ quota.consumption }} / {{ quota.quota }} ({{
+                  quota.quota > 0 ? Math.round((quota.consumption / quota.quota) * 100) : 0
                 }}%)
               </span>
             </div>
             <div class="consumption__bar">
               <Hook0SimpleProgressBar
-                :percentage="Math.floor((quota.comsumption / quota.quota) * 100)"
+                :percentage="
+                  quota.quota > 0 ? Math.floor((quota.consumption / quota.quota) * 100) : 0
+                "
               />
             </div>
           </div>

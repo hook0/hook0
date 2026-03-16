@@ -28,7 +28,7 @@ import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
-import Hook0Consumption, { type ComsumptionQuota } from '@/components/Hook0Consumption.vue';
+import Hook0Consumption, { type ConsumptionQuota } from '@/components/Hook0Consumption.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
 import OrganizationRemove from './OrganizationsRemove.vue';
 import Hook0Form from '@/components/Hook0Form.vue';
@@ -81,25 +81,25 @@ watch(orgDetail, (org) => {
 });
 
 // Consumptions computed from org detail
-const consumptions = computed<ComsumptionQuota[]>(() => {
+const consumptions = computed<ConsumptionQuota[]>(() => {
   if (!orgDetail.value) return [];
   return [
     {
       icon: markRaw(Users),
       name: t('organizations.consumptionMembers'),
-      comsumption: orgDetail.value.consumption.members || 0,
+      consumption: orgDetail.value.consumption.members || 0,
       quota: orgDetail.value.quotas.members_per_organization_limit,
     },
     {
       icon: markRaw(Rocket),
       name: t('organizations.consumptionApplications'),
-      comsumption: orgDetail.value.consumption.applications || 0,
+      consumption: orgDetail.value.consumption.applications || 0,
       quota: orgDetail.value.quotas.applications_per_organization_limit,
     },
     {
       icon: markRaw(FileText),
       name: t('organizations.consumptionEventsPerDay'),
-      comsumption: orgDetail.value.consumption.events_per_day || 0,
+      consumption: orgDetail.value.consumption.events_per_day || 0,
       quota: orgDetail.value.quotas.events_per_day_limit,
     },
   ];
@@ -238,7 +238,7 @@ const onSubmit = handleSubmit((values) => {
           v-if="!isNew && organizationId && orgDetail"
           :title="t('organizations.consumptionTitle', { name: orgDetail.name })"
           entity-type="organization"
-          :consomptions="consumptions"
+          :consumptions="consumptions"
         />
 
         <OrganizationRemove

@@ -28,7 +28,7 @@ import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
-import Hook0Consumption, { type ComsumptionQuota } from '@/components/Hook0Consumption.vue';
+import Hook0Consumption, { type ConsumptionQuota } from '@/components/Hook0Consumption.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
 import ApplicationsRemove from '@/pages/organizations/applications/ApplicationsRemove.vue';
 import Hook0Form from '@/components/Hook0Form.vue';
@@ -87,13 +87,13 @@ watch(appDetail, (app) => {
 });
 
 // Consumptions computed from app detail
-const consumptions = computed<ComsumptionQuota[]>(() => {
+const consumptions = computed<ConsumptionQuota[]>(() => {
   if (!appDetail.value) return [];
   return [
     {
       icon: markRaw(FileText),
       name: t('applications.consumptionEventsPerDay'),
-      comsumption: appDetail.value.consumption.events_per_day || 0,
+      consumption: appDetail.value.consumption.events_per_day || 0,
       quota: appDetail.value.quotas.events_per_day_limit,
     },
   ];
@@ -239,7 +239,7 @@ const onSubmit = handleSubmit((values) => {
           v-if="!isNew && applicationId && appDetail"
           :title="t('applications.consumptionTitle', { name: appDetail.name })"
           entity-type="application"
-          :consomptions="consumptions"
+          :consumptions="consumptions"
         />
 
         <ApplicationsRemove
