@@ -1,30 +1,32 @@
-import { markRaw, ref, type Component } from 'vue';
-import { RouteLocationRaw } from 'vue-router';
+import { markRaw, type Component } from 'vue';
+import type { RouteLocationRaw } from 'vue-router';
 import { Building2, AppWindow, FolderTree, Link, FileText } from 'lucide-vue-next';
-import { ApplicationInfo } from '../organizations/applications/ApplicationService';
+import type { ApplicationInfo } from '@/pages/organizations/applications/ApplicationService';
 import { routes } from '@/routes';
-import { OrganizationInfo } from '../organizations/OrganizationService';
+import type { OrganizationInfo } from '@/pages/organizations/OrganizationService';
 
-export const progressItems = ref([
+export const progressItems = [
   { icon: markRaw(Building2), title: 'Organization' },
   { icon: markRaw(AppWindow), title: 'Application' },
   { icon: markRaw(FolderTree), title: 'Event Type' },
   { icon: markRaw(Link), title: 'Subscription' },
   { icon: markRaw(FileText), title: 'Event' },
-]);
+];
 
-export interface Step {
+export type Step = {
   title: string;
   details: string;
-  isActive: boolean;
+  isCompleted: boolean;
   icon?: Component;
   route?: RouteLocationRaw;
-}
+};
 
-const enum OnboardingStepStatus {
-  ToDo = 'ToDo',
-  Done = 'Done',
-}
+const OnboardingStepStatus = {
+  ToDo: 'ToDo',
+  Done: 'Done',
+} as const;
+
+type OnboardingStepStatus = (typeof OnboardingStepStatus)[keyof typeof OnboardingStepStatus];
 
 function parseOnboardingStep(str: string): OnboardingStepStatus {
   return str === 'Done' ? OnboardingStepStatus.Done : OnboardingStepStatus.ToDo;
@@ -39,11 +41,11 @@ function tutorialAppRoute(organization_id: string) {
   };
 }
 
-function applicationStep(organization_id: string, isActive: boolean): Step {
+function applicationStep(organization_id: string, isCompleted: boolean): Step {
   return {
     title: 'Create an application',
     details: 'Isolated environment that contains everything webhook-related.',
-    isActive,
+    isCompleted,
     icon: markRaw(AppWindow),
     route: {
       name: routes.TutorialCreateApplication,
@@ -57,12 +59,12 @@ function applicationStep(organization_id: string, isActive: boolean): Step {
 function eventTypeStep(
   organization_id: string,
   application_id: string | null,
-  isActive: boolean
+  isCompleted: boolean
 ): Step {
   return {
     title: 'Create an event type',
     details: 'Category of events you can pick or not when subscribing.',
-    isActive,
+    isCompleted,
     icon: markRaw(FolderTree),
     route:
       application_id !== null
@@ -80,12 +82,12 @@ function eventTypeStep(
 function subscriptionStep(
   organization_id: string,
   application_id: string | null,
-  isActive: boolean
+  isCompleted: boolean
 ): Step {
   return {
     title: 'Create a subscription',
     details: 'Filter events and choose where you want them dispatched as webhooks.',
-    isActive,
+    isCompleted,
     icon: markRaw(Link),
     route:
       application_id !== null
@@ -103,12 +105,12 @@ function subscriptionStep(
 function eventStep(
   organization_id: string,
   application_id: string | null,
-  isActive: boolean
+  isCompleted: boolean
 ): Step {
   return {
     title: 'Send an event',
     details: 'Something that happened in your application and could end up as a webhook.',
-    isActive,
+    isCompleted,
     icon: markRaw(FileText),
     route:
       application_id !== null
@@ -134,7 +136,7 @@ export function organizationSteps(organization: OrganizationInfo): Step[] {
     parseOnboardingStep(organization.onboarding_steps.event) === OnboardingStepStatus.Done;
 
   return applicationStepIsActive &&
-    eventStepIsActive &&
+    eventTypeStepIsActive &&
     subscriptionStepIsActive &&
     eventStepIsActive
     ? []
@@ -154,7 +156,7 @@ export function applicationSteps(application: ApplicationInfo): Step[] {
   const eventStepIsActive =
     parseOnboardingStep(application.onboarding_steps.event) === OnboardingStepStatus.Done;
 
-  return eventStepIsActive && subscriptionStepIsActive && eventStepIsActive
+  return eventTypeStepIsActive && subscriptionStepIsActive && eventStepIsActive
     ? []
     : [
         eventTypeStep(

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Check } from 'lucide-vue-next';
-import { Step } from '@/pages/tutorial/TutorialService';
+import type { Step } from '@/pages/tutorial/TutorialService';
 import Hook0Button from './Hook0Button.vue';
 
 interface Props {
@@ -10,11 +10,11 @@ interface Props {
 const props = defineProps<Props>();
 
 const isNextStep = (index: number) => {
-  if (index === 0) return !props.steps[0].isActive;
+  if (index === 0) return !props.steps[0].isCompleted;
   for (let i = 0; i < index; i++) {
-    if (!props.steps[i].isActive) return false;
+    if (!props.steps[i].isCompleted) return false;
   }
-  return !props.steps[index].isActive;
+  return !props.steps[index].isCompleted;
 };
 
 const isLastStep = (index: number) => {
@@ -28,7 +28,7 @@ const isLastStep = (index: number) => {
       <li v-for="(step, index) in props.steps" :key="step.title" class="relative pb-10">
         <div
           class="absolute left-4 top-4 -ml-px mt-0.5 h-full w-0.5"
-          :class="[isLastStep(index) ? '' : step.isActive ? 'bg-indigo-600' : 'bg-gray-300']"
+          :class="[isLastStep(index) ? '' : step.isCompleted ? 'bg-indigo-600' : 'bg-gray-300']"
         ></div>
         <component :is="isNextStep(index) && step.route ? Hook0Button : 'div'" :to="step.route">
           <div class="relative flex items-start">
@@ -36,15 +36,15 @@ const isLastStep = (index: number) => {
               <span
                 class="relative z-10 flex size-8 items-center justify-center rounded-full"
                 :class="[
-                  step.isActive ? 'bg-indigo-600' : 'border-2',
-                  step.isActive
+                  step.isCompleted ? 'bg-indigo-600' : 'border-2',
+                  step.isCompleted
                     ? ''
                     : isNextStep(index)
                       ? 'border-indigo-600 bg-white'
                       : 'border-gray-300 bg-white',
                 ]"
               >
-                <span v-if="step.isActive">
+                <span v-if="step.isCompleted">
                   <Check :size="20" color="white" />
                 </span>
                 <span
@@ -59,7 +59,7 @@ const isLastStep = (index: number) => {
               <span
                 class="text-sm font-medium"
                 :class="
-                  step.isActive
+                  step.isCompleted
                     ? 'text-gray-800'
                     : isNextStep(index)
                       ? 'text-indigo-600 font-semibold'
