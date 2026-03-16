@@ -75,9 +75,17 @@ const showFullScreen = computed(() => {
         <Hook0Breadcrumbs />
 
         <!-- Page content -->
+        <!-- Wrapper div required: with mode="out-in", Vue listens for transitionend
+             on the leaving component's root element. During route change, reactive deps
+             (contextStore params) are cleared immediately, causing the old component to
+             re-render and swap its root DOM node. This orphans the transitionend listener,
+             blocking the enter transition forever. The stable div ensures the transition
+             target never changes regardless of internal re-renders. -->
         <RouterView v-slot="{ Component }">
           <Transition name="page" mode="out-in">
-            <component :is="Component" :key="route.fullPath" />
+            <div :key="route.fullPath">
+              <component :is="Component" />
+            </div>
           </Transition>
         </RouterView>
       </div>
@@ -131,16 +139,5 @@ const showFullScreen = computed(() => {
   .hook0-app__container {
     padding: 2rem 2rem;
   }
-}
-
-/* Page transitions */
-.page-enter-active,
-.page-leave-active {
-  transition: opacity 0.15s ease;
-}
-
-.page-enter-from,
-.page-leave-to {
-  opacity: 0;
 }
 </style>
