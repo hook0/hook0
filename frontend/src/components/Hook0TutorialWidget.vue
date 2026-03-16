@@ -25,7 +25,7 @@ const isLastStep = (index: number) => {
 </script>
 
 <template>
-  <nav aria-label="Progress">
+  <nav :aria-label="t('common.progress')">
     <ol role="list" class="overflow-hidden">
       <li v-for="(step, index) in props.steps" :key="step.title" class="relative pb-10">
         <div

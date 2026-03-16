@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { type Component } from 'vue';
 import { Check } from 'lucide-vue-next';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 type ProgressStep = {
   icon: Component;
@@ -22,7 +25,7 @@ function stepState(index: number): 'completed' | 'current' | 'future' {
 </script>
 
 <template>
-  <nav class="step-progress" aria-label="Tutorial progress">
+  <nav class="step-progress" :aria-label="t('common.tutorialProgress')">
     <ol class="step-progress__list">
       <li v-for="(step, index) in steps" :key="step.label" class="step-progress__item">
         <div

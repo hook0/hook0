@@ -6,6 +6,9 @@ import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0SimpleProgressBar from '@/components/Hook0SimpleProgressBar.vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 export interface ComsumptionQuota {
   icon?: Component;
@@ -28,8 +31,7 @@ const props = defineProps<Props>();
     <Hook0CardHeader>
       <template #header>{{ props.title }}</template>
       <template #subtitle>
-        Here is the consumption of your <strong>{{ props.entityType }}</strong
-        >.
+        {{ t('common.consumption', { entityType: props.entityType }) }}
       </template>
     </Hook0CardHeader>
     <Hook0CardContent>

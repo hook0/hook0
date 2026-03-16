@@ -48,7 +48,20 @@
     "searchOrJumpTo": "Search or jump to...",
     "keyboardShortcuts": "Keyboard shortcuts",
     "showPassword": "Show password",
-    "hidePassword": "Hide password"
+    "hidePassword": "Hide password",
+    "copyCode": "Copy code",
+    "popover": "Popover",
+    "breadcrumb": "Breadcrumb",
+    "mainNavigation": "Main navigation",
+    "mobileNavigation": "Mobile navigation",
+    "progress": "Progress",
+    "tutorialProgress": "Tutorial progress",
+    "key": "Key",
+    "value": "Value",
+    "labelKey": "Label key",
+    "labelValue": "Label value",
+    "headerName": "Header name",
+    "consumption": "Here is the consumption of your {entityType}."
   },
   "breadcrumbs": {
     "home": "Home",
@@ -201,7 +214,11 @@
     "logout": "Log out",
     "more": "More",
     "userMenu": "User menu",
-    "skipToContent": "Skip to content"
+    "skipToContent": "Skip to content",
+    "home": "Home",
+    "apps": "Apps",
+    "types": "Types",
+    "webhooks": "Webhooks"
   },
   "organizations": {
     "title": "Organizations",
@@ -585,6 +602,7 @@
     "themeDark": "Dark",
     "themeSystem": "System",
     "language": "Language",
+    "languageEnglish": "English",
     "changePassword": "Change Password",
     "currentPassword": "Current password",
     "newPassword": "New password",

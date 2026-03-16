@@ -27,19 +27,19 @@ const tabs = computed<TabItem[]>(() => {
     const params = { organization_id: orgId, application_id: appId };
     return [
       {
-        name: 'Events',
+        name: t('nav.events'),
         icon: FileText,
         to: { name: routes.EventsList, params },
         active: route.name === routes.EventsList || route.name === routes.EventsDetail,
       },
       {
-        name: 'Types',
+        name: t('nav.types'),
         icon: FolderTree,
         to: { name: routes.EventTypesList, params },
         active: route.name === routes.EventTypesList,
       },
       {
-        name: 'Webhooks',
+        name: t('nav.webhooks'),
         icon: Link,
         to: { name: routes.SubscriptionsList, params },
         active:
@@ -48,7 +48,7 @@ const tabs = computed<TabItem[]>(() => {
           route.name === routes.SubscriptionsDetail,
       },
       {
-        name: 'Settings',
+        name: t('nav.settings'),
         icon: Settings,
         to: { name: routes.ApplicationsDetail, params },
         active:
@@ -61,19 +61,19 @@ const tabs = computed<TabItem[]>(() => {
     const params = { organization_id: orgId };
     return [
       {
-        name: 'Home',
+        name: t('nav.home'),
         icon: Home,
         to: { name: routes.OrganizationsDashboard, params },
         active: route.name === routes.OrganizationsDashboard,
       },
       {
-        name: 'Apps',
+        name: t('nav.apps'),
         icon: FolderTree,
         to: { name: routes.ApplicationsList, params },
         active: route.name === routes.ApplicationsList,
       },
       {
-        name: 'Settings',
+        name: t('nav.settings'),
         icon: Settings,
         to: { name: routes.OrganizationsDetail, params },
         active: route.name === routes.OrganizationsDetail,
@@ -83,7 +83,7 @@ const tabs = computed<TabItem[]>(() => {
 
   return [
     {
-      name: 'Home',
+      name: t('nav.home'),
       icon: Home,
       to: { name: routes.Home },
       active: route.name === routes.Home,
@@ -93,7 +93,7 @@ const tabs = computed<TabItem[]>(() => {
 </script>
 
 <template>
-  <nav class="hook0-mobile-tab-bar" aria-label="Mobile navigation">
+  <nav class="hook0-mobile-tab-bar" :aria-label="t('common.mobileNavigation')">
     <div class="hook0-mobile-tab-list">
       <router-link
         v-for="tab in tabs"

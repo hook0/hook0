@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, useId } from 'vue';
 import { onClickOutside } from '@vueuse/core';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 type PopoverPosition = 'top' | 'bottom' | 'left' | 'right';
 
@@ -107,7 +110,7 @@ onBeforeUnmount(() => {
         class="hook0-popover__content"
         :class="[`hook0-popover__content--${props.position}`]"
         role="dialog"
-        aria-label="Popover"
+        :aria-label="t('common.popover')"
         tabindex="-1"
       >
         <span

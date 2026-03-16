@@ -65,7 +65,7 @@ function copyToClipboard() {
       :extensions="extensions"
       @ready="handleReady"
     />
-    <button class="hook0-code-copy" aria-label="Copy code" @click="copyToClipboard">
+    <button class="hook0-code-copy" :aria-label="t('common.copyCode')" @click="copyToClipboard">
       <Copy :size="16" aria-hidden="true" />
     </button>
   </div>

@@ -216,7 +216,11 @@ router.afterEach(() => {
     </router-link>
 
     <!-- Navigation Tabs -->
-    <nav v-if="navTabs.length > 0" class="hook0-topnav__tabs" aria-label="Main navigation">
+    <nav
+      v-if="navTabs.length > 0"
+      class="hook0-topnav__tabs"
+      :aria-label="t('common.mainNavigation')"
+    >
       <router-link
         v-for="tab in navTabs"
         :key="tab.id"

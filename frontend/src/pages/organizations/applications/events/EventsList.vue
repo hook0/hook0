@@ -302,8 +302,8 @@ const columns: ColumnDef<Event, unknown>[] = [
               <template #content>
                 <Hook0KeyValue
                   :value="labels"
-                  key-placeholder="Label key"
-                  value-placeholder="Label value"
+                  :key-placeholder="t('common.labelKey')"
+                  :value-placeholder="t('common.labelValue')"
                   data-test="send-event-labels"
                 />
               </template>

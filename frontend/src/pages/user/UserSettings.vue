@@ -175,7 +175,7 @@ function confirmDeleteAccount() {
           <template #content>
             <Hook0Select
               model-value="en"
-              :options="[{ label: 'English', value: 'en' }]"
+              :options="[{ label: t('userSettings.languageEnglish'), value: 'en' }]"
               disabled
               data-test="language-select"
             />

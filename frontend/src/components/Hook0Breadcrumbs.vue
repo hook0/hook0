@@ -563,7 +563,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <nav v-if="shouldShow" aria-label="Breadcrumb" class="hook0-breadcrumbs">
+  <nav v-if="shouldShow" :aria-label="t('common.breadcrumb')" class="hook0-breadcrumbs">
     <ol class="hook0-breadcrumbs__list">
       <li v-for="(crumb, index) in crumbs" :key="index" class="hook0-breadcrumbs__item">
         <ChevronRight

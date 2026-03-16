@@ -610,8 +610,8 @@ const testStatusVariant = computed(() => {
               <template #content>
                 <Hook0KeyValue
                   :value="headersKv"
-                  key-placeholder="header name"
-                  value-placeholder="value"
+                  :key-placeholder="t('common.headerName')"
+                  :value-placeholder="t('common.value')"
                   @update:model-value="onHeadersUpdate($event)"
                 ></Hook0KeyValue>
               </template>
@@ -625,8 +625,8 @@ const testStatusVariant = computed(() => {
               <template #content>
                 <Hook0KeyValue
                   :value="labels"
-                  key-placeholder="Label key"
-                  value-placeholder="Label value"
+                  :key-placeholder="t('common.labelKey')"
+                  :value-placeholder="t('common.labelValue')"
                   data-test="subscription-labels"
                   @update:model-value="onLabelsUpdate($event)"
                 ></Hook0KeyValue>

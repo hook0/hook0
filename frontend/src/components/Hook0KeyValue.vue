@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { Hook0KeyValueKeyValuePair } from '@/components/Hook0KeyValue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import { Minus, Plus } from 'lucide-vue-next';
+
+const { t } = useI18n();
 
 function getDefaultItem(): Hook0KeyValueKeyValuePair {
   return { key: '', value: '' };
@@ -82,8 +85,8 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  keyPlaceholder: 'Key',
-  valuePlaceholder: 'Value',
+  keyPlaceholder: undefined,
+  valuePlaceholder: undefined,
 });
 const rawEmit = defineEmits<{
   'update:modelValue': [value: Hook0KeyValueKeyValuePair[] | Hook0KeyValuePlainObject];
@@ -133,7 +136,7 @@ function add() {
         v-model="item.key"
         type="text"
         class="col-span-4"
-        :placeholder="keyPlaceholder"
+        :placeholder="keyPlaceholder ?? t('common.key')"
         :data-test="`kv-key-input-${index}`"
         @input="emitUpdate()"
       />
@@ -141,7 +144,7 @@ function add() {
         v-model="item.value"
         type="text"
         class="col-span-4"
-        :placeholder="valuePlaceholder"
+        :placeholder="valuePlaceholder ?? t('common.value')"
         :data-test="`kv-value-input-${index}`"
         @input="emitUpdate()"
       />
