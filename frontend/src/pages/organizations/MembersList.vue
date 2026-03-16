@@ -17,6 +17,7 @@ import { displayError } from '@/utils/displayError';
 import type { Problem } from '@/http';
 import { push } from 'notivue';
 import { usePermissions } from '@/composables/usePermissions';
+import { useEntityDelete } from '@/composables/useEntityDelete';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -78,8 +79,17 @@ function isCurrentUserRow(row: User): boolean {
 const showRoleChangeDialog = ref(false);
 const roleChangeTarget = ref<{ user: User; role: string } | null>(null);
 
-const showRevokeDialog = ref(false);
-const revokeTarget = ref<User | null>(null);
+const {
+  showDeleteDialog: showRevokeDialog,
+  entityToDelete: revokeTarget,
+  requestDelete: handleRevoke,
+  confirmDelete: confirmRevoke,
+} = useEntityDelete<User>({
+  deleteFn: (row) =>
+    revokeMutation.mutateAsync({ organizationId: organizationId.value, userId: row.user_id }),
+  successTitle: t('common.success'),
+  successMessage: t('members.revoked'),
+});
 
 function handleRoleChange(role: string, row: User) {
   if (row.role === role) {
@@ -109,34 +119,6 @@ function confirmRoleChange() {
           title: t('common.success'),
           message: t('members.roleChanged', { email: target.user.email, role: target.role }),
           duration: 5000,
-        });
-      },
-      onError: (err) => {
-        displayError(err as unknown as Problem);
-      },
-    }
-  );
-}
-
-function handleRevoke(row: User) {
-  revokeTarget.value = row;
-  showRevokeDialog.value = true;
-}
-
-function confirmRevoke() {
-  const row = revokeTarget.value;
-  showRevokeDialog.value = false;
-  revokeTarget.value = null;
-  if (!row) return;
-
-  revokeMutation.mutate(
-    { organizationId: organizationId.value, userId: row.user_id },
-    {
-      onSuccess: () => {
-        push.success({
-          title: t('common.success'),
-          message: t('members.revoked'),
-          duration: 3000,
         });
       },
       onError: (err) => {

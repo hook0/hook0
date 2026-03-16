@@ -12,6 +12,7 @@ import type { Problem } from '@/http';
 import { push } from 'notivue';
 import { useTracking } from '@/composables/useTracking';
 import { usePermissions } from '@/composables/usePermissions';
+import { useEntityDelete } from '@/composables/useEntityDelete';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -45,8 +46,18 @@ const removeMutation = useRemoveSecret();
 const showCreateDialog = ref(false);
 const newSecretName = ref('');
 
-const showDeleteDialog = ref(false);
-const secretToDelete = ref<ApplicationSecret | null>(null);
+const {
+  showDeleteDialog,
+  entityToDelete: secretToDelete,
+  requestDelete: handleDelete,
+  confirmDelete,
+} = useEntityDelete<ApplicationSecret>({
+  deleteFn: (row) =>
+    removeMutation.mutateAsync({ applicationId: applicationId.value, token: row.token }),
+  successTitle: t('common.success'),
+  successMessage: t('apiKeys.deleted'),
+  onSuccess: () => trackEvent('app-secret', 'delete'),
+});
 
 function createNew(event: MouseEvent) {
   event.stopImmediatePropagation();
@@ -69,35 +80,6 @@ function confirmCreate() {
         push.success({
           title: t('common.success'),
           message: t('apiKeys.create'),
-          duration: 3000,
-        });
-      },
-      onError: (err) => {
-        displayError(err as unknown as Problem);
-      },
-    }
-  );
-}
-
-function handleDelete(row: ApplicationSecret) {
-  secretToDelete.value = row;
-  showDeleteDialog.value = true;
-}
-
-function confirmDelete() {
-  const row = secretToDelete.value;
-  showDeleteDialog.value = false;
-  secretToDelete.value = null;
-  if (!row) return;
-
-  removeMutation.mutate(
-    { applicationId: applicationId.value, token: row.token },
-    {
-      onSuccess: () => {
-        trackEvent('app-secret', 'delete');
-        push.success({
-          title: t('common.success'),
-          message: t('apiKeys.deleted'),
           duration: 3000,
         });
       },

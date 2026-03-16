@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, h, markRaw, ref } from 'vue';
+import { computed, h, markRaw } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
@@ -8,10 +8,8 @@ import { Trash2 } from 'lucide-vue-next';
 import { useApplicationList, useRemoveApplication } from './useApplicationQueries';
 import type { Application } from './ApplicationService';
 import { routes } from '@/routes';
-import { displayError } from '@/utils/displayError';
-import type { Problem } from '@/http';
-import { push } from 'notivue';
 import { usePermissions } from '@/composables/usePermissions';
+import { useEntityDelete } from '@/composables/useEntityDelete';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -39,33 +37,16 @@ const { data: applications, isLoading, error, refetch } = useApplicationList(org
 
 const removeMutation = useRemoveApplication();
 
-const showDeleteDialog = ref(false);
-const applicationToDelete = ref<Application | null>(null);
-
-function handleDelete(app: Application) {
-  applicationToDelete.value = app;
-  showDeleteDialog.value = true;
-}
-
-function confirmDelete() {
-  const app = applicationToDelete.value;
-  showDeleteDialog.value = false;
-  applicationToDelete.value = null;
-  if (!app) return;
-
-  removeMutation.mutate(app.application_id, {
-    onSuccess: () => {
-      push.success({
-        title: t('applications.deleted'),
-        message: t('applications.deletedMessage', { name: app.name }),
-        duration: 3000,
-      });
-    },
-    onError: (err) => {
-      displayError(err as unknown as Problem);
-    },
-  });
-}
+const {
+  showDeleteDialog,
+  entityToDelete: applicationToDelete,
+  requestDelete,
+  confirmDelete,
+} = useEntityDelete<Application>({
+  deleteFn: (app) => removeMutation.mutateAsync(app.application_id),
+  successTitle: t('applications.deleted'),
+  successMessage: (app) => t('applications.deletedMessage', { name: app.name }),
+});
 
 const columns: ColumnDef<Application, unknown>[] = [
   {
@@ -97,7 +78,7 @@ const columns: ColumnDef<Application, unknown>[] = [
             h(Hook0TableCellLink, {
               value: t('common.delete'),
               icon: markRaw(Trash2),
-              onClick: () => handleDelete(info.row.original),
+              onClick: () => requestDelete(info.row.original),
             }),
         },
       ]
