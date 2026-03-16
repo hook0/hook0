@@ -605,6 +605,15 @@
     "notLoggedInSubtitle": "You are not logged in. Please log in to view your settings."
   },
   "tutorial": {
+    "steps": {
+      "intro": "Welcome",
+      "organization": "Organization",
+      "application": "Application",
+      "eventType": "Event Type",
+      "subscription": "Subscription",
+      "sendEvent": "Send Event",
+      "success": "Done"
+    },
     "title": "Get Started with Hook0",
     "welcome": {
       "title": "Welcome to Hook0!",
