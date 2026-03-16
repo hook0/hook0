@@ -125,7 +125,7 @@ const navTabs = computed<NavTab[]>(() => {
       id: 'settings',
       label: t('nav.settings'),
       icon: Settings,
-      to: { name: routes.ApplicationsDashboard, params },
+      to: { name: routes.ApplicationsDetail, params },
       active:
         route.name === routes.ApplicationsDashboard || route.name === routes.ApplicationsDetail,
     });
@@ -155,7 +155,7 @@ const navTabs = computed<NavTab[]>(() => {
         id: 'org-settings',
         label: t('nav.settings'),
         icon: Settings,
-        to: { name: routes.OrganizationsDashboard, params },
+        to: { name: routes.OrganizationsDetail, params },
         active:
           route.name === routes.OrganizationsDashboard || route.name === routes.OrganizationsDetail,
       },

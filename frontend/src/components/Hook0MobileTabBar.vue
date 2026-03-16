@@ -50,8 +50,9 @@ const tabs = computed<TabItem[]>(() => {
       {
         name: 'Settings',
         icon: Settings,
-        to: { name: routes.ApplicationsDashboard, params },
-        active: route.name === routes.ApplicationsDashboard,
+        to: { name: routes.ApplicationsDetail, params },
+        active:
+          route.name === routes.ApplicationsDashboard || route.name === routes.ApplicationsDetail,
       },
     ];
   }

@@ -57,6 +57,7 @@ const alertIcon = computed(() => {
   padding: 1rem;
   border-radius: var(--radius-md);
   border: 1px solid;
+  min-width: 0;
 }
 
 .hook0-alert-inner {

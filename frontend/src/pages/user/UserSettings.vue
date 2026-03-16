@@ -228,7 +228,7 @@ function confirmDeleteAccount() {
           </Hook0CardContentLine>
         </Hook0CardContent>
         <Hook0CardFooter>
-          <Hook0Stack direction="row" align="center" justify="between" gap="md">
+          <Hook0Stack direction="row" align="center" justify="between" gap="md" wrap>
             <Hook0Alert type="warning" :title="t('common.warning')">
               <template #description>{{ t('userSettings.changePasswordWarning') }}</template>
             </Hook0Alert>
