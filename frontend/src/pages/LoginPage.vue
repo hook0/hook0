@@ -14,7 +14,7 @@ import { loginSchema } from './login.schema';
 import { toTypedSchema } from '@/utils/zod-adapter';
 import { useTracking } from '@/composables/useTracking';
 import { useI18n } from 'vue-i18n';
-import { ArrowRight, Shield, CheckCircle } from 'lucide-vue-next';
+import { ArrowRight } from 'lucide-vue-next';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -23,10 +23,10 @@ import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardDivider from '@/components/Hook0CardDivider.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
-import Hook0Badge from '@/components/Hook0Badge.vue';
 import Hook0Logo from '@/components/Hook0Logo.vue';
 import Hook0Form from '@/components/Hook0Form.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
+import Hook0AuthTrustBadges from '@/components/Hook0AuthTrustBadges.vue';
 
 const { t } = useI18n();
 
@@ -178,26 +178,7 @@ const onSubmit = handleSubmit((values) => {
     </Hook0Card>
 
     <template #footer>
-      <Hook0Stack align="center" justify="center" gap="lg" wrap responsive>
-        <Hook0Badge display="trust" variant="success">
-          <template #icon>
-            <Shield :size="20" aria-hidden="true" />
-          </template>
-          {{ t('auth.trust.openSource') }}
-        </Hook0Badge>
-        <Hook0Badge display="trust" variant="success">
-          <template #icon>
-            <CheckCircle :size="20" aria-hidden="true" />
-          </template>
-          {{ t('auth.trust.uptime') }}
-        </Hook0Badge>
-        <Hook0Badge display="trust" variant="success">
-          <template #icon>
-            <CheckCircle :size="20" aria-hidden="true" />
-          </template>
-          {{ t('auth.trust.gdpr') }}
-        </Hook0Badge>
-      </Hook0Stack>
+      <Hook0AuthTrustBadges />
     </template>
   </Hook0PageLayout>
 </template>

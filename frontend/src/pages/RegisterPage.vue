@@ -11,7 +11,7 @@ import { registerSchema } from './register.schema';
 import { toTypedSchema } from '@/utils/zod-adapter';
 import { useTracking } from '@/composables/useTracking';
 import { useI18n } from 'vue-i18n';
-import { ArrowRight, Check, Shield, CheckCircle } from 'lucide-vue-next';
+import { ArrowRight, Check } from 'lucide-vue-next';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -28,6 +28,7 @@ import Hook0Form from '@/components/Hook0Form.vue';
 import Hook0InputRow from '@/components/Hook0InputRow.vue';
 import Hook0Captcha from '@/components/Hook0Captcha.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
+import Hook0AuthTrustBadges from '@/components/Hook0AuthTrustBadges.vue';
 
 import CustomerLogo from '@/components/logos/CustomerLogo.vue';
 
@@ -219,26 +220,9 @@ const onSubmit = handleSubmit((values) => {
     </Hook0Card>
 
     <template #footer>
-      <Hook0Stack align="center" justify="center" gap="lg" wrap>
-        <Hook0Badge display="trust" variant="success">
-          <template #icon>
-            <Shield :size="20" aria-hidden="true" />
-          </template>
-          {{ t('auth.trust.openSource') }}
-        </Hook0Badge>
-        <Hook0Badge display="trust" variant="success">
-          <template #icon>
-            <CheckCircle :size="20" aria-hidden="true" />
-          </template>
-          {{ t('auth.trust.noCreditCard') }}
-        </Hook0Badge>
-        <Hook0Badge display="trust" variant="success">
-          <template #icon>
-            <CheckCircle :size="20" aria-hidden="true" />
-          </template>
-          {{ t('auth.trust.gdpr') }}
-        </Hook0Badge>
-      </Hook0Stack>
+      <Hook0AuthTrustBadges
+        :badges="['auth.trust.openSource', 'auth.trust.noCreditCard', 'auth.trust.gdpr']"
+      />
 
       <Hook0TrustSection :label="t('auth.register.trustedBy')">
         <Hook0Button
