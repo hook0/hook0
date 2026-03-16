@@ -39,6 +39,7 @@ export default defineConfig({
     vue(),
     tailwindcss(),
     checker({
+      overlay: false,
       eslint: {
         lintCommand: 'eslint --ext .js,.ts,.vue --ignore-path .gitignore ./src',
       },

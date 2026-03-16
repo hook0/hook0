@@ -63,7 +63,7 @@ const tutorialSteps: TutorialStepItem[] = [
 
       <Hook0Illustration
         variant="tutorial"
-        size="hero"
+        size="md"
         :alt="t('tutorial.intro.illustrationAlt')"
       />
 
