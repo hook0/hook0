@@ -312,7 +312,7 @@ const rows = computed(() => table.getRowModel().rows);
             v-for="row in rows"
             :key="row.id"
             :row-id="row.id"
-            class="hook0-table-tr"
+            class="hook0-table-tr stagger-item"
             :class="{ 'hook0-table-tr--clickable': clickableRows }"
             :tabindex="clickableRows ? 0 : undefined"
             :role="clickableRows ? 'row' : undefined"

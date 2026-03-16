@@ -3,7 +3,9 @@
    ======================================== */
 
 .page-enter-active {
-  transition: opacity 150ms ease-out, transform 150ms ease-out;
+  transition:
+    opacity 150ms ease-out,
+    transform 150ms ease-out;
 }
 
 .page-leave-active {
@@ -33,11 +35,15 @@
    ======================================== */
 
 .slide-right-enter-active {
-  transition: transform 250ms ease-out, opacity 200ms ease-out;
+  transition:
+    transform 250ms ease-out,
+    opacity 200ms ease-out;
 }
 
 .slide-right-leave-active {
-  transition: transform 200ms ease-in, opacity 150ms ease-in;
+  transition:
+    transform 200ms ease-in,
+    opacity 150ms ease-in;
 }
 
 .slide-right-enter-from {
@@ -65,11 +71,15 @@
    ======================================== */
 
 .dropdown-enter-active {
-  transition: opacity 150ms ease-out, transform 150ms ease-out;
+  transition:
+    opacity 150ms ease-out,
+    transform 150ms ease-out;
 }
 
 .dropdown-leave-active {
-  transition: opacity 100ms ease-in, transform 100ms ease-in;
+  transition:
+    opacity 100ms ease-in,
+    transform 100ms ease-in;
 }
 
 .dropdown-enter-from {
@@ -98,11 +108,15 @@
    ======================================== */
 
 .dialog-enter-active {
-  transition: opacity 200ms ease-out, transform 200ms ease-out;
+  transition:
+    opacity 200ms ease-out,
+    transform 200ms ease-out;
 }
 
 .dialog-leave-active {
-  transition: opacity 150ms ease-in, transform 150ms ease-in;
+  transition:
+    opacity 150ms ease-in,
+    transform 150ms ease-in;
 }
 
 .dialog-enter-from {
@@ -144,11 +158,15 @@
    ======================================== */
 
 .command-palette-enter-active {
-  transition: opacity 150ms ease-out, transform 150ms ease-out;
+  transition:
+    opacity 150ms ease-out,
+    transform 150ms ease-out;
 }
 
 .command-palette-leave-active {
-  transition: opacity 100ms ease-in, transform 100ms ease-in;
+  transition:
+    opacity 100ms ease-in,
+    transform 100ms ease-in;
 }
 
 .command-palette-enter-from {
@@ -211,6 +229,56 @@
 
 .drawer-leave-to {
   transform: translateY(100%);
+}
+
+/* ========================================
+   Staggered list entrance
+   ======================================== */
+
+@keyframes stagger-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stagger-item {
+  animation: stagger-fade-in 0.3s ease-out both;
+}
+
+.stagger-item:nth-child(1) {
+  animation-delay: 0ms;
+}
+.stagger-item:nth-child(2) {
+  animation-delay: 50ms;
+}
+.stagger-item:nth-child(3) {
+  animation-delay: 100ms;
+}
+.stagger-item:nth-child(4) {
+  animation-delay: 150ms;
+}
+.stagger-item:nth-child(5) {
+  animation-delay: 200ms;
+}
+.stagger-item:nth-child(6) {
+  animation-delay: 250ms;
+}
+.stagger-item:nth-child(7) {
+  animation-delay: 300ms;
+}
+.stagger-item:nth-child(8) {
+  animation-delay: 350ms;
+}
+.stagger-item:nth-child(9) {
+  animation-delay: 400ms;
+}
+.stagger-item:nth-child(10) {
+  animation-delay: 450ms;
 }
 
 /* ========================================

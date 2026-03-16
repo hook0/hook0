@@ -14,6 +14,7 @@ import Hook0MobileTabBar from '@/components/Hook0MobileTabBar.vue';
 import Hook0MobileDrawer from '@/components/Hook0MobileDrawer.vue';
 import Hook0CommandPalette from '@/components/Hook0CommandPalette.vue';
 import Hook0ShortcutsCheatSheet from '@/components/Hook0ShortcutsCheatSheet.vue';
+import Hook0RefetchBar from '@/components/Hook0RefetchBar.vue';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -64,6 +65,9 @@ const showFullScreen = computed(() => {
 
   <!-- Keyboard Shortcuts Cheat Sheet -->
   <Hook0ShortcutsCheatSheet />
+
+  <!-- Background refetch progress bar -->
+  <Hook0RefetchBar />
 
   <!-- Authenticated layout -->
   <div v-if="!showFullScreen" class="hook0-app" style="background-color: var(--color-bg-secondary)">

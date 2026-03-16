@@ -249,6 +249,7 @@ function getGradient(index: number): string {
         v-for="(organizationGroup, index) in applicationsPerOrganization"
         :key="organizationGroup.organization.organization_id"
         variant="interactive"
+        class="stagger-item"
       >
         <!-- Card Header -->
         <Hook0CardContent>

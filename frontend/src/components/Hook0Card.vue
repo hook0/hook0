@@ -76,13 +76,15 @@ const cardStyle = computed(() => {
 .hook0-card--interactive {
   transition:
     border-color 0.2s ease,
-    box-shadow 0.2s ease;
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
   cursor: default;
 }
 
 .hook0-card--interactive:hover {
   border-color: var(--color-border-strong);
   box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
 }
 
 /* Dashed variant - for "create new" cards */
