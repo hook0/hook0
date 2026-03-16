@@ -16,6 +16,7 @@ import { displayError } from '@/utils/displayError';
 import type { Problem } from '@/http';
 import { push } from 'notivue';
 import { usePermissions } from '@/composables/usePermissions';
+import { useEntityDelete } from '@/composables/useEntityDelete';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -52,8 +53,20 @@ function targetIsHttp(target: object): target is { type: string; method: string;
 const showDisableDialog = ref(false);
 const subscriptionToDisable = ref<Subscription | null>(null);
 
-const showDeleteDialog = ref(false);
-const subscriptionToDelete = ref<Subscription | null>(null);
+const {
+  showDeleteDialog,
+  entityToDelete: subscriptionToDelete,
+  requestDelete: handleDelete,
+  confirmDelete,
+} = useEntityDelete<Subscription>({
+  deleteFn: (row) =>
+    removeMutation.mutateAsync({
+      applicationId: applicationId.value,
+      subscriptionId: row.subscription_id,
+    }),
+  successTitle: t('common.success'),
+  successMessage: t('subscriptions.deleted'),
+});
 
 const disableDialogName = computed(() => {
   if (!subscriptionToDisable.value) return '';
@@ -97,34 +110,6 @@ function confirmDisable() {
         push.success({
           title: t('common.success'),
           message: t('subscriptions.disabled'),
-          duration: 3000,
-        });
-      },
-      onError: (err) => {
-        displayError(err as unknown as Problem);
-      },
-    }
-  );
-}
-
-function handleDelete(row: Subscription) {
-  subscriptionToDelete.value = row;
-  showDeleteDialog.value = true;
-}
-
-function confirmDelete() {
-  const row = subscriptionToDelete.value;
-  showDeleteDialog.value = false;
-  subscriptionToDelete.value = null;
-  if (!row) return;
-
-  removeMutation.mutate(
-    { applicationId: applicationId.value, subscriptionId: row.subscription_id },
-    {
-      onSuccess: () => {
-        push.success({
-          title: t('common.success'),
-          message: t('subscriptions.deleted'),
           duration: 3000,
         });
       },

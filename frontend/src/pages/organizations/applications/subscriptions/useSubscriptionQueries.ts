@@ -3,6 +3,7 @@ import { computed, type Ref } from 'vue';
 import * as SubscriptionService from './SubscriptionService';
 import type { SubscriptionPost, Subscription } from './SubscriptionService';
 import { subscriptionKeys } from '@/queries/keys';
+import { useInvalidatingMutation } from '@/composables/queryHelpers';
 
 export function useSubscriptionList(applicationId: Ref<string>) {
   return useQuery({
@@ -21,15 +22,13 @@ export function useSubscriptionDetail(id: Ref<string>) {
 }
 
 export function useCreateSubscription() {
-  const queryClient = useQueryClient();
-  return useMutation({
+  return useInvalidatingMutation({
     mutationFn: (subscription: SubscriptionPost) => SubscriptionService.create(subscription),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: subscriptionKeys.all });
-    },
+    invalidateKeys: subscriptionKeys.all,
   });
 }
 
+// Custom onSuccess: also sets query data for optimistic detail update
 export function useUpdateSubscription() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -43,23 +42,17 @@ export function useUpdateSubscription() {
 }
 
 export function useRemoveSubscription() {
-  const queryClient = useQueryClient();
-  return useMutation({
+  return useInvalidatingMutation({
     mutationFn: (params: { applicationId: string; subscriptionId: string }) =>
       SubscriptionService.remove(params.applicationId, params.subscriptionId),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: subscriptionKeys.all });
-    },
+    invalidateKeys: subscriptionKeys.all,
   });
 }
 
 export function useToggleSubscription() {
-  const queryClient = useQueryClient();
-  return useMutation({
+  return useInvalidatingMutation({
     mutationFn: (params: { subscriptionId: string; subscription: Subscription }) =>
       SubscriptionService.toggleEnable(params.subscriptionId, params.subscription),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: subscriptionKeys.all });
-    },
+    invalidateKeys: subscriptionKeys.all,
   });
 }

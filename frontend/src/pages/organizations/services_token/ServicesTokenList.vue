@@ -18,6 +18,7 @@ import type { Problem } from '@/http';
 import { push } from 'notivue';
 import { useTracking } from '@/composables/useTracking';
 import { usePermissions } from '@/composables/usePermissions';
+import { useEntityDelete } from '@/composables/useEntityDelete';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -60,8 +61,18 @@ const showEditDialog = ref(false);
 const editTokenName = ref('');
 const tokenToEdit = ref<ServiceToken | null>(null);
 
-const showDeleteDialog = ref(false);
-const tokenToDelete = ref<ServiceToken | null>(null);
+const {
+  showDeleteDialog,
+  entityToDelete: tokenToDelete,
+  requestDelete: handleDelete,
+  confirmDelete,
+} = useEntityDelete<ServiceToken>({
+  deleteFn: (row) =>
+    removeMutation.mutateAsync({ tokenId: row.token_id, organizationId: organizationId.value }),
+  successTitle: t('common.success'),
+  successMessage: t('serviceTokens.deleted'),
+  onSuccess: () => trackEvent('service-token', 'delete', 'success'),
+});
 
 function createNew(event: MouseEvent) {
   event.stopImmediatePropagation();
@@ -116,35 +127,6 @@ function confirmEdit() {
         push.success({
           title: t('common.success'),
           message: t('serviceTokens.updated'),
-          duration: 3000,
-        });
-      },
-      onError: (err) => {
-        displayError(err as unknown as Problem);
-      },
-    }
-  );
-}
-
-function handleDelete(row: ServiceToken) {
-  tokenToDelete.value = row;
-  showDeleteDialog.value = true;
-}
-
-function confirmDelete() {
-  const row = tokenToDelete.value;
-  showDeleteDialog.value = false;
-  tokenToDelete.value = null;
-  if (!row) return;
-
-  removeMutation.mutate(
-    { tokenId: row.token_id, organizationId: organizationId.value },
-    {
-      onSuccess: () => {
-        trackEvent('service-token', 'delete', 'success');
-        push.success({
-          title: t('common.success'),
-          message: t('serviceTokens.deleted'),
           duration: 3000,
         });
       },

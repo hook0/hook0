@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query';
 import { computed, type Ref } from 'vue';
 import * as EventsService from './EventsService';
 import { eventKeys, eventTypeKeys } from '@/queries/keys';
+import { useInvalidatingMutation } from '@/composables/queryHelpers';
 
 export function useEventList(applicationId: Ref<string>) {
   return useQuery({
@@ -19,6 +20,7 @@ export function useEventDetail(eventId: Ref<string>, applicationId: Ref<string>)
   });
 }
 
+// Custom onSuccess: invalidates both event and eventType keys
 export function useSendEvent() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -46,12 +48,9 @@ export function useSendEvent() {
 }
 
 export function useReplayEvent() {
-  const queryClient = useQueryClient();
-  return useMutation({
+  return useInvalidatingMutation({
     mutationFn: (params: { eventId: string; applicationId: string }) =>
       EventsService.replay(params.eventId, params.applicationId),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: eventKeys.all });
-    },
+    invalidateKeys: eventKeys.all,
   });
 }

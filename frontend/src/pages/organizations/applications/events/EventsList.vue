@@ -31,7 +31,7 @@ import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0Select from '@/components/Hook0Select.vue';
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0KeyValue from '@/components/Hook0KeyValue.vue';
-import type { Hook0KeyValueKeyValuePair } from '@/components/Hook0KeyValue';
+import { kvPairsToRecord, type Hook0KeyValueKeyValuePair } from '@/components/Hook0KeyValue';
 import Hook0HelpText from '@/components/Hook0HelpText.vue';
 import Hook0Form from '@/components/Hook0Form.vue';
 import Hook0Skeleton from '@/components/Hook0Skeleton.vue';
@@ -121,13 +121,6 @@ const occurredAt = ref<null | Date>(null);
 const payload = ref<string>('{"test": true}');
 const extensions = [json(), EditorView.lineWrapping];
 
-function toMap(pairs: Hook0KeyValueKeyValuePair[]): Record<string, string> {
-  return pairs.reduce<Record<string, string>>((m, { key, value }) => {
-    m[key] = value;
-    return m;
-  }, {});
-}
-
 function displayEventForm() {
   showEventForm.value = true;
 }
@@ -156,7 +149,7 @@ function sendTestEvent() {
       applicationId: applicationId.value,
       eventId: crypto.randomUUID(),
       eventType,
-      labels: toMap(currentLabels),
+      labels: kvPairsToRecord(currentLabels),
       occurredAt: currentOccurredAt,
       payload: currentPayload,
     },

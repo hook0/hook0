@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { push } from 'notivue';
-import { AxiosError, AxiosResponse } from 'axios';
-import { handleError, Problem } from '@/http';
+import { useAuthErrorHandler } from '@/composables/useAuthErrorHandler';
 import { beginResetPassword } from '@/pages/user/UserService';
 import { routes } from '@/routes';
 import { useI18n } from 'vue-i18n';
@@ -18,6 +17,8 @@ import Hook0Logo from '@/components/Hook0Logo.vue';
 import Hook0Form from '@/components/Hook0Form.vue';
 
 const { t } = useI18n();
+
+const { handleAuthError } = useAuthErrorHandler();
 
 // Form state
 const email = ref<string>('');
@@ -35,23 +36,10 @@ function submit() {
         duration: 5000,
       });
     })
-    .catch((err) => {
-      const problem = handleError(err as AxiosError<AxiosResponse<Problem>>);
-      displayError(problem);
-    })
+    .catch((err) => handleAuthError(err))
     .finally(() => {
       isLoading.value = false;
     });
-}
-
-function displayError(err: Problem) {
-  console.error(err);
-  const options = {
-    title: err.title,
-    message: err.detail,
-    duration: 5000,
-  };
-  err.status >= 500 ? push.error(options) : push.warning(options);
 }
 </script>
 

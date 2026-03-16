@@ -1,7 +1,7 @@
-import { AxiosError, AxiosResponse } from 'axios';
-import http, { handleError, Problem, UUID } from '@/http';
+import http, { UUID } from '@/http';
 import type { components } from '@/types';
 import { useAuthStore } from '@/stores/auth';
+import { unwrapResponse } from '@/utils/unwrapResponse';
 
 type definitions = components['schemas'];
 
@@ -10,66 +10,48 @@ export type ApplicationInfo = definitions['ApplicationInfo'];
 export type ApplicationPost = definitions['ApplicationPost'];
 
 export function create(application: ApplicationPost): Promise<Application> {
-  return http
-    .post('/applications', application)
-    .then(
-      (res: AxiosResponse<Application>) => res.data,
-      (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
-    )
-    .then((application) => {
+  return unwrapResponse(http.post<Application>('/applications', application)).then(
+    (application) => {
       // we force the user token refresh so that the org/app selector refreshes its options
       return useAuthStore()
         .refresh()
         .then(() => application);
-    });
+    }
+  );
 }
 
 export function list(organization_id: UUID): Promise<Array<Application>> {
-  return http
-    .get('/applications', {
+  return unwrapResponse(
+    http.get<Array<Application>>('/applications', {
       params: {
         organization_id: organization_id,
       },
     })
-    .then(
-      (res: AxiosResponse<Array<Application>>) => res.data,
-      (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
-    );
-}
-
-export function get(application_id: UUID): Promise<ApplicationInfo> {
-  return http.get(`/applications/${application_id}`).then(
-    (res: AxiosResponse<ApplicationInfo>) => res.data,
-    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
   );
 }
 
+export function get(application_id: UUID): Promise<ApplicationInfo> {
+  return unwrapResponse(http.get<ApplicationInfo>(`/applications/${application_id}`));
+}
+
 export function update(application_id: UUID, application: ApplicationPost): Promise<Application> {
-  return http
-    .put(`/applications/${application_id}`, application)
-    .then(
-      (res: AxiosResponse<Application>) => res.data,
-      (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
-    )
-    .then((application) => {
+  return unwrapResponse(http.put<Application>(`/applications/${application_id}`, application)).then(
+    (application) => {
       // we force the user token refresh so that the org/app selector refreshes its options
       return useAuthStore()
         .refresh()
         .then(() => application);
-    });
+    }
+  );
 }
 
 export function remove(application_id: UUID): Promise<void> {
-  return http
-    .delete(`/applications/${application_id}`, {})
-    .then(
-      (res: AxiosResponse<void>) => res.data,
-      (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
-    )
-    .then((application) => {
+  return unwrapResponse(http.delete<void>(`/applications/${application_id}`, {})).then(
+    (application) => {
       // we force the user token refresh so that the org/app selector refreshes its options
       return useAuthStore()
         .refresh()
         .then(() => application);
-    });
+    }
+  );
 }

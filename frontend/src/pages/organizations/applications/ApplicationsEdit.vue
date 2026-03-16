@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import { computed, markRaw, watch } from 'vue';
+import { computed, markRaw } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { useForm } from 'vee-validate';
-import { push } from 'notivue';
 import { FileText } from 'lucide-vue-next';
 
 import {
@@ -12,12 +10,11 @@ import {
   useUpdateApplication,
 } from './useApplicationQueries';
 import { applicationSchema } from './application.schema';
-import { toTypedSchema } from '@/utils/zod-adapter';
+import type { Application } from './ApplicationService';
 import { routes } from '@/routes';
-import { displayError } from '@/utils/displayError';
-import type { Problem } from '@/http';
 import { useTracking } from '@/composables/useTracking';
 import { usePermissions } from '@/composables/usePermissions';
+import { useEntityForm } from '@/composables/useEntityForm';
 
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
@@ -72,19 +69,48 @@ const {
   refetch,
 } = useApplicationDetail(applicationId);
 
-// VeeValidate form with Zod schema
-const { errors, defineField, handleSubmit, resetForm } = useForm({
-  validationSchema: toTypedSchema(applicationSchema),
+// Mutations
+const createMutation = useCreateApplication();
+const updateMutation = useUpdateApplication();
+
+// Form via composable
+const { errors, defineField, onSubmit } = useEntityForm<{ name: string }, Application>({
+  schema: applicationSchema,
+  isNew,
+  existingValues: computed(() => (appDetail.value ? { name: appDetail.value.name } : undefined)),
+  createFn: (values) =>
+    createMutation.mutateAsync({ name: values.name, organization_id: organizationId.value }),
+  updateFn: (values) =>
+    updateMutation.mutateAsync({
+      applicationId: applicationId.value,
+      application: { name: values.name, organization_id: organizationId.value },
+    }),
+  skipToast: () => props.tutorialMode,
+  successCreateTitle: t('applications.created'),
+  successCreateMessage: (v) => t('applications.createdMessage', { name: v.name }),
+  successUpdateTitle: t('applications.updated'),
+  successUpdateMessage: (v) => t('applications.updatedMessage', { name: v.name }),
+  onCreated: (app) => {
+    trackEvent('application', 'create', 'success');
+    if (props.tutorialMode) {
+      emit('tutorial-application-created', app.application_id);
+    } else {
+      void router.push({
+        name: routes.TutorialCreateEventType,
+        params: {
+          organization_id: organizationId.value,
+          application_id: app.application_id,
+        },
+      });
+    }
+  },
+  onUpdated: () => {
+    trackEvent('application', 'update', 'success');
+    cancel();
+  },
 });
 
 const [name, nameAttrs] = defineField('name');
-
-// Populate form when app data loads
-watch(appDetail, (app) => {
-  if (app) {
-    resetForm({ values: { name: app.name } });
-  }
-});
 
 // Consumptions computed from app detail
 const consumptions = computed<ConsumptionQuota[]>(() => {
@@ -102,58 +128,6 @@ const consumptions = computed<ConsumptionQuota[]>(() => {
 function cancel() {
   router.back();
 }
-
-// Mutations
-const createMutation = useCreateApplication();
-const updateMutation = useUpdateApplication();
-
-const onSubmit = handleSubmit((values) => {
-  if (isNew.value) {
-    createMutation.mutate(
-      { name: values.name, organization_id: organizationId.value },
-      {
-        onSuccess: (app) => {
-          trackEvent('application', 'create', 'success');
-          if (props.tutorialMode) {
-            emit('tutorial-application-created', app.application_id);
-          } else {
-            push.success({
-              title: t('applications.created'),
-              message: t('applications.createdMessage', { name: values.name }),
-              duration: 5000,
-            });
-            void router.push({
-              name: routes.TutorialCreateEventType,
-              params: {
-                organization_id: organizationId.value,
-                application_id: app.application_id,
-              },
-            });
-          }
-        },
-        onError: (err) => {
-          displayError(err as unknown as Problem);
-        },
-      }
-    );
-  } else {
-    updateMutation.mutate(
-      {
-        applicationId: applicationId.value,
-        application: { name: values.name, organization_id: organizationId.value },
-      },
-      {
-        onSuccess: () => {
-          trackEvent('application', 'update', 'success');
-          cancel();
-        },
-        onError: (err) => {
-          displayError(err as unknown as Problem);
-        },
-      }
-    );
-  }
-});
 </script>
 
 <template>

@@ -1,8 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query';
+import { useQuery } from '@tanstack/vue-query';
 import { computed, type Ref } from 'vue';
 import * as OrganizationService from './OrganizationService';
 import type { OrganizationPost } from './OrganizationService';
 import { organizationKeys } from '@/queries/keys';
+import { useInvalidatingMutation } from '@/composables/queryHelpers';
 
 export function useOrganizationList() {
   return useQuery({
@@ -20,32 +21,23 @@ export function useOrganizationDetail(id: Ref<string>) {
 }
 
 export function useCreateOrganization() {
-  const queryClient = useQueryClient();
-  return useMutation({
+  return useInvalidatingMutation({
     mutationFn: (organization: OrganizationPost) => OrganizationService.create(organization),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: organizationKeys.all });
-    },
+    invalidateKeys: organizationKeys.all,
   });
 }
 
 export function useUpdateOrganization() {
-  const queryClient = useQueryClient();
-  return useMutation({
+  return useInvalidatingMutation({
     mutationFn: (params: { organizationId: string; organization: OrganizationPost }) =>
       OrganizationService.update(params.organizationId, params.organization),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: organizationKeys.all });
-    },
+    invalidateKeys: organizationKeys.all,
   });
 }
 
 export function useRemoveOrganization() {
-  const queryClient = useQueryClient();
-  return useMutation({
+  return useInvalidatingMutation({
     mutationFn: (organizationId: string) => OrganizationService.remove(organizationId),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: organizationKeys.all });
-    },
+    invalidateKeys: organizationKeys.all,
   });
 }

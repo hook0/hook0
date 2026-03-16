@@ -1,8 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query';
+import { useQuery } from '@tanstack/vue-query';
 import { computed, type Ref } from 'vue';
 import * as ApplicationSecretService from './ApplicationSecretService';
 import type { ApplicationSecretPost } from './ApplicationSecretService';
 import { secretKeys } from '@/queries/keys';
+import { useInvalidatingMutation } from '@/composables/queryHelpers';
 
 export function useSecretList(applicationId: Ref<string>) {
   return useQuery({
@@ -13,33 +14,24 @@ export function useSecretList(applicationId: Ref<string>) {
 }
 
 export function useCreateSecret() {
-  const queryClient = useQueryClient();
-  return useMutation({
+  return useInvalidatingMutation({
     mutationFn: (secret: ApplicationSecretPost) => ApplicationSecretService.create(secret),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: secretKeys.all });
-    },
+    invalidateKeys: secretKeys.all,
   });
 }
 
 export function useUpdateSecret() {
-  const queryClient = useQueryClient();
-  return useMutation({
+  return useInvalidatingMutation({
     mutationFn: (params: { token: string; secret: ApplicationSecretPost }) =>
       ApplicationSecretService.update(params.token, params.secret),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: secretKeys.all });
-    },
+    invalidateKeys: secretKeys.all,
   });
 }
 
 export function useRemoveSecret() {
-  const queryClient = useQueryClient();
-  return useMutation({
+  return useInvalidatingMutation({
     mutationFn: (params: { applicationId: string; token: string }) =>
       ApplicationSecretService.remove(params.applicationId, params.token),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: secretKeys.all });
-    },
+    invalidateKeys: secretKeys.all,
   });
 }

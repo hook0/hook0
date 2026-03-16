@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useAuthStore } from '@/stores/auth';
-import { handleError, Problem } from '@/http';
-import { AxiosError, AxiosResponse } from 'axios';
 import { useRouter } from 'vue-router';
 import { routes } from '@/routes';
 import { push } from 'notivue';
+import { useAuthErrorHandler } from '@/composables/useAuthErrorHandler';
 import { useForm } from 'vee-validate';
 import * as OrganizationService from './organizations/OrganizationService';
 import * as ApplicationService from './organizations/applications/ApplicationService';
@@ -13,7 +12,7 @@ import { loginSchema } from './login.schema';
 import { toTypedSchema } from '@/utils/zod-adapter';
 import { useTracking } from '@/composables/useTracking';
 import { useI18n } from 'vue-i18n';
-import { ArrowRight, Shield, CheckCircle } from 'lucide-vue-next';
+import { ArrowRight } from 'lucide-vue-next';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -22,10 +21,10 @@ import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardDivider from '@/components/Hook0CardDivider.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
-import Hook0Badge from '@/components/Hook0Badge.vue';
 import Hook0Logo from '@/components/Hook0Logo.vue';
 import Hook0Form from '@/components/Hook0Form.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
+import Hook0AuthTrustBadges from '@/components/Hook0AuthTrustBadges.vue';
 
 const { t } = useI18n();
 
@@ -34,6 +33,7 @@ const authStore = useAuthStore();
 
 // Analytics tracking
 const { trackEvent } = useTracking();
+const { handleAuthError } = useAuthErrorHandler();
 
 // VeeValidate form with Zod schema
 const { errors, defineField, handleSubmit } = useForm({
@@ -79,24 +79,13 @@ const onSubmit = handleSubmit((values) => {
       return router.push({ name: routes.Home });
     })
     .catch((err) => {
-      const problem = handleError(err as AxiosError<AxiosResponse<Problem>>);
+      handleAuthError(err);
       trackEvent('auth', 'login', 'error');
-      displayError(problem);
     })
     .finally(() => {
       isLoading.value = false;
     });
 });
-
-function displayError(err: Problem) {
-  console.error(err);
-  const options = {
-    title: err.title,
-    message: err.detail,
-    duration: 5000,
-  };
-  err.status >= 500 ? push.error(options) : push.warning(options);
-}
 </script>
 
 <template>
@@ -187,26 +176,7 @@ function displayError(err: Problem) {
     </Hook0Card>
 
     <template #footer>
-      <Hook0Stack align="center" justify="center" gap="lg" wrap responsive>
-        <Hook0Badge display="trust" variant="success">
-          <template #icon>
-            <Shield :size="20" aria-hidden="true" />
-          </template>
-          {{ t('auth.trust.openSource') }}
-        </Hook0Badge>
-        <Hook0Badge display="trust" variant="success">
-          <template #icon>
-            <CheckCircle :size="20" aria-hidden="true" />
-          </template>
-          {{ t('auth.trust.uptime') }}
-        </Hook0Badge>
-        <Hook0Badge display="trust" variant="success">
-          <template #icon>
-            <CheckCircle :size="20" aria-hidden="true" />
-          </template>
-          {{ t('auth.trust.gdpr') }}
-        </Hook0Badge>
-      </Hook0Stack>
+      <Hook0AuthTrustBadges />
     </template>
   </Hook0PageLayout>
 </template>

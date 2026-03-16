@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, h, markRaw, ref } from 'vue';
+import { computed, h, markRaw } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
@@ -8,10 +8,8 @@ import { Trash2 } from 'lucide-vue-next';
 import { useEventTypeList, useDeactivateEventType } from './useEventTypeQueries';
 import type { EventType } from './EventTypeService';
 import { routes } from '@/routes';
-import { displayError } from '@/utils/displayError';
-import type { Problem } from '@/http';
-import { push } from 'notivue';
 import { usePermissions } from '@/composables/usePermissions';
+import { useEntityDelete } from '@/composables/useEntityDelete';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -39,36 +37,20 @@ const { data: eventTypes, isLoading, error, refetch } = useEventTypeList(applica
 
 const deactivateMutation = useDeactivateEventType();
 
-const showDeactivateDialog = ref(false);
-const eventTypeToDeactivate = ref<EventType | null>(null);
-
-function handleDeactivate(row: EventType) {
-  eventTypeToDeactivate.value = row;
-  showDeactivateDialog.value = true;
-}
-
-function confirmDeactivate() {
-  const row = eventTypeToDeactivate.value;
-  showDeactivateDialog.value = false;
-  eventTypeToDeactivate.value = null;
-  if (!row) return;
-
-  deactivateMutation.mutate(
-    { applicationId: applicationId.value, eventTypeName: row.event_type_name },
-    {
-      onSuccess: () => {
-        push.success({
-          title: t('common.success'),
-          message: t('eventTypes.deactivated', { name: row.event_type_name }),
-          duration: 3000,
-        });
-      },
-      onError: (err) => {
-        displayError(err as unknown as Problem);
-      },
-    }
-  );
-}
+const {
+  showDeleteDialog: showDeactivateDialog,
+  entityToDelete: eventTypeToDeactivate,
+  requestDelete: handleDeactivate,
+  confirmDelete: confirmDeactivate,
+} = useEntityDelete<EventType>({
+  deleteFn: (row) =>
+    deactivateMutation.mutateAsync({
+      applicationId: applicationId.value,
+      eventTypeName: row.event_type_name,
+    }),
+  successTitle: t('common.success'),
+  successMessage: (row) => t('eventTypes.deactivated', { name: row.event_type_name }),
+});
 
 const columns: ColumnDef<EventType, unknown>[] = [
   {
