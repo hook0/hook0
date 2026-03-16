@@ -3,9 +3,9 @@ import { onMounted, ref } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { AxiosError, AxiosResponse } from 'axios';
 import { handleError, Problem } from '@/http';
-import { push } from 'notivue';
 import { routes } from '@/routes';
 import router from '@/router';
+import { displayError } from '@/utils/displayError';
 import { useForm } from 'vee-validate';
 import { registerSchema } from './register.schema';
 import { toTypedSchema } from '@/utils/zod-adapter';
@@ -93,16 +93,6 @@ const onSubmit = handleSubmit((values) => {
       isLoading.value = false;
     });
 });
-
-function displayError(err: Problem) {
-  console.error(err);
-  const options = {
-    title: err.title,
-    message: err.detail,
-    duration: 5000,
-  };
-  err.status >= 500 ? push.error(options) : push.warning(options);
-}
 </script>
 
 <template>

@@ -3,7 +3,6 @@ import { ref } from 'vue';
 import { AlertTriangle, Trash2 } from 'lucide-vue-next';
 
 import * as OrganizationService from './OrganizationService';
-import { Problem } from '@/http';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
@@ -14,6 +13,7 @@ import Hook0Stack from '@/components/Hook0Stack.vue';
 import Hook0Alert from '@/components/Hook0Alert.vue';
 import Hook0Dialog from '@/components/Hook0Dialog.vue';
 import { push } from 'notivue';
+import { displayError } from '@/utils/displayError';
 import router from '@/router.ts';
 import { routes } from '@/routes.ts';
 import { useTracking } from '@/composables/useTracking';
@@ -61,16 +61,6 @@ function confirmRemove() {
     .catch(displayError)
     // finally
     .finally(() => (loading.value = false));
-}
-
-function displayError(err: Problem) {
-  console.error(err);
-  let options = {
-    title: err.title,
-    message: err.detail,
-    duration: 5000,
-  };
-  err.status >= 500 ? push.error(options) : push.warning(options);
 }
 </script>
 

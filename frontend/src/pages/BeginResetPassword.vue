@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { push } from 'notivue';
+import { displayError } from '@/utils/displayError';
 import { AxiosError, AxiosResponse } from 'axios';
 import { handleError, Problem } from '@/http';
 import { beginResetPassword } from '@/pages/user/UserService';
@@ -42,16 +43,6 @@ function submit() {
     .finally(() => {
       isLoading.value = false;
     });
-}
-
-function displayError(err: Problem) {
-  console.error(err);
-  const options = {
-    title: err.title,
-    message: err.detail,
-    duration: 5000,
-  };
-  err.status >= 500 ? push.error(options) : push.warning(options);
 }
 </script>
 

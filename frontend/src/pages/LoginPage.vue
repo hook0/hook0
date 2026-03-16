@@ -6,6 +6,7 @@ import { AxiosError, AxiosResponse } from 'axios';
 import { useRouter } from 'vue-router';
 import { routes } from '@/routes';
 import { push } from 'notivue';
+import { displayError } from '@/utils/displayError';
 import { useForm } from 'vee-validate';
 import * as OrganizationService from './organizations/OrganizationService';
 import * as ApplicationService from './organizations/applications/ApplicationService';
@@ -87,16 +88,6 @@ const onSubmit = handleSubmit((values) => {
       isLoading.value = false;
     });
 });
-
-function displayError(err: Problem) {
-  console.error(err);
-  const options = {
-    title: err.title,
-    message: err.detail,
-    duration: 5000,
-  };
-  err.status >= 500 ? push.error(options) : push.warning(options);
-}
 </script>
 
 <template>
