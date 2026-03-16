@@ -123,9 +123,7 @@ function handleFormDone() {
   <div class="wizard-modal__header">
     <Hook0Stack direction="row" align="center" gap="sm">
       <Hook0Badge display="step" variant="primary">{{ STEP_CONFIG.badge }}</Hook0Badge>
-      <span id="wizard-step-title" class="wizard-modal__title">{{
-        t(STEP_CONFIG.titleKey)
-      }}</span>
+      <span id="wizard-step-title" class="wizard-modal__title">{{ t(STEP_CONFIG.titleKey) }}</span>
     </Hook0Stack>
     <button
       class="wizard-modal__close"
@@ -150,11 +148,7 @@ function handleFormDone() {
 
       <TutorialStepProgress :steps="progressSteps" :current="STEP_CONFIG.progressIndex" />
 
-      <Hook0Stack
-        v-if="organizationId && applicationId && !done"
-        direction="column"
-        gap="md"
-      >
+      <Hook0Stack v-if="organizationId && applicationId && !done" direction="column" gap="md">
         <Hook0Stack direction="row" align="center" gap="sm">
           <Hook0IconBadge variant="primary">
             <component :is="STEP_CONFIG.icon" :size="18" aria-hidden="true" />

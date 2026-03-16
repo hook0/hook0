@@ -251,7 +251,10 @@ function handleBackdropClick(event: MouseEvent) {
                     variant="link"
                     :to="{
                       name: routes.EventsList,
-                      params: { organization_id: contextStore.organizationId!, application_id: app.application_id },
+                      params: {
+                        organization_id: contextStore.organizationId!,
+                        application_id: app.application_id,
+                      },
                     }"
                     class="hook0-mobile-drawer__item"
                     :class="{ active: app.application_id === contextStore.applicationId }"
@@ -441,7 +444,9 @@ function handleBackdropClick(event: MouseEvent) {
   border-radius: var(--radius-md);
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .hook0-mobile-drawer__close:hover {
@@ -498,7 +503,9 @@ function handleBackdropClick(event: MouseEvent) {
   background: none;
   cursor: pointer;
   border-radius: var(--radius-md);
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
   width: 100%;
   text-align: left;
   white-space: nowrap;

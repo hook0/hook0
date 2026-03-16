@@ -61,22 +61,14 @@ const tutorialSteps: TutorialStepItem[] = [
     <Hook0Stack direction="column" gap="lg">
       <span class="wizard-modal__subtitle">{{ t('tutorial.intro.subtitle') }}</span>
 
-      <Hook0Illustration
-        variant="tutorial"
-        size="md"
-        :alt="t('tutorial.intro.illustrationAlt')"
-      />
+      <Hook0Illustration variant="tutorial" size="md" :alt="t('tutorial.intro.illustrationAlt')" />
 
       <Hook0Stack direction="column" gap="md" data-test="tutorial-header">
         {{ t('tutorial.intro.inThisTutorial') }}
       </Hook0Stack>
 
       <ul class="tutorial-steps">
-        <li
-          v-for="step in tutorialSteps"
-          :key="step.label"
-          class="tutorial-steps__item"
-        >
+        <li v-for="step in tutorialSteps" :key="step.label" class="tutorial-steps__item">
           <span class="tutorial-steps__icon">
             <component :is="step.icon" :size="16" aria-hidden="true" />
           </span>

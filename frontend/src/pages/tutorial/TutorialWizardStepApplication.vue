@@ -50,7 +50,7 @@ const appId = ref<UUID | null>(null);
 const selectedAppId = ref<UUID | null>(null);
 const appSection = ref<AppSection | null>(null);
 
-const appListOrgId = computed(() => (props.organizationId ? (props.organizationId as UUID) : ('' as UUID)));
+const appListOrgId = computed(() => props.organizationId || '');
 
 const {
   data: rawApplications,
@@ -90,9 +90,7 @@ function handleAdvance() {
   <div class="wizard-modal__header">
     <Hook0Stack direction="row" align="center" gap="sm">
       <Hook0Badge display="step" variant="primary">2</Hook0Badge>
-      <span id="wizard-step-title" class="wizard-modal__title">{{
-        t('tutorial.step2Title')
-      }}</span>
+      <span id="wizard-step-title" class="wizard-modal__title">{{ t('tutorial.step2Title') }}</span>
     </Hook0Stack>
     <button
       class="wizard-modal__close"

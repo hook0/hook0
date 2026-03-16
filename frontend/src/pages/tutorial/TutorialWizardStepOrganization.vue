@@ -84,9 +84,7 @@ function handleAdvance() {
   <div class="wizard-modal__header">
     <Hook0Stack direction="row" align="center" gap="sm">
       <Hook0Badge display="step" variant="primary">1</Hook0Badge>
-      <span id="wizard-step-title" class="wizard-modal__title">{{
-        t('tutorial.step1Title')
-      }}</span>
+      <span id="wizard-step-title" class="wizard-modal__title">{{ t('tutorial.step1Title') }}</span>
     </Hook0Stack>
     <button
       class="wizard-modal__close"

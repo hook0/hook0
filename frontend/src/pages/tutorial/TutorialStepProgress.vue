@@ -24,11 +24,7 @@ function stepState(index: number): 'completed' | 'current' | 'future' {
 <template>
   <nav class="step-progress" aria-label="Tutorial progress">
     <ol class="step-progress__list">
-      <li
-        v-for="(step, index) in steps"
-        :key="step.label"
-        class="step-progress__item"
-      >
+      <li v-for="(step, index) in steps" :key="step.label" class="step-progress__item">
         <div
           v-if="index > 0"
           class="step-progress__connector"
@@ -43,23 +39,11 @@ function stepState(index: number): 'completed' | 'current' | 'future' {
           :aria-current="index === current ? 'step' : undefined"
           :aria-label="step.label"
         >
-          <Check
-            v-if="stepState(index) === 'completed'"
-            :size="16"
-            aria-hidden="true"
-          />
-          <component
-            :is="step.icon"
-            v-else
-            :size="16"
-            aria-hidden="true"
-          />
+          <Check v-if="stepState(index) === 'completed'" :size="16" aria-hidden="true" />
+          <component :is="step.icon" v-else :size="16" aria-hidden="true" />
         </div>
 
-        <span
-          class="step-progress__label"
-          :class="[`step-progress__label--${stepState(index)}`]"
-        >
+        <span class="step-progress__label" :class="[`step-progress__label--${stepState(index)}`]">
           {{ step.label }}
         </span>
       </li>
@@ -119,7 +103,10 @@ function stepState(index: number): 'completed' | 'current' | 'future' {
   border: 2px solid transparent;
   cursor: default;
   flex-shrink: 0;
-  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .step-progress__circle--completed {

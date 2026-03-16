@@ -74,7 +74,9 @@ const cardStyle = computed(() => {
 
 /* Interactive variant - for clickable cards with hover effects */
 .hook0-card--interactive {
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
   cursor: default;
 }
 
@@ -90,7 +92,9 @@ const cardStyle = computed(() => {
   border-color: var(--color-border);
   background-color: transparent;
   cursor: pointer;
-  transition: border-color 0.15s ease, background-color 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .hook0-card--dashed:hover {

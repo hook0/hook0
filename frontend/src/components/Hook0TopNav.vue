@@ -326,7 +326,9 @@ router.afterEach(() => {
   color: var(--color-text-secondary);
   cursor: pointer;
   border-radius: var(--radius-md);
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .hook0-topnav__mobile-toggle:hover {
@@ -404,7 +406,9 @@ router.afterEach(() => {
   color: var(--color-text-secondary);
   text-decoration: none;
   border-radius: var(--radius-md);
-  transition: color 0.15s ease, background-color 0.15s ease;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
   white-space: nowrap;
 }
 
@@ -493,7 +497,9 @@ router.afterEach(() => {
   color: var(--color-text-secondary);
   text-decoration: none;
   border-radius: var(--radius-md);
-  transition: color 0.15s ease, background-color 0.15s ease;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
   white-space: nowrap;
 }
 
@@ -605,7 +611,9 @@ router.afterEach(() => {
   background: none;
   cursor: pointer;
   border-radius: var(--radius-md);
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
   width: 100%;
   text-align: left;
   white-space: nowrap;
@@ -651,7 +659,9 @@ router.afterEach(() => {
 /* Dropdown animation */
 .dropdown-enter-active,
 .dropdown-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
 }
 
 .dropdown-enter-from,

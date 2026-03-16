@@ -77,21 +77,13 @@ onMounted(() => {
     <Hook0Stack v-else direction="column" gap="lg">
       <i18n-t keypath="tutorial.congrats.subtitle" tag="span">
         <template #discord>
-          <Hook0Button
-            variant="link"
-            href="https://discord.com/invite/hook0"
-            target="_blank"
-          >
+          <Hook0Button variant="link" href="https://discord.com/invite/hook0" target="_blank">
             <MessageSquare :size="14" aria-hidden="true" />
             Discord
           </Hook0Button>
         </template>
         <template #github>
-          <Hook0Button
-            variant="link"
-            href="https://github.com/hook0/hook0"
-            target="_blank"
-          >
+          <Hook0Button variant="link" href="https://github.com/hook0/hook0" target="_blank">
             <Github :size="14" aria-hidden="true" />
             GitHub
           </Hook0Button>

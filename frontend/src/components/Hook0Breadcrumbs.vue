@@ -832,7 +832,9 @@ onUnmounted(() => {
   margin: -0.125rem -0.25rem;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: color 0.15s ease, background-color 0.15s ease;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .hook0-breadcrumbs__dropdown-trigger--link {
