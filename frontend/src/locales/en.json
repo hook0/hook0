@@ -625,10 +625,7 @@
       "subscriptionTitle": "Create a subscription",
       "subscriptionDetails": "Filter events and choose where you want them dispatched as webhooks.",
       "eventTitle": "Send an event",
-      "eventDetails": "Something that happened in your application and could end up as a webhook.",
-      "of": "of",
-      "completed": "completed",
-      "then": "Then"
+      "eventDetails": "Something that happened in your application and could end up as a webhook."
     },
     "title": "Get Started with Hook0",
     "welcome": {
