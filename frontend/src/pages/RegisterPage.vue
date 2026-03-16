@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { useAuthStore } from '@/stores/auth';
-import { AxiosError, AxiosResponse } from 'axios';
-import { handleError, Problem } from '@/http';
 import { routes } from '@/routes';
 import router from '@/router';
-import { displayError } from '@/utils/displayError';
+import { useAuthErrorHandler } from '@/composables/useAuthErrorHandler';
 import { useForm } from 'vee-validate';
 import { registerSchema } from './register.schema';
 import { toTypedSchema } from '@/utils/zod-adapter';
@@ -53,6 +51,7 @@ const captchaToken = ref<string>('');
 
 // Analytics tracking
 const { trackEvent, trackPageWithDimensions } = useTracking();
+const { handleAuthError } = useAuthErrorHandler();
 const formStarted = ref<boolean>(false);
 
 function handleFormStart() {
@@ -86,9 +85,8 @@ const onSubmit = handleSubmit((values) => {
       return router.push({ name: routes.CheckEmail });
     })
     .catch((err) => {
-      const problem = handleError(err as AxiosError<AxiosResponse<Problem>>);
+      const problem = handleAuthError(err);
       trackEvent('signup', 'form-error', problem.title || 'unknown');
-      displayError(problem);
     })
     .finally(() => {
       isLoading.value = false;

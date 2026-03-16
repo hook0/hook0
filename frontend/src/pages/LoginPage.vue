@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useAuthStore } from '@/stores/auth';
-import { handleError, Problem } from '@/http';
-import { AxiosError, AxiosResponse } from 'axios';
 import { useRouter } from 'vue-router';
 import { routes } from '@/routes';
 import { push } from 'notivue';
-import { displayError } from '@/utils/displayError';
+import { useAuthErrorHandler } from '@/composables/useAuthErrorHandler';
 import { useForm } from 'vee-validate';
 import * as OrganizationService from './organizations/OrganizationService';
 import * as ApplicationService from './organizations/applications/ApplicationService';
@@ -35,6 +33,7 @@ const authStore = useAuthStore();
 
 // Analytics tracking
 const { trackEvent } = useTracking();
+const { handleAuthError } = useAuthErrorHandler();
 
 // VeeValidate form with Zod schema
 const { errors, defineField, handleSubmit } = useForm({
@@ -80,9 +79,8 @@ const onSubmit = handleSubmit((values) => {
       return router.push({ name: routes.Home });
     })
     .catch((err) => {
-      const problem = handleError(err as AxiosError<AxiosResponse<Problem>>);
+      handleAuthError(err);
       trackEvent('auth', 'login', 'error');
-      displayError(problem);
     })
     .finally(() => {
       isLoading.value = false;
