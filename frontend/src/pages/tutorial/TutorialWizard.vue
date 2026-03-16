@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, onUnmounted } from 'vue';
+import { computed, markRaw, nextTick, ref, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { push } from 'notivue';
@@ -78,13 +78,13 @@ const currentStep = computed(() => STEP_MAP[route.name as string] ?? 0);
 // Step definitions for progress bar
 // ---------------------------------------------------------------------------
 const STEPS = computed(() => [
-  { icon: Rocket, label: t('tutorial.steps.intro') },
-  { icon: Building2, label: t('tutorial.steps.organization') },
-  { icon: AppWindow, label: t('tutorial.steps.application') },
-  { icon: FolderTree, label: t('tutorial.steps.eventType') },
-  { icon: Link, label: t('tutorial.steps.subscription') },
-  { icon: FileText, label: t('tutorial.steps.sendEvent') },
-  { icon: PartyPopper, label: t('tutorial.steps.success') },
+  { icon: markRaw(Rocket), label: t('tutorial.steps.intro') },
+  { icon: markRaw(Building2), label: t('tutorial.steps.organization') },
+  { icon: markRaw(AppWindow), label: t('tutorial.steps.application') },
+  { icon: markRaw(FolderTree), label: t('tutorial.steps.eventType') },
+  { icon: markRaw(Link), label: t('tutorial.steps.subscription') },
+  { icon: markRaw(FileText), label: t('tutorial.steps.sendEvent') },
+  { icon: markRaw(PartyPopper), label: t('tutorial.steps.success') },
 ]);
 
 // Progress bar steps (steps 1–5 only, mapped to 0-based for the progress component)
@@ -186,17 +186,21 @@ const enum AppSection {
   SelectExistingApplication,
 }
 
-const step2OrgId = computed(() => route.params.organization_id as UUID);
+const paramOrgId = computed(() => route.params.organization_id as UUID);
 const appId = ref<UUID | null>(null);
 const selectedAppId = ref<UUID | null>(null);
 const appSection = ref<AppSection | null>(null);
+
+const appListOrgId = computed(() =>
+  currentStep.value === 2 && paramOrgId.value ? paramOrgId.value : ('' as UUID)
+);
 
 const {
   data: rawApplications,
   isLoading: appLoading,
   error: appError,
   refetch: appRefetch,
-} = useApplicationList(step2OrgId);
+} = useApplicationList(appListOrgId);
 
 const applicationOptions = computed(() => {
   const apps = rawApplications.value ?? [];
@@ -215,7 +219,7 @@ watch(rawApplications, (apps) => {
 
 function goToStep3(application_id: UUID) {
   appId.value = application_id;
-  if (step2OrgId.value && selectedAppId.value) {
+  if (paramOrgId.value && selectedAppId.value) {
     trackEvent('tutorial', 'step-complete', 'application');
     push.success({
       title: t('tutorial.applicationSelected'),
@@ -226,11 +230,11 @@ function goToStep3(application_id: UUID) {
     void router.push({
       name: routes.TutorialCreateEventType,
       params: {
-        organization_id: step2OrgId.value,
+        organization_id: paramOrgId.value,
         application_id: selectedAppId.value,
       },
     });
-  } else if (step2OrgId.value && appId.value) {
+  } else if (paramOrgId.value && appId.value) {
     trackEvent('tutorial', 'step-complete', 'application');
     push.success({
       title: t('tutorial.applicationCreated'),
@@ -241,7 +245,7 @@ function goToStep3(application_id: UUID) {
     void router.push({
       name: routes.TutorialCreateEventType,
       params: {
-        organization_id: step2OrgId.value,
+        organization_id: paramOrgId.value,
         application_id: appId.value,
       },
     });
@@ -257,7 +261,6 @@ function goToStep3(application_id: UUID) {
 // ---------------------------------------------------------------------------
 // Steps 3–5 shared state
 // ---------------------------------------------------------------------------
-const paramOrgId = computed(() => route.params.organization_id as UUID);
 const paramAppId = computed(() => route.params.application_id as UUID);
 
 const step3Alert = ref<Alert>({ visible: false, type: 'alert', title: '', description: '' });
@@ -303,6 +306,8 @@ watch(
       celebrate(100);
       trackEvent('tutorial', 'complete');
     }
+
+    focusFirstElement();
   },
   { immediate: true }
 );
@@ -405,7 +410,7 @@ function skipToHome() {
 function skipToOrgDashboard() {
   void router.push({
     name: routes.OrganizationsDashboard,
-    params: { organization_id: step2OrgId.value },
+    params: { organization_id: paramOrgId.value },
   });
 }
 
@@ -428,6 +433,8 @@ function handleKeydown(e: KeyboardEvent) {
       skipTutorial();
     } else if (currentStep.value <= 1) {
       skipToHome();
+    } else if (currentStep.value === 2) {
+      skipToOrgDashboard();
     } else {
       skipToAppDashboard();
     }
@@ -436,6 +443,7 @@ function handleKeydown(e: KeyboardEvent) {
 
 onMounted(() => {
   document.addEventListener('keydown', handleKeydown);
+  focusFirstElement();
 });
 
 onUnmounted(() => {
@@ -445,25 +453,74 @@ onUnmounted(() => {
 // ---------------------------------------------------------------------------
 // Overlay click to dismiss
 // ---------------------------------------------------------------------------
+const overlayRef = ref<HTMLElement | null>(null);
+const modalRef = ref<HTMLElement | null>(null);
+
 function handleOverlayClick(e: MouseEvent) {
-  if ((e.target as HTMLElement).classList.contains('wizard-overlay')) {
+  if (e.target === overlayRef.value) {
     if (currentStep.value === 0) {
       skipTutorial();
     } else if (currentStep.value <= 1) {
       skipToHome();
+    } else if (currentStep.value === 2) {
+      skipToOrgDashboard();
     } else {
       skipToAppDashboard();
     }
   }
 }
+
+// ---------------------------------------------------------------------------
+// Focus trap
+// ---------------------------------------------------------------------------
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+function handleFocusTrap(e: KeyboardEvent) {
+  if (e.key !== 'Tab' || !modalRef.value) return;
+
+  const focusable = Array.from(modalRef.value.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+  if (focusable.length === 0) return;
+
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+
+  if (e.shiftKey) {
+    if (document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    }
+  } else {
+    if (document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+}
+
+function focusFirstElement() {
+  void nextTick(() => {
+    if (!modalRef.value) return;
+    const first = modalRef.value.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+    first?.focus();
+  });
+}
 </script>
 
 <template>
   <Teleport to="body">
-    <Transition name="dialog-overlay">
-      <div v-if="currentStep >= 0" class="wizard-overlay" @click="handleOverlayClick">
+    <Transition name="dialog-overlay" appear>
+      <div v-show="true" ref="overlayRef" class="wizard-overlay" @click="handleOverlayClick">
         <Transition name="dialog" appear>
-          <div v-if="currentStep >= 0" class="wizard-modal">
+          <div
+            v-show="true"
+            ref="modalRef"
+            class="wizard-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="wizard-step-title"
+            @keydown="handleFocusTrap"
+          >
             <!-- ============================================================ -->
             <!-- STEP 0 — Intro                                               -->
             <!-- ============================================================ -->
@@ -473,7 +530,9 @@ function handleOverlayClick(e: MouseEvent) {
                   <Hook0IconBadge variant="primary" size="md">
                     <Rocket :size="18" aria-hidden="true" />
                   </Hook0IconBadge>
-                  <span class="wizard-modal__title">{{ t('tutorial.intro.title') }}</span>
+                  <span id="wizard-step-title" class="wizard-modal__title">{{
+                    t('tutorial.intro.title')
+                  }}</span>
                 </Hook0Stack>
                 <button
                   class="wizard-modal__close"
@@ -548,15 +607,14 @@ function handleOverlayClick(e: MouseEvent) {
                 </Hook0Button>
               </div>
             </template>
-
-            <!-- ============================================================ -->
-            <!-- STEP 1 — Organization                                        -->
-            <!-- ============================================================ -->
-            <template v-if="currentStep === 1">
+            <template v-else-if="currentStep === 1">
+              <!-- STEP 1 — Organization -->
               <div class="wizard-modal__header">
                 <Hook0Stack direction="row" align="center" gap="sm">
                   <Hook0Badge display="step" variant="primary">1</Hook0Badge>
-                  <span class="wizard-modal__title">{{ t('tutorial.step1Title') }}</span>
+                  <span id="wizard-step-title" class="wizard-modal__title">{{
+                    t('tutorial.step1Title')
+                  }}</span>
                 </Hook0Stack>
                 <button
                   class="wizard-modal__close"
@@ -609,7 +667,7 @@ function handleOverlayClick(e: MouseEvent) {
                                 orgSection === OrgSection.CreateOrganization,
                             }"
                           >
-                            <Plus :size="18" />
+                            <Plus :size="18" aria-hidden="true" />
                           </span>
                           <span class="selectable-card__label">
                             {{ t('tutorial.createNewOrganization') }}
@@ -644,7 +702,7 @@ function handleOverlayClick(e: MouseEvent) {
                                 orgSection === OrgSection.SelectExistingOrganization,
                             }"
                           >
-                            <List :size="18" />
+                            <List :size="18" aria-hidden="true" />
                           </span>
                           <span class="selectable-card__label">
                             {{ t('tutorial.selectExistingOrganization') }}
@@ -702,22 +760,21 @@ function handleOverlayClick(e: MouseEvent) {
                   v-if="orgId || selectedOrgId"
                   variant="primary"
                   type="button"
-                  @click="goToStep2(orgId ?? selectedOrgId ?? ('' as UUID))"
+                  @click="goToStep2((orgId ?? selectedOrgId)!)"
                 >
                   {{ t('tutorial.continueStep2') }}
                   <ArrowRight :size="16" aria-hidden="true" />
                 </Hook0Button>
               </div>
             </template>
-
-            <!-- ============================================================ -->
-            <!-- STEP 2 — Application                                         -->
-            <!-- ============================================================ -->
-            <template v-if="currentStep === 2">
+            <template v-else-if="currentStep === 2">
+              <!-- STEP 2 — Application -->
               <div class="wizard-modal__header">
                 <Hook0Stack direction="row" align="center" gap="sm">
                   <Hook0Badge display="step" variant="primary">2</Hook0Badge>
-                  <span class="wizard-modal__title">{{ t('tutorial.step2Title') }}</span>
+                  <span id="wizard-step-title" class="wizard-modal__title">{{
+                    t('tutorial.step2Title')
+                  }}</span>
                 </Hook0Stack>
                 <button
                   class="wizard-modal__close"
@@ -746,7 +803,7 @@ function handleOverlayClick(e: MouseEvent) {
 
                   <TutorialStepProgress :steps="PROGRESS_STEPS" :current="1" />
 
-                  <Hook0Card v-if="step2OrgId && !appId && applicationOptions.length > 1">
+                  <Hook0Card v-if="paramOrgId && !appId && applicationOptions.length > 1">
                     <Hook0CardHeader>
                       <template #header>
                         <Hook0Stack direction="row" align="center" gap="sm">
@@ -780,7 +837,7 @@ function handleOverlayClick(e: MouseEvent) {
                                 appSection === AppSection.CreateApplication,
                             }"
                           >
-                            <Plus :size="18" />
+                            <Plus :size="18" aria-hidden="true" />
                           </span>
                           <span class="selectable-card__label">
                             {{ t('tutorial.createNewApplication') }}
@@ -814,7 +871,7 @@ function handleOverlayClick(e: MouseEvent) {
                                 appSection === AppSection.SelectExistingApplication,
                             }"
                           >
-                            <List :size="18" />
+                            <List :size="18" aria-hidden="true" />
                           </span>
                           <span class="selectable-card__label">
                             {{ t('tutorial.selectExistingApplication') }}
@@ -832,14 +889,14 @@ function handleOverlayClick(e: MouseEvent) {
                   </Hook0Card>
 
                   <ApplicationsEdit
-                    v-if="step2OrgId && appSection === AppSection.CreateApplication"
+                    v-if="paramOrgId && appSection === AppSection.CreateApplication"
                     :tutorial-mode="true"
                     @tutorial-application-created="goToStep3($event)"
                   />
 
                   <!-- Select existing application -->
                   <template
-                    v-if="step2OrgId && appSection === AppSection.SelectExistingApplication"
+                    v-if="paramOrgId && appSection === AppSection.SelectExistingApplication"
                   >
                     <Hook0Card>
                       <Hook0CardContent>
@@ -863,25 +920,24 @@ function handleOverlayClick(e: MouseEvent) {
                   {{ t('tutorial.skip') }}
                 </Hook0Button>
                 <Hook0Button
-                  v-if="step2OrgId && (appId || selectedAppId)"
+                  v-if="paramOrgId && (appId || selectedAppId)"
                   variant="primary"
                   type="button"
-                  @click="goToStep3(appId ?? selectedAppId ?? ('' as UUID))"
+                  @click="goToStep3((appId ?? selectedAppId)!)"
                 >
                   {{ t('tutorial.continueStep3') }}
                   <ArrowRight :size="16" aria-hidden="true" />
                 </Hook0Button>
               </div>
             </template>
-
-            <!-- ============================================================ -->
-            <!-- STEP 3 — Event Type                                          -->
-            <!-- ============================================================ -->
-            <template v-if="currentStep === 3">
+            <template v-else-if="currentStep === 3">
+              <!-- STEP 3 — Event Type -->
               <div class="wizard-modal__header">
                 <Hook0Stack direction="row" align="center" gap="sm">
                   <Hook0Badge display="step" variant="primary">3</Hook0Badge>
-                  <span class="wizard-modal__title">{{ t('tutorial.step3.title') }}</span>
+                  <span id="wizard-step-title" class="wizard-modal__title">{{
+                    t('tutorial.step3.title')
+                  }}</span>
                 </Hook0Stack>
                 <button
                   class="wizard-modal__close"
@@ -944,15 +1000,14 @@ function handleOverlayClick(e: MouseEvent) {
                 </Hook0Button>
               </div>
             </template>
-
-            <!-- ============================================================ -->
-            <!-- STEP 4 — Subscription                                        -->
-            <!-- ============================================================ -->
-            <template v-if="currentStep === 4">
+            <template v-else-if="currentStep === 4">
+              <!-- STEP 4 — Subscription -->
               <div class="wizard-modal__header">
                 <Hook0Stack direction="row" align="center" gap="sm">
                   <Hook0Badge display="step" variant="primary">4</Hook0Badge>
-                  <span class="wizard-modal__title">{{ t('tutorial.step4.title') }}</span>
+                  <span id="wizard-step-title" class="wizard-modal__title">{{
+                    t('tutorial.step4.title')
+                  }}</span>
                 </Hook0Stack>
                 <button
                   class="wizard-modal__close"
@@ -1018,15 +1073,14 @@ function handleOverlayClick(e: MouseEvent) {
                 </Hook0Button>
               </div>
             </template>
-
-            <!-- ============================================================ -->
-            <!-- STEP 5 — Send Event                                          -->
-            <!-- ============================================================ -->
-            <template v-if="currentStep === 5">
+            <template v-else-if="currentStep === 5">
+              <!-- STEP 5 — Send Event -->
               <div class="wizard-modal__header">
                 <Hook0Stack direction="row" align="center" gap="sm">
                   <Hook0Badge display="step" variant="primary">5</Hook0Badge>
-                  <span class="wizard-modal__title">{{ t('tutorial.step5.title') }}</span>
+                  <span id="wizard-step-title" class="wizard-modal__title">{{
+                    t('tutorial.step5.title')
+                  }}</span>
                 </Hook0Stack>
                 <button
                   class="wizard-modal__close"
@@ -1084,17 +1138,16 @@ function handleOverlayClick(e: MouseEvent) {
                 </Hook0Button>
               </div>
             </template>
-
-            <!-- ============================================================ -->
-            <!-- STEP 6 — Success                                             -->
-            <!-- ============================================================ -->
-            <template v-if="currentStep === 6">
+            <template v-else-if="currentStep === 6">
+              <!-- STEP 6 — Success -->
               <div class="wizard-modal__header">
                 <Hook0Stack direction="row" align="center" gap="sm">
                   <Hook0IconBadge variant="success" size="lg">
                     <PartyPopper :size="20" aria-hidden="true" />
                   </Hook0IconBadge>
-                  <span class="wizard-modal__title">{{ t('tutorial.congrats.title') }}</span>
+                  <span id="wizard-step-title" class="wizard-modal__title">{{
+                    t('tutorial.congrats.title')
+                  }}</span>
                 </Hook0Stack>
                 <button
                   class="wizard-modal__close"
@@ -1199,7 +1252,7 @@ function handleOverlayClick(e: MouseEvent) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: var(--color-overlay, rgba(0, 0, 0, 0.5));
   backdrop-filter: blur(4px);
   padding: 1rem;
 }
@@ -1211,7 +1264,6 @@ function handleOverlayClick(e: MouseEvent) {
   max-width: 42rem;
   width: 100%;
   max-height: 85vh;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
 }
@@ -1240,14 +1292,16 @@ function handleOverlayClick(e: MouseEvent) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
+  width: 2.75rem;
+  height: 2.75rem;
   border: none;
   background: none;
   border-radius: var(--radius-md);
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
   flex-shrink: 0;
 }
 
@@ -1264,6 +1318,7 @@ function handleOverlayClick(e: MouseEvent) {
 .wizard-modal__content {
   padding: 1.5rem;
   overflow-y: auto;
+  overscroll-behavior: contain;
   flex: 1;
 }
 
@@ -1319,7 +1374,9 @@ function handleOverlayClick(e: MouseEvent) {
   border-radius: var(--radius-lg);
   background-color: var(--color-bg-primary);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
   gap: 0.75rem;
 }
 
@@ -1369,7 +1426,7 @@ function handleOverlayClick(e: MouseEvent) {
 
 .selectable-card__icon--selected {
   background-color: var(--color-primary);
-  color: #ffffff;
+  color: var(--color-bg-primary);
 }
 
 .selectable-card__label {
@@ -1388,5 +1445,17 @@ function handleOverlayClick(e: MouseEvent) {
   justify-content: center;
   margin-left: auto;
   color: var(--color-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wizard-modal__close,
+  .selectable-card,
+  .step-progress__circle {
+    transition: none;
+  }
+
+  .wizard-overlay {
+    backdrop-filter: none;
+  }
 }
 </style>
