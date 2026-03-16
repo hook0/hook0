@@ -1,7 +1,6 @@
 use actix_web::web::ReqData;
 use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};
-use log::error;
 use paperclip::actix::web::{Data, Json, Path, Query};
 use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
 use paperclip::v2::models::{DataType, DataTypeFormat, DefaultSchemaRaw};
@@ -12,6 +11,7 @@ use serde_json::{Map, Value, json};
 use sqlx::{query, query_as, query_scalar};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::ops::Deref;
+use tracing::error;
 use uuid::Uuid;
 use validator::{Validate, ValidationErrors};
 

@@ -12,8 +12,6 @@ use chrono::{DateTime, Utc};
 #[cfg(feature = "producer")]
 use lazy_regex::regex_captures;
 #[cfg(feature = "producer")]
-use log::{debug, error, trace};
-#[cfg(feature = "producer")]
 use reqwest::header::{AUTHORIZATION, InvalidHeaderValue};
 #[cfg(feature = "producer")]
 use reqwest::{Client, Url};
@@ -27,6 +25,8 @@ use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 #[cfg(feature = "producer")]
 use std::str::FromStr;
+#[cfg(feature = "producer")]
+use tracing::{debug, error, trace};
 #[cfg(feature = "producer")]
 use url::ParseError;
 #[cfg(feature = "producer")]
@@ -584,7 +584,7 @@ pub enum Hook0ClientError {
 
 #[cfg(feature = "producer")]
 impl Hook0ClientError {
-    /// Log the error (using the log crate) and return it as a result of this function's call
+    /// Log the error (using the tracing crate) and return it as a result of this function's call
     pub fn log_and_return(self) -> Self {
         error!("{self}");
         self

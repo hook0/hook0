@@ -1,8 +1,8 @@
 use anyhow::bail;
+use aws_sdk_s3::error::DisplayErrorContext;
 use aws_sdk_s3::primitives::ByteStream;
 use chrono::{DateTime, Utc};
 use futures::TryStreamExt;
-use log::{debug, error, info, trace, warn};
 use pulsar::consumer::{InitialPosition, Message};
 use pulsar::proto::MessageIdData;
 use pulsar::{
@@ -15,18 +15,23 @@ use std::time::Duration;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{Sender, channel};
 use tokio::sync::{Mutex, OwnedSemaphorePermit, Semaphore};
-use tokio::time::sleep;
+use tokio::time::{Instant, interval_at, sleep};
 use tokio::{select, spawn};
 use tokio_util::task::TaskTracker;
+use tracing::{debug, error, info, trace, warn};
 use uuid::Uuid;
 
-use crate::opentelemetry::{end_request_attempt_span, start_request_attempt_span};
+use crate::opentelemetry::{
+    end_request_attempt_span, gather_pulsar_consumer_metrics, start_request_attempt_span,
+};
+use crate::throughput_log::ThroughputStats;
 use crate::work::work;
 use crate::{
     Config, ObjectStorageConfig, PulsarConfig, RequestAttempt, RequestAttemptWithOptionalPayload,
     compute_next_retry,
 };
 use hook0_protobuf::ObjectStorageResponse;
+use hook0_sentry_integration::log_object_storage_error_with_context;
 
 type AckMessage = (MessageIdData, Option<OwnedSemaphorePermit>, bool);
 
@@ -110,22 +115,20 @@ pub async fn load_waiting_request_attempts_from_db(
                 Ok(obj) => match obj.body.collect().await {
                     Ok(ab) => Some(ab.to_vec()),
                     Err(e) => {
-                        error!(
-                            "Error while getting payload body from object storage for key '{key}': {e}",
+                        log_object_storage_error_with_context!(
+                            "S3 GET OBJECT body collect failed",
+                            error_chain = format!("{e}"),
+                            object_key = &key,
                         );
                         None
                     }
                 },
                 Err(e) => {
-                    if let Some(se) = e.as_service_error() {
-                        error!(
-                            "Error while getting payload object from object storage for key '{key}': (service error) {se}",
-                        );
-                    } else {
-                        error!(
-                            "Error while getting payload object from object storage for key '{key}': {e}",
-                        );
-                    }
+                    log_object_storage_error_with_context!(
+                        "S3 GET OBJECT failed",
+                        error_chain = DisplayErrorContext(&e).to_string(),
+                        object_key = &key,
+                    );
                     None
                 }
             }
@@ -158,7 +161,7 @@ pub async fn load_waiting_request_attempts_from_db(
                 .await?;
             counter += 1;
         } else {
-            warn!("Could not get payload for event {}", ra.event_id);
+            warn!(event_id = %ra.event_id, "Could not get event's payload");
         }
     }
 
@@ -176,6 +179,7 @@ pub async fn look_for_work(
     pulsar: &Arc<PulsarConfig>,
     heartbeat_tx: Option<Sender<u16>>,
     task_tracker: &TaskTracker,
+    stats: &Arc<ThroughputStats>,
 ) -> anyhow::Result<()> {
     info!("Begin looking for work");
     let topic = format!(
@@ -241,6 +245,11 @@ pub async fn look_for_work(
         });
     }
 
+    let mut stats_interval = interval_at(
+        Instant::now() + config.pulsar_consumer_stats_interval,
+        config.pulsar_consumer_stats_interval,
+    );
+
     loop {
         // We prepare a future to acquire a permit from the semaphore and then get a message from the Pulsar consumer
         // This future is not awaited yet!
@@ -272,6 +281,18 @@ pub async fn look_for_work(
                     ack_message(&mut consumer, &topic, &heartbeat_tx, msg_ack).await?;
                 }
             },
+            _ = stats_interval.tick() => {
+                // Note: get_stats() blocks the select loop, but it's a lightweight
+                // binary protocol call over the existing connection.
+                match consumer.get_stats().await {
+                    Ok(stats) => {
+                        gather_pulsar_consumer_metrics(&stats);
+                    }
+                    Err(e) => {
+                        warn!("Could not get Pulsar consumer stats: {e}");
+                    }
+                }
+            },
             Ok((permit, msg_opt)) = next_msg, if !task_tracker.is_closed() => {
                 if let Some(msg) = msg_opt {
                     let ack_tx_for_error = ack_tx.clone();
@@ -284,6 +305,7 @@ pub async fn look_for_work(
                     let wn = worker_name.clone();
                     let wv = worker_version.clone();
                     let rp = retry_producer.clone();
+                    let st = stats.clone();
 
                     // We handle the request attempt in a new Tokio task
                     task_tracker.spawn(async move {
@@ -297,6 +319,7 @@ pub async fn look_for_work(
                             msg,
                             permit,
                             ack_tx,
+                            &st,
                         )
                         .await
                         {
@@ -337,8 +360,10 @@ async fn handle_message(
     msg: Message<RequestAttempt>,
     permit: OwnedSemaphorePermit,
     ack_tx: Sender<AckMessage>,
+    stats: &ThroughputStats,
 ) -> anyhow::Result<()> {
     let picked_at = Utc::now();
+    let _slot_guard = stats.slot_enter();
 
     match msg.deserialize() {
         Ok(attempt) => {
@@ -386,20 +411,13 @@ async fn handle_message(
 
                     // Work
                     let response = work(config, &attempt).await;
-                    trace!(
-                        "Got a response for request attempt {} in {} ms",
-                        &attempt.request_attempt_id,
-                        &response.elapsed_time_ms()
-                    );
+                    trace!(request_attempt_id = %attempt.request_attempt_id, elapsed_ms = response.elapsed_time_ms(), "Got response for request attempt");
 
                     // Open DB transaction
                     let mut tx = pool.begin().await?;
 
                     // Store response
-                    trace!(
-                        "Storing response for request attempt {}",
-                        &attempt.request_attempt_id
-                    );
+                    trace!(request_attempt_id = %attempt.request_attempt_id, "Storing response");
                     let response_headers = response.headers();
                     let response_contents_to_insert = if let Some(true) =
                         object_storage.as_ref().as_ref().map(|object_storage| {
@@ -462,21 +480,17 @@ async fn handle_message(
                             .send()
                             .await
                             .inspect_err(|e| {
-                                if let Some(se) = e.as_service_error(){
-                                    error!(
-                                        "Error while putting response to object storage for key '{key}': (service error) {se}"
-                                    );
-                                } else {
-                                    error!(
-                                        "Error while putting response to object storage for key '{key}': {e}"
-                                    );
-                                }
+                                log_object_storage_error_with_context!(
+                                    "S3 PUT OBJECT failed",
+                                    error_chain = DisplayErrorContext(e).to_string(),
+                                    object_key = &key,
+                                );
                             })?;
                     }
 
                     if response.is_success() {
                         // Mark attempt as completed
-                        trace!("Completing request attempt {}", &attempt.request_attempt_id);
+                        trace!(request_attempt_id = %attempt.request_attempt_id, "Completing request attempt");
                         query!(
                             "
                                 UPDATE webhook.request_attempt
@@ -496,13 +510,10 @@ async fn handle_message(
                         .execute(&mut *tx)
                         .await?;
 
-                        debug!(
-                            "Request attempt {} was completed sucessfully",
-                            &attempt.request_attempt_id
-                        );
+                        debug!(request_attempt_id = %attempt.request_attempt_id, "Request attempt completed successfully");
                     } else {
                         // Mark attempt as failed
-                        trace!("Failing request attempt {}", &attempt.request_attempt_id);
+                        trace!(request_attempt_id = %attempt.request_attempt_id, "Failing request attempt");
                         query!(
                             "
                                 UPDATE webhook.request_attempt
@@ -556,12 +567,7 @@ async fn handle_message(
                             .fetch_one(&mut *tx)
                             .await?;
 
-                            debug!(
-                                "Request attempt {} failed; retry #{next_retry_count} created as {} to be picked in {}s",
-                                &attempt.request_attempt_id,
-                                retry.request_attempt__id,
-                                &retry_in.as_secs(),
-                            );
+                            debug!(request_attempt_id = %attempt.request_attempt_id, retry_count = next_retry_count, retry_id = %retry.request_attempt__id, retry_in_secs = retry_in.as_secs(), "Request attempt failed; retry created");
 
                             retry_producer
                                 .lock()
@@ -578,14 +584,17 @@ async fn handle_message(
                                 .send_non_blocking()
                                 .await?;
                         } else {
-                            debug!(
-                                "Request attempt {} failed after {} attempts; giving up",
-                                &attempt.request_attempt_id, &attempt.retry_count,
-                            );
+                            debug!(request_attempt_id = %attempt.request_attempt_id, retry_count = attempt.retry_count, "Request attempt failed; giving up");
                         }
                     }
 
                     tx.commit().await?;
+
+                    stats.record_attempt(
+                        response.is_success(),
+                        attempt.retry_count,
+                        response.elapsed_time,
+                    );
 
                     // End OpenTelemetry span
                     end_request_attempt_span(span, &response);
@@ -597,10 +606,7 @@ async fn handle_message(
                     Ok(())
                 }
                 RequestAttemptStatus::AlreadyDone => {
-                    trace!(
-                        "Request attempt {} was already done according to database",
-                        &attempt.request_attempt_id
-                    );
+                    trace!(request_attempt_id = %attempt.request_attempt_id, "Request attempt was already done");
                     ack_tx
                         .send((msg.message_id().clone(), Some(permit), true))
                         .await?;
@@ -608,10 +614,7 @@ async fn handle_message(
                     Ok(())
                 }
                 RequestAttemptStatus::Cancelled => {
-                    trace!(
-                        "Request attempt {} was cancelled according to database",
-                        &attempt.request_attempt_id
-                    );
+                    trace!(request_attempt_id = %attempt.request_attempt_id, "Request attempt was cancelled");
                     ack_tx
                         .send((msg.message_id().clone(), Some(permit), true))
                         .await?;
@@ -622,19 +625,13 @@ async fn handle_message(
                     if attempt.created_at + config.request_attempt_db_commit_grace_period
                         >= Utc::now()
                     {
-                        trace!(
-                            "Request attempt {} was not found in database; as it was created recently it may not have been committed into database yet so let's retry a bit later",
-                            &attempt.request_attempt_id
-                        );
+                        trace!(request_attempt_id = %attempt.request_attempt_id, "Request attempt not found in database; created recently, will retry later");
 
                         ack_tx
                             .send((msg.message_id().clone(), Some(permit), false))
                             .await?;
                     } else {
-                        trace!(
-                            "Request attempt {} was not found in database; it was not created recently so let's drop it",
-                            &attempt.request_attempt_id
-                        );
+                        trace!(request_attempt_id = %attempt.request_attempt_id, "Request attempt not found in database; not recent, dropping");
 
                         ack_tx
                             .send((msg.message_id().clone(), Some(permit), true))

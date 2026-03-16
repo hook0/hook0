@@ -1,7 +1,6 @@
 use actix_web::error::JsonPayloadError;
 use actix_web::{HttpResponse, ResponseError};
 use http_api_problem::*;
-use log::{error, warn};
 use paperclip::actix::api_v2_errors;
 use serde_json::{Value, to_value};
 use sqlx::Error;
@@ -9,6 +8,7 @@ use sqlx::postgres::PgDatabaseError;
 use std::borrow::Cow;
 use std::fmt::Display;
 use strum::{EnumIter, VariantNames};
+use tracing::{error, warn};
 
 use crate::handlers::events::PayloadContentType;
 use crate::iam::Role;

@@ -56,7 +56,9 @@ commit_parsers = [
     { message = "^ci", group = "CI/CD" },
     { message = "^build", group = "Build" },
     { message = "^chore\\(release\\)", skip = true },
+    { message = "^release", skip = true },
     { message = "^chore", group = "Other" },
+    { message = "^ci", group = "CI" },
     { body = ".*security", group = "Security" },
 ]
 filter_commits = false

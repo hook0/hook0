@@ -51,6 +51,7 @@ fn make_tool_from_generated(info: &GeneratedToolInfo) -> Tool {
         annotations: None,
         icons: None,
         meta: None,
+        execution: None,
     }
 }
 
@@ -163,6 +164,7 @@ impl ServerHandler for Hook0McpServer {
             server_info: Implementation {
                 name: "hook0-mcp".into(),
                 title: Some("Hook0 MCP Server".into()),
+                description: None,
                 version: env!("CARGO_PKG_VERSION").into(),
                 icons: None,
                 website_url: Some("https://www.hook0.com/".into()),
