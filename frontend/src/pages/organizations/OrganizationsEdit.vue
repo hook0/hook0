@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import { computed, markRaw, watch } from 'vue';
+import { computed, markRaw } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { useForm } from 'vee-validate';
-import { push } from 'notivue';
 import { Users, Rocket, FileText } from 'lucide-vue-next';
 
 import {
@@ -12,12 +10,11 @@ import {
   useUpdateOrganization,
 } from './useOrganizationQueries';
 import { organizationSchema } from './organization.schema';
-import { toTypedSchema } from '@/utils/zod-adapter';
+import type { OrganizationInfo } from './OrganizationService';
 import { routes } from '@/routes';
-import { displayError } from '@/utils/displayError';
-import type { Problem } from '@/http';
 import { useTracking } from '@/composables/useTracking';
 import { usePermissions } from '@/composables/usePermissions';
+import { useEntityForm } from '@/composables/useEntityForm';
 
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
@@ -66,19 +63,47 @@ const {
   refetch,
 } = useOrganizationDetail(organizationId);
 
-// VeeValidate form with Zod schema
-const { errors, defineField, handleSubmit, resetForm } = useForm({
-  validationSchema: toTypedSchema(organizationSchema),
+// Mutations
+const createMutation = useCreateOrganization();
+const updateMutation = useUpdateOrganization();
+
+// Form via composable
+const { errors, defineField, onSubmit } = useEntityForm<{ name: string }, OrganizationInfo>({
+  schema: organizationSchema,
+  isNew,
+  existingValues: computed(() => (orgDetail.value ? { name: orgDetail.value.name } : undefined)),
+  createFn: (values) => createMutation.mutateAsync({ name: values.name }),
+  updateFn: (values) =>
+    updateMutation.mutateAsync({
+      organizationId: organizationId.value,
+      organization: { name: values.name },
+    }),
+  skipToast: () => props.tutorialMode,
+  successCreateTitle: t('organizations.created'),
+  successCreateMessage: (v) => t('organizations.createdMessage', { name: v.name }),
+  successUpdateTitle: t('organizations.updated'),
+  successUpdateMessage: (v) => t('organizations.updatedMessage', { name: v.name }),
+  onCreated: (org) => {
+    trackEvent('organization', 'create', 'success');
+    if (props.tutorialMode) {
+      emit('tutorial-organization-created', org.organization_id);
+    } else {
+      void router.push({
+        name: routes.TutorialCreateApplication,
+        params: { organization_id: org.organization_id },
+      });
+    }
+  },
+  onUpdated: () => {
+    trackEvent('organization', 'update', 'success');
+    void router.push({
+      name: routes.OrganizationsDashboard,
+      params: { organization_id: organizationId.value },
+    });
+  },
 });
 
 const [name, nameAttrs] = defineField('name');
-
-// Populate form when org data loads
-watch(orgDetail, (org) => {
-  if (org) {
-    resetForm({ values: { name: org.name } });
-  }
-});
 
 // Consumptions computed from org detail
 const consumptions = computed<ComsumptionQuota[]>(() => {
@@ -103,60 +128,6 @@ const consumptions = computed<ComsumptionQuota[]>(() => {
       quota: orgDetail.value.quotas.events_per_day_limit,
     },
   ];
-});
-
-// Mutations
-const createMutation = useCreateOrganization();
-const updateMutation = useUpdateOrganization();
-
-const onSubmit = handleSubmit((values) => {
-  if (isNew.value) {
-    createMutation.mutate(
-      { name: values.name },
-      {
-        onSuccess: (org) => {
-          trackEvent('organization', 'create', 'success');
-          if (props.tutorialMode) {
-            emit('tutorial-organization-created', org.organization_id);
-          } else {
-            push.success({
-              title: t('organizations.created'),
-              message: t('organizations.createdMessage', { name: values.name }),
-              duration: 5000,
-            });
-            void router.push({
-              name: routes.TutorialCreateApplication,
-              params: { organization_id: org.organization_id },
-            });
-          }
-        },
-        onError: (err) => {
-          displayError(err as unknown as Problem);
-        },
-      }
-    );
-  } else {
-    updateMutation.mutate(
-      { organizationId: organizationId.value, organization: { name: values.name } },
-      {
-        onSuccess: () => {
-          trackEvent('organization', 'update', 'success');
-          push.success({
-            title: t('organizations.updated'),
-            message: t('organizations.updatedMessage', { name: values.name }),
-            duration: 5000,
-          });
-          void router.push({
-            name: routes.OrganizationsDashboard,
-            params: { organization_id: organizationId.value },
-          });
-        },
-        onError: (err) => {
-          displayError(err as unknown as Problem);
-        },
-      }
-    );
-  }
 });
 </script>
 
