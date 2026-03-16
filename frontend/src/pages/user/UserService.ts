@@ -1,5 +1,5 @@
-import http, { handleError, Problem } from '@/http.ts';
-import { AxiosError, AxiosResponse } from 'axios';
+import http from '@/http.ts';
+import { unwrapResponse } from '@/utils/unwrapResponse';
 
 export async function deleteUser(): Promise<void> {
   return Promise.reject({
@@ -12,33 +12,23 @@ export async function deleteUser(): Promise<void> {
 }
 
 export async function changePassword(new_password: string): Promise<void> {
-  return http
-    .post('/auth/password', {
+  return unwrapResponse(
+    http.post<void>('/auth/password', {
       new_password,
     })
-    .then(
-      (res: AxiosResponse<void>) => res.data,
-      (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
-    );
+  );
 }
 
 export async function verifyEmail(token: string): Promise<void> {
-  return http.unauthenticated.post(`/auth/verify-email`, { token }).then(
-    (res: AxiosResponse<void>) => res.data,
-    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
-  );
+  return unwrapResponse(http.unauthenticated.post<void>(`/auth/verify-email`, { token }));
 }
 
 export async function beginResetPassword(email: string): Promise<void> {
-  return http.unauthenticated.post(`/auth/begin-reset-password`, { email }).then(
-    (res: AxiosResponse<void>) => res.data,
-    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
-  );
+  return unwrapResponse(http.unauthenticated.post<void>(`/auth/begin-reset-password`, { email }));
 }
 
 export async function resetPassword(token: string, new_password: string): Promise<void> {
-  return http.unauthenticated.post(`/auth/reset-password`, { token, new_password }).then(
-    (res: AxiosResponse<void>) => res.data,
-    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
+  return unwrapResponse(
+    http.unauthenticated.post<void>(`/auth/reset-password`, { token, new_password })
   );
 }

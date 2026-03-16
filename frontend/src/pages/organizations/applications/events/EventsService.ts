@@ -1,6 +1,7 @@
-import { AxiosError, AxiosResponse } from 'axios';
-import http, { handleError, Problem, UUID } from '@/http';
+import { AxiosResponse } from 'axios';
+import http, { UUID } from '@/http';
 import type { components } from '@/types';
+import { unwrapResponse } from '@/utils/unwrapResponse';
 
 type definitions = components['schemas'];
 
@@ -51,16 +52,13 @@ export function get(
 }
 
 export function list(application_id: UUID): Promise<Array<Event>> {
-  return http
-    .get('/events', {
+  return unwrapResponse(
+    http.get<Array<Event>>('/events', {
       params: {
         application_id: application_id,
       },
     })
-    .then(
-      (res: AxiosResponse<Array<Event>>) => res.data,
-      (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
-    );
+  );
 }
 
 export function send_json_event(
@@ -73,8 +71,8 @@ export function send_json_event(
 ): Promise<void> {
   const occurred_at_string = new Date(occurred_at).toISOString();
 
-  return http
-    .post('/event', {
+  return unwrapResponse(
+    http.post<void>('/event', {
       application_id,
       event_id,
       event_type,
@@ -83,19 +81,13 @@ export function send_json_event(
       payload_content_type: 'application/json',
       payload,
     })
-    .then(
-      () => {},
-      (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
-    );
+  );
 }
 
 export function replay(event_id: UUID, application_id: UUID): Promise<void> {
-  return http
-    .post(`/events/${event_id}/replay`, {
+  return unwrapResponse(
+    http.post<void>(`/events/${event_id}/replay`, {
       application_id,
     })
-    .then(
-      () => {},
-      (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
-    );
+  );
 }
