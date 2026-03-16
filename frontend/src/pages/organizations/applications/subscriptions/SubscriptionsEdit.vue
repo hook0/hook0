@@ -643,11 +643,15 @@ const testStatusVariant = computed(() => {
                           variant="link"
                           :to="{ name: routes.EventTypesList }"
                           target="_blank"
-                        >{{ t('eventTypes.title') }}</Hook0Button>
+                          >{{ t('eventTypes.title') }}</Hook0Button
+                        >
                       </template>
                     </i18n-t>
                   </span>
-                  <Hook0Button :aria-label="t('subscriptions.refreshEventTypes')" @click="refetchEt()">
+                  <Hook0Button
+                    :aria-label="t('subscriptions.refreshEventTypes')"
+                    @click="refetchEt()"
+                  >
                     <RefreshCw :size="14" aria-hidden="true" />
                   </Hook0Button>
                 </Hook0Stack>
@@ -879,7 +883,6 @@ const testStatusVariant = computed(() => {
   font-size: 0.875rem;
   line-height: 1.5;
 }
-
 
 .sub-edit__event-type-label {
   color: var(--color-text-primary);
