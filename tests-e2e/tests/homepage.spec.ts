@@ -49,6 +49,35 @@ test.describe("Homepage", () => {
     await expect(page.locator('[data-test="login-form"]')).toBeVisible();
   });
 
+  test("should display organization cards on home page", async ({ page, request }) => {
+    // Setup: Create a test user
+    const timestamp = Date.now();
+    const email = `test-home-cards-${timestamp}@hook0.local`;
+    const password = `TestPassword123!${timestamp}`;
+
+    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      data: { email, first_name: "Test", last_name: "User", password },
+    });
+    expect(registerResponse.status()).toBeLessThan(400);
+
+    await verifyEmailViaMailpit(request, email);
+
+    // Login
+    await page.goto("/login");
+    await expect(page.locator('[data-test="login-form"]')).toBeVisible({ timeout: 10000 });
+    await page.locator('[data-test="login-email-input"]').fill(email);
+    await page.locator('[data-test="login-password-input"]').fill(password);
+    await page.locator('[data-test="login-submit-button"]').click();
+    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, { timeout: 15000 });
+
+    // Navigate to home page
+    await page.goto("/");
+
+    // Verify home page and banner are visible
+    await expect(page.locator('[data-test="home-page"]')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-test="home-banner"]')).toBeVisible({ timeout: 10000 });
+  });
+
   test("should preserve redirect after authentication", async ({ page, request }) => {
     // Setup: Create a test user
     const timestamp = Date.now();

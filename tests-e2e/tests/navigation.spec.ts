@@ -431,6 +431,71 @@ test.describe("Navigation", () => {
       await expect(page.locator('[data-test="event-types-card"]')).toBeVisible({ timeout: 10000 });
     });
 
+    test("should navigate via breadcrumb segments", async ({ page, request }) => {
+      // Setup
+      const timestamp = Date.now();
+      const email = `test-nav-breadcrumb-${timestamp}@hook0.local`;
+      const password = `TestPassword123!${timestamp}`;
+      const appName = `Breadcrumb Nav App ${timestamp}`;
+
+      // Register and verify
+      const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+        data: { email, first_name: "Test", last_name: "User", password },
+      });
+      expect(registerResponse.status()).toBeLessThan(400);
+
+      const verificationResult = await verifyEmailViaMailpit(request, email);
+      const organizationId = verificationResult.organizationId;
+      expect(organizationId).toBeTruthy();
+
+      // Login
+      await page.goto("/login");
+      await expect(page.locator('[data-test="login-form"]')).toBeVisible({ timeout: 10000 });
+      await page.locator('[data-test="login-email-input"]').fill(email);
+      await page.locator('[data-test="login-password-input"]').fill(password);
+      await page.locator('[data-test="login-submit-button"]').click();
+      await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, { timeout: 15000 });
+
+      // Create application
+      await page.goto(`/organizations/${organizationId}/applications/new`);
+      await expect(page.locator('[data-test="application-form"]')).toBeVisible({ timeout: 10000 });
+      await page.locator('[data-test="application-name-input"]').fill(appName);
+      const createAppResponse = page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/v1/applications") && response.request().method() === "POST",
+        { timeout: 15000 }
+      );
+      await page.locator('[data-test="application-submit-button"]').click();
+      const appResponse = await createAppResponse;
+      expect(appResponse.status()).toBeLessThan(400);
+      const app = await appResponse.json();
+      const applicationId = app.application_id;
+
+      // Navigate to an app-level page
+      await page.goto(
+        `/organizations/${organizationId}/applications/${applicationId}/event_types`
+      );
+      await expect(page.locator('[data-test="event-types-card"]')).toBeVisible({ timeout: 10000 });
+
+      // Verify breadcrumb nav is visible
+      await expect(page.locator('[data-test="breadcrumb-nav"]')).toBeVisible({ timeout: 10000 });
+
+      // Click the org-level breadcrumb segment to open the dropdown
+      await page.locator('[data-test="breadcrumb-org"] button').first().click();
+
+      // Click the current org in the dropdown to navigate to org level
+      const orgDropdownItem = page.locator('[data-test="breadcrumb-org"] [role="option"]').first();
+      await expect(orgDropdownItem).toBeVisible({ timeout: 5000 });
+      await orgDropdownItem.click();
+
+      // Verify navigation to org level
+      await expect(page).toHaveURL(new RegExp(`/organizations/${organizationId}`), {
+        timeout: 10000,
+      });
+      // Should no longer be on the app-level event_types page
+      await expect(page).not.toHaveURL(/\/event_types/, { timeout: 5000 });
+    });
+
     test("should verify page content after browser back/forward navigation", async ({
       page,
       request,
