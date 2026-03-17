@@ -7,7 +7,7 @@ ENV VITE_API_ENDPOINT=API_ENDPOINT_PLACEHOLDER
 ENV VITE_API_TIMEOUT=API_TIMEOUT_PLACEHOLDER
 COPY frontend/ ./
 RUN --mount=type=bind,source=mediakit,target=/mediakit \
-    rm -rf -- dist/ && npm ci && npm run build
+    rm -rf -- dist/ && npm ci --legacy-peer-deps && npm run build
 
 FROM caddy:${CADDY_VERSION}
 RUN sed -i '/file_server/i try_files {path} /index.html' /etc/caddy/Caddyfile
