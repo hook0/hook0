@@ -70,7 +70,7 @@ function confirmDelete() {
         variant="danger"
         type="button"
         :loading="loading"
-        :data-test="dataTest ? `${dataTest}-button` : undefined"
+        :data-test="dataTest ? `${dataTest.replace(/-card$/, '')}-button` : undefined"
         @click="requestDelete($event)"
       >
         <Trash2 :size="16" aria-hidden="true" />

@@ -38,7 +38,7 @@ const options = computed(() => [
     :entities-loading="isLoading"
     :entities-error="error"
     selection-name="organization_selection"
-    create-data-test="tutorial-create-org-option"
+    create-data-test="tutorial-create-org-radio"
     select-data-test="tutorial-select-org-option"
     @advance="emit('advance', $event)"
     @skip="emit('skip')"
