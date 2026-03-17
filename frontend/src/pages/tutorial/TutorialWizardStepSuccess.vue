@@ -50,6 +50,7 @@ onMounted(() => {
 
 <template>
   <WizardStepLayout
+    data-test="tutorial-success-card"
     :title="t('tutorial.congrats.title')"
     :show-skip="false"
     @skip="emit('dismiss')"
@@ -118,7 +119,7 @@ onMounted(() => {
     </Hook0Stack>
 
     <template #footer>
-      <Hook0Button variant="primary" type="button" @click="emit('dismiss')">
+      <Hook0Button variant="primary" type="button" data-test="tutorial-success-dashboard-button" @click="emit('dismiss')">
         {{ t('tutorial.congrats.goToDashboard') }}
         <ArrowRight :size="16" aria-hidden="true" />
       </Hook0Button>

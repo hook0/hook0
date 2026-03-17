@@ -42,7 +42,7 @@ const widgetItems = computed(() => {
 </script>
 
 <template>
-  <Hook0PageLayout :title="t('applications.dashboard')">
+  <Hook0PageLayout :title="t('applications.dashboard')" data-test="app-dashboard-page">
     <!-- Loading -->
     <Hook0CardSkeleton v-if="appLoading" :lines="3" />
 
@@ -76,7 +76,7 @@ const widgetItems = computed(() => {
             </Hook0Button>
           </template>
         </Hook0CardHeader>
-        <Hook0CardContent v-if="widgetItems.length > 0">
+        <Hook0CardContent v-if="widgetItems.length > 0" data-test="app-dashboard-tutorial-widget">
           <Hook0TutorialWidget :steps="widgetItems" />
         </Hook0CardContent>
       </Hook0Card>

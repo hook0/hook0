@@ -40,6 +40,8 @@ const options = computed(() => [
     :entities-error="error"
     :require-options="true"
     selection-name="application_selection"
+    create-data-test="tutorial-create-app-radio"
+    select-data-test="tutorial-select-app-option"
     @advance="emit('advance', $event)"
     @skip="emit('skip')"
     @retry="refetch()"

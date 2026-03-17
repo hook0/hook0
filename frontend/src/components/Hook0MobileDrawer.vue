@@ -102,6 +102,7 @@ watch(
             v-if="uiStore.mobileDrawerOpen"
             ref="drawerRef"
             class="hook0-mobile-drawer"
+            data-test="mobile-drawer"
             role="dialog"
             aria-modal="true"
           >
@@ -114,6 +115,7 @@ watch(
               <Hook0Button
                 variant="ghost"
                 class="hook0-mobile-drawer__close"
+                data-test="mobile-drawer-close"
                 :aria-label="t('common.close')"
                 @click="handleClose"
               >
@@ -214,6 +216,7 @@ watch(
                     variant="link"
                     :to="item.to"
                     class="hook0-mobile-drawer__item"
+                    :data-test="'mobile-drawer-nav-' + item.id"
                     :class="{ active: item.active }"
                   >
                     <component :is="item.icon" :size="18" aria-hidden="true" />

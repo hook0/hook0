@@ -26,7 +26,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <Hook0PageLayout :title="t('apiDocs.title')">
+  <Hook0PageLayout :title="t('apiDocs.title')" data-test="api-docs-page">
     <Hook0Card>
       <Hook0CardHeader>
         <template #header>{{ t('apiDocs.title') }}</template>

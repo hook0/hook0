@@ -24,6 +24,7 @@ const { handleKeydown: onOverlayKeydown } = useFocusTrap(overlayRef, { onEscape:
         v-if="uiStore.commandPaletteOpen"
         ref="overlayRef"
         class="hook0-command-palette-overlay"
+        data-test="command-palette-overlay"
         @click.self="close"
         @keydown="onOverlayKeydown"
       >
@@ -39,6 +40,7 @@ const { handleKeydown: onOverlayKeydown } = useFocusTrap(overlayRef, { onEscape:
               ref="inputRef"
               v-model="query"
               class="hook0-command-palette-input"
+              data-test="command-palette-input"
               :placeholder="t('commandPalette.placeholder')"
               type="text"
               role="combobox"
@@ -54,7 +56,7 @@ const { handleKeydown: onOverlayKeydown } = useFocusTrap(overlayRef, { onEscape:
           </div>
 
           <div id="command-list" class="hook0-command-palette-list" role="listbox">
-            <div v-if="filteredCommands.length === 0" class="hook0-command-palette-empty">
+            <div v-if="filteredCommands.length === 0" class="hook0-command-palette-empty" data-test="command-palette-empty">
               {{ t('commandPalette.noResults') }}
             </div>
 
@@ -65,6 +67,7 @@ const { handleKeydown: onOverlayKeydown } = useFocusTrap(overlayRef, { onEscape:
                 :id="'cmd-item-' + item.id"
                 :key="item.id"
                 class="hook0-command-palette-item"
+                :data-test="'command-palette-item-' + item.id"
                 :class="{ selected: filteredCommands.indexOf(item) === selectedIndex }"
                 role="option"
                 :aria-selected="filteredCommands.indexOf(item) === selectedIndex"

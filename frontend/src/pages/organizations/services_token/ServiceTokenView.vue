@@ -346,12 +346,12 @@ function previewToken() {
     <template v-else-if="serviceToken">
       <Hook0Stack direction="column" gap="lg">
         <!-- Service Token Card -->
-        <Hook0Card>
+        <Hook0Card data-test="service-token-detail-card">
           <Hook0CardHeader>
             <template #header>
               <Hook0Stack direction="row" align="center" gap="sm">
                 {{ t('serviceTokens.title') }}
-                <Hook0HelpText tone="neutral">{{ serviceToken.name }}</Hook0HelpText>
+                <Hook0HelpText tone="neutral" data-test="service-token-detail-name">{{ serviceToken.name }}</Hook0HelpText>
               </Hook0Stack>
             </template>
             <template #subtitle>

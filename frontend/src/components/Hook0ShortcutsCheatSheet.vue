@@ -82,6 +82,7 @@ onBeforeUnmount(() => {
         v-if="uiStore.shortcutsCheatSheetOpen"
         ref="cheatSheetRef"
         class="shortcuts-overlay"
+        data-test="shortcuts-dialog"
         @click.self="close"
         @keydown="handleKeydown"
       >
@@ -96,6 +97,7 @@ onBeforeUnmount(() => {
             <button
               type="button"
               class="shortcuts-sheet__close"
+              data-test="shortcuts-close"
               :aria-label="t('common.close')"
               @click="close"
             >

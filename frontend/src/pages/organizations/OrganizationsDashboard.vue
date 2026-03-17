@@ -49,7 +49,7 @@ const widgetItems = computed(() => {
 </script>
 
 <template>
-  <Hook0PageLayout :title="t('organizations.dashboard')">
+  <Hook0PageLayout :title="t('organizations.dashboard')" data-test="org-dashboard-page">
     <!-- Loading (also shown when query is disabled and data is undefined) -->
     <Hook0CardSkeleton
       v-if="orgLoading || (!organization && !orgError && !orgFetched)"

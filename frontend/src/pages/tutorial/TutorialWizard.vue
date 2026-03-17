@@ -260,6 +260,7 @@ function handleOverlayClick(e: MouseEvent) {
       <div
         ref="modalRef"
         class="wizard-modal"
+        data-test="tutorial-wizard-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby="wizard-step-title"

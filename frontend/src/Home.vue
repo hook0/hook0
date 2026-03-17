@@ -6,9 +6,9 @@ const { t } = useI18n();
 </script>
 
 <template>
-  <div class="home">
+  <div class="home" data-test="home-page">
     <!-- Welcome Banner -->
-    <div class="home__banner">
+    <div class="home__banner" data-test="home-banner">
       <div class="home__banner-content">
         <h1 class="home__title">{{ t('home.welcome') }}</h1>
         <p class="home__subtitle">

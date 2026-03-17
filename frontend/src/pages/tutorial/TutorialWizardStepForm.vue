@@ -114,6 +114,7 @@ function handleFormDone() {
 
 <template>
   <WizardStepLayout
+    data-test="tutorial-step-form"
     :step-number="Number(STEP_CONFIG.badge)"
     :title="t(STEP_CONFIG.titleKey)"
     :continue-label="t(STEP_CONFIG.continueKey)"

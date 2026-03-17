@@ -64,6 +64,7 @@ const { t } = useI18n();
         v-if="continueLabel && !continueDisabled"
         variant="primary"
         type="button"
+        data-test="tutorial-step-continue"
         @click="emit('continue')"
       >
         {{ continueLabel }}

@@ -50,14 +50,14 @@ function goBack() {
 </script>
 
 <template>
-  <Hook0PageLayout variant="fullscreen">
+  <Hook0PageLayout variant="fullscreen" data-test="error-404-page">
     <template #background>
       <Hook0Error404Background />
     </template>
 
     <Hook0Card variant="glow">
       <Hook0CardContent>
-        <Hook0EmptyState :title="t('error404.title')" :description="t('error404.description')">
+        <Hook0EmptyState :title="t('error404.title')" :description="t('error404.description')" data-test="error-404-title">
           <template #illustration>
             <Hook0Error404Illustration />
           </template>
@@ -73,13 +73,13 @@ function goBack() {
 
           <template #action>
             <Hook0ButtonGroup direction="column" responsive>
-              <Hook0Button variant="primary" size="lg" @click="goHome">
+              <Hook0Button variant="primary" size="lg" data-test="error-404-dashboard-button" @click="goHome">
                 <template #left>
                   <Home :size="20" aria-hidden="true" />
                 </template>
                 {{ t('error404.goToDashboard') }}
               </Hook0Button>
-              <Hook0Button variant="secondary" size="lg" @click="goBack">
+              <Hook0Button variant="secondary" size="lg" data-test="error-404-back-button" @click="goBack">
                 <template #left>
                   <ArrowLeft :size="20" aria-hidden="true" />
                 </template>

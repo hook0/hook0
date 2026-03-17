@@ -414,7 +414,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <nav v-if="shouldShow" :aria-label="t('common.breadcrumb')" class="hook0-breadcrumbs">
+  <nav v-if="shouldShow" :aria-label="t('common.breadcrumb')" class="hook0-breadcrumbs" data-test="breadcrumb-nav">
     <ol class="hook0-breadcrumbs__list">
       <li v-for="(crumb, index) in crumbs" :key="index" class="hook0-breadcrumbs__item">
         <ChevronRight
@@ -426,7 +426,7 @@ onUnmounted(() => {
 
         <!-- Organization dropdown trigger -->
         <template v-if="crumb.dropdown === 'organization'">
-          <div class="hook0-breadcrumbs__dropdown-wrapper">
+          <div class="hook0-breadcrumbs__dropdown-wrapper" data-test="breadcrumb-org">
             <button
               type="button"
               class="hook0-breadcrumbs__dropdown-trigger"
@@ -490,7 +490,7 @@ onUnmounted(() => {
 
         <!-- Application dropdown trigger -->
         <template v-else-if="crumb.dropdown === 'application'">
-          <div class="hook0-breadcrumbs__dropdown-wrapper">
+          <div class="hook0-breadcrumbs__dropdown-wrapper" data-test="breadcrumb-app">
             <button
               type="button"
               class="hook0-breadcrumbs__dropdown-trigger"
