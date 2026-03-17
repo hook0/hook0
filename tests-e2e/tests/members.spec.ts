@@ -114,10 +114,7 @@ test.describe("Members", () => {
     await expect(page.locator('[data-test="members-invite-button"]')).toBeVisible();
 
     // Verify invite button is disabled when fields are empty
-    await expect(page.locator('[data-test="members-invite-button"]')).toHaveAttribute(
-      "disabled",
-      "true"
-    );
+    await expect(page.locator('[data-test="members-invite-button"]')).toBeDisabled();
   });
 
   test("should invite a new member and verify API response", async ({ page, request }) => {
@@ -167,23 +164,14 @@ test.describe("Members", () => {
     await expect(page.locator('[data-test="members-invite-form"]')).toBeVisible({ timeout: 10000 });
 
     // Verify button is disabled when empty
-    await expect(page.locator('[data-test="members-invite-button"]')).toHaveAttribute(
-      "disabled",
-      "true"
-    );
+    await expect(page.locator('[data-test="members-invite-button"]')).toBeDisabled();
 
     // Fill email only - still disabled (missing role)
     await page.locator('[data-test="members-invite-email-input"]').fill("test-invitee@hook0.local");
-    await expect(page.locator('[data-test="members-invite-button"]')).toHaveAttribute(
-      "disabled",
-      "true"
-    );
+    await expect(page.locator('[data-test="members-invite-button"]')).toBeDisabled();
 
     // Select role - now enabled
     await page.locator('[data-test="members-invite-role-select"]').selectOption("viewer");
-    await expect(page.locator('[data-test="members-invite-button"]')).not.toHaveAttribute(
-      "disabled",
-      "true"
-    );
+    await expect(page.locator('[data-test="members-invite-button"]')).toBeEnabled();
   });
 });
