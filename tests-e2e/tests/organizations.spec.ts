@@ -240,19 +240,13 @@ test.describe("Organizations", () => {
     });
 
     // Verify submit is disabled when empty
-    await expect(page.locator('[data-test="organization-submit-button"]')).toHaveAttribute(
-      "disabled",
-      "true"
-    );
+    await expect(page.locator('[data-test="organization-submit-button"]')).toBeDisabled();
 
     // Clear if any value
     await page.locator('[data-test="organization-name-input"]').clear();
 
     // Still disabled
-    await expect(page.locator('[data-test="organization-submit-button"]')).toHaveAttribute(
-      "disabled",
-      "true"
-    );
+    await expect(page.locator('[data-test="organization-submit-button"]')).toBeDisabled();
   });
 
   test("should display delete organization card on settings page", async ({ page, request }) => {

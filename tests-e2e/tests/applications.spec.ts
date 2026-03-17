@@ -290,19 +290,13 @@ test.describe("Applications", () => {
     // Verify submit is disabled when empty
     // Note: The Hook0Button component uses an <a> tag with disabled attribute when not a submit button.
     // Playwright's toBeDisabled() doesn't work with <a> elements, so we check the attribute directly.
-    await expect(page.locator('[data-test="application-submit-button"]')).toHaveAttribute(
-      "disabled",
-      "true"
-    );
+    await expect(page.locator('[data-test="application-submit-button"]')).toBeDisabled();
 
     // Clear if any value
     await page.locator('[data-test="application-name-input"]').clear();
 
     // Still disabled
-    await expect(page.locator('[data-test="application-submit-button"]')).toHaveAttribute(
-      "disabled",
-      "true"
-    );
+    await expect(page.locator('[data-test="application-submit-button"]')).toBeDisabled();
   });
 
   test("should delete application and verify API response", async ({ page, request }) => {

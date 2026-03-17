@@ -280,31 +280,19 @@ test.describe("Event Types", () => {
     });
 
     // Verify submit is disabled when fields are empty
-    await expect(page.locator('[data-test="event-type-submit-button"]')).toHaveAttribute(
-      "disabled",
-      "true"
-    );
+    await expect(page.locator('[data-test="event-type-submit-button"]')).toBeDisabled();
 
     // Fill only service - still disabled
     await page.locator('[data-test="event-type-service-input"]').fill("billing");
-    await expect(page.locator('[data-test="event-type-submit-button"]')).toHaveAttribute(
-      "disabled",
-      "true"
-    );
+    await expect(page.locator('[data-test="event-type-submit-button"]')).toBeDisabled();
 
     // Fill resource type - still disabled
     await page.locator('[data-test="event-type-resource-input"]').fill("invoice");
-    await expect(page.locator('[data-test="event-type-submit-button"]')).toHaveAttribute(
-      "disabled",
-      "true"
-    );
+    await expect(page.locator('[data-test="event-type-submit-button"]')).toBeDisabled();
 
     // Fill verb - now enabled
     await page.locator('[data-test="event-type-verb-input"]').fill("created");
-    await expect(page.locator('[data-test="event-type-submit-button"]')).not.toHaveAttribute(
-      "disabled",
-      "true"
-    );
+    await expect(page.locator('[data-test="event-type-submit-button"]')).toBeEnabled();
   });
 
   test("should navigate back when clicking cancel button", async ({ page, request }) => {

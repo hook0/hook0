@@ -304,24 +304,15 @@ test.describe("Subscriptions", () => {
     });
 
     // Verify submit is disabled initially (missing required fields)
-    await expect(page.locator('[data-test="subscription-submit-button"]')).toHaveAttribute(
-      "disabled",
-      "true"
-    );
+    await expect(page.locator('[data-test="subscription-submit-button"]')).toBeDisabled();
 
     // Fill description only - still disabled
     await page.locator('[data-test="subscription-description-input"]').fill("Test");
-    await expect(page.locator('[data-test="subscription-submit-button"]')).toHaveAttribute(
-      "disabled",
-      "true"
-    );
+    await expect(page.locator('[data-test="subscription-submit-button"]')).toBeDisabled();
 
     // Fill URL - still disabled (missing labels and event types)
     await page.locator('[data-test="subscription-url-input"]').fill("https://test.com");
-    await expect(page.locator('[data-test="subscription-submit-button"]')).toHaveAttribute(
-      "disabled",
-      "true"
-    );
+    await expect(page.locator('[data-test="subscription-submit-button"]')).toBeDisabled();
   });
 
   test("should navigate back when clicking cancel button", async ({ page, request }) => {
