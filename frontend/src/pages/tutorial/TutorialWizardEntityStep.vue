@@ -12,10 +12,10 @@ import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0Select from '@/components/Hook0Select.vue';
 import Hook0Skeleton from '@/components/Hook0Skeleton.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
-import Hook0Badge from '@/components/Hook0Badge.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
 import SelectableCard from '@/components/SelectableCard.vue';
 import TutorialStepProgress from '@/pages/tutorial/TutorialStepProgress.vue';
+import WizardStepLayout from '@/pages/tutorial/WizardStepLayout.vue';
 
 import { Plus, List, ArrowRight, X } from 'lucide-vue-next';
 
@@ -39,7 +39,6 @@ type Props = {
   entityOptions: { label: string; value: string }[];
   entitiesLoading?: boolean;
   entitiesError?: Error | null;
-  /** When true, the card/edit/select sections require options to be present (used by Application step) */
   requireOptions?: boolean;
   skipLabel: string;
   selectionName?: string;
@@ -71,7 +70,6 @@ const entityId = ref<UUID | null>(null);
 const selectedEntityId = ref<UUID | null>(null);
 const entitySection = ref<EntitySection | null>(null);
 
-// Auto-select "create" if no entities exist (options only has the placeholder)
 watch(
   () => props.entityOptions,
   (options) => {
@@ -102,35 +100,25 @@ const showCard = () => {
 </script>
 
 <template>
-  <div class="wizard-modal__header">
-    <Hook0Stack direction="row" align="center" gap="sm">
-      <Hook0Badge display="step" variant="primary">{{ stepNumber }}</Hook0Badge>
-      <span id="wizard-step-title" class="wizard-modal__title">{{ stepTitle }}</span>
-    </Hook0Stack>
-    <button
-      class="wizard-modal__close"
-      type="button"
-      :aria-label="skipLabel"
-      @click="$emit('skip')"
-    >
-      <X :size="18" aria-hidden="true" />
-    </button>
-  </div>
-
-  <div class="wizard-modal__content">
-    <!-- Top-level loading (when entitiesLoading is provided and true) -->
+  <WizardStepLayout
+    :step-number="stepNumber"
+    :title="stepTitle"
+    :show-skip="true"
+    @skip="$emit('skip')"
+  >
+    <!-- Loading -->
     <Hook0Stack v-if="entitiesLoading" direction="column" gap="md">
       <Hook0Skeleton size="hero" />
       <Hook0Skeleton size="heading" />
       <Hook0Skeleton size="heading" />
     </Hook0Stack>
 
-    <!-- Top-level error (when entitiesError is provided) -->
+    <!-- Error -->
     <Hook0ErrorCard v-else-if="entitiesError" :error="entitiesError" @retry="$emit('retry')" />
 
     <!-- Main content -->
     <Hook0Stack v-else direction="column" gap="lg">
-      <span class="wizard-modal__subtitle">{{ stepDescription }}</span>
+      <span class="entity-step__subtitle">{{ stepDescription }}</span>
 
       <TutorialStepProgress :steps="progressSteps" :current="progressCurrent" />
 
@@ -139,9 +127,7 @@ const showCard = () => {
           <template #header>
             <Hook0Stack direction="row" align="center" gap="sm">
               <component :is="entityIcon" :size="18" aria-hidden="true" />
-              <Hook0Stack direction="row" align="center" gap="none">
-                {{ chooseLabel }}
-              </Hook0Stack>
+              {{ chooseLabel }}
             </Hook0Stack>
           </template>
         </Hook0CardHeader>
@@ -173,7 +159,6 @@ const showCard = () => {
         :on-created="handleCreated"
       />
 
-      <!-- Select existing entity -->
       <template v-if="entitySection === EntitySection.SelectExisting">
         <Hook0Card>
           <Hook0CardContent>
@@ -187,21 +172,28 @@ const showCard = () => {
         </Hook0Card>
       </template>
     </Hook0Stack>
-  </div>
 
-  <div class="wizard-modal__footer">
-    <Hook0Button variant="secondary" type="button" @click="$emit('skip')">
-      <X :size="16" aria-hidden="true" />
-      {{ skipLabel }}
-    </Hook0Button>
-    <Hook0Button
-      v-if="entityId || (selectedEntityId && selectedEntityId !== '')"
-      variant="primary"
-      type="button"
-      @click="handleAdvance"
-    >
-      {{ continueLabel }}
-      <ArrowRight :size="16" aria-hidden="true" />
-    </Hook0Button>
-  </div>
+    <template #footer>
+      <Hook0Button variant="secondary" type="button" @click="$emit('skip')">
+        <X :size="16" aria-hidden="true" />
+        {{ skipLabel }}
+      </Hook0Button>
+      <Hook0Button
+        v-if="entityId || (selectedEntityId && selectedEntityId !== '')"
+        variant="primary"
+        type="button"
+        @click="handleAdvance"
+      >
+        {{ continueLabel }}
+        <ArrowRight :size="16" aria-hidden="true" />
+      </Hook0Button>
+    </template>
+  </WizardStepLayout>
 </template>
+
+<style scoped>
+.entity-step__subtitle {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+</style>
