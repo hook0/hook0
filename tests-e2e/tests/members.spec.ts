@@ -1,5 +1,38 @@
 import { test, expect } from "@playwright/test";
+import { Client } from "pg";
 import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verification";
+
+const DATABASE_URL =
+  process.env.DATABASE_URL || "postgres://postgres:postgres@localhost:5432/hook0";
+
+/**
+ * Ensure a paid plan with members support exists and assign it to the given organization.
+ */
+async function enableMembersForOrg(organizationId: string): Promise<void> {
+  const client = new Client({ connectionString: DATABASE_URL });
+  await client.connect();
+  try {
+    // Create plan if not exists
+    await client.query(`
+      INSERT INTO pricing.plan (plan__id, name, label, members_per_organization_limit, applications_per_organization_limit, events_per_day_limit, days_of_events_retention_limit, subscriptions_per_application_limit, event_types_per_application_limit)
+      VALUES ('00000000-0000-0000-0000-000000000001', 'test-team', 'Team', 10, 10, 10000, 30, 100, 100)
+      ON CONFLICT (plan__id) DO NOTHING;
+    `);
+    // Create price if not exists
+    await client.query(`
+      INSERT INTO pricing.price (price__id, plan__id, amount, time_basis)
+      VALUES ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 0.00, 'month')
+      ON CONFLICT (price__id) DO NOTHING;
+    `);
+    // Assign price to org
+    await client.query(
+      `UPDATE iam.organization SET price__id = '00000000-0000-0000-0000-000000000002' WHERE organization__id = $1`,
+      [organizationId]
+    );
+  } finally {
+    await client.end();
+  }
+}
 
 /**
  * Members management E2E tests for Hook0.
@@ -57,7 +90,11 @@ test.describe("Members", () => {
     const organizationId = verificationResult.organizationId;
     expect(organizationId).toBeTruthy();
 
-    // Login via UI
+    // Assign a paid plan with members support BEFORE login
+    // so the biscuit token includes the correct plan permissions
+    await enableMembersForOrg(organizationId!);
+
+    // Login via UI (after plan assignment so token reflects the plan)
     await page.goto("/login");
     await expect(page.locator('[data-test="login-form"]')).toBeVisible({
       timeout: 10000,
@@ -120,6 +157,18 @@ test.describe("Members", () => {
   test("should invite a new member and verify API response", async ({ page, request }) => {
     const env = await setupTestEnvironment(page, request, "invite");
     const inviteeEmail = `invitee-${env.timestamp}@hook0.local`;
+
+    // Register the invitee user first (API requires existing users)
+    const inviteeRegister = await request.post(`${API_BASE_URL}/register`, {
+      data: {
+        email: inviteeEmail,
+        first_name: "Invitee",
+        last_name: "User",
+        password: `InviteePass123!${env.timestamp}`,
+      },
+    });
+    expect(inviteeRegister.status()).toBeLessThan(400);
+    await verifyEmailViaMailpit(request, inviteeEmail);
 
     // Navigate to organization dashboard (which contains the members list)
     await page.goto(`/organizations/${env.organizationId}/dashboard`);
