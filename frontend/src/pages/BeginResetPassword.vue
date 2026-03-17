@@ -45,7 +45,7 @@ function submit() {
       <Hook0Logo variant="image" size="lg" />
     </template>
 
-    <Hook0Card variant="glow">
+    <Hook0Card>
       <Hook0CardHeader
         variant="centered"
         :title="t('auth.forgotPassword.title')"

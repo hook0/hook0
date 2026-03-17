@@ -100,7 +100,7 @@ const onSubmit = handleSubmit((values) => {
       <Hook0Logo variant="image" size="lg" />
     </template>
 
-    <Hook0Card variant="glow">
+    <Hook0Card>
       <Hook0CardHeader variant="centered">
         <template #header>{{ t('auth.register.title') }}</template>
         <template #subtitle>
@@ -307,7 +307,6 @@ const onSubmit = handleSubmit((values) => {
 .register-subtitle {
   margin-top: 0.5rem;
 }
-
 
 .benefit-list {
   list-style: none;
