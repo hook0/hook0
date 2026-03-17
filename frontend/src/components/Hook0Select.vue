@@ -17,7 +17,7 @@ type Props = {
   options: Array<Hook0SelectSingleOption | Hook0SelectGroupedOption>;
   label?: string;
   error?: string;
-}
+};
 
 const props = withDefaults(defineProps<Props>(), {
   label: undefined,

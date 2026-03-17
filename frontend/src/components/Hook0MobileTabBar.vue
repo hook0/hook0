@@ -42,7 +42,11 @@ const showMoreButton = computed(() => navTabs.value.length > MAX_VISIBLE_TABS);
 </script>
 
 <template>
-  <nav class="hook0-mobile-tab-bar" data-test="mobile-tab-bar" :aria-label="t('common.mobileNavigation')">
+  <nav
+    class="hook0-mobile-tab-bar"
+    data-test="mobile-tab-bar"
+    :aria-label="t('common.mobileNavigation')"
+  >
     <div class="hook0-mobile-tab-list">
       <router-link
         v-for="tab in tabs"

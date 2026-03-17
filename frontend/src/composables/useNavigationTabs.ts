@@ -22,7 +22,7 @@ export type NavTab = {
   to: { name: string; params?: Record<string, string> };
   active: boolean;
   badge?: string;
-}
+};
 
 export function useNavigationTabs() {
   const { t } = useI18n();

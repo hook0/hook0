@@ -4,7 +4,7 @@ import Hook0Button from '@/components/Hook0Button.vue';
 type Props = {
   name: string;
   active: boolean;
-}
+};
 
 defineProps<Props>();
 </script>

@@ -6,11 +6,11 @@ type Tab = {
   id: string;
   label: string;
   icon?: Component;
-}
+};
 
 type Props = {
   tabs: Tab[];
-}
+};
 
 const props = defineProps<Props>();
 

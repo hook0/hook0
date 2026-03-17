@@ -9,7 +9,7 @@ import Hook0HelpText from '@/components/Hook0HelpText.vue';
 
 type Props = {
   targetUrl: string;
-}
+};
 
 const props = defineProps<Props>();
 
@@ -20,7 +20,7 @@ type TestEndpointResult = {
   latencyMs: number;
   body: string;
   success: boolean;
-}
+};
 
 const testEndpointLoading = ref(false);
 const testEndpointResult = ref<TestEndpointResult | null>(null);

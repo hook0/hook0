@@ -25,7 +25,7 @@ type Props = {
   variant?: DialogVariant;
   title?: string;
   persistent?: boolean;
-}
+};
 
 const props = withDefaults(defineProps<Props>(), {
   variant: 'default',

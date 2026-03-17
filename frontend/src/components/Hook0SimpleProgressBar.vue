@@ -3,7 +3,7 @@ import { computed } from 'vue';
 
 type Props = {
   percentage: number;
-}
+};
 
 const props = defineProps<Props>();
 

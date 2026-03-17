@@ -10,7 +10,7 @@ type Props = {
   action?: string;
   theme?: CaptchaTheme;
   size?: CaptchaSize;
-}
+};
 
 withDefaults(defineProps<Props>(), {
   action: 'form',

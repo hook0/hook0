@@ -8,7 +8,7 @@ const { t } = useI18n();
 type Props = {
   title?: string;
   description?: string;
-}
+};
 
 const props = withDefaults(defineProps<Props>(), {
   title: undefined,

@@ -40,7 +40,7 @@ import { EditorView } from 'codemirror';
 
 type Props = {
   tutorialMode?: boolean;
-}
+};
 
 const props = withDefaults(defineProps<Props>(), {
   tutorialMode: false,
@@ -478,14 +478,15 @@ const columns: ColumnDef<Event, unknown>[] = [
         <!-- Labels -->
         <div
           v-if="
-            selectedEventData.labels && Object.keys(selectedEventData.labels as Record<string, string>).length > 0
+            selectedEventData.labels &&
+            Object.keys(selectedEventData.labels as Record<string, string>).length > 0
           "
           class="event-panel__section"
         >
           <h3 class="event-panel__section-title">{{ t('events.labels') }}</h3>
           <div class="event-panel__labels">
             <span
-              v-for="(val, key) in (selectedEventData.labels as Record<string, string>)"
+              v-for="(val, key) in selectedEventData.labels as Record<string, string>"
               :key="String(key)"
               class="event-panel__label-badge"
             >

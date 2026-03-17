@@ -7,7 +7,7 @@ type Props = {
   title?: string;
   subtitle?: string;
   variant?: HeaderVariant;
-}
+};
 
 const props = withDefaults(defineProps<Props>(), {
   title: undefined,

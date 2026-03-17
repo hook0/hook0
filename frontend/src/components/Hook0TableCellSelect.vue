@@ -6,7 +6,7 @@ type Props = {
   modelValue: string;
   disabled?: boolean;
   onChange?: (value: string) => void;
-}
+};
 
 const props = defineProps<Props>();
 

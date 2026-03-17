@@ -20,7 +20,7 @@ type Props = {
   applicationId: string;
   subscriptionId: string;
   subscriptionName: string;
-}
+};
 
 const props = defineProps<Props>();
 const loading = ref(false);

@@ -10,7 +10,7 @@ type PopoverPosition = 'top' | 'bottom' | 'left' | 'right';
 type Props = {
   position?: PopoverPosition;
   ariaLabel?: string;
-}
+};
 
 const props = withDefaults(defineProps<Props>(), {
   position: 'bottom',

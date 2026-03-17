@@ -5,12 +5,12 @@ type TrustItem = {
   href: string;
   title: string;
   icon: Component;
-}
+};
 
 type Props = {
   label?: string;
   items?: TrustItem[];
-}
+};
 
 withDefaults(defineProps<Props>(), {
   label: undefined,

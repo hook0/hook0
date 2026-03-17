@@ -22,7 +22,7 @@ type Props = {
   confirmMessage: string;
   loading?: boolean;
   dataTest?: string;
-}
+};
 
 withDefaults(defineProps<Props>(), {
   loading: false,

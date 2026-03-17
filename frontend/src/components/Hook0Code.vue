@@ -17,7 +17,7 @@ defineOptions({
 type Props = {
   code: string;
   inline?: boolean;
-}
+};
 const props = withDefaults(defineProps<Props>(), {
   code: '',
   inline: false,

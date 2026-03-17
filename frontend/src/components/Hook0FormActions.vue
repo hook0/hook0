@@ -11,7 +11,7 @@ type Props = {
   loading: boolean;
   disabled: boolean;
   variant: FormActionsVariant;
-}
+};
 
 const props = withDefaults(defineProps<Props>(), {
   submitLabel: '',

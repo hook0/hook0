@@ -12,7 +12,7 @@ type Props = {
   size?: BadgeSize;
   display?: BadgeDisplay;
   ariaLabel?: string;
-}
+};
 
 const props = withDefaults(defineProps<Props>(), {
   variant: 'default',

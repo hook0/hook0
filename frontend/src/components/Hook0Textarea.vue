@@ -16,7 +16,7 @@ type Props = {
   rows?: number;
   maxlength?: number;
   resize?: ResizeOption;
-}
+};
 
 const props = withDefaults(defineProps<Props>(), {
   autofocus: false,

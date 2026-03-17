@@ -5,7 +5,7 @@ defineOptions({
 
 type Props = {
   value: string;
-}
+};
 
 defineProps<Props>();
 </script>

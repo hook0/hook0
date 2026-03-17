@@ -36,7 +36,7 @@ const { canCreate } = usePermissions();
 
 type Props = {
   tutorialMode?: boolean;
-}
+};
 
 const props = withDefaults(defineProps<Props>(), {
   tutorialMode: false,

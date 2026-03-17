@@ -22,7 +22,7 @@ type Props = {
   open: boolean;
   title?: string;
   width?: string;
-}
+};
 
 const props = withDefaults(defineProps<Props>(), {
   title: undefined,

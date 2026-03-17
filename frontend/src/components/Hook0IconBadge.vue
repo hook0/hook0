@@ -12,7 +12,7 @@ type Size = 'sm' | 'md' | 'lg';
 type Props = {
   variant?: Variant;
   size?: Size;
-}
+};
 
 withDefaults(defineProps<Props>(), {
   variant: 'primary',

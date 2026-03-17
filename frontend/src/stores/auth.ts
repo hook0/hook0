@@ -19,7 +19,7 @@ type AuthState = {
   email: string;
   firstName: string;
   lastName: string;
-}
+};
 
 const LOCAL_STORAGE_KEY = 'auth';
 

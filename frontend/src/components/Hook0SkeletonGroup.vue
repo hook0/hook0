@@ -27,7 +27,7 @@ type Props = {
   variant?: SkeletonGroupVariant;
   /** Whether the last line should be truncated */
   lastLineTruncated?: boolean;
-}
+};
 
 withDefaults(defineProps<Props>(), {
   count: 3,

@@ -6,7 +6,7 @@ type Props = {
   error: string;
   helpText: string;
   required: boolean;
-}
+};
 
 const props = withDefaults(defineProps<Props>(), {
   label: '',

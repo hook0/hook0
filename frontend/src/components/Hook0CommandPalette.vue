@@ -56,7 +56,11 @@ const { handleKeydown: onOverlayKeydown } = useFocusTrap(overlayRef, { onEscape:
           </div>
 
           <div id="command-list" class="hook0-command-palette-list" role="listbox">
-            <div v-if="filteredCommands.length === 0" class="hook0-command-palette-empty" data-test="command-palette-empty">
+            <div
+              v-if="filteredCommands.length === 0"
+              class="hook0-command-palette-empty"
+              data-test="command-palette-empty"
+            >
               {{ t('commandPalette.noResults') }}
             </div>
 

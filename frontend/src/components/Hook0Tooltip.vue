@@ -7,7 +7,7 @@ type Props = {
   content: string;
   position?: TooltipPosition;
   delay?: number;
-}
+};
 
 const props = withDefaults(defineProps<Props>(), {
   position: 'top',

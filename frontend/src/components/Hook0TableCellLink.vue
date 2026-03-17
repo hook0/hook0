@@ -16,7 +16,7 @@ type Props = {
   to?: RouteLocationRaw;
   disabled?: boolean;
   dataTest?: string;
-}
+};
 
 const props = defineProps<Props>();
 

@@ -6,7 +6,7 @@ defineOptions({
 type Props = {
   label?: string;
   error?: string;
-}
+};
 
 defineProps<Props>();
 

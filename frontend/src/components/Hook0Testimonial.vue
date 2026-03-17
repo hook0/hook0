@@ -1,17 +1,23 @@
 <script setup lang="ts">
+import { computed } from 'vue';
+
 type Props = {
   quote: string;
   author: string;
   role?: string;
   avatarInitial?: string;
-}
+};
 
 const props = withDefaults(defineProps<Props>(), {
   role: undefined,
   avatarInitial: undefined,
 });
 
-const initial = props.avatarInitial || props.author.charAt(0).toUpperCase();
+const initial = computed(() => {
+  if (props.avatarInitial) return props.avatarInitial;
+  const first = String(props.author).charAt(0);
+  return first.toUpperCase();
+});
 </script>
 
 <template>

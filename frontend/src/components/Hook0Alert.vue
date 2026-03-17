@@ -8,7 +8,7 @@ type Props = {
   title?: string;
   description?: string;
   type?: AlertType;
-}
+};
 
 const props = withDefaults(defineProps<Props>(), {
   title: undefined,

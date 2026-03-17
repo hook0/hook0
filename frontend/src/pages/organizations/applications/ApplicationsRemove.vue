@@ -19,7 +19,7 @@ const { canDelete } = usePermissions();
 type Props = {
   applicationId: string;
   applicationName: string;
-}
+};
 
 const props = defineProps<Props>();
 const loading = ref(false);

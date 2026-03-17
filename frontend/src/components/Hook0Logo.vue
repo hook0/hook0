@@ -10,7 +10,7 @@ type Props = {
   size?: LogoSize;
   showText?: boolean;
   alt?: string;
-}
+};
 
 const props = withDefaults(defineProps<Props>(), {
   variant: 'icon',

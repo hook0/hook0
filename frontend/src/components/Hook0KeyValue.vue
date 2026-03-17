@@ -13,7 +13,7 @@ let pairIdCounter = 0;
 
 type InternalPair = Hook0KeyValueKeyValuePair & {
   _id: number;
-}
+};
 
 function getDefaultItem(): InternalPair {
   return { key: '', value: '', _id: pairIdCounter++ };
@@ -30,7 +30,7 @@ type iRWMode<T> = {
   is(val: T): boolean;
   init(val: T): Hook0KeyValueKeyValuePair[];
   write(val: Hook0KeyValueKeyValuePair[]): T;
-}
+};
 
 const MODE = {
   [RWMode.ARRAY]: {
@@ -91,7 +91,7 @@ type Props = {
   value: Hook0KeyValueKeyValuePair[] | Hook0KeyValuePlainObject;
   keyPlaceholder?: string;
   valuePlaceholder?: string;
-}
+};
 
 const props = withDefaults(defineProps<Props>(), {
   keyPlaceholder: undefined,

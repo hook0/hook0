@@ -5,7 +5,7 @@ import { Crisp } from 'crisp-sdk-web';
 type Props = {
   email: string;
   name: string;
-}
+};
 const props = defineProps<Props>();
 const websiteId = import.meta.env.VITE_CRISP_WEBSITE_ID;
 

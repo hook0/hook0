@@ -8,7 +8,7 @@ const { t } = useI18n();
 
 type Props = {
   badges?: string[];
-}
+};
 
 withDefaults(defineProps<Props>(), {
   badges: () => ['auth.trust.openSource', 'auth.trust.uptime', 'auth.trust.gdpr'],

@@ -7,12 +7,12 @@ import Hook0Code from '@/components/Hook0Code.vue';
 type BlockInfo = {
   label: string;
   code: string;
-}
+};
 
 type Props = {
   blocks: Array<BlockInfo>;
   raw: string;
-}
+};
 
 defineProps<Props>();
 

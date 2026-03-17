@@ -8,7 +8,7 @@ defineOptions({
 type Props = {
   value: string | null;
   defaultText?: string;
-}
+};
 
 const props = defineProps<Props>();
 

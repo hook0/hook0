@@ -10,7 +10,7 @@ import { computed } from 'vue';
 type Props = {
   disabled?: boolean;
   loading?: boolean;
-}
+};
 
 const props = withDefaults(defineProps<Props>(), {
   disabled: false,

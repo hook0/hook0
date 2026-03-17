@@ -8,7 +8,7 @@ defineOptions({
 type Props = {
   icon: Component;
   title: string;
-}
+};
 
 defineProps<Props>();
 </script>

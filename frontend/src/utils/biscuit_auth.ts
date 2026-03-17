@@ -34,7 +34,7 @@ export function parseBiscuitFromBase64(biscuit_token: string, biscuitPublicKey: 
 export type BiscuitBlockInfo = {
   index: number;
   source: string;
-}
+};
 
 export function getBiscuitBlocks(biscuit: Biscuit): Array<BiscuitBlockInfo> {
   const count = biscuit.countBlocks();

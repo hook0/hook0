@@ -6,7 +6,7 @@ type CardVariant = 'default' | 'glow' | 'interactive' | 'dashed';
 type Props = {
   variant?: CardVariant;
   as?: 'div' | 'button';
-}
+};
 
 const props = withDefaults(defineProps<Props>(), {
   variant: 'default',

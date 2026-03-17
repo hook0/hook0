@@ -8,12 +8,12 @@ import { useFocusTrap } from '@/composables/useFocusTrap';
 type Shortcut = {
   keys: string[];
   description: string;
-}
+};
 
 type ShortcutGroup = {
   title: string;
   shortcuts: Shortcut[];
-}
+};
 
 const { t } = useI18n();
 const uiStore = useUiStore();

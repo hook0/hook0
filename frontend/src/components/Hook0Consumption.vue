@@ -15,13 +15,13 @@ export type ConsumptionQuota = {
   name: string;
   consumption: number;
   quota: number;
-}
+};
 
 type Props = {
   title: string;
   entityType: string;
   consumptions: ConsumptionQuota[];
-}
+};
 
 const props = defineProps<Props>();
 </script>

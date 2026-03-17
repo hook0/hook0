@@ -3,7 +3,7 @@ import { Loader2 } from 'lucide-vue-next';
 
 type Props = {
   size?: number;
-}
+};
 
 withDefaults(defineProps<Props>(), {
   size: 20,

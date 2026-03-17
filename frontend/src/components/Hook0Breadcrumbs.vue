@@ -33,7 +33,7 @@ type Crumb = {
   to: string | null;
   icon?: 'home' | 'organization' | 'application';
   dropdown?: 'organization' | 'application';
-}
+};
 
 // Check if we're in an organization-related route
 const isOrganizationRoute = computed(() => {
@@ -414,7 +414,12 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <nav v-if="shouldShow" :aria-label="t('common.breadcrumb')" class="hook0-breadcrumbs" data-test="breadcrumb-nav">
+  <nav
+    v-if="shouldShow"
+    :aria-label="t('common.breadcrumb')"
+    class="hook0-breadcrumbs"
+    data-test="breadcrumb-nav"
+  >
     <ol class="hook0-breadcrumbs__list">
       <li v-for="(crumb, index) in crumbs" :key="index" class="hook0-breadcrumbs__item">
         <ChevronRight

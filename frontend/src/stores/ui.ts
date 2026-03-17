@@ -14,7 +14,7 @@ export type RecentPage = {
   path: string;
   name: string;
   timestamp: number;
-}
+};
 
 export type RecentWorkspace = {
   organizationId: string;
@@ -22,7 +22,7 @@ export type RecentWorkspace = {
   applicationId: string | null;
   applicationName: string | null;
   timestamp: number;
-}
+};
 
 export const useUiStore = defineStore('ui', () => {
   // Dark mode

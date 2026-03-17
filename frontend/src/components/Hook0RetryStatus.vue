@@ -8,7 +8,7 @@ import Hook0Badge from '@/components/Hook0Badge.vue';
 type Props = {
   isRetrying: boolean;
   message: string;
-}
+};
 
 defineProps<Props>();
 </script>

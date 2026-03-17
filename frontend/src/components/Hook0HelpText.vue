@@ -18,7 +18,7 @@ type Props = {
   text?: string;
   /** Semantic tone for the help text */
   tone?: HelpTextTone;
-}
+};
 
 withDefaults(defineProps<Props>(), {
   text: undefined,

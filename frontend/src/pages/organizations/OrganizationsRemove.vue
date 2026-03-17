@@ -18,7 +18,7 @@ const { canDelete } = usePermissions();
 type Props = {
   organizationId: string;
   organizationName: string;
-}
+};
 
 const props = defineProps<Props>();
 const loading = ref(false);

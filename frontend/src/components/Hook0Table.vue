@@ -31,7 +31,7 @@ type AgGridColDef = {
   suppressMovable?: boolean;
   suppressSizeToFit?: boolean;
   resizable?: boolean;
-}
+};
 
 function resolveParams(
   params: Record<string, unknown>,
@@ -139,7 +139,7 @@ type Props = {
   skeletonRows?: number;
   globalFilter?: string;
   clickableRows?: boolean;
-}
+};
 
 const props = withDefaults(defineProps<Props>(), {
   columns: undefined,

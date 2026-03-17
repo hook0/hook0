@@ -17,7 +17,7 @@ type Props = {
   submit?: boolean;
   tooltip?: string;
   fullWidth?: boolean;
-}
+};
 
 const router = useRouter();
 const props = withDefaults(defineProps<Props>(), {

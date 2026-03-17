@@ -11,7 +11,7 @@ type Props = {
   gap?: Gap;
   fullWidth?: boolean;
   responsive?: boolean;
-}
+};
 
 withDefaults(defineProps<Props>(), {
   direction: 'row',

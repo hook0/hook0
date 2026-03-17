@@ -5,4 +5,4 @@ export type Alert = {
   description: string;
   type: AlertStatus;
   visible: boolean;
-}
+};

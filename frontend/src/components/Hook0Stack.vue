@@ -35,7 +35,7 @@ type Props = {
   responsive?: boolean;
   /** Semantic grid size variant (only for layout="grid") */
   gridSize?: GridSize;
-}
+};
 
 const props = withDefaults(defineProps<Props>(), {
   layout: 'flex',

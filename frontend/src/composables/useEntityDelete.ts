@@ -8,7 +8,7 @@ type UseEntityDeleteOptions<T> = {
   successTitle: string;
   successMessage: string | ((entity: T) => string);
   onSuccess?: () => void;
-}
+};
 
 export function useEntityDelete<T>(options: UseEntityDeleteOptions<T>) {
   const showDeleteDialog = ref(false);

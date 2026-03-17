@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 type Props = {
   type?: 'split' | 'full-width' | 'split-content-component' | 'stacked' | 'columns';
-}
+};
 const props = defineProps<Props>();
 const type = computed(() => props.type ?? 'split');
 

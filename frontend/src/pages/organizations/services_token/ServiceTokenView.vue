@@ -351,7 +351,9 @@ function previewToken() {
             <template #header>
               <Hook0Stack direction="row" align="center" gap="sm">
                 {{ t('serviceTokens.title') }}
-                <Hook0HelpText tone="neutral" data-test="service-token-detail-name">{{ serviceToken.name }}</Hook0HelpText>
+                <Hook0HelpText tone="neutral" data-test="service-token-detail-name">{{
+                  serviceToken.name
+                }}</Hook0HelpText>
               </Hook0Stack>
             </template>
             <template #subtitle>

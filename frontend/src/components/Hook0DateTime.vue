@@ -8,7 +8,7 @@ defineOptions({
 
 type Props = {
   value: string;
-}
+};
 const props = defineProps<Props>();
 const valueHumanized = computed(() => formatISO9075(parseISO(props.value)));
 </script>

@@ -14,7 +14,7 @@ type Props = {
   variant: IllustrationVariant;
   size?: IllustrationSize;
   alt?: string;
-}
+};
 
 const props = withDefaults(defineProps<Props>(), {
   size: 'lg',

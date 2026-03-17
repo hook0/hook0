@@ -9,7 +9,7 @@ type Props = {
   size?: AvatarSize;
   variant?: AvatarVariant;
   gradient?: string;
-}
+};
 
 const props = withDefaults(defineProps<Props>(), {
   size: 'md',

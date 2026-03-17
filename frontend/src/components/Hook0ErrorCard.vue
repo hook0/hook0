@@ -10,7 +10,7 @@ const { t } = useI18n();
 type Props = {
   error: Problem | Error | string;
   retryable?: boolean;
-}
+};
 
 const props = withDefaults(defineProps<Props>(), {
   retryable: true,

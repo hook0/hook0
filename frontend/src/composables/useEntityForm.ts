@@ -24,7 +24,7 @@ type UseEntityFormOptions<
   successCreateMessage: string | ((values: TFormValues) => string);
   successUpdateTitle: string;
   successUpdateMessage: string | ((values: TFormValues) => string);
-}
+};
 
 export function useEntityForm<
   TFormValues extends Record<string, unknown>,

@@ -8,7 +8,7 @@ import Hook0Skeleton from '@/components/Hook0Skeleton.vue';
 type Props = {
   lines?: number;
   showHeader?: boolean;
-}
+};
 
 withDefaults(defineProps<Props>(), {
   lines: 3,

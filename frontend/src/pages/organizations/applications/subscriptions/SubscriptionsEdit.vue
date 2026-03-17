@@ -54,7 +54,7 @@ const { canCreate, canEdit, canDelete } = usePermissions();
 
 type Props = {
   tutorialMode?: boolean;
-}
+};
 
 const props = withDefaults(defineProps<Props>(), {
   tutorialMode: false,
@@ -64,7 +64,7 @@ const emit = defineEmits(['tutorial-subscription-created']);
 
 type SelectableEventType = EventType & {
   selected: boolean;
-}
+};
 
 function EventTypeNamesFromSelectedEventTypes(
   selectableEventTypes: SelectableEventType[]

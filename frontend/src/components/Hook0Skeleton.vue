@@ -31,7 +31,7 @@ type Props = {
   size?: SkeletonSize;
   /** Display variant */
   variant?: SkeletonVariant;
-}
+};
 
 const props = withDefaults(defineProps<Props>(), {
   size: 'text',

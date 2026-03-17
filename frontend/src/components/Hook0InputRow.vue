@@ -4,7 +4,7 @@ type Gap = 'sm' | 'md' | 'lg';
 type Props = {
   gap?: Gap;
   columns?: number;
-}
+};
 
 withDefaults(defineProps<Props>(), {
   gap: 'md',

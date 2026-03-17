@@ -6,7 +6,7 @@ import Hook0DropdownOptions from './Hook0DropdownOptions';
 
 type Props = {
   justify?: 'left' | 'right';
-}
+};
 const props = defineProps<Props>();
 const justify = computed(() => props.justify ?? 'right');
 

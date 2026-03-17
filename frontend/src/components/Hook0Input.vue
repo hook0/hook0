@@ -12,7 +12,7 @@ type Props = {
   label?: string;
   error?: string;
   showPasswordToggle?: boolean;
-}
+};
 
 const props = withDefaults(defineProps<Props>(), {
   autofocus: false,

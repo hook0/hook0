@@ -13,7 +13,7 @@ type Props = {
   columns?: number;
   /** Number of body rows to display */
   rows?: number;
-}
+};
 
 withDefaults(defineProps<Props>(), {
   columns: 4,

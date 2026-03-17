@@ -7,7 +7,7 @@ type Props = {
   title?: string;
   description?: string;
   variant?: LayoutVariant;
-}
+};
 
 const props = withDefaults(defineProps<Props>(), {
   title: undefined,

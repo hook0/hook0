@@ -5,12 +5,12 @@ import { useI18n } from 'vue-i18n';
 
 type ProgressBarItem = {
   title: string;
-}
+};
 
 type ProgressBarProps = {
   current: number;
   items: ProgressBarItem[];
-}
+};
 
 const props = defineProps<ProgressBarProps>();
 
