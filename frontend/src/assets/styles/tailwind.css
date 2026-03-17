@@ -50,7 +50,7 @@
   src: url('/fonts/JetBrainsMono-Medium.woff2') format('woff2');
 }
 
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* ========================================
    Hook0 Design System - CSS Custom Properties
@@ -191,7 +191,10 @@ body {
   min-height: 100vh;
 }
 
-code, pre, kbd, samp {
+code,
+pre,
+kbd,
+samp {
   font-family: var(--font-mono);
 }
 

@@ -60,7 +60,12 @@ const showMoreButton = computed(() => navTabs.value.length > MAX_VISIBLE_TABS);
         <component :is="tab.icon" :size="20" aria-hidden="true" />
         <span class="hook0-mobile-tab-label">{{ tab.label }}</span>
       </router-link>
-      <button v-if="showMoreButton" class="hook0-mobile-tab" data-test="mobile-tab-more" @click="uiStore.toggleMobileDrawer()">
+      <button
+        v-if="showMoreButton"
+        class="hook0-mobile-tab"
+        data-test="mobile-tab-more"
+        @click="uiStore.toggleMobileDrawer()"
+      >
         <Menu :size="20" aria-hidden="true" />
         <span class="hook0-mobile-tab-label">{{ t('nav.more') }}</span>
       </button>

@@ -62,7 +62,8 @@ function progressPercentage(quota: ConsumptionQuota): number {
                 class="consumption__icon"
               />
               <span class="consumption__text">
-                <strong>{{ quota.name }}</strong>: {{ formatQuota(quota) }}
+                <strong>{{ quota.name }}</strong
+                >: {{ formatQuota(quota) }}
               </span>
             </div>
             <div class="consumption__bar">
