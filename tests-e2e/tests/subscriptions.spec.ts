@@ -628,4 +628,31 @@ test.describe("Subscriptions", () => {
     // Form should still be visible
     await expect(page.locator('[data-test="subscription-form"]')).toBeVisible();
   });
+
+  test("should display event type checkboxes when creating subscription", async ({
+    page,
+    request,
+  }) => {
+    const env = await setupTestEnvironment(page, request, "event-checkboxes");
+
+    // Navigate to create subscription page
+    await page.goto(
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions/new`
+    );
+
+    await expect(page.locator('[data-test="subscription-form"]')).toBeVisible({
+      timeout: 10000,
+    });
+
+    // Verify event types list is visible
+    await expect(page.locator('[data-test="event-types-list"]')).toBeVisible({
+      timeout: 15000,
+    });
+
+    // Verify at least one event type checkbox exists
+    const checkboxes = page.locator('[data-test^="event-type-checkbox"]');
+    await expect(checkboxes.first()).toBeVisible({ timeout: 10000 });
+    const count = await checkboxes.count();
+    expect(count).toBeGreaterThanOrEqual(1);
+  });
 });
