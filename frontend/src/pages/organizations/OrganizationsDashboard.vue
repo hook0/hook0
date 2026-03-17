@@ -129,11 +129,11 @@ const widgetItems = computed(() => {
           <Hook0Stack direction="column" gap="md">
             <span class="org-dashboard__label">{{ t('organizations.currentlyLimitedTo') }}</span>
             <Hook0Stack layout="grid" grid-size="compact" gap="sm">
-              <Hook0Card>
+              <Hook0Card class="org-dashboard__quota-card">
                 <Hook0CardContent>
-                  <Hook0Stack direction="row" align="center" gap="md">
-                    <Hook0IconBadge variant="primary" size="md">
-                      <Users :size="16" aria-hidden="true" />
+                  <Hook0Stack direction="row" align="center" gap="sm">
+                    <Hook0IconBadge variant="primary" size="sm">
+                      <Users :size="14" aria-hidden="true" />
                     </Hook0IconBadge>
                     <Hook0Stack direction="column" gap="none">
                       <span class="org-dashboard__quota-value">{{
@@ -146,11 +146,11 @@ const widgetItems = computed(() => {
                   </Hook0Stack>
                 </Hook0CardContent>
               </Hook0Card>
-              <Hook0Card>
+              <Hook0Card class="org-dashboard__quota-card">
                 <Hook0CardContent>
-                  <Hook0Stack direction="row" align="center" gap="md">
-                    <Hook0IconBadge variant="primary" size="md">
-                      <FolderOpen :size="16" aria-hidden="true" />
+                  <Hook0Stack direction="row" align="center" gap="sm">
+                    <Hook0IconBadge variant="primary" size="sm">
+                      <FolderOpen :size="14" aria-hidden="true" />
                     </Hook0IconBadge>
                     <Hook0Stack direction="column" gap="none">
                       <span class="org-dashboard__quota-value">{{
@@ -163,11 +163,11 @@ const widgetItems = computed(() => {
                   </Hook0Stack>
                 </Hook0CardContent>
               </Hook0Card>
-              <Hook0Card>
+              <Hook0Card class="org-dashboard__quota-card">
                 <Hook0CardContent>
-                  <Hook0Stack direction="row" align="center" gap="md">
-                    <Hook0IconBadge variant="primary" size="md">
-                      <FileText :size="16" aria-hidden="true" />
+                  <Hook0Stack direction="row" align="center" gap="sm">
+                    <Hook0IconBadge variant="primary" size="sm">
+                      <FileText :size="14" aria-hidden="true" />
                     </Hook0IconBadge>
                     <Hook0Stack direction="column" gap="none">
                       <span class="org-dashboard__quota-value">{{
@@ -180,11 +180,11 @@ const widgetItems = computed(() => {
                   </Hook0Stack>
                 </Hook0CardContent>
               </Hook0Card>
-              <Hook0Card>
+              <Hook0Card class="org-dashboard__quota-card">
                 <Hook0CardContent>
-                  <Hook0Stack direction="row" align="center" gap="md">
-                    <Hook0IconBadge variant="primary" size="md">
-                      <Database :size="16" aria-hidden="true" />
+                  <Hook0Stack direction="row" align="center" gap="sm">
+                    <Hook0IconBadge variant="primary" size="sm">
+                      <Database :size="14" aria-hidden="true" />
                     </Hook0IconBadge>
                     <Hook0Stack direction="column" gap="none">
                       <span class="org-dashboard__quota-value">{{
@@ -228,7 +228,7 @@ const widgetItems = computed(() => {
 <style scoped>
 .org-dashboard__label {
   color: var(--color-text-secondary);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   line-height: 1.5;
 }
@@ -249,8 +249,12 @@ const widgetItems = computed(() => {
 
 .org-dashboard__quota-label {
   color: var(--color-text-tertiary);
-  font-size: 0.6875rem;
+  font-size: 0.8125rem;
   font-weight: 400;
   line-height: 1.5;
+}
+
+.org-dashboard__quota-card :deep(.hook0-card-content) {
+  padding: 0.75rem 1rem;
 }
 </style>

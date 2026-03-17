@@ -248,7 +248,7 @@ function getGradient(index: number): string {
         <Hook0CardContent>
           <Hook0Stack
             direction="row"
-            align="start"
+            align="center"
             gap="md"
             role="button"
             tabindex="0"
@@ -623,7 +623,7 @@ function getGradient(index: number): string {
 
 /* Organization Selector Text */
 .org-card__info {
-  min-height: 70px;
+  justify-content: center;
 }
 
 .org-selector__org-name {
@@ -641,12 +641,12 @@ function getGradient(index: number): string {
   display: flex;
   align-items: center;
   gap: 0.3125rem;
-  font-size: 0.6875rem;
+  font-size: 0.8125rem;
   color: var(--color-text-tertiary);
 }
 
 .org-selector__apps-count {
-  font-size: 0.6875rem;
+  font-size: 0.8125rem;
   color: var(--color-text-tertiary);
 }
 

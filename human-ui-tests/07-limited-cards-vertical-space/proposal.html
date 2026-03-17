@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Issue #7: Limited-to Cards Too Much Vertical Space</title>
+<style>
+  :root {
+    --color-bg-primary: #ffffff;
+    --color-bg-secondary: #f8f9fa;
+    --color-bg-tertiary: #f1f3f5;
+    --color-text-primary: #1a1a2e;
+    --color-text-secondary: #6b7280;
+    --color-text-tertiary: #9ca3af;
+    --color-border: #e5e7eb;
+    --color-primary: #4f46e5;
+    --color-primary-light: #eef2ff;
+    --color-warning: #d97706;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --font-sans: 'Inter', -apple-system, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font-sans); background: #f3f4f6; color: var(--color-text-primary); padding: 2rem; line-height: 1.5; }
+  h1 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.25rem; }
+  h2 { font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--color-text-secondary); }
+  h3 { font-size: 0.875rem; font-weight: 600; margin-bottom: 0.375rem; }
+  .problem { background: #fef2f2; border: 1px solid #fca5a5; border-radius: var(--radius-md); padding: 1rem; margin-bottom: 2rem; font-size: 0.875rem; color: #991b1b; }
+  .section { margin-bottom: 2.5rem; }
+  .before-img { max-width: 600px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); margin-bottom: 1.5rem; }
+  .proposals { display: flex; flex-direction: column; gap: 2rem; }
+  .proposal { background: var(--color-bg-primary); border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; }
+  .proposal-label { font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 0.625rem 1rem; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border); color: var(--color-text-secondary); }
+  .proposal-body { padding: 1.25rem; }
+  .proposal-note { font-size: 0.8125rem; color: var(--color-text-secondary); padding: 0.75rem 1rem; border-top: 1px solid var(--color-border); background: var(--color-bg-secondary); }
+
+  /* Mock components */
+  .mock-card { background: var(--color-bg-primary); border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
+  .mock-icon { width: 2rem; height: 2rem; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; flex-shrink: 0; background: var(--color-primary-light); color: var(--color-primary); }
+  .mock-icon--sm { width: 1.5rem; height: 1.5rem; font-size: 0.625rem; }
+</style>
+</head>
+<body>
+
+<h1>Issue #7: "Limited to" Cards -- Too Much Vertical Space</h1>
+<h2>Quota cards waste space when they wrap to multiple rows</h2>
+
+<div class="section">
+  <h3>Before (screenshot)</h3>
+  <img class="before-img" src="before.png" alt="Before: limited-to cards with excessive vertical spacing">
+</div>
+
+<div class="problem">
+  <strong>Problem:</strong> The "Currently limited to" section uses <code>Hook0Stack layout="grid" grid-size="compact" gap="sm"</code>, rendering 4 nested <code>Hook0Card</code> components, each with its own <code>Hook0CardContent</code> padding. The cards have border + padding + inner icon-badge + stacked text, creating a lot of vertical bulk. When wrapping to 2x2 on narrower screens, the total height is excessive for what amounts to 4 small numbers.
+</div>
+
+<div class="section">
+  <h3>Proposals</h3>
+  <div class="proposals">
+
+    <!-- Proposal A -->
+    <div class="proposal">
+      <div class="proposal-label">A -- Reduce card padding, tighten gap</div>
+      <div class="proposal-body">
+        <div style="max-width: 500px;">
+          <div style="font-size: 0.8125rem; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 0.5rem;">Currently limited to</div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.5rem;">
+            <div class="mock-card" style="padding: 0.625rem 0.75rem;">
+              <div style="display: flex; align-items: center; gap: 0.625rem;">
+                <div class="mock-icon">U</div>
+                <div>
+                  <div style="font-size: 1rem; font-weight: 700; line-height: 1.2;">5</div>
+                  <div style="font-size: 0.75rem; color: var(--color-text-tertiary); line-height: 1.2;">members</div>
+                </div>
+              </div>
+            </div>
+            <div class="mock-card" style="padding: 0.625rem 0.75rem;">
+              <div style="display: flex; align-items: center; gap: 0.625rem;">
+                <div class="mock-icon">F</div>
+                <div>
+                  <div style="font-size: 1rem; font-weight: 700; line-height: 1.2;">3</div>
+                  <div style="font-size: 0.75rem; color: var(--color-text-tertiary); line-height: 1.2;">applications</div>
+                </div>
+              </div>
+            </div>
+            <div class="mock-card" style="padding: 0.625rem 0.75rem;">
+              <div style="display: flex; align-items: center; gap: 0.625rem;">
+                <div class="mock-icon">E</div>
+                <div>
+                  <div style="font-size: 1rem; font-weight: 700; line-height: 1.2;">100</div>
+                  <div style="font-size: 0.75rem; color: var(--color-text-tertiary); line-height: 1.2;">events/day</div>
+                </div>
+              </div>
+            </div>
+            <div class="mock-card" style="padding: 0.625rem 0.75rem;">
+              <div style="display: flex; align-items: center; gap: 0.625rem;">
+                <div class="mock-icon">D</div>
+                <div>
+                  <div style="font-size: 1rem; font-weight: 700; line-height: 1.2;">30</div>
+                  <div style="font-size: 0.75rem; color: var(--color-text-tertiary); line-height: 1.2;">days retention</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="proposal-note">
+        Keep the card structure but reduce <code>Hook0CardContent</code> padding from default to a tighter value. Change <code>gap="sm"</code> to a custom smaller gap (~0.5rem). Reduce <code>Hook0IconBadge</code> from <code>size="md"</code> to <code>size="sm"</code>. Saves ~30% vertical height.
+      </div>
+    </div>
+
+    <!-- Proposal B -->
+    <div class="proposal">
+      <div class="proposal-label">B -- Replace cards with flat stat pills (recommended)</div>
+      <div class="proposal-body">
+        <div style="max-width: 500px;">
+          <div style="font-size: 0.8125rem; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 0.5rem;">Currently limited to</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 0.375rem;">
+            <div style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.375rem 0.75rem; background: var(--color-bg-tertiary); border-radius: var(--radius-lg); font-size: 0.8125rem;">
+              <span style="color: var(--color-primary);">U</span>
+              <span style="font-weight: 600;">5</span>
+              <span style="color: var(--color-text-tertiary);">members</span>
+            </div>
+            <div style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.375rem 0.75rem; background: var(--color-bg-tertiary); border-radius: var(--radius-lg); font-size: 0.8125rem;">
+              <span style="color: var(--color-primary);">F</span>
+              <span style="font-weight: 600;">3</span>
+              <span style="color: var(--color-text-tertiary);">applications</span>
+            </div>
+            <div style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.375rem 0.75rem; background: var(--color-bg-tertiary); border-radius: var(--radius-lg); font-size: 0.8125rem;">
+              <span style="color: var(--color-primary);">E</span>
+              <span style="font-weight: 600;">100</span>
+              <span style="color: var(--color-text-tertiary);">events/day</span>
+            </div>
+            <div style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.375rem 0.75rem; background: var(--color-bg-tertiary); border-radius: var(--radius-lg); font-size: 0.8125rem;">
+              <span style="color: var(--color-primary);">D</span>
+              <span style="font-weight: 600;">30</span>
+              <span style="color: var(--color-text-tertiary);">days retention</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="proposal-note">
+        Remove the nested <code>Hook0Card</code> wrappers entirely. Replace with a simple <code>flex-wrap</code> container of inline pill elements. Each pill is icon + number + label on one line. No borders, just a subtle background. Dramatically reduces vertical space -- wrapping is now a single row height per line instead of full card height.
+      </div>
+    </div>
+
+    <!-- Proposal C -->
+    <div class="proposal">
+      <div class="proposal-label">C -- Horizontal inline list</div>
+      <div class="proposal-body">
+        <div style="max-width: 500px;">
+          <div style="font-size: 0.8125rem; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 0.5rem;">Currently limited to</div>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0;">
+            <div style="display: flex; align-items: baseline; gap: 0.25rem; padding: 0.25rem 0.75rem; font-size: 0.875rem; border-right: 1px solid var(--color-border);">
+              <span style="font-weight: 700; font-size: 1rem;">5</span>
+              <span style="color: var(--color-text-tertiary); font-size: 0.8125rem;">members</span>
+            </div>
+            <div style="display: flex; align-items: baseline; gap: 0.25rem; padding: 0.25rem 0.75rem; font-size: 0.875rem; border-right: 1px solid var(--color-border);">
+              <span style="font-weight: 700; font-size: 1rem;">3</span>
+              <span style="color: var(--color-text-tertiary); font-size: 0.8125rem;">applications</span>
+            </div>
+            <div style="display: flex; align-items: baseline; gap: 0.25rem; padding: 0.25rem 0.75rem; font-size: 0.875rem; border-right: 1px solid var(--color-border);">
+              <span style="font-weight: 700; font-size: 1rem;">100</span>
+              <span style="color: var(--color-text-tertiary); font-size: 0.8125rem;">events/day</span>
+            </div>
+            <div style="display: flex; align-items: baseline; gap: 0.25rem; padding: 0.25rem 0.75rem; font-size: 0.875rem;">
+              <span style="font-weight: 700; font-size: 1rem;">30</span>
+              <span style="color: var(--color-text-tertiary); font-size: 0.8125rem;">days retention</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="proposal-note">
+        Most compact option. No cards, no background -- just an inline horizontal list with pipe separators. Each stat is <code>value + label</code> on a single baseline. Minimal vertical footprint. Wraps naturally. Removes all nested card overhead.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

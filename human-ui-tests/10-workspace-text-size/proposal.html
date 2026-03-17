@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Issue #10: "Set up a new team workspace" Text Too Small</title>
+<style>
+  :root {
+    --color-bg-primary: #ffffff;
+    --color-bg-secondary: #f8f9fa;
+    --color-text-primary: #1a1a2e;
+    --color-text-secondary: #6b7280;
+    --color-text-tertiary: #9ca3af;
+    --color-border: #e5e7eb;
+    --color-border-dashed: #d1d5db;
+    --color-primary: #4f46e5;
+    --color-primary-light: #eef2ff;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --radius-xl: 12px;
+    --font-sans: 'Inter', -apple-system, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font-sans); background: #f3f4f6; color: var(--color-text-primary); padding: 2rem; line-height: 1.5; }
+  h1 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.25rem; }
+  h2 { font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--color-text-secondary); }
+  h3 { font-size: 0.875rem; font-weight: 600; margin-bottom: 0.375rem; }
+  .problem { background: #fef2f2; border: 1px solid #fca5a5; border-radius: var(--radius-md); padding: 1rem; margin-bottom: 2rem; font-size: 0.875rem; color: #991b1b; }
+  .section { margin-bottom: 2.5rem; }
+  .before-img { max-width: 500px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); margin-bottom: 1.5rem; }
+  .proposals { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+  .proposal { background: var(--color-bg-primary); border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; }
+  .proposal-label { font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 0.625rem 1rem; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border); color: var(--color-text-secondary); }
+  .proposal-body { padding: 1.25rem; display: flex; justify-content: center; }
+  .proposal-note { font-size: 0.8125rem; color: var(--color-text-secondary); padding: 0.75rem 1rem; border-top: 1px solid var(--color-border); background: var(--color-bg-secondary); }
+
+  /* Mock cards */
+  .mock-dashed-card { border: 2px dashed var(--color-border-dashed); border-radius: var(--radius-xl); padding: 1.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; cursor: pointer; width: 240px; text-align: center; transition: border-color 0.15s ease; }
+  .mock-dashed-card:hover { border-color: var(--color-primary); }
+  .mock-avatar { width: 3rem; height: 3rem; border-radius: var(--radius-lg); background: var(--color-bg-secondary); display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: 700; color: var(--color-text-tertiary); }
+</style>
+</head>
+<body>
+
+<h1>Issue #10: "Set up a new team workspace" Text Too Small</h1>
+<h2>Description text under "New Organization" card is smaller than similar text elsewhere</h2>
+
+<div class="section">
+  <h3>Before (screenshot)</h3>
+  <img class="before-img" src="before.png" alt="Before: workspace text too small">
+</div>
+
+<div class="problem">
+  <strong>Problem:</strong> The "New Organization" dashed card uses <code>.org-selector__apps-count</code> for its description text, which is styled at <code>0.6875rem</code> (11px) and <code>--color-text-tertiary</code>. Compare with the empty state description "Create your first application to start sending events." which renders at <code>0.8125rem</code> (13px) via <code>Hook0EmptyState</code>. The text "Set up a new team workspace" should match that size for consistency.
+</div>
+
+<div class="section">
+  <h3>Proposals</h3>
+  <div class="proposals">
+
+    <!-- Current -->
+    <div class="proposal">
+      <div class="proposal-label">Current (11px)</div>
+      <div class="proposal-body">
+        <div class="mock-dashed-card">
+          <div class="mock-avatar">+</div>
+          <span style="font-size: 0.875rem; font-weight: 600;">New Organization</span>
+          <span style="font-size: 0.6875rem; color: var(--color-text-tertiary);">Set up a new team workspace</span>
+        </div>
+      </div>
+      <div class="proposal-note">
+        Current: <code>.org-selector__apps-count</code> at <code>0.6875rem</code> (11px). Hard to read, inconsistent with the empty-state description in sibling cards.
+      </div>
+    </div>
+
+    <!-- Proposal A -->
+    <div class="proposal">
+      <div class="proposal-label">A -- Match empty state (13px)</div>
+      <div class="proposal-body">
+        <div class="mock-dashed-card">
+          <div class="mock-avatar">+</div>
+          <span style="font-size: 0.875rem; font-weight: 600;">New Organization</span>
+          <span style="font-size: 0.8125rem; color: var(--color-text-secondary);">Set up a new team workspace</span>
+        </div>
+      </div>
+      <div class="proposal-note">
+        Add a dedicated class for the new-org description at <code>0.8125rem</code> (13px) with <code>--color-text-secondary</code> instead of tertiary. Matches the <code>Hook0EmptyState</code> description size. Minimal change: just stop reusing <code>.org-selector__apps-count</code> for this element.
+      </div>
+    </div>
+
+    <!-- Proposal B -->
+    <div class="proposal">
+      <div class="proposal-label">B -- Slightly larger (14px), lighter weight</div>
+      <div class="proposal-body">
+        <div class="mock-dashed-card">
+          <div class="mock-avatar">+</div>
+          <span style="font-size: 0.875rem; font-weight: 600;">New Organization</span>
+          <span style="font-size: 0.875rem; font-weight: 400; color: var(--color-text-secondary);">Set up a new team workspace</span>
+        </div>
+      </div>
+      <div class="proposal-note">
+        Use <code>0.875rem</code> (14px) with <code>font-weight: 400</code>. Same size as the title but distinguished by lighter weight and secondary color. Makes the card feel more like a first-class CTA rather than an afterthought.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="section">
+  <h3>Implementation</h3>
+  <p style="font-size: 0.8125rem; color: var(--color-text-secondary); max-width: 600px;">
+    The "New Organization" card reuses <code>.org-selector__apps-count</code> (line 374-376 of <code>OrganizationAndApplicationSelector.vue</code>) for the description. The fix is to either: (a) add a new class <code>.org-selector__new-org-description</code> with the correct size, or (b) use the existing <code>Hook0EmptyState</code> description styling approach. Option (a) is a 3-line CSS addition.
+  </p>
+</div>
+
+</body>
+</html>

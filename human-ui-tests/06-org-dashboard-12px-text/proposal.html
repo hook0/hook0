@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Issue #6: Org Dashboard 12px Text Too Small</title>
+<style>
+  :root {
+    --color-bg-primary: #ffffff;
+    --color-bg-secondary: #f8f9fa;
+    --color-text-primary: #1a1a2e;
+    --color-text-secondary: #6b7280;
+    --color-text-tertiary: #9ca3af;
+    --color-border: #e5e7eb;
+    --color-primary: #4f46e5;
+    --color-primary-light: #eef2ff;
+    --color-warning: #d97706;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --font-sans: 'Inter', -apple-system, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font-sans); background: #f3f4f6; color: var(--color-text-primary); padding: 2rem; line-height: 1.5; }
+  h1 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.25rem; }
+  h2 { font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--color-text-secondary); }
+  h3 { font-size: 0.875rem; font-weight: 600; margin-bottom: 0.375rem; }
+  .problem { background: #fef2f2; border: 1px solid #fca5a5; border-radius: var(--radius-md); padding: 1rem; margin-bottom: 2rem; font-size: 0.875rem; color: #991b1b; }
+  .section { margin-bottom: 2.5rem; }
+  .before-img { max-width: 600px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); margin-bottom: 1.5rem; }
+  .proposals { display: grid; grid-template-columns: 1fr; gap: 1.5rem; max-width: 700px; }
+  .proposal { background: var(--color-bg-primary); border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; }
+  .proposal-label { font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 0.625rem 1rem; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border); color: var(--color-text-secondary); }
+  .proposal-body { padding: 1.25rem; }
+  .proposal-note { font-size: 0.8125rem; color: var(--color-text-secondary); padding: 0.75rem 1rem; border-top: 1px solid var(--color-border); background: var(--color-bg-secondary); }
+
+  /* Mock card structure */
+  .mock-card { background: var(--color-bg-primary); border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; }
+  .mock-card-header { display: flex; align-items: center; gap: 0.5rem; padding: 0.875rem 1rem; border-bottom: 1px solid var(--color-border); }
+  .mock-icon { width: 1.5rem; height: 1.5rem; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; flex-shrink: 0; }
+  .mock-icon--primary { background: var(--color-primary-light); color: var(--color-primary); }
+  .mock-icon--warning { background: #fef3c7; color: var(--color-warning); }
+  .mock-badge { display: inline-flex; align-items: center; padding: 0.0625rem 0.375rem; border-radius: 9999px; font-size: 0.625rem; font-weight: 600; background: var(--color-primary-light); color: var(--color-primary); }
+
+  .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  .comparison-col { display: flex; flex-direction: column; gap: 0.375rem; }
+  .comparison-label { font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-tertiary); }
+  .strike { text-decoration: line-through; opacity: 0.5; }
+</style>
+</head>
+<body>
+
+<h1>Issue #6: Org Dashboard 12px Text Too Small</h1>
+<h2>Labels and metadata text at 0.75rem (12px) are hard to read</h2>
+
+<div class="section">
+  <h3>Before (screenshot)</h3>
+  <img class="before-img" src="before.png" alt="Before: org dashboard with 12px text">
+</div>
+
+<div class="problem">
+  <strong>Problem:</strong> Two CSS classes use <code>font-size: 0.75rem</code> (12px) and one uses <code>0.6875rem</code> (11px):
+  <ul style="margin-top: 0.5rem; padding-left: 1.25rem;">
+    <li><code>.org-dashboard__label</code> -- 0.75rem (12px) -- "Organization", "Currently limited to", "Developer plan notice"</li>
+    <li><code>.org-dashboard__quota-label</code> -- 0.6875rem (11px) -- "members", "applications", "events per day", "days retention"</li>
+  </ul>
+  At standard screen DPI, 12px is below comfortable reading size. 11px is genuinely hard to read.
+</div>
+
+<div class="section">
+  <h3>Proposals</h3>
+  <div class="proposals">
+
+    <!-- Proposal A -->
+    <div class="proposal">
+      <div class="proposal-label">A -- Bump labels to 13px, quota labels to 12px</div>
+      <div class="proposal-body">
+        <div class="comparison">
+          <div class="comparison-col">
+            <span class="comparison-label">Current</span>
+            <div class="mock-card">
+              <div class="mock-card-header">
+                <span class="mock-icon mock-icon--primary">B</span>
+                <span style="font-size: 0.75rem; font-weight: 500; color: var(--color-text-secondary);">Organization</span>
+                <span style="font-size: 0.875rem; font-weight: 600;">Acme Corp</span>
+                <span class="mock-badge">Starter</span>
+              </div>
+            </div>
+          </div>
+          <div class="comparison-col">
+            <span class="comparison-label">Proposed</span>
+            <div class="mock-card">
+              <div class="mock-card-header">
+                <span class="mock-icon mock-icon--primary">B</span>
+                <span style="font-size: 0.8125rem; font-weight: 500; color: var(--color-text-secondary);">Organization</span>
+                <span style="font-size: 0.875rem; font-weight: 600;">Acme Corp</span>
+                <span class="mock-badge">Starter</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top: 1rem;">
+          <div class="comparison">
+            <div class="comparison-col">
+              <div style="font-size: 0.6875rem; color: var(--color-text-tertiary);">members <span style="font-size: 0.5625rem; color: #d1d5db;">(11px -- current)</span></div>
+              <div style="font-size: 0.6875rem; color: var(--color-text-tertiary);">applications</div>
+              <div style="font-size: 0.6875rem; color: var(--color-text-tertiary);">events per day</div>
+            </div>
+            <div class="comparison-col">
+              <div style="font-size: 0.75rem; color: var(--color-text-tertiary);">members <span style="font-size: 0.5625rem; color: #22c55e;">(12px -- proposed)</span></div>
+              <div style="font-size: 0.75rem; color: var(--color-text-tertiary);">applications</div>
+              <div style="font-size: 0.75rem; color: var(--color-text-tertiary);">events per day</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="proposal-note">
+        <strong>Minimal change.</strong> <code>.org-dashboard__label</code>: <code class="strike">0.75rem</code> &rarr; <code>0.8125rem</code> (13px). <code>.org-dashboard__quota-label</code>: <code class="strike">0.6875rem</code> &rarr; <code>0.75rem</code> (12px). Preserves the visual hierarchy (labels are secondary), just makes them readable.
+      </div>
+    </div>
+
+    <!-- Proposal B -->
+    <div class="proposal">
+      <div class="proposal-label">B -- Unify at 13px minimum (recommended)</div>
+      <div class="proposal-body">
+        <div class="mock-card">
+          <div class="mock-card-header">
+            <span class="mock-icon mock-icon--warning">!</span>
+            <span style="font-size: 0.8125rem; font-weight: 500; color: var(--color-text-secondary);">Developer plan notice</span>
+          </div>
+          <div style="padding: 1rem;">
+            <div style="font-size: 0.8125rem; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 0.75rem;">Currently limited to</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+              <div style="background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: 0.75rem;">
+                <div style="font-size: 1rem; font-weight: 700;">5</div>
+                <div style="font-size: 0.8125rem; color: var(--color-text-tertiary);">members</div>
+              </div>
+              <div style="background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: 0.75rem;">
+                <div style="font-size: 1rem; font-weight: 700;">3</div>
+                <div style="font-size: 0.8125rem; color: var(--color-text-tertiary);">applications</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="proposal-note">
+        <strong>Establish 13px floor.</strong> Both <code>.org-dashboard__label</code> and <code>.org-dashboard__quota-label</code> become <code>0.8125rem</code> (13px). Use lighter color weight (<code>--color-text-tertiary</code>) for quota labels to maintain hierarchy instead of relying on smaller size.
+      </div>
+    </div>
+
+    <!-- Proposal C -->
+    <div class="proposal">
+      <div class="proposal-label">C -- Bump to 14px with weight differentiation</div>
+      <div class="proposal-body">
+        <div class="mock-card">
+          <div class="mock-card-header">
+            <span class="mock-icon mock-icon--primary">B</span>
+            <span style="font-size: 0.875rem; font-weight: 500; color: var(--color-text-secondary);">Organization</span>
+            <span style="font-size: 0.9375rem; font-weight: 600;">Acme Corp</span>
+            <span class="mock-badge">Starter</span>
+          </div>
+          <div style="padding: 1rem;">
+            <div style="font-size: 0.875rem; font-weight: 400; color: var(--color-text-secondary); margin-bottom: 0.75rem;">Currently limited to</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+              <div style="background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: 0.75rem;">
+                <div style="font-size: 1.125rem; font-weight: 700;">5</div>
+                <div style="font-size: 0.875rem; font-weight: 400; color: var(--color-text-tertiary);">members</div>
+              </div>
+              <div style="background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: 0.75rem;">
+                <div style="font-size: 1.125rem; font-weight: 700;">3</div>
+                <div style="font-size: 0.875rem; font-weight: 400; color: var(--color-text-tertiary);">applications</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="proposal-note">
+        <strong>More generous sizing.</strong> Labels at <code>0.875rem</code> (14px) with <code>font-weight: 400</code>. Quota labels at <code>0.875rem</code> (14px) with <code>font-weight: 400</code>. Values bump to <code>1.125rem</code> (18px). Hierarchy through weight and color, not size. Bigger change but very readable.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="section">
+  <h3>CSS Changes Summary</h3>
+  <table style="font-size: 0.8125rem; border-collapse: collapse; width: 100%; max-width: 700px;">
+    <thead>
+      <tr style="text-align: left; border-bottom: 2px solid var(--color-border);">
+        <th style="padding: 0.5rem;">Class</th>
+        <th style="padding: 0.5rem;">Current</th>
+        <th style="padding: 0.5rem;">A</th>
+        <th style="padding: 0.5rem;">B</th>
+        <th style="padding: 0.5rem;">C</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="border-bottom: 1px solid var(--color-border);">
+        <td style="padding: 0.5rem;"><code>.org-dashboard__label</code></td>
+        <td style="padding: 0.5rem;">0.75rem (12px)</td>
+        <td style="padding: 0.5rem;">0.8125rem (13px)</td>
+        <td style="padding: 0.5rem;">0.8125rem (13px)</td>
+        <td style="padding: 0.5rem;">0.875rem (14px)</td>
+      </tr>
+      <tr>
+        <td style="padding: 0.5rem;"><code>.org-dashboard__quota-label</code></td>
+        <td style="padding: 0.5rem;">0.6875rem (11px)</td>
+        <td style="padding: 0.5rem;">0.75rem (12px)</td>
+        <td style="padding: 0.5rem;">0.8125rem (13px)</td>
+        <td style="padding: 0.5rem;">0.875rem (14px)</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+</body>
+</html>
