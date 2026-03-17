@@ -260,6 +260,45 @@ test.describe("Authentication", () => {
       });
     });
 
+    test("should redirect to check email page after registration", async ({ page }) => {
+      const timestamp = Date.now();
+      const email = `test-register-checkemail-${timestamp}@hook0.local`;
+      const password = `TestPassword123!${timestamp}`;
+
+      await page.goto("/register");
+      await expect(page.locator('[data-test="register-form"]')).toBeVisible({
+        timeout: 10000,
+      });
+
+      // Fill registration form
+      await page.locator('[data-test="register-email-input"]').fill(email);
+      await page.locator('[data-test="register-firstname-input"]').fill("Test");
+      await page.locator('[data-test="register-lastname-input"]').fill("User");
+      await page.locator('[data-test="register-password-input"]').fill(password);
+
+      // Submit and wait for API response
+      const responsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/v1/register") && response.request().method() === "POST",
+        { timeout: 15000 }
+      );
+
+      await page.locator('[data-test="register-submit-button"]').click();
+
+      const response = await responsePromise;
+      expect(response.status()).toBeLessThan(400);
+
+      // Verify redirect to check-email page
+      await expect(page).toHaveURL(/\/check-email/, {
+        timeout: 15000,
+      });
+
+      // Verify check-email page content is visible
+      await expect(page.locator('[data-test="check-email-page"]')).toBeVisible({
+        timeout: 10000,
+      });
+    });
+
     test("should handle duplicate email registration gracefully", async ({ page, request }) => {
       // Setup: Create a user first via direct API call
       const timestamp = Date.now();

@@ -167,6 +167,43 @@ test.describe("User Settings", () => {
     });
   });
 
+  test("should display language selector", async ({ page, request }) => {
+    // Setup
+    const timestamp = Date.now();
+    const email = `test-settings-lang-${timestamp}@hook0.local`;
+    const password = `TestPassword123!${timestamp}`;
+
+    // Register and verify
+    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      data: { email, first_name: "Test", last_name: "User", password },
+    });
+    expect(registerResponse.status()).toBeLessThan(400);
+    await verifyEmailViaMailpit(request, email);
+
+    // Login
+    await page.goto("/login");
+    await expect(page.locator('[data-test="login-form"]')).toBeVisible({
+      timeout: 10000,
+    });
+    await page.locator('[data-test="login-email-input"]').fill(email);
+    await page.locator('[data-test="login-password-input"]').fill(password);
+    await page.locator('[data-test="login-submit-button"]').click();
+
+    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
+      timeout: 15000,
+    });
+
+    // Navigate to settings
+    await page.goto("/settings");
+
+    await expect(page.locator('[data-test="user-info-card"]')).toBeVisible({
+      timeout: 10000,
+    });
+
+    // Verify language selector is visible
+    await expect(page.locator('[data-test="language-select"]')).toBeVisible();
+  });
+
   test("should show error when passwords do not match", async ({ page, request }) => {
     // Setup
     const timestamp = Date.now();

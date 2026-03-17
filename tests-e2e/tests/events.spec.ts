@@ -321,6 +321,112 @@ test.describe("Events", () => {
     await expect(page.locator('[data-test="send-event-form"]')).not.toBeVisible();
   });
 
+  test("should add and remove labels when sending event", async ({ page, request }) => {
+    const env = await setupTestEnvironment(page, request, "kv-labels");
+
+    // Navigate to events page
+    await page.goto(
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/events`
+    );
+
+    await expect(page.locator('[data-test="events-send-button"]')).toBeVisible({ timeout: 10000 });
+
+    // Open send event form
+    await page.locator('[data-test="events-send-button"]').click();
+    await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 10000 });
+
+    // Row 0 already exists (KV component starts with one empty pair).
+    // The remove button is disabled when there's only 1 row.
+    // Add a second row by clicking the add button on row 0.
+    const addButton = page.locator('[data-test="kv-add-button-0"]');
+    await expect(addButton).toBeVisible({ timeout: 5000 });
+    await addButton.click();
+
+    // Fill the new row (index 1)
+    const keyInput1 = page.locator('[data-test="kv-key-input-1"]');
+    const valueInput1 = page.locator('[data-test="kv-value-input-1"]');
+    await expect(keyInput1).toBeVisible({ timeout: 5000 });
+    await keyInput1.fill("test-key");
+    await keyInput1.blur();
+    await valueInput1.fill("test-value");
+    await valueInput1.blur();
+
+    // Verify inputs have values
+    await expect(keyInput1).toHaveValue("test-key");
+    await expect(valueInput1).toHaveValue("test-value");
+
+    // Now remove row 1 (enabled because there are 2 rows)
+    const removeButton = page.locator('[data-test="kv-remove-button-1"]');
+    await expect(removeButton).toBeVisible({ timeout: 5000 });
+    await expect(removeButton).toBeEnabled();
+    await removeButton.click();
+
+    // Verify the second row is removed
+    await expect(keyInput1).not.toBeVisible({ timeout: 5000 });
+  });
+
+  test("should open side panel when clicking event row", async ({ page, request }) => {
+    const env = await setupTestEnvironment(page, request, "side-panel");
+
+    // Navigate to events page and send an event first
+    await page.goto(
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/events`
+    );
+
+    await expect(page.locator('[data-test="events-send-button"]')).toBeVisible({ timeout: 10000 });
+
+    // Send an event
+    await page.locator('[data-test="events-send-button"]').click();
+    await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 10000 });
+    await page.locator('[data-test="send-event-type-select"]').selectOption(env.eventTypeName);
+
+    // Add labels
+    const labelKeyInput = page.locator('[data-test="send-event-labels"] [data-test="kv-key-input-0"]');
+    const labelValueInput = page.locator('[data-test="send-event-labels"] [data-test="kv-value-input-0"]');
+    await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
+    await labelKeyInput.clear();
+    await labelKeyInput.fill("env");
+    await labelKeyInput.blur();
+    await labelValueInput.clear();
+    await labelValueInput.fill("test");
+    await labelValueInput.blur();
+    await expect(labelKeyInput).toHaveValue("env");
+    await expect(labelValueInput).toHaveValue("test");
+
+    const now = new Date();
+    const dateTimeValue = now.toISOString().slice(0, 16);
+    await page.locator('[data-test="send-event-occurred-at-input"]').fill(dateTimeValue);
+
+    const responsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/v1/event") && response.request().method() === "POST" && !response.url().includes("/api/v1/event_types"),
+      { timeout: 15000 }
+    );
+
+    await page.locator('[data-test="send-event-submit-button"]').click();
+    const response = await responsePromise;
+    expect(response.status()).toBeLessThan(400);
+
+    // Wait for events list
+    await expect(page.locator('[data-test="events-card"]')).toBeVisible({ timeout: 10000 });
+
+    // Wait for event row to appear
+    const rows = page.locator('[data-test="events-table"] [row-id]');
+    await expect(rows.first()).toBeVisible({ timeout: 10000 });
+
+    // Click on the event row to open side panel
+    await rows.first().click();
+
+    // Verify side panel is visible
+    await expect(page.locator('[data-test="side-panel"]')).toBeVisible({ timeout: 10000 });
+
+    // Close side panel
+    await page.locator('[data-test="side-panel-close"]').click();
+
+    // Verify side panel is hidden
+    await expect(page.locator('[data-test="side-panel"]')).not.toBeVisible({ timeout: 10000 });
+  });
+
   test("should navigate to event detail page", async ({ page, request }) => {
     const env = await setupTestEnvironment(page, request, "detail");
 
