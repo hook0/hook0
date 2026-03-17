@@ -78,7 +78,8 @@ watch(
     if ((options ?? []).length <= 1 && entitySection.value === null) {
       entitySection.value = EntitySection.Create;
     }
-  }
+  },
+  { immediate: true }
 );
 
 function handleCreated(id: UUID) {
