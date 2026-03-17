@@ -3,7 +3,6 @@ import { ref } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useRouter } from 'vue-router';
 import { routes } from '@/routes';
-import { push } from 'notivue';
 import { useAuthErrorHandler } from '@/composables/useAuthErrorHandler';
 import { useForm } from 'vee-validate';
 import * as OrganizationService from './organizations/OrganizationService';
@@ -53,11 +52,6 @@ const onSubmit = handleSubmit((values) => {
     .login(values.email, values.password)
     .then(() => {
       trackEvent('auth', 'login', 'success');
-      push.success({
-        title: t('common.success'),
-        message: t('auth.login.loginSuccess'),
-        duration: 5000,
-      });
 
       return OrganizationService.list();
     })
@@ -159,7 +153,7 @@ const onSubmit = handleSubmit((values) => {
 
       <Hook0CardDivider>{{ t('auth.login.newToHook0') }}</Hook0CardDivider>
 
-      <Hook0CardContent>
+      <Hook0CardContent removeTopBorder>
         <Hook0Button
           variant="secondary"
           size="lg"

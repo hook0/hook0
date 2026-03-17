@@ -104,7 +104,9 @@ const onSubmit = handleSubmit((values) => {
       <Hook0CardHeader variant="centered">
         <template #header>{{ t('auth.register.title') }}</template>
         <template #subtitle>
-          <Hook0Badge variant="success">{{ t('auth.register.subtitle') }}</Hook0Badge>
+          <div class="register-subtitle">
+            <Hook0Badge variant="success">{{ t('auth.register.subtitle') }}</Hook0Badge>
+          </div>
           <ul class="benefit-list">
             <li class="benefit-list__item">
               <Check :size="16" aria-hidden="true" class="benefit-list__icon" />
@@ -183,7 +185,7 @@ const onSubmit = handleSubmit((values) => {
             :disabled="isLoading"
           />
 
-          <Hook0Captcha v-model="captchaToken" action="registration" />
+          <Hook0Captcha v-model="captchaToken" action="registration" class="register-captcha" />
 
           <Hook0Button
             variant="primary"
@@ -201,7 +203,7 @@ const onSubmit = handleSubmit((values) => {
 
       <Hook0CardDivider>{{ t('auth.register.hasAccount') }}</Hook0CardDivider>
 
-      <Hook0CardContent>
+      <Hook0CardContent removeTopBorder>
         <Hook0Button
           variant="secondary"
           size="lg"
@@ -302,21 +304,26 @@ const onSubmit = handleSubmit((values) => {
 </template>
 
 <style scoped>
+.register-subtitle {
+  margin-top: 0.5rem;
+}
+
+
 .benefit-list {
   list-style: none;
   padding: 0;
-  margin: 0;
+  margin: 0.75rem 0 0;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.25rem;
+  gap: 0.125rem;
 }
 
 .benefit-list__item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.5rem;
-  padding: 0.375rem 0;
+  padding: 0.25rem 0;
   font-size: 0.875rem;
   color: var(--color-text-primary);
 }
@@ -328,5 +335,10 @@ const onSubmit = handleSubmit((values) => {
 
 .benefit-list__text {
   color: var(--color-text-primary);
+  text-align: left;
+}
+
+.register-captcha {
+  margin-top: 0.5rem;
 }
 </style>

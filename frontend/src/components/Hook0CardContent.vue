@@ -1,11 +1,19 @@
 <script setup lang="ts">
+type Props = {
+  removeTopBorder?: boolean;
+};
+
+withDefaults(defineProps<Props>(), {
+  removeTopBorder: false,
+});
+
 defineSlots<{
   default(): unknown;
 }>();
 </script>
 
 <template>
-  <div class="hook0-card-content">
+  <div class="hook0-card-content" :class="{ 'hook0-card-content--removeTopBorder': removeTopBorder }">
     <slot />
   </div>
 </template>
@@ -18,5 +26,10 @@ defineSlots<{
 
 .hook0-card-content:first-child {
   border-top: none;
+}
+
+.hook0-card-content--removeTopBorder {
+  border-top: none;
+  padding-top: 0;
 }
 </style>

@@ -53,6 +53,7 @@ function handleSubmit(event: Event) {
 .hook0-form {
   display: flex;
   flex-direction: column;
+  gap: 1rem;
 }
 
 .hook0-form--disabled {

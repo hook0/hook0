@@ -88,6 +88,7 @@ function submit() {
           size="lg"
           :to="{ name: routes.Login }"
           full-width
+          class="reset-password__back-link"
           data-test="reset-password-back-link"
         >
           <template #left>
@@ -101,5 +102,7 @@ function submit() {
 </template>
 
 <style scoped>
-/* Hook0PageLayout variant="fullscreen" handles card width (28rem max) */
+.reset-password__back-link {
+  margin-top: 0.75rem;
+}
 </style>

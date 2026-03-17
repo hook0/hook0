@@ -81,7 +81,7 @@ defineSlots<{
 }
 
 .hook0-trust-section__logos :deep(svg) {
-  height: 100%;
+  height: 24px;
   width: auto;
 }
 
@@ -92,6 +92,10 @@ defineSlots<{
 
   .hook0-trust-section__logos :deep(a),
   .hook0-trust-section__logos :deep(> *) {
+    height: 18px;
+  }
+
+  .hook0-trust-section__logos :deep(svg) {
     height: 18px;
   }
 }

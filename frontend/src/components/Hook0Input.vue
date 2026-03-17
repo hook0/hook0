@@ -116,6 +116,7 @@ const modelStr = computed({
       <button
         v-if="isPasswordWithToggle"
         type="button"
+        tabindex="-1"
         class="hook0-input-toggle"
         :aria-label="isPasswordVisible ? t('common.hidePassword') : t('common.showPassword')"
         @click="togglePasswordVisibility"
@@ -155,11 +156,8 @@ const modelStr = computed({
   opacity: 1;
 }
 
-.hook0-input:focus:not(:focus-visible) {
-  outline: none;
-}
-
 .hook0-input:focus {
+  outline: none;
   border-color: var(--color-primary);
   box-shadow:
     0 0 0 1px var(--color-primary),
