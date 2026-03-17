@@ -25,12 +25,14 @@ type Props = {
   variant?: DialogVariant;
   title?: string;
   persistent?: boolean;
+  confirmText?: string;
 };
 
 const props = withDefaults(defineProps<Props>(), {
   variant: 'default',
   title: undefined,
   persistent: false,
+  confirmText: undefined,
 });
 
 const emit = defineEmits<{
@@ -140,7 +142,13 @@ onBeforeUnmount(() => {
                   :variant="variant === 'danger' ? 'danger' : 'primary'"
                   @click="emitConfirm"
                 >
-                  {{ variant === 'danger' ? t('common.delete') : t('common.confirm') }}
+                  {{
+                    props.confirmText
+                      ? props.confirmText
+                      : variant === 'danger'
+                        ? t('common.delete')
+                        : t('common.confirm')
+                  }}
                 </Hook0Button>
               </slot>
             </div>

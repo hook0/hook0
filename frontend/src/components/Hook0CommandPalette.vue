@@ -186,7 +186,6 @@ const { handleKeydown: onOverlayKeydown } = useFocusTrap(overlayRef, { onEscape:
   flex-shrink: 0;
 }
 
-.hook0-command-palette-item:hover,
 .hook0-command-palette-item.selected {
   background-color: var(--color-bg-tertiary);
   color: var(--color-text-primary);

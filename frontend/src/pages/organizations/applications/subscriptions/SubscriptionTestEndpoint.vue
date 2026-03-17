@@ -26,6 +26,19 @@ const testEndpointLoading = ref(false);
 const testEndpointResult = ref<TestEndpointResult | null>(null);
 const testEndpointError = ref<string | null>(null);
 
+/**
+ * Check whether the target URL looks like a valid URL (has protocol + host).
+ */
+const isValidUrl = computed(() => {
+  if (!props.targetUrl) return false;
+  try {
+    const url = new URL(props.targetUrl);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+});
+
 function testEndpoint() {
   if (!props.targetUrl) {
     testEndpointError.value = t('subscriptions.testUrlRequired');
@@ -100,7 +113,7 @@ const testStatusVariant = computed(() => {
       size="sm"
       type="button"
       :loading="testEndpointLoading"
-      :disabled="!targetUrl"
+      :disabled="!isValidUrl"
       data-test="subscription-test-endpoint-button"
       @click="testEndpoint()"
     >

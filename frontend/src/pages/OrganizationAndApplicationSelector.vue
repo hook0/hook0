@@ -189,13 +189,6 @@ function navigateToApp(orgId: UUID, appId: UUID) {
   }
 }
 
-function navigateToNewApp(orgId: UUID) {
-  void router.push({
-    name: routes.ApplicationsNew,
-    params: { organization_id: orgId },
-  });
-}
-
 onMounted(() => {
   if (useAuthStore().accessToken) {
     void getApplicationsPerOrganization().then((result) => {
@@ -269,7 +262,12 @@ function getGradient(index: number): string {
               variant="square"
               :gradient="getGradient(index)"
             />
-            <Hook0Stack direction="column" gap="xs" class="org-card__info" style="flex: 1; min-width: 0">
+            <Hook0Stack
+              direction="column"
+              gap="xs"
+              class="org-card__info"
+              style="flex: 1; min-width: 0"
+            >
               <span class="org-selector__org-name">
                 {{ organizationGroup.organization.name }}
               </span>
@@ -344,10 +342,12 @@ function getGradient(index: number): string {
 
         <!-- Create App Button -->
         <div class="org-card__action-row">
-          <button
-            type="button"
+          <router-link
+            :to="{
+              name: routes.ApplicationsNew,
+              params: { organization_id: organizationGroup.organization.organization_id },
+            }"
             class="app-list__action"
-            @click="navigateToNewApp(organizationGroup.organization.organization_id)"
           >
             <span class="app-list__action-icon">
               <Plus :size="14" aria-hidden="true" />
@@ -355,7 +355,7 @@ function getGradient(index: number): string {
             <span class="app-list__action-label">
               {{ t('orgAppSelector.createNewApplication') }}
             </span>
-          </button>
+          </router-link>
         </div>
       </Hook0Card>
 
@@ -644,7 +644,6 @@ function getGradient(index: number): string {
   font-size: 0.6875rem;
   color: var(--color-text-tertiary);
 }
-
 
 .org-selector__apps-count {
   font-size: 0.6875rem;

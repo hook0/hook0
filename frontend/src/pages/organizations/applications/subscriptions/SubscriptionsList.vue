@@ -79,13 +79,14 @@ function handleToggle(row: Subscription) {
     return;
   }
 
+  const name = row.description || t('subscriptions.title');
   toggleMutation.mutate(
     { subscriptionId: row.subscription_id, subscription: row },
     {
       onSuccess: () => {
         push.success({
           title: t('common.success'),
-          message: t('subscriptions.enabled'),
+          message: t('subscriptions.enabled', { name }),
           duration: 3000,
         });
       },
@@ -102,13 +103,14 @@ function confirmDisable() {
   subscriptionToDisable.value = null;
   if (!row) return;
 
+  const name = row.description || t('subscriptions.title');
   toggleMutation.mutate(
     { subscriptionId: row.subscription_id, subscription: row },
     {
       onSuccess: () => {
         push.success({
           title: t('common.success'),
-          message: t('subscriptions.disabled'),
+          message: t('subscriptions.disabled', { name }),
           duration: 3000,
         });
       },
@@ -286,13 +288,19 @@ const columns: ColumnDef<Subscription, unknown>[] = [
       :open="showDisableDialog"
       variant="danger"
       :title="t('subscriptions.disableTitle')"
+      :confirm-text="t('subscriptions.disable')"
       @close="
         showDisableDialog = false;
         subscriptionToDisable = null;
       "
       @confirm="confirmDisable()"
     >
-      <p>{{ t('subscriptions.disableConfirm', { name: disableDialogName }) }}</p>
+      <i18n-t keypath="subscriptions.disableConfirm" tag="p">
+        <template #name>
+          &ldquo;<strong>{{ disableDialogName }}</strong
+          >&rdquo;
+        </template>
+      </i18n-t>
     </Hook0Dialog>
 
     <Hook0Dialog

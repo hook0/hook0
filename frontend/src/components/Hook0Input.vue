@@ -229,4 +229,9 @@ const modelStr = computed({
   outline: 2px solid var(--color-primary);
   outline-offset: 1px;
 }
+
+/* Prevent 1Password autofill glow/flicker */
+.hook0-input:-webkit-autofill {
+  transition: background-color 5000s ease-in-out 0s;
+}
 </style>

@@ -11,6 +11,7 @@ import { handleMutationError } from '@/utils/handleMutationError';
 import type { UUID } from '@/http';
 import { useTracking } from '@/composables/useTracking';
 import { usePermissions } from '@/composables/usePermissions';
+import { Info } from 'lucide-vue-next';
 
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
@@ -165,6 +166,14 @@ const onSubmit = handleSubmit((values) => {
       </Hook0Card>
 
       <Hook0Card>
+        <Hook0CardHeader>
+          <template #header>
+            <Hook0Stack direction="row" align="center" gap="sm">
+              <Info :size="18" aria-hidden="true" />
+              {{ t('eventTypes.whatIsAnEventType') }}
+            </Hook0Stack>
+          </template>
+        </Hook0CardHeader>
         <Hook0CardContent>
           <Hook0CardContentLine type="full-width">
             <template #content>

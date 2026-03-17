@@ -58,7 +58,7 @@ const widgetItems = computed(() => {
               <Hook0IconBadge variant="primary">
                 <Rocket :size="18" aria-hidden="true" />
               </Hook0IconBadge>
-              <span class="app-dashboard__label">{{ t('applications.title') }}</span>
+              <span class="app-dashboard__label">{{ t('applications.titleSingular') }}</span>
               <span class="app-dashboard__name">{{ application.name }}</span>
             </Hook0Stack>
           </template>

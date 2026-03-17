@@ -20,6 +20,8 @@ import { routes } from '@/routes';
 import { intersectWith } from '@/utils/fp';
 import { useTracking } from '@/composables/useTracking';
 import { usePermissions } from '@/composables/usePermissions';
+import { useClipboard } from '@vueuse/core';
+import { push } from 'notivue';
 import type { Hook0SelectSingleOption } from '@/components/Hook0Select';
 import {
   kvPairsToRecord,
@@ -153,6 +155,30 @@ const labelsMap = ref<Record<string, string>>({});
 const metadataMap = ref<Record<string, string>>({});
 
 const httpMethods = 'GET,PATCH,POST,PUT,DELETE,OPTIONS,HEAD'.split(',').map(toOption);
+
+const { copy: copyToClipboard } = useClipboard();
+
+/**
+ * Copy the webhook secret to clipboard and show a toast confirmation.
+ */
+function copySecret() {
+  if (!secret.value) return;
+  copyToClipboard(secret.value)
+    .then(() => {
+      push.success({
+        title: t('common.success'),
+        message: t('subscriptions.secretCopied'),
+        duration: 2000,
+      });
+    })
+    .catch(() => {
+      push.warning({
+        title: t('common.warning'),
+        message: t('common.copyFailed'),
+        duration: 2000,
+      });
+    });
+}
 
 // Populate form from subscription data (edit mode)
 watch(subscriptionData, (sub) => {
@@ -382,6 +408,7 @@ const hasSelectedEventTypes = computed(() => eventTypes.value.some((et) => et.se
                 <Hook0HelpText>
                   {{ t('subscriptions.secretDescription') }}
                   <Hook0Button
+                    variant="link"
                     href="https://documentation.hook0.com/docs/verifying-webhook-signatures"
                     target="_blank"
                     >{{ t('subscriptions.authenticateWebhooks') }}</Hook0Button
@@ -393,9 +420,14 @@ const hasSelectedEventTypes = computed(() => eventTypes.value.some((et) => et.se
               </template>
 
               <template #content>
-                <Hook0Stack direction="row" gap="xs">
-                  <Hook0Input v-model="secret" type="text" disabled> </Hook0Input>
-                </Hook0Stack>
+                <Hook0Input
+                  v-model="secret"
+                  type="text"
+                  disabled
+                  class="sub-edit__secret-input"
+                  :title="t('common.copied')"
+                  @click="copySecret()"
+                />
               </template>
             </Hook0CardContentLine>
 
@@ -426,7 +458,7 @@ const hasSelectedEventTypes = computed(() => eventTypes.value.some((et) => et.se
                 <Hook0HelpText>
                   <i18n-t keypath="subscriptions.webhookSiteHelp" tag="span">
                     <template #link>
-                      <Hook0Button href="https://webhook.site" target="_blank">{{
+                      <Hook0Button variant="link" href="https://webhook.site" target="_blank">{{
                         t('subscriptions.webhookSiteName')
                       }}</Hook0Button>
                     </template>
@@ -468,7 +500,7 @@ const hasSelectedEventTypes = computed(() => eventTypes.value.some((et) => et.se
 
             <Hook0CardContentLine>
               <template #label>
-                <Hook0Stack direction="column" gap="xs">
+                <Hook0Stack direction="row" gap="xs" align="center">
                   <span class="sub-edit__field-label">
                     <i18n-t keypath="subscriptions.selectEventTypesWithLink" tag="span">
                       <template #link>
@@ -500,26 +532,38 @@ const hasSelectedEventTypes = computed(() => eventTypes.value.some((et) => et.se
                 <Hook0ErrorCard v-else-if="etError" :error="etError" @retry="refetchEt()" />
 
                 <!-- Event types list -->
-                <ul v-else class="event-type-list" data-test="event-types-list">
-                  <li
-                    v-for="(eventType, index) in eventTypes"
-                    :key="index"
-                    class="event-type-list__item"
-                    :data-test="`event-type-item-${index}`"
+                <template v-else>
+                  <ul
+                    v-if="eventTypes.length > 0"
+                    class="event-type-list"
+                    data-test="event-types-list"
                   >
-                    <Hook0Checkbox
-                      v-model="eventType.selected"
-                      :data-test="`event-type-checkbox-${index}`"
+                    <li
+                      v-for="(eventType, index) in eventTypes"
+                      :key="index"
+                      class="event-type-list__item"
+                      :data-test="`event-type-item-${index}`"
                     >
-                      <span
-                        class="sub-edit__event-type-label"
-                        :data-test="`event-type-label-${index}`"
+                      <Hook0Checkbox
+                        v-model="eventType.selected"
+                        :data-test="`event-type-checkbox-${index}`"
                       >
-                        {{ eventType.event_type_name }}
-                      </span>
-                    </Hook0Checkbox>
-                  </li>
-                </ul>
+                        <span
+                          class="sub-edit__event-type-label"
+                          :data-test="`event-type-label-${index}`"
+                        >
+                          {{ eventType.event_type_name }}
+                        </span>
+                      </Hook0Checkbox>
+                    </li>
+                  </ul>
+                  <p v-else class="sub-edit__no-event-types">
+                    {{ t('subscriptions.noEventTypes') }}
+                    <Hook0Button variant="link" :to="{ name: routes.EventTypesList }">{{
+                      t('eventTypes.title')
+                    }}</Hook0Button>
+                  </p>
+                </template>
               </template>
             </Hook0CardContentLine>
           </Hook0CardContent>
@@ -616,5 +660,20 @@ const hasSelectedEventTypes = computed(() => eventTypes.value.some((et) => et.se
 
 .event-type-list__item:hover {
   background-color: var(--color-bg-secondary);
+}
+
+.sub-edit__secret-input {
+  width: 100%;
+  cursor: pointer;
+}
+
+.sub-edit__no-event-types {
+  margin: 0;
+  padding: 1rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
 }
 </style>

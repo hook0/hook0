@@ -46,7 +46,7 @@ const colorModeOptions = computed(() => [
 ]);
 
 // VeeValidate form with Zod schema for password change
-const { errors, defineField, handleSubmit, resetForm } = useForm({
+const { errors, meta, defineField, handleSubmit, resetForm } = useForm({
   validationSchema: toTypedSchema(passwordChangeSchema),
 });
 
@@ -234,6 +234,7 @@ function confirmDeleteAccount() {
             <Hook0Button
               variant="primary"
               submit
+              :disabled="!meta.valid || !meta.dirty"
               :aria-label="t('userSettings.changePassword')"
               :title="t('userSettings.changePassword')"
               data-test="change-password-button"

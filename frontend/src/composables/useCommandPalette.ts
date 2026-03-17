@@ -361,15 +361,24 @@ export function useCommandPalette(inputRef: Ref<HTMLInputElement | null>) {
     return groups;
   });
 
+  function scrollSelectedIntoView() {
+    void nextTick(() => {
+      const selected = document.querySelector('.hook0-command-palette-item.selected');
+      selected?.scrollIntoView({ block: 'nearest' });
+    });
+  }
+
   function onKeydown(e: KeyboardEvent) {
     const handlers: Record<string, (e: KeyboardEvent) => void> = {
       ArrowDown: (e) => {
         e.preventDefault();
         selectedIndex.value = Math.min(selectedIndex.value + 1, filteredCommands.value.length - 1);
+        scrollSelectedIntoView();
       },
       ArrowUp: (e) => {
         e.preventDefault();
         selectedIndex.value = Math.max(selectedIndex.value - 1, 0);
+        scrollSelectedIntoView();
       },
       Enter: (e) => {
         e.preventDefault();

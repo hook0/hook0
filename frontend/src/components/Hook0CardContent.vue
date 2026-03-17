@@ -13,7 +13,10 @@ defineSlots<{
 </script>
 
 <template>
-  <div class="hook0-card-content" :class="{ 'hook0-card-content--removeTopBorder': removeTopBorder }">
+  <div
+    class="hook0-card-content"
+    :class="{ 'hook0-card-content--removeTopBorder': removeTopBorder }"
+  >
     <slot />
   </div>
 </template>

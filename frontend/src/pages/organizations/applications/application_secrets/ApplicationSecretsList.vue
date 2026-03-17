@@ -219,7 +219,12 @@ const columns: ColumnDef<ApplicationSecret, unknown>[] = [
       "
       @confirm="confirmDelete()"
     >
-      <p>{{ t('apiKeys.deleteConfirm') }}</p>
+      <i18n-t keypath="apiKeys.deleteConfirmNamed" tag="p">
+        <template #name>
+          &ldquo;<strong>{{ secretToDelete?.name ?? '' }}</strong
+          >&rdquo;
+        </template>
+      </i18n-t>
     </Hook0Dialog>
   </Hook0PageLayout>
 </template>
