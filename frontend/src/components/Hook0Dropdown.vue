@@ -4,7 +4,7 @@ import { RouteLocationRaw, useRouter } from 'vue-router';
 
 import Hook0DropdownOptions from './Hook0DropdownOptions';
 
-interface Props {
+type Props = {
   justify?: 'left' | 'right';
 }
 const props = defineProps<Props>();

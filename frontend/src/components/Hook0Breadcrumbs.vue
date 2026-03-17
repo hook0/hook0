@@ -28,7 +28,7 @@ const { t } = useI18n();
 const orgDropdownOpen = ref(false);
 const appDropdownOpen = ref(false);
 
-interface Crumb {
+type Crumb = {
   label: string;
   to: string | null;
   icon?: 'home' | 'organization' | 'application';

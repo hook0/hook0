@@ -9,7 +9,7 @@
 type Variant = 'primary' | 'info' | 'success' | 'warning' | 'danger' | 'neutral';
 type Size = 'sm' | 'md' | 'lg';
 
-interface Props {
+type Props = {
   variant?: Variant;
   size?: Size;
 }

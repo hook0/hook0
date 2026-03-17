@@ -38,7 +38,7 @@ import { Codemirror } from 'vue-codemirror';
 import { json } from '@codemirror/lang-json';
 import { EditorView } from 'codemirror';
 
-interface Props {
+type Props = {
   tutorialMode?: boolean;
 }
 

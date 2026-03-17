@@ -1,7 +1,7 @@
 <script setup lang="ts">
 type Gap = 'sm' | 'md' | 'lg';
 
-interface Props {
+type Props = {
   gap?: Gap;
   columns?: number;
 }

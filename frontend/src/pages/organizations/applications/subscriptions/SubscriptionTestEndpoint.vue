@@ -7,7 +7,7 @@ import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0Code from '@/components/Hook0Code.vue';
 import Hook0HelpText from '@/components/Hook0HelpText.vue';
 
-interface Props {
+type Props = {
   targetUrl: string;
 }
 
@@ -15,7 +15,7 @@ const props = defineProps<Props>();
 
 const { t } = useI18n();
 
-interface TestEndpointResult {
+type TestEndpointResult = {
   status: number;
   latencyMs: number;
   body: string;

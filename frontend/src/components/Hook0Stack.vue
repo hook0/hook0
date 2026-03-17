@@ -22,7 +22,7 @@ type GridSize =
   | 'wide' // Wide cards (360px min) - dashboard cards
   | 'full'; // Full width items (100% min) - single column
 
-interface Props {
+type Props = {
   /** Layout mode: flex (default) or grid (auto-fill responsive grid) */
   layout?: Layout;
   /** Flex direction (only for layout="flex") */

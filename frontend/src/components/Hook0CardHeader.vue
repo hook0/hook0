@@ -3,7 +3,7 @@ import { computed } from 'vue';
 
 type HeaderVariant = 'default' | 'centered';
 
-interface Props {
+type Props = {
   title?: string;
   subtitle?: string;
   variant?: HeaderVariant;

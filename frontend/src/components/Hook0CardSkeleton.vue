@@ -5,7 +5,7 @@ import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
 import Hook0Skeleton from '@/components/Hook0Skeleton.vue';
 
-interface Props {
+type Props = {
   lines?: number;
   showHeader?: boolean;
 }

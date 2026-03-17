@@ -3,7 +3,7 @@ import { ref, computed } from 'vue';
 
 type CardVariant = 'default' | 'glow' | 'interactive' | 'dashed';
 
-interface Props {
+type Props = {
   variant?: CardVariant;
   as?: 'div' | 'button';
 }

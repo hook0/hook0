@@ -3,7 +3,7 @@ import { computed } from 'vue';
 
 type LayoutVariant = 'default' | 'fullscreen';
 
-interface Props {
+type Props = {
   title?: string;
   description?: string;
   variant?: LayoutVariant;

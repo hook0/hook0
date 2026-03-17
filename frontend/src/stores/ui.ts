@@ -10,13 +10,13 @@ const LOCAL_STORAGE_KEY_RECENT_WORKSPACES = 'hook0-recent-workspaces';
 const MAX_RECENT_PAGES = 5;
 const MAX_RECENT_WORKSPACES = 5;
 
-export interface RecentPage {
+export type RecentPage = {
   path: string;
   name: string;
   timestamp: number;
 }
 
-export interface RecentWorkspace {
+export type RecentWorkspace = {
   organizationId: string;
   organizationName: string;
   applicationId: string | null;

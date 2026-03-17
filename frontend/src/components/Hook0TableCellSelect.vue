@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Hook0Select from '@/components/Hook0Select.vue';
 
-interface Props {
+type Props = {
   options: Array<{ value: string; label: string }>;
   modelValue: string;
   disabled?: boolean;

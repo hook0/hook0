@@ -5,7 +5,7 @@ import Hook0HelpText from '@/components/Hook0HelpText.vue';
 
 type ResizeOption = 'none' | 'vertical' | 'horizontal' | 'both';
 
-interface Props {
+type Props = {
   autofocus?: boolean;
   label?: string;
   error?: string;

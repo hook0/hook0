@@ -13,7 +13,7 @@
 
 type HelpTextTone = 'neutral' | 'warning' | 'info' | 'emphasis';
 
-interface Props {
+type Props = {
   /** Text content (alternative to slot) */
   text?: string;
   /** Semantic tone for the help text */

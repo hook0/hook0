@@ -7,7 +7,7 @@ type BadgeDisplay = 'badge' | 'trust' | 'step';
 
 const statusVariants: ReadonlySet<string> = new Set(['success', 'warning', 'danger', 'info']);
 
-interface Props {
+type Props = {
   variant?: BadgeVariant;
   size?: BadgeSize;
   display?: BadgeDisplay;

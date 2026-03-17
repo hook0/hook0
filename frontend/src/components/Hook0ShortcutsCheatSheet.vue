@@ -5,12 +5,12 @@ import { useI18n } from 'vue-i18n';
 import { X } from 'lucide-vue-next';
 import { useFocusTrap } from '@/composables/useFocusTrap';
 
-interface Shortcut {
+type Shortcut = {
   keys: string[];
   description: string;
 }
 
-interface ShortcutGroup {
+type ShortcutGroup = {
   title: string;
   shortcuts: Shortcut[];
 }

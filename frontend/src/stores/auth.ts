@@ -10,7 +10,7 @@ import { getInstanceConfig } from '@/utils/instance-config';
 
 type LoginResponse = components['schemas']['LoginResponse'];
 
-interface AuthState {
+type AuthState = {
   accessToken: string;
   accessTokenExpiration: Date;
   refreshToken: string;

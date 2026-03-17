@@ -7,7 +7,7 @@ import Hook0HelpText from '@/components/Hook0HelpText.vue';
 
 const { t } = useI18n();
 
-interface Props {
+type Props = {
   autofocus?: boolean;
   label?: string;
   error?: string;

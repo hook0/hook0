@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Loader2 } from 'lucide-vue-next';
 
-interface Props {
+type Props = {
   size?: number;
 }
 

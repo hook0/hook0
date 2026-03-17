@@ -18,7 +18,7 @@ import { useI18n } from 'vue-i18n';
 import Hook0Button from '@/components/Hook0Button.vue';
 import { useFocusTrap } from '@/composables/useFocusTrap';
 
-interface Props {
+type Props = {
   open: boolean;
   title?: string;
   width?: string;

@@ -6,7 +6,7 @@ import { getInstanceConfig } from '@/utils/instance-config';
 type CaptchaTheme = 'auto' | 'light' | 'dark';
 type CaptchaSize = 'normal' | 'flexible' | 'compact';
 
-interface Props {
+type Props = {
   action?: string;
   theme?: CaptchaTheme;
   size?: CaptchaSize;

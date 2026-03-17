@@ -26,7 +26,7 @@ type SkeletonSize =
 
 type SkeletonVariant = 'default' | 'inline';
 
-interface Props {
+type Props = {
   /** Semantic size variant */
   size?: SkeletonSize;
   /** Display variant */

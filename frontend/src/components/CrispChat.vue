@@ -2,7 +2,7 @@
 import { onMounted } from 'vue';
 import { Crisp } from 'crisp-sdk-web';
 
-interface Props {
+type Props = {
   email: string;
   name: string;
 }

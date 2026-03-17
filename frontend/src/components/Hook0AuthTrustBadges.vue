@@ -6,7 +6,7 @@ import Hook0Stack from '@/components/Hook0Stack.vue';
 
 const { t } = useI18n();
 
-interface Props {
+type Props = {
   badges?: string[];
 }
 

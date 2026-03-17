@@ -3,7 +3,7 @@ import { onBeforeUnmount, onMounted, ref, useId } from 'vue';
 
 type TooltipPosition = 'top' | 'bottom' | 'left' | 'right';
 
-interface Props {
+type Props = {
   content: string;
   position?: TooltipPosition;
   delay?: number;

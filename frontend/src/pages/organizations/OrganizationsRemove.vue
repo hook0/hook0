@@ -15,7 +15,7 @@ const { t } = useI18n();
 const { trackEvent } = useTracking();
 const { canDelete } = usePermissions();
 
-interface Props {
+type Props = {
   organizationId: string;
   organizationName: string;
 }

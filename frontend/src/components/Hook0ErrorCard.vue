@@ -7,7 +7,7 @@ import type { Problem } from '@/http';
 
 const { t } = useI18n();
 
-interface Props {
+type Props = {
   error: Problem | Error | string;
   retryable?: boolean;
 }

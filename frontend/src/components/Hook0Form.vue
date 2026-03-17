@@ -7,7 +7,7 @@
  */
 import { computed } from 'vue';
 
-interface Props {
+type Props = {
   disabled?: boolean;
   loading?: boolean;
 }

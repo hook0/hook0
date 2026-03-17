@@ -5,7 +5,7 @@ defineOptions({
   inheritAttrs: false,
 });
 
-interface Props {
+type Props = {
   icon: Component;
   title: string;
 }

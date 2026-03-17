@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Hook0Button from '@/components/Hook0Button.vue';
 
-interface Props {
+type Props = {
   name: string;
   active: boolean;
 }

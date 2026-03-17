@@ -15,7 +15,7 @@ import { routes } from '@/routes';
 import { useContextStore } from '@/stores/context';
 import { type InstanceConfig, getInstanceConfig } from '@/utils/biscuit_auth';
 
-export interface NavTab {
+export type NavTab = {
   id: string;
   label: string;
   icon: Component;

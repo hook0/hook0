@@ -4,7 +4,7 @@ import { AlertCircle, AlertTriangle, CheckCircle, Info } from 'lucide-vue-next';
 
 type AlertType = 'alert' | 'warning' | 'success' | 'info';
 
-interface Props {
+type Props = {
   title?: string;
   description?: string;
   type?: AlertType;

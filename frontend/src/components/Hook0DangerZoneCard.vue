@@ -15,7 +15,7 @@ import Hook0Dialog from '@/components/Hook0Dialog.vue';
 
 const { t } = useI18n();
 
-interface Props {
+type Props = {
   title: string;
   subtitle: string;
   warningMessage: string;

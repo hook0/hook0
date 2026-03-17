@@ -5,7 +5,7 @@ import Hook0Button from '@/components/Hook0Button.vue';
 
 type FormActionsVariant = 'default' | 'danger';
 
-interface Props {
+type Props = {
   submitLabel: string;
   cancelLabel: string;
   loading: boolean;

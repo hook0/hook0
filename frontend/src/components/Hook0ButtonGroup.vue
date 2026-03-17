@@ -5,7 +5,7 @@ type Direction = 'row' | 'column';
 type Align = 'start' | 'center' | 'end' | 'stretch';
 type Gap = 'sm' | 'md' | 'lg';
 
-interface Props {
+type Props = {
   direction?: Direction;
   align?: Align;
   gap?: Gap;

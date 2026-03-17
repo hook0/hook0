@@ -7,7 +7,7 @@ const { t } = useI18n();
 
 type PopoverPosition = 'top' | 'bottom' | 'left' | 'right';
 
-interface Props {
+type Props = {
   position?: PopoverPosition;
   ariaLabel?: string;
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-interface Props {
+type Props = {
   quote: string;
   author: string;
   role?: string;

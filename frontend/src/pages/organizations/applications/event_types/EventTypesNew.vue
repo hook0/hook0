@@ -34,7 +34,7 @@ const { trackEvent } = useTracking();
 // Permissions
 const { canCreate } = usePermissions();
 
-interface Props {
+type Props = {
   tutorialMode?: boolean;
 }
 

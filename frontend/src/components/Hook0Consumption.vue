@@ -10,14 +10,14 @@ import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 
-export interface ConsumptionQuota {
+export type ConsumptionQuota = {
   icon?: Component;
   name: string;
   consumption: number;
   quota: number;
 }
 
-interface Props {
+type Props = {
   title: string;
   entityType: string;
   consumptions: ConsumptionQuota[];

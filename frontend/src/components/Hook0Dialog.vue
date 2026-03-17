@@ -20,7 +20,7 @@ import { useFocusTrap } from '@/composables/useFocusTrap';
 
 type DialogVariant = 'default' | 'danger';
 
-interface Props {
+type Props = {
   open: boolean;
   variant?: DialogVariant;
   title?: string;

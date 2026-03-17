@@ -4,12 +4,12 @@ import { useI18n } from 'vue-i18n';
 
 import Hook0Code from '@/components/Hook0Code.vue';
 
-interface BlockInfo {
+type BlockInfo = {
   label: string;
   code: string;
 }
 
-interface Props {
+type Props = {
   blocks: Array<BlockInfo>;
   raw: string;
 }

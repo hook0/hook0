@@ -5,7 +5,7 @@ import Hook0Stack from '@/components/Hook0Stack.vue';
 import Hook0Spinner from '@/components/Hook0Spinner.vue';
 import Hook0Badge from '@/components/Hook0Badge.vue';
 
-interface Props {
+type Props = {
   isRetrying: boolean;
   message: string;
 }

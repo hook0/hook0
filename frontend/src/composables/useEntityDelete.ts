@@ -3,7 +3,7 @@ import { push } from 'notivue';
 import { displayError } from '@/utils/displayError';
 import type { Problem } from '@/http';
 
-interface UseEntityDeleteOptions<T> {
+type UseEntityDeleteOptions<T> = {
   deleteFn: (entity: T) => Promise<unknown>;
   successTitle: string;
   successMessage: string | ((entity: T) => string);

@@ -5,7 +5,7 @@ defineOptions({
   inheritAttrs: false,
 });
 
-interface Props {
+type Props = {
   value: string | null;
   defaultText?: string;
 }

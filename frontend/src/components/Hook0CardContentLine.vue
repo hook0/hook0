@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-interface Props {
+type Props = {
   type?: 'split' | 'full-width' | 'split-content-component' | 'stacked' | 'columns';
 }
 const props = defineProps<Props>();

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useId } from 'vue';
 
-interface Props {
+type Props = {
   label: string;
   error: string;
   helpText: string;

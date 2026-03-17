@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import type { Component } from 'vue';
 
-interface TrustItem {
+type TrustItem = {
   href: string;
   title: string;
   icon: Component;
 }
 
-interface Props {
+type Props = {
   label?: string;
   items?: TrustItem[];
 }

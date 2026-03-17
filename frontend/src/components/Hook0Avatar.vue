@@ -4,7 +4,7 @@ import { computed } from 'vue';
 type AvatarSize = 'sm' | 'md' | 'lg' | 'xl';
 type AvatarVariant = 'square' | 'rounded';
 
-interface Props {
+type Props = {
   name: string;
   size?: AvatarSize;
   variant?: AvatarVariant;

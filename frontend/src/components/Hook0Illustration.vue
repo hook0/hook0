@@ -10,7 +10,7 @@ import { computed } from 'vue';
 type IllustrationVariant = 'tutorial' | 'empty' | 'error' | 'success';
 type IllustrationSize = 'sm' | 'md' | 'lg' | 'hero';
 
-interface Props {
+type Props = {
   variant: IllustrationVariant;
   size?: IllustrationSize;
   alt?: string;

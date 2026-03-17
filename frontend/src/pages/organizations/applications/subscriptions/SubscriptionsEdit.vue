@@ -52,7 +52,7 @@ const { trackEvent } = useTracking();
 // Permissions
 const { canCreate, canEdit, canDelete } = usePermissions();
 
-interface Props {
+type Props = {
   tutorialMode?: boolean;
 }
 
@@ -62,7 +62,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits(['tutorial-subscription-created']);
 
-interface SelectableEventType extends EventType {
+type SelectableEventType = EventType & {
   selected: boolean;
 }
 

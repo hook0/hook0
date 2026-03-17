@@ -17,7 +17,7 @@ import Hook0Skeleton from '@/components/Hook0Skeleton.vue';
 // AG-Grid ColDef → TanStack ColumnDef adapter (temporary, removed in Phase 2)
 // ---------------------------------------------------------------------------
 
-interface AgGridColDef {
+type AgGridColDef = {
   field?: string;
   headerName?: string;
   cellRenderer?: Component;
@@ -123,7 +123,7 @@ function adaptAgGridColDefs(colDefs: AgGridColDef[]): ColumnDef<unknown, unknown
 // Props
 // ---------------------------------------------------------------------------
 
-interface Props {
+type Props = {
   // New TanStack props
   columns?: ColumnDef<T, unknown>[];
   data?: T[];

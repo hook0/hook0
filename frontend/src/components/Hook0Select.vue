@@ -13,7 +13,7 @@ defineOptions({
   inheritAttrs: false,
 });
 
-interface Props {
+type Props = {
   options: Array<Hook0SelectSingleOption | Hook0SelectGroupedOption>;
   label?: string;
   error?: string;

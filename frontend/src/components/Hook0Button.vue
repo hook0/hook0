@@ -7,7 +7,7 @@ import Hook0Spinner from '@/components/Hook0Spinner.vue';
 type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'link' | 'icon';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
-interface Props {
+type Props = {
   variant?: ButtonVariant;
   size?: ButtonSize;
   loading?: boolean | Promise<unknown>;

@@ -19,7 +19,7 @@ type SkeletonGroupVariant =
   | 'table' // Table rows
   | 'cards'; // Card placeholders
 
-interface Props {
+type Props = {
   count?: number;
   direction?: Direction;
   gap?: Gap;

@@ -8,7 +8,7 @@ defineOptions({
   inheritAttrs: false,
 });
 
-interface Props {
+type Props = {
   value: string;
   icon?: Component;
   onClick?: () => void;

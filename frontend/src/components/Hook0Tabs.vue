@@ -2,13 +2,13 @@
 import { computed, ref, nextTick } from 'vue';
 import { type Component } from 'vue';
 
-interface Tab {
+type Tab = {
   id: string;
   label: string;
   icon?: Component;
 }
 
-interface Props {
+type Props = {
   tabs: Tab[];
 }
 

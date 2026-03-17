@@ -6,7 +6,7 @@ defineOptions({
   inheritAttrs: false,
 });
 
-interface Props {
+type Props = {
   value: string;
 }
 const props = defineProps<Props>();

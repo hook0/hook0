@@ -5,7 +5,7 @@ import { Webhook } from 'lucide-vue-next';
 type LogoVariant = 'icon' | 'image' | 'image-white';
 type LogoSize = 'sm' | 'md' | 'lg' | 'xl';
 
-interface Props {
+type Props = {
   variant?: LogoVariant;
   size?: LogoSize;
   showText?: boolean;

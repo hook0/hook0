@@ -8,7 +8,7 @@
 import { useI18n } from 'vue-i18n';
 import Hook0Skeleton from '@/components/Hook0Skeleton.vue';
 
-interface Props {
+type Props = {
   /** Number of columns to display */
   columns?: number;
   /** Number of body rows to display */

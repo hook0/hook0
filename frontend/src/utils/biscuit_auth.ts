@@ -31,7 +31,7 @@ export function parseBiscuitFromBase64(biscuit_token: string, biscuitPublicKey: 
   }
 }
 
-export interface BiscuitBlockInfo {
+export type BiscuitBlockInfo = {
   index: number;
   source: string;
 }

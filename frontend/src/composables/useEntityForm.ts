@@ -6,11 +6,11 @@ import { push } from 'notivue';
 import { displayError } from '@/utils/displayError';
 import type { Problem } from '@/http';
 
-interface UseEntityFormOptions<
+type UseEntityFormOptions<
   TFormValues extends Record<string, unknown>,
   TCreateResult = unknown,
   TUpdateResult = unknown,
-> {
+> = {
   schema: ZodType;
   isNew: ComputedRef<boolean>;
   existingValues: ComputedRef<TFormValues | undefined>;

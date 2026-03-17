@@ -11,7 +11,7 @@ const { t } = useI18n();
 
 let pairIdCounter = 0;
 
-interface InternalPair extends Hook0KeyValueKeyValuePair {
+type InternalPair = Hook0KeyValueKeyValuePair & {
   _id: number;
 }
 
@@ -26,7 +26,7 @@ enum RWMode {
   OBJECT,
 }
 
-interface iRWMode<T> {
+type iRWMode<T> = {
   is(val: T): boolean;
   init(val: T): Hook0KeyValueKeyValuePair[];
   write(val: Hook0KeyValueKeyValuePair[]): T;
@@ -87,7 +87,7 @@ function getNewInternalState(val: Hook0KeyValueKeyValuePair[] | Hook0KeyValuePla
   return { encoder, pairs };
 }
 
-interface Props {
+type Props = {
   value: Hook0KeyValueKeyValuePair[] | Hook0KeyValuePlainObject;
   keyPlaceholder?: string;
   valuePlaceholder?: string;

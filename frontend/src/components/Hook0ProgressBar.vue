@@ -3,11 +3,11 @@ import { computed } from 'vue';
 import { Check } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 
-interface ProgressBarItem {
+type ProgressBarItem = {
   title: string;
 }
 
-interface ProgressBarProps {
+type ProgressBarProps = {
   current: number;
   items: ProgressBarItem[];
 }

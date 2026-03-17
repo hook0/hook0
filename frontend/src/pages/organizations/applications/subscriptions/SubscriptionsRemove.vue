@@ -16,7 +16,7 @@ const route = useRoute();
 const { trackEvent } = useTracking();
 const { canDelete } = usePermissions();
 
-interface Props {
+type Props = {
   applicationId: string;
   subscriptionId: string;
   subscriptionName: string;
