@@ -227,22 +227,17 @@ function confirmDeleteAccount() {
           </Hook0CardContentLine>
         </Hook0CardContent>
         <Hook0CardFooter>
-          <Hook0Stack direction="row" align="center" justify="between" gap="md" wrap>
-            <Hook0Alert type="warning" :title="t('common.warning')">
-              <template #description>{{ t('userSettings.changePasswordWarning') }}</template>
-            </Hook0Alert>
-            <Hook0Button
-              variant="primary"
-              submit
-              :disabled="!meta.valid || !meta.dirty"
-              :aria-label="t('userSettings.changePassword')"
-              :title="t('userSettings.changePassword')"
-              data-test="change-password-button"
-            >
-              <Lock :size="16" aria-hidden="true" />
-              {{ t('userSettings.changePassword') }}
-            </Hook0Button>
-          </Hook0Stack>
+          <Hook0Button
+            variant="primary"
+            submit
+            :disabled="!meta.valid || !meta.dirty"
+            :aria-label="t('userSettings.changePassword')"
+            :title="t('userSettings.changePassword')"
+            data-test="change-password-button"
+          >
+            <Lock :size="16" aria-hidden="true" />
+            {{ t('userSettings.changePassword') }}
+          </Hook0Button>
         </Hook0CardFooter>
       </Hook0Form>
     </Hook0Card>

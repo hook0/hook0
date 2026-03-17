@@ -626,7 +626,7 @@
     "lastName": "Last Name",
     "newPasswordPlaceholder": "New password",
     "confirmPasswordPlaceholder": "Confirm new password",
-    "changePasswordSubtitle": "Set a new password to your user account.",
+    "changePasswordSubtitle": "Set a new password. You will be disconnected from all browsers and devices.",
     "changePasswordWarning": "You will be disconnected from all browsers/devices including the current one.",
     "passwordChanged": "Your password was successfully changed.",
     "passwordMismatch": "Passwords do not match.",
@@ -710,10 +710,17 @@
       "anEventType": "an event type",
       "aSubscription": "a subscription",
       "anEvent": "an event",
-      "skipNote": "Note that you can skip this, and do it by yourself {link} or using our UI.",
+      "skipNote": "You can skip this and do it by yourself {link} or using our UI.",
       "programmatically": "programmatically",
       "skipButton": "Skip",
-      "startStep1": "Start Step 1: Create Your Organization"
+      "startStep1": "Start setup",
+      "splitHeading": "Set up your first webhook pipeline",
+      "splitDesc": "We'll walk you through creating your first organization, application, event type, subscription, and sending a test event. It takes about 3 minutes.",
+      "orgDesc": "Team workspace",
+      "appDesc": "Isolated environment",
+      "eventTypeDesc": "Event categories",
+      "subDesc": "Delivery target",
+      "eventDesc": "Verify it works"
     },
     "step3": {
       "title": "Step 3: Create your first event type",
