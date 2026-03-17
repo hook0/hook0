@@ -72,7 +72,11 @@ const { activate, deactivate } = useFocusTrap(drawerRef, {
   onEscape: handleClose,
 });
 
-// Move focus into the drawer when it opens, restore on close
+// Move focus into the drawer when it opens, restore on close.
+// activate() uses nextTick internally because the drawer DOM is rendered
+// by a v-if transition — the elements aren't in the DOM yet when the
+// store flag flips to true, so we need to wait one tick for Vue to
+// flush the render before querying focusable elements.
 watch(
   () => uiStore.mobileDrawerOpen,
   (isOpen) => {
@@ -119,7 +123,7 @@ watch(
 
             <!-- Content -->
             <div class="hook0-mobile-drawer__content">
-              <!-- Workspace Section -->
+              <!-- Organizations: list all orgs, highlight active, link to create new -->
               <div class="hook0-mobile-drawer__section">
                 <div class="hook0-mobile-drawer__section-header">
                   <Building2 :size="14" aria-hidden="true" />
@@ -155,7 +159,7 @@ watch(
                 </div>
               </div>
 
-              <!-- Applications (if org selected) -->
+              <!-- Applications: only shown when an org is selected and has apps -->
               <div
                 v-if="contextStore.organizationId && applications && applications.length > 0"
                 class="hook0-mobile-drawer__section"

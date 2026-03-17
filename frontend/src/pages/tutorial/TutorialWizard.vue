@@ -20,6 +20,7 @@ import {
   PartyPopper,
 } from 'lucide-vue-next';
 
+// Lazy-load each step component so only the active step is in the bundle
 const TutorialWizardStepIntro = defineAsyncComponent(
   () => import('@/pages/tutorial/TutorialWizardStepIntro.vue')
 );
@@ -44,9 +45,7 @@ const { celebrate } = useCelebration();
 
 const TOAST_DURATION_MS = 5000;
 
-// ---------------------------------------------------------------------------
 // Step mapping from route name
-// ---------------------------------------------------------------------------
 const STEP_MAP: Record<string, number> = {
   [routes.Tutorial]: 0,
   [routes.TutorialCreateOrganization]: 1,
@@ -59,9 +58,7 @@ const STEP_MAP: Record<string, number> = {
 
 const currentStep = computed(() => STEP_MAP[route.name as string] ?? 0);
 
-// ---------------------------------------------------------------------------
 // Step definitions for progress bar — icons are module-level (markRaw once)
-// ---------------------------------------------------------------------------
 const STEP_ICONS = [
   markRaw(Rocket),
   markRaw(Building2),
@@ -85,15 +82,11 @@ const STEPS = computed(() => [
 // Progress bar steps (steps 1-5 only, mapped to 0-based for the progress component)
 const PROGRESS_STEPS = computed(() => STEPS.value.slice(1, 6));
 
-// ---------------------------------------------------------------------------
 // Route params
-// ---------------------------------------------------------------------------
 const paramOrgId = computed(() => route.params.organization_id as UUID);
 const paramAppId = computed(() => route.params.application_id as UUID);
 
-// ---------------------------------------------------------------------------
 // Unified advance step
-// ---------------------------------------------------------------------------
 type AdvanceConfig = {
   trackLabel: string;
   toastTitle: string;
@@ -149,9 +142,7 @@ function handleAppAdvance(applicationId: UUID) {
   });
 }
 
-// ---------------------------------------------------------------------------
 // Config map for form steps (3, 4, 5)
-// ---------------------------------------------------------------------------
 const FORM_STEP_CONFIG: Record<
   3 | 4 | 5,
   { trackLabel: string; toastTitle: string; toastMessage: string; routeName: string }
@@ -202,9 +193,7 @@ function handleFormAdvance() {
   });
 }
 
-// ---------------------------------------------------------------------------
 // Config map for dismiss routes
-// ---------------------------------------------------------------------------
 type DismissRouteEntry = {
   track?: boolean;
   routeName: string;
@@ -212,31 +201,31 @@ type DismissRouteEntry = {
 };
 
 function getDismissRoute(): DismissRouteEntry {
-  const step = currentStep.value;
-  const DISMISS_ROUTE_MAP: Record<number, () => DismissRouteEntry> = {
-    0: () => ({ track: true, routeName: routes.Home }),
-    1: () => ({ routeName: routes.Home }),
-    2: () => ({
-      routeName: routes.OrganizationsDashboard,
-      params: { organization_id: paramOrgId.value },
-    }),
-    6: () => ({
-      routeName: routes.ApplicationsDashboard,
-      params: { organization_id: paramOrgId.value },
-    }),
-  };
-
-  const factory = DISMISS_ROUTE_MAP[step];
-  if (factory) return factory();
-
-  // Default for steps 3-5
-  return {
-    routeName: routes.ApplicationsDashboard,
-    params: {
-      organization_id: paramOrgId.value,
-      application_id: paramAppId.value,
-    },
-  };
+  switch (currentStep.value) {
+    case 0:
+      return { track: true, routeName: routes.Home };
+    case 1:
+      return { routeName: routes.Home };
+    case 2:
+      return {
+        routeName: routes.OrganizationsDashboard,
+        params: { organization_id: paramOrgId.value },
+      };
+    case 6:
+      return {
+        routeName: routes.ApplicationsDashboard,
+        params: { organization_id: paramOrgId.value },
+      };
+    default:
+      // Steps 3-5: dismiss to the app dashboard
+      return {
+        routeName: routes.ApplicationsDashboard,
+        params: {
+          organization_id: paramOrgId.value,
+          application_id: paramAppId.value,
+        },
+      };
+  }
 }
 
 function dismiss() {
@@ -247,9 +236,7 @@ function dismiss() {
   void router.push({ name: entry.routeName, params: entry.params });
 }
 
-// ---------------------------------------------------------------------------
 // Focus trap & keyboard handling
-// ---------------------------------------------------------------------------
 const overlayRef = ref<HTMLElement | null>(null);
 const modalRef = ref<HTMLElement | null>(null);
 
@@ -259,9 +246,7 @@ onMounted(() => {
   activate();
 });
 
-// ---------------------------------------------------------------------------
 // Overlay click to dismiss
-// ---------------------------------------------------------------------------
 function handleOverlayClick(e: MouseEvent) {
   if (e.target === overlayRef.value) {
     dismiss();
