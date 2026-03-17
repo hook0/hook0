@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Org Card Header — Variants</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..900;1,14..32,300..900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --color-bg-primary:    #ffffff;
+      --color-bg-secondary:  #f4f4f5;
+      --color-bg-tertiary:   #e4e4e7;
+      --color-text-primary:  #18181b;
+      --color-text-secondary:#52525b;
+      --color-text-tertiary: #a1a1aa;
+      --color-border:        #e4e4e7;
+      --color-border-strong: #d4d4d8;
+      --color-primary:       #6366f1;
+      --color-primary-light: #eef2ff;
+      --radius-sm:  4px;
+      --radius-md:  6px;
+      --radius-lg:  8px;
+      --radius-xl:  12px;
+      --shadow-sm:  0 1px 2px rgba(0,0,0,.05);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #f1f1f2;
+      padding: 3rem 2.5rem;
+      color: var(--color-text-primary);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1 {
+      font-size: 0.625rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--color-text-tertiary);
+      margin-bottom: 2.5rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 376px);
+      gap: 2.5rem 3rem;
+    }
+
+    .variant-label {
+      font-size: 0.625rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--color-text-tertiary);
+      margin-bottom: 0.5rem;
+    }
+
+    /* ── Card shell ── */
+    .card {
+      background: var(--color-bg-primary);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    .section { padding: 0.75rem 1rem; }
+    .section + .section { border-top: 1px solid var(--color-border); }
+
+    /* ── Shared avatar ── */
+    .avatar {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      user-select: none;
+      border-radius: var(--radius-md);
+    }
+    .av-md { width: 2rem;    height: 2rem;    font-size: 0.625rem; }
+    .av-sm { width: 1.625rem;height: 1.625rem;font-size: 0.5625rem;}
+
+    /* ── Shared badges ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.1rem 0.4375rem;
+      border-radius: 999px;
+      font-size: 0.625rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      background: var(--color-bg-secondary);
+      color: var(--color-text-secondary);
+    }
+    .badge--primary {
+      background: var(--color-primary-light);
+      color: var(--color-primary);
+    }
+    .badge--fused {
+      gap: 0.25rem;
+      background: var(--color-bg-secondary);
+      color: var(--color-text-secondary);
+    }
+    .badge--fused .sep {
+      opacity: 0.4;
+      font-weight: 400;
+    }
+
+    /* ── Shared org header hover ── */
+    .org-header {
+      cursor: pointer;
+      border-radius: var(--radius-lg);
+      transition: background-color 0.15s ease;
+      padding: 0.375rem 0.5rem;
+    }
+    .org-header:hover { background-color: var(--color-bg-secondary); }
+
+    /* ── App list ── */
+    .app-list { list-style: none; }
+    .app-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.3125rem 0.5rem;
+      border-radius: var(--radius-md);
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--color-text-primary);
+      cursor: pointer;
+      transition: background-color 0.15s;
+    }
+    .app-item:hover { background: var(--color-bg-secondary); }
+    .app-icon {
+      width: 1.5rem;
+      height: 1.5rem;
+      background: var(--color-bg-tertiary);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-text-secondary);
+      flex-shrink: 0;
+      transition: background-color 0.15s, color 0.15s;
+    }
+    .app-item:hover .app-icon {
+      background: var(--color-primary-light);
+      color: var(--color-primary);
+    }
+    .app-chevron { margin-left: auto; color: var(--color-text-tertiary); opacity: 0; transition: opacity 0.15s; }
+    .app-item:hover .app-chevron { opacity: 1; }
+
+    .add-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 0.3125rem 0.5rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--color-text-tertiary);
+      cursor: pointer;
+      border: none;
+      background: none;
+      border-top: 1px solid var(--color-border);
+      text-align: left;
+      margin-top: 0.125rem;
+      border-radius: 0;
+      font-family: inherit;
+      transition: background-color 0.15s, color 0.15s;
+    }
+    .add-item:hover { background: var(--color-primary-light); color: var(--color-primary); }
+    .add-icon {
+      width: 1.5rem;
+      height: 1.5rem;
+      border: 1.5px dashed var(--color-border-strong);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .add-item:hover .add-icon { border-color: var(--color-primary); background: var(--color-primary-light); }
+  </style>
+</head>
+<body>
+
+  <h1>Org card header · 376 px</h1>
+
+  <div class="grid">
+
+    <!-- ─────────────────────────────── -->
+    <!-- V1 · Dot-separator              -->
+    <!-- ─────────────────────────────── -->
+    <div>
+      <p class="variant-label">V1 — Séparateur point</p>
+      <div class="card">
+        <div class="section">
+          <div class="org-header" style="display:flex;align-items:flex-start;gap:0.75rem;">
+            <div class="avatar av-md" style="background:linear-gradient(135deg,#4f46e5,#7c3aed);">RB</div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:0.25rem;">
+              <span style="font-size:0.875rem;font-weight:600;line-height:1.25;color:var(--color-text-primary);">
+                Romain Baumier's personal organization
+              </span>
+              <span style="display:flex;align-items:center;gap:0.3125rem;font-size:0.6875rem;color:var(--color-text-tertiary);">
+                <span style="font-weight:600;color:var(--color-text-secondary);">Developer</span>
+                <span style="opacity:0.4;">·</span>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                1 application
+              </span>
+            </div>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--color-text-tertiary);flex-shrink:0;margin-top:0.125rem;" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+        </div>
+        <div class="section">
+          <ul class="app-list">
+            <li class="app-item">
+              <span class="app-icon">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+              </span>
+              my-saas-app
+              <svg class="app-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+            </li>
+          </ul>
+          <button class="add-item">
+            <span class="add-icon">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            </span>
+            New application
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────── -->
+    <!-- V2 · Pill fusionné              -->
+    <!-- ─────────────────────────────── -->
+    <div>
+      <p class="variant-label">V2 — Pill fusionné</p>
+      <div class="card">
+        <div class="section">
+          <div class="org-header" style="display:flex;align-items:flex-start;gap:0.75rem;">
+            <div class="avatar av-md" style="background:linear-gradient(135deg,#4f46e5,#7c3aed);">RB</div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:0.3125rem;">
+              <span style="font-size:0.875rem;font-weight:600;line-height:1.25;color:var(--color-text-primary);">
+                Romain Baumier's personal organization
+              </span>
+              <span class="badge badge--fused">
+                Developer
+                <span class="sep">·</span>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                1 app
+              </span>
+            </div>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--color-text-tertiary);flex-shrink:0;margin-top:0.125rem;" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+        </div>
+        <div class="section">
+          <ul class="app-list">
+            <li class="app-item">
+              <span class="app-icon">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+              </span>
+              my-saas-app
+              <svg class="app-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+            </li>
+          </ul>
+          <button class="add-item">
+            <span class="add-icon">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            </span>
+            New application
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────── -->
+    <!-- V3 · Plan flottant à droite     -->
+    <!-- ─────────────────────────────── -->
+    <div>
+      <p class="variant-label">V3 — Plan badge flottant à droite</p>
+      <div class="card">
+        <div class="section">
+          <div class="org-header" style="display:flex;align-items:flex-start;gap:0.75rem;">
+            <div class="avatar av-md" style="background:linear-gradient(135deg,#4f46e5,#7c3aed);">RB</div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:0.25rem;">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.5rem;">
+                <span style="font-size:0.875rem;font-weight:600;line-height:1.25;color:var(--color-text-primary);">
+                  Romain Baumier's personal organization
+                </span>
+                <span class="badge" style="margin-top:0.125rem;flex-shrink:0;">Developer</span>
+              </div>
+              <span style="display:flex;align-items:center;gap:0.25rem;font-size:0.6875rem;color:var(--color-text-tertiary);">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                1 application
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="section">
+          <ul class="app-list">
+            <li class="app-item">
+              <span class="app-icon">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+              </span>
+              my-saas-app
+              <svg class="app-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+            </li>
+          </ul>
+          <button class="add-item">
+            <span class="add-icon">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            </span>
+            New application
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────── -->
+    <!-- V4 · Nom + badge inline         -->
+    <!-- ─────────────────────────────── -->
+    <div>
+      <p class="variant-label">V4 — Badge inline avec le nom</p>
+      <div class="card">
+        <div class="section">
+          <div class="org-header" style="display:flex;align-items:flex-start;gap:0.75rem;">
+            <div class="avatar av-md" style="background:linear-gradient(135deg,#4f46e5,#7c3aed);">RB</div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:0.25rem;">
+              <div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:0.375rem;">
+                <span style="font-size:0.875rem;font-weight:600;line-height:1.25;color:var(--color-text-primary);">
+                  Romain Baumier's personal organization
+                </span>
+                <span class="badge">Developer</span>
+              </div>
+              <span style="display:flex;align-items:center;gap:0.25rem;font-size:0.6875rem;color:var(--color-text-tertiary);">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                1 application
+              </span>
+            </div>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--color-text-tertiary);flex-shrink:0;margin-top:0.125rem;" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+        </div>
+        <div class="section">
+          <ul class="app-list">
+            <li class="app-item">
+              <span class="app-icon">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+              </span>
+              my-saas-app
+              <svg class="app-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+            </li>
+          </ul>
+          <button class="add-item">
+            <span class="add-icon">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            </span>
+            New application
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────── -->
+    <!-- V5 · Nom grand, meta secondaire -->
+    <!-- ─────────────────────────────── -->
+    <div>
+      <p class="variant-label">V5 — Nom mis en valeur</p>
+      <div class="card">
+        <div class="section">
+          <div class="org-header" style="display:flex;align-items:flex-start;gap:0.75rem;">
+            <div class="avatar av-md" style="background:linear-gradient(135deg,#4f46e5,#7c3aed);">RB</div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:0.25rem;">
+              <span style="font-size:0.9375rem;font-weight:700;line-height:1.2;letter-spacing:-0.01em;color:var(--color-text-primary);">
+                Romain Baumier's personal organization
+              </span>
+              <span style="display:flex;align-items:center;gap:0.3125rem;font-size:0.6875rem;color:var(--color-text-tertiary);">
+                <span style="font-weight:600;color:var(--color-text-secondary);">Developer</span>
+                <span style="opacity:0.4;">·</span>
+                1 application
+              </span>
+            </div>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--color-text-tertiary);flex-shrink:0;margin-top:0.1875rem;" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+        </div>
+        <div class="section">
+          <ul class="app-list">
+            <li class="app-item">
+              <span class="app-icon">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+              </span>
+              my-saas-app
+              <svg class="app-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+            </li>
+          </ul>
+          <button class="add-item">
+            <span class="add-icon">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            </span>
+            New application
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────── -->
+    <!-- V6 · Avatar sm + nom aéré       -->
+    <!-- ─────────────────────────────── -->
+    <div>
+      <p class="variant-label">V6 — Avatar petit, plus d'espace au nom</p>
+      <div class="card">
+        <div class="section">
+          <div class="org-header" style="display:flex;align-items:flex-start;gap:0.625rem;">
+            <div class="avatar av-sm" style="background:linear-gradient(135deg,#4f46e5,#7c3aed);margin-top:0.125rem;">RB</div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:0.25rem;">
+              <span style="font-size:0.875rem;font-weight:600;line-height:1.3;color:var(--color-text-primary);">
+                Romain Baumier's personal organization
+              </span>
+              <span style="display:flex;align-items:center;gap:0.3125rem;font-size:0.6875rem;color:var(--color-text-tertiary);">
+                <span style="font-weight:600;color:var(--color-text-secondary);">Developer</span>
+                <span style="opacity:0.4;">·</span>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                1 application
+              </span>
+            </div>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--color-text-tertiary);flex-shrink:0;margin-top:0.1875rem;" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+        </div>
+        <div class="section">
+          <ul class="app-list">
+            <li class="app-item">
+              <span class="app-icon">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+              </span>
+              my-saas-app
+              <svg class="app-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+            </li>
+          </ul>
+          <button class="add-item">
+            <span class="add-icon">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            </span>
+            New application
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>
