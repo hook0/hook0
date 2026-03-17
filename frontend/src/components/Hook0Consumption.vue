@@ -24,6 +24,21 @@ type Props = {
 };
 
 const props = defineProps<Props>();
+
+const INT_MAX = 2147483647;
+
+function formatQuota(quota: ConsumptionQuota): string {
+  if (quota.quota >= INT_MAX) {
+    return `${quota.consumption} / ${t('common.unlimited')}`;
+  }
+  const pct = quota.quota > 0 ? Math.round((quota.consumption / quota.quota) * 100) : 0;
+  return `${quota.consumption} / ${quota.quota} (${pct}%)`;
+}
+
+function progressPercentage(quota: ConsumptionQuota): number {
+  if (quota.quota >= INT_MAX || quota.quota <= 0) return 0;
+  return Math.floor((quota.consumption / quota.quota) * 100);
+}
 </script>
 
 <template>
@@ -47,18 +62,11 @@ const props = defineProps<Props>();
                 class="consumption__icon"
               />
               <span class="consumption__text">
-                <strong>{{ quota.name }}</strong
-                >: {{ quota.consumption }} / {{ quota.quota }} ({{
-                  quota.quota > 0 ? Math.round((quota.consumption / quota.quota) * 100) : 0
-                }}%)
+                <strong>{{ quota.name }}</strong>: {{ formatQuota(quota) }}
               </span>
             </div>
             <div class="consumption__bar">
-              <Hook0SimpleProgressBar
-                :percentage="
-                  quota.quota > 0 ? Math.floor((quota.consumption / quota.quota) * 100) : 0
-                "
-              />
+              <Hook0SimpleProgressBar :percentage="progressPercentage(quota)" />
             </div>
           </div>
         </template>
