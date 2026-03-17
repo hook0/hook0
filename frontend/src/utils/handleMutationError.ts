@@ -2,6 +2,7 @@ import { push } from 'notivue';
 import type { Problem } from '@/http';
 import { isAxiosError } from '@/http';
 import { displayError } from '@/utils/displayError';
+import i18n from '@/plugins/i18n';
 
 function isProblem(value: unknown): value is Problem {
   if (value === null || typeof value !== 'object') return false;
@@ -30,9 +31,10 @@ export function handleMutationError(err: unknown): void {
     }
   }
 
+  const t = i18n.global.t;
   push.error({
-    title: 'Unexpected error',
-    message: err instanceof Error ? err.message : 'An unknown error occurred',
+    title: t('errors.unexpectedError'),
+    message: err instanceof Error ? err.message : t('errors.unknownError'),
     duration: 5000,
   });
 }

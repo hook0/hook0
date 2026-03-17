@@ -11,6 +11,15 @@ const FOCUSABLE_SELECTOR = [
   'details > summary',
 ].join(', ');
 
+/**
+ * Traps keyboard focus inside a container element (for modals, drawers, dialogs).
+ * When activated, focuses the first focusable element and cycles Tab/Shift+Tab
+ * within the container. On deactivation, restores focus to the previously
+ * focused element. Optionally handles Escape key via the onEscape callback.
+ *
+ * @example
+ * const { activate, deactivate, handleKeydown } = useFocusTrap(containerRef, { onEscape: close });
+ */
 export function useFocusTrap(
   containerRef: Ref<HTMLElement | null>,
   options?: { onEscape?: () => void }

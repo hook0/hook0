@@ -1,4 +1,8 @@
 {
+  "errors": {
+    "unexpectedError": "Unexpected error",
+    "unknownError": "An unknown error occurred"
+  },
   "common": {
     "save": "Save",
     "cancel": "Cancel",

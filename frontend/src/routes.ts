@@ -260,7 +260,7 @@ export default [
     path: '/api/documentation',
     component: () => import('@/pages/api/documentation/ApiDocumentation.vue'),
   },
-  // Only register in development
+  // Route for component visual testing (used by Playwright E2E tests)
   ...(import.meta.env.DEV
     ? [
         {

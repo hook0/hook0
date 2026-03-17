@@ -29,6 +29,7 @@ CLAUDE.local.md
 .agents
 .gemini
 .opencode
-
-# worktrees
 .worktrees
+frontend/docs/
+reviews/
+dogfood-output/

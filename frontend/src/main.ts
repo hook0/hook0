@@ -30,7 +30,6 @@ import 'notivue/notification-progress.css';
 // Root component
 import App from './App.vue';
 
-// Theme constants (shared with ui store)
 import { LOCAL_STORAGE_KEY_THEME, resolveIsDark } from './constants/theme';
 
 // Apply color mode from localStorage before app renders to prevent flash
