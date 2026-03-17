@@ -245,10 +245,14 @@ pub async fn look_for_work(
         });
     }
 
-    let mut stats_interval = interval_at(
-        Instant::now() + config.pulsar_consumer_stats_interval,
-        config.pulsar_consumer_stats_interval,
-    );
+    let mut stats_interval = if config.pulsar_consumer_stats_interval.is_zero() {
+        None
+    } else {
+        Some(interval_at(
+            Instant::now() + config.pulsar_consumer_stats_interval,
+            config.pulsar_consumer_stats_interval,
+        ))
+    };
 
     loop {
         // We prepare a future to acquire a permit from the semaphore and then get a message from the Pulsar consumer
@@ -281,7 +285,7 @@ pub async fn look_for_work(
                     ack_message(&mut consumer, &topic, &heartbeat_tx, msg_ack).await?;
                 }
             },
-            _ = stats_interval.tick() => {
+            _ = async { stats_interval.as_mut().unwrap().tick().await }, if stats_interval.is_some() => {
                 // Note: get_stats() blocks the select loop, but it's a lightweight
                 // binary protocol call over the existing connection.
                 match consumer.get_stats().await {

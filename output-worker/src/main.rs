@@ -201,7 +201,7 @@ struct Config {
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "5s")]
     request_attempt_db_commit_grace_period: Duration,
 
-    /// Period of Pulsar consumer stats collection (only for Pulsar workers)
+    /// Period of Pulsar consumer stats collection (set to "0s" to disable) (only for Pulsar workers)
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "15s")]
     pulsar_consumer_stats_interval: Duration,
 

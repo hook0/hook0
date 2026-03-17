@@ -156,7 +156,7 @@ The output-worker is a separate binary with its own configuration. Run \`hook0-o
 | \`ENABLED_SIGNATURE_VERSIONS\` | A comma-separated list of enabled signature versions | \`v1\` |  |
 | \`LOAD_WAITING_REQUEST_ATTEMPTS_INTO_PULSAR\` | If true, will load waiting request attempts from DB into Pulsar before starting | \`false\` |  |
 | \`REQUEST_ATTEMPT_DB_COMMIT_GRACE_PERIOD\` | Grace period to wait for DB commit before dropping unfound request attempts (Pulsar workers only) | \`5s\` |  |
-| \`PULSAR_CONSUMER_STATS_INTERVAL\` | Period of Pulsar consumer stats collection (Pulsar workers only) | \`15s\` |  |
+| \`PULSAR_CONSUMER_STATS_INTERVAL\` | Period of Pulsar consumer stats collection (set to "0s" to disable) (only for Pulsar workers) | \`15s\` |  |
 | \`THROUGHPUT_LOG_INTERVAL\` | Interval between periodic throughput log lines (set to "0s" to disable) | \`60s\` |  |
 
 `;
