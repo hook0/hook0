@@ -23,8 +23,8 @@ import Hook0Dropdown from '@/components/Hook0Dropdown.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0Avatar from '@/components/Hook0Avatar.vue';
-import Hook0Badge from '@/components/Hook0Badge.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
+import Hook0Badge from '@/components/Hook0Badge.vue';
 import Hook0EmptyState from '@/components/Hook0EmptyState.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import { useAuthStore } from '@/stores/auth';
@@ -255,7 +255,7 @@ function getGradient(index: number): string {
         <Hook0CardContent>
           <Hook0Stack
             direction="row"
-            align="center"
+            align="start"
             gap="md"
             role="button"
             tabindex="0"
@@ -265,98 +265,98 @@ function getGradient(index: number): string {
           >
             <Hook0Avatar
               :name="organizationGroup.organization.name"
-              size="lg"
+              size="md"
               variant="square"
               :gradient="getGradient(index)"
             />
-            <Hook0Stack direction="column" gap="none" style="flex: 1; min-width: 0">
-              <Hook0Stack direction="row" align="center" gap="sm" wrap>
-                <span class="org-selector__org-name">
-                  {{ organizationGroup.organization.name }}
-                </span>
-                <Hook0Badge
-                  v-if="pricingEnabled && organizationGroup.organization.plan"
-                  variant="primary"
-                  size="sm"
-                >
-                  {{ organizationGroup.organization.plan?.label || '' }}
-                </Hook0Badge>
-                <Hook0Badge v-else-if="pricingEnabled" variant="default" size="sm">
-                  {{ t('orgAppSelector.developer') }}
-                </Hook0Badge>
-              </Hook0Stack>
-              <Hook0Stack direction="row" align="center" gap="xs" inline>
-                <Layers :size="13" aria-hidden="true" />
+            <Hook0Stack direction="column" gap="xs" class="org-card__info" style="flex: 1; min-width: 0">
+              <span class="org-selector__org-name">
+                {{ organizationGroup.organization.name }}
+              </span>
+              <span class="org-card__meta">
+                <template v-if="pricingEnabled">
+                  <Hook0Badge
+                    v-if="organizationGroup.organization.plan"
+                    variant="primary"
+                    size="sm"
+                  >
+                    {{ organizationGroup.organization.plan.label }}
+                  </Hook0Badge>
+                  <Hook0Badge v-else variant="default" size="sm">
+                    {{ t('orgAppSelector.developer') }}
+                  </Hook0Badge>
+                </template>
+                <Layers :size="11" aria-hidden="true" />
                 <span class="org-selector__apps-count">
                   {{ t('orgAppSelector.appsCount', organizationGroup.applications.length) }}
                 </span>
-              </Hook0Stack>
+              </span>
             </Hook0Stack>
-            <ChevronRight :size="16" aria-hidden="true" />
+            <ChevronRight :size="15" aria-hidden="true" style="margin-top: 0.125rem" />
           </Hook0Stack>
         </Hook0CardContent>
 
         <!-- Applications List -->
         <Hook0CardContent>
-          <Hook0Stack direction="column" gap="xs">
-            <template v-if="organizationGroup.applications.length > 0">
-              <ul class="app-list">
-                <li
-                  v-for="application in organizationGroup.applications"
-                  :key="application.application_id"
-                  class="app-list__item"
-                  role="button"
-                  tabindex="0"
-                  @click="
-                    navigateToApp(
-                      organizationGroup.organization.organization_id,
-                      application.application_id
-                    )
-                  "
-                  @keydown.enter="
-                    navigateToApp(
-                      organizationGroup.organization.organization_id,
-                      application.application_id
-                    )
-                  "
-                >
-                  <span class="app-list__icon">
-                    <Box :size="16" aria-hidden="true" />
-                  </span>
-                  <span class="app-list__name">
-                    {{ application.name }}
-                  </span>
-                  <ChevronRight :size="14" aria-hidden="true" class="app-list__chevron" />
-                </li>
-              </ul>
+          <template v-if="organizationGroup.applications.length > 0">
+            <ul class="app-list">
+              <li
+                v-for="application in organizationGroup.applications"
+                :key="application.application_id"
+                class="app-list__item"
+                role="button"
+                tabindex="0"
+                @click="
+                  navigateToApp(
+                    organizationGroup.organization.organization_id,
+                    application.application_id
+                  )
+                "
+                @keydown.enter="
+                  navigateToApp(
+                    organizationGroup.organization.organization_id,
+                    application.application_id
+                  )
+                "
+              >
+                <span class="app-list__icon">
+                  <Box :size="16" aria-hidden="true" />
+                </span>
+                <span class="app-list__name">
+                  {{ application.name }}
+                </span>
+                <ChevronRight :size="14" aria-hidden="true" class="app-list__chevron" />
+              </li>
+            </ul>
+          </template>
+
+          <!-- Empty State -->
+          <Hook0EmptyState
+            v-else
+            :title="t('orgAppSelector.noApplicationFound')"
+            :description="t('orgAppSelector.noApplicationDescription')"
+          >
+            <template #icon>
+              <Package :size="24" aria-hidden="true" />
             </template>
-
-            <!-- Empty State -->
-            <Hook0EmptyState
-              v-else
-              :title="t('orgAppSelector.noApplicationFound')"
-              :description="t('orgAppSelector.noApplicationDescription')"
-            >
-              <template #icon>
-                <Package :size="24" aria-hidden="true" />
-              </template>
-            </Hook0EmptyState>
-
-            <!-- Create App Button -->
-            <button
-              type="button"
-              class="app-list__action"
-              @click="navigateToNewApp(organizationGroup.organization.organization_id)"
-            >
-              <span class="app-list__action-icon">
-                <Plus :size="14" aria-hidden="true" />
-              </span>
-              <span class="app-list__action-label">
-                {{ t('orgAppSelector.createNewApplication') }}
-              </span>
-            </button>
-          </Hook0Stack>
+          </Hook0EmptyState>
         </Hook0CardContent>
+
+        <!-- Create App Button -->
+        <div class="org-card__action-row">
+          <button
+            type="button"
+            class="app-list__action"
+            @click="navigateToNewApp(organizationGroup.organization.organization_id)"
+          >
+            <span class="app-list__action-icon">
+              <Plus :size="14" aria-hidden="true" />
+            </span>
+            <span class="app-list__action-label">
+              {{ t('orgAppSelector.createNewApplication') }}
+            </span>
+          </button>
+        </div>
       </Hook0Card>
 
       <!-- New Organization Card -->
@@ -461,13 +461,11 @@ function getGradient(index: number): string {
 /* Organization Card Header - interactive clickable area */
 .org-card__header {
   cursor: pointer;
-  margin: calc(-1 * var(--spacing-md));
-  padding: var(--spacing-md);
-  border-radius: var(--radius-md);
+  padding: 0.375rem 0.5rem;
+  border-radius: var(--radius-lg);
   transition:
     background-color 0.15s ease,
     transform 0.15s ease;
-  white-space: nowrap;
 }
 
 .org-card__header:hover {
@@ -557,6 +555,12 @@ function getGradient(index: number): string {
   color: var(--color-text-secondary);
 }
 
+/* Create App Action Row */
+.org-card__action-row {
+  border-top: 1px solid var(--color-border);
+  padding: 0.375rem 0.75rem;
+}
+
 /* Create App Action Button */
 .app-list__action {
   display: flex;
@@ -564,15 +568,14 @@ function getGradient(index: number): string {
   flex-wrap: nowrap;
   white-space: nowrap;
   width: 100%;
-  padding: 0.5rem 0.75rem;
-  margin-top: 0.125rem;
+  padding: 0.375rem 0.5rem;
   border: none;
-  border-top: 1px solid var(--color-border);
-  border-radius: 0;
+  border-radius: var(--radius-md);
   background: transparent;
   cursor: pointer;
   text-align: left;
   font-size: 0.8125rem;
+  font-family: inherit;
   transition: background-color 0.15s ease;
 }
 
@@ -619,14 +622,32 @@ function getGradient(index: number): string {
 }
 
 /* Organization Selector Text */
+.org-card__info {
+  min-height: 70px;
+}
+
 .org-selector__org-name {
   font-size: 0.875rem;
   font-weight: 600;
+  line-height: 1.2;
   color: var(--color-text-primary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
+.org-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.3125rem;
+  font-size: 0.6875rem;
+  color: var(--color-text-tertiary);
+}
+
+
 .org-selector__apps-count {
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   color: var(--color-text-tertiary);
 }
 
