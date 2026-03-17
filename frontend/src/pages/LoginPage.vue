@@ -125,33 +125,36 @@ const onSubmit = handleSubmit((values) => {
             data-test="login-password-input"
             :disabled="isLoading"
           />
-          <Hook0Button
-            variant="link"
-            size="sm"
-            :to="{ name: routes.BeginResetPassword }"
-            data-test="login-forgot-password-link"
-            class="login-forgot-link"
-          >
-            {{ t('auth.login.forgotPassword') }}
-          </Hook0Button>
+          <Hook0Stack direction="column" gap="none">
+            <Hook0Stack justify="end">
+              <Hook0Button
+                variant="link"
+                size="sm"
+                :to="{ name: routes.BeginResetPassword }"
+                data-test="login-forgot-password-link"
+              >
+                {{ t('auth.login.forgotPassword') }}
+              </Hook0Button>
+            </Hook0Stack>
 
-          <Hook0Button
-            variant="primary"
-            size="lg"
-            submit
-            :loading="isLoading"
-            :disabled="isLoading"
-            full-width
-            data-test="login-submit-button"
-          >
-            {{ isLoading ? t('auth.login.submitting') : t('auth.login.submit') }}
-          </Hook0Button>
+            <Hook0Button
+              variant="primary"
+              size="lg"
+              submit
+              :loading="isLoading"
+              :disabled="isLoading"
+              full-width
+              data-test="login-submit-button"
+            >
+              {{ isLoading ? t('auth.login.submitting') : t('auth.login.submit') }}
+            </Hook0Button>
+          </Hook0Stack>
         </Hook0Form>
       </Hook0CardContent>
 
       <Hook0CardDivider>{{ t('auth.login.newToHook0') }}</Hook0CardDivider>
 
-      <Hook0CardContent removeTopBorder>
+      <Hook0CardContent remove-top-border>
         <Hook0Button
           variant="secondary"
           size="lg"
