@@ -7,18 +7,13 @@
  * - Navigation links based on context
  * - User menu options
  */
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import {
   X,
   Building2,
   Box,
   ChevronRight,
-  Calendar,
-  Webhook,
-  ListChecks,
-  FileText,
-  Key,
   Settings,
   BookOpen,
   Code2,
@@ -36,12 +31,16 @@ import { useOrganizationList } from '@/pages/organizations/useOrganizationQuerie
 import { useApplicationList } from '@/pages/organizations/applications/useApplicationQueries';
 import { useI18n } from 'vue-i18n';
 import Hook0Button from '@/components/Hook0Button.vue';
+import { useNavigationTabs } from '@/composables/useNavigationTabs';
+import { useFocusTrap } from '@/composables/useFocusTrap';
 
 const { t } = useI18n();
 const route = useRoute();
 const authStore = useAuthStore();
 const contextStore = useContextStore();
 const uiStore = useUiStore();
+
+const { navTabs: navItems } = useNavigationTabs();
 
 // Data
 const { data: organizations } = useOrganizationList();
@@ -57,104 +56,6 @@ watch(
   }
 );
 
-// Navigation items based on context
-interface NavItem {
-  id: string;
-  label: string;
-  icon: typeof Calendar;
-  to: { name: string; params?: Record<string, string> };
-  active: boolean;
-}
-
-const navItems = computed<NavItem[]>(() => {
-  const orgId = contextStore.organizationId;
-  const appId = contextStore.applicationId;
-
-  // App-level navigation
-  if (orgId && appId) {
-    const params = { organization_id: orgId, application_id: appId };
-    return [
-      {
-        id: 'events',
-        label: t('nav.events'),
-        icon: Calendar,
-        to: { name: routes.EventsList, params },
-        active: route.name === routes.EventsList || route.name === routes.EventsDetail,
-      },
-      {
-        id: 'subscriptions',
-        label: t('nav.subscriptions'),
-        icon: Webhook,
-        to: { name: routes.SubscriptionsList, params },
-        active:
-          route.name === routes.SubscriptionsList ||
-          route.name === routes.SubscriptionsNew ||
-          route.name === routes.SubscriptionsDetail,
-      },
-      {
-        id: 'event-types',
-        label: t('nav.eventTypes'),
-        icon: ListChecks,
-        to: { name: routes.EventTypesList, params },
-        active: route.name === routes.EventTypesList || route.name === routes.EventTypesNew,
-      },
-      {
-        id: 'logs',
-        label: t('nav.logs'),
-        icon: FileText,
-        to: { name: routes.LogsList, params },
-        active: route.name === routes.LogsList,
-      },
-      {
-        id: 'api-keys',
-        label: t('nav.apiKeys'),
-        icon: Key,
-        to: { name: routes.ApplicationSecretsList, params },
-        active: route.name === routes.ApplicationSecretsList,
-      },
-      {
-        id: 'settings',
-        label: t('nav.settings'),
-        icon: Settings,
-        to: { name: routes.ApplicationsDetail, params },
-        active:
-          route.name === routes.ApplicationsDashboard || route.name === routes.ApplicationsDetail,
-      },
-    ];
-  }
-
-  // Org-level navigation
-  if (orgId) {
-    const params = { organization_id: orgId };
-    return [
-      {
-        id: 'applications',
-        label: t('nav.applications'),
-        icon: Box,
-        to: { name: routes.ApplicationsList, params },
-        active: route.name === routes.ApplicationsList,
-      },
-      {
-        id: 'service-tokens',
-        label: t('nav.serviceTokens'),
-        icon: Key,
-        to: { name: routes.ServicesTokenList, params },
-        active: route.name === routes.ServicesTokenList || route.name === routes.ServiceTokenView,
-      },
-      {
-        id: 'org-settings',
-        label: t('nav.settings'),
-        icon: Settings,
-        to: { name: routes.OrganizationsDetail, params },
-        active:
-          route.name === routes.OrganizationsDashboard || route.name === routes.OrganizationsDetail,
-      },
-    ];
-  }
-
-  return [];
-});
-
 function handleClose() {
   uiStore.closeMobileDrawer();
 }
@@ -167,47 +68,18 @@ function handleBackdropClick(event: MouseEvent) {
 
 const drawerRef = ref<HTMLElement | null>(null);
 
-function onDrawerKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape') {
-    e.preventDefault();
-    handleClose();
-    return;
-  }
+const { activate, deactivate } = useFocusTrap(drawerRef, {
+  onEscape: handleClose,
+});
 
-  if (e.key === 'Tab' && drawerRef.value) {
-    const focusable = drawerRef.value.querySelectorAll<HTMLElement>(
-      'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    );
-    if (focusable.length === 0) return;
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (e.shiftKey) {
-      if (document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      }
-    } else {
-      if (document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    }
-  }
-}
-
-// Move focus into the drawer when it opens
+// Move focus into the drawer when it opens, restore on close
 watch(
   () => uiStore.mobileDrawerOpen,
   (isOpen) => {
     if (isOpen) {
-      void nextTick(() => {
-        const el = drawerRef.value;
-        if (!el) return;
-        const first = el.querySelector<HTMLElement>(
-          'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        first?.focus();
-      });
+      activate();
+    } else {
+      deactivate();
     }
   }
 );
@@ -228,7 +100,6 @@ watch(
             class="hook0-mobile-drawer"
             role="dialog"
             aria-modal="true"
-            @keydown="onDrawerKeydown"
           >
             <!-- Handle -->
             <div class="hook0-mobile-drawer__handle" aria-hidden="true" />
@@ -420,7 +291,7 @@ watch(
               <Hook0Button
                 variant="danger"
                 class="hook0-mobile-drawer__logout"
-                @click="authStore.logout()"
+                @click="void authStore.logout()"
               >
                 <LogOut :size="18" aria-hidden="true" />
                 {{ t('nav.logout') }}
@@ -437,8 +308,8 @@ watch(
 .hook0-mobile-drawer-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 40;
-  background-color: rgba(0, 0, 0, 0.5);
+  z-index: var(--z-overlay, 50);
+  background-color: var(--color-overlay, rgba(0, 0, 0, 0.5));
   backdrop-filter: blur(2px);
 }
 
@@ -447,7 +318,7 @@ watch(
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 50;
+  z-index: var(--z-overlay, 50);
   display: flex;
   flex-direction: column;
   max-height: 85vh;

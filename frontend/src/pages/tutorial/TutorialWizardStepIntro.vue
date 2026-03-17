@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { Component } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
   Rocket,
@@ -15,16 +16,17 @@ import Hook0Stack from '@/components/Hook0Stack.vue';
 import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
 import Hook0Illustration from '@/components/Hook0Illustration.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
+import WizardStepLayout from '@/pages/tutorial/WizardStepLayout.vue';
 
 const { t } = useI18n();
 
-defineEmits<{
+const emit = defineEmits<{
   start: [];
   skip: [];
 }>();
 
 type TutorialStepItem = {
-  icon: typeof Building2;
+  icon: Component;
   label: string;
 };
 
@@ -38,28 +40,15 @@ const tutorialSteps: TutorialStepItem[] = [
 </script>
 
 <template>
-  <div class="wizard-modal__header">
-    <Hook0Stack direction="row" align="center" gap="sm">
+  <WizardStepLayout :title="t('tutorial.intro.title')" @skip="emit('skip')">
+    <template #header-icon>
       <Hook0IconBadge variant="primary" size="md">
         <Rocket :size="18" aria-hidden="true" />
       </Hook0IconBadge>
-      <span id="wizard-step-title" class="wizard-modal__title">{{
-        t('tutorial.intro.title')
-      }}</span>
-    </Hook0Stack>
-    <button
-      class="wizard-modal__close"
-      type="button"
-      :aria-label="t('tutorial.intro.skipButton')"
-      @click="$emit('skip')"
-    >
-      <X :size="18" aria-hidden="true" />
-    </button>
-  </div>
+    </template>
 
-  <div class="wizard-modal__content" data-test="tutorial-card">
-    <Hook0Stack direction="column" gap="lg">
-      <span class="wizard-modal__subtitle">{{ t('tutorial.intro.subtitle') }}</span>
+    <Hook0Stack direction="column" gap="lg" data-test="tutorial-card">
+      <span class="wizard-subtitle">{{ t('tutorial.intro.subtitle') }}</span>
 
       <Hook0Illustration variant="tutorial" size="md" :alt="t('tutorial.intro.illustrationAlt')" />
 
@@ -89,31 +78,36 @@ const tutorialSteps: TutorialStepItem[] = [
         </i18n-t>
       </Hook0Stack>
     </Hook0Stack>
-  </div>
 
-  <div class="wizard-modal__footer">
-    <Hook0Button
-      variant="secondary"
-      type="button"
-      data-test="tutorial-skip-button"
-      @click="$emit('skip')"
-    >
-      <X :size="16" aria-hidden="true" />
-      {{ t('tutorial.intro.skipButton') }}
-    </Hook0Button>
-    <Hook0Button
-      variant="primary"
-      type="button"
-      data-test="tutorial-start-button"
-      @click="$emit('start')"
-    >
-      {{ t('tutorial.intro.startStep1') }}
-      <ArrowRight :size="16" aria-hidden="true" />
-    </Hook0Button>
-  </div>
+    <template #footer>
+      <Hook0Button
+        variant="secondary"
+        type="button"
+        data-test="tutorial-skip-button"
+        @click="emit('skip')"
+      >
+        <X :size="16" aria-hidden="true" />
+        {{ t('tutorial.intro.skipButton') }}
+      </Hook0Button>
+      <Hook0Button
+        variant="primary"
+        type="button"
+        data-test="tutorial-start-button"
+        @click="emit('start')"
+      >
+        {{ t('tutorial.intro.startStep1') }}
+        <ArrowRight :size="16" aria-hidden="true" />
+      </Hook0Button>
+    </template>
+  </WizardStepLayout>
 </template>
 
 <style scoped>
+.wizard-subtitle {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
 .tutorial-steps {
   list-style: none;
   padding: 0;

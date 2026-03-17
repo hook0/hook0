@@ -1,8 +1,13 @@
+interface ImportMetaEnv {
+  readonly NODE_ENV: 'development' | 'production' | 'test';
+  readonly DEV: boolean;
+  readonly PROD: boolean;
+  readonly MODE: string;
+  readonly VITE_API_TIMEOUT: string;
+  readonly VITE_API_ENDPOINT: string;
+  readonly VITE_CRISP_WEBSITE_ID?: string;
+}
+
 interface ImportMeta {
-  env: {
-    readonly NODE_ENV: 'development' | 'production' | 'test';
-    readonly VITE_API_TIMEOUT: string;
-    readonly VITE_API_ENDPOINT: string;
-    readonly VITE_CRISP_WEBSITE_ID?: string;
-  };
+  readonly env: ImportMetaEnv;
 }

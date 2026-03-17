@@ -1,15 +1,14 @@
 <script setup lang="ts">
-import type { Component } from 'vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Building2 } from 'lucide-vue-next';
 
 import type { UUID } from '@/http';
+import type { ProgressStep } from '@/pages/tutorial/types';
 import { useOrganizationList } from '@/pages/organizations/useOrganizationQueries';
 import OrganizationsEdit from '@/pages/organizations/OrganizationsEdit.vue';
 import TutorialWizardEntityStep from './TutorialWizardEntityStep.vue';
 
-type ProgressStep = { icon: Component; label: string };
 defineProps<{ progressSteps: ProgressStep[] }>();
 const emit = defineEmits<{ advance: [organizationId: UUID]; skip: [] }>();
 const { t } = useI18n();

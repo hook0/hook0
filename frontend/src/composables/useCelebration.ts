@@ -9,19 +9,21 @@ const CONFETTI_COLORS = [
   'var(--color-info)',
 ];
 
+const STYLE_ID = 'celebration-styles';
+
 function injectStyles(): void {
-  if (document.getElementById('celebration-styles')) {
+  if (document.getElementById(STYLE_ID)) {
     return;
   }
 
   const style = document.createElement('style');
-  style.id = 'celebration-styles';
+  style.id = STYLE_ID;
   style.textContent = `
     .celebration-overlay {
       position: fixed;
       inset: 0;
       pointer-events: none;
-      z-index: 9999;
+      z-index: var(--z-celebration, 90);
       overflow: hidden;
     }
 
@@ -65,6 +67,10 @@ function injectStyles(): void {
   document.head.appendChild(style);
 }
 
+function removeStyles(): void {
+  document.getElementById(STYLE_ID)?.remove();
+}
+
 function createParticle(): HTMLElement {
   const particle = document.createElement('div');
   const shapes = ['square', 'circle', 'strip'] as const;
@@ -84,7 +90,30 @@ function createParticle(): HTMLElement {
 }
 
 export function useCelebration() {
+  let pendingTimeout: ReturnType<typeof setTimeout> | null = null;
+  let activeOverlay: HTMLElement | null = null;
+
+  function cleanup(): void {
+    if (pendingTimeout !== null) {
+      clearTimeout(pendingTimeout);
+      pendingTimeout = null;
+    }
+    if (activeOverlay) {
+      activeOverlay.remove();
+      activeOverlay = null;
+    }
+    removeStyles();
+  }
+
   function celebrate(count: number = PARTICLE_COUNT): void {
+    // Respect reduced motion preference
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+
+    // Cancel any pending celebration before starting a new one
+    cleanup();
+
     injectStyles();
 
     const overlay = document.createElement('div');
@@ -95,11 +124,12 @@ export function useCelebration() {
     }
 
     document.body.appendChild(overlay);
+    activeOverlay = overlay;
 
-    setTimeout(() => {
-      overlay.remove();
+    pendingTimeout = setTimeout(() => {
+      cleanup();
     }, CELEBRATION_DURATION_MS + 1000);
   }
 
-  return { celebrate };
+  return { celebrate, cleanup };
 }

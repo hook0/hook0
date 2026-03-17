@@ -118,6 +118,17 @@
   --sidebar-collapsed-width: 64px;
   --header-height: 56px;
   --mobile-tab-height: 56px;
+
+  /* Z-index scale */
+  --z-dropdown: 40;
+  --z-overlay: 50;
+  --z-modal: 60;
+  --z-popover: 70;
+  --z-tooltip: 80;
+  --z-celebration: 90;
+
+  /* Overlay */
+  --color-overlay: rgba(0, 0, 0, 0.5);
 }
 
 /* --- Dark Theme --- */
@@ -159,6 +170,8 @@
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.3);
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.3);
+
+  --color-overlay: rgba(0, 0, 0, 0.7);
 }
 
 /* ========================================
@@ -186,12 +199,9 @@ code, pre, kbd, samp {
    Placeholder styles (light gray across all inputs)
    ======================================== */
 
-input::placeholder,
-textarea::placeholder,
-select::placeholder,
 ::placeholder {
-  color: var(--color-text-muted, #9ca3af) !important;
-  opacity: 1 !important;
+  color: var(--color-text-muted, #9ca3af);
+  opacity: 1;
 }
 
 /* ========================================

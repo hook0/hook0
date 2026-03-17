@@ -1,13 +1,5 @@
 <script setup lang="ts">
-import {
-  computed,
-  defineAsyncComponent,
-  markRaw,
-  nextTick,
-  ref,
-  onMounted,
-  onUnmounted,
-} from 'vue';
+import { computed, defineAsyncComponent, markRaw, ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { push } from 'notivue';
@@ -16,6 +8,7 @@ import { routes } from '@/routes';
 import type { UUID } from '@/http';
 import { useTracking } from '@/composables/useTracking';
 import { useCelebration } from '@/composables/useCelebration';
+import { useFocusTrap } from '@/composables/useFocusTrap';
 
 import {
   Rocket,
@@ -49,6 +42,8 @@ const route = useRoute();
 const { trackEvent } = useTracking();
 const { celebrate } = useCelebration();
 
+const TOAST_DURATION_MS = 5000;
+
 // ---------------------------------------------------------------------------
 // Step mapping from route name
 // ---------------------------------------------------------------------------
@@ -65,16 +60,26 @@ const STEP_MAP: Record<string, number> = {
 const currentStep = computed(() => STEP_MAP[route.name as string] ?? 0);
 
 // ---------------------------------------------------------------------------
-// Step definitions for progress bar
+// Step definitions for progress bar — icons are module-level (markRaw once)
 // ---------------------------------------------------------------------------
+const STEP_ICONS = [
+  markRaw(Rocket),
+  markRaw(Building2),
+  markRaw(AppWindow),
+  markRaw(FolderTree),
+  markRaw(Link),
+  markRaw(FileText),
+  markRaw(PartyPopper),
+] as const;
+
 const STEPS = computed(() => [
-  { icon: markRaw(Rocket), label: t('tutorial.steps.intro') },
-  { icon: markRaw(Building2), label: t('tutorial.steps.organization') },
-  { icon: markRaw(AppWindow), label: t('tutorial.steps.application') },
-  { icon: markRaw(FolderTree), label: t('tutorial.steps.eventType') },
-  { icon: markRaw(Link), label: t('tutorial.steps.subscription') },
-  { icon: markRaw(FileText), label: t('tutorial.steps.sendEvent') },
-  { icon: markRaw(PartyPopper), label: t('tutorial.steps.success') },
+  { icon: STEP_ICONS[0], label: t('tutorial.steps.intro') },
+  { icon: STEP_ICONS[1], label: t('tutorial.steps.organization') },
+  { icon: STEP_ICONS[2], label: t('tutorial.steps.application') },
+  { icon: STEP_ICONS[3], label: t('tutorial.steps.eventType') },
+  { icon: STEP_ICONS[4], label: t('tutorial.steps.subscription') },
+  { icon: STEP_ICONS[5], label: t('tutorial.steps.sendEvent') },
+  { icon: STEP_ICONS[6], label: t('tutorial.steps.success') },
 ]);
 
 // Progress bar steps (steps 1-5 only, mapped to 0-based for the progress component)
@@ -102,7 +107,7 @@ function advanceStep(config: AdvanceConfig) {
   push.success({
     title: config.toastTitle,
     message: config.toastMessage,
-    duration: 5000,
+    duration: TOAST_DURATION_MS,
   });
   celebrate();
   void router.push({ name: config.routeName, params: config.params });
@@ -128,7 +133,7 @@ function handleAppAdvance(applicationId: UUID) {
     push.error({
       title: t('tutorial.orgAppIdRequired'),
       message: t('common.somethingWentWrong'),
-      duration: 5000,
+      duration: TOAST_DURATION_MS,
     });
     return;
   }
@@ -144,148 +149,123 @@ function handleAppAdvance(applicationId: UUID) {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Config map for form steps (3, 4, 5)
+// ---------------------------------------------------------------------------
+const FORM_STEP_CONFIG: Record<
+  3 | 4 | 5,
+  { trackLabel: string; toastTitle: string; toastMessage: string; routeName: string }
+> = {
+  3: {
+    trackLabel: 'event-type',
+    toastTitle: 'tutorial.step3.eventTypeCreated',
+    toastMessage: 'tutorial.step3.canCreateSubscription',
+    routeName: routes.TutorialCreateSubscription,
+  },
+  4: {
+    trackLabel: 'subscription',
+    toastTitle: 'tutorial.step4.subscriptionCreated',
+    toastMessage: 'tutorial.step4.canSendEvent',
+    routeName: routes.TutorialSendEvent,
+  },
+  5: {
+    trackLabel: 'send-event',
+    toastTitle: 'tutorial.step5.eventSent',
+    toastMessage: 'tutorial.step5.eventSentMessage',
+    routeName: routes.TutorialSuccess,
+  },
+};
+
 function handleFormAdvance() {
   if (!paramOrgId.value || !paramAppId.value) {
     push.error({
       title: t('tutorial.orgAppIdRequired'),
       message: t('tutorial.somethingWentWrong'),
-      duration: 5000,
+      duration: TOAST_DURATION_MS,
     });
     return;
   }
 
-  const step = currentStep.value;
-  if (step === 3) {
-    advanceStep({
-      trackLabel: 'event-type',
-      toastTitle: t('tutorial.step3.eventTypeCreated'),
-      toastMessage: t('tutorial.step3.canCreateSubscription'),
-      routeName: routes.TutorialCreateSubscription,
-      params: {
-        organization_id: paramOrgId.value,
-        application_id: paramAppId.value,
-      },
-    });
-  } else if (step === 4) {
-    advanceStep({
-      trackLabel: 'subscription',
-      toastTitle: t('tutorial.step4.subscriptionCreated'),
-      toastMessage: t('tutorial.step4.canSendEvent'),
-      routeName: routes.TutorialSendEvent,
-      params: {
-        organization_id: paramOrgId.value,
-        application_id: paramAppId.value,
-      },
-    });
-  } else if (step === 5) {
-    advanceStep({
-      trackLabel: 'send-event',
-      toastTitle: t('tutorial.step5.eventSent'),
-      toastMessage: t('tutorial.step5.eventSentMessage'),
-      routeName: routes.TutorialSuccess,
-      params: {
-        organization_id: paramOrgId.value,
-        application_id: paramAppId.value,
-      },
-    });
-  }
+  const step = currentStep.value as 3 | 4 | 5;
+  const config = FORM_STEP_CONFIG[step];
+  if (!config) return;
+
+  advanceStep({
+    trackLabel: config.trackLabel,
+    toastTitle: t(config.toastTitle),
+    toastMessage: t(config.toastMessage),
+    routeName: config.routeName,
+    params: {
+      organization_id: paramOrgId.value,
+      application_id: paramAppId.value,
+    },
+  });
 }
 
 // ---------------------------------------------------------------------------
-// Unified dismiss
+// Config map for dismiss routes
 // ---------------------------------------------------------------------------
+type DismissRouteEntry = {
+  track?: boolean;
+  routeName: string;
+  params?: Record<string, string>;
+};
+
+function getDismissRoute(): DismissRouteEntry {
+  const step = currentStep.value;
+  const DISMISS_ROUTE_MAP: Record<number, () => DismissRouteEntry> = {
+    0: () => ({ track: true, routeName: routes.Home }),
+    1: () => ({ routeName: routes.Home }),
+    2: () => ({
+      routeName: routes.OrganizationsDashboard,
+      params: { organization_id: paramOrgId.value },
+    }),
+    6: () => ({
+      routeName: routes.ApplicationsDashboard,
+      params: { organization_id: paramOrgId.value },
+    }),
+  };
+
+  const factory = DISMISS_ROUTE_MAP[step];
+  if (factory) return factory();
+
+  // Default for steps 3-5
+  return {
+    routeName: routes.ApplicationsDashboard,
+    params: {
+      organization_id: paramOrgId.value,
+      application_id: paramAppId.value,
+    },
+  };
+}
+
 function dismiss() {
-  const step = currentStep.value;
-  if (step === 0) {
+  const entry = getDismissRoute();
+  if (entry.track) {
     trackEvent('tutorial', 'skip');
-    void router.push({ name: routes.Home });
-  } else if (step <= 1) {
-    void router.push({ name: routes.Home });
-  } else if (step === 2) {
-    void router.push({
-      name: routes.OrganizationsDashboard,
-      params: { organization_id: paramOrgId.value },
-    });
-  } else if (step === 6) {
-    void router.push({
-      name: routes.ApplicationsDashboard,
-      params: { organization_id: paramOrgId.value },
-    });
-  } else {
-    void router.push({
-      name: routes.ApplicationsDashboard,
-      params: {
-        organization_id: paramOrgId.value,
-        application_id: paramAppId.value,
-      },
-    });
   }
+  void router.push({ name: entry.routeName, params: entry.params });
 }
 
 // ---------------------------------------------------------------------------
-// Keyboard: Escape to dismiss
+// Focus trap & keyboard handling
 // ---------------------------------------------------------------------------
-function handleKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape') {
-    dismiss();
-  }
-}
+const overlayRef = ref<HTMLElement | null>(null);
+const modalRef = ref<HTMLElement | null>(null);
+
+const { activate, handleKeydown } = useFocusTrap(modalRef, { onEscape: dismiss });
 
 onMounted(() => {
-  document.addEventListener('keydown', handleKeydown);
-  focusFirstElement();
-});
-
-onUnmounted(() => {
-  document.removeEventListener('keydown', handleKeydown);
+  activate();
 });
 
 // ---------------------------------------------------------------------------
 // Overlay click to dismiss
 // ---------------------------------------------------------------------------
-const overlayRef = ref<HTMLElement | null>(null);
-const modalRef = ref<HTMLElement | null>(null);
-
 function handleOverlayClick(e: MouseEvent) {
   if (e.target === overlayRef.value) {
     dismiss();
   }
-}
-
-// ---------------------------------------------------------------------------
-// Focus trap
-// ---------------------------------------------------------------------------
-const FOCUSABLE_SELECTOR =
-  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
-
-function handleFocusTrap(e: KeyboardEvent) {
-  if (e.key !== 'Tab' || !modalRef.value) return;
-
-  const focusable = Array.from(modalRef.value.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
-  if (focusable.length === 0) return;
-
-  const first = focusable[0];
-  const last = focusable[focusable.length - 1];
-
-  if (e.shiftKey) {
-    if (document.activeElement === first) {
-      e.preventDefault();
-      last.focus();
-    }
-  } else {
-    if (document.activeElement === last) {
-      e.preventDefault();
-      first.focus();
-    }
-  }
-}
-
-function focusFirstElement() {
-  void nextTick(() => {
-    if (!modalRef.value) return;
-    const first = modalRef.value.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
-    first?.focus();
-  });
 }
 </script>
 
@@ -298,7 +278,7 @@ function focusFirstElement() {
         role="dialog"
         aria-modal="true"
         aria-labelledby="wizard-step-title"
-        @keydown="handleFocusTrap"
+        @keydown="handleKeydown"
       >
         <TutorialWizardStepIntro
           v-if="currentStep === 0"
@@ -373,75 +353,7 @@ function focusFirstElement() {
   }
 }
 
-.wizard-modal :deep(.wizard-modal__header) {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid var(--color-border);
-  flex-shrink: 0;
-}
-
-.wizard-modal :deep(.wizard-modal__title) {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-.wizard-modal :deep(.wizard-modal__subtitle) {
-  font-size: 0.875rem;
-  color: var(--color-text-secondary);
-}
-
-.wizard-modal :deep(.wizard-modal__close) {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  border: none;
-  background: none;
-  border-radius: var(--radius-md);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
-  flex-shrink: 0;
-}
-
-.wizard-modal :deep(.wizard-modal__close:hover) {
-  background-color: var(--color-bg-tertiary);
-  color: var(--color-text-primary);
-}
-
-.wizard-modal :deep(.wizard-modal__close:focus-visible) {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-.wizard-modal :deep(.wizard-modal__content) {
-  padding: 1.5rem;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  flex: 1;
-}
-
-.wizard-modal :deep(.wizard-modal__footer) {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  padding: 1rem 1.5rem;
-  border-top: 1px solid var(--color-border);
-  flex-shrink: 0;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .wizard-modal :deep(.wizard-modal__close) {
-    transition: none;
-  }
-
   .wizard-overlay {
     backdrop-filter: none;
   }

@@ -52,7 +52,7 @@ const avatarStyle = computed(() => {
   align-items: center;
   justify-content: center;
   background-color: var(--color-primary);
-  color: #ffffff;
+  color: var(--color-bg-primary, #ffffff);
   font-weight: 700;
   letter-spacing: 0.02em;
   user-select: none;

@@ -51,16 +51,7 @@ export function attenuateBiscuit(
   expired_at: Date | null,
   biscuitPublicKey: string
 ): Biscuit {
-  const public_key: PublicKey = PublicKey.fromString(biscuitPublicKey, SignatureAlgorithm.Ed25519);
-  let biscuit: Biscuit;
-  try {
-    biscuit = Biscuit.fromBase64(biscuit_token, public_key);
-  } catch (e) {
-    throw new Error(
-      'An error occurred while generating the service token. Your biscuit may be invalid. If the error persists, please contact support.'
-    );
-  }
-
+  const biscuit = parseBiscuitFromBase64(biscuit_token, biscuitPublicKey);
   const application_id_bytes = application_id ? uuidParse(application_id) : null;
 
   if (application_id_bytes && expired_at) {
@@ -82,16 +73,7 @@ export function attenuateBiscuitWithDatalog(
   customDatalog: string,
   biscuitPublicKey: string
 ): Biscuit {
-  const public_key: PublicKey = PublicKey.fromString(biscuitPublicKey, SignatureAlgorithm.Ed25519);
-  let biscuit: Biscuit;
-  try {
-    biscuit = Biscuit.fromBase64(biscuit_token, public_key);
-  } catch (e) {
-    throw new Error(
-      'An error occurred while generating the service token. Your biscuit may be invalid. If the error persists, please contact support.'
-    );
-  }
-
+  const biscuit = parseBiscuitFromBase64(biscuit_token, biscuitPublicKey);
   const application_id_bytes = application_id ? uuidParse(application_id) : null;
   const builder = new BlockBuilder();
 

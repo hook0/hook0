@@ -21,6 +21,7 @@ import { trySyncCall } from '@/utils/result';
 import { routes } from '@/routes';
 import { useTracking } from '@/composables/useTracking';
 
+import TokenPreviewTabs from './TokenPreviewTabs.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
@@ -116,10 +117,16 @@ const isDateExpirationAttenuation = ref(false);
 const dateAttenuation = ref<string | null>(null);
 const customDatalogClaims = ref('');
 
-// Token preview for advanced mode
-const tokenPreviewTab = ref<'decoded' | 'raw'>('decoded');
+// Token preview
 const tokenPreviewBlocks = ref<Array<BiscuitBlockInfo>>([]);
 const tokenPreviewRaw = ref('');
+
+const tokenPreviewTabBlocks = computed(() =>
+  tokenPreviewBlocks.value.map((b) => ({
+    label: t('serviceTokens.blockNumber', { index: b.index }),
+    code: b.source,
+  }))
+);
 
 function computeExpiryDate(): Date | null {
   if (selectedExpiryPreset.value === 'none') {
@@ -173,7 +180,12 @@ function cancel() {
   });
 }
 
-function submitSimple() {
+/**
+ * Shared validation and submission logic for both simple and advanced modes.
+ * @param attenuateFn - The mode-specific function that produces the attenuated Biscuit.
+ * @param trackLabel - The tracking label ('simple' or 'advanced').
+ */
+function validateAndSubmit(attenuateFn: () => Biscuit, trackLabel: string): void {
   const publicKey = instanceConfig.value?.biscuit_public_key;
   if (!publicKey) {
     push.error({
@@ -193,6 +205,28 @@ function submitSimple() {
     return;
   }
 
+  const result = trySyncCall(attenuateFn);
+
+  if (!result.ok) {
+    push.error({
+      title: t('common.somethingWentWrong'),
+      message: result.error.message || t('serviceTokens.tokenGenerationError'),
+      duration: 5000,
+    });
+    return;
+  }
+
+  attenuatedBiscuit.value = result.value;
+  trackEvent('service-token', 'attenuate', trackLabel);
+  push.success({
+    title: t('common.success'),
+    message: t('serviceTokens.tokenGenerated'),
+    duration: 5000,
+  });
+}
+
+function submitSimple() {
+  const publicKey = instanceConfig.value?.biscuit_public_key;
   const expiryDate = computeExpiryDate();
 
   if (!selectedApplicationId.value && !expiryDate) {
@@ -213,48 +247,20 @@ function submitSimple() {
     return;
   }
 
-  const result = trySyncCall(() =>
-    attenuateBiscuit(serviceToken.value.biscuit, selectedApplicationId.value, expiryDate, publicKey)
+  validateAndSubmit(
+    () =>
+      attenuateBiscuit(
+        serviceToken.value!.biscuit,
+        selectedApplicationId.value,
+        expiryDate,
+        publicKey!
+      ),
+    'simple'
   );
-
-  if (!result.ok) {
-    push.error({
-      title: t('common.somethingWentWrong'),
-      message: result.error.message || t('serviceTokens.tokenGenerationError'),
-      duration: 5000,
-    });
-    return;
-  }
-
-  attenuatedBiscuit.value = result.value;
-  trackEvent('service-token', 'attenuate', 'simple');
-  push.success({
-    title: t('common.success'),
-    message: t('serviceTokens.tokenGenerated'),
-    duration: 5000,
-  });
 }
 
 function submitAdvanced() {
   const publicKey = instanceConfig.value?.biscuit_public_key;
-  if (!publicKey) {
-    push.error({
-      title: t('common.somethingWentWrong'),
-      message: t('serviceTokens.publicKeyError'),
-      duration: 5000,
-    });
-    return;
-  }
-
-  if (!serviceToken.value) {
-    push.error({
-      title: t('common.error'),
-      message: t('serviceTokens.invalidToken'),
-      duration: 5000,
-    });
-    return;
-  }
-
   const expiry =
     isDateExpirationAttenuation.value && dateAttenuation.value
       ? new Date(dateAttenuation.value)
@@ -278,32 +284,17 @@ function submitAdvanced() {
     return;
   }
 
-  const result = trySyncCall(() =>
-    attenuateBiscuitWithDatalog(
-      serviceToken.value.biscuit,
-      selectedApplicationId.value,
-      expiry,
-      customDatalogClaims.value,
-      publicKey
-    )
+  validateAndSubmit(
+    () =>
+      attenuateBiscuitWithDatalog(
+        serviceToken.value!.biscuit,
+        selectedApplicationId.value,
+        expiry,
+        customDatalogClaims.value,
+        publicKey!
+      ),
+    'advanced'
   );
-
-  if (!result.ok) {
-    push.error({
-      title: t('common.somethingWentWrong'),
-      message: result.error.message || t('serviceTokens.tokenGenerationError'),
-      duration: 5000,
-    });
-    return;
-  }
-
-  attenuatedBiscuit.value = result.value;
-  trackEvent('service-token', 'attenuate', 'advanced');
-  push.success({
-    title: t('common.success'),
-    message: t('serviceTokens.tokenGenerated'),
-    duration: 5000,
-  });
 }
 
 function submit() {
@@ -649,53 +640,7 @@ function previewToken() {
                   {{ t('serviceTokens.tokenPreview') }}
                 </template>
                 <template #content>
-                  <div class="token-preview">
-                    <div
-                      class="token-preview__tabs"
-                      role="tablist"
-                      :aria-label="t('serviceTokens.tokenPreview')"
-                    >
-                      <button
-                        type="button"
-                        role="tab"
-                        class="token-preview__tab"
-                        :class="{
-                          'token-preview__tab--active': tokenPreviewTab === 'decoded',
-                        }"
-                        :aria-selected="tokenPreviewTab === 'decoded'"
-                        @click="tokenPreviewTab = 'decoded'"
-                      >
-                        {{ t('serviceTokens.tokenPreviewDecoded') }}
-                      </button>
-                      <button
-                        type="button"
-                        role="tab"
-                        class="token-preview__tab"
-                        :class="{
-                          'token-preview__tab--active': tokenPreviewTab === 'raw',
-                        }"
-                        :aria-selected="tokenPreviewTab === 'raw'"
-                        @click="tokenPreviewTab = 'raw'"
-                      >
-                        {{ t('serviceTokens.tokenPreviewRaw') }}
-                      </button>
-                    </div>
-                    <div v-if="tokenPreviewTab === 'decoded'" class="token-preview__content">
-                      <div
-                        v-for="blockInfo in tokenPreviewBlocks"
-                        :key="blockInfo.index"
-                        class="token-preview__block"
-                      >
-                        <span class="token-preview__block-label">
-                          {{ t('serviceTokens.blockNumber', { index: blockInfo.index }) }}
-                        </span>
-                        <Hook0Code :code="blockInfo.source"></Hook0Code>
-                      </div>
-                    </div>
-                    <div v-else class="token-preview__content">
-                      <Hook0Code :code="tokenPreviewRaw"></Hook0Code>
-                    </div>
-                  </div>
+                  <TokenPreviewTabs :blocks="tokenPreviewTabBlocks" :raw="tokenPreviewRaw" />
                 </template>
               </Hook0CardContentLine>
             </Hook0CardContent>
@@ -714,53 +659,7 @@ function previewToken() {
 
                   <!-- Decoded/Raw tabs for advanced mode -->
                   <template v-if="attenuationMode === 'advanced'">
-                    <div class="token-preview">
-                      <div
-                        class="token-preview__tabs"
-                        role="tablist"
-                        :aria-label="t('serviceTokens.tokenPreview')"
-                      >
-                        <button
-                          type="button"
-                          role="tab"
-                          class="token-preview__tab"
-                          :class="{
-                            'token-preview__tab--active': tokenPreviewTab === 'decoded',
-                          }"
-                          :aria-selected="tokenPreviewTab === 'decoded'"
-                          @click="tokenPreviewTab = 'decoded'"
-                        >
-                          {{ t('serviceTokens.tokenPreviewDecoded') }}
-                        </button>
-                        <button
-                          type="button"
-                          role="tab"
-                          class="token-preview__tab"
-                          :class="{
-                            'token-preview__tab--active': tokenPreviewTab === 'raw',
-                          }"
-                          :aria-selected="tokenPreviewTab === 'raw'"
-                          @click="tokenPreviewTab = 'raw'"
-                        >
-                          {{ t('serviceTokens.tokenPreviewRaw') }}
-                        </button>
-                      </div>
-                      <div v-if="tokenPreviewTab === 'decoded'" class="token-preview__content">
-                        <div
-                          v-for="blockInfo in tokenPreviewBlocks"
-                          :key="blockInfo.index"
-                          class="token-preview__block"
-                        >
-                          <span class="token-preview__block-label">
-                            {{ t('serviceTokens.blockNumber', { index: blockInfo.index }) }}
-                          </span>
-                          <Hook0Code :code="blockInfo.source"></Hook0Code>
-                        </div>
-                      </div>
-                      <div v-else class="token-preview__content">
-                        <Hook0Code :code="tokenPreviewRaw"></Hook0Code>
-                      </div>
-                    </div>
+                    <TokenPreviewTabs :blocks="tokenPreviewTabBlocks" :raw="tokenPreviewRaw" />
                   </template>
 
                   <!-- Simple mode: just the raw token -->
@@ -854,66 +753,5 @@ function previewToken() {
   box-shadow:
     0 0 0 1px var(--color-primary),
     var(--shadow-sm);
-}
-
-/* Token Preview */
-.token-preview {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.token-preview__tabs {
-  display: inline-flex;
-  border-bottom: 1px solid var(--color-border);
-  gap: 0;
-}
-
-.token-preview__tab {
-  padding: 0.5rem 1rem;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--color-text-secondary);
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  cursor: pointer;
-  transition:
-    color 0.15s ease,
-    border-color 0.15s ease;
-}
-
-.token-preview__tab:hover {
-  color: var(--color-text-primary);
-}
-
-.token-preview__tab:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: -2px;
-}
-
-.token-preview__tab--active {
-  color: var(--color-primary);
-  border-bottom-color: var(--color-primary);
-}
-
-.token-preview__content {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.token-preview__block {
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-}
-
-.token-preview__block-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 </style>

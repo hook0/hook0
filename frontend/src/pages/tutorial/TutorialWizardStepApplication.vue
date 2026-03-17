@@ -1,15 +1,14 @@
 <script setup lang="ts">
-import type { Component } from 'vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { AppWindow } from 'lucide-vue-next';
 
 import type { UUID } from '@/http';
+import type { ProgressStep } from '@/pages/tutorial/types';
 import { useApplicationList } from '@/pages/organizations/applications/useApplicationQueries';
 import ApplicationsEdit from '@/pages/organizations/applications/ApplicationsEdit.vue';
 import TutorialWizardEntityStep from './TutorialWizardEntityStep.vue';
 
-type ProgressStep = { icon: Component; label: string };
 const props = defineProps<{ organizationId: string; progressSteps: ProgressStep[] }>();
 const emit = defineEmits<{ advance: [applicationId: UUID]; skip: [] }>();
 const { t } = useI18n();

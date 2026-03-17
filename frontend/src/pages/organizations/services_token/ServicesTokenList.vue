@@ -13,8 +13,7 @@ import {
 } from './useServiceTokenQueries';
 import type { ServiceToken } from './ServicesTokenService';
 import { routes } from '@/routes';
-import { displayError } from '@/utils/displayError';
-import type { Problem } from '@/http';
+import { handleMutationError } from '@/utils/handleMutationError';
 import { push } from 'notivue';
 import { useTracking } from '@/composables/useTracking';
 import { usePermissions } from '@/composables/usePermissions';
@@ -99,7 +98,7 @@ function confirmCreate() {
         });
       },
       onError: (err) => {
-        displayError(err as unknown as Problem);
+        handleMutationError(err);
       },
     }
   );
@@ -131,7 +130,7 @@ function confirmEdit() {
         });
       },
       onError: (err) => {
-        displayError(err as unknown as Problem);
+        handleMutationError(err);
       },
     }
   );

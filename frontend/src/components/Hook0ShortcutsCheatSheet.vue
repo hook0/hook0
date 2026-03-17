@@ -1,10 +1,9 @@
 <script setup lang="ts">
+import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue';
 import { useUiStore } from '@/stores/ui';
 import { useI18n } from 'vue-i18n';
 import { X } from 'lucide-vue-next';
-
-const { t } = useI18n();
-const uiStore = useUiStore();
+import { useFocusTrap } from '@/composables/useFocusTrap';
 
 interface Shortcut {
   keys: string[];
@@ -16,10 +15,18 @@ interface ShortcutGroup {
   shortcuts: Shortcut[];
 }
 
-const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+const { t } = useI18n();
+const uiStore = useUiStore();
+
+const isMac =
+  (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform
+    ?.toLowerCase()
+    .includes('mac') ??
+  navigator.platform?.toUpperCase().includes('MAC') ??
+  false;
 const metaKey = isMac ? '⌘' : 'Ctrl';
 
-const groups: ShortcutGroup[] = [
+const groups = computed<ShortcutGroup[]>(() => [
   {
     title: t('shortcuts.general'),
     shortcuts: [
@@ -36,18 +43,54 @@ const groups: ShortcutGroup[] = [
       { keys: ['Tab'], description: t('shortcuts.nextField') },
     ],
   },
-];
+]);
+
+const cheatSheetRef = ref<HTMLElement | null>(null);
 
 function close() {
   uiStore.closeShortcutsCheatSheet();
 }
+
+const { activate, deactivate, handleKeydown } = useFocusTrap(cheatSheetRef, { onEscape: close });
+
+watch(
+  () => uiStore.shortcutsCheatSheetOpen,
+  (isOpen) => {
+    if (isOpen) {
+      void nextTick().then(() => {
+        activate();
+      });
+    } else {
+      void nextTick().then(() => {
+        deactivate();
+      });
+    }
+  }
+);
+
+onBeforeUnmount(() => {
+  if (uiStore.shortcutsCheatSheetOpen) {
+    deactivate();
+  }
+});
 </script>
 
 <template>
   <Teleport to="body">
     <Transition name="shortcuts-sheet">
-      <div v-if="uiStore.shortcutsCheatSheetOpen" class="shortcuts-overlay" @click.self="close">
-        <div class="shortcuts-sheet" role="dialog" :aria-label="t('shortcuts.title')">
+      <div
+        v-if="uiStore.shortcutsCheatSheetOpen"
+        ref="cheatSheetRef"
+        class="shortcuts-overlay"
+        @click.self="close"
+        @keydown="handleKeydown"
+      >
+        <div
+          class="shortcuts-sheet"
+          role="dialog"
+          aria-modal="true"
+          :aria-label="t('shortcuts.title')"
+        >
           <div class="shortcuts-sheet__header">
             <h2 class="shortcuts-sheet__title">{{ t('shortcuts.title') }}</h2>
             <button
@@ -87,11 +130,11 @@ function close() {
 .shortcuts-overlay {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: var(--z-modal, 60);
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: var(--color-overlay, rgba(0, 0, 0, 0.5));
   backdrop-filter: blur(4px);
 }
 

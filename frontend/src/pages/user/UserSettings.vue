@@ -11,8 +11,7 @@ import { toTypedSchema } from '@/utils/zod-adapter';
 import { useAuthStore } from '@/stores/auth';
 import { useUiStore } from '@/stores/ui';
 import type { ColorMode } from '@/stores/ui';
-import { displayError } from '@/utils/displayError';
-import type { Problem } from '@/http';
+import { handleMutationError } from '@/utils/handleMutationError';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -64,7 +63,7 @@ const onChangePassword = handleSubmit((values) => {
       });
       resetForm();
     })
-    .catch((err) => displayError(err as Problem));
+    .catch(handleMutationError);
 });
 
 const showDeleteAccountDialog = ref(false);
@@ -87,7 +86,7 @@ function confirmDeleteAccount() {
         void authStore.logout();
       }, 3000);
     })
-    .catch((err) => displayError(err as Problem));
+    .catch(handleMutationError);
 }
 </script>
 

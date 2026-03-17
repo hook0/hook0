@@ -9,8 +9,7 @@ import { useEventList, useEventDetail, useReplayEvent, useSendEvent } from './us
 import { useEventTypeList } from '../event_types/useEventTypeQueries';
 import type { Event } from './EventsService';
 import { routes } from '@/routes';
-import { displayError } from '@/utils/displayError';
-import type { Problem } from '@/http';
+import { handleMutationError } from '@/utils/handleMutationError';
 import { push } from 'notivue';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
@@ -168,7 +167,7 @@ function sendTestEvent() {
         }
       },
       onError: (err) => {
-        displayError(err as unknown as Problem);
+        handleMutationError(err);
       },
     }
   );
@@ -186,7 +185,7 @@ function handleReplay(row: Event) {
         });
       },
       onError: (err) => {
-        displayError(err as unknown as Problem);
+        handleMutationError(err);
       },
     }
   );

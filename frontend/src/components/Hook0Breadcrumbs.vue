@@ -55,375 +55,226 @@ const { data: organizations } = useOrganizationList();
 const currentOrgId = computed(() => orgId.value ?? '');
 const { data: applications } = useApplicationList(currentOrgId);
 
+// Helper: build an organization crumb (linked or current)
+function orgCrumb(orgName: string, orgIdVal: string, isCurrent?: boolean): Crumb {
+  return {
+    label: orgName,
+    to: isCurrent
+      ? null
+      : router.resolve({
+          name: routes.OrganizationsDashboard,
+          params: { organization_id: orgIdVal },
+        }).fullPath,
+    icon: 'organization',
+    dropdown: 'organization',
+  };
+}
+
+// Helper: build an application crumb (linked or current)
+function appCrumb(
+  appName: string,
+  orgIdVal: string,
+  appIdVal: string | undefined,
+  isCurrent?: boolean
+): Crumb {
+  return {
+    label: appName,
+    to: isCurrent
+      ? null
+      : router.resolve({
+          name: routes.ApplicationsDashboard,
+          params: { organization_id: orgIdVal, application_id: appIdVal },
+        }).fullPath,
+    icon: 'application',
+    dropdown: 'application',
+  };
+}
+
+// Helper: resolve a route path from params
+function resolvePath(routeName: string, params: Record<string, string | undefined>): string {
+  return router.resolve({ name: routeName, params }).fullPath;
+}
+
 // Build the breadcrumb trail
 const crumbs = computed<Crumb[]>(() => {
   const routeName = String(route.name ?? '');
-  const result: Crumb[] = [];
 
   // Not an organization route - no breadcrumbs
   if (!isOrganizationRoute.value) {
-    return result;
+    return [];
   }
 
-  // Root: Organizations (links to home/organizations list)
-  result.push({
+  const homeCrumb: Crumb = {
     label: t('nav.organizations'),
     to: router.resolve({ name: routes.Home }).fullPath,
     icon: 'home',
-  });
+  };
 
   // Special case: New Organization page
   if (routeName === 'OrganizationsNew') {
-    result.push({
-      label: t('breadcrumbs.newOrganization'),
-      to: null,
-    });
-    return result;
+    return [homeCrumb, { label: t('breadcrumbs.newOrganization'), to: null }];
   }
 
-  // If we have an organization ID, add organization crumb
-  if (orgId.value) {
-    const orgName = contextStore.organizationName ?? t('common.loading');
+  if (!orgId.value) {
+    return [homeCrumb];
+  }
 
-    // Organization-level pages (no app context)
-    if (!isApplicationRoute.value) {
-      // Determine if this is a detail/settings page or list page
-      if (routeName === 'OrganizationsDashboard') {
-        // Dashboard - org name is the current page (dropdown enabled)
-        result.push({
-          label: orgName,
-          to: null,
-          icon: 'organization',
-          dropdown: 'organization',
-        });
-      } else if (routeName === 'OrganizationsDetail') {
-        // Org settings - show org then settings
-        result.push({
-          label: orgName,
-          to: router.resolve({
-            name: routes.OrganizationsDashboard,
-            params: { organization_id: orgId.value },
-          }).fullPath,
-          icon: 'organization',
-          dropdown: 'organization',
-        });
-        result.push({
-          label: t('common.settings'),
-          to: null,
-        });
-      } else if (routeName === 'ApplicationsList') {
-        // Applications list
-        result.push({
-          label: orgName,
-          to: router.resolve({
-            name: routes.OrganizationsDashboard,
-            params: { organization_id: orgId.value },
-          }).fullPath,
-          icon: 'organization',
-          dropdown: 'organization',
-        });
-        result.push({
-          label: t('nav.applications'),
-          to: null,
-        });
-      } else if (routeName === 'ApplicationsNew') {
-        // New application
-        result.push({
-          label: orgName,
-          to: router.resolve({
-            name: routes.OrganizationsDashboard,
-            params: { organization_id: orgId.value },
-          }).fullPath,
-          icon: 'organization',
-          dropdown: 'organization',
-        });
-        result.push({
-          label: t('nav.applications'),
-          to: router.resolve({
-            name: routes.ApplicationsList,
-            params: { organization_id: orgId.value },
-          }).fullPath,
-        });
-        result.push({
-          label: t('breadcrumbs.newApplication'),
-          to: null,
-        });
-      } else if (routeName === 'ServicesTokenList') {
-        // Service tokens list
-        result.push({
-          label: orgName,
-          to: router.resolve({
-            name: routes.OrganizationsDashboard,
-            params: { organization_id: orgId.value },
-          }).fullPath,
-          icon: 'organization',
-          dropdown: 'organization',
-        });
-        result.push({
-          label: t('nav.serviceTokens'),
-          to: null,
-        });
-      } else if (routeName === 'ServiceTokenView') {
-        // Service token detail
-        result.push({
-          label: orgName,
-          to: router.resolve({
-            name: routes.OrganizationsDashboard,
-            params: { organization_id: orgId.value },
-          }).fullPath,
-          icon: 'organization',
-          dropdown: 'organization',
-        });
-        result.push({
-          label: t('nav.serviceTokens'),
-          to: router.resolve({
-            name: routes.ServicesTokenList,
-            params: { organization_id: orgId.value },
-          }).fullPath,
-        });
-        result.push({
-          label: t('breadcrumbs.serviceTokenDetail'),
-          to: null,
-        });
-      } else {
-        // Fallback for other org-level pages
-        result.push({
-          label: orgName,
-          to: null,
-          icon: 'organization',
-          dropdown: 'organization',
-        });
-      }
-    } else {
-      // Application-level pages (have app context)
-      const appName = contextStore.applicationName ?? t('common.loading');
+  const orgName = contextStore.organizationName ?? t('common.loading');
+  const orgIdVal = orgId.value;
+  const orgParams = { organization_id: orgIdVal };
 
-      // Always show org first (clickable with dropdown)
-      result.push({
-        label: orgName,
-        to: router.resolve({
-          name: routes.OrganizationsDashboard,
-          params: { organization_id: orgId.value },
-        }).fullPath,
-        icon: 'organization',
-        dropdown: 'organization',
-      });
+  // Organization-level pages (no app context)
+  if (!isApplicationRoute.value) {
+    switch (routeName) {
+      case 'OrganizationsDashboard':
+        return [homeCrumb, orgCrumb(orgName, orgIdVal, true)];
 
-      // Application Dashboard
-      if (routeName === 'ApplicationsDashboard') {
-        result.push({
-          label: appName,
-          to: null,
-          icon: 'application',
-          dropdown: 'application',
-        });
-      } else if (routeName === 'ApplicationsDetail') {
-        // Application settings
-        result.push({
-          label: appName,
-          to: router.resolve({
-            name: routes.ApplicationsDashboard,
-            params: { organization_id: orgId.value, application_id: appId.value },
-          }).fullPath,
-          icon: 'application',
-          dropdown: 'application',
-        });
-        result.push({
-          label: t('common.settings'),
-          to: null,
-        });
-      } else if (routeName === 'ApplicationSecretsList') {
-        // API Keys list
-        result.push({
-          label: appName,
-          to: router.resolve({
-            name: routes.ApplicationsDashboard,
-            params: { organization_id: orgId.value, application_id: appId.value },
-          }).fullPath,
-          icon: 'application',
-          dropdown: 'application',
-        });
-        result.push({
-          label: t('nav.apiKeys'),
-          to: null,
-        });
-      } else if (routeName === 'EventTypesList') {
-        // Event types list
-        result.push({
-          label: appName,
-          to: router.resolve({
-            name: routes.ApplicationsDashboard,
-            params: { organization_id: orgId.value, application_id: appId.value },
-          }).fullPath,
-          icon: 'application',
-          dropdown: 'application',
-        });
-        result.push({
-          label: t('nav.eventTypes'),
-          to: null,
-        });
-      } else if (routeName === 'EventTypesNew') {
-        // New event type
-        result.push({
-          label: appName,
-          to: router.resolve({
-            name: routes.ApplicationsDashboard,
-            params: { organization_id: orgId.value, application_id: appId.value },
-          }).fullPath,
-          icon: 'application',
-          dropdown: 'application',
-        });
-        result.push({
-          label: t('nav.eventTypes'),
-          to: router.resolve({
-            name: routes.EventTypesList,
-            params: { organization_id: orgId.value, application_id: appId.value },
-          }).fullPath,
-        });
-        result.push({
-          label: t('breadcrumbs.newEventType'),
-          to: null,
-        });
-      } else if (routeName === 'EventsList') {
-        // Events list
-        result.push({
-          label: appName,
-          to: router.resolve({
-            name: routes.ApplicationsDashboard,
-            params: { organization_id: orgId.value, application_id: appId.value },
-          }).fullPath,
-          icon: 'application',
-          dropdown: 'application',
-        });
-        result.push({
-          label: t('nav.events'),
-          to: null,
-        });
-      } else if (routeName === 'EventsDetail') {
-        // Event detail
-        result.push({
-          label: appName,
-          to: router.resolve({
-            name: routes.ApplicationsDashboard,
-            params: { organization_id: orgId.value, application_id: appId.value },
-          }).fullPath,
-          icon: 'application',
-          dropdown: 'application',
-        });
-        result.push({
-          label: t('nav.events'),
-          to: router.resolve({
-            name: routes.EventsList,
-            params: { organization_id: orgId.value, application_id: appId.value },
-          }).fullPath,
-        });
-        const eventId = route.params.event_id as string;
-        result.push({
-          label: eventId ? `${eventId.substring(0, 8)}...` : t('breadcrumbs.eventDetail'),
-          to: null,
-        });
-      } else if (routeName === 'SubscriptionsList') {
-        // Subscriptions list
-        result.push({
-          label: appName,
-          to: router.resolve({
-            name: routes.ApplicationsDashboard,
-            params: { organization_id: orgId.value, application_id: appId.value },
-          }).fullPath,
-          icon: 'application',
-          dropdown: 'application',
-        });
-        result.push({
-          label: t('nav.subscriptions'),
-          to: null,
-        });
-      } else if (routeName === 'SubscriptionsNew') {
-        // New subscription
-        result.push({
-          label: appName,
-          to: router.resolve({
-            name: routes.ApplicationsDashboard,
-            params: { organization_id: orgId.value, application_id: appId.value },
-          }).fullPath,
-          icon: 'application',
-          dropdown: 'application',
-        });
-        result.push({
-          label: t('nav.subscriptions'),
-          to: router.resolve({
-            name: routes.SubscriptionsList,
-            params: { organization_id: orgId.value, application_id: appId.value },
-          }).fullPath,
-        });
-        result.push({
-          label: t('breadcrumbs.newSubscription'),
-          to: null,
-        });
-      } else if (routeName === 'SubscriptionsDetail') {
-        // Subscription detail
-        result.push({
-          label: appName,
-          to: router.resolve({
-            name: routes.ApplicationsDashboard,
-            params: { organization_id: orgId.value, application_id: appId.value },
-          }).fullPath,
-          icon: 'application',
-          dropdown: 'application',
-        });
-        result.push({
-          label: t('nav.subscriptions'),
-          to: router.resolve({
-            name: routes.SubscriptionsList,
-            params: { organization_id: orgId.value, application_id: appId.value },
-          }).fullPath,
-        });
-        result.push({
-          label: t('breadcrumbs.subscriptionDetail'),
-          to: null,
-        });
-      } else if (routeName === 'LogsList') {
-        // Logs list
-        result.push({
-          label: appName,
-          to: router.resolve({
-            name: routes.ApplicationsDashboard,
-            params: { organization_id: orgId.value, application_id: appId.value },
-          }).fullPath,
-          icon: 'application',
-          dropdown: 'application',
-        });
-        result.push({
-          label: t('nav.logs'),
-          to: null,
-        });
-      } else if (routeName === 'APIDocumentationForApplication') {
-        // API Documentation for application
-        result.push({
-          label: appName,
-          to: router.resolve({
-            name: routes.ApplicationsDashboard,
-            params: { organization_id: orgId.value, application_id: appId.value },
-          }).fullPath,
-          icon: 'application',
-          dropdown: 'application',
-        });
-        result.push({
-          label: t('common.documentation'),
-          to: null,
-        });
-      } else {
-        // Fallback for other app-level pages
-        result.push({
-          label: appName,
-          to: null,
-          icon: 'application',
-          dropdown: 'application',
-        });
-      }
+      case 'OrganizationsDetail':
+        return [homeCrumb, orgCrumb(orgName, orgIdVal), { label: t('common.settings'), to: null }];
+
+      case 'ApplicationsList':
+        return [homeCrumb, orgCrumb(orgName, orgIdVal), { label: t('nav.applications'), to: null }];
+
+      case 'ApplicationsNew':
+        return [
+          homeCrumb,
+          orgCrumb(orgName, orgIdVal),
+          {
+            label: t('nav.applications'),
+            to: resolvePath(routes.ApplicationsList, orgParams),
+          },
+          { label: t('breadcrumbs.newApplication'), to: null },
+        ];
+
+      case 'ServicesTokenList':
+        return [
+          homeCrumb,
+          orgCrumb(orgName, orgIdVal),
+          { label: t('nav.serviceTokens'), to: null },
+        ];
+
+      case 'ServiceTokenView':
+        return [
+          homeCrumb,
+          orgCrumb(orgName, orgIdVal),
+          {
+            label: t('nav.serviceTokens'),
+            to: resolvePath(routes.ServicesTokenList, orgParams),
+          },
+          { label: t('breadcrumbs.serviceTokenDetail'), to: null },
+        ];
+
+      default:
+        return [homeCrumb, orgCrumb(orgName, orgIdVal, true)];
     }
   }
 
-  return result;
+  // Application-level pages (have app context)
+  const appName = contextStore.applicationName ?? t('common.loading');
+  const appIdVal = appId.value;
+  const appParams = { organization_id: orgIdVal, application_id: appIdVal };
+
+  const baseAppCrumbs = [homeCrumb, orgCrumb(orgName, orgIdVal)];
+
+  switch (routeName) {
+    case 'ApplicationsDashboard':
+      return [...baseAppCrumbs, appCrumb(appName, orgIdVal, appIdVal, true)];
+
+    case 'ApplicationsDetail':
+      return [
+        ...baseAppCrumbs,
+        appCrumb(appName, orgIdVal, appIdVal),
+        { label: t('common.settings'), to: null },
+      ];
+
+    case 'ApplicationSecretsList':
+      return [
+        ...baseAppCrumbs,
+        appCrumb(appName, orgIdVal, appIdVal),
+        { label: t('nav.apiKeys'), to: null },
+      ];
+
+    case 'EventTypesList':
+      return [
+        ...baseAppCrumbs,
+        appCrumb(appName, orgIdVal, appIdVal),
+        { label: t('nav.eventTypes'), to: null },
+      ];
+
+    case 'EventTypesNew':
+      return [
+        ...baseAppCrumbs,
+        appCrumb(appName, orgIdVal, appIdVal),
+        { label: t('nav.eventTypes'), to: resolvePath(routes.EventTypesList, appParams) },
+        { label: t('breadcrumbs.newEventType'), to: null },
+      ];
+
+    case 'EventsList':
+      return [
+        ...baseAppCrumbs,
+        appCrumb(appName, orgIdVal, appIdVal),
+        { label: t('nav.events'), to: null },
+      ];
+
+    case 'EventsDetail': {
+      const eventId = route.params.event_id as string;
+      return [
+        ...baseAppCrumbs,
+        appCrumb(appName, orgIdVal, appIdVal),
+        { label: t('nav.events'), to: resolvePath(routes.EventsList, appParams) },
+        {
+          label: eventId ? `${eventId.substring(0, 8)}...` : t('breadcrumbs.eventDetail'),
+          to: null,
+        },
+      ];
+    }
+
+    case 'SubscriptionsList':
+      return [
+        ...baseAppCrumbs,
+        appCrumb(appName, orgIdVal, appIdVal),
+        { label: t('nav.subscriptions'), to: null },
+      ];
+
+    case 'SubscriptionsNew':
+      return [
+        ...baseAppCrumbs,
+        appCrumb(appName, orgIdVal, appIdVal),
+        {
+          label: t('nav.subscriptions'),
+          to: resolvePath(routes.SubscriptionsList, appParams),
+        },
+        { label: t('breadcrumbs.newSubscription'), to: null },
+      ];
+
+    case 'SubscriptionsDetail':
+      return [
+        ...baseAppCrumbs,
+        appCrumb(appName, orgIdVal, appIdVal),
+        {
+          label: t('nav.subscriptions'),
+          to: resolvePath(routes.SubscriptionsList, appParams),
+        },
+        { label: t('breadcrumbs.subscriptionDetail'), to: null },
+      ];
+
+    case 'LogsList':
+      return [
+        ...baseAppCrumbs,
+        appCrumb(appName, orgIdVal, appIdVal),
+        { label: t('nav.logs'), to: null },
+      ];
+
+    case 'APIDocumentationForApplication':
+      return [
+        ...baseAppCrumbs,
+        appCrumb(appName, orgIdVal, appIdVal),
+        { label: t('common.documentation'), to: null },
+      ];
+
+    default:
+      return [...baseAppCrumbs, appCrumb(appName, orgIdVal, appIdVal, true)];
+  }
 });
 
 // Show breadcrumbs for all organization routes
@@ -874,7 +725,7 @@ onUnmounted(() => {
   position: absolute;
   top: calc(100% + 0.25rem);
   left: 0;
-  z-index: 50;
+  z-index: var(--z-dropdown, 50);
   min-width: 12rem;
   max-width: 20rem;
   background-color: var(--color-bg-elevated);

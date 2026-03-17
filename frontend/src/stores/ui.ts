@@ -113,14 +113,10 @@ export const useUiStore = defineStore('ui', () => {
   );
 
   function addRecentPage(path: string, name: string): void {
-    const existing = recentPages.value.findIndex((p) => p.path === path);
-    if (existing >= 0) {
-      recentPages.value.splice(existing, 1);
-    }
-    recentPages.value.unshift({ path, name, timestamp: Date.now() });
-    if (recentPages.value.length > MAX_RECENT_PAGES) {
-      recentPages.value = recentPages.value.slice(0, MAX_RECENT_PAGES);
-    }
+    recentPages.value = [
+      { path, name, timestamp: Date.now() },
+      ...recentPages.value.filter((p) => p.path !== path),
+    ].slice(0, MAX_RECENT_PAGES);
     window.localStorage.setItem('hook0-recent-pages', JSON.stringify(recentPages.value));
   }
 
@@ -140,28 +136,21 @@ export const useUiStore = defineStore('ui', () => {
     // Create a unique key for comparison (org + app combo)
     const key = applicationId ? `${organizationId}:${applicationId}` : organizationId;
 
-    const existing = recentWorkspaces.value.findIndex((w) => {
-      const existingKey = w.applicationId
-        ? `${w.organizationId}:${w.applicationId}`
-        : w.organizationId;
-      return existingKey === key;
-    });
-
-    if (existing >= 0) {
-      recentWorkspaces.value.splice(existing, 1);
-    }
-
-    recentWorkspaces.value.unshift({
-      organizationId,
-      organizationName,
-      applicationId,
-      applicationName,
-      timestamp: Date.now(),
-    });
-
-    if (recentWorkspaces.value.length > MAX_RECENT_WORKSPACES) {
-      recentWorkspaces.value = recentWorkspaces.value.slice(0, MAX_RECENT_WORKSPACES);
-    }
+    recentWorkspaces.value = [
+      {
+        organizationId,
+        organizationName,
+        applicationId,
+        applicationName,
+        timestamp: Date.now(),
+      },
+      ...recentWorkspaces.value.filter((w) => {
+        const existingKey = w.applicationId
+          ? `${w.organizationId}:${w.applicationId}`
+          : w.organizationId;
+        return existingKey !== key;
+      }),
+    ].slice(0, MAX_RECENT_WORKSPACES);
 
     window.localStorage.setItem(
       LOCAL_STORAGE_KEY_RECENT_WORKSPACES,

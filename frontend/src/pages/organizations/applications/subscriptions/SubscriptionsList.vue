@@ -12,8 +12,7 @@ import {
 } from './useSubscriptionQueries';
 import type { Subscription } from './SubscriptionService';
 import { routes } from '@/routes';
-import { displayError } from '@/utils/displayError';
-import type { Problem } from '@/http';
+import { handleMutationError } from '@/utils/handleMutationError';
 import { push } from 'notivue';
 import { usePermissions } from '@/composables/usePermissions';
 import { useEntityDelete } from '@/composables/useEntityDelete';
@@ -91,7 +90,7 @@ function handleToggle(row: Subscription) {
         });
       },
       onError: (err) => {
-        displayError(err as unknown as Problem);
+        handleMutationError(err);
       },
     }
   );
@@ -114,7 +113,7 @@ function confirmDisable() {
         });
       },
       onError: (err) => {
-        displayError(err as unknown as Problem);
+        handleMutationError(err);
       },
     }
   );

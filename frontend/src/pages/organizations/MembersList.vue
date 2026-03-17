@@ -13,8 +13,7 @@ import {
   useEditMemberRole,
 } from './useMemberQueries';
 import type { User, Invitation } from './MemberService';
-import { displayError } from '@/utils/displayError';
-import type { Problem } from '@/http';
+import { handleMutationError } from '@/utils/handleMutationError';
 import { push } from 'notivue';
 import { usePermissions } from '@/composables/usePermissions';
 import { useEntityDelete } from '@/composables/useEntityDelete';
@@ -122,7 +121,7 @@ function confirmRoleChange() {
         });
       },
       onError: (err) => {
-        displayError(err as unknown as Problem);
+        handleMutationError(err);
       },
     }
   );
@@ -143,7 +142,7 @@ function invite() {
         });
       },
       onError: (err) => {
-        displayError(err as unknown as Problem);
+        handleMutationError(err);
       },
     }
   );

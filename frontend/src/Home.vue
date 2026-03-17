@@ -49,7 +49,7 @@ const { t } = useI18n();
   position: relative;
   padding: 2rem 2.5rem;
   border-radius: var(--radius-xl);
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary) 100%);
+  background-color: var(--color-primary);
   margin-bottom: 2.5rem;
   overflow: hidden;
 }

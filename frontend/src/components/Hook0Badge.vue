@@ -181,26 +181,26 @@ defineSlots<{
 
 .hook0-badge-step--primary {
   background-color: var(--color-primary);
-  color: #ffffff;
+  color: var(--color-bg-primary, #ffffff);
 }
 
 .hook0-badge-step--success {
   background-color: var(--color-success);
-  color: #ffffff;
+  color: var(--color-bg-primary, #ffffff);
 }
 
 .hook0-badge-step--warning {
   background-color: var(--color-warning);
-  color: #ffffff;
+  color: var(--color-bg-primary, #ffffff);
 }
 
 .hook0-badge-step--danger {
   background-color: var(--color-danger);
-  color: #ffffff;
+  color: var(--color-bg-primary, #ffffff);
 }
 
 .hook0-badge-step--info {
   background-color: var(--color-info);
-  color: #ffffff;
+  color: var(--color-bg-primary, #ffffff);
 }
 </style>

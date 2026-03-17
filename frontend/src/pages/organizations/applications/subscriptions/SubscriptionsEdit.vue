@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useForm } from 'vee-validate';
-import { RefreshCw, Send } from 'lucide-vue-next';
+import { RefreshCw } from 'lucide-vue-next';
 
 import { subscriptionSchema } from './subscription.schema';
 import { toTypedSchema } from '@/utils/zod-adapter';
@@ -28,6 +28,7 @@ import {
 } from '@/components/Hook0KeyValue';
 
 import SubscriptionsRemove from './SubscriptionsRemove.vue';
+import SubscriptionTestEndpoint from './SubscriptionTestEndpoint.vue';
 import Hook0Loader from '@/components/Hook0Loader.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
@@ -44,7 +45,6 @@ import Hook0Stack from '@/components/Hook0Stack.vue';
 import Hook0Checkbox from '@/components/Hook0Checkbox.vue';
 import Hook0HelpText from '@/components/Hook0HelpText.vue';
 import Hook0Form from '@/components/Hook0Form.vue';
-import Hook0Code from '@/components/Hook0Code.vue';
 
 const { t } = useI18n();
 const { trackEvent } = useTracking();
@@ -89,6 +89,16 @@ function SelectedEventTypesFromEventTypeNames(eventTypeNames: string[]): Selecta
 
 function toOption(val: string): Hook0SelectSingleOption {
   return { value: val, label: val };
+}
+
+/**
+ * Centralized cast for API record types that expect Record<string, never>.
+ * The API schema uses `never` as the value type for open-ended string maps,
+ * but our form state uses Record<string, string>. This helper isolates
+ * the unavoidable cast to a single location.
+ */
+function toApiRecord(map: Record<string, string>): Record<string, never> {
+  return map as unknown as Record<string, never>;
 }
 
 const router = useRouter();
@@ -194,7 +204,7 @@ watch(
   { immediate: true }
 );
 
-function cancel2() {
+function navigateBack() {
   router.back();
 }
 
@@ -215,11 +225,11 @@ function onMetadataUpdate(pairs: Hook0KeyValueKeyValuePair[] | Record<string, st
  */
 function handleValidationError(err: unknown) {
   if (!isAxiosError(err)) {
-    displayError(handleError(err as never));
+    displayError(handleError(err as Parameters<typeof handleError>[0]));
     return;
   }
 
-  const problem = handleError(err as never);
+  const problem = handleError(err as Parameters<typeof handleError>[0]);
   if (problem.status === 422) {
     const detail = problem.detail || '';
     // Map known API field names to VeeValidate field names
@@ -257,11 +267,11 @@ const onSubmit = handleSubmit((values) => {
           type: 'http' as const,
           method: values.target_method,
           url: values.target_url,
-          headers: headersMap.value as unknown as Record<string, never>,
+          headers: toApiRecord(headersMap.value),
         },
         description: values.description,
-        metadata: metadataMap.value as unknown as Record<string, never>,
-        labels: labelsMap.value as unknown as Record<string, never>,
+        metadata: toApiRecord(metadataMap.value),
+        labels: toApiRecord(labelsMap.value),
         is_enabled: isEnabled.value,
         event_types: EventTypeNamesFromSelectedEventTypes(eventTypes.value),
       },
@@ -271,7 +281,7 @@ const onSubmit = handleSubmit((values) => {
           if (props.tutorialMode) {
             emit('tutorial-subscription-created');
           } else {
-            cancel2();
+            navigateBack();
           }
         },
         onError: (err) => {
@@ -290,11 +300,11 @@ const onSubmit = handleSubmit((values) => {
           type: 'http' as const,
           method: values.target_method,
           url: values.target_url,
-          headers: headersMap.value as unknown as Record<string, never>,
+          headers: toApiRecord(headersMap.value),
         },
         description: values.description,
-        metadata: metadataMap.value as unknown as Record<string, never>,
-        labels: labelsMap.value as unknown as Record<string, never>,
+        metadata: toApiRecord(metadataMap.value),
+        labels: toApiRecord(labelsMap.value),
         is_enabled: isEnabled.value,
         event_types: EventTypeNamesFromSelectedEventTypes(eventTypes.value),
         dedicated_workers: dedicatedWorkers.value.length > 0 ? dedicatedWorkers.value : undefined,
@@ -304,7 +314,7 @@ const onSubmit = handleSubmit((values) => {
     {
       onSuccess: () => {
         trackEvent('subscription', 'update', 'success');
-        cancel2();
+        navigateBack();
       },
       onError: (err) => {
         handleValidationError(err);
@@ -316,85 +326,6 @@ const onSubmit = handleSubmit((values) => {
 // Computed: whether the non-validated parts are ready
 const hasRequiredLabels = computed(() => Object.keys(labelsMap.value).length > 0);
 const hasSelectedEventTypes = computed(() => eventTypes.value.some((et) => et.selected));
-
-// Test endpoint state
-interface TestEndpointResult {
-  status: number;
-  latencyMs: number;
-  body: string;
-  success: boolean;
-}
-
-const testEndpointLoading = ref(false);
-const testEndpointResult = ref<TestEndpointResult | null>(null);
-const testEndpointError = ref<string | null>(null);
-
-function testEndpoint() {
-  const url = targetUrl.value;
-  if (!url) {
-    testEndpointError.value = t('subscriptions.testUrlRequired');
-    return;
-  }
-
-  testEndpointLoading.value = true;
-  testEndpointResult.value = null;
-  testEndpointError.value = null;
-
-  const startTime = performance.now();
-
-  fetch(url, {
-    method: 'HEAD',
-    mode: 'no-cors',
-    signal: AbortSignal.timeout(10000),
-  })
-    .then((response) => {
-      const latencyMs = Math.round(performance.now() - startTime);
-
-      // In no-cors mode, response.type is 'opaque' and status is 0
-      // This means the request reached the server but we can't read the response
-      if (response.type === 'opaque') {
-        testEndpointResult.value = {
-          status: 0,
-          latencyMs,
-          body: '',
-          success: true,
-        };
-        return;
-      }
-
-      void response.text().then((body) => {
-        testEndpointResult.value = {
-          status: response.status,
-          latencyMs,
-          body: body.slice(0, 2000),
-          success: response.ok,
-        };
-      });
-    })
-    .catch((err: Error) => {
-      const latencyMs = Math.round(performance.now() - startTime);
-      testEndpointError.value = err.message;
-      testEndpointResult.value = {
-        status: 0,
-        latencyMs,
-        body: '',
-        success: false,
-      };
-    })
-    .finally(() => {
-      testEndpointLoading.value = false;
-    });
-}
-
-const testStatusVariant = computed(() => {
-  if (!testEndpointResult.value) return '';
-  const status = testEndpointResult.value.status;
-  if (status === 0 && testEndpointResult.value.success) return 'opaque';
-  if (status >= 200 && status < 300) return 'success';
-  if (status >= 400 && status < 500) return 'warning';
-  if (status >= 500) return 'error';
-  return 'error';
-});
 </script>
 
 <template>
@@ -503,90 +434,7 @@ const testStatusVariant = computed(() => {
                 </Hook0HelpText>
 
                 <!-- Test Endpoint -->
-                <div class="test-endpoint">
-                  <Hook0Button
-                    variant="secondary"
-                    size="sm"
-                    type="button"
-                    :loading="testEndpointLoading"
-                    :disabled="!targetUrl"
-                    data-test="subscription-test-endpoint-button"
-                    @click="testEndpoint()"
-                  >
-                    <template #left>
-                      <Send :size="14" aria-hidden="true" />
-                    </template>
-                    {{ t('subscriptions.testEndpoint') }}
-                  </Hook0Button>
-
-                  <!-- Test Result -->
-                  <div
-                    v-if="testEndpointResult"
-                    class="test-endpoint__result"
-                    :class="`test-endpoint__result--${testStatusVariant}`"
-                    data-test="subscription-test-endpoint-result"
-                  >
-                    <div class="test-endpoint__result-header">
-                      <span class="test-endpoint__result-title">{{
-                        t('subscriptions.testResponse')
-                      }}</span>
-                      <span
-                        class="test-endpoint__status-badge"
-                        :class="`test-endpoint__status-badge--${testStatusVariant}`"
-                        data-test="subscription-test-endpoint-status"
-                      >
-                        {{
-                          testEndpointResult.status === 0
-                            ? t('subscriptions.testSuccess')
-                            : testEndpointResult.status
-                        }}
-                      </span>
-                    </div>
-
-                    <dl class="test-endpoint__details">
-                      <div class="test-endpoint__detail-row">
-                        <dt class="test-endpoint__detail-label">
-                          {{ t('subscriptions.testLatency') }}
-                        </dt>
-                        <dd
-                          class="test-endpoint__detail-value test-endpoint__detail-value--mono"
-                          data-test="subscription-test-endpoint-latency"
-                        >
-                          {{ testEndpointResult.latencyMs }}ms
-                        </dd>
-                      </div>
-                    </dl>
-
-                    <div v-if="testEndpointResult.body" class="test-endpoint__body">
-                      <span class="test-endpoint__detail-label">{{
-                        t('subscriptions.testBodyPreview')
-                      }}</span>
-                      <Hook0Code
-                        :code="testEndpointResult.body"
-                        data-test="subscription-test-endpoint-body"
-                      />
-                    </div>
-
-                    <Hook0HelpText
-                      v-if="testEndpointResult.status === 0 && testEndpointResult.success"
-                      tone="info"
-                    >
-                      {{ t('subscriptions.testCorsWarning') }}
-                    </Hook0HelpText>
-                  </div>
-
-                  <!-- Test Error -->
-                  <div
-                    v-if="testEndpointError && (!testEndpointResult || !testEndpointResult.success)"
-                    class="test-endpoint__error"
-                    data-test="subscription-test-endpoint-error"
-                  >
-                    <span class="test-endpoint__error-title">{{
-                      t('subscriptions.testFailed')
-                    }}</span>
-                    <span class="test-endpoint__error-message">{{ testEndpointError }}</span>
-                  </div>
-                </div>
+                <SubscriptionTestEndpoint :target-url="targetUrl || ''" />
               </template>
             </Hook0CardContentLine>
 
@@ -693,7 +541,7 @@ const testStatusVariant = computed(() => {
               variant="secondary"
               type="button"
               data-test="subscription-cancel-button"
-              @click="cancel2()"
+              @click="navigateBack()"
               >{{ t('common.cancel') }}</Hook0Button
             >
             <Hook0Button
@@ -732,139 +580,6 @@ const testStatusVariant = computed(() => {
 </template>
 
 <style scoped>
-.test-endpoint {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-top: 0.75rem;
-}
-
-.test-endpoint__result {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 0.75rem;
-  background-color: var(--color-bg-secondary);
-}
-
-.test-endpoint__result--success {
-  border-color: var(--color-success);
-  background-color: var(--color-success-light);
-}
-
-.test-endpoint__result--warning {
-  border-color: var(--color-warning);
-  background-color: var(--color-warning-light);
-}
-
-.test-endpoint__result--error {
-  border-color: var(--color-error);
-  background-color: var(--color-error-light);
-}
-
-.test-endpoint__result--opaque {
-  border-color: var(--color-info);
-  background-color: var(--color-info-light);
-}
-
-.test-endpoint__result-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.5rem;
-}
-
-.test-endpoint__result-title {
-  font-weight: 600;
-  font-size: 0.8125rem;
-  color: var(--color-text-primary);
-}
-
-.test-endpoint__status-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.125rem 0.5rem;
-  border-radius: var(--radius-full);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-
-.test-endpoint__status-badge--success {
-  background-color: var(--color-success);
-  color: #ffffff;
-}
-
-.test-endpoint__status-badge--warning {
-  background-color: var(--color-warning);
-  color: #ffffff;
-}
-
-.test-endpoint__status-badge--error {
-  background-color: var(--color-error);
-  color: #ffffff;
-}
-
-.test-endpoint__status-badge--opaque {
-  background-color: var(--color-info);
-  color: #ffffff;
-}
-
-.test-endpoint__details {
-  margin: 0;
-}
-
-.test-endpoint__detail-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.test-endpoint__detail-label {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--color-text-secondary);
-}
-
-.test-endpoint__detail-value {
-  font-size: 0.75rem;
-  color: var(--color-text-primary);
-}
-
-.test-endpoint__detail-value--mono {
-  font-family: var(--font-mono);
-  font-size: 0.8125rem;
-}
-
-.test-endpoint__body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  margin-top: 0.5rem;
-}
-
-.test-endpoint__error {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  border: 1px solid var(--color-error);
-  border-radius: var(--radius-md);
-  padding: 0.75rem;
-  background-color: var(--color-error-light);
-}
-
-.test-endpoint__error-title {
-  font-weight: 600;
-  font-size: 0.8125rem;
-  color: var(--color-error);
-}
-
-.test-endpoint__error-message {
-  font-size: 0.75rem;
-  color: var(--color-text-secondary);
-  font-family: var(--font-mono);
-  word-break: break-all;
-}
-
 .sub-edit__field-label {
   color: var(--color-text-primary);
   font-weight: 600;

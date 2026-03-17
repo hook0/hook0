@@ -134,9 +134,7 @@ function onClick(e: MouseEvent) {
 
     if (props.to) {
       e.preventDefault();
-      router.push(props.to).catch((err) => {
-        console.error(err);
-      });
+      void router.push(props.to);
       return;
     }
 

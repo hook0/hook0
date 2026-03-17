@@ -7,8 +7,7 @@ import { Trash2 } from 'lucide-vue-next';
 
 import { useSecretList, useCreateSecret, useRemoveSecret } from './useSecretQueries';
 import type { ApplicationSecret } from './ApplicationSecretService';
-import { displayError } from '@/utils/displayError';
-import type { Problem } from '@/http';
+import { handleMutationError } from '@/utils/handleMutationError';
 import { push } from 'notivue';
 import { useTracking } from '@/composables/useTracking';
 import { usePermissions } from '@/composables/usePermissions';
@@ -84,7 +83,7 @@ function confirmCreate() {
         });
       },
       onError: (err) => {
-        displayError(err as unknown as Problem);
+        handleMutationError(err);
       },
     }
   );

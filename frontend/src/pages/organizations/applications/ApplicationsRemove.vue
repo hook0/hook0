@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n';
 
 import * as ApplicationsService from './ApplicationService';
 import { routes } from '@/routes';
-import { displayError } from '@/utils/displayError';
+import { handleMutationError } from '@/utils/handleMutationError';
 import { useTracking } from '@/composables/useTracking';
 import { usePermissions } from '@/composables/usePermissions';
 import Hook0DangerZoneCard from '@/components/Hook0DangerZoneCard.vue';
@@ -36,7 +36,7 @@ function confirmRemove() {
         },
       });
     })
-    .catch(displayError)
+    .catch(handleMutationError)
     .finally(() => (loading.value = false));
 }
 </script>

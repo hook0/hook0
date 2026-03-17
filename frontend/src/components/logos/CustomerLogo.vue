@@ -1,4 +1,13 @@
 <script setup lang="ts">
+/**
+ * CustomerLogo - Inline SVG customer logos
+ *
+ * Each logo is an inline SVG rather than a separate component because:
+ * - There are only 6 logos, each used in a single place (landing/marketing)
+ * - Inline SVGs allow `currentColor` inheritance for theme-aware rendering
+ * - No runtime dynamic import overhead for a static marketing page
+ * - Extracting to separate files would add 6 components with no reuse benefit
+ */
 export type CustomerLogoVariant =
   | 'france-nuage'
   | 'woodwing'

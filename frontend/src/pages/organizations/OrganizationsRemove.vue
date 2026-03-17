@@ -4,7 +4,7 @@ import { push } from 'notivue';
 import { useI18n } from 'vue-i18n';
 
 import * as OrganizationService from './OrganizationService';
-import { displayError } from '@/utils/displayError';
+import { handleMutationError } from '@/utils/handleMutationError';
 import router from '@/router';
 import { routes } from '@/routes';
 import { useTracking } from '@/composables/useTracking';
@@ -35,7 +35,7 @@ function confirmRemove() {
       });
       return router.push({ name: routes.Home });
     })
-    .catch(displayError)
+    .catch(handleMutationError)
     .finally(() => (loading.value = false));
 }
 </script>

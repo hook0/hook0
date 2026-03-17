@@ -144,7 +144,7 @@ onBeforeUnmount(() => {
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
   box-shadow: var(--shadow-lg);
-  z-index: 9999;
+  z-index: var(--z-popover, 70);
   min-width: 12rem;
 }
 

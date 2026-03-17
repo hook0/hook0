@@ -5,7 +5,7 @@ const isFetching = useIsFetching();
 </script>
 
 <template>
-  <div v-if="isFetching > 0" class="refetch-bar" />
+  <div v-if="isFetching > 0" class="refetch-bar" role="progressbar" aria-label="Loading data" />
 </template>
 
 <style scoped>

@@ -106,7 +106,7 @@ onBeforeUnmount(() => {
   font-size: 0.75rem;
   white-space: nowrap;
   pointer-events: none;
-  z-index: 9999;
+  z-index: var(--z-tooltip, 80);
 }
 
 /* Positioning */

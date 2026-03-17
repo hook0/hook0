@@ -18,11 +18,9 @@ export function trySyncCall<T>(fn: () => T): Result<T> {
   // This is the ONE place where try/catch is permitted for synchronous code.
   // All callers use the Result discriminated union instead of try/catch.
   // eslint-disable-next-line no-restricted-syntax
-  let value: T;
   try {
-    value = fn();
+    return { ok: true, value: fn() };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e : new Error(String(e)) };
   }
-  return { ok: true, value };
 }

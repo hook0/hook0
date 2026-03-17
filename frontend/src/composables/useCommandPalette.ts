@@ -105,16 +105,11 @@ export function useCommandPalette(inputRef: Ref<HTMLInputElement | null>) {
     }
   }
 
-  // Build the full command list reactively from current context.
-  // Commands are organized by category: recent workspaces, org/app switching,
-  // navigation, quick actions, and global actions (theme, shortcuts, logout).
-  const commands = computed<CommandItem[]>(() => {
+  function buildRecentCommands(): CommandItem[] {
     const orgId = contextStore.organizationId;
     const appId = contextStore.applicationId;
-    const items: CommandItem[] = [];
 
-    // Recent workspaces
-    const recentItems: CommandItem[] = uiStore.recentWorkspaces
+    return uiStore.recentWorkspaces
       .slice(0, 3)
       .filter((ws) => ws.organizationId !== orgId || ws.applicationId !== appId)
       .map((workspace) => ({
@@ -132,10 +127,12 @@ export function useCommandPalette(inputRef: Ref<HTMLInputElement | null>) {
           }
         },
       }));
-    items.push(...recentItems);
+  }
 
-    // Organization switching
-    const orgItems: CommandItem[] = (organizations.value ?? [])
+  function buildOrgSwitchCommands(): CommandItem[] {
+    const orgId = contextStore.organizationId;
+
+    return (organizations.value ?? [])
       .filter((org) => org.organization_id !== orgId)
       .map((org) => ({
         id: `switch-org-${org.organization_id}`,
@@ -144,23 +141,30 @@ export function useCommandPalette(inputRef: Ref<HTMLInputElement | null>) {
         category: t('commandPalette.switchOrganization'),
         action: () => switchToOrganization(org.organization_id),
       }));
-    items.push(...orgItems);
+  }
 
-    // Application switching
-    const appItems: CommandItem[] = orgId
-      ? (applications.value ?? [])
-          .filter((app) => app.application_id !== appId)
-          .map((app) => ({
-            id: `switch-app-${app.application_id}`,
-            label: app.name,
-            icon: Box,
-            category: t('commandPalette.switchApplication'),
-            action: () => switchToApplication(orgId, app.application_id),
-          }))
-      : [];
-    items.push(...appItems);
+  function buildAppSwitchCommands(): CommandItem[] {
+    const orgId = contextStore.organizationId;
+    const appId = contextStore.applicationId;
 
-    // Navigation
+    if (!orgId) return [];
+
+    return (applications.value ?? [])
+      .filter((app) => app.application_id !== appId)
+      .map((app) => ({
+        id: `switch-app-${app.application_id}`,
+        label: app.name,
+        icon: Box,
+        category: t('commandPalette.switchApplication'),
+        action: () => switchToApplication(orgId, app.application_id),
+      }));
+  }
+
+  function buildNavigationCommands(): CommandItem[] {
+    const orgId = contextStore.organizationId;
+    const appId = contextStore.applicationId;
+    const items: CommandItem[] = [];
+
     items.push({
       id: 'nav-home',
       label: t('commandPalette.goToHome'),
@@ -244,43 +248,50 @@ export function useCommandPalette(inputRef: Ref<HTMLInputElement | null>) {
       );
     }
 
-    // Quick actions
-    if (orgId && appId) {
-      const params = { organization_id: orgId, application_id: appId };
-      items.push(
-        {
-          id: 'quick-create-subscription',
-          label: t('commandPalette.createSubscription'),
-          icon: Plus,
-          category: t('commandPalette.quickActions'),
-          action: () => navigate({ name: routes.SubscriptionsNew, params }),
-        },
-        {
-          id: 'quick-create-event-type',
-          label: t('commandPalette.createEventType'),
-          icon: Plus,
-          category: t('commandPalette.quickActions'),
-          action: () => navigate({ name: routes.EventTypesNew, params }),
-        },
-        {
-          id: 'quick-send-test-event',
-          label: t('commandPalette.sendTestEvent'),
-          icon: Send,
-          category: t('commandPalette.quickActions'),
-          action: () => navigate({ name: routes.EventsList, params }),
-        },
-        {
-          id: 'quick-copy-api-key',
-          label: t('commandPalette.copyApiKey'),
-          icon: Copy,
-          category: t('commandPalette.quickActions'),
-          action: () => navigate({ name: routes.ApplicationSecretsList, params }),
-        }
-      );
-    }
+    return items;
+  }
 
-    // Actions
-    items.push(
+  function buildQuickActionCommands(): CommandItem[] {
+    const orgId = contextStore.organizationId;
+    const appId = contextStore.applicationId;
+
+    if (!orgId || !appId) return [];
+
+    const params = { organization_id: orgId, application_id: appId };
+    return [
+      {
+        id: 'quick-create-subscription',
+        label: t('commandPalette.createSubscription'),
+        icon: Plus,
+        category: t('commandPalette.quickActions'),
+        action: () => navigate({ name: routes.SubscriptionsNew, params }),
+      },
+      {
+        id: 'quick-create-event-type',
+        label: t('commandPalette.createEventType'),
+        icon: Plus,
+        category: t('commandPalette.quickActions'),
+        action: () => navigate({ name: routes.EventTypesNew, params }),
+      },
+      {
+        id: 'quick-send-test-event',
+        label: t('commandPalette.sendTestEvent'),
+        icon: Send,
+        category: t('commandPalette.quickActions'),
+        action: () => navigate({ name: routes.EventsList, params }),
+      },
+      {
+        id: 'quick-copy-api-key',
+        label: t('commandPalette.copyApiKey'),
+        icon: Copy,
+        category: t('commandPalette.quickActions'),
+        action: () => navigate({ name: routes.ApplicationSecretsList, params }),
+      },
+    ];
+  }
+
+  function buildGlobalCommands(): CommandItem[] {
+    return [
       {
         id: 'action-settings',
         label: t('commandPalette.userSettings'),
@@ -320,11 +331,18 @@ export function useCommandPalette(inputRef: Ref<HTMLInputElement | null>) {
           void authStore.logout();
           close();
         },
-      }
-    );
+      },
+    ];
+  }
 
-    return items;
-  });
+  const commands = computed<CommandItem[]>(() => [
+    ...buildRecentCommands(),
+    ...buildOrgSwitchCommands(),
+    ...buildAppSwitchCommands(),
+    ...buildNavigationCommands(),
+    ...buildQuickActionCommands(),
+    ...buildGlobalCommands(),
+  ]);
 
   const filteredCommands = computed(() => {
     const q = query.value.toLowerCase().trim();
@@ -335,12 +353,13 @@ export function useCommandPalette(inputRef: Ref<HTMLInputElement | null>) {
   });
 
   // Group filtered commands by category for sectioned rendering in the palette UI
-  const groupedCommands = computed(() =>
-    filteredCommands.value.reduce<Record<string, CommandItem[]>>((groups, cmd) => {
-      const group = groups[cmd.category] ?? [];
-      return { ...groups, [cmd.category]: [...group, cmd] };
-    }, {})
-  );
+  const groupedCommands = computed(() => {
+    const groups: Record<string, CommandItem[]> = {};
+    for (const cmd of filteredCommands.value) {
+      (groups[cmd.category] ??= []).push(cmd);
+    }
+    return groups;
+  });
 
   function onKeydown(e: KeyboardEvent) {
     const handlers: Record<string, (e: KeyboardEvent) => void> = {

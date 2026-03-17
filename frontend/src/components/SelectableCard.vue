@@ -12,7 +12,7 @@ type Props = {
 
 defineProps<Props>();
 defineEmits<{
-  'update:modelValue': [];
+  'update:modelValue': [value: boolean];
 }>();
 </script>
 
@@ -21,7 +21,7 @@ defineEmits<{
     class="selectable-card"
     :class="{ 'selectable-card--selected': modelValue }"
     :data-test="dataTest"
-    @click="$emit('update:modelValue')"
+    @click="$emit('update:modelValue', true)"
   >
     <input
       type="radio"

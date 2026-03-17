@@ -12,10 +12,11 @@
  * - Variants: default, danger (for delete confirmations)
  * - Animations: scale(0.95) opacity(0) -> scale(1) opacity(1) in 200ms
  */
-import { ref, watch, nextTick, onBeforeUnmount } from 'vue';
+import { ref, watch, nextTick, onBeforeUnmount, useId } from 'vue';
 import { X } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import Hook0Button from '@/components/Hook0Button.vue';
+import { useFocusTrap } from '@/composables/useFocusTrap';
 
 type DialogVariant = 'default' | 'danger';
 
@@ -45,65 +46,14 @@ defineSlots<{
 
 const { t } = useI18n();
 
+const dialogId = useId();
 const dialogRef = ref<HTMLElement | null>(null);
-const previouslyFocusedElement = ref<HTMLElement | null>(null);
-
-/**
- * Get all focusable elements within the dialog.
- */
-function getFocusableElements(): HTMLElement[] {
-  if (!dialogRef.value) return [];
-  const selectors = [
-    'a[href]',
-    'button:not([disabled])',
-    'input:not([disabled])',
-    'select:not([disabled])',
-    'textarea:not([disabled])',
-    '[tabindex]:not([tabindex="-1"])',
-  ].join(', ');
-  return Array.from(dialogRef.value.querySelectorAll<HTMLElement>(selectors));
-}
-
-/**
- * Handle keyboard events for focus trap and escape key.
- */
-function handleKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape') {
-    event.preventDefault();
-    event.stopPropagation();
-    emitClose();
-    return;
-  }
-
-  if (event.key === 'Tab') {
-    const focusableElements = getFocusableElements();
-    if (focusableElements.length === 0) {
-      event.preventDefault();
-      return;
-    }
-
-    const firstElement = focusableElements[0];
-    const lastElement = focusableElements[focusableElements.length - 1];
-
-    if (event.shiftKey) {
-      // Shift+Tab: if focus is on the first element, wrap to last
-      if (document.activeElement === firstElement) {
-        event.preventDefault();
-        lastElement.focus();
-      }
-    } else {
-      // Tab: if focus is on the last element, wrap to first
-      if (document.activeElement === lastElement) {
-        event.preventDefault();
-        firstElement.focus();
-      }
-    }
-  }
-}
 
 function emitClose() {
   emit('close');
 }
+
+const { activate, deactivate, handleKeydown } = useFocusTrap(dialogRef, { onEscape: emitClose });
 
 function emitConfirm() {
   emit('confirm');
@@ -117,45 +67,28 @@ function handleBackdropClick(event: MouseEvent) {
 }
 
 /**
- * When the dialog opens, store the previously focused element and move focus
- * into the dialog. When it closes, restore focus.
+ * When the dialog opens, move focus into the dialog.
+ * When it closes, restore focus.
  */
 watch(
   () => props.open,
   (isOpen) => {
     if (isOpen) {
-      previouslyFocusedElement.value = document.activeElement as HTMLElement | null;
-
       void nextTick().then(() => {
-        if (!dialogRef.value) return;
-
-        // Focus the first focusable element, or the dialog itself
-        const focusableElements = getFocusableElements();
-        if (focusableElements.length > 0) {
-          focusableElements[0].focus();
-        } else {
-          dialogRef.value.focus();
-        }
+        activate();
       });
     } else {
-      // Restore focus to the previously focused element
-      if (previouslyFocusedElement.value) {
-        void nextTick().then(() => {
-          if (previouslyFocusedElement.value) {
-            previouslyFocusedElement.value.focus();
-            previouslyFocusedElement.value = null;
-          }
-        });
-      }
+      void nextTick().then(() => {
+        deactivate();
+      });
     }
   }
 );
 
 onBeforeUnmount(() => {
   // Restore focus if component unmounts while open
-  if (props.open && previouslyFocusedElement.value) {
-    previouslyFocusedElement.value.focus();
-    previouslyFocusedElement.value = null;
+  if (props.open) {
+    deactivate();
   }
 });
 </script>
@@ -172,13 +105,13 @@ onBeforeUnmount(() => {
             :class="{ 'hook0-dialog--danger': variant === 'danger' }"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="hook0-dialog-title"
+            :aria-labelledby="dialogId + '-title'"
             tabindex="-1"
             @keydown="handleKeydown"
           >
             <!-- Header -->
             <div class="hook0-dialog__header">
-              <h2 id="hook0-dialog-title" class="hook0-dialog__title">
+              <h2 :id="dialogId + '-title'" class="hook0-dialog__title">
                 <slot name="title">{{ title }}</slot>
               </h2>
               <Hook0Button
@@ -222,12 +155,12 @@ onBeforeUnmount(() => {
 .hook0-dialog__backdrop {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: var(--z-modal, 60);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: var(--color-overlay, rgba(0, 0, 0, 0.5));
   backdrop-filter: blur(2px);
 }
 

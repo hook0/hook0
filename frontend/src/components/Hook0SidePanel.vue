@@ -16,6 +16,7 @@ import { ref, watch, nextTick, onBeforeUnmount } from 'vue';
 import { X } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import Hook0Button from '@/components/Hook0Button.vue';
+import { useFocusTrap } from '@/composables/useFocusTrap';
 
 interface Props {
   open: boolean;
@@ -41,56 +42,16 @@ defineSlots<{
 const { t } = useI18n();
 
 const panelRef = ref<HTMLElement | null>(null);
-const previouslyFocusedElement = ref<HTMLElement | null>(null);
 
-function getFocusableElements(): HTMLElement[] {
-  if (!panelRef.value) return [];
-  const selectors = [
-    'a[href]',
-    'button:not([disabled])',
-    'input:not([disabled])',
-    'select:not([disabled])',
-    'textarea:not([disabled])',
-    '[tabindex]:not([tabindex="-1"])',
-  ].join(', ');
-  return Array.from(panelRef.value.querySelectorAll<HTMLElement>(selectors));
+function emitClose() {
+  emit('close');
 }
 
-function handleKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape') {
-    event.preventDefault();
-    event.stopPropagation();
-    emit('close');
-    return;
-  }
-
-  if (event.key === 'Tab') {
-    const focusableElements = getFocusableElements();
-    if (focusableElements.length === 0) {
-      event.preventDefault();
-      return;
-    }
-
-    const firstElement = focusableElements[0];
-    const lastElement = focusableElements[focusableElements.length - 1];
-
-    if (event.shiftKey) {
-      if (document.activeElement === firstElement) {
-        event.preventDefault();
-        lastElement.focus();
-      }
-    } else {
-      if (document.activeElement === lastElement) {
-        event.preventDefault();
-        firstElement.focus();
-      }
-    }
-  }
-}
+const { activate, deactivate, handleKeydown } = useFocusTrap(panelRef, { onEscape: emitClose });
 
 function handleBackdropClick(event: MouseEvent) {
   if (event.target === event.currentTarget) {
-    emit('close');
+    emitClose();
   }
 }
 
@@ -98,37 +59,24 @@ watch(
   () => props.open,
   (isOpen) => {
     if (isOpen) {
-      previouslyFocusedElement.value = document.activeElement as HTMLElement | null;
       document.body.style.overflow = 'hidden';
 
       void nextTick().then(() => {
-        if (!panelRef.value) return;
-        const focusableElements = getFocusableElements();
-        if (focusableElements.length > 0) {
-          focusableElements[0].focus();
-        } else {
-          panelRef.value.focus();
-        }
+        activate();
       });
     } else {
       document.body.style.overflow = '';
-      if (previouslyFocusedElement.value) {
-        void nextTick().then(() => {
-          if (previouslyFocusedElement.value) {
-            previouslyFocusedElement.value.focus();
-            previouslyFocusedElement.value = null;
-          }
-        });
-      }
+      void nextTick().then(() => {
+        deactivate();
+      });
     }
   }
 );
 
 onBeforeUnmount(() => {
   document.body.style.overflow = '';
-  if (props.open && previouslyFocusedElement.value) {
-    previouslyFocusedElement.value.focus();
-    previouslyFocusedElement.value = null;
+  if (props.open) {
+    deactivate();
   }
 });
 </script>
@@ -187,10 +135,10 @@ onBeforeUnmount(() => {
 .side-panel__backdrop {
   position: fixed;
   inset: 0;
-  z-index: 40;
+  z-index: var(--z-overlay, 50);
   display: flex;
   justify-content: flex-end;
-  background-color: rgba(0, 0, 0, 0.3);
+  background-color: var(--color-overlay, rgba(0, 0, 0, 0.3));
   backdrop-filter: blur(2px);
 }
 

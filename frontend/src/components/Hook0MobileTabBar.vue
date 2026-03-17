@@ -1,96 +1,44 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useRoute } from 'vue-router';
-import { Home, FolderTree, FileText, Link, Settings, Menu } from 'lucide-vue-next';
+import { Home, Menu } from 'lucide-vue-next';
 import { routes } from '@/routes';
-import { useContextStore } from '@/stores/context';
 import { useUiStore } from '@/stores/ui';
 import { useI18n } from 'vue-i18n';
+import { useNavigationTabs } from '@/composables/useNavigationTabs';
+import { useRoute } from 'vue-router';
 
 const route = useRoute();
-const contextStore = useContextStore();
 const uiStore = useUiStore();
 const { t } = useI18n();
 
-interface TabItem {
-  name: string;
-  icon: typeof Home;
-  to: { name: string; params?: Record<string, string> };
-  active: boolean;
-}
+const { navTabs } = useNavigationTabs();
 
-const tabs = computed<TabItem[]>(() => {
-  const orgId = contextStore.organizationId;
-  const appId = contextStore.applicationId;
+// Mobile tab bar shows max 4 tabs from the composable.
+// When there are more (app-level), show first 3 + "More" button.
+// When no context, show a simple Home tab.
+const MAX_VISIBLE_TABS = 4;
 
-  if (orgId && appId) {
-    const params = { organization_id: orgId, application_id: appId };
+const tabs = computed(() => {
+  if (navTabs.value.length === 0) {
     return [
       {
-        name: t('nav.events'),
-        icon: FileText,
-        to: { name: routes.EventsList, params },
-        active: route.name === routes.EventsList || route.name === routes.EventsDetail,
-      },
-      {
-        name: t('nav.types'),
-        icon: FolderTree,
-        to: { name: routes.EventTypesList, params },
-        active: route.name === routes.EventTypesList,
-      },
-      {
-        name: t('nav.webhooks'),
-        icon: Link,
-        to: { name: routes.SubscriptionsList, params },
-        active:
-          route.name === routes.SubscriptionsList ||
-          route.name === routes.SubscriptionsNew ||
-          route.name === routes.SubscriptionsDetail,
-      },
-      {
-        name: t('nav.settings'),
-        icon: Settings,
-        to: { name: routes.ApplicationsDetail, params },
-        active:
-          route.name === routes.ApplicationsDashboard || route.name === routes.ApplicationsDetail,
-      },
-    ];
-  }
-
-  if (orgId) {
-    const params = { organization_id: orgId };
-    return [
-      {
-        name: t('nav.home'),
+        id: 'home',
+        label: t('nav.home'),
         icon: Home,
-        to: { name: routes.OrganizationsDashboard, params },
-        active: route.name === routes.OrganizationsDashboard,
-      },
-      {
-        name: t('nav.apps'),
-        icon: FolderTree,
-        to: { name: routes.ApplicationsList, params },
-        active: route.name === routes.ApplicationsList,
-      },
-      {
-        name: t('nav.settings'),
-        icon: Settings,
-        to: { name: routes.OrganizationsDetail, params },
-        active:
-          route.name === routes.OrganizationsDashboard || route.name === routes.OrganizationsDetail,
+        to: { name: routes.Home },
+        active: route.name === routes.Home,
       },
     ];
   }
 
-  return [
-    {
-      name: t('nav.home'),
-      icon: Home,
-      to: { name: routes.Home },
-      active: route.name === routes.Home,
-    },
-  ];
+  // If tabs fit, show them all; otherwise truncate to leave room for "More"
+  if (navTabs.value.length <= MAX_VISIBLE_TABS) {
+    return navTabs.value;
+  }
+  return navTabs.value.slice(0, MAX_VISIBLE_TABS - 1);
 });
+
+const showMoreButton = computed(() => navTabs.value.length > MAX_VISIBLE_TABS);
 </script>
 
 <template>
@@ -98,20 +46,16 @@ const tabs = computed<TabItem[]>(() => {
     <div class="hook0-mobile-tab-list">
       <router-link
         v-for="tab in tabs"
-        :key="tab.name"
+        :key="tab.id"
         :to="tab.to"
         class="hook0-mobile-tab"
         :class="{ active: tab.active }"
         :aria-current="tab.active ? 'page' : undefined"
       >
         <component :is="tab.icon" :size="20" aria-hidden="true" />
-        <span class="hook0-mobile-tab-label">{{ tab.name }}</span>
+        <span class="hook0-mobile-tab-label">{{ tab.label }}</span>
       </router-link>
-      <button
-        v-if="contextStore.organizationId && contextStore.applicationId"
-        class="hook0-mobile-tab"
-        @click="uiStore.toggleMobileDrawer()"
-      >
+      <button v-if="showMoreButton" class="hook0-mobile-tab" @click="uiStore.toggleMobileDrawer()">
         <Menu :size="20" aria-hidden="true" />
         <span class="hook0-mobile-tab-label">{{ t('nav.more') }}</span>
       </button>
@@ -127,7 +71,7 @@ const tabs = computed<TabItem[]>(() => {
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 40;
+  z-index: var(--z-tabbar, 40);
 }
 
 .hook0-mobile-tab-list {

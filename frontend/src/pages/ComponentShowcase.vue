@@ -10,6 +10,7 @@ import Hook0Button from '@/components/Hook0Button.vue';
 </script>
 
 <template>
+  <!-- Dev-only component showcase — hardcoded strings intentional (not user-facing) -->
   <div class="showcase" data-test="component-showcase">
     <h1 class="showcase__title">Component Showcase</h1>
 

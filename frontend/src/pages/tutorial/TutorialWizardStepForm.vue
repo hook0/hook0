@@ -1,18 +1,17 @@
 <script setup lang="ts">
-import type { Component } from 'vue';
 import { computed, defineAsyncComponent, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
 
 import Hook0Alert from '@/components/Hook0Alert.vue';
 import { Alert } from '@/components/Hook0Alert.ts';
-import Hook0Badge from '@/components/Hook0Badge.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
 import TutorialStepProgress from '@/pages/tutorial/TutorialStepProgress.vue';
+import WizardStepLayout from '@/pages/tutorial/WizardStepLayout.vue';
+import type { ProgressStep } from '@/pages/tutorial/types';
 
-import { FolderTree, Link, FileText, ArrowRight, X } from 'lucide-vue-next';
+import { FolderTree, Link, FileText } from 'lucide-vue-next';
 
 const EventTypesNew = defineAsyncComponent(
   () => import('@/pages/organizations/applications/event_types/EventTypesNew.vue')
@@ -23,11 +22,6 @@ const SubscriptionsEdit = defineAsyncComponent(
 const EventsList = defineAsyncComponent(
   () => import('@/pages/organizations/applications/events/EventsList.vue')
 );
-
-type ProgressStep = {
-  icon: Component;
-  label: string;
-};
 
 type Props = {
   step: 3 | 4 | 5;
@@ -44,7 +38,6 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const router = useRouter();
 
 const alert = ref<Alert>({ visible: false, type: 'alert', title: '', description: '' });
 const done = ref(false);
@@ -58,7 +51,7 @@ const STEP_CONFIG = computed(() => {
       subtitleKey: string;
       skipKey: string;
       continueKey: string;
-      icon: Component;
+      icon: typeof FolderTree;
       progressIndex: number;
     }
   > = {
@@ -120,31 +113,23 @@ function handleFormDone() {
 </script>
 
 <template>
-  <div class="wizard-modal__header">
-    <Hook0Stack direction="row" align="center" gap="sm">
-      <Hook0Badge display="step" variant="primary">{{ STEP_CONFIG.badge }}</Hook0Badge>
-      <span id="wizard-step-title" class="wizard-modal__title">{{ t(STEP_CONFIG.titleKey) }}</span>
-    </Hook0Stack>
-    <button
-      class="wizard-modal__close"
-      type="button"
-      :aria-label="t(STEP_CONFIG.skipKey)"
-      @click="$emit('skip')"
-    >
-      <X :size="18" aria-hidden="true" />
-    </button>
-  </div>
-
-  <div class="wizard-modal__content">
+  <WizardStepLayout
+    :step-number="Number(STEP_CONFIG.badge)"
+    :title="t(STEP_CONFIG.titleKey)"
+    :continue-label="t(STEP_CONFIG.continueKey)"
+    :continue-disabled="!(organizationId && applicationId && done)"
+    @skip="emit('skip')"
+    @continue="emit('advance')"
+  >
     <template v-if="alert.visible">
       <Hook0Alert :type="alert.type" :title="alert.title" :description="alert.description" />
-      <Hook0Button variant="secondary" type="button" @click="router.back()">
+      <Hook0Button variant="secondary" type="button" @click="emit('skip')">
         {{ t('tutorial.close') }}
       </Hook0Button>
     </template>
 
     <Hook0Stack v-else direction="column" gap="lg">
-      <span class="wizard-modal__subtitle">{{ t(STEP_CONFIG.subtitleKey) }}</span>
+      <span class="wizard-subtitle">{{ t(STEP_CONFIG.subtitleKey) }}</span>
 
       <TutorialStepProgress :steps="progressSteps" :current="STEP_CONFIG.progressIndex" />
 
@@ -175,21 +160,12 @@ function handleFormDone() {
         />
       </Hook0Stack>
     </Hook0Stack>
-  </div>
-
-  <div class="wizard-modal__footer">
-    <Hook0Button variant="secondary" type="button" @click="$emit('skip')">
-      <X :size="16" aria-hidden="true" />
-      {{ t(STEP_CONFIG.skipKey) }}
-    </Hook0Button>
-    <Hook0Button
-      v-if="organizationId && applicationId && done"
-      variant="primary"
-      type="button"
-      @click="$emit('advance')"
-    >
-      {{ t(STEP_CONFIG.continueKey) }}
-      <ArrowRight :size="16" aria-hidden="true" />
-    </Hook0Button>
-  </div>
+  </WizardStepLayout>
 </template>
+
+<style scoped>
+.wizard-subtitle {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+</style>

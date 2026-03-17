@@ -1,14 +1,11 @@
 <script setup lang="ts">
-import { type Component } from 'vue';
 import { Check } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
+import type { ProgressStep } from '@/pages/tutorial/types';
+
+export type { ProgressStep };
 
 const { t } = useI18n();
-
-type ProgressStep = {
-  icon: Component;
-  label: string;
-};
 
 type Props = {
   steps: ProgressStep[];

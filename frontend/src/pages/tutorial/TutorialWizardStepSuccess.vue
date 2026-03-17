@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { useTracking } from '@/composables/useTracking';
@@ -9,11 +9,11 @@ import Hook0Alert from '@/components/Hook0Alert.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
+import WizardStepLayout from '@/pages/tutorial/WizardStepLayout.vue';
 
 import {
   PartyPopper,
   ArrowRight,
-  X,
   MessageSquare,
   Github,
   BookOpen,
@@ -27,7 +27,7 @@ type Props = {
 
 const props = defineProps<Props>();
 
-defineEmits<{
+const emit = defineEmits<{
   dismiss: [];
 }>();
 
@@ -36,9 +36,11 @@ const { trackEvent } = useTracking();
 const { celebrate } = useCelebration();
 
 // Alert for missing params
-const alertVisible = !props.organizationId || !props.applicationId;
-const alertTitle = alertVisible ? t('tutorial.orgAppIdRequired') : '';
-const alertDescription = alertVisible ? t('tutorial.somethingWentWrong') : '';
+const alertVisible = computed(() => !props.organizationId || !props.applicationId);
+const alertTitle = computed(() => (alertVisible.value ? t('tutorial.orgAppIdRequired') : ''));
+const alertDescription = computed(() =>
+  alertVisible.value ? t('tutorial.somethingWentWrong') : ''
+);
 
 onMounted(() => {
   celebrate(100);
@@ -47,29 +49,20 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="wizard-modal__header">
-    <Hook0Stack direction="row" align="center" gap="sm">
+  <WizardStepLayout
+    :title="t('tutorial.congrats.title')"
+    :show-skip="false"
+    @skip="emit('dismiss')"
+  >
+    <template #header-icon>
       <Hook0IconBadge variant="success" size="lg">
         <PartyPopper :size="20" aria-hidden="true" />
       </Hook0IconBadge>
-      <span id="wizard-step-title" class="wizard-modal__title">{{
-        t('tutorial.congrats.title')
-      }}</span>
-    </Hook0Stack>
-    <button
-      class="wizard-modal__close"
-      type="button"
-      :aria-label="t('tutorial.close')"
-      @click="$emit('dismiss')"
-    >
-      <X :size="18" aria-hidden="true" />
-    </button>
-  </div>
+    </template>
 
-  <div class="wizard-modal__content">
     <template v-if="alertVisible">
       <Hook0Alert type="warning" :title="alertTitle" :description="alertDescription" />
-      <Hook0Button variant="secondary" type="button" @click="$emit('dismiss')">
+      <Hook0Button variant="secondary" type="button" @click="emit('dismiss')">
         {{ t('tutorial.close') }}
       </Hook0Button>
     </template>
@@ -123,12 +116,12 @@ onMounted(() => {
         </template>
       </i18n-t>
     </Hook0Stack>
-  </div>
 
-  <div class="wizard-modal__footer">
-    <Hook0Button variant="primary" type="button" @click="$emit('dismiss')">
-      {{ t('tutorial.congrats.goToDashboard') }}
-      <ArrowRight :size="16" aria-hidden="true" />
-    </Hook0Button>
-  </div>
+    <template #footer>
+      <Hook0Button variant="primary" type="button" @click="emit('dismiss')">
+        {{ t('tutorial.congrats.goToDashboard') }}
+        <ArrowRight :size="16" aria-hidden="true" />
+      </Hook0Button>
+    </template>
+  </WizardStepLayout>
 </template>

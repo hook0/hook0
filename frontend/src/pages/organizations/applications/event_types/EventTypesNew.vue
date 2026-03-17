@@ -7,8 +7,8 @@ import { useCreateEventType } from './useEventTypeQueries';
 import { eventTypeSchema } from './eventType.schema';
 import { toTypedSchema } from '@/utils/zod-adapter';
 import { routes } from '@/routes';
-import { displayError } from '@/utils/displayError';
-import type { Problem, UUID } from '@/http';
+import { handleMutationError } from '@/utils/handleMutationError';
+import type { UUID } from '@/http';
 import { useTracking } from '@/composables/useTracking';
 import { usePermissions } from '@/composables/usePermissions';
 
@@ -77,7 +77,7 @@ const onSubmit = handleSubmit((values) => {
         }
       },
       onError: (err) => {
-        displayError(err as unknown as Problem);
+        handleMutationError(err);
       },
     }
   );

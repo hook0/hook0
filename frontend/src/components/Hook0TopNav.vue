@@ -8,8 +8,8 @@
  * - Integrated search trigger (Cmd+K)
  * - Clean, minimal design like Stripe Dashboard
  */
-import { computed, ref, onBeforeUnmount, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { ref, watch, onMounted, onBeforeUnmount, onUnmounted } from 'vue';
+import { useRouter } from 'vue-router';
 import {
   Webhook,
   Search,
@@ -21,159 +21,28 @@ import {
   Sun,
   Moon,
   Menu,
-  FileText,
-  Link,
-  FolderTree,
-  ScrollText,
-  Key,
-  LayoutDashboard,
-  KeyRound,
 } from 'lucide-vue-next';
-import type { Component } from 'vue';
 import { routes } from '@/routes';
 import { useAuthStore } from '@/stores/auth';
-import { useContextStore } from '@/stores/context';
 import { useUiStore } from '@/stores/ui';
-import { InstanceConfig, getInstanceConfig } from '@/utils/biscuit_auth';
 import { useI18n } from 'vue-i18n';
 import Hook0Button from '@/components/Hook0Button.vue';
+import { useNavigationTabs } from '@/composables/useNavigationTabs';
 
 const { t } = useI18n();
-const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
-const contextStore = useContextStore();
 const uiStore = useUiStore();
 
-const instanceConfig = ref<InstanceConfig | null>(null);
-const userTriggerRef = ref<HTMLButtonElement | null>(null);
+const { navTabs } = useNavigationTabs();
 
-onMounted(() => {
-  getInstanceConfig()
-    .then((config) => {
-      instanceConfig.value = config;
-    })
-    .catch(console.error);
-});
+const userTriggerRef = ref<HTMLButtonElement | null>(null);
 
 // Dropdown states
 const userDropdownOpen = ref(false);
 
-// Navigation tabs based on context
-interface NavTab {
-  id: string;
-  label: string;
-  icon: Component;
-  to: { name: string; params?: Record<string, string> };
-  active: boolean;
-  badge?: string;
-}
-
-const navTabs = computed<NavTab[]>(() => {
-  const orgId = contextStore.organizationId;
-  const appId = contextStore.applicationId;
-  const appSecretCompat = instanceConfig.value?.application_secret_compatibility ?? true;
-
-  // App-level navigation
-  if (orgId && appId) {
-    const params = { organization_id: orgId, application_id: appId };
-    const tabs: NavTab[] = [
-      {
-        id: 'events',
-        label: t('nav.events'),
-        icon: FileText,
-        to: { name: routes.EventsList, params },
-        active: route.name === routes.EventsList || route.name === routes.EventsDetail,
-      },
-      {
-        id: 'subscriptions',
-        label: t('nav.subscriptions'),
-        icon: Link,
-        to: { name: routes.SubscriptionsList, params },
-        active:
-          route.name === routes.SubscriptionsList ||
-          route.name === routes.SubscriptionsNew ||
-          route.name === routes.SubscriptionsDetail,
-      },
-      {
-        id: 'event-types',
-        label: t('nav.eventTypes'),
-        icon: FolderTree,
-        to: { name: routes.EventTypesList, params },
-        active: route.name === routes.EventTypesList || route.name === routes.EventTypesNew,
-      },
-      {
-        id: 'logs',
-        label: t('nav.logs'),
-        icon: ScrollText,
-        to: { name: routes.LogsList, params },
-        active: route.name === routes.LogsList,
-      },
-    ];
-
-    if (appSecretCompat) {
-      tabs.push({
-        id: 'api-keys',
-        label: t('nav.apiKeys'),
-        icon: KeyRound,
-        to: { name: routes.ApplicationSecretsList, params },
-        active: route.name === routes.ApplicationSecretsList,
-      });
-    }
-
-    tabs.push({
-      id: 'settings',
-      label: t('nav.settings'),
-      icon: Settings,
-      to: { name: routes.ApplicationsDetail, params },
-      active:
-        route.name === routes.ApplicationsDashboard || route.name === routes.ApplicationsDetail,
-    });
-
-    return tabs;
-  }
-
-  // Org-level navigation
-  if (orgId) {
-    const params = { organization_id: orgId };
-    return [
-      {
-        id: 'applications',
-        label: t('nav.applications'),
-        icon: LayoutDashboard,
-        to: { name: routes.ApplicationsList, params },
-        active: route.name === routes.ApplicationsList,
-      },
-      {
-        id: 'service-tokens',
-        label: t('nav.serviceTokens'),
-        icon: Key,
-        to: { name: routes.ServicesTokenList, params },
-        active: route.name === routes.ServicesTokenList || route.name === routes.ServiceTokenView,
-      },
-      {
-        id: 'org-settings',
-        label: t('nav.settings'),
-        icon: Settings,
-        to: { name: routes.OrganizationsDetail, params },
-        active:
-          route.name === routes.OrganizationsDashboard || route.name === routes.OrganizationsDetail,
-      },
-    ];
-  }
-
-  return [];
-});
-
 function closeDropdowns() {
   userDropdownOpen.value = false;
-}
-
-function handleClickOutside(event: MouseEvent) {
-  const target = event.target as HTMLElement;
-  if (!target.closest('.hook0-dropdown')) {
-    closeDropdowns();
-  }
 }
 
 function onKeydown(event: KeyboardEvent) {
@@ -184,22 +53,40 @@ function onKeydown(event: KeyboardEvent) {
   }
 }
 
+// Click-outside detection: attach to document when dropdown opens
+function onDocumentClick(event: MouseEvent) {
+  const target = event.target as HTMLElement;
+  if (!target.closest('.hook0-dropdown')) {
+    closeDropdowns();
+  }
+}
+
+watch(userDropdownOpen, (isOpen) => {
+  if (isOpen) {
+    document.addEventListener('click', onDocumentClick, { capture: true });
+  } else {
+    document.removeEventListener('click', onDocumentClick, { capture: true });
+  }
+});
+
 onMounted(() => {
   document.addEventListener('keydown', onKeydown);
 });
 
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', onKeydown);
+  document.removeEventListener('click', onDocumentClick, { capture: true });
 });
 
 // Close dropdowns on route change
-router.afterEach(() => {
+const removeAfterEach = router.afterEach(() => {
   closeDropdowns();
 });
+onUnmounted(removeAfterEach);
 </script>
 
 <template>
-  <header class="hook0-topnav" @click="handleClickOutside">
+  <header class="hook0-topnav">
     <!-- Mobile menu button -->
     <button
       class="hook0-topnav__mobile-toggle"
@@ -320,7 +207,7 @@ router.afterEach(() => {
             variant="ghost"
             class="hook0-topnav__dropdown-item hook0-topnav__dropdown-item--danger"
             role="menuitem"
-            @click="authStore.logout()"
+            @click="void authStore.logout()"
           >
             <LogOut :size="16" aria-hidden="true" />
             {{ t('nav.logout') }}
@@ -342,7 +229,7 @@ router.afterEach(() => {
   gap: 0.5rem;
   position: sticky;
   top: 0;
-  z-index: 30;
+  z-index: var(--z-topnav, 30);
 }
 
 /* Mobile toggle */
@@ -588,9 +475,9 @@ router.afterEach(() => {
   background: linear-gradient(
     135deg,
     var(--color-primary),
-    color-mix(in srgb, var(--color-primary) 70%, #000)
+    color-mix(in srgb, var(--color-primary) 70%, var(--color-text-primary))
   );
-  color: white;
+  color: var(--color-primary-text, #fff);
   font-size: 0.75rem;
   font-weight: 600;
   display: flex;
@@ -620,7 +507,7 @@ router.afterEach(() => {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   padding: 0.375rem;
-  z-index: 50;
+  z-index: var(--z-dropdown, 50);
 }
 
 .hook0-topnav__dropdown--right {

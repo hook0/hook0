@@ -70,7 +70,7 @@ const showFullScreen = computed(() => {
   <Hook0RefetchBar />
 
   <!-- Authenticated layout -->
-  <div v-if="!showFullScreen" class="hook0-app" style="background-color: var(--color-bg-secondary)">
+  <div v-if="!showFullScreen" class="hook0-app">
     <a href="#main-content" class="skip-link">{{ t('nav.skipToContent') }}</a>
 
     <!-- Top Navigation (Stripe-style) -->
@@ -133,6 +133,7 @@ const showFullScreen = computed(() => {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  background-color: var(--color-bg-secondary);
 }
 
 .hook0-app__main {
