@@ -290,7 +290,7 @@ function handleOverlayClick(e: MouseEvent) {
         <TutorialWizardStepForm
           v-else-if="currentStep >= 3 && currentStep <= 5"
           :key="currentStep"
-          :step="currentStep as 3 | 4 | 5"
+          :step="(currentStep as 3 | 4 | 5)"
           :organization-id="paramOrgId"
           :application-id="paramAppId"
           :progress-steps="PROGRESS_STEPS"
