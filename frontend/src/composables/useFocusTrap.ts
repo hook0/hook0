@@ -40,6 +40,7 @@ export function useFocusTrap(
     }
 
     if (event.key === 'Tab') {
+      if (!containerRef.value) return;
       const focusableElements = getFocusableElements();
       if (focusableElements.length === 0) {
         event.preventDefault();
