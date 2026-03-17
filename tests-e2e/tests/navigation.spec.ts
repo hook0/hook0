@@ -552,8 +552,8 @@ test.describe("Navigation", () => {
       // STRICT assertions: Verify actual content
       await expect(page.locator('[data-test="register-form"]')).toBeVisible({ timeout: 10000 });
 
-      // Check page title
-      const pageTitle = page.locator('h1, h2').first();
+      // Check page title (may be in h1, h2, h3, or a div within the card header)
+      const pageTitle = page.locator('h1, h2, h3, .hook0-card-header').first();
       await expect(pageTitle).toContainText(/Free Trial|Create|Sign up|Register/i);
 
       // Check all form fields exist

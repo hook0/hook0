@@ -285,10 +285,12 @@ test.describe("Events", () => {
     // Wait for events list to refresh
     await expect(page.locator('[data-test="events-card"]')).toBeVisible({ timeout: 10000 });
 
-    // Verify events table has at least 1 row
+    // Verify events table has at least 1 row (wait for table data to load)
     const rows = page.locator('[data-test="events-table"] [row-id]');
-    const rowCount = await rows.count();
-    expect(rowCount).toBeGreaterThanOrEqual(1);
+    await expect(async () => {
+      const rowCount = await rows.count();
+      expect(rowCount).toBeGreaterThanOrEqual(1);
+    }).toPass({ timeout: 10000 });
 
     // Verify first row contains the event type name
     const firstRow = rows.first();

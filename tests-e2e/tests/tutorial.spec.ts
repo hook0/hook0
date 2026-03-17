@@ -135,10 +135,11 @@ test.describe("Tutorial", () => {
       timeout: 15000,
     });
 
-    // Select "Create a new organization" option (radio button) using data-test selector
-    const createOrgRadio = page.locator('[data-test="tutorial-create-org-radio"]');
-    await expect(createOrgRadio).toBeVisible({ timeout: 10000 });
-    await createOrgRadio.click();
+    // Select "Create a new organization" option (selectable card) using data-test selector
+    // The Docker build may use "tutorial-create-org-option" or "tutorial-create-org-radio"
+    const createOrgOption = page.locator('[data-test="tutorial-create-org-option"], [data-test="tutorial-create-org-radio"]').first();
+    await expect(createOrgOption).toBeVisible({ timeout: 10000 });
+    await createOrgOption.click();
 
     // Fill organization name
     await expect(page.locator('[data-test="organization-name-input"]')).toBeVisible({

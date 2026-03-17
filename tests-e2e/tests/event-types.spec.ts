@@ -448,21 +448,24 @@ test.describe("Event Types", () => {
     );
     await expect(page.locator('[data-test="event-types-card"]')).toBeVisible({ timeout: 10000 });
 
-    // Verify the event type exists in the list
+    // Verify the event type exists in the list (wait for table data to load)
     const rows = page.locator('[data-test="event-types-table"] [row-id]');
-    const rowCount = await rows.count();
-    expect(rowCount).toBeGreaterThanOrEqual(1);
+    await expect(async () => {
+      const rowCount = await rows.count();
+      expect(rowCount).toBeGreaterThanOrEqual(1);
+    }).toPass({ timeout: 10000 });
 
     // Find the row with our event type
     const targetRow = rows.filter({ hasText: eventTypeName });
-    await expect(targetRow).toBeVisible();
+    await expect(targetRow).toBeVisible({ timeout: 10000 });
 
-    // Setup dialog handler for deactivate confirmation
-    page.on("dialog", (dialog) => {
-      dialog.accept();
-    });
+    // Click deactivate button (opens Hook0Dialog confirmation)
+    await targetRow.locator('[data-test="event-type-deactivate-button"]').click();
 
-    // Click deactivate button (it's in the row, text "Deactivate")
+    // Wait for confirmation dialog and click confirm
+    const confirmButton = page.locator('.hook0-dialog--danger .hook0-dialog__actions button:last-child');
+    await expect(confirmButton).toBeVisible({ timeout: 5000 });
+
     const deactivateResponsePromise = page.waitForResponse(
       (response) =>
         response.url().includes("/api/v1/event_types") &&
@@ -471,7 +474,7 @@ test.describe("Event Types", () => {
       { timeout: 15000 }
     );
 
-    await targetRow.locator('[data-test="event-type-deactivate-button"]').click();
+    await confirmButton.click();
 
     const deactivateResponse = await deactivateResponsePromise;
 

@@ -207,9 +207,10 @@ test.describe("User Settings", () => {
     // Submit
     await page.locator('[data-test="change-password-button"]').click();
 
-    // Verify error notification is shown
+    // VeeValidate/Zod validates inline - verify the validation error message appears
+    // The error text (.hook0-input-error-text) is rendered inside the Hook0Input component
     await expect(
-      page.locator('[data-test="toast-notification"]').first()
+      page.locator('.hook0-input-error-text')
     ).toBeVisible({
       timeout: 10000,
     });
@@ -252,15 +253,15 @@ test.describe("User Settings", () => {
       timeout: 10000,
     });
 
-    // Setup dialog handler for delete confirmation
-    page.on("dialog", (dialog) => {
-      dialog.accept();
-    });
-
-    // Click delete - this will show "Not implemented yet" error
+    // Click delete - opens Hook0Dialog confirmation
     await page.locator('[data-test="delete-account-button"]').click();
 
-    // Verify error notification is shown (not implemented feature)
+    // Wait for confirmation dialog and click confirm
+    const confirmButton = page.locator('.hook0-dialog--danger .hook0-dialog__actions button:last-child');
+    await expect(confirmButton).toBeVisible({ timeout: 5000 });
+    await confirmButton.click();
+
+    // Verify error notification is shown (not implemented feature) or success toast
     await expect(
       page.locator('[data-test="toast-notification"]').first()
     ).toBeVisible({

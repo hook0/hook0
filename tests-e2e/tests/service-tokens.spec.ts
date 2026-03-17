@@ -50,10 +50,13 @@ test.describe("Service Tokens", () => {
     // Verify service tokens card is visible
     await expect(page.locator('[data-test="service-tokens-card"]')).toBeVisible({ timeout: 10000 });
 
-    // Step 1: Create a service token via UI (uses prompt dialog)
-    page.on("dialog", (dialog) => {
-      dialog.accept(tokenName);
-    });
+    // Step 1: Create a service token via UI (uses Hook0Dialog modal)
+    await page.locator('[data-test="service-tokens-create-button"]').click();
+
+    // Fill the name in the dialog modal
+    const dialogInput = page.locator('[data-test="service-token-name-input"]');
+    await expect(dialogInput).toBeVisible({ timeout: 5000 });
+    await dialogInput.fill(tokenName);
 
     const createResponsePromise = page.waitForResponse(
       (response) =>
@@ -61,7 +64,8 @@ test.describe("Service Tokens", () => {
       { timeout: 15000 }
     );
 
-    await page.locator('[data-test="service-tokens-create-button"]').click();
+    // Click confirm button in the dialog
+    await page.locator('.hook0-dialog .hook0-dialog__actions button:last-child').click();
 
     const createResponse = await createResponsePromise;
     expect(createResponse.status()).toBeLessThan(400);
@@ -163,12 +167,14 @@ test.describe("Service Tokens", () => {
       timeout: 10000,
     });
 
-    // Setup dialog handler to enter token name
-    page.on("dialog", (dialog) => {
-      dialog.accept(tokenName);
-    });
+    // Step 2: Click create to open Hook0Dialog modal
+    await page.locator('[data-test="service-tokens-create-button"]').click();
 
-    // Step 2: Click create and wait for API response
+    // Fill the name in the dialog modal
+    const dialogInput = page.locator('[data-test="service-token-name-input"]');
+    await expect(dialogInput).toBeVisible({ timeout: 5000 });
+    await dialogInput.fill(tokenName);
+
     // Capture response body inside the predicate to avoid race condition with navigation
     let responseBody: { token_id?: string; name?: string } = {};
     const responsePromise = page.waitForResponse(
@@ -184,7 +190,8 @@ test.describe("Service Tokens", () => {
       { timeout: 15000 }
     );
 
-    await page.locator('[data-test="service-tokens-create-button"]').click();
+    // Click confirm button in the dialog
+    await page.locator('.hook0-dialog .hook0-dialog__actions button:last-child').click();
 
     const response = await responsePromise;
 

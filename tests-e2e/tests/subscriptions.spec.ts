@@ -569,12 +569,13 @@ test.describe("Subscriptions", () => {
     });
     await expect(page.locator('[data-test="subscription-delete-button"]')).toBeVisible();
 
-    // Setup dialog handler for confirmation
-    page.on("dialog", (dialog) => {
-      dialog.accept();
-    });
+    // Step 2: Click delete to open Hook0Dialog confirmation
+    await page.locator('[data-test="subscription-delete-button"]').click();
 
-    // Step 2: Click delete and wait for API response
+    // Wait for confirmation dialog and click confirm
+    const confirmButton = page.locator('.hook0-dialog--danger .hook0-dialog__actions button:last-child');
+    await expect(confirmButton).toBeVisible({ timeout: 5000 });
+
     const responsePromise = page.waitForResponse(
       (response) =>
         response.url().includes(`/api/v1/subscriptions`) &&
@@ -582,7 +583,7 @@ test.describe("Subscriptions", () => {
       { timeout: 15000 }
     );
 
-    await page.locator('[data-test="subscription-delete-button"]').click();
+    await confirmButton.click();
 
     const response = await responsePromise;
 
