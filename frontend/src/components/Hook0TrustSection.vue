@@ -54,14 +54,15 @@ defineSlots<{
   color: var(--color-text-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 .hook0-trust-section__logos {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 2rem;
+  column-gap: 2rem;
+  row-gap: 1rem;
   flex-wrap: wrap;
 }
 
@@ -69,7 +70,7 @@ defineSlots<{
 .hook0-trust-section__logos :deep(> *) {
   color: var(--color-text-tertiary);
   opacity: 0.6;
-  height: 24px;
+  height: 28px;
   display: flex;
   align-items: center;
   transition: opacity 0.15s ease;
@@ -81,7 +82,7 @@ defineSlots<{
 }
 
 .hook0-trust-section__logos :deep(svg) {
-  height: 24px;
+  height: 28px;
   width: auto;
 }
 
@@ -92,11 +93,11 @@ defineSlots<{
 
   .hook0-trust-section__logos :deep(a),
   .hook0-trust-section__logos :deep(> *) {
-    height: 18px;
+    height: 22px;
   }
 
   .hook0-trust-section__logos :deep(svg) {
-    height: 18px;
+    height: 22px;
   }
 }
 </style>

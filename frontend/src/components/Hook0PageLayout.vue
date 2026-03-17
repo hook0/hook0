@@ -200,7 +200,7 @@ const isFullscreen = computed(() => props.variant === 'fullscreen');
   align-items: center;
   gap: 2rem;
   width: 100%;
-  max-width: 36rem;
+  max-width: 52rem;
 }
 
 /* Constraint for main content in fullscreen mode */

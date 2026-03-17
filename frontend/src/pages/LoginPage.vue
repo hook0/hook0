@@ -125,17 +125,15 @@ const onSubmit = handleSubmit((values) => {
             data-test="login-password-input"
             :disabled="isLoading"
           />
-
-          <Hook0Stack justify="end">
-            <Hook0Button
-              variant="link"
-              size="sm"
-              :to="{ name: routes.BeginResetPassword }"
-              data-test="login-forgot-password-link"
-            >
-              {{ t('auth.login.forgotPassword') }}
-            </Hook0Button>
-          </Hook0Stack>
+          <Hook0Button
+            variant="link"
+            size="sm"
+            :to="{ name: routes.BeginResetPassword }"
+            data-test="login-forgot-password-link"
+            class="login-forgot-link"
+          >
+            {{ t('auth.login.forgotPassword') }}
+          </Hook0Button>
 
           <Hook0Button
             variant="primary"
