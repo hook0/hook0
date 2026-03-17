@@ -287,6 +287,7 @@ pub struct RequestAttemptWithOptionalPayload {
     pub subscription_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub retry_count: i16,
+    pub delay_until: Option<DateTime<Utc>>,
     pub http_method: String,
     pub http_url: String,
     pub http_headers: serde_json::Value,

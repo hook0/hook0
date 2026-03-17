@@ -1,9 +1,10 @@
 use anyhow::anyhow;
 use aws_sdk_s3::error::DisplayErrorContext;
 use aws_sdk_s3::primitives::ByteStream;
+use chrono::Utc;
 use sqlx::postgres::types::PgInterval;
 use sqlx::{PgPool, query, query_as};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::sync::mpsc::Sender;
 use tokio::time::sleep;
 use tokio_util::task::TaskTracker;
@@ -42,6 +43,7 @@ pub async fn look_for_work(
         trace!(unit_id, "Fetching next unprocessed request attempt...");
         let mut tx = pool.begin().await?;
 
+        let fetch_start = Instant::now();
         let next_attempt = match worker.scope {
             WorkerScope::Public { worker_id } => {
                 // Only consider request attempts where associated subscription have no dedicated worker specified
@@ -56,6 +58,7 @@ pub async fn look_for_work(
                             ra.subscription__id AS subscription_id,
                             ra.created_at,
                             ra.retry_count,
+                            ra.delay_until,
                             t_http.method AS http_method,
                             t_http.url AS http_url,
                             t_http.headers AS http_headers,
@@ -101,6 +104,7 @@ pub async fn look_for_work(
                             ra.subscription__id AS subscription_id,
                             ra.created_at,
                             ra.retry_count,
+                            ra.delay_until,
                             t_http.method AS http_method,
                             t_http.url AS http_url,
                             t_http.headers AS http_headers,
@@ -134,9 +138,19 @@ pub async fn look_for_work(
                 .await?
             }
         };
+        stats.record_db_fetch(fetch_start.elapsed());
 
         if let Some(attempt) = next_attempt {
             let _slot_guard = stats.slot_enter();
+
+            // Record queue lag: time between becoming eligible and now
+            let eligible_at = attempt
+                .delay_until
+                .unwrap_or(attempt.created_at)
+                .max(attempt.created_at);
+            if let Ok(lag) = (Utc::now() - eligible_at).to_std() {
+                stats.record_lag(lag);
+            }
 
             // Set picked_at
             trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, "Picking request attempt");
