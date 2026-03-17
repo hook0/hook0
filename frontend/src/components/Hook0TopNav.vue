@@ -11,7 +11,6 @@
 import { ref, watch, onMounted, onBeforeUnmount, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import {
-  Webhook,
   Search,
   BookOpen,
   Code2,
@@ -27,6 +26,7 @@ import { useAuthStore } from '@/stores/auth';
 import { useUiStore } from '@/stores/ui';
 import { useI18n } from 'vue-i18n';
 import Hook0Button from '@/components/Hook0Button.vue';
+import Hook0Logo from '@/components/Hook0Logo.vue';
 import { useNavigationTabs } from '@/composables/useNavigationTabs';
 
 const { t } = useI18n();
@@ -98,8 +98,7 @@ onUnmounted(removeAfterEach);
 
     <!-- Logo -->
     <router-link :to="{ name: routes.Home }" class="hook0-topnav__logo">
-      <Webhook :size="24" class="hook0-topnav__logo-icon" aria-hidden="true" />
-      <span class="hook0-topnav__logo-text">Hook0</span>
+      <Hook0Logo variant="image" size="sm" />
     </router-link>
 
     <!-- Navigation Tabs -->
