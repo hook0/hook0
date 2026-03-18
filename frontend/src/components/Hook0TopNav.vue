@@ -66,7 +66,13 @@ const {
   goToCreateApp,
 } = useOrgAppSwitcher();
 
-/** Sort a list so the item matching currentId comes first. */
+/**
+ * Sort a list so the item matching currentId comes first, preserving order of the rest.
+ * Used to show the active org/app at the top of switcher dropdowns.
+ *
+ * @example
+ * sortCurrentFirst([{id:'a'}, {id:'b'}], x => x.id, 'b') // [{id:'b'}, {id:'a'}]
+ */
 function sortCurrentFirst<T>(list: T[], getId: (item: T) => string, currentId: string | null): T[] {
   return [...list].sort((a, b) => {
     if (getId(a) === currentId) return -1;
@@ -91,7 +97,12 @@ const tabsNavRef = ref<HTMLElement | null>(null);
 const activeTabEl = ref<HTMLElement | null>(null);
 const tabIndicatorStyle = ref<Record<string, string>>({ opacity: '0' });
 
+/**
+ * Recalculate the sliding tab indicator position and width based on the active tab's DOM rect.
+ * Called on tab change (watcher) and on layout changes (ResizeObserver).
+ */
 function updateTabIndicator() {
+  // nextTick: wait for Vue to flush DOM updates so getBoundingClientRect reads the final position
   void nextTick(() => {
     if (!activeTabEl.value || !tabsNavRef.value) {
       tabIndicatorStyle.value = { opacity: '0' };

@@ -36,8 +36,10 @@ export function useNavigationTabs() {
       .then((config) => {
         instanceConfig.value = config;
       })
-      .catch(() => {
-        // Default to null so appSecretCompat falls back to true
+      .catch((err) => {
+        // If instance config fetch fails (network, 500), default to null.
+        // appSecretCompat will fall back to true (show API Keys tab by default).
+        console.warn('[useNavigationTabs] Failed to load instance config:', err);
         instanceConfig.value = null;
       });
   });
