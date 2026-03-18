@@ -9,7 +9,6 @@ import { useUiStore } from '@/stores/ui';
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts';
 import { useEntityContext } from '@/composables/useEntityContext';
 import Hook0TopNav from '@/components/Hook0TopNav.vue';
-import Hook0Breadcrumbs from '@/components/Hook0Breadcrumbs.vue';
 import Hook0MobileTabBar from '@/components/Hook0MobileTabBar.vue';
 import Hook0MobileDrawer from '@/components/Hook0MobileDrawer.vue';
 import Hook0CommandPalette from '@/components/Hook0CommandPalette.vue';
@@ -79,9 +78,6 @@ const showFullScreen = computed(() => {
     <!-- Main content area -->
     <main id="main-content" class="hook0-app__main">
       <div class="hook0-app__container">
-        <!-- Breadcrumbs -->
-        <Hook0Breadcrumbs />
-
         <!-- Page content -->
         <!-- Wrapper div required: with mode="out-in", Vue listens for transitionend
              on the leaving component's root element. During route change, reactive deps

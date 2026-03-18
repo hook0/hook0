@@ -8,6 +8,7 @@ import {
   KeyRound,
   Settings,
   LayoutDashboard,
+  Box,
   Key,
 } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
@@ -47,6 +48,13 @@ export function useNavigationTabs() {
     if (orgId && appId) {
       const params = { organization_id: orgId, application_id: appId };
       const tabs: NavTab[] = [
+        {
+          id: 'dashboard',
+          label: t('nav.dashboard'),
+          icon: LayoutDashboard,
+          to: { name: routes.ApplicationsDashboard, params },
+          active: route.name === routes.ApplicationsDashboard,
+        },
         {
           id: 'events',
           label: t('nav.events'),
@@ -95,8 +103,7 @@ export function useNavigationTabs() {
         label: t('nav.settings'),
         icon: Settings,
         to: { name: routes.ApplicationsDetail, params },
-        active:
-          route.name === routes.ApplicationsDashboard || route.name === routes.ApplicationsDetail,
+        active: route.name === routes.ApplicationsDetail,
       });
 
       return tabs;
@@ -107,9 +114,16 @@ export function useNavigationTabs() {
       const params = { organization_id: orgId };
       return [
         {
+          id: 'dashboard',
+          label: t('nav.dashboard'),
+          icon: LayoutDashboard,
+          to: { name: routes.OrganizationsDashboard, params },
+          active: route.name === routes.OrganizationsDashboard,
+        },
+        {
           id: 'applications',
           label: t('nav.applications'),
-          icon: LayoutDashboard,
+          icon: Box,
           to: { name: routes.ApplicationsList, params },
           active: route.name === routes.ApplicationsList,
         },
@@ -125,9 +139,7 @@ export function useNavigationTabs() {
           label: t('nav.settings'),
           icon: Settings,
           to: { name: routes.OrganizationsDetail, params },
-          active:
-            route.name === routes.OrganizationsDashboard ||
-            route.name === routes.OrganizationsDetail,
+          active: route.name === routes.OrganizationsDetail,
         },
       ];
     }

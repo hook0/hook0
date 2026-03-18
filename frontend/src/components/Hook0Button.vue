@@ -5,7 +5,7 @@ import { ref, computed, onMounted, onUpdated, useSlots, useAttrs } from 'vue';
 import Hook0Spinner from '@/components/Hook0Spinner.vue';
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'link' | 'icon';
-type ButtonSize = 'sm' | 'md' | 'lg';
+type ButtonSize = 'xs' | 'sm' | 'md' | 'lg';
 
 type Props = {
   variant?: ButtonVariant;
@@ -159,12 +159,14 @@ onUpdated(() => {
 });
 
 const sizeClasses: Record<ButtonSize, string> = {
+  xs: 'px-2 py-0.5 text-xs',
   sm: 'px-3 py-1.5 text-sm',
   md: 'px-4 py-2 text-sm',
   lg: 'px-5 py-2.5 text-base',
 };
 
 const spinnerSize: Record<ButtonSize, number> = {
+  xs: 12,
   sm: 14,
   md: 16,
   lg: 18,

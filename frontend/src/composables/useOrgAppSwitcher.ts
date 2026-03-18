@@ -24,7 +24,7 @@ export function useOrgAppSwitcher() {
 
   function switchOrg(orgId: string) {
     void router.push({
-      name: routes.ApplicationsList,
+      name: routes.OrganizationsDashboard,
       params: { organization_id: orgId },
     });
   }
@@ -61,7 +61,7 @@ export function useOrgAppSwitcher() {
   function goToOrgDashboard() {
     if (currentOrgId.value) {
       void router.push({
-        name: routes.ApplicationsList,
+        name: routes.OrganizationsDashboard,
         params: { organization_id: currentOrgId.value },
       });
     }

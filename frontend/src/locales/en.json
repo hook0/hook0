@@ -4,6 +4,7 @@
     "unknownError": "An unknown error occurred"
   },
   "common": {
+    "current": "Current",
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",
@@ -224,7 +225,14 @@
     "home": "Home",
     "apps": "Apps",
     "types": "Types",
-    "webhooks": "Webhooks"
+    "webhooks": "Webhooks",
+    "createOrganization": "Create organization",
+    "createApplication": "Create application",
+    "manage": "Manage",
+    "nApps": "{count} app | {count} apps",
+    "switchOrganization": "Switch organization",
+    "switchApplication": "Switch application",
+    "tabBar": "Tab bar"
   },
   "organizations": {
     "title": "Organizations",
