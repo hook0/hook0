@@ -311,7 +311,10 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
             }
         }
         (Err(e), _, _, _, _) => {
-            error!("Target has an invalid HTTP method: {e}");
+            error!(
+                target_http_method = attempt.http_method,
+                "Target has an invalid HTTP method: {e}"
+            );
             Response {
                 response_error: Some(ResponseError::InvalidTarget),
                 http_code: None,
@@ -321,7 +324,10 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
             }
         }
         (_, Err(e), _, _, _) => {
-            warn!("Target has an invalid URL: {e}");
+            warn!(
+                target_http_url = attempt.http_url,
+                "Target has an invalid URL: {e}"
+            );
             Response {
                 response_error: Some(ResponseError::InvalidTarget),
                 http_code: None,

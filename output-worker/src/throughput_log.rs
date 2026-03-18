@@ -191,7 +191,7 @@ pub async fn run_throughput_log(
 fn emit_snapshot(stats: &ThroughputStats, window: Duration) {
     let snap = stats.snapshot_and_reset();
     info!(
-        "throughput: not_ready={} processed={} succeeded={} failed={} first_attempts={} retries={} rate={:.2}/s avg_db_fetch_ms={:.1} max_lag_s={:.1} avg_latency_ms={:.1} max_latency_ms={} avg_busy={:.1} total_slots={}",
+        "throughput: not_ready={} processed={} succeeded={} failed={} first_attempts={} retries={} rate={:.2}/s avg_db_fetch_ms={:.0} max_lag_s={:.1} avg_latency_ms={:.0} max_latency_ms={} avg_busy={:.1} total_slots={}",
         snap.not_ready,
         snap.processed,
         snap.succeeded,
