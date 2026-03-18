@@ -8,7 +8,7 @@
  * @example
  * <Hook0TopNav />
  */
-import { ref, watch, onMounted, onBeforeUnmount, onUnmounted, computed } from 'vue';
+import { ref, watch, onMounted, onBeforeUnmount, onUnmounted, computed, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   ChevronsUpDown,
@@ -82,6 +82,30 @@ const currentOrgPlan = computed(() => {
 });
 
 const userTriggerRef = ref<HTMLButtonElement | null>(null);
+
+// Tab indicator sliding
+const tabsNavRef = ref<HTMLElement | null>(null);
+const activeTabEl = ref<HTMLElement | null>(null);
+const tabIndicatorStyle = ref<Record<string, string>>({ opacity: '0' });
+
+function updateTabIndicator() {
+  void nextTick(() => {
+    if (!activeTabEl.value || !tabsNavRef.value) {
+      tabIndicatorStyle.value = { opacity: '0' };
+      return;
+    }
+    const navRect = tabsNavRef.value.getBoundingClientRect();
+    const tabRect = activeTabEl.value.getBoundingClientRect();
+    tabIndicatorStyle.value = {
+      width: `${tabRect.width - 24}px`,
+      transform: `translateX(${tabRect.left - navRect.left + 12}px)`,
+      opacity: '1',
+    };
+  });
+}
+
+watch(() => navTabs.value.find((t) => t.active)?.id, updateTabIndicator);
+onMounted(() => setTimeout(updateTabIndicator, 100));
 
 // Dropdown states
 const orgDropdownOpen = ref(false);
@@ -189,7 +213,9 @@ onUnmounted(removeAfterEach);
             @click="goToOrgDashboard()"
           >
             <span>{{ currentOrgName ?? '...' }}</span>
-            <Hook0Badge variant="primary" size="sm">{{ currentOrgPlan ? currentOrgPlan.label : t('orgAppSelector.developer') }}</Hook0Badge>
+            <Hook0Badge variant="primary" size="sm">{{
+              currentOrgPlan ? currentOrgPlan.label : t('orgAppSelector.developer')
+            }}</Hook0Badge>
           </button>
           <button
             class="hook0-topnav__switcher-btn"
@@ -224,9 +250,14 @@ onUnmounted(removeAfterEach);
                 <div class="hook0-topnav__dropdown-item-content">
                   <span class="hook0-topnav__dropdown-item-name">
                     <span class="hook0-topnav__dropdown-item-name-text">{{ org.name }}</span>
-                    <Hook0Badge v-if="org.plan" variant="primary" size="sm">{{ org.plan.label }}</Hook0Badge>
+                    <Hook0Badge v-if="org.plan" variant="primary" size="sm">{{
+                      org.plan.label
+                    }}</Hook0Badge>
                   </span>
-                  <span v-if="org.organization_id === currentOrgId" class="hook0-topnav__dropdown-item-meta">
+                  <span
+                    v-if="org.organization_id === currentOrgId"
+                    class="hook0-topnav__dropdown-item-meta"
+                  >
                     {{ t('common.current') }}
                   </span>
                 </div>
@@ -298,10 +329,21 @@ onUnmounted(removeAfterEach);
                     'hook0-topnav__dropdown-item--active': app.application_id === currentAppId,
                   }"
                   role="menuitem"
-                  @click="app.application_id !== currentAppId && switchApp(app.organization_id, app.application_id)"
+                  @click="
+                    app.application_id !== currentAppId &&
+                    switchApp(app.organization_id, app.application_id)
+                  "
                 >
                   <Box :size="16" aria-hidden="true" />
-                  <span class="hook0-topnav__dropdown-item-name">{{ app.name }}</span>
+                  <div class="hook0-topnav__dropdown-item-content">
+                    <span class="hook0-topnav__dropdown-item-name">{{ app.name }}</span>
+                    <span
+                      v-if="app.application_id === currentAppId"
+                      class="hook0-topnav__dropdown-item-meta"
+                    >
+                      {{ t('common.current') }}
+                    </span>
+                  </div>
                   <Hook0Button
                     v-if="app.application_id === currentAppId"
                     variant="secondary"
@@ -437,10 +479,20 @@ onUnmounted(removeAfterEach);
     </div>
 
     <!-- Row 2: Tab Bar -->
-    <nav v-if="navTabs.length > 0" class="hook0-topnav__tabs" :aria-label="t('nav.tabBar')">
+    <nav
+      v-if="navTabs.length > 0"
+      ref="tabsNavRef"
+      class="hook0-topnav__tabs"
+      :aria-label="t('nav.tabBar')"
+    >
       <router-link
         v-for="tab in navTabs"
         :key="tab.id"
+        :ref="
+          (el) => {
+            if (tab.active && el) activeTabEl = (el as any).$el ?? el;
+          }
+        "
         :to="tab.to"
         class="hook0-topnav__tab"
         :class="{ 'hook0-topnav__tab--active': tab.active }"
@@ -450,6 +502,7 @@ onUnmounted(removeAfterEach);
         <span class="hook0-topnav__tab-label">{{ tab.label }}</span>
         <span v-if="tab.badge" class="hook0-topnav__tab-badge">{{ tab.badge }}</span>
       </router-link>
+      <div class="hook0-topnav__tab-indicator" :style="tabIndicatorStyle" />
     </nav>
   </header>
 </template>
@@ -882,6 +935,7 @@ onUnmounted(removeAfterEach);
   border: none;
   background: none;
   cursor: pointer;
+  border-bottom: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   transition:
     background-color 0.15s ease,
@@ -907,16 +961,18 @@ onUnmounted(removeAfterEach);
 
 .hook0-topnav__dropdown-item--active {
   background-color: transparent;
-  border-bottom: 1px solid var(--color-border);
   border-radius: 0;
-  margin-bottom: 0.25rem;
-  padding-bottom: 0.625rem;
   cursor: default;
 }
 
 .hook0-topnav__dropdown-item--create {
   color: var(--color-text-muted);
   font-weight: 400;
+  border-bottom: none;
+}
+
+.hook0-topnav__dropdown-item:has(+ .hook0-topnav__dropdown-separator) {
+  border-bottom: none;
 }
 
 .hook0-topnav__dropdown-item--create :deep(svg) {
@@ -937,8 +993,6 @@ onUnmounted(removeAfterEach);
   background-color: var(--color-error-light);
   color: var(--color-error);
 }
-
-
 
 .hook0-topnav__dropdown-manage-btn:hover {
   background-color: var(--color-bg-tertiary);
@@ -984,7 +1038,7 @@ onUnmounted(removeAfterEach);
 .hook0-topnav__dropdown-separator {
   height: 1px;
   background-color: var(--color-border);
-  margin: 0.375rem 0;
+  margin: 0.125rem 0;
 }
 
 .hook0-topnav__dropdown-user-info {
@@ -1010,6 +1064,7 @@ onUnmounted(removeAfterEach);
   gap: 0.125rem;
   padding: 0 1rem;
   border-top: 1px solid var(--color-border);
+  position: relative;
 }
 
 @media (min-width: 768px) {
@@ -1042,20 +1097,28 @@ onUnmounted(removeAfterEach);
   border-radius: var(--radius-md);
 }
 
-/* Active tab underline indicator */
+/* Active tab */
 .hook0-topnav__tab--active {
   color: var(--color-primary);
 }
 
-.hook0-topnav__tab--active::after {
-  content: '';
+/* Sliding indicator */
+.hook0-topnav__tab-indicator {
   position: absolute;
-  bottom: -1px;
-  left: 0.75rem;
-  right: 0.75rem;
+  bottom: 0;
+  left: 0;
   height: 2px;
   background-color: var(--color-primary);
   border-radius: 1px;
+  transition:
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hook0-topnav__tab-indicator {
+    transition: none;
+  }
 }
 
 .hook0-topnav__tab-icon {
