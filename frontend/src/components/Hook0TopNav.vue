@@ -13,7 +13,7 @@
 import { ref, watch, onMounted, onBeforeUnmount, onUnmounted, computed, nextTick } from 'vue';
 import type { ComponentPublicInstance } from 'vue';
 import { useRouter } from 'vue-router';
-import { Search, BookOpen, Code2, ExternalLink, Menu } from 'lucide-vue-next';
+import { Search, BookOpen, Code2, ExternalLink } from 'lucide-vue-next';
 import { routes } from '@/routes';
 import { useUiStore } from '@/stores/ui';
 import { useI18n } from 'vue-i18n';
@@ -34,8 +34,10 @@ const isMac = computed(() => {
 });
 
 // Child component refs for coordinated close
-const contextBarRef = ref<InstanceType<typeof Hook0ContextBar> | null>(null);
-const userMenuRef = ref<InstanceType<typeof Hook0UserMenu> | null>(null);
+type ContextBarExposed = { closeDropdowns: () => void; focusActiveTrigger: () => void };
+type UserMenuExposed = { closeDropdowns: () => void; focusTrigger: () => void };
+const contextBarRef = ref<ContextBarExposed | null>(null);
+const userMenuRef = ref<UserMenuExposed | null>(null);
 
 // Tab indicator sliding
 const TAB_PADDING_X = 12;
@@ -56,9 +58,10 @@ function updateTabIndicator() {
     }
     const navRect = tabsNavRef.value.getBoundingClientRect();
     const tabRect = activeTabEl.value.getBoundingClientRect();
+    const scrollLeft = tabsNavRef.value.scrollLeft;
     tabIndicatorStyle.value = {
       width: `${tabRect.width - TAB_PADDING_X * 2}px`,
-      transform: `translateX(${tabRect.left - navRect.left + TAB_PADDING_X}px)`,
+      transform: `translateX(${tabRect.left - navRect.left + scrollLeft + TAB_PADDING_X}px)`,
       opacity: '1',
     };
   });
@@ -68,12 +71,17 @@ watch(() => navTabs.value.find((tab) => tab.active)?.id, updateTabIndicator);
 
 let tabsResizeObserver: ResizeObserver | null = null;
 
+function onTabsScroll() {
+  updateTabIndicator();
+}
+
 onMounted(() => {
   tabsResizeObserver = new ResizeObserver(() => {
     updateTabIndicator();
   });
   if (tabsNavRef.value) {
     tabsResizeObserver.observe(tabsNavRef.value);
+    tabsNavRef.value.addEventListener('scroll', onTabsScroll, { passive: true });
   }
 });
 
@@ -129,6 +137,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', onKeydown);
   document.removeEventListener('click', onDocumentClick, { capture: true });
+  tabsNavRef.value?.removeEventListener('scroll', onTabsScroll);
   tabsResizeObserver?.disconnect();
   tabsResizeObserver = null;
 });
@@ -144,21 +153,12 @@ onUnmounted(removeAfterEach);
   <header class="hook0-topnav">
     <!-- Row 1: Context Bar -->
     <div class="hook0-topnav__context-bar">
-      <!-- Mobile menu button -->
-      <button
-        class="hook0-topnav__mobile-toggle"
-        :aria-label="t('nav.openMenu')"
-        @click.stop="uiStore.toggleMobileDrawer()"
-      >
-        <Menu :size="20" aria-hidden="true" />
-      </button>
-
       <!-- Logo -->
       <router-link :to="{ name: routes.Home }" class="hook0-topnav__logo-section">
         <Hook0Logo variant="image" size="sm" />
       </router-link>
 
-      <!-- Org/App context (hidden on mobile) -->
+      <!-- Org/App context -->
       <Hook0ContextBar ref="contextBarRef" @close-dropdowns="onContextBarCloseDropdowns" />
 
       <!-- Right section -->
@@ -258,39 +258,6 @@ onUnmounted(removeAfterEach);
   height: 3rem;
   padding: 0 1rem;
   gap: 0.5rem;
-}
-
-/* Mobile toggle */
-.hook0-topnav__mobile-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border: none;
-  background: none;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  border-radius: var(--radius-md);
-  transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
-}
-
-.hook0-topnav__mobile-toggle:hover {
-  background-color: var(--color-bg-tertiary);
-  color: var(--color-text-primary);
-}
-
-.hook0-topnav__mobile-toggle:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-@media (min-width: 768px) {
-  .hook0-topnav__mobile-toggle {
-    display: none;
-  }
 }
 
 /* Logo section */
@@ -434,18 +401,20 @@ onUnmounted(removeAfterEach);
    -------------------------------------------------------------------------- */
 
 .hook0-topnav__tabs {
-  display: none;
+  display: flex;
   align-items: center;
   gap: 0.125rem;
   padding: 0 1rem;
   border-top: 1px solid var(--color-border);
   position: relative;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  flex-wrap: nowrap;
 }
 
-@media (min-width: 768px) {
-  .hook0-topnav__tabs {
-    display: flex;
-  }
+.hook0-topnav__tabs::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
 }
 
 .hook0-topnav__tab {
@@ -460,6 +429,7 @@ onUnmounted(removeAfterEach);
   position: relative;
   transition: color 0.15s ease;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .hook0-topnav__tab:hover {
@@ -504,10 +474,14 @@ onUnmounted(removeAfterEach);
   display: none;
 }
 
-@media (min-width: 1280px) {
+@media (min-width: 768px) {
   .hook0-topnav__tab-label {
     display: inline;
   }
+}
+
+.hook0-topnav__tab--active .hook0-topnav__tab-label {
+  display: inline;
 }
 
 .hook0-topnav__tab-badge {
@@ -520,7 +494,6 @@ onUnmounted(removeAfterEach);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hook0-topnav__mobile-toggle,
   .hook0-topnav__search,
   .hook0-topnav__nav-link,
   .hook0-topnav__tab {

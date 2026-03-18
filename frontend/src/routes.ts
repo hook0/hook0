@@ -20,6 +20,7 @@ export const routes: Record<Hook0Routes, string> = {
   CheckEmail: 'CheckEmail',
 
   OrganizationsDashboard: 'OrganizationsDashboard',
+  OrganizationsTeam: 'OrganizationsTeam',
   OrganizationsDetail: 'OrganizationsDetail',
   OrganizationsNew: 'OrganizationsNew',
 
@@ -163,6 +164,11 @@ export default [
     name: routes.ServiceTokenView,
     path: '/organizations/:organization_id/services_tokens/:service_token_id',
     component: () => import('@/pages/organizations/services_token/ServiceTokenView.vue'),
+  },
+  {
+    name: routes.OrganizationsTeam,
+    path: '/organizations/:organization_id/team',
+    component: () => import('@/pages/organizations/MembersList.vue'),
   },
   {
     name: routes.OrganizationsDetail,

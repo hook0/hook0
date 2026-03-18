@@ -599,9 +599,11 @@ function getGradient(index: number): string {
   font-weight: 600;
   line-height: 1.3;
   color: var(--color-text-primary);
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  /* Allow wrapping on small screens */
+  white-space: normal;
+  word-break: break-word;
 }
 
 .org-card__meta {

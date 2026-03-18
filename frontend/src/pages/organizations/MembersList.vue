@@ -56,12 +56,11 @@ const invitation = ref<Invitation>(emptyInvitation());
 function emptyInvitation(): Invitation {
   return {
     email: '',
-    role: '',
+    role: 'editor',
   };
 }
 
 const roleOptions: Hook0SelectSingleOption[] = [
-  { label: '', value: '' },
   { label: t('members.roleEditor'), value: 'editor' },
   { label: t('members.roleViewer'), value: 'viewer' },
 ];
@@ -238,22 +237,26 @@ const columns: ColumnDef<User, unknown>[] = [
         </Hook0CardContent>
 
         <Hook0Form v-if="canCreate('member')" data-test="members-invite-form" @submit="invite">
-          <Hook0CardFooter>
-            <Hook0Input
-              v-model="invitation.email"
-              type="email"
-              :placeholder="t('members.emailPlaceholder')"
-              required
-              data-test="members-invite-email-input"
-            />
-            <Hook0Select
-              v-model="invitation.role"
-              :options="roleOptions"
-              data-test="members-invite-role-select"
-            />
+          <Hook0CardFooter class="members-invite-footer">
+            <div class="members-invite-footer__fields">
+              <Hook0Input
+                v-model="invitation.email"
+                type="email"
+                class="members-invite-footer__email"
+                :placeholder="t('members.emailPlaceholder')"
+                required
+                data-test="members-invite-email-input"
+              />
+              <Hook0Select
+                v-model="invitation.role"
+                :options="roleOptions"
+                data-test="members-invite-role-select"
+              />
+            </div>
             <Hook0Button
               variant="primary"
               submit
+              class="members-invite-footer__button"
               :disabled="invitation.email === '' || invitation.role === ''"
               data-test="members-invite-button"
             >
@@ -302,5 +305,31 @@ const columns: ColumnDef<User, unknown>[] = [
 </template>
 
 <style scoped>
-/* Hook0 components handle all styling */
+.members-invite-footer {
+  flex-wrap: wrap;
+}
+
+.members-invite-footer__fields {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+  min-width: 0;
+}
+
+.members-invite-footer__email {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 20rem;
+}
+
+@media (max-width: 767px) {
+  .members-invite-footer__fields {
+    flex: 1 1 100%;
+  }
+
+  .members-invite-footer__button {
+    flex: 1 1 100%;
+  }
+}
 </style>

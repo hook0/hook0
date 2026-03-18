@@ -428,14 +428,4 @@ const rows = computed(() => table.getRowModel().rows);
 .hook0-table-tr:last-child .hook0-table-td {
   border-bottom: none;
 }
-
-@media (max-width: 767px) {
-  .hook0-table th:first-child,
-  .hook0-table td:first-child {
-    position: sticky;
-    left: 0;
-    z-index: 1;
-    background-color: var(--color-bg-primary);
-  }
-}
 </style>

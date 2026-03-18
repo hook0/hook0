@@ -115,7 +115,17 @@ defineExpose({ closeDropdowns, focusActiveTrigger });
 
     <!-- Org section -->
     <div class="hook0-topnav__org-section hook0-topnav__dropdown-anchor">
-      <Hook0Avatar :name="currentOrgName ?? '?'" size="sm" variant="square" />
+      <Hook0Avatar
+        :name="currentOrgName ?? '?'"
+        size="sm"
+        variant="square"
+        class="hook0-topnav__org-avatar"
+        role="button"
+        tabindex="0"
+        :aria-label="t('nav.goToOrgDashboard')"
+        @click="goToOrgDashboard()"
+        @keydown.enter="goToOrgDashboard()"
+      />
       <button
         class="hook0-topnav__org-name"
         data-test="context-bar-org-name"
@@ -201,7 +211,15 @@ defineExpose({ closeDropdowns, focusActiveTrigger });
       <span class="hook0-topnav__path-separator" aria-hidden="true">/</span>
 
       <div class="hook0-topnav__app-section hook0-topnav__dropdown-anchor">
-        <Box :size="16" class="hook0-topnav__app-icon" aria-hidden="true" />
+        <Box
+          :size="16"
+          class="hook0-topnav__app-icon"
+          role="button"
+          tabindex="0"
+          :aria-label="t('nav.goToAppDashboard')"
+          @click="switchApp(currentOrgId!, currentAppId!)"
+          @keydown.enter="switchApp(currentOrgId!, currentAppId!)"
+        />
         <button
           class="hook0-topnav__app-name"
           data-test="context-bar-app-name"
@@ -284,31 +302,20 @@ defineExpose({ closeDropdowns, focusActiveTrigger });
 <style scoped>
 /* Logo separator (rendered here because it's contextual to org presence) */
 .hook0-topnav__logo-separator {
-  display: none;
+  display: block;
   width: 1px;
   height: 1.25rem;
   background-color: var(--color-border);
   flex-shrink: 0;
 }
 
-@media (min-width: 768px) {
-  .hook0-topnav__logo-separator {
-    display: block;
-  }
-}
-
 /* Org section */
 .hook0-topnav__org-section {
-  display: none;
+  display: flex;
   align-items: center;
   gap: 0.375rem;
   position: relative;
-}
-
-@media (min-width: 768px) {
-  .hook0-topnav__org-section {
-    display: flex;
-  }
+  min-width: 0;
 }
 
 .hook0-topnav__org-name {
@@ -324,8 +331,25 @@ defineExpose({ closeDropdowns, focusActiveTrigger });
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  max-width: 14rem;
+  max-width: 8rem;
   overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .hook0-topnav__org-name {
+    max-width: 14rem;
+  }
+}
+
+/* Hide plan badge on mobile to save space */
+.hook0-topnav__org-name :deep(.hook0-badge) {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .hook0-topnav__org-name :deep(.hook0-badge) {
+    display: inline-flex;
+  }
 }
 
 .hook0-topnav__org-name span:first-child {
@@ -376,36 +400,46 @@ defineExpose({ closeDropdowns, focusActiveTrigger });
 
 /* Path separator between org and app */
 .hook0-topnav__path-separator {
-  display: none;
+  display: block;
   color: var(--color-text-muted);
   font-size: 0.875rem;
   user-select: none;
   flex-shrink: 0;
 }
 
-@media (min-width: 768px) {
-  .hook0-topnav__path-separator {
-    display: block;
-  }
-}
-
 /* App section */
 .hook0-topnav__app-section {
-  display: none;
+  display: flex;
   align-items: center;
   gap: 0.375rem;
   position: relative;
-}
-
-@media (min-width: 768px) {
-  .hook0-topnav__app-section {
-    display: flex;
-  }
+  min-width: 0;
 }
 
 .hook0-topnav__app-icon {
   color: var(--color-text-muted);
   flex-shrink: 0;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.hook0-topnav__app-icon:hover {
+  color: var(--color-text-primary);
+}
+
+.hook0-topnav__app-icon:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.hook0-topnav__org-avatar {
+  cursor: pointer;
+}
+
+.hook0-topnav__org-avatar:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-md);
 }
 
 .hook0-topnav__app-name {
@@ -432,6 +466,17 @@ defineExpose({ closeDropdowns, focusActiveTrigger });
 .hook0-topnav__app-name:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+
+/* Hide org and app text names on mobile — keep icons only */
+@media (max-width: 767px) {
+  .hook0-topnav__org-name {
+    display: none;
+  }
+
+  .hook0-topnav__app-name {
+    display: none;
+  }
 }
 
 /* Dropdown shared styles */
@@ -567,6 +612,18 @@ defineExpose({ closeDropdowns, focusActiveTrigger });
 .dropdown-leave-to {
   opacity: 0;
   transform: translateY(-0.25rem);
+}
+
+@media (max-width: 767px) {
+  .hook0-topnav__dropdown {
+    position: fixed;
+    top: 3.5rem;
+    left: 0.5rem;
+    right: 0.5rem;
+    min-width: 0;
+    max-width: none;
+    width: auto;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

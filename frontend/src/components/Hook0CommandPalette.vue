@@ -53,6 +53,13 @@ const { handleKeydown: onOverlayKeydown } = useFocusTrap(overlayRef, { onEscape:
                   : undefined
               "
             />
+            <button
+              class="hook0-command-palette-close"
+              :aria-label="t('common.close')"
+              @click="close"
+            >
+              <kbd class="hook0-command-palette-close-kbd">Esc</kbd>
+            </button>
           </div>
 
           <div id="command-list" class="hook0-command-palette-list" role="listbox">
@@ -125,6 +132,34 @@ const { handleKeydown: onOverlayKeydown } = useFocusTrap(overlayRef, { onEscape:
   flex-shrink: 0;
 }
 
+.hook0-command-palette-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.hook0-command-palette-close-kbd {
+  padding: 0.125rem 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  background: var(--color-bg-secondary);
+  line-height: 1.5;
+}
+
+.hook0-command-palette-close:hover .hook0-command-palette-close-kbd {
+  color: var(--color-text-primary);
+  border-color: var(--color-border-strong);
+}
+
 .hook0-command-palette-input {
   flex: 1;
   padding: 0.875rem 0.75rem;
@@ -165,8 +200,6 @@ const { handleKeydown: onOverlayKeydown } = useFocusTrap(overlayRef, { onEscape:
 .hook0-command-palette-item {
   display: flex;
   align-items: center;
-  flex-wrap: nowrap;
-  white-space: nowrap;
   gap: 0.75rem;
   width: 100%;
   padding: 0.625rem 0.75rem;
@@ -200,11 +233,19 @@ const { handleKeydown: onOverlayKeydown } = useFocusTrap(overlayRef, { onEscape:
     max-width: 100%;
     margin: 0;
     border-radius: 0;
-    height: 100vh;
-    max-height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
+    display: flex;
+    flex-direction: column;
   }
   .hook0-command-palette-list {
-    max-height: calc(100vh - 4rem);
+    flex: 1;
+    max-height: none;
+    overflow-y: auto;
+  }
+  .hook0-command-palette-item {
+    white-space: normal;
+    word-break: break-word;
   }
 }
 </style>

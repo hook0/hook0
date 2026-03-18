@@ -144,6 +144,6 @@ const isGrid = computed(() => props.layout === 'grid');
 /* Grid layout mode */
 .hook0-stack--grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(var(--stack-min-width), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(var(--stack-min-width), 100%), 1fr));
 }
 </style>

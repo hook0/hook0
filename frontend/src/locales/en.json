@@ -230,6 +230,9 @@
     "createApplication": "Create application",
     "switchOrganization": "Switch organization",
     "switchApplication": "Switch application",
+    "goToOrgDashboard": "Go to organization dashboard",
+    "goToAppDashboard": "Go to application dashboard",
+    "team": "Team",
     "tabBar": "Tab bar"
   },
   "organizations": {

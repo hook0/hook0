@@ -22,7 +22,6 @@ import Hook0Badge from '@/components/Hook0Badge.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
 import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
 import ApplicationsList from '@/pages/organizations/applications/ApplicationsList.vue';
-import MembersList from '@/pages/organizations/MembersList.vue';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -71,7 +70,7 @@ const widgetItems = computed(() => {
       <Hook0Card data-test="organization-dashboard-card">
         <Hook0CardHeader>
           <template #header>
-            <Hook0Stack direction="row" align="center" gap="sm">
+            <Hook0Stack direction="row" align="center" gap="sm" class="org-dashboard__header-stack">
               <Hook0IconBadge variant="primary" size="sm">
                 <Building2 :size="14" aria-hidden="true" />
               </Hook0IconBadge>
@@ -215,11 +214,6 @@ const widgetItems = computed(() => {
         </Hook0CardFooter>
       </Hook0Card>
 
-      <MembersList
-        v-if="organization.quotas.members_per_organization_limit > 1"
-        :burst="$route.params.organization_id"
-      />
-
       <ApplicationsList :burst="$route.params.organization_id" />
     </template>
   </Hook0PageLayout>
@@ -238,6 +232,13 @@ const widgetItems = computed(() => {
   font-size: 0.875rem;
   font-weight: 600;
   line-height: 1.5;
+}
+
+/* Wrap org header on mobile: label + name on separate lines */
+@media (max-width: 767px) {
+  .org-dashboard__header-stack {
+    flex-wrap: wrap;
+  }
 }
 
 .org-dashboard__quota-value {

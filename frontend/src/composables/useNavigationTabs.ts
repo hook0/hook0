@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   Box,
   Key,
+  Users,
 } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import { routes } from '@/routes';
@@ -138,6 +139,13 @@ export function useNavigationTabs() {
           icon: Key,
           to: { name: routes.ServicesTokenList, params },
           active: route.name === routes.ServicesTokenList || route.name === routes.ServiceTokenView,
+        },
+        {
+          id: 'team',
+          label: t('nav.team'),
+          icon: Users,
+          to: { name: routes.OrganizationsTeam, params },
+          active: route.name === routes.OrganizationsTeam,
         },
         {
           id: 'org-settings',
