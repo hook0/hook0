@@ -6,7 +6,6 @@ import {
   Plus,
   ChevronRight,
   Package,
-  Layers,
   ChevronDown,
   FolderKanban,
 } from 'lucide-vue-next';
@@ -24,7 +23,6 @@ import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0Avatar from '@/components/Hook0Avatar.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
-import Hook0Badge from '@/components/Hook0Badge.vue';
 import Hook0EmptyState from '@/components/Hook0EmptyState.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import { useAuthStore } from '@/stores/auth';
@@ -245,7 +243,7 @@ function getGradient(index: number): string {
         class="stagger-item"
       >
         <!-- Card Header -->
-        <Hook0CardContent>
+        <Hook0CardContent class="org-card__header-wrapper">
           <Hook0Stack
             direction="row"
             align="center"
@@ -272,19 +270,7 @@ function getGradient(index: number): string {
                 {{ organizationGroup.organization.name }}
               </span>
               <span class="org-card__meta">
-                <template v-if="pricingEnabled">
-                  <Hook0Badge
-                    v-if="organizationGroup.organization.plan"
-                    variant="primary"
-                    size="sm"
-                  >
-                    {{ organizationGroup.organization.plan.label }}
-                  </Hook0Badge>
-                  <Hook0Badge v-else variant="default" size="sm">
-                    {{ t('orgAppSelector.developer') }}
-                  </Hook0Badge>
-                </template>
-                <Layers :size="11" aria-hidden="true" />
+                <span class="org-card__status-dot" />
                 <span class="org-selector__apps-count">
                   {{ t('orgAppSelector.appsCount', organizationGroup.applications.length) }}
                 </span>
@@ -295,7 +281,7 @@ function getGradient(index: number): string {
         </Hook0CardContent>
 
         <!-- Applications List -->
-        <Hook0CardContent>
+        <Hook0CardContent class="org-card__header-wrapper">
           <template v-if="organizationGroup.applications.length > 0">
             <ul class="app-list">
               <li
@@ -350,7 +336,7 @@ function getGradient(index: number): string {
             class="app-list__action"
           >
             <span class="app-list__action-icon">
-              <Plus :size="14" aria-hidden="true" />
+              <Plus :size="16" aria-hidden="true" />
             </span>
             <span class="app-list__action-label">
               {{ t('orgAppSelector.createNewApplication') }}
@@ -459,9 +445,17 @@ function getGradient(index: number): string {
 
 <style scoped>
 /* Organization Card Header - interactive clickable area */
+.org-card__header-wrapper:deep(.hook0-card-content) {
+  padding: 0.375rem;
+}
+
+.org-card__header-wrapper {
+  padding: 0.375rem !important;
+}
+
 .org-card__header {
   cursor: pointer;
-  padding: 0.375rem 0.5rem;
+  padding: 0.5rem 0.75rem;
   border-radius: var(--radius-lg);
   transition:
     background-color 0.15s ease,
@@ -487,7 +481,7 @@ function getGradient(index: number): string {
 .app-list {
   list-style: none;
   padding: 0;
-  margin: 0;
+  margin: 0.5rem 0 0;
 }
 
 .app-list__item {
@@ -557,8 +551,7 @@ function getGradient(index: number): string {
 
 /* Create App Action Row */
 .org-card__action-row {
-  border-top: 1px solid var(--color-border);
-  padding: 0.375rem 0.75rem;
+  padding: 0 0.375rem 0.375rem;
 }
 
 /* Create App Action Button */
@@ -568,7 +561,7 @@ function getGradient(index: number): string {
   flex-wrap: nowrap;
   white-space: nowrap;
   width: 100%;
-  padding: 0.375rem 0.5rem;
+  padding: 0.5rem 0.75rem;
   border: none;
   border-radius: var(--radius-md);
   background: transparent;
@@ -629,20 +622,27 @@ function getGradient(index: number): string {
 .org-selector__org-name {
   font-size: 0.875rem;
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1.3;
   color: var(--color-text-primary);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .org-card__meta {
   display: flex;
   align-items: center;
-  gap: 0.3125rem;
-  font-size: 0.8125rem;
+  gap: 0.375rem;
+  font-size: 0.75rem;
   color: var(--color-text-tertiary);
+}
+
+.org-card__status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-primary);
+  flex-shrink: 0;
 }
 
 .org-selector__apps-count {

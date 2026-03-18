@@ -195,7 +195,9 @@ function confirmDeleteAccount() {
               <span>{{ t('userSettings.changePassword') }}</span>
             </Hook0Stack>
           </template>
-          <template #subtitle>{{ t('userSettings.changePasswordSubtitle') }}</template>
+          <template #subtitle>
+            {{ t('userSettings.changePasswordWarning') }}
+          </template>
         </Hook0CardHeader>
         <Hook0CardContent>
           <Hook0CardContentLine>
@@ -294,7 +296,3 @@ function confirmDeleteAccount() {
     </Hook0Dialog>
   </Hook0PageLayout>
 </template>
-
-<style scoped>
-/* No custom CSS - using Hook0* components only */
-</style>

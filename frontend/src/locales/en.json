@@ -676,7 +676,7 @@
     },
     "skip": "Skip tutorial",
     "continue": "Continue",
-    "step1Title": "Step 1: Create your first organization",
+    "step1Title": "Create your first organization",
     "step1Description": "Organizations are used to invite your team members and give them access to applications, where everything webhook-related happens. If you purchase a plan, it will be applied to an organization and not to a user nor an application.",
     "chooseOrganization": "First, let's choose an organization!",
     "createNewOrganization": "Create a new organization",
@@ -686,8 +686,8 @@
     "continueToApplication": "You can now create your first application.",
     "organizationIdRequired": "Organization ID is required",
     "selectOrganization": "Please select an organization:",
-    "continueStep2": "Continue Step 2: Create Your Application",
-    "step2Title": "Step 2: Create your first application",
+    "continueStep2": "Continue",
+    "step2Title": "Create your first application",
     "step2Description": "An application is an isolated environment in Hook0. It has its own event types, events, subscriptions and request attempts. If your plan allows it, you can create multiple applications in order to isolate multiple environments or systems inside the same organization.",
     "chooseApplication": "Let's choose an application!",
     "createNewApplication": "Create a new application",
@@ -696,7 +696,7 @@
     "applicationCreated": "Application created",
     "continueToEventType": "You can now create your first event type.",
     "selectApplication": "You can also select an existing application to continue the tutorial.",
-    "continueStep3": "Continue Step 3: Create Your First Event Type",
+    "continueStep3": "Continue",
     "orgAppIdRequired": "Organization ID and Application ID are required",
     "close": "Close",
     "somethingWentWrong": "Something went wrong. Please try again. If the problem persists, contact support.",
@@ -723,23 +723,23 @@
       "eventDesc": "Verify it works"
     },
     "step3": {
-      "title": "Step 3: Create your first event type",
+      "title": "Create your first event type",
       "subtitle": "Event types are categories of events. For each subscription, you will then be able choose among your declared event types to receive only the right events. Every webhook sent by Hook0 will have its event type provided as a header so that applications that consume webhooks may use it (for example, this is a good way to know which structure/schema should be expected for the webhook's body).",
       "eventTypeCreated": "Event type created",
       "canCreateSubscription": "You can now create your first subscription.",
       "skip": "Skip",
-      "continueStep4": "Continue Step 4: Create Your Subscription"
+      "continueStep4": "Continue"
     },
     "step4": {
-      "title": "Step 4: Create a subscription",
+      "title": "Create a subscription",
       "subtitle": "Subscriptions are a way to choose what kind of events you are interested in (depending on their event type and labels) and where to dispatch them as webhooks.",
       "subscriptionCreated": "Subscription created",
       "canSendEvent": "You can now create your first event.",
       "skip": "Skip",
-      "continueStep5": "Continue Step 6: Send Your First Event"
+      "continueStep5": "Continue"
     },
     "step5": {
-      "title": "Step 5: Send an event",
+      "title": "Send an event",
       "subtitle": "In this step, you will send a test event. You should make it match your subscription's event type and label so that you receive a webhook!",
       "eventSent": "Event sent",
       "eventSentMessage": "Wow ! You just sent an event to your webhook !",
