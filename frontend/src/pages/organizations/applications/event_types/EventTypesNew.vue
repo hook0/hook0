@@ -54,6 +54,37 @@ const [service, serviceAttrs] = defineField('service');
 const [resourceType, resourceTypeAttrs] = defineField('resource_type');
 const [verb, verbAttrs] = defineField('verb');
 
+const serviceExamples = [
+  { name: 'billing', desktop: false },
+  { name: 'chat', desktop: false },
+  { name: 'contacts', desktop: false },
+  { name: 'connectors', desktop: true },
+  { name: 'file', desktop: true },
+  { name: 'iam', desktop: true },
+  { name: 'iap', desktop: true },
+  { name: 'integrations', desktop: true },
+  { name: 'logging', desktop: true },
+  { name: 'monitoring', desktop: true },
+  { name: 'storage', desktop: true },
+  { name: 'workflows', desktop: true },
+];
+const resourceTypeExamples = [
+  { name: 'project', desktop: false },
+  { name: 'action', desktop: false },
+  { name: 'comment', desktop: false },
+  { name: 'collaborator', desktop: true },
+  { name: 'teammember', desktop: true },
+];
+const verbExamples = [
+  { name: 'created', desktop: false },
+  { name: 'updated', desktop: false },
+  { name: 'deleted', desktop: false },
+  { name: 'copied', desktop: true },
+  { name: 'versioned', desktop: true },
+  { name: 'executed', desktop: true },
+  { name: 'completed', desktop: true },
+];
+
 // Mutation
 const createMutation = useCreateEventType();
 
@@ -99,7 +130,7 @@ const onSubmit = handleSubmit((values) => {
             <span class="event-type-new__field-label">{{ t('eventTypes.eventTypeLabel') }}</span>
           </template>
           <template #content>
-            <Hook0InputRow gap="sm">
+            <Hook0InputRow gap="sm" class="hook0-input-row--no-collapse">
               <Hook0Input
                 v-model="service"
                 v-bind="serviceAttrs"
@@ -108,7 +139,7 @@ const onSubmit = handleSubmit((values) => {
                 :error="errors.service"
                 data-test="event-type-service-input"
               />
-              <span class="event-type-new__separator">.</span>
+              <span class="event-type-new__separator hook0-input-row__separator">.</span>
               <Hook0Input
                 v-model="resourceType"
                 v-bind="resourceTypeAttrs"
@@ -117,7 +148,7 @@ const onSubmit = handleSubmit((values) => {
                 :error="errors.resource_type"
                 data-test="event-type-resource-input"
               />
-              <span class="event-type-new__separator">.</span>
+              <span class="event-type-new__separator hook0-input-row__separator">.</span>
               <Hook0Input
                 v-model="verb"
                 v-bind="verbAttrs"
@@ -191,18 +222,16 @@ const onSubmit = handleSubmit((values) => {
                 </p>
 
                 <ul class="example-list">
-                  <li class="example-list__item">billing</li>
-                  <li class="example-list__item">chat</li>
-                  <li class="example-list__item">contacts</li>
-                  <li class="example-list__item">connectors</li>
-                  <li class="example-list__item">file</li>
-                  <li class="example-list__item">iam</li>
-                  <li class="example-list__item">iap</li>
-                  <li class="example-list__item">integrations</li>
-                  <li class="example-list__item">logging</li>
-                  <li class="example-list__item">monitoring</li>
-                  <li class="example-list__item">storage</li>
-                  <li class="example-list__item">workflows</li>
+                  <li
+                    v-for="example in serviceExamples"
+                    :key="example.name"
+                    :class="[
+                      'example-list__item',
+                      { 'example-list__item--desktop': example.desktop },
+                    ]"
+                  >
+                    {{ example.name }}
+                  </li>
                 </ul>
               </Hook0Stack>
 
@@ -212,11 +241,16 @@ const onSubmit = handleSubmit((values) => {
                   {{ t('eventTypes.resourceTypeExamples') }}
                 </p>
                 <ul class="example-list">
-                  <li class="example-list__item">project</li>
-                  <li class="example-list__item">action</li>
-                  <li class="example-list__item">comment</li>
-                  <li class="example-list__item">collaborator</li>
-                  <li class="example-list__item">teammember</li>
+                  <li
+                    v-for="example in resourceTypeExamples"
+                    :key="example.name"
+                    :class="[
+                      'example-list__item',
+                      { 'example-list__item--desktop': example.desktop },
+                    ]"
+                  >
+                    {{ example.name }}
+                  </li>
                 </ul>
               </Hook0Stack>
 
@@ -226,19 +260,21 @@ const onSubmit = handleSubmit((values) => {
                   {{ t('eventTypes.verbExamples') }}
                 </p>
                 <ul class="example-list">
-                  <li class="example-list__item">created</li>
-                  <li class="example-list__item">updated</li>
-                  <li class="example-list__item">deleted</li>
-                  <li class="example-list__item">copied</li>
-                  <li class="example-list__item">versioned</li>
-                  <li class="example-list__item">executed</li>
-                  <li class="example-list__item">completed</li>
+                  <li
+                    v-for="example in verbExamples"
+                    :key="example.name"
+                    :class="[
+                      'example-list__item',
+                      { 'example-list__item--desktop': example.desktop },
+                    ]"
+                  >
+                    {{ example.name }}
+                  </li>
                 </ul>
               </Hook0Stack>
             </template>
           </Hook0CardContentLine>
         </Hook0CardContent>
-        <Hook0CardFooter> </Hook0CardFooter>
       </Hook0Card>
     </Hook0Form>
   </Hook0PageLayout>
@@ -256,7 +292,11 @@ const onSubmit = handleSubmit((values) => {
   color: var(--color-text-primary);
   font-weight: 700;
   font-size: 1rem;
-  line-height: 1.5;
+  flex-shrink: 0;
+  width: 0.75rem;
+  text-align: center;
+  align-self: center;
+  padding-top: 0.25rem;
 }
 
 .event-type-new__help-description {
@@ -291,5 +331,30 @@ const onSubmit = handleSubmit((values) => {
 
 .example-list__item + .example-list__item {
   border-top: 1px solid var(--color-border);
+}
+
+@media (max-width: 767px) {
+  .event-type-new__separator {
+    width: 0.5rem;
+  }
+
+  :deep(.hook0-card-footer) {
+    flex-direction: column;
+  }
+
+  :deep(.hook0-card-footer .hook0-button) {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .example-list__item--desktop {
+    display: none;
+  }
+
+  :deep(.hook0-card-content-line.columns .hook0-card-content-line-content) {
+    grid-auto-flow: row;
+    grid-auto-columns: unset;
+    row-gap: 1rem;
+  }
 }
 </style>

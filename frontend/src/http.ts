@@ -1,6 +1,7 @@
 import { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import axios from 'axios';
 
+import i18n from '@/plugins/i18n';
 import featureFlags from '@/feature-flags';
 import type { components } from '@/types';
 import { push } from 'notivue';
@@ -45,8 +46,8 @@ function getAxios(
           const problem = handleError(error as AxiosError<AxiosResponse<Problem>>);
           if (problem.id === 'AuthInvalidBiscuit') {
             push.error({
-              title: 'Error',
-              message: 'Your session has expired. Please log in again.',
+              title: i18n.global.t('common.error'),
+              message: i18n.global.t('common.sessionExpiredMessage'),
             });
             authStore.clearTokens().catch(console.error);
           }
@@ -145,7 +146,7 @@ export function handleError(err: AxiosError<AxiosResponse<Problem>>): Problem {
     return {
       id: 'TimeoutExceeded',
       status: 499,
-      title: 'Timeout Exceeded',
+      title: i18n.global.t('errors.timeoutExceeded'),
       detail: String(err.message).charAt(0).toUpperCase() + String(err.message).slice(1),
     };
   }
@@ -164,9 +165,9 @@ export function handleError(err: AxiosError<AxiosResponse<Problem>>): Problem {
 
   return {
     id: 'unknown',
-    title: 'Unknown Error',
+    title: i18n.global.t('errors.unknownErrorTitle'),
     status: 500,
-    detail: `An unknown error occurred: ${err.message}`,
+    detail: i18n.global.t('errors.unknownErrorDetail', { message: err.message }),
   };
 }
 

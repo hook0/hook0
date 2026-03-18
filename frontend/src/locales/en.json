@@ -1,7 +1,19 @@
 {
   "errors": {
     "unexpectedError": "Unexpected error",
-    "unknownError": "An unknown error occurred"
+    "unknownError": "An unknown error occurred",
+    "unknownErrorTitle": "Unknown Error",
+    "unknownErrorDetail": "An unknown error occurred: {message}",
+    "timeoutExceeded": "Timeout Exceeded"
+  },
+  "validation": {
+    "required": "{field} is required",
+    "validEmail": "Please enter a valid email address",
+    "passwordMinLength": "Password must be at least 8 characters",
+    "passwordConfirm": "Please confirm your password",
+    "passwordsMismatch": "Passwords do not match",
+    "validUrl": "A valid URL is required",
+    "validRole": "Please select a valid role"
   },
   "common": {
     "current": "Current",
@@ -29,7 +41,7 @@
     "clipboardCodeCopyError": "An error occurred while copying the code to the clipboard.",
     "idCopied": "The ID has been copied to the clipboard.",
     "noData": "No data",
-    "getStarted": "Get started by creating your first item.",
+    "getStarted": "No data yet. Create your first entry to get started.",
     "error": "Error",
     "success": "Success",
     "warning": "Warning",
@@ -68,19 +80,19 @@
     "labelKey": "Label key",
     "labelValue": "Label value",
     "headerName": "Header name",
-    "consumption": "Here is the consumption of your {entityType}."
+    "consumption": "Usage for your {entityType}."
   },
   "breadcrumbs": {
     "home": "Home",
     "applications": "Applications",
-    "newApplication": "New Application",
-    "newOrganization": "New Organization",
+    "newApplication": "New application",
+    "newOrganization": "New organization",
     "events": "Events",
     "eventDetail": "Event Details",
     "eventTypes": "Event Types",
-    "newEventType": "New Event Type",
+    "newEventType": "New event type",
     "subscriptions": "Subscriptions",
-    "newSubscription": "New Subscription",
+    "newSubscription": "New subscription",
     "subscriptionDetail": "Subscription Details",
     "logs": "Request Logs",
     "apiKeys": "API Keys",
@@ -103,13 +115,11 @@
       "forgotPassword": "Forgot password?",
       "newToHook0": "New to Hook0?",
       "createAccount": "Create an account",
-      "loginSuccess": "You have successfully logged in.",
-      "showPassword": "Show password",
-      "hidePassword": "Hide password"
+      "loginSuccess": "You have successfully logged in."
     },
     "register": {
-      "title": "Start Your Free Trial",
-      "subtitle": "No Credit Card Required",
+      "title": "Start your free trial",
+      "subtitle": "No credit card required",
       "firstName": "First name",
       "firstNamePlaceholder": "John",
       "lastName": "Last name",
@@ -122,8 +132,6 @@
       "submitting": "Creating account...",
       "hasAccount": "Already have an account?",
       "signIn": "Sign in",
-      "showPassword": "Show password",
-      "hidePassword": "Hide password",
       "benefit1": "Up to 100 free events/day",
       "benefit2": "Set up in 5 minutes",
       "benefit3": "Cancel anytime",
@@ -160,8 +168,6 @@
       "confirmPasswordPlaceholder": "Confirm your new password",
       "submit": "Set new password",
       "submitting": "Updating...",
-      "showPassword": "Show password",
-      "hidePassword": "Hide password",
       "backToLogin": "Back to login",
       "passwordsMismatch": "Passwords do not match.",
       "resetSuccess": "Your password has been reset successfully. Please login.",
@@ -198,7 +204,7 @@
     "events": "Events",
     "eventTypes": "Event Types",
     "subscriptions": "Subscriptions",
-    "logs": "Request Attempts",
+    "logs": "Request Logs",
     "apiKeys": "API Keys",
     "serviceTokens": "Service Tokens",
     "applications": "Applications",
@@ -208,8 +214,8 @@
     "appSettings": "Application Settings",
     "apiDocs": "API Documentation",
     "userSettings": "User Settings",
-    "newOrganization": "New Organization",
-    "newApplication": "New Application",
+    "newOrganization": "New organization",
+    "newApplication": "New application",
     "selectOrganization": "Select organization",
     "openMenu": "Open menu",
     "search": "Search",
@@ -241,7 +247,7 @@
     "notFound": "Organization not found.",
     "settings": "Organization Settings",
     "name": "Organization name",
-    "namePlaceholder": "My Awesome Product",
+    "namePlaceholder": "My awesome product",
     "create": "Create organization",
     "createTitle": "Create new organization",
     "editTitle": "Edit organization",
@@ -251,7 +257,7 @@
     "updated": "Organization updated",
     "updatedMessage": "Organization {name} has been updated",
     "createTooltip": "To continue, you need to add a name for your organization or select an existing one.",
-    "createFirstOrg": "Create Your First Organization",
+    "createFirstOrg": "Create your first organization",
     "consumptionTitle": "Consumption of organization {name}",
     "consumptionMembers": "Members",
     "consumptionApplications": "Applications",
@@ -262,7 +268,6 @@
     "members": "Members",
     "plan": "Plan",
     "planDeveloper": "Developer",
-    "planFree": "Developer",
     "availablePlans": "Available plans",
     "subscribeBetterPlan": "Subscribe to a better plan",
     "developerPlanNotice": "Your organization is on the Developer plan!",
@@ -274,7 +279,7 @@
     "empty": {
       "title": "No organizations yet",
       "description": "Create your first organization to get started.",
-      "cta": "Create Organization"
+      "cta": "Create organization"
     }
   },
   "home": {
@@ -290,8 +295,8 @@
     "dashboard": "Application Dashboard",
     "settings": "Application Settings",
     "name": "Application name",
-    "namePlaceholder": "my awesome api - production",
-    "nameHelpText": "Name of your company's product or API. Don't forget also to specify the environment, for example: \"facebook-production\"",
+    "namePlaceholder": "My Product API - Production",
+    "nameHelpText": "Your product or API name. Include the environment, e.g. 'acme-api-production'.",
     "create": "Create application",
     "createTitle": "Create new application",
     "editTitle": "Edit application",
@@ -301,7 +306,7 @@
     "updated": "Application updated",
     "updatedMessage": "Application {name} has been updated",
     "createTooltip": "To continue, you need to add a name for your application.",
-    "createFirstApp": "Create Your First Application",
+    "createFirstApp": "Create your first application",
     "consumptionTitle": "Consumption of application {name}",
     "consumptionEventsPerDay": "Events per day",
     "id": "Id",
@@ -313,13 +318,13 @@
     "empty": {
       "title": "No applications",
       "description": "Applications group your webhooks and events.",
-      "cta": "Create Application"
+      "cta": "Create application"
     }
   },
   "eventTypes": {
     "title": "Event Types",
     "name": "Event type name",
-    "create": "New Event Type",
+    "create": "New event type",
     "createTitle": "Create new event type",
     "createSubtitle": "Each event sent through a webhook must have an event type.",
     "eventTypeLabel": "Event Type",
@@ -327,25 +332,25 @@
     "resourceTypePlaceholder": "invoice",
     "verbPlaceholder": "created",
     "whatIsAnEventType": "What is an event type?",
-    "helpDescription": "An event is something that has happened in your application. In the past.",
+    "helpDescription": "An event represents something that happened in your application.",
     "helpFormat": "Event types should be in the form of:",
     "helpFormatTemplate": "<service>.<resourceType>.<verb>",
     "serviceExamples": "examples",
     "resourceTypeExamples": "examples",
     "verbExamples": "examples",
-    "createFirstEventType": "Create Your First Event Type",
+    "createFirstEventType": "Create your first event type",
     "delete": "Delete event type",
     "deleteConfirm": "Are you sure you want to delete this event type?",
     "nameHint": "Use dot-notation (e.g., user.created, order.completed)",
     "schema": "JSON Schema",
     "subtitle": "Each event sent through a webhook must have an event type.",
-    "confirmDeactivate": "Are you sure to deactivate \"{name}\" event?",
+    "confirmDeactivate": "Are you sure you want to deactivate the \"{name}\" event type?",
     "deactivated": "Event type \"{name}\" deactivated.",
     "deactivate": "Deactivate",
     "empty": {
       "title": "No event types defined",
       "description": "Define your first event type to start structuring your webhook events.",
-      "cta": "Create Event Type",
+      "cta": "Create event type",
       "codeExample": "curl -X POST /api/v1/organizations/{'{'}org_id{'}'}/applications/{'{'}app_id{'}'}/event_types \\\n  -H 'Authorization: Bearer {'{'}token{'}'}' \\\n  -d '{'{'}\"name\": \"user.created\"{'}'}'"
     }
   },
@@ -358,23 +363,23 @@
     "payload": "Payload",
     "deliveryTimeline": "Delivery Timeline",
     "openFullPage": "Open full page",
-    "subtitle": "Events that Hook0 receive from your application and that Hook0 forwarded to subscriptions (webhooks).",
+    "subtitle": "Events received from your application and forwarded to subscriptions as webhooks.",
     "receivedAt": "Received At",
     "labels": "Labels",
     "replay": "Replay",
     "replaySuccess": "The event was replayed successfully",
     "sendEvent": "Send an event",
     "sendTestEvent": "Send a test event",
-    "sendTestEventSubtitle": "For sending a test event, you need to create an event type first. After that you can create a subscription for this event type. Finally you can send a test event.",
+    "sendTestEventSubtitle": "To send a test event: first create an event type, then a subscription, then send the event.",
     "sendTestEventCreateEventType": "create an event type",
     "sendTestEventCreateSubscription": "create a subscription",
     "eventLabels": "Event labels",
-    "eventLabelsHelp": "Hook0 will only forward events to subscriptions which labels are all part of the event's labels. Events can have extra labels and still trigger a subscription, but subscriptions cannot have labels that are not part of the event or they won't be triggered by it.",
+    "eventLabelsHelp": "Events match subscriptions whose labels are a subset of the event's labels. Events with extra labels still trigger matching subscriptions.",
     "invalidEvent": "Invalid test event",
     "invalidEventMessage": "The test event form is invalid",
     "eventSentSuccess": "Test event sent",
     "eventSentMessage": "The test event was sent successfully",
-    "sendFirstEvent": "Send Your First Event",
+    "sendFirstEvent": "Send your first event",
     "eventOfType": "Event of type",
     "eventType": "Event Type",
     "sourceIp": "Source IP",
@@ -393,12 +398,12 @@
   },
   "subscriptions": {
     "title": "Subscriptions",
-    "create": "New Subscription",
+    "create": "New subscription",
     "createTitle": "Create new subscription (webhook)",
     "editTitle": "Edit subscription (webhook)",
     "formSubtitle": "A subscription (webhook) receives all events sent to Hook0 that match its filters.",
     "descriptionLabel": "Subscription description",
-    "descriptionPlaceholder": "my awesome api - production",
+    "descriptionPlaceholder": "e.g., Production webhook for order notifications",
     "descriptionHelpText": "Describe what your subscription will do so you can distinguish it from others.",
     "secretLabel": "Subscription secret",
     "secretDescription": "The secret is used to authenticate the webhooks sent by Hook0.",
@@ -410,18 +415,18 @@
     "webhookSiteName": "Webhook.site",
     "endpointHeaders": "Endpoint headers",
     "subscriptionLabels": "Subscription labels",
-    "subscriptionLabelsHelp": "Hook0 will only forward events to subscriptions that have the same labels as specified in the event. If you specify multiple labels here, events will need to have at least the same labels to trigger this subscription (but they can have more).",
+    "subscriptionLabelsHelp": "Only events with at least these labels will trigger this subscription. Events can have additional labels.",
     "selectEventTypes": "Select event types to listen to",
     "selectEventTypesWithLink": "Select {link} to listen to",
     "refreshEventTypes": "Refresh",
     "metadataLabel": "Metadata",
     "created": "Subscription created",
     "updated": "Subscription updated",
-    "createFirstSubscription": "Create Your First Subscription",
-    "edit": "Edit Subscription",
+    "createFirstSubscription": "Create your first subscription",
+    "edit": "Edit subscription",
     "delete": "Delete subscription",
     "deleteConfirm": "Are you sure you want to delete this subscription?",
-    "subtitle": "List all subscriptions created by customers against the application events.",
+    "subtitle": "Webhook subscriptions that receive events from this application.",
     "enabled": "Subscription '{name}' has been enabled",
     "disabled": "Subscription '{name}' has been disabled",
     "enabledColumn": "Enabled",
@@ -457,13 +462,13 @@
     "empty": {
       "title": "No subscriptions yet",
       "description": "Create a webhook subscription to start receiving events.",
-      "cta": "Create Subscription"
+      "cta": "Create subscription"
     }
   },
   "logs": {
-    "title": "Request Attempts",
-    "subtitle": "Last webhooks sent by Hook0.",
-    "subtitleRetention": "Items older than 7 days are not shown.",
+    "title": "Request Logs",
+    "subtitle": "Recent webhook delivery logs.",
+    "subtitleRetention": "Items older than {days} days are not shown.",
     "timestamp": "Timestamp",
     "subscriptionUrl": "Subscription URL",
     "eventType": "Event Type",
@@ -496,7 +501,8 @@
   },
   "apiKeys": {
     "title": "API Keys",
-    "create": "Create API Key",
+    "create": "Create API key",
+    "created": "API key created",
     "delete": "Delete API key",
     "deleteConfirmNamed": "Are you sure you want to delete {name}?",
     "key": "Key",
@@ -504,17 +510,17 @@
     "copyWarning": "Make sure to copy your API key now. You won't be able to see it again.",
     "subtitle": "These keys will allow you to authenticate API requests to Hook0.",
     "token": "Token",
-    "createPrompt": "Create a new secret key, name?",
+    "createPrompt": "Name your new API key",
     "deleted": "API key deleted.",
     "empty": {
       "title": "No API keys",
       "description": "Create an API key to authenticate your webhook API requests.",
-      "cta": "Create API Key"
+      "cta": "Create API key"
     }
   },
   "serviceTokens": {
     "title": "Service Tokens",
-    "create": "Create Token",
+    "create": "Create token",
     "scope": "Scope",
     "expiresAt": "Expires at",
     "simpleMode": "Simple",
@@ -528,7 +534,7 @@
       "1y": "1 year",
       "custom": "Custom"
     },
-    "generate": "Generate Token",
+    "generate": "Generate token",
     "modeToggleLabel": "Configuration mode",
     "simpleDescription": "Quickly scope your token to a single application with preset expiry durations.",
     "advancedDescription": "Full control over Biscuit attenuation with custom Datalog claims and detailed token inspection.",
@@ -549,13 +555,13 @@
     "editAction": "Edit",
     "editPrompt": "Edit the service token name?",
     "deleteConfirm": "Are you sure you want to delete this service token?\n\nEvery token derived from this token will be revoked as well.",
-    "createPrompt": "Give a name to your new service token:",
+    "createPrompt": "Name your new service token",
     "deleted": "Service token deleted.",
     "updated": "Service token updated.",
     "created": "Service token created.",
     "aiTitle": "Use Hook0 with AI Assistants",
     "aiSubtitle": "Connect Claude, ChatGPT, or any MCP-compatible AI to manage your webhooks",
-    "aiSetupGuide": "Setup Guide",
+    "aiSetupGuide": "Setup guide",
     "aiDescription": "With Hook0 MCP Server, you can let AI assistants interact with your webhook infrastructure using natural language:",
     "aiFeature1": "List and inspect events, subscriptions, and delivery history",
     "aiFeature2": "Create and manage webhook subscriptions via conversation",
@@ -586,7 +592,7 @@
     "empty": {
       "title": "No service tokens",
       "description": "Service tokens provide scoped API access for your applications.",
-      "cta": "Create Token"
+      "cta": "Create token"
     }
   },
   "members": {
@@ -595,14 +601,14 @@
     "name": "Name",
     "email": "Email",
     "role": "Role",
-    "invite": "Invite a user",
+    "invite": "Invite member",
     "emailPlaceholder": "Email address",
     "roleViewer": "Viewer",
     "roleEditor": "Editor",
     "currentUser": "(current user)",
-    "revokeConfirm": "Are you sure to revoke access of {email} from this organization?",
+    "revokeConfirm": "Are you sure you want to revoke {email}'s access to this organization?",
     "revokeTitle": "Revoke member access",
-    "roleChangeConfirm": "Are you sure to change {email}'s role to {role}?",
+    "roleChangeConfirm": "Are you sure you want to change {email}'s role to {role}?",
     "roleChangeTitle": "Change member role",
     "roleChanged": "Role of {email} has been updated to {role}.",
     "roleAlreadySet": "Role of {email} is already {role}.",
@@ -624,7 +630,7 @@
     "themeSystem": "System",
     "language": "Language",
     "languageEnglish": "English",
-    "changePassword": "Change Password",
+    "changePassword": "Change password",
     "currentPassword": "Current password",
     "newPassword": "New password",
     "confirmPassword": "Confirm password",
@@ -640,7 +646,7 @@
     "passwordMismatch": "Passwords do not match.",
     "deleteAccount": "Delete my account",
     "deleteAccountSubtitle": "This action will delete your account and all your data linked to it. This action is irreversible.",
-    "deleteAccountConfirm": "Are you sure to delete your account?",
+    "deleteAccountConfirm": "Are you sure you want to delete your account?",
     "deleteAccountWarningDetail": "This will permanently delete your account, all your organizations, applications, and associated data.",
     "accountDeleted": "Your account has been deleted. You will be logged out in 3 seconds.",
     "notLoggedIn": "Not logged in",
@@ -653,7 +659,7 @@
       "application": "Application",
       "eventType": "Event Type",
       "subscription": "Subscription",
-      "sendEvent": "Send Event",
+      "sendEvent": "Send event",
       "success": "Done"
     },
     "widget": {
@@ -672,20 +678,20 @@
       "description": "Let's set up your first webhook pipeline in a few simple steps."
     },
     "step": "Step {current} of {total}",
-    "createOrg": "Create Organization",
-    "createApp": "Create Application",
-    "createEventType": "Create Event Type",
-    "createSubscription": "Create Subscription",
-    "sendEvent": "Send Test Event",
+    "createOrg": "Create organization",
+    "createApp": "Create application",
+    "createEventType": "Create event type",
+    "createSubscription": "Create subscription",
+    "sendEvent": "Send test event",
     "success": {
       "title": "You're all set!",
       "description": "Your webhook pipeline is ready. Events will now be delivered to your subscription.",
-      "cta": "Go to Dashboard"
+      "cta": "Go to dashboard"
     },
     "skip": "Skip tutorial",
     "continue": "Continue",
     "step1Title": "Create your first organization",
-    "step1Description": "Organizations are used to invite your team members and give them access to applications, where everything webhook-related happens. If you purchase a plan, it will be applied to an organization and not to a user nor an application.",
+    "step1Description": "An organization groups your team and billing plan. Create one to get started.",
     "chooseOrganization": "First, let's choose an organization!",
     "createNewOrganization": "Create a new organization",
     "selectExistingOrganization": "Select an existing organization already linked to your account",
@@ -732,7 +738,7 @@
     },
     "step3": {
       "title": "Create your first event type",
-      "subtitle": "Event types are categories of events. For each subscription, you will then be able choose among your declared event types to receive only the right events. Every webhook sent by Hook0 will have its event type provided as a header so that applications that consume webhooks may use it (for example, this is a good way to know which structure/schema should be expected for the webhook's body).",
+      "subtitle": "Event types categorize your events. Each subscription filters by event type. Hook0 includes the event type as a header in each webhook, so your application knows which payload schema to expect.",
       "eventTypeCreated": "Event type created",
       "canCreateSubscription": "You can now create your first subscription.",
       "skip": "Skip",
@@ -750,9 +756,9 @@
       "title": "Send an event",
       "subtitle": "In this step, you will send a test event. You should make it match your subscription's event type and label so that you receive a webhook!",
       "eventSent": "Event sent",
-      "eventSentMessage": "Wow ! You just sent an event to your webhook !",
+      "eventSentMessage": "You just sent your first webhook event!",
       "skip": "Skip",
-      "backToApplication": "Back To Application"
+      "backToApplication": "Back to application"
     },
     "congrats": {
       "title": "Congratulations on your first steps with Hook0",
@@ -761,20 +767,20 @@
       "discussions": "discussions",
       "changelog": "Changelog",
       "documentation": "documentation",
-      "goToDashboard": "Go To Your Application Dashboard"
+      "goToDashboard": "Go to your application dashboard"
     }
   },
   "error404": {
-    "title": "This Hook Came Up Empty",
-    "description": "The endpoint you're looking for swam away...",
+    "title": "This hook came up empty",
+    "description": "The page you're looking for doesn't exist or has been moved.",
     "retrying": "Retry attempt {count}/{max}...",
     "maxRetries": "Max retries exceeded. The page doesn't exist!",
-    "goToDashboard": "Go to Dashboard",
-    "goBack": "Go Back"
+    "goToDashboard": "Go to dashboard",
+    "goBack": "Go back"
   },
   "comingSoon": {
     "title": "Coming soon...",
-    "description": "Hook0 API is complete and production ready but the UI is still a work in progress..."
+    "description": "This feature is coming soon. The API already supports it — check the docs to get started."
   },
   "apiDocs": {
     "title": "Hook0 API Documentation",
@@ -786,7 +792,7 @@
   "footer": {
     "contactUs": "Contact us",
     "reportIssue": "Report issue",
-    "openSourceTagline": "Open-source always win in the end."
+    "openSourceTagline": "Open source always wins in the end."
   },
   "header": {
     "org": "Org",
@@ -801,40 +807,40 @@
     "clickToCopyAppId": "Click to copy: {id}"
   },
   "sidebar": {
-    "logout": "Logout"
+    "logout": "Log out"
   },
   "commandPalette": {
     "title": "Command palette",
     "placeholder": "Type a command or search...",
     "noResults": "No results found.",
     "recent": "Recent",
-    "switchOrganization": "Switch Organization",
-    "switchApplication": "Switch Application",
+    "switchOrganization": "Switch organization",
+    "switchApplication": "Switch application",
     "navigation": "Navigation",
     "actions": "Actions",
-    "goToHome": "Go to Home",
-    "goToApplications": "Go to Applications",
-    "goToServiceTokens": "Go to Service Tokens",
-    "goToOrgSettings": "Go to Organization Settings",
-    "goToEventTypes": "Go to Event Types",
-    "goToEvents": "Go to Events",
-    "goToSubscriptions": "Go to Subscriptions",
-    "goToLogs": "Go to Logs",
+    "goToHome": "Go to home",
+    "goToApplications": "Go to applications",
+    "goToServiceTokens": "Go to service tokens",
+    "goToOrgSettings": "Go to organization settings",
+    "goToEventTypes": "Go to event types",
+    "goToEvents": "Go to events",
+    "goToSubscriptions": "Go to subscriptions",
+    "goToLogs": "Go to logs",
     "goToApiKeys": "Go to API Keys",
-    "goToAppSettings": "Go to Application Settings",
+    "goToAppSettings": "Go to application settings",
     "userSettings": "User Settings",
-    "switchToLight": "Switch to Light Mode",
-    "switchToDark": "Switch to Dark Mode",
-    "logout": "Logout",
-    "quickActions": "Quick Actions",
-    "createSubscription": "Create Subscription",
-    "createEventType": "Create Event Type",
-    "sendTestEvent": "Send Test Event",
-    "copyApiKey": "Copy API Key",
-    "keyboardShortcuts": "Keyboard Shortcuts"
+    "switchToLight": "Switch to light mode",
+    "switchToDark": "Switch to dark mode",
+    "logout": "Log out",
+    "quickActions": "Quick actions",
+    "createSubscription": "Create subscription",
+    "createEventType": "Create event type",
+    "sendTestEvent": "Send test event",
+    "copyApiKey": "Copy API key",
+    "keyboardShortcuts": "Keyboard shortcuts"
   },
   "shortcuts": {
-    "title": "Keyboard Shortcuts",
+    "title": "Keyboard shortcuts",
     "general": "General",
     "navigation": "Navigation",
     "openCommandPalette": "Open command palette",
@@ -847,15 +853,15 @@
   "loginMenu": {
     "hi": "Hi",
     "settings": "Settings",
-    "logout": "Logout"
+    "logout": "Log out"
   },
   "orgAppSelector": {
     "planDeveloper": "Plan: Developer",
     "developer": "Developer",
     "noApplicationFound": "No applications yet",
     "noApplicationDescription": "Create your first application to start sending events.",
-    "createNewApplication": "Create Application",
-    "newOrganization": "New Organization",
+    "createNewApplication": "Create application",
+    "newOrganization": "New organization",
     "newOrganizationDescription": "Set up a new team workspace",
     "appsCount": "{count} application | {count} applications",
     "selectAnApplication": "Select an application",
@@ -869,9 +875,9 @@
     "deleteSubscription": "Delete this subscription",
     "deleteSubscriptionWarning": "Are you sure you want to delete the subscription \"{name}\"? Events will no longer be delivered to this endpoint.",
     "irreversibleWarning": "This action is irreversible and cannot be undone.",
-    "confirmDeleteOrganization": "Are you sure to delete \"{name}\" organization?",
-    "confirmDeleteApplication": "Are you sure to delete \"{name}\" application?",
-    "confirmDeleteSubscription": "Are you sure to delete \"{name}\" subscription?",
+    "confirmDeleteOrganization": "Are you sure you want to delete the \"{name}\" organization?",
+    "confirmDeleteApplication": "Are you sure you want to delete the \"{name}\" application?",
+    "confirmDeleteSubscription": "Are you sure you want to delete the \"{name}\" subscription?",
     "organizationDeleted": "Organization deleted",
     "organizationDeletedMessage": "Organization \"{name}\" has been deleted."
   }

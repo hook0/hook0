@@ -70,7 +70,7 @@ function getApplicationsPerOrganization(): Promise<ApplicationsPerOrganization[]
 
             if (!organization) {
               console.error(
-                'should never happen, application is linkedin to unknown organization. Silent fail'
+                'should never happen, application is linked to unknown organization. Silent fail'
               );
               return m;
             }
@@ -81,7 +81,7 @@ function getApplicationsPerOrganization(): Promise<ApplicationsPerOrganization[]
 
             if (!organization_in_group) {
               console.error(
-                'should never happen, application is linkedin to unknown organization. Silent fail'
+                'should never happen, application is linked to unknown organization. Silent fail'
               );
               return m;
             }

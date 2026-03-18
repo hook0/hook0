@@ -271,7 +271,7 @@ function confirmDeleteAccount() {
         <Hook0CardFooter>
           <Hook0Button variant="danger" submit data-test="delete-account-button">
             <Trash2 :size="16" aria-hidden="true" />
-            {{ t('common.delete') }}
+            {{ t('userSettings.deleteAccount') }}
           </Hook0Button>
         </Hook0CardFooter>
       </Hook0Form>

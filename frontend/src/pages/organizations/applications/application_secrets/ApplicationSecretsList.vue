@@ -78,7 +78,7 @@ function confirmCreate() {
         trackEvent('app-secret', 'create');
         push.success({
           title: t('common.success'),
-          message: t('apiKeys.create'),
+          message: t('apiKeys.created'),
           duration: 3000,
         });
       },

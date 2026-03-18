@@ -191,7 +191,7 @@ function cancel() {
                 :disabled="!name"
                 data-test="application-submit-button"
                 @click="onSubmit"
-                >{{ isNew ? t('common.create') : t('common.edit') }}
+                >{{ isNew ? t('common.create') : t('common.save') }}
               </Hook0Button>
 
               <Hook0Button

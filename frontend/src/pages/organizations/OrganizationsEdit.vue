@@ -186,7 +186,7 @@ const consumptions = computed<ConsumptionQuota[]>(() => {
                 :disabled="!name"
                 data-test="organization-submit-button"
                 @click="onSubmit"
-                >{{ isNew ? t('common.create') : t('common.edit') }}
+                >{{ isNew ? t('common.create') : t('common.save') }}
               </Hook0Button>
 
               <Hook0Button
