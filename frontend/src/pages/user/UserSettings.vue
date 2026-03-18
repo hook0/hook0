@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useForm } from 'vee-validate';
-import { push } from 'notivue';
+import { toast } from 'vue-sonner';
 import { User, Lock, AlertTriangle, Trash2, Palette } from 'lucide-vue-next';
 
 import * as UserService from '@/pages/user/UserService';
@@ -56,9 +56,8 @@ const [confirmNewPassword, confirmNewPasswordAttrs] = defineField('confirm_new_p
 const onChangePassword = handleSubmit((values) => {
   UserService.changePassword(values.new_password)
     .then(() => {
-      push.success({
-        title: t('common.success'),
-        message: t('userSettings.passwordChanged'),
+      toast.success(t('common.success'), {
+        description: t('userSettings.passwordChanged'),
         duration: 3000,
       });
       resetForm();
@@ -77,9 +76,8 @@ function confirmDeleteAccount() {
 
   UserService.deleteUser()
     .then(() => {
-      push.success({
-        title: t('common.success'),
-        message: t('userSettings.accountDeleted'),
+      toast.success(t('common.success'), {
+        description: t('userSettings.accountDeleted'),
         duration: 3000,
       });
       setTimeout(() => {

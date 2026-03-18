@@ -3,7 +3,7 @@ import { computed, h, markRaw, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
-import { Plus, Bot, BookOpen, Check, Key, Eye, Pencil, Trash2 } from 'lucide-vue-next';
+import { Plus, Bot, BookOpen, Check, Eye, Pencil, Trash2 } from 'lucide-vue-next';
 
 import {
   useServiceTokenList,
@@ -14,7 +14,7 @@ import {
 import type { ServiceToken } from './ServicesTokenService';
 import { routes } from '@/routes';
 import { handleMutationError } from '@/utils/handleMutationError';
-import { push } from 'notivue';
+import { toast } from 'vue-sonner';
 import { useTracking } from '@/composables/useTracking';
 import { usePermissions } from '@/composables/usePermissions';
 import { useEntityDelete } from '@/composables/useEntityDelete';
@@ -91,11 +91,10 @@ function confirmCreate() {
     {
       onSuccess: () => {
         trackEvent('service-token', 'create', 'success');
-        push.success({
-          title: t('common.success'),
-          message: t('serviceTokens.created'),
+        toast.success(t('common.success'), {
+          description: t('serviceTokens.created'),
           duration: 3000,
-        });
+          });
       },
       onError: (err) => {
         handleMutationError(err);
@@ -123,11 +122,10 @@ function confirmEdit() {
     {
       onSuccess: () => {
         trackEvent('service-token', 'update', 'success');
-        push.success({
-          title: t('common.success'),
-          message: t('serviceTokens.updated'),
+        toast.success(t('common.success'), {
+          description: t('serviceTokens.updated'),
           duration: 3000,
-        });
+          });
       },
       onError: (err) => {
         handleMutationError(err);
@@ -159,43 +157,38 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
     cell: (info) => h(Hook0TableCellDate, { value: info.getValue() as string | null }),
   },
   {
-    id: 'show',
-    header: '',
-    cell: (info) =>
-      h(Hook0TableCellLink, {
-        value: t('serviceTokens.show'),
-        icon: markRaw(Eye),
-        onClick: () => handleShow(info.row.original),
-      }),
+    id: 'actions',
+    header: t('common.actions'),
+    cell: (info) => {
+      const row = info.row.original;
+      const actions = [
+        h(Hook0TableCellLink, {
+          value: t('serviceTokens.show'),
+          icon: markRaw(Eye),
+          onClick: () => handleShow(row),
+        }),
+      ];
+      if (canEdit('service_token')) {
+        actions.push(
+          h(Hook0TableCellLink, {
+            value: t('serviceTokens.editAction'),
+            icon: markRaw(Pencil),
+            onClick: () => handleEdit(row),
+          })
+        );
+      }
+      if (canDelete('service_token')) {
+        actions.push(
+          h(Hook0TableCellLink, {
+            value: t('common.delete'),
+            icon: markRaw(Trash2),
+            onClick: () => handleDelete(row),
+          })
+        );
+      }
+      return h('div', { class: 'service-token__actions' }, actions);
+    },
   },
-  ...(canEdit('service_token')
-    ? [
-        {
-          id: 'edit',
-          header: '',
-          cell: (info: { row: { original: ServiceToken } }) =>
-            h(Hook0TableCellLink, {
-              value: t('serviceTokens.editAction'),
-              icon: markRaw(Pencil),
-              onClick: () => handleEdit(info.row.original),
-            }),
-        },
-      ]
-    : []),
-  ...(canDelete('service_token')
-    ? [
-        {
-          id: 'delete',
-          header: '',
-          cell: (info: { row: { original: ServiceToken } }) =>
-            h(Hook0TableCellLink, {
-              value: t('common.delete'),
-              icon: markRaw(Trash2),
-              onClick: () => handleDelete(info.row.original),
-            }),
-        },
-      ]
-    : []),
 ];
 </script>
 
@@ -328,14 +321,11 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
                   </Hook0Badge>
                 </Hook0Stack>
               </Hook0Stack>
-              <Hook0Alert type="warning">
-                <template #title>
-                  <Hook0Stack direction="row" align="center" gap="xs">
-                    <Key :size="16" aria-hidden="true" />
-                    {{ t('serviceTokens.aiGetStarted') }}
-                  </Hook0Stack>
-                </template>
-              </Hook0Alert>
+              <Hook0Alert
+                type="info"
+                :title="t('serviceTokens.aiGetStartedTitle')"
+                :description="t('serviceTokens.aiGetStarted')"
+              />
             </Hook0Stack>
           </Hook0CardContent>
         </Hook0Card>
@@ -391,7 +381,13 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
       "
       @confirm="confirmDelete()"
     >
-      <p>{{ t('serviceTokens.deleteConfirm') }}</p>
+      <p v-if="tokenToDelete">
+        <i18n-t keypath="serviceTokens.deleteConfirm" tag="span">
+          <template #name>
+            <strong>{{ tokenToDelete.name }}</strong>
+          </template>
+        </i18n-t>
+      </p>
     </Hook0Dialog>
   </Hook0PageLayout>
 </template>
@@ -403,5 +399,12 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
   align-items: flex-start;
   white-space: normal;
   min-width: 0;
+}
+
+.service-token__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
 }
 </style>

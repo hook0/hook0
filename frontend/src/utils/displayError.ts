@@ -1,4 +1,4 @@
-import { push } from 'notivue';
+import { toast } from 'vue-sonner';
 import type { Problem } from '@/http';
 
 /**
@@ -7,10 +7,8 @@ import type { Problem } from '@/http';
  */
 export function displayError(err: Problem): void {
   console.error(err);
-  const options = {
-    title: err.title,
-    message: err.detail,
-    duration: 5000,
-  };
-  err.status >= 500 ? push.error(options) : push.warning(options);
+  const options = { description: err.detail, duration: 5000 };
+  err.status >= 500
+    ? toast.error(err.title, options)
+    : toast.warning(err.title, options);
 }

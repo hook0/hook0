@@ -21,7 +21,7 @@ import { intersectWith } from '@/utils/fp';
 import { useTracking } from '@/composables/useTracking';
 import { usePermissions } from '@/composables/usePermissions';
 import { useClipboard } from '@vueuse/core';
-import { push } from 'notivue';
+import { toast } from 'vue-sonner';
 import type { Hook0SelectSingleOption } from '@/components/Hook0Select';
 import {
   kvPairsToRecord,
@@ -165,18 +165,16 @@ function copySecret() {
   if (!secret.value) return;
   copyToClipboard(secret.value)
     .then(() => {
-      push.success({
-        title: t('common.success'),
-        message: t('subscriptions.secretCopied'),
+      toast.success(t('common.success'), {
+        description: t('subscriptions.secretCopied'),
         duration: 2000,
-      });
+        });
     })
     .catch(() => {
-      push.warning({
-        title: t('common.warning'),
-        message: t('common.copyFailed'),
+      toast.warning(t('common.warning'), {
+        description: t('common.copyFailed'),
         duration: 2000,
-      });
+        });
     });
 }
 

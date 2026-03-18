@@ -13,7 +13,7 @@ import {
 import type { Subscription } from './SubscriptionService';
 import { routes } from '@/routes';
 import { handleMutationError } from '@/utils/handleMutationError';
-import { push } from 'notivue';
+import { toast } from 'vue-sonner';
 import { usePermissions } from '@/composables/usePermissions';
 import { useEntityDelete } from '@/composables/useEntityDelete';
 
@@ -84,11 +84,10 @@ function handleToggle(row: Subscription) {
     { subscriptionId: row.subscription_id, subscription: row },
     {
       onSuccess: () => {
-        push.success({
-          title: t('common.success'),
-          message: t('subscriptions.enabled', { name }),
+        toast.success(t('common.success'), {
+          description: t('subscriptions.enabled', { name }),
           duration: 3000,
-        });
+          });
       },
       onError: (err) => {
         handleMutationError(err);
@@ -108,11 +107,10 @@ function confirmDisable() {
     { subscriptionId: row.subscription_id, subscription: row },
     {
       onSuccess: () => {
-        push.success({
-          title: t('common.success'),
-          message: t('subscriptions.disabled', { name }),
+        toast.success(t('common.success'), {
+          description: t('subscriptions.disabled', { name }),
           duration: 3000,
-        });
+          });
       },
       onError: (err) => {
         handleMutationError(err);

@@ -320,4 +320,4 @@ If the template uses `v-if="isLoading"` → `v-else-if="error"` → `v-else-if="
 - Inter + JetBrains Mono fonts
 - @vueuse/core + @vueuse/motion
 - CodeMirror 6 (enhanced)
-- Notivue (toasts)
+- vue-sonner (toasts)

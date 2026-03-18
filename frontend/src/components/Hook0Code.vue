@@ -5,7 +5,7 @@ import { oneDark } from '@codemirror/theme-one-dark';
 import { EditorView } from 'codemirror';
 import { computed, ref } from 'vue';
 import { Copy } from 'lucide-vue-next';
-import { push } from 'notivue';
+import { toast } from 'vue-sonner';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
@@ -35,15 +35,13 @@ function handleReady(payload: Record<string, unknown>) {
 function copyToClipboard() {
   navigator.clipboard.writeText(code.value).then(
     () => {
-      push.success({
-        title: t('common.copied'),
-        message: t('common.codeCopied'),
+      toast.success(t('common.copied'), {
+        description: t('common.codeCopied'),
       });
     },
     () => {
-      push.error({
-        title: t('common.error'),
-        message: t('common.clipboardCodeCopyError'),
+      toast.error(t('common.error'), {
+        description: t('common.clipboardCodeCopyError'),
       });
     }
   );

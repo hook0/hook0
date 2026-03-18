@@ -2,15 +2,13 @@
 import { RouterView, useRoute } from 'vue-router';
 import { computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Notivue, Notification, NotificationProgress } from 'notivue';
+import { Toaster } from 'vue-sonner';
 import { useAuthStore } from '@/stores/auth';
 import { useContextStore } from '@/stores/context';
 import { useUiStore } from '@/stores/ui';
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts';
 import { useEntityContext } from '@/composables/useEntityContext';
 import Hook0TopNav from '@/components/Hook0TopNav.vue';
-import Hook0MobileTabBar from '@/components/Hook0MobileTabBar.vue';
-import Hook0MobileDrawer from '@/components/Hook0MobileDrawer.vue';
 import Hook0CommandPalette from '@/components/Hook0CommandPalette.vue';
 import Hook0ShortcutsCheatSheet from '@/components/Hook0ShortcutsCheatSheet.vue';
 import Hook0RefetchBar from '@/components/Hook0RefetchBar.vue';
@@ -53,11 +51,7 @@ const showFullScreen = computed(() => {
 
 <template>
   <!-- Notifications -->
-  <Notivue v-slot="item">
-    <Notification :item="item" data-test="toast-notification">
-      <NotificationProgress :item="item" />
-    </Notification>
-  </Notivue>
+  <Toaster position="top-right" :visible-toasts="4" rich-colors close-button data-test="toast-notification" />
 
   <!-- Command Palette (global overlay) -->
   <Hook0CommandPalette v-if="authStore.isAuthenticated" />
@@ -94,12 +88,6 @@ const showFullScreen = computed(() => {
         </RouterView>
       </div>
     </main>
-
-    <!-- Mobile bottom tab bar -->
-    <Hook0MobileTabBar />
-
-    <!-- Mobile drawer navigation -->
-    <Hook0MobileDrawer />
   </div>
 
   <!-- Unauthenticated / fullscreen layout -->
@@ -135,13 +123,6 @@ const showFullScreen = computed(() => {
 .hook0-app__main {
   flex: 1;
   overflow-y: auto;
-  padding-bottom: 5rem; /* Space for mobile tab bar */
-}
-
-@media (min-width: 768px) {
-  .hook0-app__main {
-    padding-bottom: 0;
-  }
 }
 
 .hook0-app__container {

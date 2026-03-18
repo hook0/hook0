@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { push } from 'notivue';
+import { toast } from 'vue-sonner';
 import { useI18n } from 'vue-i18n';
+
+import { useQueryClient } from '@tanstack/vue-query';
 
 import * as OrganizationService from './OrganizationService';
 import { handleMutationError } from '@/utils/handleMutationError';
+import { organizationKeys } from '@/queries/keys';
 import router from '@/router';
 import { routes } from '@/routes';
 import { useTracking } from '@/composables/useTracking';
@@ -12,6 +15,7 @@ import { usePermissions } from '@/composables/usePermissions';
 import Hook0DangerZoneCard from '@/components/Hook0DangerZoneCard.vue';
 
 const { t } = useI18n();
+const queryClient = useQueryClient();
 const { trackEvent } = useTracking();
 const { canDelete } = usePermissions();
 
@@ -28,11 +32,11 @@ function confirmRemove() {
   OrganizationService.remove(props.organizationId)
     .then(() => {
       trackEvent('organization', 'delete', 'success');
-      push.success({
-        title: t('remove.organizationDeleted'),
-        message: t('remove.organizationDeletedMessage', { name: props.organizationName }),
+      void queryClient.invalidateQueries({ queryKey: organizationKeys.all });
+      toast.success(t('remove.organizationDeleted'), {
+        description: t('remove.organizationDeletedMessage', { name: props.organizationName }),
         duration: 5000,
-      });
+        });
       return router.push({ name: routes.Home });
     })
     .catch(handleMutationError)
@@ -46,7 +50,8 @@ function confirmRemove() {
     :title="t('remove.deleteOrganization')"
     :subtitle="t('remove.deleteOrganizationWarning', { name: organizationName })"
     :warning-message="t('remove.irreversibleWarning')"
-    :confirm-message="t('remove.confirmDeleteOrganization', { name: organizationName })"
+    confirm-message="remove.confirmDeleteOrganization"
+    :confirm-name="organizationName"
     :loading="loading"
     data-test="organization-delete-card"
     @confirm="confirmRemove"

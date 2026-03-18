@@ -14,7 +14,7 @@ import {
 } from './useMemberQueries';
 import type { User, Invitation } from './MemberService';
 import { handleMutationError } from '@/utils/handleMutationError';
-import { push } from 'notivue';
+import { toast } from 'vue-sonner';
 import { usePermissions } from '@/composables/usePermissions';
 import { useEntityDelete } from '@/composables/useEntityDelete';
 
@@ -91,11 +91,10 @@ const {
 
 function handleRoleChange(role: string, row: User) {
   if (row.role === role) {
-    push.warning({
-      title: t('common.warning'),
-      message: t('members.roleAlreadySet', { email: row.email, role }),
+    toast.warning(t('common.warning'), {
+      description: t('members.roleAlreadySet', { email: row.email, role }),
       duration: 5000,
-    });
+      });
     return;
   }
 
@@ -113,11 +112,10 @@ function confirmRoleChange() {
     { organizationId: organizationId.value, userId: target.user.user_id, role: target.role },
     {
       onSuccess: () => {
-        push.success({
-          title: t('common.success'),
-          message: t('members.roleChanged', { email: target.user.email, role: target.role }),
+        toast.success(t('common.success'), {
+          description: t('members.roleChanged', { email: target.user.email, role: target.role }),
           duration: 5000,
-        });
+          });
       },
       onError: (err) => {
         handleMutationError(err);
@@ -134,11 +132,10 @@ function invite() {
     {
       onSuccess: () => {
         invitation.value = emptyInvitation();
-        push.success({
-          title: t('common.success'),
-          message: t('members.invited'),
+        toast.success(t('common.success'), {
+          description: t('members.invited'),
           duration: 3000,
-        });
+          });
       },
       onError: (err) => {
         handleMutationError(err);
@@ -278,12 +275,14 @@ const columns: ColumnDef<User, unknown>[] = [
       @confirm="confirmRoleChange()"
     >
       <p v-if="roleChangeTarget">
-        {{
-          t('members.roleChangeConfirm', {
-            email: roleChangeTarget.user.email,
-            role: roleChangeTarget.role,
-          })
-        }}
+        <i18n-t keypath="members.roleChangeConfirm" tag="span">
+          <template #email>
+            <strong>{{ roleChangeTarget.user.email }}</strong>
+          </template>
+          <template #role>
+            <strong>{{ roleChangeTarget.role }}</strong>
+          </template>
+        </i18n-t>
       </p>
     </Hook0Dialog>
 
@@ -298,7 +297,11 @@ const columns: ColumnDef<User, unknown>[] = [
       @confirm="confirmRevoke()"
     >
       <p v-if="revokeTarget">
-        {{ t('members.revokeConfirm', { email: revokeTarget.email }) }}
+        <i18n-t keypath="members.revokeConfirm" tag="span">
+          <template #email>
+            <strong>{{ revokeTarget.email }}</strong>
+          </template>
+        </i18n-t>
       </p>
     </Hook0Dialog>
   </Hook0PageLayout>

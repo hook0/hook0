@@ -8,7 +8,7 @@ import { Trash2 } from 'lucide-vue-next';
 import { useSecretList, useCreateSecret, useRemoveSecret } from './useSecretQueries';
 import type { ApplicationSecret } from './ApplicationSecretService';
 import { handleMutationError } from '@/utils/handleMutationError';
-import { push } from 'notivue';
+import { toast } from 'vue-sonner';
 import { useTracking } from '@/composables/useTracking';
 import { usePermissions } from '@/composables/usePermissions';
 import { useEntityDelete } from '@/composables/useEntityDelete';
@@ -76,11 +76,10 @@ function confirmCreate() {
     {
       onSuccess: () => {
         trackEvent('app-secret', 'create');
-        push.success({
-          title: t('common.success'),
-          message: t('apiKeys.created'),
+        toast.success(t('common.success'), {
+          description: t('apiKeys.created'),
           duration: 3000,
-        });
+          });
       },
       onError: (err) => {
         handleMutationError(err);

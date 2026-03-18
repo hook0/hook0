@@ -5,7 +5,7 @@ import { onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import router from '@/router.ts';
 import { routes } from '@/routes.ts';
-import { push } from 'notivue';
+import { toast } from 'vue-sonner';
 import { useTracking } from '@/composables/useTracking';
 import { useI18n } from 'vue-i18n';
 import { ArrowLeft } from 'lucide-vue-next';
@@ -52,9 +52,8 @@ function displayError(err: Problem) {
 function displaySuccess() {
   trackPageWithDimensions('auth', 'view', 'email-verified');
   trackEvent('signup', 'email-verified');
-  push.success({
-    title: t('auth.verifyEmail.verified'),
-    message: t('auth.verifyEmail.verified'),
+  toast.success(t('auth.verifyEmail.verified'), {
+    description: t('auth.verifyEmail.verified'),
     duration: 5000,
   });
 }

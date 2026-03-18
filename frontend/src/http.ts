@@ -4,7 +4,7 @@ import axios from 'axios';
 import i18n from '@/plugins/i18n';
 import featureFlags from '@/feature-flags';
 import type { components } from '@/types';
-import { push } from 'notivue';
+import { toast } from 'vue-sonner';
 
 type definitions = components['schemas'];
 
@@ -45,9 +45,8 @@ function getAxios(
         if (isAxiosError(error)) {
           const problem = handleError(error as AxiosError<AxiosResponse<Problem>>);
           if (problem.id === 'AuthInvalidBiscuit') {
-            push.error({
-              title: i18n.global.t('common.error'),
-              message: i18n.global.t('common.sessionExpiredMessage'),
+            toast.error(i18n.global.t('common.error'), {
+              description: i18n.global.t('common.sessionExpiredMessage'),
             });
             authStore.clearTokens().catch(console.error);
           }

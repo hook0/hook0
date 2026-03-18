@@ -2,7 +2,7 @@ import { watch, type ComputedRef } from 'vue';
 import { useForm } from 'vee-validate';
 import { toTypedSchema } from '@/utils/zod-adapter';
 import type { ZodType } from 'zod';
-import { push } from 'notivue';
+import { toast } from 'vue-sonner';
 import { displayError } from '@/utils/displayError';
 import type { Problem } from '@/http';
 
@@ -60,7 +60,7 @@ export function useEntityForm<
           typeof options.skipToast === 'function' ? options.skipToast() : options.skipToast;
         if (!skip) {
           const message = typeof msg === 'function' ? msg(values) : msg;
-          push.success({ title, message, duration: 5000 });
+          toast.success(title, { description: message, duration: 5000 });
         }
         if (isCreate) {
           options.onCreated?.(result as TCreateResult, values);

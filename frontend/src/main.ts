@@ -21,12 +21,6 @@ import { setupMatomo } from './plugins/matomo';
 // Stores
 import { useAuthStore } from './stores/auth';
 
-// Notivue
-import { createNotivue } from 'notivue';
-import 'notivue/notification.css';
-import 'notivue/animations.css';
-import 'notivue/notification-progress.css';
-
 // Root component
 import App from './App.vue';
 
@@ -54,22 +48,6 @@ setupQueryPlugin(app);
 
 // vue-i18n
 setupI18n(app);
-
-// Notivue
-const notivue = createNotivue({
-  position: 'top-right',
-  limit: 4,
-  enqueue: true,
-  avoidDuplicates: true,
-  animations: {
-    enter: 'Notivue__enter',
-    leave: 'Notivue__leave',
-    clearAll: 'Notivue__clearAll',
-  },
-  pauseOnHover: true,
-  transition: 'transform 0.35s cubic-bezier(0.5, 1, 0.25, 1)',
-});
-app.use(notivue);
 
 // Matomo
 setupMatomo(app, router);

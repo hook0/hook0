@@ -2,7 +2,7 @@
 import { computed, defineAsyncComponent, markRaw, ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { push } from 'notivue';
+import { toast } from 'vue-sonner';
 
 import { routes } from '@/routes';
 import type { UUID } from '@/http';
@@ -97,11 +97,10 @@ type AdvanceConfig = {
 
 function advanceStep(config: AdvanceConfig) {
   trackEvent('tutorial', 'step-complete', config.trackLabel);
-  push.success({
-    title: config.toastTitle,
-    message: config.toastMessage,
+  toast.success(config.toastTitle, {
+    description: config.toastMessage,
     duration: TOAST_DURATION_MS,
-  });
+    });
   celebrate();
   void router.push({ name: config.routeName, params: config.params });
 }
@@ -123,11 +122,10 @@ function handleOrgAdvance(organizationId: UUID) {
 
 function handleAppAdvance(applicationId: UUID) {
   if (!paramOrgId.value) {
-    push.error({
-      title: t('tutorial.orgAppIdRequired'),
-      message: t('common.somethingWentWrong'),
+    toast.error(t('tutorial.orgAppIdRequired'), {
+      description: t('common.somethingWentWrong'),
       duration: TOAST_DURATION_MS,
-    });
+      });
     return;
   }
   advanceStep({
@@ -169,11 +167,10 @@ const FORM_STEP_CONFIG: Record<
 
 function handleFormAdvance() {
   if (!paramOrgId.value || !paramAppId.value) {
-    push.error({
-      title: t('tutorial.orgAppIdRequired'),
-      message: t('tutorial.somethingWentWrong'),
+    toast.error(t('tutorial.orgAppIdRequired'), {
+      description: t('tutorial.somethingWentWrong'),
       duration: TOAST_DURATION_MS,
-    });
+      });
     return;
   }
 
@@ -336,6 +333,19 @@ function handleOverlayClick(e: MouseEvent) {
 @media (max-width: 1024px) {
   .wizard-modal {
     max-width: 90vw;
+  }
+}
+
+@media (max-width: 767px) {
+  .wizard-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .wizard-modal {
+    max-width: 100%;
+    max-height: 90dvh;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   }
 }
 

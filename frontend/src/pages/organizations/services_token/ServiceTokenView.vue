@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { push } from 'notivue';
+import { toast } from 'vue-sonner';
 import { addDays, addYears, isBefore } from 'date-fns';
 import { Biscuit } from '@biscuit-auth/biscuit-wasm';
 import { Bot, BookOpen, ShieldCheck, Zap } from 'lucide-vue-next';
@@ -188,41 +188,37 @@ function cancel() {
 function validateAndSubmit(attenuateFn: () => Biscuit, trackLabel: string): void {
   const publicKey = instanceConfig.value?.biscuit_public_key;
   if (!publicKey) {
-    push.error({
-      title: t('common.somethingWentWrong'),
-      message: t('serviceTokens.publicKeyError'),
+    toast.error(t('common.somethingWentWrong'), {
+      description: t('serviceTokens.publicKeyError'),
       duration: 5000,
-    });
+      });
     return;
   }
 
   if (!serviceToken.value) {
-    push.error({
-      title: t('common.error'),
-      message: t('serviceTokens.invalidToken'),
+    toast.error(t('common.error'), {
+      description: t('serviceTokens.invalidToken'),
       duration: 5000,
-    });
+      });
     return;
   }
 
   const result = trySyncCall(attenuateFn);
 
   if (!result.ok) {
-    push.error({
-      title: t('common.somethingWentWrong'),
-      message: result.error.message || t('serviceTokens.tokenGenerationError'),
+    toast.error(t('common.somethingWentWrong'), {
+      description: result.error.message || t('serviceTokens.tokenGenerationError'),
       duration: 5000,
-    });
+      });
     return;
   }
 
   attenuatedBiscuit.value = result.value;
   trackEvent('service-token', 'attenuate', trackLabel);
-  push.success({
-    title: t('common.success'),
-    message: t('serviceTokens.tokenGenerated'),
+  toast.success(t('common.success'), {
+    description: t('serviceTokens.tokenGenerated'),
     duration: 5000,
-  });
+    });
 }
 
 function submitSimple() {
@@ -230,20 +226,18 @@ function submitSimple() {
   const expiryDate = computeExpiryDate();
 
   if (!selectedApplicationId.value && !expiryDate) {
-    push.error({
-      title: t('common.error'),
-      message: t('serviceTokens.invalidForm'),
+    toast.error(t('common.error'), {
+      description: t('serviceTokens.invalidForm'),
       duration: 5000,
-    });
+      });
     return;
   }
 
   if (expiryDate && isBefore(expiryDate, new Date())) {
-    push.error({
-      title: t('common.error'),
-      message: t('serviceTokens.invalidExpirationDate'),
+    toast.error(t('common.error'), {
+      description: t('serviceTokens.invalidExpirationDate'),
       duration: 5000,
-    });
+      });
     return;
   }
 
@@ -267,20 +261,18 @@ function submitAdvanced() {
       : null;
 
   if (!selectedApplicationId.value && !expiry && customDatalogClaims.value.trim().length === 0) {
-    push.error({
-      title: t('common.error'),
-      message: t('serviceTokens.invalidForm'),
+    toast.error(t('common.error'), {
+      description: t('serviceTokens.invalidForm'),
       duration: 5000,
-    });
+      });
     return;
   }
 
   if (expiry && isBefore(expiry, new Date())) {
-    push.error({
-      title: t('common.error'),
-      message: t('serviceTokens.invalidExpirationDate'),
+    toast.error(t('common.error'), {
+      description: t('serviceTokens.invalidExpirationDate'),
       duration: 5000,
-    });
+      });
     return;
   }
 

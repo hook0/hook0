@@ -1,5 +1,5 @@
 import { ref, type Ref } from 'vue';
-import { push } from 'notivue';
+import { toast } from 'vue-sonner';
 import { displayError } from '@/utils/displayError';
 import type { Problem } from '@/http';
 
@@ -34,7 +34,7 @@ export function useEntityDelete<T>(options: UseEntityDeleteOptions<T>) {
           typeof options.successMessage === 'function'
             ? options.successMessage(entity)
             : options.successMessage;
-        push.success({ title: options.successTitle, message, duration: 5000 });
+        toast.success(options.successTitle, { description: message, duration: 5000 });
         options.onSuccess?.();
       })
       .catch((err: Problem) => displayError(err))

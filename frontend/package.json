@@ -47,7 +47,6 @@
     "crisp-sdk-web": "^1.0.21",
     "date-fns": "^4.1.0",
     "lucide-vue-next": "^0.562.0",
-    "notivue": "^2.4.4",
     "pinia": "^3.0.4",
     "vee-validate": "^4.15.1",
     "vue": "^3.5.26",
@@ -56,6 +55,7 @@
     "vue-i18n": "^11.2.8",
     "vue-matomo": "^4.2.0",
     "vue-router": "^4.6.4",
+    "vue-sonner": "^2.0.9",
     "vue-turnstile": "^1.0.11",
     "zod": "^4.3.5"
   },

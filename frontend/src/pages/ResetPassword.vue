@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { push } from 'notivue';
+import { toast } from 'vue-sonner';
 import { Problem } from '@/http';
 import { resetPassword } from '@/pages/user/UserService';
 import { routes } from '@/routes';
@@ -43,9 +43,8 @@ function submit() {
   if (isLoading.value) return;
 
   if (new_password.value !== confirm_new_password.value) {
-    push.warning({
-      title: t('common.warning'),
-      message: t('auth.resetPassword.passwordsMismatch'),
+    toast.warning(t('common.warning'), {
+      description: t('auth.resetPassword.passwordsMismatch'),
       duration: 5000,
     });
     return;
@@ -55,9 +54,8 @@ function submit() {
 
   resetPassword(token, new_password.value)
     .then(() => {
-      push.success({
-        title: t('common.success'),
-        message: t('auth.resetPassword.resetSuccess'),
+      toast.success(t('common.success'), {
+        description: t('auth.resetPassword.resetSuccess'),
         duration: 5000,
       });
       return router.push({ name: routes.Login });

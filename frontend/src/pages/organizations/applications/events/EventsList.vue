@@ -10,7 +10,7 @@ import { useEventTypeList } from '../event_types/useEventTypeQueries';
 import type { Event } from './EventsService';
 import { routes } from '@/routes';
 import { handleMutationError } from '@/utils/handleMutationError';
-import { push } from 'notivue';
+import { toast } from 'vue-sonner';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -135,11 +135,10 @@ function sendTestEvent() {
   const currentPayload = payload.value;
 
   if (!eventType || currentLabels.length <= 0 || !currentOccurredAt || !currentPayload) {
-    push.error({
-      title: t('events.invalidEvent'),
-      message: t('events.invalidEventMessage'),
+    toast.error(t('events.invalidEvent'), {
+      description: t('events.invalidEventMessage'),
       duration: 5000,
-    });
+      });
     return;
   }
 
@@ -158,11 +157,10 @@ function sendTestEvent() {
           emit('tutorial-event-sent');
         } else {
           showEventForm.value = false;
-          push.success({
-            title: t('events.eventSentSuccess'),
-            message: t('events.eventSentMessage'),
+          toast.success(t('events.eventSentSuccess'), {
+            description: t('events.eventSentMessage'),
             duration: 5000,
-          });
+            });
           emit('event-sent');
         }
       },
@@ -178,11 +176,10 @@ function handleReplay(row: Event) {
     { eventId: row.event_id, applicationId: applicationId.value },
     {
       onSuccess: () => {
-        push.success({
-          title: t('events.replay'),
-          message: t('events.replaySuccess'),
+        toast.success(t('events.replay'), {
+          description: t('events.replaySuccess'),
           duration: 5000,
-        });
+          });
       },
       onError: (err) => {
         handleMutationError(err);

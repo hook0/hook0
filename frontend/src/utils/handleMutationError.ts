@@ -1,4 +1,4 @@
-import { push } from 'notivue';
+import { toast } from 'vue-sonner';
 import type { Problem } from '@/http';
 import { isAxiosError } from '@/http';
 import { displayError } from '@/utils/displayError';
@@ -32,9 +32,8 @@ export function handleMutationError(err: unknown): void {
   }
 
   const t = i18n.global.t;
-  push.error({
-    title: t('errors.unexpectedError'),
-    message: err instanceof Error ? err.message : t('errors.unknownError'),
+  toast.error(t('errors.unexpectedError'), {
+    description: err instanceof Error ? err.message : t('errors.unknownError'),
     duration: 5000,
   });
 }
