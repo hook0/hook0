@@ -18,8 +18,8 @@ import { routes } from '@/routes';
 import { useUiStore } from '@/stores/ui';
 import { useI18n } from 'vue-i18n';
 import Hook0Logo from '@/components/Hook0Logo.vue';
-import Hook0ContextBar from '@/components/Hook0ContextBar.vue';
-import Hook0UserMenu from '@/components/Hook0UserMenu.vue';
+import Hook0ContextBar from '@/components/Hook0TopNavContextBar.vue';
+import Hook0UserMenu from '@/components/Hook0TopNavUserMenu.vue';
 import { useNavigationTabs } from '@/composables/useNavigationTabs';
 
 const { t } = useI18n();
