@@ -1,14 +1,7 @@
 <script setup lang="ts">
 import { RouteLocationRaw, RouteParams, useRoute, useRouter } from 'vue-router';
 import { onMounted, onUnmounted, onUpdated, ref, watch } from 'vue';
-import {
-  Box,
-  Plus,
-  ChevronRight,
-  Package,
-  ChevronDown,
-  FolderKanban,
-} from 'lucide-vue-next';
+import { Box, Plus, ChevronRight, Package, ChevronDown, FolderKanban } from 'lucide-vue-next';
 
 import * as OrganizationService from './organizations/OrganizationService';
 import * as ApplicationService from './organizations/applications/ApplicationService';
@@ -262,7 +255,7 @@ function getGradient(index: number): string {
             />
             <Hook0Stack
               direction="column"
-              gap="xs"
+              gap="none"
               class="org-card__info"
               style="flex: 1; min-width: 0"
             >

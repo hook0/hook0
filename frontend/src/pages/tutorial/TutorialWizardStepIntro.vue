@@ -49,7 +49,8 @@ const tutorialSteps: TutorialStepItem[] = [
                 variant="link"
                 target="_blank"
                 href="https://documentation.hook0.com/docs/getting-started"
-              >{{ t('tutorial.intro.programmatically') }}</Hook0Button>
+                >{{ t('tutorial.intro.programmatically') }}</Hook0Button
+              >
             </template>
           </i18n-t>
         </p>
