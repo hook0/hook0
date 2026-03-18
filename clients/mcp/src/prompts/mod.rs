@@ -16,18 +16,12 @@ pub fn list_prompts() -> Vec<Prompt> {
                  Walks through application selection, event type filtering, and target configuration.",
             ),
             Some(vec![
-                PromptArgument {
-                    name: "application_id".into(),
-                    title: None,
-                    description: Some("The application to create the subscription in".into()),
-                    required: Some(false),
-                },
-                PromptArgument {
-                    name: "target_url".into(),
-                    title: None,
-                    description: Some("The URL where webhooks will be delivered".into()),
-                    required: Some(false),
-                },
+                PromptArgument::new("application_id")
+                    .with_description("The application to create the subscription in")
+                    .with_required(false),
+                PromptArgument::new("target_url")
+                    .with_description("The URL where webhooks will be delivered")
+                    .with_required(false),
             ]),
         ),
         Prompt::new(
@@ -37,18 +31,12 @@ pub fn list_prompts() -> Vec<Prompt> {
                  request attempts, and subscription configuration.",
             ),
             Some(vec![
-                PromptArgument {
-                    name: "event_id".into(),
-                    title: None,
-                    description: Some("The event ID to debug".into()),
-                    required: Some(false),
-                },
-                PromptArgument {
-                    name: "subscription_id".into(),
-                    title: None,
-                    description: Some("The subscription to examine".into()),
-                    required: Some(false),
-                },
+                PromptArgument::new("event_id")
+                    .with_description("The event ID to debug")
+                    .with_required(false),
+                PromptArgument::new("subscription_id")
+                    .with_description("The subscription to examine")
+                    .with_required(false),
             ]),
         ),
         Prompt::new(
@@ -58,18 +46,12 @@ pub fn list_prompts() -> Vec<Prompt> {
                  registration and first subscription creation.",
             ),
             Some(vec![
-                PromptArgument {
-                    name: "organization_id".into(),
-                    title: None,
-                    description: Some("The organization for the new application".into()),
-                    required: Some(false),
-                },
-                PromptArgument {
-                    name: "application_name".into(),
-                    title: None,
-                    description: Some("Name for the new application".into()),
-                    required: Some(false),
-                },
+                PromptArgument::new("organization_id")
+                    .with_description("The organization for the new application")
+                    .with_required(false),
+                PromptArgument::new("application_name")
+                    .with_description("Name for the new application")
+                    .with_required(false),
             ]),
         ),
     ]
@@ -118,10 +100,11 @@ pub fn get_prompt(
                  then use `create_subscription` to create the webhook.",
             );
 
-            Ok(GetPromptResult {
-                description: Some("Create a webhook subscription step by step".into()),
-                messages: vec![PromptMessage::new_text(PromptMessageRole::User, content)],
-            })
+            Ok(GetPromptResult::new(vec![PromptMessage::new_text(
+                PromptMessageRole::User,
+                content,
+            )])
+            .with_description("Create a webhook subscription step by step"))
         }
 
         "debug_event_delivery" => {
@@ -167,10 +150,11 @@ pub fn get_prompt(
                  Use `retry_delivery` with a request_attempt_id to retry a failed delivery.",
             );
 
-            Ok(GetPromptResult {
-                description: Some("Debug webhook delivery issues".into()),
-                messages: vec![PromptMessage::new_text(PromptMessageRole::User, content)],
-            })
+            Ok(GetPromptResult::new(vec![PromptMessage::new_text(
+                PromptMessageRole::User,
+                content,
+            )])
+            .with_description("Debug webhook delivery issues"))
         }
 
         "setup_application" => {
@@ -223,10 +207,11 @@ pub fn get_prompt(
                  Use `ingest_event` to send a test event and verify delivery.",
             );
 
-            Ok(GetPromptResult {
-                description: Some("Set up a new Hook0 application".into()),
-                messages: vec![PromptMessage::new_text(PromptMessageRole::User, content)],
-            })
+            Ok(GetPromptResult::new(vec![PromptMessage::new_text(
+                PromptMessageRole::User,
+                content,
+            )])
+            .with_description("Set up a new Hook0 application"))
         }
 
         _ => Err(McpError::invalid_params(

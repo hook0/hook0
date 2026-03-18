@@ -11,5 +11,5 @@ license = "SSPL-1.0"
 
 [dependencies]
 tracing = "0.1.44"
-tracing-subscriber = { version = "0.3.22", features = ["env-filter", "fmt"] }
-sentry = { version = "0.46.2", default-features = false, features = ["backtrace", "contexts", "panic", "reqwest", "rustls", "tracing", "anyhow"] }
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt"] }
+sentry = { version = "0.47.0", default-features = false, features = ["backtrace", "contexts", "panic", "reqwest", "rustls", "tracing", "anyhow"] }
