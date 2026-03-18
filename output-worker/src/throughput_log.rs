@@ -12,6 +12,10 @@ pub struct ThroughputStats {
     latency_sum_ms: AtomicU64,
     latency_max_ms: AtomicU64,
     busy_ms_total: AtomicU64,
+    db_fetch_sum_ms: AtomicU64,
+    db_fetch_count: AtomicU64,
+    lag_max_ms: AtomicU64,
+    not_ready: AtomicU64,
     total_slots: u16,
 }
 
@@ -26,6 +30,10 @@ impl ThroughputStats {
             latency_sum_ms: AtomicU64::new(0),
             latency_max_ms: AtomicU64::new(0),
             busy_ms_total: AtomicU64::new(0),
+            db_fetch_sum_ms: AtomicU64::new(0),
+            db_fetch_count: AtomicU64::new(0),
+            lag_max_ms: AtomicU64::new(0),
+            not_ready: AtomicU64::new(0),
             total_slots,
         }
     }
@@ -47,6 +55,20 @@ impl ThroughputStats {
         self.latency_max_ms.fetch_max(ms, Relaxed);
     }
 
+    pub fn record_db_fetch(&self, duration: Duration) {
+        self.db_fetch_sum_ms
+            .fetch_add(duration.as_millis() as u64, Relaxed);
+        self.db_fetch_count.fetch_add(1, Relaxed);
+    }
+
+    pub fn record_lag(&self, lag: Duration) {
+        self.lag_max_ms.fetch_max(lag.as_millis() as u64, Relaxed);
+    }
+
+    pub fn record_not_ready(&self) {
+        self.not_ready.fetch_add(1, Relaxed);
+    }
+
     pub fn slot_enter(&self) -> SlotGuard<'_> {
         SlotGuard {
             stats: self,
@@ -64,6 +86,10 @@ impl ThroughputStats {
             latency_sum_ms: self.latency_sum_ms.swap(0, Relaxed),
             latency_max_ms: self.latency_max_ms.swap(0, Relaxed),
             busy_ms_total: self.busy_ms_total.swap(0, Relaxed),
+            db_fetch_sum_ms: self.db_fetch_sum_ms.swap(0, Relaxed),
+            db_fetch_count: self.db_fetch_count.swap(0, Relaxed),
+            lag_max_ms: self.lag_max_ms.swap(0, Relaxed),
+            not_ready: self.not_ready.swap(0, Relaxed),
             total_slots: self.total_slots,
         }
     }
@@ -90,6 +116,10 @@ struct Snapshot {
     latency_sum_ms: u64,
     latency_max_ms: u64,
     busy_ms_total: u64,
+    db_fetch_sum_ms: u64,
+    db_fetch_count: u64,
+    lag_max_ms: u64,
+    not_ready: u64,
     total_slots: u16,
 }
 
@@ -109,6 +139,18 @@ impl Snapshot {
         } else {
             self.latency_sum_ms as f64 / self.processed as f64
         }
+    }
+
+    fn avg_db_fetch_ms(&self) -> f64 {
+        if self.db_fetch_count == 0 {
+            0.0
+        } else {
+            self.db_fetch_sum_ms as f64 / self.db_fetch_count as f64
+        }
+    }
+
+    fn max_lag_s(&self) -> f64 {
+        self.lag_max_ms as f64 / 1000.0
     }
 
     fn avg_busy(&self, interval: Duration) -> f64 {
@@ -149,13 +191,16 @@ pub async fn run_throughput_log(
 fn emit_snapshot(stats: &ThroughputStats, window: Duration) {
     let snap = stats.snapshot_and_reset();
     info!(
-        "throughput: processed={} succeeded={} failed={} first_attempts={} retries={} rate={:.2}/s avg_latency_ms={:.1} max_latency_ms={} avg_busy={:.1} total_slots={}",
+        "throughput: not_ready={} processed={} succeeded={} failed={} first_attempts={} retries={} rate={:.2}/s avg_db_fetch_ms={:.1} max_lag_s={:.1} avg_latency_ms={:.1} max_latency_ms={} avg_busy={:.1} total_slots={}",
+        snap.not_ready,
         snap.processed,
         snap.succeeded,
         snap.failed,
         snap.first_attempts,
         snap.retries,
         snap.rate(window),
+        snap.avg_db_fetch_ms(),
+        snap.max_lag_s(),
         snap.avg_latency_ms(),
         snap.latency_max_ms,
         snap.avg_busy(window),
@@ -199,6 +244,11 @@ mod tests {
 
         stats.record_attempt(true, 0, Duration::from_millis(100));
         stats.record_attempt(false, 1, Duration::from_millis(200));
+        stats.record_db_fetch(Duration::from_millis(10));
+        stats.record_db_fetch(Duration::from_millis(30));
+        stats.record_lag(Duration::from_millis(500));
+        stats.record_lag(Duration::from_millis(800));
+        stats.record_not_ready();
 
         let snap = stats.snapshot_and_reset();
 
@@ -210,6 +260,14 @@ mod tests {
         assert_eq!(snap.retries, 1);
         assert_eq!(snap.latency_sum_ms, 300);
         assert_eq!(snap.latency_max_ms, 200);
+        assert_eq!(snap.db_fetch_sum_ms, 40);
+        assert_eq!(snap.db_fetch_count, 2);
+        assert!(
+            (snap.max_lag_s() - 0.8).abs() < 0.001,
+            "max_lag_s={}",
+            snap.max_lag_s()
+        );
+        assert_eq!(snap.not_ready, 1);
         assert_eq!(snap.total_slots, 5);
 
         // After reset, counters should be zero
@@ -221,6 +279,10 @@ mod tests {
         assert_eq!(stats.latency_sum_ms.load(Relaxed), 0);
         assert_eq!(stats.latency_max_ms.load(Relaxed), 0);
         assert_eq!(stats.busy_ms_total.load(Relaxed), 0);
+        assert_eq!(stats.db_fetch_sum_ms.load(Relaxed), 0);
+        assert_eq!(stats.db_fetch_count.load(Relaxed), 0);
+        assert_eq!(stats.lag_max_ms.load(Relaxed), 0);
+        assert_eq!(stats.not_ready.load(Relaxed), 0);
     }
 
     #[tokio::test]
@@ -275,5 +337,49 @@ mod tests {
         assert_eq!(snap.rate(interval), 0.0);
         assert_eq!(snap.avg_latency_ms(), 0.0);
         assert_eq!(snap.avg_busy(interval), 0.0);
+        assert_eq!(snap.avg_db_fetch_ms(), 0.0);
+    }
+
+    #[test]
+    fn test_record_db_fetch() {
+        let stats = ThroughputStats::new(5);
+
+        stats.record_db_fetch(Duration::from_millis(10));
+        stats.record_db_fetch(Duration::from_millis(30));
+        stats.record_db_fetch(Duration::from_millis(20));
+
+        assert_eq!(stats.db_fetch_sum_ms.load(Relaxed), 60);
+        assert_eq!(stats.db_fetch_count.load(Relaxed), 3);
+
+        let snap = stats.snapshot_and_reset();
+        let avg = snap.avg_db_fetch_ms();
+        assert!((avg - 20.0).abs() < 0.001, "avg_db_fetch_ms={avg}");
+    }
+
+    #[test]
+    fn test_record_lag_tracks_max() {
+        let stats = ThroughputStats::new(5);
+
+        stats.record_lag(Duration::from_millis(100));
+        stats.record_lag(Duration::from_millis(500));
+        stats.record_lag(Duration::from_millis(200));
+
+        let snap = stats.snapshot_and_reset();
+        assert!(
+            (snap.max_lag_s() - 0.5).abs() < 0.001,
+            "max_lag_s={}",
+            snap.max_lag_s()
+        );
+    }
+
+    #[test]
+    fn test_record_not_ready() {
+        let stats = ThroughputStats::new(5);
+
+        stats.record_not_ready();
+        stats.record_not_ready();
+        stats.record_not_ready();
+
+        assert_eq!(stats.not_ready.load(Relaxed), 3);
     }
 }
