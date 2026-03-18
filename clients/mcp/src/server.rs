@@ -42,17 +42,11 @@ fn make_tool_from_generated(info: &GeneratedToolInfo) -> Tool {
     let schema: Value = serde_json::from_str(info.input_schema)
         .unwrap_or_else(|_| json!({"type": "object", "properties": {}, "required": []}));
 
-    Tool {
-        name: info.name.to_string().into(),
-        title: None,
-        description: Some(info.description.to_string().into()),
-        input_schema: schema.as_object().cloned().unwrap_or_default().into(),
-        output_schema: None,
-        annotations: None,
-        icons: None,
-        meta: None,
-        execution: None,
-    }
+    Tool::new(
+        info.name.to_string(),
+        info.description.to_string(),
+        schema.as_object().cloned().unwrap_or_default(),
+    )
 }
 
 impl Hook0McpServer {
@@ -154,28 +148,24 @@ impl Hook0McpServer {
 
 impl ServerHandler for Hook0McpServer {
     fn get_info(&self) -> ServerInfo {
-        ServerInfo {
-            protocol_version: ProtocolVersion::V_2024_11_05,
-            capabilities: ServerCapabilities::builder()
+        ServerInfo::new(
+            ServerCapabilities::builder()
                 .enable_tools()
                 .enable_resources()
                 .enable_prompts()
                 .build(),
-            server_info: Implementation {
-                name: "hook0-mcp".into(),
-                title: Some("Hook0 MCP Server".into()),
-                description: None,
-                version: env!("CARGO_PKG_VERSION").into(),
-                icons: None,
-                website_url: Some("https://www.hook0.com/".into()),
-            },
-            instructions: Some(
-                "Hook0 MCP Server - Manage webhooks, subscriptions, and events. \
-                 Use tools to create applications, register event types, \
-                 configure subscriptions, and debug delivery issues."
-                    .into(),
-            ),
-        }
+        )
+        .with_server_info(
+            Implementation::new("hook0-mcp", env!("CARGO_PKG_VERSION"))
+                .with_title("Hook0 MCP Server")
+                .with_website_url("https://www.hook0.com/"),
+        )
+        .with_instructions(
+            "Hook0 MCP Server - Manage webhooks, subscriptions, and events. \
+             Use tools to create applications, register event types, \
+             configure subscriptions, and debug delivery issues.",
+        )
+        .with_protocol_version(ProtocolVersion::V_2024_11_05)
     }
 
     async fn list_tools(
@@ -300,9 +290,10 @@ impl ServerHandler for Hook0McpServer {
         let content = content.map_err(|e| -> McpError { e.into() })?;
         let text = serde_json::to_string_pretty(&content).unwrap_or_else(|_| content.to_string());
 
-        Ok(ReadResourceResult {
-            contents: vec![ResourceContents::text(text, request.uri)],
-        })
+        Ok(ReadResourceResult::new(vec![ResourceContents::text(
+            text,
+            request.uri,
+        )]))
     }
 
     async fn list_prompts(

@@ -24,7 +24,7 @@ uuid = { version = "1.22.0", features = ["serde", "v4"], optional = true }
 
 [dev-dependencies]
 actix-web = { version = "4.13.0", default-features = false, features = ["macros"] }
-tracing-subscriber = { version = "0.3.22", features = ["env-filter", "fmt"] }
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt"] }
 
 [features]
 default = ["producer", "consumer"]
