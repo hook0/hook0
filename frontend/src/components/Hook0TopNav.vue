@@ -9,6 +9,7 @@
  * <Hook0TopNav />
  */
 import { ref, watch, onMounted, onBeforeUnmount, onUnmounted, computed, nextTick } from 'vue';
+import type { ComponentPublicInstance } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   ChevronsUpDown,
@@ -42,11 +43,17 @@ const uiStore = useUiStore();
 
 const { navTabs } = useNavigationTabs();
 
+const isMac = computed(() => {
+  const nav = navigator as Navigator & { userAgentData?: { platform?: string } };
+  return /mac/i.test(nav.userAgentData?.platform ?? navigator.platform);
+});
+
 const {
   currentOrgId,
   currentOrgName,
   currentAppId,
   currentAppName,
+  currentOrgPlan,
   orgs,
   apps,
   isAppLevel,
@@ -54,36 +61,32 @@ const {
   switchApp,
   goToOrgDashboard,
   goToOrgSettings,
+  goToAppSettings,
   goToCreateOrg,
   goToCreateApp,
 } = useOrgAppSwitcher();
 
-const sortedOrgs = computed(() => {
-  const list = orgs.value ?? [];
+/** Sort a list so the item matching currentId comes first. */
+function sortCurrentFirst<T>(list: T[], getId: (item: T) => string, currentId: string | null): T[] {
   return [...list].sort((a, b) => {
-    if (a.organization_id === currentOrgId.value) return -1;
-    if (b.organization_id === currentOrgId.value) return 1;
+    if (getId(a) === currentId) return -1;
+    if (getId(b) === currentId) return 1;
     return 0;
   });
-});
+}
 
-const sortedApps = computed(() => {
-  const list = apps.value ?? [];
-  return [...list].sort((a, b) => {
-    if (a.application_id === currentAppId.value) return -1;
-    if (b.application_id === currentAppId.value) return 1;
-    return 0;
-  });
-});
+const sortedOrgs = computed(() =>
+  sortCurrentFirst(orgs.value ?? [], (o) => o.organization_id, currentOrgId.value)
+);
 
-const currentOrgPlan = computed(() => {
-  const org = (orgs.value ?? []).find((o) => o.organization_id === currentOrgId.value);
-  return org?.plan ?? null;
-});
+const sortedApps = computed(() =>
+  sortCurrentFirst(apps.value ?? [], (a) => a.application_id, currentAppId.value)
+);
 
 const userTriggerRef = ref<HTMLButtonElement | null>(null);
 
 // Tab indicator sliding
+const TAB_PADDING_X = 12;
 const tabsNavRef = ref<HTMLElement | null>(null);
 const activeTabEl = ref<HTMLElement | null>(null);
 const tabIndicatorStyle = ref<Record<string, string>>({ opacity: '0' });
@@ -97,56 +100,72 @@ function updateTabIndicator() {
     const navRect = tabsNavRef.value.getBoundingClientRect();
     const tabRect = activeTabEl.value.getBoundingClientRect();
     tabIndicatorStyle.value = {
-      width: `${tabRect.width - 24}px`,
-      transform: `translateX(${tabRect.left - navRect.left + 12}px)`,
+      width: `${tabRect.width - TAB_PADDING_X * 2}px`,
+      transform: `translateX(${tabRect.left - navRect.left + TAB_PADDING_X}px)`,
       opacity: '1',
     };
   });
 }
 
-watch(() => navTabs.value.find((t) => t.active)?.id, updateTabIndicator);
-onMounted(() => setTimeout(updateTabIndicator, 100));
+watch(() => navTabs.value.find((tab) => tab.active)?.id, updateTabIndicator);
 
-// Dropdown states
-const orgDropdownOpen = ref(false);
-const appDropdownOpen = ref(false);
-const userDropdownOpen = ref(false);
+let tabsResizeObserver: ResizeObserver | null = null;
+
+onMounted(() => {
+  tabsResizeObserver = new ResizeObserver(() => {
+    updateTabIndicator();
+  });
+  if (tabsNavRef.value) {
+    tabsResizeObserver.observe(tabsNavRef.value);
+  }
+});
+
+watch(tabsNavRef, (el) => {
+  if (el && tabsResizeObserver) {
+    tabsResizeObserver.observe(el);
+  }
+});
+
+// Dropdown state machine — only one dropdown open at a time
+type DropdownId = 'org' | 'app' | 'user';
+const activeDropdown = ref<DropdownId | null>(null);
+
+const orgDropdownOpen = computed(() => activeDropdown.value === 'org');
+const appDropdownOpen = computed(() => activeDropdown.value === 'app');
+const userDropdownOpen = computed(() => activeDropdown.value === 'user');
+const anyDropdownOpen = computed(() => activeDropdown.value !== null);
 
 /** Close all open dropdowns. */
 function closeDropdowns(): void {
-  orgDropdownOpen.value = false;
-  appDropdownOpen.value = false;
-  userDropdownOpen.value = false;
+  activeDropdown.value = null;
 }
 
 /** Toggle a specific dropdown, closing others. */
-function toggleOrgDropdown(): void {
-  const next = !orgDropdownOpen.value;
-  closeDropdowns();
-  orgDropdownOpen.value = next;
+function toggleDropdown(id: DropdownId): void {
+  activeDropdown.value = activeDropdown.value === id ? null : id;
 }
 
-function toggleAppDropdown(): void {
-  const next = !appDropdownOpen.value;
-  closeDropdowns();
-  appDropdownOpen.value = next;
+/** Handle org item click — switch only if not already the current org. */
+function handleOrgItemClick(orgId: string): void {
+  if (orgId !== currentOrgId.value) {
+    switchOrg(orgId);
+  }
 }
 
-function toggleUserDropdown(): void {
-  const next = !userDropdownOpen.value;
-  closeDropdowns();
-  userDropdownOpen.value = next;
-}
-
-const anyDropdownOpen = computed(
-  () => orgDropdownOpen.value || appDropdownOpen.value || userDropdownOpen.value
-);
+const orgTriggerRef = ref<HTMLButtonElement | null>(null);
+const appTriggerRef = ref<HTMLButtonElement | null>(null);
 
 function onKeydown(event: KeyboardEvent): void {
   if (event.key === 'Escape' && anyDropdownOpen.value) {
     event.preventDefault();
+    const triggerMap: Record<DropdownId, HTMLButtonElement | null> = {
+      org: orgTriggerRef.value,
+      app: appTriggerRef.value,
+      user: userTriggerRef.value,
+    };
+    const trigger = activeDropdown.value ? triggerMap[activeDropdown.value] : null;
     closeDropdowns();
-    userTriggerRef.value?.focus();
+    trigger?.focus();
   }
 }
 
@@ -173,6 +192,8 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', onKeydown);
   document.removeEventListener('click', onDocumentClick, { capture: true });
+  tabsResizeObserver?.disconnect();
+  tabsResizeObserver = null;
 });
 
 // Close dropdowns on route change
@@ -218,12 +239,13 @@ onUnmounted(removeAfterEach);
             }}</Hook0Badge>
           </button>
           <button
+            ref="orgTriggerRef"
             class="hook0-topnav__switcher-btn"
             :aria-label="t('nav.switchOrganization')"
             :aria-expanded="orgDropdownOpen"
             aria-haspopup="true"
             data-test="context-bar-org-switcher"
-            @click.stop="toggleOrgDropdown()"
+            @click.stop="toggleDropdown('org')"
           >
             <ChevronsUpDown :size="14" aria-hidden="true" />
           </button>
@@ -236,7 +258,7 @@ onUnmounted(removeAfterEach);
               role="menu"
               aria-orientation="vertical"
             >
-              <div
+              <button
                 v-for="org in sortedOrgs"
                 :key="org.organization_id"
                 class="hook0-topnav__dropdown-item"
@@ -244,7 +266,7 @@ onUnmounted(removeAfterEach);
                   'hook0-topnav__dropdown-item--active': org.organization_id === currentOrgId,
                 }"
                 role="menuitem"
-                @click="org.organization_id !== currentOrgId && switchOrg(org.organization_id)"
+                @click="handleOrgItemClick(org.organization_id)"
               >
                 <Hook0Avatar :name="org.name" size="sm" variant="square" />
                 <div class="hook0-topnav__dropdown-item-content">
@@ -266,14 +288,11 @@ onUnmounted(removeAfterEach);
                   variant="secondary"
                   size="xs"
                   :aria-label="`${t('nav.settings')} ${org.name}`"
-                  @click.stop="
-                    switchOrg(org.organization_id);
-                    goToOrgSettings();
-                  "
+                  @click.stop="goToOrgSettings(org.organization_id)"
                 >
                   {{ t('nav.settings') }}
                 </Hook0Button>
-              </div>
+              </button>
 
               <div class="hook0-topnav__dropdown-separator" />
 
@@ -303,12 +322,13 @@ onUnmounted(removeAfterEach);
               {{ currentAppName ?? '...' }}
             </button>
             <button
+              ref="appTriggerRef"
               class="hook0-topnav__switcher-btn"
               :aria-label="t('nav.switchApplication')"
               :aria-expanded="appDropdownOpen"
               aria-haspopup="true"
               data-test="context-bar-app-switcher"
-              @click.stop="toggleAppDropdown()"
+              @click.stop="toggleDropdown('app')"
             >
               <ChevronsUpDown :size="14" aria-hidden="true" />
             </button>
@@ -330,8 +350,9 @@ onUnmounted(removeAfterEach);
                   }"
                   role="menuitem"
                   @click="
-                    app.application_id !== currentAppId &&
-                    switchApp(app.organization_id, app.application_id)
+                    app.application_id !== currentAppId
+                      ? switchApp(app.organization_id, app.application_id)
+                      : undefined
                   "
                 >
                   <Box :size="16" aria-hidden="true" />
@@ -349,15 +370,7 @@ onUnmounted(removeAfterEach);
                     variant="secondary"
                     size="xs"
                     :aria-label="`${t('nav.settings')} ${app.name}`"
-                    @click.stop="
-                      void $router.push({
-                        name: 'ApplicationsDetail',
-                        params: {
-                          organization_id: app.organization_id,
-                          application_id: app.application_id,
-                        },
-                      })
-                    "
+                    @click.stop="goToAppSettings(app.organization_id, app.application_id)"
                   >
                     {{ t('nav.settings') }}
                   </Hook0Button>
@@ -389,7 +402,7 @@ onUnmounted(removeAfterEach);
         >
           <Search :size="16" aria-hidden="true" />
           <span class="hook0-topnav__search-text">{{ t('nav.search') }}</span>
-          <kbd class="hook0-topnav__search-kbd">&#8984;K</kbd>
+          <kbd class="hook0-topnav__search-kbd">{{ isMac ? '\u2318' : 'Ctrl+' }}K</kbd>
         </button>
 
         <!-- Documentation -->
@@ -424,7 +437,7 @@ onUnmounted(removeAfterEach);
             :aria-expanded="userDropdownOpen"
             aria-haspopup="true"
             :aria-label="t('nav.userMenu')"
-            @click.stop="toggleUserDropdown()"
+            @click.stop="toggleDropdown('user')"
           >
             <div class="hook0-topnav__user-avatar">
               {{ authStore.userInfo?.email?.charAt(0)?.toUpperCase() ?? '?' }}
@@ -490,7 +503,8 @@ onUnmounted(removeAfterEach);
         :key="tab.id"
         :ref="
           (el) => {
-            if (tab.active && el) activeTabEl = (el as any).$el ?? el;
+            if (tab.active && el)
+              activeTabEl = (el as ComponentPublicInstance)?.$el ?? (el as HTMLElement);
           }
         "
         :to="tab.to"
@@ -726,6 +740,11 @@ onUnmounted(removeAfterEach);
 
 .hook0-topnav__app-name:hover {
   background-color: var(--color-bg-tertiary);
+}
+
+.hook0-topnav__app-name:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 /* Right section */
@@ -994,17 +1013,6 @@ onUnmounted(removeAfterEach);
   color: var(--color-error);
 }
 
-.hook0-topnav__dropdown-manage-btn:hover {
-  background-color: var(--color-bg-tertiary);
-  color: var(--color-text-primary);
-  border-color: var(--color-border-strong);
-}
-
-.hook0-topnav__dropdown-manage-btn:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
 .hook0-topnav__dropdown-item-content {
   flex: 1;
   min-width: 0;
@@ -1032,7 +1040,7 @@ onUnmounted(removeAfterEach);
 
 .hook0-topnav__dropdown-item-meta {
   font-size: 0.6875rem;
-  color: #6b7280;
+  color: var(--color-text-muted);
 }
 
 .hook0-topnav__dropdown-separator {
@@ -1174,7 +1182,6 @@ onUnmounted(removeAfterEach);
   .hook0-topnav__nav-link,
   .hook0-topnav__user-avatar,
   .hook0-topnav__dropdown-item,
-  .hook0-topnav__dropdown-manage-btn,
   .hook0-topnav__tab {
     transition: none;
   }

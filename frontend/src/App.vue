@@ -72,7 +72,7 @@ const showFullScreen = computed(() => {
   <div v-if="!showFullScreen" class="hook0-app">
     <a href="#main-content" class="skip-link">{{ t('nav.skipToContent') }}</a>
 
-    <!-- Top Navigation (Stripe-style) -->
+    <!-- Top Navigation (Clerk-style 2-level navigation) -->
     <Hook0TopNav />
 
     <!-- Main content area -->

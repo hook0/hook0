@@ -228,8 +228,6 @@
     "webhooks": "Webhooks",
     "createOrganization": "Create organization",
     "createApplication": "Create application",
-    "manage": "Manage",
-    "nApps": "{count} app | {count} apps",
     "switchOrganization": "Switch organization",
     "switchApplication": "Switch application",
     "tabBar": "Tab bar"
@@ -634,7 +632,6 @@
     "lastName": "Last Name",
     "newPasswordPlaceholder": "New password",
     "confirmPasswordPlaceholder": "Confirm new password",
-    "changePasswordSubtitle": "Set a new password. You will be disconnected from all browsers and devices.",
     "changePasswordWarning": "You will be disconnected from all browsers/devices including the current one.",
     "passwordChanged": "Your password was successfully changed.",
     "passwordMismatch": "Passwords do not match.",
@@ -694,7 +691,7 @@
     "continueToApplication": "You can now create your first application.",
     "organizationIdRequired": "Organization ID is required",
     "selectOrganization": "Please select an organization:",
-    "continueStep2": "Continue",
+    "continueStep2": "Continue to application",
     "step2Title": "Create your first application",
     "step2Description": "An application is an isolated environment in Hook0. It has its own event types, events, subscriptions and request attempts. If your plan allows it, you can create multiple applications in order to isolate multiple environments or systems inside the same organization.",
     "chooseApplication": "Let's choose an application!",
@@ -704,7 +701,7 @@
     "applicationCreated": "Application created",
     "continueToEventType": "You can now create your first event type.",
     "selectApplication": "You can also select an existing application to continue the tutorial.",
-    "continueStep3": "Continue",
+    "continueStep3": "Continue to event type",
     "orgAppIdRequired": "Organization ID and Application ID are required",
     "close": "Close",
     "somethingWentWrong": "Something went wrong. Please try again. If the problem persists, contact support.",
@@ -736,7 +733,7 @@
       "eventTypeCreated": "Event type created",
       "canCreateSubscription": "You can now create your first subscription.",
       "skip": "Skip",
-      "continueStep4": "Continue"
+      "continueStep4": "Continue to subscription"
     },
     "step4": {
       "title": "Create a subscription",
@@ -744,7 +741,7 @@
       "subscriptionCreated": "Subscription created",
       "canSendEvent": "You can now create your first event.",
       "skip": "Skip",
-      "continueStep5": "Continue"
+      "continueStep5": "Continue to send event"
     },
     "step5": {
       "title": "Send an event",

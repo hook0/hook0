@@ -36,7 +36,10 @@ export function useNavigationTabs() {
       .then((config) => {
         instanceConfig.value = config;
       })
-      .catch(console.error);
+      .catch(() => {
+        // Default to null so appSecretCompat falls back to true
+        instanceConfig.value = null;
+      });
   });
 
   const navTabs = computed<NavTab[]>(() => {

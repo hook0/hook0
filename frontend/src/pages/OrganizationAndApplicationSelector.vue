@@ -19,7 +19,6 @@ import Hook0Stack from '@/components/Hook0Stack.vue';
 import Hook0EmptyState from '@/components/Hook0EmptyState.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import { useAuthStore } from '@/stores/auth';
-import { isPricingEnabled } from '@/instance';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
@@ -31,8 +30,6 @@ type ApplicationsPerOrganization = {
 
 const router = useRouter();
 const route = useRoute();
-
-const pricingEnabled = ref<boolean>(false);
 
 const applicationsPerOrganization = ref<null | ApplicationsPerOrganization[]>(null);
 const organization_name = ref('');
@@ -191,10 +188,6 @@ onMounted(() => {
     return _updateDropdown(route.params);
   });
 
-  void isPricingEnabled().then((enabled) => {
-    pricingEnabled.value = enabled;
-  });
-
   return _updateDropdown(route.params);
 });
 
@@ -208,6 +201,7 @@ onUnmounted(() => {
   }
 });
 
+// Intentionally hardcoded: design decision for org avatar variety, not design-token eligible.
 const avatarGradients = [
   'linear-gradient(135deg, #4f46e5, #7c3aed)',
   'linear-gradient(135deg, #059669, #10b981)',
@@ -236,7 +230,7 @@ function getGradient(index: number): string {
         class="stagger-item"
       >
         <!-- Card Header -->
-        <Hook0CardContent class="org-card__header-wrapper">
+        <Hook0CardContent compact>
           <Hook0Stack
             direction="row"
             align="center"
@@ -253,17 +247,12 @@ function getGradient(index: number): string {
               variant="square"
               :gradient="getGradient(index)"
             />
-            <Hook0Stack
-              direction="column"
-              gap="none"
-              class="org-card__info"
-              style="flex: 1; min-width: 0"
-            >
+            <Hook0Stack direction="column" gap="none" class="org-card__info">
               <span class="org-selector__org-name">
                 {{ organizationGroup.organization.name }}
               </span>
               <span class="org-card__meta">
-                <span class="org-card__status-dot" />
+                <span class="org-card__status-dot" aria-hidden="true" />
                 <span class="org-selector__apps-count">
                   {{ t('orgAppSelector.appsCount', organizationGroup.applications.length) }}
                 </span>
@@ -274,7 +263,7 @@ function getGradient(index: number): string {
         </Hook0CardContent>
 
         <!-- Applications List -->
-        <Hook0CardContent class="org-card__header-wrapper">
+        <Hook0CardContent compact>
           <template v-if="organizationGroup.applications.length > 0">
             <ul class="app-list">
               <li
@@ -437,15 +426,6 @@ function getGradient(index: number): string {
 </template>
 
 <style scoped>
-/* Organization Card Header - interactive clickable area */
-.org-card__header-wrapper:deep(.hook0-card-content) {
-  padding: 0.375rem;
-}
-
-.org-card__header-wrapper {
-  padding: 0.375rem !important;
-}
-
 .org-card__header {
   cursor: pointer;
   padding: 0.5rem 0.75rem;
@@ -609,6 +589,8 @@ function getGradient(index: number): string {
 
 /* Organization Selector Text */
 .org-card__info {
+  flex: 1;
+  min-width: 0;
   justify-content: center;
 }
 

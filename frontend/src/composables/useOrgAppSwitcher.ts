@@ -14,13 +14,17 @@ export function useOrgAppSwitcher() {
   const currentAppId = computed(() => ctx.applicationId);
   const currentAppName = computed(() => ctx.applicationName);
 
-  const { data: orgs, isLoading: orgsLoading } = useOrganizationList();
+  const { data: orgs } = useOrganizationList();
 
   const orgIdForApps = computed(() => currentOrgId.value || '');
   const { data: apps, isLoading: appsLoading } = useApplicationList(orgIdForApps);
 
   const isAppLevel = computed(() => !!currentOrgId.value && !!currentAppId.value);
-  const isOrgLevel = computed(() => !!currentOrgId.value && !currentAppId.value);
+
+  const currentOrgPlan = computed(() => {
+    const org = (orgs.value ?? []).find((o) => o.organization_id === currentOrgId.value);
+    return org?.plan ?? null;
+  });
 
   function switchOrg(orgId: string) {
     void router.push({
@@ -36,13 +40,23 @@ export function useOrgAppSwitcher() {
     });
   }
 
-  function goToOrgSettings() {
-    if (currentOrgId.value) {
+  /** Navigate to organization settings. Uses provided orgId or falls back to current. */
+  function goToOrgSettings(orgId?: string) {
+    const id = orgId ?? currentOrgId.value;
+    if (id) {
       void router.push({
         name: routes.OrganizationsDetail,
-        params: { organization_id: currentOrgId.value },
+        params: { organization_id: id },
       });
     }
+  }
+
+  /** Navigate to application settings. */
+  function goToAppSettings(orgId: string, appId: string) {
+    void router.push({
+      name: routes.ApplicationsDetail,
+      params: { organization_id: orgId, application_id: appId },
+    });
   }
 
   function goToCreateOrg() {
@@ -72,15 +86,15 @@ export function useOrgAppSwitcher() {
     currentOrgName,
     currentAppId,
     currentAppName,
+    currentOrgPlan,
     orgs,
-    orgsLoading,
     apps,
     appsLoading,
     isAppLevel,
-    isOrgLevel,
     switchOrg,
     switchApp,
     goToOrgSettings,
+    goToAppSettings,
     goToCreateOrg,
     goToCreateApp,
     goToOrgDashboard,
