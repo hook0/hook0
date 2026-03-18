@@ -156,12 +156,21 @@ pub async fn load_waiting_request_attempts_from_db(
                 payload_content_type: ra.payload_content_type,
                 secret: ra.secret,
             };
-            producer
+
+            let mut msg_builder = producer
                 .create_message()
-                .event_time(request_attempt.created_at.timestamp_micros() as u64)
+                .event_time(request_attempt.created_at.timestamp_micros() as u64);
+            if let Some(delay_until) = ra.delay_until
+                && delay_until > (Utc::now() + DELAY_TOLERANCE)
+            {
+                msg_builder = msg_builder.deliver_at(delay_until.into())?;
+            }
+
+            msg_builder
                 .with_content(request_attempt)
                 .send_non_blocking()
                 .await?;
+
             counter += 1;
         } else {
             warn!(event_id = %ra.event_id, "Could not get event's payload");
