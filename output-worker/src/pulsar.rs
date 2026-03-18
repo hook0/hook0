@@ -1,7 +1,7 @@
 use anyhow::bail;
 use aws_sdk_s3::error::DisplayErrorContext;
 use aws_sdk_s3::primitives::ByteStream;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, TimeDelta, Utc};
 use futures::TryStreamExt;
 use pulsar::consumer::{InitialPosition, Message};
 use pulsar::proto::MessageIdData;
@@ -32,6 +32,8 @@ use crate::{
 };
 use hook0_protobuf::ObjectStorageResponse;
 use hook0_sentry_integration::log_object_storage_error_with_context;
+
+const DELAY_TOLERANCE: Duration = Duration::from_secs(1);
 
 type AckMessage = (MessageIdData, Option<OwnedSemaphorePermit>, bool);
 
@@ -344,7 +346,13 @@ pub async fn look_for_work(
 
 #[derive(Debug, Clone)]
 enum RequestAttemptStatus {
-    Ready { delay_until: Option<DateTime<Utc>> },
+    Ready {
+        delay_until: Option<DateTime<Utc>>,
+    },
+    Delayed {
+        delay_until: DateTime<Utc>,
+        lead: TimeDelta,
+    },
     AlreadyDone,
     Cancelled,
     NotFound,
@@ -393,6 +401,14 @@ async fn handle_message(
             .fetch_optional(pool)
             .await?
             {
+                Some(RawRequestAttemptStatus {
+                    not_cancelled: true,
+                    not_done: true,
+                    delay_until: Some(d),
+                }) if d > (Utc::now() + DELAY_TOLERANCE) => RequestAttemptStatus::Delayed {
+                    delay_until: d,
+                    lead: d - Utc::now(),
+                },
                 Some(RawRequestAttemptStatus {
                     not_cancelled: true,
                     not_done: true,
@@ -614,6 +630,26 @@ async fn handle_message(
                     // End OpenTelemetry span
                     end_request_attempt_span(span, &response);
 
+                    ack_tx
+                        .send((msg.message_id().clone(), Some(permit), true))
+                        .await?;
+
+                    Ok(())
+                }
+                // This should never happen because delayed request attempts are sent to Pulsar with a `deliver_at` constraint
+                // This process is there to make sure delayed request attempts will not be processed immediately if the Pulsar producer made a mistake
+                RequestAttemptStatus::Delayed { delay_until, lead } => {
+                    stats.record_not_ready();
+                    trace!(request_attempt_id = %attempt.request_attempt_id, lead = ?lead, "Request attempt was scheduled for later");
+                    retry_producer
+                        .lock()
+                        .await
+                        .create_message()
+                        .event_time(attempt.created_at.timestamp_micros() as u64)
+                        .deliver_at(delay_until.into())?
+                        .with_content(attempt)
+                        .send_non_blocking()
+                        .await?;
                     ack_tx
                         .send((msg.message_id().clone(), Some(permit), true))
                         .await?;
