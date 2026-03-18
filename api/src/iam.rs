@@ -456,6 +456,11 @@ pub enum Action<'a> {
     ResponseGet {
         application_id: &'a Uuid,
     },
+    //
+    EventsPerDayApplication {
+        application_id: &'a Uuid,
+    },
+    EventsPerDayOrganization,
 }
 
 impl Action<'_> {
@@ -520,6 +525,9 @@ impl Action<'_> {
             Self::RequestAttemptList { .. } => "request_attempt:list",
             //
             Self::ResponseGet { .. } => "response:get",
+            //
+            Self::EventsPerDayApplication { .. } => "events_per_day:application",
+            Self::EventsPerDayOrganization => "events_per_day:organization",
         }
     }
 
@@ -586,6 +594,9 @@ impl Action<'_> {
             Self::RequestAttemptList { .. } => vec![Role::Viewer],
             //
             Self::ResponseGet { .. } => vec![Role::Viewer],
+            //
+            Self::EventsPerDayApplication { .. } => vec![Role::Viewer],
+            Self::EventsPerDayOrganization => vec![Role::Viewer],
         };
 
         roles.append(&mut per_action_roles);
@@ -668,6 +679,9 @@ impl Action<'_> {
             Self::RequestAttemptList { application_id, .. } => Some(**application_id),
             //
             Self::ResponseGet { application_id, .. } => Some(**application_id),
+            //
+            Self::EventsPerDayApplication { application_id, .. } => Some(**application_id),
+            Self::EventsPerDayOrganization => None,
         }
     }
 
@@ -764,6 +778,9 @@ impl Action<'_> {
 
             //
             Self::ResponseGet { .. } => vec![],
+            //
+            Self::EventsPerDayApplication { .. } => vec![],
+            Self::EventsPerDayOrganization => vec![],
         };
 
         facts.push(fact!("action({action})", action = self.action_name()));

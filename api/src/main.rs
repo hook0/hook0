@@ -1377,12 +1377,26 @@ async fn main() -> anyhow::Result<()> {
                         )
                         .service(
                             web::scope("/event")
-                                .wrap(Compat::new(rate_limiters.token()))
                                 .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
                                 .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first/ Middleware order is counter intuitive: this is executed first
                                 .service(
                                     web::resource("")
                                         .route(web::post().to(handlers::events::ingest)),
+                                ),
+                        )
+                        .service(
+                            web::scope("/events_per_day")
+                                .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
+                                .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first
+                                .service(
+                                    web::resource("/application").route(
+                                        web::get().to(handlers::events_per_day::application),
+                                    ),
+                                )
+                                .service(
+                                    web::resource("/organization").route(
+                                        web::get().to(handlers::events_per_day::organization),
+                                    ),
                                 ),
                         )
                         .service(
