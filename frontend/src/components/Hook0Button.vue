@@ -31,8 +31,12 @@ const href = computed(() => {
     return undefined;
   }
 
-  const { href } = router.resolve(props.to);
-  return href; // for accessibility
+  try {
+    const { href } = router.resolve(props.to);
+    return href; // for accessibility
+  } catch {
+    return undefined;
+  }
 });
 const loading = computed(() => props.loading ?? false);
 
