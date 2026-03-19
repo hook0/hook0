@@ -1,12 +1,12 @@
 use actix_web::web::ReqData;
 use biscuit_auth::Biscuit;
 use chrono::Utc;
-use log::error;
 use paperclip::actix::web::{Data, Json, Path};
 use paperclip::actix::{Apiv2Schema, NoContent, api_v2_operation};
 use serde::{Deserialize, Serialize};
 use sqlx::{query, query_as, query_scalar};
 use std::str::FromStr;
+use tracing::error;
 use uuid::Uuid;
 use validator::Validate;
 

@@ -4,15 +4,15 @@
     GHCR_PREFIX: "ghcr.io/hook0"
     GITHUB_REPO: "hook0/hook0"
   rules:
-    # Matches strict semver tags: v1.0.0, v2.1.3 (no suffixes)
-    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+    # Matches semver tags: v1.0.0, v2.1.3-alpha, v2.1.3-beta.1, v2.1.3-rc.2
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-(?:alpha|beta|rc)(?:\.\d+)?)?$/
 
 # --- Version Validation ---
 
 release.verify-versions:
   extends: .release-rules
   stage: build
-  image: alpine:latest
+  image: alpine:$ALPINE_VERSION
   before_script:
     - apk add --no-cache jq
   script:
@@ -73,7 +73,7 @@ release.verify-versions:
     SQLX_OFFLINE: "true"
   before_script:
     - rustup target add $TARGET
-    - apt-get update && apt-get install -y protobuf-compiler cmake $CROSS_DEPS
+    - apt-get update && apt-get install -y cmake $CROSS_DEPS
   artifacts:
     paths:
       - artifacts/
@@ -87,6 +87,8 @@ release.build-api-amd64:
     TARGET: x86_64-unknown-linux-gnu
     CROSS_DEPS: ""
   script:
+    - wget -O protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/protoc-$PROTOC_VERSION-linux-x86_64.zip && mkdir protoc && unzip protoc.zip -d protoc/
+    - export PROTOC="$(realpath ./protoc/bin/protoc)"
     - mkdir -p artifacts
     - cargo build --release --package hook0-api --target $TARGET
     - cp target/$TARGET/release/hook0-api artifacts/hook0-api-linux-amd64
@@ -99,6 +101,8 @@ release.build-api-amd64:
 #     CROSS_DEPS: "gcc-aarch64-linux-gnu libc6-dev-arm64-cross"
 #   script:
 #     - mkdir -p artifacts
+#     - wget -O protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/protoc-$PROTOC_VERSION-linux-aarch_64.zip && mkdir protoc && unzip protoc.zip -d protoc/
+#     - export PROTOC="$(realpath ./protoc/bin/protoc)"
 #     - export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
 #     - cargo build --release --package hook0-api --target $TARGET
 #     - cp target/$TARGET/release/hook0-api artifacts/hook0-api-linux-arm64
@@ -111,6 +115,8 @@ release.build-worker-amd64:
     TARGET: x86_64-unknown-linux-gnu
     CROSS_DEPS: ""
   script:
+    - wget -O protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/protoc-$PROTOC_VERSION-linux-x86_64.zip && mkdir protoc && unzip protoc.zip -d protoc/
+    - export PROTOC="$(realpath ./protoc/bin/protoc)"
     - mkdir -p artifacts
     - cargo build --release --package hook0-output-worker --target $TARGET
     - cp target/$TARGET/release/hook0-output-worker artifacts/hook0-output-worker-linux-amd64
@@ -123,6 +129,8 @@ release.build-worker-amd64:
 #     CROSS_DEPS: "gcc-aarch64-linux-gnu libc6-dev-arm64-cross"
 #   script:
 #     - mkdir -p artifacts
+#     - wget -O protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/protoc-$PROTOC_VERSION-linux-aarch_64.zip && mkdir protoc && unzip protoc.zip -d protoc/
+#     - export PROTOC="$(realpath ./protoc/bin/protoc)"
 #     - export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
 #     - cargo build --release --package hook0-output-worker --target $TARGET
 #     - cp target/$TARGET/release/hook0-output-worker artifacts/hook0-output-worker-linux-arm64
@@ -152,7 +160,9 @@ release.build-frontend:
 release.extract-notes:
   extends: .release-rules
   stage: build
-  image: alpine:latest
+  image: alpine:$ALPINE_VERSION
+  variables:
+    GIT_DEPTH: "0"
   before_script:
     - apk add --no-cache curl git
     - curl -L https://github.com/orhun/git-cliff/releases/download/v${GIT_CLIFF_VERSION}/git-cliff-${GIT_CLIFF_VERSION}-x86_64-unknown-linux-musl.tar.gz | tar xz
@@ -160,6 +170,18 @@ release.extract-notes:
   script:
     - mkdir -p artifacts
     - git-cliff --current --strip header > artifacts/RELEASE_NOTES.md
+    # Append Docker images section to release notes
+    - |
+      cat >> artifacts/RELEASE_NOTES.md << 'EOF'
+
+      ## Docker Images
+
+      | Image | DockerHub | GitHub Container Registry | GitLab Registry |
+      |-------|-----------|------|-----------------|
+      | API | `hook0/hook0-api` | `ghcr.io/hook0/hook0-api` | `registry.gitlab.com/hook0/hook0/hook0-api` |
+      | Output Worker | `hook0/hook0-output-worker` | `ghcr.io/hook0/hook0-output-worker` | `registry.gitlab.com/hook0/hook0/hook0-output-worker` |
+      | Frontend | `hook0/hook0-frontend` | `ghcr.io/hook0/hook0-frontend` | `registry.gitlab.com/hook0/hook0/hook0-frontend` |
+      EOF
     - echo "--- Release notes for $CI_COMMIT_TAG ---"
     - cat artifacts/RELEASE_NOTES.md
   artifacts:
@@ -172,9 +194,9 @@ release.extract-notes:
 release.containers:
   extends: .release-rules
   stage: release
-  image: docker:latest
-  services:
-    - docker:dind
+  image:
+    name: moby/buildkit:$BUILDKIT_VERSION
+    entrypoint: ['sh', '-c']
   needs:
     - job: release.build-api-amd64
       artifacts: true
@@ -186,6 +208,8 @@ release.containers:
     # DISABLED: arm64 builds are too slow on CI
     # - job: release.build-worker-arm64
     #   artifacts: true
+    - job: release.build-frontend
+      artifacts: true
     # Wait for tests to pass before releasing
     - job: api.check
       artifacts: false
@@ -194,14 +218,16 @@ release.containers:
     - job: frontend.check
       artifacts: false
   variables:
-    DOCKER_HOST: tcp://docker:2375
-    DOCKER_TLS_CERTDIR: ""
+    BUILDKITD_FLAGS: --oci-worker-no-process-sandbox
   before_script:
     - export VERSION="${CI_COMMIT_TAG#v}"
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
-    - docker login -u "$DOCKERHUB_USERNAME" -p "$DOCKERHUB_TOKEN"
-    - docker login ghcr.io -u "$GITHUB_USERNAME" -p "$GITHUB_TOKEN"
-    - docker buildx create --use --name multiarch --driver docker-container
+    - mkdir -p ~/.docker
+    - |
+      echo "{\"auths\":{
+        \"$CI_REGISTRY\":{\"auth\":\"$(printf '%s' "$CI_REGISTRY_USER:$CI_REGISTRY_PASSWORD" | base64 | tr -d '\n')\"},
+        \"https://index.docker.io/v1/\":{\"auth\":\"$(printf '%s' "$DOCKERHUB_USERNAME:$DOCKERHUB_TOKEN" | base64 | tr -d '\n')\"},
+        \"ghcr.io\":{\"auth\":\"$(printf '%s' "$GITHUB_USERNAME:$GITHUB_TOKEN" | base64 | tr -d '\n')\"}
+      }}" > ~/.docker/config.json
   script:
     # Prepare build context for API
     - mkdir -p build-context/api
@@ -217,38 +243,50 @@ release.containers:
     # - cp artifacts/hook0-output-worker-linux-arm64 build-context/worker/
     - cp output-worker/Dockerfile.release build-context/worker/Dockerfile
 
-    # Build and push API (amd64 only - arm64 disabled)
-    # docker buildx build --platform linux/amd64,linux/arm64 \
-    - |
-      docker buildx build --platform linux/amd64 \
-        --tag "$CI_REGISTRY_IMAGE/hook0-api:$VERSION" \
-        --tag "$CI_REGISTRY_IMAGE/hook0-api:latest" \
-        --tag "${DOCKERHUB_PREFIX}/hook0-api:$VERSION" \
-        --tag "${DOCKERHUB_PREFIX}/hook0-api:latest" \
-        --tag "${GHCR_PREFIX}/hook0-api:$VERSION" \
-        --tag "${GHCR_PREFIX}/hook0-api:latest" \
-        --push \
-        build-context/api
+    # Prepare build context for Frontend
+    - mkdir -p build-context/frontend
+    - tar -xzf artifacts/frontend-dist.tar.gz -C build-context/frontend/
+    - cp frontend/scripts/docker-entrypoint.sh build-context/frontend/
+    - cp frontend/Dockerfile.release build-context/frontend/Dockerfile
 
-    # Build and push Output Worker (amd64 only - arm64 disabled)
-    # docker buildx build --platform linux/amd64,linux/arm64 \
+    # Build and push API
     - |
-      docker buildx build --platform linux/amd64 \
-        --tag "$CI_REGISTRY_IMAGE/output-worker:$VERSION" \
-        --tag "$CI_REGISTRY_IMAGE/output-worker:latest" \
-        --tag "${DOCKERHUB_PREFIX}/output-worker:$VERSION" \
-        --tag "${DOCKERHUB_PREFIX}/output-worker:latest" \
-        --tag "${GHCR_PREFIX}/output-worker:$VERSION" \
-        --tag "${GHCR_PREFIX}/output-worker:latest" \
-        --push \
-        build-context/worker
+      buildctl-daemonless.sh build \
+        --progress=plain \
+        --frontend dockerfile.v0 \
+        --opt platform=linux/amd64 \
+        --local context=build-context/api \
+        --local dockerfile=build-context/api \
+        --output "type=image,\"name=$CI_REGISTRY_IMAGE/hook0-api:$VERSION,$CI_REGISTRY_IMAGE/hook0-api:latest,${DOCKERHUB_PREFIX}/hook0-api:$VERSION,${DOCKERHUB_PREFIX}/hook0-api:latest,${GHCR_PREFIX}/hook0-api:$VERSION,${GHCR_PREFIX}/hook0-api:latest\",push=true"
+
+    # Build and push Output Worker
+    - |
+      buildctl-daemonless.sh build \
+        --progress=plain \
+        --frontend dockerfile.v0 \
+        --opt platform=linux/amd64 \
+        --local context=build-context/worker \
+        --local dockerfile=build-context/worker \
+        --output "type=image,\"name=$CI_REGISTRY_IMAGE/hook0-output-worker:$VERSION,$CI_REGISTRY_IMAGE/hook0-output-worker:latest,${DOCKERHUB_PREFIX}/hook0-output-worker:$VERSION,${DOCKERHUB_PREFIX}/hook0-output-worker:latest,${GHCR_PREFIX}/hook0-output-worker:$VERSION,${GHCR_PREFIX}/hook0-output-worker:latest\",push=true"
+
+    # Build and push Frontend
+    - |
+      buildctl-daemonless.sh build \
+        --progress=plain \
+        --frontend dockerfile.v0 \
+        --opt platform=linux/amd64 \
+        --local context=build-context/frontend \
+        --local dockerfile=build-context/frontend \
+        --output "type=image,\"name=$CI_REGISTRY_IMAGE/hook0-frontend:$VERSION,$CI_REGISTRY_IMAGE/hook0-frontend:latest,${DOCKERHUB_PREFIX}/hook0-frontend:$VERSION,${DOCKERHUB_PREFIX}/hook0-frontend:latest,${GHCR_PREFIX}/hook0-frontend:$VERSION,${GHCR_PREFIX}/hook0-frontend:latest\",push=true"
+  after_script:
+    - rm -f ~/.docker/config.json
 
 # --- Release ---
 
 release.github:
   extends: .release-rules
   stage: release
-  image: alpine:latest
+  image: alpine:$ALPINE_VERSION
   needs:
     - job: release.extract-notes
       artifacts: true
@@ -271,33 +309,55 @@ release.github:
     - apk add --no-cache github-cli
     - export VERSION="${CI_COMMIT_TAG#v}"
   script:
-    # Append Docker images section to release notes
-    - |
-      cat >> artifacts/RELEASE_NOTES.md << EOF
-
-      ## Docker Images
-
-      | Image | DockerHub | GHCR | GitLab Registry |
-      |-------|-----------|------|-----------------|
-      | API | \`${DOCKERHUB_PREFIX}/hook0-api:${VERSION}\` | \`${GHCR_PREFIX}/hook0-api:${VERSION}\` | \`${CI_REGISTRY_IMAGE}/hook0-api:${VERSION}\` |
-      | Worker | \`${DOCKERHUB_PREFIX}/output-worker:${VERSION}\` | \`${GHCR_PREFIX}/output-worker:${VERSION}\` | \`${CI_REGISTRY_IMAGE}/output-worker:${VERSION}\` |
-
-      \`\`\`bash
-      # Pull from DockerHub
-      docker pull ${DOCKERHUB_PREFIX}/hook0-api:${VERSION}
-      docker pull ${DOCKERHUB_PREFIX}/output-worker:${VERSION}
-
-      # Pull from GHCR
-      docker pull ${GHCR_PREFIX}/hook0-api:${VERSION}
-      docker pull ${GHCR_PREFIX}/output-worker:${VERSION}
-
-      # Pull from GitLab Registry
-      docker pull ${CI_REGISTRY_IMAGE}/hook0-api:${VERSION}
-      docker pull ${CI_REGISTRY_IMAGE}/output-worker:${VERSION}
-      \`\`\`
-      EOF
     - echo "=== Creating GitHub Release ==="
-    - gh release create $CI_COMMIT_TAG --repo ${GITHUB_REPO} --title "Release $CI_COMMIT_TAG" --notes-file artifacts/RELEASE_NOTES.md artifacts/*
+    - gh release create "$CI_COMMIT_TAG" --repo "${GITHUB_REPO}" --title "$CI_COMMIT_TAG" --notes-file artifacts/RELEASE_NOTES.md artifacts/hook0-api-linux-amd64 artifacts/hook0-output-worker-linux-amd64 artifacts/frontend-dist.tar.gz
+
+release.gitlab:
+  extends: .release-rules
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - job: release.extract-notes
+      artifacts: true
+    - job: release.build-api-amd64
+      artifacts: true
+    # DISABLED: arm64 builds are too slow on CI
+    # - job: release.build-api-arm64
+    #   artifacts: true
+    - job: release.build-worker-amd64
+      artifacts: true
+    # DISABLED: arm64 builds are too slow on CI
+    # - job: release.build-worker-arm64
+    #   artifacts: true
+    - job: release.build-frontend
+      artifacts: true
+    - job: release.containers
+  script:
+    - apk --no-cache add curl
+    - echo "Creating GitLab release for $CI_COMMIT_TAG"
+    # Upload artifacts to GitLab's generic package registry so we can link them in the release
+    - |
+      for file in hook0-api-linux-amd64 hook0-output-worker-linux-amd64 frontend-dist.tar.gz; do
+        curl --fail --silent --show-error \
+          --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
+          --upload-file "artifacts/${file}" \
+          "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/hook0/${CI_COMMIT_TAG}/${file}"
+      done
+  release:
+    tag_name: $CI_COMMIT_TAG
+    name: "$CI_COMMIT_TAG"
+    description: "./artifacts/RELEASE_NOTES.md"
+    assets:
+      links:
+        - name: "hook0-api-linux-amd64"
+          url: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/hook0/${CI_COMMIT_TAG}/hook0-api-linux-amd64"
+          link_type: "package"
+        - name: "hook0-output-worker-linux-amd64"
+          url: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/hook0/${CI_COMMIT_TAG}/hook0-output-worker-linux-amd64"
+          link_type: "package"
+        - name: "frontend-dist.tar.gz"
+          url: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/hook0/${CI_COMMIT_TAG}/frontend-dist.tar.gz"
+          link_type: "package"
 
 # =============================================================================
 # Manual Release Jobs (master branch only)
@@ -313,7 +373,10 @@ release.github:
 .release-trigger:
   stage: trigger-release
   image: rust:$RUST_VERSION
-  allow_failure: true
+  allow_failure: false
+  variables:
+    GIT_DEPTH: "0"
+    GIT_LFS_SKIP_SMUDGE: "1"
   rules:
     # Don't show release jobs on tag pipelines (release already in progress)
     - if: $CI_COMMIT_TAG
@@ -332,8 +395,8 @@ release.github:
     - git config user.email "ci@hook0.com"
     - git config user.name "Hook0 CI"
     - git remote set-url origin "https://oauth2:${GITLAB_RELEASE_TOKEN}@gitlab.com/${CI_PROJECT_PATH}.git"
-    # Disable LFS hooks (not needed for release, and git-lfs is not installed)
-    - rm -f .git/hooks/pre-push .git/hooks/post-commit
+    # Disable all git hooks (git-lfs is not installed, hooks would fail)
+    - git config core.hooksPath /dev/null
     # Fetch all tags and checkout branch (GitLab CI clones in detached HEAD)
     - git fetch --tags origin $CI_COMMIT_REF_NAME
     - git checkout $CI_COMMIT_REF_NAME

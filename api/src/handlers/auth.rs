@@ -6,12 +6,12 @@ use biscuit_auth::{Biscuit, PrivateKey};
 use chrono::{DateTime, Utc};
 use lettre::Address;
 use lettre::message::Mailbox;
-use log::{debug, error};
 use paperclip::actix::web::{Data, Json};
 use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
 use serde::{Deserialize, Serialize};
 use sqlx::{Acquire, Postgres, query, query_as, query_scalar};
 use std::str::FromStr;
+use tracing::{debug, error};
 use uuid::Uuid;
 use validator::Validate;
 
@@ -189,7 +189,7 @@ async fn import_user_from_keycloak(
     email: &str,
     password: &str,
 ) -> Result<UserLookup, Hook0Problem> {
-    use log::trace;
+    use tracing::trace;
 
     reqwest::Client::new()
         .post(format!(

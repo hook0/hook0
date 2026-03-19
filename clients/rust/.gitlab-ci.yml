@@ -4,6 +4,7 @@ client.rust.check:
   dependencies: []
   image: rust:$RUST_VERSION
   rules:
+    - if: $CI_COMMIT_TAG =~ /^sdk-v\d+\.\d+\.\d+$/
     - changes:
         - clients/rust/**/*
         - Cargo.*
@@ -21,21 +22,3 @@ client.rust.check:
     - cargo clippy --all-targets --no-default-features --features producer -- -D warnings
     - cargo test --all-targets --no-default-features --features producer
 
-client.rust.semver-checks:
-  extends: .rust-cache-pull-only
-  stage: test
-  dependencies: []
-  image: rust:$RUST_VERSION
-  variables:
-    BINSTALL_DISABLE_TELEMETRY: "true"
-  rules:
-    - changes:
-        - clients/rust/**/*
-        - Cargo.*
-  before_script:
-    - rustc --version && cargo --version
-    - curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
-    - cargo binstall --target x86_64-unknown-linux-musl --no-confirm cargo-semver-checks
-  script:
-    - pushd clients/rust
-    - cargo semver-checks

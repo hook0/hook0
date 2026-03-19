@@ -1,17 +1,17 @@
 use ::hook0_client::Hook0Client;
 use actix_cors::Cors;
 use actix_files::{Files, NamedFile};
-use actix_web::middleware::{Compat, Logger, NormalizePath};
+use actix_web::middleware::{Compat, NormalizePath};
 use actix_web::{App, HttpServer, http, middleware};
 use aws_sdk_s3::Client;
 use aws_sdk_s3::config::retry::RetryConfig;
+use aws_sdk_s3::config::timeout::TimeoutConfig;
 use aws_sdk_s3::config::{AppName, Credentials, Region};
 use biscuit_auth::{KeyPair, PrivateKey};
 use clap::builder::{BoolValueParser, TypedValueParser};
 use clap::{ArgGroup, Parser, crate_name, crate_version};
 use ipnetwork::IpNetwork;
 use lettre::Address;
-use log::{debug, error, info, trace, warn};
 use paperclip::actix::{OpenApiExt, web};
 use pulsar::{
     Authentication, ConnectionRetryOptions, MultiTopicProducer, ProducerOptions, Pulsar,
@@ -22,6 +22,8 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::{Mutex, Semaphore};
+use tracing::{debug, error, info, trace, warn};
+use tracing_actix_web::TracingLogger;
 use url::Url;
 use uuid::Uuid;
 
@@ -119,6 +121,18 @@ struct Config {
     #[clap(long, env)]
     sentry_traces_sample_rate: Option<f32>,
 
+    /// [Monitoring] Enable Sentry SDK debug mode
+    #[clap(long, env, default_value_t = false)]
+    sentry_debug: bool,
+
+    /// [Monitoring] Send default PII (IP addresses, cookies, etc.) to Sentry
+    #[clap(long, env, default_value_t = false)]
+    sentry_send_default_pii: bool,
+
+    /// [Monitoring] Enable sending tracing spans to Sentry
+    #[clap(long, env, default_value_t = false)]
+    sentry_enable_spans: bool,
+
     /// [Monitoring] Optional OTLP endpoint that will receive metrics
     #[clap(long, env)]
     otlp_metrics_endpoint: Option<Url>,
@@ -178,6 +192,22 @@ struct Config {
     /// [Object Storage] Maximum number of attempts for object storage operations
     #[clap(long, env, default_value_t = 3)]
     object_storage_max_attempts: u32,
+
+    /// [Object Storage] Connect timeout for object storage operations (time to initiate socket connection)
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "3s")]
+    object_storage_connect_timeout: Duration,
+
+    /// [Object Storage] Read timeout for object storage operations (time to first byte)
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "5s")]
+    object_storage_read_timeout: Duration,
+
+    /// [Object Storage] Operation attempt timeout for object storage operations
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "10s")]
+    object_storage_operation_attempt_timeout: Duration,
+
+    /// [Object Storage] Operation timeout for object storage operations
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "30s")]
+    object_storage_operation_timeout: Duration,
 
     /// [Object Storage] Bucket name of the S3-like object storage
     #[clap(long, env)]
@@ -462,7 +492,7 @@ struct Config {
     #[clap(long, env, default_value = "10")]
     max_authorization_time_in_ms: u64,
 
-    /// [Auth] If true, a trace log message containing authorizer context is emitted on each request; default is false because this feature implies a small overhead
+    /// [Auth] If true, a trace log message containing authorizer context is emitted on each request; default is false because this feature implies a small overhead and might expose PII in logs
     #[clap(long, env, default_value_t = false)]
     debug_authorizer: bool,
 
@@ -591,9 +621,11 @@ async fn main() -> anyhow::Result<()> {
         // Initialize app logger as well as Sentry integration
         // Return value *must* be kept in a variable or else it will be dropped and Sentry integration won't work
         let _sentry = hook0_sentry_integration::init(
-            crate_name!(),
             &config.sentry_dsn,
             &config.sentry_traces_sample_rate,
+            config.sentry_debug,
+            config.sentry_send_default_pii,
+            config.sentry_enable_spans,
         );
 
         // Init OpenTelemetry
@@ -801,6 +833,14 @@ async fn main() -> anyhow::Result<()> {
                     },
                 ))
                 .force_path_style(true)
+                .timeout_config(
+                    TimeoutConfig::builder()
+                        .connect_timeout(config.object_storage_connect_timeout)
+                        .read_timeout(config.object_storage_read_timeout)
+                        .operation_attempt_timeout(config.object_storage_operation_attempt_timeout)
+                        .operation_timeout(config.object_storage_operation_timeout)
+                        .build(),
+                )
                 .retry_config(
                     RetryConfig::standard()
                         .with_max_attempts(config.object_storage_max_attempts)
@@ -1117,7 +1157,7 @@ async fn main() -> anyhow::Result<()> {
                 .wrap(hsts_header_condition)
                 .wrap(security_headers_condition)
                 .wrap(cors)
-                .wrap(Logger::default())
+                .wrap(TracingLogger::default())
                 .wrap(NormalizePath::trim())
                 .wrap(sentry_actix::Sentry::new())
                 .wrap_api_with_spec(spec)
@@ -1337,12 +1377,26 @@ async fn main() -> anyhow::Result<()> {
                         )
                         .service(
                             web::scope("/event")
-                                .wrap(Compat::new(rate_limiters.token()))
                                 .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
                                 .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first/ Middleware order is counter intuitive: this is executed first
                                 .service(
                                     web::resource("")
                                         .route(web::post().to(handlers::events::ingest)),
+                                ),
+                        )
+                        .service(
+                            web::scope("/events_per_day")
+                                .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
+                                .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first
+                                .service(
+                                    web::resource("/application").route(
+                                        web::get().to(handlers::events_per_day::application),
+                                    ),
+                                )
+                                .service(
+                                    web::resource("/organization").route(
+                                        web::get().to(handlers::events_per_day::organization),
+                                    ),
                                 ),
                         )
                         .service(

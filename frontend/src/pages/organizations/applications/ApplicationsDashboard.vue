@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { Rocket } from 'lucide-vue-next';
+import { Rocket, FileText } from 'lucide-vue-next';
+import { format, subDays } from 'date-fns';
 
 import { useApplicationDetail } from './useApplicationQueries';
 import { applicationSteps } from '@/pages/tutorial/TutorialService';
+import * as EventsPerDayService from './EventsPerDayService';
+import type { EventsPerDayEntry } from './EventsPerDayService';
 import { routes } from '@/routes';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
@@ -18,6 +21,7 @@ import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0TutorialWidget from '@/components/Hook0TutorialWidget.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
 import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
+import Hook0EventsPerDayChart from '@/components/Hook0EventsPerDayChart.vue';
 import EventTypesList from '@/pages/organizations/applications/event_types/EventTypesList.vue';
 import EventsList from '@/pages/organizations/applications/events/EventsList.vue';
 import SubscriptionsList from '@/pages/organizations/applications/subscriptions/SubscriptionsList.vue';
@@ -39,6 +43,40 @@ const widgetItems = computed(() => {
   if (!application.value) return [];
   return applicationSteps(application.value);
 });
+
+// Events per day chart
+const eventsPerDayDays = ref(30);
+const eventsPerDayData = ref<EventsPerDayEntry[]>([]);
+const eventsPerDayFrom = ref(format(subDays(new Date(), 30), 'yyyy-MM-dd'));
+const eventsPerDayTo = ref(format(new Date(), 'yyyy-MM-dd'));
+
+function loadEventsPerDay() {
+  if (!applicationId.value) return;
+  EventsPerDayService.application(applicationId.value, eventsPerDayFrom.value, eventsPerDayTo.value)
+    .then((data: EventsPerDayEntry[]) => {
+      eventsPerDayData.value = data;
+    })
+    .catch((err) => {
+      console.error('Failed to load events per day', err);
+    });
+}
+
+watch(eventsPerDayDays, (days) => {
+  eventsPerDayFrom.value = format(subDays(new Date(), days), 'yyyy-MM-dd');
+  eventsPerDayTo.value = format(new Date(), 'yyyy-MM-dd');
+  loadEventsPerDay();
+});
+
+// Load chart data when application is available
+watch(
+  applicationId,
+  (id) => {
+    if (id) {
+      loadEventsPerDay();
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <template>
@@ -78,6 +116,38 @@ const widgetItems = computed(() => {
         </Hook0CardHeader>
         <Hook0CardContent v-if="widgetItems.length > 0" data-test="app-dashboard-tutorial-widget">
           <Hook0TutorialWidget :steps="widgetItems" />
+        </Hook0CardContent>
+      </Hook0Card>
+
+      <!-- Events per day chart -->
+      <Hook0Card>
+        <Hook0CardHeader>
+          <template #header>
+            <Hook0Stack direction="row" align="center" gap="sm">
+              <Hook0IconBadge variant="primary" size="sm">
+                <FileText :size="14" aria-hidden="true" />
+              </Hook0IconBadge>
+              <span class="app-dashboard__label">{{
+                t('applications.consumptionTitle', { name: application.name })
+              }}</span>
+            </Hook0Stack>
+          </template>
+          <template #actions>
+            <Hook0Button @click="loadEventsPerDay()">
+              {{ t('common.refresh') }}
+            </Hook0Button>
+          </template>
+        </Hook0CardHeader>
+        <Hook0CardContent>
+          <Hook0EventsPerDayChart
+            :entries="eventsPerDayData"
+            :stacked="false"
+            :from="eventsPerDayFrom"
+            :to="eventsPerDayTo"
+            :days="eventsPerDayDays"
+            :quota-limit="application.quotas.events_per_day_limit"
+            @update:days="eventsPerDayDays = $event"
+          />
         </Hook0CardContent>
       </Hook0Card>
 

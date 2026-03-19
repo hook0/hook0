@@ -1,20 +1,24 @@
 use anyhow::anyhow;
+use aws_sdk_s3::error::DisplayErrorContext;
 use aws_sdk_s3::primitives::ByteStream;
-use log::{debug, error, info, trace, warn};
+use chrono::Utc;
 use sqlx::postgres::types::PgInterval;
 use sqlx::{PgPool, query, query_as};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::sync::mpsc::Sender;
 use tokio::time::sleep;
 use tokio_util::task::TaskTracker;
+use tracing::{debug, info, trace, warn};
 
 use crate::opentelemetry::{end_request_attempt_span, start_request_attempt_span};
+use crate::throughput_log::ThroughputStats;
 use crate::work::work;
 use crate::{
     Config, ObjectStorageConfig, RequestAttemptWithOptionalPayload, Worker, WorkerScope,
     compute_next_retry,
 };
 use hook0_protobuf::{ObjectStorageResponse, RequestAttempt};
+use hook0_sentry_integration::log_object_storage_error_with_context;
 
 /// Minimum duration to wait when there are no unprocessed items to pick
 const MIN_POLLING_SLEEP: Duration = Duration::from_secs(1);
@@ -32,12 +36,14 @@ pub async fn look_for_work(
     worker_version: &str,
     heartbeat_tx: Option<Sender<u16>>,
     task_tracker: &TaskTracker,
+    stats: &ThroughputStats,
 ) -> anyhow::Result<()> {
-    info!("[unit={unit_id}] Begin looking for work");
+    info!(unit_id, "Begin looking for work");
     loop {
-        trace!("[unit={unit_id}] Fetching next unprocessed request attempt...");
+        trace!(unit_id, "Fetching next unprocessed request attempt...");
         let mut tx = pool.begin().await?;
 
+        let fetch_start = Instant::now();
         let next_attempt = match worker.scope {
             WorkerScope::Public { worker_id } => {
                 // Only consider request attempts where associated subscription have no dedicated worker specified
@@ -52,6 +58,7 @@ pub async fn look_for_work(
                             ra.subscription__id AS subscription_id,
                             ra.created_at,
                             ra.retry_count,
+                            ra.delay_until,
                             t_http.method AS http_method,
                             t_http.url AS http_url,
                             t_http.headers AS http_headers,
@@ -97,6 +104,7 @@ pub async fn look_for_work(
                             ra.subscription__id AS subscription_id,
                             ra.created_at,
                             ra.retry_count,
+                            ra.delay_until,
                             t_http.method AS http_method,
                             t_http.url AS http_url,
                             t_http.headers AS http_headers,
@@ -130,13 +138,22 @@ pub async fn look_for_work(
                 .await?
             }
         };
+        stats.record_db_fetch(fetch_start.elapsed());
 
         if let Some(attempt) = next_attempt {
+            let _slot_guard = stats.slot_enter();
+
+            // Record queue lag: time between becoming eligible and now
+            let eligible_at = attempt
+                .delay_until
+                .unwrap_or(attempt.created_at)
+                .max(attempt.created_at);
+            if let Ok(lag) = (Utc::now() - eligible_at).to_std() {
+                stats.record_lag(lag);
+            }
+
             // Set picked_at
-            trace!(
-                "[unit={unit_id}] Picking request attempt {}",
-                &attempt.request_attempt_id
-            );
+            trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, "Picking request attempt");
             query!(
                 "
                     UPDATE webhook.request_attempt
@@ -149,10 +166,7 @@ pub async fn look_for_work(
             )
             .execute(&mut *tx)
             .await?;
-            debug!(
-                "[unit={unit_id}] Picked request attempt {}",
-                &attempt.request_attempt_id
-            );
+            debug!(unit_id, request_attempt_id = %attempt.request_attempt_id, "Picked request attempt");
 
             let payload = if let Some(p) = attempt.payload {
                 Some(p)
@@ -174,22 +188,20 @@ pub async fn look_for_work(
                     Ok(obj) => match obj.body.collect().await {
                         Ok(ab) => Some(ab.to_vec()),
                         Err(e) => {
-                            error!(
-                                "Error while getting payload body from object storage for key '{key}': {e}",
+                            log_object_storage_error_with_context!(
+                                "S3 GET OBJECT body collect failed",
+                                error_chain = format!("{e}"),
+                                object_key = &key,
                             );
                             None
                         }
                     },
                     Err(e) => {
-                        if let Some(se) = e.as_service_error() {
-                            error!(
-                                "Error while getting payload object from object storage for key '{key}': (service error) {se}",
-                            );
-                        } else {
-                            error!(
-                                "Error while getting payload object from object storage for key '{key}': {e}",
-                            );
-                        }
+                        log_object_storage_error_with_context!(
+                            "S3 GET OBJECT failed",
+                            error_chain = DisplayErrorContext(&e).to_string(),
+                            object_key = &key,
+                        );
                         None
                     }
                 }
@@ -220,17 +232,10 @@ pub async fn look_for_work(
 
                 // Work
                 let response = work(config, &attempt_with_payload).await;
-                trace!(
-                    "[unit={unit_id}] Got a response for request attempt {} in {} ms",
-                    &attempt.request_attempt_id,
-                    &response.elapsed_time_ms()
-                );
+                trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, elapsed_ms = response.elapsed_time_ms(), "Got response for request attempt");
 
                 // Store response
-                trace!(
-                    "[unit={unit_id}] Storing response for request attempt {}",
-                    &attempt.request_attempt_id
-                );
+                trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, "Storing response");
                 let response_headers = response.headers();
                 let response_contents_to_insert = if let Some(true) =
                     object_storage.as_ref().map(|object_storage| {
@@ -293,23 +298,16 @@ pub async fn look_for_work(
                         .send()
                         .await
                         .inspect_err(|e| {
-                            if let Some(se) = e.as_service_error() {
-                                error!(
-                                    "Error while putting response to object storage for key '{key}': (service error) {se}"
-                                );
-                            } else {
-                                error!(
-                                    "Error while putting response to object storage for key '{key}': {e}"
-                                );
-                            }
+                            log_object_storage_error_with_context!(
+                                "S3 PUT OBJECT failed",
+                                error_chain = DisplayErrorContext(e).to_string(),
+                                object_key = &key,
+                            );
                         })?;
                 }
 
                 // Associate response and request attempt
-                trace!(
-                    "[unit={unit_id}] Associating response {response_id} with request attempt {}",
-                    &attempt.request_attempt_id
-                );
+                trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, %response_id, "Associating response with request attempt");
                 query!(
                     "UPDATE webhook.request_attempt SET response__id = $1 WHERE request_attempt__id = $2",
                     response_id, attempt.request_attempt_id
@@ -319,10 +317,7 @@ pub async fn look_for_work(
 
                 if response.is_success() {
                     // Mark attempt as completed
-                    trace!(
-                        "[unit={unit_id}] Completing request attempt {}",
-                        &attempt.request_attempt_id
-                    );
+                    trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, "Completing request attempt");
                     query!(
                         "UPDATE webhook.request_attempt SET succeeded_at = statement_timestamp() WHERE request_attempt__id = $1",
                         attempt.request_attempt_id
@@ -330,16 +325,10 @@ pub async fn look_for_work(
                     .execute(&mut *tx)
                     .await?;
 
-                    debug!(
-                        "[unit={unit_id}] Request attempt {} was completed sucessfully",
-                        &attempt.request_attempt_id
-                    );
+                    debug!(unit_id, request_attempt_id = %attempt.request_attempt_id, "Request attempt completed successfully");
                 } else {
                     // Mark attempt as failed
-                    trace!(
-                        "[unit={unit_id}] Failing request attempt {}",
-                        &attempt.request_attempt_id
-                    );
+                    trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, "Failing request attempt");
                     query!(
                         "UPDATE webhook.request_attempt SET failed_at = statement_timestamp() WHERE request_attempt__id = $1",
                         attempt.request_attempt_id
@@ -374,30 +363,29 @@ pub async fn look_for_work(
                         .await?
                         .request_attempt__id;
 
-                        debug!(
-                            "[unit={unit_id}] Request attempt {} failed; retry #{next_retry_count} created as {retry_id} to be picked in {}s",
-                            &attempt.request_attempt_id,
-                            &retry_in.as_secs(),
-                        );
+                        debug!(unit_id, request_attempt_id = %attempt.request_attempt_id, retry_count = next_retry_count, %retry_id, retry_in_secs = retry_in.as_secs(), "Request attempt failed; retry created");
                     } else {
-                        info!(
-                            "[unit={unit_id}] Request attempt {} failed after {} attempts; giving up",
-                            &attempt.request_attempt_id, &attempt.retry_count,
-                        );
+                        info!(unit_id, request_attempt_id = %attempt.request_attempt_id, retry_count = attempt.retry_count, "Request attempt failed; giving up");
                     }
                 }
 
                 // Commit transaction
                 tx.commit().await?;
 
+                stats.record_attempt(
+                    response.is_success(),
+                    attempt.retry_count,
+                    response.elapsed_time,
+                );
+
                 // End OpenTelemetry span
                 end_request_attempt_span(span, &response);
             } else {
-                warn!("Could not get payload for event {}", attempt.event_id);
+                warn!(event_id = %attempt.event_id, "Could not get payload for event");
                 tx.rollback().await?;
             }
         } else {
-            trace!("[unit={unit_id}] No unprocessed attempt found");
+            trace!(unit_id, "No unprocessed attempt found");
 
             // Commit transaction
             tx.commit().await?;

@@ -1,9 +1,17 @@
 #!/bin/bash
 # Release script for Hook0
 # Usage: ./ci/pre-release.sh <patch|minor|major>
-set -e
+set -euo pipefail
 
-BUMP_TYPE="$1"
+# Check required tools
+for cmd in jq cargo git-cliff; do
+    if ! command -v "$cmd" &> /dev/null; then
+        echo "ERROR: Required command '$cmd' not found"
+        exit 1
+    fi
+done
+
+BUMP_TYPE="${1:-}"
 
 if [ -z "$BUMP_TYPE" ]; then
     echo "ERROR: Bump type required"
@@ -59,9 +67,14 @@ esac
 
 echo "=== Starting $BUMP_TYPE release: $CURRENT -> $NEW_VERSION ==="
 
-# Bump Cargo.toml versions only (no commit, no tag, no push)
-echo "Bumping Cargo.toml versions..."
-cargo release version "$BUMP_TYPE" --execute --no-confirm
+# Bump Cargo.toml versions to exact version (no commit, no tag, no push)
+echo "Bumping Cargo.toml versions to $NEW_VERSION..."
+cargo release version "$NEW_VERSION" --execute --no-confirm
+
+# Regenerate Cargo.lock after version bump
+echo "Updating Cargo.lock..."
+cargo update --workspace
+echo "  ✓ Cargo.lock updated"
 
 # Update frontend/package.json version
 echo "Updating frontend/package.json..."
@@ -70,7 +83,7 @@ echo "  ✓ frontend/package.json updated"
 
 # Generate changelog with git-cliff
 echo "Generating CHANGELOG.md..."
-git-cliff -o CHANGELOG.md --tag "v${NEW_VERSION}"
+git-cliff --unreleased --prepend CHANGELOG.md --tag "v${NEW_VERSION}"
 echo "  ✓ CHANGELOG.md generated"
 
 # Commit all changes, tag, and push

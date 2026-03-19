@@ -2,6 +2,7 @@ frontend.build:
   stage: build
   dependencies: []
   rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-(?:alpha|beta|rc)(?:\.\d+)?)?$/
     - changes:
         - tests-e2e/**/*
         - frontend/**/*
@@ -26,6 +27,7 @@ frontend.check:
   dependencies:
     - frontend.build
   rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-(?:alpha|beta|rc)(?:\.\d+)?)?$/
     - changes:
         - frontend/**/*
   image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/node:$NODE_VERSION
