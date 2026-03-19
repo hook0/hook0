@@ -41,7 +41,7 @@ const routeTitles: Record<string, string> = {
   SubscriptionsList: 'Subscriptions',
   SubscriptionsNew: 'New Subscription',
   SubscriptionsDetail: 'Subscription',
-  LogsList: 'Request Logs',
+  LogsList: 'Delivery Logs',
   APIDocumentationForApplication: 'API Documentation',
   APIDocumentation: 'API Documentation',
   Error404: 'Not Found',

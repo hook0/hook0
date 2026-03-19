@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, useId } from 'vue';
+import { onBeforeUnmount, onMounted, ref, useId, nextTick } from 'vue';
 
 type TooltipPosition = 'top' | 'bottom' | 'left' | 'right';
 
@@ -21,11 +21,50 @@ defineSlots<{
 const tooltipId = `hook0-tooltip-${useId()}`;
 const visible = ref(false);
 const triggerRef = ref<HTMLElement | null>(null);
+const tooltipStyle = ref<Record<string, string>>({});
 let showTimeout: ReturnType<typeof setTimeout> | null = null;
+
+function updatePosition() {
+  if (!triggerRef.value) return;
+  const rect = triggerRef.value.getBoundingClientRect();
+  const gap = 8;
+
+  switch (props.position) {
+    case 'top':
+      tooltipStyle.value = {
+        left: `${rect.left + rect.width / 2}px`,
+        top: `${rect.top - gap}px`,
+        transform: 'translate(-50%, -100%)',
+      };
+      break;
+    case 'bottom':
+      tooltipStyle.value = {
+        left: `${rect.left + rect.width / 2}px`,
+        top: `${rect.bottom + gap}px`,
+        transform: 'translate(-50%, 0)',
+      };
+      break;
+    case 'left':
+      tooltipStyle.value = {
+        left: `${rect.left - gap}px`,
+        top: `${rect.top + rect.height / 2}px`,
+        transform: 'translate(-100%, -50%)',
+      };
+      break;
+    case 'right':
+      tooltipStyle.value = {
+        left: `${rect.right + gap}px`,
+        top: `${rect.top + rect.height / 2}px`,
+        transform: 'translate(0, -50%)',
+      };
+      break;
+  }
+}
 
 function show() {
   showTimeout = setTimeout(() => {
     visible.value = true;
+    void nextTick(updatePosition);
   }, props.delay);
 }
 
@@ -68,22 +107,24 @@ onBeforeUnmount(() => {
       <slot />
     </div>
 
-    <transition name="hook0-tooltip-fade">
-      <div
-        v-if="visible"
-        :id="tooltipId"
-        role="tooltip"
-        class="hook0-tooltip__content"
-        :class="[`hook0-tooltip__content--${position}`]"
-      >
-        {{ content }}
-        <span
-          class="hook0-tooltip__arrow"
-          :class="[`hook0-tooltip__arrow--${position}`]"
-          aria-hidden="true"
-        />
-      </div>
-    </transition>
+    <Teleport to="body">
+      <transition name="hook0-tooltip-fade">
+        <div
+          v-if="visible"
+          :id="tooltipId"
+          role="tooltip"
+          class="hook0-tooltip__content"
+          :style="tooltipStyle"
+        >
+          {{ content }}
+          <span
+            class="hook0-tooltip__arrow"
+            :class="[`hook0-tooltip__arrow--${position}`]"
+            aria-hidden="true"
+          />
+        </div>
+      </transition>
+    </Teleport>
   </div>
 </template>
 
@@ -98,44 +139,16 @@ onBeforeUnmount(() => {
 }
 
 .hook0-tooltip__content {
-  position: absolute;
+  position: fixed;
   background-color: var(--color-text-primary);
   color: var(--color-bg-primary);
   padding: 0.375rem 0.625rem;
   border-radius: var(--radius-md);
   font-size: 0.75rem;
-  white-space: nowrap;
+  white-space: pre-line;
   pointer-events: none;
-  z-index: var(--z-tooltip, 80);
-}
-
-/* Positioning */
-.hook0-tooltip__content--top {
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  margin-bottom: 0.5rem;
-}
-
-.hook0-tooltip__content--bottom {
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  margin-top: 0.5rem;
-}
-
-.hook0-tooltip__content--left {
-  right: 100%;
-  top: 50%;
-  transform: translateY(-50%);
-  margin-right: 0.5rem;
-}
-
-.hook0-tooltip__content--right {
-  left: 100%;
-  top: 50%;
-  transform: translateY(-50%);
-  margin-left: 0.5rem;
+  z-index: 9999;
+  box-shadow: var(--shadow-lg);
 }
 
 /* Arrow */

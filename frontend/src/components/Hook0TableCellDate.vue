@@ -40,9 +40,10 @@ function formatHumanReadableDate(value: string | null): string {
 
 <style scoped>
 .table-cell-date__value {
-  color: var(--color-text-primary);
-  font-weight: 600;
+  color: var(--color-text-secondary);
+  font-weight: 400;
   font-size: 0.875rem;
   line-height: 1.5;
+  text-decoration: none;
 }
 </style>
