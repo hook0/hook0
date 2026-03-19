@@ -70,8 +70,10 @@ const {
               <Hook0IconBadge variant="primary">
                 <Rocket :size="18" aria-hidden="true" />
               </Hook0IconBadge>
-              <span class="app-dashboard__label">{{ t('applications.titleSingular') }}</span>
-              <span class="app-dashboard__name">{{ application.name }}</span>
+              <div class="app-dashboard__title-group">
+                <span class="app-dashboard__label">{{ t('applications.titleSingular') }}</span>
+                <span class="app-dashboard__name">{{ application.name }}</span>
+              </div>
             </Hook0Stack>
           </template>
           <template #actions>
@@ -134,6 +136,12 @@ const {
 </template>
 
 <style scoped>
+.app-dashboard__title-group {
+  display: flex;
+  align-items: baseline;
+  gap: 0.375rem;
+}
+
 .app-dashboard__label {
   color: var(--color-text-secondary);
   font-size: 0.875rem;
