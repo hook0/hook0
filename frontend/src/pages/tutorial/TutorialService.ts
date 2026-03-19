@@ -8,6 +8,7 @@ import type { OrganizationInfo } from '@/pages/organizations/OrganizationService
 export type Step = {
   title: string;
   details: string;
+  explanation?: string;
   isCompleted: boolean;
   icon?: Component;
   route?: RouteLocationRaw;
@@ -56,6 +57,7 @@ function eventTypeStep(
   return {
     title: 'tutorial.widget.eventTypeTitle',
     details: 'tutorial.widget.eventTypeDetails',
+    explanation: 'tutorial.widget.eventTypeExplanation',
     isCompleted,
     icon: markRaw(FolderTree),
     route:
@@ -79,6 +81,7 @@ function subscriptionStep(
   return {
     title: 'tutorial.widget.subscriptionTitle',
     details: 'tutorial.widget.subscriptionDetails',
+    explanation: 'tutorial.widget.subscriptionExplanation',
     isCompleted,
     icon: markRaw(Link),
     route:
@@ -102,6 +105,7 @@ function eventStep(
   return {
     title: 'tutorial.widget.eventTitle',
     details: 'tutorial.widget.eventDetails',
+    explanation: 'tutorial.widget.eventExplanation',
     isCompleted,
     icon: markRaw(FileText),
     route:

@@ -53,7 +53,10 @@ function toggleEventType(index: number, selected: boolean) {
       <span class="sub-row__hint">
         <i18n-t keypath="subscriptions.eventTypesHint" tag="span">
           <template #link>
-            <router-link :to="{ name: routes.EventTypesList }" target="_blank" style="color:var(--color-primary);text-decoration:none"
+            <router-link
+              :to="{ name: routes.EventTypesList }"
+              target="_blank"
+              style="color: var(--color-primary); text-decoration: none"
               >event types</router-link
             >
           </template>

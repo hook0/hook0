@@ -301,30 +301,22 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
             </template>
           </Hook0CardHeader>
           <Hook0CardContent>
-            <Hook0Stack direction="column" gap="lg">
-              <Hook0Stack direction="column" gap="md">
-                {{ t('serviceTokens.aiDescription') }}
-                <Hook0Stack layout="grid" gap="md" grid-size="compact">
-                  <Hook0Badge variant="success" display="trust">
-                    <template #icon>
-                      <Check :size="16" aria-hidden="true" />
-                    </template>
-                    {{ t('serviceTokens.aiFeature1') }}
-                  </Hook0Badge>
-                  <Hook0Badge variant="success" display="trust">
-                    <template #icon>
-                      <Check :size="16" aria-hidden="true" />
-                    </template>
-                    {{ t('serviceTokens.aiFeature2') }}
-                  </Hook0Badge>
-                  <Hook0Badge variant="success" display="trust">
-                    <template #icon>
-                      <Check :size="16" aria-hidden="true" />
-                    </template>
-                    {{ t('serviceTokens.aiFeature3') }}
-                  </Hook0Badge>
-                </Hook0Stack>
-              </Hook0Stack>
+            <Hook0Stack direction="column" gap="md">
+              <span class="mcp__description">{{ t('serviceTokens.aiDescription') }}</span>
+              <div class="mcp__features">
+                <span class="mcp__feature">
+                  <span class="mcp__feature-dot"><Check :size="12" aria-hidden="true" /></span>
+                  {{ t('serviceTokens.aiFeature1') }}
+                </span>
+                <span class="mcp__feature">
+                  <span class="mcp__feature-dot"><Check :size="12" aria-hidden="true" /></span>
+                  {{ t('serviceTokens.aiFeature2') }}
+                </span>
+                <span class="mcp__feature">
+                  <span class="mcp__feature-dot"><Check :size="12" aria-hidden="true" /></span>
+                  {{ t('serviceTokens.aiFeature3') }}
+                </span>
+              </div>
               <Hook0Alert
                 type="info"
                 :title="t('serviceTokens.aiGetStartedTitle')"
@@ -398,11 +390,38 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
 
 <style scoped>
 /* Ensure MCP feature badges stack properly at narrow widths */
-:deep(.hook0-badge-trust) {
+.mcp__description {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+.mcp__features {
   display: flex;
-  align-items: flex-start;
-  white-space: normal;
-  min-width: 0;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.mcp__feature {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--color-text-primary);
+}
+
+.mcp__feature-dot {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background-color: var(--color-success-light);
+  color: var(--color-success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .service-token__actions {

@@ -1,10 +1,10 @@
 import { computed, ref, onMounted, type Component } from 'vue';
 import { useRoute } from 'vue-router';
 import {
-  FileText,
+  ArrowDownToLine,
+  Send,
   Link,
   FolderTree,
-  ScrollText,
   KeyRound,
   Settings,
   LayoutDashboard,
@@ -62,15 +62,15 @@ export function useNavigationTabs() {
           active: route.name === routes.ApplicationsDashboard,
         },
         {
-          id: 'events',
-          label: t('nav.events'),
-          icon: FileText,
-          to: { name: routes.EventsList, params },
-          active: route.name === routes.EventsList || route.name === routes.EventsDetail,
+          id: 'event-types',
+          label: t('nav.eventTypes'),
+          icon: FolderTree,
+          to: { name: routes.EventTypesList, params },
+          active: route.name === routes.EventTypesList || route.name === routes.EventTypesNew,
         },
         {
           id: 'subscriptions',
-          label: t('nav.subscriptions'),
+          label: t('nav.webhooks'),
           icon: Link,
           to: { name: routes.SubscriptionsList, params },
           active:
@@ -79,16 +79,16 @@ export function useNavigationTabs() {
             route.name === routes.SubscriptionsDetail,
         },
         {
-          id: 'event-types',
-          label: t('nav.eventTypes'),
-          icon: FolderTree,
-          to: { name: routes.EventTypesList, params },
-          active: route.name === routes.EventTypesList || route.name === routes.EventTypesNew,
+          id: 'events',
+          label: t('nav.inboundEvents'),
+          icon: ArrowDownToLine,
+          to: { name: routes.EventsList, params },
+          active: route.name === routes.EventsList || route.name === routes.EventsDetail,
         },
         {
           id: 'logs',
-          label: t('nav.logs'),
-          icon: ScrollText,
+          label: t('nav.deliveries'),
+          icon: Send,
           to: { name: routes.LogsList, params },
           active: route.name === routes.LogsList,
         },

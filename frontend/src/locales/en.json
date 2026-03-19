@@ -536,7 +536,7 @@
     "types": "Types",
     "userMenu": "User menu",
     "userSettings": "User Settings",
-    "webhooks": "Webhooks",
+    "webhooks": "Subscriptions",
     "inboundEvents": "Inbound Events",
     "deliveries": "Deliveries"
   },
