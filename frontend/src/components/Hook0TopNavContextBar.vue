@@ -62,8 +62,11 @@ const appDashboardRoute = computed(() => ({
  */
 function sortCurrentFirst<T>(list: T[], getId: (item: T) => string, currentId: string | null): T[] {
   if (!currentId) return list;
-  const current = list.filter((item) => getId(item) === currentId);
-  const rest = list.filter((item) => getId(item) !== currentId);
+  const current: T[] = [];
+  const rest: T[] = [];
+  for (const item of list) {
+    (getId(item) === currentId ? current : rest).push(item);
+  }
   return [...current, ...rest];
 }
 
@@ -190,7 +193,7 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
     </button>
 
     <!-- Org dropdown -->
-    <Transition name="dropdown">
+    <Transition name="hook0-dropdown">
       <div
         v-if="orgDropdownOpen"
         class="hook0-topnav__dropdown"
@@ -289,7 +292,7 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
       </button>
 
       <!-- App dropdown -->
-      <Transition name="dropdown">
+      <Transition name="hook0-dropdown">
         <div
           v-if="appDropdownOpen"
           class="hook0-topnav__dropdown"
@@ -463,17 +466,6 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
   gap: 0.375rem;
   position: relative;
   min-width: 0;
-}
-
-.hook0-topnav__app-icon {
-  flex-shrink: 0;
-  cursor: pointer;
-  border-radius: var(--radius-sm);
-}
-
-.hook0-topnav__app-icon:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
 }
 
 .hook0-topnav__org-avatar-btn,

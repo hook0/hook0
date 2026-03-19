@@ -25,7 +25,8 @@ import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
-import Hook0Consumption, { type ConsumptionQuota } from '@/components/Hook0Consumption.vue';
+import Hook0Consumption from '@/components/Hook0Consumption.vue';
+import type { ConsumptionQuota } from '@/components/consumption.types';
 import Hook0Stack from '@/components/Hook0Stack.vue';
 import OrganizationRemove from './OrganizationsRemove.vue';
 import Hook0Form from '@/components/Hook0Form.vue';
@@ -234,6 +235,3 @@ const consumptions = computed<ConsumptionQuota[]>(() => {
   </Hook0PageLayout>
 </template>
 
-<style scoped>
-/* Hook0Stack handles all layout */
-</style>

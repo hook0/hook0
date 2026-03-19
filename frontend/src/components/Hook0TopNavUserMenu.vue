@@ -70,7 +70,7 @@ defineExpose({ closeDropdowns, focusTrigger, hasOpenDropdown });
       </div>
     </button>
 
-    <Transition name="dropdown">
+    <Transition name="hook0-dropdown">
       <div
         v-if="isOpen"
         class="hook0-topnav__dropdown hook0-topnav__user-dropdown"

@@ -71,6 +71,8 @@ function show() {
   showTimeout = setTimeout(() => {
     visible.value = true;
     document.addEventListener('keydown', onKeydown);
+    window.addEventListener('scroll', updatePosition, { capture: true, passive: true });
+    window.addEventListener('resize', updatePosition, { passive: true });
     void nextTick(updatePosition);
   }, props.delay);
 }
@@ -82,12 +84,16 @@ function hide() {
   }
   if (visible.value) {
     document.removeEventListener('keydown', onKeydown);
+    window.removeEventListener('scroll', updatePosition, { capture: true } as EventListenerOptions);
+    window.removeEventListener('resize', updatePosition);
   }
   visible.value = false;
 }
 
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', onKeydown);
+  window.removeEventListener('scroll', updatePosition, { capture: true } as EventListenerOptions);
+  window.removeEventListener('resize', updatePosition);
   if (showTimeout !== null) {
     clearTimeout(showTimeout);
   }

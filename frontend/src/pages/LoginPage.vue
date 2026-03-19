@@ -53,7 +53,7 @@ function isValidRedirectPath(path: string): boolean {
 /** Navigate to the appropriate page after successful login based on org/app count. */
 function handlePostLoginNavigation(
   organizations: Array<{ organization_id: string }>
-): Promise<unknown> | void {
+): Promise<unknown> {
   if (organizations.length === 0) {
     return router.push({ name: routes.Tutorial });
   }
@@ -192,6 +192,3 @@ const onSubmit = handleSubmit((values) => {
   </Hook0PageLayout>
 </template>
 
-<style scoped>
-/* No custom styles - Hook0 components handle layout */
-</style>

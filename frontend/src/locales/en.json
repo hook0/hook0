@@ -35,7 +35,6 @@
     "created": "Application created",
     "createdMessage": "Application {name} has been created successfully",
     "dashboard": "Application Dashboard",
-    "howItWorks": "How it works",
     "delete": "Delete application",
     "deleteConfirm": "Are you sure you want to delete the application {name}? This action cannot be undone.",
     "deleted": "Application deleted",
@@ -223,6 +222,7 @@
     "connectionError": "Connection error",
     "connectionErrorMessage": "Could not connect to the server. Please check your connection.",
     "consumption": "Usage for your {entityType}.",
+    "consumptionOf": "of {limit} used",
     "copied": "Copied!",
     "copy": "Copy",
     "copyCode": "Copy code",
@@ -889,17 +889,12 @@
     "widget": {
       "applicationDetails": "Isolated environment that contains everything webhook-related.",
       "applicationTitle": "Create an application",
-      "howItWorks": "How webhooks work",
-      "howItWorksDesc": "Let's say a customer places an order on your site...",
-      "eventDetails": "Your app tells Hook0 something just happened.",
-      "eventTitle": "Send an event",
-      "eventExplanation": "When something happens in your app — a customer places an order, a user signs up — your app sends a small JSON message to Hook0. Hook0 instantly delivers it to every webhook that matches, and retries if the endpoint is down.",
-      "eventTypeDetails": "Name the things that happen in your app.",
       "eventTypeTitle": "Create an event type",
-      "eventTypeExplanation": "You tell Hook0 what kinds of things happen in your app. For example: order.completed, user.signup. Think of it as a label that says \"this type of thing happened.\" Your webhooks use these to filter which events they receive.",
-      "subscriptionDetails": "Tell Hook0 where to send matching events.",
-      "subscriptionTitle": "Create a webhook",
-      "subscriptionExplanation": "A webhook is a delivery rule: \"When an order.completed event arrives, send it to https://billing.example.com/hooks.\" You pick the event types and the destination URL. Hook0 handles delivery and retries."
+      "eventTypeDetails": "Category of events you can pick or not when subscribing.",
+      "subscriptionTitle": "Create a subscription",
+      "subscriptionDetails": "Filter events and choose where you want them dispatched as webhooks.",
+      "eventTitle": "Send an event",
+      "eventDetails": "Something that happened in your application and could end up as a webhook."
     }
   },
   "userSettings": {

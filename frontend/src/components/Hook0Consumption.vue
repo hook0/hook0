@@ -1,12 +1,12 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import type { ConsumptionQuota } from '@/components/consumption.types';
-
-export type { ConsumptionQuota };
+import { UNLIMITED_QUOTA } from '@/constants';
 
 const { t } = useI18n();
 
@@ -18,37 +18,34 @@ type Props = {
 
 const props = defineProps<Props>();
 
-/** Backend uses i32::MAX (2^31 - 1) as sentinel value for "unlimited" quotas. */
-const UNLIMITED_QUOTA = 2147483647;
-
 /** Severity variant for quota consumption progress bars. */
 type BarVariant = 'ok' | 'warning' | 'danger';
 
-/** Compute usage percentage (0 if quota is unlimited or zero). */
-function percentage(quota: ConsumptionQuota): number {
-  if (quota.quota >= UNLIMITED_QUOTA || quota.quota <= 0) return 0;
-  return Math.round((quota.consumption / quota.quota) * 100);
-}
+/** Pre-calculated enriched consumption data for template rendering. */
+type EnrichedConsumption = ConsumptionQuota & {
+  pct: number;
+  variant: BarVariant;
+  formattedValue: string;
+  formattedLimit: string;
+};
 
-/** Determine visual severity variant based on quota usage percentage. */
-function barVariant(quota: ConsumptionQuota): BarVariant {
-  const pct = percentage(quota);
-  if (pct >= 90) return 'danger';
-  if (pct >= 70) return 'warning';
-  return 'ok';
-}
-
-/** Format the displayed consumption value, preferring displayValue override. */
-function formatValue(quota: ConsumptionQuota): string {
-  return quota.displayValue ?? String(quota.consumption);
-}
-
-/** Format the quota limit display (empty string for display-only quotas). */
-function formatLimit(quota: ConsumptionQuota): string {
-  if (quota.displayValue) return '';
-  if (quota.quota >= UNLIMITED_QUOTA) return t('common.unlimited');
-  return String(quota.quota);
-}
+const enrichedConsumptions = computed<EnrichedConsumption[]>(() => {
+  return props.consumptions.map((quota) => {
+    const isUnlimited = quota.quota >= UNLIMITED_QUOTA || quota.quota <= 0;
+    const pct = isUnlimited ? 0 : Math.round((quota.consumption / quota.quota) * 100);
+    const variant: BarVariant = pct >= 90 ? 'danger' : pct >= 70 ? 'warning' : 'ok';
+    const formattedValue = quota.displayValue ?? String(quota.consumption);
+    let formattedLimit = '';
+    if (!quota.displayValue) {
+      if (quota.quota >= UNLIMITED_QUOTA) {
+        formattedLimit = t('common.unlimited');
+      } else {
+        formattedLimit = String(quota.quota);
+      }
+    }
+    return { ...quota, pct, variant, formattedValue, formattedLimit };
+  });
+});
 </script>
 
 <template>
@@ -62,7 +59,7 @@ function formatLimit(quota: ConsumptionQuota): string {
     <Hook0CardContent>
       <div class="consumption">
         <div
-          v-for="(quota, index) in props.consumptions"
+          v-for="(quota, index) in enrichedConsumptions"
           :key="quota.name"
           class="consumption__row"
           :class="{ 'consumption__row--bordered': index > 0 }"
@@ -89,24 +86,24 @@ function formatLimit(quota: ConsumptionQuota): string {
                 }}</span>
               </span>
               <span v-else class="consumption__used">
-                <strong class="consumption__num">{{ formatValue(quota) }}</strong>
-                <span v-if="formatLimit(quota)" class="consumption__of">
-                  of <strong class="consumption__num">{{ formatLimit(quota) }}</strong> used
+                <strong class="consumption__num">{{ quota.formattedValue }}</strong>
+                <span v-if="quota.formattedLimit" class="consumption__of">
+                  {{ t('common.consumptionOf', { limit: quota.formattedLimit }) }}
                 </span>
               </span>
               <span
                 v-if="!quota.displayValue"
                 class="consumption__pct"
-                :class="`consumption__pct--${barVariant(quota)}`"
+                :class="`consumption__pct--${quota.variant}`"
               >
-                {{ percentage(quota) }}%
+                {{ quota.pct }}%
               </span>
             </div>
             <div v-if="!quota.displayValue" class="consumption__track">
               <div
                 class="consumption__fill"
-                :class="`consumption__fill--${barVariant(quota)}`"
-                :style="{ width: `${Math.min(percentage(quota), 100)}%` }"
+                :class="`consumption__fill--${quota.variant}`"
+                :style="{ width: `${Math.min(quota.pct, 100)}%` }"
               />
             </div>
           </div>

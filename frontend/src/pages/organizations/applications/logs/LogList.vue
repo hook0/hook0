@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, h, resolveComponent } from 'vue';
-import { useRoute } from 'vue-router';
+import { computed, h } from 'vue';
+import { RouterLink, useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
 
@@ -14,7 +14,6 @@ import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
-import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Table from '@/components/Hook0Table.vue';
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 import Hook0TableCellDate from '@/components/Hook0TableCellDate.vue';
@@ -26,6 +25,7 @@ import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
 import Hook0HelpText from '@/components/Hook0HelpText.vue';
 
+// TODO: These fields should be in the OpenAPI-generated RequestAttemptTypeFixed type. Remove this extension when the spec is updated.
 type RequestAttemptExtended = RequestAttemptTypeFixed & {
   http_response_status?: number | null;
   retry_count?: number;
@@ -68,37 +68,41 @@ function statusVariant(
   }
 }
 
+function statusShortTitle(type: RequestAttemptStatusType): string {
+  switch (type) {
+    case RequestAttemptStatusType.Successful:
+      return t('logs.statusSent');
+    case RequestAttemptStatusType.Failed:
+      return t('logs.statusFailed');
+    case RequestAttemptStatusType.Pending:
+      return t('logs.statusPending');
+    case RequestAttemptStatusType.InProgress:
+      return t('logs.statusRetrying');
+    case RequestAttemptStatusType.Waiting:
+      return t('logs.statusQueued');
+    default:
+      return t('logs.statusSkipped');
+  }
+}
+
 function statusLabel(row: RequestAttemptExtended): string {
   const httpCode = row.http_response_status;
-  const shortTitle = (() => {
-    switch (row.status.type) {
-      case RequestAttemptStatusType.Successful:
-        return t('logs.statusSent');
-      case RequestAttemptStatusType.Failed:
-        return t('logs.statusFailed');
-      case RequestAttemptStatusType.Pending:
-        return t('logs.statusPending');
-      case RequestAttemptStatusType.InProgress:
-        return t('logs.statusRetrying');
-      case RequestAttemptStatusType.Waiting:
-        return t('logs.statusQueued');
-      default:
-        return t('logs.statusSkipped');
-    }
-  })();
+  const shortTitle = statusShortTitle(row.status.type);
   return httpCode ? `${httpCode} ${shortTitle}` : shortTitle;
 }
+
+const dateFmt = new Intl.DateTimeFormat(undefined, {
+  month: 'short',
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+});
 
 function fmtDate(val: unknown): string {
   if (!val || typeof val !== 'string') return '—';
   try {
-    return new Intl.DateTimeFormat(undefined, {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    }).format(new Date(val));
+    return dateFmt.format(new Date(val));
   } catch {
     return String(val);
   }
@@ -164,7 +168,6 @@ const columns: ColumnDef<RequestAttemptExtended, unknown>[] = [
     cell: (info) => {
       const row = info.row.original;
       const eventType = row.event_type_name;
-      const RouterLink = resolveComponent('router-link');
       const link = h(
         RouterLink,
         {
@@ -281,8 +284,6 @@ const columns: ColumnDef<RequestAttemptExtended, unknown>[] = [
             </template>
           </Hook0EmptyState>
         </Hook0CardContent>
-
-        <Hook0CardFooter />
       </Hook0Card>
     </template>
   </Hook0PageLayout>

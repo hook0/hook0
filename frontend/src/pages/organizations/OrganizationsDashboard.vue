@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, markRaw } from 'vue';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import type { Component } from 'vue';
@@ -64,22 +64,22 @@ const quotaCards = computed<{ icon: Component; value: number | undefined; label:
   const q = organization.value.quotas;
   return [
     {
-      icon: Users,
+      icon: markRaw(Users),
       value: q.members_per_organization_limit,
       label: t('organizations.consumptionMembers'),
     },
     {
-      icon: FolderOpen,
+      icon: markRaw(FolderOpen),
       value: q.applications_per_organization_limit,
       label: t('organizations.consumptionApplications'),
     },
     {
-      icon: FileText,
+      icon: markRaw(FileText),
       value: q.events_per_day_limit,
       label: t('organizations.consumptionEventsPerDay'),
     },
     {
-      icon: Database,
+      icon: markRaw(Database),
       value: q.days_of_events_retention_limit,
       label: t('organizations.consumptionRetention'),
     },
@@ -140,7 +140,7 @@ const quotaCards = computed<{ icon: Component; value: number | undefined; label:
             <Hook0Button
               :to="{
                 name: routes.OrganizationsDetail,
-                params: { organization_id: $route.params.organization_id },
+                params: { organization_id: organizationId },
               }"
             >
               {{ t('common.settings') }}
@@ -235,7 +235,7 @@ const quotaCards = computed<{ icon: Component; value: number | undefined; label:
         </Hook0CardFooter>
       </Hook0Card>
 
-      <ApplicationsList :burst="$route.params.organization_id" />
+      <ApplicationsList :burst="organizationId" />
     </template>
   </Hook0PageLayout>
 </template>

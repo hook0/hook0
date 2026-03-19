@@ -29,6 +29,7 @@ import LogList from '@/pages/organizations/applications/logs/LogList.vue';
 const { t } = useI18n();
 const route = useRoute();
 
+const organizationId = computed(() => route.params.organization_id as string);
 const applicationId = computed(() => route.params.application_id as string);
 
 const {
@@ -81,8 +82,8 @@ const {
               :to="{
                 name: routes.ApplicationsDetail,
                 params: {
-                  organization_id: $route.params.organization_id,
-                  application_id: $route.params.application_id,
+                  organization_id: organizationId,
+                  application_id: applicationId,
                 },
               }"
             >
@@ -127,10 +128,10 @@ const {
         </Hook0CardContent>
       </Hook0Card>
 
-      <EventTypesList :burst="$route.params.application_id" />
-      <EventsList :burst="$route.params.application_id" @event-sent="refetchApp()" />
-      <SubscriptionsList :burst="$route.params.application_id" />
-      <LogList :burst="$route.params.application_id" />
+      <EventTypesList :burst="applicationId" />
+      <EventsList :burst="applicationId" @event-sent="refetchApp()" />
+      <SubscriptionsList :burst="applicationId" />
+      <LogList :burst="applicationId" />
     </template>
   </Hook0PageLayout>
 </template>

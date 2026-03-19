@@ -77,22 +77,22 @@
 }
 
 /* Dropdown animation */
-.dropdown-enter-active,
-.dropdown-leave-active {
+.hook0-dropdown-enter-active,
+.hook0-dropdown-leave-active {
   transition:
     opacity 0.15s ease,
     transform 0.15s ease;
 }
 
-.dropdown-enter-from,
-.dropdown-leave-to {
+.hook0-dropdown-enter-from,
+.hook0-dropdown-leave-to {
   opacity: 0;
   transform: translateY(-0.25rem);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dropdown-enter-active,
-  .dropdown-leave-active {
+  .hook0-dropdown-enter-active,
+  .hook0-dropdown-leave-active {
     transition: none;
   }
 
