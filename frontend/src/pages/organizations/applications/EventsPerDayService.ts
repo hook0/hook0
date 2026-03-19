@@ -2,44 +2,35 @@ import { AxiosError, AxiosResponse } from 'axios';
 import http, { handleError, Problem, UUID } from '@/http';
 import type { components } from '@/types';
 
-type definitions = components['schemas'];
+type Definitions = components['schemas'];
 
-export type EventsPerDayEntry = definitions['EventsPerDayEntry'];
+export type EventsPerDayEntry = Definitions['EventsPerDayEntry'];
 
-export function application(
-  application_id: UUID,
-  from: string,
-  to: string
-): Promise<Array<EventsPerDayEntry>> {
-  return http
-    .get('/events_per_day/application', {
-      params: {
-        application_id,
-        from,
-        to,
-      },
-    })
-    .then(
-      (res: AxiosResponse<Array<EventsPerDayEntry>>) => res.data,
-      (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
-    );
+/** Fetch events-per-day from a given endpoint with params. */
+function fetchEventsPerDay(
+  endpoint: string,
+  params: Record<string, string>
+): Promise<EventsPerDayEntry[]> {
+  return http.get(endpoint, { params }).then(
+    (res: AxiosResponse<EventsPerDayEntry[]>) => res.data,
+    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
+  );
 }
 
+/** Fetch events-per-day aggregated across all apps of an organization. */
 export function organization(
   organization_id: UUID,
   from: string,
   to: string
-): Promise<Array<EventsPerDayEntry>> {
-  return http
-    .get('/events_per_day/organization', {
-      params: {
-        organization_id,
-        from,
-        to,
-      },
-    })
-    .then(
-      (res: AxiosResponse<Array<EventsPerDayEntry>>) => res.data,
-      (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
-    );
+): Promise<EventsPerDayEntry[]> {
+  return fetchEventsPerDay('/events_per_day/organization', { organization_id, from, to });
+}
+
+/** Fetch events-per-day for a single application. */
+export function application(
+  application_id: UUID,
+  from: string,
+  to: string
+): Promise<EventsPerDayEntry[]> {
+  return fetchEventsPerDay('/events_per_day/application', { application_id, from, to });
 }

@@ -45,6 +45,27 @@ const [password, passwordAttrs] = defineField('password');
 
 const isLoading = ref<boolean>(false);
 
+/** Validate that a redirect path is a safe relative URL (no protocol-relative). */
+function isValidRedirectPath(path: string): boolean {
+  return path.startsWith('/') && !path.startsWith('//');
+}
+
+/** Navigate to the appropriate page after successful login based on org/app count. */
+function handlePostLoginNavigation(
+  organizations: Array<{ organization_id: string }>
+): Promise<unknown> | void {
+  if (organizations.length === 0) {
+    return router.push({ name: routes.Tutorial });
+  }
+  if (organizations.length === 1) {
+    return ApplicationService.list(organizations[0].organization_id).then((applications) => {
+      const destination = applications.length === 0 ? routes.Tutorial : routes.Home;
+      return router.push({ name: destination });
+    });
+  }
+  return router.push({ name: routes.Home });
+}
+
 const onSubmit = handleSubmit((values) => {
   if (isLoading.value) return;
   isLoading.value = true;
@@ -54,33 +75,18 @@ const onSubmit = handleSubmit((values) => {
     .then(() => {
       trackEvent('auth', 'login', 'success');
 
-      // Redirect to the page the user was trying to access before login
       const redirectTo = route.query.redirect_to as string | undefined;
-      if (redirectTo && redirectTo !== '/login' && redirectTo !== '/register') {
+      if (
+        redirectTo &&
+        isValidRedirectPath(redirectTo) &&
+        redirectTo !== '/login' &&
+        redirectTo !== '/register'
+      ) {
         void router.push(redirectTo);
-        return undefined;
+        return;
       }
 
-      return OrganizationService.list();
-    })
-    .then((organizations) => {
-      if (!organizations) return;
-
-      // No organizations → show tutorial
-      if (organizations.length === 0) {
-        return router.push({ name: routes.Tutorial });
-      }
-
-      // Single organization → check if it has applications
-      if (organizations.length === 1) {
-        return ApplicationService.list(organizations[0].organization_id).then((applications) => {
-          const destination = applications.length === 0 ? routes.Tutorial : routes.Home;
-          return router.push({ name: destination });
-        });
-      }
-
-      // Multiple organizations → go to home
-      return router.push({ name: routes.Home });
+      return OrganizationService.list().then(handlePostLoginNavigation);
     })
     .catch((err) => {
       handleAuthError(err);

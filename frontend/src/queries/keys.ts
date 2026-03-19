@@ -46,6 +46,14 @@ export const eventTypeKeys = {
   detail: (id: string) => [...eventTypeKeys.details(), id] as const,
 };
 
+export const eventsPerDayKeys = {
+  all: ['eventsPerDay'] as const,
+  organization: (orgId: string, from: string, to: string) =>
+    [...eventsPerDayKeys.all, 'organization', orgId, from, to] as const,
+  application: (appId: string, from: string, to: string) =>
+    [...eventsPerDayKeys.all, 'application', appId, from, to] as const,
+};
+
 export const subscriptionKeys = {
   all: ['subscriptions'] as const,
   lists: () => [...subscriptionKeys.all, 'list'] as const,

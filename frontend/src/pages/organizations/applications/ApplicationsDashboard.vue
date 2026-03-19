@@ -1,14 +1,12 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { Rocket, FileText } from 'lucide-vue-next';
-import { format, subDays } from 'date-fns';
 
 import { useApplicationDetail } from './useApplicationQueries';
+import { useEventsPerDay } from './useEventsPerDayQuery';
 import { applicationSteps } from '@/pages/tutorial/TutorialService';
-import * as EventsPerDayService from './EventsPerDayService';
-import type { EventsPerDayEntry } from './EventsPerDayService';
 import { routes } from '@/routes';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
@@ -45,38 +43,13 @@ const widgetItems = computed(() => {
 });
 
 // Events per day chart
-const eventsPerDayDays = ref(30);
-const eventsPerDayData = ref<EventsPerDayEntry[]>([]);
-const eventsPerDayFrom = ref(format(subDays(new Date(), 30), 'yyyy-MM-dd'));
-const eventsPerDayTo = ref(format(new Date(), 'yyyy-MM-dd'));
-
-function loadEventsPerDay() {
-  if (!applicationId.value) return;
-  EventsPerDayService.application(applicationId.value, eventsPerDayFrom.value, eventsPerDayTo.value)
-    .then((data: EventsPerDayEntry[]) => {
-      eventsPerDayData.value = data;
-    })
-    .catch((err) => {
-      console.error('Failed to load events per day', err);
-    });
-}
-
-watch(eventsPerDayDays, (days) => {
-  eventsPerDayFrom.value = format(subDays(new Date(), days), 'yyyy-MM-dd');
-  eventsPerDayTo.value = format(new Date(), 'yyyy-MM-dd');
-  loadEventsPerDay();
-});
-
-// Load chart data when application is available
-watch(
-  applicationId,
-  (id) => {
-    if (id) {
-      loadEventsPerDay();
-    }
-  },
-  { immediate: true }
-);
+const {
+  days: eventsPerDayDays,
+  from: eventsPerDayFrom,
+  to: eventsPerDayTo,
+  data: eventsPerDayData,
+  refetch: refetchEventsPerDay,
+} = useEventsPerDay('application', applicationId);
 </script>
 
 <template>
@@ -133,14 +106,14 @@ watch(
             </Hook0Stack>
           </template>
           <template #actions>
-            <Hook0Button @click="loadEventsPerDay()">
+            <Hook0Button @click="refetchEventsPerDay()">
               {{ t('common.refresh') }}
             </Hook0Button>
           </template>
         </Hook0CardHeader>
         <Hook0CardContent>
           <Hook0EventsPerDayChart
-            :entries="eventsPerDayData"
+            :entries="eventsPerDayData ?? []"
             :stacked="false"
             :from="eventsPerDayFrom"
             :to="eventsPerDayTo"

@@ -369,6 +369,16 @@
     "title": "Events",
     "type": "Event Type"
   },
+  "eventsPerDayChart": {
+    "avgPerDay": "Avg / day",
+    "daysSuffix": "{days}d",
+    "includedInPlan": "Included in plan: {limit} events/day",
+    "noEvents": "No events recorded yet",
+    "peakDay": "Peak day",
+    "seriesName": "Events",
+    "totalEvents": "Total events",
+    "totalTooltip": "Total: {total} events"
+  },
   "fields": {
     "applicationName": "Application name",
     "firstName": "First name",
@@ -506,6 +516,7 @@
     "orgSettings": "Organization Settings",
     "organizations": "Organizations",
     "search": "Search",
+    "selectApplication": "Select application",
     "selectOrganization": "Select organization",
     "serviceTokens": "Service Tokens",
     "settings": "Settings",

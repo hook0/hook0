@@ -28,29 +28,35 @@ type Props = {
 
 const props = defineProps<Props>();
 
-const INT_MAX = 2147483647;
+/** Backend uses i32::MAX (2^31 - 1) as sentinel value for "unlimited" quotas. */
+const UNLIMITED_QUOTA = 2147483647;
 
+/** Severity variant for quota consumption progress bars. */
+type BarVariant = 'ok' | 'warning' | 'danger';
+
+/** Compute usage percentage (0 if quota is unlimited or zero). */
 function percentage(quota: ConsumptionQuota): number {
-  if (quota.quota >= INT_MAX || quota.quota <= 0) return 0;
+  if (quota.quota >= UNLIMITED_QUOTA || quota.quota <= 0) return 0;
   return Math.round((quota.consumption / quota.quota) * 100);
 }
 
-function barVariant(quota: ConsumptionQuota): string {
+/** Determine visual severity variant based on quota usage percentage. */
+function barVariant(quota: ConsumptionQuota): BarVariant {
   const pct = percentage(quota);
   if (pct >= 90) return 'danger';
   if (pct >= 70) return 'warning';
   return 'ok';
 }
 
+/** Format the displayed consumption value, preferring displayValue override. */
 function formatValue(quota: ConsumptionQuota): string {
-  if (quota.displayValue) return quota.displayValue;
-  if (quota.quota >= INT_MAX) return `${quota.consumption}`;
-  return String(quota.consumption);
+  return quota.displayValue ?? String(quota.consumption);
 }
 
+/** Format the quota limit display (empty string for display-only quotas). */
 function formatLimit(quota: ConsumptionQuota): string {
   if (quota.displayValue) return '';
-  if (quota.quota >= INT_MAX) return t('common.unlimited');
+  if (quota.quota >= UNLIMITED_QUOTA) return t('common.unlimited');
   return String(quota.quota);
 }
 </script>
@@ -87,7 +93,8 @@ function formatLimit(quota: ConsumptionQuota): string {
           <div class="consumption__meter">
             <div class="consumption__values">
               <span v-if="quota.displayValue" class="consumption__display">
-                <strong class="consumption__num">{{ quota.displayValue }}</strong>{{ ' '
+                <strong class="consumption__num">{{ quota.displayValue }}</strong
+                >{{ ' '
                 }}<span v-if="quota.displayUnit" class="consumption__unit">{{
                   quota.displayUnit
                 }}</span>

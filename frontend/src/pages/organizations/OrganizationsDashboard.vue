@@ -1,15 +1,13 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { Building2, CreditCard, Users, FolderOpen, FileText, Database } from 'lucide-vue-next';
-import { format, subDays } from 'date-fns';
 
 import { useOrganizationDetail } from './useOrganizationQueries';
 import { useInstanceConfig } from '@/composables/useInstanceConfig';
 import { organizationSteps } from '@/pages/tutorial/TutorialService';
-import * as EventsPerDayService from '@/pages/organizations/applications/EventsPerDayService';
-import type { EventsPerDayEntry } from '@/pages/organizations/applications/EventsPerDayService';
+import { useEventsPerDay } from '@/pages/organizations/applications/useEventsPerDayQuery';
 import { routes } from '@/routes';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
@@ -51,42 +49,13 @@ const widgetItems = computed(() => {
 });
 
 // Events per day chart
-const eventsPerDayDays = ref(30);
-const eventsPerDayData = ref<EventsPerDayEntry[]>([]);
-const eventsPerDayFrom = ref(format(subDays(new Date(), 30), 'yyyy-MM-dd'));
-const eventsPerDayTo = ref(format(new Date(), 'yyyy-MM-dd'));
-
-function loadEventsPerDay() {
-  if (!organizationId.value) return;
-  EventsPerDayService.organization(
-    organizationId.value,
-    eventsPerDayFrom.value,
-    eventsPerDayTo.value
-  )
-    .then((data: EventsPerDayEntry[]) => {
-      eventsPerDayData.value = data;
-    })
-    .catch((err) => {
-      console.error('Failed to load events per day', err);
-    });
-}
-
-watch(eventsPerDayDays, (days) => {
-  eventsPerDayFrom.value = format(subDays(new Date(), days), 'yyyy-MM-dd');
-  eventsPerDayTo.value = format(new Date(), 'yyyy-MM-dd');
-  loadEventsPerDay();
-});
-
-// Load chart data when organization is available
-watch(
-  organizationId,
-  (id) => {
-    if (id) {
-      loadEventsPerDay();
-    }
-  },
-  { immediate: true }
-);
+const {
+  days: eventsPerDayDays,
+  from: eventsPerDayFrom,
+  to: eventsPerDayTo,
+  data: eventsPerDayData,
+  refetch: refetchEventsPerDay,
+} = useEventsPerDay('organization', organizationId);
 </script>
 
 <template>
@@ -168,14 +137,14 @@ watch(
             </Hook0Stack>
           </template>
           <template #actions>
-            <Hook0Button @click="loadEventsPerDay()">
+            <Hook0Button @click="refetchEventsPerDay()">
               {{ t('common.refresh') }}
             </Hook0Button>
           </template>
         </Hook0CardHeader>
         <Hook0CardContent>
           <Hook0EventsPerDayChart
-            :entries="eventsPerDayData"
+            :entries="eventsPerDayData ?? []"
             :stacked="true"
             :from="eventsPerDayFrom"
             :to="eventsPerDayTo"
