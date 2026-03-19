@@ -36,7 +36,7 @@ function confirmRemove() {
       toast.success(t('remove.organizationDeleted'), {
         description: t('remove.organizationDeletedMessage', { name: props.organizationName }),
         duration: 5000,
-        });
+      });
       return router.push({ name: routes.Home });
     })
     .catch(handleMutationError)

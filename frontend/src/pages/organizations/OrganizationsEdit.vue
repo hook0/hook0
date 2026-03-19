@@ -9,7 +9,7 @@ import {
   useCreateOrganization,
   useUpdateOrganization,
 } from './useOrganizationQueries';
-import { organizationSchema } from './organization.schema';
+import { createOrganizationSchema } from './organization.schema';
 import type { OrganizationInfo } from './OrganizationService';
 import { routes } from '@/routes';
 import { useTracking } from '@/composables/useTracking';
@@ -69,7 +69,7 @@ const updateMutation = useUpdateOrganization();
 
 // Form via composable
 const { errors, defineField, onSubmit } = useEntityForm<{ name: string }, OrganizationInfo>({
-  schema: organizationSchema,
+  schema: createOrganizationSchema(),
   isNew,
   existingValues: computed(() => (orgDetail.value ? { name: orgDetail.value.name } : undefined)),
   createFn: (values) => createMutation.mutateAsync({ name: values.name }),

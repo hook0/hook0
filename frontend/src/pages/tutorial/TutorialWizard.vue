@@ -100,7 +100,7 @@ function advanceStep(config: AdvanceConfig) {
   toast.success(config.toastTitle, {
     description: config.toastMessage,
     duration: TOAST_DURATION_MS,
-    });
+  });
   celebrate();
   void router.push({ name: config.routeName, params: config.params });
 }
@@ -125,7 +125,7 @@ function handleAppAdvance(applicationId: UUID) {
     toast.error(t('tutorial.orgAppIdRequired'), {
       description: t('common.somethingWentWrong'),
       duration: TOAST_DURATION_MS,
-      });
+    });
     return;
   }
   advanceStep({
@@ -170,7 +170,7 @@ function handleFormAdvance() {
     toast.error(t('tutorial.orgAppIdRequired'), {
       description: t('tutorial.somethingWentWrong'),
       duration: TOAST_DURATION_MS,
-      });
+    });
     return;
   }
 

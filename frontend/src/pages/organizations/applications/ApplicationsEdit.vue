@@ -9,7 +9,7 @@ import {
   useCreateApplication,
   useUpdateApplication,
 } from './useApplicationQueries';
-import { applicationSchema } from './application.schema';
+import { createApplicationSchema } from './application.schema';
 import type { Application } from './ApplicationService';
 import { routes } from '@/routes';
 import { useTracking } from '@/composables/useTracking';
@@ -75,7 +75,7 @@ const updateMutation = useUpdateApplication();
 
 // Form via composable
 const { errors, defineField, onSubmit } = useEntityForm<{ name: string }, Application>({
-  schema: applicationSchema,
+  schema: createApplicationSchema(),
   isNew,
   existingValues: computed(() => (appDetail.value ? { name: appDetail.value.name } : undefined)),
   createFn: (values) =>

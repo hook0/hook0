@@ -17,7 +17,7 @@ export function useOrgAppSwitcher() {
   const { data: orgs } = useOrganizationList();
 
   const orgIdForApps = computed(() => currentOrgId.value || '');
-  const { data: apps, isLoading: appsLoading } = useApplicationList(orgIdForApps);
+  const { data: apps } = useApplicationList(orgIdForApps);
 
   const isAppLevel = computed(() => !!currentOrgId.value && !!currentAppId.value);
 
@@ -26,6 +26,7 @@ export function useOrgAppSwitcher() {
     return org?.plan ?? null;
   });
 
+  /** Navigate to the dashboard of the given organization. */
   function switchOrg(orgId: string) {
     void router.push({
       name: routes.OrganizationsDashboard,
@@ -33,6 +34,7 @@ export function useOrgAppSwitcher() {
     });
   }
 
+  /** Navigate to the dashboard of the given application. */
   function switchApp(orgId: string, appId: string) {
     void router.push({
       name: routes.ApplicationsDashboard,
@@ -59,10 +61,12 @@ export function useOrgAppSwitcher() {
     });
   }
 
+  /** Navigate to the new organization creation page. */
   function goToCreateOrg() {
     void router.push({ name: routes.OrganizationsNew });
   }
 
+  /** Navigate to the new application creation page for the current org. */
   function goToCreateApp() {
     if (currentOrgId.value) {
       void router.push({
@@ -72,6 +76,7 @@ export function useOrgAppSwitcher() {
     }
   }
 
+  /** Navigate to the current organization's dashboard. */
   function goToOrgDashboard() {
     if (currentOrgId.value) {
       void router.push({
@@ -89,7 +94,6 @@ export function useOrgAppSwitcher() {
     currentOrgPlan,
     orgs,
     apps,
-    appsLoading,
     isAppLevel,
     switchOrg,
     switchApp,

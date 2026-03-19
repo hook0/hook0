@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { useForm } from 'vee-validate';
 
 import { useCreateEventType } from './useEventTypeQueries';
-import { eventTypeSchema } from './eventType.schema';
+import { createEventTypeSchema } from './eventType.schema';
 import { toTypedSchema } from '@/utils/zod-adapter';
 import { routes } from '@/routes';
 import { handleMutationError } from '@/utils/handleMutationError';
@@ -47,7 +47,7 @@ const emit = defineEmits(['tutorial-event-type-created']);
 
 // VeeValidate form with Zod schema
 const { errors, defineField, handleSubmit } = useForm({
-  validationSchema: toTypedSchema(eventTypeSchema),
+  validationSchema: toTypedSchema(createEventTypeSchema()),
 });
 
 const [service, serviceAttrs] = defineField('service');

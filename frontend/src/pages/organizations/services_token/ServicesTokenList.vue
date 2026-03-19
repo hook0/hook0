@@ -94,7 +94,7 @@ function confirmCreate() {
         toast.success(t('common.success'), {
           description: t('serviceTokens.created'),
           duration: 3000,
-          });
+        });
       },
       onError: (err) => {
         handleMutationError(err);
@@ -125,7 +125,7 @@ function confirmEdit() {
         toast.success(t('common.success'), {
           description: t('serviceTokens.updated'),
           duration: 3000,
-          });
+        });
       },
       onError: (err) => {
         handleMutationError(err);

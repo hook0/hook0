@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n';
 import { useForm } from 'vee-validate';
 import { RefreshCw } from 'lucide-vue-next';
 
-import { subscriptionSchema } from './subscription.schema';
+import { createSubscriptionSchema } from './subscription.schema';
 import { toTypedSchema } from '@/utils/zod-adapter';
 import { displayError } from '@/utils/displayError';
 import { isAxiosError, handleError } from '@/http';
@@ -134,7 +134,7 @@ const updateMutation = useUpdateSubscription();
 
 // VeeValidate form with Zod schema
 const { errors, defineField, handleSubmit, resetForm, setFieldError } = useForm({
-  validationSchema: toTypedSchema(subscriptionSchema),
+  validationSchema: toTypedSchema(createSubscriptionSchema()),
 });
 
 const [description, descriptionAttrs] = defineField('description');
@@ -168,13 +168,13 @@ function copySecret() {
       toast.success(t('common.success'), {
         description: t('subscriptions.secretCopied'),
         duration: 2000,
-        });
+      });
     })
     .catch(() => {
       toast.warning(t('common.warning'), {
         description: t('common.copyFailed'),
         duration: 2000,
-        });
+      });
     });
 }
 

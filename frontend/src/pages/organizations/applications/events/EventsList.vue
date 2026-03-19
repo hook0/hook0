@@ -138,7 +138,7 @@ function sendTestEvent() {
     toast.error(t('events.invalidEvent'), {
       description: t('events.invalidEventMessage'),
       duration: 5000,
-      });
+    });
     return;
   }
 
@@ -160,7 +160,7 @@ function sendTestEvent() {
           toast.success(t('events.eventSentSuccess'), {
             description: t('events.eventSentMessage'),
             duration: 5000,
-            });
+          });
           emit('event-sent');
         }
       },
@@ -179,7 +179,7 @@ function handleReplay(row: Event) {
         toast.success(t('events.replay'), {
           description: t('events.replaySuccess'),
           duration: 5000,
-          });
+        });
       },
       onError: (err) => {
         handleMutationError(err);

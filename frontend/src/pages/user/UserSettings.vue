@@ -6,7 +6,7 @@ import { toast } from 'vue-sonner';
 import { User, Lock, AlertTriangle, Trash2, Palette } from 'lucide-vue-next';
 
 import * as UserService from '@/pages/user/UserService';
-import { passwordChangeSchema } from '@/pages/user/passwordChange.schema';
+import { createPasswordChangeSchema } from '@/pages/user/passwordChange.schema';
 import { toTypedSchema } from '@/utils/zod-adapter';
 import { useAuthStore } from '@/stores/auth';
 import { useUiStore } from '@/stores/ui';
@@ -47,7 +47,7 @@ const colorModeOptions = computed(() => [
 
 // VeeValidate form with Zod schema for password change
 const { errors, meta, defineField, handleSubmit, resetForm } = useForm({
-  validationSchema: toTypedSchema(passwordChangeSchema),
+  validationSchema: toTypedSchema(createPasswordChangeSchema()),
 });
 
 const [newPassword, newPasswordAttrs] = defineField('new_password');

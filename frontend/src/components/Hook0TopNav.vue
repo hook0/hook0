@@ -10,7 +10,8 @@
  * @example
  * <Hook0TopNav />
  */
-import { ref, watch, onMounted, onBeforeUnmount, onUnmounted, computed, nextTick } from 'vue';
+import { ref, watch, onMounted, onBeforeUnmount, onUnmounted, nextTick } from 'vue';
+import { useResizeObserver } from '@vueuse/core';
 import type { ComponentPublicInstance } from 'vue';
 import { useRouter } from 'vue-router';
 import { Search, BookOpen, Code2, ExternalLink } from 'lucide-vue-next';
@@ -28,14 +29,14 @@ const uiStore = useUiStore();
 
 const { navTabs } = useNavigationTabs();
 
-const isMac = computed(() => {
+const isMac = (() => {
   const nav = navigator as Navigator & { userAgentData?: { platform?: string } };
   return /mac/i.test(nav.userAgentData?.platform ?? navigator.platform);
-});
+})();
 
 // Child component refs for coordinated close
-type ContextBarExposed = { closeDropdowns: () => void; focusActiveTrigger: () => void };
-type UserMenuExposed = { closeDropdowns: () => void; focusTrigger: () => void };
+type ContextBarExposed = { closeDropdowns: () => void; focusActiveTrigger: () => void; hasOpenDropdown: () => boolean };
+type UserMenuExposed = { closeDropdowns: () => void; focusTrigger: () => void; hasOpenDropdown: () => boolean };
 const contextBarRef = ref<ContextBarExposed | null>(null);
 const userMenuRef = ref<UserMenuExposed | null>(null);
 
@@ -69,27 +70,20 @@ function updateTabIndicator() {
 
 watch(() => navTabs.value.find((tab) => tab.active)?.id, updateTabIndicator);
 
-let tabsResizeObserver: ResizeObserver | null = null;
-
-function onTabsScroll() {
+// ResizeObserver via @vueuse/core — auto-cleans up on unmount
+useResizeObserver(tabsNavRef, () => {
   updateTabIndicator();
-}
+});
 
-onMounted(() => {
-  tabsResizeObserver = new ResizeObserver(() => {
+// RAF-throttled scroll handler to avoid excessive getBoundingClientRect calls
+let scrollRafId: number | null = null;
+function onTabsScroll(): void {
+  if (scrollRafId !== null) return;
+  scrollRafId = requestAnimationFrame(() => {
     updateTabIndicator();
+    scrollRafId = null;
   });
-  if (tabsNavRef.value) {
-    tabsResizeObserver.observe(tabsNavRef.value);
-    tabsNavRef.value.addEventListener('scroll', onTabsScroll, { passive: true });
-  }
-});
-
-watch(tabsNavRef, (el) => {
-  if (el && tabsResizeObserver) {
-    tabsResizeObserver.observe(el);
-  }
-});
+}
 
 /** Close all dropdowns in both children. */
 function closeAll(): void {
@@ -110,19 +104,27 @@ function onUserMenuCloseDropdowns(): void {
   contextBarRef.value?.closeDropdowns();
 }
 
-/** Handle Escape key — close all dropdowns and refocus the trigger. */
+/** Handle Escape key — close the open dropdown and refocus its trigger. */
 function onKeydown(event: KeyboardEvent): void {
-  if (event.key === 'Escape') {
-    // Try to focus the active trigger in context bar first, then user menu
-    contextBarRef.value?.focusActiveTrigger();
-    userMenuRef.value?.focusTrigger();
-    closeAll();
-    event.preventDefault();
-  }
+  if (event.key !== 'Escape') return;
+
+  const contextBarWasOpen = contextBarRef.value?.hasOpenDropdown?.() ?? false;
+  const userMenuWasOpen = userMenuRef.value?.hasOpenDropdown?.() ?? false;
+  if (!contextBarWasOpen && !userMenuWasOpen) return;
+
+  closeAll();
+  if (contextBarWasOpen) contextBarRef.value?.focusActiveTrigger();
+  else if (userMenuWasOpen) userMenuRef.value?.focusTrigger();
+  event.preventDefault();
 }
 
 /** Close dropdowns when clicking outside any dropdown anchor. */
 function onDocumentClick(event: MouseEvent): void {
+  // Early return if no dropdown is open
+  const contextBarOpen = contextBarRef.value?.hasOpenDropdown?.() ?? false;
+  const userMenuOpen = userMenuRef.value?.hasOpenDropdown?.() ?? false;
+  if (!contextBarOpen && !userMenuOpen) return;
+
   const target = event.target as HTMLElement;
   if (!target.closest('.hook0-topnav__dropdown-anchor')) {
     closeAll();
@@ -132,14 +134,19 @@ function onDocumentClick(event: MouseEvent): void {
 onMounted(() => {
   document.addEventListener('keydown', onKeydown);
   document.addEventListener('click', onDocumentClick, { capture: true });
+  if (tabsNavRef.value) {
+    tabsNavRef.value.addEventListener('scroll', onTabsScroll, { passive: true });
+  }
 });
 
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', onKeydown);
   document.removeEventListener('click', onDocumentClick, { capture: true });
   tabsNavRef.value?.removeEventListener('scroll', onTabsScroll);
-  tabsResizeObserver?.disconnect();
-  tabsResizeObserver = null;
+  if (scrollRafId !== null) {
+    cancelAnimationFrame(scrollRafId);
+    scrollRafId = null;
+  }
 });
 
 // Close dropdowns on route change

@@ -49,11 +49,10 @@ const {
  * sortCurrentFirst([{id:'a'}, {id:'b'}], x => x.id, 'b') // [{id:'b'}, {id:'a'}]
  */
 function sortCurrentFirst<T>(list: T[], getId: (item: T) => string, currentId: string | null): T[] {
-  return [...list].sort((a, b) => {
-    if (getId(a) === currentId) return -1;
-    if (getId(b) === currentId) return 1;
-    return 0;
-  });
+  if (!currentId) return list;
+  const current = list.filter((item) => getId(item) === currentId);
+  const rest = list.filter((item) => getId(item) !== currentId);
+  return [...current, ...rest];
 }
 
 const sortedOrgs = computed(() =>
@@ -87,6 +86,7 @@ function handleOrgItemClick(orgId: string): void {
   if (orgId !== currentOrgId.value) {
     switchOrg(orgId);
   }
+  closeDropdowns();
 }
 
 const orgTriggerRef = ref<HTMLButtonElement | null>(null);
@@ -106,7 +106,27 @@ function focusActiveTrigger(): void {
   }
 }
 
-defineExpose({ closeDropdowns, focusActiveTrigger });
+/** Navigate to current app dashboard safely (no non-null assertions). */
+function navigateToCurrentApp(): void {
+  if (currentOrgId.value && currentAppId.value) {
+    switchApp(currentOrgId.value, currentAppId.value);
+  }
+}
+
+/** Handle app item click — switch only if not already the current app. */
+function handleAppItemClick(orgId: string, appId: string): void {
+  if (appId !== currentAppId.value) {
+    switchApp(orgId, appId);
+  }
+  closeDropdowns();
+}
+
+/** Check whether any dropdown is currently open. */
+function hasOpenDropdown(): boolean {
+  return activeDropdown.value !== null;
+}
+
+defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
 </script>
 
 <template>
@@ -115,17 +135,9 @@ defineExpose({ closeDropdowns, focusActiveTrigger });
 
     <!-- Org section -->
     <div class="hook0-topnav__org-section hook0-topnav__dropdown-anchor">
-      <Hook0Avatar
-        :name="currentOrgName ?? '?'"
-        size="sm"
-        variant="square"
-        class="hook0-topnav__org-avatar"
-        role="button"
-        tabindex="0"
-        :aria-label="t('nav.goToOrgDashboard')"
-        @click="goToOrgDashboard()"
-        @keydown.enter="goToOrgDashboard()"
-      />
+      <button class="hook0-topnav__org-avatar-btn" :aria-label="t('nav.goToOrgDashboard')" @click="goToOrgDashboard()">
+        <Hook0Avatar :name="currentOrgName ?? '?'" size="sm" variant="square" class="hook0-topnav__org-avatar" />
+      </button>
       <button
         class="hook0-topnav__org-name"
         data-test="context-bar-org-name"
@@ -211,19 +223,21 @@ defineExpose({ closeDropdowns, focusActiveTrigger });
       <span class="hook0-topnav__path-separator" aria-hidden="true">/</span>
 
       <div class="hook0-topnav__app-section hook0-topnav__dropdown-anchor">
-        <Box
-          :size="16"
-          class="hook0-topnav__app-icon"
-          role="button"
-          tabindex="0"
+        <button
+          class="hook0-topnav__app-icon-btn"
           :aria-label="t('nav.goToAppDashboard')"
-          @click="switchApp(currentOrgId!, currentAppId!)"
-          @keydown.enter="switchApp(currentOrgId!, currentAppId!)"
-        />
+          @click="navigateToCurrentApp()"
+        >
+          <Box
+            :size="16"
+            class="hook0-topnav__app-icon"
+            aria-hidden="true"
+          />
+        </button>
         <button
           class="hook0-topnav__app-name"
           data-test="context-bar-app-name"
-          @click="switchApp(currentOrgId!, currentAppId!)"
+          @click="navigateToCurrentApp()"
         >
           {{ currentAppName ?? '...' }}
         </button>
@@ -255,11 +269,7 @@ defineExpose({ closeDropdowns, focusActiveTrigger });
                 'hook0-topnav__dropdown-item--active': app.application_id === currentAppId,
               }"
               role="menuitem"
-              @click="
-                app.application_id !== currentAppId
-                  ? switchApp(app.organization_id, app.application_id)
-                  : undefined
-              "
+              @click="handleAppItemClick(app.organization_id, app.application_id)"
             >
               <Box :size="16" aria-hidden="true" />
               <div class="hook0-topnav__dropdown-item-content">
@@ -298,6 +308,10 @@ defineExpose({ closeDropdowns, focusActiveTrigger });
     </template>
   </template>
 </template>
+
+<style>
+@import './hook0-topnav-dropdown.css';
+</style>
 
 <style scoped>
 /* Logo separator (rendered here because it's contextual to org presence) */
@@ -432,14 +446,19 @@ defineExpose({ closeDropdowns, focusActiveTrigger });
   outline-offset: 2px;
 }
 
-.hook0-topnav__org-avatar {
+.hook0-topnav__org-avatar-btn,
+.hook0-topnav__app-icon-btn {
+  all: unset;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  border-radius: var(--radius-md);
 }
 
-.hook0-topnav__org-avatar:focus-visible {
+.hook0-topnav__org-avatar-btn:focus-visible,
+.hook0-topnav__app-icon-btn:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
-  border-radius: var(--radius-md);
 }
 
 .hook0-topnav__app-name {
@@ -479,63 +498,10 @@ defineExpose({ closeDropdowns, focusActiveTrigger });
   }
 }
 
-/* Dropdown shared styles */
-.hook0-topnav__dropdown-anchor {
-  position: relative;
-}
-
-.hook0-topnav__dropdown {
-  position: absolute;
-  top: calc(100% + 0.5rem);
-  left: 0;
-  min-width: 16rem;
-  max-width: 20rem;
-  background-color: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  padding: 0.375rem;
-  z-index: var(--z-dropdown, 50);
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-}
-
-.hook0-topnav__dropdown-item {
-  display: flex;
-  align-items: center;
-  flex-wrap: nowrap;
-  justify-content: flex-start;
-  gap: 0.625rem;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.8125rem;
-  color: var(--color-text-secondary);
-  text-decoration: none;
-  border: none;
-  background: none;
-  cursor: pointer;
-  border-bottom: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
-  width: 100%;
-  text-align: left;
-  white-space: nowrap;
-}
-
-.hook0-topnav__dropdown-item :deep(svg) {
-  flex-shrink: 0;
-}
-
+/* ContextBar-specific dropdown overrides */
 .hook0-topnav__dropdown-item:not(.hook0-topnav__dropdown-item--active):hover {
   background-color: var(--color-bg-tertiary);
   color: var(--color-text-primary);
-}
-
-.hook0-topnav__dropdown-item:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: -2px;
 }
 
 .hook0-topnav__dropdown-item--active {
@@ -547,10 +513,6 @@ defineExpose({ closeDropdowns, focusActiveTrigger });
 .hook0-topnav__dropdown-item--create {
   color: var(--color-text-muted);
   font-weight: 400;
-  border-bottom: none;
-}
-
-.hook0-topnav__dropdown-item:has(+ .hook0-topnav__dropdown-separator) {
   border-bottom: none;
 }
 
@@ -594,26 +556,6 @@ defineExpose({ closeDropdowns, focusActiveTrigger });
   color: var(--color-text-muted);
 }
 
-.hook0-topnav__dropdown-separator {
-  height: 1px;
-  background-color: var(--color-border);
-  margin: 0.125rem 0;
-}
-
-/* Dropdown animation */
-.dropdown-enter-active,
-.dropdown-leave-active {
-  transition:
-    opacity 0.15s ease,
-    transform 0.15s ease;
-}
-
-.dropdown-enter-from,
-.dropdown-leave-to {
-  opacity: 0;
-  transform: translateY(-0.25rem);
-}
-
 @media (max-width: 767px) {
   .hook0-topnav__dropdown {
     position: fixed;
@@ -627,14 +569,8 @@ defineExpose({ closeDropdowns, focusActiveTrigger });
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dropdown-enter-active,
-  .dropdown-leave-active {
-    transition: none;
-  }
-
   .hook0-topnav__org-name,
-  .hook0-topnav__switcher-btn,
-  .hook0-topnav__dropdown-item {
+  .hook0-topnav__switcher-btn {
     transition: none;
   }
 }

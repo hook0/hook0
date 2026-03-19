@@ -79,7 +79,7 @@ function confirmCreate() {
         toast.success(t('common.success'), {
           description: t('apiKeys.created'),
           duration: 3000,
-          });
+        });
       },
       onError: (err) => {
         handleMutationError(err);

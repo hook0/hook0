@@ -94,7 +94,7 @@ function handleRoleChange(role: string, row: User) {
     toast.warning(t('common.warning'), {
       description: t('members.roleAlreadySet', { email: row.email, role }),
       duration: 5000,
-      });
+    });
     return;
   }
 
@@ -115,7 +115,7 @@ function confirmRoleChange() {
         toast.success(t('common.success'), {
           description: t('members.roleChanged', { email: target.user.email, role: target.role }),
           duration: 5000,
-          });
+        });
       },
       onError: (err) => {
         handleMutationError(err);
@@ -135,7 +135,7 @@ function invite() {
         toast.success(t('common.success'), {
           description: t('members.invited'),
           duration: 3000,
-          });
+        });
       },
       onError: (err) => {
         handleMutationError(err);

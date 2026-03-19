@@ -191,7 +191,7 @@ function validateAndSubmit(attenuateFn: () => Biscuit, trackLabel: string): void
     toast.error(t('common.somethingWentWrong'), {
       description: t('serviceTokens.publicKeyError'),
       duration: 5000,
-      });
+    });
     return;
   }
 
@@ -199,7 +199,7 @@ function validateAndSubmit(attenuateFn: () => Biscuit, trackLabel: string): void
     toast.error(t('common.error'), {
       description: t('serviceTokens.invalidToken'),
       duration: 5000,
-      });
+    });
     return;
   }
 
@@ -209,7 +209,7 @@ function validateAndSubmit(attenuateFn: () => Biscuit, trackLabel: string): void
     toast.error(t('common.somethingWentWrong'), {
       description: result.error.message || t('serviceTokens.tokenGenerationError'),
       duration: 5000,
-      });
+    });
     return;
   }
 
@@ -218,7 +218,7 @@ function validateAndSubmit(attenuateFn: () => Biscuit, trackLabel: string): void
   toast.success(t('common.success'), {
     description: t('serviceTokens.tokenGenerated'),
     duration: 5000,
-    });
+  });
 }
 
 function submitSimple() {
@@ -229,7 +229,7 @@ function submitSimple() {
     toast.error(t('common.error'), {
       description: t('serviceTokens.invalidForm'),
       duration: 5000,
-      });
+    });
     return;
   }
 
@@ -237,7 +237,7 @@ function submitSimple() {
     toast.error(t('common.error'), {
       description: t('serviceTokens.invalidExpirationDate'),
       duration: 5000,
-      });
+    });
     return;
   }
 
@@ -264,7 +264,7 @@ function submitAdvanced() {
     toast.error(t('common.error'), {
       description: t('serviceTokens.invalidForm'),
       duration: 5000,
-      });
+    });
     return;
   }
 
@@ -272,7 +272,7 @@ function submitAdvanced() {
     toast.error(t('common.error'), {
       description: t('serviceTokens.invalidExpirationDate'),
       duration: 5000,
-      });
+    });
     return;
   }
 

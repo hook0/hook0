@@ -5,7 +5,7 @@ import { routes } from '@/routes';
 import router from '@/router';
 import { useAuthErrorHandler } from '@/composables/useAuthErrorHandler';
 import { useForm } from 'vee-validate';
-import { registerSchema } from './register.schema';
+import { createRegisterSchema } from './register.schema';
 import { toTypedSchema } from '@/utils/zod-adapter';
 import { useTracking } from '@/composables/useTracking';
 import { useI18n } from 'vue-i18n';
@@ -36,7 +36,7 @@ const authStore = useAuthStore();
 
 // VeeValidate form with Zod schema
 const { errors, defineField, handleSubmit } = useForm({
-  validationSchema: toTypedSchema(registerSchema),
+  validationSchema: toTypedSchema(createRegisterSchema()),
 });
 
 const [email, emailAttrs] = defineField('email');

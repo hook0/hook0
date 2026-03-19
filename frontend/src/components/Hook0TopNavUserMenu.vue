@@ -8,7 +8,7 @@
  * @example
  * <Hook0UserMenu ref="userMenuRef" @close-dropdowns="closeAll" />
  */
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { Settings, LogOut, Sun, Moon } from 'lucide-vue-next';
 import { routes } from '@/routes';
 import { useAuthStore } from '@/stores/auth';
@@ -25,8 +25,6 @@ const emit = defineEmits<{
 }>();
 
 const isOpen = ref(false);
-
-const userDropdownOpen = computed(() => isOpen.value);
 
 /** Close the user dropdown. */
 function closeDropdowns(): void {
@@ -49,7 +47,12 @@ function focusTrigger(): void {
   triggerRef.value?.focus();
 }
 
-defineExpose({ closeDropdowns, focusTrigger });
+/** Check whether the user dropdown is open. */
+function hasOpenDropdown(): boolean {
+  return isOpen.value;
+}
+
+defineExpose({ closeDropdowns, focusTrigger, hasOpenDropdown });
 </script>
 
 <template>
@@ -57,7 +60,7 @@ defineExpose({ closeDropdowns, focusTrigger });
     <button
       ref="triggerRef"
       class="hook0-topnav__user-trigger"
-      :aria-expanded="userDropdownOpen"
+      :aria-expanded="isOpen"
       aria-haspopup="true"
       :aria-label="t('nav.userMenu')"
       @click.stop="toggleDropdown()"
@@ -69,7 +72,7 @@ defineExpose({ closeDropdowns, focusTrigger });
 
     <Transition name="dropdown">
       <div
-        v-if="userDropdownOpen"
+        v-if="isOpen"
         class="hook0-topnav__dropdown hook0-topnav__user-dropdown"
         role="menu"
         aria-orientation="vertical"
@@ -113,6 +116,10 @@ defineExpose({ closeDropdowns, focusTrigger });
   </div>
 </template>
 
+<style>
+@import './hook0-topnav-dropdown.css';
+</style>
+
 <style scoped>
 /* User avatar trigger */
 .hook0-topnav__user-trigger {
@@ -155,70 +162,11 @@ defineExpose({ closeDropdowns, focusTrigger });
     0 0 0 4px var(--color-primary);
 }
 
-/* Dropdown anchor */
-.hook0-topnav__dropdown-anchor {
-  position: relative;
-}
-
-/* Dropdown shared styles (scoped to this component) */
-.hook0-topnav__dropdown {
-  position: absolute;
-  top: calc(100% + 0.5rem);
-  left: 0;
-  min-width: 16rem;
-  max-width: 20rem;
-  background-color: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  padding: 0.375rem;
-  z-index: var(--z-dropdown, 50);
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-}
-
+/* UserMenu-specific dropdown overrides */
 .hook0-topnav__user-dropdown {
   left: auto;
   right: 0;
   min-width: 12rem;
-}
-
-.hook0-topnav__dropdown-item {
-  display: flex;
-  align-items: center;
-  flex-wrap: nowrap;
-  justify-content: flex-start;
-  gap: 0.625rem;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.8125rem;
-  color: var(--color-text-secondary);
-  text-decoration: none;
-  border: none;
-  background: none;
-  cursor: pointer;
-  border-bottom: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
-  width: 100%;
-  text-align: left;
-  white-space: nowrap;
-}
-
-.hook0-topnav__dropdown-item :deep(svg) {
-  flex-shrink: 0;
-}
-
-.hook0-topnav__dropdown-item:hover {
-  background-color: var(--color-bg-tertiary);
-  color: var(--color-text-primary);
-}
-
-.hook0-topnav__dropdown-item:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: -2px;
 }
 
 .hook0-topnav__dropdown-item--danger {
@@ -228,16 +176,6 @@ defineExpose({ closeDropdowns, focusTrigger });
 .hook0-topnav__dropdown-item--danger:hover {
   background-color: var(--color-error-light);
   color: var(--color-error);
-}
-
-.hook0-topnav__dropdown-item:has(+ .hook0-topnav__dropdown-separator) {
-  border-bottom: none;
-}
-
-.hook0-topnav__dropdown-separator {
-  height: 1px;
-  background-color: var(--color-border);
-  margin: 0.125rem 0;
 }
 
 .hook0-topnav__dropdown-user-info {
@@ -253,28 +191,8 @@ defineExpose({ closeDropdowns, focusTrigger });
   text-overflow: ellipsis;
 }
 
-/* Dropdown animation */
-.dropdown-enter-active,
-.dropdown-leave-active {
-  transition:
-    opacity 0.15s ease,
-    transform 0.15s ease;
-}
-
-.dropdown-enter-from,
-.dropdown-leave-to {
-  opacity: 0;
-  transform: translateY(-0.25rem);
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .dropdown-enter-active,
-  .dropdown-leave-active {
-    transition: none;
-  }
-
-  .hook0-topnav__user-avatar,
-  .hook0-topnav__dropdown-item {
+  .hook0-topnav__user-avatar {
     transition: none;
   }
 }

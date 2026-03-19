@@ -87,7 +87,7 @@ function handleToggle(row: Subscription) {
         toast.success(t('common.success'), {
           description: t('subscriptions.enabled', { name }),
           duration: 3000,
-          });
+        });
       },
       onError: (err) => {
         handleMutationError(err);
@@ -110,7 +110,7 @@ function confirmDisable() {
         toast.success(t('common.success'), {
           description: t('subscriptions.disabled', { name }),
           duration: 3000,
-          });
+        });
       },
       onError: (err) => {
         handleMutationError(err);
