@@ -7,7 +7,6 @@ import type { ColumnDef } from '@tanstack/vue-table';
 import { useLogList } from './useLogQueries';
 import type { RequestAttemptTypeFixed } from './LogService';
 import { RequestAttemptStatusType } from './LogService';
-import type { RequestAttempt } from './LogService';
 import { routes } from '@/routes';
 import { useOrganizationDetail } from '@/pages/organizations/useOrganizationQueries';
 
@@ -27,6 +26,18 @@ import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
 import Hook0HelpText from '@/components/Hook0HelpText.vue';
 
+type RequestAttemptExtended = RequestAttemptTypeFixed & {
+  http_response_status?: number | null;
+  retry_count?: number;
+  succeeded_at?: string | null;
+  failed_at?: string | null;
+  picked_at?: string | null;
+  delay_until?: string | null;
+  completed_at?: string | null;
+  created_at?: string | null;
+  event_type_name?: string | null;
+};
+
 const { t } = useI18n();
 const route = useRoute();
 
@@ -40,7 +51,7 @@ const retentionDays = computed(
 );
 
 function statusVariant(
-  row: RequestAttemptTypeFixed
+  row: RequestAttemptExtended
 ): 'success' | 'error' | 'warning' | 'info' | 'muted' {
   switch (row.status.type) {
     case RequestAttemptStatusType.Successful:
@@ -57,42 +68,31 @@ function statusVariant(
   }
 }
 
-function statusLabel(row: RequestAttemptTypeFixed): string {
-  const httpCode = (row as unknown as Record<string, unknown>).http_response_status as
-    | number
-    | null
-    | undefined;
+function statusLabel(row: RequestAttemptExtended): string {
+  const httpCode = row.http_response_status;
   const shortTitle = (() => {
     switch (row.status.type) {
       case RequestAttemptStatusType.Successful:
-        return 'Sent';
+        return t('logs.statusSent');
       case RequestAttemptStatusType.Failed:
-        return 'Failed';
+        return t('logs.statusFailed');
       case RequestAttemptStatusType.Pending:
-        return 'Pending';
+        return t('logs.statusPending');
       case RequestAttemptStatusType.InProgress:
-        return 'Sending';
+        return t('logs.statusRetrying');
       case RequestAttemptStatusType.Waiting:
-        return 'Scheduled';
+        return t('logs.statusQueued');
       default:
-        return 'Unknown';
+        return t('logs.statusSkipped');
     }
   })();
   return httpCode ? `${httpCode} ${shortTitle}` : shortTitle;
 }
 
-const STATUS_COLORS: Record<string, { bg: string; fg: string }> = {
-  success: { bg: 'var(--color-success-light)', fg: 'var(--color-success)' },
-  error: { bg: 'var(--color-error-light)', fg: 'var(--color-error)' },
-  warning: { bg: 'var(--color-warning-light)', fg: 'var(--color-warning)' },
-  info: { bg: 'var(--color-info-light)', fg: 'var(--color-info)' },
-  muted: { bg: 'var(--color-bg-tertiary)', fg: 'var(--color-text-muted)' },
-};
-
 function fmtDate(val: unknown): string {
   if (!val || typeof val !== 'string') return '—';
   try {
-    return new Intl.DateTimeFormat('en', {
+    return new Intl.DateTimeFormat(undefined, {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
@@ -104,57 +104,54 @@ function fmtDate(val: unknown): string {
   }
 }
 
-function statusTooltip(row: RequestAttemptTypeFixed): string {
-  const r = row as unknown as Record<string, unknown>;
-  const retry = Number(r.retry_count ?? 0);
+function statusTooltip(row: RequestAttemptExtended): string {
+  const retry = Number(row.retry_count ?? 0);
   const retryStr = retry > 0 ? t('logs.tooltipRetry', { count: retry }) : '';
   switch (row.status.type) {
     case RequestAttemptStatusType.Successful:
-      return t('logs.tooltipSuccessful', { date: fmtDate(r.succeeded_at), retry: retryStr });
+      return t('logs.tooltipSuccessful', { date: fmtDate(row.succeeded_at), retry: retryStr });
     case RequestAttemptStatusType.Failed:
-      return t('logs.tooltipFailed', { date: fmtDate(r.failed_at), retry: retryStr });
+      return t('logs.tooltipFailed', { date: fmtDate(row.failed_at), retry: retryStr });
     case RequestAttemptStatusType.Pending:
-      return t('logs.tooltipPending', { date: fmtDate(r.created_at), retry: retryStr });
+      return t('logs.tooltipPending', { date: fmtDate(row.created_at), retry: retryStr });
     case RequestAttemptStatusType.InProgress:
-      return t('logs.tooltipInProgress', { date: fmtDate(r.picked_at), retry: retryStr });
+      return t('logs.tooltipInProgress', { date: fmtDate(row.picked_at), retry: retryStr });
     case RequestAttemptStatusType.Waiting:
-      return t('logs.tooltipWaiting', { date: fmtDate(r.delay_until), retry: retryStr });
+      return t('logs.tooltipWaiting', { date: fmtDate(row.delay_until), retry: retryStr });
     default:
       return t('logs.statusUnknown');
   }
 }
 
-function renderStatusPill(row: RequestAttemptTypeFixed) {
+function renderStatusPill(row: RequestAttemptExtended) {
   const variant = statusVariant(row);
   const label = statusLabel(row);
   const tooltip = statusTooltip(row);
-  const colors = STATUS_COLORS[variant] ?? STATUS_COLORS.muted;
-  const pillStyle = `display:inline-flex;align-items:center;gap:0.375rem;padding:0.1875rem 0.625rem;border-radius:9999px;font-size:0.8125rem;font-weight:600;white-space:nowrap;background:${colors.bg};color:${colors.fg};cursor:default`;
-  const dotStyle = `width:6px;height:6px;border-radius:50%;background:${colors.fg};flex-shrink:0`;
   return h(Hook0Tooltip, { content: tooltip }, () =>
-    h('span', { style: pillStyle }, [h('span', { style: dotStyle }), label])
+    h('span', { class: ['log-status', `log-status--${variant}`] }, [
+      h('span', { class: 'log-status__dot' }),
+      label,
+    ])
   );
 }
 
-function computeDuration(row: RequestAttemptTypeFixed): string {
-  const r = row as unknown as Record<string, unknown>;
-  const created = r.created_at as string | null;
-  const completed = (r.succeeded_at ?? r.failed_at ?? r.completed_at) as string | null;
+function computeDuration(row: RequestAttemptExtended): string {
+  const created = row.created_at;
+  const completed = row.succeeded_at ?? row.failed_at ?? row.completed_at;
   if (!created || !completed) return '—';
   const ms = new Date(completed).getTime() - new Date(created).getTime();
   if (ms < 1000) return `${ms}ms`;
   return `${(ms / 1000).toFixed(1)}s`;
 }
 
-function computeDurationTooltip(row: RequestAttemptTypeFixed): string {
-  const r = row as unknown as Record<string, unknown>;
-  const created = fmtDate(r.created_at);
-  const picked = fmtDate(r.picked_at);
-  const completed = fmtDate(r.succeeded_at ?? r.failed_at ?? r.completed_at);
+function computeDurationTooltip(row: RequestAttemptExtended): string {
+  const created = fmtDate(row.created_at);
+  const picked = fmtDate(row.picked_at);
+  const completed = fmtDate(row.succeeded_at ?? row.failed_at ?? row.completed_at);
   return t('logs.tooltipDuration', { created, picked, completed });
 }
 
-const columns: ColumnDef<RequestAttemptTypeFixed, unknown>[] = [
+const columns: ColumnDef<RequestAttemptExtended, unknown>[] = [
   {
     accessorKey: 'status',
     header: t('common.status'),
@@ -166,9 +163,7 @@ const columns: ColumnDef<RequestAttemptTypeFixed, unknown>[] = [
     header: t('logs.eventId'),
     cell: (info) => {
       const row = info.row.original;
-      const eventType = (row as unknown as Record<string, unknown>).event_type_name as
-        | string
-        | undefined;
+      const eventType = row.event_type_name;
       const RouterLink = resolveComponent('router-link');
       const link = h(
         RouterLink,
@@ -178,25 +173,17 @@ const columns: ColumnDef<RequestAttemptTypeFixed, unknown>[] = [
             params: {
               application_id: route.params.application_id,
               organization_id: route.params.organization_id,
-              event_id: (row as unknown as RequestAttempt).event_id,
+              event_id: row.event_id,
             },
           },
-          style:
-            'font-family:var(--font-mono);font-size:0.8125rem;font-weight:500;color:var(--color-text-primary);text-decoration:none',
-          onMouseenter: (e: MouseEvent) => {
-            (e.currentTarget as HTMLElement).style.textDecoration = 'underline';
-            (e.currentTarget as HTMLElement).style.textUnderlineOffset = '2px';
-          },
-          onMouseleave: (e: MouseEvent) => {
-            (e.currentTarget as HTMLElement).style.textDecoration = 'none';
-          },
+          class: 'log-event-link',
         },
         () => String(info.getValue())
       );
       if (eventType) {
-        return h('div', { style: 'display:flex;flex-direction:column;gap:0.125rem' }, [
+        return h('div', { class: 'log-event-cell' }, [
           link,
-          h('span', { style: 'font-size:0.75rem;color:var(--color-text-secondary)' }, eventType),
+          h('span', { class: 'log-event-type' }, eventType),
         ]);
       }
       return link;
@@ -230,14 +217,7 @@ const columns: ColumnDef<RequestAttemptTypeFixed, unknown>[] = [
     header: t('logs.duration'),
     cell: (info) =>
       h(Hook0Tooltip, { content: computeDurationTooltip(info.row.original) }, () =>
-        h(
-          'span',
-          {
-            style:
-              'font-family:var(--font-mono);font-size:0.8125rem;color:var(--color-text-secondary);cursor:default',
-          },
-          computeDuration(info.row.original)
-        )
+        h('span', { class: 'log-duration' }, computeDuration(info.row.original))
       ),
   },
 ];
@@ -312,11 +292,21 @@ const columns: ColumnDef<RequestAttemptTypeFixed, unknown>[] = [
 .log-status {
   display: inline-flex;
   align-items: center;
-  padding: 0.125rem 0.5rem;
+  gap: 0.375rem;
+  padding: 0.1875rem 0.625rem;
   border-radius: var(--radius-full);
-  font-size: 0.6875rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   white-space: nowrap;
+  cursor: default;
+}
+
+.log-status__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+  flex-shrink: 0;
 }
 
 .log-status--success {
@@ -350,14 +340,28 @@ const columns: ColumnDef<RequestAttemptTypeFixed, unknown>[] = [
   gap: 0.125rem;
 }
 
+.log-event-link {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+
+.log-event-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .log-event-type {
-  font-size: 0.6875rem;
-  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
 }
 
 .log-duration {
   font-family: var(--font-mono);
   font-size: 0.8125rem;
   color: var(--color-text-secondary);
+  cursor: default;
 }
 </style>

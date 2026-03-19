@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
+import type { Component } from 'vue';
 import { Building2, CreditCard, Users, FolderOpen, FileText, Database } from 'lucide-vue-next';
 
 import { useOrganizationDetail } from './useOrganizationQueries';
@@ -56,6 +57,34 @@ const {
   data: eventsPerDayData,
   refetch: refetchEventsPerDay,
 } = useEventsPerDay('organization', organizationId);
+
+/** Quota cards shown in the developer-plan notice section. */
+const quotaCards = computed<{ icon: Component; value: number | undefined; label: string }[]>(() => {
+  if (!organization.value) return [];
+  const q = organization.value.quotas;
+  return [
+    {
+      icon: Users,
+      value: q.members_per_organization_limit,
+      label: t('organizations.consumptionMembers'),
+    },
+    {
+      icon: FolderOpen,
+      value: q.applications_per_organization_limit,
+      label: t('organizations.consumptionApplications'),
+    },
+    {
+      icon: FileText,
+      value: q.events_per_day_limit,
+      label: t('organizations.consumptionEventsPerDay'),
+    },
+    {
+      icon: Database,
+      value: q.days_of_events_retention_limit,
+      label: t('organizations.consumptionRetention'),
+    },
+  ];
+});
 </script>
 
 <template>
@@ -171,70 +200,19 @@ const {
           <Hook0Stack direction="column" gap="md">
             <span class="org-dashboard__label">{{ t('organizations.currentlyLimitedTo') }}</span>
             <Hook0Stack layout="grid" grid-size="compact" gap="sm">
-              <Hook0Card class="org-dashboard__quota-card">
+              <Hook0Card
+                v-for="card in quotaCards"
+                :key="card.label"
+                class="org-dashboard__quota-card"
+              >
                 <Hook0CardContent>
                   <Hook0Stack direction="row" align="center" gap="sm">
                     <Hook0IconBadge variant="primary" size="md">
-                      <Users :size="18" aria-hidden="true" />
+                      <component :is="card.icon" :size="18" aria-hidden="true" />
                     </Hook0IconBadge>
                     <Hook0Stack direction="column" gap="none">
-                      <span class="org-dashboard__quota-value">{{
-                        organization.quotas.members_per_organization_limit
-                      }}</span>
-                      <span class="org-dashboard__quota-label">{{
-                        t('organizations.consumptionMembers').toLowerCase()
-                      }}</span>
-                    </Hook0Stack>
-                  </Hook0Stack>
-                </Hook0CardContent>
-              </Hook0Card>
-              <Hook0Card class="org-dashboard__quota-card">
-                <Hook0CardContent>
-                  <Hook0Stack direction="row" align="center" gap="sm">
-                    <Hook0IconBadge variant="primary" size="md">
-                      <FolderOpen :size="18" aria-hidden="true" />
-                    </Hook0IconBadge>
-                    <Hook0Stack direction="column" gap="none">
-                      <span class="org-dashboard__quota-value">{{
-                        organization.quotas.applications_per_organization_limit
-                      }}</span>
-                      <span class="org-dashboard__quota-label">{{
-                        t('organizations.consumptionApplications').toLowerCase()
-                      }}</span>
-                    </Hook0Stack>
-                  </Hook0Stack>
-                </Hook0CardContent>
-              </Hook0Card>
-              <Hook0Card class="org-dashboard__quota-card">
-                <Hook0CardContent>
-                  <Hook0Stack direction="row" align="center" gap="sm">
-                    <Hook0IconBadge variant="primary" size="md">
-                      <FileText :size="18" aria-hidden="true" />
-                    </Hook0IconBadge>
-                    <Hook0Stack direction="column" gap="none">
-                      <span class="org-dashboard__quota-value">{{
-                        organization.quotas.events_per_day_limit
-                      }}</span>
-                      <span class="org-dashboard__quota-label">{{
-                        t('organizations.consumptionEventsPerDay').toLowerCase()
-                      }}</span>
-                    </Hook0Stack>
-                  </Hook0Stack>
-                </Hook0CardContent>
-              </Hook0Card>
-              <Hook0Card class="org-dashboard__quota-card">
-                <Hook0CardContent>
-                  <Hook0Stack direction="row" align="center" gap="sm">
-                    <Hook0IconBadge variant="primary" size="md">
-                      <Database :size="18" aria-hidden="true" />
-                    </Hook0IconBadge>
-                    <Hook0Stack direction="column" gap="none">
-                      <span class="org-dashboard__quota-value">{{
-                        organization.quotas.days_of_events_retention_limit
-                      }}</span>
-                      <span class="org-dashboard__quota-label">{{
-                        t('organizations.consumptionRetention').toLowerCase()
-                      }}</span>
+                      <span class="org-dashboard__quota-value">{{ card.value }}</span>
+                      <span class="org-dashboard__quota-label">{{ card.label.toLowerCase() }}</span>
                     </Hook0Stack>
                   </Hook0Stack>
                 </Hook0CardContent>

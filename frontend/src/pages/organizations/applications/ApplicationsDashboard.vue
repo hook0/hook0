@@ -56,7 +56,7 @@ const {
 <template>
   <Hook0PageLayout :title="t('applications.dashboard')" data-test="app-dashboard-page">
     <!-- Loading -->
-    <Hook0CardSkeleton v-if="appLoading" :lines="3" />
+    <Hook0CardSkeleton v-if="appLoading || (!application && !appError)" :lines="3" />
 
     <!-- Error -->
     <Hook0ErrorCard v-else-if="appError" :error="appError" @retry="refetchApp()" />

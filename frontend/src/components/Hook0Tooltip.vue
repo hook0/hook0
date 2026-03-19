@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, useId, nextTick } from 'vue';
+import { onBeforeUnmount, ref, useId, nextTick } from 'vue';
 
 type TooltipPosition = 'top' | 'bottom' | 'left' | 'right';
 
@@ -61,9 +61,16 @@ function updatePosition() {
   }
 }
 
+function onKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    hide();
+  }
+}
+
 function show() {
   showTimeout = setTimeout(() => {
     visible.value = true;
+    document.addEventListener('keydown', onKeydown);
     void nextTick(updatePosition);
   }, props.delay);
 }
@@ -73,18 +80,11 @@ function hide() {
     clearTimeout(showTimeout);
     showTimeout = null;
   }
+  if (visible.value) {
+    document.removeEventListener('keydown', onKeydown);
+  }
   visible.value = false;
 }
-
-function onKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape' && visible.value) {
-    hide();
-  }
-}
-
-onMounted(() => {
-  document.addEventListener('keydown', onKeydown);
-});
 
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', onKeydown);
@@ -147,7 +147,7 @@ onBeforeUnmount(() => {
   font-size: 0.75rem;
   white-space: pre-line;
   pointer-events: none;
-  z-index: 9999;
+  z-index: var(--z-tooltip, 9999);
   box-shadow: var(--shadow-lg);
 }
 

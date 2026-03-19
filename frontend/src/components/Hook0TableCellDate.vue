@@ -13,19 +13,13 @@ type Props = {
 const props = defineProps<Props>();
 
 function formatDate(value: string | null): string {
-  if (value === null || value === '') {
-    return '';
-  } else {
-    return formatISO9075(parseISO(value));
-  }
+  if (!value) return '';
+  return formatISO9075(parseISO(value));
 }
 
 function formatHumanReadableDate(value: string | null): string {
-  if (value === null || value === '') {
-    return '';
-  } else {
-    return formatDistance(parseISO(value), new Date(), { addSuffix: true });
-  }
+  if (!value) return '';
+  return formatDistance(parseISO(value), new Date(), { addSuffix: true });
 }
 </script>
 

@@ -80,34 +80,38 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-const dayPresets = [7, 30, 90];
+const dayPresets = [7, 30, 90] as const;
 const BAR_RADIUS: [number, number, number, number] = [3, 3, 0, 0];
 
-/** Read a single CSS custom property from the document root. */
-function cssVar(name: string): string {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+/** Escape HTML special characters to prevent XSS in tooltip content. */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 /** Resolve design-system color palette from CSS custom properties. */
 function getThemeColors(): ThemeColors {
+  const style = getComputedStyle(document.documentElement);
+  const css = (name: string): string => style.getPropertyValue(name).trim();
   return {
-    primary: cssVar('--color-primary') || '#6366f1',
-    primaryLight: cssVar('--color-primary-light') || '#ede9fe',
-    success: cssVar('--color-success') || '#16a34a',
-    successLight: cssVar('--color-success-light') || '#dcfce7',
-    warning: cssVar('--color-warning') || '#d97706',
-    warningLight: cssVar('--color-warning-light') || '#fef3c7',
-    error: cssVar('--color-error') || '#dc2626',
-    errorLight: cssVar('--color-error-light') || '#fef2f2',
-    info: cssVar('--color-info') || '#0ea5e9',
-    infoLight: cssVar('--color-info-light') || '#e0f2fe',
-    textSecondary: cssVar('--color-text-secondary') || '#6b7280',
-    border: cssVar('--color-border') || '#e5e7eb',
+    primary: css('--color-primary'),
+    primaryLight: css('--color-primary-light'),
+    success: css('--color-success'),
+    successLight: css('--color-success-light'),
+    warning: css('--color-warning'),
+    warningLight: css('--color-warning-light'),
+    error: css('--color-error'),
+    errorLight: css('--color-error-light'),
+    info: css('--color-info'),
+    infoLight: css('--color-info-light'),
+    textSecondary: css('--color-text-secondary'),
+    border: css('--color-border'),
   };
 }
-
-/** Cached theme colors (recomputed only when reactive dependencies change). */
-const themeColors = computed<ThemeColors>(() => getThemeColors());
 
 /** Generate array of 'yyyy-MM-dd' strings covering a date range (inclusive). */
 function generateDateRange(from: string, to: string): string[] {
@@ -124,6 +128,25 @@ function sumByDate(entries: EventsPerDayEntry[]): Map<string, number> {
   );
 }
 
+/** Shared tooltip styling used by both simple and stacked chart modes. */
+const BASE_TOOLTIP_CONFIG = {
+  trigger: 'axis',
+  backgroundColor: 'rgba(15, 23, 42, 0.95)',
+  borderColor: 'transparent',
+  textStyle: { color: '#fff', fontSize: 12 },
+  padding: [8, 12],
+  extraCssText: 'border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);',
+};
+
+/** Build animation config scaled to the number of date points. */
+function buildAnimationConfig(totalDates: number): Record<string, unknown> {
+  return {
+    animationDuration: 400,
+    animationEasing: 'cubicOut',
+    animationDelay: (idx: number) => (idx / totalDates) * 300,
+  };
+}
+
 /** Build shared ECharts axis configuration. */
 function buildAxisConfig(
   colors: ThemeColors,
@@ -131,16 +154,16 @@ function buildAxisConfig(
 ): { xAxis: Record<string, unknown>; yAxis: Record<string, unknown> } {
   return {
     xAxis: {
-      type: 'category' as const,
+      type: 'category',
       data: dates.map((d) => format(parseISO(d), 'MMM dd')),
       axisLine: { lineStyle: { color: colors.border } },
       axisLabel: { color: colors.textSecondary, fontSize: 11 },
     },
     yAxis: {
-      type: 'value' as const,
+      type: 'value',
       minInterval: 1,
       axisLine: { show: false },
-      splitLine: { lineStyle: { color: colors.border, type: 'dashed' as const } },
+      splitLine: { lineStyle: { color: colors.border, type: 'dashed' } },
       axisLabel: { color: colors.textSecondary, fontSize: 11 },
     },
   };
@@ -156,26 +179,16 @@ function buildSimpleChartOption(
 ): Record<string, unknown> {
   const amountByDate = sumByDate(entries);
   const { xAxis, yAxis } = buildAxisConfig(colors, dates);
-  const totalDates = dates.length;
 
   return {
-    animationDuration: 400,
-    animationEasing: 'cubicOut' as const,
-    animationDelay: (idx: number) => (idx / totalDates) * 300,
-    tooltip: {
-      trigger: 'axis' as const,
-      backgroundColor: 'rgba(15, 23, 42, 0.95)',
-      borderColor: 'transparent',
-      textStyle: { color: '#fff', fontSize: 12 },
-      padding: [8, 12],
-      extraCssText: 'border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);',
-    },
+    ...buildAnimationConfig(dates.length),
+    tooltip: { ...BASE_TOOLTIP_CONFIG },
     grid: { left: 50, right: 20, top: 10, bottom: 30 },
     xAxis,
     yAxis,
     series: [
       {
-        type: 'bar' as const,
+        type: 'bar',
         name: seriesName,
         itemStyle: { borderRadius: BAR_RADIUS },
         data: dates.map((d) => ({
@@ -192,7 +205,7 @@ function buildSimpleChartOption(
 /** Format HTML tooltip content for stacked chart mode. */
 function formatStackedTooltip(params: EChartsTooltipParam[], totalLabel: string): string {
   if (!params || params.length === 0) return '';
-  const date = String(params[0].name);
+  const date = escapeHtml(String(params[0].name));
   const total = params.reduce((s, p) => s + (Number(p.value) || 0), 0);
   let html = `<div style="font-weight:700;margin-bottom:6px">${date}</div>`;
   html += '<table style="width:100%;border-spacing:0">';
@@ -201,14 +214,45 @@ function formatStackedTooltip(params: EChartsTooltipParam[], totalLabel: string)
     if (val === 0) continue;
     const pct = total > 0 ? Math.round((val / total) * 100) : 0;
     html += `<tr>`;
-    html += `<td style="padding:1px 0">${String(p.marker)} ${String(p.seriesName)}</td>`;
+    html += `<td style="padding:1px 0">${String(p.marker)} ${escapeHtml(String(p.seriesName))}</td>`;
     html += `<td style="text-align:right;padding:1px 0 1px 16px;font-weight:600;font-variant-numeric:tabular-nums">${val}</td>`;
     html += `<td style="text-align:right;padding:1px 0 1px 4px;opacity:0.6;font-variant-numeric:tabular-nums">${pct}%</td>`;
     html += `</tr>`;
   }
   html += `</table>`;
-  html += `<div style="border-top:1px solid rgba(255,255,255,0.2);margin-top:6px;padding-top:6px;font-weight:700;text-align:right">${totalLabel}</div>`;
+  html += `<div style="border-top:1px solid rgba(255,255,255,0.2);margin-top:6px;padding-top:6px;font-weight:700;text-align:right">${escapeHtml(totalLabel)}</div>`;
   return html;
+}
+
+/** Group entries by application, returning per-app name and date-amount map. */
+function groupEntriesByApp(
+  entries: EventsPerDayEntry[]
+): Map<string, { name: string; data: Map<string, number> }> {
+  const appMap = new Map<string, { name: string; data: Map<string, number> }>();
+  for (const entry of entries) {
+    if (!appMap.has(entry.application_id)) {
+      appMap.set(entry.application_id, { name: entry.application_name, data: new Map() });
+    }
+    const app = appMap.get(entry.application_id)!;
+    app.data.set(entry.date, (app.data.get(entry.date) ?? 0) + entry.amount);
+  }
+  return appMap;
+}
+
+/** Find the topmost non-zero series index per date (for rounded corners on stacked bars). */
+function findTopSeriesPerDate(
+  dates: string[],
+  appList: Array<{ name: string; data: Map<string, number> }>
+): Map<string, number> {
+  const topSeriesPerDate = new Map<string, number>();
+  for (const d of dates) {
+    let topIdx = -1;
+    for (let i = 0; i < appList.length; i++) {
+      if ((appList[i].data.get(d) ?? 0) > 0) topIdx = i;
+    }
+    topSeriesPerDate.set(d, topIdx);
+  }
+  return topSeriesPerDate;
 }
 
 /** Build ECharts option for stacked (multi-app) mode. */
@@ -229,32 +273,14 @@ function buildStackedChartOption(
     colors.errorLight,
     colors.infoLight,
   ];
-  const totalDates = dates.length;
 
-  const appMap = new Map<string, { name: string; data: Map<string, number> }>();
-  for (const entry of entries) {
-    if (!appMap.has(entry.application_id)) {
-      appMap.set(entry.application_id, { name: entry.application_name, data: new Map() });
-    }
-    const app = appMap.get(entry.application_id)!;
-    app.data.set(entry.date, (app.data.get(entry.date) ?? 0) + entry.amount);
-  }
-
+  const appMap = groupEntriesByApp(entries);
   const appList = Array.from(appMap.values());
-
-  /** Find the topmost non-zero series index per date for rounded corners. */
-  const topSeriesPerDate = new Map<string, number>();
-  for (const d of dates) {
-    let topIdx = -1;
-    for (let i = 0; i < appList.length; i++) {
-      if ((appList[i].data.get(d) ?? 0) > 0) topIdx = i;
-    }
-    topSeriesPerDate.set(d, topIdx);
-  }
+  const topSeriesPerDate = findTopSeriesPerDate(dates, appList);
 
   const series: BarSeriesConfig[] = appList.map((app, i) => ({
     name: app.name,
-    type: 'bar' as const,
+    type: 'bar',
     stack: 'total',
     color: palette[i % palette.length],
     data: dates.map((d) => {
@@ -293,23 +319,16 @@ function buildStackedChartOption(
   const { xAxis, yAxis } = buildAxisConfig(colors, dates);
 
   return {
-    animationDuration: 400,
-    animationEasing: 'cubicOut' as const,
-    animationDelay: (idx: number) => (idx / totalDates) * 300,
+    ...buildAnimationConfig(dates.length),
     tooltip: {
-      trigger: 'axis' as const,
-      backgroundColor: 'rgba(15, 23, 42, 0.95)',
-      borderColor: 'transparent',
-      textStyle: { color: '#fff', fontSize: 12 },
-      padding: [8, 12],
-      extraCssText: 'border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);',
+      ...BASE_TOOLTIP_CONFIG,
       formatter: (params: EChartsTooltipParam[]) => {
         const total = params.reduce((s, p) => s + (Number(p.value) || 0), 0);
         return formatStackedTooltip(params, totalLabelFn(total));
       },
     },
     legend: {
-      type: 'scroll' as const,
+      type: 'scroll',
       bottom: 0,
       textStyle: { color: colors.textSecondary, fontSize: 11 },
     },
@@ -332,7 +351,7 @@ const peakDay = computed(() => Math.max(0, ...sumByDate(props.entries).values())
 
 /** ECharts configuration, dispatching to simple or stacked builder. */
 const chartOption = computed(() => {
-  const colors = themeColors.value;
+  const colors = getThemeColors();
   const dates = generateDateRange(props.from, props.to);
   const provisionalDates = new Set(
     props.entries.filter((e) => e.is_provisional).map((e) => e.date)

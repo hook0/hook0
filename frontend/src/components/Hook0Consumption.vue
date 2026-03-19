@@ -1,24 +1,14 @@
 <script setup lang="ts">
-import type { Component } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
+import type { ConsumptionQuota } from '@/components/consumption.types';
+
+export type { ConsumptionQuota };
 
 const { t } = useI18n();
-
-export type ConsumptionQuota = {
-  icon?: Component;
-  name: string;
-  description?: string;
-  consumption: number;
-  quota: number;
-  /** Override display (e.g. "7" for retention) */
-  displayValue?: string;
-  /** Unit suffix (e.g. "days") shown after displayValue */
-  displayUnit?: string;
-};
 
 type Props = {
   title: string;
@@ -93,9 +83,8 @@ function formatLimit(quota: ConsumptionQuota): string {
           <div class="consumption__meter">
             <div class="consumption__values">
               <span v-if="quota.displayValue" class="consumption__display">
-                <strong class="consumption__num">{{ quota.displayValue }}</strong
-                >{{ ' '
-                }}<span v-if="quota.displayUnit" class="consumption__unit">{{
+                <strong class="consumption__num">{{ quota.displayValue }}</strong>
+                <span v-if="quota.displayUnit" class="consumption__unit">{{
                   quota.displayUnit
                 }}</span>
               </span>
@@ -200,6 +189,9 @@ function formatLimit(quota: ConsumptionQuota): string {
 }
 
 .consumption__display {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
   font-size: 0.8125rem;
   color: var(--color-text-secondary);
 }

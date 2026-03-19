@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/vue-query';
-import { computed, ref, watch, type Ref } from 'vue';
+import { computed, ref, type ComputedRef, type Ref } from 'vue';
 import { format, subDays } from 'date-fns';
 import * as EventsPerDayService from './EventsPerDayService';
 import type { EventsPerDayEntry } from './EventsPerDayService';
@@ -11,8 +11,8 @@ type EventsPerDayEntityType = 'organization' | 'application';
 /** Return type of the useEventsPerDay composable. */
 type UseEventsPerDayReturn = {
   days: Ref<number>;
-  from: Ref<string>;
-  to: Ref<string>;
+  from: ComputedRef<string>;
+  to: ComputedRef<string>;
   data: Ref<EventsPerDayEntry[] | undefined>;
   isLoading: Ref<boolean>;
   error: Ref<Error | null>;
@@ -28,14 +28,8 @@ export function useEventsPerDay(
   entityId: Ref<string>
 ): UseEventsPerDayReturn {
   const days = ref(7);
-  const from = ref(format(subDays(new Date(), 7), 'yyyy-MM-dd'));
-  const to = ref(format(new Date(), 'yyyy-MM-dd'));
-
-  /** Update date range when days preset changes. */
-  watch(days, (d) => {
-    from.value = format(subDays(new Date(), d), 'yyyy-MM-dd');
-    to.value = format(new Date(), 'yyyy-MM-dd');
-  });
+  const from = computed(() => format(subDays(new Date(), days.value), 'yyyy-MM-dd'));
+  const to = computed(() => format(new Date(), 'yyyy-MM-dd'));
 
   const queryKey = computed(() =>
     entityType === 'organization'

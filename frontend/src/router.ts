@@ -7,6 +7,9 @@ const router = createRouter({
   routes,
 });
 
+/**
+ * Manual route-name-to-page-title map. Must be updated when routes are added, renamed, or removed.
+ */
 const routeTitles: Record<string, string> = {
   Home: 'Home',
   Tutorial: 'Tutorial',
