@@ -4,6 +4,7 @@ import type { App } from 'vue';
 
 const i18n = createI18n({
   legacy: false, // composition API mode
+  globalInjection: true,
   locale: 'en',
   fallbackLocale: 'en',
   messages: {

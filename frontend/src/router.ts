@@ -7,30 +7,49 @@ const router = createRouter({
   routes,
 });
 
-export default router;
+const routeTitles: Record<string, string> = {
+  Home: 'Home',
+  Tutorial: 'Tutorial',
+  TutorialCreateOrganization: 'Tutorial — Organization',
+  TutorialCreateApplication: 'Tutorial — Application',
+  TutorialCreateEventType: 'Tutorial — Event Type',
+  TutorialCreateSubscription: 'Tutorial — Subscription',
+  TutorialSendEvent: 'Tutorial — Send Event',
+  TutorialSuccess: 'Tutorial — Success',
+  Login: 'Login',
+  Register: 'Register',
+  VerifyEmail: 'Verify Email',
+  CheckEmail: 'Check Email',
+  UserSettings: 'Settings',
+  BeginResetPassword: 'Reset Password',
+  ResetPassword: 'Reset Password',
+  OrganizationsNew: 'New Organization',
+  OrganizationsDashboard: 'Dashboard',
+  OrganizationsTeam: 'Members',
+  OrganizationsDetail: 'Organization Settings',
+  ServicesTokenList: 'Service Tokens',
+  ServiceTokenView: 'Service Token',
+  ApplicationsList: 'Applications',
+  ApplicationsNew: 'New Application',
+  ApplicationsDashboard: 'Dashboard',
+  ApplicationsDetail: 'Application Settings',
+  ApplicationSecretsList: 'API Keys',
+  EventsList: 'Events',
+  EventsDetail: 'Event Detail',
+  EventTypesList: 'Event Types',
+  EventTypesNew: 'New Event Type',
+  SubscriptionsList: 'Subscriptions',
+  SubscriptionsNew: 'New Subscription',
+  SubscriptionsDetail: 'Subscription',
+  LogsList: 'Request Logs',
+  APIDocumentationForApplication: 'API Documentation',
+  APIDocumentation: 'API Documentation',
+  Error404: 'Not Found',
+};
 
-/*
-router.beforeEach(async (to, from, next) => {
-
-  const from_has_organization_id = String(from.query.organization_id).includes('-');
-  const to_has_organization_id = String(to.query.organization_id).includes('-');
-
-  if (to_has_organization_id) {
-    //  move on to the next hook in the pipeline
-    return next();
-  }
-
-  if (from_has_organization_id && !to_has_organization_id) {
-    addOrganizationId(to, from.query.organization_id as string);
-    return;
-  }
-
-  await list().then(organizations => {
-    if (!Array.isArray(organizations) || organizations.length === 0) {
-      return next({ name: routeNames.Error404 });
-    }
-
-    addOrganizationId(to, organizations[0].organization_id);
-  });
+router.afterEach((to) => {
+  const title = routeTitles[to.name as string];
+  document.title = title ? `${title} — Hook0` : 'Hook0';
 });
-*/
+
+export default router;

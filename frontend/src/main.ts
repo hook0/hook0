@@ -49,13 +49,12 @@ setupQueryPlugin(app);
 // vue-i18n
 setupI18n(app);
 
-// Matomo
-setupMatomo(app, router);
-
 // Initialize auth store and router guards
 const authStore = useAuthStore();
 authStore.initialize();
 authStore.setupRouterGuard();
 
-// Mount
-app.mount('#app');
+// Matomo (must resolve before mount to avoid Vue plugin warning)
+void setupMatomo(app, router).then(() => {
+  app.mount('#app');
+});

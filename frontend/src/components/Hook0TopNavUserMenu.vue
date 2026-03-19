@@ -66,7 +66,7 @@ defineExpose({ closeDropdowns, focusTrigger, hasOpenDropdown });
       @click.stop="toggleDropdown()"
     >
       <div class="hook0-topnav__user-avatar">
-        {{ authStore.userInfo?.email?.charAt(0)?.toUpperCase() ?? '?' }}
+        {{ authStore.userInfo?.email?.charAt(0)?.toUpperCase() ?? '\u00A0\u00A0' }}
       </div>
     </button>
 

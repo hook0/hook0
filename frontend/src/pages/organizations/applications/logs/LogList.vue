@@ -10,6 +10,7 @@ import type { RequestAttemptTypeFixed } from './LogService';
 import { RequestAttemptStatusType } from './LogService';
 import type { RequestAttempt } from './LogService';
 import { routes } from '@/routes';
+import { useOrganizationDetail } from '@/pages/organizations/useOrganizationQueries';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -29,8 +30,14 @@ import Hook0HelpText from '@/components/Hook0HelpText.vue';
 const { t } = useI18n();
 const route = useRoute();
 
+const organizationId = computed(() => route.params.organization_id as string);
 const applicationId = computed(() => route.params.application_id as string);
 const { data: requestAttempts, isLoading, error, refetch } = useLogList(applicationId);
+const { data: organization } = useOrganizationDetail(organizationId);
+
+const retentionDays = computed(
+  () => organization.value?.quotas.days_of_events_retention_limit ?? 7
+);
 
 function statusTitle(row: RequestAttemptTypeFixed): string {
   switch (row.status.type) {
@@ -151,7 +158,9 @@ const columns: ColumnDef<RequestAttemptTypeFixed, unknown>[] = [
           <template #header>{{ t('logs.title') }}</template>
           <template #subtitle>
             {{ t('logs.subtitle') }}
-            <Hook0HelpText tone="emphasis">{{ t('logs.subtitleRetention') }}</Hook0HelpText>
+            <Hook0HelpText tone="emphasis">{{
+              t('logs.subtitleRetention', { days: retentionDays })
+            }}</Hook0HelpText>
           </template>
         </Hook0CardHeader>
 

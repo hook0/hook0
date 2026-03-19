@@ -3,6 +3,7 @@ import { RouterView, useRoute } from 'vue-router';
 import { computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Toaster } from 'vue-sonner';
+import 'vue-sonner/style.css';
 import { useAuthStore } from '@/stores/auth';
 import { useContextStore } from '@/stores/context';
 import { useUiStore } from '@/stores/ui';
@@ -51,7 +52,7 @@ const showFullScreen = computed(() => {
 
 <template>
   <!-- Notifications -->
-  <Toaster position="top-right" :visible-toasts="4" rich-colors close-button data-test="toast-notification" />
+  <Toaster position="top-right" :visible-toasts="4" close-button data-test="toast-notification" />
 
   <!-- Command Palette (global overlay) -->
   <Hook0CommandPalette v-if="authStore.isAuthenticated" />
@@ -73,12 +74,6 @@ const showFullScreen = computed(() => {
     <main id="main-content" class="hook0-app__main">
       <div class="hook0-app__container">
         <!-- Page content -->
-        <!-- Wrapper div required: with mode="out-in", Vue listens for transitionend
-             on the leaving component's root element. During route change, reactive deps
-             (contextStore params) are cleared immediately, causing the old component to
-             re-render and swap its root DOM node. This orphans the transitionend listener,
-             blocking the enter transition forever. The stable div ensures the transition
-             target never changes regardless of internal re-renders. -->
         <RouterView v-slot="{ Component }">
           <Transition name="page" mode="out-in">
             <div :key="route.fullPath">

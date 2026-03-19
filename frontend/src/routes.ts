@@ -167,7 +167,7 @@ export default [
   },
   {
     name: routes.OrganizationsTeam,
-    path: '/organizations/:organization_id/team',
+    path: '/organizations/:organization_id/members',
     component: () => import('@/pages/organizations/MembersList.vue'),
   },
   {
