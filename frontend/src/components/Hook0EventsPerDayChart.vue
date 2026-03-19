@@ -12,11 +12,11 @@ import {
 import { CanvasRenderer } from 'echarts/renderers';
 import VChart from 'vue-echarts';
 import { format, addDays, parseISO } from 'date-fns';
+import { BarChart3 } from 'lucide-vue-next';
 
 import type { EventsPerDayEntry } from '@/pages/organizations/applications/EventsPerDayService';
 
 import Hook0Button from '@/components/Hook0Button.vue';
-import Hook0Icon from '@/components/Hook0Icon.vue';
 
 use([
   BarChart,
@@ -73,18 +73,13 @@ const chartOption = computed(() => {
     }
 
     return {
-      title: {
-        text: 'Events per day',
-        left: 'left',
-        textStyle: { fontSize: 14, fontWeight: 'bold', color: '#374151' },
-      },
       tooltip: {
         trigger: 'axis' as const,
       },
       grid: {
         left: 50,
         right: 20,
-        top: 40,
+        top: 20,
         bottom: 30,
       },
       xAxis: {
@@ -152,11 +147,6 @@ const chartOption = computed(() => {
   }
 
   return {
-    title: {
-      text: 'Events per day',
-      left: 'left',
-      textStyle: { fontSize: 14, fontWeight: 'bold', color: '#374151' },
-    },
     tooltip: {
       trigger: 'axis' as const,
     },
@@ -167,7 +157,7 @@ const chartOption = computed(() => {
     grid: {
       left: 50,
       right: 20,
-      top: 40,
+      top: 20,
       bottom: 40,
     },
     xAxis: {
@@ -184,32 +174,50 @@ const chartOption = computed(() => {
 </script>
 
 <template>
-  <div>
-    <div class="flex justify-end mb-2">
-      <span class="inline-flex rounded-md shadow-sm">
-        <Hook0Button
-          v-for="(preset, index) in dayPresets"
-          :key="preset"
-          class="white"
-          :class="{
-            left: index === 0,
-            center: index > 0 && index < dayPresets.length - 1,
-            right: index === dayPresets.length - 1,
-            active: days === preset,
-          }"
-          @click="emit('update:days', preset)"
-        >
-          {{ preset }}d
-        </Hook0Button>
-      </span>
+  <div class="chart">
+    <div class="chart__toolbar">
+      <Hook0Button
+        v-for="preset in dayPresets"
+        :key="preset"
+        :variant="days === preset ? 'primary' : 'secondary'"
+        size="sm"
+        type="button"
+        @click="emit('update:days', preset)"
+      >
+        {{ preset }}d
+      </Hook0Button>
     </div>
-    <div
-      v-if="entries.length === 0"
-      class="flex flex-col items-center justify-center py-16 text-gray-400"
-    >
-      <Hook0Icon name="chart-bar" class="text-4xl mb-3" />
-      <p class="text-lg">No events recorded yet</p>
+    <div v-if="entries.length === 0" class="chart__empty">
+      <BarChart3 :size="32" aria-hidden="true" />
+      <p>No events recorded yet</p>
     </div>
-    <VChart v-else :option="chartOption" autoresize style="height: 300px" />
+    <VChart v-else :option="chartOption" autoresize class="chart__canvas" />
   </div>
 </template>
+
+<style scoped>
+.chart__toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.chart__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  color: var(--color-text-muted);
+  gap: 0.75rem;
+}
+
+.chart__empty p {
+  font-size: 0.875rem;
+}
+
+.chart__canvas {
+  height: 300px;
+}
+</style>
