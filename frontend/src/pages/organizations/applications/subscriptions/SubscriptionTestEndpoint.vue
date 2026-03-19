@@ -189,9 +189,7 @@ const testStatusVariant = computed(() => {
 
 <style scoped>
 .test-endpoint {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  display: contents;
 }
 
 .test-endpoint__result {
@@ -199,6 +197,9 @@ const testStatusVariant = computed(() => {
   border-radius: var(--radius-md);
   padding: 0.75rem;
   background-color: var(--color-bg-secondary);
+  flex-basis: 100%;
+  min-width: 0;
+  margin-top: 0.25rem;
 }
 
 .test-endpoint__result--success {
@@ -225,7 +226,9 @@ const testStatusVariant = computed(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.5rem;
   margin-bottom: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .test-endpoint__result-title {
@@ -305,6 +308,9 @@ const testStatusVariant = computed(() => {
   border-radius: var(--radius-md);
   padding: 0.75rem;
   background-color: var(--color-error-light);
+  flex-basis: 100%;
+  min-width: 0;
+  margin-top: 0.25rem;
 }
 
 .test-endpoint__error-title {

@@ -164,6 +164,13 @@ const emit = defineEmits<{
   margin: 0;
 }
 
+@media (max-width: 639px) {
+  .sub-row__endpoint :deep(.hook0-button) {
+    flex-basis: 100%;
+    justify-content: center;
+  }
+}
+
 .sub-row__endpoint :deep(.test-endpoint .hook0-button) {
   height: 2.375rem;
 }

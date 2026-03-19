@@ -427,7 +427,6 @@
     "secretLabel": "Subscription secret",
     "secretDescription": "The secret is used to authenticate the webhooks sent by Hook0.",
     "secretHint": "Used to {link}. Keep it safe.",
-    "secretWarning": "Never share this secret.",
     "authenticateWebhooks": "verify webhook signatures",
     "httpEndpoint": "Endpoint",
     "httpEndpointHelp": "Hook0 sends webhooks to this URL when events match.",

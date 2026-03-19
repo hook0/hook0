@@ -589,6 +589,7 @@ const hasSelectedEventTypes = computed(() => eventTypes.value.some((et) => et.se
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  padding: 1rem 0;
 }
 
 .sub-form__section-header {
@@ -640,5 +641,11 @@ const hasSelectedEventTypes = computed(() => eventTypes.value.some((et) => et.se
   height: 1px;
   background-color: var(--color-border);
   margin: 1.5rem 0;
+}
+
+@media (max-width: 639px) {
+  .sub-form__divider {
+    margin: 0.75rem 0;
+  }
 }
 </style>
