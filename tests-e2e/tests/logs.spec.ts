@@ -251,7 +251,7 @@ test.describe("Logs", () => {
     });
 
     // Verify the event link exists in the log row
-    const eventLink = page.locator('[data-test="logs-table"] .log-event-link').first();
+    const eventLink = page.locator('[data-test="logs-table"] [data-test="log-event-link"]').first();
     await expect(eventLink).toBeVisible();
 
     // Click the event link and verify navigation to event detail

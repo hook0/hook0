@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verification";
+import { loginAsNewUser } from "../fixtures/test-setup";
 
 /**
  * Error Handling E2E tests for Hook0.
@@ -9,47 +9,8 @@ import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verificat
  * Distinct from error-404.spec.ts which tests unknown routes.
  */
 test.describe("Error Handling", () => {
-  /**
-   * Helper to setup authenticated test environment
-   */
-  async function setupAuthenticatedUser(
-    page: import("@playwright/test").Page,
-    request: import("@playwright/test").APIRequestContext,
-    testId: string
-  ) {
-    const timestamp = Date.now();
-    const email = `test-err-${testId}-${timestamp}@hook0.local`;
-    const password = `TestPassword123!${timestamp}`;
-
-    // Register via API
-    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
-      data: {
-        email,
-        first_name: "Test",
-        last_name: "User",
-        password,
-      },
-    });
-    expect(registerResponse.status()).toBeLessThan(400);
-
-    // Verify email and get organization ID
-    const verificationResult = await verifyEmailViaMailpit(request, email);
-    const organizationId = verificationResult.organizationId;
-    expect(organizationId).toBeTruthy();
-
-    // Login via UI
-    await page.goto("/login");
-    await expect(page.locator('[data-test="login-form"]')).toBeVisible({ timeout: 10000 });
-    await page.locator('[data-test="login-email-input"]').fill(email);
-    await page.locator('[data-test="login-password-input"]').fill(password);
-    await page.locator('[data-test="login-submit-button"]').click();
-    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, { timeout: 15000 });
-
-    return { email, password, organizationId: organizationId!, timestamp };
-  }
-
   test("should show error for non-existent organization", async ({ page, request }) => {
-    await setupAuthenticatedUser(page, request, "bad-org");
+    await loginAsNewUser(page, request, "bad-org");
 
     // Navigate to a non-existent organization UUID
     const fakeOrgId = "00000000-0000-0000-0000-000000000000";
@@ -68,7 +29,7 @@ test.describe("Error Handling", () => {
     page,
     request,
   }) => {
-    const env = await setupAuthenticatedUser(page, request, "bad-app");
+    const env = await loginAsNewUser(page, request, "bad-app");
 
     // Navigate to a valid org but fake application UUID
     const fakeAppId = "00000000-0000-0000-0000-000000000000";
@@ -86,7 +47,7 @@ test.describe("Error Handling", () => {
   });
 
   test("should show error for non-existent application sub-page", async ({ page, request }) => {
-    const env = await setupAuthenticatedUser(page, request, "bad-app-sub");
+    const env = await loginAsNewUser(page, request, "bad-app-sub");
 
     // Navigate to a valid org but fake app UUID on a sub-page (event_types)
     const fakeAppId = "00000000-0000-0000-0000-000000000000";

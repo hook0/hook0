@@ -53,7 +53,7 @@ function copyToClipboard() {
   <code v-if="inline" class="hook0-code-inline" v-bind="$attrs">{{ code }}</code>
 
   <!-- Full mode: CodeMirror editor -->
-  <div v-else class="hook0-code-wrapper">
+  <div v-else class="hook0-code-wrapper" data-test="code-block">
     <Codemirror
       v-model="code"
       :style="{ minHeight: '100px' }"

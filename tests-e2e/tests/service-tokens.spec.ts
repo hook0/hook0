@@ -65,7 +65,7 @@ test.describe("Service Tokens", () => {
     );
 
     // Click confirm button in the dialog
-    await page.locator('.hook0-dialog .hook0-dialog__actions button:last-child').click();
+    await page.locator('[data-test="dialog-confirm-button"]').click();
 
     const createResponse = await createResponsePromise;
     expect(createResponse.status()).toBeLessThan(400);
@@ -191,7 +191,7 @@ test.describe("Service Tokens", () => {
     );
 
     // Click confirm button in the dialog
-    await page.locator('.hook0-dialog .hook0-dialog__actions button:last-child').click();
+    await page.locator('[data-test="dialog-confirm-button"]').click();
 
     const response = await responsePromise;
 
@@ -242,13 +242,12 @@ test.describe("Service Tokens", () => {
       timeout: 10000,
     });
 
-    // Setup dialog handler to dismiss (cancel)
-    page.on("dialog", (dialog) => {
-      dialog.dismiss();
-    });
-
-    // Click create button
+    // Click create button to open the Hook0Dialog modal
     await page.locator('[data-test="service-tokens-create-button"]').click();
+
+    // Wait for the dialog to appear, then click cancel
+    await expect(page.locator('[data-test="dialog-cancel-button"]')).toBeVisible({ timeout: 5000 });
+    await page.locator('[data-test="dialog-cancel-button"]').click();
 
     // Should still be on the same page
     await expect(page).toHaveURL(/\/services_tokens/, {
@@ -312,7 +311,7 @@ test.describe("Service Tokens", () => {
       { timeout: 15000 }
     );
 
-    await page.locator('.hook0-dialog .hook0-dialog__actions button:last-child').click();
+    await page.locator('[data-test="dialog-confirm-button"]').click();
 
     const createResponse = await createResponsePromise;
     expect(createResponse.status()).toBeLessThan(400);
@@ -327,12 +326,11 @@ test.describe("Service Tokens", () => {
     await expect(rows.first()).toContainText(tokenName);
 
     // Step 2: Click "Delete" on the first row to open danger confirmation dialog
-    const deleteLink = rows.first().getByText("Delete");
+    const deleteLink = rows.first().locator('[data-test="token-delete-action"]');
     await deleteLink.click();
 
     // Wait for the danger confirmation dialog and click confirm
-    const deleteConfirmButton = page.locator('.hook0-dialog--danger .hook0-dialog__actions button:last-child');
-    await expect(deleteConfirmButton).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('[data-test="dialog-confirm-button"]')).toBeVisible({ timeout: 5000 });
 
     const deleteResponsePromise = page.waitForResponse(
       (response) =>
@@ -340,7 +338,7 @@ test.describe("Service Tokens", () => {
       { timeout: 15000 }
     );
 
-    await deleteConfirmButton.click();
+    await page.locator('[data-test="dialog-confirm-button"]').click();
 
     const deleteResponse = await deleteResponsePromise;
     expect(deleteResponse.status()).toBeLessThan(400);
@@ -406,7 +404,7 @@ test.describe("Service Tokens", () => {
       { timeout: 15000 }
     );
 
-    await page.locator('.hook0-dialog .hook0-dialog__actions button:last-child').click();
+    await page.locator('[data-test="dialog-confirm-button"]').click();
 
     const createResponse = await createResponsePromise;
     expect(createResponse.status()).toBeLessThan(400);
@@ -421,7 +419,7 @@ test.describe("Service Tokens", () => {
     await expect(rows.first()).toContainText(tokenName);
 
     // Step 2: Click "Edit" on the first row to open edit dialog
-    const editLink = rows.first().getByText("Edit");
+    const editLink = rows.first().locator('[data-test="token-edit-action"]');
     await editLink.click();
 
     // Fill the new name in the edit dialog
@@ -436,7 +434,7 @@ test.describe("Service Tokens", () => {
       { timeout: 15000 }
     );
 
-    await page.locator('.hook0-dialog .hook0-dialog__actions button:last-child').click();
+    await page.locator('[data-test="dialog-confirm-button"]').click();
 
     const updateResponse = await updateResponsePromise;
     expect(updateResponse.status()).toBeLessThan(400);

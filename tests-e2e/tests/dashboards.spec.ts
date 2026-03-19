@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verification";
+import { loginAsNewUser } from "../fixtures/test-setup";
 
 /**
  * Dashboard E2E tests for Hook0.
@@ -9,30 +9,10 @@ import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verificat
  */
 test.describe("Dashboards", () => {
   test("should display organization dashboard", async ({ page, request }) => {
-    const timestamp = Date.now();
-    const email = `test-org-dash-${timestamp}@hook0.local`;
-    const password = `TestPassword123!${timestamp}`;
-
-    // Register and verify
-    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
-      data: { email, first_name: "Test", last_name: "User", password },
-    });
-    expect(registerResponse.status()).toBeLessThan(400);
-
-    const verificationResult = await verifyEmailViaMailpit(request, email);
-    const organizationId = verificationResult.organizationId;
-    expect(organizationId).toBeTruthy();
-
-    // Login
-    await page.goto("/login");
-    await expect(page.locator('[data-test="login-form"]')).toBeVisible({ timeout: 10000 });
-    await page.locator('[data-test="login-email-input"]').fill(email);
-    await page.locator('[data-test="login-password-input"]').fill(password);
-    await page.locator('[data-test="login-submit-button"]').click();
-    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, { timeout: 15000 });
+    const env = await loginAsNewUser(page, request, "org-dash");
 
     // Navigate to organization dashboard
-    await page.goto(`/organizations/${organizationId}/dashboard`);
+    await page.goto(`/organizations/${env.organizationId}/dashboard`);
 
     // Verify organization dashboard page renders
     await expect(page.locator('[data-test="org-dashboard-page"]')).toBeVisible({ timeout: 15000 });
@@ -42,30 +22,10 @@ test.describe("Dashboards", () => {
     page,
     request,
   }) => {
-    const timestamp = Date.now();
-    const email = `test-org-chart-${timestamp}@hook0.local`;
-    const password = `TestPassword123!${timestamp}`;
-
-    // Register and verify
-    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
-      data: { email, first_name: "Test", last_name: "User", password },
-    });
-    expect(registerResponse.status()).toBeLessThan(400);
-
-    const verificationResult = await verifyEmailViaMailpit(request, email);
-    const organizationId = verificationResult.organizationId;
-    expect(organizationId).toBeTruthy();
-
-    // Login
-    await page.goto("/login");
-    await expect(page.locator('[data-test="login-form"]')).toBeVisible({ timeout: 10000 });
-    await page.locator('[data-test="login-email-input"]').fill(email);
-    await page.locator('[data-test="login-password-input"]').fill(password);
-    await page.locator('[data-test="login-submit-button"]').click();
-    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, { timeout: 15000 });
+    const env = await loginAsNewUser(page, request, "org-chart");
 
     // Navigate to organization dashboard
-    await page.goto(`/organizations/${organizationId}/dashboard`);
+    await page.goto(`/organizations/${env.organizationId}/dashboard`);
     await expect(page.locator('[data-test="org-dashboard-page"]')).toBeVisible({ timeout: 15000 });
 
     // Verify the events per day chart section renders with KPI stats
@@ -81,30 +41,10 @@ test.describe("Dashboards", () => {
   });
 
   test("should display organization dashboard card with org info", async ({ page, request }) => {
-    const timestamp = Date.now();
-    const email = `test-org-card-${timestamp}@hook0.local`;
-    const password = `TestPassword123!${timestamp}`;
-
-    // Register and verify
-    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
-      data: { email, first_name: "Test", last_name: "User", password },
-    });
-    expect(registerResponse.status()).toBeLessThan(400);
-
-    const verificationResult = await verifyEmailViaMailpit(request, email);
-    const organizationId = verificationResult.organizationId;
-    expect(organizationId).toBeTruthy();
-
-    // Login
-    await page.goto("/login");
-    await expect(page.locator('[data-test="login-form"]')).toBeVisible({ timeout: 10000 });
-    await page.locator('[data-test="login-email-input"]').fill(email);
-    await page.locator('[data-test="login-password-input"]').fill(password);
-    await page.locator('[data-test="login-submit-button"]').click();
-    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, { timeout: 15000 });
+    const env = await loginAsNewUser(page, request, "org-card");
 
     // Navigate to organization dashboard
-    await page.goto(`/organizations/${organizationId}/dashboard`);
+    await page.goto(`/organizations/${env.organizationId}/dashboard`);
     await expect(page.locator('[data-test="org-dashboard-page"]')).toBeVisible({ timeout: 15000 });
 
     // Verify the organization dashboard card renders
@@ -122,31 +62,11 @@ test.describe("Dashboards", () => {
   });
 
   test("should display application dashboard with tutorial widget", async ({ page, request }) => {
-    const timestamp = Date.now();
-    const email = `test-app-dash-${timestamp}@hook0.local`;
-    const password = `TestPassword123!${timestamp}`;
-    const appName = `Dashboard Test App ${timestamp}`;
-
-    // Register and verify
-    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
-      data: { email, first_name: "Test", last_name: "User", password },
-    });
-    expect(registerResponse.status()).toBeLessThan(400);
-
-    const verificationResult = await verifyEmailViaMailpit(request, email);
-    const organizationId = verificationResult.organizationId;
-    expect(organizationId).toBeTruthy();
-
-    // Login
-    await page.goto("/login");
-    await expect(page.locator('[data-test="login-form"]')).toBeVisible({ timeout: 10000 });
-    await page.locator('[data-test="login-email-input"]').fill(email);
-    await page.locator('[data-test="login-password-input"]').fill(password);
-    await page.locator('[data-test="login-submit-button"]').click();
-    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, { timeout: 15000 });
+    const env = await loginAsNewUser(page, request, "app-dash");
+    const appName = `Dashboard Test App ${env.timestamp}`;
 
     // Create an application
-    await page.goto(`/organizations/${organizationId}/applications/new`);
+    await page.goto(`/organizations/${env.organizationId}/applications/new`);
     await expect(page.locator('[data-test="application-form"]')).toBeVisible({ timeout: 10000 });
     await page.locator('[data-test="application-name-input"]').fill(appName);
 
@@ -162,7 +82,7 @@ test.describe("Dashboards", () => {
     const applicationId = app.application_id;
 
     // Navigate to application dashboard
-    await page.goto(`/organizations/${organizationId}/applications/${applicationId}/dashboard`);
+    await page.goto(`/organizations/${env.organizationId}/applications/${applicationId}/dashboard`);
 
     // Verify application dashboard page renders
     await expect(page.locator('[data-test="app-dashboard-page"]')).toBeVisible({ timeout: 15000 });

@@ -1,8 +1,5 @@
 import { test, expect } from "@playwright/test";
-import {
-  verifyEmailViaMailpit,
-  API_BASE_URL,
-} from "../fixtures/email-verification";
+import { loginAsNewUser } from "../fixtures/test-setup";
 
 /**
  * Visual regression tests for Hook0 UI components.
@@ -15,38 +12,7 @@ test.describe("Component Visual Regression", () => {
       page,
       request,
     }) => {
-      // Setup: Create test user and login
-      const timestamp = Date.now();
-      const email = `test-button-visual-${timestamp}@hook0.local`;
-      const password = `TestPassword123!${timestamp}`;
-
-      // Register via API
-      const registerResponse = await request.post(`${API_BASE_URL}/register`, {
-        data: {
-          email,
-          first_name: "Test",
-          last_name: "User",
-          password,
-        },
-      });
-      expect(registerResponse.status()).toBeLessThan(400);
-
-      // Verify email
-      await verifyEmailViaMailpit(request, email);
-
-      // Login via UI
-      await page.goto("/login");
-      await expect(page.locator('[data-test="login-form"]')).toBeVisible({
-        timeout: 10000,
-      });
-      await page.locator('[data-test="login-email-input"]').fill(email);
-      await page.locator('[data-test="login-password-input"]').fill(password);
-      await page.locator('[data-test="login-submit-button"]').click();
-
-      // Wait for redirect to authenticated area
-      await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
-        timeout: 15000,
-      });
+      await loginAsNewUser(page, request, "button-visual");
 
       // Navigate to settings page which has buttons with icons
       await page.goto("/settings");
@@ -96,38 +62,7 @@ test.describe("Component Visual Regression", () => {
       page,
       request,
     }) => {
-      // Setup: Create test user and login
-      const timestamp = Date.now();
-      const email = `test-button-nowrap-${timestamp}@hook0.local`;
-      const password = `TestPassword123!${timestamp}`;
-
-      // Register via API
-      const registerResponse = await request.post(`${API_BASE_URL}/register`, {
-        data: {
-          email,
-          first_name: "Test",
-          last_name: "User",
-          password,
-        },
-      });
-      expect(registerResponse.status()).toBeLessThan(400);
-
-      // Verify email
-      await verifyEmailViaMailpit(request, email);
-
-      // Login via UI
-      await page.goto("/login");
-      await expect(page.locator('[data-test="login-form"]')).toBeVisible({
-        timeout: 10000,
-      });
-      await page.locator('[data-test="login-email-input"]').fill(email);
-      await page.locator('[data-test="login-password-input"]').fill(password);
-      await page.locator('[data-test="login-submit-button"]').click();
-
-      // Wait for redirect
-      await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
-        timeout: 15000,
-      });
+      await loginAsNewUser(page, request, "button-nowrap");
 
       // Navigate to settings
       await page.goto("/settings");

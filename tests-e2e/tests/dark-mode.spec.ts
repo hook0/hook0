@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verification";
+import { loginAsNewUser } from "../fixtures/test-setup";
 
 /**
  * Dark Mode E2E tests for Hook0.
@@ -9,65 +9,8 @@ import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verificat
  * Following the Three-Step Verification Pattern.
  */
 test.describe("Dark Mode", () => {
-  /**
-   * Helper to register, verify, and login a test user.
-   */
-  async function setupTestEnvironment(
-    page: import("@playwright/test").Page,
-    request: import("@playwright/test").APIRequestContext,
-    testId: string
-  ): Promise<{
-    email: string;
-    password: string;
-    organizationId: string;
-    timestamp: number;
-  }> {
-    const timestamp = Date.now();
-    const email = `test-dark-${testId}-${timestamp}@hook0.local`;
-    const password = `TestPassword123!${timestamp}`;
-
-    // Register via API
-    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
-      data: {
-        email,
-        first_name: "Test",
-        last_name: "User",
-        password,
-      },
-    });
-    expect(registerResponse.status()).toBeLessThan(400);
-
-    // Verify email and get organization ID
-    const verificationResult = await verifyEmailViaMailpit(request, email);
-    const organizationId = verificationResult.organizationId;
-    expect(organizationId).toBeTruthy();
-    if (!organizationId) {
-      throw new Error("Organization ID is required");
-    }
-
-    // Login via UI
-    await page.goto("/login");
-    await expect(page.locator('[data-test="login-form"]')).toBeVisible({
-      timeout: 10000,
-    });
-    await page.locator('[data-test="login-email-input"]').fill(email);
-    await page.locator('[data-test="login-password-input"]').fill(password);
-    await page.locator('[data-test="login-submit-button"]').click();
-
-    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
-      timeout: 15000,
-    });
-
-    return {
-      email,
-      password,
-      organizationId,
-      timestamp,
-    };
-  }
-
   test("should toggle dark mode from user settings", async ({ page, request }) => {
-    await setupTestEnvironment(page, request, "toggle");
+    await loginAsNewUser(page, request, "dark-toggle");
 
     // Step 1: Navigate to user settings
     await page.goto("/settings");
@@ -88,7 +31,7 @@ test.describe("Dark Mode", () => {
   });
 
   test("should persist dark mode across page reload", async ({ page, request }) => {
-    await setupTestEnvironment(page, request, "persist-reload");
+    await loginAsNewUser(page, request, "dark-persist-reload");
 
     // Step 1: Enable dark mode
     await page.goto("/settings");
@@ -122,7 +65,7 @@ test.describe("Dark Mode", () => {
   });
 
   test("should persist dark mode after logout", async ({ page, request }) => {
-    await setupTestEnvironment(page, request, "persist-logout");
+    await loginAsNewUser(page, request, "dark-persist-logout");
 
     // Step 1: Enable dark mode
     await page.goto("/settings");

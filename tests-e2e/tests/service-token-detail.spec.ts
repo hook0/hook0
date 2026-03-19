@@ -80,13 +80,13 @@ test.describe("Service Token Detail", () => {
     );
 
     // Click confirm button in the dialog
-    await page.locator('.hook0-dialog .hook0-dialog__actions button:last-child').click();
+    await page.locator('[data-test="dialog-confirm-button"]').click();
 
     const createResponse = await createResponsePromise;
     expect(createResponse.status()).toBeLessThan(400);
 
     // Wait for the token to appear in the table
-    const showButton = page.locator('[data-test="service-tokens-table"]').getByText("Show").first();
+    const showButton = page.locator('[data-test="service-tokens-table"] [data-test="token-show-action"]').first();
     await expect(showButton).toBeVisible({ timeout: 10000 });
 
     return {
@@ -99,10 +99,10 @@ test.describe("Service Token Detail", () => {
   }
 
   test("should navigate to service token detail page", async ({ page, request }) => {
-    const env = await setupTestEnvironment(page, request, "nav");
+    await setupTestEnvironment(page, request, "nav");
 
     // Step 1: Click "Show" button to navigate to detail page
-    const showButton = page.locator('[data-test="service-tokens-table"]').getByText("Show").first();
+    const showButton = page.locator('[data-test="service-tokens-table"] [data-test="token-show-action"]').first();
     await showButton.click();
 
     // Step 2: Verify URL changed to the service token detail page
@@ -113,7 +113,7 @@ test.describe("Service Token Detail", () => {
 
     // Step 3: Verify service token detail content is visible
     // The detail page renders Hook0Card with the token name inside
-    await expect(page.locator('.hook0-card').filter({ hasText: env.tokenName }).first()).toBeVisible({
+    await expect(page.locator('[data-test="service-token-detail-card"]')).toBeVisible({
       timeout: 10000,
     });
   });
@@ -122,7 +122,7 @@ test.describe("Service Token Detail", () => {
     const env = await setupTestEnvironment(page, request, "name");
 
     // Step 1: Navigate to token detail by clicking the Show button
-    const showButton = page.locator('[data-test="service-tokens-table"]').getByText("Show").first();
+    const showButton = page.locator('[data-test="service-tokens-table"] [data-test="token-show-action"]').first();
     await showButton.click();
 
     // Step 2: Wait for detail page to load
@@ -139,7 +139,7 @@ test.describe("Service Token Detail", () => {
     const env = await setupTestEnvironment(page, request, "details");
 
     // Step 1: Navigate to token detail page
-    const showButton = page.locator('[data-test="service-tokens-table"]').getByText("Show").first();
+    const showButton = page.locator('[data-test="service-tokens-table"] [data-test="token-show-action"]').first();
     await showButton.click();
 
     await expect(page).toHaveURL(
@@ -158,7 +158,7 @@ test.describe("Service Token Detail", () => {
 
     // Verify the biscuit token is displayed (Hook0Code non-inline renders via CodeMirror, not <code>/<pre>)
     // Check that the detail card contains the CodeMirror wrapper
-    const codeWrapper = detailCard.locator('.hook0-code-wrapper');
+    const codeWrapper = detailCard.locator('[data-test="code-block"]');
     await expect(codeWrapper.first()).toBeVisible({ timeout: 10000 });
   });
 
@@ -166,7 +166,7 @@ test.describe("Service Token Detail", () => {
     const env = await setupTestEnvironment(page, request, "back");
 
     // Step 1: Navigate to token detail page
-    const showButton = page.locator('[data-test="service-tokens-table"]').getByText("Show").first();
+    const showButton = page.locator('[data-test="service-tokens-table"] [data-test="token-show-action"]').first();
     await showButton.click();
 
     await expect(page).toHaveURL(
@@ -177,9 +177,8 @@ test.describe("Service Token Detail", () => {
     // Verify detail card loaded
     await expect(page.locator('[data-test="service-token-detail-card"]')).toBeVisible({ timeout: 10000 });
 
-    // Step 2: Click the Cancel button (navigates back to list)
-    const cancelButton = page.getByText("Cancel").first();
-    await cancelButton.click();
+    // Step 2: Click the Cancel/Back button (navigates back to list)
+    await page.locator('[data-test="service-token-back-button"]').click();
 
     // Step 3: Verify URL changed back to the service tokens list
     await expect(page).toHaveURL(

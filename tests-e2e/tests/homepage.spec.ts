@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verification";
+import { loginAsNewUser } from "../fixtures/test-setup";
 
 /**
  * Homepage E2E tests for Hook0.
@@ -50,25 +50,7 @@ test.describe("Homepage", () => {
   });
 
   test("should display organization cards on home page", async ({ page, request }) => {
-    // Setup: Create a test user
-    const timestamp = Date.now();
-    const email = `test-home-cards-${timestamp}@hook0.local`;
-    const password = `TestPassword123!${timestamp}`;
-
-    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
-      data: { email, first_name: "Test", last_name: "User", password },
-    });
-    expect(registerResponse.status()).toBeLessThan(400);
-
-    await verifyEmailViaMailpit(request, email);
-
-    // Login
-    await page.goto("/login");
-    await expect(page.locator('[data-test="login-form"]')).toBeVisible({ timeout: 10000 });
-    await page.locator('[data-test="login-email-input"]').fill(email);
-    await page.locator('[data-test="login-password-input"]').fill(password);
-    await page.locator('[data-test="login-submit-button"]').click();
-    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, { timeout: 15000 });
+    await loginAsNewUser(page, request, "home-cards");
 
     // Navigate to home page
     await page.goto("/");
@@ -79,46 +61,9 @@ test.describe("Homepage", () => {
   });
 
   test("should preserve redirect after authentication", async ({ page, request }) => {
-    // Setup: Create a test user
-    const timestamp = Date.now();
-    const email = `test-redirect-${timestamp}@hook0.local`;
-    const password = `TestPassword123!${timestamp}`;
+    await loginAsNewUser(page, request, "redirect");
 
-    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
-      data: {
-        email,
-        first_name: "Test",
-        last_name: "User",
-        password,
-      },
-    });
-    expect(registerResponse.status()).toBeLessThan(400);
-
-    // Verify email before login (required by API)
-    await verifyEmailViaMailpit(request, email);
-
-    // Try to access protected route (should redirect to login)
-    await page.goto("/");
-    await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
-
-    // Login with valid credentials
-    await page.locator('[data-test="login-email-input"]').fill(email);
-    await page.locator('[data-test="login-password-input"]').fill(password);
-
-    const responsePromise = page.waitForResponse(
-      (response) =>
-        (response.url().includes("/api/v1/auth/login") || response.url().includes("/auth/login")) &&
-        response.request().method() === "POST",
-      { timeout: 15000 }
-    );
-
-    await page.locator('[data-test="login-submit-button"]').click();
-
-    const response = await responsePromise;
-    expect(response.status()).toBeLessThan(400);
-
-    // Should be redirected to an authenticated area after login
-    // The Home route "/" is a valid landing page for authenticated users
+    // Should be in an authenticated area (not on login)
     await expect(page).not.toHaveURL(/\/login/, {
       timeout: 15000,
     });

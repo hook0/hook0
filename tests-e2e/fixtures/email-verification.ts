@@ -99,26 +99,6 @@ interface MailpitSearchResult {
 }
 
 /**
- * Extract verification link from email content.
- */
-function extractVerificationLink(content: string): string | null {
-  const patterns = [
-    /https?:\/\/[^\s<>"]+\/verify-email[^\s<>"]+/i,
-    /https?:\/\/[^\s<>"]+\/email-verification[^\s<>"]+/i,
-    /https?:\/\/[^\s<>"]+token=[^\s<>"]+/i,
-  ];
-
-  for (const pattern of patterns) {
-    const match = content.match(pattern);
-    if (match) {
-      return match[0];
-    }
-  }
-
-  return null;
-}
-
-/**
  * Extract verification token from email content.
  */
 function extractVerificationToken(content: string): string | null {
@@ -194,70 +174,6 @@ export async function verifyEmailViaMailpit(
   // Fallback: verify directly via database
   console.log(`Email verification via Mailpit failed, falling back to database for ${email}`);
   return verifyEmailViaDatabase(email);
-}
-
-/**
- * User data with organization ID.
- */
-export interface RegisteredUser {
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-  organizationId: string;
-}
-
-/**
- * Register a user and verify their email.
- * Returns user data including the auto-created organization ID.
- */
-export async function registerAndVerifyUser(
-  request: APIRequestContext,
-  userData: {
-    email: string;
-    password: string;
-    firstName: string;
-    lastName: string;
-  }
-): Promise<RegisteredUser> {
-  const registerResponse = await request.post(`${API_BASE_URL}/register`, {
-    data: {
-      email: userData.email,
-      first_name: userData.firstName,
-      last_name: userData.lastName,
-      password: userData.password,
-    },
-  });
-
-  if (!registerResponse.ok()) {
-    throw new Error(
-      `Registration failed: ${registerResponse.status()} ${await registerResponse.text()}`
-    );
-  }
-
-  const verificationResult = await verifyEmailViaMailpit(request, userData.email);
-
-  if (!verificationResult.organizationId) {
-    throw new Error(`No organization found for user ${userData.email}`);
-  }
-
-  return {
-    ...userData,
-    organizationId: verificationResult.organizationId,
-  };
-}
-
-/**
- * Generate unique test user credentials.
- */
-export function generateTestUser() {
-  const timestamp = Date.now();
-  return {
-    email: `test-${timestamp}@hook0.local`,
-    password: `TestPassword123!${timestamp}`,
-    firstName: "Test",
-    lastName: "User",
-  };
 }
 
 function sleep(ms: number): Promise<void> {

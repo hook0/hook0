@@ -224,6 +224,7 @@ onUnmounted(removeAfterEach);
       v-if="navTabs.length > 0"
       ref="tabsNavRef"
       class="hook0-topnav__tabs"
+      data-test="tab-bar"
       :aria-label="t('nav.tabBar')"
     >
       <router-link

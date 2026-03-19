@@ -135,11 +135,16 @@ onBeforeUnmount(() => {
             <!-- Actions -->
             <div class="hook0-dialog__actions">
               <slot name="actions">
-                <Hook0Button variant="secondary" @click="emitClose">
+                <Hook0Button
+                  variant="secondary"
+                  data-test="dialog-cancel-button"
+                  @click="emitClose"
+                >
                   {{ t('common.cancel') }}
                 </Hook0Button>
                 <Hook0Button
                   :variant="variant === 'danger' ? 'danger' : 'primary'"
+                  data-test="dialog-confirm-button"
                   @click="emitConfirm"
                 >
                   {{

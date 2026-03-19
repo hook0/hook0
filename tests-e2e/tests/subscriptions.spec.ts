@@ -573,7 +573,7 @@ test.describe("Subscriptions", () => {
     await page.locator('[data-test="subscription-delete-button"]').click();
 
     // Wait for confirmation dialog and click confirm
-    const confirmButton = page.locator('.hook0-dialog--danger .hook0-dialog__actions button:last-child');
+    const confirmButton = page.locator('[data-test="dialog-confirm-button"]');
     await expect(confirmButton).toBeVisible({ timeout: 5000 });
 
     const responsePromise = page.waitForResponse(
@@ -612,13 +612,13 @@ test.describe("Subscriptions", () => {
       timeout: 10000,
     });
 
-    // Setup dialog handler to DISMISS the confirmation
-    page.on("dialog", (dialog) => {
-      dialog.dismiss();
-    });
-
-    // Click delete button
+    // Click delete button to open Hook0Dialog confirmation
     await page.locator('[data-test="subscription-delete-button"]').click();
+
+    // Wait for confirmation dialog and click cancel
+    const cancelButton = page.locator('[data-test="dialog-cancel-button"]');
+    await expect(cancelButton).toBeVisible({ timeout: 5000 });
+    await cancelButton.click();
 
     // Should still be on the edit page (not redirected)
     await expect(page).toHaveURL(new RegExp(`/subscriptions/${subscriptionId}$`), {

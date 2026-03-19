@@ -125,7 +125,13 @@ const modelStr = computed({
         <Eye v-else :size="20" aria-hidden="true" />
       </button>
     </div>
-    <p v-if="error" :id="`${inputId}-error`" class="hook0-input-error-text" role="alert">
+    <p
+      v-if="error"
+      :id="`${inputId}-error`"
+      class="hook0-input-error-text"
+      data-test="input-error"
+      role="alert"
+    >
       {{ error }}
     </p>
     <Hook0HelpText v-if="hasSlot('helpText')">

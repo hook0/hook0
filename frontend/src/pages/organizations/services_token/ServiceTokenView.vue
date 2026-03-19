@@ -543,7 +543,12 @@ function previewToken() {
                 </Hook0CardContentLine>
               </Hook0CardContent>
               <Hook0CardFooter>
-                <Hook0Button variant="secondary" type="button" @click="cancel">
+                <Hook0Button
+                  variant="secondary"
+                  type="button"
+                  data-test="service-token-back-button"
+                  @click="cancel"
+                >
                   {{ t('common.cancel') }}
                 </Hook0Button>
                 <Hook0Button variant="primary" submit>
@@ -613,7 +618,12 @@ function previewToken() {
                 </Hook0CardContentLine>
               </Hook0CardContent>
               <Hook0CardFooter>
-                <Hook0Button variant="secondary" type="button" @click="cancel">
+                <Hook0Button
+                  variant="secondary"
+                  type="button"
+                  data-test="service-token-back-button"
+                  @click="cancel"
+                >
                   {{ t('common.cancel') }}
                 </Hook0Button>
                 <Hook0Button variant="ghost" type="button" @click="previewToken">

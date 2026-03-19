@@ -11,6 +11,8 @@ import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verificat
  * 3. Verify response.status < 400 AND verify data/navigation
  */
 test.describe("Tutorial Wizard Flow", () => {
+  test.describe.configure({ mode: 'serial' });
+
   /**
    * Helper to setup test environment with authenticated user.
    */
@@ -76,199 +78,202 @@ test.describe("Tutorial Wizard Flow", () => {
     await page.goto("/tutorial");
     await expect(page).toHaveURL(/\/tutorial/, { timeout: 10000 });
 
-    // --- Intro: Click Start ---
-    await expect(page.locator('[data-test="tutorial-wizard-modal"]')).toBeVisible({
-      timeout: 10000,
-    });
-    await expect(page.locator('[data-test="tutorial-start-button"]')).toBeVisible({
-      timeout: 10000,
-    });
-    await page.locator('[data-test="tutorial-start-button"]').click();
-
-    // --- Step 1: Create Organization ---
-    await expect(page).toHaveURL(/\/tutorial\/organization/, { timeout: 15000 });
-    await expect(page.locator('[data-test="tutorial-wizard-modal"]')).toBeVisible({
-      timeout: 10000,
+    await test.step('Intro: Click Start', async () => {
+      await expect(page.locator('[data-test="tutorial-wizard-modal"]')).toBeVisible({
+        timeout: 10000,
+      });
+      await expect(page.locator('[data-test="tutorial-start-button"]')).toBeVisible({
+        timeout: 10000,
+      });
+      await page.locator('[data-test="tutorial-start-button"]').click();
     });
 
-    // The "Create a new organization" card may be auto-selected when no orgs exist.
-    // Click it if the selectable card is visible, otherwise the form is already shown.
-    const createOrgRadio = page.locator('[data-test="tutorial-create-org-radio"]');
-    if (await createOrgRadio.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await createOrgRadio.click();
-    }
+    await test.step('Step 1: Create Organization', async () => {
+      await expect(page).toHaveURL(/\/tutorial\/organization/, { timeout: 15000 });
+      await expect(page.locator('[data-test="tutorial-wizard-modal"]')).toBeVisible({
+        timeout: 10000,
+      });
 
-    // Fill organization name
-    const orgNameInput = page.locator('[data-test="organization-name-input"]');
-    await expect(orgNameInput).toBeVisible({ timeout: 10000 });
-    await orgNameInput.fill(`Wizard Org ${env.timestamp}`);
+      // The "Create a new organization" card may be auto-selected when no orgs exist.
+      // Click it if the selectable card is visible, otherwise the form is already shown.
+      const createOrgRadio = page.locator('[data-test="tutorial-create-org-radio"]');
+      if (await createOrgRadio.isVisible({ timeout: 3000 }).catch(() => false)) {
+        await createOrgRadio.click();
+      }
 
-    // Step 1: Submit org creation and wait for API response
-    const orgResponsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/v1/organizations") &&
-        response.request().method() === "POST",
-      { timeout: 15000 }
-    );
+      // Fill organization name
+      const orgNameInput = page.locator('[data-test="organization-name-input"]');
+      await expect(orgNameInput).toBeVisible({ timeout: 10000 });
+      await orgNameInput.fill(`Wizard Org ${env.timestamp}`);
 
-    // Also wait for the token refresh that happens after org creation (new org permissions in JWT)
-    const refreshResponsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/v1/auth/refresh") &&
-        response.request().method() === "POST",
-      { timeout: 15000 }
-    );
+      // Submit org creation and wait for API response
+      const orgResponsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/v1/organizations") &&
+          response.request().method() === "POST",
+        { timeout: 15000 }
+      );
 
-    await page.locator('[data-test="organization-submit-button"]').click();
-    const orgResponse = await orgResponsePromise;
+      // Also wait for the token refresh that happens after org creation (new org permissions in JWT)
+      const refreshResponsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/v1/auth/refresh") &&
+          response.request().method() === "POST",
+        { timeout: 15000 }
+      );
 
-    // Step 1: Verify response
-    expect(orgResponse.status()).toBeLessThan(400);
+      await page.locator('[data-test="organization-submit-button"]').click();
+      const orgResponse = await orgResponsePromise;
 
-    // Wait for token refresh to complete (needed for subsequent API calls with new org permissions)
-    await refreshResponsePromise;
+      // Verify response
+      expect(orgResponse.status()).toBeLessThan(400);
 
-    // After org creation, the wizard auto-advances to step 2 (no continue button needed).
-    // --- Step 2: Create Application ---
-    await expect(page).toHaveURL(/\/tutorial\/application/, { timeout: 15000 });
-
-    // Reload page to ensure fresh state with the updated JWT token
-    await page.reload({ waitUntil: "networkidle" });
-
-    await expect(page.locator('[data-test="tutorial-wizard-modal"]')).toBeVisible({
-      timeout: 10000,
+      // Wait for token refresh to complete (needed for subsequent API calls with new org permissions)
+      await refreshResponsePromise;
     });
 
-    // When no apps exist and requireOptions=true, the entity step auto-selects "Create"
-    // and hides the selectable cards. The ApplicationsEdit form is shown directly.
-    const createAppRadio = page.locator('[data-test="tutorial-create-app-radio"]');
-    if (await createAppRadio.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await createAppRadio.click();
-    }
+    await test.step('Step 2: Create Application', async () => {
+      // After org creation, the wizard auto-advances to step 2
+      await expect(page).toHaveURL(/\/tutorial\/application/, { timeout: 15000 });
 
-    // Fill application name (may take time to load the app list and show the form)
-    const appNameInput = page.locator('[data-test="application-name-input"]');
-    await expect(appNameInput).toBeVisible({ timeout: 20000 });
-    await appNameInput.fill(`Wizard App ${env.timestamp}`);
+      // Reload page to ensure fresh state with the updated JWT token
+      await page.reload();
+      await expect(page.locator('[data-test="tutorial-wizard-modal"]')).toBeVisible({ timeout: 10000 });
 
-    // Step 2: Submit app creation and verify via UI (continue button appears on success)
-    await page.locator('[data-test="application-submit-button"]').click();
+      // When no apps exist and requireOptions=true, the entity step auto-selects "Create"
+      // and hides the selectable cards. The ApplicationsEdit form is shown directly.
+      const createAppRadio = page.locator('[data-test="tutorial-create-app-radio"]');
+      if (await createAppRadio.isVisible({ timeout: 3000 }).catch(() => false)) {
+        await createAppRadio.click();
+      }
 
-    // After app creation, the wizard auto-advances to step 3 (no continue button needed).
-    // --- Step 3: Create Event Type (3 segments) ---
-    await expect(page).toHaveURL(/\/tutorial\/event_type/, { timeout: 15000 });
-    await expect(page.locator('[data-test="tutorial-wizard-modal"]')).toBeVisible({
-      timeout: 10000,
+      // Fill application name (may take time to load the app list and show the form)
+      const appNameInput = page.locator('[data-test="application-name-input"]');
+      await expect(appNameInput).toBeVisible({ timeout: 20000 });
+      await appNameInput.fill(`Wizard App ${env.timestamp}`);
+
+      // Submit app creation and verify via UI (continue button appears on success)
+      await page.locator('[data-test="application-submit-button"]').click();
     });
 
-    // Fill the 3 event type segments
-    await expect(page.locator('[data-test="event-type-service-input"]')).toBeVisible({
-      timeout: 10000,
-    });
-    await page.locator('[data-test="event-type-service-input"]').fill("billing");
-    await page.locator('[data-test="event-type-resource-input"]').fill("invoice");
-    await page.locator('[data-test="event-type-verb-input"]').fill("created");
+    await test.step('Step 3: Create Event Type', async () => {
+      // After app creation, the wizard auto-advances to step 3
+      await expect(page).toHaveURL(/\/tutorial\/event_type/, { timeout: 15000 });
+      await expect(page.locator('[data-test="tutorial-wizard-modal"]')).toBeVisible({
+        timeout: 10000,
+      });
 
-    // Step 3: Submit and wait for API response
-    const eventTypeResponsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes("/event_types") && response.request().method() === "POST",
-      { timeout: 15000 }
-    );
+      // Fill the 3 event type segments
+      await expect(page.locator('[data-test="event-type-service-input"]')).toBeVisible({
+        timeout: 10000,
+      });
+      await page.locator('[data-test="event-type-service-input"]').fill("billing");
+      await page.locator('[data-test="event-type-resource-input"]').fill("invoice");
+      await page.locator('[data-test="event-type-verb-input"]').fill("created");
 
-    await page.locator('[data-test="event-type-submit-button"]').click();
-    const eventTypeResponse = await eventTypeResponsePromise;
+      // Submit and wait for API response
+      const eventTypeResponsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes("/event_types") && response.request().method() === "POST",
+        { timeout: 15000 }
+      );
 
-    // Step 3: Verify
-    expect(eventTypeResponse.status()).toBeLessThan(400);
+      await page.locator('[data-test="event-type-submit-button"]').click();
+      const eventTypeResponse = await eventTypeResponsePromise;
 
-    // Steps 3-5 auto-advance via TutorialWizardStepForm -> emit('advance')
-
-    // --- Step 4: Create Subscription ---
-    await expect(page).toHaveURL(/\/tutorial\/subscription/, { timeout: 15000 });
-    await expect(page.locator('[data-test="tutorial-wizard-modal"]')).toBeVisible({
-      timeout: 10000,
-    });
-
-    // Fill description (required)
-    const descriptionInput = page.locator('[data-test="subscription-description-input"]');
-    await expect(descriptionInput).toBeVisible({ timeout: 10000 });
-    await descriptionInput.fill("Test webhook subscription");
-
-    // Fill URL (required)
-    await page.locator('[data-test="subscription-url-input"]').fill("https://example.com/webhook");
-
-    // Add a label key-value pair (required: hasRequiredLabels needs at least one)
-    // Scope to the subscription-labels container to avoid matching the headers KV section
-    const labelsContainer = page.locator('[data-test="subscription-labels"]');
-    const labelKeyInput = labelsContainer.locator('[data-test="kv-key-input-0"]');
-    const labelValueInput = labelsContainer.locator('[data-test="kv-value-input-0"]');
-    await expect(labelKeyInput).toBeVisible({ timeout: 10000 });
-    await labelKeyInput.fill("env");
-    await labelValueInput.fill("test");
-
-    // Select at least one event type (required: hasSelectedEventTypes)
-    const eventTypeCheckbox = page.locator('[data-test="event-type-checkbox-0"]');
-    await expect(eventTypeCheckbox).toBeVisible({ timeout: 10000 });
-    await eventTypeCheckbox.click();
-
-    // Step 4: Submit and wait for API response
-    const subscriptionResponsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes("/subscriptions") && response.request().method() === "POST",
-      { timeout: 15000 }
-    );
-
-    await page.locator('[data-test="subscription-submit-button"]').click();
-    const subscriptionResponse = await subscriptionResponsePromise;
-
-    // Step 4: Verify
-    expect(subscriptionResponse.status()).toBeLessThan(400);
-
-    // --- Step 5: Send Event ---
-    await expect(page).toHaveURL(/\/tutorial\/event/, { timeout: 15000 });
-    await expect(page.locator('[data-test="tutorial-wizard-modal"]')).toBeVisible({
-      timeout: 10000,
+      // Verify
+      expect(eventTypeResponse.status()).toBeLessThan(400);
     });
 
-    // Select event type (Hook0Select auto-selects first option on mount via initValue)
-    // Fill occurredAt (required, starts empty)
-    const occurredAtInput = page.locator('[data-test="send-event-occurred-at-input"]');
-    await expect(occurredAtInput).toBeVisible({ timeout: 10000 });
-    const now = new Date();
-    const datetimeLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}T${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-    await occurredAtInput.fill(datetimeLocal);
+    await test.step('Step 4: Create Subscription', async () => {
+      // Steps auto-advance via TutorialWizardStepForm -> emit('advance')
+      await expect(page).toHaveURL(/\/tutorial\/subscription/, { timeout: 15000 });
+      await expect(page.locator('[data-test="tutorial-wizard-modal"]')).toBeVisible({
+        timeout: 10000,
+      });
 
-    // Step 5: Submit and wait for API response (endpoint is /event singular)
-    const sendEventResponsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes("/event") && response.request().method() === "POST",
-      { timeout: 15000 }
-    );
+      // Fill description (required)
+      const descriptionInput = page.locator('[data-test="subscription-description-input"]');
+      await expect(descriptionInput).toBeVisible({ timeout: 10000 });
+      await descriptionInput.fill("Test webhook subscription");
 
-    await expect(page.locator('[data-test="send-event-submit-button"]')).toBeVisible({
-      timeout: 10000,
+      // Fill URL (required)
+      await page.locator('[data-test="subscription-url-input"]').fill("https://example.com/webhook");
+
+      // Add a label key-value pair (required: hasRequiredLabels needs at least one)
+      // Scope to the subscription-labels container to avoid matching the headers KV section
+      const labelsContainer = page.locator('[data-test="subscription-labels"]');
+      const labelKeyInput = labelsContainer.locator('[data-test="kv-key-input-0"]');
+      const labelValueInput = labelsContainer.locator('[data-test="kv-value-input-0"]');
+      await expect(labelKeyInput).toBeVisible({ timeout: 10000 });
+      await labelKeyInput.fill("env");
+      await labelValueInput.fill("test");
+
+      // Select at least one event type (required: hasSelectedEventTypes)
+      const eventTypeCheckbox = page.locator('[data-test="event-type-checkbox-0"]');
+      await expect(eventTypeCheckbox).toBeVisible({ timeout: 10000 });
+      await eventTypeCheckbox.click();
+
+      // Submit and wait for API response
+      const subscriptionResponsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes("/subscriptions") && response.request().method() === "POST",
+        { timeout: 15000 }
+      );
+
+      await page.locator('[data-test="subscription-submit-button"]').click();
+      const subscriptionResponse = await subscriptionResponsePromise;
+
+      // Verify
+      expect(subscriptionResponse.status()).toBeLessThan(400);
     });
-    await page.locator('[data-test="send-event-submit-button"]').click();
-    const sendEventResponse = await sendEventResponsePromise;
 
-    // Step 5: Verify
-    expect(sendEventResponse.status()).toBeLessThan(400);
+    await test.step('Step 5: Send Event', async () => {
+      await expect(page).toHaveURL(/\/tutorial\/event/, { timeout: 15000 });
+      await expect(page.locator('[data-test="tutorial-wizard-modal"]')).toBeVisible({
+        timeout: 10000,
+      });
 
-    // --- Step 6: Verify Success ---
-    await expect(page).toHaveURL(/\/tutorial\/success/, { timeout: 15000 });
+      // Select event type (Hook0Select auto-selects first option on mount via initValue)
+      // Fill occurredAt (required, starts empty)
+      const occurredAtInput = page.locator('[data-test="send-event-occurred-at-input"]');
+      await expect(occurredAtInput).toBeVisible({ timeout: 10000 });
+      const now = new Date();
+      const datetimeLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}T${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+      await occurredAtInput.fill(datetimeLocal);
 
-    // Verify success page content via the dashboard button
-    await expect(page.locator('[data-test="tutorial-success-dashboard-button"]')).toBeVisible({
-      timeout: 15000,
+      // Submit and wait for API response (endpoint is /event singular)
+      const sendEventResponsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes("/event") && response.request().method() === "POST",
+        { timeout: 15000 }
+      );
+
+      await expect(page.locator('[data-test="send-event-submit-button"]')).toBeVisible({
+        timeout: 10000,
+      });
+      await page.locator('[data-test="send-event-submit-button"]').click();
+      const sendEventResponse = await sendEventResponsePromise;
+
+      // Verify
+      expect(sendEventResponse.status()).toBeLessThan(400);
     });
 
-    // Click "Go to dashboard" button
-    await page.locator('[data-test="tutorial-success-dashboard-button"]').click();
+    await test.step('Success: Verify completion', async () => {
+      await expect(page).toHaveURL(/\/tutorial\/success/, { timeout: 15000 });
 
-    // Verify redirect to dashboard/organizations area
-    await expect(page).toHaveURL(/\/dashboard|\/organizations/, {
-      timeout: 15000,
+      // Verify success page content via the dashboard button
+      await expect(page.locator('[data-test="tutorial-success-dashboard-button"]')).toBeVisible({
+        timeout: 15000,
+      });
+
+      // Click "Go to dashboard" button
+      await page.locator('[data-test="tutorial-success-dashboard-button"]').click();
+
+      // Verify redirect to dashboard/organizations area
+      await expect(page).toHaveURL(/\/dashboard|\/organizations/, {
+        timeout: 15000,
+      });
     });
   });
 

@@ -34,14 +34,20 @@ function getDetail(): string {
 </script>
 
 <template>
-  <Hook0Card>
+  <Hook0Card data-test="error-card">
     <div class="hook0-error-card">
       <div class="hook0-error-card-icon">
         <AlertCircle :size="40" aria-hidden="true" />
       </div>
-      <h3 class="hook0-error-card-title">{{ getTitle() }}</h3>
-      <p class="hook0-error-card-detail">{{ getDetail() }}</p>
-      <Hook0Button v-if="retryable" variant="secondary" size="sm" @click="emit('retry')">
+      <h3 class="hook0-error-card-title" data-test="error-card-title">{{ getTitle() }}</h3>
+      <p class="hook0-error-card-detail" data-test="error-card-detail">{{ getDetail() }}</p>
+      <Hook0Button
+        v-if="retryable"
+        variant="secondary"
+        size="sm"
+        data-test="error-card-retry"
+        @click="emit('retry')"
+      >
         <template #left>
           <RefreshCw :size="14" aria-hidden="true" />
         </template>

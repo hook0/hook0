@@ -303,7 +303,7 @@ test.describe("User Settings", () => {
     });
 
     // Verify the validation error message appears inline
-    await expect(page.locator('.hook0-input-error-text')).toBeVisible({
+    await expect(page.locator('[data-test="input-error"]')).toBeVisible({
       timeout: 10000,
     });
   });
@@ -349,7 +349,7 @@ test.describe("User Settings", () => {
     await page.locator('[data-test="delete-account-button"]').click();
 
     // Wait for confirmation dialog and click confirm
-    const confirmButton = page.locator('.hook0-dialog--danger .hook0-dialog__actions button:last-child');
+    const confirmButton = page.locator('[data-test="dialog-confirm-button"]');
     await expect(confirmButton).toBeVisible({ timeout: 5000 });
     await confirmButton.click();
 
@@ -399,13 +399,12 @@ test.describe("User Settings", () => {
       timeout: 10000,
     });
 
-    // Setup dialog handler to DISMISS the confirmation
-    page.on("dialog", (dialog) => {
-      dialog.dismiss();
-    });
-
-    // Click delete button
+    // Click delete button to open Hook0Dialog confirmation
     await page.locator('[data-test="delete-account-button"]').click();
+
+    // Wait for the dialog to appear, then click cancel
+    await expect(page.locator('[data-test="dialog-cancel-button"]')).toBeVisible({ timeout: 5000 });
+    await page.locator('[data-test="dialog-cancel-button"]').click();
 
     // Should still be on settings page (not logged out)
     await expect(page).toHaveURL(/\/settings/, {

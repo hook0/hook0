@@ -108,6 +108,7 @@ export function useLogColumns(): ColumnDef<RequestAttemptExtended, unknown>[] {
               },
             },
             class: 'log-event-link',
+            'data-test': 'log-event-link',
           },
           () => String(info.getValue())
         );

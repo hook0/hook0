@@ -119,7 +119,7 @@ const chartOption = computed(() => {
   <div class="chart">
     <div class="chart__header">
       <!-- KPI stats -->
-      <div class="chart__stats">
+      <div class="chart__stats" data-test="chart-stats">
         <div class="chart__stat">
           <span class="chart__stat-value">{{ totalEvents.toLocaleString() }}</span>
           <span class="chart__stat-label">{{ t('eventsPerDayChart.totalEvents') }}</span>
@@ -134,7 +134,7 @@ const chartOption = computed(() => {
         </div>
       </div>
       <!-- Day presets -->
-      <div class="chart__toolbar">
+      <div class="chart__toolbar" data-test="chart-toolbar">
         <Hook0Button
           v-for="preset in dayPresets"
           :key="preset"

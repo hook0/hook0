@@ -122,7 +122,7 @@ test.describe("Events", () => {
     return {
       email,
       password,
-      organizationId,
+      organizationId: organizationId!,
       applicationId,
       timestamp,
       eventTypeName: "test.entity.created",
@@ -165,61 +165,56 @@ test.describe("Events", () => {
     await expect(page.locator('[data-test="send-event-cancel-button"]')).toBeVisible();
   });
 
-  test("should send test event and verify API response", async ({ page, request }) => {
-    const env = await setupTestEnvironment(page, request, "send");
-
-    // Navigate to events page
-    await page.goto(
-      `/organizations/${env.organizationId}/applications/${env.applicationId}/events`
-    );
-
+  /**
+   * Helper to send a test event: navigates, opens form, fills labels, submits.
+   * Returns the API response promise.
+   */
+  async function sendTestEvent(
+    page: import("@playwright/test").Page,
+    env: { organizationId: string; applicationId: string; eventTypeName: string },
+  ) {
+    // Navigate to events
+    await page.goto(`/organizations/${env.organizationId}/applications/${env.applicationId}/events`);
     await expect(page.locator('[data-test="events-send-button"]')).toBeVisible({ timeout: 10000 });
-
-    // Click send event button to open form
     await page.locator('[data-test="events-send-button"]').click();
-
-    // Wait for form
     await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 10000 });
 
-    // Step 1: Fill form
+    // Select event type
     await page.locator('[data-test="send-event-type-select"]').selectOption(env.eventTypeName);
 
-    // Add labels (required for event submission) using data-test selectors
-    const labelKeyInput = page.locator('[data-test="send-event-labels"] [data-test="kv-key-input-0"]');
-    const labelValueInput = page.locator('[data-test="send-event-labels"] [data-test="kv-value-input-0"]');
-    await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
+    // Fill labels
+    const labelKey = page.locator('[data-test="send-event-labels"] [data-test="kv-key-input-0"]');
+    const labelValue = page.locator('[data-test="send-event-labels"] [data-test="kv-value-input-0"]');
+    await expect(labelKey).toBeVisible({ timeout: 5000 });
+    await labelKey.clear();
+    await labelKey.fill("all");
+    await labelKey.blur();
+    await labelValue.clear();
+    await labelValue.fill("yes");
+    await labelValue.blur();
+    await expect(labelKey).toHaveValue("all");
+    await expect(labelValue).toHaveValue("yes");
 
-    // Clear and fill key input, then blur to trigger debounced emit
-    await labelKeyInput.clear();
-    await labelKeyInput.fill("env");
-    await labelKeyInput.blur();
-
-    // Clear and fill value input, then blur to trigger debounced emit
-    await labelValueInput.clear();
-    await labelValueInput.fill("test");
-    await labelValueInput.blur();
-
-    // Wait for debounced label input to be processed
-    await expect(labelKeyInput).toHaveValue("env");
-    await expect(labelValueInput).toHaveValue("test");
-
-    // Set occurred_at to current date/time
+    // Set occurred_at
     const now = new Date();
-    const dateTimeValue = now.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:MM
-    await page.locator('[data-test="send-event-occurred-at-input"]').fill(dateTimeValue);
+    await page.locator('[data-test="send-event-occurred-at-input"]').fill(now.toISOString().slice(0, 16));
 
-    // Step 2: Submit and wait for API response
+    // Submit
     const responsePromise = page.waitForResponse(
       (response) =>
         response.url().includes("/api/v1/event") && response.request().method() === "POST" && !response.url().includes("/api/v1/event_types"),
       { timeout: 15000 }
     );
-
     await page.locator('[data-test="send-event-submit-button"]').click();
+    return responsePromise;
+  }
 
-    const response = await responsePromise;
+  test("should send test event and verify API response", async ({ page, request }) => {
+    const env = await setupTestEnvironment(page, request, "send");
 
-    // Step 3: Verify API response
+    const response = await sendTestEvent(page, env);
+
+    // Verify API response
     expect(response.status()).toBeLessThan(400);
 
     // Verify success notification is shown using data-test selector
@@ -234,52 +229,7 @@ test.describe("Events", () => {
   test("should display events list with sent event", async ({ page, request }) => {
     const env = await setupTestEnvironment(page, request, "list-with-event");
 
-    // Navigate to events page and send an event first
-    await page.goto(
-      `/organizations/${env.organizationId}/applications/${env.applicationId}/events`
-    );
-
-    await expect(page.locator('[data-test="events-send-button"]')).toBeVisible({ timeout: 10000 });
-
-    // Click send event button to open form
-    await page.locator('[data-test="events-send-button"]').click();
-
-    // Wait for form and fill it
-    await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 10000 });
-    await page.locator('[data-test="send-event-type-select"]').selectOption(env.eventTypeName);
-
-    // Add labels (required for event submission) using data-test selectors
-    const labelKeyInput = page.locator('[data-test="send-event-labels"] [data-test="kv-key-input-0"]');
-    const labelValueInput = page.locator('[data-test="send-event-labels"] [data-test="kv-value-input-0"]');
-    await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
-
-    // Clear and fill key input, then blur to trigger debounced emit
-    await labelKeyInput.clear();
-    await labelKeyInput.fill("env");
-    await labelKeyInput.blur();
-
-    // Clear and fill value input, then blur to trigger debounced emit
-    await labelValueInput.clear();
-    await labelValueInput.fill("test");
-    await labelValueInput.blur();
-
-    // Wait for debounced label input to be processed
-    await expect(labelKeyInput).toHaveValue("env");
-    await expect(labelValueInput).toHaveValue("test");
-
-    const now = new Date();
-    const dateTimeValue = now.toISOString().slice(0, 16);
-    await page.locator('[data-test="send-event-occurred-at-input"]').fill(dateTimeValue);
-
-    // Submit
-    const responsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/v1/event") && response.request().method() === "POST" && !response.url().includes("/api/v1/event_types"),
-      { timeout: 15000 }
-    );
-
-    await page.locator('[data-test="send-event-submit-button"]').click();
-    const response = await responsePromise;
+    const response = await sendTestEvent(page, env);
     expect(response.status()).toBeLessThan(400);
 
     // Wait for events list to refresh
@@ -368,43 +318,7 @@ test.describe("Events", () => {
   test("should open side panel when clicking event row", async ({ page, request }) => {
     const env = await setupTestEnvironment(page, request, "side-panel");
 
-    // Navigate to events page and send an event first
-    await page.goto(
-      `/organizations/${env.organizationId}/applications/${env.applicationId}/events`
-    );
-
-    await expect(page.locator('[data-test="events-send-button"]')).toBeVisible({ timeout: 10000 });
-
-    // Send an event
-    await page.locator('[data-test="events-send-button"]').click();
-    await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 10000 });
-    await page.locator('[data-test="send-event-type-select"]').selectOption(env.eventTypeName);
-
-    // Add labels
-    const labelKeyInput = page.locator('[data-test="send-event-labels"] [data-test="kv-key-input-0"]');
-    const labelValueInput = page.locator('[data-test="send-event-labels"] [data-test="kv-value-input-0"]');
-    await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
-    await labelKeyInput.clear();
-    await labelKeyInput.fill("env");
-    await labelKeyInput.blur();
-    await labelValueInput.clear();
-    await labelValueInput.fill("test");
-    await labelValueInput.blur();
-    await expect(labelKeyInput).toHaveValue("env");
-    await expect(labelValueInput).toHaveValue("test");
-
-    const now = new Date();
-    const dateTimeValue = now.toISOString().slice(0, 16);
-    await page.locator('[data-test="send-event-occurred-at-input"]').fill(dateTimeValue);
-
-    const responsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/v1/event") && response.request().method() === "POST" && !response.url().includes("/api/v1/event_types"),
-      { timeout: 15000 }
-    );
-
-    await page.locator('[data-test="send-event-submit-button"]').click();
-    const response = await responsePromise;
+    const response = await sendTestEvent(page, env);
     expect(response.status()).toBeLessThan(400);
 
     // Wait for events list
@@ -430,59 +344,15 @@ test.describe("Events", () => {
   test("should navigate to event detail page", async ({ page, request }) => {
     const env = await setupTestEnvironment(page, request, "detail");
 
-    // Navigate to events page and send an event first
-    await page.goto(
-      `/organizations/${env.organizationId}/applications/${env.applicationId}/events`
-    );
-
-    await expect(page.locator('[data-test="events-send-button"]')).toBeVisible({ timeout: 10000 });
-
-    // Send an event
-    await page.locator('[data-test="events-send-button"]').click();
-    await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 10000 });
-    await page.locator('[data-test="send-event-type-select"]').selectOption(env.eventTypeName);
-
-    // Add labels (required for event submission) using data-test selectors
-    const labelKeyInput = page.locator('[data-test="send-event-labels"] [data-test="kv-key-input-0"]');
-    const labelValueInput = page.locator('[data-test="send-event-labels"] [data-test="kv-value-input-0"]');
-    await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
-
-    // Clear and fill key input, then blur to trigger debounced emit
-    await labelKeyInput.clear();
-    await labelKeyInput.fill("env");
-    await labelKeyInput.blur();
-
-    // Clear and fill value input, then blur to trigger debounced emit
-    await labelValueInput.clear();
-    await labelValueInput.fill("test");
-    await labelValueInput.blur();
-
-    // Wait for debounced label input to be processed
-    await expect(labelKeyInput).toHaveValue("env");
-    await expect(labelValueInput).toHaveValue("test");
-
-    const now = new Date();
-    const dateTimeValue = now.toISOString().slice(0, 16);
-    await page.locator('[data-test="send-event-occurred-at-input"]').fill(dateTimeValue);
-
-    const responsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/v1/event") && response.request().method() === "POST" && !response.url().includes("/api/v1/event_types"),
-      { timeout: 15000 }
-    );
-
-    await page.locator('[data-test="send-event-submit-button"]').click();
-    const response = await responsePromise;
+    const response = await sendTestEvent(page, env);
     expect(response.status()).toBeLessThan(400);
 
     // Wait for events list to show
     await expect(page.locator('[data-test="events-card"]')).toBeVisible({ timeout: 10000 });
 
     // Click on the event ID link in the first row
-    // Note: ag-grid data-test attributes may have timing issues, so we click the first link in the row
     const rows = page.locator('[data-test="events-table"] [row-id]');
     await expect(rows.first()).toBeVisible();
-    // The event ID column contains a link - click on it
     const eventLink = rows.first().locator('a').first();
     await expect(eventLink).toBeVisible({ timeout: 5000 });
     await eventLink.click();
@@ -496,45 +366,7 @@ test.describe("Events", () => {
   test("should display event detail page with payload and metadata", async ({ page, request }) => {
     const env = await setupTestEnvironment(page, request, "detail-full");
 
-    // Navigate to events page and send an event with known payload
-    await page.goto(
-      `/organizations/${env.organizationId}/applications/${env.applicationId}/events`
-    );
-
-    await expect(page.locator('[data-test="events-send-button"]')).toBeVisible({ timeout: 10000 });
-
-    // Send an event
-    await page.locator('[data-test="events-send-button"]').click();
-    await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 10000 });
-    await page.locator('[data-test="send-event-type-select"]').selectOption(env.eventTypeName);
-
-    // Add labels (use "all"/"yes" to match subscription labels from setupTestEnvironment)
-    const labelKeyInput = page.locator('[data-test="send-event-labels"] [data-test="kv-key-input-0"]');
-    const labelValueInput = page.locator('[data-test="send-event-labels"] [data-test="kv-value-input-0"]');
-    await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
-    await labelKeyInput.clear();
-    await labelKeyInput.fill("all");
-    await labelKeyInput.blur();
-    await labelValueInput.clear();
-    await labelValueInput.fill("yes");
-    await labelValueInput.blur();
-    await expect(labelKeyInput).toHaveValue("all");
-    await expect(labelValueInput).toHaveValue("yes");
-
-    // Set occurred_at
-    const now = new Date();
-    const dateTimeValue = now.toISOString().slice(0, 16);
-    await page.locator('[data-test="send-event-occurred-at-input"]').fill(dateTimeValue);
-
-    // Submit event
-    const responsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/v1/event") && response.request().method() === "POST" && !response.url().includes("/api/v1/event_types"),
-      { timeout: 15000 }
-    );
-
-    await page.locator('[data-test="send-event-submit-button"]').click();
-    const response = await responsePromise;
+    const response = await sendTestEvent(page, env);
     expect(response.status()).toBeLessThan(400);
 
     // Wait for events list
@@ -560,8 +392,6 @@ test.describe("Events", () => {
     await expect(detailCard).toContainText(env.eventTypeName);
 
     // Verify payload section is visible (the page has 4 cards: detail, metadata, labels, payload)
-    // Check that the page contains payload-related content
-    // Hook0Code inline renders <code> elements; wait for content to load with retries
     const detailPage = page.locator('[data-test="event-detail-page"]');
     await expect(detailPage).toContainText('application/json', { timeout: 30000 });
 

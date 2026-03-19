@@ -37,7 +37,7 @@ test.describe("Mobile Navigation", () => {
     await page.goto(`/organizations/${organizationId}/dashboard`);
 
     // Tab bar nav should be visible (Row 2 of the top nav)
-    const tabBar = page.locator("nav.hook0-topnav__tabs");
+    const tabBar = page.locator('[data-test="tab-bar"]');
     await expect(tabBar).toBeVisible({ timeout: 10000 });
 
     // Tab icons should be visible (labels hidden on mobile via CSS)
@@ -73,11 +73,11 @@ test.describe("Mobile Navigation", () => {
     await page.goto(`/organizations/${organizationId}/applications`);
 
     // Tab bar should be visible
-    const tabBar = page.locator("nav.hook0-topnav__tabs");
+    const tabBar = page.locator('[data-test="tab-bar"]');
     await expect(tabBar).toBeVisible({ timeout: 10000 });
 
     // Click a different tab (e.g., the second tab which should be "Applications")
-    const tabs = tabBar.locator(".hook0-topnav__tab");
+    const tabs = tabBar.locator("a");
     const tabCount = await tabs.count();
     expect(tabCount).toBeGreaterThan(1);
 

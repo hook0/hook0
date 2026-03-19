@@ -165,6 +165,7 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
         h(Hook0TableCellLink, {
           value: t('serviceTokens.show'),
           icon: markRaw(Eye),
+          dataTest: 'token-show-action',
           onClick: () => handleShow(row),
         }),
       ];
@@ -173,6 +174,7 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
           h(Hook0TableCellLink, {
             value: t('serviceTokens.editAction'),
             icon: markRaw(Pencil),
+            dataTest: 'token-edit-action',
             onClick: () => handleEdit(row),
           })
         );
@@ -182,6 +184,7 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
           h(Hook0TableCellLink, {
             value: t('common.delete'),
             icon: markRaw(Trash2),
+            dataTest: 'token-delete-action',
             onClick: () => handleDelete(row),
           })
         );
