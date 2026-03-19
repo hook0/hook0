@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useAuthStore } from '@/stores/auth';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { routes } from '@/routes';
 import { useAuthErrorHandler } from '@/composables/useAuthErrorHandler';
 import { useForm } from 'vee-validate';
@@ -27,6 +27,7 @@ import Hook0AuthTrustBadges from '@/components/Hook0AuthTrustBadges.vue';
 
 const { t } = useI18n();
 
+const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 
@@ -53,9 +54,18 @@ const onSubmit = handleSubmit((values) => {
     .then(() => {
       trackEvent('auth', 'login', 'success');
 
+      // Redirect to the page the user was trying to access before login
+      const redirectTo = route.query.redirect_to as string | undefined;
+      if (redirectTo && redirectTo !== '/login' && redirectTo !== '/register') {
+        void router.push(redirectTo);
+        return undefined;
+      }
+
       return OrganizationService.list();
     })
     .then((organizations) => {
+      if (!organizations) return;
+
       // No organizations → show tutorial
       if (organizations.length === 0) {
         return router.push({ name: routes.Tutorial });

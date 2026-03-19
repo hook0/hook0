@@ -271,7 +271,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       // Auth guard
       if ((to.meta?.requiresAuth ?? true) && state.value === null) {
-        return { name: routes.Login };
+        return { name: routes.Login, query: { redirect_to: to.fullPath } };
       } else if (
         !(to.meta?.requiresAuth ?? true) &&
         (to.meta?.redirectIfLoggedIn ?? true) &&
