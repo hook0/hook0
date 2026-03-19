@@ -2,7 +2,7 @@
 import { computed, markRaw } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { Users, Rocket, FileText } from 'lucide-vue-next';
+import { Users, Box, FileText, Database } from 'lucide-vue-next';
 
 import {
   useOrganizationDetail,
@@ -112,20 +112,32 @@ const consumptions = computed<ConsumptionQuota[]>(() => {
     {
       icon: markRaw(Users),
       name: t('organizations.consumptionMembers'),
+      description: t('organizations.consumptionMembersDesc'),
       consumption: orgDetail.value.consumption.members || 0,
       quota: orgDetail.value.quotas.members_per_organization_limit,
     },
     {
-      icon: markRaw(Rocket),
+      icon: markRaw(Box),
       name: t('organizations.consumptionApplications'),
+      description: t('organizations.consumptionApplicationsDesc'),
       consumption: orgDetail.value.consumption.applications || 0,
       quota: orgDetail.value.quotas.applications_per_organization_limit,
     },
     {
       icon: markRaw(FileText),
       name: t('organizations.consumptionEventsPerDay'),
+      description: t('organizations.consumptionEventsPerDayDesc'),
       consumption: orgDetail.value.consumption.events_per_day || 0,
       quota: orgDetail.value.quotas.events_per_day_limit,
+    },
+    {
+      icon: markRaw(Database),
+      name: t('organizations.consumptionRetention'),
+      description: t('organizations.consumptionRetentionDesc'),
+      consumption: orgDetail.value.quotas.days_of_events_retention_limit,
+      quota: orgDetail.value.quotas.days_of_events_retention_limit,
+      displayValue: String(orgDetail.value.quotas.days_of_events_retention_limit),
+      displayUnit: 'days',
     },
   ];
 });

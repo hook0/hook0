@@ -1,20 +1,23 @@
 <script setup lang="ts">
 import type { Component } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
-import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
-import Hook0SimpleProgressBar from '@/components/Hook0SimpleProgressBar.vue';
-import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 
 export type ConsumptionQuota = {
   icon?: Component;
   name: string;
+  description?: string;
   consumption: number;
   quota: number;
+  /** Override display (e.g. "7" for retention) */
+  displayValue?: string;
+  /** Unit suffix (e.g. "days") shown after displayValue */
+  displayUnit?: string;
 };
 
 type Props = {
@@ -27,17 +30,28 @@ const props = defineProps<Props>();
 
 const INT_MAX = 2147483647;
 
-function formatQuota(quota: ConsumptionQuota): string {
-  if (quota.quota >= INT_MAX) {
-    return `${quota.consumption} / ${t('common.unlimited')}`;
-  }
-  const pct = quota.quota > 0 ? Math.round((quota.consumption / quota.quota) * 100) : 0;
-  return `${quota.consumption} / ${quota.quota} (${pct}%)`;
+function percentage(quota: ConsumptionQuota): number {
+  if (quota.quota >= INT_MAX || quota.quota <= 0) return 0;
+  return Math.round((quota.consumption / quota.quota) * 100);
 }
 
-function progressPercentage(quota: ConsumptionQuota): number {
-  if (quota.quota >= INT_MAX || quota.quota <= 0) return 0;
-  return Math.floor((quota.consumption / quota.quota) * 100);
+function barVariant(quota: ConsumptionQuota): string {
+  const pct = percentage(quota);
+  if (pct >= 90) return 'danger';
+  if (pct >= 70) return 'warning';
+  return 'ok';
+}
+
+function formatValue(quota: ConsumptionQuota): string {
+  if (quota.displayValue) return quota.displayValue;
+  if (quota.quota >= INT_MAX) return `${quota.consumption}`;
+  return String(quota.consumption);
+}
+
+function formatLimit(quota: ConsumptionQuota): string {
+  if (quota.displayValue) return '';
+  if (quota.quota >= INT_MAX) return t('common.unlimited');
+  return String(quota.quota);
 }
 </script>
 
@@ -50,10 +64,15 @@ function progressPercentage(quota: ConsumptionQuota): number {
       </template>
     </Hook0CardHeader>
     <Hook0CardContent>
-      <Hook0CardContentLine v-for="quota in props.consumptions" :key="quota.name" type="full-width">
-        <template #content>
-          <div class="consumption__row">
-            <div class="consumption__info">
+      <div class="consumption">
+        <div
+          v-for="(quota, index) in props.consumptions"
+          :key="quota.name"
+          class="consumption__row"
+          :class="{ 'consumption__row--bordered': index > 0 }"
+        >
+          <div class="consumption__label">
+            <span class="consumption__name">
               <component
                 :is="quota.icon"
                 v-if="quota.icon"
@@ -61,67 +80,171 @@ function progressPercentage(quota: ConsumptionQuota): number {
                 aria-hidden="true"
                 class="consumption__icon"
               />
-              <span class="consumption__text">
-                <strong>{{ quota.name }}</strong
-                >: {{ formatQuota(quota) }}
+              {{ quota.name }}
+            </span>
+            <span v-if="quota.description" class="consumption__desc">{{ quota.description }}</span>
+          </div>
+          <div class="consumption__meter">
+            <div class="consumption__values">
+              <span v-if="quota.displayValue" class="consumption__display">
+                <strong class="consumption__num">{{ quota.displayValue }}</strong>{{ ' '
+                }}<span v-if="quota.displayUnit" class="consumption__unit">{{
+                  quota.displayUnit
+                }}</span>
+              </span>
+              <span v-else class="consumption__used">
+                <strong class="consumption__num">{{ formatValue(quota) }}</strong>
+                <span v-if="formatLimit(quota)" class="consumption__of">
+                  of <strong class="consumption__num">{{ formatLimit(quota) }}</strong> used
+                </span>
+              </span>
+              <span
+                v-if="!quota.displayValue"
+                class="consumption__pct"
+                :class="`consumption__pct--${barVariant(quota)}`"
+              >
+                {{ percentage(quota) }}%
               </span>
             </div>
-            <div class="consumption__bar">
-              <Hook0SimpleProgressBar :percentage="progressPercentage(quota)" />
+            <div v-if="!quota.displayValue" class="consumption__track">
+              <div
+                class="consumption__fill"
+                :class="`consumption__fill--${barVariant(quota)}`"
+                :style="{ width: `${Math.min(percentage(quota), 100)}%` }"
+              />
             </div>
           </div>
-        </template>
-      </Hook0CardContentLine>
+        </div>
+      </div>
     </Hook0CardContent>
   </Hook0Card>
 </template>
 
 <style scoped>
-.consumption__row {
+.consumption {
   display: flex;
-  align-items: center;
-  width: 100%;
   flex-direction: column;
+}
+
+.consumption__row {
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 0.5rem;
+  padding: 0.875rem 0;
+}
+
+.consumption__row--bordered {
+  border-top: 1px solid var(--color-border);
 }
 
 @media (min-width: 640px) {
   .consumption__row {
-    flex-direction: row;
+    grid-template-columns: 2fr 3fr;
+    gap: 1.5rem;
+    align-items: center;
   }
 }
 
-.consumption__info {
-  width: 100%;
+.consumption__label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.consumption__name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-}
-
-@media (min-width: 640px) {
-  .consumption__info {
-    width: 33.333%;
-  }
+  gap: 0.375rem;
 }
 
 .consumption__icon {
   flex-shrink: 0;
+  color: var(--color-text-secondary);
 }
 
-.consumption__text {
+.consumption__desc {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.consumption__meter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.consumption__values {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.consumption__used {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+}
+
+.consumption__num {
   color: var(--color-text-primary);
+}
+
+.consumption__display {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+}
+
+.consumption__unit {
+  color: var(--color-text-secondary);
+  font-weight: 400;
+}
+
+.consumption__of {
+  color: var(--color-text-muted);
+}
+
+.consumption__pct {
+  font-size: 0.75rem;
   font-weight: 600;
-  font-size: 0.875rem;
-  line-height: 1.5;
 }
 
-.consumption__bar {
-  width: 100%;
+.consumption__pct--ok {
+  color: var(--color-success);
 }
 
-@media (min-width: 640px) {
-  .consumption__bar {
-    width: 66.667%;
-  }
+.consumption__pct--warning {
+  color: var(--color-warning);
+}
+
+.consumption__pct--danger {
+  color: var(--color-error);
+}
+
+.consumption__track {
+  height: 6px;
+  border-radius: 3px;
+  background-color: var(--color-bg-tertiary);
+  overflow: hidden;
+}
+
+.consumption__fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.consumption__fill--ok {
+  background-color: var(--color-success);
+}
+
+.consumption__fill--warning {
+  background-color: var(--color-warning);
+}
+
+.consumption__fill--danger {
+  background-color: var(--color-error);
 }
 </style>
