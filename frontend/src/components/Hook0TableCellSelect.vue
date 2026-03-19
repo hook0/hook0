@@ -38,8 +38,9 @@ function handleChange(event: Event) {
 .hook0-table-cell-select--disabled {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  padding-left: 0.75rem;
-  padding-right: 2.5rem;
+  padding: 0.5rem 2.5rem 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
   color: var(--color-text-muted);
 }
 </style>

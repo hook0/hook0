@@ -3,7 +3,6 @@ import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useForm } from 'vee-validate';
-import { RefreshCw } from 'lucide-vue-next';
 
 import { createSubscriptionSchema } from './subscription.schema';
 import { toTypedSchema } from '@/utils/zod-adapter';
@@ -16,7 +15,6 @@ import {
 } from './useSubscriptionQueries';
 import { useEventTypeList } from '../event_types/useEventTypeQueries';
 import type { EventType } from '../event_types/EventTypeService';
-import { routes } from '@/routes';
 import { intersectWith } from '@/utils/fp';
 import { useTracking } from '@/composables/useTracking';
 import { usePermissions } from '@/composables/usePermissions';
@@ -30,22 +28,22 @@ import {
 } from '@/components/Hook0KeyValue';
 
 import SubscriptionsRemove from './SubscriptionsRemove.vue';
-import SubscriptionTestEndpoint from './SubscriptionTestEndpoint.vue';
-import Hook0Loader from '@/components/Hook0Loader.vue';
-import Hook0Input from '@/components/Hook0Input.vue';
+import SubscriptionSectionBasics from './SubscriptionSectionBasics.vue';
+import SubscriptionSectionEventTypes from './SubscriptionSectionEventTypes.vue';
+import type { SelectableEventType } from './subscription.types';
+import SubscriptionSectionLabels from './SubscriptionSectionLabels.vue';
+import SubscriptionSectionAdvanced from './SubscriptionSectionAdvanced.vue';
+
 import Hook0Button from '@/components/Hook0Button.vue';
-import Hook0Select from '@/components/Hook0Select.vue';
-import Hook0KeyValue from '@/components/Hook0KeyValue.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
-import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
+
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Skeleton from '@/components/Hook0Skeleton.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
-import Hook0Checkbox from '@/components/Hook0Checkbox.vue';
-import Hook0HelpText from '@/components/Hook0HelpText.vue';
+
 import Hook0Form from '@/components/Hook0Form.vue';
 
 const { t } = useI18n();
@@ -63,10 +61,6 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits(['tutorial-subscription-created']);
-
-type SelectableEventType = EventType & {
-  selected: boolean;
-};
 
 function EventTypeNamesFromSelectedEventTypes(
   selectableEventTypes: SelectableEventType[]
@@ -179,27 +173,31 @@ function copySecret() {
 }
 
 // Populate form from subscription data (edit mode)
-watch(subscriptionData, (sub) => {
-  if (sub) {
-    resetForm({
-      values: {
-        description: sub.description || '',
-        target_method: sub.target.method,
-        target_url: sub.target.url,
-      },
-    });
-    secret.value = sub.secret;
-    createdAt.value = sub.created_at;
-    isEnabled.value = sub.is_enabled;
-    dedicatedWorkers.value = [...sub.dedicated_workers];
-    labels.value = recordToKvPairs(sub.labels);
-    labelsMap.value = { ...sub.labels };
-    metadata.value = recordToKvPairs(sub.metadata);
-    metadataMap.value = { ...sub.metadata };
-    headersKv.value = recordToKvPairs(sub.target.headers);
-    headersMap.value = { ...sub.target.headers } as unknown as Record<string, string>;
-  }
-});
+watch(
+  subscriptionData,
+  (sub) => {
+    if (sub) {
+      resetForm({
+        values: {
+          description: sub.description || '',
+          target_method: sub.target.method,
+          target_url: sub.target.url,
+        },
+      });
+      secret.value = sub.secret;
+      createdAt.value = sub.created_at;
+      isEnabled.value = sub.is_enabled;
+      dedicatedWorkers.value = [...sub.dedicated_workers];
+      labels.value = recordToKvPairs(sub.labels);
+      labelsMap.value = { ...sub.labels };
+      metadata.value = recordToKvPairs(sub.metadata);
+      metadataMap.value = { ...sub.metadata };
+      headersKv.value = recordToKvPairs(sub.target.headers);
+      headersMap.value = { ...sub.target.headers } as unknown as Record<string, string>;
+    }
+  },
+  { immediate: true }
+);
 
 // Merge event types with subscription selection
 watch(
@@ -373,6 +371,39 @@ const hasSelectedEventTypes = computed(() => eventTypes.value.some((et) => et.se
 
     <!-- Form -->
     <template v-else>
+      <!-- Secret (edit mode only, above the form card) -->
+      <Hook0Card v-if="!isNew" data-test="subscription-secret-card">
+        <Hook0CardContent>
+          <div class="sub-secret">
+            <span class="sub-secret__title">{{ t('subscriptions.secretLabel') }}</span>
+            <span class="sub-secret__hint">
+              <i18n-t keypath="subscriptions.secretHint" tag="span">
+                <template #link>
+                  <Hook0Button
+                    variant="link"
+                    href="https://documentation.hook0.com/docs/verifying-webhook-signatures"
+                    target="_blank"
+                    >{{ t('subscriptions.authenticateWebhooks') }}</Hook0Button
+                  >
+                </template>
+              </i18n-t>
+            </span>
+            <div class="sub-secret__row">
+              <input
+                :value="secret"
+                type="text"
+                readonly
+                class="sub-secret__input"
+                @click="copySecret()"
+              />
+              <Hook0Button variant="secondary" size="sm" type="button" @click="copySecret()">
+                {{ t('common.copy') }}
+              </Hook0Button>
+            </div>
+          </div>
+        </Hook0CardContent>
+      </Hook0Card>
+
       <Hook0Form data-test="subscription-form" @submit="onSubmit">
         <Hook0Card data-test="subscription-card">
           <Hook0CardHeader>
@@ -380,203 +411,74 @@ const hasSelectedEventTypes = computed(() => eventTypes.value.some((et) => et.se
             <template v-else #header>{{ t('subscriptions.editTitle') }}</template>
             <template #subtitle>{{ t('subscriptions.formSubtitle') }}</template>
           </Hook0CardHeader>
+
           <Hook0CardContent>
-            <Hook0CardContentLine>
-              <template #label>{{ t('subscriptions.descriptionLabel') }}</template>
-              <template #content>
-                <Hook0Input
-                  v-model="description"
-                  v-bind="descriptionAttrs"
-                  type="text"
-                  :placeholder="t('subscriptions.descriptionPlaceholder')"
-                  :error="errors.description"
-                  data-test="subscription-description-input"
-                >
-                  <template #helpText>
-                    {{ t('subscriptions.descriptionHelpText') }}
-                  </template>
-                </Hook0Input>
-              </template>
-            </Hook0CardContentLine>
+            <div class="sub-form">
+              <!-- Section 1: Basics -->
+              <div class="sub-form__section-header">
+                <span class="sub-form__section-num">1</span>
+                <span class="sub-form__section-title">{{ t('subscriptions.sectionBasics') }}</span>
+              </div>
+              <SubscriptionSectionBasics
+                :description="description"
+                :description-attrs="descriptionAttrs"
+                :description-error="errors.description"
+                :target-method="targetMethod"
+                :target-method-attrs="targetMethodAttrs"
+                :target-method-error="errors.target_method"
+                :target-url="targetUrl"
+                :target-url-attrs="targetUrlAttrs"
+                :target-url-error="errors.target_url"
+                :http-methods="httpMethods"
+                @update:description="description = $event"
+                @update:target-method="targetMethod = $event"
+                @update:target-url="targetUrl = $event"
+              />
 
-            <Hook0CardContentLine v-if="!isNew">
-              <template #label>
-                {{ t('subscriptions.secretLabel') }}
+              <div class="sub-form__divider" />
 
-                <Hook0HelpText>
-                  {{ t('subscriptions.secretDescription') }}
-                  <Hook0Button
-                    variant="link"
-                    href="https://documentation.hook0.com/docs/verifying-webhook-signatures"
-                    target="_blank"
-                    >{{ t('subscriptions.authenticateWebhooks') }}</Hook0Button
-                  >.
-                  <Hook0HelpText tone="emphasis">{{
-                    t('subscriptions.secretWarning')
-                  }}</Hook0HelpText>
-                </Hook0HelpText>
-              </template>
+              <!-- Section 2: Filtering -->
+              <div class="sub-form__section-header">
+                <span class="sub-form__section-num">2</span>
+                <span class="sub-form__section-title">{{
+                  t('subscriptions.sectionFiltering')
+                }}</span>
+              </div>
 
-              <template #content>
-                <Hook0Input
-                  v-model="secret"
-                  type="text"
-                  disabled
-                  class="sub-edit__secret-input"
-                  :title="t('common.copied')"
-                  @click="copySecret()"
+              <Hook0Stack direction="column" gap="md">
+                <SubscriptionSectionEventTypes
+                  :event-types="eventTypes"
+                  :loading="etLoading"
+                  :error="etError"
+                  @update:event-types="eventTypes = $event"
+                  @refresh="refetchEt()"
                 />
-              </template>
-            </Hook0CardContentLine>
 
-            <Hook0CardContentLine>
-              <template #label>
-                {{ t('subscriptions.httpEndpoint') }}
-                <Hook0HelpText>{{ t('subscriptions.httpEndpointHelp') }}</Hook0HelpText>
-              </template>
-              <template #content>
-                <Hook0Stack direction="row" gap="xs">
-                  <Hook0Select
-                    v-model="targetMethod"
-                    v-bind="targetMethodAttrs"
-                    :options="httpMethods"
-                    :error="errors.target_method"
-                    data-test="subscription-method-select"
-                  ></Hook0Select>
-                  <Hook0Input
-                    v-model="targetUrl"
-                    v-bind="targetUrlAttrs"
-                    type="text"
-                    placeholder="https://"
-                    :error="errors.target_url"
-                    data-test="subscription-url-input"
-                  >
-                  </Hook0Input>
-                </Hook0Stack>
-                <Hook0HelpText>
-                  <i18n-t keypath="subscriptions.webhookSiteHelp" tag="span">
-                    <template #link>
-                      <Hook0Button variant="link" href="https://webhook.site" target="_blank">{{
-                        t('subscriptions.webhookSiteName')
-                      }}</Hook0Button>
-                    </template>
-                  </i18n-t>
-                </Hook0HelpText>
+                <SubscriptionSectionLabels
+                  :labels="labels"
+                  @update:labels="onLabelsUpdate($event)"
+                />
+              </Hook0Stack>
 
-                <!-- Test Endpoint -->
-                <SubscriptionTestEndpoint :target-url="targetUrl || ''" />
-              </template>
-            </Hook0CardContentLine>
+              <div class="sub-form__divider" />
 
-            <Hook0CardContentLine>
-              <template #label>{{ t('subscriptions.endpointHeaders') }}</template>
-              <template #content>
-                <Hook0KeyValue
-                  :value="headersKv"
-                  :key-placeholder="t('common.headerName')"
-                  :value-placeholder="t('common.value')"
-                  @update:model-value="onHeadersUpdate($event)"
-                ></Hook0KeyValue>
-              </template>
-            </Hook0CardContentLine>
-
-            <Hook0CardContentLine>
-              <template #label>
-                {{ t('subscriptions.subscriptionLabels') }}
-                <Hook0HelpText>{{ t('subscriptions.subscriptionLabelsHelp') }}</Hook0HelpText>
-              </template>
-              <template #content>
-                <Hook0KeyValue
-                  :value="labels"
-                  :key-placeholder="t('common.labelKey')"
-                  :value-placeholder="t('common.labelValue')"
-                  data-test="subscription-labels"
-                  @update:model-value="onLabelsUpdate($event)"
-                ></Hook0KeyValue>
-              </template>
-            </Hook0CardContentLine>
-
-            <Hook0CardContentLine>
-              <template #label>
-                <Hook0Stack direction="row" gap="xs" align="center">
-                  <span class="sub-edit__field-label">
-                    <i18n-t keypath="subscriptions.selectEventTypesWithLink" tag="span">
-                      <template #link>
-                        <Hook0Button
-                          variant="link"
-                          :to="{ name: routes.EventTypesList }"
-                          target="_blank"
-                          >{{ t('eventTypes.title') }}</Hook0Button
-                        >
-                      </template>
-                    </i18n-t>
-                  </span>
-                  <Hook0Button
-                    variant="ghost"
-                    size="sm"
-                    :aria-label="t('subscriptions.refreshEventTypes')"
-                    :title="t('subscriptions.refreshEventTypes')"
-                    @click="refetchEt()"
-                  >
-                    <RefreshCw :size="14" aria-hidden="true" />
-                  </Hook0Button>
-                </Hook0Stack>
-              </template>
-              <template #content>
-                <!-- Loading event types -->
-                <Hook0Loader v-if="etLoading"></Hook0Loader>
-
-                <!-- Error loading event types -->
-                <Hook0ErrorCard v-else-if="etError" :error="etError" @retry="refetchEt()" />
-
-                <!-- Event types list -->
-                <template v-else>
-                  <ul
-                    v-if="eventTypes.length > 0"
-                    class="event-type-list"
-                    data-test="event-types-list"
-                  >
-                    <li
-                      v-for="(eventType, index) in eventTypes"
-                      :key="index"
-                      class="event-type-list__item"
-                      :data-test="`event-type-item-${index}`"
-                    >
-                      <Hook0Checkbox
-                        v-model="eventType.selected"
-                        :data-test="`event-type-checkbox-${index}`"
-                      >
-                        <span
-                          class="sub-edit__event-type-label"
-                          :data-test="`event-type-label-${index}`"
-                        >
-                          {{ eventType.event_type_name }}
-                        </span>
-                      </Hook0Checkbox>
-                    </li>
-                  </ul>
-                  <p v-else class="sub-edit__no-event-types">
-                    {{ t('subscriptions.noEventTypes') }}
-                    <Hook0Button variant="link" :to="{ name: routes.EventTypesList }">{{
-                      t('eventTypes.title')
-                    }}</Hook0Button>
-                  </p>
-                </template>
-              </template>
-            </Hook0CardContentLine>
+              <!-- Section 3: Optional -->
+              <div class="sub-form__section-header sub-form__section-header--muted">
+                <span class="sub-form__section-num sub-form__section-num--muted">3</span>
+                <span class="sub-form__section-title">{{
+                  t('subscriptions.sectionAdvanced')
+                }}</span>
+                <span class="sub-form__section-badge">{{ t('common.optional') }}</span>
+              </div>
+              <SubscriptionSectionAdvanced
+                :headers-kv="headersKv"
+                :metadata="metadata"
+                @update:headers="onHeadersUpdate($event)"
+                @update:metadata="onMetadataUpdate($event)"
+              />
+            </div>
           </Hook0CardContent>
 
-          <Hook0CardContentLine>
-            <template #label>{{ t('subscriptions.metadataLabel') }}</template>
-            <template #content>
-              <Hook0KeyValue
-                :value="metadata"
-                :key-placeholder="t('common.key')"
-                :value-placeholder="t('common.value')"
-                @update:model-value="onMetadataUpdate($event)"
-              ></Hook0KeyValue>
-            </template>
-          </Hook0CardContentLine>
           <Hook0CardFooter>
             <Hook0Button
               v-if="!props.tutorialMode"
@@ -622,56 +524,121 @@ const hasSelectedEventTypes = computed(() => eventTypes.value.some((et) => et.se
 </template>
 
 <style scoped>
-.sub-edit__field-label {
-  color: var(--color-text-primary);
-  font-weight: 600;
+/* Secret card */
+.sub-secret {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sub-secret__title {
   font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.sub-secret__hint {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
   line-height: 1.5;
 }
 
-.sub-edit__event-type-label {
-  color: var(--color-text-primary);
-  font-weight: 500;
-  font-size: 0.875rem;
-  line-height: 1.5;
+.sub-secret__hint :deep(.hook0-button) {
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
-.event-type-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+.sub-secret__row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.25rem;
+}
+
+.sub-secret__input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.4375rem 0.625rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-}
-
-.event-type-list__item {
-  padding: 0.5rem 0.75rem;
-  display: flex;
-  align-items: center;
-  font-size: 0.875rem;
-  transition: background-color 0.15s ease;
-}
-
-.event-type-list__item + .event-type-list__item {
-  border-top: 1px solid var(--color-border);
-}
-
-.event-type-list__item:hover {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
   background-color: var(--color-bg-secondary);
-}
-
-.sub-edit__secret-input {
-  width: 100%;
   cursor: pointer;
 }
 
-.sub-edit__no-event-types {
-  margin: 0;
-  padding: 1rem;
-  text-align: center;
-  font-size: 0.875rem;
-  color: var(--color-text-secondary);
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius-md);
+.sub-secret__input:hover {
+  border-color: var(--color-border-strong);
+}
+
+.sub-secret__warning {
+  font-size: 0.75rem;
+  font-style: italic;
+  font-weight: 500;
+  color: var(--color-warning);
+}
+
+.sub-form__row-hint--emphasis {
+  font-style: italic;
+  font-weight: 500;
+}
+
+/* Form sections layout */
+.sub-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sub-form__section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sub-form__section-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  border-radius: var(--radius-full);
+  background-color: var(--color-primary);
+  color: var(--color-primary-text, #fff);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.sub-form__section-num--muted {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-muted);
+}
+
+.sub-form__section-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.sub-form__section-header--muted .sub-form__section-title {
+  color: var(--color-text-muted);
+}
+
+.sub-form__section-badge {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  padding: 0.0625rem 0.625rem;
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-tertiary);
+}
+
+.sub-form__divider {
+  height: 1px;
+  background-color: var(--color-border);
+  margin: 1.5rem 0;
 }
 </style>

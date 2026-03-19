@@ -54,14 +54,9 @@ const { t } = useI18n();
     <slot />
   </div>
 
-  <div class="wizard-modal__footer">
+  <div v-if="$slots.footer || (continueLabel && !continueDisabled)" class="wizard-modal__footer">
     <slot name="footer">
-      <Hook0Button v-if="showSkip" variant="secondary" type="button" @click="emit('skip')">
-        <X :size="16" aria-hidden="true" />
-        {{ t('tutorial.skip') }}
-      </Hook0Button>
       <Hook0Button
-        v-if="continueLabel && !continueDisabled"
         variant="primary"
         type="button"
         data-test="tutorial-step-continue"
@@ -88,6 +83,7 @@ const { t } = useI18n();
   font-size: 1.125rem;
   font-weight: 600;
   color: var(--color-text-primary);
+  line-height: 1.25;
 }
 
 .wizard-modal__close {
@@ -132,6 +128,17 @@ const { t } = useI18n();
   padding: 1rem 1.5rem;
   border-top: 1px solid var(--color-border);
   flex-shrink: 0;
+}
+
+@media (max-width: 767px) {
+  .wizard-modal__footer {
+    flex-direction: column-reverse;
+  }
+
+  .wizard-modal__footer :deep(.hook0-button) {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

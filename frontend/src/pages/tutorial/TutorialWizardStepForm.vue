@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n';
 import Hook0Alert from '@/components/Hook0Alert.vue';
 import { Alert } from '@/components/Hook0Alert.ts';
 import Hook0Button from '@/components/Hook0Button.vue';
-import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
+
 import Hook0Stack from '@/components/Hook0Stack.vue';
 import TutorialStepProgress from '@/pages/tutorial/TutorialStepProgress.vue';
 import WizardStepLayout from '@/pages/tutorial/WizardStepLayout.vue';
@@ -135,15 +135,6 @@ function handleFormDone() {
       <TutorialStepProgress :steps="progressSteps" :current="STEP_CONFIG.progressIndex" />
 
       <Hook0Stack v-if="organizationId && applicationId && !done" direction="column" gap="md">
-        <Hook0Stack direction="row" align="center" gap="sm">
-          <Hook0IconBadge variant="primary">
-            <component :is="STEP_CONFIG.icon" :size="18" aria-hidden="true" />
-          </Hook0IconBadge>
-          <Hook0Stack direction="row" align="center" gap="none">
-            {{ t(STEP_CONFIG.titleKey) }}
-          </Hook0Stack>
-        </Hook0Stack>
-
         <EventTypesNew
           v-if="step === 3"
           :tutorial-mode="true"

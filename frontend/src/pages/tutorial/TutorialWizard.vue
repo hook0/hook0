@@ -57,6 +57,7 @@ const STEP_MAP: Record<string, number> = {
 };
 
 const currentStep = computed(() => STEP_MAP[route.name as string] ?? 0);
+const formStep = computed(() => currentStep.value as 3 | 4 | 5);
 
 // Step definitions for progress bar — icons are module-level (markRaw once)
 const STEP_ICONS = [
@@ -287,7 +288,7 @@ function handleOverlayClick(e: MouseEvent) {
         <TutorialWizardStepForm
           v-else-if="currentStep >= 3 && currentStep <= 5"
           :key="currentStep"
-          :step="(currentStep as 3 | 4 | 5)"
+          :step="formStep"
           :organization-id="paramOrgId"
           :application-id="paramAppId"
           :progress-steps="PROGRESS_STEPS"

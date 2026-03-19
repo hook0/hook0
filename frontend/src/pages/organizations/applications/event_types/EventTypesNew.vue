@@ -295,8 +295,8 @@ const onSubmit = handleSubmit((values) => {
   flex-shrink: 0;
   width: 0.75rem;
   text-align: center;
-  align-self: center;
-  padding-top: 0.25rem;
+  align-self: flex-start;
+  margin-top: 0.625rem;
 }
 
 .event-type-new__help-description {

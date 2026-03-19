@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
+import { useQueryClient } from '@tanstack/vue-query';
 
 import * as ApplicationsService from './ApplicationService';
 import { routes } from '@/routes';
@@ -13,6 +14,7 @@ import Hook0DangerZoneCard from '@/components/Hook0DangerZoneCard.vue';
 const { t } = useI18n();
 const router = useRouter();
 const route = useRoute();
+const queryClient = useQueryClient();
 const { trackEvent } = useTracking();
 const { canDelete } = usePermissions();
 
@@ -29,6 +31,7 @@ function confirmRemove() {
   ApplicationsService.remove(props.applicationId)
     .then(() => {
       trackEvent('application', 'delete', 'success');
+      void queryClient.invalidateQueries({ queryKey: ['applications'] });
       return router.push({
         name: routes.OrganizationsDashboard,
         params: {
@@ -47,7 +50,8 @@ function confirmRemove() {
     :title="t('remove.deleteApplication')"
     :subtitle="t('remove.deleteApplicationWarning', { name: applicationName })"
     :warning-message="t('remove.irreversibleWarning')"
-    :confirm-message="t('remove.confirmDeleteApplication', { name: applicationName })"
+    confirm-message="remove.confirmDeleteApplication"
+    :confirm-name="applicationName"
     :loading="loading"
     data-test="application-delete-card"
     @confirm="confirmRemove"

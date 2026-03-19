@@ -46,6 +46,7 @@ const {
   deleteFn: (app) => removeMutation.mutateAsync(app.application_id),
   successTitle: t('applications.deleted'),
   successMessage: (app) => t('applications.deletedMessage', { name: app.name }),
+  onSuccess: () => void refetch(),
 });
 
 const columns: ColumnDef<Application, unknown>[] = [
@@ -172,7 +173,13 @@ const columns: ColumnDef<Application, unknown>[] = [
       "
       @confirm="confirmDelete()"
     >
-      <p>{{ t('applications.deleteConfirm') }}</p>
+      <p v-if="applicationToDelete">
+        <i18n-t keypath="applications.deleteConfirm" tag="span">
+          <template #name>
+            <strong>{{ applicationToDelete.name }}</strong>
+          </template>
+        </i18n-t>
+      </p>
     </Hook0Dialog>
   </Hook0PageLayout>
 </template>

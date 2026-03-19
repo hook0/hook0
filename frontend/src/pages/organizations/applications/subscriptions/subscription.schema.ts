@@ -7,9 +7,7 @@ export function createSubscriptionSchema() {
     description: z
       .string()
       .min(1, t('validation.required', { field: t('fields.subscriptionDescription') })),
-    target_method: z
-      .string()
-      .min(1, t('validation.required', { field: t('fields.httpMethod') })),
+    target_method: z.string().min(1, t('validation.required', { field: t('fields.httpMethod') })),
     target_url: z
       .string()
       .min(1, t('validation.required', { field: t('fields.url') }))

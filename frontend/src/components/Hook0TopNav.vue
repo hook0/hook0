@@ -35,8 +35,16 @@ const isMac = (() => {
 })();
 
 // Child component refs for coordinated close
-type ContextBarExposed = { closeDropdowns: () => void; focusActiveTrigger: () => void; hasOpenDropdown: () => boolean };
-type UserMenuExposed = { closeDropdowns: () => void; focusTrigger: () => void; hasOpenDropdown: () => boolean };
+type ContextBarExposed = {
+  closeDropdowns: () => void;
+  focusActiveTrigger: () => void;
+  hasOpenDropdown: () => boolean;
+};
+type UserMenuExposed = {
+  closeDropdowns: () => void;
+  focusTrigger: () => void;
+  hasOpenDropdown: () => boolean;
+};
 const contextBarRef = ref<ContextBarExposed | null>(null);
 const userMenuRef = ref<UserMenuExposed | null>(null);
 

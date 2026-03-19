@@ -412,7 +412,7 @@ function previewToken() {
                           {{ t('serviceTokens.detailedSetupInstructions') }}
                           <Hook0Button
                             variant="link"
-                            href="https://documentation.hook0.com/reference/mcp-for-ia-assistant"
+                            href="https://documentation.hook0.com/reference/mcp"
                             target="_blank"
                           >
                             {{ t('serviceTokens.mcpIntegrationGuide') }}

@@ -186,7 +186,11 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
           })
         );
       }
-      return h('div', { class: 'service-token__actions' }, actions);
+      return h(
+        'div',
+        { style: 'display:flex;align-items:center;justify-content:flex-end;gap:0.75rem' },
+        actions
+      );
     },
   },
 ];
@@ -286,7 +290,7 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
             <template #actions>
               <Hook0Button
                 variant="primary"
-                href="https://documentation.hook0.com/reference/mcp-for-ia-assistant"
+                href="https://documentation.hook0.com/reference/mcp"
                 target="_blank"
               >
                 <template #left>

@@ -19,12 +19,16 @@ type Props = {
   title: string;
   subtitle: string;
   warningMessage: string;
+  /** i18n keypath for the confirm dialog body (used with i18n-t when confirmName is provided) */
   confirmMessage: string;
+  /** Entity name to render in bold inside the confirm dialog */
+  confirmName?: string;
   loading?: boolean;
   dataTest?: string;
 };
 
 withDefaults(defineProps<Props>(), {
+  confirmName: undefined,
   loading: false,
   dataTest: undefined,
 });
@@ -85,7 +89,14 @@ function confirmDelete() {
       @close="showDeleteDialog = false"
       @confirm="confirmDelete()"
     >
-      <p>{{ confirmMessage }}</p>
+      <p v-if="confirmName">
+        <i18n-t :keypath="confirmMessage" tag="span">
+          <template #name
+            ><strong>{{ confirmName }}</strong></template
+          >
+        </i18n-t>
+      </p>
+      <p v-else>{{ confirmMessage }}</p>
     </Hook0Dialog>
   </Hook0Card>
 </template>

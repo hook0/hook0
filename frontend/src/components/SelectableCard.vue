@@ -8,9 +8,13 @@ type Props = {
   icon: Component;
   name: string;
   dataTest?: string;
+  disabled?: boolean;
 };
 
-defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  dataTest: undefined,
+  disabled: false,
+});
 defineEmits<{
   'update:modelValue': [value: boolean];
 }>();
@@ -19,14 +23,18 @@ defineEmits<{
 <template>
   <label
     class="selectable-card"
-    :class="{ 'selectable-card--selected': modelValue }"
+    :class="{
+      'selectable-card--selected': modelValue,
+      'selectable-card--disabled': props.disabled,
+    }"
     :data-test="dataTest"
-    @click="$emit('update:modelValue', true)"
+    @click="!props.disabled && $emit('update:modelValue', true)"
   >
     <input
       type="radio"
       :name="name"
       :checked="modelValue"
+      :disabled="props.disabled"
       :aria-label="label"
       class="selectable-card__radio"
     />
@@ -75,6 +83,17 @@ defineEmits<{
 .selectable-card--selected:hover {
   border-color: var(--color-primary);
   background-color: var(--color-primary-light);
+}
+
+.selectable-card--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.selectable-card--disabled:hover {
+  border-color: var(--color-border);
+  background-color: var(--color-bg-primary);
 }
 
 .selectable-card__radio {

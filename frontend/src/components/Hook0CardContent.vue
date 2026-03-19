@@ -44,4 +44,10 @@ defineSlots<{
 .hook0-card-content--compact {
   padding: 0.375rem;
 }
+
+/* Neutralize horizontal padding on nested CardContentLine (parent already provides it) */
+.hook0-card-content > :deep(.hook0-card-content-line) {
+  padding-left: 0;
+  padding-right: 0;
+}
 </style>

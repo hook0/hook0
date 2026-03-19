@@ -331,7 +331,14 @@ function getGradient(index: number): string {
       <Hook0Card
         variant="dashed"
         as="button"
-        @click="void router.push({ name: routes.OrganizationsNew })"
+        @click="
+          void router.push({
+            name:
+              applicationsPerOrganization && applicationsPerOrganization.length === 0
+                ? routes.Tutorial
+                : routes.OrganizationsNew,
+          })
+        "
       >
         <Hook0CardContent>
           <Hook0Stack direction="column" align="center" justify="center" gap="sm">
@@ -525,6 +532,7 @@ function getGradient(index: number): string {
 /* Create App Action Row */
 .org-card__action-row {
   padding: 0 0.375rem 0.375rem;
+  margin-top: auto;
 }
 
 /* Create App Action Button */

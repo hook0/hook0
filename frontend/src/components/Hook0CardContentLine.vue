@@ -25,7 +25,7 @@ defineSlots<{
 
 <style scoped>
 .hook0-card-content-line {
-  padding: 1rem 0;
+  padding: 1rem 1.5rem;
 }
 
 @media (min-width: 640px) {

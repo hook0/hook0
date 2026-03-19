@@ -66,7 +66,7 @@ const columns: ColumnDef<EventType, unknown>[] = [
           header: t('common.actions'),
           cell: (info: { row: { original: EventType } }) =>
             h(Hook0TableCellLink, {
-              value: t('eventTypes.deactivate'),
+              value: t('common.delete'),
               icon: markRaw(Trash2),
               dataTest: 'event-type-deactivate-button',
               onClick: () => handleDeactivate(info.row.original),
@@ -159,7 +159,7 @@ const columns: ColumnDef<EventType, unknown>[] = [
     <Hook0Dialog
       :open="showDeactivateDialog"
       variant="danger"
-      :title="t('eventTypes.deactivate')"
+      :title="t('eventTypes.delete')"
       @close="
         showDeactivateDialog = false;
         eventTypeToDeactivate = null;
@@ -167,7 +167,11 @@ const columns: ColumnDef<EventType, unknown>[] = [
       @confirm="confirmDeactivate()"
     >
       <p v-if="eventTypeToDeactivate">
-        {{ t('eventTypes.confirmDeactivate', { name: eventTypeToDeactivate.event_type_name }) }}
+        <i18n-t keypath="eventTypes.confirmDeactivate" tag="span">
+          <template #name>
+            <strong>{{ eventTypeToDeactivate.event_type_name }}</strong>
+          </template>
+        </i18n-t>
       </p>
     </Hook0Dialog>
   </Hook0PageLayout>

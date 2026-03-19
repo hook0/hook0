@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
-import { Rocket, ArrowRight, X } from 'lucide-vue-next';
+import { Rocket, ArrowRight } from 'lucide-vue-next';
 
 import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
@@ -82,17 +82,7 @@ const tutorialSteps: TutorialStepItem[] = [
       </div>
     </div>
 
-    <template #footer>
-      <Hook0Button
-        variant="secondary"
-        type="button"
-        data-test="tutorial-skip-button"
-        @click="emit('skip')"
-      >
-        <X :size="16" aria-hidden="true" />
-        {{ t('tutorial.intro.skipButton') }}
-      </Hook0Button>
-    </template>
+    <!-- Footer intentionally empty: dismiss via close button or click-outside -->
   </WizardStepLayout>
 </template>
 
@@ -127,6 +117,7 @@ const tutorialSteps: TutorialStepItem[] = [
 .intro-split__note {
   font-size: 0.8125rem;
   color: var(--color-text-muted);
+  line-height: 0;
 }
 
 .intro-split__cta {
@@ -204,6 +195,72 @@ const tutorialSteps: TutorialStepItem[] = [
 
   .intro-split__right {
     padding-left: 0;
+  }
+
+  .intro-split__cta :deep(.hook0-button) {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .intro-split__right {
+    padding-left: 0;
+  }
+
+  .intro-timeline {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    counter-reset: step;
+  }
+
+  .intro-timeline::before {
+    display: none;
+  }
+
+  .intro-timeline__item {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    padding: 0.25rem 0.75rem 0.25rem 0.25rem;
+  }
+
+  .intro-timeline__item {
+    counter-increment: step;
+  }
+
+  .intro-timeline__dot {
+    position: static;
+    width: 1.25rem;
+    height: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.625rem;
+    font-weight: 700;
+    color: var(--color-primary-text, #fff);
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+  }
+
+  .intro-timeline__dot::after {
+    content: counter(step);
+  }
+
+  .intro-timeline__content {
+    flex-direction: row;
+  }
+
+  .intro-timeline__label {
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+
+  .intro-timeline__desc {
+    display: none;
   }
 }
 </style>

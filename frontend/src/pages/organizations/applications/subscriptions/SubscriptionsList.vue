@@ -121,36 +121,22 @@ function confirmDisable() {
 
 const columns: ColumnDef<Subscription, unknown>[] = [
   {
-    accessorKey: 'is_enabled',
-    header: t('subscriptions.enabledColumn'),
-    enableSorting: true,
-    cell: (info) =>
-      h(Hook0Switch, {
-        modelValue: info.row.original.is_enabled,
-        'onUpdate:modelValue': () => handleToggle(info.row.original),
-      }),
-  },
-  {
     accessorKey: 'description',
-    header: t('common.description'),
+    header: t('common.name'),
     enableSorting: true,
     cell: (info) =>
-      h(
-        Hook0Button,
-        {
-          variant: 'link',
-          to: {
-            name: routes.SubscriptionsDetail,
-            params: {
-              application_id: route.params.application_id,
-              organization_id: route.params.organization_id,
-              subscription_id: info.row.original.subscription_id,
-            },
+      h(Hook0TableCellLink, {
+        value: String(info.getValue() ?? t('subscriptions.noDescription')),
+        to: {
+          name: routes.SubscriptionsDetail,
+          params: {
+            application_id: route.params.application_id,
+            organization_id: route.params.organization_id,
+            subscription_id: info.row.original.subscription_id,
           },
-          'data-test': 'subscription-description-link',
         },
-        () => String(info.getValue() ?? t('subscriptions.noDescription'))
-      ),
+        'data-test': 'subscription-description-link',
+      }),
   },
   {
     accessorKey: 'event_types',
@@ -183,6 +169,16 @@ const columns: ColumnDef<Subscription, unknown>[] = [
         : JSON.stringify(info.row.original.target);
       return h(Hook0TableCellCode, { value: text });
     },
+  },
+  {
+    accessorKey: 'is_enabled',
+    header: t('subscriptions.enabledColumn'),
+    enableSorting: true,
+    cell: (info) =>
+      h(Hook0Switch, {
+        modelValue: info.row.original.is_enabled,
+        'onUpdate:modelValue': () => handleToggle(info.row.original),
+      }),
   },
   ...(canDelete('subscription')
     ? [

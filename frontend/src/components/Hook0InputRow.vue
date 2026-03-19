@@ -42,7 +42,7 @@ const gapMap: Record<Gap, string> = {
 
 .hook0-input-row > :deep(*) {
   flex: 1;
-  min-width: 6rem;
+  min-width: 0;
 }
 
 .hook0-input-row > :deep(.hook0-input-row__separator) {
@@ -51,7 +51,7 @@ const gapMap: Record<Gap, string> = {
 }
 
 @media (max-width: 640px) {
-  .hook0-input-row {
+  .hook0-input-row:not(.hook0-input-row--no-collapse) {
     flex-direction: column;
   }
 }

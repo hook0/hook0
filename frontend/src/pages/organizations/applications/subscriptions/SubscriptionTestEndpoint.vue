@@ -107,7 +107,10 @@ const testStatusVariant = computed(() => {
 </script>
 
 <template>
-  <div class="test-endpoint">
+  <div
+    class="test-endpoint"
+    :class="{ 'test-endpoint--has-result': testEndpointResult || testEndpointError }"
+  >
     <Hook0Button
       variant="secondary"
       size="sm"
@@ -189,7 +192,6 @@ const testStatusVariant = computed(() => {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  margin-top: 0.75rem;
 }
 
 .test-endpoint__result {

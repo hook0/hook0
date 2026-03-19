@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Component } from 'vue';
-import { ref, watch } from 'vue';
+import { ref, computed } from 'vue';
 
 import type { UUID } from '@/http';
 
@@ -8,7 +8,7 @@ import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
-import Hook0Button from '@/components/Hook0Button.vue';
+
 import Hook0Select from '@/components/Hook0Select.vue';
 import Hook0Skeleton from '@/components/Hook0Skeleton.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
@@ -17,7 +17,7 @@ import SelectableCard from '@/components/SelectableCard.vue';
 import TutorialStepProgress from '@/pages/tutorial/TutorialStepProgress.vue';
 import WizardStepLayout from '@/pages/tutorial/WizardStepLayout.vue';
 
-import { Plus, List, ArrowRight, X } from 'lucide-vue-next';
+import { Plus, List } from 'lucide-vue-next';
 
 type ProgressStep = {
   icon: Component;
@@ -61,27 +61,30 @@ const emit = defineEmits<{
   retry: [];
 }>();
 
-const enum EntitySection {
+enum EntitySection {
   Create = 'create',
   SelectExisting = 'select_existing',
 }
 
 const entityId = ref<UUID | null>(null);
 const selectedEntityId = ref<UUID | null>(null);
-const entitySection = ref<EntitySection | null>(null);
+const userEntitySection = ref<EntitySection | null>(null);
 
-watch(
-  () => props.entityOptions,
-  (options) => {
-    if ((options ?? []).length <= 1 && entitySection.value === null) {
-      entitySection.value = EntitySection.Create;
-    }
-  },
-  { immediate: true }
-);
+/**
+ * Effective section: user choice takes priority, otherwise auto-select Create
+ * when there are no existing entities to pick from (options <= 1 means only the
+ * placeholder entry). Using a computed removes any watcher-timing edge case that
+ * could leave the section null while the template has already left the skeleton.
+ */
+const entitySection = computed<EntitySection | null>(() => {
+  if (userEntitySection.value !== null) return userEntitySection.value;
+  if (props.entityOptions.length <= 1) return EntitySection.Create;
+  return null;
+});
 
 function handleCreated(id: UUID) {
   entityId.value = id;
+  emit('advance', id);
 }
 
 function handleAdvance() {
@@ -91,12 +94,12 @@ function handleAdvance() {
   }
 }
 
-const showCard = () => {
+const showCard = computed(() => {
   if (props.requireOptions) {
     return !entityId.value && props.entityOptions.length > 1;
   }
   return !entityId.value;
-};
+});
 </script>
 
 <template>
@@ -104,7 +107,10 @@ const showCard = () => {
     :step-number="stepNumber"
     :title="stepTitle"
     :show-skip="true"
+    :continue-label="!entityId && selectedEntityId ? continueLabel : undefined"
+    :continue-disabled="!selectedEntityId || selectedEntityId === ''"
     @skip="$emit('skip')"
+    @continue="handleAdvance"
   >
     <!-- Loading -->
     <Hook0Stack v-if="entitiesLoading" direction="column" gap="md">
@@ -122,7 +128,7 @@ const showCard = () => {
 
       <TutorialStepProgress :steps="progressSteps" :current="progressCurrent" />
 
-      <Hook0Card v-if="showCard()">
+      <Hook0Card v-if="showCard">
         <Hook0CardHeader>
           <template #header>
             <Hook0Stack direction="row" align="center" gap="sm">
@@ -139,7 +145,7 @@ const showCard = () => {
               :icon="Plus"
               :name="selectionName"
               :data-test="createDataTest"
-              @update:model-value="entitySection = EntitySection.Create"
+              @update:model-value="userEntitySection = EntitySection.Create"
             />
             <SelectableCard
               :model-value="entitySection === EntitySection.SelectExisting"
@@ -147,7 +153,8 @@ const showCard = () => {
               :icon="List"
               :name="selectionName"
               :data-test="selectDataTest"
-              @update:model-value="entitySection = EntitySection.SelectExisting"
+              :disabled="props.entityOptions.length <= 1"
+              @update:model-value="userEntitySection = EntitySection.SelectExisting"
             />
           </Hook0Stack>
         </Hook0CardContent>
@@ -172,22 +179,6 @@ const showCard = () => {
         </Hook0Card>
       </template>
     </Hook0Stack>
-
-    <template #footer>
-      <Hook0Button variant="secondary" type="button" @click="$emit('skip')">
-        <X :size="16" aria-hidden="true" />
-        {{ skipLabel }}
-      </Hook0Button>
-      <Hook0Button
-        v-if="entityId || (selectedEntityId && selectedEntityId !== '')"
-        variant="primary"
-        type="button"
-        @click="handleAdvance"
-      >
-        {{ continueLabel }}
-        <ArrowRight :size="16" aria-hidden="true" />
-      </Hook0Button>
-    </template>
   </WizardStepLayout>
 </template>
 

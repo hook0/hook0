@@ -70,6 +70,8 @@ const cardStyle = computed(() => {
   overflow: hidden;
   margin-bottom: 1rem;
   text-align: left;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Interactive variant - for clickable cards with hover effects */
@@ -97,6 +99,7 @@ const cardStyle = computed(() => {
   transition:
     border-color 0.15s ease,
     background-color 0.15s ease;
+  justify-content: center;
 }
 
 .hook0-card--dashed:hover {

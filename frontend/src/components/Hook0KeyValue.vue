@@ -184,9 +184,23 @@ function add() {
 
 <style scoped>
 .kv-item {
-  display: grid;
-  grid-template-columns: repeat(10, minmax(0, 1fr));
-  gap: 1rem;
-  margin-bottom: 1rem;
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.col-span-4 {
+  flex: 1;
+  min-width: 0;
+}
+
+.col-span-1 {
+  flex-shrink: 0;
+}
+
+/* Make buttons match input height */
+.col-span-1 :deep(.hook0-button) {
+  height: 100%;
 }
 </style>

@@ -8,7 +8,5 @@ import type { Problem } from '@/http';
 export function displayError(err: Problem): void {
   console.error(err);
   const options = { description: err.detail, duration: 5000 };
-  err.status >= 500
-    ? toast.error(err.title, options)
-    : toast.warning(err.title, options);
+  err.status >= 500 ? toast.error(err.title, options) : toast.warning(err.title, options);
 }

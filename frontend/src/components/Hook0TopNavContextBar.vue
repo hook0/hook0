@@ -135,8 +135,17 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
 
     <!-- Org section -->
     <div class="hook0-topnav__org-section hook0-topnav__dropdown-anchor">
-      <button class="hook0-topnav__org-avatar-btn" :aria-label="t('nav.goToOrgDashboard')" @click="goToOrgDashboard()">
-        <Hook0Avatar :name="currentOrgName ?? '?'" size="sm" variant="square" class="hook0-topnav__org-avatar" />
+      <button
+        class="hook0-topnav__org-avatar-btn"
+        :aria-label="t('nav.goToOrgDashboard')"
+        @click="goToOrgDashboard()"
+      >
+        <Hook0Avatar
+          :name="currentOrgName ?? '?'"
+          size="sm"
+          variant="square"
+          class="hook0-topnav__org-avatar"
+        />
       </button>
       <button
         class="hook0-topnav__org-name"
@@ -228,11 +237,7 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
           :aria-label="t('nav.goToAppDashboard')"
           @click="navigateToCurrentApp()"
         >
-          <Box
-            :size="16"
-            class="hook0-topnav__app-icon"
-            aria-hidden="true"
-          />
+          <Box :size="16" class="hook0-topnav__app-icon" aria-hidden="true" />
         </button>
         <button
           class="hook0-topnav__app-name"
