@@ -20,6 +20,7 @@ import Hook0TutorialWidget from '@/components/Hook0TutorialWidget.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
 import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
 import Hook0EventsPerDayChart from '@/components/Hook0EventsPerDayChart.vue';
+
 import EventTypesList from '@/pages/organizations/applications/event_types/EventTypesList.vue';
 import EventsList from '@/pages/organizations/applications/events/EventsList.vue';
 import SubscriptionsList from '@/pages/organizations/applications/subscriptions/SubscriptionsList.vue';
@@ -135,7 +136,7 @@ const {
 <style scoped>
 .app-dashboard__label {
   color: var(--color-text-secondary);
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   font-weight: 500;
   line-height: 1.5;
 }

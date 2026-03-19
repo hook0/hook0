@@ -51,6 +51,11 @@
   flex-shrink: 0;
 }
 
+/* Override Hook0Button centering when used as dropdown item */
+.hook0-topnav__dropdown-item.hook0-button {
+  justify-content: flex-start;
+}
+
 .hook0-topnav__dropdown-item:hover {
   background-color: var(--color-bg-tertiary);
   color: var(--color-text-primary);
