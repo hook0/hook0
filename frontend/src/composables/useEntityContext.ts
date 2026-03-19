@@ -1,6 +1,6 @@
 import { computed, watch } from 'vue';
-import { useRoute } from 'vue-router';
 import { useContextStore } from '@/stores/context';
+import { useRouteIds } from '@/composables/useRouteIds';
 import { useUiStore } from '@/stores/ui';
 import { useOrganizationDetail } from '@/pages/organizations/useOrganizationQueries';
 import { useApplicationDetail } from '@/pages/organizations/applications/useApplicationQueries';
@@ -18,12 +18,10 @@ import { useApplicationDetail } from '@/pages/organizations/applications/useAppl
  * in Header, Breadcrumbs, and other navigation components.
  */
 export function useEntityContext() {
-  const route = useRoute();
   const contextStore = useContextStore();
   const uiStore = useUiStore();
 
-  const organizationId = computed(() => (route.params.organization_id as string) || '');
-  const applicationId = computed(() => (route.params.application_id as string) || '');
+  const { organizationId, applicationId } = useRouteIds();
 
   // Use TanStack Query to fetch entity details (leverages caching)
   const {

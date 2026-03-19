@@ -79,8 +79,8 @@ const onSubmit = handleSubmit((values) => {
       if (
         redirectTo &&
         isValidRedirectPath(redirectTo) &&
-        redirectTo !== '/login' &&
-        redirectTo !== '/register'
+        redirectTo !== router.resolve({ name: routes.Login }).path &&
+        redirectTo !== router.resolve({ name: routes.Register }).path
       ) {
         void router.push(redirectTo);
         return;
@@ -191,4 +191,3 @@ const onSubmit = handleSubmit((values) => {
     </template>
   </Hook0PageLayout>
 </template>
-

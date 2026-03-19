@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, h, markRaw } from 'vue';
+import { h, markRaw } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useRouteIds } from '@/composables/useRouteIds';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
 import { Trash2 } from 'lucide-vue-next';
@@ -32,7 +33,7 @@ const router = useRouter();
 // Permissions
 const { canCreate, canDelete } = usePermissions();
 
-const applicationId = computed(() => route.params.application_id as string);
+const { applicationId } = useRouteIds();
 const { data: eventTypes, isLoading, error, refetch } = useEventTypeList(applicationId);
 
 const deactivateMutation = useDeactivateEventType();

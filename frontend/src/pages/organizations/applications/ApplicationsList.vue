@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, h, markRaw } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { h, markRaw } from 'vue';
+import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
 import { Trash2 } from 'lucide-vue-next';
@@ -10,6 +10,7 @@ import type { Application } from './ApplicationService';
 import { routes } from '@/routes';
 import { usePermissions } from '@/composables/usePermissions';
 import { useEntityDelete } from '@/composables/useEntityDelete';
+import { useRouteIds } from '@/composables/useRouteIds';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -26,13 +27,12 @@ import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
 import Hook0Dialog from '@/components/Hook0Dialog.vue';
 
 const { t } = useI18n();
-const route = useRoute();
 const router = useRouter();
 
 // Permissions
 const { canCreate, canDelete } = usePermissions();
 
-const organizationId = computed(() => route.params.organization_id as string);
+const { organizationId } = useRouteIds();
 const { data: applications, isLoading, error, refetch } = useApplicationList(organizationId);
 
 const removeMutation = useRemoveApplication();

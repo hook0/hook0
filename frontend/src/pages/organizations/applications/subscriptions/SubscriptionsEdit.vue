@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRouter } from 'vue-router';
+import { useRouteIds } from '@/composables/useRouteIds';
 import { useI18n } from 'vue-i18n';
 import { useForm } from 'vee-validate';
 
@@ -98,13 +99,7 @@ function toApiRecord(map: Record<string, string>): Record<string, never> {
 }
 
 const router = useRouter();
-const route = useRoute();
-
-const subscriptionId = computed(() => {
-  const id = route.params.subscription_id;
-  return typeof id === 'string' ? id : '';
-});
-const applicationId = computed(() => route.params.application_id as string);
+const { applicationId, subscriptionId } = useRouteIds();
 const isNew = computed(() => !subscriptionId.value);
 
 // Queries

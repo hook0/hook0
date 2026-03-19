@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { addDays, addYears, isBefore } from 'date-fns';
@@ -20,6 +20,7 @@ import type { BiscuitBlockInfo } from '@/utils/biscuit_auth';
 import { trySyncCall } from '@/utils/result';
 import { routes } from '@/routes';
 import { useTracking } from '@/composables/useTracking';
+import { useRouteIds } from '@/composables/useRouteIds';
 
 import TokenPreviewTabs from './TokenPreviewTabs.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -42,12 +43,9 @@ import Hook0Alert from '@/components/Hook0Alert.vue';
 import Hook0Form from '@/components/Hook0Form.vue';
 
 const { t } = useI18n();
-const route = useRoute();
 const router = useRouter();
 const { trackEvent } = useTracking();
-
-const organizationId = computed(() => route.params.organization_id as string);
-const serviceTokenId = computed(() => route.params.service_token_id as string);
+const { organizationId, serviceTokenId } = useRouteIds();
 
 // Queries
 const {

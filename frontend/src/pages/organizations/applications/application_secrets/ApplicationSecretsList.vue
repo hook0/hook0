@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { computed, h, markRaw, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { h, markRaw, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
 import { Trash2 } from 'lucide-vue-next';
@@ -12,6 +11,7 @@ import { toast } from 'vue-sonner';
 import { useTracking } from '@/composables/useTracking';
 import { usePermissions } from '@/composables/usePermissions';
 import { useEntityDelete } from '@/composables/useEntityDelete';
+import { useRouteIds } from '@/composables/useRouteIds';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -30,13 +30,12 @@ import Hook0Dialog from '@/components/Hook0Dialog.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 
 const { t } = useI18n();
-const route = useRoute();
 const { trackEvent } = useTracking();
 
 // Permissions
 const { canCreate, canDelete } = usePermissions();
 
-const applicationId = computed(() => route.params.application_id as string);
+const { applicationId } = useRouteIds();
 const { data: secrets, isLoading, error, refetch } = useSecretList(applicationId);
 
 const createMutation = useCreateSecret();

@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { Rocket, FileText } from 'lucide-vue-next';
+import { Rocket } from 'lucide-vue-next';
 
 import { useApplicationDetail } from './useApplicationQueries';
 import { useEventsPerDay } from './useEventsPerDayQuery';
@@ -19,7 +18,8 @@ import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0TutorialWidget from '@/components/Hook0TutorialWidget.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
 import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
-import Hook0EventsPerDayChart from '@/components/Hook0EventsPerDayChart.vue';
+import EventsPerDayChartCard from '@/components/EventsPerDayChartCard.vue';
+import { useRouteIds } from '@/composables/useRouteIds';
 
 import EventTypesList from '@/pages/organizations/applications/event_types/EventTypesList.vue';
 import EventsList from '@/pages/organizations/applications/events/EventsList.vue';
@@ -27,10 +27,7 @@ import SubscriptionsList from '@/pages/organizations/applications/subscriptions/
 import LogList from '@/pages/organizations/applications/logs/LogList.vue';
 
 const { t } = useI18n();
-const route = useRoute();
-
-const organizationId = computed(() => route.params.organization_id as string);
-const applicationId = computed(() => route.params.application_id as string);
+const { organizationId, applicationId } = useRouteIds();
 
 const {
   data: application,
@@ -97,36 +94,17 @@ const {
       </Hook0Card>
 
       <!-- Events per day chart -->
-      <Hook0Card>
-        <Hook0CardHeader>
-          <template #header>
-            <Hook0Stack direction="row" align="center" gap="sm">
-              <Hook0IconBadge variant="primary" size="sm">
-                <FileText :size="14" aria-hidden="true" />
-              </Hook0IconBadge>
-              <span class="app-dashboard__label">{{
-                t('applications.consumptionTitle', { name: application.name })
-              }}</span>
-            </Hook0Stack>
-          </template>
-          <template #actions>
-            <Hook0Button @click="refetchEventsPerDay()">
-              {{ t('common.refresh') }}
-            </Hook0Button>
-          </template>
-        </Hook0CardHeader>
-        <Hook0CardContent>
-          <Hook0EventsPerDayChart
-            :entries="eventsPerDayData ?? []"
-            :stacked="false"
-            :from="eventsPerDayFrom"
-            :to="eventsPerDayTo"
-            :days="eventsPerDayDays"
-            :quota-limit="application.quotas.events_per_day_limit"
-            @update:days="eventsPerDayDays = $event"
-          />
-        </Hook0CardContent>
-      </Hook0Card>
+      <EventsPerDayChartCard
+        :title="t('applications.consumptionTitle', { name: application.name })"
+        :entries="eventsPerDayData ?? []"
+        :stacked="false"
+        :from="eventsPerDayFrom"
+        :to="eventsPerDayTo"
+        :days="eventsPerDayDays"
+        :quota-limit="application.quotas.events_per_day_limit"
+        @update:days="eventsPerDayDays = $event"
+        @refresh="refetchEventsPerDay()"
+      />
 
       <EventTypesList :burst="applicationId" />
       <EventsList :burst="applicationId" @event-sent="refetchApp()" />

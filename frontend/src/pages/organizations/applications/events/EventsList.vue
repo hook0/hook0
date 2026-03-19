@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, h, markRaw, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useRouteIds } from '@/composables/useRouteIds';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
 import { RefreshCw, ExternalLink } from 'lucide-vue-next';
@@ -54,8 +55,7 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
-
-const applicationId = computed(() => route.params.application_id as string);
+const { applicationId } = useRouteIds();
 
 // Side panel state
 const sidePanelOpen = ref(false);

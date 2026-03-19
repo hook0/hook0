@@ -1,6 +1,4 @@
-export type Hook0Routes = string;
-
-export const routes: Record<Hook0Routes, string> = {
+export const routes = {
   Home: 'Home',
 
   Tutorial: 'Tutorial',
@@ -51,7 +49,9 @@ export const routes: Record<Hook0Routes, string> = {
   APIDocumentation: 'APIDocumentation',
   APIDocumentationForApplication: 'APIDocumentationForApplication',
   Error404: '404',
-};
+} as const;
+
+export type RouteName = keyof typeof routes;
 
 export default [
   {

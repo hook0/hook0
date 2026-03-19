@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 
+import { useRouteIds } from '@/composables/useRouteIds';
 import { useEventDetail } from './useEventQueries';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
@@ -18,10 +17,7 @@ import Hook0Stack from '@/components/Hook0Stack.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
 
 const { t } = useI18n();
-const route = useRoute();
-
-const eventId = computed(() => route.params.event_id as string);
-const applicationId = computed(() => route.params.application_id as string);
+const { eventId, applicationId } = useRouteIds();
 
 const { data: event, isLoading, error, refetch } = useEventDetail(eventId, applicationId);
 </script>

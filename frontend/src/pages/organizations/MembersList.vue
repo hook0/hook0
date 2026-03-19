@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, h, markRaw, ref } from 'vue';
-import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
 import { Trash2 } from 'lucide-vue-next';
@@ -17,6 +16,7 @@ import { handleMutationError } from '@/utils/handleMutationError';
 import { toast } from 'vue-sonner';
 import { usePermissions } from '@/composables/usePermissions';
 import { useEntityDelete } from '@/composables/useEntityDelete';
+import { useRouteIds } from '@/composables/useRouteIds';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -37,12 +37,11 @@ import Hook0Form from '@/components/Hook0Form.vue';
 import Hook0Dialog from '@/components/Hook0Dialog.vue';
 
 const { t } = useI18n();
-const route = useRoute();
 
 // Permissions
 const { canCreate, canEdit, canDelete } = usePermissions();
 
-const organizationId = computed(() => route.params.organization_id as string);
+const { organizationId } = useRouteIds();
 const { data: members, isLoading, error, refetch } = useMemberList(organizationId);
 
 const currentUser = computed(() => useAuthStore().userInfo);

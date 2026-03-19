@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { use } from 'echarts/core';
 import { BarChart } from 'echarts/charts';
@@ -51,8 +51,22 @@ const { t } = useI18n();
 
 const dayPresets = [7, 30, 90] as const;
 
-// C1: Resolve theme colors once at setup scope, not inside computed.
-const colors = getThemeColors();
+const themeKey = ref(0);
+let observer: MutationObserver | null = null;
+onMounted(() => {
+  observer = new MutationObserver(() => {
+    themeKey.value++;
+  });
+  observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['class'],
+  });
+});
+onBeforeUnmount(() => observer?.disconnect());
+const colors = computed(() => {
+  void themeKey.value;
+  return getThemeColors();
+});
 
 // KPI stats
 const totalEvents = computed(() => props.entries.reduce((sum, e) => sum + e.amount, 0));
@@ -81,7 +95,7 @@ const chartOption = computed(() => {
     return buildSimpleChartOption(
       dates,
       props.entries,
-      colors,
+      colors.value,
       provisionalDates,
       t('eventsPerDayChart.seriesName')
     );
@@ -90,7 +104,7 @@ const chartOption = computed(() => {
   return buildStackedChartOption({
     dates,
     entries: props.entries,
-    colors,
+    colors: colors.value,
     provisionalDates,
     quotaLimit: props.quotaLimit,
     totalLabelFn: (total) => t('eventsPerDayChart.totalTooltip', { total }),

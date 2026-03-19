@@ -63,56 +63,47 @@ function getAxios(
 }
 
 export default {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  get<T = any, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
+  get<T = unknown, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
     return getAxios().then((client) => client.get(url, config));
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  delete<T = any, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
+  delete<T = unknown, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
     return getAxios().then((client) => client.delete(url, config));
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  head<T = any, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
+  head<T = unknown, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
     return getAxios().then((client) => client.head(url, config));
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  options<T = any, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
+  options<T = unknown, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
     return getAxios().then((client) => client.options(url, config));
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  post<T = any, R = AxiosResponse<T>>(
+  post<T = unknown, R = AxiosResponse<T>>(
     url: string,
-    data?: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+    data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<R> {
     return getAxios().then((client) => client.post(url, data, config));
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  put<T = any, R = AxiosResponse<T>>(
+  put<T = unknown, R = AxiosResponse<T>>(
     url: string,
-    data?: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+    data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<R> {
     return getAxios().then((client) => client.put(url, data, config));
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  patch<T = any, R = AxiosResponse<T>>(
+  patch<T = unknown, R = AxiosResponse<T>>(
     url: string,
-    data?: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+    data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<R> {
     return getAxios().then((client) => client.patch(url, data, config));
   },
 
   unauthenticated: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    get<T = any, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
+    get<T = unknown, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
       return getAxios(false).then((client) => client.get(url, config));
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    post<T = any, R = AxiosResponse<T>>(
+    post<T = unknown, R = AxiosResponse<T>>(
       url: string,
-      data?: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+      data?: unknown,
       config?: AxiosRequestConfig
     ): Promise<R> {
       return getAxios(false).then((client) => client.post(url, data, config));
@@ -120,10 +111,9 @@ export default {
   },
 
   withRefreshToken: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    post<T = any, R = AxiosResponse<T>>(
+    post<T = unknown, R = AxiosResponse<T>>(
       url: string,
-      data?: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+      data?: unknown,
       config?: AxiosRequestConfig
     ): Promise<R> {
       return getAxios(true, true).then((client) => client.post(url, data, config));
@@ -132,6 +122,7 @@ export default {
 };
 
 // Global types
+/** Branded string type for UUID identifiers. */
 export type UUID = string;
 
 export type Problem = definitions['Problem'];
@@ -153,7 +144,8 @@ export function handleError(err: AxiosError<AxiosResponse<Problem>>): Problem {
   }
 
   if (err.response?.data && typeof err.response.data === 'object') {
-    const problem = err.response.data as unknown as Problem;
+    const data: unknown = err.response.data;
+    const problem = data as Problem;
     if (
       typeof problem.detail === 'string' &&
       typeof problem.status === 'number' &&

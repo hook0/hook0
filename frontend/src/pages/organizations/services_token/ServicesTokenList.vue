@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, h, markRaw, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { h, markRaw, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
 import { Plus, Bot, BookOpen, Check, Eye, Pencil, Trash2 } from 'lucide-vue-next';
@@ -18,6 +18,7 @@ import { toast } from 'vue-sonner';
 import { useTracking } from '@/composables/useTracking';
 import { usePermissions } from '@/composables/usePermissions';
 import { useEntityDelete } from '@/composables/useEntityDelete';
+import { useRouteIds } from '@/composables/useRouteIds';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -39,14 +40,13 @@ import Hook0Dialog from '@/components/Hook0Dialog.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 
 const { t } = useI18n();
-const route = useRoute();
 const router = useRouter();
 const { trackEvent } = useTracking();
 
 // Permissions
 const { canCreate, canEdit, canDelete } = usePermissions();
 
-const organizationId = computed(() => route.params.organization_id as string);
+const { organizationId } = useRouteIds();
 const { data: serviceTokens, isLoading, error, refetch } = useServiceTokenList(organizationId);
 
 const createMutation = useCreateServiceToken();
@@ -186,11 +186,7 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
           })
         );
       }
-      return h(
-        'div',
-        { style: 'display:flex;align-items:center;justify-content:flex-end;gap:0.75rem' },
-        actions
-      );
+      return h('div', { class: 'service-token__actions' }, actions);
     },
   },
 ];

@@ -1,4 +1,4 @@
-import { AxiosError, AxiosResponse } from 'axios';
+import { AxiosError, type AxiosResponse } from 'axios';
 import http, { handleError, Problem, UUID } from '@/http';
 import type { components } from '@/types';
 
@@ -11,8 +11,8 @@ function fetchEventsPerDay(
   endpoint: string,
   params: Record<string, string>
 ): Promise<EventsPerDayEntry[]> {
-  return http.get(endpoint, { params }).then(
-    (res: AxiosResponse<EventsPerDayEntry[]>) => res.data,
+  return http.get<EventsPerDayEntry[]>(endpoint, { params }).then(
+    (res) => res.data,
     (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
   );
 }

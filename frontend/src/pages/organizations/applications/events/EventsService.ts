@@ -1,4 +1,3 @@
-import { AxiosResponse } from 'axios';
 import http, { UUID } from '@/http';
 import type { components } from '@/types';
 import { unwrapResponse } from '@/utils/unwrapResponse';
@@ -38,12 +37,12 @@ export function get(
   application_id: UUID
 ): Promise<EventWithPayload & EventWithPayloadDecoded> {
   return http
-    .get(`/events/${id}`, {
+    .get<EventWithPayload>(`/events/${id}`, {
       params: {
         application_id: application_id,
       },
     })
-    .then((res: AxiosResponse<EventWithPayload>) => {
+    .then((res) => {
       return {
         ...res.data,
         payload_decoded: decode(res.data.payload, res.data.payload_content_type),

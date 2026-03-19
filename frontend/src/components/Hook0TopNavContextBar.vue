@@ -10,12 +10,12 @@
  * <Hook0ContextBar ref="contextBarRef" @close-dropdowns="closeAll" />
  */
 import { ref, computed } from 'vue';
-import { ChevronsUpDown, Box, Plus } from 'lucide-vue-next';
+import { ChevronsUpDown, Box } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import { routes } from '@/routes';
-import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0Avatar from '@/components/Hook0Avatar.vue';
 import Hook0Badge from '@/components/Hook0Badge.vue';
+import ContextDropdownMenu from '@/components/ContextDropdownMenu.vue';
 import { useOrgAppSwitcher } from '@/composables/useOrgAppSwitcher';
 
 const { t } = useI18n();
@@ -106,6 +106,18 @@ function handleOrgItemClick(orgId: string): void {
 
 const orgTriggerRef = ref<HTMLButtonElement | null>(null);
 const appTriggerRef = ref<HTMLButtonElement | null>(null);
+const orgDropdownMenuRef = ref<{ dropdownRef: HTMLElement | null } | null>(null);
+const appDropdownMenuRef = ref<{ dropdownRef: HTMLElement | null } | null>(null);
+
+/** Extract org name from a generic item (avoids `as` casts in template). */
+function getOrgName(item: { [key: string]: unknown }): string {
+  return (item.name as string) ?? '?';
+}
+
+/** Extract org plan from a generic item (avoids `as` casts in template). */
+function getOrgPlan(item: { [key: string]: unknown }): { label: string } | null {
+  return (item.plan as { label: string }) ?? null;
+}
 
 /**
  * Focus the trigger button that opened the currently active dropdown.
@@ -176,7 +188,11 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
         class="hook0-topnav__ghost-avatar"
         @click.stop="toggleDropdown('org')"
       />
-      <button class="hook0-topnav__ghost-select" @click.stop="toggleDropdown('org')">
+      <button
+        class="hook0-topnav__ghost-select"
+        :aria-label="t('nav.selectOrganization')"
+        @click.stop="toggleDropdown('org')"
+      >
         {{ t('nav.selectOrganization') }}
       </button>
     </template>
@@ -193,61 +209,26 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
     </button>
 
     <!-- Org dropdown -->
-    <Transition name="hook0-dropdown">
-      <div
-        v-if="orgDropdownOpen"
-        class="hook0-topnav__dropdown"
-        role="menu"
-        aria-orientation="vertical"
-      >
-        <button
-          v-for="org in sortedOrgs"
-          :key="org.organization_id"
-          class="hook0-topnav__dropdown-item"
-          :class="{
-            'hook0-topnav__dropdown-item--active': org.organization_id === currentOrgId,
-          }"
-          role="menuitem"
-          @click="handleOrgItemClick(org.organization_id)"
-        >
-          <Hook0Avatar :name="org.name" size="sm" variant="square" />
-          <div class="hook0-topnav__dropdown-item-content">
-            <span class="hook0-topnav__dropdown-item-name">
-              <span class="hook0-topnav__dropdown-item-name-text">{{ org.name }}</span>
-              <Hook0Badge v-if="org.plan" variant="primary" size="sm">{{
-                org.plan.label
-              }}</Hook0Badge>
-            </span>
-            <span
-              v-if="org.organization_id === currentOrgId"
-              class="hook0-topnav__dropdown-item-meta"
-            >
-              {{ t('common.current') }}
-            </span>
-          </div>
-          <Hook0Button
-            v-if="org.organization_id === currentOrgId"
-            variant="secondary"
-            size="xs"
-            :aria-label="`${t('nav.settings')} ${org.name}`"
-            @click.stop="goToOrgSettings(org.organization_id)"
-          >
-            {{ t('nav.settings') }}
-          </Hook0Button>
-        </button>
-
-        <div class="hook0-topnav__dropdown-separator" />
-
-        <button
-          class="hook0-topnav__dropdown-item hook0-topnav__dropdown-item--create"
-          role="menuitem"
-          @click="goToCreateOrg()"
-        >
-          <Plus :size="16" aria-hidden="true" />
-          {{ t('nav.createOrganization') }}
-        </button>
-      </div>
-    </Transition>
+    <ContextDropdownMenu
+      ref="orgDropdownMenuRef"
+      :items="sortedOrgs"
+      :current-id="currentOrgId"
+      id-key="organization_id"
+      :open="orgDropdownOpen"
+      :create-label="t('nav.createOrganization')"
+      @select="handleOrgItemClick"
+      @create="goToCreateOrg()"
+      @settings="goToOrgSettings"
+    >
+      <template #icon="{ item }">
+        <Hook0Avatar :name="getOrgName(item)" size="sm" variant="square" />
+      </template>
+      <template #badge="{ item }">
+        <Hook0Badge v-if="getOrgPlan(item)" variant="primary" size="sm">{{
+          getOrgPlan(item)!.label
+        }}</Hook0Badge>
+      </template>
+    </ContextDropdownMenu>
   </div>
 
   <!-- App section (always visible when org is selected) -->
@@ -274,8 +255,18 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
       </template>
       <!-- No app selected -->
       <template v-else>
-        <button class="hook0-topnav__ghost-text" @click.stop="toggleDropdown('app')">?</button>
-        <button class="hook0-topnav__ghost-select" @click.stop="toggleDropdown('app')">
+        <button
+          class="hook0-topnav__ghost-text"
+          :aria-label="t('nav.selectApplication')"
+          @click.stop="toggleDropdown('app')"
+        >
+          ?
+        </button>
+        <button
+          class="hook0-topnav__ghost-select"
+          :aria-label="t('nav.selectApplication')"
+          @click.stop="toggleDropdown('app')"
+        >
           {{ t('nav.selectApplication') }}
         </button>
       </template>
@@ -292,63 +283,24 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
       </button>
 
       <!-- App dropdown -->
-      <Transition name="hook0-dropdown">
-        <div
-          v-if="appDropdownOpen"
-          class="hook0-topnav__dropdown"
-          role="menu"
-          aria-orientation="vertical"
-        >
-          <button
-            v-for="app in sortedApps"
-            :key="app.application_id"
-            class="hook0-topnav__dropdown-item"
-            :class="{
-              'hook0-topnav__dropdown-item--active': app.application_id === currentAppId,
-            }"
-            role="menuitem"
-            @click="handleAppItemClick(app.organization_id, app.application_id)"
-          >
-            <Box :size="16" aria-hidden="true" />
-            <div class="hook0-topnav__dropdown-item-content">
-              <span class="hook0-topnav__dropdown-item-name">{{ app.name }}</span>
-              <span
-                v-if="app.application_id === currentAppId"
-                class="hook0-topnav__dropdown-item-meta"
-              >
-                {{ t('common.current') }}
-              </span>
-            </div>
-            <Hook0Button
-              v-if="app.application_id === currentAppId"
-              variant="secondary"
-              size="xs"
-              :aria-label="`${t('nav.settings')} ${app.name}`"
-              @click.stop="goToAppSettings(app.organization_id, app.application_id)"
-            >
-              {{ t('nav.settings') }}
-            </Hook0Button>
-          </button>
-
-          <div class="hook0-topnav__dropdown-separator" />
-
-          <button
-            class="hook0-topnav__dropdown-item hook0-topnav__dropdown-item--create"
-            role="menuitem"
-            @click="goToCreateApp()"
-          >
-            <Plus :size="16" aria-hidden="true" />
-            {{ t('nav.createApplication') }}
-          </button>
-        </div>
-      </Transition>
+      <ContextDropdownMenu
+        ref="appDropdownMenuRef"
+        :items="sortedApps"
+        :current-id="currentAppId"
+        id-key="application_id"
+        :open="appDropdownOpen"
+        :create-label="t('nav.createApplication')"
+        @select="(id: string) => handleAppItemClick(currentOrgId!, id)"
+        @create="goToCreateApp()"
+        @settings="(id: string) => goToAppSettings(currentOrgId!, id)"
+      >
+        <template #icon>
+          <Box :size="16" aria-hidden="true" />
+        </template>
+      </ContextDropdownMenu>
     </div>
   </template>
 </template>
-
-<style>
-@import './hook0-topnav-dropdown.css';
-</style>
 
 <style scoped>
 /* Logo separator (rendered here because it's contextual to org presence) */
@@ -415,11 +367,6 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
   background-color: var(--color-bg-tertiary);
 }
 
-.hook0-topnav__org-name:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
 /* Switcher button (chevrons-up-down) */
 .hook0-topnav__switcher-btn {
   display: flex;
@@ -443,11 +390,6 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
   background-color: var(--color-bg-tertiary);
   color: var(--color-text-primary);
   border-color: var(--color-border-strong);
-}
-
-.hook0-topnav__switcher-btn:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
 }
 
 /* Path separator between org and app */
@@ -489,12 +431,6 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
   color: var(--color-text-muted);
 }
 
-.hook0-topnav__org-avatar-btn:focus-visible,
-.hook0-topnav__app-icon-btn:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
 .hook0-topnav__app-name {
   font-size: 0.8125rem;
   font-weight: 500;
@@ -517,11 +453,6 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
   background-color: var(--color-bg-tertiary);
 }
 
-.hook0-topnav__app-name:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
 /* Hide org and app text names on mobile — keep icons only */
 @media (max-width: 767px) {
   .hook0-topnav__org-name {
@@ -530,76 +461,6 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
 
   .hook0-topnav__app-name {
     display: none;
-  }
-}
-
-/* ContextBar-specific dropdown overrides */
-.hook0-topnav__dropdown-item:not(.hook0-topnav__dropdown-item--active):hover {
-  background-color: var(--color-bg-tertiary);
-  color: var(--color-text-primary);
-}
-
-.hook0-topnav__dropdown-item--active {
-  background-color: transparent;
-  border-radius: 0;
-  cursor: default;
-}
-
-.hook0-topnav__dropdown-item--create {
-  color: var(--color-text-muted);
-  font-weight: 400;
-  border-bottom: none;
-}
-
-.hook0-topnav__dropdown-item--create :deep(svg) {
-  border: 1.5px dashed var(--color-border-strong);
-  border-radius: var(--radius-sm);
-  padding: 1px;
-}
-
-.hook0-topnav__dropdown-item--create:hover {
-  color: var(--color-text-primary);
-}
-
-.hook0-topnav__dropdown-item-content {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.0625rem;
-}
-
-.hook0-topnav__dropdown-item-name {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  font-weight: 500;
-  color: var(--color-text-primary);
-  min-width: 0;
-  flex: 1;
-}
-
-.hook0-topnav__dropdown-item-name-text {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-}
-
-.hook0-topnav__dropdown-item-meta {
-  font-size: 0.6875rem;
-  color: var(--color-text-muted);
-}
-
-@media (max-width: 767px) {
-  .hook0-topnav__dropdown {
-    position: fixed;
-    top: 3.5rem;
-    left: 0.5rem;
-    right: 0.5rem;
-    min-width: 0;
-    max-width: none;
-    width: auto;
   }
 }
 
@@ -646,6 +507,11 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
   color: var(--color-text-secondary);
 }
 
+.hook0-topnav__org-name:focus-visible,
+.hook0-topnav__switcher-btn:focus-visible,
+.hook0-topnav__org-avatar-btn:focus-visible,
+.hook0-topnav__app-icon-btn:focus-visible,
+.hook0-topnav__app-name:focus-visible,
 .hook0-topnav__ghost-select:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;

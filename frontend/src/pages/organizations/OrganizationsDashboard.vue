@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, markRaw } from 'vue';
-import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import type { Component } from 'vue';
 import { Building2, CreditCard, Users, FolderOpen, FileText, Database } from 'lucide-vue-next';
 
+import { useRouteIds } from '@/composables/useRouteIds';
 import { useOrganizationDetail } from './useOrganizationQueries';
 import { useInstanceConfig } from '@/composables/useInstanceConfig';
 import { organizationSteps } from '@/pages/tutorial/TutorialService';
@@ -23,13 +23,11 @@ import Hook0TutorialWidget from '@/components/Hook0TutorialWidget.vue';
 import Hook0Badge from '@/components/Hook0Badge.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
 import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
-import Hook0EventsPerDayChart from '@/components/Hook0EventsPerDayChart.vue';
+import EventsPerDayChartCard from '@/components/EventsPerDayChartCard.vue';
 import ApplicationsList from '@/pages/organizations/applications/ApplicationsList.vue';
 
 const { t } = useI18n();
-const route = useRoute();
-
-const organizationId = computed(() => route.params.organization_id as string);
+const { organizationId } = useRouteIds();
 
 const {
   data: organization,
@@ -153,36 +151,17 @@ const quotaCards = computed<{ icon: Component; value: number | undefined; label:
       </Hook0Card>
 
       <!-- Events per day chart -->
-      <Hook0Card>
-        <Hook0CardHeader>
-          <template #header>
-            <Hook0Stack direction="row" align="center" gap="sm">
-              <Hook0IconBadge variant="primary" size="sm">
-                <FileText :size="14" aria-hidden="true" />
-              </Hook0IconBadge>
-              <span class="org-dashboard__label">{{
-                t('organizations.consumptionTitle', { name: organization.name })
-              }}</span>
-            </Hook0Stack>
-          </template>
-          <template #actions>
-            <Hook0Button @click="refetchEventsPerDay()">
-              {{ t('common.refresh') }}
-            </Hook0Button>
-          </template>
-        </Hook0CardHeader>
-        <Hook0CardContent>
-          <Hook0EventsPerDayChart
-            :entries="eventsPerDayData ?? []"
-            :stacked="true"
-            :from="eventsPerDayFrom"
-            :to="eventsPerDayTo"
-            :days="eventsPerDayDays"
-            :quota-limit="organization.quotas.events_per_day_limit"
-            @update:days="eventsPerDayDays = $event"
-          />
-        </Hook0CardContent>
-      </Hook0Card>
+      <EventsPerDayChartCard
+        :title="t('organizations.consumptionTitle', { name: organization.name })"
+        :entries="eventsPerDayData ?? []"
+        :stacked="true"
+        :from="eventsPerDayFrom"
+        :to="eventsPerDayTo"
+        :days="eventsPerDayDays"
+        :quota-limit="organization.quotas.events_per_day_limit"
+        @update:days="eventsPerDayDays = $event"
+        @refresh="refetchEventsPerDay()"
+      />
 
       <Hook0Card v-if="pricingEnabled && !organization.plan">
         <Hook0CardHeader>

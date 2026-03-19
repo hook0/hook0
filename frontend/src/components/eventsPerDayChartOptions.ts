@@ -1,7 +1,24 @@
 import { format, parseISO, eachDayOfInterval } from 'date-fns';
+import type { ComposeOption } from 'echarts/core';
+import type { BarSeriesOption } from 'echarts/charts';
+import type {
+  GridComponentOption,
+  TooltipComponentOption,
+  LegendComponentOption,
+  MarkLineComponentOption,
+} from 'echarts/components';
 
 import { escapeHtml } from '@/utils/escapeHtml';
 import type { EventsPerDayEntry } from '@/pages/organizations/applications/EventsPerDayService';
+
+/** Composed ECharts option type matching the registered components. */
+export type ECOption = ComposeOption<
+  | BarSeriesOption
+  | GridComponentOption
+  | TooltipComponentOption
+  | LegendComponentOption
+  | MarkLineComponentOption
+>;
 
 /** Color palette resolved from CSS custom properties. */
 export type ThemeColors = {
@@ -31,16 +48,8 @@ export type EChartsTooltipParam = {
 };
 
 /** Bar series configuration for ECharts. */
-export type BarSeriesConfig = {
-  name: string;
-  type: 'bar';
-  stack?: string;
-  color: string;
-  data: Array<{
-    value: number;
-    itemStyle: Record<string, unknown>;
-  }>;
-  markLine?: Record<string, unknown>;
+type BarSeriesConfig = BarSeriesOption & {
+  markLine?: MarkLineComponentOption;
 };
 
 /** Options object for buildStackedChartOption (replaces 7 positional params). */
@@ -55,6 +64,12 @@ export type StackedChartConfig = {
 };
 
 export const BAR_RADIUS: [number, number, number, number] = [3, 3, 0, 0];
+
+const CHART_GRID = { left: 50, right: 20, top: 10, bottom: 30 };
+const CHART_GRID_STACKED_BASE = { left: 50, right: 20, bottom: 50 };
+const TOOLTIP_PADDING: [number, number] = [8, 12];
+const AXIS_FONT_SIZE = 11;
+const ANIMATION_DURATION_MS = 400;
 
 /** Resolve design-system color palette from CSS custom properties. */
 export function getThemeColors(): ThemeColors {
@@ -96,21 +111,23 @@ export function sumByDate(entries: EventsPerDayEntry[]): Map<string, number> {
 }
 
 /** Build shared tooltip styling using theme colors. */
-export function buildTooltipConfig(colors: ThemeColors): Record<string, unknown> {
+export function buildTooltipConfig(colors: ThemeColors): ECOption['tooltip'] {
   return {
     trigger: 'axis',
     backgroundColor: colors.tooltipBg,
     borderColor: 'transparent',
     textStyle: { color: colors.tooltipText, fontSize: 12 },
-    padding: [8, 12],
+    padding: TOOLTIP_PADDING,
     extraCssText: `border-radius: 8px; box-shadow: 0 4px 12px ${colors.tooltipBorder};`,
   };
 }
 
 /** Build animation config scaled to the number of date points. */
-export function buildAnimationConfig(totalDates: number): Record<string, unknown> {
+export function buildAnimationConfig(
+  totalDates: number
+): Pick<ECOption, 'animationDuration' | 'animationEasing' | 'animationDelay'> {
   return {
-    animationDuration: 400,
+    animationDuration: ANIMATION_DURATION_MS,
     animationEasing: 'cubicOut',
     animationDelay: (idx: number) => (idx / totalDates) * 300,
   };
@@ -120,20 +137,20 @@ export function buildAnimationConfig(totalDates: number): Record<string, unknown
 export function buildAxisConfig(
   colors: ThemeColors,
   dates: string[]
-): { xAxis: Record<string, unknown>; yAxis: Record<string, unknown> } {
+): Pick<ECOption, 'xAxis' | 'yAxis'> {
   return {
     xAxis: {
       type: 'category',
       data: dates.map((d) => format(parseISO(d), 'MMM dd')),
       axisLine: { lineStyle: { color: colors.border } },
-      axisLabel: { color: colors.textSecondary, fontSize: 11 },
+      axisLabel: { color: colors.textSecondary, fontSize: AXIS_FONT_SIZE },
     },
     yAxis: {
       type: 'value',
       minInterval: 1,
       axisLine: { show: false },
       splitLine: { lineStyle: { color: colors.border, type: 'dashed' } },
-      axisLabel: { color: colors.textSecondary, fontSize: 11 },
+      axisLabel: { color: colors.textSecondary, fontSize: AXIS_FONT_SIZE },
     },
   };
 }
@@ -145,14 +162,14 @@ export function buildSimpleChartOption(
   colors: ThemeColors,
   provisionalDates: Set<string>,
   seriesName: string
-): Record<string, unknown> {
+): ECOption {
   const amountByDate = sumByDate(entries);
   const { xAxis, yAxis } = buildAxisConfig(colors, dates);
 
   return {
     ...buildAnimationConfig(dates.length),
     tooltip: { ...buildTooltipConfig(colors) },
-    grid: { left: 50, right: 20, top: 10, bottom: 30 },
+    grid: CHART_GRID,
     xAxis,
     yAxis,
     series: [
@@ -171,6 +188,20 @@ export function buildSimpleChartOption(
   };
 }
 
+/** Build a single HTML table row for a tooltip entry. */
+function tooltipRow(p: EChartsTooltipParam, total: number): string {
+  const val = Number(p.value) || 0;
+  const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+  // marker is ECharts-generated trusted HTML (colored circle SVG)
+  return [
+    '<tr>',
+    `<td style="padding:1px 0">${String(p.marker)} ${escapeHtml(String(p.seriesName))}</td>`,
+    `<td style="text-align:right;padding:1px 0 1px 16px;font-weight:600;font-variant-numeric:tabular-nums">${val}</td>`,
+    `<td style="text-align:right;padding:1px 0 1px 4px;opacity:0.6;font-variant-numeric:tabular-nums">${pct}%</td>`,
+    '</tr>',
+  ].join('');
+}
+
 /** Format HTML tooltip content for stacked chart mode. */
 export function formatStackedTooltip(
   params: EChartsTooltipParam[],
@@ -180,25 +211,21 @@ export function formatStackedTooltip(
   if (!params || params.length === 0) return '';
   const date = escapeHtml(String(params[0].name));
   const total = params.reduce((s, p) => s + (Number(p.value) || 0), 0);
-  let html = `<div style="font-weight:700;margin-bottom:6px">${date}</div>`;
-  html += '<table style="width:100%;border-spacing:0">';
-  for (const p of params) {
-    const val = Number(p.value) || 0;
-    if (val === 0) continue;
-    const pct = total > 0 ? Math.round((val / total) * 100) : 0;
-    html += `<tr>`;
-    // marker is ECharts-generated trusted HTML (colored circle SVG)
-    html += `<td style="padding:1px 0">${String(p.marker)} ${escapeHtml(String(p.seriesName))}</td>`;
-    html += `<td style="text-align:right;padding:1px 0 1px 16px;font-weight:600;font-variant-numeric:tabular-nums">${val}</td>`;
-    html += `<td style="text-align:right;padding:1px 0 1px 4px;opacity:0.6;font-variant-numeric:tabular-nums">${pct}%</td>`;
-    html += `</tr>`;
-  }
-  html += `</table>`;
+
+  const rows = params
+    .filter((p) => (Number(p.value) || 0) > 0)
+    .map((p) => tooltipRow(p, total))
+    .join('');
+
   const dividerColor = colors.tooltipText.startsWith('#fff')
     ? 'rgba(255,255,255,0.2)'
     : `${colors.tooltipText}33`;
-  html += `<div style="border-top:1px solid ${dividerColor};margin-top:6px;padding-top:6px;font-weight:700;text-align:right">${escapeHtml(totalLabel)}</div>`;
-  return html;
+
+  return [
+    `<div style="font-weight:700;margin-bottom:6px">${date}</div>`,
+    `<table style="width:100%;border-spacing:0">${rows}</table>`,
+    `<div style="border-top:1px solid ${dividerColor};margin-top:6px;padding-top:6px;font-weight:700;text-align:right">${escapeHtml(totalLabel)}</div>`,
+  ].join('');
 }
 
 /** Group entries by application, returning per-app name and date-amount map. */
@@ -207,10 +234,11 @@ export function groupEntriesByApp(
 ): Map<string, { name: string; data: Map<string, number> }> {
   const appMap = new Map<string, { name: string; data: Map<string, number> }>();
   for (const entry of entries) {
-    if (!appMap.has(entry.application_id)) {
-      appMap.set(entry.application_id, { name: entry.application_name, data: new Map() });
+    let app = appMap.get(entry.application_id);
+    if (!app) {
+      app = { name: entry.application_name, data: new Map() };
+      appMap.set(entry.application_id, app);
     }
-    const app = appMap.get(entry.application_id)!;
     app.data.set(entry.date, (app.data.get(entry.date) ?? 0) + entry.amount);
   }
   return appMap;
@@ -233,7 +261,7 @@ export function findTopSeriesPerDate(
 }
 
 /** Build ECharts option for stacked (multi-app) mode. */
-export function buildStackedChartOption(config: StackedChartConfig): Record<string, unknown> {
+export function buildStackedChartOption(config: StackedChartConfig): ECOption {
   const { dates, entries, colors, provisionalDates, quotaLimit, totalLabelFn, quotaLabelText } =
     config;
   const palette = [colors.primary, colors.success, colors.warning, colors.error, colors.info];
@@ -293,9 +321,10 @@ export function buildStackedChartOption(config: StackedChartConfig): Record<stri
     ...buildAnimationConfig(dates.length),
     tooltip: {
       ...buildTooltipConfig(colors),
-      formatter: (params: EChartsTooltipParam[]) => {
-        const total = params.reduce((s, p) => s + (Number(p.value) || 0), 0);
-        return formatStackedTooltip(params, totalLabelFn(total), colors);
+      formatter: (params: unknown) => {
+        const arr = (Array.isArray(params) ? params : [params]) as EChartsTooltipParam[];
+        const total = arr.reduce((s, p) => s + (Number(p.value) || 0), 0);
+        return formatStackedTooltip(arr, totalLabelFn(total), colors);
       },
     },
     legend: {
@@ -303,7 +332,7 @@ export function buildStackedChartOption(config: StackedChartConfig): Record<stri
       bottom: 0,
       textStyle: { color: colors.textSecondary, fontSize: 11 },
     },
-    grid: { left: 50, right: 20, top: quotaLimit ? 30 : 10, bottom: 50 },
+    grid: { ...CHART_GRID_STACKED_BASE, top: quotaLimit ? 30 : 10 },
     xAxis,
     yAxis,
     series,

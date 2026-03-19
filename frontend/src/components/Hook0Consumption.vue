@@ -18,6 +18,9 @@ type Props = {
 
 const props = defineProps<Props>();
 
+const QUOTA_THRESHOLD_DANGER = 90;
+const QUOTA_THRESHOLD_WARNING = 70;
+
 /** Severity variant for quota consumption progress bars. */
 type BarVariant = 'ok' | 'warning' | 'danger';
 
@@ -33,16 +36,14 @@ const enrichedConsumptions = computed<EnrichedConsumption[]>(() => {
   return props.consumptions.map((quota) => {
     const isUnlimited = quota.quota >= UNLIMITED_QUOTA || quota.quota <= 0;
     const pct = isUnlimited ? 0 : Math.round((quota.consumption / quota.quota) * 100);
-    const variant: BarVariant = pct >= 90 ? 'danger' : pct >= 70 ? 'warning' : 'ok';
+    const variant: BarVariant =
+      pct >= QUOTA_THRESHOLD_DANGER ? 'danger' : pct >= QUOTA_THRESHOLD_WARNING ? 'warning' : 'ok';
     const formattedValue = quota.displayValue ?? String(quota.consumption);
-    let formattedLimit = '';
-    if (!quota.displayValue) {
-      if (quota.quota >= UNLIMITED_QUOTA) {
-        formattedLimit = t('common.unlimited');
-      } else {
-        formattedLimit = String(quota.quota);
-      }
-    }
+    const formattedLimit = quota.displayValue
+      ? ''
+      : quota.quota >= UNLIMITED_QUOTA
+        ? t('common.unlimited')
+        : String(quota.quota);
     return { ...quota, pct, variant, formattedValue, formattedLimit };
   });
 });
@@ -99,7 +100,15 @@ const enrichedConsumptions = computed<EnrichedConsumption[]>(() => {
                 {{ quota.pct }}%
               </span>
             </div>
-            <div v-if="!quota.displayValue" class="consumption__track">
+            <div
+              v-if="!quota.displayValue"
+              class="consumption__track"
+              role="progressbar"
+              :aria-valuenow="quota.pct"
+              :aria-valuemin="0"
+              :aria-valuemax="100"
+              :aria-label="quota.name"
+            >
               <div
                 class="consumption__fill"
                 :class="`consumption__fill--${quota.variant}`"
@@ -220,15 +229,16 @@ const enrichedConsumptions = computed<EnrichedConsumption[]>(() => {
 }
 
 .consumption__track {
-  height: 6px;
-  border-radius: 3px;
+  --consumption-track-height: 0.375rem;
+  height: var(--consumption-track-height);
+  border-radius: calc(var(--consumption-track-height) / 2);
   background-color: var(--color-bg-tertiary);
   overflow: hidden;
 }
 
 .consumption__fill {
   height: 100%;
-  border-radius: 3px;
+  border-radius: calc(var(--consumption-track-height) / 2);
   transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 

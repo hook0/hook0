@@ -6,7 +6,7 @@ import router from '@/router';
 import { routes } from '@/routes';
 import type { components } from '@/types';
 import formbricks from '@formbricks/js';
-import { getInstanceConfig } from '@/utils/instance-config';
+import { initializeFormbricks, trackFormbricksRoute } from '@/composables/useFormbricksInit';
 
 type LoginResponse = components['schemas']['LoginResponse'];
 
@@ -22,6 +22,7 @@ type AuthState = {
 };
 
 const LOCAL_STORAGE_KEY = 'auth';
+const REFRESH_MARGIN_MINUTES = 2;
 
 export const useAuthStore = defineStore('auth', () => {
   const state = ref<AuthState | null>(null);
@@ -49,7 +50,7 @@ export const useAuthStore = defineStore('auth', () => {
       return null;
     }
 
-    const parsed = JSON.parse(data) as {
+    let parsed: {
       accessToken: string;
       accessTokenExpiration: string;
       refreshToken: string;
@@ -60,7 +61,21 @@ export const useAuthStore = defineStore('auth', () => {
       lastName: string;
     } | null;
 
-    if (!parsed) {
+    try {
+      parsed = JSON.parse(data) as typeof parsed;
+    } catch {
+      removeFromStorage();
+      return null;
+    }
+
+    if (
+      !parsed ||
+      typeof parsed.accessToken !== 'string' ||
+      typeof parsed.refreshToken !== 'string' ||
+      typeof parsed.userId !== 'string' ||
+      typeof parsed.email !== 'string'
+    ) {
+      removeFromStorage();
       return null;
     }
 
@@ -107,10 +122,13 @@ export const useAuthStore = defineStore('auth', () => {
       });
     }
 
-    // Refresh 2 minutes before expiration for extra margin (especially during HMR reloads)
+    // Refresh before expiration for extra margin (especially during HMR reloads)
     const refreshInMs = Math.max(
       0,
-      differenceInMilliseconds(subMinutes(state.value.accessTokenExpiration, 2), new Date())
+      differenceInMilliseconds(
+        subMinutes(state.value.accessTokenExpiration, REFRESH_MARGIN_MINUTES),
+        new Date()
+      )
     );
 
     refreshTimerId = window.setTimeout(() => {
@@ -229,7 +247,12 @@ export const useAuthStore = defineStore('auth', () => {
     });
   }
 
-  // Initialize
+  /**
+   * Initialize auth state from localStorage and set up cross-tab sync.
+   * Must be called once at app startup. Registers singleton listeners for:
+   * - `storage` event: syncs auth state when another tab writes/clears tokens
+   * - `visibilitychange` event: re-checks token freshness when tab becomes visible
+   */
   function initialize(): void {
     initializeFormbricks().catch(console.warn);
 
@@ -245,15 +268,12 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     // Sync auth state across tabs via localStorage events
-    // When another tab writes new tokens or clears them, this tab picks it up
     window.addEventListener('storage', (e) => {
       if (e.key !== LOCAL_STORAGE_KEY) return;
       if (e.newValue === null) {
-        // Another tab cleared tokens
         if (refreshTimerId !== null) clearTimeout(refreshTimerId);
         state.value = null;
       } else {
-        // Another tab wrote new tokens — pick them up
         const freshState = readFromStorage();
         if (freshState) {
           state.value = freshState;
@@ -263,7 +283,6 @@ export const useAuthStore = defineStore('auth', () => {
     });
 
     // Re-check token freshness when tab becomes visible again
-    // (setTimeout is throttled in background tabs, so the scheduled refresh may have been missed)
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible' && state.value) {
         scheduleAutoRefresh().catch(console.error);
@@ -271,47 +290,23 @@ export const useAuthStore = defineStore('auth', () => {
     });
   }
 
-  function initializeFormbricks(): Promise<void> {
-    if (typeof window === 'undefined') return Promise.resolve();
-
-    return getInstanceConfig().then((config) => {
-      if (
-        config &&
-        config.formbricks &&
-        config.formbricks.api_host &&
-        config.formbricks.environment_id
-      ) {
-        return formbricks
-          .setup({
-            appUrl: config.formbricks.api_host,
-            environmentId: config.formbricks.environment_id,
-          })
-          .catch((e) => {
-            console.warn(`Formbricks initialization failed: ${e}`);
-          });
-      }
-    });
-  }
-
-  // Router guard setup
+  // Router guard setup — split into analytics and auth guards
   function setupRouterGuard(): void {
-    router.beforeEach((to, _from) => {
-      // Formbricks tracking
+    // Analytics guard: Formbricks route tracking
+    router.beforeEach((to) => {
       if (
         window.formbricks &&
         (to.meta?.requiresAuth ?? true) &&
         state.value !== null &&
         !(to.meta?.tutorial ?? false)
       ) {
-        formbricks.registerRouteChange().catch((e) => {
-          console.warn(`Formbricks register route change failed: ${e}`);
-        });
-        formbricks.track('route_changed').catch((e) => {
-          console.warn(`Formbricks track failed: ${e}`);
-        });
+        trackFormbricksRoute();
       }
+      return true;
+    });
 
-      // Auth guard — try to restore session before redirecting to login
+    // Auth guard: redirect unauthenticated users to login
+    router.beforeEach((to) => {
       if ((to.meta?.requiresAuth ?? true) && state.value === null) {
         const storedState = readFromStorage();
         if (storedState) {

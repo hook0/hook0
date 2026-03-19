@@ -1,4 +1,4 @@
-import { computed, ref, onMounted, type Component } from 'vue';
+import { computed, type Component } from 'vue';
 import { useRoute } from 'vue-router';
 import {
   ArrowDownToLine,
@@ -15,7 +15,7 @@ import {
 import { useI18n } from 'vue-i18n';
 import { routes } from '@/routes';
 import { useContextStore } from '@/stores/context';
-import { type InstanceConfig, getInstanceConfig } from '@/utils/biscuit_auth';
+import { useInstanceConfig } from '@/composables/useInstanceConfig';
 
 export type NavTab = {
   id: string;
@@ -30,20 +30,7 @@ export function useNavigationTabs() {
   const { t } = useI18n();
   const route = useRoute();
   const contextStore = useContextStore();
-  const instanceConfig = ref<InstanceConfig | null>(null);
-
-  onMounted(() => {
-    getInstanceConfig()
-      .then((config) => {
-        instanceConfig.value = config;
-      })
-      .catch((err) => {
-        // If instance config fetch fails (network, 500), default to null.
-        // appSecretCompat will fall back to true (show API Keys tab by default).
-        console.warn('[useNavigationTabs] Failed to load instance config:', err);
-        instanceConfig.value = null;
-      });
-  });
+  const { data: instanceConfig } = useInstanceConfig();
 
   const navTabs = computed<NavTab[]>(() => {
     const orgId = contextStore.organizationId;
@@ -53,7 +40,7 @@ export function useNavigationTabs() {
     // App-level navigation
     if (orgId && appId) {
       const params = { organization_id: orgId, application_id: appId };
-      const tabs: NavTab[] = [
+      return [
         {
           id: 'dashboard',
           label: t('nav.dashboard'),
@@ -92,27 +79,25 @@ export function useNavigationTabs() {
           to: { name: routes.LogsList, params },
           active: route.name === routes.LogsList,
         },
+        ...(appSecretCompat
+          ? [
+              {
+                id: 'api-keys',
+                label: t('nav.apiKeys'),
+                icon: KeyRound,
+                to: { name: routes.ApplicationSecretsList, params },
+                active: route.name === routes.ApplicationSecretsList,
+              },
+            ]
+          : []),
+        {
+          id: 'settings',
+          label: t('nav.settings'),
+          icon: Settings,
+          to: { name: routes.ApplicationsDetail, params },
+          active: route.name === routes.ApplicationsDetail,
+        },
       ];
-
-      if (appSecretCompat) {
-        tabs.push({
-          id: 'api-keys',
-          label: t('nav.apiKeys'),
-          icon: KeyRound,
-          to: { name: routes.ApplicationSecretsList, params },
-          active: route.name === routes.ApplicationSecretsList,
-        });
-      }
-
-      tabs.push({
-        id: 'settings',
-        label: t('nav.settings'),
-        icon: Settings,
-        to: { name: routes.ApplicationsDetail, params },
-        active: route.name === routes.ApplicationsDetail,
-      });
-
-      return tabs;
     }
 
     // Org-level navigation

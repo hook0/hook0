@@ -24,10 +24,12 @@ const triggerRef = ref<HTMLElement | null>(null);
 const tooltipStyle = ref<Record<string, string>>({});
 let showTimeout: ReturnType<typeof setTimeout> | null = null;
 
+const TOOLTIP_GAP_PX = 8;
+
 function updatePosition() {
   if (!triggerRef.value) return;
   const rect = triggerRef.value.getBoundingClientRect();
-  const gap = 8;
+  const gap = TOOLTIP_GAP_PX;
 
   switch (props.position) {
     case 'top':
@@ -68,6 +70,7 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 function show() {
+  if (showTimeout !== null) return;
   showTimeout = setTimeout(() => {
     visible.value = true;
     document.addEventListener('keydown', onKeydown);
