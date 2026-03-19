@@ -12,6 +12,7 @@
 import { ref, computed } from 'vue';
 import { ChevronsUpDown, Box, Plus } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
+import { routes } from '@/routes';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0Avatar from '@/components/Hook0Avatar.vue';
 import Hook0Badge from '@/components/Hook0Badge.vue';
@@ -34,7 +35,6 @@ const {
   isAppLevel,
   switchOrg,
   switchApp,
-  goToOrgDashboard,
   goToOrgSettings,
   goToAppSettings,
   goToCreateOrg,
@@ -106,13 +106,6 @@ function focusActiveTrigger(): void {
   }
 }
 
-/** Navigate to current app dashboard safely (no non-null assertions). */
-function navigateToCurrentApp(): void {
-  if (currentOrgId.value && currentAppId.value) {
-    switchApp(currentOrgId.value, currentAppId.value);
-  }
-}
-
 /** Handle app item click — switch only if not already the current app. */
 function handleAppItemClick(orgId: string, appId: string): void {
   if (appId !== currentAppId.value) {
@@ -135,10 +128,10 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
 
     <!-- Org section -->
     <div class="hook0-topnav__org-section hook0-topnav__dropdown-anchor">
-      <button
+      <router-link
+        :to="{ name: routes.OrganizationsDashboard, params: { organization_id: currentOrgId } }"
         class="hook0-topnav__org-avatar-btn"
         :aria-label="t('nav.goToOrgDashboard')"
-        @click="goToOrgDashboard()"
       >
         <Hook0Avatar
           :name="currentOrgName ?? '?'"
@@ -146,17 +139,17 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
           variant="square"
           class="hook0-topnav__org-avatar"
         />
-      </button>
-      <button
+      </router-link>
+      <router-link
+        :to="{ name: routes.OrganizationsDashboard, params: { organization_id: currentOrgId } }"
         class="hook0-topnav__org-name"
         data-test="context-bar-org-name"
-        @click="goToOrgDashboard()"
       >
         <span>{{ currentOrgName ?? '...' }}</span>
         <Hook0Badge variant="primary" size="sm">{{
           currentOrgPlan ? currentOrgPlan.label : t('orgAppSelector.developer')
         }}</Hook0Badge>
-      </button>
+      </router-link>
       <button
         ref="orgTriggerRef"
         class="hook0-topnav__switcher-btn"
@@ -232,20 +225,26 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
       <span class="hook0-topnav__path-separator" aria-hidden="true">/</span>
 
       <div class="hook0-topnav__app-section hook0-topnav__dropdown-anchor">
-        <button
+        <router-link
+          :to="{
+            name: routes.ApplicationsDashboard,
+            params: { organization_id: currentOrgId, application_id: currentAppId },
+          }"
           class="hook0-topnav__app-icon-btn"
           :aria-label="t('nav.goToAppDashboard')"
-          @click="navigateToCurrentApp()"
         >
           <Box :size="16" class="hook0-topnav__app-icon" aria-hidden="true" />
-        </button>
-        <button
+        </router-link>
+        <router-link
+          :to="{
+            name: routes.ApplicationsDashboard,
+            params: { organization_id: currentOrgId, application_id: currentAppId },
+          }"
           class="hook0-topnav__app-name"
           data-test="context-bar-app-name"
-          @click="navigateToCurrentApp()"
         >
           {{ currentAppName ?? '...' }}
-        </button>
+        </router-link>
         <button
           ref="appTriggerRef"
           class="hook0-topnav__switcher-btn"
@@ -340,6 +339,7 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
 .hook0-topnav__org-name {
   border: none;
   background: none;
+  text-decoration: none;
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--color-text-primary);
@@ -470,6 +470,7 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
   font-size: 0.8125rem;
   font-weight: 500;
   color: var(--color-text-primary);
+  text-decoration: none;
   white-space: nowrap;
   max-width: 10rem;
   overflow: hidden;
