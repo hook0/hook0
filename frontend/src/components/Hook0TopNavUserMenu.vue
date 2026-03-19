@@ -60,6 +60,7 @@ defineExpose({ closeDropdowns, focusTrigger, hasOpenDropdown });
     <button
       ref="triggerRef"
       class="hook0-topnav__user-trigger"
+      data-test="user-menu-trigger"
       :aria-expanded="isOpen"
       aria-haspopup="true"
       :aria-label="t('nav.userMenu')"
@@ -74,6 +75,7 @@ defineExpose({ closeDropdowns, focusTrigger, hasOpenDropdown });
       <div
         v-if="isOpen"
         class="hook0-topnav__dropdown hook0-topnav__user-dropdown"
+        data-test="user-menu-dropdown"
         role="menu"
         aria-orientation="vertical"
       >
@@ -86,6 +88,7 @@ defineExpose({ closeDropdowns, focusTrigger, hasOpenDropdown });
         <router-link
           :to="{ name: routes.UserSettings }"
           class="hook0-topnav__dropdown-item"
+          data-test="user-menu-settings"
           role="menuitem"
         >
           <Settings :size="16" aria-hidden="true" />
@@ -105,6 +108,7 @@ defineExpose({ closeDropdowns, focusTrigger, hasOpenDropdown });
         <Hook0Button
           variant="ghost"
           class="hook0-topnav__dropdown-item hook0-topnav__dropdown-item--danger"
+          data-test="user-menu-logout"
           role="menuitem"
           @click="void authStore.logout()"
         >

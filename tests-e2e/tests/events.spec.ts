@@ -492,4 +492,84 @@ test.describe("Events", () => {
     await expect(page.locator('[data-test="event-detail-page"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('[data-test="event-detail-type"]')).toContainText(env.eventTypeName);
   });
+
+  test("should display event detail page with payload and metadata", async ({ page, request }) => {
+    const env = await setupTestEnvironment(page, request, "detail-full");
+
+    // Navigate to events page and send an event with known payload
+    await page.goto(
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/events`
+    );
+
+    await expect(page.locator('[data-test="events-send-button"]')).toBeVisible({ timeout: 10000 });
+
+    // Send an event
+    await page.locator('[data-test="events-send-button"]').click();
+    await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 10000 });
+    await page.locator('[data-test="send-event-type-select"]').selectOption(env.eventTypeName);
+
+    // Add labels (use "all"/"yes" to match subscription labels from setupTestEnvironment)
+    const labelKeyInput = page.locator('[data-test="send-event-labels"] [data-test="kv-key-input-0"]');
+    const labelValueInput = page.locator('[data-test="send-event-labels"] [data-test="kv-value-input-0"]');
+    await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
+    await labelKeyInput.clear();
+    await labelKeyInput.fill("all");
+    await labelKeyInput.blur();
+    await labelValueInput.clear();
+    await labelValueInput.fill("yes");
+    await labelValueInput.blur();
+    await expect(labelKeyInput).toHaveValue("all");
+    await expect(labelValueInput).toHaveValue("yes");
+
+    // Set occurred_at
+    const now = new Date();
+    const dateTimeValue = now.toISOString().slice(0, 16);
+    await page.locator('[data-test="send-event-occurred-at-input"]').fill(dateTimeValue);
+
+    // Submit event
+    const responsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/v1/event") && response.request().method() === "POST" && !response.url().includes("/api/v1/event_types"),
+      { timeout: 15000 }
+    );
+
+    await page.locator('[data-test="send-event-submit-button"]').click();
+    const response = await responsePromise;
+    expect(response.status()).toBeLessThan(400);
+
+    // Wait for events list
+    await expect(page.locator('[data-test="events-card"]')).toBeVisible({ timeout: 10000 });
+
+    // Click on the event ID link to navigate to the detail page
+    const rows = page.locator('[data-test="events-table"] [row-id]');
+    await expect(rows.first()).toBeVisible({ timeout: 10000 });
+    const eventLink = rows.first().locator('a').first();
+    await expect(eventLink).toBeVisible({ timeout: 5000 });
+    await eventLink.click();
+
+    // Verify we're on the event detail page
+    await expect(page).toHaveURL(/\/events\/[^/]+$/, { timeout: 10000 });
+    await expect(page.locator('[data-test="event-detail-page"]')).toBeVisible({ timeout: 10000 });
+
+    // Verify event type is displayed
+    await expect(page.locator('[data-test="event-detail-type"]')).toContainText(env.eventTypeName);
+
+    // Verify the detail card contains event metadata (occurred_at, received_at, source IP)
+    const detailCard = page.locator('[data-test="event-detail-card"]');
+    await expect(detailCard).toBeVisible({ timeout: 10000 });
+    await expect(detailCard).toContainText(env.eventTypeName);
+
+    // Verify payload section is visible (the page has 4 cards: detail, metadata, labels, payload)
+    // Check that the page contains payload-related content
+    // Hook0Code inline renders <code> elements; wait for content to load with retries
+    const detailPage = page.locator('[data-test="event-detail-page"]');
+    await expect(detailPage).toContainText('application/json', { timeout: 30000 });
+
+    // Verify labels section displays the label we sent
+    await expect(detailPage).toContainText("all", { timeout: 15000 });
+    await expect(detailPage).toContainText("yes", { timeout: 15000 });
+
+    // Verify payload content is displayed (we sent the default '{"test": true}')
+    await expect(detailPage).toContainText("test", { timeout: 15000 });
+  });
 });

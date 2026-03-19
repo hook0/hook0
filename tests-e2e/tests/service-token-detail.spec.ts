@@ -134,4 +134,60 @@ test.describe("Service Token Detail", () => {
     // Step 3: Verify token name is displayed on the page
     await expect(page.getByText(env.tokenName)).toBeVisible({ timeout: 10000 });
   });
+
+  test("should display token details including biscuit and detail card", async ({ page, request }) => {
+    const env = await setupTestEnvironment(page, request, "details");
+
+    // Step 1: Navigate to token detail page
+    const showButton = page.locator('[data-test="service-tokens-table"]').getByText("Show").first();
+    await showButton.click();
+
+    await expect(page).toHaveURL(
+      /\/organizations\/[^/]+\/services_tokens\/[0-9a-f-]+/,
+      { timeout: 10000 }
+    );
+
+    // Step 2: Verify the detail card is visible with correct data-test attribute
+    const detailCard = page.locator('[data-test="service-token-detail-card"]');
+    await expect(detailCard).toBeVisible({ timeout: 10000 });
+
+    // Step 3: Verify the token name is rendered inside the detail card header
+    const tokenNameElement = page.locator('[data-test="service-token-detail-name"]');
+    await expect(tokenNameElement).toBeVisible();
+    await expect(tokenNameElement).toContainText(env.tokenName);
+
+    // Verify the biscuit token is displayed (Hook0Code non-inline renders via CodeMirror, not <code>/<pre>)
+    // Check that the detail card contains the CodeMirror wrapper
+    const codeWrapper = detailCard.locator('.hook0-code-wrapper');
+    await expect(codeWrapper.first()).toBeVisible({ timeout: 10000 });
+  });
+
+  test("should navigate back to token list", async ({ page, request }) => {
+    const env = await setupTestEnvironment(page, request, "back");
+
+    // Step 1: Navigate to token detail page
+    const showButton = page.locator('[data-test="service-tokens-table"]').getByText("Show").first();
+    await showButton.click();
+
+    await expect(page).toHaveURL(
+      /\/organizations\/[^/]+\/services_tokens\/[0-9a-f-]+/,
+      { timeout: 10000 }
+    );
+
+    // Verify detail card loaded
+    await expect(page.locator('[data-test="service-token-detail-card"]')).toBeVisible({ timeout: 10000 });
+
+    // Step 2: Click the Cancel button (navigates back to list)
+    const cancelButton = page.getByText("Cancel").first();
+    await cancelButton.click();
+
+    // Step 3: Verify URL changed back to the service tokens list
+    await expect(page).toHaveURL(
+      new RegExp(`/organizations/${env.organizationId}/services_tokens$`),
+      { timeout: 10000 }
+    );
+
+    // Verify the tokens list card is visible again
+    await expect(page.locator('[data-test="service-tokens-card"]')).toBeVisible({ timeout: 10000 });
+  });
 });

@@ -181,6 +181,7 @@ onUnmounted(removeAfterEach);
         <!-- Search -->
         <button
           class="hook0-topnav__search"
+          data-test="search-button"
           :aria-label="t('nav.search')"
           @click="uiStore.openCommandPalette()"
         >

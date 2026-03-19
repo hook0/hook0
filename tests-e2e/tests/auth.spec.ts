@@ -145,6 +145,66 @@ test.describe("Authentication", () => {
         timeout: 15000,
       });
     });
+
+    test("should logout and redirect to login page", async ({ page, request }) => {
+      // Setup: Create and login a test user
+      const timestamp = Date.now();
+      const email = `test-logout-${timestamp}@hook0.local`;
+      const password = `TestPassword123!${timestamp}`;
+
+      const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+        data: {
+          email,
+          first_name: "Test",
+          last_name: "User",
+          password,
+        },
+      });
+      expect(registerResponse.status()).toBeLessThan(400);
+
+      const verificationResult = await verifyEmailViaMailpit(request, email);
+
+      // Login via UI
+      await page.goto("/login");
+      await expect(page.locator('[data-test="login-form"]')).toBeVisible({
+        timeout: 10000,
+      });
+      await page.locator('[data-test="login-email-input"]').fill(email);
+      await page.locator('[data-test="login-password-input"]').fill(password);
+      await page.locator('[data-test="login-submit-button"]').click();
+
+      await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
+        timeout: 15000,
+      });
+
+      // Navigate to org dashboard to dismiss tutorial wizard overlay
+      await page.goto(`/organizations/${verificationResult.organizationId}/dashboard`);
+      await expect(page.locator('[data-test="organization-dashboard-card"], [data-test="applications-card"]').first()).toBeVisible({
+        timeout: 15000,
+      });
+
+      // Step 1: Open user menu dropdown
+      await expect(page.locator('[data-test="user-menu-trigger"]')).toBeVisible({
+        timeout: 10000,
+      });
+      await page.locator('[data-test="user-menu-trigger"]').click();
+
+      // Step 2: Click logout
+      await expect(page.locator('[data-test="user-menu-logout"]')).toBeVisible({
+        timeout: 5000,
+      });
+      await page.locator('[data-test="user-menu-logout"]').click();
+
+      // Step 3: Verify redirect to login page
+      await expect(page).toHaveURL(/\/login/, { timeout: 15000 });
+      await expect(page.locator('[data-test="login-form"]')).toBeVisible({
+        timeout: 10000,
+      });
+
+      // Verify that visiting a protected route redirects to /login
+      await page.goto("/settings");
+      await expect(page).toHaveURL(/\/login/, { timeout: 15000 });
+    });
   });
 
   test.describe("Register Page", () => {

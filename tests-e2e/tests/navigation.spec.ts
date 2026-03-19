@@ -572,6 +572,91 @@ test.describe("Navigation", () => {
       // STRICT assertion: Subscriptions card must render after forward navigation
       await expect(page.locator('[data-test="subscriptions-card"]')).toBeVisible({ timeout: 10000 });
     });
+
+    test("should switch between applications via context bar app switcher", async ({
+      page,
+      request,
+    }) => {
+      // Setup
+      const timestamp = Date.now();
+      const email = `test-nav-appsw-${timestamp}@hook0.local`;
+      const password = `TestPassword123!${timestamp}`;
+      const appName1 = `SwitchA ${timestamp}`;
+      const appName2 = `SwitchB ${timestamp}`;
+
+      // Register and verify
+      const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+        data: { email, first_name: "Test", last_name: "User", password },
+      });
+      expect(registerResponse.status()).toBeLessThan(400);
+
+      const verificationResult = await verifyEmailViaMailpit(request, email);
+      const organizationId = verificationResult.organizationId;
+      expect(organizationId).toBeTruthy();
+
+      // Login
+      await page.goto("/login");
+      await expect(page.locator('[data-test="login-form"]')).toBeVisible({ timeout: 10000 });
+      await page.locator('[data-test="login-email-input"]').fill(email);
+      await page.locator('[data-test="login-password-input"]').fill(password);
+      await page.locator('[data-test="login-submit-button"]').click();
+      await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, { timeout: 15000 });
+
+      // Create first application via UI
+      await page.goto(`/organizations/${organizationId}/applications/new`);
+      await expect(page.locator('[data-test="application-form"]')).toBeVisible({ timeout: 10000 });
+      await page.locator('[data-test="application-name-input"]').fill(appName1);
+      const createApp1Response = page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/v1/applications") && response.request().method() === "POST",
+        { timeout: 15000 }
+      );
+      await page.locator('[data-test="application-submit-button"]').click();
+      const app1Response = await createApp1Response;
+      expect(app1Response.status()).toBeLessThan(400);
+      const app1 = await app1Response.json();
+      const app1Id = app1.application_id;
+
+      // Wait for redirect after app creation (URL should contain app1Id)
+      await expect(page).toHaveURL(new RegExp(app1Id), { timeout: 15000 });
+
+      // Create second application via UI (navigate from current page)
+      await page.goto(`/organizations/${organizationId}/applications/new`);
+      await expect(page.locator('[data-test="application-form"]')).toBeVisible({ timeout: 10000 });
+      await page.locator('[data-test="application-name-input"]').fill(appName2);
+      const createApp2Response = page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/v1/applications") && response.request().method() === "POST",
+        { timeout: 15000 }
+      );
+      await page.locator('[data-test="application-submit-button"]').click();
+      const app2Response = await createApp2Response;
+      expect(app2Response.status()).toBeLessThan(400);
+      const app2 = await app2Response.json();
+      const app2Id = app2.application_id;
+
+      // Wait for redirect after app2 creation
+      await expect(page).toHaveURL(new RegExp(app2Id), { timeout: 15000 });
+
+      // Navigate to app 1 event_types (a simpler page that loads fast)
+      await page.goto(`/organizations/${organizationId}/applications/${app1Id}/event_types`);
+      await expect(page.locator('[data-test="event-types-card"]')).toBeVisible({ timeout: 15000 });
+
+      // Click the app switcher button
+      const appSwitcher = page.locator('[data-test="context-bar-app-switcher"]');
+      await expect(appSwitcher).toBeVisible({ timeout: 10000 });
+      await appSwitcher.click();
+
+      // Wait for dropdown to appear and click on app 2
+      const dropdown = page.locator('[role="menu"]');
+      await expect(dropdown).toBeVisible({ timeout: 5000 });
+      const app2Item = dropdown.locator('[role="menuitem"]').filter({ hasText: appName2 });
+      await expect(app2Item).toBeVisible({ timeout: 5000 });
+      await app2Item.click();
+
+      // Verify URL changed to app 2
+      await expect(page).toHaveURL(new RegExp(app2Id), { timeout: 10000 });
+    });
   });
 
   test.describe("Unauthenticated Navigation", () => {

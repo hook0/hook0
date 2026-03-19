@@ -655,4 +655,67 @@ test.describe("Subscriptions", () => {
     const count = await checkboxes.count();
     expect(count).toBeGreaterThanOrEqual(1);
   });
+
+  test("should test endpoint and display result", async ({ page, request }) => {
+    const env = await setupTestEnvironment(page, request, "test-endpoint");
+    const description = `Test Endpoint Sub ${env.timestamp}`;
+
+    // Create a subscription first to get an existing subscription with a URL
+    const subscriptionId = await createSubscription(page, request, env, description);
+
+    // Navigate to subscription edit page (test endpoint button is in the form)
+    await page.goto(
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions/${subscriptionId}`
+    );
+
+    await expect(page.locator('[data-test="subscription-form"]')).toBeVisible({
+      timeout: 10000,
+    });
+
+    // Verify the URL input has a value (required for test endpoint button to be enabled)
+    await expect(page.locator('[data-test="subscription-url-input"]')).toHaveValue(
+      "https://webhook.site/test"
+    );
+
+    // Verify the test endpoint button is visible and enabled
+    const testButton = page.locator('[data-test="subscription-test-endpoint-button"]');
+    await expect(testButton).toBeVisible({ timeout: 5000 });
+    await expect(testButton).toBeEnabled();
+
+    // Click the test endpoint button
+    await testButton.click();
+
+    // Wait for either a result or an error to appear
+    // The fetch uses mode: 'no-cors' so cross-origin URLs return an opaque response (success)
+    // or a network error. Either way, a result element should appear.
+    const resultOrError = page.locator(
+      '[data-test="subscription-test-endpoint-result"], [data-test="subscription-test-endpoint-error"]'
+    );
+    await expect(resultOrError.first()).toBeVisible({ timeout: 15000 });
+
+    // If we got a result (opaque or real response), verify its structure
+    const result = page.locator('[data-test="subscription-test-endpoint-result"]');
+    const error = page.locator('[data-test="subscription-test-endpoint-error"]');
+
+    const hasResult = await result.isVisible();
+    const hasError = await error.isVisible();
+
+    // At least one must be visible
+    expect(hasResult || hasError).toBeTruthy();
+
+    if (hasResult) {
+      // Verify status badge is displayed
+      await expect(
+        page.locator('[data-test="subscription-test-endpoint-status"]')
+      ).toBeVisible();
+
+      // Verify latency is displayed
+      await expect(
+        page.locator('[data-test="subscription-test-endpoint-latency"]')
+      ).toBeVisible();
+      await expect(
+        page.locator('[data-test="subscription-test-endpoint-latency"]')
+      ).toContainText("ms");
+    }
+  });
 });

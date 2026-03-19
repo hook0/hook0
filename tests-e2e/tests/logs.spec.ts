@@ -132,6 +132,136 @@ test.describe("Logs", () => {
     await expect(cardHeader).toContainText("Every webhook delivery attempt");
   });
 
+  test("should display log rows with event links that navigate to event detail", async ({
+    page,
+    request,
+  }) => {
+    const env = await setupTestEnvironment(page, request, "event-link");
+
+    // Create an event type
+    await page.goto(
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/event_types/new`
+    );
+    await expect(page.locator('[data-test="event-type-form"]')).toBeVisible({ timeout: 10000 });
+    await page.locator('[data-test="event-type-service-input"]').fill("link");
+    await page.locator('[data-test="event-type-resource-input"]').fill("test");
+    await page.locator('[data-test="event-type-verb-input"]').fill("created");
+
+    const createETResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/v1/event_types") && response.request().method() === "POST",
+      { timeout: 15000 }
+    );
+    await page.locator('[data-test="event-type-submit-button"]').click();
+    await createETResponse;
+    await expect(page).toHaveURL(/\/event_types$/, { timeout: 10000 });
+
+    // Create a subscription
+    await page.goto(
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions/new`
+    );
+    await expect(page.locator('[data-test="subscription-form"]')).toBeVisible({ timeout: 10000 });
+    await page
+      .locator('[data-test="subscription-description-input"]')
+      .fill(`Link Test Sub ${env.timestamp}`);
+    await page.locator('[data-test="subscription-method-select"]').selectOption("POST");
+    await page.locator('[data-test="subscription-url-input"]').fill("https://webhook.site/test");
+
+    // Add labels
+    const labelKeyInput = page.locator(
+      '[data-test="subscription-labels"] [data-test="kv-key-input-0"]'
+    );
+    const labelValueInput = page.locator(
+      '[data-test="subscription-labels"] [data-test="kv-value-input-0"]'
+    );
+    await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
+    await labelKeyInput.clear();
+    await labelKeyInput.fill("all");
+    await labelKeyInput.blur();
+    await labelValueInput.clear();
+    await labelValueInput.fill("yes");
+    await labelValueInput.blur();
+    await expect(labelKeyInput).toHaveValue("all");
+    await expect(labelValueInput).toHaveValue("yes");
+
+    // Select event type
+    const eventTypeCheckbox = page.locator('[data-test="event-type-checkbox-0"]');
+    await expect(eventTypeCheckbox).toBeVisible({ timeout: 15000 });
+    await eventTypeCheckbox.click();
+
+    const createSubResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/v1/subscriptions") && response.request().method() === "POST",
+      { timeout: 15000 }
+    );
+    await page.locator('[data-test="subscription-submit-button"]').click();
+    await createSubResponse;
+    await expect(page).not.toHaveURL(/\/subscriptions\/new/, { timeout: 10000 });
+
+    // Send an event
+    await page.goto(
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/events`
+    );
+    await expect(page.locator('[data-test="events-send-button"]')).toBeVisible({ timeout: 10000 });
+    await page.locator('[data-test="events-send-button"]').click();
+    await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 10000 });
+    await page
+      .locator('[data-test="send-event-type-select"]')
+      .selectOption("link.test.created");
+
+    // Add event labels
+    const eventLabelKey = page.locator(
+      '[data-test="send-event-labels"] [data-test="kv-key-input-0"]'
+    );
+    const eventLabelValue = page.locator(
+      '[data-test="send-event-labels"] [data-test="kv-value-input-0"]'
+    );
+    await expect(eventLabelKey).toBeVisible({ timeout: 5000 });
+    await eventLabelKey.clear();
+    await eventLabelKey.fill("all");
+    await eventLabelKey.blur();
+    await eventLabelValue.clear();
+    await eventLabelValue.fill("yes");
+    await eventLabelValue.blur();
+    await expect(eventLabelKey).toHaveValue("all");
+    await expect(eventLabelValue).toHaveValue("yes");
+
+    const now = new Date();
+    await page
+      .locator('[data-test="send-event-occurred-at-input"]')
+      .fill(now.toISOString().slice(0, 16));
+
+    const sendEventResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/v1/event") &&
+        response.request().method() === "POST" &&
+        !response.url().includes("/api/v1/event_types"),
+      { timeout: 15000 }
+    );
+    await page.locator('[data-test="send-event-submit-button"]').click();
+    await sendEventResponse;
+
+    // Navigate to logs and wait for data
+    await page.goto(
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/logs`
+    );
+    await expect(page.locator('[data-test="logs-card"]')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-test="logs-table"] [row-id]').first()).toBeVisible({
+      timeout: 15000,
+    });
+
+    // Verify the event link exists in the log row
+    const eventLink = page.locator('[data-test="logs-table"] .log-event-link').first();
+    await expect(eventLink).toBeVisible();
+
+    // Click the event link and verify navigation to event detail
+    await eventLink.click();
+    await expect(page).toHaveURL(/\/events\/[0-9a-f-]+/, { timeout: 10000 });
+
+    // Verify event detail page renders
+    await expect(page.locator('[data-test="event-detail-card"]')).toBeVisible({ timeout: 10000 });
+  });
+
   test("should display logs table after sending event with subscription", async ({
     page,
     request,

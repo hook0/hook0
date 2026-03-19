@@ -94,11 +94,10 @@ test.describe("Command Palette", () => {
     };
   }
 
-  // The command palette overlay is rendered via <Teleport to="body"> so we use
-  // class selectors for the overlay container and data-test for inner elements.
-  const overlaySelector = '.hook0-command-palette-overlay';
-  const inputSelector = '.hook0-command-palette-input';
-  const itemSelector = '.hook0-command-palette-item';
+  const overlaySelector = '[data-test="command-palette-overlay"]';
+  const inputSelector = '[data-test="command-palette-input"]';
+  // Items have dynamic data-test: "command-palette-item-{id}", match any with prefix
+  const itemSelector = '[data-test^="command-palette-item-"]';
 
   test("should open command palette via Search button", async ({ page, request }) => {
     const env = await setupTestEnvironment(page, request, "open");
@@ -112,7 +111,7 @@ test.describe("Command Palette", () => {
     ).toBeVisible({ timeout: 15000 });
 
     // Step 1: Click the Search button in top nav
-    const searchButton = page.locator('.hook0-topnav__search');
+    const searchButton = page.locator('[data-test="search-button"]');
     await expect(searchButton).toBeVisible({ timeout: 10000 });
     await searchButton.click();
 
@@ -135,7 +134,7 @@ test.describe("Command Palette", () => {
     ).toBeVisible({ timeout: 15000 });
 
     // Step 1: Open command palette
-    const searchButton = page.locator('.hook0-topnav__search');
+    const searchButton = page.locator('[data-test="search-button"]');
     await expect(searchButton).toBeVisible({ timeout: 10000 });
     await searchButton.click();
     await expect(page.locator(inputSelector)).toBeVisible({ timeout: 10000 });
@@ -159,7 +158,7 @@ test.describe("Command Palette", () => {
     ).toBeVisible({ timeout: 15000 });
 
     // Step 1: Open command palette and type "Event Types"
-    const searchButton = page.locator('.hook0-topnav__search');
+    const searchButton = page.locator('[data-test="search-button"]');
     await expect(searchButton).toBeVisible({ timeout: 10000 });
     await searchButton.click();
     await expect(page.locator(inputSelector)).toBeVisible({ timeout: 10000 });
@@ -186,7 +185,7 @@ test.describe("Command Palette", () => {
     ).toBeVisible({ timeout: 15000 });
 
     // Step 1: Open command palette
-    const searchButton = page.locator('.hook0-topnav__search');
+    const searchButton = page.locator('[data-test="search-button"]');
     await expect(searchButton).toBeVisible({ timeout: 10000 });
     await searchButton.click();
     await expect(page.locator(overlaySelector)).toBeVisible({ timeout: 10000 });
