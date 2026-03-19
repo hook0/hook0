@@ -38,10 +38,6 @@ export function useKeyboardShortcuts() {
         uiStore.closeCommandPalette();
         return;
       }
-      if (uiStore.mobileDrawerOpen) {
-        uiStore.toggleMobileDrawer();
-        return;
-      }
     }
   }
 
