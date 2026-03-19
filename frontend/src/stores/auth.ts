@@ -45,7 +45,9 @@ export const useAuthStore = defineStore('auth', () => {
   // Storage
   function readFromStorage(): AuthState | null {
     const data = window.localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (!data) return null;
+    if (!data) {
+      return null;
+    }
 
     const parsed = JSON.parse(data) as {
       accessToken: string;
@@ -58,10 +60,14 @@ export const useAuthStore = defineStore('auth', () => {
       lastName: string;
     } | null;
 
-    if (!parsed) return null;
+    if (!parsed) {
+      return null;
+    }
 
     const refreshTokenExpirationDate = new Date(parsed.refreshTokenExpiration);
-    if (refreshTokenExpirationDate <= new Date()) return null;
+    if (refreshTokenExpirationDate <= new Date()) {
+      return null;
+    }
 
     return {
       ...parsed,
@@ -101,9 +107,10 @@ export const useAuthStore = defineStore('auth', () => {
       });
     }
 
-    const refreshInMs = differenceInMilliseconds(
-      subMinutes(state.value.accessTokenExpiration, 1),
-      new Date()
+    // Refresh 2 minutes before expiration for extra margin (especially during HMR reloads)
+    const refreshInMs = Math.max(
+      0,
+      differenceInMilliseconds(subMinutes(state.value.accessTokenExpiration, 2), new Date())
     );
 
     refreshTimerId = window.setTimeout(() => {
@@ -179,6 +186,15 @@ export const useAuthStore = defineStore('auth', () => {
         setAuthState(res.data);
         return scheduleAutoRefresh();
       })
+      .catch(() => {
+        // Before clearing, check if another tab already refreshed successfully
+        const freshState = readFromStorage();
+        if (freshState && state.value && freshState.refreshToken !== state.value.refreshToken) {
+          state.value = freshState;
+          return scheduleAutoRefresh();
+        }
+        void clearTokens();
+      })
       .finally(() => {
         refreshInProgress = null;
       });
@@ -227,6 +243,32 @@ export const useAuthStore = defineStore('auth', () => {
         formbricks.logout().catch(console.warn);
       }
     }
+
+    // Sync auth state across tabs via localStorage events
+    // When another tab writes new tokens or clears them, this tab picks it up
+    window.addEventListener('storage', (e) => {
+      if (e.key !== LOCAL_STORAGE_KEY) return;
+      if (e.newValue === null) {
+        // Another tab cleared tokens
+        if (refreshTimerId !== null) clearTimeout(refreshTimerId);
+        state.value = null;
+      } else {
+        // Another tab wrote new tokens — pick them up
+        const freshState = readFromStorage();
+        if (freshState) {
+          state.value = freshState;
+          scheduleAutoRefresh().catch(console.error);
+        }
+      }
+    });
+
+    // Re-check token freshness when tab becomes visible again
+    // (setTimeout is throttled in background tabs, so the scheduled refresh may have been missed)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && state.value) {
+        scheduleAutoRefresh().catch(console.error);
+      }
+    });
   }
 
   function initializeFormbricks(): Promise<void> {
@@ -269,8 +311,14 @@ export const useAuthStore = defineStore('auth', () => {
         });
       }
 
-      // Auth guard
+      // Auth guard — try to restore session before redirecting to login
       if ((to.meta?.requiresAuth ?? true) && state.value === null) {
+        const storedState = readFromStorage();
+        if (storedState) {
+          state.value = storedState;
+          scheduleAutoRefresh().catch(console.error);
+          return; // Allow navigation, session restored
+        }
         return { name: routes.Login, query: { redirect_to: to.fullPath } };
       } else if (
         !(to.meta?.requiresAuth ?? true) &&

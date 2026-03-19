@@ -44,7 +44,9 @@ function getAxios(
       (error: AxiosError) => {
         if (isAxiosError(error)) {
           const problem = handleError(error as AxiosError<AxiosResponse<Problem>>);
-          if (problem.id === 'AuthInvalidBiscuit') {
+          // Don't clear tokens on refresh endpoint — refresh() handles its own errors
+          const isRefreshCall = error.config?.url?.includes('/auth/refresh');
+          if (problem.id === 'AuthInvalidBiscuit' && !isRefreshCall) {
             toast.error(i18n.global.t('common.error'), {
               description: i18n.global.t('common.sessionExpiredMessage'),
             });
