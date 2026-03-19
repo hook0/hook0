@@ -203,7 +203,7 @@ const onSubmit = handleSubmit((values) => {
 
       <Hook0CardDivider>{{ t('auth.register.hasAccount') }}</Hook0CardDivider>
 
-      <Hook0CardContent removeTopBorder>
+      <Hook0CardContent remove-top-border>
         <Hook0Button
           variant="secondary"
           size="lg"
