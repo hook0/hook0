@@ -8,7 +8,6 @@ import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
-import featureFlags from '@/feature-flags';
 import { getAccessToken } from '@/iam';
 import { useTracking } from '@/composables/useTracking';
 
@@ -24,9 +23,7 @@ function _load() {
   const organization_id = route.params.organization_id;
 
   swaggerUI.value = SwaggerUI({
-    url:
-      featureFlags.getOrElse('API_ENDPOINT', import.meta.env.VITE_API_ENDPOINT ?? '') +
-      '/swagger.json',
+    url: (import.meta.env.VITE_API_ENDPOINT ?? '') + '/swagger.json',
     domNode: container.value,
 
     docExpansion: 'list',

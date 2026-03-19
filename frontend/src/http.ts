@@ -2,7 +2,6 @@ import { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'ax
 import axios from 'axios';
 import { identity } from 'ramda';
 
-import featureFlags from '@/feature-flags';
 import type { components } from '@/types';
 import { clearTokens, getAccessToken, getRefreshToken } from '@/iam';
 import { push } from 'notivue';
@@ -26,14 +25,10 @@ async function getAxios(
         }
       : {};
 
+  const parsedTimeout = parseInt(import.meta.env.VITE_API_TIMEOUT, 10);
   const client = axios.create({
-    baseURL: featureFlags.getOrElse('API_ENDPOINT', import.meta.env.VITE_API_ENDPOINT ?? ''),
-    timeout: featureFlags.getIntegerOrElse(
-      'API_TIMEOUT',
-      Number.isNaN(parseInt(import.meta.env.VITE_API_TIMEOUT, 10))
-        ? 3000
-        : parseInt(import.meta.env.VITE_API_TIMEOUT, 10)
-    ),
+    baseURL: import.meta.env.VITE_API_ENDPOINT ?? '',
+    timeout: Number.isNaN(parsedTimeout) ? 3000 : parsedTimeout,
     headers,
   });
 
