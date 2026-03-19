@@ -131,8 +131,8 @@ const widgetItems = computed(() => {
               <Hook0Card class="org-dashboard__quota-card">
                 <Hook0CardContent>
                   <Hook0Stack direction="row" align="center" gap="sm">
-                    <Hook0IconBadge variant="primary" size="sm">
-                      <Users :size="14" aria-hidden="true" />
+                    <Hook0IconBadge variant="primary" size="md">
+                      <Users :size="18" aria-hidden="true" />
                     </Hook0IconBadge>
                     <Hook0Stack direction="column" gap="none">
                       <span class="org-dashboard__quota-value">{{
@@ -148,8 +148,8 @@ const widgetItems = computed(() => {
               <Hook0Card class="org-dashboard__quota-card">
                 <Hook0CardContent>
                   <Hook0Stack direction="row" align="center" gap="sm">
-                    <Hook0IconBadge variant="primary" size="sm">
-                      <FolderOpen :size="14" aria-hidden="true" />
+                    <Hook0IconBadge variant="primary" size="md">
+                      <FolderOpen :size="18" aria-hidden="true" />
                     </Hook0IconBadge>
                     <Hook0Stack direction="column" gap="none">
                       <span class="org-dashboard__quota-value">{{
@@ -165,8 +165,8 @@ const widgetItems = computed(() => {
               <Hook0Card class="org-dashboard__quota-card">
                 <Hook0CardContent>
                   <Hook0Stack direction="row" align="center" gap="sm">
-                    <Hook0IconBadge variant="primary" size="sm">
-                      <FileText :size="14" aria-hidden="true" />
+                    <Hook0IconBadge variant="primary" size="md">
+                      <FileText :size="18" aria-hidden="true" />
                     </Hook0IconBadge>
                     <Hook0Stack direction="column" gap="none">
                       <span class="org-dashboard__quota-value">{{
@@ -182,8 +182,8 @@ const widgetItems = computed(() => {
               <Hook0Card class="org-dashboard__quota-card">
                 <Hook0CardContent>
                   <Hook0Stack direction="row" align="center" gap="sm">
-                    <Hook0IconBadge variant="primary" size="sm">
-                      <Database :size="14" aria-hidden="true" />
+                    <Hook0IconBadge variant="primary" size="md">
+                      <Database :size="18" aria-hidden="true" />
                     </Hook0IconBadge>
                     <Hook0Stack direction="column" gap="none">
                       <span class="org-dashboard__quota-value">{{
@@ -243,19 +243,20 @@ const widgetItems = computed(() => {
 
 .org-dashboard__quota-value {
   color: var(--color-text-primary);
-  font-size: 1rem;
+  font-size: 1.125rem;
   font-weight: 700;
-  line-height: 1.5;
+  line-height: 1.2;
 }
 
 .org-dashboard__quota-label {
   color: var(--color-text-tertiary);
   font-size: 0.8125rem;
   font-weight: 400;
-  line-height: 1.5;
+  line-height: 1.2;
 }
 
 .org-dashboard__quota-card :deep(.hook0-card-content) {
   padding: 0.75rem 1rem;
 }
+
 </style>
