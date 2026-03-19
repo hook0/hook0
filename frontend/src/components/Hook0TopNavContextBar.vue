@@ -167,6 +167,13 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
       </template>
       <!-- No org selected -->
       <template v-else>
+        <Hook0Avatar
+          name="?"
+          size="sm"
+          variant="square"
+          class="hook0-topnav__ghost-avatar"
+          @click.stop="toggleDropdown('org')"
+        />
         <button class="hook0-topnav__ghost-select" @click.stop="toggleDropdown('org')">
           {{ t('nav.selectOrganization') }}
         </button>
@@ -251,9 +258,10 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
           <router-link
             :to="appDashboardRoute"
             class="hook0-topnav__app-icon-btn"
+            style="color: var(--color-text-muted)"
             :aria-label="t('nav.goToAppDashboard')"
           >
-            <Box :size="16" class="hook0-topnav__app-icon" aria-hidden="true" />
+            <Box :size="16" style="color: var(--color-text-muted)" aria-hidden="true" />
           </router-link>
           <router-link
             :to="appDashboardRoute"
@@ -265,6 +273,7 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
         </template>
         <!-- No app selected -->
         <template v-else>
+          <button class="hook0-topnav__ghost-text" @click.stop="toggleDropdown('app')">?</button>
           <button class="hook0-topnav__ghost-select" @click.stop="toggleDropdown('app')">
             {{ t('nav.selectApplication') }}
           </button>
@@ -460,14 +469,9 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
 }
 
 .hook0-topnav__app-icon {
-  color: var(--color-text-muted);
   flex-shrink: 0;
   cursor: pointer;
   border-radius: var(--radius-sm);
-}
-
-.hook0-topnav__app-icon:hover {
-  color: var(--color-text-primary);
 }
 
 .hook0-topnav__app-icon:focus-visible {
@@ -480,6 +484,9 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
   text-decoration: none;
   color: inherit;
   background: none;
+}
+
+.hook0-topnav__app-icon-btn {
   border: none;
   padding: 0;
   font: inherit;
@@ -619,6 +626,52 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
   transition:
     border-color 0.15s ease,
     color 0.15s ease;
+}
+
+.hook0-topnav__ghost-avatar {
+  opacity: 0.35;
+  cursor: pointer;
+}
+
+.hook0-topnav__ghost-text {
+  all: unset;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.hook0-topnav__ghost-icon-btn {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 1.5px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  opacity: 0.5;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.15s ease;
+}
+
+.hook0-topnav__ghost-icon-btn:hover {
+  opacity: 0.8;
+  border-color: var(--color-border-strong);
+}
+
+.hook0-topnav__ghost-icon-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 767px) {
+  .hook0-topnav__ghost-select {
+    display: none;
+  }
 }
 
 .hook0-topnav__ghost-select:hover {

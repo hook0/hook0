@@ -35,6 +35,7 @@
     "created": "Application created",
     "createdMessage": "Application {name} has been created successfully",
     "dashboard": "Application Dashboard",
+    "howItWorks": "How it works",
     "delete": "Delete application",
     "deleteConfirm": "Are you sure you want to delete the application {name}? This action cannot be undone.",
     "deleted": "Application deleted",
