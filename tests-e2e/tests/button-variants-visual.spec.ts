@@ -16,12 +16,9 @@ import { test, expect } from "@playwright/test";
 
 const SHOWCASE_URL = "/__dev/components";
 
-// Use port 3000 for the dev server in local testing
-const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
-
 test.describe("Hook0Button Visual Regression", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(`${BASE_URL}${SHOWCASE_URL}`);
+    await page.goto(SHOWCASE_URL);
     await expect(page.locator('[data-test="component-showcase"]')).toBeVisible({
       timeout: 15000,
     });

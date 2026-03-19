@@ -83,7 +83,7 @@ test.describe("Authentication", () => {
 
       // Verify error notification is shown to user
       await expect(
-        page.locator('[data-test="toast-notification"]').first()
+        page.locator('[data-sonner-toast]').first()
       ).toBeVisible({
         timeout: 10000,
       });
@@ -344,7 +344,7 @@ test.describe("Authentication", () => {
 
       // Verify error notification is shown to user
       await expect(
-        page.locator('[data-test="toast-notification"]').first()
+        page.locator('[data-sonner-toast]').first()
       ).toBeVisible({
         timeout: 10000,
       });

@@ -114,7 +114,7 @@ test.describe("Logs", () => {
     // Empty state should be shown (no request attempts yet)
     // The card should have content indicating no requests
     const cardContent = page.locator('[data-test="logs-card"]');
-    await expect(cardContent).toContainText(/Request Attempts|did not send any requests/);
+    await expect(cardContent).toContainText(/Delivery Logs|did not send any requests/);
   });
 
   test("should display logs card header correctly", async ({ page, request }) => {
@@ -128,8 +128,8 @@ test.describe("Logs", () => {
 
     // Check the header contains "Request Attempts"
     const cardHeader = page.locator('[data-test="logs-card"]');
-    await expect(cardHeader).toContainText("Request Attempts");
-    await expect(cardHeader).toContainText("Last webhooks sent by Hook0");
+    await expect(cardHeader).toContainText("Delivery Logs");
+    await expect(cardHeader).toContainText("Every webhook delivery attempt");
   });
 
   test("should display logs table after sending event with subscription", async ({

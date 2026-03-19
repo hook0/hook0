@@ -4,15 +4,15 @@ import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verificat
 /**
  * Mobile Navigation E2E tests for Hook0.
  *
- * Tests mobile-specific navigation components (tab bar, drawer)
- * using a mobile viewport (iPhone-like 375x812).
+ * Tests mobile-specific behavior: compact context bar (names hidden, icons visible),
+ * tab bar with icons-only navigation, and org/app switching on mobile viewport.
  */
 test.describe("Mobile Navigation", () => {
   test.use({ viewport: { width: 375, height: 812 } });
 
-  test("should display mobile tab bar on mobile viewport", async ({ page, request }) => {
+  test("should display tab bar with icons on mobile viewport", async ({ page, request }) => {
     const timestamp = Date.now();
-    const email = `test-mobile-tabbar-${timestamp}@hook0.local`;
+    const email = `test-mobile-tabs-${timestamp}@hook0.local`;
     const password = `TestPassword123!${timestamp}`;
 
     // Register and verify
@@ -22,7 +22,8 @@ test.describe("Mobile Navigation", () => {
     expect(registerResponse.status()).toBeLessThan(400);
 
     const verificationResult = await verifyEmailViaMailpit(request, email);
-    expect(verificationResult.organizationId).toBeTruthy();
+    const organizationId = verificationResult.organizationId;
+    expect(organizationId).toBeTruthy();
 
     // Login
     await page.goto("/login");
@@ -32,11 +33,20 @@ test.describe("Mobile Navigation", () => {
     await page.locator('[data-test="login-submit-button"]').click();
     await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, { timeout: 15000 });
 
-    // Verify mobile tab bar is visible
-    await expect(page.locator('[data-test="mobile-tab-bar"]')).toBeVisible({ timeout: 10000 });
+    // Navigate to org dashboard — tab bar should appear
+    await page.goto(`/organizations/${organizationId}/dashboard`);
+
+    // Tab bar nav should be visible (Row 2 of the top nav)
+    const tabBar = page.locator("nav.hook0-topnav__tabs");
+    await expect(tabBar).toBeVisible({ timeout: 10000 });
+
+    // Tab icons should be visible (labels hidden on mobile via CSS)
+    const tabIcons = tabBar.locator(".hook0-topnav__tab-icon");
+    const iconCount = await tabIcons.count();
+    expect(iconCount).toBeGreaterThan(0);
   });
 
-  test("should navigate via tab bar", async ({ page, request }) => {
+  test("should navigate via tab bar icons", async ({ page, request }) => {
     const timestamp = Date.now();
     const email = `test-mobile-tabnav-${timestamp}@hook0.local`;
     const password = `TestPassword123!${timestamp}`;
@@ -59,26 +69,30 @@ test.describe("Mobile Navigation", () => {
     await page.locator('[data-test="login-submit-button"]').click();
     await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, { timeout: 15000 });
 
-    // Navigate to org level to get multiple tabs (applications, service-tokens, settings)
+    // Navigate to org-level applications page
     await page.goto(`/organizations/${organizationId}/applications`);
-    await expect(page.locator('[data-test="mobile-tab-bar"]')).toBeVisible({ timeout: 10000 });
 
-    // Capture current URL
+    // Tab bar should be visible
+    const tabBar = page.locator("nav.hook0-topnav__tabs");
+    await expect(tabBar).toBeVisible({ timeout: 10000 });
+
+    // Click a different tab (e.g., the second tab which should be "Applications")
+    const tabs = tabBar.locator(".hook0-topnav__tab");
+    const tabCount = await tabs.count();
+    expect(tabCount).toBeGreaterThan(1);
+
+    // Click the last tab to navigate somewhere different
     const initialUrl = page.url();
+    await tabs.last().click();
 
-    // Tap the service-tokens tab (second tab at org level)
-    const serviceTokensTab = page.locator('[data-test="mobile-tab-service-tokens"]');
-    await serviceTokensTab.click();
-
-    // Verify URL changed
+    // URL should change (navigated to a different page)
     await expect(page).not.toHaveURL(initialUrl, { timeout: 10000 });
   });
 
-  test("should open drawer via More tab", async ({ page, request }) => {
+  test("should open org switcher dropdown on mobile", async ({ page, request }) => {
     const timestamp = Date.now();
-    const email = `test-mobile-drawer-${timestamp}@hook0.local`;
+    const email = `test-mobile-orgswitch-${timestamp}@hook0.local`;
     const password = `TestPassword123!${timestamp}`;
-    const appName = `Drawer Test App ${timestamp}`;
 
     // Register and verify
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
@@ -98,39 +112,30 @@ test.describe("Mobile Navigation", () => {
     await page.locator('[data-test="login-submit-button"]').click();
     await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, { timeout: 15000 });
 
-    // Create an application to get app-level tabs (>4 tabs triggers the More button)
-    await page.goto(`/organizations/${organizationId}/applications/new`);
-    await expect(page.locator('[data-test="application-form"]')).toBeVisible({ timeout: 10000 });
-    await page.locator('[data-test="application-name-input"]').fill(appName);
-    const createAppResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/v1/applications") && response.request().method() === "POST",
-      { timeout: 15000 }
-    );
-    await page.locator('[data-test="application-submit-button"]').click();
-    const appResponse = await createAppResponse;
-    expect(appResponse.status()).toBeLessThan(400);
-    const app = await appResponse.json();
-    const applicationId = app.application_id;
+    // Navigate to org dashboard
+    await page.goto(`/organizations/${organizationId}/dashboard`);
 
-    // Navigate to app-level page (6 tabs: events, subscriptions, event-types, logs, api-keys, settings)
-    await page.goto(`/organizations/${organizationId}/applications/${applicationId}/events`);
-    await expect(page.locator('[data-test="mobile-tab-bar"]')).toBeVisible({ timeout: 10000 });
+    // Org switcher button should be visible on mobile
+    const orgSwitcher = page.locator('[data-test="context-bar-org-switcher"]');
+    await expect(orgSwitcher).toBeVisible({ timeout: 10000 });
 
-    // Tap the More button (last button in the tab bar that is not a router-link)
-    const moreButton = page.locator('[data-test="mobile-tab-more"], [data-test="mobile-tab-bar"] button');
-    await expect(moreButton.first()).toBeVisible({ timeout: 10000 });
-    await moreButton.first().click();
+    // Click to open dropdown
+    await orgSwitcher.click();
 
-    // Verify drawer is visible
-    await expect(page.locator('[data-test="mobile-drawer"]')).toBeVisible({ timeout: 10000 });
+    // Dropdown should appear with role="menu"
+    const dropdown = page.locator('[role="menu"]');
+    await expect(dropdown).toBeVisible({ timeout: 5000 });
+
+    // Dropdown should contain menu items
+    const menuItems = dropdown.locator('[role="menuitem"]');
+    const itemCount = await menuItems.count();
+    expect(itemCount).toBeGreaterThanOrEqual(1);
   });
 
-  test("should close drawer", async ({ page, request }) => {
+  test("should close dropdown on Escape", async ({ page, request }) => {
     const timestamp = Date.now();
-    const email = `test-mobile-close-${timestamp}@hook0.local`;
+    const email = `test-mobile-escape-${timestamp}@hook0.local`;
     const password = `TestPassword123!${timestamp}`;
-    const appName = `Close Drawer App ${timestamp}`;
 
     // Register and verify
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
@@ -150,35 +155,22 @@ test.describe("Mobile Navigation", () => {
     await page.locator('[data-test="login-submit-button"]').click();
     await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, { timeout: 15000 });
 
-    // Create an application for app-level context (>4 tabs for More button)
-    await page.goto(`/organizations/${organizationId}/applications/new`);
-    await expect(page.locator('[data-test="application-form"]')).toBeVisible({ timeout: 10000 });
-    await page.locator('[data-test="application-name-input"]').fill(appName);
-    const createAppResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/v1/applications") && response.request().method() === "POST",
-      { timeout: 15000 }
-    );
-    await page.locator('[data-test="application-submit-button"]').click();
-    const appResponse = await createAppResponse;
-    expect(appResponse.status()).toBeLessThan(400);
-    const app = await appResponse.json();
-    const applicationId = app.application_id;
+    // Navigate to org dashboard
+    await page.goto(`/organizations/${organizationId}/dashboard`);
 
-    // Navigate to app-level page
-    await page.goto(`/organizations/${organizationId}/applications/${applicationId}/events`);
-    await expect(page.locator('[data-test="mobile-tab-bar"]')).toBeVisible({ timeout: 10000 });
+    // Open org switcher dropdown
+    const orgSwitcher = page.locator('[data-test="context-bar-org-switcher"]');
+    await expect(orgSwitcher).toBeVisible({ timeout: 10000 });
+    await orgSwitcher.click();
 
-    // Open drawer via More button
-    const moreButton = page.locator('[data-test="mobile-tab-more"], [data-test="mobile-tab-bar"] button');
-    await expect(moreButton.first()).toBeVisible({ timeout: 10000 });
-    await moreButton.first().click();
-    await expect(page.locator('[data-test="mobile-drawer"]')).toBeVisible({ timeout: 10000 });
+    // Dropdown should be visible
+    const dropdown = page.locator('[role="menu"]');
+    await expect(dropdown).toBeVisible({ timeout: 5000 });
 
-    // Close drawer
-    await page.locator('[data-test="mobile-drawer-close"]').click();
+    // Press Escape to close
+    await page.keyboard.press("Escape");
 
-    // Verify drawer is hidden
-    await expect(page.locator('[data-test="mobile-drawer"]')).toBeHidden({ timeout: 10000 });
+    // Dropdown should be hidden
+    await expect(dropdown).toBeHidden({ timeout: 5000 });
   });
 });

@@ -223,7 +223,7 @@ test.describe("Events", () => {
     expect(response.status()).toBeLessThan(400);
 
     // Verify success notification is shown using data-test selector
-    await expect(page.locator('[data-test="toast-notification"]').first()).toBeVisible({
+    await expect(page.locator('[data-sonner-toast]').first()).toBeVisible({
       timeout: 10000,
     });
 

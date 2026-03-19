@@ -161,7 +161,7 @@ test.describe("User Settings", () => {
 
     // Verify success notification is shown
     await expect(
-      page.locator('[data-test="toast-notification"]').first()
+      page.locator('[data-sonner-toast]').first()
     ).toBeVisible({
       timeout: 10000,
     });
@@ -241,14 +241,17 @@ test.describe("User Settings", () => {
     await page.locator('[data-test="new-password-input"]').fill("NewPassword123!");
     await page.locator('[data-test="confirm-password-input"]').fill("DifferentPassword456!");
 
-    // Submit
-    await page.locator('[data-test="change-password-button"]').click();
+    // Blur to trigger cross-field validation (Zod refine evaluates after both fields touched)
+    await page.locator('[data-test="confirm-password-input"]').blur();
 
-    // VeeValidate/Zod validates inline - verify the validation error message appears
-    // The error text (.hook0-input-error-text) is rendered inside the Hook0Input component
-    await expect(
-      page.locator('.hook0-input-error-text')
-    ).toBeVisible({
+    // VeeValidate/Zod cross-field refine renders inline error and disables submit button
+    // Verify the submit button is disabled (passwords don't match → meta.valid is false)
+    await expect(page.locator('[data-test="change-password-button"]')).toBeDisabled({
+      timeout: 10000,
+    });
+
+    // Verify the validation error message appears inline
+    await expect(page.locator('.hook0-input-error-text')).toBeVisible({
       timeout: 10000,
     });
   });
@@ -300,7 +303,7 @@ test.describe("User Settings", () => {
 
     // Verify error notification is shown (not implemented feature) or success toast
     await expect(
-      page.locator('[data-test="toast-notification"]').first()
+      page.locator('[data-sonner-toast]').first()
     ).toBeVisible({
       timeout: 10000,
     });
@@ -418,7 +421,7 @@ test.describe("Password Reset Flow", () => {
 
     // Verify success notification is shown
     await expect(
-      page.locator('[data-test="toast-notification"]').first()
+      page.locator('[data-sonner-toast]').first()
     ).toBeVisible({
       timeout: 10000,
     });

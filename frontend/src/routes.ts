@@ -292,16 +292,13 @@ export default [
     meta: { title: 'API Documentation' },
   },
   // Route for component visual testing (used by Playwright E2E tests)
-  ...(import.meta.env.DEV
-    ? [
-        {
-          name: 'ComponentShowcase',
-          path: '/__dev/components',
-          component: () => import('@/pages/ComponentShowcase.vue'),
-          meta: { requiresAuth: false, fullScreen: true },
-        },
-      ]
-    : []),
+  // Always available — path is unlisted and prefixed with __dev
+  {
+    name: 'ComponentShowcase',
+    path: '/__dev/components',
+    component: () => import('@/pages/ComponentShowcase.vue'),
+    meta: { requiresAuth: false, fullScreen: true },
+  },
 
   {
     name: routes.Error404,

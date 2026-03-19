@@ -133,7 +133,7 @@ test.describe("Navigation", () => {
       // STRICT assertion: Card must be visible
       await expect(page.locator('[data-test="logs-card"]')).toBeVisible({ timeout: 10000 });
       const logsHeader = page.locator('[data-test="logs-card"] h2, [data-test="logs-card"] h3').first();
-      await expect(logsHeader).toContainText("Request Attempts");
+      await expect(logsHeader).toContainText("Delivery Logs");
 
       // =================================================================
       // TEST 5: Navigate to Application Settings - verify specific content
@@ -424,19 +424,19 @@ test.describe("Navigation", () => {
       // Final page should render correctly
       await expect(page.locator('[data-test="logs-card"]')).toBeVisible({ timeout: 10000 });
       const logsHeader = page.locator('[data-test="logs-card"] h2, [data-test="logs-card"] h3').first();
-      await expect(logsHeader).toContainText("Request Attempts");
+      await expect(logsHeader).toContainText("Delivery Logs");
 
       // Navigate back to event types
       await page.goto(`${baseUrl}/event_types`);
       await expect(page.locator('[data-test="event-types-card"]')).toBeVisible({ timeout: 10000 });
     });
 
-    test("should navigate via breadcrumb segments", async ({ page, request }) => {
+    test("should navigate via context bar org switcher", async ({ page, request }) => {
       // Setup
       const timestamp = Date.now();
-      const email = `test-nav-breadcrumb-${timestamp}@hook0.local`;
+      const email = `test-nav-context-${timestamp}@hook0.local`;
       const password = `TestPassword123!${timestamp}`;
-      const appName = `Breadcrumb Nav App ${timestamp}`;
+      const appName = `Context Nav App ${timestamp}`;
 
       // Register and verify
       const registerResponse = await request.post(`${API_BASE_URL}/register`, {
@@ -477,19 +477,14 @@ test.describe("Navigation", () => {
       );
       await expect(page.locator('[data-test="event-types-card"]')).toBeVisible({ timeout: 10000 });
 
-      // Verify breadcrumb nav is visible
-      await expect(page.locator('[data-test="breadcrumb-nav"]')).toBeVisible({ timeout: 10000 });
+      // Context bar should show org name
+      await expect(page.locator('[data-test="context-bar-org-name"]')).toBeVisible({ timeout: 10000 });
 
-      // Click the org-level breadcrumb segment to open the dropdown
-      await page.locator('[data-test="breadcrumb-org"] button').first().click();
+      // Click the org name link to navigate back to org dashboard
+      await page.locator('[data-test="context-bar-org-name"]').click();
 
-      // Click the current org in the dropdown to navigate to org level
-      const orgDropdownItem = page.locator('[data-test="breadcrumb-org"] [role="option"]').first();
-      await expect(orgDropdownItem).toBeVisible({ timeout: 5000 });
-      await orgDropdownItem.click();
-
-      // Verify navigation to org level
-      await expect(page).toHaveURL(new RegExp(`/organizations/${organizationId}`), {
+      // Verify navigation to org level (dashboard)
+      await expect(page).toHaveURL(new RegExp(`/organizations/${organizationId}/dashboard`), {
         timeout: 10000,
       });
       // Should no longer be on the app-level event_types page

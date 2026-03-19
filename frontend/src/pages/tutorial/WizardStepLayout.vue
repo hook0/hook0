@@ -44,6 +44,7 @@ const { t } = useI18n();
       class="wizard-modal__close"
       type="button"
       :aria-label="t('tutorial.skip')"
+      data-test="tutorial-skip-button"
       @click="emit('skip')"
     >
       <X :size="18" aria-hidden="true" />

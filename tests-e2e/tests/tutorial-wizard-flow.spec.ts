@@ -128,13 +128,7 @@ test.describe("Tutorial Wizard Flow", () => {
     // Wait for token refresh to complete (needed for subsequent API calls with new org permissions)
     await refreshResponsePromise;
 
-    // After org creation, a continue button appears in the entity step footer.
-    const orgContinueButton = page.locator(
-      '[data-test="tutorial-wizard-modal"] .wizard-modal__footer button.hook0-button.primary'
-    );
-    await expect(orgContinueButton).toBeVisible({ timeout: 10000 });
-    await orgContinueButton.click();
-
+    // After org creation, the wizard auto-advances to step 2 (no continue button needed).
     // --- Step 2: Create Application ---
     await expect(page).toHaveURL(/\/tutorial\/application/, { timeout: 15000 });
 
@@ -160,13 +154,7 @@ test.describe("Tutorial Wizard Flow", () => {
     // Step 2: Submit app creation and verify via UI (continue button appears on success)
     await page.locator('[data-test="application-submit-button"]').click();
 
-    // After app creation, the continue button appears in the footer.
-    const appContinueButton = page.locator(
-      '[data-test="tutorial-wizard-modal"] .wizard-modal__footer button.hook0-button.primary'
-    );
-    await expect(appContinueButton).toBeVisible({ timeout: 15000 });
-    await appContinueButton.click();
-
+    // After app creation, the wizard auto-advances to step 3 (no continue button needed).
     // --- Step 3: Create Event Type (3 segments) ---
     await expect(page).toHaveURL(/\/tutorial\/event_type/, { timeout: 15000 });
     await expect(page.locator('[data-test="tutorial-wizard-modal"]')).toBeVisible({
@@ -304,9 +292,7 @@ test.describe("Tutorial Wizard Flow", () => {
     });
 
     // Click the close (X) button in the wizard modal header
-    const closeButton = page.locator(
-      '[data-test="tutorial-wizard-modal"] .wizard-modal__close'
-    );
+    const closeButton = page.locator('[data-test="tutorial-skip-button"]');
     await expect(closeButton).toBeVisible({ timeout: 10000 });
     await closeButton.click();
 
