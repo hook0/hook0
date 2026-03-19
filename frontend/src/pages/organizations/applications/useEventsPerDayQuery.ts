@@ -27,8 +27,8 @@ export function useEventsPerDay(
   entityType: EventsPerDayEntityType,
   entityId: Ref<string>
 ): UseEventsPerDayReturn {
-  const days = ref(30);
-  const from = ref(format(subDays(new Date(), 30), 'yyyy-MM-dd'));
+  const days = ref(7);
+  const from = ref(format(subDays(new Date(), 7), 'yyyy-MM-dd'));
   const to = ref(format(new Date(), 'yyyy-MM-dd'));
 
   /** Update date range when days preset changes. */
