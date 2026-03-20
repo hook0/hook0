@@ -71,10 +71,10 @@
   --color-text-tertiary: #9ca3af;
   --color-text-muted: #9ca3af;
 
-  /* Brand / Primary (Indigo) */
-  --color-primary: #4f46e5;
-  --color-primary-hover: #4338ca;
-  --color-primary-light: #eef2ff;
+  /* Brand / Primary (Green) */
+  --color-primary: #22c55e;
+  --color-primary-hover: #16a34a;
+  --color-primary-light: #f0fdf4;
   --color-primary-text: #ffffff;
 
   /* Semantic */
@@ -94,7 +94,7 @@
   --color-sidebar-text: #d1d5db;
   --color-sidebar-text-active: #ffffff;
   --color-sidebar-item-hover: #374151;
-  --color-sidebar-item-active: #4f46e5;
+  --color-sidebar-item-active: #22c55e;
 
   /* Typography */
   --font-sans: 'Inter Variable', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -144,10 +144,10 @@
   --color-text-tertiary: #6b7280;
   --color-text-muted: #6b7280;
 
-  --color-primary: #6366f1;
-  --color-primary-hover: #818cf8;
-  --color-primary-light: #1e1b4b;
-  --color-primary-text: #ffffff;
+  --color-primary: #4ade80;
+  --color-primary-hover: #86efac;
+  --color-primary-light: #052e16;
+  --color-primary-text: #052e16;
 
   --color-success: #34d399;
   --color-success-light: #064e3b;
@@ -164,7 +164,7 @@
   --color-sidebar-text: #9ca3af;
   --color-sidebar-text-active: #ffffff;
   --color-sidebar-item-hover: #1e1e28;
-  --color-sidebar-item-active: #6366f1;
+  --color-sidebar-item-active: #4ade80;
 
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);

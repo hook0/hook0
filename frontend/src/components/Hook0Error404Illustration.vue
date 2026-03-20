@@ -153,7 +153,7 @@
   font-weight: 900;
   margin: 0;
   letter-spacing: -0.025em;
-  background: linear-gradient(135deg, #6366f1 0%, #22c55e 50%, #6366f1 100%);
+  background: linear-gradient(135deg, #22c55e 0%, #4ade80 50%, #22c55e 100%);
   background-size: 200% 200%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;

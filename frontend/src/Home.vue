@@ -70,17 +70,18 @@ const { t } = useI18n();
 }
 
 .home__title {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 1.875rem;
+  font-weight: 800;
   color: white;
-  margin-bottom: 0.375rem;
-  letter-spacing: -0.01em;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.02em;
 }
 
 .home__subtitle {
-  font-size: 0.9375rem;
-  color: rgba(255, 255, 255, 0.8);
-  line-height: 1.5;
+  font-size: 1.0625rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.6;
 }
 
 .home__link {
@@ -121,7 +122,7 @@ const { t } = useI18n();
   }
 
   .home__title {
-    font-size: 1.25rem;
+    font-size: 1.5rem;
   }
 }
 </style>

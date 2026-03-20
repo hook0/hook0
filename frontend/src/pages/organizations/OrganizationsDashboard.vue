@@ -2,12 +2,11 @@
 import { computed, markRaw } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { Component } from 'vue';
-import { Building2, CreditCard, Users, FolderOpen, FileText, Database } from 'lucide-vue-next';
+import { CreditCard, Users, FolderOpen, FileText, Database, Settings } from 'lucide-vue-next';
 
 import { useRouteIds } from '@/composables/useRouteIds';
 import { useOrganizationDetail } from './useOrganizationQueries';
 import { useInstanceConfig } from '@/composables/useInstanceConfig';
-import { organizationSteps } from '@/pages/tutorial/TutorialService';
 import { useEventsPerDay } from '@/pages/organizations/applications/useEventsPerDayQuery';
 import { routes } from '@/routes';
 
@@ -19,7 +18,6 @@ import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0CardSkeleton from '@/components/Hook0CardSkeleton.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
-import Hook0TutorialWidget from '@/components/Hook0TutorialWidget.vue';
 import Hook0Badge from '@/components/Hook0Badge.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
 import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
@@ -42,11 +40,6 @@ const { data: instanceConfig } = useInstanceConfig();
 const pricingEnabled = computed(() => instanceConfig.value?.quota_enforcement ?? false);
 const supportEmailAddress = computed(() => instanceConfig.value?.support_email_address ?? '');
 
-const widgetItems = computed(() => {
-  if (!organization.value) return [];
-  return organizationSteps(organization.value);
-});
-
 // Events per day chart
 const {
   days: eventsPerDayDays,
@@ -55,6 +48,25 @@ const {
   data: eventsPerDayData,
   refetch: refetchEventsPerDay,
 } = useEventsPerDay('organization', organizationId);
+
+/** First two letters of the organization name, uppercased. */
+const orgInitials = computed(() => {
+  if (!organization.value) return '';
+  return organization.value.name.slice(0, 2).toUpperCase();
+});
+
+/** Summary subtitle: "X members · Y applications · Z events/day" (pluralized via i18n) */
+const orgSubtitle = computed(() => {
+  if (!organization.value) return '';
+  const memberCount = organization.value.users?.length ?? 0;
+  const appCount = organization.value.consumption?.applications ?? 0;
+  const evtCount = organization.value.consumption?.events_per_day ?? 0;
+  return [
+    t('organizations.summaryMembers', { count: memberCount }, memberCount),
+    t('organizations.summaryApplications', { count: appCount }, appCount),
+    t('organizations.summaryEventsPerDay', { count: evtCount }, evtCount),
+  ].join(' \u00B7 ');
+});
 
 /** Quota cards shown in the developer-plan notice section. */
 const quotaCards = computed<{ icon: Component; value: number | undefined; label: string }[]>(() => {
@@ -105,15 +117,13 @@ const quotaCards = computed<{ icon: Component; value: number | undefined; label:
 
     <!-- Data loaded -->
     <template v-else-if="organization">
+      <!-- Organization header card: Stacked Compact with Avatar -->
       <Hook0Card data-test="organization-dashboard-card">
-        <Hook0CardHeader>
-          <template #header>
-            <Hook0Stack direction="row" align="center" gap="sm" class="org-dashboard__header-stack">
-              <Hook0IconBadge variant="primary" size="sm">
-                <Building2 :size="14" aria-hidden="true" />
-              </Hook0IconBadge>
-              <span class="org-dashboard__label">{{ t('organizations.title') }}</span>
-              <span class="org-dashboard__name">{{ organization.name }}</span>
+        <div class="org-header">
+          <div class="org-header__avatar">{{ orgInitials }}</div>
+          <div class="org-header__info">
+            <div class="org-header__title-row">
+              <span class="org-header__name">{{ organization.name }}</span>
               <template v-if="pricingEnabled">
                 <Hook0Badge
                   v-if="organization.plan"
@@ -132,23 +142,25 @@ const quotaCards = computed<{ icon: Component; value: number | undefined; label:
                   {{ t('organizations.planDeveloper') }}
                 </Hook0Badge>
               </template>
-            </Hook0Stack>
-          </template>
-          <template #actions>
+            </div>
+            <span class="org-header__subtitle">{{ orgSubtitle }}</span>
+          </div>
+          <div class="org-header__actions">
             <Hook0Button
               :to="{
                 name: routes.OrganizationsDetail,
                 params: { organization_id: organizationId },
               }"
             >
+              <Settings :size="14" aria-hidden="true" />
               {{ t('common.settings') }}
             </Hook0Button>
-          </template>
-        </Hook0CardHeader>
-        <Hook0CardContent v-if="widgetItems.length > 0">
-          <Hook0TutorialWidget :steps="widgetItems" />
-        </Hook0CardContent>
+          </div>
+        </div>
       </Hook0Card>
+
+      <!-- Applications list (moved up, before chart) -->
+      <ApplicationsList :burst="organizationId" />
 
       <!-- Events per day chart -->
       <EventsPerDayChartCard
@@ -163,6 +175,7 @@ const quotaCards = computed<{ icon: Component; value: number | undefined; label:
         @refresh="refetchEventsPerDay()"
       />
 
+      <!-- Developer plan notice (shown only when on free plan) -->
       <Hook0Card v-if="pricingEnabled && !organization.plan">
         <Hook0CardHeader>
           <template #header>
@@ -213,32 +226,82 @@ const quotaCards = computed<{ icon: Component; value: number | undefined; label:
           >
         </Hook0CardFooter>
       </Hook0Card>
-
-      <ApplicationsList :burst="organizationId" />
     </template>
   </Hook0PageLayout>
 </template>
 
 <style scoped>
+/* ---- Organization header card ---- */
+.org-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+.org-header__avatar {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-primary), #22c55e);
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.org-header__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.org-header__title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.org-header__name {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.3;
+}
+
+.org-header__subtitle {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.org-header__actions {
+  flex-shrink: 0;
+}
+
+@media (max-width: 767px) {
+  .org-header {
+    flex-wrap: wrap;
+  }
+
+  .org-header__actions {
+    width: 100%;
+  }
+}
+
+/* ---- Developer plan notice section ---- */
 .org-dashboard__label {
   color: var(--color-text-secondary);
   font-size: 0.8125rem;
   font-weight: 500;
   line-height: 1.5;
-}
-
-.org-dashboard__name {
-  color: var(--color-text-primary);
-  font-size: 0.875rem;
-  font-weight: 600;
-  line-height: 1.5;
-}
-
-/* Wrap org header on mobile: label + name on separate lines */
-@media (max-width: 767px) {
-  .org-dashboard__header-stack {
-    flex-wrap: wrap;
-  }
 }
 
 .org-dashboard__quota-value {

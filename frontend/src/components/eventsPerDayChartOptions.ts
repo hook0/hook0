@@ -77,8 +77,8 @@ export function getThemeColors(): ThemeColors {
   const css = (name: string, fallback: string): string =>
     style.getPropertyValue(name).trim() || fallback;
   return {
-    primary: css('--color-primary', '#6366f1'),
-    primaryLight: css('--color-primary-light', '#a5b4fc'),
+    primary: css('--color-primary', '#22c55e'),
+    primaryLight: css('--color-primary-light', '#86efac'),
     success: css('--color-success', '#22c55e'),
     successLight: css('--color-success-light', '#86efac'),
     warning: css('--color-warning', '#f59e0b'),

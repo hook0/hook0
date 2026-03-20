@@ -434,6 +434,13 @@ function previewToken() {
         <Hook0Card data-test="service-token-detail-card">
           <Hook0CardContent>
             <Hook0Stack direction="column" gap="md" class="token-section">
+              <!-- Warning -->
+              <Hook0Alert type="warning">
+                <template #description>
+                  {{ t('serviceTokens.tokenWarningFull') }}
+                </template>
+              </Hook0Alert>
+
               <!-- Token value box -->
               <div class="token-box">
                 <Lock :size="16" class="token-box__icon" aria-hidden="true" />
@@ -445,13 +452,6 @@ function previewToken() {
                   {{ t('common.copy') }}
                 </Hook0Button>
               </div>
-
-              <!-- Warning -->
-              <Hook0Alert type="warning">
-                <template #description>
-                  {{ t('serviceTokens.tokenWarningFull') }}
-                </template>
-              </Hook0Alert>
             </Hook0Stack>
           </Hook0CardContent>
         </Hook0Card>

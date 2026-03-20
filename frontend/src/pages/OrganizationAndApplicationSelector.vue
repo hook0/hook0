@@ -203,7 +203,7 @@ onUnmounted(() => {
 
 // Intentionally hardcoded: design decision for org avatar variety, not design-token eligible.
 const avatarGradients = [
-  'linear-gradient(135deg, #4f46e5, #7c3aed)',
+  'linear-gradient(135deg, #22c55e, #4ade80)',
   'linear-gradient(135deg, #059669, #10b981)',
   'linear-gradient(135deg, #d97706, #f59e0b)',
   'linear-gradient(135deg, #dc2626, #ef4444)',
