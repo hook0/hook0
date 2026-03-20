@@ -335,4 +335,3 @@ const columns: ColumnDef<Subscription, unknown>[] = [
     </Hook0Dialog>
   </Hook0PageLayout>
 </template>
-

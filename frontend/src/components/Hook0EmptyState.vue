@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, type Component } from 'vue';
 import { Inbox } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 
@@ -8,11 +8,13 @@ const { t } = useI18n();
 type Props = {
   title?: string;
   description?: string;
+  icon?: Component;
 };
 
 const props = withDefaults(defineProps<Props>(), {
   title: undefined,
   description: undefined,
+  icon: undefined,
 });
 
 const resolvedTitle = computed(() => props.title ?? t('common.noData'));
@@ -32,10 +34,10 @@ defineSlots<{
     <div v-if="$slots.illustration" class="hook0-empty-state-illustration">
       <slot name="illustration" />
     </div>
-    <!-- Standard icon slot -->
+    <!-- Standard icon: prop takes priority, then slot, then default Inbox -->
     <div v-else class="hook0-empty-state-icon">
       <slot name="icon">
-        <Inbox :size="48" aria-hidden="true" />
+        <component :is="props.icon ?? Inbox" :size="48" aria-hidden="true" />
       </slot>
     </div>
     <h3 class="hook0-empty-state-title">{{ resolvedTitle }}</h3>
@@ -59,10 +61,27 @@ defineSlots<{
   gap: 0.25rem;
 }
 
+@keyframes gentle-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
 .hook0-empty-state-icon {
   color: var(--color-text-muted);
   opacity: 0.5;
   margin-bottom: 0.5rem;
+  animation: gentle-float 3s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hook0-empty-state-icon {
+    animation: none;
+  }
 }
 
 .hook0-empty-state-illustration {

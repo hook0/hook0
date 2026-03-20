@@ -234,4 +234,3 @@ const consumptions = computed<ConsumptionQuota[]>(() => {
     </Hook0Stack>
   </Hook0PageLayout>
 </template>
-

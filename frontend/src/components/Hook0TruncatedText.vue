@@ -180,8 +180,7 @@ onBeforeUnmount(() => {
   cursor: pointer;
   border-radius: var(--radius-sm);
   flex-shrink: 0;
-  transition:
-    background-color 0.15s ease;
+  transition: background-color 0.15s ease;
 }
 
 .hook0-truncated__tooltip-copy:hover {

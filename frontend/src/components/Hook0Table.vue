@@ -248,7 +248,11 @@ const rows = computed(() => table.getRowModel().rows);
             v-for="header in headerGroup.headers"
             :key="header.id"
             class="hook0-table-th"
-            :class="{ sortable: header.column.getCanSort() }"
+            :class="{
+              sortable: header.column.getCanSort(),
+              'hook0-table-th--actions':
+                header.column.id === 'actions' || header.column.id === 'options',
+            }"
             :aria-sort="
               header.column.getIsSorted() === 'asc'
                 ? 'ascending'
@@ -319,7 +323,15 @@ const rows = computed(() => table.getRowModel().rows);
             @click="handleRowClick(row.original)"
             @keydown.enter="handleRowClick(row.original)"
           >
-            <td v-for="cell in row.getVisibleCells()" :key="cell.id" class="hook0-table-td">
+            <td
+              v-for="cell in row.getVisibleCells()"
+              :key="cell.id"
+              class="hook0-table-td"
+              :class="{
+                'hook0-table-td--actions':
+                  cell.column.id === 'actions' || cell.column.id === 'options',
+              }"
+            >
               <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
             </td>
           </tr>
@@ -347,11 +359,10 @@ const rows = computed(() => table.getRowModel().rows);
 .hook0-table-th {
   padding: 0.75rem 1rem;
   text-align: left;
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   font-weight: 500;
   color: var(--color-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0em;
   white-space: nowrap;
   border-bottom: 1px solid var(--color-border);
 }
@@ -417,6 +428,28 @@ const rows = computed(() => table.getRowModel().rows);
   border-bottom: 1px solid var(--color-border);
   vertical-align: middle;
   white-space: nowrap;
+}
+
+.hook0-table-th--actions {
+  text-align: right;
+}
+
+.hook0-table-th--actions .hook0-table-th-content,
+.hook0-table-th--actions .hook0-table-sort-button {
+  justify-content: flex-end;
+}
+
+.hook0-table-td--actions {
+  text-align: right;
+}
+
+/* When the action cell has a wrapper div (e.g. .service-token__actions),
+   or direct children, lay them out as a right-aligned flex row. */
+.hook0-table-td--actions :deep(> div) {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
 }
 
 .hook0-table-td--truncate {

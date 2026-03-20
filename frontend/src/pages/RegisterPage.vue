@@ -287,12 +287,12 @@ const onSubmit = handleSubmit((values) => {
         </Hook0Button>
       </Hook0TrustSection>
 
-      <Hook0Testimonial
+      <!-- <Hook0Testimonial
         :quote="t('auth.register.testimonialQuote')"
         :author="t('auth.register.testimonialAuthor')"
         :role="t('auth.register.testimonialRole')"
         avatar-initial="M"
-      />
+      /> -->
 
       <Hook0Stack align="center" justify="center">
         <Hook0Badge>
