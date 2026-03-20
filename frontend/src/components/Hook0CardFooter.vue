@@ -20,4 +20,15 @@ defineSlots<{
   background-color: var(--color-bg-secondary);
   border-top: 1px solid var(--color-border);
 }
+
+@media (max-width: 639px) {
+  .hook0-card-footer {
+    flex-direction: column-reverse;
+  }
+
+  .hook0-card-footer :deep(.hook0-button) {
+    width: 100%;
+    justify-content: center;
+  }
+}
 </style>

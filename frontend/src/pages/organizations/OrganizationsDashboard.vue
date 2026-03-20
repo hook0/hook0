@@ -251,7 +251,7 @@ const quotaCards = computed<{ icon: Component; value: number | undefined; label:
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  flex-wrap: wrap;
+  min-width: 0;
 }
 
 .org-header__name {
@@ -259,6 +259,9 @@ const quotaCards = computed<{ icon: Component; value: number | undefined; label:
   font-weight: 700;
   color: var(--color-text-primary);
   line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .org-header__subtitle {
@@ -278,6 +281,11 @@ const quotaCards = computed<{ icon: Component; value: number | undefined; label:
 
   .org-header__actions {
     width: 100%;
+  }
+
+  .org-header__actions :deep(.hook0-button) {
+    width: 100%;
+    justify-content: center;
   }
 }
 
