@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { h, markRaw, ref } from 'vue';
-import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
-import { Plus, Bot, BookOpen, Check, Eye, Pencil, Trash2 } from 'lucide-vue-next';
+import { Plus, Bot, BookOpen, Check, Key, Pencil, Trash2 } from 'lucide-vue-next';
 
 import {
   useServiceTokenList,
@@ -40,7 +39,6 @@ import Hook0Dialog from '@/components/Hook0Dialog.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 
 const { t } = useI18n();
-const router = useRouter();
 const { trackEvent } = useTracking();
 
 // Permissions
@@ -134,21 +132,30 @@ function confirmEdit() {
   );
 }
 
-function handleShow(row: ServiceToken) {
-  void router.push({
-    name: routes.ServiceTokenView,
-    params: {
-      organization_id: organizationId.value,
-      service_token_id: row.token_id,
-    },
-  });
-}
-
 const columns: ColumnDef<ServiceToken, unknown>[] = [
   {
     accessorKey: 'name',
     header: t('common.name'),
     enableSorting: true,
+    cell: (info) => {
+      const row = info.row.original;
+      return h(
+        Hook0Button,
+        {
+          variant: 'secondary',
+          size: 'sm',
+          to: {
+            name: routes.ServiceTokenView,
+            params: {
+              organization_id: organizationId.value,
+              service_token_id: row.token_id,
+            },
+          },
+          'data-test': 'token-name-link',
+        },
+        () => row.name
+      );
+    },
   },
   {
     accessorKey: 'created_at',
@@ -161,14 +168,7 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
     header: t('common.actions'),
     cell: (info) => {
       const row = info.row.original;
-      const actions = [
-        h(Hook0TableCellLink, {
-          value: t('serviceTokens.show'),
-          icon: markRaw(Eye),
-          dataTest: 'token-show-action',
-          onClick: () => handleShow(row),
-        }),
-      ];
+      const actions: ReturnType<typeof h>[] = [];
       if (canEdit('service_token')) {
         actions.push(
           h(Hook0TableCellLink, {
@@ -235,6 +235,7 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
             <Hook0EmptyState
               :title="t('serviceTokens.empty.title')"
               :description="t('serviceTokens.empty.description')"
+              :icon="Key"
             >
               <template v-if="canCreate('service_token')" #action>
                 <Hook0Button
@@ -426,7 +427,6 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
 .service-token__actions {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 </style>

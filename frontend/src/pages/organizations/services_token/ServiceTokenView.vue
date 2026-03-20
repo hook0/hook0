@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { addDays, addYears, isBefore } from 'date-fns';
 import { Biscuit } from '@biscuit-auth/biscuit-wasm';
-import { Bot, BookOpen, ShieldCheck, Zap } from 'lucide-vue-next';
+import { Lock, Copy, ShieldCheck, Zap } from 'lucide-vue-next';
 
 import { useServiceTokenDetail } from './useServiceTokenQueries';
 import { useApplicationList } from '@/pages/organizations/applications/useApplicationQueries';
@@ -38,9 +38,9 @@ import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
 import Hook0Checkbox from '@/components/Hook0Checkbox.vue';
 import Hook0HelpText from '@/components/Hook0HelpText.vue';
-import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
 import Hook0Alert from '@/components/Hook0Alert.vue';
 import Hook0Form from '@/components/Hook0Form.vue';
+import Hook0Tabs from '@/components/Hook0Tabs.vue';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -87,6 +87,67 @@ const mcpConfigExample = computed(() => {
     2
   );
 });
+
+// AI Assistants tabs
+const aiTab = ref('claude');
+const aiTabs = [
+  { id: 'claude', label: 'Claude' },
+  { id: 'chatgpt', label: 'ChatGPT' },
+  { id: 'generic', label: 'Generic MCP' },
+];
+
+const chatgptConfigExample = computed(() => {
+  const token = serviceToken.value?.biscuit ?? t('serviceTokens.tokenPlaceholder');
+  return JSON.stringify(
+    {
+      mcpServers: {
+        hook0: {
+          type: 'stdio',
+          command: 'hook0-mcp',
+          env: {
+            HOOK0_API_TOKEN: token,
+          },
+        },
+      },
+    },
+    null,
+    2
+  );
+});
+
+const genericMcpConfigExample = computed(() => {
+  const token = serviceToken.value?.biscuit ?? t('serviceTokens.tokenPlaceholder');
+  return `HOOK0_API_TOKEN=${token}\nhook0-mcp`;
+});
+
+function copyToken() {
+  if (!serviceToken.value) return;
+  navigator.clipboard.writeText(serviceToken.value.biscuit).then(
+    () => {
+      toast.success(t('common.copied'), { description: t('common.codeCopied') });
+    },
+    () => {
+      toast.error(t('common.error'), { description: t('common.clipboardCopyError') });
+    }
+  );
+}
+
+function copyConfig() {
+  const config =
+    aiTab.value === 'claude'
+      ? mcpConfigExample.value
+      : aiTab.value === 'chatgpt'
+        ? chatgptConfigExample.value
+        : genericMcpConfigExample.value;
+  navigator.clipboard.writeText(config).then(
+    () => {
+      toast.success(t('common.copied'), { description: t('common.codeCopied') });
+    },
+    () => {
+      toast.error(t('common.error'), { description: t('common.clipboardCopyError') });
+    }
+  );
+}
 
 // Mode toggle: 'simple' or 'advanced'
 type AttenuationMode = 'simple' | 'advanced';
@@ -314,7 +375,13 @@ function previewToken() {
 </script>
 
 <template>
-  <Hook0PageLayout :title="t('serviceTokens.title')">
+  <Hook0PageLayout
+    :title="
+      serviceToken
+        ? t('serviceTokens.titleSingle', { name: serviceToken.name })
+        : t('serviceTokens.title')
+    "
+  >
     <!-- Loading skeleton -->
     <Hook0Card v-if="tokenLoading">
       <Hook0CardHeader>
@@ -337,95 +404,73 @@ function previewToken() {
       <Hook0Stack direction="column" gap="lg">
         <!-- Service Token Card -->
         <Hook0Card data-test="service-token-detail-card">
-          <Hook0CardHeader>
-            <template #header>
-              <Hook0Stack direction="row" align="center" gap="sm">
-                {{ t('serviceTokens.title') }}
-                <Hook0HelpText tone="neutral" data-test="service-token-detail-name">{{
-                  serviceToken.name
-                }}</Hook0HelpText>
-              </Hook0Stack>
-            </template>
-            <template #subtitle>
-              {{ t('serviceTokens.viewDescription') }}
-            </template>
-          </Hook0CardHeader>
           <Hook0CardContent>
-            <Hook0CardContentLine>
-              <template #label>
-                <Hook0Stack direction="column" gap="sm">
-                  {{ t('serviceTokens.title') }}
-                  <Hook0HelpText tone="warning">
-                    {{ t('serviceTokens.tokenWarning') }}
-                  </Hook0HelpText>
-                  <Hook0HelpText tone="emphasis">
-                    {{ t('serviceTokens.dontShare') }}
-                  </Hook0HelpText>
-                </Hook0Stack>
-              </template>
-              <template #content>
-                <Hook0Code :code="serviceToken.biscuit"></Hook0Code>
-              </template>
-            </Hook0CardContentLine>
+            <Hook0Stack direction="column" gap="md" class="token-section">
+              <!-- Token value box -->
+              <div class="token-box">
+                <Lock :size="16" class="token-box__icon" aria-hidden="true" />
+                <span class="token-box__value" data-test="service-token-value">{{
+                  serviceToken.biscuit
+                }}</span>
+                <Hook0Button variant="primary" size="sm" type="button" @click="copyToken">
+                  <Copy :size="14" aria-hidden="true" />
+                  {{ t('common.copy') }}
+                </Hook0Button>
+              </div>
+
+              <!-- Warning -->
+              <Hook0Alert type="warning">
+                <template #description>
+                  {{ t('serviceTokens.tokenWarningFull') }}
+                </template>
+              </Hook0Alert>
+            </Hook0Stack>
           </Hook0CardContent>
         </Hook0Card>
 
-        <!-- AI Assistant Configuration -->
+        <!-- AI Assistants Integration -->
         <Hook0Card>
           <Hook0CardHeader>
-            <template #header>
-              <Hook0Stack direction="row" align="center" gap="sm">
-                <Hook0IconBadge variant="primary">
-                  <Bot :size="18" aria-hidden="true" />
-                </Hook0IconBadge>
-                {{ t('serviceTokens.useWithAI') }}
-              </Hook0Stack>
-            </template>
-            <template #subtitle>
-              {{ t('serviceTokens.aiConnectDescription') }}
-            </template>
+            <template #header>{{ t('serviceTokens.aiIntegrationTitle') }}</template>
           </Hook0CardHeader>
           <Hook0CardContent>
-            <Hook0CardContentLine type="full-width">
-              <template #content>
-                <Hook0Stack direction="column" gap="md">
-                  <Hook0Stack direction="column" gap="sm">
-                    <Hook0HelpText tone="emphasis">
-                      {{ t('serviceTokens.claudeDesktopConfig') }}
-                    </Hook0HelpText>
-                    <Hook0HelpText tone="neutral">
-                      {{
-                        t('serviceTokens.addToConfig', {
-                          file: 'claude_desktop_config.json',
-                        })
-                      }}
-                    </Hook0HelpText>
-                    <Hook0Code :code="mcpConfigExample" language="json"></Hook0Code>
+            <div class="ai-config-section">
+              <Hook0Tabs v-model="aiTab" :tabs="aiTabs">
+                <template #claude>
+                  <Hook0Stack direction="column" gap="md">
+                    <span class="ai-config-section__hint">{{
+                      t('serviceTokens.addToConfig', { file: 'claude_desktop_config.json' })
+                    }}</span>
+                    <pre class="config-code-block"><code>{{ mcpConfigExample }}</code></pre>
                   </Hook0Stack>
-                  <Hook0Alert type="info">
-                    <template #description>
-                      <Hook0Stack direction="row" align="start" gap="sm">
-                        <BookOpen :size="16" aria-hidden="true" />
-                        <Hook0Stack direction="column" gap="none">
-                          {{ t('serviceTokens.detailedSetupInstructions') }}
-                          <Hook0Button
-                            variant="link"
-                            href="https://documentation.hook0.com/reference/mcp"
-                            target="_blank"
-                          >
-                            {{ t('serviceTokens.mcpIntegrationGuide') }}
-                          </Hook0Button>
-                        </Hook0Stack>
-                      </Hook0Stack>
-                    </template>
-                  </Hook0Alert>
-                </Hook0Stack>
-              </template>
-            </Hook0CardContentLine>
+                </template>
+                <template #chatgpt>
+                  <Hook0Stack direction="column" gap="md">
+                    <span class="ai-config-section__hint">{{
+                      t('serviceTokens.addToConfig', { file: 'chatgpt_config.json' })
+                    }}</span>
+                    <pre class="config-code-block"><code>{{ chatgptConfigExample }}</code></pre>
+                  </Hook0Stack>
+                </template>
+                <template #generic>
+                  <Hook0Stack direction="column" gap="md">
+                    <span class="ai-config-section__hint">{{
+                      t('serviceTokens.genericMcpHint')
+                    }}</span>
+                    <pre class="config-code-block"><code>{{ genericMcpConfigExample }}</code></pre>
+                  </Hook0Stack>
+                </template>
+              </Hook0Tabs>
+              <div class="ai-config-section__footer">
+                <Hook0Button variant="primary" size="sm" type="button" @click="copyConfig">
+                  {{ t('serviceTokens.copyConfig') }}
+                </Hook0Button>
+              </div>
+            </div>
           </Hook0CardContent>
         </Hook0Card>
 
-        <!-- Attenuation Card -->
+        <!-- Token Attenuation & Permissions -->
         <Hook0Card>
           <Hook0CardHeader>
             <template #header>{{ t('serviceTokens.attenuateTitle') }}</template>
@@ -438,7 +483,16 @@ function previewToken() {
           <Hook0CardContent>
             <Hook0CardContentLine>
               <template #label>
-                {{ t('serviceTokens.modeToggleLabel') }}
+                <Hook0Stack direction="column" gap="xs">
+                  {{ t('serviceTokens.modeToggleLabel') }}
+                  <Hook0HelpText tone="info">
+                    {{
+                      attenuationMode === 'simple'
+                        ? t('serviceTokens.simpleDescription')
+                        : t('serviceTokens.advancedDescription')
+                    }}
+                  </Hook0HelpText>
+                </Hook0Stack>
               </template>
               <template #content>
                 <div
@@ -473,17 +527,6 @@ function previewToken() {
                     {{ t('serviceTokens.advancedMode') }}
                   </button>
                 </div>
-              </template>
-            </Hook0CardContentLine>
-            <Hook0CardContentLine type="full-width">
-              <template #content>
-                <Hook0HelpText tone="info">
-                  {{
-                    attenuationMode === 'simple'
-                      ? t('serviceTokens.simpleDescription')
-                      : t('serviceTokens.advancedDescription')
-                  }}
-                </Hook0HelpText>
               </template>
             </Hook0CardContentLine>
           </Hook0CardContent>
@@ -552,7 +595,7 @@ function previewToken() {
                   {{ t('common.cancel') }}
                 </Hook0Button>
                 <Hook0Button variant="primary" submit>
-                  {{ t('serviceTokens.generate') }}
+                  {{ t('serviceTokens.generateAttenuated') }}
                 </Hook0Button>
               </Hook0CardFooter>
             </Hook0Form>
@@ -630,7 +673,7 @@ function previewToken() {
                   {{ t('serviceTokens.tokenPreview') }}
                 </Hook0Button>
                 <Hook0Button variant="primary" submit>
-                  {{ t('serviceTokens.generate') }}
+                  {{ t('serviceTokens.generateAttenuated') }}
                 </Hook0Button>
               </Hook0CardFooter>
             </Hook0Form>
@@ -755,5 +798,70 @@ function previewToken() {
   box-shadow:
     0 0 0 1px var(--color-primary),
     var(--shadow-sm);
+}
+
+/* Token section */
+.token-section {
+  padding: 0.5rem 1.25rem 1.25rem;
+}
+
+/* Token value box */
+.token-box {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.token-box__icon {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.token-box__value {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-all;
+}
+
+/* AI Config section */
+.ai-config-section {
+  padding: 0 1.25rem 1.25rem;
+}
+
+.ai-config-section__hint {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.ai-config-section__footer {
+  margin-top: 1rem;
+}
+
+/* Light code block for config */
+.config-code-block {
+  margin: 0;
+  padding: 1rem;
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.7;
+  color: var(--color-text-primary);
+  overflow-x: auto;
+  white-space: pre;
 }
 </style>
