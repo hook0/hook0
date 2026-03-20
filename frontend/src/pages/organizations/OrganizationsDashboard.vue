@@ -22,6 +22,7 @@ import Hook0Badge from '@/components/Hook0Badge.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
 import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
 import EventsPerDayChartCard from '@/components/EventsPerDayChartCard.vue';
+import Hook0Avatar from '@/components/Hook0Avatar.vue';
 import ApplicationsList from '@/pages/organizations/applications/ApplicationsList.vue';
 
 const { t } = useI18n();
@@ -48,12 +49,6 @@ const {
   data: eventsPerDayData,
   refetch: refetchEventsPerDay,
 } = useEventsPerDay('organization', organizationId);
-
-/** First two letters of the organization name, uppercased. */
-const orgInitials = computed(() => {
-  if (!organization.value) return '';
-  return organization.value.name.slice(0, 2).toUpperCase();
-});
 
 /** Summary subtitle: "X members · Y applications · Z events/day" (pluralized via i18n) */
 const orgSubtitle = computed(() => {
@@ -120,7 +115,12 @@ const quotaCards = computed<{ icon: Component; value: number | undefined; label:
       <!-- Organization header card: Stacked Compact with Avatar -->
       <Hook0Card data-test="organization-dashboard-card">
         <div class="org-header">
-          <div class="org-header__avatar">{{ orgInitials }}</div>
+          <Hook0Avatar
+            :name="organization.name"
+            size="lg"
+            variant="square"
+            gradient="linear-gradient(135deg, var(--color-primary), #22c55e)"
+          />
           <div class="org-header__info">
             <div class="org-header__title-row">
               <span class="org-header__name">{{ organization.name }}</span>
@@ -237,21 +237,6 @@ const quotaCards = computed<{ icon: Component; value: number | undefined; label:
   align-items: center;
   gap: 1rem;
   padding: 1.25rem;
-}
-
-.org-header__avatar {
-  width: 2.75rem;
-  height: 2.75rem;
-  border-radius: var(--radius-lg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, var(--color-primary), #22c55e);
-  color: #ffffff;
-  font-size: 0.875rem;
-  font-weight: 700;
-  flex-shrink: 0;
-  line-height: 1;
 }
 
 .org-header__info {

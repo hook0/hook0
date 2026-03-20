@@ -142,6 +142,8 @@ function cancel() {
   background-color: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .token-box__icon {
@@ -159,5 +161,19 @@ function cancel() {
   overflow: hidden;
   text-overflow: ellipsis;
   word-break: break-all;
+}
+
+@media (max-width: 639px) {
+  .token-box {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .token-box__value {
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 </style>

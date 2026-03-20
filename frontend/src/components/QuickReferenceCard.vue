@@ -64,13 +64,13 @@ const { t } = useI18n();
       <Hook0CardContentLine type="split">
         <template #label>{{ t('common.organizationId') }}</template>
         <template #content>
-          <Hook0CopyField :value="organizationId" maskable />
+          <Hook0CopyField :value="organizationId" />
         </template>
       </Hook0CardContentLine>
       <Hook0CardContentLine v-if="applicationId" type="split">
         <template #label>{{ t('common.applicationId') }}</template>
         <template #content>
-          <Hook0CopyField :value="applicationId" maskable />
+          <Hook0CopyField :value="applicationId" />
         </template>
       </Hook0CardContentLine>
     </Hook0CardContent>

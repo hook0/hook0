@@ -177,14 +177,6 @@ function cancel() {
 
             <Hook0CardFooter>
               <Hook0Button
-                v-if="!tutorialMode"
-                variant="secondary"
-                type="button"
-                data-test="application-cancel-button"
-                @click="cancel()"
-                >{{ t('common.cancel') }}</Hook0Button
-              >
-              <Hook0Button
                 v-if="!tutorialMode && (isNew ? canCreate('application') : canEdit('application'))"
                 variant="primary"
                 type="button"

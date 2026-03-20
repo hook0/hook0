@@ -562,4 +562,14 @@ function previewToken() {
     0 0 0 1px var(--color-primary),
     var(--shadow-sm);
 }
+
+@media (max-width: 639px) {
+  :deep(.hook0-card-footer) {
+    flex-direction: column;
+  }
+
+  :deep(.hook0-card-footer) > * {
+    width: 100%;
+  }
+}
 </style>

@@ -21,11 +21,6 @@ import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
 import EventsPerDayChartCard from '@/components/EventsPerDayChartCard.vue';
 import { useRouteIds } from '@/composables/useRouteIds';
 
-import EventTypesList from '@/pages/organizations/applications/event_types/EventTypesList.vue';
-import EventsList from '@/pages/organizations/applications/events/EventsList.vue';
-import SubscriptionsList from '@/pages/organizations/applications/subscriptions/SubscriptionsList.vue';
-import LogList from '@/pages/organizations/applications/logs/LogList.vue';
-
 const { t } = useI18n();
 const { organizationId, applicationId } = useRouteIds();
 
@@ -105,11 +100,6 @@ const {
         @update:days="eventsPerDayDays = $event"
         @refresh="refetchEventsPerDay()"
       />
-
-      <EventTypesList :burst="applicationId" />
-      <EventsList :burst="applicationId" @event-sent="refetchApp()" />
-      <SubscriptionsList :burst="applicationId" />
-      <LogList :burst="applicationId" />
     </template>
   </Hook0PageLayout>
 </template>

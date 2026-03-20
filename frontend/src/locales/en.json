@@ -164,7 +164,7 @@
     "applications": "Applications",
     "eventDetail": "Event Details",
     "eventTypes": "Event Types",
-    "events": "Events",
+    "events": "Inbound Events",
     "home": "Home",
     "logs": "Delivery Logs",
     "newApplication": "New application",
@@ -380,7 +380,7 @@
     "sendTestEventSubtitle": "To send a test event: first create an event type, then a subscription, then send the event.",
     "sourceIp": "Source IP",
     "subtitle": "Events sent by your application to Hook0. Each event triggers matching subscriptions.",
-    "title": "Events",
+    "title": "Inbound Events",
     "type": "Event Type"
   },
   "eventsPerDayChart": {

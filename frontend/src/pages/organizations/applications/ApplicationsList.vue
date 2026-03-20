@@ -3,7 +3,7 @@ import { h, markRaw } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
-import { Trash2 } from 'lucide-vue-next';
+import { Box, Trash2 } from 'lucide-vue-next';
 
 import { useApplicationList, useRemoveApplication } from './useApplicationQueries';
 import type { Application } from './ApplicationService';
@@ -19,7 +19,7 @@ import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Table from '@/components/Hook0Table.vue';
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
-import Hook0TableCellCode from '@/components/Hook0TableCellCode.vue';
+import Hook0Uuid from '@/components/Hook0Uuid.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0EmptyState from '@/components/Hook0EmptyState.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
@@ -68,7 +68,7 @@ const columns: ColumnDef<Application, unknown>[] = [
   {
     accessorKey: 'application_id',
     header: t('applications.id'),
-    cell: (info) => h(Hook0TableCellCode, { value: String(info.getValue()) }),
+    cell: (info) => h(Hook0Uuid, { value: String(info.getValue()) }),
   },
   ...(canDelete('application')
     ? [
@@ -79,6 +79,7 @@ const columns: ColumnDef<Application, unknown>[] = [
             h(Hook0TableCellLink, {
               value: t('common.delete'),
               icon: markRaw(Trash2),
+              variant: 'danger',
               onClick: () => requestDelete(info.row.original),
             }),
         },
@@ -128,6 +129,7 @@ const columns: ColumnDef<Application, unknown>[] = [
           <Hook0EmptyState
             :title="t('applications.empty.title')"
             :description="t('applications.empty.description')"
+            :icon="Box"
           >
             <template v-if="canCreate('application')" #action>
               <Hook0Button

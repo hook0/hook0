@@ -139,6 +139,13 @@ function tabButtonId(tabId: string): string {
   gap: 0;
   border-bottom: 1px solid var(--color-border);
   margin-bottom: 1rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.hook0-tabs__list::-webkit-scrollbar {
+  display: none;
 }
 
 .hook0-tabs__tab {

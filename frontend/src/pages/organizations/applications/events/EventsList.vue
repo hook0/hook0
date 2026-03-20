@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useRouteIds } from '@/composables/useRouteIds';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
-import { RefreshCw, ExternalLink } from 'lucide-vue-next';
+import { RefreshCw, ExternalLink, ArrowDownToLine } from 'lucide-vue-next';
 
 import { useEventList, useEventDetail, useReplayEvent, useSendEvent } from './useEventQueries';
 import { useEventTypeList } from '../event_types/useEventTypeQueries';
@@ -22,6 +22,7 @@ import Hook0Table from '@/components/Hook0Table.vue';
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 import Hook0TableCellCode from '@/components/Hook0TableCellCode.vue';
 import Hook0TableCellDate from '@/components/Hook0TableCellDate.vue';
+import Hook0Uuid from '@/components/Hook0Uuid.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0EmptyState from '@/components/Hook0EmptyState.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
@@ -193,17 +194,9 @@ const columns: ColumnDef<Event, unknown>[] = [
     accessorKey: 'event_id',
     header: t('events.id'),
     cell: (info) =>
-      h(Hook0TableCellLink, {
+      h(Hook0Uuid, {
         value: String(info.getValue()),
-        dataTest: 'event-id-link',
-        to: {
-          name: routes.EventsDetail,
-          params: {
-            application_id: route.params.application_id,
-            organization_id: route.params.organization_id,
-            event_id: info.row.original.event_id,
-          },
-        },
+        'data-test': 'event-id-link',
       }),
   },
   {
@@ -388,6 +381,7 @@ const columns: ColumnDef<Event, unknown>[] = [
             <Hook0EmptyState
               :title="t('events.empty.title')"
               :description="t('events.empty.description')"
+              :icon="ArrowDownToLine"
             >
               <template #action>
                 <Hook0Button

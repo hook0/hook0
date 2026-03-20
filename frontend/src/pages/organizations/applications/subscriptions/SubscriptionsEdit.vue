@@ -19,8 +19,6 @@ import type { EventType } from '../event_types/EventTypeService';
 import { intersectWith } from '@/utils/fp';
 import { useTracking } from '@/composables/useTracking';
 import { usePermissions } from '@/composables/usePermissions';
-import { useClipboard } from '@vueuse/core';
-import { toast } from 'vue-sonner';
 import type { Hook0SelectSingleOption } from '@/components/Hook0Select';
 import {
   kvPairsToRecord,
@@ -36,6 +34,7 @@ import SubscriptionSectionLabels from './SubscriptionSectionLabels.vue';
 import SubscriptionSectionAdvanced from './SubscriptionSectionAdvanced.vue';
 
 import Hook0Button from '@/components/Hook0Button.vue';
+import Hook0CopyField from '@/components/Hook0CopyField.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
@@ -46,6 +45,7 @@ import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
 
 import Hook0Form from '@/components/Hook0Form.vue';
+import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 
 const { t } = useI18n();
 const { trackEvent } = useTracking();
@@ -128,6 +128,7 @@ const { errors, defineField, handleSubmit, resetForm, setFieldError } = useForm(
 
 const [description, descriptionAttrs] = defineField('description');
 const [targetMethod, targetMethodAttrs] = defineField('target_method');
+targetMethod.value = 'POST';
 const [targetUrl, targetUrlAttrs] = defineField('target_url');
 
 // Non-validated form state (managed outside VeeValidate)
@@ -144,28 +145,6 @@ const labelsMap = ref<Record<string, string>>({});
 const metadataMap = ref<Record<string, string>>({});
 
 const httpMethods = 'GET,PATCH,POST,PUT,DELETE,OPTIONS,HEAD'.split(',').map(toOption);
-
-const { copy: copyToClipboard } = useClipboard();
-
-/**
- * Copy the webhook secret to clipboard and show a toast confirmation.
- */
-function copySecret() {
-  if (!secret.value) return;
-  copyToClipboard(secret.value)
-    .then(() => {
-      toast.success(t('common.success'), {
-        description: t('subscriptions.secretCopied'),
-        duration: 2000,
-      });
-    })
-    .catch(() => {
-      toast.warning(t('common.warning'), {
-        description: t('common.copyFailed'),
-        duration: 2000,
-      });
-    });
-}
 
 // Populate form from subscription data (edit mode)
 watch(
@@ -346,176 +325,175 @@ const hasSelectedEventTypes = computed(() => eventTypes.value.some((et) => et.se
 </script>
 
 <template>
-  <Hook0Stack direction="column" gap="lg">
-    <!-- Loading subscription for edit mode -->
-    <Hook0Card v-if="!isNew && subLoading">
-      <Hook0CardHeader>
-        <template #header>{{ t('subscriptions.editTitle') }}</template>
-      </Hook0CardHeader>
-      <Hook0CardContent>
-        <Hook0Stack direction="column" gap="md">
-          <Hook0Skeleton size="hero" />
-          <Hook0Skeleton size="heading" />
-          <Hook0Skeleton size="heading" />
-        </Hook0Stack>
-      </Hook0CardContent>
-    </Hook0Card>
-
-    <!-- Error loading subscription -->
-    <Hook0ErrorCard v-else-if="!isNew && subError" :error="subError" @retry="refetchSub()" />
-
-    <!-- Form -->
-    <template v-else>
-      <!-- Secret (edit mode only, above the form card) -->
-      <Hook0Card v-if="!isNew" data-test="subscription-secret-card">
+  <Hook0PageLayout :title="isNew ? t('subscriptions.createTitle') : t('subscriptions.editTitle')">
+    <Hook0Stack direction="column" gap="lg">
+      <!-- Loading subscription for edit mode -->
+      <Hook0Card v-if="!isNew && subLoading">
+        <Hook0CardHeader>
+          <template #header>{{ t('subscriptions.editTitle') }}</template>
+        </Hook0CardHeader>
         <Hook0CardContent>
-          <div class="sub-secret">
-            <span class="sub-secret__title">{{ t('subscriptions.secretLabel') }}</span>
-            <span class="sub-secret__hint">
-              <i18n-t keypath="subscriptions.secretHint" tag="span">
-                <template #link>
-                  <Hook0Button
-                    variant="link"
-                    href="https://documentation.hook0.com/docs/verifying-webhook-signatures"
-                    target="_blank"
-                    >{{ t('subscriptions.authenticateWebhooks') }}</Hook0Button
-                  >
-                </template>
-              </i18n-t>
-            </span>
-            <div class="sub-secret__row">
-              <input
-                :value="secret"
-                type="text"
-                readonly
-                class="sub-secret__input"
-                @click="copySecret()"
-              />
-              <Hook0Button variant="secondary" size="sm" type="button" @click="copySecret()">
-                {{ t('common.copy') }}
-              </Hook0Button>
-            </div>
-          </div>
+          <Hook0Stack direction="column" gap="md">
+            <Hook0Skeleton size="hero" />
+            <Hook0Skeleton size="heading" />
+            <Hook0Skeleton size="heading" />
+          </Hook0Stack>
         </Hook0CardContent>
       </Hook0Card>
 
-      <Hook0Form data-test="subscription-form" @submit="onSubmit">
-        <Hook0Card data-test="subscription-card">
-          <Hook0CardHeader>
-            <template v-if="isNew" #header>{{ t('subscriptions.createTitle') }}</template>
-            <template v-else #header>{{ t('subscriptions.editTitle') }}</template>
-            <template #subtitle>{{ t('subscriptions.formSubtitle') }}</template>
-          </Hook0CardHeader>
+      <!-- Error loading subscription -->
+      <Hook0ErrorCard v-else-if="!isNew && subError" :error="subError" @retry="refetchSub()" />
 
+      <!-- Form -->
+      <template v-else>
+        <!-- Secret (edit mode only, above the form card) -->
+        <Hook0Card v-if="!isNew" data-test="subscription-secret-card">
           <Hook0CardContent>
-            <div class="sub-form">
-              <!-- Section 1: Basics -->
-              <div class="sub-form__section-header">
-                <span class="sub-form__section-num">1</span>
-                <span class="sub-form__section-title">{{ t('subscriptions.sectionBasics') }}</span>
-              </div>
-              <SubscriptionSectionBasics
-                :description="description"
-                :description-attrs="descriptionAttrs"
-                :description-error="errors.description"
-                :target-method="targetMethod"
-                :target-method-attrs="targetMethodAttrs"
-                :target-method-error="errors.target_method"
-                :target-url="targetUrl"
-                :target-url-attrs="targetUrlAttrs"
-                :target-url-error="errors.target_url"
-                :http-methods="httpMethods"
-                @update:description="description = $event"
-                @update:target-method="targetMethod = $event"
-                @update:target-url="targetUrl = $event"
-              />
-
-              <div class="sub-form__divider" />
-
-              <!-- Section 2: Filtering -->
-              <div class="sub-form__section-header">
-                <span class="sub-form__section-num">2</span>
-                <span class="sub-form__section-title">{{
-                  t('subscriptions.sectionFiltering')
-                }}</span>
-              </div>
-
-              <Hook0Stack direction="column" gap="md">
-                <SubscriptionSectionEventTypes
-                  :event-types="eventTypes"
-                  :loading="etLoading"
-                  :error="etError"
-                  @update:event-types="eventTypes = $event"
-                  @refresh="refetchEt()"
-                />
-
-                <SubscriptionSectionLabels
-                  :labels="labels"
-                  @update:labels="onLabelsUpdate($event)"
-                />
-              </Hook0Stack>
-
-              <div class="sub-form__divider" />
-
-              <!-- Section 3: Optional -->
-              <div class="sub-form__section-header sub-form__section-header--muted">
-                <span class="sub-form__section-num sub-form__section-num--muted">3</span>
-                <span class="sub-form__section-title">{{
-                  t('subscriptions.sectionAdvanced')
-                }}</span>
-                <span class="sub-form__section-badge">{{ t('common.optional') }}</span>
-              </div>
-              <SubscriptionSectionAdvanced
-                :headers-kv="headersKv"
-                :metadata="metadata"
-                @update:headers="onHeadersUpdate($event)"
-                @update:metadata="onMetadataUpdate($event)"
-              />
+            <div class="sub-secret">
+              <span class="sub-secret__title">{{ t('subscriptions.secretLabel') }}</span>
+              <span class="sub-secret__hint">
+                <i18n-t keypath="subscriptions.secretHint" tag="span">
+                  <template #link>
+                    <Hook0Button
+                      variant="link"
+                      href="https://documentation.hook0.com/docs/verifying-webhook-signatures"
+                      target="_blank"
+                      >{{ t('subscriptions.authenticateWebhooks') }}</Hook0Button
+                    >
+                  </template>
+                </i18n-t>
+              </span>
+              <Hook0CopyField :value="secret" maskable />
             </div>
           </Hook0CardContent>
-
-          <Hook0CardFooter>
-            <Hook0Button
-              v-if="!props.tutorialMode"
-              variant="secondary"
-              type="button"
-              data-test="subscription-cancel-button"
-              @click="navigateBack()"
-              >{{ t('common.cancel') }}</Hook0Button
-            >
-            <Hook0Button
-              v-if="!tutorialMode && (isNew ? canCreate('subscription') : canEdit('subscription'))"
-              variant="primary"
-              type="button"
-              :loading="createMutation.isPending.value || updateMutation.isPending.value"
-              :disabled="!targetUrl || !description || !hasRequiredLabels || !hasSelectedEventTypes"
-              data-test="subscription-submit-button"
-              @click="onSubmit"
-              >{{ isNew ? t('common.create') : t('common.save') }}
-            </Hook0Button>
-
-            <Hook0Button
-              v-else
-              variant="primary"
-              type="submit"
-              :loading="createMutation.isPending.value"
-              :disabled="!targetUrl || !description || !hasRequiredLabels || !hasSelectedEventTypes"
-              data-test="subscription-submit-button"
-              @click="onSubmit"
-              >{{ t('subscriptions.createFirstSubscription') }}
-            </Hook0Button>
-          </Hook0CardFooter>
         </Hook0Card>
-      </Hook0Form>
 
-      <SubscriptionsRemove
-        v-if="!isNew && subscriptionId && canDelete('subscription')"
-        :subscription-id="subscriptionId"
-        :subscription-name="description || ''"
-        :application-id="applicationId"
-      ></SubscriptionsRemove>
-    </template>
-  </Hook0Stack>
+        <Hook0Form data-test="subscription-form" @submit="onSubmit">
+          <Hook0Card data-test="subscription-card">
+            <Hook0CardHeader>
+              <template v-if="isNew" #header>{{ t('subscriptions.createTitle') }}</template>
+              <template v-else #header>{{ t('subscriptions.editTitle') }}</template>
+              <template #subtitle>{{ t('subscriptions.formSubtitle') }}</template>
+            </Hook0CardHeader>
+
+            <Hook0CardContent>
+              <div class="sub-form">
+                <!-- Section 1: Basics -->
+                <div class="sub-form__section-header">
+                  <span class="sub-form__section-num">1</span>
+                  <span class="sub-form__section-title">{{
+                    t('subscriptions.sectionBasics')
+                  }}</span>
+                </div>
+                <SubscriptionSectionBasics
+                  :description="description"
+                  :description-attrs="descriptionAttrs"
+                  :description-error="errors.description"
+                  :target-method="targetMethod"
+                  :target-method-attrs="targetMethodAttrs"
+                  :target-method-error="errors.target_method"
+                  :target-url="targetUrl"
+                  :target-url-attrs="targetUrlAttrs"
+                  :target-url-error="errors.target_url"
+                  :http-methods="httpMethods"
+                  @update:description="description = $event"
+                  @update:target-method="targetMethod = $event"
+                  @update:target-url="targetUrl = $event"
+                />
+
+                <div class="sub-form__divider" />
+
+                <!-- Section 2: Filtering -->
+                <div class="sub-form__section-header">
+                  <span class="sub-form__section-num">2</span>
+                  <span class="sub-form__section-title">{{
+                    t('subscriptions.sectionFiltering')
+                  }}</span>
+                </div>
+
+                <Hook0Stack direction="column" gap="md">
+                  <SubscriptionSectionEventTypes
+                    :event-types="eventTypes"
+                    :loading="etLoading"
+                    :error="etError"
+                    @update:event-types="eventTypes = $event"
+                    @refresh="refetchEt()"
+                  />
+
+                  <SubscriptionSectionLabels
+                    :labels="labels"
+                    @update:labels="onLabelsUpdate($event)"
+                  />
+                </Hook0Stack>
+
+                <div class="sub-form__divider" />
+
+                <!-- Section 3: Optional -->
+                <div class="sub-form__section-header sub-form__section-header--muted">
+                  <span class="sub-form__section-num sub-form__section-num--muted">3</span>
+                  <span class="sub-form__section-title">{{
+                    t('subscriptions.sectionAdvanced')
+                  }}</span>
+                  <span class="sub-form__section-badge">{{ t('common.optional') }}</span>
+                </div>
+                <SubscriptionSectionAdvanced
+                  :headers-kv="headersKv"
+                  :metadata="metadata"
+                  @update:headers="onHeadersUpdate($event)"
+                  @update:metadata="onMetadataUpdate($event)"
+                />
+              </div>
+            </Hook0CardContent>
+
+            <Hook0CardFooter>
+              <Hook0Button
+                v-if="!props.tutorialMode"
+                variant="secondary"
+                type="button"
+                data-test="subscription-cancel-button"
+                @click="navigateBack()"
+                >{{ t('common.cancel') }}</Hook0Button
+              >
+              <Hook0Button
+                v-if="
+                  !tutorialMode && (isNew ? canCreate('subscription') : canEdit('subscription'))
+                "
+                variant="primary"
+                type="button"
+                :loading="createMutation.isPending.value || updateMutation.isPending.value"
+                :disabled="
+                  !targetUrl || !description || !hasRequiredLabels || !hasSelectedEventTypes
+                "
+                data-test="subscription-submit-button"
+                @click="onSubmit"
+                >{{ isNew ? t('common.create') : t('common.save') }}
+              </Hook0Button>
+
+              <Hook0Button
+                v-else
+                variant="primary"
+                type="submit"
+                :loading="createMutation.isPending.value"
+                :disabled="
+                  !targetUrl || !description || !hasRequiredLabels || !hasSelectedEventTypes
+                "
+                data-test="subscription-submit-button"
+                @click="onSubmit"
+                >{{ t('subscriptions.createFirstSubscription') }}
+              </Hook0Button>
+            </Hook0CardFooter>
+          </Hook0Card>
+        </Hook0Form>
+
+        <SubscriptionsRemove
+          v-if="!isNew && subscriptionId && canDelete('subscription')"
+          :subscription-id="subscriptionId"
+          :subscription-name="description || ''"
+          :application-id="applicationId"
+        ></SubscriptionsRemove>
+      </template>
+    </Hook0Stack>
+  </Hook0PageLayout>
 </template>
 
 <style scoped>
@@ -541,30 +519,6 @@ const hasSelectedEventTypes = computed(() => eventTypes.value.some((et) => et.se
 .sub-secret__hint :deep(.hook0-button) {
   padding-top: 0;
   padding-bottom: 0;
-}
-
-.sub-secret__row {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  margin-top: 0.25rem;
-}
-
-.sub-secret__input {
-  flex: 1;
-  min-width: 0;
-  padding: 0.4375rem 0.625rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--color-text-secondary);
-  background-color: var(--color-bg-secondary);
-  cursor: pointer;
-}
-
-.sub-secret__input:hover {
-  border-color: var(--color-border-strong);
 }
 
 .sub-secret__warning {
