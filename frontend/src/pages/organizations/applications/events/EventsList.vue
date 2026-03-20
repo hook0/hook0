@@ -21,7 +21,7 @@ import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Table from '@/components/Hook0Table.vue';
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
-import Hook0TableCellCode from '@/components/Hook0TableCellCode.vue';
+import Hook0TableCellEventTypes from '@/components/Hook0TableCellEventTypes.vue';
 import Hook0TableCellLabels from '@/components/Hook0TableCellLabels.vue';
 import Hook0TableCellDate from '@/components/Hook0TableCellDate.vue';
 import Hook0UUID from '@/components/Hook0UUID.vue';
@@ -210,7 +210,17 @@ const columns: ColumnDef<Event, unknown>[] = [
   {
     accessorKey: 'event_type_name',
     header: t('events.type'),
-    cell: (info) => h(Hook0TableCellCode, { value: String(info.getValue()) }),
+    cell: (info) =>
+      h(Hook0TableCellEventTypes, {
+        value: [String(info.getValue())],
+        to: {
+          name: routes.EventTypesList,
+          params: {
+            organization_id: route.params.organization_id,
+            application_id: route.params.application_id,
+          },
+        },
+      }),
   },
   {
     accessorKey: 'labels',
