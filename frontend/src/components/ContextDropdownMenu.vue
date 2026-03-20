@@ -169,7 +169,6 @@ button.hook0-topnav__dropdown-item {
   background: none;
   border: none;
   width: 100%;
-  font: inherit;
   cursor: pointer;
   text-align: left;
 }
@@ -189,6 +188,8 @@ button.hook0-topnav__dropdown-item {
 .hook0-topnav__dropdown-item--create {
   color: var(--color-text-muted);
   font-weight: 400;
+  font-size: 0.8125rem;
+  padding: 0.375rem 0.75rem;
   border-bottom: none;
 }
 

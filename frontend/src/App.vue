@@ -52,7 +52,7 @@ const showFullScreen = computed(() => {
 
 <template>
   <!-- Notifications -->
-  <Toaster position="top-right" :visible-toasts="4" close-button data-test="toast-notification" />
+  <Toaster position="top-right" :visible-toasts="4" data-test="toast-notification" />
 
   <!-- Command Palette (global overlay) -->
   <Hook0CommandPalette v-if="authStore.isAuthenticated" />

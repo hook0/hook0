@@ -37,8 +37,8 @@ const { t } = useI18n();
     <Hook0CardHeader>
       <template #header>
         <Hook0Stack direction="row" align="center" gap="sm">
-          <Hook0IconBadge variant="primary" size="sm">
-            <FileText :size="14" aria-hidden="true" />
+          <Hook0IconBadge variant="primary" size="md">
+            <FileText :size="18" aria-hidden="true" />
           </Hook0IconBadge>
           <span class="events-chart-card__label">{{ title }}</span>
         </Hook0Stack>
@@ -66,7 +66,7 @@ const { t } = useI18n();
 <style scoped>
 .events-chart-card__label {
   color: var(--color-text-secondary);
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 500;
   line-height: 1.5;
 }

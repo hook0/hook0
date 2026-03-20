@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
+import type { RouteLocationRaw } from 'vue-router';
 
 import Hook0Badge from '@/components/Hook0Badge.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
@@ -10,6 +11,7 @@ import { ArrowRight, X } from 'lucide-vue-next';
 type Props = {
   stepNumber?: number;
   title: string;
+  titleTo?: RouteLocationRaw;
   showSkip?: boolean;
   continueLabel?: string;
   continueDisabled?: boolean;
@@ -17,6 +19,7 @@ type Props = {
 
 withDefaults(defineProps<Props>(), {
   stepNumber: undefined,
+  titleTo: undefined,
   showSkip: true,
   continueLabel: undefined,
   continueDisabled: true,
@@ -38,7 +41,16 @@ const { t } = useI18n();
           stepNumber
         }}</Hook0Badge>
       </slot>
-      <span id="wizard-step-title" class="wizard-modal__title">{{ title }}</span>
+      <RouterLink
+        v-if="titleTo"
+        id="wizard-step-title"
+        class="wizard-modal__title wizard-modal__title--link"
+        :to="titleTo"
+        @click="emit('skip')"
+      >
+        {{ title }}
+      </RouterLink>
+      <span v-else id="wizard-step-title" class="wizard-modal__title">{{ title }}</span>
     </Hook0Stack>
     <button
       class="wizard-modal__close"
@@ -85,6 +97,16 @@ const { t } = useI18n();
   font-weight: 600;
   color: var(--color-text-primary);
   line-height: 1.25;
+}
+
+.wizard-modal__title--link {
+  text-decoration: none;
+  color: var(--color-primary);
+}
+
+.wizard-modal__title--link:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .wizard-modal__close {

@@ -180,8 +180,8 @@ const quotaCards = computed<{ icon: Component; value: number | undefined; label:
         <Hook0CardHeader>
           <template #header>
             <Hook0Stack direction="row" align="center" gap="sm">
-              <Hook0IconBadge variant="warning" size="sm">
-                <CreditCard :size="14" aria-hidden="true" />
+              <Hook0IconBadge variant="warning" size="md">
+                <CreditCard :size="18" aria-hidden="true" />
               </Hook0IconBadge>
               <span class="org-dashboard__label">{{ t('organizations.developerPlanNotice') }}</span>
             </Hook0Stack>
@@ -284,7 +284,7 @@ const quotaCards = computed<{ icon: Component; value: number | undefined; label:
 /* ---- Developer plan notice section ---- */
 .org-dashboard__label {
   color: var(--color-text-secondary);
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 500;
   line-height: 1.5;
 }

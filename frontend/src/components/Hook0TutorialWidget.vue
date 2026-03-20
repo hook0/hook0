@@ -39,9 +39,9 @@ const isLastStep = (index: number) => {
           ]"
         ></div>
         <component
-          :is="isNextStep(index) && step.route ? 'router-link' : 'div'"
-          :to="isNextStep(index) && step.route ? step.route : undefined"
-          :class="['widget-step__link', { 'widget-step__link--active': isNextStep(index) }]"
+          :is="step.route ? 'router-link' : 'div'"
+          :to="step.route ?? undefined"
+          :class="['widget-step__link', { 'widget-step__link--active': !!step.route }]"
         >
           <div class="widget-step__row">
             <span class="widget-step__icon-wrapper">

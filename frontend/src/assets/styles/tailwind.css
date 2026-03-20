@@ -262,3 +262,20 @@ samp {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-tertiary);
 }
+
+/* vue-sonner toast icon colors */
+[data-sonner-toast][data-type='success'] [data-icon] {
+  color: var(--color-primary);
+}
+
+[data-sonner-toast][data-type='error'] [data-icon] {
+  color: var(--color-error);
+}
+
+[data-sonner-toast][data-type='warning'] [data-icon] {
+  color: var(--color-warning);
+}
+
+[data-sonner-toast][data-type='info'] [data-icon] {
+  color: var(--color-info);
+}
