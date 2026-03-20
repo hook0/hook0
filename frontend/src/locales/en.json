@@ -193,6 +193,8 @@
     "goToEventTypes": "Go to event types",
     "goToEvents": "Go to events",
     "goToHome": "Go to home",
+    "goToDocumentation": "Documentation",
+    "goToApiReference": "API Reference",
     "goToLogs": "Go to logs",
     "goToOrgSettings": "Go to organization settings",
     "goToServiceTokens": "Go to service tokens",

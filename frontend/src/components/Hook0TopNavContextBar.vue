@@ -462,10 +462,13 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
   flex-shrink: 0;
 }
 
-/* Muted icon (app Box icon) */
+/* Muted icon (app Box icon) — match avatar height for consistent row sizing */
 .hook0-topnav__context-icon--muted {
   color: var(--color-text-muted);
   flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0.1875rem;
 }
 
 /* Ghost state (no selection) */

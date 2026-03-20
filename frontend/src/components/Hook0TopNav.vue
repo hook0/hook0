@@ -298,8 +298,14 @@ onUnmounted(removeAfterEach);
 .hook0-topnav__center {
   flex: 1;
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
   min-width: 0;
+}
+
+@media (min-width: 640px) {
+  .hook0-topnav__center {
+    justify-content: center;
+  }
 }
 
 /* Right section */
@@ -397,6 +403,12 @@ onUnmounted(removeAfterEach);
 .hook0-topnav__icon-link:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+
+@media (max-width: 419px) {
+  .hook0-topnav__icon-link {
+    display: none;
+  }
 }
 
 /* --------------------------------------------------------------------------

@@ -20,6 +20,8 @@ import {
   Send,
   Copy,
   Keyboard,
+  BookOpen,
+  Code2,
 } from 'lucide-vue-next';
 import { routes } from '@/routes';
 import { useAuthStore } from '@/stores/auth';
@@ -165,13 +167,35 @@ export function useCommandPalette(inputRef: Ref<HTMLInputElement | null>) {
     const appId = contextStore.applicationId;
     const items: CommandItem[] = [];
 
-    items.push({
-      id: 'nav-home',
-      label: t('commandPalette.goToHome'),
-      icon: Home,
-      category: t('commandPalette.navigation'),
-      action: () => navigate({ name: routes.Home }),
-    });
+    items.push(
+      {
+        id: 'nav-home',
+        label: t('commandPalette.goToHome'),
+        icon: Home,
+        category: t('commandPalette.navigation'),
+        action: () => navigate({ name: routes.Home }),
+      },
+      {
+        id: 'nav-documentation',
+        label: t('commandPalette.goToDocumentation'),
+        icon: BookOpen,
+        category: t('commandPalette.navigation'),
+        action: () => {
+          window.open('https://documentation.hook0.com/', '_blank', 'noopener,noreferrer');
+          close();
+        },
+      },
+      {
+        id: 'nav-api-reference',
+        label: t('commandPalette.goToApiReference'),
+        icon: Code2,
+        category: t('commandPalette.navigation'),
+        action: () => {
+          window.open('https://documentation.hook0.com/api', '_blank', 'noopener,noreferrer');
+          close();
+        },
+      }
+    );
 
     if (orgId) {
       const orgParams = { organization_id: orgId };
