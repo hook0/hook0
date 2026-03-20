@@ -173,6 +173,20 @@ defineExpose({ closeDropdowns, focusTrigger, hasOpenDropdown });
   min-width: 12rem;
 }
 
+.hook0-topnav__user-dropdown .hook0-topnav__dropdown-item {
+  border-bottom: none;
+  border-radius: 0;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.hook0-topnav__user-dropdown .hook0-topnav__dropdown-item :deep(svg) {
+  width: 16px;
+  height: 16px;
+}
+
 .hook0-topnav__dropdown-item--danger {
   color: var(--color-error);
 }
@@ -183,7 +197,7 @@ defineExpose({ closeDropdowns, focusTrigger, hasOpenDropdown });
 }
 
 .hook0-topnav__dropdown-user-info {
-  padding: 0.625rem 0.75rem;
+  padding: 0.5rem 0.75rem;
 }
 
 .hook0-topnav__dropdown-user-email {
