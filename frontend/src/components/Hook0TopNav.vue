@@ -14,7 +14,7 @@ import { ref, watch, onMounted, onBeforeUnmount, onUnmounted, nextTick } from 'v
 import { useResizeObserver } from '@vueuse/core';
 import type { ComponentPublicInstance } from 'vue';
 import { useRouter } from 'vue-router';
-import { Search, BookOpen, Code2, ExternalLink } from 'lucide-vue-next';
+import { Search, BookOpen, Code2 } from 'lucide-vue-next';
 import { routes } from '@/routes';
 import { useUiStore } from '@/stores/ui';
 import { useI18n } from 'vue-i18n';
@@ -176,9 +176,8 @@ onUnmounted(removeAfterEach);
       <!-- Org/App context -->
       <Hook0ContextBar ref="contextBarRef" @close-dropdowns="onContextBarCloseDropdowns" />
 
-      <!-- Right section -->
-      <div class="hook0-topnav__right">
-        <!-- Search -->
+      <!-- Search (centered) -->
+      <div class="hook0-topnav__center">
         <button
           class="hook0-topnav__search"
           data-test="search-button"
@@ -189,17 +188,20 @@ onUnmounted(removeAfterEach);
           <span class="hook0-topnav__search-text">{{ t('nav.search') }}</span>
           <kbd class="hook0-topnav__search-kbd">{{ isMac ? '\u2318' : 'Ctrl+' }}K</kbd>
         </button>
+      </div>
 
+      <!-- Right section -->
+      <div class="hook0-topnav__right">
         <!-- Documentation -->
         <a
           href="https://documentation.hook0.com/"
           target="_blank"
           rel="noopener noreferrer"
-          class="hook0-topnav__nav-link"
+          class="hook0-topnav__icon-link"
+          :aria-label="t('nav.documentation')"
+          :title="t('nav.documentation')"
         >
           <BookOpen :size="16" aria-hidden="true" />
-          <span class="hook0-topnav__nav-link-text">{{ t('nav.documentation') }}</span>
-          <ExternalLink :size="12" class="hook0-topnav__nav-link-external" aria-hidden="true" />
         </a>
 
         <!-- API Reference -->
@@ -207,11 +209,11 @@ onUnmounted(removeAfterEach);
           href="https://documentation.hook0.com/api"
           target="_blank"
           rel="noopener noreferrer"
-          class="hook0-topnav__nav-link"
+          class="hook0-topnav__icon-link"
+          :aria-label="t('nav.apiReference')"
+          :title="t('nav.apiReference')"
         >
           <Code2 :size="16" aria-hidden="true" />
-          <span class="hook0-topnav__nav-link-text">{{ t('nav.apiReference') }}</span>
-          <ExternalLink :size="12" class="hook0-topnav__nav-link-external" aria-hidden="true" />
         </a>
 
         <!-- User Menu -->
@@ -292,12 +294,20 @@ onUnmounted(removeAfterEach);
   border-radius: var(--radius-md);
 }
 
+/* Center section — search bar, fills remaining space */
+.hook0-topnav__center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
 /* Right section */
 .hook0-topnav__right {
   display: flex;
   align-items: center;
   gap: 0.375rem;
-  margin-left: auto;
+  flex-shrink: 0;
 }
 
 /* Search */
@@ -334,7 +344,14 @@ onUnmounted(removeAfterEach);
   }
 
   .hook0-topnav__search {
-    min-width: 10rem;
+    width: 100%;
+    max-width: 36rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hook0-topnav__search {
+    max-width: 42rem;
   }
 }
 
@@ -356,62 +373,30 @@ onUnmounted(removeAfterEach);
   }
 }
 
-/* Nav links (Documentation, API Reference) */
-.hook0-topnav__nav-link {
-  display: none;
+/* Icon-only nav links (Documentation, API Reference) */
+.hook0-topnav__icon-link {
+  display: flex;
   align-items: center;
-  gap: 0.375rem;
-  padding: 0.375rem 0.625rem;
-  font-size: 0.8125rem;
-  font-weight: 500;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
   color: var(--color-text-secondary);
   text-decoration: none;
   border-radius: var(--radius-md);
   transition:
     color 0.15s ease,
     background-color 0.15s ease;
-  white-space: nowrap;
   flex-shrink: 0;
 }
 
-@media (min-width: 768px) {
-  .hook0-topnav__nav-link {
-    display: flex;
-  }
-}
-
-.hook0-topnav__nav-link:hover {
+.hook0-topnav__icon-link:hover {
   color: var(--color-text-primary);
   background-color: var(--color-bg-tertiary);
 }
 
-.hook0-topnav__nav-link:focus-visible {
+.hook0-topnav__icon-link:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
-}
-
-.hook0-topnav__nav-link-text {
-  display: none;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-@media (min-width: 1280px) {
-  .hook0-topnav__nav-link-text {
-    display: inline;
-  }
-}
-
-.hook0-topnav__nav-link-external {
-  color: var(--color-text-muted);
-  display: none;
-}
-
-@media (min-width: 1280px) {
-  .hook0-topnav__nav-link-external {
-    display: inline;
-  }
 }
 
 /* --------------------------------------------------------------------------
@@ -513,7 +498,7 @@ onUnmounted(removeAfterEach);
 
 @media (prefers-reduced-motion: reduce) {
   .hook0-topnav__search,
-  .hook0-topnav__nav-link,
+  .hook0-topnav__icon-link,
   .hook0-topnav__tab {
     transition: none;
   }
