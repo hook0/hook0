@@ -88,6 +88,7 @@ const enrichedConsumptions = computed<EnrichedConsumption[]>(() => {
               </span>
               <span v-else class="consumption__used">
                 <strong class="consumption__num">{{ quota.formattedValue }}</strong>
+                {{ ' ' }}
                 <span v-if="quota.formattedLimit" class="consumption__of">
                   {{ t('common.consumptionOf', { limit: quota.formattedLimit }) }}
                 </span>
@@ -229,7 +230,7 @@ const enrichedConsumptions = computed<EnrichedConsumption[]>(() => {
 }
 
 .consumption__track {
-  --consumption-track-height: 0.375rem;
+  --consumption-track-height: 0.8rem;
   height: var(--consumption-track-height);
   border-radius: calc(var(--consumption-track-height) / 2);
   background-color: var(--color-bg-tertiary);
