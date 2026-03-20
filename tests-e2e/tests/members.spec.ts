@@ -116,30 +116,28 @@ test.describe("Members", () => {
   }) => {
     const env = await setupTestEnvironment(page, request, "list");
 
-    // Navigate to organization dashboard (which contains the members list)
-    await page.goto(`/organizations/${env.organizationId}/dashboard`);
+    // Navigate to organization members page
+    await page.goto(`/organizations/${env.organizationId}/members`);
 
-    // Organization dashboard should be visible
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
+    // Members page should be visible
+    await expect(page).toHaveURL(/\/members/, { timeout: 10000 });
 
     // Verify members card is visible
     await expect(page.locator('[data-test="members-card"]')).toBeVisible({ timeout: 10000 });
 
     // Verify members table has at least 1 row (the current user)
     const rows = page.locator('[data-test="members-table"] [row-id]');
-    const rowCount = await rows.count();
-    expect(rowCount).toBeGreaterThanOrEqual(1);
+    await expect(rows.first()).toBeVisible({ timeout: 10000 });
 
     // Verify first row contains the current user's email
-    const firstRow = rows.first();
-    await expect(firstRow).toContainText(env.email);
+    await expect(rows.first()).toContainText(env.email);
   });
 
   test("should display invite form with all required elements", async ({ page, request }) => {
     const env = await setupTestEnvironment(page, request, "form");
 
-    // Navigate to organization dashboard (which contains the members list)
-    await page.goto(`/organizations/${env.organizationId}/dashboard`);
+    // Navigate to organization members page
+    await page.goto(`/organizations/${env.organizationId}/members`);
 
     // Verify members card is visible
     await expect(page.locator('[data-test="members-card"]')).toBeVisible({ timeout: 10000 });
@@ -170,8 +168,8 @@ test.describe("Members", () => {
     expect(inviteeRegister.status()).toBeLessThan(400);
     await verifyEmailViaMailpit(request, inviteeEmail);
 
-    // Navigate to organization dashboard (which contains the members list)
-    await page.goto(`/organizations/${env.organizationId}/dashboard`);
+    // Navigate to organization members page
+    await page.goto(`/organizations/${env.organizationId}/members`);
 
     // Wait for form
     await expect(page.locator('[data-test="members-invite-form"]')).toBeVisible({ timeout: 10000 });
@@ -206,21 +204,21 @@ test.describe("Members", () => {
   }) => {
     const env = await setupTestEnvironment(page, request, "validation");
 
-    // Navigate to organization dashboard (which contains the members list)
-    await page.goto(`/organizations/${env.organizationId}/dashboard`);
+    // Navigate to organization members page
+    await page.goto(`/organizations/${env.organizationId}/members`);
 
     // Wait for form
     await expect(page.locator('[data-test="members-invite-form"]')).toBeVisible({ timeout: 10000 });
 
-    // Verify button is disabled when empty
+    // Verify button is disabled when email is empty (role defaults to 'editor')
     await expect(page.locator('[data-test="members-invite-button"]')).toBeDisabled();
 
-    // Fill email only - still disabled (missing role)
+    // Fill email - button becomes enabled (role already has default value)
     await page.locator('[data-test="members-invite-email-input"]').fill("test-invitee@hook0.local");
-    await expect(page.locator('[data-test="members-invite-button"]')).toBeDisabled();
-
-    // Select role - now enabled
-    await page.locator('[data-test="members-invite-role-select"]').selectOption("viewer");
     await expect(page.locator('[data-test="members-invite-button"]')).toBeEnabled();
+
+    // Clear email - button disabled again
+    await page.locator('[data-test="members-invite-email-input"]').fill("");
+    await expect(page.locator('[data-test="members-invite-button"]')).toBeDisabled();
   });
 });
