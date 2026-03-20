@@ -92,17 +92,33 @@ const mcpConfigExample = computed(() => {
 const aiTab = ref('claude');
 const aiTabs = [
   { id: 'claude', label: 'Claude' },
-  { id: 'chatgpt', label: 'ChatGPT' },
-  { id: 'generic', label: 'Generic MCP' },
+  { id: 'cursor', label: 'Cursor' },
+  { id: 'windsurf', label: 'Windsurf' },
+  { id: 'cline', label: 'Cline' },
 ];
 
-const chatgptConfigExample = computed(() => {
+const cursorConfigExample = computed(() => {
+  const token = serviceToken.value?.biscuit ?? t('serviceTokens.tokenPlaceholder');
+  return JSON.stringify(
+    {
+      hook0: {
+        command: 'hook0-mcp',
+        env: {
+          HOOK0_API_TOKEN: token,
+        },
+      },
+    },
+    null,
+    2
+  );
+});
+
+const windsurfConfigExample = computed(() => {
   const token = serviceToken.value?.biscuit ?? t('serviceTokens.tokenPlaceholder');
   return JSON.stringify(
     {
       mcpServers: {
         hook0: {
-          type: 'stdio',
           command: 'hook0-mcp',
           env: {
             HOOK0_API_TOKEN: token,
@@ -115,9 +131,20 @@ const chatgptConfigExample = computed(() => {
   );
 });
 
-const genericMcpConfigExample = computed(() => {
+const clineConfigExample = computed(() => {
   const token = serviceToken.value?.biscuit ?? t('serviceTokens.tokenPlaceholder');
-  return `HOOK0_API_TOKEN=${token}\nhook0-mcp`;
+  return JSON.stringify(
+    {
+      hook0: {
+        command: 'hook0-mcp',
+        env: {
+          HOOK0_API_TOKEN: token,
+        },
+      },
+    },
+    null,
+    2
+  );
 });
 
 function copyToken() {
@@ -133,12 +160,13 @@ function copyToken() {
 }
 
 function copyConfig() {
-  const config =
-    aiTab.value === 'claude'
-      ? mcpConfigExample.value
-      : aiTab.value === 'chatgpt'
-        ? chatgptConfigExample.value
-        : genericMcpConfigExample.value;
+  const configMap: Record<string, string> = {
+    claude: mcpConfigExample.value,
+    cursor: cursorConfigExample.value,
+    windsurf: windsurfConfigExample.value,
+    cline: clineConfigExample.value,
+  };
+  const config = configMap[aiTab.value] ?? mcpConfigExample.value;
   navigator.clipboard.writeText(config).then(
     () => {
       toast.success(t('common.copied'), { description: t('common.codeCopied') });
@@ -444,20 +472,30 @@ function previewToken() {
                     <pre class="config-code-block"><code>{{ mcpConfigExample }}</code></pre>
                   </Hook0Stack>
                 </template>
-                <template #chatgpt>
+                <template #cursor>
                   <Hook0Stack direction="column" gap="md">
                     <span class="ai-config-section__hint">{{
-                      t('serviceTokens.addToConfig', { file: 'chatgpt_config.json' })
+                      t('serviceTokens.addToConfig', { file: '.cursor/mcp.json' })
                     }}</span>
-                    <pre class="config-code-block"><code>{{ chatgptConfigExample }}</code></pre>
+                    <pre class="config-code-block"><code>{{ cursorConfigExample }}</code></pre>
                   </Hook0Stack>
                 </template>
-                <template #generic>
+                <template #windsurf>
                   <Hook0Stack direction="column" gap="md">
                     <span class="ai-config-section__hint">{{
-                      t('serviceTokens.genericMcpHint')
+                      t('serviceTokens.addToConfig', {
+                        file: '~/.codeium/windsurf/mcp_config.json',
+                      })
                     }}</span>
-                    <pre class="config-code-block"><code>{{ genericMcpConfigExample }}</code></pre>
+                    <pre class="config-code-block"><code>{{ windsurfConfigExample }}</code></pre>
+                  </Hook0Stack>
+                </template>
+                <template #cline>
+                  <Hook0Stack direction="column" gap="md">
+                    <span class="ai-config-section__hint">{{
+                      t('serviceTokens.addToConfig', { file: 'cline_mcp_settings.json' })
+                    }}</span>
+                    <pre class="config-code-block"><code>{{ clineConfigExample }}</code></pre>
                   </Hook0Stack>
                 </template>
               </Hook0Tabs>

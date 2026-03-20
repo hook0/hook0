@@ -7,10 +7,12 @@ import { toast } from 'vue-sonner';
 type Props = {
   value: string;
   maskable?: boolean;
+  copyMessage?: string;
 };
 
 const props = withDefaults(defineProps<Props>(), {
   maskable: false,
+  copyMessage: undefined,
 });
 
 const { t } = useI18n();
@@ -32,7 +34,7 @@ function copyToClipboard() {
     () => {
       justCopied.value = true;
       toast.success(t('common.copied'), {
-        description: t('common.idCopied'),
+        description: props.copyMessage ?? t('common.idCopied'),
         duration: 2000,
       });
       setTimeout(() => {

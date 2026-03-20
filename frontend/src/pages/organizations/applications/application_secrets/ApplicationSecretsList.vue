@@ -20,7 +20,6 @@ import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Table from '@/components/Hook0Table.vue';
-import Hook0TableCellCode from '@/components/Hook0TableCellCode.vue';
 import Hook0TableCellDate from '@/components/Hook0TableCellDate.vue';
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
@@ -100,7 +99,12 @@ const columns: ColumnDef<ApplicationSecret, unknown>[] = [
     accessorKey: 'token',
     header: t('apiKeys.token'),
     enableSorting: true,
-    cell: (info) => h(Hook0TableCellCode, { value: String(info.getValue()) }),
+    cell: (info) =>
+      h(Hook0CopyField, {
+        value: String(info.getValue()),
+        maskable: true,
+        copyMessage: t('apiKeys.tokenCopied'),
+      }),
   },
   {
     accessorKey: 'created_at',
@@ -234,13 +238,13 @@ const columns: ColumnDef<ApplicationSecret, unknown>[] = [
             <Hook0CardContentLine type="split">
               <template #label>Organization ID</template>
               <template #content>
-                <Hook0CopyField :value="organizationId" />
+                <Hook0CopyField :value="organizationId" maskable />
               </template>
             </Hook0CardContentLine>
             <Hook0CardContentLine type="split">
               <template #label>Application ID</template>
               <template #content>
-                <Hook0CopyField :value="applicationId" />
+                <Hook0CopyField :value="applicationId" maskable />
               </template>
             </Hook0CardContentLine>
           </Hook0CardContent>

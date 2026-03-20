@@ -155,6 +155,17 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
     },
   },
   {
+    accessorKey: 'biscuit',
+    header: t('serviceTokens.tokenLabel'),
+    enableSorting: false,
+    cell: (info) =>
+      h(Hook0CopyField, {
+        value: String(info.getValue()),
+        maskable: true,
+        copyMessage: t('serviceTokens.tokenCopied'),
+      }),
+  },
+  {
     accessorKey: 'created_at',
     header: t('common.createdAt'),
     enableSorting: true,
@@ -307,7 +318,7 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
             <Hook0CardContentLine type="split">
               <template #label>Organization ID</template>
               <template #content>
-                <Hook0CopyField :value="organizationId" />
+                <Hook0CopyField :value="organizationId" maskable />
               </template>
             </Hook0CardContentLine>
           </Hook0CardContent>
