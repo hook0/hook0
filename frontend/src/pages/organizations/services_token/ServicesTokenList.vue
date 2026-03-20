@@ -139,22 +139,17 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
     enableSorting: true,
     cell: (info) => {
       const row = info.row.original;
-      return h(
-        Hook0Button,
-        {
-          variant: 'secondary',
-          size: 'sm',
-          to: {
-            name: routes.ServiceTokenView,
-            params: {
-              organization_id: organizationId.value,
-              service_token_id: row.token_id,
-            },
+      return h(Hook0TableCellLink, {
+        value: row.name,
+        to: {
+          name: routes.ServiceTokenView,
+          params: {
+            organization_id: organizationId.value,
+            service_token_id: row.token_id,
           },
-          'data-test': 'token-name-link',
         },
-        () => row.name
-      );
+        dataTest: 'token-name-link',
+      });
     },
   },
   {
