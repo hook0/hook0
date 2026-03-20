@@ -180,6 +180,7 @@ const consumptions = computed<ConsumptionQuota[]>(() => {
                     type="text"
                     :placeholder="t('organizations.namePlaceholder')"
                     :error="errors.name"
+                    :autofocus="isNew"
                     data-test="organization-name-input"
                   >
                     <template #helpText></template>

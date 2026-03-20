@@ -21,9 +21,12 @@ type Props = {
   targetUrlAttrs: Record<string, unknown>;
   targetUrlError: string | undefined;
   httpMethods: Hook0SelectSingleOption[];
+  autofocus?: boolean;
 };
 
-defineProps<Props>();
+withDefaults(defineProps<Props>(), {
+  autofocus: false,
+});
 
 const emit = defineEmits<{
   'update:description': [value: string];
@@ -47,6 +50,7 @@ const emit = defineEmits<{
           type="text"
           :placeholder="t('subscriptions.descriptionPlaceholder')"
           :error="descriptionError"
+          :autofocus="autofocus"
           data-test="subscription-description-input"
           @update:model-value="emit('update:description', $event as string)"
         />

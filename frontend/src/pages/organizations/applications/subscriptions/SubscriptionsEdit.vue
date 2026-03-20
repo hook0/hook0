@@ -396,6 +396,7 @@ const hasSelectedEventTypes = computed(() => eventTypes.value.some((et) => et.se
                   :target-url-attrs="targetUrlAttrs"
                   :target-url-error="errors.target_url"
                   :http-methods="httpMethods"
+                  :autofocus="isNew"
                   @update:description="description = $event"
                   @update:target-method="targetMethod = $event"
                   @update:target-url="targetUrl = $event"

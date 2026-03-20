@@ -232,6 +232,7 @@ const columns: ColumnDef<ApplicationSecret, unknown>[] = [
         v-model="newSecretName"
         :placeholder="t('common.name')"
         :label="t('common.name')"
+        autofocus
         data-test="api-key-name-input"
         @keydown.enter="confirmCreate()"
       />

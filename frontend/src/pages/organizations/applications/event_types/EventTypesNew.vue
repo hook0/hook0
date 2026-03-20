@@ -111,6 +111,7 @@ const onSubmit = handleSubmit((values) => {
                 type="text"
                 :placeholder="t('eventTypes.servicePlaceholder')"
                 :error="errors.service"
+                autofocus
                 data-test="event-type-service-input"
               />
               <span class="event-type-new__separator hook0-input-row__separator">.</span>

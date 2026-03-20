@@ -167,6 +167,7 @@ function cancel() {
                     type="text"
                     :placeholder="t('applications.namePlaceholder')"
                     :error="errors.name"
+                    :autofocus="isNew"
                     data-test="application-name-input"
                   >
                     <template #helpText>{{ t('applications.nameHelpText') }}</template>

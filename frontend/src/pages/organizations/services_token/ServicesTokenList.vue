@@ -2,7 +2,7 @@
 import { h, markRaw, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
-import { Plus, Bot, Check, Key, Pencil, Trash2 } from 'lucide-vue-next';
+import { Plus, Bot, BookOpen, Check, Key, Pencil, Trash2 } from 'lucide-vue-next';
 
 import {
   useServiceTokenList,
@@ -359,6 +359,7 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
         v-model="newTokenName"
         :placeholder="t('common.name')"
         :label="t('common.name')"
+        autofocus
         data-test="service-token-name-input"
         @keydown.enter="confirmCreate()"
       />

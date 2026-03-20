@@ -29,11 +29,10 @@ defineSlots<{
 <style scoped>
 .hook0-card-content {
   padding: 1.25rem 1.5rem;
-  border-top: 1px solid var(--color-border);
 }
 
-.hook0-card-content:first-child {
-  border-top: none;
+.hook0-card-content + .hook0-card-content {
+  border-top: 1px solid var(--color-border);
 }
 
 .hook0-card-content--removeTopBorder {
