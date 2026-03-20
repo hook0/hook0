@@ -61,23 +61,9 @@ test.describe("Logs", () => {
     });
     await page.locator('[data-test="application-name-input"]').fill(`Test App ${timestamp}`);
 
-    // Capture response body inside the predicate to avoid race condition with navigation
-    let applicationId: string = "";
     const createAppResponse = page.waitForResponse(
-      async (response) => {
-        if (response.url().includes("/api/v1/applications") && response.request().method() === "POST") {
-          if (response.status() < 400) {
-            try {
-              const app = await response.json();
-              applicationId = app.application_id;
-            } catch {
-              // Response body may be unavailable due to navigation
-            }
-          }
-          return true;
-        }
-        return false;
-      },
+      (response) =>
+        response.url().includes("/api/v1/applications") && response.request().method() === "POST",
       { timeout: 15000 }
     );
     await page.locator('[data-test="application-submit-button"]').click();
@@ -91,7 +77,7 @@ test.describe("Logs", () => {
     const url = page.url();
     const match = url.match(uuidPattern);
     expect(match, "Failed to extract application ID (UUID) from URL").toBeTruthy();
-    applicationId = match![1];
+    const applicationId = match![1];
 
     return {
       email,

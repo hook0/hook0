@@ -240,6 +240,7 @@ onUnmounted(removeAfterEach);
         class="hook0-topnav__tab"
         :class="{ 'hook0-topnav__tab--active': tab.active }"
         :title="tab.label"
+        :data-test="'tab-' + tab.id"
       >
         <component :is="tab.icon" :size="16" class="hook0-topnav__tab-icon" aria-hidden="true" />
         <span class="hook0-topnav__tab-label">{{ tab.label }}</span>

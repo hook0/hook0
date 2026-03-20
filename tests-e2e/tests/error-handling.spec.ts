@@ -18,11 +18,11 @@ test.describe("Error Handling", () => {
 
     // The page should show an error card (Hook0ErrorCard renders .hook0-error-card)
     // OrganizationsDashboard.vue shows Hook0ErrorCard on orgError or when !organization
-    await expect(page.locator('.hook0-error-card')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-test="error-card"]')).toBeVisible({ timeout: 15000 });
 
     // The error card should contain error information
-    await expect(page.locator('.hook0-error-card-title')).toBeVisible();
-    await expect(page.locator('.hook0-error-card-detail')).toBeVisible();
+    await expect(page.locator('[data-test="error-card-title"]')).toBeVisible();
+    await expect(page.locator('[data-test="error-card-detail"]')).toBeVisible();
   });
 
   test("should show error for non-existent application in valid organization", async ({
@@ -39,11 +39,11 @@ test.describe("Error Handling", () => {
 
     // The page should show an error card
     // ApplicationsDashboard.vue shows Hook0ErrorCard on appError
-    await expect(page.locator('.hook0-error-card')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-test="error-card"]')).toBeVisible({ timeout: 15000 });
 
     // The error card should contain error information
-    await expect(page.locator('.hook0-error-card-title')).toBeVisible();
-    await expect(page.locator('.hook0-error-card-detail')).toBeVisible();
+    await expect(page.locator('[data-test="error-card-title"]')).toBeVisible();
+    await expect(page.locator('[data-test="error-card-detail"]')).toBeVisible();
   });
 
   test("should show error for non-existent application sub-page", async ({ page, request }) => {
@@ -56,6 +56,6 @@ test.describe("Error Handling", () => {
     );
 
     // Should show an error card or error state
-    await expect(page.locator('.hook0-error-card')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-test="error-card"]')).toBeVisible({ timeout: 15000 });
   });
 });

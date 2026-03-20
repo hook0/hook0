@@ -120,15 +120,15 @@ const chartOption = computed(() => {
     <div class="chart__header">
       <!-- KPI stats -->
       <div class="chart__stats" data-test="chart-stats">
-        <div class="chart__stat">
+        <div class="chart__stat" data-test="chart-stat-total">
           <span class="chart__stat-value">{{ totalEvents.toLocaleString() }}</span>
           <span class="chart__stat-label">{{ t('eventsPerDayChart.totalEvents') }}</span>
         </div>
-        <div class="chart__stat">
+        <div class="chart__stat" data-test="chart-stat-avg">
           <span class="chart__stat-value">{{ avgPerDay }}</span>
           <span class="chart__stat-label">{{ t('eventsPerDayChart.avgPerDay') }}</span>
         </div>
-        <div class="chart__stat">
+        <div class="chart__stat" data-test="chart-stat-peak">
           <span class="chart__stat-value">{{ peakDay }}</span>
           <span class="chart__stat-label">{{ t('eventsPerDayChart.peakDay') }}</span>
         </div>

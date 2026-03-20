@@ -40,10 +40,10 @@ test.describe("Mobile Navigation", () => {
     const tabBar = page.locator('[data-test="tab-bar"]');
     await expect(tabBar).toBeVisible({ timeout: 10000 });
 
-    // Tab icons should be visible (labels hidden on mobile via CSS)
-    const tabIcons = tabBar.locator(".hook0-topnav__tab-icon");
-    const iconCount = await tabIcons.count();
-    expect(iconCount).toBeGreaterThan(0);
+    // Tab links should be visible (labels hidden on mobile via CSS, icons visible)
+    const tabLinks = tabBar.locator("a");
+    const tabCount = await tabLinks.count();
+    expect(tabCount).toBeGreaterThan(0);
   });
 
   test("should navigate via tab bar icons", async ({ page, request }) => {

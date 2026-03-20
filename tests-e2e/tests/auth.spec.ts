@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verification";
+import { expectToast } from "../fixtures/test-setup";
 
 /**
  * Authentication E2E tests for Hook0.
@@ -82,11 +83,7 @@ test.describe("Authentication", () => {
       expect(response.status()).toBeLessThan(500);
 
       // Verify error notification is shown to user
-      await expect(
-        page.locator('[data-sonner-toast]').first()
-      ).toBeVisible({
-        timeout: 10000,
-      });
+      await expectToast(page);
 
       // Verify we're still on login page (not redirected)
       await expect(page).toHaveURL(/\/login/);
@@ -403,11 +400,7 @@ test.describe("Authentication", () => {
       expect(response.status()).toBe(409);
 
       // Verify error notification is shown to user
-      await expect(
-        page.locator('[data-sonner-toast]').first()
-      ).toBeVisible({
-        timeout: 10000,
-      });
+      await expectToast(page);
 
       // Should stay on register page (not redirected)
       await expect(page).toHaveURL(/\/register/);

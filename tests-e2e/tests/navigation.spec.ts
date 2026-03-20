@@ -227,8 +227,8 @@ test.describe("Navigation", () => {
         page.locator('[data-test="application-dashboard-card"], [data-test="event-types-card"]').first()
       ).toBeVisible({ timeout: 15000 });
 
-      // Click on Events in navigation
-      const eventsNavLink = page.locator('nav a[href*="/events"]').first();
+      // Click on Events in navigation (using data-test tab selector)
+      const eventsNavLink = page.locator('[data-test="tab-events"]');
       await expect(eventsNavLink).toBeVisible({ timeout: 10000 });
       await eventsNavLink.click();
       await expect(page).toHaveURL(/\/events/, { timeout: 10000 });
@@ -236,7 +236,7 @@ test.describe("Navigation", () => {
       await expect(page.locator('[data-test="events-card"]')).toBeVisible({ timeout: 10000 });
 
       // Click on Event Types in navigation
-      const eventTypesNavLink = page.locator('nav a[href*="/event_types"]').first();
+      const eventTypesNavLink = page.locator('[data-test="tab-event-types"]');
       await expect(eventTypesNavLink).toBeVisible({ timeout: 10000 });
       await eventTypesNavLink.click();
       await expect(page).toHaveURL(/\/event_types/, { timeout: 10000 });
@@ -244,7 +244,7 @@ test.describe("Navigation", () => {
       await expect(page.locator('[data-test="event-types-card"]')).toBeVisible({ timeout: 10000 });
 
       // Click on Subscriptions in navigation
-      const subscriptionsNavLink = page.locator('nav a[href*="/subscriptions"]').first();
+      const subscriptionsNavLink = page.locator('[data-test="tab-subscriptions"]');
       await expect(subscriptionsNavLink).toBeVisible({ timeout: 10000 });
       await subscriptionsNavLink.click();
       await expect(page).toHaveURL(/\/subscriptions/, { timeout: 10000 });
@@ -252,7 +252,7 @@ test.describe("Navigation", () => {
       await expect(page.locator('[data-test="subscriptions-card"]')).toBeVisible({ timeout: 10000 });
 
       // Click on Logs in navigation
-      const logsNavLink = page.locator('nav a[href*="/logs"]').first();
+      const logsNavLink = page.locator('[data-test="tab-logs"]');
       await expect(logsNavLink).toBeVisible({ timeout: 10000 });
       await logsNavLink.click();
       await expect(page).toHaveURL(/\/logs/, { timeout: 10000 });

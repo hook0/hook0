@@ -1,11 +1,23 @@
 import { expect } from "@playwright/test";
 import { verifyEmailViaMailpit, API_BASE_URL } from "./email-verification";
 
+/** Shared UUID pattern for extracting IDs from URLs. */
+export const UUID_PATTERN =
+  /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
+
 export interface TestEnv {
   email: string;
   password: string;
   organizationId: string;
   timestamp: number;
+}
+
+export interface TestEnvWithApp extends TestEnv {
+  applicationId: string;
+}
+
+export interface TestEnvWithAppAndEventType extends TestEnvWithApp {
+  eventTypeName: string;
 }
 
 /**
@@ -42,5 +54,79 @@ async function loginAsNewUser(
   return { email, password, organizationId: organizationId!, timestamp };
 }
 
-export { loginAsNewUser, API_BASE_URL };
+/**
+ * Login + create an application. Returns env with applicationId.
+ */
+async function loginAndCreateApp(
+  page: import("@playwright/test").Page,
+  request: import("@playwright/test").APIRequestContext,
+  testId: string
+): Promise<TestEnvWithApp> {
+  const env = await loginAsNewUser(page, request, testId);
+
+  await page.goto(`/organizations/${env.organizationId}/applications/new`);
+  await expect(page.locator('[data-test="application-form"]')).toBeVisible({ timeout: 10000 });
+  await page.locator('[data-test="application-name-input"]').fill(`App ${env.timestamp}`);
+
+  const createAppResponse = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/v1/applications") && response.request().method() === "POST",
+    { timeout: 15000 }
+  );
+  await page.locator('[data-test="application-submit-button"]').click();
+  const appResponse = await createAppResponse;
+  expect(appResponse.status()).toBeLessThan(400);
+
+  // Extract application ID from URL after redirect
+  const uuidPattern =
+    /\/applications\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
+  await expect(page).toHaveURL(uuidPattern, { timeout: 15000 });
+  const match = page.url().match(uuidPattern);
+  expect(match).toBeTruthy();
+  const applicationId = match![1];
+
+  return { ...env, applicationId };
+}
+
+/**
+ * Login + create an application + create an event type. Returns full env.
+ */
+async function loginAndCreateAppWithEventType(
+  page: import("@playwright/test").Page,
+  request: import("@playwright/test").APIRequestContext,
+  testId: string,
+  eventType = { service: "test", resource: "entity", verb: "created" }
+): Promise<TestEnvWithAppAndEventType> {
+  const env = await loginAndCreateApp(page, request, testId);
+
+  await page.goto(
+    `/organizations/${env.organizationId}/applications/${env.applicationId}/event_types/new`
+  );
+  await expect(page.locator('[data-test="event-type-form"]')).toBeVisible({ timeout: 10000 });
+  await page.locator('[data-test="event-type-service-input"]').fill(eventType.service);
+  await page.locator('[data-test="event-type-resource-input"]').fill(eventType.resource);
+  await page.locator('[data-test="event-type-verb-input"]').fill(eventType.verb);
+
+  const createETResponse = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/v1/event_types") && response.request().method() === "POST",
+    { timeout: 15000 }
+  );
+  await page.locator('[data-test="event-type-submit-button"]').click();
+  const etResponse = await createETResponse;
+  expect(etResponse.status()).toBeLessThan(400);
+  await expect(page).toHaveURL(/\/event_types$/, { timeout: 10000 });
+
+  const eventTypeName = `${eventType.service}.${eventType.resource}.${eventType.verb}`;
+  return { ...env, eventTypeName };
+}
+
+/**
+ * Assert a toast notification is visible. Centralizes the vue-sonner selector.
+ */
+async function expectToast(page: import("@playwright/test").Page, timeout = 10000) {
+  await expect(page.locator("[data-sonner-toast]").first()).toBeVisible({ timeout });
+}
+
+export { loginAsNewUser, loginAndCreateApp, loginAndCreateAppWithEventType, expectToast, API_BASE_URL };
 export { test, expect } from "@playwright/test";

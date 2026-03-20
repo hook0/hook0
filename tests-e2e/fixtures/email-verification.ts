@@ -1,5 +1,5 @@
 import { APIRequestContext } from "@playwright/test";
-import { Client, QueryResult } from "pg";
+import { Client } from "pg";
 
 /**
  * Email verification helper for E2E tests.
@@ -34,56 +34,45 @@ export async function verifyEmailViaDatabase(email: string): Promise<Verificatio
   console.log(`[DB Verify] Attempting database verification for ${email}`);
   console.log(`[DB Verify] DATABASE_URL: ${DATABASE_URL}`);
 
-  const client = new Client({
-    connectionString: DATABASE_URL,
-  });
+  const client = new Client({ connectionString: DATABASE_URL });
 
-  let organizationId: string | null = null;
+  try {
+    await client.connect();
+    console.log(`[DB Verify] Connected to database`);
 
-  return client
-    .connect()
-    .then(() => {
-      console.log(`[DB Verify] Connected to database`);
-      return client.query(
-        "UPDATE iam.user SET email_verified_at = NOW() WHERE email = $1 AND email_verified_at IS NULL RETURNING user__id",
-        [email]
-      );
-    })
-    .then((result: QueryResult) => {
-      console.log(`[DB Verify] Update result rowCount: ${result.rowCount}`);
-      if (result.rowCount === 0) {
-        console.warn(`[DB Verify] No user found with email ${email} or already verified`);
-        // Try to get user ID anyway
-        return client.query("SELECT user__id FROM iam.user WHERE email = $1", [email]);
-      }
-      return result;
-    })
-    .then((result: QueryResult) => {
-      if (result.rows.length > 0) {
-        const userId = result.rows[0].user__id;
-        console.log(`[DB Verify] User ID: ${userId}`);
-        // Get the organization ID for this user
-        return client.query(
-          "SELECT organization__id FROM iam.user__organization WHERE user__id = $1 LIMIT 1",
-          [userId]
-        );
-      }
-      return { rows: [], command: "", rowCount: 0, oid: 0, fields: [] } as QueryResult;
-    })
-    .then((result: QueryResult) => {
-      if (result.rows.length > 0) {
-        organizationId = result.rows[0].organization__id;
-        console.log(`[DB Verify] Organization ID: ${organizationId}`);
-      }
-      return { organizationId };
-    })
-    .catch((error: Error) => {
-      console.error(`[DB Verify] Database verification failed for ${email}:`, error);
-      throw new Error(`Failed to verify email via database for ${email}`);
-    })
-    .finally(() => {
-      return client.end();
-    });
+    let result = await client.query(
+      "UPDATE iam.user SET email_verified_at = NOW() WHERE email = $1 AND email_verified_at IS NULL RETURNING user__id",
+      [email]
+    );
+    console.log(`[DB Verify] Update result rowCount: ${result.rowCount}`);
+
+    if (result.rowCount === 0) {
+      console.warn(`[DB Verify] No user found with email ${email} or already verified`);
+      result = await client.query("SELECT user__id FROM iam.user WHERE email = $1", [email]);
+    }
+
+    if (result.rows.length === 0) {
+      return { organizationId: null };
+    }
+
+    const userId = result.rows[0].user__id;
+    console.log(`[DB Verify] User ID: ${userId}`);
+
+    const orgResult = await client.query(
+      "SELECT organization__id FROM iam.user__organization WHERE user__id = $1 LIMIT 1",
+      [userId]
+    );
+
+    const organizationId = orgResult.rows.length > 0 ? orgResult.rows[0].organization__id : null;
+    console.log(`[DB Verify] Organization ID: ${organizationId}`);
+
+    return { organizationId };
+  } catch (error) {
+    console.error(`[DB Verify] Database verification failed for ${email}:`, error);
+    throw new Error(`Failed to verify email via database for ${email}`);
+  } finally {
+    await client.end();
+  }
 }
 
 interface MailpitMessage {

@@ -29,15 +29,14 @@ test.describe("Dashboards", () => {
     await expect(page.locator('[data-test="org-dashboard-page"]')).toBeVisible({ timeout: 15000 });
 
     // Verify the events per day chart section renders with KPI stats
-    // The chart component renders .chart__stat-label spans with "Total events", "Avg / day", "Peak day"
-    await expect(page.locator('.chart__stats')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('.chart__stat-label').filter({ hasText: "Total events" })).toBeVisible();
-    await expect(page.locator('.chart__stat-label').filter({ hasText: "Avg / day" })).toBeVisible();
-    await expect(page.locator('.chart__stat-label').filter({ hasText: "Peak day" })).toBeVisible();
+    await expect(page.locator('[data-test="chart-stats"]')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-test="chart-stat-total"]')).toBeVisible();
+    await expect(page.locator('[data-test="chart-stat-avg"]')).toBeVisible();
+    await expect(page.locator('[data-test="chart-stat-peak"]')).toBeVisible();
 
     // Verify day preset buttons are rendered (7d, 30d, 90d)
-    await expect(page.locator('.chart__toolbar')).toBeVisible();
-    await expect(page.locator('.chart__toolbar button').first()).toBeVisible();
+    await expect(page.locator('[data-test="chart-toolbar"]')).toBeVisible();
+    await expect(page.locator('[data-test="chart-toolbar"] button').first()).toBeVisible();
   });
 
   test("should display organization dashboard card with org info", async ({ page, request }) => {

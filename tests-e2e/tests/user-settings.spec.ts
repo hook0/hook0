@@ -4,6 +4,7 @@ import {
   API_BASE_URL,
   getPasswordResetTokenFromMailpit,
 } from "../fixtures/email-verification";
+import { expectToast } from "../fixtures/test-setup";
 
 /**
  * User Settings E2E tests for Hook0.
@@ -160,11 +161,7 @@ test.describe("User Settings", () => {
     expect(response.status()).toBeLessThan(400);
 
     // Verify success notification is shown
-    await expect(
-      page.locator('[data-sonner-toast]').first()
-    ).toBeVisible({
-      timeout: 10000,
-    });
+    await expectToast(page);
   });
 
   test("should display language selector", async ({ page, request }) => {
@@ -354,11 +351,7 @@ test.describe("User Settings", () => {
     await confirmButton.click();
 
     // Verify error notification is shown (not implemented feature) or success toast
-    await expect(
-      page.locator('[data-sonner-toast]').first()
-    ).toBeVisible({
-      timeout: 10000,
-    });
+    await expectToast(page);
 
     // User should still be on settings page (not logged out)
     await expect(page).toHaveURL(/\/settings/, {
@@ -471,11 +464,7 @@ test.describe("Password Reset Flow", () => {
     expect(response.status()).toBeLessThan(500);
 
     // Verify success notification is shown
-    await expect(
-      page.locator('[data-sonner-toast]').first()
-    ).toBeVisible({
-      timeout: 10000,
-    });
+    await expectToast(page);
   });
 
   test("should complete password reset flow with valid token and login with new password", async ({

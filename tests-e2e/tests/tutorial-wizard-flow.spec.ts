@@ -11,8 +11,6 @@ import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verificat
  * 3. Verify response.status < 400 AND verify data/navigation
  */
 test.describe("Tutorial Wizard Flow", () => {
-  test.describe.configure({ mode: 'serial' });
-
   /**
    * Helper to setup test environment with authenticated user.
    */
