@@ -38,6 +38,7 @@ import Hook0Badge from '@/components/Hook0Badge.vue';
 import Hook0Alert from '@/components/Hook0Alert.vue';
 import Hook0Dialog from '@/components/Hook0Dialog.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
+import Hook0CopyField from '@/components/Hook0CopyField.vue';
 
 const { t } = useI18n();
 const { trackEvent } = useTracking();
@@ -306,7 +307,7 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
             <Hook0CardContentLine type="split">
               <template #label>Organization ID</template>
               <template #content>
-                <code class="quick-ref__id">{{ organizationId }}</code>
+                <Hook0CopyField :value="organizationId" />
               </template>
             </Hook0CardContentLine>
           </Hook0CardContent>
@@ -472,15 +473,5 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
   display: flex;
   align-items: center;
   gap: 0.5rem;
-}
-
-.quick-ref__id {
-  font-family: var(--font-mono);
-  font-size: 0.8125rem;
-  padding: 0.125rem 0.375rem;
-  background-color: var(--color-bg-tertiary);
-  border-radius: var(--radius-sm);
-  color: var(--color-text-primary);
-  user-select: all;
 }
 </style>

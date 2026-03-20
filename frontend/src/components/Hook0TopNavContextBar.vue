@@ -12,6 +12,7 @@
 import { ref, computed } from 'vue';
 import { ChevronsUpDown, Box } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
+import type { RouteLocationRaw } from 'vue-router';
 import { routes } from '@/routes';
 import Hook0Avatar from '@/components/Hook0Avatar.vue';
 import Hook0Badge from '@/components/Hook0Badge.vue';
@@ -146,6 +147,25 @@ function hasOpenDropdown(): boolean {
   return activeDropdown.value !== null;
 }
 
+/** Build a route for an org dropdown item. */
+function orgItemTo(item: { [key: string]: unknown }): RouteLocationRaw {
+  return {
+    name: routes.OrganizationsDashboard,
+    params: { organization_id: item.organization_id as string },
+  };
+}
+
+/** Build a route for an app dropdown item. */
+function appItemTo(item: { [key: string]: unknown }): RouteLocationRaw {
+  return {
+    name: routes.ApplicationsDashboard,
+    params: {
+      organization_id: currentOrgId.value!,
+      application_id: item.application_id as string,
+    },
+  };
+}
+
 defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
 </script>
 
@@ -154,58 +174,58 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
 
   <!-- Org section -->
   <div class="hook0-topnav__org-section hook0-topnav__dropdown-anchor">
-    <!-- Org selected -->
+    <!-- Org selected: link to dashboard + separate switcher button -->
     <template v-if="currentOrgId">
       <router-link
         :to="orgDashboardRoute"
-        class="hook0-topnav__org-avatar-btn"
-        :aria-label="t('nav.goToOrgDashboard')"
+        class="hook0-topnav__context-link"
+        data-test="context-bar-org-name"
       >
         <Hook0Avatar
           :name="currentOrgName ?? '?'"
           size="sm"
           variant="square"
-          class="hook0-topnav__org-avatar"
         />
-      </router-link>
-      <router-link
-        :to="orgDashboardRoute"
-        class="hook0-topnav__org-name"
-        data-test="context-bar-org-name"
-      >
-        <span>{{ currentOrgName ?? '...' }}</span>
-        <Hook0Badge variant="primary" size="sm">{{
+        <span class="hook0-topnav__context-name">
+          {{ currentOrgName ?? '...' }}
+        </span>
+        <Hook0Badge variant="primary" size="sm" class="hook0-topnav__context-badge">{{
           currentOrgPlan ? currentOrgPlan.label : t('orgAppSelector.developer')
         }}</Hook0Badge>
       </router-link>
-    </template>
-    <!-- No org selected -->
-    <template v-else>
-      <Hook0Avatar
-        name="?"
-        size="sm"
-        variant="square"
-        class="hook0-topnav__ghost-avatar"
-        @click.stop="toggleDropdown('org')"
-      />
       <button
-        class="hook0-topnav__ghost-select"
-        :aria-label="t('nav.selectOrganization')"
+        ref="orgTriggerRef"
+        class="hook0-topnav__switcher-btn"
+        :aria-label="t('nav.switchOrganization')"
+        :aria-expanded="orgDropdownOpen"
+        aria-haspopup="true"
+        data-test="context-bar-org-switcher"
         @click.stop="toggleDropdown('org')"
       >
-        {{ t('nav.selectOrganization') }}
+        <ChevronsUpDown :size="14" aria-hidden="true" />
       </button>
     </template>
+    <!-- No org selected: single unified button -->
     <button
+      v-else
       ref="orgTriggerRef"
-      class="hook0-topnav__switcher-btn"
-      :aria-label="t('nav.switchOrganization')"
+      class="hook0-topnav__context-trigger"
+      :aria-label="t('nav.selectOrganization')"
       :aria-expanded="orgDropdownOpen"
       aria-haspopup="true"
       data-test="context-bar-org-switcher"
       @click.stop="toggleDropdown('org')"
     >
-      <ChevronsUpDown :size="14" aria-hidden="true" />
+      <Hook0Avatar
+        name="?"
+        size="sm"
+        variant="square"
+        class="hook0-topnav__ghost-avatar"
+      />
+      <span class="hook0-topnav__context-ghost-label">
+        {{ t('nav.selectOrganization') }}
+      </span>
+      <ChevronsUpDown :size="14" aria-hidden="true" class="hook0-topnav__context-chevron" />
     </button>
 
     <!-- Org dropdown -->
@@ -216,6 +236,7 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
       id-key="organization_id"
       :open="orgDropdownOpen"
       :create-label="t('nav.createOrganization')"
+      :item-to="orgItemTo"
       @select="handleOrgItemClick"
       @create="goToCreateOrg()"
       @settings="goToOrgSettings"
@@ -236,50 +257,46 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
     <span class="hook0-topnav__path-separator" aria-hidden="true">/</span>
 
     <div class="hook0-topnav__app-section hook0-topnav__dropdown-anchor">
-      <!-- App selected -->
+      <!-- App selected: link to dashboard + separate switcher button -->
       <template v-if="isAppLevel && currentAppId">
         <router-link
           :to="appDashboardRoute"
-          class="hook0-topnav__app-icon-btn hook0-topnav__app-icon-btn--muted"
-          :aria-label="t('nav.goToAppDashboard')"
-        >
-          <Box :size="16" aria-hidden="true" />
-        </router-link>
-        <router-link
-          :to="appDashboardRoute"
-          class="hook0-topnav__app-name"
+          class="hook0-topnav__context-link"
           data-test="context-bar-app-name"
         >
-          {{ currentAppName ?? '...' }}
+          <Box :size="16" aria-hidden="true" class="hook0-topnav__context-icon--muted" />
+          <span class="hook0-topnav__context-name">
+            {{ currentAppName ?? '...' }}
+          </span>
         </router-link>
-      </template>
-      <!-- No app selected -->
-      <template v-else>
         <button
-          class="hook0-topnav__ghost-text"
-          :aria-label="t('nav.selectApplication')"
+          ref="appTriggerRef"
+          class="hook0-topnav__switcher-btn"
+          :aria-label="t('nav.switchApplication')"
+          :aria-expanded="appDropdownOpen"
+          aria-haspopup="true"
+          data-test="context-bar-app-switcher"
           @click.stop="toggleDropdown('app')"
         >
-          ?
-        </button>
-        <button
-          class="hook0-topnav__ghost-select"
-          :aria-label="t('nav.selectApplication')"
-          @click.stop="toggleDropdown('app')"
-        >
-          {{ t('nav.selectApplication') }}
+          <ChevronsUpDown :size="14" aria-hidden="true" />
         </button>
       </template>
+      <!-- No app selected: single unified button -->
       <button
+        v-else
         ref="appTriggerRef"
-        class="hook0-topnav__switcher-btn"
-        :aria-label="t('nav.switchApplication')"
+        class="hook0-topnav__context-trigger"
+        :aria-label="t('nav.selectApplication')"
         :aria-expanded="appDropdownOpen"
         aria-haspopup="true"
         data-test="context-bar-app-switcher"
         @click.stop="toggleDropdown('app')"
       >
-        <ChevronsUpDown :size="14" aria-hidden="true" />
+        <span class="hook0-topnav__context-ghost-icon">?</span>
+        <span class="hook0-topnav__context-ghost-label">
+          {{ t('nav.selectApplication') }}
+        </span>
+        <ChevronsUpDown :size="14" aria-hidden="true" class="hook0-topnav__context-chevron" />
       </button>
 
       <!-- App dropdown -->
@@ -290,6 +307,7 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
         id-key="application_id"
         :open="appDropdownOpen"
         :create-label="t('nav.createApplication')"
+        :item-to="appItemTo"
         @select="(id: string) => handleAppItemClick(currentOrgId!, id)"
         @create="goToCreateApp()"
         @settings="(id: string) => goToAppSettings(currentOrgId!, id)"
@@ -316,69 +334,110 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
 .hook0-topnav__org-section {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
   position: relative;
   min-width: 0;
 }
 
-.hook0-topnav__org-name {
-  border: none;
-  background: none;
-  text-decoration: none;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  cursor: pointer;
-  padding: 0.25rem 0.375rem;
-  border-radius: var(--radius-md);
-  transition: background-color 0.15s ease;
+/* Unified context trigger — single bordered button for avatar + name + chevron */
+.hook0-topnav__context-trigger {
+  all: unset;
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  max-width: 8rem;
-  overflow: hidden;
+  padding: 0.25rem 0.375rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+  min-width: 0;
 }
 
-@media (min-width: 768px) {
-  .hook0-topnav__org-name {
-    max-width: 14rem;
-  }
+.hook0-topnav__context-trigger:hover {
+  background-color: var(--color-bg-tertiary);
+  border-color: var(--color-border-strong);
 }
 
-/* Hide plan badge on mobile to save space */
-.hook0-topnav__org-name :deep(.hook0-badge) {
-  display: none;
+.hook0-topnav__context-trigger:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
-@media (min-width: 768px) {
-  .hook0-topnav__org-name :deep(.hook0-badge) {
-    display: inline-flex;
-  }
-}
-
-.hook0-topnav__org-name span:first-child {
+/* Name text inside trigger */
+.hook0-topnav__context-name {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
+  max-width: 6rem;
 }
 
-.hook0-topnav__org-name:hover {
+@media (min-width: 768px) {
+  .hook0-topnav__context-name {
+    max-width: 10rem;
+  }
+}
+
+/* Hide plan badge on mobile to save space */
+.hook0-topnav__context-badge {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .hook0-topnav__context-badge {
+    display: inline-flex;
+  }
+}
+
+/* Context link — avatar + name + badge, navigates to dashboard */
+.hook0-topnav__context-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.375rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: none;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  font-family: inherit;
+  min-width: 0;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.hook0-topnav__context-link:hover {
   background-color: var(--color-bg-tertiary);
+  border-color: var(--color-border-strong);
 }
 
-/* Switcher button (chevrons-up-down) */
+.hook0-topnav__context-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Switcher button — standalone chevron to open dropdown, matches link height */
 .hook0-topnav__switcher-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 1.5rem;
-  height: 1.5rem;
+  align-self: stretch;
   border: 1px solid var(--color-border);
   background: none;
   color: var(--color-text-muted);
   cursor: pointer;
   border-radius: var(--radius-sm);
+  margin-left: 0.25rem;
   transition:
     background-color 0.15s ease,
     color 0.15s ease,
@@ -390,6 +449,50 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
   background-color: var(--color-bg-tertiary);
   color: var(--color-text-primary);
   border-color: var(--color-border-strong);
+}
+
+.hook0-topnav__switcher-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Chevron icon */
+.hook0-topnav__context-chevron {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+/* Muted icon (app Box icon) */
+.hook0-topnav__context-icon--muted {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+/* Ghost state (no selection) */
+.hook0-topnav__ghost-avatar {
+  opacity: 0.35;
+}
+
+.hook0-topnav__context-ghost-label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.hook0-topnav__context-ghost-icon {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* Hide text labels on mobile — keep icons only */
+@media (max-width: 767px) {
+  .hook0-topnav__context-name,
+  .hook0-topnav__context-badge,
+  .hook0-topnav__context-ghost-label {
+    display: none;
+  }
 }
 
 /* Path separator between org and app */
@@ -405,122 +508,14 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
 .hook0-topnav__app-section {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
   position: relative;
   min-width: 0;
 }
 
-.hook0-topnav__org-avatar-btn,
-.hook0-topnav__app-icon-btn {
-  text-decoration: none;
-  color: inherit;
-  background: none;
-}
-
-.hook0-topnav__app-icon-btn {
-  border: none;
-  padding: 0;
-  font: inherit;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  border-radius: var(--radius-md);
-}
-
-.hook0-topnav__app-icon-btn--muted {
-  color: var(--color-text-muted);
-}
-
-.hook0-topnav__app-name {
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--color-text-primary);
-  text-decoration: none;
-  white-space: nowrap;
-  max-width: 10rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0.25rem 0.375rem;
-  border-radius: var(--radius-md);
-  transition: background-color 0.15s ease;
-  font-family: inherit;
-}
-
-.hook0-topnav__app-name:hover {
-  background-color: var(--color-bg-tertiary);
-}
-
-/* Hide org and app text names on mobile — keep icons only */
-@media (max-width: 767px) {
-  .hook0-topnav__org-name {
-    display: none;
-  }
-
-  .hook0-topnav__app-name {
-    display: none;
-  }
-}
-
-/* Ghost select button (empty state) */
-.hook0-topnav__ghost-select {
-  display: flex;
-  align-items: center;
-  padding: 0.25rem 0.5rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: none;
-  color: var(--color-text-muted);
-  font-size: 0.75rem;
-  font-family: inherit;
-  cursor: pointer;
-  white-space: nowrap;
-  transition:
-    border-color 0.15s ease,
-    color 0.15s ease;
-}
-
-.hook0-topnav__ghost-avatar {
-  opacity: 0.35;
-  cursor: pointer;
-}
-
-.hook0-topnav__ghost-text {
-  all: unset;
-  color: var(--color-text-muted);
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-@media (max-width: 767px) {
-  .hook0-topnav__ghost-select {
-    display: none;
-  }
-}
-
-.hook0-topnav__ghost-select:hover {
-  border-color: var(--color-border-strong);
-  color: var(--color-text-secondary);
-}
-
-.hook0-topnav__org-name:focus-visible,
-.hook0-topnav__switcher-btn:focus-visible,
-.hook0-topnav__org-avatar-btn:focus-visible,
-.hook0-topnav__app-icon-btn:focus-visible,
-.hook0-topnav__app-name:focus-visible,
-.hook0-topnav__ghost-select:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .hook0-topnav__org-name,
-  .hook0-topnav__switcher-btn,
-  .hook0-topnav__ghost-select {
+  .hook0-topnav__context-trigger,
+  .hook0-topnav__context-link,
+  .hook0-topnav__switcher-btn {
     transition: none;
   }
 }

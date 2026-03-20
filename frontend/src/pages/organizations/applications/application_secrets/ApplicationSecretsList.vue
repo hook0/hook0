@@ -30,6 +30,7 @@ import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
 import Hook0Dialog from '@/components/Hook0Dialog.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
+import Hook0CopyField from '@/components/Hook0CopyField.vue';
 
 const { t } = useI18n();
 const { trackEvent } = useTracking();
@@ -233,13 +234,13 @@ const columns: ColumnDef<ApplicationSecret, unknown>[] = [
             <Hook0CardContentLine type="split">
               <template #label>Organization ID</template>
               <template #content>
-                <code class="quick-ref__id">{{ organizationId }}</code>
+                <Hook0CopyField :value="organizationId" />
               </template>
             </Hook0CardContentLine>
             <Hook0CardContentLine type="split">
               <template #label>Application ID</template>
               <template #content>
-                <code class="quick-ref__id">{{ applicationId }}</code>
+                <Hook0CopyField :value="applicationId" />
               </template>
             </Hook0CardContentLine>
           </Hook0CardContent>
@@ -286,14 +287,4 @@ const columns: ColumnDef<ApplicationSecret, unknown>[] = [
   </Hook0PageLayout>
 </template>
 
-<style scoped>
-.quick-ref__id {
-  font-family: var(--font-mono);
-  font-size: 0.8125rem;
-  padding: 0.125rem 0.375rem;
-  background-color: var(--color-bg-tertiary);
-  border-radius: var(--radius-sm);
-  color: var(--color-text-primary);
-  user-select: all;
-}
-</style>
+<style scoped></style>
