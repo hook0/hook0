@@ -23,7 +23,11 @@
     "lastUsed": "Last used",
     "subtitle": "These keys will allow you to authenticate API requests to Hook0.",
     "title": "API Keys",
-    "token": "Token"
+    "token": "Token",
+    "quickReference": "Quick reference",
+    "quickReferenceDescription": "Use these identifiers when making API calls.",
+    "documentationLink": "Documentation",
+    "apiReferenceLink": "API Reference"
   },
   "applications": {
     "consumptionEventsPerDay": "Events per day",
@@ -480,6 +484,8 @@
       "title": "No members"
     },
     "invite": "Invite member",
+    "inviteSubtitle": "Invite other members to your organization and assign them a role.",
+    "inviteTitle": "Invite a member",
     "invited": "User invited successfully.",
     "name": "Name",
     "revokeConfirm": "Are you sure you want to revoke {email}'s access to this organization?",
@@ -684,6 +690,10 @@
     "simpleMode": "Simple",
     "subtitle": "Service tokens are organization-wide API keys that allow external programs to send API requests to Hook0 without relying on user credentials.",
     "title": "Service Tokens",
+    "quickReference": "Quick reference",
+    "quickReferenceDescription": "Use these identifiers when making API calls.",
+    "documentationLink": "Documentation",
+    "apiReferenceLink": "API Reference",
     "titleSingle": "Service Token {name}",
     "tokenLabel": "Token",
     "tokenDisplayWarning": "This token is shown only once. Copy it now.",

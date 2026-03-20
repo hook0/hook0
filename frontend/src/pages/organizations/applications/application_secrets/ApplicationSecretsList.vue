@@ -2,7 +2,7 @@
 import { h, markRaw, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
-import { Trash2 } from 'lucide-vue-next';
+import { BookOpen, ExternalLink, KeyRound, Trash2 } from 'lucide-vue-next';
 
 import { useSecretList, useCreateSecret, useRemoveSecret } from './useSecretQueries';
 import type { ApplicationSecret } from './ApplicationSecretService';
@@ -17,6 +17,7 @@ import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
+import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Table from '@/components/Hook0Table.vue';
 import Hook0TableCellCode from '@/components/Hook0TableCellCode.vue';
@@ -28,6 +29,7 @@ import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
 import Hook0Dialog from '@/components/Hook0Dialog.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
+import Hook0Stack from '@/components/Hook0Stack.vue';
 
 const { t } = useI18n();
 const { trackEvent } = useTracking();
@@ -35,7 +37,7 @@ const { trackEvent } = useTracking();
 // Permissions
 const { canCreate, canDelete } = usePermissions();
 
-const { applicationId } = useRouteIds();
+const { organizationId, applicationId } = useRouteIds();
 const { data: secrets, isLoading, error, refetch } = useSecretList(applicationId);
 
 const createMutation = useCreateSecret();
@@ -114,6 +116,7 @@ const columns: ColumnDef<ApplicationSecret, unknown>[] = [
             h(Hook0TableCellLink, {
               value: t('common.delete'),
               icon: markRaw(Trash2),
+              variant: 'danger',
               dataTest: 'api-key-delete-button',
               onClick: () => handleDelete(info.row.original),
             }),
@@ -140,52 +143,108 @@ const columns: ColumnDef<ApplicationSecret, unknown>[] = [
 
     <!-- Data loaded (secrets is guaranteed to be defined here) -->
     <template v-else>
-      <Hook0Card data-test="api-keys-card">
-        <Hook0CardHeader>
-          <template #header>{{ t('apiKeys.title') }}</template>
-          <template #subtitle>
-            {{ t('apiKeys.subtitle') }}
-          </template>
-        </Hook0CardHeader>
-
-        <Hook0CardContent v-if="secrets.length > 0">
-          <Hook0Table
-            data-test="api-keys-table"
-            :columns="columns"
-            :data="secrets"
-            row-id-field="token"
-          />
-        </Hook0CardContent>
-
-        <Hook0CardContent v-else>
-          <Hook0EmptyState
-            :title="t('apiKeys.empty.title')"
-            :description="t('apiKeys.empty.description')"
-          >
-            <template v-if="canCreate('application_secret')" #action>
-              <Hook0Button
-                variant="primary"
-                type="button"
-                data-test="api-keys-create-button"
-                @click="createNew"
-              >
-                {{ t('apiKeys.create') }}
-              </Hook0Button>
+      <Hook0Stack direction="column" gap="lg">
+        <Hook0Card data-test="api-keys-card">
+          <Hook0CardHeader>
+            <template #header>{{ t('apiKeys.title') }}</template>
+            <template #subtitle>
+              {{ t('apiKeys.subtitle') }}
             </template>
-          </Hook0EmptyState>
-        </Hook0CardContent>
+          </Hook0CardHeader>
 
-        <Hook0CardFooter v-if="secrets && secrets.length > 0 && canCreate('application_secret')">
-          <Hook0Button
-            variant="primary"
-            type="button"
-            data-test="api-keys-create-button"
-            @click="createNew"
-          >
-            {{ t('apiKeys.create') }}
-          </Hook0Button>
-        </Hook0CardFooter>
-      </Hook0Card>
+          <Hook0CardContent v-if="secrets.length > 0">
+            <Hook0Table
+              data-test="api-keys-table"
+              :columns="columns"
+              :data="secrets"
+              row-id-field="token"
+            />
+          </Hook0CardContent>
+
+          <Hook0CardContent v-else>
+            <Hook0EmptyState
+              :title="t('apiKeys.empty.title')"
+              :description="t('apiKeys.empty.description')"
+              :icon="KeyRound"
+            >
+              <template v-if="canCreate('application_secret')" #action>
+                <Hook0Button
+                  variant="primary"
+                  type="button"
+                  data-test="api-keys-create-button"
+                  @click="createNew"
+                >
+                  {{ t('apiKeys.create') }}
+                </Hook0Button>
+              </template>
+            </Hook0EmptyState>
+          </Hook0CardContent>
+
+          <Hook0CardFooter v-if="secrets && secrets.length > 0 && canCreate('application_secret')">
+            <Hook0Button
+              variant="primary"
+              type="button"
+              data-test="api-keys-create-button"
+              @click="createNew"
+            >
+              {{ t('apiKeys.create') }}
+            </Hook0Button>
+          </Hook0CardFooter>
+        </Hook0Card>
+
+        <!-- Quick Reference -->
+        <Hook0Card>
+          <Hook0CardHeader>
+            <template #header>
+              <Hook0Stack direction="row" align="center" gap="sm">
+                <BookOpen :size="18" aria-hidden="true" />
+                {{ t('apiKeys.quickReference') }}
+              </Hook0Stack>
+            </template>
+            <template #subtitle>
+              {{ t('apiKeys.quickReferenceDescription') }}
+            </template>
+            <template #actions>
+              <Hook0Stack direction="row" gap="sm">
+                <Hook0Button
+                  variant="secondary"
+                  href="https://documentation.hook0.com/"
+                  target="_blank"
+                >
+                  <template #left>
+                    <ExternalLink :size="14" aria-hidden="true" />
+                  </template>
+                  {{ t('apiKeys.documentationLink') }}
+                </Hook0Button>
+                <Hook0Button
+                  variant="secondary"
+                  href="https://documentation.hook0.com/api"
+                  target="_blank"
+                >
+                  <template #left>
+                    <ExternalLink :size="14" aria-hidden="true" />
+                  </template>
+                  {{ t('apiKeys.apiReferenceLink') }}
+                </Hook0Button>
+              </Hook0Stack>
+            </template>
+          </Hook0CardHeader>
+          <Hook0CardContent>
+            <Hook0CardContentLine type="split">
+              <template #label>Organization ID</template>
+              <template #content>
+                <code class="quick-ref__id">{{ organizationId }}</code>
+              </template>
+            </Hook0CardContentLine>
+            <Hook0CardContentLine type="split">
+              <template #label>Application ID</template>
+              <template #content>
+                <code class="quick-ref__id">{{ applicationId }}</code>
+              </template>
+            </Hook0CardContentLine>
+          </Hook0CardContent>
+        </Hook0Card>
+      </Hook0Stack>
     </template>
 
     <Hook0Dialog
@@ -227,4 +286,14 @@ const columns: ColumnDef<ApplicationSecret, unknown>[] = [
   </Hook0PageLayout>
 </template>
 
-<style scoped></style>
+<style scoped>
+.quick-ref__id {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  padding: 0.125rem 0.375rem;
+  background-color: var(--color-bg-tertiary);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  user-select: all;
+}
+</style>

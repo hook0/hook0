@@ -2,7 +2,7 @@
 import { computed, h, markRaw, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
-import { Trash2 } from 'lucide-vue-next';
+import { Trash2, UserPlus, Users } from 'lucide-vue-next';
 
 import { useAuthStore } from '@/stores/auth';
 import {
@@ -35,6 +35,7 @@ import Hook0Select from '@/components/Hook0Select.vue';
 import type { Hook0SelectSingleOption } from '@/components/Hook0Select';
 import Hook0Form from '@/components/Hook0Form.vue';
 import Hook0Dialog from '@/components/Hook0Dialog.vue';
+import Hook0Stack from '@/components/Hook0Stack.vue';
 
 const { t } = useI18n();
 
@@ -183,6 +184,7 @@ const columns: ColumnDef<User, unknown>[] = [
             return h(Hook0TableCellLink, {
               value: t('common.delete'),
               icon: markRaw(Trash2),
+              variant: 'danger',
               disabled: isCurrentUserRow(row),
               onClick: () => handleRevoke(row),
             });
@@ -210,57 +212,73 @@ const columns: ColumnDef<User, unknown>[] = [
 
     <!-- Data loaded (members is guaranteed to be defined here) -->
     <template v-else>
-      <Hook0Card data-test="members-card">
-        <Hook0CardHeader>
-          <template #header>{{ t('members.title') }}</template>
-          <template #subtitle>{{ t('members.subtitle') }}</template>
-        </Hook0CardHeader>
+      <Hook0Stack direction="column" gap="lg">
+        <!-- Invite card (primary action — shown first) -->
+        <Hook0Card v-if="canCreate('member')">
+          <Hook0CardHeader>
+            <template #header>
+              <Hook0Stack direction="row" align="center" gap="sm">
+                <UserPlus :size="18" aria-hidden="true" />
+                {{ t('members.inviteTitle') }}
+              </Hook0Stack>
+            </template>
+            <template #subtitle>{{ t('members.inviteSubtitle') }}</template>
+          </Hook0CardHeader>
+          <Hook0Form data-test="members-invite-form" @submit="invite">
+            <Hook0CardFooter class="members-invite-footer">
+              <div class="members-invite-footer__fields">
+                <Hook0Input
+                  v-model="invitation.email"
+                  type="email"
+                  class="members-invite-footer__email"
+                  :placeholder="t('members.emailPlaceholder')"
+                  required
+                  data-test="members-invite-email-input"
+                />
+                <Hook0Select
+                  v-model="invitation.role"
+                  :options="roleOptions"
+                  data-test="members-invite-role-select"
+                />
+              </div>
+              <Hook0Button
+                variant="primary"
+                submit
+                class="members-invite-footer__button"
+                :disabled="invitation.email === '' || invitation.role === ''"
+                data-test="members-invite-button"
+              >
+                {{ t('members.invite') }}
+              </Hook0Button>
+            </Hook0CardFooter>
+          </Hook0Form>
+        </Hook0Card>
 
-        <Hook0CardContent v-if="members.members.length > 0">
-          <Hook0Table
-            data-test="members-table"
-            :columns="columns"
-            :data="members.members"
-            row-id-field="user_id"
-          />
-        </Hook0CardContent>
+        <!-- Members list -->
+        <Hook0Card data-test="members-card">
+          <Hook0CardHeader>
+            <template #header>{{ t('members.title') }}</template>
+            <template #subtitle>{{ t('members.subtitle') }}</template>
+          </Hook0CardHeader>
 
-        <Hook0CardContent v-else>
-          <Hook0EmptyState
-            :title="t('members.empty.title')"
-            :description="t('members.empty.description')"
-          />
-        </Hook0CardContent>
+          <Hook0CardContent v-if="members.members.length > 0">
+            <Hook0Table
+              data-test="members-table"
+              :columns="columns"
+              :data="members.members"
+              row-id-field="user_id"
+            />
+          </Hook0CardContent>
 
-        <Hook0Form v-if="canCreate('member')" data-test="members-invite-form" @submit="invite">
-          <Hook0CardFooter class="members-invite-footer">
-            <div class="members-invite-footer__fields">
-              <Hook0Input
-                v-model="invitation.email"
-                type="email"
-                class="members-invite-footer__email"
-                :placeholder="t('members.emailPlaceholder')"
-                required
-                data-test="members-invite-email-input"
-              />
-              <Hook0Select
-                v-model="invitation.role"
-                :options="roleOptions"
-                data-test="members-invite-role-select"
-              />
-            </div>
-            <Hook0Button
-              variant="primary"
-              submit
-              class="members-invite-footer__button"
-              :disabled="invitation.email === '' || invitation.role === ''"
-              data-test="members-invite-button"
-            >
-              {{ t('members.invite') }}
-            </Hook0Button>
-          </Hook0CardFooter>
-        </Hook0Form>
-      </Hook0Card>
+          <Hook0CardContent v-else>
+            <Hook0EmptyState
+              :title="t('members.empty.title')"
+              :description="t('members.empty.description')"
+              :icon="Users"
+            />
+          </Hook0CardContent>
+        </Hook0Card>
+      </Hook0Stack>
     </template>
 
     <Hook0Dialog

@@ -2,7 +2,7 @@
 import { h, markRaw, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
-import { Plus, Bot, BookOpen, Check, Key, Pencil, Trash2 } from 'lucide-vue-next';
+import { Plus, Bot, BookOpen, Check, ExternalLink, Key, Pencil, Trash2 } from 'lucide-vue-next';
 
 import {
   useServiceTokenList,
@@ -23,6 +23,7 @@ import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
+import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Table from '@/components/Hook0Table.vue';
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
@@ -179,6 +180,7 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
           h(Hook0TableCellLink, {
             value: t('common.delete'),
             icon: markRaw(Trash2),
+            variant: 'danger',
             dataTest: 'token-delete-action',
             onClick: () => handleDelete(row),
           })
@@ -261,6 +263,53 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
               {{ t('serviceTokens.create') }}
             </Hook0Button>
           </Hook0CardFooter>
+        </Hook0Card>
+
+        <!-- Quick Reference -->
+        <Hook0Card>
+          <Hook0CardHeader>
+            <template #header>
+              <Hook0Stack direction="row" align="center" gap="sm">
+                <BookOpen :size="18" aria-hidden="true" />
+                {{ t('serviceTokens.quickReference') }}
+              </Hook0Stack>
+            </template>
+            <template #subtitle>
+              {{ t('serviceTokens.quickReferenceDescription') }}
+            </template>
+            <template #actions>
+              <Hook0Stack direction="row" gap="sm">
+                <Hook0Button
+                  variant="secondary"
+                  href="https://documentation.hook0.com/"
+                  target="_blank"
+                >
+                  <template #left>
+                    <ExternalLink :size="14" aria-hidden="true" />
+                  </template>
+                  {{ t('serviceTokens.documentationLink') }}
+                </Hook0Button>
+                <Hook0Button
+                  variant="secondary"
+                  href="https://documentation.hook0.com/api"
+                  target="_blank"
+                >
+                  <template #left>
+                    <ExternalLink :size="14" aria-hidden="true" />
+                  </template>
+                  {{ t('serviceTokens.apiReferenceLink') }}
+                </Hook0Button>
+              </Hook0Stack>
+            </template>
+          </Hook0CardHeader>
+          <Hook0CardContent>
+            <Hook0CardContentLine type="split">
+              <template #label>Organization ID</template>
+              <template #content>
+                <code class="quick-ref__id">{{ organizationId }}</code>
+              </template>
+            </Hook0CardContentLine>
+          </Hook0CardContent>
         </Hook0Card>
 
         <!-- AI Integration Banner -->
@@ -423,5 +472,15 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.quick-ref__id {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  padding: 0.125rem 0.375rem;
+  background-color: var(--color-bg-tertiary);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  user-select: all;
 }
 </style>
