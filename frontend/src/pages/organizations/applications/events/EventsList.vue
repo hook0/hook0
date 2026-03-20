@@ -4,7 +4,8 @@ import { useRoute, useRouter } from 'vue-router';
 import { useRouteIds } from '@/composables/useRouteIds';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
-import { RefreshCw, ExternalLink, ArrowDownToLine } from 'lucide-vue-next';
+import { RefreshCw, ExternalLink, ArrowDownToLine, BookOpen } from 'lucide-vue-next';
+import { DOCS_EVENTS_URL } from '@/constants/externalLinks';
 
 import { useEventList, useEventDetail, useReplayEvent, useSendEvent } from './useEventQueries';
 import { useEventTypeList } from '../event_types/useEventTypeQueries';
@@ -363,6 +364,14 @@ const columns: ColumnDef<Event, unknown>[] = [
             <template #header>{{ t('events.title') }}</template>
             <template #subtitle>
               {{ t('events.subtitle') }}
+            </template>
+            <template #actions>
+              <Hook0Button variant="secondary" :href="DOCS_EVENTS_URL" target="_blank">
+                <template #left>
+                  <BookOpen :size="14" aria-hidden="true" />
+                </template>
+                {{ t('common.documentation') }}
+              </Hook0Button>
             </template>
           </Hook0CardHeader>
 

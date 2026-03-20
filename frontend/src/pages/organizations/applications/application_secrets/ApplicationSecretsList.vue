@@ -2,7 +2,8 @@
 import { h, markRaw, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
-import { KeyRound, Trash2 } from 'lucide-vue-next';
+import { KeyRound, Trash2, BookOpen } from 'lucide-vue-next';
+import { DOCS_API_KEYS_URL } from '@/constants/externalLinks';
 
 import { useSecretList, useCreateSecret, useRemoveSecret } from './useSecretQueries';
 import type { ApplicationSecret } from './ApplicationSecretService';
@@ -154,6 +155,14 @@ const columns: ColumnDef<ApplicationSecret, unknown>[] = [
             <template #header>{{ t('apiKeys.title') }}</template>
             <template #subtitle>
               {{ t('apiKeys.subtitle') }}
+            </template>
+            <template #actions>
+              <Hook0Button variant="secondary" :href="DOCS_API_KEYS_URL" target="_blank">
+                <template #left>
+                  <BookOpen :size="14" aria-hidden="true" />
+                </template>
+                {{ t('common.documentation') }}
+              </Hook0Button>
             </template>
           </Hook0CardHeader>
 

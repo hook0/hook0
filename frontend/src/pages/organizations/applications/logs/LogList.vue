@@ -4,6 +4,9 @@ import { useRoute } from 'vue-router';
 import { useRouteIds } from '@/composables/useRouteIds';
 import { useI18n } from 'vue-i18n';
 
+import { Send, BookOpen } from 'lucide-vue-next';
+import { DOCS_LOGS_URL } from '@/constants/externalLinks';
+
 import { useLogList } from './useLogQueries';
 import { useLogColumns } from './useLogColumns';
 import { routes } from '@/routes';
@@ -59,6 +62,14 @@ const columns = useLogColumns();
               t('logs.subtitleRetention', { days: retentionDays })
             }}</Hook0HelpText>
           </template>
+          <template #actions>
+            <Hook0Button variant="secondary" :href="DOCS_LOGS_URL" target="_blank">
+              <template #left>
+                <BookOpen :size="14" aria-hidden="true" />
+              </template>
+              {{ t('common.documentation') }}
+            </Hook0Button>
+          </template>
         </Hook0CardHeader>
 
         <Hook0CardContent v-if="requestAttempts.length > 0">
@@ -74,6 +85,7 @@ const columns = useLogColumns();
           <Hook0EmptyState
             :title="t('logs.empty.title')"
             :description="t('logs.empty.description')"
+            :icon="Send"
           >
             <template #action>
               <Hook0Button

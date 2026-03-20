@@ -4,7 +4,8 @@ import { useRoute, useRouter } from 'vue-router';
 import { useRouteIds } from '@/composables/useRouteIds';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
-import { Trash2 } from 'lucide-vue-next';
+import { Trash2, FolderTree, BookOpen } from 'lucide-vue-next';
+import { DOCS_EVENT_TYPES_URL } from '@/constants/externalLinks';
 
 import { useEventTypeList, useDeactivateEventType } from './useEventTypeQueries';
 import type { EventType } from './EventTypeService';
@@ -69,6 +70,7 @@ const columns: ColumnDef<EventType, unknown>[] = [
             h(Hook0TableCellLink, {
               value: t('common.delete'),
               icon: markRaw(Trash2),
+              variant: 'danger',
               dataTest: 'event-type-deactivate-button',
               onClick: () => handleDeactivate(info.row.original),
             }),
@@ -99,6 +101,14 @@ const columns: ColumnDef<EventType, unknown>[] = [
         <Hook0CardHeader>
           <template #header>{{ t('eventTypes.title') }}</template>
           <template #subtitle>{{ t('eventTypes.subtitle') }}</template>
+          <template #actions>
+            <Hook0Button variant="secondary" :href="DOCS_EVENT_TYPES_URL" target="_blank">
+              <template #left>
+                <BookOpen :size="14" aria-hidden="true" />
+              </template>
+              {{ t('common.documentation') }}
+            </Hook0Button>
+          </template>
         </Hook0CardHeader>
 
         <Hook0CardContent v-if="eventTypes.length > 0">
@@ -114,6 +124,7 @@ const columns: ColumnDef<EventType, unknown>[] = [
           <Hook0EmptyState
             :title="t('eventTypes.empty.title')"
             :description="t('eventTypes.empty.description')"
+            :icon="FolderTree"
           >
             <template v-if="canCreate('event_type')" #action>
               <Hook0Button
