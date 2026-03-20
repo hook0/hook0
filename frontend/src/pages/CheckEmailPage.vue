@@ -49,18 +49,18 @@ onMounted(() => {
         </Hook0Alert>
 
         <Hook0ButtonGroup direction="column" gap="sm" full-width>
-          <Hook0Button variant="primary" size="lg" href="mailto:support@hook0.com" full-width>
+          <Hook0Button variant="primary" size="lg" :to="{ name: routes.Login }" full-width>
             <template #left>
-              <LifeBuoy :size="20" aria-hidden="true" />
-            </template>
-            {{ t('auth.checkEmail.contactSupport') }}
-          </Hook0Button>
-
-          <Hook0Button variant="ghost" size="lg" :to="{ name: routes.Login }" full-width>
-            <template #left>
-              <ArrowLeft :size="16" aria-hidden="true" />
+              <ArrowLeft :size="20" aria-hidden="true" />
             </template>
             {{ t('auth.checkEmail.backToLogin') }}
+          </Hook0Button>
+
+          <Hook0Button variant="ghost" size="lg" href="mailto:support@hook0.com" full-width>
+            <template #left>
+              <LifeBuoy :size="16" aria-hidden="true" />
+            </template>
+            {{ t('auth.checkEmail.contactSupport') }}
           </Hook0Button>
         </Hook0ButtonGroup>
       </Hook0CardContent>

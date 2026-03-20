@@ -53,7 +53,7 @@ function displaySuccess() {
   trackPageWithDimensions('auth', 'view', 'email-verified');
   trackEvent('signup', 'email-verified');
   toast.success(t('auth.verifyEmail.verified'), {
-    description: t('auth.verifyEmail.verified'),
+    description: t('auth.verifyEmail.redirecting'),
     duration: 5000,
   });
 }
