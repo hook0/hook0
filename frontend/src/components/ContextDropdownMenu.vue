@@ -79,11 +79,7 @@ defineExpose({ dropdownRef });
       @keydown="handleMenuKeydown"
     >
       <template v-for="item in items" :key="getItemId(item)">
-        <router-link
-          v-if="itemTo"
-          :to="itemTo(item)"
-          custom
-        >
+        <router-link v-if="itemTo" :to="itemTo(item)" custom>
           <template #default="{ href }">
             <a
               :href="href"

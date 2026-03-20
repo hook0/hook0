@@ -309,11 +309,7 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
               {{ t('serviceTokens.aiSubtitle') }}
             </template>
             <template #actions>
-              <Hook0Button
-                variant="primary"
-                :href="MCP_GUIDE_URL"
-                target="_blank"
-              >
+              <Hook0Button variant="primary" :href="MCP_GUIDE_URL" target="_blank">
                 <template #left>
                   <BookOpen :size="16" aria-hidden="true" />
                 </template>

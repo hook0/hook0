@@ -102,5 +102,4 @@ function copyConfig() {
 .ai-config-section__footer {
   margin-top: 1rem;
 }
-
 </style>

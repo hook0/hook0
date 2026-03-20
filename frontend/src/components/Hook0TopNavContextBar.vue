@@ -184,11 +184,7 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
         class="hook0-topnav__context-control hook0-topnav__context-link"
         data-test="context-bar-org-name"
       >
-        <Hook0Avatar
-          :name="currentOrgName ?? '?'"
-          size="sm"
-          variant="square"
-        />
+        <Hook0Avatar :name="currentOrgName ?? '?'" size="sm" variant="square" />
         <span class="hook0-topnav__context-name">
           {{ currentOrgName ?? '...' }}
         </span>
@@ -219,12 +215,7 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
       data-test="context-bar-org-switcher"
       @click.stop="toggleDropdown('org')"
     >
-      <Hook0Avatar
-        name="?"
-        size="sm"
-        variant="square"
-        class="hook0-topnav__ghost-avatar"
-      />
+      <Hook0Avatar name="?" size="sm" variant="square" class="hook0-topnav__ghost-avatar" />
       <span class="hook0-topnav__context-ghost-label">
         {{ t('nav.selectOrganization') }}
       </span>

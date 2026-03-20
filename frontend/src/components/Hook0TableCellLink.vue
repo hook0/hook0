@@ -70,7 +70,12 @@ function handleClick(event: Event) {
     class="table-cell-action-btn"
   >
     <template v-if="props.icon" #left>
-      <component :is="props.icon" :size="14" aria-hidden="true" class="table-cell-action-btn__icon" />
+      <component
+        :is="props.icon"
+        :size="14"
+        aria-hidden="true"
+        class="table-cell-action-btn__icon"
+      />
     </template>
     <template #default>
       {{ props.value }}

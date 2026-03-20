@@ -5,10 +5,11 @@ import { oneDark } from '@codemirror/theme-one-dark';
 import { EditorView } from 'codemirror';
 import { computed, ref } from 'vue';
 import { Copy } from 'lucide-vue-next';
-import { toast } from 'vue-sonner';
 import { useI18n } from 'vue-i18n';
+import { useClipboardCopy } from '@/composables/useClipboardCopy';
 
 const { t } = useI18n();
+const clipboardCopy = useClipboardCopy();
 
 defineOptions({
   inheritAttrs: false,
@@ -33,18 +34,7 @@ function handleReady(payload: Record<string, unknown>) {
 }
 
 function copyToClipboard() {
-  navigator.clipboard.writeText(code.value).then(
-    () => {
-      toast.success(t('common.copied'), {
-        description: t('common.codeCopied'),
-      });
-    },
-    () => {
-      toast.error(t('common.error'), {
-        description: t('common.clipboardCodeCopyError'),
-      });
-    }
-  );
+  clipboardCopy(code.value, t('common.codeCopied'));
 }
 </script>
 

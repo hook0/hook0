@@ -213,7 +213,13 @@ function submitAdvanced() {
 
   validateAndSubmit(
     () =>
-      attenuateBiscuitWithDatalog(token, selectedApplicationId.value, expiry, customDatalogClaims.value, pubKey),
+      attenuateBiscuitWithDatalog(
+        token,
+        selectedApplicationId.value,
+        expiry,
+        customDatalogClaims.value,
+        pubKey
+      ),
     'advanced'
   );
 }

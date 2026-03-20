@@ -395,7 +395,9 @@ export function useCommandPalette(inputRef: Ref<HTMLInputElement | null>) {
 
   function scrollSelectedIntoView() {
     void nextTick(() => {
-      const listEl = inputRef.value?.closest('.hook0-command-palette')?.querySelector('[role="listbox"]');
+      const listEl = inputRef.value
+        ?.closest('.hook0-command-palette')
+        ?.querySelector('[role="listbox"]');
       const items = listEl?.querySelectorAll('[role="option"]');
       items?.[selectedIndex.value]?.scrollIntoView({ block: 'nearest' });
     });

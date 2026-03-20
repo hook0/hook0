@@ -45,21 +45,13 @@ const { t } = useI18n();
       </template>
       <template #actions>
         <Hook0Stack direction="row" gap="sm">
-          <Hook0Button
-            variant="secondary"
-            :href="props.docUrl"
-            target="_blank"
-          >
+          <Hook0Button variant="secondary" :href="props.docUrl" target="_blank">
             <template #left>
               <ExternalLink :size="14" aria-hidden="true" />
             </template>
             {{ docLabel }}
           </Hook0Button>
-          <Hook0Button
-            variant="secondary"
-            :href="props.apiUrl"
-            target="_blank"
-          >
+          <Hook0Button variant="secondary" :href="props.apiUrl" target="_blank">
             <template #left>
               <ExternalLink :size="14" aria-hidden="true" />
             </template>
