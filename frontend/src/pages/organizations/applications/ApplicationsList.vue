@@ -19,7 +19,7 @@ import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Table from '@/components/Hook0Table.vue';
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
-import Hook0Uuid from '@/components/Hook0Uuid.vue';
+import Hook0UUID from '@/components/Hook0UUID.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0EmptyState from '@/components/Hook0EmptyState.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
@@ -68,7 +68,7 @@ const columns: ColumnDef<Application, unknown>[] = [
   {
     accessorKey: 'application_id',
     header: t('applications.id'),
-    cell: (info) => h(Hook0Uuid, { value: String(info.getValue()) }),
+    cell: (info) => h(Hook0UUID, { value: String(info.getValue()) }),
   },
   ...(canDelete('application')
     ? [

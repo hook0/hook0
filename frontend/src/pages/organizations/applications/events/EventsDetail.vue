@@ -11,7 +11,7 @@ import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0Code from '@/components/Hook0Code.vue';
 import Hook0DateTime from '@/components/Hook0DateTime.vue';
-import Hook0Uuid from '@/components/Hook0Uuid.vue';
+import Hook0UUID from '@/components/Hook0UUID.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
@@ -51,7 +51,7 @@ const { data: event, isLoading, error, refetch } = useEventDetail(eventId, appli
               <Hook0Stack direction="column" gap="xs">
                 <Hook0Stack direction="row" align="baseline" gap="xs">
                   <span class="event-detail__label">{{ t('events.id') }}:</span>
-                  <Hook0Uuid :value="event.event_id" />
+                  <Hook0UUID :value="event.event_id" />
                 </Hook0Stack>
 
                 <Hook0Stack direction="row" align="baseline" gap="xs">

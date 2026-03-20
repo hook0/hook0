@@ -4,7 +4,10 @@ import { useRoute, useRouter } from 'vue-router';
 import { useRouteIds } from '@/composables/useRouteIds';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
-import { Trash2 } from 'lucide-vue-next';
+import { Trash2, Link } from 'lucide-vue-next';
+import Hook0TableCellEventTypes from '@/components/Hook0TableCellEventTypes.vue';
+import Hook0TableCellLabels from '@/components/Hook0TableCellLabels.vue';
+import Hook0TableCellTarget from '@/components/Hook0TableCellTarget.vue';
 
 import {
   useSubscriptionList,
@@ -145,19 +148,28 @@ const columns: ColumnDef<Subscription, unknown>[] = [
     enableSorting: true,
     cell: (info) => {
       const val = info.getValue() as string[] | undefined;
-      return val ? val.join(', ') : '';
+      if (!val || val.length === 0) return '';
+      return h(Hook0TableCellEventTypes, {
+        value: val,
+        to: {
+          name: routes.EventTypesList,
+          params: {
+            organization_id: route.params.organization_id,
+            application_id: route.params.application_id,
+          },
+        },
+      });
     },
   },
   {
     accessorKey: 'labels',
     header: t('subscriptions.labelsColumn'),
     enableSorting: true,
-    cell: (info) =>
-      h(Hook0TableCellCode, {
-        value: Object.entries((info.row.original.labels ?? {}) as Record<string, string>)
-          .map(([key, value]) => `${key}=${value}`)
-          .join(' '),
-      }),
+    cell: (info) => {
+      const labels = (info.row.original.labels ?? {}) as Record<string, string>;
+      if (Object.keys(labels).length === 0) return '';
+      return h(Hook0TableCellLabels, { value: labels });
+    },
   },
   {
     accessorKey: 'target',
@@ -165,10 +177,10 @@ const columns: ColumnDef<Subscription, unknown>[] = [
     enableSorting: true,
     cell: (info) => {
       const target = (info.row.original.target ?? {}) as object;
-      const text = targetIsHttp(target)
-        ? `${target.method} ${target.url}`
-        : JSON.stringify(info.row.original.target);
-      return h(Hook0TableCellCode, { value: text });
+      if (targetIsHttp(target)) {
+        return h(Hook0TableCellTarget, { method: target.method, url: target.url });
+      }
+      return h(Hook0TableCellCode, { value: JSON.stringify(info.row.original.target) });
     },
   },
   {
@@ -190,6 +202,7 @@ const columns: ColumnDef<Subscription, unknown>[] = [
             h(Hook0TableCellLink, {
               value: t('common.delete'),
               icon: markRaw(Trash2),
+              variant: 'danger',
               onClick: () => handleDelete(info.row.original),
             }),
         },
@@ -236,6 +249,7 @@ const columns: ColumnDef<Subscription, unknown>[] = [
           <Hook0EmptyState
             :title="t('subscriptions.empty.title')"
             :description="t('subscriptions.empty.description')"
+            :icon="Link"
           >
             <template v-if="canCreate('subscription')" #action>
               <Hook0Button
@@ -313,4 +327,3 @@ const columns: ColumnDef<Subscription, unknown>[] = [
   </Hook0PageLayout>
 </template>
 
-<style scoped></style>

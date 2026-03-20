@@ -21,8 +21,9 @@ import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Table from '@/components/Hook0Table.vue';
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 import Hook0TableCellCode from '@/components/Hook0TableCellCode.vue';
+import Hook0TableCellLabels from '@/components/Hook0TableCellLabels.vue';
 import Hook0TableCellDate from '@/components/Hook0TableCellDate.vue';
-import Hook0Uuid from '@/components/Hook0Uuid.vue';
+import Hook0UUID from '@/components/Hook0UUID.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0EmptyState from '@/components/Hook0EmptyState.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
@@ -194,7 +195,7 @@ const columns: ColumnDef<Event, unknown>[] = [
     accessorKey: 'event_id',
     header: t('events.id'),
     cell: (info) =>
-      h(Hook0Uuid, {
+      h(Hook0UUID, {
         value: String(info.getValue()),
         'data-test': 'event-id-link',
       }),
@@ -214,12 +215,11 @@ const columns: ColumnDef<Event, unknown>[] = [
     accessorKey: 'labels',
     header: t('events.labels'),
     enableSorting: true,
-    cell: (info) =>
-      h(Hook0TableCellCode, {
-        value: Object.entries((info.row.original.labels ?? {}) as Record<string, string>)
-          .map(([key, value]) => `${key}=${value}`)
-          .join(' '),
-      }),
+    cell: (info) => {
+      const labels = (info.row.original.labels ?? {}) as Record<string, string>;
+      if (Object.keys(labels).length === 0) return '';
+      return h(Hook0TableCellLabels, { value: labels });
+    },
   },
   {
     id: 'options',

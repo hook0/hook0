@@ -46,13 +46,36 @@ const model = defineModel<boolean>({ default: false });
 }
 
 .hook0-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
   width: 1rem;
   height: 1rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  accent-color: var(--color-primary);
+  background-color: var(--color-bg-primary);
   cursor: pointer;
   flex-shrink: 0;
+  position: relative;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.hook0-checkbox:checked {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.hook0-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  left: 0.3125rem;
+  top: 0.125rem;
+  width: 0.25rem;
+  height: 0.5rem;
+  border: solid #ffffff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
 }
 
 .hook0-checkbox:focus {

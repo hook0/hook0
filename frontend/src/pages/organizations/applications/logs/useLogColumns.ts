@@ -10,7 +10,7 @@ import { routes } from '@/routes';
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 import Hook0TableCellDate from '@/components/Hook0TableCellDate.vue';
 import Hook0Tooltip from '@/components/Hook0Tooltip.vue';
-import Hook0Uuid from '@/components/Hook0Uuid.vue';
+import Hook0UUID from '@/components/Hook0UUID.vue';
 
 const dateFmt = new Intl.DateTimeFormat(undefined, {
   month: 'short',
@@ -97,7 +97,7 @@ export function useLogColumns(): ColumnDef<RequestAttemptExtended, unknown>[] {
       cell: (info) => {
         const row = info.row.original;
         const eventType = row.event_type_name;
-        const uuid = h(Hook0Uuid, {
+        const uuid = h(Hook0UUID, {
           value: String(info.getValue()),
           'data-test': 'log-event-link',
         });
