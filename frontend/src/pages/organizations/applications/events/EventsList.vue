@@ -24,7 +24,7 @@ import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 import Hook0TableCellEventTypes from '@/components/Hook0TableCellEventTypes.vue';
 import Hook0TableCellLabels from '@/components/Hook0TableCellLabels.vue';
 import Hook0TableCellDate from '@/components/Hook0TableCellDate.vue';
-import Hook0UUID from '@/components/Hook0UUID.vue';
+import Hook0Uuid from '@/components/Hook0Uuid.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0EmptyState from '@/components/Hook0EmptyState.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
@@ -196,7 +196,7 @@ const columns: ColumnDef<Event, unknown>[] = [
     accessorKey: 'event_id',
     header: t('events.id'),
     cell: (info) =>
-      h(Hook0UUID, {
+      h(Hook0Uuid, {
         value: String(info.getValue()),
         'data-test': 'event-id-link',
       }),
