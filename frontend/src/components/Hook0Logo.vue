@@ -97,5 +97,6 @@ const isImageVariant = computed(() => props.variant === 'image' || props.variant
 .hook0-logo-image {
   width: auto;
   display: block;
+  border-radius: var(--radius-lg);
 }
 </style>
