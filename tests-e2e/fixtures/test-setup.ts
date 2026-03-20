@@ -124,8 +124,20 @@ async function loginAndCreateAppWithEventType(
 /**
  * Assert a toast notification is visible. Centralizes the vue-sonner selector.
  */
-async function expectToast(page: import("@playwright/test").Page, timeout = 10000) {
-  await expect(page.locator("[data-sonner-toast]").first()).toBeVisible({ timeout });
+async function expectToast(
+  page: import("@playwright/test").Page,
+  options: { type?: 'success' | 'error'; contains?: string; timeout?: number } | number = 10000
+) {
+  const opts = typeof options === 'number' ? { timeout: options } : options;
+  const { type, contains, timeout = 10000 } = opts;
+  const selector = type
+    ? `[data-sonner-toast][data-type="${type}"]`
+    : "[data-sonner-toast]";
+  const toast = page.locator(selector).first();
+  await expect(toast).toBeVisible({ timeout });
+  if (contains) {
+    await expect(toast).toContainText(contains);
+  }
 }
 
 export { loginAsNewUser, loginAndCreateApp, loginAndCreateAppWithEventType, expectToast, API_BASE_URL };

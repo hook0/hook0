@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Copy, Check, Eye, EyeOff } from 'lucide-vue-next';
-import { toast } from 'vue-sonner';
+import { useClipboardCopy } from '@/composables/useClipboardCopy';
 
 type Props = {
   value: string;
@@ -16,9 +16,23 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const { t } = useI18n();
+const clipboardCopy = useClipboardCopy();
 
 const revealed = ref(!props.maskable);
+
+watch(
+  () => props.maskable,
+  (isMaskable) => {
+    revealed.value = !isMaskable;
+  }
+);
+
 const justCopied = ref(false);
+let resetTimer: ReturnType<typeof setTimeout> | null = null;
+
+onBeforeUnmount(() => {
+  if (resetTimer) clearTimeout(resetTimer);
+});
 
 const displayValue = computed(() => {
   if (!props.maskable || revealed.value) return props.value;
@@ -30,29 +44,27 @@ function toggleReveal() {
 }
 
 function copyToClipboard() {
-  navigator.clipboard.writeText(props.value).then(
-    () => {
-      justCopied.value = true;
-      toast.success(t('common.copied'), {
-        description: props.copyMessage ?? t('common.idCopied'),
-        duration: 2000,
-      });
-      setTimeout(() => {
-        justCopied.value = false;
-      }, 1500);
-    },
-    () => {
-      toast.error(t('common.error'), {
-        description: t('common.clipboardCopyError'),
-      });
-    }
-  );
+  clipboardCopy(props.value, props.copyMessage ?? t('common.idCopied'));
+  justCopied.value = true;
+  if (resetTimer) clearTimeout(resetTimer);
+  resetTimer = setTimeout(() => {
+    justCopied.value = false;
+    resetTimer = null;
+  }, 1500);
 }
 </script>
 
 <template>
   <div class="copy-field">
-    <input class="copy-field__input" type="text" :value="displayValue" readonly tabindex="-1" />
+    <input
+      class="copy-field__input"
+      type="text"
+      :value="displayValue"
+      readonly
+      aria-readonly="true"
+      tabindex="-1"
+      :aria-label="maskable && !revealed ? t('common.maskedValue') : t('common.fieldValue')"
+    />
     <div class="copy-field__actions">
       <button
         v-if="maskable"

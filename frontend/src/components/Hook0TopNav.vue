@@ -18,6 +18,7 @@ import { Search, BookOpen, Code2 } from 'lucide-vue-next';
 import { routes } from '@/routes';
 import { useUiStore } from '@/stores/ui';
 import { useI18n } from 'vue-i18n';
+import { DOCS_URL, API_DOCS_URL } from '@/constants/externalLinks';
 import Hook0Logo from '@/components/Hook0Logo.vue';
 import Hook0ContextBar from '@/components/Hook0TopNavContextBar.vue';
 import Hook0UserMenu from '@/components/Hook0TopNavUserMenu.vue';
@@ -194,11 +195,11 @@ onUnmounted(removeAfterEach);
       <div class="hook0-topnav__right">
         <!-- Documentation -->
         <a
-          href="https://documentation.hook0.com/"
+          :href="DOCS_URL"
           target="_blank"
           rel="noopener noreferrer"
           class="hook0-topnav__icon-link"
-          :aria-label="t('nav.documentation')"
+          :aria-label="t('nav.documentation') + ' (' + t('common.opensInNewTab') + ')'"
           :title="t('nav.documentation')"
         >
           <BookOpen :size="16" aria-hidden="true" />
@@ -206,11 +207,11 @@ onUnmounted(removeAfterEach);
 
         <!-- API Reference -->
         <a
-          href="https://documentation.hook0.com/api"
+          :href="API_DOCS_URL"
           target="_blank"
           rel="noopener noreferrer"
           class="hook0-topnav__icon-link"
-          :aria-label="t('nav.apiReference')"
+          :aria-label="t('nav.apiReference') + ' (' + t('common.opensInNewTab') + ')'"
           :title="t('nav.apiReference')"
         >
           <Code2 :size="16" aria-hidden="true" />
@@ -405,7 +406,7 @@ onUnmounted(removeAfterEach);
   outline-offset: 2px;
 }
 
-@media (max-width: 419px) {
+@media (max-width: 639px) {
   .hook0-topnav__icon-link {
     display: none;
   }

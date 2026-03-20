@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { Component } from 'vue';
-import { computed } from 'vue';
 import type { RouteLocationRaw } from 'vue-router';
 
 import Hook0Button from '@/components/Hook0Button.vue';
@@ -8,6 +7,9 @@ import Hook0Button from '@/components/Hook0Button.vue';
 defineOptions({
   inheritAttrs: false,
 });
+
+// Mirrors Hook0Button variant type
+type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'link' | 'icon';
 
 type Props = {
   value: string;
@@ -17,11 +19,10 @@ type Props = {
   to?: RouteLocationRaw;
   disabled?: boolean;
   dataTest?: string;
+  variant?: ButtonVariant;
 };
 
 const props = defineProps<Props>();
-
-const isNavigation = computed(() => !!props.to || !!props.href);
 
 function handleClick(event: Event) {
   event.stopImmediatePropagation();
@@ -36,20 +37,20 @@ function handleClick(event: Event) {
 <template>
   <!-- Navigation link: plain text link, underline on hover -->
   <RouterLink
-    v-if="isNavigation && props.to"
+    v-if="props.to"
     :to="props.to"
     class="table-cell-nav-link"
-    :class="$attrs.class"
+    :class="[props.variant === 'danger' && 'table-cell-nav-link--danger', $attrs.class]"
     :data-test="props.dataTest"
     @click.stop
   >
     {{ props.value }}
   </RouterLink>
   <a
-    v-else-if="isNavigation && props.href"
+    v-else-if="props.href"
     :href="props.href"
     class="table-cell-nav-link"
-    :class="$attrs.class"
+    :class="[props.variant === 'danger' && 'table-cell-nav-link--danger', $attrs.class]"
     :data-test="props.dataTest"
     @click.stop
   >
@@ -64,11 +65,12 @@ function handleClick(event: Event) {
       class: $attrs.class,
       disabled: props.disabled,
     }"
+    :variant="props.variant ?? 'secondary'"
     :data-test="props.dataTest"
-    style="width: fit-content"
+    class="table-cell-action-btn"
   >
     <template v-if="props.icon" #left>
-      <component :is="props.icon" :size="14" aria-hidden="true" class="mr-1" />
+      <component :is="props.icon" :size="14" aria-hidden="true" class="table-cell-action-btn__icon" />
     </template>
     <template #default>
       {{ props.value }}
@@ -90,9 +92,25 @@ function handleClick(event: Event) {
   text-underline-offset: 2px;
 }
 
+.table-cell-nav-link--danger {
+  color: var(--color-error);
+}
+
+.table-cell-nav-link--danger:hover {
+  color: var(--color-error);
+}
+
 .table-cell-nav-link:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
+}
+
+.table-cell-action-btn {
+  width: fit-content;
+}
+
+.table-cell-action-btn__icon {
+  margin-right: 0.25rem;
 }
 </style>

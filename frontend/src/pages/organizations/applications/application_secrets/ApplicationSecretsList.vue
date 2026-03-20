@@ -2,7 +2,7 @@
 import { h, markRaw, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
-import { BookOpen, ExternalLink, KeyRound, Trash2 } from 'lucide-vue-next';
+import { KeyRound, Trash2 } from 'lucide-vue-next';
 
 import { useSecretList, useCreateSecret, useRemoveSecret } from './useSecretQueries';
 import type { ApplicationSecret } from './ApplicationSecretService';
@@ -17,7 +17,6 @@ import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
-import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Table from '@/components/Hook0Table.vue';
 import Hook0TableCellDate from '@/components/Hook0TableCellDate.vue';
@@ -30,6 +29,7 @@ import Hook0Dialog from '@/components/Hook0Dialog.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
 import Hook0CopyField from '@/components/Hook0CopyField.vue';
+import QuickReferenceCard from '@/components/QuickReferenceCard.vue';
 
 const { t } = useI18n();
 const { trackEvent } = useTracking();
@@ -110,7 +110,7 @@ const columns: ColumnDef<ApplicationSecret, unknown>[] = [
     accessorKey: 'created_at',
     header: t('common.createdAt'),
     enableSorting: true,
-    cell: (info) => h(Hook0TableCellDate, { value: info.getValue() as string | null }),
+    cell: (info) => h(Hook0TableCellDate, { value: info.getValue<string | null>() }),
   },
   ...(canDelete('application_secret')
     ? [
@@ -198,57 +198,14 @@ const columns: ColumnDef<ApplicationSecret, unknown>[] = [
         </Hook0Card>
 
         <!-- Quick Reference -->
-        <Hook0Card>
-          <Hook0CardHeader>
-            <template #header>
-              <Hook0Stack direction="row" align="center" gap="sm">
-                <BookOpen :size="18" aria-hidden="true" />
-                {{ t('apiKeys.quickReference') }}
-              </Hook0Stack>
-            </template>
-            <template #subtitle>
-              {{ t('apiKeys.quickReferenceDescription') }}
-            </template>
-            <template #actions>
-              <Hook0Stack direction="row" gap="sm">
-                <Hook0Button
-                  variant="secondary"
-                  href="https://documentation.hook0.com/"
-                  target="_blank"
-                >
-                  <template #left>
-                    <ExternalLink :size="14" aria-hidden="true" />
-                  </template>
-                  {{ t('apiKeys.documentationLink') }}
-                </Hook0Button>
-                <Hook0Button
-                  variant="secondary"
-                  href="https://documentation.hook0.com/api"
-                  target="_blank"
-                >
-                  <template #left>
-                    <ExternalLink :size="14" aria-hidden="true" />
-                  </template>
-                  {{ t('apiKeys.apiReferenceLink') }}
-                </Hook0Button>
-              </Hook0Stack>
-            </template>
-          </Hook0CardHeader>
-          <Hook0CardContent>
-            <Hook0CardContentLine type="split">
-              <template #label>Organization ID</template>
-              <template #content>
-                <Hook0CopyField :value="organizationId" maskable />
-              </template>
-            </Hook0CardContentLine>
-            <Hook0CardContentLine type="split">
-              <template #label>Application ID</template>
-              <template #content>
-                <Hook0CopyField :value="applicationId" maskable />
-              </template>
-            </Hook0CardContentLine>
-          </Hook0CardContent>
-        </Hook0Card>
+        <QuickReferenceCard
+          :title="t('apiKeys.quickReference')"
+          :subtitle="t('apiKeys.quickReferenceDescription')"
+          :doc-label="t('apiKeys.documentationLink')"
+          :api-label="t('apiKeys.apiReferenceLink')"
+          :organization-id="organizationId"
+          :application-id="applicationId"
+        />
       </Hook0Stack>
     </template>
 
@@ -290,5 +247,3 @@ const columns: ColumnDef<ApplicationSecret, unknown>[] = [
     </Hook0Dialog>
   </Hook0PageLayout>
 </template>
-
-<style scoped></style>

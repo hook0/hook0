@@ -1,6 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verification";
-import { expectToast } from "../fixtures/test-setup";
+import { loginAndCreateAppWithEventType, expectToast } from "../fixtures/test-setup";
 
 /**
  * Events E2E tests for Hook0.
@@ -9,115 +8,11 @@ import { expectToast } from "../fixtures/test-setup";
  * Following the Three-Step Verification Pattern.
  */
 test.describe("Events", () => {
-  /**
-   * Helper to setup test environment: user, organization, application, and event type
-   */
-  async function setupTestEnvironment(
-    page: import("@playwright/test").Page,
-    request: import("@playwright/test").APIRequestContext,
-    testId: string
-  ) {
-    const timestamp = Date.now();
-    const email = `test-events-${testId}-${timestamp}@hook0.local`;
-    const password = `TestPassword123!${timestamp}`;
-
-    // Register via API
-    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
-      data: {
-        email,
-        first_name: "Test",
-        last_name: "User",
-        password,
-      },
-    });
-    expect(registerResponse.status()).toBeLessThan(400);
-
-    // Verify email and get organization ID
-    const verificationResult = await verifyEmailViaMailpit(request, email);
-    const organizationId = verificationResult.organizationId;
-    expect(organizationId).toBeTruthy();
-
-    // Login via UI
-    await page.goto("/login");
-    await expect(page.locator('[data-test="login-form"]')).toBeVisible({
-      timeout: 10000,
-    });
-    await page.locator('[data-test="login-email-input"]').fill(email);
-    await page.locator('[data-test="login-password-input"]').fill(password);
-    await page.locator('[data-test="login-submit-button"]').click();
-
-    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
-      timeout: 15000,
-    });
-
-    // Create an application
-    await page.goto(`/organizations/${organizationId}/applications`);
-    await expect(page.locator('[data-test="applications-create-button"]')).toBeVisible({
-      timeout: 10000,
-    });
-    await page.locator('[data-test="applications-create-button"]').click();
-
-    await expect(page.locator('[data-test="application-form"]')).toBeVisible({
-      timeout: 10000,
-    });
-    await page.locator('[data-test="application-name-input"]').fill(`Test App ${timestamp}`);
-
-    const createAppResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/v1/applications") && response.request().method() === "POST",
-      { timeout: 15000 }
-    );
-    await page.locator('[data-test="application-submit-button"]').click();
-    const appResponse = await createAppResponse;
-    expect(appResponse.status()).toBeLessThan(400);
-
-    // Wait for redirect to complete - URL should contain a UUID application ID, not "new"
-    // UUID pattern: 8-4-4-4-12 hex characters
-    const uuidPattern = /\/applications\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
-    await expect(page).toHaveURL(uuidPattern, { timeout: 15000 });
-    const url = page.url();
-    const match = url.match(uuidPattern);
-    expect(match, "Failed to extract application ID (UUID) from URL").toBeTruthy();
-    const applicationId = match![1];
-
-    // Create an event type
-    await page.goto(
-      `/organizations/${organizationId}/applications/${applicationId}/event_types/new`
-    );
-    await expect(page.locator('[data-test="event-type-form"]')).toBeVisible({
-      timeout: 10000,
-    });
-    await page.locator('[data-test="event-type-service-input"]').fill("test");
-    await page.locator('[data-test="event-type-resource-input"]').fill("entity");
-    await page.locator('[data-test="event-type-verb-input"]').fill("created");
-
-    const createEventTypeResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/v1/event_types") && response.request().method() === "POST",
-      { timeout: 15000 }
-    );
-    await page.locator('[data-test="event-type-submit-button"]').click();
-    const eventTypeResponse = await createEventTypeResponse;
-    expect(eventTypeResponse.status()).toBeLessThan(400);
-
-    // Wait for navigation after event type creation
-    await expect(page).toHaveURL(/\/event_types$/, { timeout: 10000 });
+  test("should display events list page with send event button", async ({ page, request }) => {
+    const env = await loginAndCreateAppWithEventType(page, request, "list-display");
 
     // Verify event type appears in the list (confirms data is persisted)
     await expect(page.locator('[data-test="event-types-table"]')).toBeVisible({ timeout: 10000 });
-
-    return {
-      email,
-      password,
-      organizationId: organizationId!,
-      applicationId,
-      timestamp,
-      eventTypeName: "test.entity.created",
-    };
-  }
-
-  test("should display events list page with send event button", async ({ page, request }) => {
-    const env = await setupTestEnvironment(page, request, "list-display");
 
     // Navigate to events page
     await page.goto(
@@ -132,7 +27,7 @@ test.describe("Events", () => {
   });
 
   test("should display send event form when clicking send button", async ({ page, request }) => {
-    const env = await setupTestEnvironment(page, request, "form-display");
+    const env = await loginAndCreateAppWithEventType(page, request, "form-display");
 
     // Navigate to events page
     await page.goto(
@@ -197,7 +92,7 @@ test.describe("Events", () => {
   }
 
   test("should send test event and verify API response", async ({ page, request }) => {
-    const env = await setupTestEnvironment(page, request, "send");
+    const env = await loginAndCreateAppWithEventType(page, request, "send");
 
     const response = await sendTestEvent(page, env);
 
@@ -212,7 +107,7 @@ test.describe("Events", () => {
   });
 
   test("should display events list with sent event", async ({ page, request }) => {
-    const env = await setupTestEnvironment(page, request, "list-with-event");
+    const env = await loginAndCreateAppWithEventType(page, request, "list-with-event");
 
     const response = await sendTestEvent(page, env);
     expect(response.status()).toBeLessThan(400);
@@ -233,7 +128,7 @@ test.describe("Events", () => {
   });
 
   test("should cancel send event form when clicking cancel", async ({ page, request }) => {
-    const env = await setupTestEnvironment(page, request, "cancel");
+    const env = await loginAndCreateAppWithEventType(page, request, "cancel");
 
     // Navigate to events page
     await page.goto(
@@ -257,7 +152,7 @@ test.describe("Events", () => {
   });
 
   test("should add and remove labels when sending event", async ({ page, request }) => {
-    const env = await setupTestEnvironment(page, request, "kv-labels");
+    const env = await loginAndCreateAppWithEventType(page, request, "kv-labels");
 
     // Navigate to events page
     await page.goto(
@@ -301,7 +196,7 @@ test.describe("Events", () => {
   });
 
   test("should open side panel when clicking event row", async ({ page, request }) => {
-    const env = await setupTestEnvironment(page, request, "side-panel");
+    const env = await loginAndCreateAppWithEventType(page, request, "side-panel");
 
     const response = await sendTestEvent(page, env);
     expect(response.status()).toBeLessThan(400);
@@ -327,7 +222,7 @@ test.describe("Events", () => {
   });
 
   test("should navigate to event detail page", async ({ page, request }) => {
-    const env = await setupTestEnvironment(page, request, "detail");
+    const env = await loginAndCreateAppWithEventType(page, request, "detail");
 
     const response = await sendTestEvent(page, env);
     expect(response.status()).toBeLessThan(400);
@@ -349,7 +244,7 @@ test.describe("Events", () => {
   });
 
   test("should display event detail page with payload and metadata", async ({ page, request }) => {
-    const env = await setupTestEnvironment(page, request, "detail-full");
+    const env = await loginAndCreateAppWithEventType(page, request, "detail-full");
 
     const response = await sendTestEvent(page, env);
     expect(response.status()).toBeLessThan(400);

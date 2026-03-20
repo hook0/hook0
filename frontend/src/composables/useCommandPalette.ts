@@ -24,6 +24,7 @@ import {
   Code2,
 } from 'lucide-vue-next';
 import { routes } from '@/routes';
+import { DOCS_URL, API_DOCS_URL } from '@/constants/externalLinks';
 import { useAuthStore } from '@/stores/auth';
 import { useContextStore } from '@/stores/context';
 import { useUiStore } from '@/stores/ui';
@@ -162,26 +163,23 @@ export function useCommandPalette(inputRef: Ref<HTMLInputElement | null>) {
       }));
   }
 
-  function buildNavigationCommands(): CommandItem[] {
-    const orgId = contextStore.organizationId;
-    const appId = contextStore.applicationId;
-    const items: CommandItem[] = [];
-
-    items.push(
+  function buildGlobalNavCommands(): CommandItem[] {
+    const category = t('commandPalette.navigation');
+    return [
       {
         id: 'nav-home',
         label: t('commandPalette.goToHome'),
         icon: Home,
-        category: t('commandPalette.navigation'),
+        category,
         action: () => navigate({ name: routes.Home }),
       },
       {
         id: 'nav-documentation',
         label: t('commandPalette.goToDocumentation'),
         icon: BookOpen,
-        category: t('commandPalette.navigation'),
+        category,
         action: () => {
-          window.open('https://documentation.hook0.com/', '_blank', 'noopener,noreferrer');
+          window.open(DOCS_URL, '_blank', 'noopener,noreferrer');
           close();
         },
       },
@@ -189,90 +187,100 @@ export function useCommandPalette(inputRef: Ref<HTMLInputElement | null>) {
         id: 'nav-api-reference',
         label: t('commandPalette.goToApiReference'),
         icon: Code2,
-        category: t('commandPalette.navigation'),
+        category,
         action: () => {
-          window.open('https://documentation.hook0.com/api', '_blank', 'noopener,noreferrer');
+          window.open(API_DOCS_URL, '_blank', 'noopener,noreferrer');
           close();
         },
-      }
-    );
+      },
+    ];
+  }
 
-    if (orgId) {
-      const orgParams = { organization_id: orgId };
-      items.push(
-        {
-          id: 'nav-apps',
-          label: t('commandPalette.goToApplications'),
-          icon: FolderTree,
-          category: t('commandPalette.navigation'),
-          action: () => navigate({ name: routes.ApplicationsList, params: orgParams }),
-        },
-        {
-          id: 'nav-service-tokens',
-          label: t('commandPalette.goToServiceTokens'),
-          icon: KeyRound,
-          category: t('commandPalette.navigation'),
-          action: () => navigate({ name: routes.ServicesTokenList, params: orgParams }),
-        },
-        {
-          id: 'nav-org-settings',
-          label: t('commandPalette.goToOrgSettings'),
-          icon: Settings,
-          category: t('commandPalette.navigation'),
-          action: () => navigate({ name: routes.OrganizationsDetail, params: orgParams }),
-        }
-      );
-    }
+  function buildOrgNavCommands(orgId: string): CommandItem[] {
+    const category = t('commandPalette.navigation');
+    const orgParams = { organization_id: orgId };
+    return [
+      {
+        id: 'nav-apps',
+        label: t('commandPalette.goToApplications'),
+        icon: FolderTree,
+        category,
+        action: () => navigate({ name: routes.ApplicationsList, params: orgParams }),
+      },
+      {
+        id: 'nav-service-tokens',
+        label: t('commandPalette.goToServiceTokens'),
+        icon: KeyRound,
+        category,
+        action: () => navigate({ name: routes.ServicesTokenList, params: orgParams }),
+      },
+      {
+        id: 'nav-org-settings',
+        label: t('commandPalette.goToOrgSettings'),
+        icon: Settings,
+        category,
+        action: () => navigate({ name: routes.OrganizationsDetail, params: orgParams }),
+      },
+    ];
+  }
 
-    if (orgId && appId) {
-      const params = { organization_id: orgId, application_id: appId };
-      items.push(
-        {
-          id: 'nav-event-types',
-          label: t('commandPalette.goToEventTypes'),
-          icon: FolderTree,
-          category: t('commandPalette.navigation'),
-          action: () => navigate({ name: routes.EventTypesList, params }),
-        },
-        {
-          id: 'nav-events',
-          label: t('commandPalette.goToEvents'),
-          icon: FileText,
-          category: t('commandPalette.navigation'),
-          action: () => navigate({ name: routes.EventsList, params }),
-        },
-        {
-          id: 'nav-subscriptions',
-          label: t('commandPalette.goToSubscriptions'),
-          icon: Link,
-          category: t('commandPalette.navigation'),
-          action: () => navigate({ name: routes.SubscriptionsList, params }),
-        },
-        {
-          id: 'nav-logs',
-          label: t('commandPalette.goToLogs'),
-          icon: FileCheck,
-          category: t('commandPalette.navigation'),
-          action: () => navigate({ name: routes.LogsList, params }),
-        },
-        {
-          id: 'nav-api-keys',
-          label: t('commandPalette.goToApiKeys'),
-          icon: Key,
-          category: t('commandPalette.navigation'),
-          action: () => navigate({ name: routes.ApplicationSecretsList, params }),
-        },
-        {
-          id: 'nav-app-settings',
-          label: t('commandPalette.goToAppSettings'),
-          icon: Settings,
-          category: t('commandPalette.navigation'),
-          action: () => navigate({ name: routes.ApplicationsDashboard, params }),
-        }
-      );
-    }
+  function buildAppNavCommands(orgId: string, appId: string): CommandItem[] {
+    const category = t('commandPalette.navigation');
+    const params = { organization_id: orgId, application_id: appId };
+    return [
+      {
+        id: 'nav-event-types',
+        label: t('commandPalette.goToEventTypes'),
+        icon: FolderTree,
+        category,
+        action: () => navigate({ name: routes.EventTypesList, params }),
+      },
+      {
+        id: 'nav-events',
+        label: t('commandPalette.goToEvents'),
+        icon: FileText,
+        category,
+        action: () => navigate({ name: routes.EventsList, params }),
+      },
+      {
+        id: 'nav-subscriptions',
+        label: t('commandPalette.goToSubscriptions'),
+        icon: Link,
+        category,
+        action: () => navigate({ name: routes.SubscriptionsList, params }),
+      },
+      {
+        id: 'nav-logs',
+        label: t('commandPalette.goToLogs'),
+        icon: FileCheck,
+        category,
+        action: () => navigate({ name: routes.LogsList, params }),
+      },
+      {
+        id: 'nav-api-keys',
+        label: t('commandPalette.goToApiKeys'),
+        icon: Key,
+        category,
+        action: () => navigate({ name: routes.ApplicationSecretsList, params }),
+      },
+      {
+        id: 'nav-app-settings',
+        label: t('commandPalette.goToAppSettings'),
+        icon: Settings,
+        category,
+        action: () => navigate({ name: routes.ApplicationsDashboard, params }),
+      },
+    ];
+  }
 
-    return items;
+  function buildNavigationCommands(): CommandItem[] {
+    const orgId = contextStore.organizationId;
+    const appId = contextStore.applicationId;
+    return [
+      ...buildGlobalNavCommands(),
+      ...(orgId ? buildOrgNavCommands(orgId) : []),
+      ...(orgId && appId ? buildAppNavCommands(orgId, appId) : []),
+    ];
   }
 
   function buildQuickActionCommands(): CommandItem[] {
@@ -387,8 +395,9 @@ export function useCommandPalette(inputRef: Ref<HTMLInputElement | null>) {
 
   function scrollSelectedIntoView() {
     void nextTick(() => {
-      const selected = document.querySelector('.hook0-command-palette-item.selected');
-      selected?.scrollIntoView({ block: 'nearest' });
+      const listEl = inputRef.value?.closest('.hook0-command-palette')?.querySelector('[role="listbox"]');
+      const items = listEl?.querySelectorAll('[role="option"]');
+      items?.[selectedIndex.value]?.scrollIntoView({ block: 'nearest' });
     });
   }
 

@@ -2,7 +2,7 @@
 import { h, markRaw, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
-import { Plus, Bot, BookOpen, Check, ExternalLink, Key, Pencil, Trash2 } from 'lucide-vue-next';
+import { Plus, Bot, Check, Key, Pencil, Trash2 } from 'lucide-vue-next';
 
 import {
   useServiceTokenList,
@@ -12,6 +12,7 @@ import {
 } from './useServiceTokenQueries';
 import type { ServiceToken } from './ServicesTokenService';
 import { routes } from '@/routes';
+import { DOCS_URL, API_DOCS_URL, MCP_GUIDE_URL } from '@/constants/externalLinks';
 import { handleMutationError } from '@/utils/handleMutationError';
 import { toast } from 'vue-sonner';
 import { useTracking } from '@/composables/useTracking';
@@ -23,7 +24,6 @@ import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
-import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Table from '@/components/Hook0Table.vue';
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
@@ -39,6 +39,7 @@ import Hook0Alert from '@/components/Hook0Alert.vue';
 import Hook0Dialog from '@/components/Hook0Dialog.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0CopyField from '@/components/Hook0CopyField.vue';
+import QuickReferenceCard from '@/components/QuickReferenceCard.vue';
 
 const { t } = useI18n();
 const { trackEvent } = useTracking();
@@ -169,7 +170,7 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
     accessorKey: 'created_at',
     header: t('common.createdAt'),
     enableSorting: true,
-    cell: (info) => h(Hook0TableCellDate, { value: info.getValue() as string | null }),
+    cell: (info) => h(Hook0TableCellDate, { value: info.getValue<string | null>() }),
   },
   {
     id: 'actions',
@@ -278,51 +279,15 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
         </Hook0Card>
 
         <!-- Quick Reference -->
-        <Hook0Card>
-          <Hook0CardHeader>
-            <template #header>
-              <Hook0Stack direction="row" align="center" gap="sm">
-                <BookOpen :size="18" aria-hidden="true" />
-                {{ t('serviceTokens.quickReference') }}
-              </Hook0Stack>
-            </template>
-            <template #subtitle>
-              {{ t('serviceTokens.quickReferenceDescription') }}
-            </template>
-            <template #actions>
-              <Hook0Stack direction="row" gap="sm">
-                <Hook0Button
-                  variant="secondary"
-                  href="https://documentation.hook0.com/"
-                  target="_blank"
-                >
-                  <template #left>
-                    <ExternalLink :size="14" aria-hidden="true" />
-                  </template>
-                  {{ t('serviceTokens.documentationLink') }}
-                </Hook0Button>
-                <Hook0Button
-                  variant="secondary"
-                  href="https://documentation.hook0.com/api"
-                  target="_blank"
-                >
-                  <template #left>
-                    <ExternalLink :size="14" aria-hidden="true" />
-                  </template>
-                  {{ t('serviceTokens.apiReferenceLink') }}
-                </Hook0Button>
-              </Hook0Stack>
-            </template>
-          </Hook0CardHeader>
-          <Hook0CardContent>
-            <Hook0CardContentLine type="split">
-              <template #label>Organization ID</template>
-              <template #content>
-                <Hook0CopyField :value="organizationId" maskable />
-              </template>
-            </Hook0CardContentLine>
-          </Hook0CardContent>
-        </Hook0Card>
+        <QuickReferenceCard
+          :title="t('serviceTokens.quickReference')"
+          :subtitle="t('serviceTokens.quickReferenceDescription')"
+          :doc-label="t('serviceTokens.documentationLink')"
+          :api-label="t('serviceTokens.apiReferenceLink')"
+          :doc-url="DOCS_URL"
+          :api-url="API_DOCS_URL"
+          :organization-id="organizationId"
+        />
 
         <!-- AI Integration Banner -->
         <Hook0Card>
@@ -346,7 +311,7 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
             <template #actions>
               <Hook0Button
                 variant="primary"
-                href="https://documentation.hook0.com/reference/mcp"
+                :href="MCP_GUIDE_URL"
                 target="_blank"
               >
                 <template #left>

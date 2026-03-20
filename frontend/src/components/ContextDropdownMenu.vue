@@ -1,28 +1,9 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends { name: string; [key: string]: unknown }">
 /**
  * ContextDropdownMenu - Reusable dropdown menu for context switching (org/app).
  *
  * Generic dropdown that displays a list of items with active state,
  * settings button for the active item, and a "create new" action.
- *
- * @example
- * <ContextDropdownMenu
- *   :items="sortedOrgs"
- *   :current-id="currentOrgId"
- *   id-key="organization_id"
- *   :open="orgDropdownOpen"
- *   :create-label="t('nav.createOrganization')"
- *   @select="handleOrgItemClick"
- *   @create="goToCreateOrg()"
- *   @settings="goToOrgSettings"
- * >
- *   <template #icon="{ item }">
- *     <Hook0Avatar :name="item.name" size="sm" variant="square" />
- *   </template>
- *   <template #badge="{ item }">
- *     <Hook0Badge v-if="item.plan" variant="primary" size="sm">{{ item.plan.label }}</Hook0Badge>
- *   </template>
- * </ContextDropdownMenu>
  */
 import { ref } from 'vue';
 import type { RouteLocationRaw } from 'vue-router';
@@ -33,17 +14,15 @@ import { useMenuKeyboard } from '@/composables/useMenuKeyboard';
 
 const { t } = useI18n();
 
-type Item = { [key: string]: unknown };
-
 const props = withDefaults(
   defineProps<{
-    items: Array<Item>;
+    items: Array<T>;
     currentId: string | null;
     idKey: string;
     open: boolean;
     createLabel: string;
     /** Optional function returning a route for each item — enables cmd+click to open in new tab. */
-    itemTo?: (item: Item) => RouteLocationRaw;
+    itemTo?: (item: T) => RouteLocationRaw;
   }>(),
   {
     itemTo: undefined,
@@ -64,28 +43,25 @@ function close(): void {
 
 const { handleMenuKeydown } = useMenuKeyboard(dropdownRef, close);
 
-function getItemId(item: { [key: string]: unknown }): string {
-  return item[props.idKey] as string;
+function getItemId(item: T): string {
+  return String(item[props.idKey]);
 }
 
-function getItemName(item: { [key: string]: unknown }): string {
-  return (item.name as string) ?? '';
+function getItemName(item: T): string {
+  return item.name;
 }
 
-function isActive(item: { [key: string]: unknown }): boolean {
+function isActive(item: T): boolean {
   return getItemId(item) === props.currentId;
 }
 
-/**
- * Handle item click — emit select for normal clicks, let browser handle cmd/ctrl+click.
- */
-function onItemClick(event: MouseEvent, item: Item): void {
-  if (event.metaKey || event.ctrlKey) return; // let router-link open in new tab
+function onItemClick(event: MouseEvent, item: T): void {
+  if (event.metaKey || event.ctrlKey) return;
   event.preventDefault();
   emit('select', getItemId(item));
 }
 
-function onSettingsClick(item: Item): void {
+function onSettingsClick(item: T): void {
   emit('settings', getItemId(item));
 }
 
@@ -102,44 +78,70 @@ defineExpose({ dropdownRef });
       aria-orientation="vertical"
       @keydown="handleMenuKeydown"
     >
-      <router-link
-        v-for="item in items"
-        :key="getItemId(item)"
-        :to="itemTo?.(item) ?? '/'"
-        custom
-      >
-        <template #default="{ href }">
-          <a
-            :href="itemTo ? href : undefined"
-            class="hook0-topnav__dropdown-item"
-            :class="{
-              'hook0-topnav__dropdown-item--active': isActive(item),
-            }"
-            role="menuitem"
-            @click="onItemClick($event, item)"
-          >
-            <slot name="icon" :item="item" />
-            <div class="hook0-topnav__dropdown-item-content">
-              <span class="hook0-topnav__dropdown-item-name">
-                <span class="hook0-topnav__dropdown-item-name-text">{{ getItemName(item) }}</span>
-                <slot name="badge" :item="item" />
-              </span>
-              <span v-if="isActive(item)" class="hook0-topnav__dropdown-item-meta">
-                {{ t('common.current') }}
-              </span>
-            </div>
-            <Hook0Button
-              v-if="isActive(item)"
-              variant="secondary"
-              size="xs"
-              :aria-label="`${t('nav.settings')} ${getItemName(item)}`"
-              @click.stop="onSettingsClick(item)"
+      <template v-for="item in items" :key="getItemId(item)">
+        <router-link
+          v-if="itemTo"
+          :to="itemTo(item)"
+          custom
+        >
+          <template #default="{ href }">
+            <a
+              :href="href"
+              class="hook0-topnav__dropdown-item"
+              :class="{ 'hook0-topnav__dropdown-item--active': isActive(item) }"
+              role="menuitem"
+              @click="onItemClick($event, item)"
             >
-              {{ t('nav.settings') }}
-            </Hook0Button>
-          </a>
-        </template>
-      </router-link>
+              <slot name="icon" :item="item" />
+              <div class="hook0-topnav__dropdown-item-content">
+                <span class="hook0-topnav__dropdown-item-name">
+                  <span class="hook0-topnav__dropdown-item-name-text">{{ getItemName(item) }}</span>
+                  <slot name="badge" :item="item" />
+                </span>
+                <span v-if="isActive(item)" class="hook0-topnav__dropdown-item-meta">
+                  {{ t('common.current') }}
+                </span>
+              </div>
+              <Hook0Button
+                v-if="isActive(item)"
+                variant="secondary"
+                size="xs"
+                :aria-label="`${t('nav.settings')} ${getItemName(item)}`"
+                @click.stop="onSettingsClick(item)"
+              >
+                {{ t('nav.settings') }}
+              </Hook0Button>
+            </a>
+          </template>
+        </router-link>
+        <button
+          v-else
+          class="hook0-topnav__dropdown-item"
+          :class="{ 'hook0-topnav__dropdown-item--active': isActive(item) }"
+          role="menuitem"
+          @click="onItemClick($event, item)"
+        >
+          <slot name="icon" :item="item" />
+          <div class="hook0-topnav__dropdown-item-content">
+            <span class="hook0-topnav__dropdown-item-name">
+              <span class="hook0-topnav__dropdown-item-name-text">{{ getItemName(item) }}</span>
+              <slot name="badge" :item="item" />
+            </span>
+            <span v-if="isActive(item)" class="hook0-topnav__dropdown-item-meta">
+              {{ t('common.current') }}
+            </span>
+          </div>
+          <Hook0Button
+            v-if="isActive(item)"
+            variant="secondary"
+            size="xs"
+            :aria-label="`${t('nav.settings')} ${getItemName(item)}`"
+            @click.stop="onSettingsClick(item)"
+          >
+            {{ t('nav.settings') }}
+          </Hook0Button>
+        </button>
+      </template>
 
       <div class="hook0-topnav__dropdown-separator" />
 
@@ -164,6 +166,16 @@ defineExpose({ dropdownRef });
 a.hook0-topnav__dropdown-item {
   text-decoration: none;
   color: inherit;
+}
+
+button.hook0-topnav__dropdown-item {
+  appearance: none;
+  background: none;
+  border: none;
+  width: 100%;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
 }
 
 /* ContextDropdownMenu-specific overrides */

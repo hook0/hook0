@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verification";
+import { loginAndCreateApp } from "../fixtures/test-setup";
 
 /**
  * Logs (Request Attempts) E2E tests for Hook0.
@@ -8,88 +8,8 @@ import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verificat
  * Following the Three-Step Verification Pattern.
  */
 test.describe("Logs", () => {
-  /**
-   * Helper to setup test environment: user, organization, and application
-   */
-  async function setupTestEnvironment(
-    page: import("@playwright/test").Page,
-    request: import("@playwright/test").APIRequestContext,
-    testId: string
-  ) {
-    const timestamp = Date.now();
-    const email = `test-logs-${testId}-${timestamp}@hook0.local`;
-    const password = `TestPassword123!${timestamp}`;
-
-    // Register via API
-    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
-      data: {
-        email,
-        first_name: "Test",
-        last_name: "User",
-        password,
-      },
-    });
-    expect(registerResponse.status()).toBeLessThan(400);
-
-    // Verify email and get organization ID
-    const verificationResult = await verifyEmailViaMailpit(request, email);
-    const organizationId = verificationResult.organizationId;
-    expect(organizationId).toBeTruthy();
-
-    // Login via UI
-    await page.goto("/login");
-    await expect(page.locator('[data-test="login-form"]')).toBeVisible({
-      timeout: 10000,
-    });
-    await page.locator('[data-test="login-email-input"]').fill(email);
-    await page.locator('[data-test="login-password-input"]').fill(password);
-    await page.locator('[data-test="login-submit-button"]').click();
-
-    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
-      timeout: 15000,
-    });
-
-    // Create an application
-    await page.goto(`/organizations/${organizationId}/applications`);
-    await expect(page.locator('[data-test="applications-create-button"]')).toBeVisible({
-      timeout: 10000,
-    });
-    await page.locator('[data-test="applications-create-button"]').click();
-
-    await expect(page.locator('[data-test="application-form"]')).toBeVisible({
-      timeout: 10000,
-    });
-    await page.locator('[data-test="application-name-input"]').fill(`Test App ${timestamp}`);
-
-    const createAppResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/v1/applications") && response.request().method() === "POST",
-      { timeout: 15000 }
-    );
-    await page.locator('[data-test="application-submit-button"]').click();
-    const appResponse = await createAppResponse;
-    expect(appResponse.status()).toBeLessThan(400);
-
-    // Wait for redirect to complete - URL should contain a UUID application ID, not "new"
-    // UUID pattern: 8-4-4-4-12 hex characters
-    const uuidPattern = /\/applications\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
-    await expect(page).toHaveURL(uuidPattern, { timeout: 15000 });
-    const url = page.url();
-    const match = url.match(uuidPattern);
-    expect(match, "Failed to extract application ID (UUID) from URL").toBeTruthy();
-    const applicationId = match![1];
-
-    return {
-      email,
-      password,
-      organizationId,
-      applicationId,
-      timestamp,
-    };
-  }
-
   test("should display logs page with empty state", async ({ page, request }) => {
-    const env = await setupTestEnvironment(page, request, "empty");
+    const env = await loginAndCreateApp(page, request, "empty");
 
     // Navigate to logs page
     await page.goto(`/organizations/${env.organizationId}/applications/${env.applicationId}/logs`);
@@ -104,7 +24,7 @@ test.describe("Logs", () => {
   });
 
   test("should display logs card header correctly", async ({ page, request }) => {
-    const env = await setupTestEnvironment(page, request, "header");
+    const env = await loginAndCreateApp(page, request, "header");
 
     // Navigate to logs page
     await page.goto(`/organizations/${env.organizationId}/applications/${env.applicationId}/logs`);
@@ -122,7 +42,7 @@ test.describe("Logs", () => {
     page,
     request,
   }) => {
-    const env = await setupTestEnvironment(page, request, "event-link");
+    const env = await loginAndCreateApp(page, request, "event-link");
 
     // Create an event type
     await page.goto(
@@ -252,7 +172,7 @@ test.describe("Logs", () => {
     page,
     request,
   }) => {
-    const env = await setupTestEnvironment(page, request, "with-logs");
+    const env = await loginAndCreateApp(page, request, "with-logs");
 
     // Create an event type
     await page.goto(

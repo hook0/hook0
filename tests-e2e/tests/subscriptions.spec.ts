@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verification";
+import { loginAndCreateAppWithEventType, API_BASE_URL } from "../fixtures/test-setup";
 
 /**
  * Subscriptions (Webhooks) E2E tests for Hook0.
@@ -8,123 +8,12 @@ import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verificat
  * Following the Three-Step Verification Pattern.
  */
 test.describe("Subscriptions", () => {
-  /**
-   * Helper to setup test environment: user, organization, application, and event type
-   */
-  async function setupTestEnvironment(
-    page: import("@playwright/test").Page,
-    request: import("@playwright/test").APIRequestContext,
-    testId: string
-  ): Promise<{
-    email: string;
-    password: string;
-    organizationId: string;
-    applicationId: string;
-    timestamp: number;
-  }> {
-    const timestamp = Date.now();
-    const email = `test-sub-${testId}-${timestamp}@hook0.local`;
-    const password = `TestPassword123!${timestamp}`;
-
-    // Register via API
-    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
-      data: {
-        email,
-        first_name: "Test",
-        last_name: "User",
-        password,
-      },
-    });
-    expect(registerResponse.status()).toBeLessThan(400);
-
-    // Verify email and get organization ID
-    const verificationResult = await verifyEmailViaMailpit(request, email);
-    const organizationId = verificationResult.organizationId;
-    expect(organizationId).toBeTruthy();
-    if (!organizationId) {
-      throw new Error("Organization ID is required");
-    }
-
-    // Login via UI
-    await page.goto("/login");
-    await expect(page.locator('[data-test="login-form"]')).toBeVisible({
-      timeout: 10000,
-    });
-    await page.locator('[data-test="login-email-input"]').fill(email);
-    await page.locator('[data-test="login-password-input"]').fill(password);
-    await page.locator('[data-test="login-submit-button"]').click();
-
-    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
-      timeout: 15000,
-    });
-
-    // Create an application
-    await page.goto(`/organizations/${organizationId}/applications`);
-    await expect(page.locator('[data-test="applications-create-button"]')).toBeVisible({
-      timeout: 10000,
-    });
-    await page.locator('[data-test="applications-create-button"]').click();
-
-    await expect(page.locator('[data-test="application-form"]')).toBeVisible({
-      timeout: 10000,
-    });
-    await page.locator('[data-test="application-name-input"]').fill(`Test App ${timestamp}`);
-
-    const createAppResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/v1/applications") && response.request().method() === "POST",
-      { timeout: 15000 }
-    );
-    await page.locator('[data-test="application-submit-button"]').click();
-    const appResponse = await createAppResponse;
-    expect(appResponse.status()).toBeLessThan(400);
-    // Wait for redirect to complete - URL should contain a UUID application ID, not "new"
-    // UUID pattern: 8-4-4-4-12 hex characters
-    const uuidPattern = /\/applications\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
-    await expect(page).toHaveURL(uuidPattern, { timeout: 15000 });
-    const url = page.url();
-    const match = url.match(uuidPattern);
-    expect(match, "Failed to extract application ID (UUID) from URL").toBeTruthy();
-    const applicationId = match![1];
-
-    // Create an event type (required for subscriptions)
-    await page.goto(
-      `/organizations/${organizationId}/applications/${applicationId}/event_types/new`
-    );
-    await expect(page.locator('[data-test="event-type-form"]')).toBeVisible({
-      timeout: 10000,
-    });
-    await page.locator('[data-test="event-type-service-input"]').fill("billing");
-    await page.locator('[data-test="event-type-resource-input"]').fill("invoice");
-    await page.locator('[data-test="event-type-verb-input"]').fill("created");
-
-    const createEventTypeResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/v1/event_types") && response.request().method() === "POST",
-      { timeout: 15000 }
-    );
-    await page.locator('[data-test="event-type-submit-button"]').click();
-    const eventTypeResponse = await createEventTypeResponse;
-    expect(eventTypeResponse.status()).toBeLessThan(400);
-
-    // Wait for navigation after event type creation (it redirects to event types list)
-    await expect(page).toHaveURL(/\/event_types$/, { timeout: 10000 });
+  test("should display subscriptions list with created subscription", async ({ page, request }) => {
+    const env = await loginAndCreateAppWithEventType(page, request, "list", { service: "billing", resource: "invoice", verb: "created" });
 
     // Verify event type appears in the list (confirms data is persisted and available)
     await expect(page.locator('[data-test="event-types-table"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('[data-test="event-types-table"] [row-id]').first()).toBeVisible({ timeout: 10000 });
-
-    return {
-      email,
-      password,
-      organizationId,
-      applicationId,
-      timestamp,
-    };
-  }
-
-  test("should display subscriptions list with created subscription", async ({ page, request }) => {
-    const env = await setupTestEnvironment(page, request, "list");
     const description = `Test Subscription ${env.timestamp}`;
     const webhookUrl = "https://webhook.site/test-list";
 
@@ -188,7 +77,7 @@ test.describe("Subscriptions", () => {
   });
 
   test("should display subscription form with all required elements", async ({ page, request }) => {
-    const env = await setupTestEnvironment(page, request, "form");
+    const env = await loginAndCreateAppWithEventType(page, request, "form", { service: "billing", resource: "invoice", verb: "created" });
 
     // Navigate to create subscription page
     await page.goto(
@@ -212,7 +101,7 @@ test.describe("Subscriptions", () => {
     page,
     request,
   }) => {
-    const env = await setupTestEnvironment(page, request, "create");
+    const env = await loginAndCreateAppWithEventType(page, request, "create", { service: "billing", resource: "invoice", verb: "created" });
     const description = `Test Subscription ${env.timestamp}`;
     const webhookUrl = "https://webhook.site/test-hook";
 
@@ -278,7 +167,7 @@ test.describe("Subscriptions", () => {
   });
 
   test("should show disabled submit when required fields are empty", async ({ page, request }) => {
-    const env = await setupTestEnvironment(page, request, "validation");
+    const env = await loginAndCreateAppWithEventType(page, request, "validation", { service: "billing", resource: "invoice", verb: "created" });
 
     // Navigate to create subscription page
     await page.goto(
@@ -302,7 +191,7 @@ test.describe("Subscriptions", () => {
   });
 
   test("should navigate back when clicking cancel button", async ({ page, request }) => {
-    const env = await setupTestEnvironment(page, request, "cancel");
+    const env = await loginAndCreateAppWithEventType(page, request, "cancel", { service: "billing", resource: "invoice", verb: "created" });
 
     // Navigate to subscriptions list first
     await page.goto(
@@ -428,7 +317,7 @@ test.describe("Subscriptions", () => {
     page,
     request,
   }) => {
-    const env = await setupTestEnvironment(page, request, "update");
+    const env = await loginAndCreateAppWithEventType(page, request, "update", { service: "billing", resource: "invoice", verb: "created" });
     const originalDescription = `Original Subscription ${env.timestamp}`;
     const updatedDescription = `Updated Subscription ${env.timestamp}`;
 
@@ -482,7 +371,7 @@ test.describe("Subscriptions", () => {
   });
 
   test("should update subscription URL and verify API response", async ({ page, request }) => {
-    const env = await setupTestEnvironment(page, request, "update-url");
+    const env = await loginAndCreateAppWithEventType(page, request, "update-url", { service: "billing", resource: "invoice", verb: "created" });
     const description = `URL Update Test ${env.timestamp}`;
     const updatedUrl = "https://webhook.site/updated-endpoint";
 
@@ -534,7 +423,7 @@ test.describe("Subscriptions", () => {
   });
 
   test("should delete subscription and verify API response", async ({ page, request }) => {
-    const env = await setupTestEnvironment(page, request, "delete");
+    const env = await loginAndCreateAppWithEventType(page, request, "delete", { service: "billing", resource: "invoice", verb: "created" });
     const description = `Delete Test Subscription ${env.timestamp}`;
 
     // Create a subscription first
@@ -583,7 +472,7 @@ test.describe("Subscriptions", () => {
   });
 
   test("should cancel delete when dialog is dismissed", async ({ page, request }) => {
-    const env = await setupTestEnvironment(page, request, "delete-cancel");
+    const env = await loginAndCreateAppWithEventType(page, request, "delete-cancel", { service: "billing", resource: "invoice", verb: "created" });
     const description = `Cancel Delete Test ${env.timestamp}`;
 
     // Create a subscription first
@@ -619,7 +508,7 @@ test.describe("Subscriptions", () => {
     page,
     request,
   }) => {
-    const env = await setupTestEnvironment(page, request, "event-checkboxes");
+    const env = await loginAndCreateAppWithEventType(page, request, "event-checkboxes", { service: "billing", resource: "invoice", verb: "created" });
 
     // Navigate to create subscription page
     await page.goto(
@@ -643,7 +532,7 @@ test.describe("Subscriptions", () => {
   });
 
   test("should test endpoint and display result", async ({ page, request }) => {
-    const env = await setupTestEnvironment(page, request, "test-endpoint");
+    const env = await loginAndCreateAppWithEventType(page, request, "test-endpoint", { service: "billing", resource: "invoice", verb: "created" });
     const description = `Test Endpoint Sub ${env.timestamp}`;
 
     // Create a subscription first to get an existing subscription with a URL

@@ -49,10 +49,13 @@ const orgDashboardRoute = computed(() => ({
 }));
 
 /** Route location for the current application's dashboard. */
-const appDashboardRoute = computed(() => ({
-  name: routes.ApplicationsDashboard,
-  params: { organization_id: currentOrgId.value, application_id: currentAppId.value },
-}));
+const appDashboardRoute = computed(() => {
+  if (!currentOrgId.value || !currentAppId.value) return undefined;
+  return {
+    name: routes.ApplicationsDashboard,
+    params: { organization_id: currentOrgId.value, application_id: currentAppId.value },
+  };
+});
 
 /**
  * Sort a list so the item matching currentId comes first, preserving order of the rest.
@@ -110,14 +113,12 @@ const appTriggerRef = ref<HTMLButtonElement | null>(null);
 const orgDropdownMenuRef = ref<{ dropdownRef: HTMLElement | null } | null>(null);
 const appDropdownMenuRef = ref<{ dropdownRef: HTMLElement | null } | null>(null);
 
-/** Extract org name from a generic item (avoids `as` casts in template). */
-function getOrgName(item: { [key: string]: unknown }): string {
-  return (item.name as string) ?? '?';
-}
-
-/** Extract org plan from a generic item (avoids `as` casts in template). */
-function getOrgPlan(item: { [key: string]: unknown }): { label: string } | null {
-  return (item.plan as { label: string }) ?? null;
+/** Extract org plan from an org item. */
+function getOrgPlan(item: { name: string; [key: string]: unknown }): { label: string } | null {
+  if (item.plan && typeof item.plan === 'object' && 'label' in item.plan) {
+    return item.plan as { label: string };
+  }
+  return null;
 }
 
 /**
@@ -148,20 +149,22 @@ function hasOpenDropdown(): boolean {
 }
 
 /** Build a route for an org dropdown item. */
-function orgItemTo(item: { [key: string]: unknown }): RouteLocationRaw {
+function orgItemTo(item: { name: string; [key: string]: unknown }): RouteLocationRaw {
   return {
     name: routes.OrganizationsDashboard,
-    params: { organization_id: item.organization_id as string },
+    params: { organization_id: String(item.organization_id) },
   };
 }
 
 /** Build a route for an app dropdown item. */
-function appItemTo(item: { [key: string]: unknown }): RouteLocationRaw {
+function appItemTo(item: { name: string; [key: string]: unknown }): RouteLocationRaw {
+  const orgId = currentOrgId.value;
+  if (!orgId) return { name: routes.Home };
   return {
     name: routes.ApplicationsDashboard,
     params: {
-      organization_id: currentOrgId.value!,
-      application_id: item.application_id as string,
+      organization_id: orgId,
+      application_id: String(item.application_id),
     },
   };
 }
@@ -178,7 +181,7 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
     <template v-if="currentOrgId">
       <router-link
         :to="orgDashboardRoute"
-        class="hook0-topnav__context-link"
+        class="hook0-topnav__context-control hook0-topnav__context-link"
         data-test="context-bar-org-name"
       >
         <Hook0Avatar
@@ -209,7 +212,7 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
     <button
       v-else
       ref="orgTriggerRef"
-      class="hook0-topnav__context-trigger"
+      class="hook0-topnav__context-control hook0-topnav__context-trigger"
       :aria-label="t('nav.selectOrganization')"
       :aria-expanded="orgDropdownOpen"
       aria-haspopup="true"
@@ -242,11 +245,11 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
       @settings="goToOrgSettings"
     >
       <template #icon="{ item }">
-        <Hook0Avatar :name="getOrgName(item)" size="sm" variant="square" />
+        <Hook0Avatar :name="item.name" size="sm" variant="square" />
       </template>
       <template #badge="{ item }">
         <Hook0Badge v-if="getOrgPlan(item)" variant="primary" size="sm">{{
-          getOrgPlan(item)!.label
+          getOrgPlan(item)?.label
         }}</Hook0Badge>
       </template>
     </ContextDropdownMenu>
@@ -260,8 +263,8 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
       <!-- App selected: link to dashboard + separate switcher button -->
       <template v-if="isAppLevel && currentAppId">
         <router-link
-          :to="appDashboardRoute"
-          class="hook0-topnav__context-link"
+          :to="appDashboardRoute ?? { name: routes.Home }"
+          class="hook0-topnav__context-control hook0-topnav__context-link"
           data-test="context-bar-app-name"
         >
           <Box :size="16" aria-hidden="true" class="hook0-topnav__context-icon--muted" />
@@ -285,7 +288,7 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
       <button
         v-else
         ref="appTriggerRef"
-        class="hook0-topnav__context-trigger"
+        class="hook0-topnav__context-control hook0-topnav__context-trigger"
         :aria-label="t('nav.selectApplication')"
         :aria-expanded="appDropdownOpen"
         aria-haspopup="true"
@@ -338,10 +341,8 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
   min-width: 0;
 }
 
-/* Unified context trigger — single bordered button for avatar + name + chevron */
-.hook0-topnav__context-trigger {
-  all: unset;
-  box-sizing: border-box;
+/* Shared base for context link and context trigger */
+.hook0-topnav__context-control {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
@@ -351,20 +352,25 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
   background: none;
   cursor: pointer;
   font-family: inherit;
+  min-width: 0;
   transition:
     background-color 0.15s ease,
     border-color 0.15s ease;
-  min-width: 0;
 }
 
-.hook0-topnav__context-trigger:hover {
+.hook0-topnav__context-control:hover {
   background-color: var(--color-bg-tertiary);
   border-color: var(--color-border-strong);
 }
 
-.hook0-topnav__context-trigger:focus-visible {
+.hook0-topnav__context-control:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+
+/* Unified context trigger — button-specific reset */
+.hook0-topnav__context-trigger {
+  appearance: none;
 }
 
 /* Name text inside trigger */
@@ -396,33 +402,10 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
   }
 }
 
-/* Context link — avatar + name + badge, navigates to dashboard */
+/* Context link — link-specific overrides */
 .hook0-topnav__context-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.25rem 0.375rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: none;
   text-decoration: none;
   color: inherit;
-  cursor: pointer;
-  font-family: inherit;
-  min-width: 0;
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease;
-}
-
-.hook0-topnav__context-link:hover {
-  background-color: var(--color-bg-tertiary);
-  border-color: var(--color-border-strong);
-}
-
-.hook0-topnav__context-link:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
 }
 
 /* Switcher button — standalone chevron to open dropdown, matches link height */
@@ -516,8 +499,7 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hook0-topnav__context-trigger,
-  .hook0-topnav__context-link,
+  .hook0-topnav__context-control,
   .hook0-topnav__switcher-btn {
     transition: none;
   }
