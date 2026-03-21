@@ -92,7 +92,12 @@ function openFullPage() {
   });
 }
 
-const readOnlyExtensions = [json(), oneDark, EditorView.lineWrapping, EditorView.editable.of(false)];
+const readOnlyExtensions = [
+  json(),
+  oneDark,
+  EditorView.lineWrapping,
+  EditorView.editable.of(false),
+];
 
 // Events list query
 const { data: events, isLoading, error, refetch } = useEventList(applicationId);

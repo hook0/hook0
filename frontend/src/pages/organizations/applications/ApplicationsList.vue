@@ -185,4 +185,3 @@ const columns: ColumnDef<Application, unknown>[] = [
     </Hook0Dialog>
   </Hook0PageLayout>
 </template>
-

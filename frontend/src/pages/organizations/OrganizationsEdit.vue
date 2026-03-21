@@ -102,8 +102,6 @@ const { errors, defineField, onSubmit } = useEntityForm<{ name: string }, Organi
 });
 
 const [name, nameAttrs] = defineField('name');
-
-
 </script>
 
 <template>
