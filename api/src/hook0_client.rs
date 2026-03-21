@@ -702,6 +702,7 @@ pub struct EventSubscriptionCreated {
     pub labels: HashMap<String, String>,
     pub target: Target,
     pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 impl Event for EventSubscriptionCreated {
@@ -742,6 +743,7 @@ pub struct EventSubscriptionUpdated {
     pub labels: HashMap<String, String>,
     pub target: Target,
     pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 impl Event for EventSubscriptionUpdated {
