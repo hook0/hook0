@@ -10,7 +10,7 @@ A request attempt represents a single delivery attempt for a webhook. When an [e
 ## Key Points
 
 - Each [event](events.md)/[subscription](subscriptions.md) pair generates one or more request attempts
-- Hook0 automatically retries failed deliveries with exponential backoff
+- Hook0 automatically retries failed deliveries with increasing backoff
 - Request attempts transition through distinct statuses
 - Full delivery history is available for debugging
 
@@ -57,11 +57,20 @@ Request attempts transition through these states:
 
 ## Retry Behavior
 
-When a delivery fails, Hook0 automatically schedules retries with exponential backoff:
+When a delivery fails, Hook0 automatically schedules retries with increasing backoff delays:
 
-1. First failure → Short delay
-2. Subsequent failures → Progressively longer delays
-3. After max retries → Marked as permanently failed
+| Retry | Delay |
+|-------|-------|
+| 1 | 3 seconds |
+| 2 | 10 seconds |
+| 3 | 3 minutes |
+| 4 | 30 minutes |
+| 5 | 1 hour |
+| 6 | 3 hours |
+| 7 | 5 hours |
+| 8+ | 10 hours |
+
+Retries are bounded by both `MAX_RETRIES` and `MAX_RETRY_WINDOW` (whichever limit is reached first) at the Output Worker level. After all retries are exhausted, the attempt is marked as permanently failed.
 
 This ensures transient failures don't cause data loss while avoiding overwhelming struggling endpoints.
 

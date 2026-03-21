@@ -341,8 +341,7 @@ pub async fn look_for_work(
                         &mut tx,
                         &attempt_with_payload,
                         &response,
-                        config.max_fast_retries,
-                        config.max_slow_retries,
+                        config.max_retries,
                     )
                     .await?
                     {

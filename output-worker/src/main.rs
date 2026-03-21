@@ -13,12 +13,11 @@ use aws_sdk_s3::config::timeout::TimeoutConfig;
 use aws_sdk_s3::config::{AppName, Credentials, Region};
 use chrono::{DateTime, Utc};
 use clap::{ArgGroup, Parser, ValueEnum, crate_name, crate_version};
+use humantime::format_duration;
 use reqwest::Url;
 use reqwest::header::HeaderName;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use sqlx::{PgConnection, PgPool, query, query_as};
-use std::cmp::min;
-use std::convert::TryFrom;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -77,7 +76,7 @@ struct Config {
     #[clap(long, env, hide_env_values = true)]
     database_url: String,
 
-    /// Maximum number of connections to database (for a worker with pg queue type, it should be equal to CONCURRENCY)
+    /// Maximum number of connections to database (for a worker with pg queue type, it should be equal to CONCURRENT)
     #[clap(long, env, default_value = "5")]
     max_db_connections: u32,
 
@@ -117,19 +116,19 @@ struct Config {
     #[clap(long, env, default_value_t = 3)]
     object_storage_max_attempts: u32,
 
-    /// [Object Storage] Connect timeout for object storage operations (time to initiate socket connection)
+    /// Connect timeout for object storage operations (time to initiate socket connection)
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "3s")]
     object_storage_connect_timeout: Duration,
 
-    /// [Object Storage] Read timeout for object storage operations (time to first byte)
+    /// Read timeout for object storage operations (time to first byte)
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "5s")]
     object_storage_read_timeout: Duration,
 
-    /// [Object Storage] Operation attempt timeout for object storage operations
+    /// Operation attempt timeout for object storage operations
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "10s")]
     object_storage_operation_attempt_timeout: Duration,
 
-    /// [Object Storage] Operation timeout for object storage operations
+    /// Operation timeout for object storage operations
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "30s")]
     object_storage_operation_timeout: Duration,
 
@@ -157,13 +156,13 @@ struct Config {
     #[clap(long, env, default_value = "1", value_parser = clap::value_parser!(u16).range(1..))]
     concurrent: u16,
 
-    /// Maximum number of fast retries (before doing slow retries)
-    #[clap(long, env, default_value = "30")]
-    max_fast_retries: u32,
+    /// Maximum number of delivery retries before giving up (the effective number of retries is limited by `MAX_RETRIES`, `MAX_RETRY_WINDOW` and the retry policy)
+    #[clap(long, env, default_value_t = 25)]
+    max_retries: u8,
 
-    /// Maximum number of slow retries (before giving up)
-    #[clap(long, env, default_value = "30")]
-    max_slow_retries: u32,
+    /// Maximum time window for delivery retries before giving up (the effective number of retries is limited by `MAX_RETRIES`, `MAX_RETRY_WINDOW` and the retry policy)
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "8d")]
+    max_retry_window: Duration,
 
     /// Heartbeat URL that should be called regularly
     #[clap(long, env)]
@@ -254,15 +253,6 @@ enum WorkerQueueType {
     Pulsar,
 }
 
-/// How long to wait before first fast retry
-const MINIMUM_FAST_RETRY_DELAY: Duration = Duration::from_secs(5);
-
-/// How long to wait between fast retries at maximum
-const MAXIMUM_FAST_RETRY_DELAY: Duration = Duration::from_secs(5 * 60);
-
-/// How long to wait between slow retries
-const SLOW_RETRY_DELAY: Duration = Duration::from_secs(60 * 60);
-
 #[derive(Clone)]
 struct PulsarConfig {
     pulsar: Pulsar<TokioExecutor>,
@@ -329,6 +319,12 @@ async fn main() -> anyhow::Result<()> {
         config.connect_timeout
     );
     debug!("Webhook total timeout is set to {:?}", config.timeout);
+    let retry_policy = evaluate_retry_policy(config.max_retries, config.max_retry_window);
+    info!(
+        "Configured retry policy allows a maximum of {} retries in a {} window",
+        retry_policy.0,
+        format_duration(retry_policy.1)
+    );
 
     debug!("Connecting to database...");
     let pool = PgPoolOptions::new()
@@ -766,8 +762,7 @@ async fn compute_next_retry(
     conn: &mut PgConnection,
     attempt: &RequestAttempt,
     response: &Response,
-    max_fast_retries: u32,
-    max_slow_retries: u32,
+    max_retries: u8,
 ) -> Result<Option<Duration>, sqlx::Error> {
     match response.response_error {
         Some(ResponseError::InvalidHeader) => {
@@ -807,8 +802,7 @@ async fn compute_next_retry(
 
             if sub.is_some() {
                 Ok(compute_next_retry_duration(
-                    max_fast_retries,
-                    max_slow_retries,
+                    max_retries,
                     attempt.retry_count,
                 ))
             } else {
@@ -819,21 +813,81 @@ async fn compute_next_retry(
     }
 }
 
-fn compute_next_retry_duration(
-    max_fast_retries: u32,
-    max_slow_retries: u32,
-    retry_count: i16,
-) -> Option<Duration> {
-    u32::try_from(retry_count).ok().and_then(|count| {
-        if count < max_fast_retries {
-            Some(min(
-                MINIMUM_FAST_RETRY_DELAY * count,
-                MAXIMUM_FAST_RETRY_DELAY,
-            ))
-        } else if count < max_fast_retries + max_slow_retries {
-            Some(SLOW_RETRY_DELAY)
-        } else {
-            None
+fn compute_next_retry_duration(max_retries: u8, retry_count: i16) -> Option<Duration> {
+    if retry_count < max_retries.into() {
+        match retry_count {
+            0 => Some(Duration::from_secs(3)),
+            1 => Some(Duration::from_secs(10)),
+            2 => Some(Duration::from_secs(3 * 60)),
+            3 => Some(Duration::from_secs(30 * 60)),
+            4 => Some(Duration::from_hours(1)),
+            5 => Some(Duration::from_hours(3)),
+            6 => Some(Duration::from_hours(5)),
+            _ => Some(Duration::from_hours(10)),
         }
-    })
+    } else {
+        None
+    }
+}
+
+fn evaluate_retry_policy(max_retries: u8, max_retry_window: Duration) -> (u8, Duration) {
+    let mut cumulative = Duration::ZERO;
+    let mut effective_retries = 0;
+
+    for i in 0..max_retries {
+        match compute_next_retry_duration(max_retries, i.into()) {
+            Some(d) => {
+                if cumulative + d > max_retry_window {
+                    break;
+                }
+                cumulative += d;
+                effective_retries = i + 1;
+            }
+            None => break,
+        }
+    }
+
+    (effective_retries, cumulative)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_evaluate_retry_policy_zero_retries() {
+        let (retries, cumulative) = evaluate_retry_policy(0, Duration::from_hours(1));
+        assert_eq!(retries, 0);
+        assert_eq!(cumulative, Duration::ZERO);
+    }
+
+    #[test]
+    fn test_evaluate_retry_policy_zero_window() {
+        let (retries, cumulative) = evaluate_retry_policy(30, Duration::ZERO);
+        assert_eq!(retries, 0);
+        assert_eq!(cumulative, Duration::ZERO);
+    }
+
+    #[test]
+    fn test_compute_next_retry_duration_exceeds_max() {
+        assert_eq!(compute_next_retry_duration(5, 5), None);
+        assert_eq!(compute_next_retry_duration(5, 6), None);
+        assert_eq!(compute_next_retry_duration(0, 0), None);
+    }
+
+    #[test]
+    fn test_evaluate_retry_policy_unlimited_window() {
+        let window = Duration::from_hours(365 * 24);
+        let (retries, cumulative) = evaluate_retry_policy(30, window);
+        assert_eq!(retries, 30);
+        assert!(cumulative < window / 10); // Duration is not just the window but the actual cumulative duration
+    }
+
+    #[test]
+    fn test_evaluate_retry_policy_tight_window() {
+        let window = Duration::from_secs(15);
+        let (retries, cumulative) = evaluate_retry_policy(30, window);
+        assert_eq!(retries, 2);
+        assert!(cumulative < window);
+    }
 }
