@@ -248,7 +248,7 @@ function getGradient(index: number): string {
               :gradient="getGradient(index)"
             />
             <Hook0Stack direction="column" gap="none" class="org-card__info">
-              <span class="org-selector__org-name">
+              <span class="org-selector__org-name" :title="organizationGroup.organization.name">
                 {{ organizationGroup.organization.name }}
               </span>
               <span class="org-card__meta">

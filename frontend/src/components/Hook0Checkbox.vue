@@ -73,7 +73,7 @@ const model = defineModel<boolean>({ default: false });
   top: 0.125rem;
   width: 0.25rem;
   height: 0.5rem;
-  border: solid #ffffff;
+  border: solid var(--color-on-dark);
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
 }

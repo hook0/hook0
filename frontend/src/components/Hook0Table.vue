@@ -13,6 +13,8 @@ import { ref, computed, watch, h, type Component } from 'vue';
 import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-vue-next';
 import Hook0Skeleton from '@/components/Hook0Skeleton.vue';
 
+const ACTION_COLUMN_IDS = new Set(['actions', 'options']);
+
 // ---------------------------------------------------------------------------
 // AG-Grid ColDef → TanStack ColumnDef adapter (temporary, removed in Phase 2)
 // ---------------------------------------------------------------------------
@@ -250,8 +252,7 @@ const rows = computed(() => table.getRowModel().rows);
             class="hook0-table-th"
             :class="{
               sortable: header.column.getCanSort(),
-              'hook0-table-th--actions':
-                header.column.id === 'actions' || header.column.id === 'options',
+              'hook0-table-th--actions': ACTION_COLUMN_IDS.has(header.column.id),
             }"
             :aria-sort="
               header.column.getIsSorted() === 'asc'
@@ -328,8 +329,7 @@ const rows = computed(() => table.getRowModel().rows);
               :key="cell.id"
               class="hook0-table-td"
               :class="{
-                'hook0-table-td--actions':
-                  cell.column.id === 'actions' || cell.column.id === 'options',
+                'hook0-table-td--actions': ACTION_COLUMN_IDS.has(cell.column.id),
               }"
             >
               <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
@@ -362,7 +362,6 @@ const rows = computed(() => table.getRowModel().rows);
   font-size: 0.85rem;
   font-weight: 500;
   color: var(--color-text-secondary);
-  letter-spacing: 0em;
   white-space: nowrap;
   border-bottom: 1px solid var(--color-border);
 }

@@ -9,7 +9,7 @@ import { useI18n } from 'vue-i18n';
 import { useClipboardCopy } from '@/composables/useClipboardCopy';
 
 const { t } = useI18n();
-const clipboardCopy = useClipboardCopy();
+const { copy: clipboardCopy } = useClipboardCopy();
 
 defineOptions({
   inheritAttrs: false,
@@ -92,8 +92,8 @@ function copyToClipboard() {
   height: 2rem;
   border-radius: var(--radius-sm);
   border: none;
-  background-color: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.6);
+  background-color: color-mix(in srgb, var(--color-on-dark) 10%, transparent);
+  color: color-mix(in srgb, var(--color-on-dark) 60%, transparent);
   cursor: pointer;
   transition:
     background-color 0.15s ease,
@@ -101,7 +101,7 @@ function copyToClipboard() {
 }
 
 .hook0-code-copy:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-  color: white;
+  background-color: color-mix(in srgb, var(--color-on-dark) 20%, transparent);
+  color: var(--color-on-dark);
 }
 </style>

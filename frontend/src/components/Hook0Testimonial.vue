@@ -66,7 +66,7 @@ const initial = computed(() => {
   font-size: 0.875rem;
   font-weight: 600;
   color: white;
-  background: linear-gradient(135deg, var(--color-primary), #22c55e);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-gradient-end));
 }
 
 .hook0-testimonial__info {

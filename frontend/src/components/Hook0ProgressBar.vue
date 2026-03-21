@@ -149,7 +149,7 @@ const currentStepTitle = computed(() => {
 /* Completed step */
 .progress-bar__step--completed .progress-bar__step-indicator {
   background-color: var(--color-primary);
-  color: #ffffff;
+  color: var(--color-on-dark);
   box-shadow: 0 0 0 4px var(--color-primary-light);
 }
 

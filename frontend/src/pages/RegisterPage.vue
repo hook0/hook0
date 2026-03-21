@@ -20,7 +20,6 @@ import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0Badge from '@/components/Hook0Badge.vue';
 import Hook0TrustSection from '@/components/Hook0TrustSection.vue';
-// import Hook0Testimonial from '@/components/Hook0Testimonial.vue';
 import Hook0Logo from '@/components/Hook0Logo.vue';
 import Hook0Form from '@/components/Hook0Form.vue';
 import Hook0InputRow from '@/components/Hook0InputRow.vue';
@@ -286,13 +285,6 @@ const onSubmit = handleSubmit((values) => {
           <CustomerLogo variant="active-ants" />
         </Hook0Button>
       </Hook0TrustSection>
-
-      <!-- <Hook0Testimonial
-        :quote="t('auth.register.testimonialQuote')"
-        :author="t('auth.register.testimonialAuthor')"
-        :role="t('auth.register.testimonialRole')"
-        avatar-initial="M"
-      /> -->
 
       <Hook0Stack align="center" justify="center">
         <Hook0Badge>

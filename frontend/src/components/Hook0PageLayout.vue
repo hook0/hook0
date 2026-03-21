@@ -147,8 +147,12 @@ const isFullscreen = computed(() => props.variant === 'fullscreen');
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(99, 102, 241, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
+    linear-gradient(color-mix(in srgb, var(--color-primary) 3%, transparent) 1px, transparent 1px),
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--color-primary) 3%, transparent) 1px,
+      transparent 1px
+    );
   background-size: 60px 60px;
   opacity: 0.5;
 }

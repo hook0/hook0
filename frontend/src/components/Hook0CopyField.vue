@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, onBeforeUnmount } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Copy, Check, Eye, EyeOff } from 'lucide-vue-next';
 import { useClipboardCopy } from '@/composables/useClipboardCopy';
@@ -16,7 +16,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const { t } = useI18n();
-const clipboardCopy = useClipboardCopy();
+const { copy, justCopied } = useClipboardCopy();
 
 const revealed = ref(!props.maskable);
 
@@ -26,13 +26,6 @@ watch(
     revealed.value = !isMaskable;
   }
 );
-
-const justCopied = ref(false);
-let resetTimer: ReturnType<typeof setTimeout> | null = null;
-
-onBeforeUnmount(() => {
-  if (resetTimer) clearTimeout(resetTimer);
-});
 
 const displayValue = computed(() => {
   if (!props.maskable || revealed.value) return props.value;
@@ -44,13 +37,7 @@ function toggleReveal() {
 }
 
 function copyToClipboard() {
-  clipboardCopy(props.value, props.copyMessage ?? t('common.idCopied'));
-  justCopied.value = true;
-  if (resetTimer) clearTimeout(resetTimer);
-  resetTimer = setTimeout(() => {
-    justCopied.value = false;
-    resetTimer = null;
-  }, 1500);
+  copy(props.value, props.copyMessage ?? t('common.idCopied'));
 }
 </script>
 

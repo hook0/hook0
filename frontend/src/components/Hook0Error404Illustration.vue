@@ -75,8 +75,8 @@
 .hook-svg {
   width: 50px;
   height: 80px;
-  color: #9ca3af;
-  filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.3));
+  color: var(--color-text-muted);
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--color-primary) 30%, transparent));
 }
 
 .hook-path {
@@ -130,8 +130,8 @@
   justify-content: center;
   font-size: 1rem;
   font-weight: 700;
-  background: rgba(251, 191, 36, 0.2);
-  color: #fbbf24;
+  background: color-mix(in srgb, var(--color-warning) 20%, transparent);
+  color: var(--color-warning);
   animation: question-pulse 2s ease-in-out infinite;
 }
 
@@ -153,13 +153,18 @@
   font-weight: 900;
   margin: 0;
   letter-spacing: -0.025em;
-  background: linear-gradient(135deg, #22c55e 0%, #4ade80 50%, #22c55e 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-primary-gradient-end) 50%,
+    var(--color-primary) 100%
+  );
   background-size: 200% 200%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   animation: gradient-shift 4s ease infinite;
-  text-shadow: 0 0 60px rgba(99, 102, 241, 0.5);
+  text-shadow: 0 0 60px color-mix(in srgb, var(--color-primary) 50%, transparent);
 }
 
 .digit {

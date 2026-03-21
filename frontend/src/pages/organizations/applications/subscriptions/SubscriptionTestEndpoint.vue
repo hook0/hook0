@@ -249,22 +249,22 @@ const testStatusVariant = computed(() => {
 
 .test-endpoint__status-badge--success {
   background-color: var(--color-success);
-  color: #ffffff;
+  color: var(--color-on-dark);
 }
 
 .test-endpoint__status-badge--warning {
   background-color: var(--color-warning);
-  color: #ffffff;
+  color: var(--color-on-dark);
 }
 
 .test-endpoint__status-badge--error {
   background-color: var(--color-error);
-  color: #ffffff;
+  color: var(--color-on-dark);
 }
 
 .test-endpoint__status-badge--opaque {
   background-color: var(--color-info);
-  color: #ffffff;
+  color: var(--color-on-dark);
 }
 
 .test-endpoint__details {

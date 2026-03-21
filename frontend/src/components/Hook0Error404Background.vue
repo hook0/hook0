@@ -174,7 +174,11 @@ onUnmounted(() => {
 .hook0-error404-bg__ray {
   position: absolute;
   top: 0;
-  background: linear-gradient(180deg, rgba(99, 102, 241, 0.15) 0%, transparent 100%);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-primary) 15%, transparent) 0%,
+    transparent 100%
+  );
   transform-origin: top center;
   animation: ray-sway 8s ease-in-out infinite;
 }
@@ -252,7 +256,7 @@ onUnmounted(() => {
 .hook0-error404-bg__fish-svg {
   width: 40px;
   height: 24px;
-  color: #22c55e;
+  color: var(--color-primary);
   opacity: 0.8;
 }
 

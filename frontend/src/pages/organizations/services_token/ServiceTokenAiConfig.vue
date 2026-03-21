@@ -18,7 +18,7 @@ type Props = {
 const props = defineProps<Props>();
 
 const { t } = useI18n();
-const clipboardCopy = useClipboardCopy();
+const { copy: clipboardCopy } = useClipboardCopy();
 
 type AiTabId = 'claude' | 'cursor' | 'windsurf' | 'cline';
 

@@ -59,8 +59,16 @@ const { t } = useI18n();
   position: absolute;
   inset: 0;
   background-image:
-    radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.08) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.06) 0%, transparent 50%);
+    radial-gradient(
+      circle at 20% 80%,
+      color-mix(in srgb, var(--color-on-dark) 8%, transparent) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 80% 20%,
+      color-mix(in srgb, var(--color-on-dark) 6%, transparent) 0%,
+      transparent 50%
+    );
   pointer-events: none;
 }
 
@@ -72,7 +80,7 @@ const { t } = useI18n();
 .home__title {
   font-size: 1.875rem;
   font-weight: 800;
-  color: white;
+  color: var(--color-on-dark);
   margin-bottom: 0.5rem;
   letter-spacing: -0.02em;
 }
@@ -80,12 +88,12 @@ const { t } = useI18n();
 .home__subtitle {
   font-size: 1.0625rem;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.9);
+  color: color-mix(in srgb, var(--color-on-dark) 90%, transparent);
   line-height: 1.6;
 }
 
 .home__link {
-  color: white;
+  color: var(--color-on-dark);
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 2px;

@@ -24,7 +24,7 @@ import Hook0Alert from '@/components/Hook0Alert.vue';
 
 const { t } = useI18n();
 const router = useRouter();
-const clipboardCopy = useClipboardCopy();
+const { copy: clipboardCopy } = useClipboardCopy();
 const { organizationId, serviceTokenId } = useRouteIds();
 
 const {

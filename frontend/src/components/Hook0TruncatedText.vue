@@ -19,10 +19,10 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const { t } = useI18n();
-const clipboardCopy = useClipboardCopy();
+const { copy: clipboardCopy, justCopied } = useClipboardCopy();
 
-const justCopied = ref(false);
-let copyTimer: ReturnType<typeof setTimeout> | null = null;
+const TOOLTIP_SHOW_DELAY_MS = 300;
+const TOOLTIP_HIDE_DELAY_MS = 150;
 
 const visible = ref(false);
 const triggerRef = ref<HTMLElement | null>(null);
@@ -50,7 +50,7 @@ function show() {
     visible.value = true;
     showTimeout = null;
     void nextTick(updatePosition);
-  }, 300);
+  }, TOOLTIP_SHOW_DELAY_MS);
 }
 
 function hide() {
@@ -61,23 +61,16 @@ function hide() {
   hideTimeout = setTimeout(() => {
     visible.value = false;
     hideTimeout = null;
-  }, 150);
+  }, TOOLTIP_HIDE_DELAY_MS);
 }
 
 function copy() {
   clipboardCopy(props.value, props.copyMessage ?? t('common.idCopied'));
-  justCopied.value = true;
-  if (copyTimer) clearTimeout(copyTimer);
-  copyTimer = setTimeout(() => {
-    justCopied.value = false;
-    copyTimer = null;
-  }, 1500);
 }
 
 onBeforeUnmount(() => {
   if (showTimeout) clearTimeout(showTimeout);
   if (hideTimeout) clearTimeout(hideTimeout);
-  if (copyTimer) clearTimeout(copyTimer);
 });
 </script>
 
@@ -174,9 +167,9 @@ onBeforeUnmount(() => {
   justify-content: center;
   width: 1.5rem;
   height: 1.5rem;
-  background-color: rgba(255, 255, 255, 0.15);
+  background-color: color-mix(in srgb, var(--color-on-dark) 15%, transparent);
   border: none;
-  color: #ffffff;
+  color: var(--color-on-dark);
   cursor: pointer;
   border-radius: var(--radius-sm);
   flex-shrink: 0;
@@ -184,11 +177,11 @@ onBeforeUnmount(() => {
 }
 
 .hook0-truncated__tooltip-copy:hover {
-  background-color: rgba(255, 255, 255, 0.3);
+  background-color: color-mix(in srgb, var(--color-on-dark) 30%, transparent);
 }
 
 .hook0-truncated__icon--success {
-  color: #ffffff;
+  color: var(--color-on-dark);
 }
 
 /* Arrow */

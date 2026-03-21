@@ -146,27 +146,15 @@ const onSubmit = handleSubmit((values) => {
             {{ t('common.cancel') }}
           </Hook0Button>
           <Hook0Button
-            v-if="!tutorialMode && canCreate('event_type')"
+            v-if="tutorialMode || canCreate('event_type')"
             variant="primary"
-            type="button"
+            :type="tutorialMode ? 'submit' : 'button'"
             :loading="createMutation.isPending.value"
             :disabled="!service || !resourceType || !verb"
             data-test="event-type-submit-button"
             @click="onSubmit"
           >
-            {{ t('eventTypes.create') }}
-          </Hook0Button>
-
-          <Hook0Button
-            v-else
-            variant="primary"
-            type="submit"
-            :loading="createMutation.isPending.value"
-            :disabled="!service || !resourceType || !verb"
-            data-test="event-type-submit-button"
-            @click="onSubmit"
-          >
-            {{ t('eventTypes.createFirstEventType') }}
+            {{ tutorialMode ? t('eventTypes.createFirstEventType') : t('eventTypes.create') }}
           </Hook0Button>
         </Hook0CardFooter>
       </Hook0Card>

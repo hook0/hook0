@@ -18,6 +18,8 @@ import Hook0Avatar from '@/components/Hook0Avatar.vue';
 import Hook0Badge from '@/components/Hook0Badge.vue';
 import ContextDropdownMenu from '@/components/ContextDropdownMenu.vue';
 import { useOrgAppSwitcher } from '@/composables/useOrgAppSwitcher';
+import type { Organization } from '@/pages/organizations/OrganizationService';
+import type { Application } from '@/pages/organizations/applications/ApplicationService';
 
 const { t } = useI18n();
 
@@ -114,7 +116,7 @@ const orgDropdownMenuRef = ref<{ dropdownRef: HTMLElement | null } | null>(null)
 const appDropdownMenuRef = ref<{ dropdownRef: HTMLElement | null } | null>(null);
 
 /** Extract org plan from an org item. */
-function getOrgPlan(item: { name: string; [key: string]: unknown }): { label: string } | null {
+function getOrgPlan(item: Organization): { label: string } | null {
   if (item.plan && typeof item.plan === 'object' && 'label' in item.plan) {
     return item.plan as { label: string };
   }
@@ -149,22 +151,22 @@ function hasOpenDropdown(): boolean {
 }
 
 /** Build a route for an org dropdown item. */
-function orgItemTo(item: { name: string; [key: string]: unknown }): RouteLocationRaw {
+function orgItemTo(item: Organization): RouteLocationRaw {
   return {
     name: routes.OrganizationsDashboard,
-    params: { organization_id: String(item.organization_id) },
+    params: { organization_id: item.organization_id },
   };
 }
 
 /** Build a route for an app dropdown item. */
-function appItemTo(item: { name: string; [key: string]: unknown }): RouteLocationRaw {
+function appItemTo(item: Application): RouteLocationRaw {
   const orgId = currentOrgId.value;
   if (!orgId) return { name: routes.Home };
   return {
     name: routes.ApplicationsDashboard,
     params: {
       organization_id: orgId,
-      application_id: String(item.application_id),
+      application_id: item.application_id,
     },
   };
 }

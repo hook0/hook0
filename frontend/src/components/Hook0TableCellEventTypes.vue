@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { RouterLink } from 'vue-router';
 import type { RouteLocationRaw } from 'vue-router';
 
 type Props = {
@@ -13,16 +14,17 @@ withDefaults(defineProps<Props>(), {
 
 <template>
   <div class="cell-event-types">
-    <RouterLink
+    <component
+      :is="to ? RouterLink : 'span'"
       v-for="et in value"
       :key="et"
-      :to="to ?? ''"
+      v-bind="to ? { to } : {}"
       class="cell-event-types__item"
       :class="{ 'cell-event-types__item--link': !!to }"
       @click.stop
     >
       {{ et }}
-    </RouterLink>
+    </component>
   </div>
 </template>
 

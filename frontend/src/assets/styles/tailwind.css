@@ -76,6 +76,8 @@
   --color-primary-hover: #16a34a;
   --color-primary-light: #f0fdf4;
   --color-primary-text: #ffffff;
+  --color-on-dark: #ffffff;
+  --color-primary-gradient-end: #4ade80;
 
   /* Semantic */
   --color-success: #059669;
@@ -148,6 +150,8 @@
   --color-primary-hover: #86efac;
   --color-primary-light: #052e16;
   --color-primary-text: #052e16;
+  --color-on-dark: #ffffff;
+  --color-primary-gradient-end: #86efac;
 
   --color-success: #34d399;
   --color-success-light: #064e3b;
@@ -263,7 +267,7 @@ samp {
   background: var(--color-text-tertiary);
 }
 
-/* vue-sonner toast icon colors */
+/* vue-sonner internal selectors — override toast icon colors to match our design tokens */
 [data-sonner-toast][data-type='success'] [data-icon] {
   color: var(--color-primary);
 }

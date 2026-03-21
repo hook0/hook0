@@ -119,11 +119,13 @@ const quotaCards = computed<{ icon: Component; value: number | undefined; label:
             :name="organization.name"
             size="lg"
             variant="square"
-            gradient="linear-gradient(135deg, var(--color-primary), #22c55e)"
+            gradient="linear-gradient(135deg, var(--color-primary), var(--color-primary-gradient-end))"
           />
           <div class="org-header__info">
             <div class="org-header__title-row">
-              <span class="org-header__name">{{ organization.name }}</span>
+              <span class="org-header__name" :title="organization.name">{{
+                organization.name
+              }}</span>
               <template v-if="pricingEnabled">
                 <Hook0Badge
                   v-if="organization.plan"

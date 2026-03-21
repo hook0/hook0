@@ -169,7 +169,6 @@ function isExpiryDateValid(date: Date | null): boolean {
 }
 
 function submitSimple() {
-  const pubKey = props.publicKey;
   const token = props.biscuitToken;
   const expiryDate = computeExpiryDate();
 
@@ -183,16 +182,13 @@ function submitSimple() {
 
   if (!isExpiryDateValid(expiryDate)) return;
 
-  if (!pubKey) return;
-
   validateAndSubmit(
-    () => attenuateBiscuit(token, selectedApplicationId.value, expiryDate, pubKey),
+    () => attenuateBiscuit(token, selectedApplicationId.value, expiryDate, props.publicKey!),
     'simple'
   );
 }
 
 function submitAdvanced() {
-  const pubKey = props.publicKey;
   const token = props.biscuitToken;
   const expiry =
     isDateExpirationAttenuation.value && dateAttenuation.value
@@ -209,8 +205,6 @@ function submitAdvanced() {
 
   if (!isExpiryDateValid(expiry)) return;
 
-  if (!pubKey) return;
-
   validateAndSubmit(
     () =>
       attenuateBiscuitWithDatalog(
@@ -218,7 +212,7 @@ function submitAdvanced() {
         selectedApplicationId.value,
         expiry,
         customDatalogClaims.value,
-        pubKey
+        props.publicKey!
       ),
     'advanced'
   );
