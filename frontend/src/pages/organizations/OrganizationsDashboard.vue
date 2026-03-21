@@ -2,7 +2,7 @@
 import { computed, markRaw } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { Component } from 'vue';
-import { CreditCard, Users, FolderOpen, FileText, Database, Settings } from 'lucide-vue-next';
+import { CreditCard, Users, FolderOpen, FileText, Database, Settings, Box } from 'lucide-vue-next';
 
 import { useRouteIds } from '@/composables/useRouteIds';
 import { useOrganizationDetail } from './useOrganizationQueries';
@@ -22,6 +22,8 @@ import Hook0Badge from '@/components/Hook0Badge.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
 import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
 import EventsPerDayChartCard from '@/components/EventsPerDayChartCard.vue';
+import Hook0Consumption from '@/components/Hook0Consumption.vue';
+import type { ConsumptionQuota } from '@/components/consumption.types';
 import Hook0Avatar from '@/components/Hook0Avatar.vue';
 import ApplicationsList from '@/pages/organizations/applications/ApplicationsList.vue';
 
@@ -61,6 +63,43 @@ const orgSubtitle = computed(() => {
     t('organizations.summaryApplications', { count: appCount }, appCount),
     t('organizations.summaryEventsPerDay', { count: evtCount }, evtCount),
   ].join(' \u00B7 ');
+});
+
+// Consumptions computed from org detail
+const consumptions = computed<ConsumptionQuota[]>(() => {
+  if (!organization.value) return [];
+  return [
+    {
+      icon: markRaw(Users),
+      name: t('organizations.consumptionMembers'),
+      description: t('organizations.consumptionMembersDesc'),
+      consumption: organization.value.consumption.members || 0,
+      quota: organization.value.quotas.members_per_organization_limit,
+    },
+    {
+      icon: markRaw(Box),
+      name: t('organizations.consumptionApplications'),
+      description: t('organizations.consumptionApplicationsDesc'),
+      consumption: organization.value.consumption.applications || 0,
+      quota: organization.value.quotas.applications_per_organization_limit,
+    },
+    {
+      icon: markRaw(FileText),
+      name: t('organizations.consumptionEventsPerDay'),
+      description: t('organizations.consumptionEventsPerDayDesc'),
+      consumption: organization.value.consumption.events_per_day || 0,
+      quota: organization.value.quotas.events_per_day_limit,
+    },
+    {
+      icon: markRaw(Database),
+      name: t('organizations.consumptionRetention'),
+      description: t('organizations.consumptionRetentionDesc'),
+      consumption: organization.value.quotas.days_of_events_retention_limit,
+      quota: organization.value.quotas.days_of_events_retention_limit,
+      displayValue: String(organization.value.quotas.days_of_events_retention_limit),
+      displayUnit: 'days',
+    },
+  ];
 });
 
 /** Quota cards shown in the developer-plan notice section. */
@@ -166,7 +205,7 @@ const quotaCards = computed<{ icon: Component; value: number | undefined; label:
 
       <!-- Events per day chart -->
       <EventsPerDayChartCard
-        :title="t('organizations.consumptionTitle', { name: organization.name })"
+        :title="t('organizations.inboundEventsTitle', { name: organization.name })"
         :entries="eventsPerDayData ?? []"
         :stacked="true"
         :from="eventsPerDayFrom"
@@ -175,6 +214,13 @@ const quotaCards = computed<{ icon: Component; value: number | undefined; label:
         :quota-limit="organization.quotas.events_per_day_limit"
         @update:days="eventsPerDayDays = $event"
         @refresh="refetchEventsPerDay()"
+      />
+
+      <!-- Usage / Quotas -->
+      <Hook0Consumption
+        :title="t('organizations.consumptionTitle', { name: organization.name })"
+        entity-type="organization"
+        :consumptions="consumptions"
       />
 
       <!-- Developer plan notice (shown only when on free plan) -->

@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { computed, markRaw } from 'vue';
+import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { Users, Box, FileText, Database } from 'lucide-vue-next';
 
 import {
   useOrganizationDetail,
@@ -25,8 +24,6 @@ import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
-import Hook0Consumption from '@/components/Hook0Consumption.vue';
-import type { ConsumptionQuota } from '@/components/consumption.types';
 import Hook0Stack from '@/components/Hook0Stack.vue';
 import OrganizationRemove from './OrganizationsRemove.vue';
 import Hook0Form from '@/components/Hook0Form.vue';
@@ -106,42 +103,7 @@ const { errors, defineField, onSubmit } = useEntityForm<{ name: string }, Organi
 
 const [name, nameAttrs] = defineField('name');
 
-// Consumptions computed from org detail
-const consumptions = computed<ConsumptionQuota[]>(() => {
-  if (!orgDetail.value) return [];
-  return [
-    {
-      icon: markRaw(Users),
-      name: t('organizations.consumptionMembers'),
-      description: t('organizations.consumptionMembersDesc'),
-      consumption: orgDetail.value.consumption.members || 0,
-      quota: orgDetail.value.quotas.members_per_organization_limit,
-    },
-    {
-      icon: markRaw(Box),
-      name: t('organizations.consumptionApplications'),
-      description: t('organizations.consumptionApplicationsDesc'),
-      consumption: orgDetail.value.consumption.applications || 0,
-      quota: orgDetail.value.quotas.applications_per_organization_limit,
-    },
-    {
-      icon: markRaw(FileText),
-      name: t('organizations.consumptionEventsPerDay'),
-      description: t('organizations.consumptionEventsPerDayDesc'),
-      consumption: orgDetail.value.consumption.events_per_day || 0,
-      quota: orgDetail.value.quotas.events_per_day_limit,
-    },
-    {
-      icon: markRaw(Database),
-      name: t('organizations.consumptionRetention'),
-      description: t('organizations.consumptionRetentionDesc'),
-      consumption: orgDetail.value.quotas.days_of_events_retention_limit,
-      quota: orgDetail.value.quotas.days_of_events_retention_limit,
-      displayValue: String(orgDetail.value.quotas.days_of_events_retention_limit),
-      displayUnit: 'days',
-    },
-  ];
-});
+
 </script>
 
 <template>
@@ -218,13 +180,6 @@ const consumptions = computed<ConsumptionQuota[]>(() => {
             </Hook0CardFooter>
           </Hook0Card>
         </Hook0Form>
-
-        <Hook0Consumption
-          v-if="!isNew && organizationId && orgDetail"
-          :title="t('organizations.consumptionTitle', { name: orgDetail.name })"
-          entity-type="organization"
-          :consumptions="consumptions"
-        />
 
         <OrganizationRemove
           v-if="!isNew && canDelete('organization')"

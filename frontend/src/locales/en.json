@@ -33,6 +33,7 @@
   "applications": {
     "consumptionEventsPerDay": "Events per day",
     "consumptionTitle": "Usage for {name}",
+    "inboundEventsTitle": "Inbound Events for {name}",
     "create": "Create application",
     "createFirstApp": "Create your first application",
     "createTitle": "Create new application",
@@ -579,6 +580,7 @@
     "consumptionRetention": "Retention",
     "consumptionRetentionDesc": "How long events are kept",
     "consumptionTitle": "Usage for {name}",
+    "inboundEventsTitle": "Inbound Events for {name}",
     "create": "Create organization",
     "createFirstOrg": "Create your first organization",
     "createTitle": "Create new organization",

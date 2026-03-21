@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, markRaw } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Rocket } from 'lucide-vue-next';
+import { Rocket, FileText } from 'lucide-vue-next';
 
 import { useApplicationDetail } from './useApplicationQueries';
 import { useEventsPerDay } from './useEventsPerDayQuery';
@@ -19,6 +19,8 @@ import Hook0TutorialWidget from '@/components/Hook0TutorialWidget.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
 import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
 import EventsPerDayChartCard from '@/components/EventsPerDayChartCard.vue';
+import Hook0Consumption from '@/components/Hook0Consumption.vue';
+import type { ConsumptionQuota } from '@/components/consumption.types';
 import { useRouteIds } from '@/composables/useRouteIds';
 
 const { t } = useI18n();
@@ -44,6 +46,19 @@ const {
   data: eventsPerDayData,
   refetch: refetchEventsPerDay,
 } = useEventsPerDay('application', applicationId);
+
+// Consumptions computed from app detail
+const consumptions = computed<ConsumptionQuota[]>(() => {
+  if (!application.value) return [];
+  return [
+    {
+      icon: markRaw(FileText),
+      name: t('applications.consumptionEventsPerDay'),
+      consumption: application.value.consumption.events_per_day || 0,
+      quota: application.value.quotas.events_per_day_limit,
+    },
+  ];
+});
 </script>
 
 <template>
@@ -90,7 +105,7 @@ const {
 
       <!-- Events per day chart -->
       <EventsPerDayChartCard
-        :title="t('applications.consumptionTitle', { name: application.name })"
+        :title="t('applications.inboundEventsTitle', { name: application.name })"
         :entries="eventsPerDayData ?? []"
         :stacked="false"
         :from="eventsPerDayFrom"
@@ -99,6 +114,13 @@ const {
         :quota-limit="application.quotas.events_per_day_limit"
         @update:days="eventsPerDayDays = $event"
         @refresh="refetchEventsPerDay()"
+      />
+
+      <!-- Usage / Quotas -->
+      <Hook0Consumption
+        :title="t('applications.consumptionTitle', { name: application.name })"
+        entity-type="application"
+        :consumptions="consumptions"
       />
     </template>
   </Hook0PageLayout>
