@@ -85,8 +85,8 @@ Enhanced features: JSON validation, line numbers, search, copy button, collapsib
 
 | Package | Version | Purpose |
 |---|---|---|
-| `chart.js` | `^4.5.1` | Charting library |
-| `vue-chartjs` | `^5.3.3` | Vue wrapper |
+| `echarts` | `^6.0.0` | Charting library |
+| `vue-echarts` | `^8.0.1` | Vue wrapper |
 
 ### Animations
 
@@ -1065,7 +1065,7 @@ trackEvent('subscription.create', { eventTypes: 3 })
 | `main` | Vue, Vue Router, Pinia, TanStack Query core, Tailwind | <150KB |
 | `vendor-biscuit` | @biscuit-auth/biscuit-wasm | Lazy (token pages only) |
 | `vendor-codemirror` | CodeMirror + JSON lang | Lazy (code editor pages only) |
-| `vendor-charts` | Chart.js + vue-chartjs | Lazy (dashboard only, deferred) |
+| `vendor-charts` | ECharts + vue-echarts | Lazy (dashboard only) |
 | Per-route chunks | Each page/feature | <30KB each |
 
 ### Removed from bundle
@@ -1205,7 +1205,7 @@ The entire frontend is rewritten in a single branch. No hybrid state, no feature
 | Feature | Reason |
 |---|---|
 | Real-time event streaming (WebSocket/SSE) | Deferred to future iteration (see TODO.md) |
-| Dashboard charts & graphs | Deferred (Chart.js dependency pinned for later) |
+| Dashboard charts & graphs | Implemented with ECharts + vue-echarts |
 | Event Composer / Playground | Deferred to future iteration |
 | Billing / payments UI | Not applicable currently |
 | Backend API changes | Pure frontend redesign |
