@@ -71,8 +71,12 @@ const colors = computed(() => {
 // KPI stats
 const totalEvents = computed(() => props.entries.reduce((sum, e) => sum + e.amount, 0));
 const avgPerDay = computed(() => {
-  if (props.days === 0) return 0;
-  return Math.round((totalEvents.value / props.days) * 10) / 10;
+  // Ignore leading zero-event days (trimLeft) so avg reflects active usage period
+  const firstActiveIndex = props.entries.findIndex((e) => e.amount > 0);
+  if (firstActiveIndex === -1) return 0;
+  const activeDays = props.entries.length - firstActiveIndex;
+  const activeTotal = props.entries.slice(firstActiveIndex).reduce((sum, e) => sum + e.amount, 0);
+  return Math.round((activeTotal / activeDays) * 10) / 10;
 });
 
 /** Peak daily event count across all entries (M11: use reduce instead of spread). */
