@@ -34,7 +34,7 @@ Hook0 follows a modular architecture with clear separation of concerns:
 ### Worker Process
 - **Event Processing**: Retrieves pending events from database
 - **Webhook Delivery**: Makes HTTP requests to configured endpoints
-- **Retry Logic**: Implements exponential backoff for failed deliveries
+- **Retry Logic**: Implements increasing backoff for failed deliveries
 - **Dead Letter Handling**: Manages permanently failed events
 - **Monitoring**: Records delivery attempts and response data
 

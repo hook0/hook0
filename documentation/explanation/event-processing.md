@@ -46,7 +46,7 @@ The following diagram illustrates the complete event processing flow from ingest
 3. **Worker** polls database for pending delivery attempts
 4. **Worker** sends HTTP POST to webhook endpoint
 5. **Endpoint** responds with status code
-6. **Worker** records attempt result; schedules retry on failure (exponential backoff)
+6. **Worker** records attempt result; schedules retry on failure (increasing backoff)
 
 ## Event Lifecycle
 
@@ -106,8 +106,8 @@ For each matching subscription, Hook0 creates a delivery task.
 
 #### Initial Scheduling
 - First delivery attempt: immediate
-- Subsequent retries: exponential backoff
-- Maximum retry limit: configurable per subscription
+- Subsequent retries: increasing backoff
+- Maximum retry limit: configurable at the Output Worker level
 
 ### 4. Webhook Delivery
 
@@ -123,7 +123,7 @@ Hook0 categorizes HTTP responses to determine next actions:
 - No further action needed
 
 #### Non-Success Responses (4xx, 5xx) & Network Issues
-- Schedule retry with exponential backoff
+- Schedule retry with increasing backoff
 - Increment attempt counter
 - See [HTTP Status Code Categories](../how-to-guides/debug-failed-webhooks.md#http-status-code-categories) for retry behavior details
 - Eventually move to dead letter queue after max retries exhausted
