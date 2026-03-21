@@ -40,6 +40,7 @@ import Hook0Form from '@/components/Hook0Form.vue';
 import Hook0Skeleton from '@/components/Hook0Skeleton.vue';
 import { Codemirror } from 'vue-codemirror';
 import { json } from '@codemirror/lang-json';
+import { oneDark } from '@codemirror/theme-one-dark';
 import { EditorView } from 'codemirror';
 
 type Props = {
@@ -91,7 +92,7 @@ function openFullPage() {
   });
 }
 
-const readOnlyExtensions = [json(), EditorView.lineWrapping, EditorView.editable.of(false)];
+const readOnlyExtensions = [json(), oneDark, EditorView.lineWrapping, EditorView.editable.of(false)];
 
 // Events list query
 const { data: events, isLoading, error, refetch } = useEventList(applicationId);
