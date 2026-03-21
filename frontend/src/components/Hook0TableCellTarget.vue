@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import Hook0TruncatedText from './Hook0TruncatedText.vue';
+import Hook0TooltipFullCopy from './Hook0TooltipFullCopy.vue';
 
 type Props = {
   method: string;
@@ -11,6 +11,13 @@ const props = defineProps<Props>();
 
 const fullValue = computed(() => `${props.method} ${props.url}`);
 
+/**
+ * @description Splits a URL into 3 segments for smart truncation via CSS flex-shrink:
+ *   - domain: the host (e.g. "example.com") — shrinks moderately (flex-shrink: 1)
+ *   - midPath: intermediate path segments (e.g. "/api/v1") — shrinks first (flex-shrink: 100)
+ *   - lastChunk: final path segment (e.g. "/webhooks") — never shrinks (flex-shrink: 0)
+ * @example "https://example.com/api/v1/webhooks" => { domain: "example.com", midPath: "/api/v1", lastChunk: "/webhooks" }
+ */
 const parsed = computed(() => {
   try {
     const u = new URL(props.url);
@@ -29,14 +36,14 @@ const parsed = computed(() => {
 </script>
 
 <template>
-  <Hook0TruncatedText :value="fullValue" :display="fullValue">
+  <Hook0TooltipFullCopy :value="fullValue" :mono="false">
     <span class="cell-target">
       <span class="cell-target__method">{{ method }}</span>
       <span class="cell-target__domain">{{ parsed.domain }}</span>
       <span v-if="parsed.midPath" class="cell-target__mid">{{ parsed.midPath }}</span>
       <span class="cell-target__last">{{ parsed.lastChunk }}</span>
     </span>
-  </Hook0TruncatedText>
+  </Hook0TooltipFullCopy>
 </template>
 
 <style scoped>
@@ -46,7 +53,7 @@ const parsed = computed(() => {
   font-family: var(--font-mono);
   font-size: 0.8125rem;
   line-height: 1.4;
-  max-width: 15rem;
+  max-width: 18rem;
   overflow: hidden;
 }
 

@@ -198,6 +198,7 @@ const columns: ColumnDef<Event, unknown>[] = [
     cell: (info) =>
       h(Hook0Uuid, {
         value: String(info.getValue()),
+        truncated: true,
         'data-test': 'event-id-link',
       }),
   },

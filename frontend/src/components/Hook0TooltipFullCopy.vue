@@ -6,7 +6,6 @@ import { useClipboardCopy } from '@/composables/useClipboardCopy';
 
 type Props = {
   value: string;
-  display: string;
   copyMessage?: string;
   linked?: boolean;
   mono?: boolean;
@@ -77,27 +76,27 @@ onBeforeUnmount(() => {
 <template>
   <span
     ref="triggerRef"
-    class="hook0-truncated"
-    :class="{ 'hook0-truncated--linked': linked, 'hook0-truncated--mono': mono }"
+    class="hook0-tooltip-copy"
+    :class="{ 'hook0-tooltip-copy--linked': linked, 'hook0-tooltip-copy--mono': mono }"
     @mouseenter="show"
     @mouseleave="hide"
     @focusin="show"
     @focusout="hide"
   >
-    <slot>{{ display }}</slot>
+    <slot />
 
     <Teleport to="body">
-      <Transition name="hook0-truncated-fade">
+      <Transition name="hook0-tooltip-copy-fade">
         <div
           v-if="visible"
-          class="hook0-truncated__tooltip"
+          class="hook0-tooltip-copy__tooltip"
           :style="tooltipStyle"
           @mouseenter="show"
           @mouseleave="hide"
         >
-          <span class="hook0-truncated__tooltip-text">{{ value }}</span>
+          <span class="hook0-tooltip-copy__tooltip-text">{{ value }}</span>
           <button
-            class="hook0-truncated__tooltip-copy"
+            class="hook0-tooltip-copy__tooltip-btn"
             type="button"
             :aria-label="t('common.copy')"
             @click.stop.prevent="copy"
@@ -106,11 +105,11 @@ onBeforeUnmount(() => {
               v-if="justCopied"
               :size="12"
               aria-hidden="true"
-              class="hook0-truncated__icon--success"
+              class="hook0-tooltip-copy__icon--success"
             />
             <Copy v-else :size="12" aria-hidden="true" />
           </button>
-          <span class="hook0-truncated__tooltip-arrow" aria-hidden="true" />
+          <span class="hook0-tooltip-copy__tooltip-arrow" aria-hidden="true" />
         </div>
       </Transition>
     </Teleport>
@@ -118,29 +117,31 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.hook0-truncated {
+.hook0-tooltip-copy {
   display: inline-flex;
   align-items: center;
   font-size: 0.8125rem;
   line-height: 1.4;
   color: var(--color-text-primary);
   cursor: default;
+  max-width: 100%;
+  min-width: 0;
 }
 
-.hook0-truncated--mono {
+.hook0-tooltip-copy--mono {
   font-family: var(--font-mono);
 }
 
-.hook0-truncated--linked {
+.hook0-tooltip-copy--linked {
   color: var(--color-primary);
 }
 
-.hook0-truncated--linked:hover {
+.hook0-tooltip-copy--linked:hover {
   text-decoration: underline;
 }
 
 /* Tooltip */
-.hook0-truncated__tooltip {
+.hook0-tooltip-copy__tooltip {
   position: fixed;
   display: inline-flex;
   align-items: center;
@@ -157,11 +158,11 @@ onBeforeUnmount(() => {
   pointer-events: auto;
 }
 
-.hook0-truncated__tooltip-text {
+.hook0-tooltip-copy__tooltip-text {
   user-select: all;
 }
 
-.hook0-truncated__tooltip-copy {
+.hook0-tooltip-copy__tooltip-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -176,16 +177,16 @@ onBeforeUnmount(() => {
   transition: background-color 0.15s ease;
 }
 
-.hook0-truncated__tooltip-copy:hover {
+.hook0-tooltip-copy__tooltip-btn:hover {
   background-color: color-mix(in srgb, var(--color-on-dark) 30%, transparent);
 }
 
-.hook0-truncated__icon--success {
+.hook0-tooltip-copy__icon--success {
   color: var(--color-on-dark);
 }
 
 /* Arrow */
-.hook0-truncated__tooltip-arrow {
+.hook0-tooltip-copy__tooltip-arrow {
   position: absolute;
   bottom: -4px;
   left: 50%;
@@ -198,16 +199,16 @@ onBeforeUnmount(() => {
 }
 
 /* Fade */
-.hook0-truncated-fade-enter-active {
+.hook0-tooltip-copy-fade-enter-active {
   transition: opacity 100ms ease;
 }
 
-.hook0-truncated-fade-leave-active {
+.hook0-tooltip-copy-fade-leave-active {
   transition: opacity 75ms ease;
 }
 
-.hook0-truncated-fade-enter-from,
-.hook0-truncated-fade-leave-to {
+.hook0-tooltip-copy-fade-enter-from,
+.hook0-tooltip-copy-fade-leave-to {
   opacity: 0;
 }
 </style>
