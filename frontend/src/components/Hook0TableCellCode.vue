@@ -21,8 +21,11 @@ defineProps<Props>();
   font-size: 0.8125rem;
   font-weight: 500;
   line-height: 1.5;
-  width: fit-content;
+  display: block;
+  max-width: 14rem;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   user-select: text;
 }
 </style>

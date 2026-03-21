@@ -90,6 +90,11 @@ function handleClick(event: Event) {
   font-size: 0.875rem;
   text-decoration: none;
   cursor: pointer;
+  display: block;
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .table-cell-nav-link:hover {

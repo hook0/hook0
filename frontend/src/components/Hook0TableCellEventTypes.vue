@@ -43,6 +43,9 @@ withDefaults(defineProps<Props>(), {
   color: var(--color-text-secondary);
   line-height: 1.4;
   text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .cell-event-types__item--link:hover {
