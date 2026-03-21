@@ -178,6 +178,27 @@ const modelStr = computed({
   accent-color: var(--color-primary);
 }
 
+.hook0-input:read-only {
+  background-color: var(--color-bg-secondary);
+  border-color: var(--color-border);
+  box-shadow: none;
+  cursor: default;
+}
+
+.hook0-input:read-only:focus {
+  outline: none;
+  border-color: var(--color-border);
+  box-shadow: none;
+}
+
+.hook0-input:disabled {
+  background-color: var(--color-bg-secondary);
+  border-color: var(--color-border);
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .hook0-input-error {
   border-color: var(--color-danger);
 }
