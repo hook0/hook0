@@ -18,7 +18,7 @@ export default defineConfig({
         manualChunks: (id: string) => {
           if (id.includes('@biscuit-auth/biscuit-wasm')) return 'vendor-biscuit';
           if (id.includes('codemirror') || id.includes('@codemirror')) return 'vendor-codemirror';
-          if (id.includes('chart.js') || id.includes('vue-chartjs')) return 'vendor-charts';
+          if (id.includes('echarts') || id.includes('vue-echarts')) return 'vendor-charts';
           if (id.includes('node_modules')) {
             if (
               id.includes('vue') ||
