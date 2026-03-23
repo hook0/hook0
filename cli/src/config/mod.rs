@@ -6,8 +6,13 @@ pub use profiles::Profile;
 
 use std::path::PathBuf;
 
-/// Get the configuration directory path
+/// Get the configuration directory path.
+///
+/// Respects `HOOK0_CONFIG_DIR` env var to override the default platform path.
 pub fn config_dir() -> PathBuf {
+    if let Ok(dir) = std::env::var("HOOK0_CONFIG_DIR") {
+        return PathBuf::from(dir);
+    }
     dirs::config_dir()
         .expect("Could not determine config directory")
         .join("hook0")

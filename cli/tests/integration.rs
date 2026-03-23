@@ -249,6 +249,10 @@ fn test_multiple_verbose_flags() {
 // Integration tests with real API (requires HOOK0_SECRET and HOOK0_APPLICATION_ID)
 // =============================================================================
 
+use std::sync::atomic::{AtomicU32, Ordering};
+
+static TEST_COUNTER: AtomicU32 = AtomicU32::new(0);
+
 fn get_test_credentials() -> (String, String, String) {
     let secret =
         std::env::var("HOOK0_SECRET").expect("HOOK0_SECRET must be set. Run: source cli/.envrc");
@@ -259,14 +263,36 @@ fn get_test_credentials() -> (String, String, String) {
     (secret, app_id, api_url)
 }
 
-/// Test successful login with valid credentials from environment
+/// Generate a unique profile name for test isolation (avoids keyring races)
+fn unique_profile_name() -> String {
+    let id = TEST_COUNTER.fetch_add(1, Ordering::SeqCst);
+    let ts = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis();
+    format!("_test-{}-{}", ts, id)
+}
+
+/// Create a Command with an isolated config dir via HOOK0_CONFIG_DIR.
+/// Each test gets its own tempdir so they can run in parallel without races.
+/// Clears HOOK0_SECRET/HOOK0_API_URL to prevent the parent env from leaking
+/// into the child and triggering the override code path.
+fn hook0_cmd(config_dir: &std::path::Path) -> Command {
+    let mut cmd = Command::cargo_bin("hook0").expect("binary should exist");
+    cmd.env("HOOK0_CONFIG_DIR", config_dir);
+    cmd.env_remove("HOOK0_SECRET");
+    cmd.env_remove("HOOK0_API_URL");
+    cmd.env_remove("HOOK0_PROFILE");
+    cmd
+}
+
+/// Test successful login with valid credentials (uses real keychain)
 #[test]
 fn test_login_with_valid_credentials() {
     let (secret, app_id, api_url) = get_test_credentials();
-    let temp_home = tempfile::tempdir().expect("Failed to create temp dir");
+    let config_dir = tempfile::tempdir().expect("Failed to create temp dir");
 
-    let mut cmd = Command::cargo_bin("hook0").expect("binary should exist");
-    cmd.env("HOME", temp_home.path())
+    hook0_cmd(config_dir.path())
         .args([
             "login",
             "--secret",
@@ -281,18 +307,29 @@ fn test_login_with_valid_credentials() {
         .assert()
         .success()
         .stdout(predicate::str::contains("Authenticated successfully"));
+
+    // Verify the profile is visible in config list
+    hook0_cmd(config_dir.path())
+        .args(["--output", "json", "config", "list"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("test-profile"));
+
+    // Cleanup keyring
+    let _ = hook0_cmd(config_dir.path())
+        .args(["config", "remove", "test-profile", "--yes"])
+        .output();
 }
 
-/// Test whoami after login shows correct application info
+/// Test whoami after login shows correct application info (uses real keychain)
 #[test]
 fn test_whoami_after_login() {
     let (secret, app_id, api_url) = get_test_credentials();
-    let temp_home = tempfile::tempdir().expect("Failed to create temp dir");
+    let config_dir = tempfile::tempdir().expect("Failed to create temp dir");
+    let profile = unique_profile_name();
 
-    // First login
-    let mut login_cmd = Command::cargo_bin("hook0").expect("binary should exist");
-    login_cmd
-        .env("HOME", temp_home.path())
+    // Login
+    hook0_cmd(config_dir.path())
         .args([
             "login",
             "--secret",
@@ -301,36 +338,33 @@ fn test_whoami_after_login() {
             &app_id,
             "--api-url",
             &api_url,
+            "--profile-name",
+            &profile,
         ])
         .assert()
         .success();
 
-    // Then whoami (verifies profile was saved, keyring access may vary by platform)
-    let mut whoami_cmd = Command::cargo_bin("hook0").expect("binary should exist");
-    whoami_cmd
-        .env("HOME", temp_home.path())
-        .args(["whoami"])
+    // Whoami using the profile (reads secret from real keychain)
+    hook0_cmd(config_dir.path())
+        .args(["--profile", &profile, "whoami"])
         .assert()
         .success()
         .stdout(predicate::str::contains(&app_id));
+
+    // Cleanup keyring
+    let _ = hook0_cmd(config_dir.path())
+        .args(["config", "remove", &profile, "--yes"])
+        .output();
 }
 
 /// Test that login stores profile configuration correctly
 #[test]
 fn test_login_stores_profile() {
     let (secret, app_id, api_url) = get_test_credentials();
-    let temp_home = tempfile::tempdir().expect("Failed to create temp dir");
+    let config_dir = tempfile::tempdir().expect("Failed to create temp dir");
+    let profile = unique_profile_name();
 
-    // Login should create profile
-    // Set appropriate env vars based on OS for config directory resolution
-    let mut login_cmd = Command::cargo_bin("hook0").expect("binary should exist");
-    login_cmd.env("HOME", temp_home.path());
-
-    // On Windows, dirs crate uses APPDATA, not HOME
-    #[cfg(target_os = "windows")]
-    login_cmd.env("APPDATA", temp_home.path());
-
-    login_cmd
+    hook0_cmd(config_dir.path())
         .args([
             "login",
             "--secret",
@@ -339,41 +373,83 @@ fn test_login_stores_profile() {
             &app_id,
             "--api-url",
             &api_url,
+            "--profile-name",
+            &profile,
         ])
         .assert()
         .success()
         .stdout(predicate::str::contains("Credentials saved to profile"));
 
-    // Verify config file was created (path varies by OS)
-    // macOS: ~/Library/Application Support/hook0/config.toml
-    // Linux: ~/.config/hook0/config.toml
-    // Windows: %APPDATA%/hook0/config.toml
-    let config_path = if cfg!(target_os = "macos") {
-        temp_home
-            .path()
-            .join("Library/Application Support/hook0/config.toml")
-    } else if cfg!(target_os = "windows") {
-        temp_home.path().join("hook0/config.toml")
-    } else {
-        temp_home.path().join(".config/hook0/config.toml")
-    };
+    // Verify config file was created in the isolated dir
     assert!(
-        config_path.exists(),
+        config_dir.path().join("config.toml").exists(),
         "Config file should be created at {:?}",
-        config_path
+        config_dir.path().join("config.toml")
     );
+
+    // Verify profile contains correct details
+    hook0_cmd(config_dir.path())
+        .args(["--output", "json", "config", "list"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(&app_id))
+        .stdout(predicate::str::contains(&api_url));
+
+    // Cleanup keyring
+    let _ = hook0_cmd(config_dir.path())
+        .args(["config", "remove", &profile, "--yes"])
+        .output();
+}
+
+/// Regression test: keyring must persist the secret across commands.
+/// This catches the bug where keyring used MockCredential (no persistence).
+/// Login stores the secret, then event-type list retrieves it from keyring
+/// and authenticates with the API. If the keyring is mocked, this fails with
+/// "No matching entry found in secure storage".
+#[test]
+fn test_keyring_persists_secret_across_commands() {
+    let (secret, app_id, api_url) = get_test_credentials();
+    let config_dir = tempfile::tempdir().expect("Failed to create temp dir");
+    let profile = unique_profile_name();
+
+    // Step 1: Login (stores secret in keyring)
+    hook0_cmd(config_dir.path())
+        .args([
+            "login",
+            "--secret",
+            &secret,
+            "--application-id",
+            &app_id,
+            "--api-url",
+            &api_url,
+            "--profile-name",
+            &profile,
+        ])
+        .assert()
+        .success();
+
+    // Step 2: Run a command that hits the API using the keyring secret.
+    // If the keyring is mocked, this fails because the secret was never stored.
+    hook0_cmd(config_dir.path())
+        .args(["--profile", &profile, "event-type", "list"])
+        .assert()
+        .success();
+
+    // Cleanup keyring
+    let _ = hook0_cmd(config_dir.path())
+        .args(["config", "remove", &profile, "--yes"])
+        .output();
 }
 
 /// Test JSON output format with authenticated request
 #[test]
 fn test_json_output_authenticated() {
     let (secret, app_id, api_url) = get_test_credentials();
-    let temp_home = tempfile::tempdir().expect("Failed to create temp dir");
+    let config_dir = tempfile::tempdir().expect("Failed to create temp dir");
+    let profile = unique_profile_name();
 
-    // First login
-    let mut login_cmd = Command::cargo_bin("hook0").expect("binary should exist");
-    login_cmd
-        .env("HOME", temp_home.path())
+    // Login
+    hook0_cmd(config_dir.path())
         .args([
             "login",
             "--secret",
@@ -382,17 +458,22 @@ fn test_json_output_authenticated() {
             &app_id,
             "--api-url",
             &api_url,
+            "--profile-name",
+            &profile,
         ])
         .assert()
         .success();
 
-    // Then whoami with JSON output (verify JSON structure, keyring auth may vary by platform)
-    let mut whoami_cmd = Command::cargo_bin("hook0").expect("binary should exist");
-    whoami_cmd
-        .env("HOME", temp_home.path())
-        .args(["--output", "json", "whoami"])
+    // Whoami with JSON output (verify JSON structure)
+    hook0_cmd(config_dir.path())
+        .args(["--profile", &profile, "--output", "json", "whoami"])
         .assert()
         .success()
         .stdout(predicate::str::contains("\"application_id\""))
         .stdout(predicate::str::contains(&app_id));
+
+    // Cleanup keyring
+    let _ = hook0_cmd(config_dir.path())
+        .args(["config", "remove", &profile, "--yes"])
+        .output();
 }

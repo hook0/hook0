@@ -55,7 +55,7 @@ portpicker = { version = "0.1", optional = true }
 rustls = { version = "0.23", default-features = false, features = ["std", "tls12", "aws_lc_rs"] }
 
 # Auth & Security
-keyring = "3.6"
+keyring = { version = "3.6" }
 dirs = "5.0"
 
 # Error handling
@@ -85,6 +85,15 @@ predicates = "3.1"
 hook0-play = { path = "../play" }
 portpicker = "0.1"
 axum = { version = "0.8", features = ["macros"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+keyring = { version = "3.6", features = ["apple-native"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+keyring = { version = "3.6", features = ["windows-native"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+keyring = { version = "3.6", features = ["linux-native"] }
 
 [[bin]]
 name = "hook0"
