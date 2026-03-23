@@ -100,6 +100,7 @@ export function useLogColumns(): ColumnDef<RequestAttemptExtended, unknown>[] {
         const uuid = h(Hook0Uuid, {
           value: String(info.getValue()),
           truncated: true,
+          linked: true,
           'data-test': 'log-event-link',
         });
         if (eventType) {

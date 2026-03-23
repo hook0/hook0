@@ -51,10 +51,11 @@ const display = computed(() => (props.truncated ? middleTruncate(props.value, 20
 }
 
 .hook0-uuid--linked {
-  color: var(--color-primary);
+  cursor: pointer;
 }
 
 .hook0-uuid--linked:hover {
   text-decoration: underline;
+  text-underline-offset: 2px;
 }
 </style>

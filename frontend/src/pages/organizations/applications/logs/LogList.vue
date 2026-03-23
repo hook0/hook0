@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useRouteIds } from '@/composables/useRouteIds';
 import { useI18n } from 'vue-i18n';
@@ -9,8 +9,11 @@ import { DOCS_LOGS_URL } from '@/constants/externalLinks';
 
 import { useLogList } from './useLogQueries';
 import { useLogColumns } from './useLogColumns';
+import type { RequestAttemptExtended } from './LogService';
 import { routes } from '@/routes';
 import { useOrganizationDetail } from '@/pages/organizations/useOrganizationQueries';
+
+import EventSidePanel from '@/pages/organizations/applications/events/EventSidePanel.vue';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -34,6 +37,19 @@ const retentionDays = computed(
 );
 
 const columns = useLogColumns();
+
+// Side panel state
+const sidePanelOpen = ref(false);
+const selectedEventId = ref('');
+
+function handleRowClick(row: RequestAttemptExtended) {
+  selectedEventId.value = row.event_id;
+  sidePanelOpen.value = true;
+}
+
+function closeSidePanel() {
+  sidePanelOpen.value = false;
+}
 </script>
 
 <template>
@@ -78,6 +94,8 @@ const columns = useLogColumns();
             :columns="columns"
             :data="requestAttempts"
             row-id-field="event_id"
+            clickable-rows
+            @row-click="handleRowClick"
           />
         </Hook0CardContent>
 
@@ -105,6 +123,14 @@ const columns = useLogColumns();
         </Hook0CardContent>
       </Hook0Card>
     </template>
+
+    <!-- Event side panel -->
+    <EventSidePanel
+      :open="sidePanelOpen"
+      :event-id="selectedEventId"
+      :application-id="applicationId"
+      @close="closeSidePanel"
+    />
   </Hook0PageLayout>
 </template>
 

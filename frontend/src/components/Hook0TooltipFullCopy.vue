@@ -133,11 +133,12 @@ onBeforeUnmount(() => {
 }
 
 .hook0-tooltip-copy--linked {
-  color: var(--color-primary);
+  cursor: pointer;
 }
 
 .hook0-tooltip-copy--linked:hover {
   text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 /* Tooltip */
