@@ -78,7 +78,7 @@ function displayError(err: Problem) {
         </div>
 
         <!-- Form -->
-        <form class="reset-page__form" @submit.prevent="submit">
+        <form class="reset-page__form" data-test="reset-password-form" @submit.prevent="submit">
           <!-- Email Field -->
           <div class="reset-page__field">
             <label for="email" class="reset-page__label">Email</label>
@@ -91,11 +91,17 @@ function displayError(err: Problem) {
               class="reset-page__input"
               autocomplete="email"
               :disabled="isLoading"
+              data-test="reset-password-email-input"
             />
           </div>
 
           <!-- Submit Button -->
-          <button type="submit" class="reset-page__submit" :disabled="isLoading">
+          <button
+            type="submit"
+            class="reset-page__submit"
+            :disabled="isLoading"
+            data-test="reset-password-submit-button"
+          >
             <span v-if="!isLoading">Send reset link</span>
             <span v-else class="reset-page__loading">
               <svg
@@ -125,7 +131,11 @@ function displayError(err: Problem) {
         </form>
 
         <!-- Back to login link -->
-        <router-link :to="{ name: routes.Login }" class="reset-page__back">
+        <router-link
+          :to="{ name: routes.Login }"
+          class="reset-page__back"
+          data-test="reset-password-back-link"
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             class="h-4 w-4 mr-2"

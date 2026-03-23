@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router';
-import { onMounted, onUpdated, ref } from 'vue';
+import { onMounted, onUpdated, ref, watch } from 'vue';
+import { format, subDays } from 'date-fns';
 
 import Hook0Text from '@/components/Hook0Text.vue';
 import { Problem, UUID } from '@/http';
 import * as ApplicationService from './ApplicationService';
 import { ApplicationInfo } from './ApplicationService';
+import * as EventsPerDayService from './EventsPerDayService';
+import { EventsPerDayEntry } from './EventsPerDayService';
 import { routes } from '@/routes';
 import EventTypesList from '@/pages/organizations/applications/event_types/EventTypesList.vue';
 import EventsList from '@/pages/organizations/applications/events/EventsList.vue';
@@ -21,15 +24,46 @@ import { applicationSteps, Step } from '@/pages/tutorial/TutorialService';
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
+import Hook0EventsPerDayChart from '@/components/Hook0EventsPerDayChart.vue';
 
 const route = useRoute();
 
 const application_id = ref<UUID | null>(null);
 const application = ref({
   name: '',
+  consumption: {
+    events_per_day: 0,
+  },
+  quotas: {
+    events_per_day_limit: 0,
+  },
 });
 
 const widgetItems = ref<Step[]>([]);
+
+const eventsPerDayDays = ref(30);
+const eventsPerDayData = ref<EventsPerDayEntry[]>([]);
+const eventsPerDayFrom = ref(format(subDays(new Date(), 30), 'yyyy-MM-dd'));
+const eventsPerDayTo = ref(format(new Date(), 'yyyy-MM-dd'));
+
+function loadEventsPerDay() {
+  if (!application_id.value) return;
+  EventsPerDayService.application(
+    application_id.value,
+    eventsPerDayFrom.value,
+    eventsPerDayTo.value
+  )
+    .then((data: EventsPerDayEntry[]) => {
+      eventsPerDayData.value = data;
+    })
+    .catch(displayError);
+}
+
+watch(eventsPerDayDays, (days) => {
+  eventsPerDayFrom.value = format(subDays(new Date(), days), 'yyyy-MM-dd');
+  eventsPerDayTo.value = format(new Date(), 'yyyy-MM-dd');
+  loadEventsPerDay();
+});
 
 function _load() {
   application_id.value = route.params.application_id as UUID;
@@ -37,9 +71,13 @@ function _load() {
   ApplicationService.get(application_id.value)
     .then((app: ApplicationInfo) => {
       application.value.name = app.name;
+      application.value.consumption.events_per_day = app.consumption.events_per_day || 0;
+      application.value.quotas.events_per_day_limit = app.quotas.events_per_day_limit;
       widgetItems.value = applicationSteps(app);
     })
     .catch(displayError);
+
+  loadEventsPerDay();
 }
 
 function displayError(err: Problem) {
@@ -89,6 +127,37 @@ onUpdated(() => {
           <Hook0CardContentLine type="full-width">
             <template #content>
               <Hook0TutorialWidget :steps="widgetItems" />
+            </template>
+          </Hook0CardContentLine>
+        </Hook0CardContentLines>
+      </Hook0CardContent>
+    </Hook0Card>
+    <Hook0Card>
+      <Hook0CardHeader>
+        <template #header>
+          <Hook0Icon name="chart-bar"></Hook0Icon>
+          Application Consumption
+        </template>
+        <template #actions>
+          <Hook0Button class="secondary" @click="_load()">
+            <Hook0Icon name="arrows-rotate" class="mr-1"></Hook0Icon>
+            Refresh
+          </Hook0Button>
+        </template>
+      </Hook0CardHeader>
+      <Hook0CardContent>
+        <Hook0CardContentLines>
+          <Hook0CardContentLine type="full-width">
+            <template #content>
+              <Hook0EventsPerDayChart
+                :entries="eventsPerDayData"
+                :stacked="false"
+                :from="eventsPerDayFrom"
+                :to="eventsPerDayTo"
+                :days="eventsPerDayDays"
+                :quota-limit="application.quotas.events_per_day_limit"
+                @update:days="eventsPerDayDays = $event"
+              />
             </template>
           </Hook0CardContentLine>
         </Hook0CardContentLines>

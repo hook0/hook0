@@ -119,6 +119,8 @@ The output-worker is a separate binary with its own configuration. Run \`hook0-o
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
 | \`SENTRY_DSN\` | Optional Sentry DSN for error reporting | - |  |
+| \`SENTRY_DEBUG\` | Enable Sentry SDK debug mode | \`false\` |  |
+| \`SENTRY_SEND_DEFAULT_PII\` | Send default PII (IP addresses, cookies, etc.) to Sentry | \`false\` |  |
 | \`OTLP_METRICS_ENDPOINT\` | Optional OTLP endpoint that will receive metrics | - |  |
 | \`OTLP_TRACES_ENDPOINT\` | Optional OTLP endpoint that will receive traces | - |  |
 | \`OTLP_AUTHORIZATION\` 🔒 | Optional value for OTLP \`Authorization\` header (for example: \`Bearer mytoken\`) | - |  |
@@ -133,6 +135,10 @@ The output-worker is a separate binary with its own configuration. Run \`hook0-o
 | \`OBJECT_STORAGE_KEY_ID\` | Key ID of the S3-like object storage | - |  |
 | \`OBJECT_STORAGE_KEY_SECRET\` 🔒 | Key secret of the S3-like object storage | - |  |
 | \`OBJECT_STORAGE_MAX_ATTEMPTS\` | Maximum number of attempts for object storage operations | \`3\` |  |
+| \`OBJECT_STORAGE_CONNECT_TIMEOUT\` | Connect timeout for object storage operations | \`3s\` |  |
+| \`OBJECT_STORAGE_READ_TIMEOUT\` | Read timeout for object storage operations | \`5s\` |  |
+| \`OBJECT_STORAGE_OPERATION_ATTEMPT_TIMEOUT\` | Operation attempt timeout for object storage | \`10s\` |  |
+| \`OBJECT_STORAGE_OPERATION_TIMEOUT\` | Operation timeout for object storage operations | \`30s\` |  |
 | \`OBJECT_STORAGE_BUCKET_NAME\` | Bucket name of the S3-like object storage | - |  |
 | \`STORE_RESPONSE_BODY_AND_HEADERS_IN_OBJECT_STORAGE\` | If true, new response bodies and headers will be stored in object storage instead of database | \`false\` |  |
 | \`STORE_RESPONSE_BODY_AND_HEADERS_IN_OBJECT_STORAGE_ONLY_FOR\` | A comma-separated list of applications ID whose response bodies and headers should be stored in object storage | - |  |
@@ -148,7 +154,10 @@ The output-worker is a separate binary with its own configuration. Run \`hook0-o
 | \`TIMEOUT\` | Timeout for obtaining a HTTP response from the target, including connect phase | \`15s\` |  |
 | \`SIGNATURE_HEADER_NAME\` | Name of the header containing webhook's signature | \`X-Hook0-Signature\` |  |
 | \`ENABLED_SIGNATURE_VERSIONS\` | A comma-separated list of enabled signature versions | \`v1\` |  |
-| \`LOAD_WAITING_REQUEST_ATTEMPT_INTO_PULSAR\` | If true, will load waiting request attempts from DB into Pulsar before starting | \`false\` |  |
+| \`LOAD_WAITING_REQUEST_ATTEMPTS_INTO_PULSAR\` | If true, will load waiting request attempts from DB into Pulsar before starting | \`false\` |  |
+| \`REQUEST_ATTEMPT_DB_COMMIT_GRACE_PERIOD\` | Grace period to wait for DB commit before dropping unfound request attempts (Pulsar workers only) | \`5s\` |  |
+| \`PULSAR_CONSUMER_STATS_INTERVAL\` | Period of Pulsar consumer stats collection (set to "0s" to disable) (only for Pulsar workers) | \`15s\` |  |
+| \`THROUGHPUT_LOG_INTERVAL\` | Interval between periodic throughput log lines (set to "0s" to disable) | \`60s\` |  |
 
 `;
 

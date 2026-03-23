@@ -2,16 +2,17 @@ mod monitoring;
 mod opentelemetry;
 mod pg;
 mod pulsar;
+mod throughput_log;
 mod work;
 
 use ::pulsar::{Authentication, Pulsar, TokioExecutor};
 use anyhow::bail;
 use aws_sdk_s3::Client;
 use aws_sdk_s3::config::retry::RetryConfig;
+use aws_sdk_s3::config::timeout::TimeoutConfig;
 use aws_sdk_s3::config::{AppName, Credentials, Region};
 use chrono::{DateTime, Utc};
 use clap::{ArgGroup, Parser, ValueEnum, crate_name, crate_version};
-use log::{debug, error, info, warn};
 use reqwest::Url;
 use reqwest::header::HeaderName;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
@@ -28,6 +29,7 @@ use tokio::task::JoinSet;
 use tokio::time::sleep;
 use tokio::{select, spawn};
 use tokio_util::task::TaskTracker;
+use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
 use hook0_protobuf::RequestAttempt;
@@ -50,6 +52,14 @@ struct Config {
     /// Optional Sentry DSN for error reporting
     #[clap(long, env)]
     sentry_dsn: Option<String>,
+
+    /// Enable Sentry SDK debug mode
+    #[clap(long, env, default_value_t = false)]
+    sentry_debug: bool,
+
+    /// Send default PII (IP addresses, cookies, etc.) to Sentry
+    #[clap(long, env, default_value_t = false)]
+    sentry_send_default_pii: bool,
 
     /// Optional OTLP endpoint that will receive metrics
     #[clap(long, env)]
@@ -106,6 +116,22 @@ struct Config {
     /// Maximum number of attempts for object storage operations
     #[clap(long, env, default_value_t = 3)]
     object_storage_max_attempts: u32,
+
+    /// [Object Storage] Connect timeout for object storage operations (time to initiate socket connection)
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "3s")]
+    object_storage_connect_timeout: Duration,
+
+    /// [Object Storage] Read timeout for object storage operations (time to first byte)
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "5s")]
+    object_storage_read_timeout: Duration,
+
+    /// [Object Storage] Operation attempt timeout for object storage operations
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "10s")]
+    object_storage_operation_attempt_timeout: Duration,
+
+    /// [Object Storage] Operation timeout for object storage operations
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "30s")]
+    object_storage_operation_timeout: Duration,
 
     /// Bucket name of the S3-like object storage
     #[clap(long, env)]
@@ -174,6 +200,14 @@ struct Config {
     /// Grace period to wait for database commit before dropping unfound request attempts (only for Pulsar workers)
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "5s")]
     request_attempt_db_commit_grace_period: Duration,
+
+    /// Period of Pulsar consumer stats collection (set to "0s" to disable) (only for Pulsar workers)
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "15s")]
+    pulsar_consumer_stats_interval: Duration,
+
+    /// Interval between periodic throughput log lines (set to "0s" to disable)
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "60s")]
+    throughput_log_interval: Duration,
 }
 
 #[derive(Debug, Clone)]
@@ -190,6 +224,10 @@ enum WorkerScope {
 }
 
 impl WorkerScope {
+    fn is_public(&self) -> bool {
+        matches!(self, Self::Public { .. })
+    }
+
     fn worker_id(&self) -> Option<Uuid> {
         match self {
             Self::Public {
@@ -253,6 +291,7 @@ pub struct RequestAttemptWithOptionalPayload {
     pub subscription_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub retry_count: i16,
+    pub delay_until: Option<DateTime<Utc>>,
     pub http_method: String,
     pub http_url: String,
     pub http_headers: serde_json::Value,
@@ -274,7 +313,13 @@ async fn main() -> anyhow::Result<()> {
 
     // Initialize app logger as well as Sentry integration
     // Return value *must* be kept in a variable or else it will be dropped and Sentry integration won't work
-    let _sentry = hook0_sentry_integration::init(crate_name!(), &config.sentry_dsn, &None);
+    let _sentry = hook0_sentry_integration::init(
+        &config.sentry_dsn,
+        &None,
+        config.sentry_debug,
+        config.sentry_send_default_pii,
+        false,
+    );
 
     // Init OpenTelemetry
     let otlp_exporters = opentelemetry::init(&config, &worker_version)?;
@@ -374,6 +419,7 @@ async fn main() -> anyhow::Result<()> {
         );
         let region = Region::from_static("none");
         let s3_config = aws_sdk_s3::Config::builder()
+            .behavior_version_latest()
             .region(region)
             .credentials_provider(credentials)
             .app_name(app_name)
@@ -387,6 +433,14 @@ async fn main() -> anyhow::Result<()> {
                 object_storage_host
             ))
             .force_path_style(true)
+            .timeout_config(
+                TimeoutConfig::builder()
+                    .connect_timeout(config.object_storage_connect_timeout)
+                    .read_timeout(config.object_storage_read_timeout)
+                    .operation_attempt_timeout(config.object_storage_operation_attempt_timeout)
+                    .operation_timeout(config.object_storage_operation_timeout)
+                    .build(),
+            )
             .retry_config(
                 RetryConfig::standard()
                     .with_max_attempts(config.object_storage_max_attempts)
@@ -452,6 +506,17 @@ async fn main() -> anyhow::Result<()> {
 
     // Create a TaskTracker to be able to track inflight webhook tasks so it is possible to gracefully shutdown when required
     let task_tracker = TaskTracker::new();
+
+    // Create throughput stats and spawn periodic log task
+    let stats = Arc::new(throughput_log::ThroughputStats::new(config.concurrent));
+    if !config.throughput_log_interval.is_zero() {
+        let stats_clone = stats.clone();
+        let interval = config.throughput_log_interval;
+        let tt = task_tracker.clone();
+        tasks.spawn(async move {
+            throughput_log::run_throughput_log(&stats_clone, interval, &tt).await;
+        });
+    }
 
     // This task waits for a soft termination signal
     let task_tracker_signal = task_tracker.clone();
@@ -557,6 +622,7 @@ async fn main() -> anyhow::Result<()> {
                 });
             }
 
+            let stats_pulsar = stats.clone();
             tasks.spawn(async move {
                 loop {
                     let result = pulsar::look_for_work(
@@ -569,6 +635,7 @@ async fn main() -> anyhow::Result<()> {
                         &pu,
                         heartbeat_tx.clone(),
                         &task_tracker_main,
+                        &stats_pulsar,
                     )
                     .await;
                     if let Err(ref e) = result {
@@ -596,15 +663,26 @@ async fn main() -> anyhow::Result<()> {
             let tx = heartbeat_tx.to_owned();
             let cfg = config.to_owned();
             let tt = task_tracker_main.clone();
+            let stats_pg = stats.clone();
             task_tracker_main.spawn(async move {
                 // Start units progressively
                 sleep(Duration::from_millis(u64::from(unit_id) * 100)).await;
 
                 loop {
-                    let t =
-                        pg::look_for_work(&cfg, unit_id, &p, &os, &w, &wv, tx.clone(), &tt).await;
+                    let t = pg::look_for_work(
+                        &cfg,
+                        unit_id,
+                        &p,
+                        &os,
+                        &w,
+                        &wv,
+                        tx.clone(),
+                        &tt,
+                        &stats_pg,
+                    )
+                    .await;
                     if let Err(ref e) = t {
-                        error!("Unit {unit_id} crashed: {e}");
+                        error!(unit_id, "Unit crashed: {e}");
                     }
 
                     if tt.is_closed() {
@@ -612,7 +690,7 @@ async fn main() -> anyhow::Result<()> {
                     }
 
                     sleep(Duration::from_secs(1)).await;
-                    info!("Restarting unit {unit_id}...");
+                    info!(unit_id, "Restarting unit...");
                 }
 
                 debug!("Main worker task terminated");
@@ -702,10 +780,7 @@ async fn compute_next_retry(
                 .as_ref()
                 .and_then(|bytes| str::from_utf8(bytes).ok())
                 .unwrap_or("???");
-            error!(
-                "Could not construct signature for request attempt {} ({msg}); giving up",
-                attempt.request_attempt_id
-            );
+            error!(request_attempt_id = %attempt.request_attempt_id, "Could not construct signature ({msg}); giving up");
             Ok(None)
         }
         _ => {
@@ -716,10 +791,7 @@ async fn compute_next_retry(
                     .as_ref()
                     .and_then(|bytes| str::from_utf8(bytes).ok())
                     .unwrap_or("???");
-                warn!(
-                    "Invalid target for request attempt {} ({msg}); continuing as normal",
-                    attempt.request_attempt_id
-                );
+                warn!(request_attempt_id = %attempt.request_attempt_id, "Invalid target ({msg}); continuing as normal");
             }
 
             let sub = query!(

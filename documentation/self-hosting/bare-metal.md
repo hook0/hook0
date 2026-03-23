@@ -34,7 +34,7 @@ The frontend requires the `API_ENDPOINT` environment variable set to the API's b
 
 ```bash
 cd frontend
-export API_ENDPOINT=https://your-api-url.com
+export API_ENDPOINT=https://your-api-url.com/api/v1
 npm install
 npm run build
 ```

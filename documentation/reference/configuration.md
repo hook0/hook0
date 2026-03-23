@@ -54,7 +54,7 @@ This documentation may not cover all options or reflect recent changes.
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
 | `BISCUIT_PRIVATE_KEY` | Biscuit's private key, used for authentication | - |  |
-| `DEBUG_AUTHORIZER` | If true, a trace log message containing authorizer context is emitted on each request; defaut is false because this feature implies a small overhead | `false` |  |
+| `DEBUG_AUTHORIZER` | If true, a trace log message containing authorizer context is emitted on each request; default is false because this feature implies a small overhead and might expose PII in logs | `false` |  |
 | `DISABLE_REGISTRATION` | Set to true to disable registration endpoint | - |  |
 | `MASTER_API_KEY` 🔒 | A global admin API key that have almost all rights. Better left undefined, USE AT YOUR OWN RISKS! | - |  |
 | `MAX_AUTHORIZATION_TIME_IN_MS` | Maximum duration (in millisecond) that can be spent running Biscuit's authorizer | `10` |  |
@@ -146,7 +146,10 @@ This documentation may not cover all options or reflect recent changes.
 | `OTLP_AUTHORIZATION` 🔒 | Optional value for OTLP `Authorization` header (for example: `Bearer mytoken`) | - |  |
 | `OTLP_METRICS_ENDPOINT` | Optional OTLP endpoint that will receive metrics | - |  |
 | `OTLP_TRACES_ENDPOINT` | Optional OTLP endpoint that will receive traces | - |  |
+| `SENTRY_DEBUG` | Enable Sentry SDK debug mode | `false` |  |
 | `SENTRY_DSN` | Optional Sentry DSN for error reporting | - |  |
+| `SENTRY_ENABLE_SPANS` | Enable sending tracing spans to Sentry | `false` |  |
+| `SENTRY_SEND_DEFAULT_PII` | Send default PII (IP addresses, cookies, etc.) to Sentry | `false` |  |
 | `SENTRY_TRACES_SAMPLE_RATE` | Optional sample rate for tracing transactions with Sentry (between 0.0 and 1.0) | - |  |
 
 ### Hook0 Client
@@ -155,7 +158,7 @@ This documentation may not cover all options or reflect recent changes.
 |----------|-------------|---------|----------|
 | `HOOK0_CLIENT_API_URL` | Base API URL of a Hook0 instance that will receive events from this Hook0 instance | - |  |
 | `HOOK0_CLIENT_APPLICATION_ID` | UUID of a Hook0 application that will receive events from this Hook0 instance | - |  |
-| `HOOK0_CLIENT_TOKEN` | Authentifcation token valid for a Hook0 application that will receive events from this Hook0 instance | - |  |
+| `HOOK0_CLIENT_TOKEN` | Authentication token valid for a Hook0 application that will receive events from this Hook0 instance | - |  |
 | `HOOK0_CLIENT_UPSERTS_RETRIES` | Number of allowed retries when upserting event types to the linked Hook0 application fails | `10` |  |
 
 ### Object Storage
@@ -163,11 +166,15 @@ This documentation may not cover all options or reflect recent changes.
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
 | `OBJECT_STORAGE_BUCKET_NAME` | Bucket name of the S3-like object storage | - |  |
+| `OBJECT_STORAGE_CONNECT_TIMEOUT` | Connect timeout for object storage operations (time to initiate socket connection) | `3s` |  |
 | `OBJECT_STORAGE_FORCE_HTTP_SCHEME` | Force endpoint scheme to be HTTP (by default it is HTTPS) | `false` |  |
 | `OBJECT_STORAGE_HOST` | Host of the S3-like object storage (without https://) | - |  |
 | `OBJECT_STORAGE_KEY_ID` | Key ID of the S3-like object storage | - |  |
 | `OBJECT_STORAGE_KEY_SECRET` 🔒 | Key secret of the S3-like object storage | - |  |
 | `OBJECT_STORAGE_MAX_ATTEMPTS` | Maximum number of attempts for object storage operations | `3` |  |
+| `OBJECT_STORAGE_OPERATION_ATTEMPT_TIMEOUT` | Operation attempt timeout for object storage operations | `10s` |  |
+| `OBJECT_STORAGE_OPERATION_TIMEOUT` | Operation timeout for object storage operations | `30s` |  |
+| `OBJECT_STORAGE_READ_TIMEOUT` | Read timeout for object storage operations (time to first byte) | `5s` |  |
 | `STORE_EVENT_PAYLOADS_IN_OBJECT_STORAGE` | If true, new event payloads will be stored in object storage instead of database | `false` |  |
 | `STORE_EVENT_PAYLOADS_IN_OBJECT_STORAGE_ONLY_FOR` | A comma-separated list of applications ID whose event payloads should be stored in object storage; if empty (default), all event payloads will be stored in object storage regardless of application ID | - |  |
 
@@ -193,6 +200,8 @@ The output-worker is a separate binary with its own configuration. Run `hook0-ou
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
 | `SENTRY_DSN` | Optional Sentry DSN for error reporting | - |  |
+| `SENTRY_DEBUG` | Enable Sentry SDK debug mode | `false` |  |
+| `SENTRY_SEND_DEFAULT_PII` | Send default PII (IP addresses, cookies, etc.) to Sentry | `false` |  |
 | `OTLP_METRICS_ENDPOINT` | Optional OTLP endpoint that will receive metrics | - |  |
 | `OTLP_TRACES_ENDPOINT` | Optional OTLP endpoint that will receive traces | - |  |
 | `OTLP_AUTHORIZATION` 🔒 | Optional value for OTLP `Authorization` header (for example: `Bearer mytoken`) | - |  |
@@ -207,6 +216,10 @@ The output-worker is a separate binary with its own configuration. Run `hook0-ou
 | `OBJECT_STORAGE_KEY_ID` | Key ID of the S3-like object storage | - |  |
 | `OBJECT_STORAGE_KEY_SECRET` 🔒 | Key secret of the S3-like object storage | - |  |
 | `OBJECT_STORAGE_MAX_ATTEMPTS` | Maximum number of attempts for object storage operations | `3` |  |
+| `OBJECT_STORAGE_CONNECT_TIMEOUT` | Connect timeout for object storage operations | `3s` |  |
+| `OBJECT_STORAGE_READ_TIMEOUT` | Read timeout for object storage operations | `5s` |  |
+| `OBJECT_STORAGE_OPERATION_ATTEMPT_TIMEOUT` | Operation attempt timeout for object storage | `10s` |  |
+| `OBJECT_STORAGE_OPERATION_TIMEOUT` | Operation timeout for object storage operations | `30s` |  |
 | `OBJECT_STORAGE_BUCKET_NAME` | Bucket name of the S3-like object storage | - |  |
 | `STORE_RESPONSE_BODY_AND_HEADERS_IN_OBJECT_STORAGE` | If true, new response bodies and headers will be stored in object storage instead of database | `false` |  |
 | `STORE_RESPONSE_BODY_AND_HEADERS_IN_OBJECT_STORAGE_ONLY_FOR` | A comma-separated list of applications ID whose response bodies and headers should be stored in object storage | - |  |
@@ -222,7 +235,10 @@ The output-worker is a separate binary with its own configuration. Run `hook0-ou
 | `TIMEOUT` | Timeout for obtaining a HTTP response from the target, including connect phase | `15s` |  |
 | `SIGNATURE_HEADER_NAME` | Name of the header containing webhook's signature | `X-Hook0-Signature` |  |
 | `ENABLED_SIGNATURE_VERSIONS` | A comma-separated list of enabled signature versions | `v1` |  |
-| `LOAD_WAITING_REQUEST_ATTEMPT_INTO_PULSAR` | If true, will load waiting request attempts from DB into Pulsar before starting | `false` |  |
+| `LOAD_WAITING_REQUEST_ATTEMPTS_INTO_PULSAR` | If true, will load waiting request attempts from DB into Pulsar before starting | `false` |  |
+| `REQUEST_ATTEMPT_DB_COMMIT_GRACE_PERIOD` | Grace period to wait for DB commit before dropping unfound request attempts (Pulsar workers only) | `5s` |  |
+| `PULSAR_CONSUMER_STATS_INTERVAL` | Period of Pulsar consumer stats collection (set to "0s" to disable) (only for Pulsar workers) | `15s` |  |
+| `THROUGHPUT_LOG_INTERVAL` | Interval between periodic throughput log lines (set to "0s" to disable) | `60s` |  |
 
 ## Notes
 

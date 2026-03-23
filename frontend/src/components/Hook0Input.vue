@@ -49,7 +49,7 @@ onUpdated(() => {
 </script>
 
 <template>
-  <div :class="$attrs.class">
+  <div :class="$attrs.class as string">
     <label v-if="props.label" class="hook0-label">{{ props.label }}</label>
     <input
       ref="ipt"

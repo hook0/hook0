@@ -186,7 +186,7 @@ onUpdated(() => {
     <!-- The default scoped slot will be used as the result -->
     <template #default="services_tokens">
       <!-- Service Tokens List -->
-      <Hook0Card class="mb-4">
+      <Hook0Card class="mb-4" data-test="service-tokens-card">
         <Hook0CardHeader>
           <template #header> Service Tokens </template>
           <template #subtitle>
@@ -197,9 +197,11 @@ onUpdated(() => {
 
         <Hook0CardContent v-if="services_tokens.length > 0">
           <Hook0Table
+            data-test="service-tokens-table"
             :context="{ services_token$, columnDefs }"
             :column-defs="columnDefs"
             :row-data="services_tokens"
+            row-id-field="service_token_id"
           >
           </Hook0Table>
         </Hook0CardContent>
@@ -218,7 +220,12 @@ onUpdated(() => {
         </Hook0CardContent>
 
         <Hook0CardFooter>
-          <Hook0Button class="primary" type="button" @click="createNew">
+          <Hook0Button
+            class="primary"
+            type="button"
+            data-test="service-tokens-create-button"
+            @click="createNew"
+          >
             <Hook0Icon name="plus" class="mr-1"></Hook0Icon>
             Create Service Token
           </Hook0Button>

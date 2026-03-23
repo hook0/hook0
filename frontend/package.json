@@ -1,6 +1,6 @@
 {
   "name": "hook0",
-  "version": "1.0.0",
+  "version": "1.0.0-alpha.3",
   "description": "Hook0 Frontend - Webhook As a Service",
   "contributors": [
     "Francois-Guillaume Ribreau <npm@fgribreau.com> (http://fgribreau.com/)",
@@ -52,6 +52,7 @@
     "codemirror": "^6.0.1",
     "crisp-sdk-web": "^1.0.21",
     "date-fns": "^4.1.0",
+    "echarts": "^6.0.0",
     "fp-ts": "^2.11.6",
     "lodash.debounce": "^4.0.8",
     "notivue": "^2.4.4",
@@ -62,6 +63,7 @@
     "vue": "^3.0.0",
     "vue-click-outside-element": "^3.1.2",
     "vue-codemirror": "^6.1.1",
+    "vue-echarts": "^8.0.1",
     "vue-matomo": "^4.2.0",
     "vue-promised": "^2.0.2",
     "vue-router": "^4.0.6",

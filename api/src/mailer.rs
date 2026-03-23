@@ -1,9 +1,9 @@
 use html2text::from_read;
 use lettre::message::{Mailbox, MultiPart};
 use lettre::{Address, AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor};
-use log::{info, warn};
 use std::string::String;
 use std::time::Duration;
+use tracing::{info, warn};
 use url::Url;
 
 use crate::problems::Hook0Problem;

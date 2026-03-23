@@ -95,7 +95,7 @@ function togglePasswordVisibility() {
     <div class="login-page__content">
       <!-- Logo -->
       <div class="login-page__logo">
-        <img src="/logo.svg" alt="Hook0" class="h-12 w-auto" />
+        <img src="/logo.svg" alt="Hook0" class="h-12 w-auto" data-test="login-logo" />
       </div>
 
       <!-- Card -->
@@ -112,7 +112,7 @@ function togglePasswordVisibility() {
         </div>
 
         <!-- Form -->
-        <form class="login-page__form" @submit.prevent="submit">
+        <form class="login-page__form" data-test="login-form" @submit.prevent="submit">
           <!-- Email Field -->
           <div class="login-page__field">
             <label for="email" class="login-page__label">Email</label>
@@ -124,6 +124,7 @@ function togglePasswordVisibility() {
               placeholder="you@company.com"
               class="login-page__input"
               autocomplete="email"
+              data-test="login-email-input"
               :disabled="isLoading"
             />
           </div>
@@ -140,6 +141,7 @@ function togglePasswordVisibility() {
                 placeholder="Enter your password"
                 class="login-page__input login-page__input--password"
                 autocomplete="current-password"
+                data-test="login-password-input"
                 :disabled="isLoading"
               />
               <button
@@ -194,13 +196,22 @@ function togglePasswordVisibility() {
 
           <!-- Forgot password link -->
           <div class="login-page__options">
-            <router-link :to="{ name: routes.BeginResetPassword }" class="login-page__forgot">
+            <router-link
+              :to="{ name: routes.BeginResetPassword }"
+              class="login-page__forgot"
+              data-test="login-forgot-password-link"
+            >
               Forgot password?
             </router-link>
           </div>
 
           <!-- Submit Button -->
-          <button type="submit" class="login-page__submit" :disabled="isLoading">
+          <button
+            type="submit"
+            class="login-page__submit"
+            data-test="login-submit-button"
+            :disabled="isLoading"
+          >
             <span v-if="!isLoading">Sign in</span>
             <span v-else class="login-page__loading">
               <svg
@@ -235,7 +246,11 @@ function togglePasswordVisibility() {
         </div>
 
         <!-- Sign up link -->
-        <router-link :to="{ name: routes.Register }" class="login-page__signup">
+        <router-link
+          :to="{ name: routes.Register }"
+          class="login-page__signup"
+          data-test="login-register-link"
+        >
           Create an account
           <svg
             xmlns="http://www.w3.org/2000/svg"

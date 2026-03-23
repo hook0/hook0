@@ -77,6 +77,7 @@ const columnDefs: ColDef[] = [
           },
         };
       },
+      dataTest: 'event-id-link',
     },
   },
   {
@@ -246,7 +247,7 @@ function toMap(pairs: Hook0KeyValueKeyValuePair[]): Record<string, string> {
       <Hook0Loader></Hook0Loader>
     </template>
     <template #default="event_types">
-      <Hook0Card>
+      <Hook0Card data-test="send-event-card">
         <Hook0CardHeader>
           <template #header> Send a test event </template>
           <template #subtitle>
@@ -263,12 +264,16 @@ function toMap(pairs: Hook0KeyValueKeyValuePair[]): Record<string, string> {
           </template>
         </Hook0CardHeader>
 
-        <form @submit.prevent="send_test_event">
+        <form data-test="send-event-form" @submit.prevent="send_test_event">
           <Hook0CardContent>
             <Hook0CardContentLine>
               <template #label> Event Type </template>
               <template #content>
-                <Hook0Select v-model="selected_event_type" :options="event_types"></Hook0Select>
+                <Hook0Select
+                  v-model="selected_event_type"
+                  :options="event_types"
+                  data-test="send-event-type-select"
+                ></Hook0Select>
               </template>
             </Hook0CardContentLine>
             <Hook0CardContentLine>
@@ -289,13 +294,18 @@ function toMap(pairs: Hook0KeyValueKeyValuePair[]): Record<string, string> {
                   :value="labels"
                   key-placeholder="Label key"
                   value-placeholder="Label value"
+                  data-test="send-event-labels"
                 ></Hook0KeyValue>
               </template>
             </Hook0CardContentLine>
             <Hook0CardContentLine>
               <template #label> Occurred At </template>
               <template #content>
-                <Hook0Input v-model="occurred_at" type="datetime-local" />
+                <Hook0Input
+                  v-model="occurred_at"
+                  type="datetime-local"
+                  data-test="send-event-occurred-at-input"
+                />
               </template>
             </Hook0CardContentLine>
             <Hook0CardContentLine>
@@ -307,13 +317,18 @@ function toMap(pairs: Hook0KeyValueKeyValuePair[]): Record<string, string> {
                   :indent-with-tab="true"
                   :tab-size="2"
                   :extensions="extensions"
+                  data-test="send-event-payload-input"
                 />
               </template>
             </Hook0CardContentLine>
           </Hook0CardContent>
 
           <Hook0CardFooter>
-            <Hook0Button v-if="!props.tutorialMode" class="secondary" @click="cancel_test"
+            <Hook0Button
+              v-if="!props.tutorialMode"
+              class="secondary"
+              data-test="send-event-cancel-button"
+              @click="cancel_test"
               >Cancel</Hook0Button
             >
 
@@ -322,6 +337,7 @@ function toMap(pairs: Hook0KeyValueKeyValuePair[]): Record<string, string> {
               tooltip="ℹ️ To continue, you need to fill all fields"
               class="primary"
               submit
+              data-test="send-event-submit-button"
               >Send event</Hook0Button
             >
             <Hook0Button
@@ -329,6 +345,7 @@ function toMap(pairs: Hook0KeyValueKeyValuePair[]): Record<string, string> {
               tooltip="ℹ️ To continue, you need to fill all fields"
               class="primary"
               submit
+              data-test="send-event-submit-button"
               >Send Your First Event 🎉</Hook0Button
             >
           </Hook0CardFooter>
@@ -346,7 +363,7 @@ function toMap(pairs: Hook0KeyValueKeyValuePair[]): Record<string, string> {
     </template>
     <!-- The default scoped slot will be used as the result -->
     <template #default="event_types">
-      <Hook0Card>
+      <Hook0Card data-test="events-card">
         <Hook0CardHeader>
           <template #header> Events </template>
           <template #subtitle>
@@ -357,9 +374,11 @@ function toMap(pairs: Hook0KeyValueKeyValuePair[]): Record<string, string> {
 
         <Hook0CardContent v-if="event_types.length > 0">
           <Hook0Table
+            data-test="events-table"
             :context="{ events$, columnDefs }"
             :column-defs="columnDefs"
             :row-data="event_types"
+            row-id-field="event_id"
           >
           </Hook0Table>
         </Hook0CardContent>
@@ -377,7 +396,9 @@ function toMap(pairs: Hook0KeyValueKeyValuePair[]): Record<string, string> {
         </Hook0CardContent>
 
         <Hook0CardFooter>
-          <Hook0Button class="primary" @click="display_event_form">Send an event</Hook0Button>
+          <Hook0Button class="primary" data-test="events-send-button" @click="display_event_form"
+            >Send an event</Hook0Button
+          >
         </Hook0CardFooter>
       </Hook0Card>
     </template>

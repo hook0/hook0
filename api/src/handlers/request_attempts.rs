@@ -1,7 +1,6 @@
 use actix_web::web::ReqData;
 use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};
-use log::error;
 use paperclip::actix::web::{Data, Json, Query};
 use paperclip::actix::{Apiv2Schema, api_v2_operation};
 use paperclip::v2::models::{DataType, DataTypeFormat, DefaultSchemaRaw};
@@ -10,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::query_as;
 use std::cmp::max;
 use std::collections::BTreeMap;
+use tracing::error;
 use url::Url;
 use uuid::Uuid;
 

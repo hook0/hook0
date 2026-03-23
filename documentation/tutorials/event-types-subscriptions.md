@@ -280,7 +280,8 @@ curl -X POST "$HOOK0_API/subscriptions" \
       "x-service": "welcome-emails"
     }
   },
-  "created_at": "2025-12-12T10:26:24.044337Z"
+  "created_at": "2025-12-12T10:26:24.044337Z",
+  "updated_at": "2025-12-12T10:26:24.044337Z"
 }
 ```
 
@@ -625,6 +626,7 @@ curl "$HOOK0_API/subscriptions/?application_id=$APP_ID" \
       }
     },
     "created_at": "2025-12-12T10:26:24.044337Z",
+    "updated_at": "2025-12-12T10:26:24.044337Z",
     "dedicated_workers": []
   }
 ]
@@ -659,6 +661,7 @@ curl "$HOOK0_API/subscriptions/{SUBSCRIPTION_ID}?application_id=$APP_ID" \
     }
   },
   "created_at": "2025-12-12T10:26:24.044337Z",
+  "updated_at": "2025-12-12T10:26:24.044337Z",
   "dedicated_workers": []
 }
 ```

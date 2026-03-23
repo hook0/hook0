@@ -1,5 +1,4 @@
 use clap::crate_name;
-use log::{info, warn};
 use opentelemetry::{KeyValue, global};
 use opentelemetry_otlp::{
     Compression, ExporterBuildError, MetricExporter, Protocol, SpanExporter, WithExportConfig,
@@ -11,6 +10,7 @@ use opentelemetry_sdk::trace::SdkTracerProvider;
 use sqlx::PgPool;
 use std::collections::HashMap;
 use std::time::Duration;
+use tracing::{info, warn};
 use url::Url;
 
 pub fn init(

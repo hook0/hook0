@@ -7,7 +7,12 @@ use hook0_client::Hook0ClientError;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    env_logger::init();
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
+        )
+        .init();
 
     let ip = env::var("IP").unwrap_or_else(|_| "127.0.0.1".to_owned());
     let port = env::var("PORT")

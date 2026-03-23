@@ -14,7 +14,6 @@ import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import { push } from 'notivue';
 import { routes } from '@/routes';
-import Hook0Consumption, { ComsumptionQuota } from '@/components/Hook0Consumption.vue';
 import { useTracking } from '@/composables/useTracking';
 
 const router = useRouter();
@@ -37,8 +36,6 @@ const props = defineProps<Props>();
 
 const emit = defineEmits(['tutorial-application-created']);
 
-const consumptions = ref<ComsumptionQuota[]>([]);
-
 function _load() {
   if (application_id.value !== route.params.application_id) {
     application_id.value = route.params.application_id as UUID;
@@ -48,14 +45,6 @@ function _load() {
       ApplicationService.get(application_id.value)
         .then((app: ApplicationService.ApplicationInfo) => {
           application.value.name = app.name;
-          consumptions.value = [
-            {
-              icon: 'file-lines',
-              name: 'Events per day',
-              comsumption: app.consumption.events_per_day || 0,
-              quota: app.quotas.events_per_day_limit,
-            },
-          ];
         })
         .catch(displayError);
     }
@@ -63,7 +52,17 @@ function _load() {
 }
 
 function cancel() {
-  router.back();
+  if (route.params.organization_id && route.params.application_id) {
+    void router.push({
+      name: routes.ApplicationsDashboard,
+      params: {
+        organization_id: route.params.organization_id,
+        application_id: route.params.application_id,
+      },
+    });
+  } else {
+    router.back();
+  }
 }
 
 function upsert(e: Event) {
@@ -126,8 +125,8 @@ onUpdated(() => {
 
 <template>
   <div>
-    <form @submit="upsert">
-      <Hook0Card>
+    <form data-test="application-form" @submit="upsert">
+      <Hook0Card data-test="application-card">
         <Hook0CardHeader>
           <template v-if="isNew" #header> Create new application </template>
           <template v-else #header> Edit application </template>
@@ -144,6 +143,7 @@ onUpdated(() => {
                 type="text"
                 placeholder="my awesome api - production"
                 required
+                data-test="application-name-input"
               >
                 <template #helpText
                   >Name of your company's product or API. Don't forget also to specify the
@@ -155,7 +155,12 @@ onUpdated(() => {
         </Hook0CardContent>
 
         <Hook0CardFooter>
-          <Hook0Button v-if="!tutorialMode" class="secondary" type="button" @click="cancel()"
+          <Hook0Button
+            v-if="!tutorialMode"
+            class="secondary"
+            type="button"
+            data-test="application-cancel-button"
+            @click="cancel()"
             >Cancel</Hook0Button
           >
           <Hook0Button
@@ -163,6 +168,7 @@ onUpdated(() => {
             class="primary"
             type="button"
             :disabled="!application.name"
+            data-test="application-submit-button"
             @click="upsert($event)"
             >{{ isNew ? 'Create' : 'Update' }}
           </Hook0Button>
@@ -173,19 +179,13 @@ onUpdated(() => {
             type="button"
             :disabled="!application.name"
             tooltip="ℹ️ To continue, you need to add a name for your application."
+            data-test="application-submit-button"
             @click="upsert($event)"
             >Create Your First Application 🎉
           </Hook0Button>
         </Hook0CardFooter>
       </Hook0Card>
     </form>
-
-    <Hook0Consumption
-      v-if="!isNew && application_id"
-      :title="`Consumption of application ${application.name}`"
-      entity-type="application"
-      :consomptions="consumptions"
-    />
 
     <ApplicationsRemove
       v-if="!isNew && application_id"

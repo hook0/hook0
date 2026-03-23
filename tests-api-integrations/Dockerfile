@@ -1,4 +1,4 @@
-FROM grafana/k6:1.4.2
+FROM grafana/k6:1.5.0
 
 USER root
 RUN apk add --no-cache bash
