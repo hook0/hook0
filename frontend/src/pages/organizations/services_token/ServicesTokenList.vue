@@ -12,7 +12,11 @@ import {
 } from './useServiceTokenQueries';
 import type { ServiceToken } from './ServicesTokenService';
 import { routes } from '@/routes';
-import { DOCS_URL, API_DOCS_URL, MCP_GUIDE_URL } from '@/constants/externalLinks';
+import {
+  DOCS_SERVICE_TOKENS_URL,
+  API_DOCS_SERVICE_TOKENS_URL,
+  MCP_GUIDE_URL,
+} from '@/constants/externalLinks';
 import { handleMutationError } from '@/utils/handleMutationError';
 import { toast } from 'vue-sonner';
 import { useTracking } from '@/composables/useTracking';
@@ -39,6 +43,7 @@ import Hook0Alert from '@/components/Hook0Alert.vue';
 import Hook0Dialog from '@/components/Hook0Dialog.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0CopyField from '@/components/Hook0CopyField.vue';
+import Hook0DocButtons from '@/components/Hook0DocButtons.vue';
 import QuickReferenceCard from '@/components/QuickReferenceCard.vue';
 
 const { t } = useI18n();
@@ -230,6 +235,12 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
             <template #subtitle>
               {{ t('serviceTokens.subtitle') }}
             </template>
+            <template #actions>
+              <Hook0DocButtons
+                :doc-url="DOCS_SERVICE_TOKENS_URL"
+                :api-url="API_DOCS_SERVICE_TOKENS_URL"
+              />
+            </template>
           </Hook0CardHeader>
 
           <Hook0CardContent v-if="serviceTokens.length > 0">
@@ -282,10 +293,6 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
         <QuickReferenceCard
           :title="t('serviceTokens.quickReference')"
           :subtitle="t('serviceTokens.quickReferenceDescription')"
-          :doc-label="t('serviceTokens.documentationLink')"
-          :api-label="t('serviceTokens.apiReferenceLink')"
-          :doc-url="DOCS_URL"
-          :api-url="API_DOCS_URL"
           :organization-id="organizationId"
         />
 

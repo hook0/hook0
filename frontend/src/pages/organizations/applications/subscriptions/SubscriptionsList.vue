@@ -4,8 +4,11 @@ import { useRoute, useRouter } from 'vue-router';
 import { useRouteIds } from '@/composables/useRouteIds';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
-import { Trash2, Link, BookOpen } from 'lucide-vue-next';
-import { DOCS_SUBSCRIPTIONS_URL } from '@/constants/externalLinks';
+import { Trash2, Link } from 'lucide-vue-next';
+import {
+  DOCS_SUBSCRIPTIONS_URL,
+  API_DOCS_SUBSCRIPTIONS_URL,
+} from '@/constants/externalLinks';
 import Hook0TableCellEventTypes from '@/components/Hook0TableCellEventTypes.vue';
 import Hook0TableCellLabels from '@/components/Hook0TableCellLabels.vue';
 import Hook0TableCellTarget from '@/components/Hook0TableCellTarget.vue';
@@ -36,6 +39,7 @@ import Hook0EmptyState from '@/components/Hook0EmptyState.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
 import Hook0Dialog from '@/components/Hook0Dialog.vue';
+import Hook0DocButtons from '@/components/Hook0DocButtons.vue';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -236,12 +240,10 @@ const columns: ColumnDef<Subscription, unknown>[] = [
             {{ t('subscriptions.subtitle') }}
           </template>
           <template #actions>
-            <Hook0Button variant="secondary" :href="DOCS_SUBSCRIPTIONS_URL" target="_blank">
-              <template #left>
-                <BookOpen :size="14" aria-hidden="true" />
-              </template>
-              {{ t('common.documentation') }}
-            </Hook0Button>
+            <Hook0DocButtons
+              :doc-url="DOCS_SUBSCRIPTIONS_URL"
+              :api-url="API_DOCS_SUBSCRIPTIONS_URL"
+            />
           </template>
         </Hook0CardHeader>
 

@@ -2,8 +2,8 @@
 import { h, markRaw, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
-import { KeyRound, Trash2, BookOpen } from 'lucide-vue-next';
-import { DOCS_API_KEYS_URL } from '@/constants/externalLinks';
+import { KeyRound, Trash2 } from 'lucide-vue-next';
+import { DOCS_API_KEYS_URL, API_DOCS_API_KEYS_URL } from '@/constants/externalLinks';
 
 import { useSecretList, useCreateSecret, useRemoveSecret } from './useSecretQueries';
 import type { ApplicationSecret } from './ApplicationSecretService';
@@ -30,6 +30,7 @@ import Hook0Dialog from '@/components/Hook0Dialog.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
 import Hook0CopyField from '@/components/Hook0CopyField.vue';
+import Hook0DocButtons from '@/components/Hook0DocButtons.vue';
 import QuickReferenceCard from '@/components/QuickReferenceCard.vue';
 
 const { t } = useI18n();
@@ -157,12 +158,10 @@ const columns: ColumnDef<ApplicationSecret, unknown>[] = [
               {{ t('apiKeys.subtitle') }}
             </template>
             <template #actions>
-              <Hook0Button variant="secondary" :href="DOCS_API_KEYS_URL" target="_blank">
-                <template #left>
-                  <BookOpen :size="14" aria-hidden="true" />
-                </template>
-                {{ t('common.documentation') }}
-              </Hook0Button>
+              <Hook0DocButtons
+                :doc-url="DOCS_API_KEYS_URL"
+                :api-url="API_DOCS_API_KEYS_URL"
+              />
             </template>
           </Hook0CardHeader>
 
@@ -210,8 +209,6 @@ const columns: ColumnDef<ApplicationSecret, unknown>[] = [
         <QuickReferenceCard
           :title="t('apiKeys.quickReference')"
           :subtitle="t('apiKeys.quickReferenceDescription')"
-          :doc-label="t('apiKeys.documentationLink')"
-          :api-label="t('apiKeys.apiReferenceLink')"
           :organization-id="organizationId"
           :application-id="applicationId"
         />

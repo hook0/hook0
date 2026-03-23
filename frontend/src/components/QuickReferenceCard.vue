@@ -1,30 +1,22 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
-import { BookOpen, ExternalLink } from 'lucide-vue-next';
-import { DOCS_URL, API_DOCS_URL } from '@/constants/externalLinks';
+import { BookOpen } from 'lucide-vue-next';
 
 import Hook0Card from './Hook0Card.vue';
 import Hook0CardHeader from './Hook0CardHeader.vue';
 import Hook0CardContent from './Hook0CardContent.vue';
 import Hook0CardContentLine from './Hook0CardContentLine.vue';
 import Hook0CopyField from './Hook0CopyField.vue';
-import Hook0Button from './Hook0Button.vue';
 import Hook0Stack from './Hook0Stack.vue';
 
 type Props = {
   title: string;
   subtitle: string;
-  docLabel: string;
-  apiLabel: string;
-  docUrl?: string;
-  apiUrl?: string;
   organizationId: string;
   applicationId?: string;
 };
 
-const props = withDefaults(defineProps<Props>(), {
-  docUrl: DOCS_URL,
-  apiUrl: API_DOCS_URL,
+withDefaults(defineProps<Props>(), {
   applicationId: undefined,
 });
 
@@ -42,22 +34,6 @@ const { t } = useI18n();
       </template>
       <template #subtitle>
         {{ subtitle }}
-      </template>
-      <template #actions>
-        <Hook0Stack direction="row" gap="sm">
-          <Hook0Button variant="secondary" :href="props.docUrl" target="_blank">
-            <template #left>
-              <ExternalLink :size="14" aria-hidden="true" />
-            </template>
-            {{ docLabel }}
-          </Hook0Button>
-          <Hook0Button variant="secondary" :href="props.apiUrl" target="_blank">
-            <template #left>
-              <ExternalLink :size="14" aria-hidden="true" />
-            </template>
-            {{ apiLabel }}
-          </Hook0Button>
-        </Hook0Stack>
       </template>
     </Hook0CardHeader>
     <Hook0CardContent>

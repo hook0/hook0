@@ -4,8 +4,8 @@ import { useRoute } from 'vue-router';
 import { useRouteIds } from '@/composables/useRouteIds';
 import { useI18n } from 'vue-i18n';
 
-import { Send, BookOpen } from 'lucide-vue-next';
-import { DOCS_LOGS_URL } from '@/constants/externalLinks';
+import { Send } from 'lucide-vue-next';
+import { DOCS_LOGS_URL, API_DOCS_LOGS_URL } from '@/constants/externalLinks';
 
 import { useLogList } from './useLogQueries';
 import { useLogColumns } from './useLogColumns';
@@ -14,6 +14,7 @@ import { routes } from '@/routes';
 import { useOrganizationDetail } from '@/pages/organizations/useOrganizationQueries';
 
 import EventSidePanel from '@/pages/organizations/applications/events/EventSidePanel.vue';
+import Hook0DocButtons from '@/components/Hook0DocButtons.vue';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -79,12 +80,10 @@ function closeSidePanel() {
             }}</Hook0HelpText>
           </template>
           <template #actions>
-            <Hook0Button variant="secondary" :href="DOCS_LOGS_URL" target="_blank">
-              <template #left>
-                <BookOpen :size="14" aria-hidden="true" />
-              </template>
-              {{ t('common.documentation') }}
-            </Hook0Button>
+            <Hook0DocButtons
+              :doc-url="DOCS_LOGS_URL"
+              :api-url="API_DOCS_LOGS_URL"
+            />
           </template>
         </Hook0CardHeader>
 

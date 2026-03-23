@@ -242,6 +242,7 @@
     "delete": "Delete",
     "description": "Description",
     "documentation": "Documentation",
+    "apiReference": "API Reference",
     "edit": "Edit",
     "error": "Error",
     "fieldValue": "Field value",

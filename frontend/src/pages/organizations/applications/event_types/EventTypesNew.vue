@@ -11,8 +11,7 @@ import { handleMutationError } from '@/utils/handleMutationError';
 import type { UUID } from '@/http';
 import { useTracking } from '@/composables/useTracking';
 import { usePermissions } from '@/composables/usePermissions';
-import { BookOpen } from 'lucide-vue-next';
-import { DOCS_EVENT_TYPES_URL } from '@/constants/externalLinks';
+import { DOCS_EVENT_TYPES_URL, API_DOCS_EVENT_TYPES_URL } from '@/constants/externalLinks';
 
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
@@ -23,6 +22,7 @@ import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0InputRow from '@/components/Hook0InputRow.vue';
 import Hook0Form from '@/components/Hook0Form.vue';
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
+import Hook0DocButtons from '@/components/Hook0DocButtons.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -90,12 +90,10 @@ const onSubmit = handleSubmit((values) => {
           <template #header>{{ t('eventTypes.createTitle') }}</template>
           <template #subtitle>{{ t('eventTypes.createSubtitle') }}</template>
           <template #actions>
-            <Hook0Button variant="secondary" :href="DOCS_EVENT_TYPES_URL" target="_blank">
-              <template #left>
-                <BookOpen :size="14" aria-hidden="true" />
-              </template>
-              {{ t('common.documentation') }}
-            </Hook0Button>
+            <Hook0DocButtons
+              :doc-url="DOCS_EVENT_TYPES_URL"
+              :api-url="API_DOCS_EVENT_TYPES_URL"
+            />
           </template>
         </Hook0CardHeader>
 
