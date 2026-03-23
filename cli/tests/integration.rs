@@ -88,11 +88,21 @@ fn test_config_list_empty() {
         .success();
 }
 
+/// Helper: build a command with no inherited auth env vars
+fn unauthenticated_cmd() -> Command {
+    let mut cmd = Command::cargo_bin("hook0").expect("binary should exist");
+    cmd.env("HOME", "/tmp/hook0-test-nonexistent");
+    cmd.env_remove("HOOK0_SECRET");
+    cmd.env_remove("HOOK0_API_URL");
+    cmd.env_remove("HOOK0_APPLICATION_ID");
+    cmd.env_remove("HOOK0_PROFILE");
+    cmd
+}
+
 /// Test that event command requires authentication
 #[test]
 fn test_event_send_requires_auth() {
-    let mut cmd = Command::cargo_bin("hook0").expect("binary should exist");
-    cmd.env("HOME", "/tmp/hook0-test-nonexistent")
+    unauthenticated_cmd()
         .args(["event", "send", "test.event.created"])
         .assert()
         .failure();
@@ -101,8 +111,7 @@ fn test_event_send_requires_auth() {
 /// Test that subscription list requires authentication
 #[test]
 fn test_subscription_list_requires_auth() {
-    let mut cmd = Command::cargo_bin("hook0").expect("binary should exist");
-    cmd.env("HOME", "/tmp/hook0-test-nonexistent")
+    unauthenticated_cmd()
         .args(["subscription", "list"])
         .assert()
         .failure()
@@ -112,8 +121,7 @@ fn test_subscription_list_requires_auth() {
 /// Test that event-type list requires authentication
 #[test]
 fn test_event_type_list_requires_auth() {
-    let mut cmd = Command::cargo_bin("hook0").expect("binary should exist");
-    cmd.env("HOME", "/tmp/hook0-test-nonexistent")
+    unauthenticated_cmd()
         .args(["event-type", "list"])
         .assert()
         .failure()
@@ -123,8 +131,7 @@ fn test_event_type_list_requires_auth() {
 /// Test that application list requires organization ID or authentication
 #[test]
 fn test_application_list_requires_auth() {
-    let mut cmd = Command::cargo_bin("hook0").expect("binary should exist");
-    cmd.env("HOME", "/tmp/hook0-test-nonexistent")
+    unauthenticated_cmd()
         .args(["application", "list"])
         .assert()
         .failure();
@@ -133,8 +140,7 @@ fn test_application_list_requires_auth() {
 /// Test that whoami requires authentication
 #[test]
 fn test_whoami_requires_auth() {
-    let mut cmd = Command::cargo_bin("hook0").expect("binary should exist");
-    cmd.env("HOME", "/tmp/hook0-test-nonexistent")
+    unauthenticated_cmd()
         .args(["whoami"])
         .assert()
         .failure();
@@ -282,6 +288,7 @@ fn hook0_cmd(config_dir: &std::path::Path) -> Command {
     cmd.env("HOOK0_CONFIG_DIR", config_dir);
     cmd.env_remove("HOOK0_SECRET");
     cmd.env_remove("HOOK0_API_URL");
+    cmd.env_remove("HOOK0_APPLICATION_ID");
     cmd.env_remove("HOOK0_PROFILE");
     cmd
 }

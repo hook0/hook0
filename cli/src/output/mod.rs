@@ -63,6 +63,18 @@ pub fn output_error(message: &str) {
     eprintln!("{} {}", style("✗").red().bold(), message);
 }
 
+/// Output a delete confirmation, respecting output format
+pub fn output_deleted(output: OutputFormat, entity: &str, id: impl std::fmt::Display) {
+    if output == OutputFormat::Json {
+        println!(
+            "{}",
+            serde_json::json!({"deleted": true, "entity": entity, "id": id.to_string()})
+        );
+    } else {
+        output_success(&format!("{} {} deleted successfully!", entity, id));
+    }
+}
+
 /// Output a warning message
 pub fn output_warning(message: &str) {
     use console::style;

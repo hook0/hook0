@@ -13,17 +13,32 @@ use crate::api::ApiClient;
 use crate::config::{Config, Profile};
 use anyhow::{anyhow, Result};
 
+/// Sentinel profile name used when credentials are provided via CLI flags/env vars.
+pub const OVERRIDE_PROFILE: &str = "override";
+
+/// Resolve override profile from CLI flags (--secret + --api-url + --application-id).
+/// Returns None if not all three are provided.
+pub fn resolve_override_profile(cli: &crate::Cli) -> Result<Option<(String, Profile)>> {
+    let (Some(_), Some(api_url)) = (&cli.secret, &cli.api_url) else {
+        return Ok(None);
+    };
+    let app_id = cli.application_id.ok_or_else(|| {
+        anyhow!("--application-id (or HOOK0_APPLICATION_ID) is required when using --secret and --api-url overrides")
+    })?;
+    Ok(Some((OVERRIDE_PROFILE.to_string(), Profile::new(api_url.clone(), app_id))))
+}
+
 /// Get API client from CLI args or config
 pub fn get_api_client(
     cli: &crate::Cli,
     profile_name: Option<&str>,
 ) -> Result<(ApiClient, String, Profile)> {
     // Check for direct secret/api_url overrides
-    if let (Some(secret), Some(api_url)) = (&cli.secret, &cli.api_url) {
-        // Use direct credentials
+    if let Some((name, profile)) = resolve_override_profile(cli)? {
+        let secret = cli.secret.as_ref().unwrap();
+        let api_url = cli.api_url.as_ref().unwrap();
         let client = ApiClient::new(api_url, secret);
-        let profile = Profile::new(api_url.clone(), uuid::Uuid::nil());
-        return Ok((client, "override".to_string(), profile));
+        return Ok((client, name, profile));
     }
 
     // Load from config

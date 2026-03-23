@@ -39,12 +39,12 @@ pub struct CreateArgs {
     #[arg(long, short = 'u')]
     pub url: String,
 
-    /// Event types to subscribe to (comma-separated or repeated)
-    #[arg(long, short = 'e', value_delimiter = ',')]
+    /// Event types to subscribe to (required, comma-separated or repeated)
+    #[arg(long, short = 'e', required = true, value_delimiter = ',')]
     pub events: Vec<String>,
 
-    /// Labels in key=value format (can be repeated)
-    #[arg(long, short = 'l', value_parser = parse_label)]
+    /// Labels in key=value format (required, can be repeated)
+    #[arg(long, short = 'l', required = true, value_parser = parse_label)]
     pub label: Vec<(String, String)>,
 
     /// HTTP method (default: POST)
@@ -115,11 +115,11 @@ pub struct UpdateArgs {
     pub description: Option<String>,
 
     /// Enable the subscription
-    #[arg(long)]
+    #[arg(long, conflicts_with = "disable")]
     pub enable: bool,
 
     /// Disable the subscription
-    #[arg(long)]
+    #[arg(long, conflicts_with = "enable")]
     pub disable: bool,
 }
 
@@ -168,16 +168,6 @@ pub async fn execute(cli: &Cli, cmd: &SubscriptionCommands) -> Result<()> {
 
 async fn create(cli: &Cli, args: &CreateArgs) -> Result<()> {
     let (client, _, profile) = require_auth(cli)?;
-
-    if args.events.is_empty() {
-        return Err(anyhow!("At least one event type is required (--events)"));
-    }
-
-    if args.label.is_empty() {
-        return Err(anyhow!(
-            "At least one label is required (--label key=value). Labels are used to route events to subscriptions."
-        ));
-    }
 
     // Validate URL
     url::Url::parse(&args.url).map_err(|e| anyhow!("Invalid URL: {}", e))?;
@@ -403,10 +393,7 @@ async fn delete(cli: &Cli, args: &DeleteArgs) -> Result<()> {
         .delete_subscription(&args.subscription_id, &profile.application_id)
         .await?;
 
-    output_success(&format!(
-        "Subscription {} deleted successfully!",
-        args.subscription_id
-    ));
+    crate::output::output_deleted(cli.output, "Subscription", &args.subscription_id);
 
     Ok(())
 }

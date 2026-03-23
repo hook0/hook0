@@ -149,7 +149,7 @@ async fn delete(cli: &Cli, args: &DeleteArgs) -> Result<()> {
         .delete_event_type(&profile.application_id, &service, &resource, &verb)
         .await?;
 
-    output_success(&format!("Event type '{}' deleted successfully!", args.name));
+    crate::output::output_deleted(cli.output, "Event type", &args.name);
 
     Ok(())
 }

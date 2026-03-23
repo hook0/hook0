@@ -93,7 +93,7 @@ fn get_value_interactive(
         return Err(anyhow!(
             "{} is required. Provide via --{} or {} environment variable.",
             prompt_message,
-            prompt_message.to_lowercase().replace(' ', "-"),
+            env_var_name.to_lowercase().trim_start_matches("hook0_").replace('_', "-"),
             env_var_name
         ));
     }
@@ -156,8 +156,10 @@ fn get_application_id_interactive(cli_value: Option<Uuid>) -> Result<Uuid> {
 
 /// Login command - authenticate with an Application Secret
 pub async fn login(cli: &Cli, args: &LoginArgs) -> Result<()> {
-    output_info("Hook0 CLI Login");
-    output_info("===============");
+    if cli.output != OutputFormat::Json {
+        output_info("Hook0 CLI Login");
+        output_info("===============");
+    }
 
     // Get secret (CLI arg > env var with confirmation > interactive prompt)
     let secret = get_value_interactive(
@@ -207,8 +209,9 @@ pub async fn login(cli: &Cli, args: &LoginArgs) -> Result<()> {
     let client = ApiClient::new(&api_url, &secret);
 
     // Validate credentials by fetching the application
-    // Application Secrets are tied to a specific application, so we use get_current_application
-    output_info("Validating credentials...");
+    if cli.output != OutputFormat::Json {
+        output_info("Validating credentials...");
+    }
 
     let app = client
         .get_current_application(&application_id)
@@ -269,7 +272,7 @@ pub async fn login(cli: &Cli, args: &LoginArgs) -> Result<()> {
 }
 
 /// Logout command - remove stored credentials
-pub async fn logout(_cli: &Cli, args: &LogoutArgs) -> Result<()> {
+pub async fn logout(cli: &Cli, args: &LogoutArgs) -> Result<()> {
     let mut config = Config::load()?;
 
     if args.all {
@@ -290,10 +293,11 @@ pub async fn logout(_cli: &Cli, args: &LogoutArgs) -> Result<()> {
         config.save()?;
         output_success("All credentials have been removed.");
     } else {
-        // Get profile name first to avoid borrowing issues
+        // Get profile name: --profile-name > global --profile/-p > default
         let profile_name = args
             .profile_name
             .clone()
+            .or_else(|| cli.profile.clone())
             .or_else(|| config.default_profile.clone())
             .unwrap_or_else(|| "default".to_string());
 
@@ -320,12 +324,20 @@ pub async fn logout(_cli: &Cli, args: &LogoutArgs) -> Result<()> {
 
 /// Whoami command - display current authentication info
 pub async fn whoami(cli: &Cli, _args: &WhoamiArgs) -> Result<()> {
-    let config = Config::load()?;
-    let profile_name = cli.profile.as_deref();
-    let (name, profile) = config.get_profile(profile_name)?;
+    use super::OVERRIDE_PROFILE;
 
-    // Check if we have a valid secret
-    let has_secret = Config::has_secret(&name, &profile.application_id);
+    // Resolve profile: override mode or config-based
+    let (name, profile, has_secret, is_default) =
+        if let Some((name, profile)) = super::resolve_override_profile(cli)? {
+            // Secret explicitly provided — it "exists" by definition.
+            (name, profile, true, false)
+        } else {
+            let config = Config::load()?;
+            let (name, profile) = config.get_profile(cli.profile.as_deref())?;
+            let has_secret = Config::has_secret(&name, &profile.application_id);
+            let is_default = config.default_profile.as_deref() == Some(name.as_str());
+            (name, profile.clone(), has_secret, is_default)
+        };
 
     if cli.output == OutputFormat::Json {
         println!(
@@ -339,21 +351,21 @@ pub async fn whoami(cli: &Cli, _args: &WhoamiArgs) -> Result<()> {
                 "description": profile.description,
             })
         );
-    } else {
-        println!("Profile: {}", name);
-        println!("Application ID: {}", profile.application_id);
-        if let Some(org_id) = &profile.organization_id {
-            println!("Organization ID: {}", org_id);
-        }
-        println!("API URL: {}", profile.api_url);
-        println!("Authenticated: {}", if has_secret { "Yes" } else { "No" });
-        if let Some(desc) = &profile.description {
-            println!("Description: {}", desc);
-        }
+        return Ok(());
+    }
 
-        if config.default_profile.as_deref() == Some(&name) {
-            println!("\n(This is the default profile)");
-        }
+    println!("Profile: {}", name);
+    println!("Application ID: {}", profile.application_id);
+    if let Some(org_id) = &profile.organization_id {
+        println!("Organization ID: {}", org_id);
+    }
+    println!("API URL: {}", profile.api_url);
+    println!("Authenticated: {}", if has_secret { "Yes" } else { "No" });
+    if let Some(desc) = &profile.description {
+        println!("Description: {}", desc);
+    }
+    if is_default {
+        println!("\n(This is the default profile)");
     }
 
     Ok(())

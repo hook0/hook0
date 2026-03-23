@@ -71,15 +71,12 @@ async fn main() -> ExitCode {
                         2
                     }
                     hook0_cli::ApiError::NotFound(resource) => {
-                        eprintln!("Error: {e}");
-                        eprintln!(
-                            "\nHint: The {resource} was not found. Check the ID and try again."
-                        );
+                        eprintln!("Error: Resource not found: {resource}");
+                        eprintln!("\nHint: Check the ID and try again.");
                         3
                     }
-                    hook0_cli::ApiError::ValidationError(msg) => {
+                    hook0_cli::ApiError::ValidationError(_) => {
                         eprintln!("Error: {e}");
-                        eprintln!("\nHint: {msg}");
                         4
                     }
                     hook0_cli::ApiError::NetworkError(_) => {

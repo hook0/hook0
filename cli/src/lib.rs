@@ -79,6 +79,10 @@ pub struct Cli {
     #[arg(long, env = "HOOK0_SECRET", global = true)]
     pub secret: Option<String>,
 
+    /// Override application ID
+    #[arg(long, env = "HOOK0_APPLICATION_ID", global = true)]
+    pub application_id: Option<uuid::Uuid>,
+
     /// Verbosity level (-v, -vv, -vvv)
     #[arg(short, long, action = clap::ArgAction::Count, global = true)]
     pub verbose: u8,

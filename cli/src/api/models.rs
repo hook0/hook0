@@ -205,6 +205,9 @@ pub struct EventPost {
     pub occurred_at: DateTime<Utc>,
 }
 
+pub const CONTENT_TYPE_JSON: &str = "application/json";
+pub const CONTENT_TYPE_TEXT: &str = "text/plain";
+
 impl EventPost {
     /// Create a new event with JSON payload
     pub fn new_json(
@@ -213,16 +216,13 @@ impl EventPost {
         payload: serde_json::Value,
         labels: HashMap<String, String>,
     ) -> Self {
-        Self {
+        Self::new_with_content_type(
             application_id,
-            event_id: Uuid::new_v4(),
             event_type,
-            payload: payload.to_string(),
-            payload_content_type: "application/json".to_string(),
-            metadata: None,
+            payload.to_string(),
+            CONTENT_TYPE_JSON.to_string(),
             labels,
-            occurred_at: Utc::now(),
-        }
+        )
     }
 
     /// Create a new event with plain text payload
@@ -232,12 +232,29 @@ impl EventPost {
         payload: String,
         labels: HashMap<String, String>,
     ) -> Self {
+        Self::new_with_content_type(
+            application_id,
+            event_type,
+            payload,
+            CONTENT_TYPE_TEXT.to_string(),
+            labels,
+        )
+    }
+
+    /// Create a new event with a custom content type
+    pub fn new_with_content_type(
+        application_id: Uuid,
+        event_type: String,
+        payload: String,
+        payload_content_type: String,
+        labels: HashMap<String, String>,
+    ) -> Self {
         Self {
             application_id,
             event_id: Uuid::new_v4(),
             event_type,
             payload,
-            payload_content_type: "text/plain".to_string(),
+            payload_content_type,
             metadata: None,
             labels,
             occurred_at: Utc::now(),
@@ -369,7 +386,7 @@ pub struct RequestAttempt {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "status", rename_all = "snake_case")]
+#[serde(tag = "type", rename_all = "snake_case")]
 pub enum RequestAttemptStatus {
     Waiting {
         since: DateTime<Utc>,

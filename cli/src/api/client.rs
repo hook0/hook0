@@ -515,14 +515,23 @@ impl ApiClient {
     }
 
     /// Replay an event (create new request attempts)
-    pub async fn replay_event(&self, event_id: &Uuid) -> Result<Vec<RequestAttempt>, ApiError> {
+    pub async fn replay_event(
+        &self,
+        event_id: &Uuid,
+        application_id: &Uuid,
+    ) -> Result<Vec<RequestAttempt>, ApiError> {
         let response = self
             .client
             .post(self.url(&format!("/events/{}/replay", event_id)))
             .bearer_auth(&self.secret)
+            .json(&serde_json::json!({ "application_id": application_id }))
             .send()
             .await?;
 
+        // Replay may return 204 No Content or an empty body
+        if response.status() == reqwest::StatusCode::NO_CONTENT {
+            return Ok(vec![]);
+        }
         self.handle_response(response).await
     }
 

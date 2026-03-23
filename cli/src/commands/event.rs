@@ -37,8 +37,8 @@ pub struct SendArgs {
     #[arg(long, short = 'f')]
     pub payload_file: Option<PathBuf>,
 
-    /// Labels in key=value format (can be repeated)
-    #[arg(long, short = 'l', value_parser = parse_label)]
+    /// Labels in key=value format (required, can be repeated)
+    #[arg(long, short = 'l', required = true, value_parser = parse_label)]
     pub label: Vec<(String, String)>,
 
     /// Custom event ID (UUID, auto-generated if not provided)
@@ -46,7 +46,7 @@ pub struct SendArgs {
     pub event_id: Option<Uuid>,
 
     /// Content type (default: application/json)
-    #[arg(long, default_value = "application/json")]
+    #[arg(long, default_value = crate::api::models::CONTENT_TYPE_JSON)]
     pub content_type: String,
 }
 
@@ -136,12 +136,6 @@ pub async fn execute(cli: &Cli, cmd: &EventCommands) -> Result<()> {
 async fn send(cli: &Cli, args: &SendArgs) -> Result<()> {
     let (client, _, profile) = require_auth(cli)?;
 
-    if args.label.is_empty() {
-        return Err(anyhow!(
-            "At least one label is required (--label key=value)"
-        ));
-    }
-
     // Get payload
     let payload_str = match (&args.payload, &args.payload_file) {
         (Some(p), None) => p.clone(),
@@ -152,18 +146,12 @@ async fn send(cli: &Cli, args: &SendArgs) -> Result<()> {
         (None, None) => "{}".to_string(),
     };
 
-    // Parse and validate JSON if content type is JSON
-    let payload_value: serde_json::Value = if args.content_type.contains("json") {
-        serde_json::from_str(&payload_str)?
-    } else {
-        serde_json::Value::String(payload_str.clone())
-    };
-
-    // Build labels
+    let is_json = args.content_type.contains("json");
     let labels: HashMap<String, String> = args.label.iter().cloned().collect();
 
-    // Create event
-    let event = if args.content_type.contains("json") {
+    let event = if is_json {
+        let payload_value: serde_json::Value = serde_json::from_str(&payload_str)
+            .map_err(|e| anyhow!("Invalid JSON payload: {}", e))?;
         EventPost::new_json(
             profile.application_id,
             args.event_type.clone(),
@@ -171,10 +159,11 @@ async fn send(cli: &Cli, args: &SendArgs) -> Result<()> {
             labels,
         )
     } else {
-        EventPost::new_text(
+        EventPost::new_with_content_type(
             profile.application_id,
             args.event_type.clone(),
             payload_str,
+            args.content_type.clone(),
             labels,
         )
     };

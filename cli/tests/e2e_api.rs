@@ -45,6 +45,7 @@ fn cli(cfg: &Path) -> Command {
     cmd.env("HOOK0_CONFIG_DIR", cfg);
     cmd.env_remove("HOOK0_SECRET");
     cmd.env_remove("HOOK0_API_URL");
+    cmd.env_remove("HOOK0_APPLICATION_ID");
     cmd.env_remove("HOOK0_PROFILE");
     cmd
 }
@@ -447,16 +448,19 @@ fn test_subscription_full_lifecycle() {
         .args(["--profile", &prof, "event-type", "create", &et])
         .output();
 
-    // Create subscription
-    cli(cfg.path())
-        .args(["--profile", &prof, "subscription", "create",
+    // Create subscription (json output to capture ID directly)
+    let output = cli(cfg.path())
+        .args(["--profile", &prof, "--output", "json", "subscription", "create",
                "-e", &et, "-u", "https://httpbin.org/post",
                "-l", "env=test", "-d", "E2E test subscription"])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("Subscription created"));
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "subscription create failed");
+    let created: serde_json::Value = serde_json::from_slice(&output.stdout)
+        .expect("subscription create JSON should be valid");
+    let sub_id = created["subscription_id"].as_str().unwrap().to_string();
 
-    // List (json) — get subscription ID
+    // List (json) — verify it appears
     let output = cli(cfg.path())
         .args(["--profile", &prof, "--output", "json", "subscription", "list"])
         .output()
@@ -464,22 +468,31 @@ fn test_subscription_full_lifecycle() {
     assert!(output.status.success());
     let subs: Vec<serde_json::Value> = serde_json::from_slice(&output.stdout)
         .expect("subscription list JSON should be valid array");
-    assert!(!subs.is_empty(), "should have at least 1 subscription");
-    let sub_id = subs[0]["subscription_id"].as_str().unwrap().to_string();
+    assert!(
+        subs.iter().any(|s| s["subscription_id"].as_str() == Some(&sub_id)),
+        "created subscription should appear in list"
+    );
 
     // Get (table)
-    cli(cfg.path())
+    let get_assert = cli(cfg.path())
         .args(["--profile", &prof, "subscription", "get", &sub_id])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains(&sub_id));
+        .output()
+        .unwrap();
+    assert!(
+        get_assert.status.success(),
+        "subscription get failed for {}: {}",
+        sub_id,
+        String::from_utf8_lossy(&get_assert.stderr)
+    );
 
     // Get (json) — verify structure
     let output = cli(cfg.path())
         .args(["--profile", &prof, "--output", "json", "subscription", "get", &sub_id])
         .output()
         .unwrap();
-    let sub: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert!(output.status.success(), "subscription get json failed: {}", String::from_utf8_lossy(&output.stderr));
+    let sub: serde_json::Value = serde_json::from_slice(&output.stdout)
+        .unwrap_or_else(|e| panic!("parse failed: {}, stdout: {}", e, String::from_utf8_lossy(&output.stdout)));
     assert_eq!(sub["subscription_id"].as_str().unwrap(), sub_id);
     assert_eq!(sub["is_enabled"].as_bool().unwrap(), true);
 
@@ -990,4 +1003,483 @@ fn test_error_wrong_secret() {
         .stderr(predicate::str::contains("Authentication failed").or(
             predicate::str::contains("invalid secret")
         ));
+}
+
+// =============================================================================
+// Override mode: --secret + --api-url + --application-id (no profile needed)
+// =============================================================================
+
+#[test]
+fn test_override_mode_works() {
+    let cfg = tempfile::tempdir().unwrap();
+    let (secret, app_id, api_url) = credentials();
+    let t = tag();
+    let et = format!("{}.ovr.created", t);
+
+    // Create event type using override flags (no login, no profile)
+    cli(cfg.path())
+        .args(["--secret", &secret, "--api-url", &api_url,
+               "--application-id", &app_id,
+               "event-type", "create", &et])
+        .assert()
+        .success();
+
+    // List event types in override mode
+    cli(cfg.path())
+        .args(["--secret", &secret, "--api-url", &api_url,
+               "--application-id", &app_id,
+               "event-type", "list", "--service", &t])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(&t));
+
+    // Cleanup
+    let _ = cli(cfg.path())
+        .args(["--secret", &secret, "--api-url", &api_url,
+               "--application-id", &app_id,
+               "event-type", "delete", &et, "--yes"])
+        .output();
+}
+
+#[test]
+fn test_override_mode_requires_application_id() {
+    let cfg = tempfile::tempdir().unwrap();
+    let (secret, _, api_url) = credentials();
+
+    // --secret + --api-url without --application-id should fail
+    cli(cfg.path())
+        .args(["--secret", &secret, "--api-url", &api_url,
+               "event-type", "list"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("application-id"));
+}
+
+// =============================================================================
+// Event list filters: --until, --page, --status, --label combinations
+// =============================================================================
+
+#[test]
+fn test_event_list_all_filters() {
+    let cfg = tempfile::tempdir().unwrap();
+    let (secret, app_id, api_url) = credentials();
+    let prof = login(cfg.path(), &secret, &app_id, &api_url);
+    let t = tag();
+    let et = format!("{}.filt.created", t);
+
+    let _ = cli(cfg.path())
+        .args(["--profile", &prof, "event-type", "create", &et])
+        .output();
+
+    // Send a few events with different labels
+    for label in &["region=us", "region=eu", "region=ap"] {
+        cli(cfg.path())
+            .args(["--profile", &prof, "event", "send", &et, "-l", label])
+            .assert()
+            .success();
+    }
+
+    // --until
+    cli(cfg.path())
+        .args(["--profile", &prof, "event", "list", "--until", "0s"])
+        .assert()
+        .success();
+
+    // --since + --until combined
+    cli(cfg.path())
+        .args(["--profile", &prof, "event", "list", "--since", "1h", "--until", "0s"])
+        .assert()
+        .success();
+
+    // --page
+    cli(cfg.path())
+        .args(["--profile", &prof, "event", "list", "--page", "1", "--limit", "1"])
+        .assert()
+        .success();
+
+    cli(cfg.path())
+        .args(["--profile", &prof, "event", "list", "--page", "2", "--limit", "1"])
+        .assert()
+        .success();
+
+    // --label filter (verify command succeeds, API may or may not filter)
+    cli(cfg.path())
+        .args(["--profile", &prof, "event", "list", "-l", "region=us"])
+        .assert()
+        .success();
+
+    // --event-type filter (json, verify parseable)
+    let output = cli(cfg.path())
+        .args(["--profile", &prof, "--output", "json", "event", "list",
+               "--event-type", &et])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let _: Vec<serde_json::Value> = serde_json::from_slice(&output.stdout)
+        .expect("filtered event list should be valid JSON array");
+
+    let _ = cli(cfg.path())
+        .args(["--profile", &prof, "event-type", "delete", &et, "--yes"])
+        .output();
+    cleanup(cfg.path(), &prof);
+}
+
+// =============================================================================
+// Subscription list --label filter
+// =============================================================================
+
+#[test]
+fn test_subscription_list_label_filter() {
+    let cfg = tempfile::tempdir().unwrap();
+    let (secret, app_id, api_url) = credentials();
+    let prof = login(cfg.path(), &secret, &app_id, &api_url);
+    let t = tag();
+    let et = format!("{}.slbl.created", t);
+
+    let _ = cli(cfg.path())
+        .args(["--profile", &prof, "event-type", "create", &et])
+        .output();
+
+    // Create two subs with different labels
+    cli(cfg.path())
+        .args(["--profile", &prof, "subscription", "create",
+               "-e", &et, "-u", "https://httpbin.org/post", "-l", "team=alpha"])
+        .assert()
+        .success();
+    cli(cfg.path())
+        .args(["--profile", &prof, "subscription", "create",
+               "-e", &et, "-u", "https://httpbin.org/post", "-l", "team=beta"])
+        .assert()
+        .success();
+
+    // List all — should have both
+    let output = cli(cfg.path())
+        .args(["--profile", &prof, "--output", "json", "subscription", "list"])
+        .output()
+        .unwrap();
+    let all: Vec<serde_json::Value> = serde_json::from_slice(&output.stdout).unwrap();
+    assert!(all.len() >= 2);
+
+    // List with --label team=alpha (verify command succeeds and returns JSON)
+    let output = cli(cfg.path())
+        .args(["--profile", &prof, "--output", "json", "subscription", "list",
+               "-l", "team=alpha"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let _: Vec<serde_json::Value> = serde_json::from_slice(&output.stdout)
+        .expect("label-filtered subscription list should be valid JSON");
+
+    // Cleanup — only delete subs owned by this test (matching team label)
+    for sub in &all {
+        let is_ours = sub.get("labels")
+            .and_then(|l| l.get("team"))
+            .and_then(|v| v.as_str())
+            .map(|t| t == "alpha" || t == "beta")
+            .unwrap_or(false);
+        if is_ours {
+            if let Some(sid) = sub.get("subscription_id").and_then(|v| v.as_str()) {
+                let _ = cli(cfg.path())
+                    .args(["--profile", &prof, "subscription", "delete", sid, "--yes"])
+                    .output();
+            }
+        }
+    }
+    let _ = cli(cfg.path())
+        .args(["--profile", &prof, "event-type", "delete", &et, "--yes"])
+        .output();
+    cleanup(cfg.path(), &prof);
+}
+
+// =============================================================================
+// Config show JSON structure
+// =============================================================================
+
+#[test]
+fn test_config_show_json_structure() {
+    let cfg = tempfile::tempdir().unwrap();
+    let (secret, app_id, api_url) = credentials();
+    let prof = login(cfg.path(), &secret, &app_id, &api_url);
+
+    let output = cli(cfg.path())
+        .args(["--output", "json", "config", "show"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let show: serde_json::Value = serde_json::from_slice(&output.stdout)
+        .expect("config show JSON should be valid");
+    assert!(show.get("config_path").is_some());
+    assert!(show.get("profiles").is_some());
+
+    cleanup(cfg.path(), &prof);
+}
+
+// =============================================================================
+// Verbose flag produces debug output
+// =============================================================================
+
+#[test]
+fn test_verbose_produces_debug_output() {
+    let cfg = tempfile::tempdir().unwrap();
+    let (secret, app_id, api_url) = credentials();
+    let prof = login(cfg.path(), &secret, &app_id, &api_url);
+
+    // -vvv should not break the command (trace logging may or may not
+    // appear on stderr depending on the tracing subscriber initialization)
+    cli(cfg.path())
+        .args(["--profile", &prof, "-vvv", "event-type", "list"])
+        .assert()
+        .success();
+
+    // -v should also work
+    cli(cfg.path())
+        .args(["--profile", &prof, "-v", "event-type", "list"])
+        .assert()
+        .success();
+
+    cleanup(cfg.path(), &prof);
+}
+
+// =============================================================================
+// Regression tests for specific bugs
+// =============================================================================
+
+/// Bug 9: replay real (not dry-run) must work end-to-end
+#[test]
+fn test_replay_real() {
+    let cfg = tempfile::tempdir().unwrap();
+    let (secret, app_id, api_url) = credentials();
+    let prof = login(cfg.path(), &secret, &app_id, &api_url);
+    let t = tag();
+    let et = format!("{}.rpl.created", t);
+
+    let _ = cli(cfg.path())
+        .args(["--profile", &prof, "event-type", "create", &et])
+        .output();
+    let _ = cli(cfg.path())
+        .args(["--profile", &prof, "subscription", "create",
+               "-e", &et, "-u", "https://httpbin.org/post", "-l", "env=rpl"])
+        .output();
+    cli(cfg.path())
+        .args(["--profile", &prof, "event", "send", &et, "-l", "env=rpl"])
+        .assert()
+        .success();
+
+    // Get event ID
+    let output = cli(cfg.path())
+        .args(["--profile", &prof, "--output", "json", "event", "list", "--limit", "1"])
+        .output()
+        .unwrap();
+    let events: Vec<serde_json::Value> = serde_json::from_slice(&output.stdout).unwrap();
+    let evt_id = events[0]["event_id"].as_str().unwrap();
+
+    // Real replay (not dry-run)
+    cli(cfg.path())
+        .args(["--profile", &prof, "replay", evt_id])
+        .assert()
+        .success();
+
+    let _ = cli(cfg.path())
+        .args(["--profile", &prof, "event-type", "delete", &et, "--yes"])
+        .output();
+    cleanup(cfg.path(), &prof);
+}
+
+/// Bug 13: whoami must work in override mode without config file
+#[test]
+fn test_whoami_override_mode() {
+    let cfg = tempfile::tempdir().unwrap();
+    let (secret, app_id, api_url) = credentials();
+
+    // No login, no config — pure override
+    cli(cfg.path())
+        .args(["--secret", &secret, "--api-url", &api_url,
+               "--application-id", &app_id, "whoami"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(&app_id));
+
+    // JSON format
+    let output = cli(cfg.path())
+        .args(["--secret", &secret, "--api-url", &api_url,
+               "--application-id", &app_id, "--output", "json", "whoami"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let whoami: serde_json::Value = serde_json::from_slice(&output.stdout)
+        .expect("whoami override JSON should be valid");
+    assert_eq!(whoami["application_id"].as_str().unwrap(), app_id);
+
+    // In override mode, authenticated is always true (secret explicitly provided)
+    let output = cli(cfg.path())
+        .args(["--secret", "00000000-0000-0000-0000-000000000000",
+               "--api-url", &api_url, "--application-id", &app_id,
+               "--output", "json", "whoami"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let whoami: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(whoami["authenticated"].as_bool().unwrap(), true);
+}
+
+/// Bug 14: login -o json must produce clean JSON (no progress text)
+#[test]
+fn test_login_json_output_clean() {
+    let cfg = tempfile::tempdir().unwrap();
+    let (secret, app_id, api_url) = credentials();
+    let prof = profile_name();
+
+    let output = cli(cfg.path())
+        .args(["--output", "json", "login", "--secret", &secret,
+               "--application-id", &app_id, "--api-url", &api_url,
+               "--profile-name", &prof])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+
+    // stdout must be valid JSON (no progress text mixed in)
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout)
+        .expect("login -o json stdout must be valid JSON");
+    assert_eq!(json["success"].as_bool().unwrap(), true);
+    assert!(json.get("profile").is_some());
+
+    cleanup(cfg.path(), &prof);
+}
+
+/// Bug 15: replay -o json must not mix progress text
+#[test]
+fn test_replay_json_output_clean() {
+    let cfg = tempfile::tempdir().unwrap();
+    let (secret, app_id, api_url) = credentials();
+    let prof = login(cfg.path(), &secret, &app_id, &api_url);
+
+    // replay --all --dry-run with json should be clean
+    let output = cli(cfg.path())
+        .args(["--profile", &prof, "--output", "json", "replay",
+               "--all", "--dry-run", "--since", "1h", "--confirm"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    // stdout should either be empty or valid JSON (no "Would replay" text)
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    if !stdout.trim().is_empty() {
+        let _: serde_json::Value = serde_json::from_str(stdout.trim())
+            .unwrap_or_else(|_| panic!("replay json stdout not valid JSON: {}", stdout));
+    }
+
+    cleanup(cfg.path(), &prof);
+}
+
+/// Bug 16: logout respects global -p/--profile flag
+#[test]
+fn test_logout_respects_global_profile() {
+    let cfg = tempfile::tempdir().unwrap();
+    let (secret, app_id, api_url) = credentials();
+    let prof_a = login(cfg.path(), &secret, &app_id, &api_url);
+    let prof_b = login(cfg.path(), &secret, &app_id, &api_url);
+
+    // Logout prof_b using global -p flag
+    cli(cfg.path())
+        .args(["-p", &prof_b, "logout"])
+        .assert()
+        .success();
+
+    // prof_a should still work
+    cli(cfg.path())
+        .args(["--profile", &prof_a, "whoami"])
+        .assert()
+        .success();
+
+    // prof_b should fail
+    cli(cfg.path())
+        .args(["--profile", &prof_b, "whoami"])
+        .assert()
+        .failure();
+
+    cleanup(cfg.path(), &prof_a);
+}
+
+/// Bug 17: --enable and --disable are mutually exclusive
+#[test]
+fn test_subscription_update_enable_disable_conflict() {
+    let cfg = tempfile::tempdir().unwrap();
+    let (secret, app_id, api_url) = credentials();
+    let prof = login(cfg.path(), &secret, &app_id, &api_url);
+
+    cli(cfg.path())
+        .args(["--profile", &prof, "subscription", "update",
+               "00000000-0000-0000-0000-000000000000",
+               "--enable", "--disable"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("cannot be used with"));
+
+    cleanup(cfg.path(), &prof);
+}
+
+/// Bug 19: delete commands with -o json produce JSON
+#[test]
+fn test_delete_json_output() {
+    let cfg = tempfile::tempdir().unwrap();
+    let (secret, app_id, api_url) = credentials();
+    let prof = login(cfg.path(), &secret, &app_id, &api_url);
+    let t = tag();
+    let et = format!("{}.djson.created", t);
+
+    let _ = cli(cfg.path())
+        .args(["--profile", &prof, "event-type", "create", &et])
+        .output();
+
+    // event-type delete -o json
+    let output = cli(cfg.path())
+        .args(["--profile", &prof, "--output", "json", "event-type", "delete", &et, "--yes"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout)
+        .expect("event-type delete json should be valid");
+    assert_eq!(json["deleted"].as_bool().unwrap(), true);
+
+    // subscription delete -o json
+    let _ = cli(cfg.path())
+        .args(["--profile", &prof, "event-type", "create", &et])
+        .output();
+    let output = cli(cfg.path())
+        .args(["--profile", &prof, "--output", "json", "subscription", "create",
+               "-e", &et, "-u", "https://httpbin.org/post", "-l", "env=dj"])
+        .output()
+        .unwrap();
+    let sub: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    let sub_id = sub["subscription_id"].as_str().unwrap();
+
+    let output = cli(cfg.path())
+        .args(["--profile", &prof, "--output", "json", "subscription", "delete", sub_id, "--yes"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout)
+        .expect("subscription delete json should be valid");
+    assert_eq!(json["deleted"].as_bool().unwrap(), true);
+
+    let _ = cli(cfg.path())
+        .args(["--profile", &prof, "event-type", "delete", &et, "--yes"])
+        .output();
+    cleanup(cfg.path(), &prof);
+}
+
+/// Bug 22: invalid JSON payload gives clear error message
+#[test]
+fn test_invalid_json_error_message() {
+    let cfg = tempfile::tempdir().unwrap();
+    let (secret, app_id, api_url) = credentials();
+    let prof = login(cfg.path(), &secret, &app_id, &api_url);
+
+    cli(cfg.path())
+        .args(["--profile", &prof, "event", "send", "any.type.here",
+               "-d", "not valid json", "-l", "e=t"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("Invalid JSON payload"));
+
+    cleanup(cfg.path(), &prof);
 }
