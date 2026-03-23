@@ -1,5 +1,5 @@
 import http, { handleError, Problem } from '@/http.ts';
-import { AxiosError, AxiosResponse } from 'axios';
+import { AxiosError, type AxiosResponse } from 'axios';
 import { components } from '@/types.ts';
 
 type definitions = components['schemas'];
@@ -11,8 +11,8 @@ export function getInstanceConfig(): Promise<InstanceConfig> {
   if (instanceConfigCache) {
     return instanceConfigCache;
   } else {
-    const promise = http.get('/instance', {}).then(
-      (res: AxiosResponse<InstanceConfig>) => {
+    const promise = http.get<InstanceConfig>('/instance', {}).then(
+      (res) => {
         return res.data;
       },
       (err: AxiosError<AxiosResponse<Problem>>) => {

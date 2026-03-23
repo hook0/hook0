@@ -1,0 +1,267 @@
+/* ========================================
+   Page Transitions
+   ======================================== */
+
+.page-enter-active {
+  transition:
+    opacity 150ms ease-out,
+    transform 150ms ease-out;
+}
+
+.page-leave-active {
+  transition: opacity 100ms ease-in;
+}
+
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+.page-enter-to {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.page-leave-from {
+  opacity: 1;
+}
+
+.page-leave-to {
+  opacity: 0;
+}
+
+/* ========================================
+   Slide panel (right side)
+   ======================================== */
+
+.slide-right-enter-active {
+  transition:
+    transform 250ms ease-out,
+    opacity 200ms ease-out;
+}
+
+.slide-right-leave-active {
+  transition:
+    transform 200ms ease-in,
+    opacity 150ms ease-in;
+}
+
+.slide-right-enter-from {
+  transform: translateX(100%);
+  opacity: 0;
+}
+
+.slide-right-enter-to {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.slide-right-leave-from {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.slide-right-leave-to {
+  transform: translateX(100%);
+  opacity: 0;
+}
+
+/* ========================================
+   Dropdown / popover
+   ======================================== */
+
+.dropdown-enter-active {
+  transition:
+    opacity 150ms ease-out,
+    transform 150ms ease-out;
+}
+
+.dropdown-leave-active {
+  transition:
+    opacity 100ms ease-in,
+    transform 100ms ease-in;
+}
+
+.dropdown-enter-from {
+  opacity: 0;
+  transform: scaleY(0.95) translateY(-4px);
+  transform-origin: top;
+}
+
+.dropdown-enter-to {
+  opacity: 1;
+  transform: scaleY(1) translateY(0);
+}
+
+.dropdown-leave-from {
+  opacity: 1;
+  transform: scaleY(1);
+}
+
+.dropdown-leave-to {
+  opacity: 0;
+  transform: scaleY(0.95);
+}
+
+/* ========================================
+   Dialog / modal
+   ======================================== */
+
+.dialog-enter-active {
+  transition:
+    opacity 200ms ease-out,
+    transform 200ms ease-out;
+}
+
+.dialog-leave-active {
+  transition:
+    opacity 150ms ease-in,
+    transform 150ms ease-in;
+}
+
+.dialog-enter-from {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.dialog-enter-to {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.dialog-leave-from {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.dialog-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+/* Dialog overlay */
+.dialog-overlay-enter-active {
+  transition: opacity 200ms ease-out;
+}
+
+.dialog-overlay-leave-active {
+  transition: opacity 150ms ease-in;
+}
+
+.dialog-overlay-enter-from,
+.dialog-overlay-leave-to {
+  opacity: 0;
+}
+
+/* ========================================
+   Command palette
+   ======================================== */
+
+.command-palette-enter-active {
+  transition:
+    opacity 150ms ease-out,
+    transform 150ms ease-out;
+}
+
+.command-palette-leave-active {
+  transition:
+    opacity 100ms ease-in,
+    transform 100ms ease-in;
+}
+
+.command-palette-enter-from {
+  opacity: 0;
+  transform: translateY(-10px) scale(0.98);
+}
+
+.command-palette-enter-to {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.command-palette-leave-from {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.command-palette-leave-to {
+  opacity: 0;
+  transform: translateY(-10px) scale(0.98);
+}
+
+/* ========================================
+   Fade transition (generic)
+   ======================================== */
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 150ms ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* ========================================
+   Mobile drawer
+   ======================================== */
+
+.drawer-enter-active {
+  transition: transform 300ms ease-out;
+}
+
+.drawer-leave-active {
+  transition: transform 250ms ease-in;
+}
+
+.drawer-enter-from {
+  transform: translateY(100%);
+}
+
+.drawer-enter-to {
+  transform: translateY(0);
+}
+
+.drawer-leave-from {
+  transform: translateY(0);
+}
+
+.drawer-leave-to {
+  transform: translateY(100%);
+}
+
+/* ========================================
+   Staggered list entrance
+   ======================================== */
+
+@keyframes stagger-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stagger-item {
+  animation: stagger-fade-in 0.3s ease-out both;
+  animation-delay: calc(var(--stagger-index, 0) * 50ms);
+}
+
+/* ========================================
+   Reduced motion preference
+   ======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

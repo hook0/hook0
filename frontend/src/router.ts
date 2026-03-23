@@ -7,30 +7,9 @@ const router = createRouter({
   routes,
 });
 
-export default router;
-
-/*
-router.beforeEach(async (to, from, next) => {
-
-  const from_has_organization_id = String(from.query.organization_id).includes('-');
-  const to_has_organization_id = String(to.query.organization_id).includes('-');
-
-  if (to_has_organization_id) {
-    //  move on to the next hook in the pipeline
-    return next();
-  }
-
-  if (from_has_organization_id && !to_has_organization_id) {
-    addOrganizationId(to, from.query.organization_id as string);
-    return;
-  }
-
-  await list().then(organizations => {
-    if (!Array.isArray(organizations) || organizations.length === 0) {
-      return next({ name: routeNames.Error404 });
-    }
-
-    addOrganizationId(to, organizations[0].organization_id);
-  });
+router.afterEach((to) => {
+  const title = (to.meta?.title as string | undefined) ?? null;
+  document.title = title ? `${title} — Hook0` : 'Hook0';
 });
-*/
+
+export default router;

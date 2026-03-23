@@ -1,33 +1,31 @@
 <script setup lang="ts">
-import { ICellRendererParams } from 'ag-grid-community';
-
-import Hook0Text from '@/components/Hook0Text.vue';
-
 defineOptions({
   inheritAttrs: false,
 });
 
-interface Props {
-  params: ICellRendererParams;
-}
+type Props = {
+  value: string;
+};
 
 defineProps<Props>();
 </script>
 
 <template>
-  <Hook0Text class="code" style="width: fit-content"
-    >{{
-      params.colDef?.cellRendererParams && params.colDef.cellRendererParams.value
-        ? typeof params.colDef.cellRendererParams.value === 'function'
-          ? params.colDef.cellRendererParams.value(params.data)
-          : params.colDef.cellRendererParams.value
-        : params.value
-    }}
-  </Hook0Text>
+  <code class="table-cell-code__value">{{ value }}</code>
 </template>
 
-<style>
-.ag-theme-alpine .ag-cell {
-  line-height: 40px;
+<style scoped>
+.table-cell-code__value {
+  color: var(--color-text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.5;
+  display: block;
+  max-width: 14rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: text;
 }
 </style>
