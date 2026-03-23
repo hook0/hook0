@@ -80,10 +80,7 @@ function closeSidePanel() {
             }}</Hook0HelpText>
           </template>
           <template #actions>
-            <Hook0DocButtons
-              :doc-url="DOCS_LOGS_URL"
-              :api-url="API_DOCS_LOGS_URL"
-            />
+            <Hook0DocButtons :doc-url="DOCS_LOGS_URL" :api-url="API_DOCS_LOGS_URL" />
           </template>
         </Hook0CardHeader>
 

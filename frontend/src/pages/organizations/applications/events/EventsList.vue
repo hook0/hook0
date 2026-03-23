@@ -357,10 +357,7 @@ const columns: ColumnDef<Event, unknown>[] = [
               {{ t('events.subtitle') }}
             </template>
             <template #actions>
-              <Hook0DocButtons
-                :doc-url="DOCS_EVENTS_URL"
-                :api-url="API_DOCS_EVENTS_URL"
-              />
+              <Hook0DocButtons :doc-url="DOCS_EVENTS_URL" :api-url="API_DOCS_EVENTS_URL" />
             </template>
           </Hook0CardHeader>
 

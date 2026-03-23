@@ -5,10 +5,7 @@ import { useRouteIds } from '@/composables/useRouteIds';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
 import { Trash2, Link } from 'lucide-vue-next';
-import {
-  DOCS_SUBSCRIPTIONS_URL,
-  API_DOCS_SUBSCRIPTIONS_URL,
-} from '@/constants/externalLinks';
+import { DOCS_SUBSCRIPTIONS_URL, API_DOCS_SUBSCRIPTIONS_URL } from '@/constants/externalLinks';
 import Hook0TableCellEventTypes from '@/components/Hook0TableCellEventTypes.vue';
 import Hook0TableCellLabels from '@/components/Hook0TableCellLabels.vue';
 import Hook0TableCellTarget from '@/components/Hook0TableCellTarget.vue';

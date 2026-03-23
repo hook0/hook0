@@ -158,10 +158,7 @@ const columns: ColumnDef<ApplicationSecret, unknown>[] = [
               {{ t('apiKeys.subtitle') }}
             </template>
             <template #actions>
-              <Hook0DocButtons
-                :doc-url="DOCS_API_KEYS_URL"
-                :api-url="API_DOCS_API_KEYS_URL"
-              />
+              <Hook0DocButtons :doc-url="DOCS_API_KEYS_URL" :api-url="API_DOCS_API_KEYS_URL" />
             </template>
           </Hook0CardHeader>
 

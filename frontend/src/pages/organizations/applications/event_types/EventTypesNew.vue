@@ -90,10 +90,7 @@ const onSubmit = handleSubmit((values) => {
           <template #header>{{ t('eventTypes.createTitle') }}</template>
           <template #subtitle>{{ t('eventTypes.createSubtitle') }}</template>
           <template #actions>
-            <Hook0DocButtons
-              :doc-url="DOCS_EVENT_TYPES_URL"
-              :api-url="API_DOCS_EVENT_TYPES_URL"
-            />
+            <Hook0DocButtons :doc-url="DOCS_EVENT_TYPES_URL" :api-url="API_DOCS_EVENT_TYPES_URL" />
           </template>
         </Hook0CardHeader>
 
