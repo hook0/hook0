@@ -14,8 +14,7 @@ use crate::opentelemetry::{end_request_attempt_span, start_request_attempt_span}
 use crate::throughput_log::ThroughputStats;
 use crate::work::work;
 use crate::{
-    Config, ObjectStorageConfig, RequestAttemptWithOptionalPayload, Worker, WorkerScope,
-    compute_next_retry,
+    Config, ObjectStorageConfig, RequestAttemptWithOptionalPayload, Worker, compute_next_retry,
 };
 use hook0_protobuf::{ObjectStorageResponse, RequestAttempt};
 use hook0_sentry_integration::log_object_storage_error_with_context;
@@ -44,100 +43,53 @@ pub async fn look_for_work(
         let mut tx = pool.begin().await?;
 
         let fetch_start = Instant::now();
-        let next_attempt = match worker.scope {
-            WorkerScope::Public { worker_id } => {
-                // Only consider request attempts where associated subscription have no dedicated worker specified
-                query_as!(
-                    RequestAttemptWithOptionalPayload,
-                    "
-                        SELECT
-                            e.application__id AS application_id,
-                            ra.request_attempt__id AS request_attempt_id,
-                            ra.event__id AS event_id,
-                            e.received_at AS event_received_at,
-                            ra.subscription__id AS subscription_id,
-                            ra.created_at,
-                            ra.retry_count,
-                            ra.delay_until,
-                            t_http.method AS http_method,
-                            t_http.url AS http_url,
-                            t_http.headers AS http_headers,
-                            e.event_type__name AS event_type_name,
-                            e.payload AS payload,
-                            e.payload_content_type AS payload_content_type,
-                            s.secret
-                        FROM webhook.request_attempt AS ra
-                        INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
-                        LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
-                        INNER JOIN event.application AS a ON a.application__id = s.application__id AND a.deleted_at IS NULL
-                        INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
-                        LEFT JOIN iam.organization__worker AS ow ON ow.organization__id = o.organization__id AND ow.default = true
-                        INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
-                        INNER JOIN event.event AS e ON e.event__id = ra.event__id
-                        WHERE
-                            ra.succeeded_at IS NULL
-                            AND ra.failed_at IS NULL
-                            AND s.is_enabled
-                            AND s.deleted_at IS NULL
-                            AND (ra.delay_until IS NULL OR ra.delay_until <= statement_timestamp())
-                            AND (COALESCE(sw.worker__id, ow.worker__id) IS NULL OR COALESCE(sw.worker__id, ow.worker__id) = $1)
-                        ORDER BY ra.created_at ASC
-                        LIMIT 1
-                        FOR UPDATE OF ra
-                        SKIP LOCKED
-                    ",
-                    worker_id.to_owned(),
-                )
-                .fetch_optional(&mut *tx)
-                .await?
-            }
-            WorkerScope::Private { worker_id } => {
-                // Only consider request attempts where associated subscription have at least the currect worker specified as dedicated worker
-                query_as!(
-                    RequestAttemptWithOptionalPayload,
-                    "
-                        SELECT
-                            e.application__id AS application_id,
-                            ra.request_attempt__id AS request_attempt_id,
-                            ra.event__id AS event_id,
-                            e.received_at AS event_received_at,
-                            ra.subscription__id AS subscription_id,
-                            ra.created_at,
-                            ra.retry_count,
-                            ra.delay_until,
-                            t_http.method AS http_method,
-                            t_http.url AS http_url,
-                            t_http.headers AS http_headers,
-                            e.event_type__name AS event_type_name,
-                            e.payload AS payload,
-                            e.payload_content_type AS payload_content_type,
-                            s.secret
-                        FROM webhook.request_attempt AS ra
-                        INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
-                        LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
-                        INNER JOIN event.application AS a ON a.application__id = s.application__id AND a.deleted_at IS NULL
-                        INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
-                        LEFT JOIN iam.organization__worker AS ow ON ow.organization__id = o.organization__id AND ow.default = true
-                        INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
-                        INNER JOIN event.event AS e ON e.event__id = ra.event__id
-                        WHERE
-                            ra.succeeded_at IS NULL
-                            AND ra.failed_at IS NULL
-                            AND s.is_enabled
-                            AND s.deleted_at IS NULL
-                            AND (ra.delay_until IS NULL OR ra.delay_until <= statement_timestamp())
-                            AND (COALESCE(sw.worker__id, ow.worker__id) = $1)
-                        ORDER BY ra.created_at ASC
-                        LIMIT 1
-                        FOR UPDATE OF ra
-                        SKIP LOCKED
-                    ",
-                    &worker_id,
-                )
-                .fetch_optional(&mut *tx)
-                .await?
-            }
-        };
+        let next_attempt = query_as!(
+            RequestAttemptWithOptionalPayload,
+            "
+                SELECT
+                    e.application__id AS application_id,
+                    ra.request_attempt__id AS request_attempt_id,
+                    ra.event__id AS event_id,
+                    e.received_at AS event_received_at,
+                    ra.subscription__id AS subscription_id,
+                    ra.created_at,
+                    ra.retry_count,
+                    ra.delay_until,
+                    t_http.method AS http_method,
+                    t_http.url AS http_url,
+                    t_http.headers AS http_headers,
+                    e.event_type__name AS event_type_name,
+                    e.payload AS payload,
+                    e.payload_content_type AS payload_content_type,
+                    s.secret
+                FROM webhook.request_attempt AS ra
+                INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
+                LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
+                INNER JOIN event.application AS a ON a.application__id = s.application__id AND a.deleted_at IS NULL
+                INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
+                LEFT JOIN iam.organization__worker AS ow ON ow.organization__id = o.organization__id AND ow.default = true
+                INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
+                INNER JOIN event.event AS e ON e.event__id = ra.event__id
+                WHERE
+                    ra.succeeded_at IS NULL
+                    AND ra.failed_at IS NULL
+                    AND s.is_enabled
+                    AND s.deleted_at IS NULL
+                    AND (ra.delay_until IS NULL OR ra.delay_until <= statement_timestamp())
+                    AND (
+                        ($2 AND COALESCE(sw.worker__id, ow.worker__id) IS NULL)
+                        OR COALESCE(sw.worker__id, ow.worker__id) = $1
+                    )
+                ORDER BY ra.created_at ASC
+                LIMIT 1
+                FOR UPDATE OF ra
+                SKIP LOCKED
+            ",
+            worker.scope.worker_id(),
+            worker.scope.is_public(),
+        )
+        .fetch_optional(&mut *tx)
+        .await?;
         stats.record_db_fetch(fetch_start.elapsed());
 
         if let Some(attempt) = next_attempt {

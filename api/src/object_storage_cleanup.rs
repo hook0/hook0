@@ -1,12 +1,15 @@
 use actix_web::rt::time::sleep;
-use aws_sdk_s3::error::DisplayErrorContext;
+use aws_sdk_s3::Client;
+use aws_sdk_s3::config::timeout::TimeoutConfig;
+use aws_sdk_s3::error::{DisplayErrorContext, SdkError};
+use aws_sdk_s3::operation::list_objects_v2::ListObjectsV2Error;
 use aws_sdk_s3::types::{Delete, ObjectIdentifier};
 use chrono::NaiveDate;
 use sqlx::{PgPool, query, query_as};
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::time::{Duration, Instant};
-use tracing::{error, info, trace};
+use tracing::{error, info, trace, warn};
 use uuid::Uuid;
 
 use crate::ObjectStorageConfig;
@@ -14,6 +17,10 @@ use crate::opentelemetry::report_cleaned_up_objects;
 use hook0_sentry_integration::log_object_storage_error_with_context;
 
 const STARTUP_GRACE_PERIOD: Duration = Duration::from_secs(2 * 60);
+/// Delay between processing each application to reduce burst load on the S3 backend.
+const INTER_APP_DELAY: Duration = Duration::from_millis(100);
+/// Per-attempt timeout for the cleanup S3 client (listing can be slow on large buckets).
+const CLEANUP_OPERATION_ATTEMPT_TIMEOUT: Duration = Duration::from_secs(5 * 60);
 
 pub async fn periodically_clean_up_object_storage(
     db: &PgPool,
@@ -41,6 +48,30 @@ async fn delete_dangling_objects_from_object_storage(
 ) -> anyhow::Result<()> {
     trace!("Start cleaning up object storage...");
     let start = Instant::now();
+
+    // Build a dedicated S3 client with relaxed timeouts for the cleanup task.
+    // Listing many objects can be slow; this should not be constrained by the
+    // tight timeouts used for latency-sensitive API operations.
+    // We clone the existing config and only override timeout settings.
+    let mut cleanup_timeout_builder =
+        TimeoutConfig::builder().operation_attempt_timeout(CLEANUP_OPERATION_ATTEMPT_TIMEOUT);
+    // No operation_timeout — let the cleanup task take as long as it needs.
+    // Preserve connect and read timeouts from the existing client.
+    if let Some(existing) = object_storage.client.config().timeout_config() {
+        if let Some(ct) = existing.connect_timeout() {
+            cleanup_timeout_builder = cleanup_timeout_builder.connect_timeout(ct);
+        }
+        if let Some(rt) = existing.read_timeout() {
+            cleanup_timeout_builder = cleanup_timeout_builder.read_timeout(rt);
+        }
+    }
+    let cleanup_config = object_storage
+        .client
+        .config()
+        .to_builder()
+        .timeout_config(cleanup_timeout_builder.build())
+        .build();
+    let client = Client::from_conf(cleanup_config);
 
     trace!("Listing applications with their oldest event date...");
     struct ApplicationWithOldestEventDate {
@@ -72,10 +103,11 @@ async fn delete_dangling_objects_from_object_storage(
     let (mut applications_in_object_storage, lost_applications) = {
         let mut applications = Vec::new();
         let mut continuation_token = Some(String::new());
+        let mut page = 0u64;
 
         while let Some(ct) = continuation_token {
-            let applications_list = object_storage
-                .client
+            let page_start = Instant::now();
+            let applications_list = client
                 .list_objects_v2()
                 .bucket(&object_storage.bucket)
                 .delimiter("/")
@@ -88,6 +120,12 @@ async fn delete_dangling_objects_from_object_storage(
                         error_chain = DisplayErrorContext(e).to_string(),
                     );
                 })?;
+            let prefixes_count = applications_list.common_prefixes().len();
+            trace!(
+                "Listed applications page {page}: {prefixes_count} prefixes in {:?}",
+                page_start.elapsed()
+            );
+            page += 1;
             applications.append(
                 &mut applications_list
                     .common_prefixes()
@@ -147,99 +185,35 @@ async fn delete_dangling_objects_from_object_storage(
 
     trace!("Listing object storage prefixes that should be deleted...");
     let mut prefixes_to_delete = Vec::new();
+    let mut failed_applications = 0u64;
     for (application_id, oldest_event_date) in applications_in_object_storage {
-        let mut event_prefixes = {
-            let mut dates = Vec::new();
-            let mut continuation_token = Some(String::new());
-            let pfx = format!("{application_id}/event/");
-
-            while let Some(ct) = continuation_token {
-                let dates_list = object_storage
-                    .client
-                    .list_objects_v2()
-                    .bucket(&object_storage.bucket)
-                    .delimiter("/")
-                    .prefix(&pfx)
-                    .set_continuation_token(if ct.is_empty() { None } else { Some(ct) })
-                    .send()
-                    .await
-                    .inspect_err(|e| {
-                        log_object_storage_error_with_context!(
-                            "S3 LIST OBJECTS v2 failed while listing event date prefixes",
-                            error_chain = DisplayErrorContext(e).to_string(),
-                            prefix = pfx.as_str(),
-                        );
-                    })?;
-                dates.append(
-                    &mut dates_list
-                        .common_prefixes()
-                        .iter()
-                        .filter_map(|cp| {
-                            cp.prefix
-                                .as_deref()
-                                .and_then(|p| p.strip_suffix("/"))
-                                .and_then(|p| p.split("/").last())
-                                .and_then(|p| NaiveDate::from_str(p).ok())
-                        })
-                        .collect::<Vec<_>>(),
-                );
-                continuation_token = dates_list.next_continuation_token().map(|ct| ct.to_owned());
+        match collect_prefixes_for_application(
+            &client,
+            &object_storage.bucket,
+            application_id,
+            oldest_event_date,
+        )
+        .await
+        {
+            Ok(mut app_prefixes) => {
+                prefixes_to_delete.append(&mut app_prefixes);
             }
-
-            dates
-        }
-        .into_iter()
-        .filter(|d| d < oldest_event_date)
-        .map(|d| format!("{application_id}/event/{d}/"))
-        .collect::<Vec<_>>();
-
-        let mut response_prefixes = {
-            let mut dates = Vec::new();
-            let mut continuation_token = Some(String::new());
-
-            let pfx = format!("{application_id}/response/");
-            while let Some(ct) = continuation_token {
-                let dates_list = object_storage
-                    .client
-                    .list_objects_v2()
-                    .bucket(&object_storage.bucket)
-                    .delimiter("/")
-                    .prefix(&pfx)
-                    .set_continuation_token(if ct.is_empty() { None } else { Some(ct) })
-                    .send()
-                    .await
-                    .inspect_err(|e| {
-                        log_object_storage_error_with_context!(
-                            "S3 LIST OBJECTS v2 failed while listing response date prefixes",
-                            error_chain = DisplayErrorContext(e).to_string(),
-                            prefix = pfx.as_str(),
-                        );
-                    })?;
-                dates.append(
-                    &mut dates_list
-                        .common_prefixes()
-                        .iter()
-                        .filter_map(|cp| {
-                            cp.prefix
-                                .as_deref()
-                                .and_then(|p| p.strip_suffix("/"))
-                                .and_then(|p| p.split("/").last())
-                                .and_then(|p| NaiveDate::from_str(p).ok())
-                        })
-                        .collect::<Vec<_>>(),
+            Err(e) => {
+                failed_applications += 1;
+                error!("Failed to list prefixes for application {application_id}, skipping: {e}");
+                let app_id_str = application_id.to_string();
+                log_object_storage_error_with_context!(
+                    "S3 LIST OBJECTS v2 failed while listing prefixes for application",
+                    error_chain = DisplayErrorContext(&e).to_string(),
+                    prefix = app_id_str.as_str(),
                 );
-                continuation_token = dates_list.next_continuation_token().map(|ct| ct.to_owned());
             }
-
-            dates
         }
-        .into_iter()
-        .filter(|d| d < oldest_event_date)
-        .map(|d| format!("{application_id}/response/{d}/"))
-        .collect::<Vec<_>>();
+        sleep(INTER_APP_DELAY).await;
+    }
 
-        prefixes_to_delete.append(&mut event_prefixes);
-        prefixes_to_delete.append(&mut response_prefixes);
+    if failed_applications > 0 {
+        warn!("Skipped {failed_applications} applications due to errors");
     }
 
     if !prefixes_to_delete.is_empty() {
@@ -256,10 +230,11 @@ async fn delete_dangling_objects_from_object_storage(
             trace!("Deleting prefix '{prefix}' from object storage");
             let mut deleted_objects_for_current_prefix = 0;
             let mut continuation_token = Some(String::new());
+            let mut page = 0u64;
 
             while let Some(ct) = continuation_token {
-                let objects = object_storage
-                    .client
+                let page_start = Instant::now();
+                let objects = client
                     .list_objects_v2()
                     .bucket(&object_storage.bucket)
                     .delimiter("/")
@@ -274,6 +249,12 @@ async fn delete_dangling_objects_from_object_storage(
                             prefix = prefix.as_str(),
                         );
                     })?;
+                let contents_count = objects.contents().len();
+                trace!(
+                    "Listed objects to delete for prefix '{prefix}' page {page}: {contents_count} objects in {:?}",
+                    page_start.elapsed()
+                );
+                page += 1;
                 let delete = {
                     let mut d = Delete::builder();
                     for oi in objects
@@ -291,8 +272,7 @@ async fn delete_dangling_objects_from_object_storage(
                     total_deleted_objects += deleted_amount;
                     deleted_objects_for_current_prefix += deleted_amount;
 
-                    object_storage
-                        .client
+                    client
                         .delete_objects()
                         .bucket(&object_storage.bucket)
                         .delete(del)
@@ -332,4 +312,61 @@ async fn delete_dangling_objects_from_object_storage(
     }
 
     Ok(())
+}
+
+async fn collect_prefixes_for_application(
+    client: &Client,
+    bucket: &str,
+    application_id: Uuid,
+    oldest_event_date: &NaiveDate,
+) -> Result<Vec<String>, SdkError<ListObjectsV2Error>> {
+    let mut prefixes = Vec::new();
+
+    for kind in ["event", "response"] {
+        let mut dates = Vec::new();
+        let mut continuation_token = Some(String::new());
+        let pfx = format!("{application_id}/{kind}/");
+        let mut page = 0u64;
+
+        while let Some(ct) = continuation_token {
+            let page_start = Instant::now();
+            let dates_list = client
+                .list_objects_v2()
+                .bucket(bucket)
+                .delimiter("/")
+                .prefix(&pfx)
+                .set_continuation_token(if ct.is_empty() { None } else { Some(ct) })
+                .send()
+                .await?;
+            let prefixes_count = dates_list.common_prefixes().len();
+            trace!(
+                "Listed {kind} date prefixes for {application_id} page {page}: {prefixes_count} prefixes in {:?}",
+                page_start.elapsed()
+            );
+            page += 1;
+            dates.append(
+                &mut dates_list
+                    .common_prefixes()
+                    .iter()
+                    .filter_map(|cp| {
+                        cp.prefix
+                            .as_deref()
+                            .and_then(|p| p.strip_suffix("/"))
+                            .and_then(|p| p.split("/").last())
+                            .and_then(|p| NaiveDate::from_str(p).ok())
+                    })
+                    .collect::<Vec<_>>(),
+            );
+            continuation_token = dates_list.next_continuation_token().map(|ct| ct.to_owned());
+        }
+
+        prefixes.extend(
+            dates
+                .into_iter()
+                .filter(|d| d < oldest_event_date)
+                .map(|d| format!("{application_id}/{kind}/{d}/")),
+        );
+    }
+
+    Ok(prefixes)
 }
