@@ -140,10 +140,7 @@ fn test_application_list_requires_auth() {
 /// Test that whoami requires authentication
 #[test]
 fn test_whoami_requires_auth() {
-    unauthenticated_cmd()
-        .args(["whoami"])
-        .assert()
-        .failure();
+    unauthenticated_cmd().args(["whoami"]).assert().failure();
 }
 
 /// Test output format flag works with JSON

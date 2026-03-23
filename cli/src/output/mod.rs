@@ -168,7 +168,9 @@ impl Outputable for Event {
         vec![
             self.event_id.to_string(),
             self.event_type_name.clone().unwrap_or_default(),
-            self.occurred_at.map(|t| t.format("%Y-%m-%d %H:%M:%S").to_string()).unwrap_or_default(),
+            self.occurred_at
+                .map(|t| t.format("%Y-%m-%d %H:%M:%S").to_string())
+                .unwrap_or_default(),
             if labels.is_empty() {
                 "-".to_string()
             } else {
@@ -182,7 +184,9 @@ impl Outputable for Event {
             "{}\t{}\t{}",
             self.event_id,
             self.event_type_name.as_deref().unwrap_or(""),
-            self.occurred_at.map(|t| t.format("%Y-%m-%d %H:%M:%S").to_string()).unwrap_or_default()
+            self.occurred_at
+                .map(|t| t.format("%Y-%m-%d %H:%M:%S").to_string())
+                .unwrap_or_default()
         )
     }
 }

@@ -87,14 +87,19 @@ pub async fn execute(cli: &Cli, args: &ReplayArgs) -> Result<()> {
     if let Some(event_id) = args.event_id {
         if args.dry_run {
             if cli.output == OutputFormat::Json {
-                println!("{}", serde_json::json!({"dry_run": true, "event_id": event_id}));
+                println!(
+                    "{}",
+                    serde_json::json!({"dry_run": true, "event_id": event_id})
+                );
             } else {
                 println!("Would replay event: {}", event_id);
             }
             return Ok(());
         }
 
-        let attempts = client.replay_event(&event_id, &profile.application_id).await?;
+        let attempts = client
+            .replay_event(&event_id, &profile.application_id)
+            .await?;
 
         if cli.output == OutputFormat::Json {
             output_many(&attempts, cli.output);
@@ -157,11 +162,18 @@ pub async fn execute(cli: &Cli, args: &ReplayArgs) -> Result<()> {
     if args.dry_run {
         if cli.output == OutputFormat::Json {
             let ids: Vec<&uuid::Uuid> = events.iter().map(|e| &e.event_id).collect();
-            println!("{}", serde_json::json!({"dry_run": true, "count": events.len(), "event_ids": ids}));
+            println!(
+                "{}",
+                serde_json::json!({"dry_run": true, "count": events.len(), "event_ids": ids})
+            );
         } else {
             println!("Would replay {} event(s):", events.len());
             for event in &events {
-                println!("  - {} ({})", event.event_id, event.event_type_name.as_deref().unwrap_or("unknown"));
+                println!(
+                    "  - {} ({})",
+                    event.event_id,
+                    event.event_type_name.as_deref().unwrap_or("unknown")
+                );
             }
         }
         return Ok(());
@@ -176,7 +188,10 @@ pub async fn execute(cli: &Cli, args: &ReplayArgs) -> Result<()> {
     let mut failed = 0;
 
     for event in &events {
-        match client.replay_event(&event.event_id, &profile.application_id).await {
+        match client
+            .replay_event(&event.event_id, &profile.application_id)
+            .await
+        {
             Ok(attempts) => {
                 total_attempts += attempts.len();
                 if cli.output != OutputFormat::Json {

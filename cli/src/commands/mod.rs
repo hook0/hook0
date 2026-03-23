@@ -25,7 +25,10 @@ pub fn resolve_override_profile(cli: &crate::Cli) -> Result<Option<(String, Prof
     let app_id = cli.application_id.ok_or_else(|| {
         anyhow!("--application-id (or HOOK0_APPLICATION_ID) is required when using --secret and --api-url overrides")
     })?;
-    Ok(Some((OVERRIDE_PROFILE.to_string(), Profile::new(api_url.clone(), app_id))))
+    Ok(Some((
+        OVERRIDE_PROFILE.to_string(),
+        Profile::new(api_url.clone(), app_id),
+    )))
 }
 
 /// Get API client from CLI args or config

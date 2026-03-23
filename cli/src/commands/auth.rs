@@ -93,7 +93,10 @@ fn get_value_interactive(
         return Err(anyhow!(
             "{} is required. Provide via --{} or {} environment variable.",
             prompt_message,
-            env_var_name.to_lowercase().trim_start_matches("hook0_").replace('_', "-"),
+            env_var_name
+                .to_lowercase()
+                .trim_start_matches("hook0_")
+                .replace('_', "-"),
             env_var_name
         ));
     }

@@ -186,7 +186,10 @@ async fn send(cli: &Cli, args: &SendArgs) -> Result<()> {
         output_success(&format!(
             "Event sent successfully!\n  Event ID: {}\n  Type: {}",
             result.event_id,
-            result.event_type_name.as_deref().unwrap_or(&args.event_type)
+            result
+                .event_type_name
+                .as_deref()
+                .unwrap_or(&args.event_type)
         ));
     }
 
@@ -230,7 +233,9 @@ async fn list(cli: &Cli, args: &ListArgs) -> Result<()> {
 async fn get(cli: &Cli, args: &GetArgs) -> Result<()> {
     let (client, _, profile) = require_auth(cli)?;
 
-    let event = client.get_event(&args.event_id, &profile.application_id).await?;
+    let event = client
+        .get_event(&args.event_id, &profile.application_id)
+        .await?;
 
     if args.attempts {
         // Show event and its request attempts
@@ -249,14 +254,22 @@ async fn get(cli: &Cli, args: &GetArgs) -> Result<()> {
         } else {
             // Show event details
             let raw_payload = event.payload.clone().unwrap_or_default();
-            let payload_decoded =
-                base64_decode(&raw_payload).unwrap_or(raw_payload);
+            let payload_decoded = base64_decode(&raw_payload).unwrap_or(raw_payload);
 
             TableOutput::print_details(vec![
                 ("Event ID", event.event_id.to_string()),
                 ("Type", event.event_type_name.clone().unwrap_or_default()),
-                ("Content Type", event.payload_content_type.clone().unwrap_or_default()),
-                ("Occurred At", event.occurred_at.map(|t| t.to_rfc3339()).unwrap_or_default()),
+                (
+                    "Content Type",
+                    event.payload_content_type.clone().unwrap_or_default(),
+                ),
+                (
+                    "Occurred At",
+                    event
+                        .occurred_at
+                        .map(|t| t.to_rfc3339())
+                        .unwrap_or_default(),
+                ),
                 ("Received At", event.received_at.to_rfc3339()),
                 (
                     "Labels",
@@ -282,14 +295,22 @@ async fn get(cli: &Cli, args: &GetArgs) -> Result<()> {
         output_one(&event, cli.output);
     } else {
         let raw_payload = event.payload.clone().unwrap_or_default();
-        let payload_decoded =
-            base64_decode(&raw_payload).unwrap_or(raw_payload);
+        let payload_decoded = base64_decode(&raw_payload).unwrap_or(raw_payload);
 
         TableOutput::print_details(vec![
             ("Event ID", event.event_id.to_string()),
             ("Type", event.event_type_name.clone().unwrap_or_default()),
-            ("Content Type", event.payload_content_type.clone().unwrap_or_default()),
-            ("Occurred At", event.occurred_at.map(|t| t.to_rfc3339()).unwrap_or_default()),
+            (
+                "Content Type",
+                event.payload_content_type.clone().unwrap_or_default(),
+            ),
+            (
+                "Occurred At",
+                event
+                    .occurred_at
+                    .map(|t| t.to_rfc3339())
+                    .unwrap_or_default(),
+            ),
             ("Received At", event.received_at.to_rfc3339()),
             (
                 "Labels",

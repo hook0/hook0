@@ -12,10 +12,8 @@ use std::sync::atomic::{AtomicU32, Ordering};
 static TEST_COUNTER: AtomicU32 = AtomicU32::new(0);
 
 fn credentials() -> (String, String, String) {
-    let secret =
-        std::env::var("HOOK0_SECRET").expect("HOOK0_SECRET must be set");
-    let app_id =
-        std::env::var("HOOK0_APPLICATION_ID").expect("HOOK0_APPLICATION_ID must be set");
+    let secret = std::env::var("HOOK0_SECRET").expect("HOOK0_SECRET must be set");
+    let app_id = std::env::var("HOOK0_APPLICATION_ID").expect("HOOK0_APPLICATION_ID must be set");
     let api_url =
         std::env::var("HOOK0_API_URL").unwrap_or_else(|_| "https://app.hook0.com/api/v1".into());
     (secret, app_id, api_url)
@@ -55,8 +53,15 @@ fn login(cfg: &Path, secret: &str, app_id: &str, api_url: &str) -> String {
     let profile = profile_name();
     cli(cfg)
         .args([
-            "login", "--secret", secret, "--application-id", app_id,
-            "--api-url", api_url, "--profile-name", &profile,
+            "login",
+            "--secret",
+            secret,
+            "--application-id",
+            app_id,
+            "--api-url",
+            api_url,
+            "--profile-name",
+            &profile,
         ])
         .assert()
         .success();
@@ -98,12 +103,12 @@ fn test_config_dir_isolation() {
         .stderr(predicate::str::contains("No profiles"));
 
     // config path reflects the override
-    let output = cli(dir_a.path())
-        .args(["config", "path"])
-        .output()
-        .unwrap();
+    let output = cli(dir_a.path()).args(["config", "path"]).output().unwrap();
     let path_str = String::from_utf8_lossy(&output.stdout);
-    assert!(path_str.contains("config.toml"), "config path should contain config.toml");
+    assert!(
+        path_str.contains("config.toml"),
+        "config path should contain config.toml"
+    );
 
     cleanup(dir_a.path(), &prof);
 }
@@ -158,7 +163,18 @@ fn test_event_type_create_list_delete() {
 
     // Create by components
     cli(cfg.path())
-        .args(["--profile", &prof, "event-type", "create", "-s", &t, "-r", "crud", "-b", "deleted"])
+        .args([
+            "--profile",
+            &prof,
+            "event-type",
+            "create",
+            "-s",
+            &t,
+            "-r",
+            "crud",
+            "-b",
+            "deleted",
+        ])
         .assert()
         .success();
 
@@ -171,23 +187,52 @@ fn test_event_type_create_list_delete() {
 
     // List (json) — verify parseable JSON array
     let output = cli(cfg.path())
-        .args(["--profile", &prof, "--output", "json", "event-type", "list", "--service", &t])
+        .args([
+            "--profile",
+            &prof,
+            "--output",
+            "json",
+            "event-type",
+            "list",
+            "--service",
+            &t,
+        ])
         .output()
         .unwrap();
     assert!(output.status.success());
     let json: Vec<serde_json::Value> = serde_json::from_slice(&output.stdout)
         .expect("event-type list JSON should be a valid array");
-    assert_eq!(json.len(), 2, "should have exactly 2 event types with this service");
+    assert_eq!(
+        json.len(),
+        2,
+        "should have exactly 2 event types with this service"
+    );
 
     // Delete
     cli(cfg.path())
-        .args(["--profile", &prof, "event-type", "delete", &et_deleted, "--yes"])
+        .args([
+            "--profile",
+            &prof,
+            "event-type",
+            "delete",
+            &et_deleted,
+            "--yes",
+        ])
         .assert()
         .success();
 
     // Verify deleted — list should only show 1
     let output = cli(cfg.path())
-        .args(["--profile", &prof, "--output", "json", "event-type", "list", "--service", &t])
+        .args([
+            "--profile",
+            &prof,
+            "--output",
+            "json",
+            "event-type",
+            "list",
+            "--service",
+            &t,
+        ])
         .output()
         .unwrap();
     let json: Vec<serde_json::Value> = serde_json::from_slice(&output.stdout).unwrap();
@@ -195,7 +240,14 @@ fn test_event_type_create_list_delete() {
 
     // Cleanup
     let _ = cli(cfg.path())
-        .args(["--profile", &prof, "event-type", "delete", &et_created, "--yes"])
+        .args([
+            "--profile",
+            &prof,
+            "event-type",
+            "delete",
+            &et_created,
+            "--yes",
+        ])
         .output();
     cleanup(cfg.path(), &prof);
 }
@@ -246,35 +298,75 @@ fn test_event_send_and_list() {
 
     // Send with JSON payload
     cli(cfg.path())
-        .args(["--profile", &prof, "event", "send", &et,
-               "-d", r#"{"key":"value"}"#, "-l", "env=test"])
+        .args([
+            "--profile",
+            &prof,
+            "event",
+            "send",
+            &et,
+            "-d",
+            r#"{"key":"value"}"#,
+            "-l",
+            "env=test",
+        ])
         .assert()
         .success();
 
     // Send with multiple labels
     cli(cfg.path())
-        .args(["--profile", &prof, "event", "send", &et,
-               "-l", "env=test", "-l", "region=eu"])
+        .args([
+            "--profile",
+            &prof,
+            "event",
+            "send",
+            &et,
+            "-l",
+            "env=test",
+            "-l",
+            "region=eu",
+        ])
         .assert()
         .success();
 
     // Send with custom event-id
     let custom_id = uuid::Uuid::new_v4().to_string();
     cli(cfg.path())
-        .args(["--profile", &prof, "event", "send", &et,
-               "-l", "env=test", "--event-id", &custom_id])
+        .args([
+            "--profile",
+            &prof,
+            "event",
+            "send",
+            &et,
+            "-l",
+            "env=test",
+            "--event-id",
+            &custom_id,
+        ])
         .assert()
         .success();
 
     // Send with JSON output
     let output = cli(cfg.path())
-        .args(["--profile", &prof, "--output", "json", "event", "send", &et, "-l", "env=test"])
+        .args([
+            "--profile",
+            &prof,
+            "--output",
+            "json",
+            "event",
+            "send",
+            &et,
+            "-l",
+            "env=test",
+        ])
         .output()
         .unwrap();
     assert!(output.status.success());
-    let json: serde_json::Value = serde_json::from_slice(&output.stdout)
-        .expect("event send JSON output should be valid");
-    assert!(json.get("event_id").is_some(), "JSON should contain event_id");
+    let json: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("event send JSON output should be valid");
+    assert!(
+        json.get("event_id").is_some(),
+        "JSON should contain event_id"
+    );
 
     // List (table)
     cli(cfg.path())
@@ -288,8 +380,8 @@ fn test_event_send_and_list() {
         .output()
         .unwrap();
     assert!(output.status.success());
-    let events: Vec<serde_json::Value> = serde_json::from_slice(&output.stdout)
-        .expect("event list JSON should be a valid array");
+    let events: Vec<serde_json::Value> =
+        serde_json::from_slice(&output.stdout).expect("event list JSON should be a valid array");
     assert!(!events.is_empty());
 
     // List (compact)
@@ -342,15 +434,35 @@ fn test_event_send_payload_file() {
     std::fs::write(&payload_file, r#"{"from_file": true}"#).unwrap();
 
     cli(cfg.path())
-        .args(["--profile", &prof, "event", "send", &et,
-               "-f", payload_file.to_str().unwrap(), "-l", "env=test"])
+        .args([
+            "--profile",
+            &prof,
+            "event",
+            "send",
+            &et,
+            "-f",
+            payload_file.to_str().unwrap(),
+            "-l",
+            "env=test",
+        ])
         .assert()
         .success();
 
     // Cannot use both --payload and --payload-file
     cli(cfg.path())
-        .args(["--profile", &prof, "event", "send", &et,
-               "-d", "{}", "-f", payload_file.to_str().unwrap(), "-l", "env=test"])
+        .args([
+            "--profile",
+            &prof,
+            "event",
+            "send",
+            &et,
+            "-d",
+            "{}",
+            "-f",
+            payload_file.to_str().unwrap(),
+            "-l",
+            "env=test",
+        ])
         .assert()
         .failure()
         .stderr(predicate::str::contains("Cannot specify both"));
@@ -390,14 +502,32 @@ fn test_event_get_with_details() {
 
     // Send an event
     cli(cfg.path())
-        .args(["--profile", &prof, "event", "send", &et,
-               "-d", r#"{"detail": true}"#, "-l", "env=test"])
+        .args([
+            "--profile",
+            &prof,
+            "event",
+            "send",
+            &et,
+            "-d",
+            r#"{"detail": true}"#,
+            "-l",
+            "env=test",
+        ])
         .assert()
         .success();
 
     // Get the event ID from list
     let output = cli(cfg.path())
-        .args(["--profile", &prof, "--output", "json", "event", "list", "--limit", "1"])
+        .args([
+            "--profile",
+            &prof,
+            "--output",
+            "json",
+            "event",
+            "list",
+            "--limit",
+            "1",
+        ])
         .output()
         .unwrap();
     let events: Vec<serde_json::Value> = serde_json::from_slice(&output.stdout).unwrap();
@@ -412,12 +542,20 @@ fn test_event_get_with_details() {
 
     // Get event (json) — verify parseable
     let output = cli(cfg.path())
-        .args(["--profile", &prof, "--output", "json", "event", "get", event_id])
+        .args([
+            "--profile",
+            &prof,
+            "--output",
+            "json",
+            "event",
+            "get",
+            event_id,
+        ])
         .output()
         .unwrap();
     assert!(output.status.success());
-    let event: serde_json::Value = serde_json::from_slice(&output.stdout)
-        .expect("event get JSON should be valid");
+    let event: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("event get JSON should be valid");
     assert_eq!(event["event_id"].as_str().unwrap(), event_id);
 
     // Get event with --attempts
@@ -450,26 +588,47 @@ fn test_subscription_full_lifecycle() {
 
     // Create subscription (json output to capture ID directly)
     let output = cli(cfg.path())
-        .args(["--profile", &prof, "--output", "json", "subscription", "create",
-               "-e", &et, "-u", "https://httpbin.org/post",
-               "-l", "env=test", "-d", "E2E test subscription"])
+        .args([
+            "--profile",
+            &prof,
+            "--output",
+            "json",
+            "subscription",
+            "create",
+            "-e",
+            &et,
+            "-u",
+            "https://httpbin.org/post",
+            "-l",
+            "env=test",
+            "-d",
+            "E2E test subscription",
+        ])
         .output()
         .unwrap();
     assert!(output.status.success(), "subscription create failed");
-    let created: serde_json::Value = serde_json::from_slice(&output.stdout)
-        .expect("subscription create JSON should be valid");
+    let created: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("subscription create JSON should be valid");
     let sub_id = created["subscription_id"].as_str().unwrap().to_string();
 
     // List (json) — verify it appears
     let output = cli(cfg.path())
-        .args(["--profile", &prof, "--output", "json", "subscription", "list"])
+        .args([
+            "--profile",
+            &prof,
+            "--output",
+            "json",
+            "subscription",
+            "list",
+        ])
         .output()
         .unwrap();
     assert!(output.status.success());
     let subs: Vec<serde_json::Value> = serde_json::from_slice(&output.stdout)
         .expect("subscription list JSON should be valid array");
     assert!(
-        subs.iter().any(|s| s["subscription_id"].as_str() == Some(&sub_id)),
+        subs.iter()
+            .any(|s| s["subscription_id"].as_str() == Some(&sub_id)),
         "created subscription should appear in list"
     );
 
@@ -487,12 +646,29 @@ fn test_subscription_full_lifecycle() {
 
     // Get (json) — verify structure
     let output = cli(cfg.path())
-        .args(["--profile", &prof, "--output", "json", "subscription", "get", &sub_id])
+        .args([
+            "--profile",
+            &prof,
+            "--output",
+            "json",
+            "subscription",
+            "get",
+            &sub_id,
+        ])
         .output()
         .unwrap();
-    assert!(output.status.success(), "subscription get json failed: {}", String::from_utf8_lossy(&output.stderr));
-    let sub: serde_json::Value = serde_json::from_slice(&output.stdout)
-        .unwrap_or_else(|e| panic!("parse failed: {}, stdout: {}", e, String::from_utf8_lossy(&output.stdout)));
+    assert!(
+        output.status.success(),
+        "subscription get json failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let sub: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap_or_else(|e| {
+        panic!(
+            "parse failed: {}, stdout: {}",
+            e,
+            String::from_utf8_lossy(&output.stdout)
+        )
+    });
     assert_eq!(sub["subscription_id"].as_str().unwrap(), sub_id);
     assert_eq!(sub["is_enabled"].as_bool().unwrap(), true);
 
@@ -505,7 +681,15 @@ fn test_subscription_full_lifecycle() {
 
     // Verify disabled
     let output = cli(cfg.path())
-        .args(["--profile", &prof, "--output", "json", "subscription", "get", &sub_id])
+        .args([
+            "--profile",
+            &prof,
+            "--output",
+            "json",
+            "subscription",
+            "get",
+            &sub_id,
+        ])
         .output()
         .unwrap();
     let sub: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
@@ -520,16 +704,30 @@ fn test_subscription_full_lifecycle() {
 
     // Update description
     cli(cfg.path())
-        .args(["--profile", &prof, "subscription", "update", &sub_id,
-               "-d", "Updated by e2e test"])
+        .args([
+            "--profile",
+            &prof,
+            "subscription",
+            "update",
+            &sub_id,
+            "-d",
+            "Updated by e2e test",
+        ])
         .assert()
         .success()
         .stdout(predicate::str::contains("updated"));
 
     // Update URL
     cli(cfg.path())
-        .args(["--profile", &prof, "subscription", "update", &sub_id,
-               "-u", "https://httpbin.org/anything"])
+        .args([
+            "--profile",
+            &prof,
+            "subscription",
+            "update",
+            &sub_id,
+            "-u",
+            "https://httpbin.org/anything",
+        ])
         .assert()
         .success();
 
@@ -541,18 +739,35 @@ fn test_subscription_full_lifecycle() {
 
     // List --disabled (should be empty since we re-enabled)
     let output = cli(cfg.path())
-        .args(["--profile", &prof, "--output", "json", "subscription", "list", "--disabled"])
+        .args([
+            "--profile",
+            &prof,
+            "--output",
+            "json",
+            "subscription",
+            "list",
+            "--disabled",
+        ])
         .output()
         .unwrap();
     let disabled: Vec<serde_json::Value> = serde_json::from_slice(&output.stdout).unwrap();
     assert!(
-        !disabled.iter().any(|s| s["subscription_id"].as_str() == Some(&sub_id)),
+        !disabled
+            .iter()
+            .any(|s| s["subscription_id"].as_str() == Some(&sub_id)),
         "re-enabled subscription should not appear in --disabled list"
     );
 
     // Delete
     cli(cfg.path())
-        .args(["--profile", &prof, "subscription", "delete", &sub_id, "--yes"])
+        .args([
+            "--profile",
+            &prof,
+            "subscription",
+            "delete",
+            &sub_id,
+            "--yes",
+        ])
         .assert()
         .success();
 
@@ -576,23 +791,49 @@ fn test_subscription_create_validation() {
 
     // Missing label
     cli(cfg.path())
-        .args(["--profile", &prof, "subscription", "create",
-               "-e", "x.y.z", "-u", "https://example.com"])
+        .args([
+            "--profile",
+            &prof,
+            "subscription",
+            "create",
+            "-e",
+            "x.y.z",
+            "-u",
+            "https://example.com",
+        ])
         .assert()
         .failure()
         .stderr(predicate::str::contains("label"));
 
     // Missing events
     cli(cfg.path())
-        .args(["--profile", &prof, "subscription", "create",
-               "-u", "https://example.com", "-l", "a=b"])
+        .args([
+            "--profile",
+            &prof,
+            "subscription",
+            "create",
+            "-u",
+            "https://example.com",
+            "-l",
+            "a=b",
+        ])
         .assert()
         .failure();
 
     // Invalid URL
     cli(cfg.path())
-        .args(["--profile", &prof, "subscription", "create",
-               "-e", "x.y.z", "-u", "not-a-url", "-l", "a=b"])
+        .args([
+            "--profile",
+            &prof,
+            "subscription",
+            "create",
+            "-e",
+            "x.y.z",
+            "-u",
+            "not-a-url",
+            "-l",
+            "a=b",
+        ])
         .assert()
         .failure()
         .stderr(predicate::str::contains("Invalid URL"));
@@ -619,20 +860,39 @@ fn test_subscription_create_with_options() {
     // Create with multiple events, headers, disabled
     let events_csv = format!("{},{}", et1, et2);
     cli(cfg.path())
-        .args(["--profile", &prof, "subscription", "create",
-               "-e", &events_csv,
-               "-u", "https://httpbin.org/post",
-               "-l", "env=test",
-               "-H", "X-Custom=hello",
-               "--method", "PUT",
-               "--disabled",
-               "-d", "Multi-event disabled sub"])
+        .args([
+            "--profile",
+            &prof,
+            "subscription",
+            "create",
+            "-e",
+            &events_csv,
+            "-u",
+            "https://httpbin.org/post",
+            "-l",
+            "env=test",
+            "-H",
+            "X-Custom=hello",
+            "--method",
+            "PUT",
+            "--disabled",
+            "-d",
+            "Multi-event disabled sub",
+        ])
         .assert()
         .success();
 
     // Verify it's disabled
     let output = cli(cfg.path())
-        .args(["--profile", &prof, "--output", "json", "subscription", "list", "--disabled"])
+        .args([
+            "--profile",
+            &prof,
+            "--output",
+            "json",
+            "subscription",
+            "list",
+            "--disabled",
+        ])
         .output()
         .unwrap();
     let subs: Vec<serde_json::Value> = serde_json::from_slice(&output.stdout).unwrap();
@@ -641,7 +901,14 @@ fn test_subscription_create_with_options() {
     // Cleanup
     let sub_id = subs[0]["subscription_id"].as_str().unwrap();
     let _ = cli(cfg.path())
-        .args(["--profile", &prof, "subscription", "delete", sub_id, "--yes"])
+        .args([
+            "--profile",
+            &prof,
+            "subscription",
+            "delete",
+            sub_id,
+            "--yes",
+        ])
         .output();
     let _ = cli(cfg.path())
         .args(["--profile", &prof, "event-type", "delete", &et1, "--yes"])
@@ -671,12 +938,20 @@ fn test_application_get_and_current() {
 
     // Get by explicit ID (json) — verify parseable
     let output = cli(cfg.path())
-        .args(["--profile", &prof, "--output", "json", "application", "get", &app_id])
+        .args([
+            "--profile",
+            &prof,
+            "--output",
+            "json",
+            "application",
+            "get",
+            &app_id,
+        ])
         .output()
         .unwrap();
     assert!(output.status.success());
-    let app: serde_json::Value = serde_json::from_slice(&output.stdout)
-        .expect("application get JSON should be valid");
+    let app: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("application get JSON should be valid");
     assert_eq!(app["application_id"].as_str().unwrap(), app_id);
 
     // Current
@@ -688,12 +963,19 @@ fn test_application_get_and_current() {
 
     // Current (json)
     let output = cli(cfg.path())
-        .args(["--profile", &prof, "--output", "json", "application", "current"])
+        .args([
+            "--profile",
+            &prof,
+            "--output",
+            "json",
+            "application",
+            "current",
+        ])
         .output()
         .unwrap();
     assert!(output.status.success());
-    let current: serde_json::Value = serde_json::from_slice(&output.stdout)
-        .expect("application current JSON should be valid");
+    let current: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("application current JSON should be valid");
     assert_eq!(current["application_id"].as_str().unwrap(), app_id);
 
     // List fails with app secret (403) — verify helpful error message
@@ -718,23 +1000,51 @@ fn test_replay_dry_run() {
 
     // --all --dry-run with time range
     cli(cfg.path())
-        .args(["--profile", &prof, "replay", "--all", "--dry-run",
-               "--since", "1h", "--confirm"])
+        .args([
+            "--profile",
+            &prof,
+            "replay",
+            "--all",
+            "--dry-run",
+            "--since",
+            "1h",
+            "--confirm",
+        ])
         .assert()
         .success();
 
     // --all --dry-run with all filters
     cli(cfg.path())
-        .args(["--profile", &prof, "replay", "--all", "--dry-run",
-               "--since", "7d", "--until", "1h", "--status", "failed",
-               "--event-type", "nonexistent.type.here", "--limit", "5", "--confirm"])
+        .args([
+            "--profile",
+            &prof,
+            "replay",
+            "--all",
+            "--dry-run",
+            "--since",
+            "7d",
+            "--until",
+            "1h",
+            "--status",
+            "failed",
+            "--event-type",
+            "nonexistent.type.here",
+            "--limit",
+            "5",
+            "--confirm",
+        ])
         .assert()
         .success();
 
     // Single event ID --dry-run
     cli(cfg.path())
-        .args(["--profile", &prof, "replay",
-               "00000000-0000-0000-0000-000000000000", "--dry-run"])
+        .args([
+            "--profile",
+            &prof,
+            "replay",
+            "00000000-0000-0000-0000-000000000000",
+            "--dry-run",
+        ])
         .assert()
         .success();
 
@@ -822,8 +1132,8 @@ fn test_whoami_output_formats() {
         .args(["--profile", &prof, "--output", "json", "whoami"])
         .output()
         .unwrap();
-    let whoami: serde_json::Value = serde_json::from_slice(&output.stdout)
-        .expect("whoami JSON should be valid");
+    let whoami: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("whoami JSON should be valid");
     assert!(whoami.get("application_id").is_some());
     assert!(whoami.get("api_url").is_some());
     assert!(whoami.get("profile").is_some());
@@ -848,13 +1158,19 @@ fn test_config_list_json_structure() {
         .args(["--output", "json", "config", "list"])
         .output()
         .unwrap();
-    let profiles: Vec<serde_json::Value> = serde_json::from_slice(&output.stdout)
-        .expect("config list JSON should be a valid array");
+    let profiles: Vec<serde_json::Value> =
+        serde_json::from_slice(&output.stdout).expect("config list JSON should be a valid array");
     let p = &profiles[0];
     assert!(p.get("name").is_some(), "profile should have name");
     assert!(p.get("api_url").is_some(), "profile should have api_url");
-    assert!(p.get("application_id").is_some(), "profile should have application_id");
-    assert!(p.get("is_default").is_some(), "profile should have is_default");
+    assert!(
+        p.get("application_id").is_some(),
+        "profile should have application_id"
+    );
+    assert!(
+        p.get("is_default").is_some(),
+        "profile should have is_default"
+    );
 
     cleanup(cfg.path(), &prof);
 }
@@ -885,8 +1201,13 @@ fn test_application_switch() {
 
     // Switch to nonexistent app — should fail
     cli(cfg.path())
-        .args(["--profile", &prof, "application", "switch",
-               "00000000-0000-0000-0000-000000000000"])
+        .args([
+            "--profile",
+            &prof,
+            "application",
+            "switch",
+            "00000000-0000-0000-0000-000000000000",
+        ])
         .assert()
         .failure();
 
@@ -916,10 +1237,7 @@ fn test_logout_all() {
         .success();
 
     // Logout --all
-    cli(cfg.path())
-        .args(["logout", "--all"])
-        .assert()
-        .success();
+    cli(cfg.path()).args(["logout", "--all"]).assert().success();
 
     // Both profiles should fail
     cli(cfg.path())
@@ -950,9 +1268,19 @@ fn test_event_send_text_plain() {
 
     // Send with text/plain content type
     cli(cfg.path())
-        .args(["--profile", &prof, "event", "send", &et,
-               "-l", "env=test", "--content-type", "text/plain",
-               "-d", "Hello, this is plain text"])
+        .args([
+            "--profile",
+            &prof,
+            "event",
+            "send",
+            &et,
+            "-l",
+            "env=test",
+            "--content-type",
+            "text/plain",
+            "-d",
+            "Hello, this is plain text",
+        ])
         .assert()
         .success()
         .stdout(predicate::str::contains("Event sent successfully"));
@@ -974,10 +1302,15 @@ fn test_error_bad_api_url() {
     // Login with unreachable port — should fail at validation step
     cli(cfg.path())
         .args([
-            "login", "--secret", "e737f7dd-0c37-4dcd-8fb8-2f5027a383e9",
-            "--application-id", "9408c110-d5dc-4e6d-bd7e-3d102a6aa5a9",
-            "--api-url", "http://localhost:1/api/v1",
-            "--profile-name", "bad-url",
+            "login",
+            "--secret",
+            "e737f7dd-0c37-4dcd-8fb8-2f5027a383e9",
+            "--application-id",
+            "9408c110-d5dc-4e6d-bd7e-3d102a6aa5a9",
+            "--api-url",
+            "http://localhost:1/api/v1",
+            "--profile-name",
+            "bad-url",
         ])
         .assert()
         .failure()
@@ -993,16 +1326,21 @@ fn test_error_wrong_secret() {
     cli(cfg.path())
         .args([
             "login",
-            "--secret", "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
-            "--application-id", &app_id,
-            "--api-url", &api_url,
-            "--profile-name", "wrong-secret",
+            "--secret",
+            "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+            "--application-id",
+            &app_id,
+            "--api-url",
+            &api_url,
+            "--profile-name",
+            "wrong-secret",
         ])
         .assert()
         .failure()
-        .stderr(predicate::str::contains("Authentication failed").or(
-            predicate::str::contains("invalid secret")
-        ));
+        .stderr(
+            predicate::str::contains("Authentication failed")
+                .or(predicate::str::contains("invalid secret")),
+        );
 }
 
 // =============================================================================
@@ -1018,26 +1356,52 @@ fn test_override_mode_works() {
 
     // Create event type using override flags (no login, no profile)
     cli(cfg.path())
-        .args(["--secret", &secret, "--api-url", &api_url,
-               "--application-id", &app_id,
-               "event-type", "create", &et])
+        .args([
+            "--secret",
+            &secret,
+            "--api-url",
+            &api_url,
+            "--application-id",
+            &app_id,
+            "event-type",
+            "create",
+            &et,
+        ])
         .assert()
         .success();
 
     // List event types in override mode
     cli(cfg.path())
-        .args(["--secret", &secret, "--api-url", &api_url,
-               "--application-id", &app_id,
-               "event-type", "list", "--service", &t])
+        .args([
+            "--secret",
+            &secret,
+            "--api-url",
+            &api_url,
+            "--application-id",
+            &app_id,
+            "event-type",
+            "list",
+            "--service",
+            &t,
+        ])
         .assert()
         .success()
         .stdout(predicate::str::contains(&t));
 
     // Cleanup
     let _ = cli(cfg.path())
-        .args(["--secret", &secret, "--api-url", &api_url,
-               "--application-id", &app_id,
-               "event-type", "delete", &et, "--yes"])
+        .args([
+            "--secret",
+            &secret,
+            "--api-url",
+            &api_url,
+            "--application-id",
+            &app_id,
+            "event-type",
+            "delete",
+            &et,
+            "--yes",
+        ])
         .output();
 }
 
@@ -1048,8 +1412,14 @@ fn test_override_mode_requires_application_id() {
 
     // --secret + --api-url without --application-id should fail
     cli(cfg.path())
-        .args(["--secret", &secret, "--api-url", &api_url,
-               "event-type", "list"])
+        .args([
+            "--secret",
+            &secret,
+            "--api-url",
+            &api_url,
+            "event-type",
+            "list",
+        ])
         .assert()
         .failure()
         .stderr(predicate::str::contains("application-id"));
@@ -1087,18 +1457,45 @@ fn test_event_list_all_filters() {
 
     // --since + --until combined
     cli(cfg.path())
-        .args(["--profile", &prof, "event", "list", "--since", "1h", "--until", "0s"])
+        .args([
+            "--profile",
+            &prof,
+            "event",
+            "list",
+            "--since",
+            "1h",
+            "--until",
+            "0s",
+        ])
         .assert()
         .success();
 
     // --page
     cli(cfg.path())
-        .args(["--profile", &prof, "event", "list", "--page", "1", "--limit", "1"])
+        .args([
+            "--profile",
+            &prof,
+            "event",
+            "list",
+            "--page",
+            "1",
+            "--limit",
+            "1",
+        ])
         .assert()
         .success();
 
     cli(cfg.path())
-        .args(["--profile", &prof, "event", "list", "--page", "2", "--limit", "1"])
+        .args([
+            "--profile",
+            &prof,
+            "event",
+            "list",
+            "--page",
+            "2",
+            "--limit",
+            "1",
+        ])
         .assert()
         .success();
 
@@ -1110,8 +1507,16 @@ fn test_event_list_all_filters() {
 
     // --event-type filter (json, verify parseable)
     let output = cli(cfg.path())
-        .args(["--profile", &prof, "--output", "json", "event", "list",
-               "--event-type", &et])
+        .args([
+            "--profile",
+            &prof,
+            "--output",
+            "json",
+            "event",
+            "list",
+            "--event-type",
+            &et,
+        ])
         .output()
         .unwrap();
     assert!(output.status.success());
@@ -1142,19 +1547,46 @@ fn test_subscription_list_label_filter() {
 
     // Create two subs with different labels
     cli(cfg.path())
-        .args(["--profile", &prof, "subscription", "create",
-               "-e", &et, "-u", "https://httpbin.org/post", "-l", "team=alpha"])
+        .args([
+            "--profile",
+            &prof,
+            "subscription",
+            "create",
+            "-e",
+            &et,
+            "-u",
+            "https://httpbin.org/post",
+            "-l",
+            "team=alpha",
+        ])
         .assert()
         .success();
     cli(cfg.path())
-        .args(["--profile", &prof, "subscription", "create",
-               "-e", &et, "-u", "https://httpbin.org/post", "-l", "team=beta"])
+        .args([
+            "--profile",
+            &prof,
+            "subscription",
+            "create",
+            "-e",
+            &et,
+            "-u",
+            "https://httpbin.org/post",
+            "-l",
+            "team=beta",
+        ])
         .assert()
         .success();
 
     // List all — should have both
     let output = cli(cfg.path())
-        .args(["--profile", &prof, "--output", "json", "subscription", "list"])
+        .args([
+            "--profile",
+            &prof,
+            "--output",
+            "json",
+            "subscription",
+            "list",
+        ])
         .output()
         .unwrap();
     let all: Vec<serde_json::Value> = serde_json::from_slice(&output.stdout).unwrap();
@@ -1162,8 +1594,16 @@ fn test_subscription_list_label_filter() {
 
     // List with --label team=alpha (verify command succeeds and returns JSON)
     let output = cli(cfg.path())
-        .args(["--profile", &prof, "--output", "json", "subscription", "list",
-               "-l", "team=alpha"])
+        .args([
+            "--profile",
+            &prof,
+            "--output",
+            "json",
+            "subscription",
+            "list",
+            "-l",
+            "team=alpha",
+        ])
         .output()
         .unwrap();
     assert!(output.status.success());
@@ -1172,7 +1612,8 @@ fn test_subscription_list_label_filter() {
 
     // Cleanup — only delete subs owned by this test (matching team label)
     for sub in &all {
-        let is_ours = sub.get("labels")
+        let is_ours = sub
+            .get("labels")
             .and_then(|l| l.get("team"))
             .and_then(|v| v.as_str())
             .map(|t| t == "alpha" || t == "beta")
@@ -1206,8 +1647,8 @@ fn test_config_show_json_structure() {
         .output()
         .unwrap();
     assert!(output.status.success());
-    let show: serde_json::Value = serde_json::from_slice(&output.stdout)
-        .expect("config show JSON should be valid");
+    let show: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("config show JSON should be valid");
     assert!(show.get("config_path").is_some());
     assert!(show.get("profiles").is_some());
 
@@ -1257,8 +1698,18 @@ fn test_replay_real() {
         .args(["--profile", &prof, "event-type", "create", &et])
         .output();
     let _ = cli(cfg.path())
-        .args(["--profile", &prof, "subscription", "create",
-               "-e", &et, "-u", "https://httpbin.org/post", "-l", "env=rpl"])
+        .args([
+            "--profile",
+            &prof,
+            "subscription",
+            "create",
+            "-e",
+            &et,
+            "-u",
+            "https://httpbin.org/post",
+            "-l",
+            "env=rpl",
+        ])
         .output();
     cli(cfg.path())
         .args(["--profile", &prof, "event", "send", &et, "-l", "env=rpl"])
@@ -1267,7 +1718,16 @@ fn test_replay_real() {
 
     // Get event ID
     let output = cli(cfg.path())
-        .args(["--profile", &prof, "--output", "json", "event", "list", "--limit", "1"])
+        .args([
+            "--profile",
+            &prof,
+            "--output",
+            "json",
+            "event",
+            "list",
+            "--limit",
+            "1",
+        ])
         .output()
         .unwrap();
     let events: Vec<serde_json::Value> = serde_json::from_slice(&output.stdout).unwrap();
@@ -1293,28 +1753,52 @@ fn test_whoami_override_mode() {
 
     // No login, no config — pure override
     cli(cfg.path())
-        .args(["--secret", &secret, "--api-url", &api_url,
-               "--application-id", &app_id, "whoami"])
+        .args([
+            "--secret",
+            &secret,
+            "--api-url",
+            &api_url,
+            "--application-id",
+            &app_id,
+            "whoami",
+        ])
         .assert()
         .success()
         .stdout(predicate::str::contains(&app_id));
 
     // JSON format
     let output = cli(cfg.path())
-        .args(["--secret", &secret, "--api-url", &api_url,
-               "--application-id", &app_id, "--output", "json", "whoami"])
+        .args([
+            "--secret",
+            &secret,
+            "--api-url",
+            &api_url,
+            "--application-id",
+            &app_id,
+            "--output",
+            "json",
+            "whoami",
+        ])
         .output()
         .unwrap();
     assert!(output.status.success());
-    let whoami: serde_json::Value = serde_json::from_slice(&output.stdout)
-        .expect("whoami override JSON should be valid");
+    let whoami: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("whoami override JSON should be valid");
     assert_eq!(whoami["application_id"].as_str().unwrap(), app_id);
 
     // In override mode, authenticated is always true (secret explicitly provided)
     let output = cli(cfg.path())
-        .args(["--secret", "00000000-0000-0000-0000-000000000000",
-               "--api-url", &api_url, "--application-id", &app_id,
-               "--output", "json", "whoami"])
+        .args([
+            "--secret",
+            "00000000-0000-0000-0000-000000000000",
+            "--api-url",
+            &api_url,
+            "--application-id",
+            &app_id,
+            "--output",
+            "json",
+            "whoami",
+        ])
         .output()
         .unwrap();
     assert!(output.status.success());
@@ -1330,16 +1814,26 @@ fn test_login_json_output_clean() {
     let prof = profile_name();
 
     let output = cli(cfg.path())
-        .args(["--output", "json", "login", "--secret", &secret,
-               "--application-id", &app_id, "--api-url", &api_url,
-               "--profile-name", &prof])
+        .args([
+            "--output",
+            "json",
+            "login",
+            "--secret",
+            &secret,
+            "--application-id",
+            &app_id,
+            "--api-url",
+            &api_url,
+            "--profile-name",
+            &prof,
+        ])
         .output()
         .unwrap();
     assert!(output.status.success());
 
     // stdout must be valid JSON (no progress text mixed in)
-    let json: serde_json::Value = serde_json::from_slice(&output.stdout)
-        .expect("login -o json stdout must be valid JSON");
+    let json: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("login -o json stdout must be valid JSON");
     assert_eq!(json["success"].as_bool().unwrap(), true);
     assert!(json.get("profile").is_some());
 
@@ -1355,8 +1849,18 @@ fn test_replay_json_output_clean() {
 
     // replay --all --dry-run with json should be clean
     let output = cli(cfg.path())
-        .args(["--profile", &prof, "--output", "json", "replay",
-               "--all", "--dry-run", "--since", "1h", "--confirm"])
+        .args([
+            "--profile",
+            &prof,
+            "--output",
+            "json",
+            "replay",
+            "--all",
+            "--dry-run",
+            "--since",
+            "1h",
+            "--confirm",
+        ])
         .output()
         .unwrap();
     assert!(output.status.success());
@@ -1407,9 +1911,15 @@ fn test_subscription_update_enable_disable_conflict() {
     let prof = login(cfg.path(), &secret, &app_id, &api_url);
 
     cli(cfg.path())
-        .args(["--profile", &prof, "subscription", "update",
-               "00000000-0000-0000-0000-000000000000",
-               "--enable", "--disable"])
+        .args([
+            "--profile",
+            &prof,
+            "subscription",
+            "update",
+            "00000000-0000-0000-0000-000000000000",
+            "--enable",
+            "--disable",
+        ])
         .assert()
         .failure()
         .stderr(predicate::str::contains("cannot be used with"));
@@ -1432,12 +1942,21 @@ fn test_delete_json_output() {
 
     // event-type delete -o json
     let output = cli(cfg.path())
-        .args(["--profile", &prof, "--output", "json", "event-type", "delete", &et, "--yes"])
+        .args([
+            "--profile",
+            &prof,
+            "--output",
+            "json",
+            "event-type",
+            "delete",
+            &et,
+            "--yes",
+        ])
         .output()
         .unwrap();
     assert!(output.status.success());
-    let json: serde_json::Value = serde_json::from_slice(&output.stdout)
-        .expect("event-type delete json should be valid");
+    let json: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("event-type delete json should be valid");
     assert_eq!(json["deleted"].as_bool().unwrap(), true);
 
     // subscription delete -o json
@@ -1445,20 +1964,41 @@ fn test_delete_json_output() {
         .args(["--profile", &prof, "event-type", "create", &et])
         .output();
     let output = cli(cfg.path())
-        .args(["--profile", &prof, "--output", "json", "subscription", "create",
-               "-e", &et, "-u", "https://httpbin.org/post", "-l", "env=dj"])
+        .args([
+            "--profile",
+            &prof,
+            "--output",
+            "json",
+            "subscription",
+            "create",
+            "-e",
+            &et,
+            "-u",
+            "https://httpbin.org/post",
+            "-l",
+            "env=dj",
+        ])
         .output()
         .unwrap();
     let sub: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     let sub_id = sub["subscription_id"].as_str().unwrap();
 
     let output = cli(cfg.path())
-        .args(["--profile", &prof, "--output", "json", "subscription", "delete", sub_id, "--yes"])
+        .args([
+            "--profile",
+            &prof,
+            "--output",
+            "json",
+            "subscription",
+            "delete",
+            sub_id,
+            "--yes",
+        ])
         .output()
         .unwrap();
     assert!(output.status.success());
-    let json: serde_json::Value = serde_json::from_slice(&output.stdout)
-        .expect("subscription delete json should be valid");
+    let json: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("subscription delete json should be valid");
     assert_eq!(json["deleted"].as_bool().unwrap(), true);
 
     let _ = cli(cfg.path())
@@ -1475,8 +2015,17 @@ fn test_invalid_json_error_message() {
     let prof = login(cfg.path(), &secret, &app_id, &api_url);
 
     cli(cfg.path())
-        .args(["--profile", &prof, "event", "send", "any.type.here",
-               "-d", "not valid json", "-l", "e=t"])
+        .args([
+            "--profile",
+            &prof,
+            "event",
+            "send",
+            "any.type.here",
+            "-d",
+            "not valid json",
+            "-l",
+            "e=t",
+        ])
         .assert()
         .failure()
         .stderr(predicate::str::contains("Invalid JSON payload"));
