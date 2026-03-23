@@ -8,6 +8,7 @@
 # =============================================================================
 
 .sdk-release-rules:
+  interruptible: false
   rules:
     # Matches SDK tags: sdk-v1.0.0, sdk-v2.1.3 (strict semver after sdk-v prefix)
     - if: $CI_COMMIT_TAG =~ /^sdk-v\d+\.\d+\.\d+$/
@@ -17,7 +18,7 @@
 sdk-release.npm:
   extends: .sdk-release-rules
   stage: release
-  image: node:$NODE_VERSION
+  image: $PROXY/node:$NODE_VERSION
   needs:
     - job: clients.typescript.build
       artifacts: true
@@ -45,7 +46,7 @@ sdk-release.npm:
 sdk-release.cargo:
   extends: .sdk-release-rules
   stage: release
-  image: rust:$RUST_VERSION
+  image: $PROXY/rust:$RUST_VERSION
   needs:
     - job: client.rust.check
   script:
@@ -67,7 +68,8 @@ sdk-release.cargo:
 
 .sdk-release-trigger:
   stage: trigger-release
-  image: rust:$RUST_VERSION
+  image: $PROXY/rust:$RUST_VERSION
+  interruptible: false
   allow_failure: false
   variables:
     GIT_LFS_SKIP_SMUDGE: "1"

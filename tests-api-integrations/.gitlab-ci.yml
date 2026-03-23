@@ -2,7 +2,7 @@ api-integration-tests.build:
   extends: .rust-cache-pull-push
   stage: build
   dependencies: []
-  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/rust:$RUST_VERSION
+  image: $PROXY/rust:$RUST_VERSION
   rules:
     - changes:
         - tests-api-integrations/**/*
@@ -10,11 +10,11 @@ api-integration-tests.build:
         - api/**/*
         - frontend/**/*
         - output-worker/**/*
+        - clients/mcp/**/*
         - Cargo.*
   before_script:
     - rustc --version && cargo --version
-    - wget -O protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/protoc-$PROTOC_VERSION-linux-x86_64.zip && mkdir protoc && unzip protoc.zip -d protoc/
-    - export PROTOC="$(realpath ./protoc/bin/protoc)"
+    - !reference [.protoc-setup, before_script]
   script:
     - cargo build --release --no-default-features -F application-secret-compatibility
   artifacts:
@@ -26,7 +26,7 @@ api-integration-tests.test:
   stage: test
   dependencies:
     - api-integration-tests.build
-  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/node:$NODE_VERSION
+  image: $PROXY/node:$NODE_VERSION
   rules:
     - changes:
         - tests-api-integrations/**/*
@@ -34,7 +34,7 @@ api-integration-tests.test:
         - output-worker/**/*
         - Cargo.*
   services:
-    - name: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/postgres:$PG_VERSION
+    - name: $PROXY/postgres:$PG_VERSION
       alias: postgres
   variables:
     ## postgres

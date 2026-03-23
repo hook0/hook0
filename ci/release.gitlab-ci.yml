@@ -1,4 +1,5 @@
 .release-rules:
+  interruptible: false
   variables:
     DOCKERHUB_PREFIX: "hook0"
     GHCR_PREFIX: "ghcr.io/hook0"
@@ -12,7 +13,7 @@
 release.verify-versions:
   extends: .release-rules
   stage: build
-  image: alpine:$ALPINE_VERSION
+  image: $PROXY/alpine:$ALPINE_VERSION
   before_script:
     - apk add --no-cache jq
   script:
@@ -60,87 +61,39 @@ release.verify-versions:
       echo "Version check passed: all components at $TAG_VERSION"
       echo "=========================================="
 
-.build-binary:
+# --- Binary Build (API + Worker combined for shared dependency compilation) ---
+
+release.build-binaries-amd64:
   extends:
     - .release-rules
     - .rust-cache-pull-only
   stage: build
-  image: rust:$RUST_VERSION
+  image: $PROXY/rust:$RUST_VERSION
   timeout: 3h
   needs:
     - job: release.verify-versions
   variables:
     SQLX_OFFLINE: "true"
+    TARGET: x86_64-unknown-linux-gnu
   before_script:
-    - rustup target add $TARGET
-    - apt-get update && apt-get install -y cmake $CROSS_DEPS
+    - !reference [.protoc-setup, before_script]
+    - apt-get update && apt-get install -y cmake
+  script:
+    - mkdir -p artifacts
+    - cargo build --release --package hook0-api --package hook0-output-worker --target $TARGET
+    - cp target/$TARGET/release/hook0-api artifacts/hook0-api-linux-amd64
+    - cp target/$TARGET/release/hook0-output-worker artifacts/hook0-output-worker-linux-amd64
   artifacts:
     paths:
       - artifacts/
     expire_in: 1 week
-
-# --- API Builds ---
-
-release.build-api-amd64:
-  extends: .build-binary
-  variables:
-    TARGET: x86_64-unknown-linux-gnu
-    CROSS_DEPS: ""
-  script:
-    - wget -O protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/protoc-$PROTOC_VERSION-linux-x86_64.zip && mkdir protoc && unzip protoc.zip -d protoc/
-    - export PROTOC="$(realpath ./protoc/bin/protoc)"
-    - mkdir -p artifacts
-    - cargo build --release --package hook0-api --target $TARGET
-    - cp target/$TARGET/release/hook0-api artifacts/hook0-api-linux-amd64
-
-# DISABLED: arm64 builds are too slow on CI
-# release.build-api-arm64:
-#   extends: .build-binary
-#   variables:
-#     TARGET: aarch64-unknown-linux-gnu
-#     CROSS_DEPS: "gcc-aarch64-linux-gnu libc6-dev-arm64-cross"
-#   script:
-#     - mkdir -p artifacts
-#     - wget -O protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/protoc-$PROTOC_VERSION-linux-aarch_64.zip && mkdir protoc && unzip protoc.zip -d protoc/
-#     - export PROTOC="$(realpath ./protoc/bin/protoc)"
-#     - export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
-#     - cargo build --release --package hook0-api --target $TARGET
-#     - cp target/$TARGET/release/hook0-api artifacts/hook0-api-linux-arm64
-
-# --- Worker Builds ---
-
-release.build-worker-amd64:
-  extends: .build-binary
-  variables:
-    TARGET: x86_64-unknown-linux-gnu
-    CROSS_DEPS: ""
-  script:
-    - wget -O protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/protoc-$PROTOC_VERSION-linux-x86_64.zip && mkdir protoc && unzip protoc.zip -d protoc/
-    - export PROTOC="$(realpath ./protoc/bin/protoc)"
-    - mkdir -p artifacts
-    - cargo build --release --package hook0-output-worker --target $TARGET
-    - cp target/$TARGET/release/hook0-output-worker artifacts/hook0-output-worker-linux-amd64
-
-# DISABLED: arm64 builds are too slow on CI
-# release.build-worker-arm64:
-#   extends: .build-binary
-#   variables:
-#     TARGET: aarch64-unknown-linux-gnu
-#     CROSS_DEPS: "gcc-aarch64-linux-gnu libc6-dev-arm64-cross"
-#   script:
-#     - mkdir -p artifacts
-#     - wget -O protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/protoc-$PROTOC_VERSION-linux-aarch_64.zip && mkdir protoc && unzip protoc.zip -d protoc/
-#     - export PROTOC="$(realpath ./protoc/bin/protoc)"
-#     - export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
-#     - cargo build --release --package hook0-output-worker --target $TARGET
-#     - cp target/$TARGET/release/hook0-output-worker artifacts/hook0-output-worker-linux-arm64
 
 # --- Frontend Build ---
 
 release.build-frontend:
   extends: .release-rules
   stage: build
-  image: node:$NODE_VERSION
+  image: $PROXY/node:$NODE_VERSION
   needs:
     - job: release.verify-versions
   script:
@@ -160,7 +113,7 @@ release.build-frontend:
 release.extract-notes:
   extends: .release-rules
   stage: build
-  image: alpine:$ALPINE_VERSION
+  image: $PROXY/alpine:$ALPINE_VERSION
   variables:
     GIT_DEPTH: "0"
   before_script:
@@ -198,16 +151,8 @@ release.containers:
     name: moby/buildkit:$BUILDKIT_VERSION
     entrypoint: ['sh', '-c']
   needs:
-    - job: release.build-api-amd64
+    - job: release.build-binaries-amd64
       artifacts: true
-    # DISABLED: arm64 builds are too slow on CI
-    # - job: release.build-api-arm64
-    #   artifacts: true
-    - job: release.build-worker-amd64
-      artifacts: true
-    # DISABLED: arm64 builds are too slow on CI
-    # - job: release.build-worker-arm64
-    #   artifacts: true
     - job: release.build-frontend
       artifacts: true
     # Wait for tests to pass before releasing
@@ -286,20 +231,12 @@ release.containers:
 release.github:
   extends: .release-rules
   stage: release
-  image: alpine:$ALPINE_VERSION
+  image: $PROXY/alpine:$ALPINE_VERSION
   needs:
     - job: release.extract-notes
       artifacts: true
-    - job: release.build-api-amd64
+    - job: release.build-binaries-amd64
       artifacts: true
-    # DISABLED: arm64 builds are too slow on CI
-    # - job: release.build-api-arm64
-    #   artifacts: true
-    - job: release.build-worker-amd64
-      artifacts: true
-    # DISABLED: arm64 builds are too slow on CI
-    # - job: release.build-worker-arm64
-    #   artifacts: true
     - job: release.build-frontend
       artifacts: true
     - job: release.containers
@@ -319,16 +256,8 @@ release.gitlab:
   needs:
     - job: release.extract-notes
       artifacts: true
-    - job: release.build-api-amd64
+    - job: release.build-binaries-amd64
       artifacts: true
-    # DISABLED: arm64 builds are too slow on CI
-    # - job: release.build-api-arm64
-    #   artifacts: true
-    - job: release.build-worker-amd64
-      artifacts: true
-    # DISABLED: arm64 builds are too slow on CI
-    # - job: release.build-worker-arm64
-    #   artifacts: true
     - job: release.build-frontend
       artifacts: true
     - job: release.containers
@@ -372,7 +301,8 @@ release.gitlab:
 
 .release-trigger:
   stage: trigger-release
-  image: rust:$RUST_VERSION
+  image: $PROXY/rust:$RUST_VERSION
+  interruptible: false
   allow_failure: false
   variables:
     GIT_DEPTH: "0"

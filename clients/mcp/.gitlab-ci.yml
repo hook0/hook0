@@ -3,7 +3,7 @@
 client.mcp.check:
   stage: test
   dependencies: []
-  image: rust:$RUST_VERSION
+  image: $PROXY/rust:$RUST_VERSION
   rules:
     - changes:
         - clients/mcp/**/*
@@ -11,8 +11,7 @@ client.mcp.check:
         - Cargo.*
   before_script:
     - rustc --version && cargo --version
-    - rustup component add clippy
-    - rustup component add rustfmt
+    - rustup component add clippy rustfmt
   script:
     - pushd clients/mcp
     - cargo fmt --all -- --check
@@ -22,39 +21,21 @@ client.mcp.check:
     - cargo build --release
     - popd
 
-# Build API for MCP integration tests
-mcp.build:
-  stage: build
-  dependencies: []
-  image: rust:$RUST_VERSION
-  rules:
-    - changes:
-        - clients/mcp/**/*
-        - api/**/*
-        - Cargo.*
-  before_script:
-    - rustc --version && cargo --version
-    - wget -O protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/protoc-$PROTOC_VERSION-linux-x86_64.zip && mkdir protoc && unzip protoc.zip -d protoc/
-    - export PROTOC="$(realpath ./protoc/bin/protoc)"
-  script:
-    - cargo build --release --no-default-features -F application-secret-compatibility
-  artifacts:
-    paths:
-      - target/release/hook0-api
-
 # Integration tests against local API
+# Reuses the api-integration-tests.build job artifacts instead of a separate build
 client.mcp.integration:
   stage: test
   dependencies:
-    - mcp.build
-  image: rust:$RUST_VERSION
+    - api-integration-tests.build
+  image: $PROXY/rust:$RUST_VERSION
   rules:
     - changes:
         - clients/mcp/**/*
         - api/**/*
         - Cargo.*
   services:
-    - name: postgres:$PG_VERSION
+    - name: $PROXY/postgres:$PG_VERSION
+      alias: postgres
   variables:
     POSTGRES_DB: hook0
     POSTGRES_USER: postgres
@@ -82,7 +63,7 @@ client.mcp.integration:
 client.mcp.semver-checks:
   stage: test
   dependencies: []
-  image: rust:$RUST_VERSION
+  image: $PROXY/rust:$RUST_VERSION
   retry:
     max: 2
     when:

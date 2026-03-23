@@ -1,6 +1,6 @@
 semver-checks:
   stage: test
-  image: rust:$RUST_VERSION
+  image: $PROXY/rust:$RUST_VERSION
   variables:
     BINSTALL_DISABLE_TELEMETRY: "true"
     GIT_DEPTH: "0"

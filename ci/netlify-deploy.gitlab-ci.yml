@@ -1,0 +1,7 @@
+# Reusable template for Netlify deployment jobs.
+.netlify-deploy:
+  stage: release
+  image: $PROXY/node:${NODE_VERSION}
+  interruptible: false
+  before_script:
+    - npm install -g netlify-cli

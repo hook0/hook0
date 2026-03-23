@@ -1,3 +1,6 @@
+default:
+  interruptible: true
+
 workflow:
   rules:
     # Skip branch pipeline for release commits (tag pipeline will run instead)
@@ -19,6 +22,7 @@ variables:
   CARGO_RELEASE_VERSION: "0.25.18"
   ALPINE_VERSION: "3.23"
   BUILDKIT_VERSION: "v0.27.0-rootless"
+  PROXY: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library
 
 stages:
   - build
@@ -37,6 +41,7 @@ include:
   - local: "ci/release-sdk.gitlab-ci.yml"
   - local: "ci/semver-checks.gitlab-ci.yml"
   - local: "ci/rust-cache.gitlab-ci.yml"
+  - local: "ci/netlify-deploy.gitlab-ci.yml"
   - local: "clients/rust/.gitlab-ci.yml"
   - local: "clients/mcp/.gitlab-ci.yml"
   - local: "clients/typescript/.gitlab-ci.yml"
@@ -51,7 +56,7 @@ include:
 osv_dependency_scan:
   stage: test
   dependencies: []
-  image: golang:1.25
+  image: $PROXY/golang:1.25
   allow_failure: true
   retry:
     max: 2
@@ -64,7 +69,7 @@ osv_dependency_scan:
     - osv-scanner --recursive .
 
 # Container scanning using Trivy (no Docker required, works on Kubernetes runners)
-container_scanning:
+trivy_scan:
   stage: test
   dependencies: []
   image:

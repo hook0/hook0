@@ -8,7 +8,7 @@ frontend.build:
         - frontend/**/*
         - api/**/*
         - output-worker/**/*
-  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/node:$NODE_VERSION
+  image: $PROXY/node:$NODE_VERSION
   variables:
     # API endpoint for E2E tests - must match the port used in tests-e2e/.gitlab-ci.yml
     VITE_API_ENDPOINT: "http://localhost:8081/api/v1"
@@ -19,19 +19,19 @@ frontend.build:
   artifacts:
     name: "$CI_BUILD_NAME"
     paths:
-      - frontend/node_modules/
       - frontend/dist/
+    expire_in: 1 week
 
 frontend.check:
   stage: test
-  dependencies:
-    - frontend.build
+  dependencies: []
   rules:
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-(?:alpha|beta|rc)(?:\.\d+)?)?$/
     - changes:
         - frontend/**/*
-  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/node:$NODE_VERSION
+  image: $PROXY/node:$NODE_VERSION
+  before_script:
+    - cd frontend && npm ci
   script:
-    - pushd frontend/
     - npm run check
     - npm run lint

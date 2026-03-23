@@ -2,15 +2,14 @@ sentry_integration.check:
   extends: .rust-cache-pull-only
   stage: test
   dependencies: []
-  image: rust:$RUST_VERSION
+  image: $PROXY/rust:$RUST_VERSION
   rules:
     - changes:
         - sentry-integration/**/*
         - Cargo.*
   before_script:
     - rustc --version && cargo --version
-    - rustup component add clippy
-    - rustup component add rustfmt
+    - rustup component add clippy rustfmt
   script:
     - pushd sentry-integration
     - cargo fmt --all -- --check

@@ -5,7 +5,7 @@ clients.typescript.build:
     - if: $CI_COMMIT_TAG =~ /^sdk-v\d+\.\d+\.\d+$/
     - changes:
         - clients/typescript/**/*
-  image: node:$NODE_VERSION
+  image: $PROXY/node:$NODE_VERSION
   script:
     - pushd clients/typescript/
     - npm install
@@ -16,6 +16,7 @@ clients.typescript.build:
     paths:
       - clients/typescript/node_modules/
       - clients/typescript/dist/
+    expire_in: 1 week
 
 clients.typescript.check:
   stage: test
@@ -25,7 +26,7 @@ clients.typescript.check:
     - if: $CI_COMMIT_TAG =~ /^sdk-v\d+\.\d+\.\d+$/
     - changes:
         - clients/typescript/**/*
-  image: node:$NODE_VERSION
+  image: $PROXY/node:$NODE_VERSION
   script:
     - pushd clients/typescript/
     - npm run check-full

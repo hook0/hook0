@@ -38,3 +38,10 @@
   cache:
     - <<: *cache-config
       policy: pull
+
+# Reusable template for jobs that need protobuf compiler.
+# Use with `!reference` in before_script to avoid duplication.
+.protoc-setup:
+  before_script:
+    - wget -qO protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/protoc-$PROTOC_VERSION-linux-x86_64.zip && mkdir -p .protoc && unzip -qo protoc.zip -d .protoc/
+    - export PROTOC="$(realpath ./.protoc/bin/protoc)"

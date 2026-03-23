@@ -18,7 +18,7 @@ output_worker.check:
   extends: .rust-cache-pull-only
   stage: test
   dependencies: []
-  image: rust:$RUST_VERSION
+  image: $PROXY/rust:$RUST_VERSION
   rules:
     # Always run on release tags (including pre-releases)
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-(?:alpha|beta|rc)(?:\.\d+)?)?$/
@@ -29,13 +29,11 @@ output_worker.check:
   variables:
     SQLX_OFFLINE: "true"
   services:
-    - postgres:$PG_VERSION
+    - $PROXY/postgres:$PG_VERSION
   before_script:
     - rustc --version && cargo --version
-    - rustup component add clippy
-    - rustup component add rustfmt
-    - wget -O protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/protoc-$PROTOC_VERSION-linux-x86_64.zip && mkdir protoc && unzip protoc.zip -d protoc/
-    - export PROTOC="$(realpath ./protoc/bin/protoc)"
+    - rustup component add clippy rustfmt
+    - !reference [.protoc-setup, before_script]
   script:
     - pushd output-worker
     - cargo fmt --all -- --check
