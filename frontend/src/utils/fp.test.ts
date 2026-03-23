@@ -1,5 +1,4 @@
 import { intersectWith } from './fp';
-import { head } from 'ramda';
 
 describe('intersectWith', function () {
   test('works', () => {
@@ -16,7 +15,7 @@ describe('intersectWith', function () {
 
       (list) => {
         return {
-          ...(head(list) as TypeInput),
+          ...list[0],
           selected: true,
         };
       },

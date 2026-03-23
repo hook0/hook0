@@ -1,225 +1,253 @@
 <script setup lang="ts">
-import { ColDef } from 'ag-grid-community';
-import { onMounted, onUpdated, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { h, markRaw, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import type { ColumnDef } from '@tanstack/vue-table';
+import { KeyRound, Trash2 } from 'lucide-vue-next';
+import { DOCS_API_KEYS_URL, API_DOCS_API_KEYS_URL } from '@/constants/externalLinks';
 
-import Hook0Button from '@/components/Hook0Button.vue';
-import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
+import { useSecretList, useCreateSecret, useRemoveSecret } from './useSecretQueries';
+import type { ApplicationSecret } from './ApplicationSecretService';
+import { handleMutationError } from '@/utils/handleMutationError';
+import { toast } from 'vue-sonner';
+import { useTracking } from '@/composables/useTracking';
+import { usePermissions } from '@/composables/usePermissions';
+import { useEntityDelete } from '@/composables/useEntityDelete';
+import { useRouteIds } from '@/composables/useRouteIds';
+
+import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
+import Hook0Card from '@/components/Hook0Card.vue';
+import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
-import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
-import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0Table from '@/components/Hook0Table.vue';
-import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
-import Hook0TableCellCode from '@/components/Hook0TableCellCode.vue';
 import Hook0TableCellDate from '@/components/Hook0TableCellDate.vue';
-import { Problem, UUID } from '@/http';
-import Hook0Text from '@/components/Hook0Text.vue';
-import * as ApplicationSecretService from './ApplicationSecretService';
-import { ApplicationSecret } from './ApplicationSecretService';
-import Hook0Loader from '@/components/Hook0Loader.vue';
-import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
-import Hook0Error from '@/components/Hook0Error.vue';
-import { push } from 'notivue';
-import { useTracking } from '@/composables/useTracking';
-// import Hook0Alert from '@/components/Hook0Alert.vue';
-// import { routes } from '@/routes';
+import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
+import Hook0Button from '@/components/Hook0Button.vue';
+import Hook0EmptyState from '@/components/Hook0EmptyState.vue';
+import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
+import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
+import Hook0Dialog from '@/components/Hook0Dialog.vue';
+import Hook0Input from '@/components/Hook0Input.vue';
+import Hook0Stack from '@/components/Hook0Stack.vue';
+import Hook0CopyField from '@/components/Hook0CopyField.vue';
+import Hook0DocButtons from '@/components/Hook0DocButtons.vue';
+import QuickReferenceCard from '@/components/QuickReferenceCard.vue';
 
-const route = useRoute();
-
-// Analytics tracking
+const { t } = useI18n();
 const { trackEvent } = useTracking();
 
-interface Props {
-  // cache-burst
-  burst?: string | string[];
-}
+// Permissions
+const { canCreate, canDelete } = usePermissions();
 
-defineProps<Props>();
-const columnDefs: ColDef[] = [
-  {
-    field: 'name',
-    suppressMovable: true,
-    sortable: true,
-    resizable: true,
-    headerName: 'Name',
-  },
-  {
-    field: 'token',
-    suppressMovable: true,
-    sortable: true,
-    suppressSizeToFit: true,
-    resizable: true,
-    width: 345,
-    cellRenderer: Hook0TableCellCode,
-    cellRendererParams: {},
-    headerName: 'Token',
-  },
-  {
-    field: 'created_at',
-    suppressMovable: true,
-    sortable: true,
-    resizable: true,
-    headerName: 'Created At',
-    cellRenderer: Hook0TableCellDate,
-  },
-  {
-    suppressMovable: true,
-    headerName: 'Options',
-    suppressSizeToFit: true,
-    width: 105,
-    cellRenderer: Hook0TableCellLink,
-    cellRendererParams: {
-      value: 'Delete',
-      icon: 'trash',
-      dataTest: 'api-key-delete-button',
-      onClick: (row: ApplicationSecret): void => {
-        if (confirm(`Are you sure to delete "${row.name as string}" API Key?`)) {
-          ApplicationSecretService.remove(application_id.value as string, row.token)
-            .then(() => {
-              trackEvent('app-secret', 'delete');
-              _forceLoad();
-            })
-            // @TODO proper error management
-            .catch((err) => {
-              window.alert(err);
-              throw err;
-            });
-        }
-      },
-    },
-  },
-];
+const { organizationId, applicationId } = useRouteIds();
+const { data: secrets, isLoading, error, refetch } = useSecretList(applicationId);
 
-const application_secrets$ = ref<Promise<Array<ApplicationSecret>>>();
-const application_id = ref<null | UUID>(null);
+const createMutation = useCreateSecret();
+const removeMutation = useRemoveSecret();
 
-function createNew(event: Event) {
+const showCreateDialog = ref(false);
+const newSecretName = ref('');
+
+const {
+  showDeleteDialog,
+  entityToDelete: secretToDelete,
+  requestDelete: handleDelete,
+  confirmDelete,
+} = useEntityDelete<ApplicationSecret>({
+  deleteFn: (row) =>
+    removeMutation.mutateAsync({ applicationId: applicationId.value, token: row.token }),
+  successTitle: t('common.success'),
+  successMessage: t('apiKeys.deleted'),
+  onSuccess: () => trackEvent('app-secret', 'delete'),
+});
+
+function createNew(event: MouseEvent) {
   event.stopImmediatePropagation();
   event.preventDefault();
-
-  const name = prompt('Create a new secret key, name?');
-  if (!name) {
-    return;
-  }
-
-  ApplicationSecretService.create({
-    application_id: application_id.value as string,
-    name: name,
-  }).then(() => {
-    trackEvent('app-secret', 'create');
-    _forceLoad();
-  }, displayError);
+  newSecretName.value = '';
+  showCreateDialog.value = true;
 }
 
-function _forceLoad() {
-  application_id.value = route.params.application_id as UUID;
-  application_secrets$.value = ApplicationSecretService.list(application_id.value);
+function confirmCreate() {
+  const name = newSecretName.value.trim();
+  showCreateDialog.value = false;
+  newSecretName.value = '';
+  if (!name) return;
+
+  createMutation.mutate(
+    { application_id: applicationId.value, name },
+    {
+      onSuccess: () => {
+        trackEvent('app-secret', 'create');
+        toast.success(t('common.success'), {
+          description: t('apiKeys.created'),
+          duration: 3000,
+        });
+      },
+      onError: (err) => {
+        handleMutationError(err);
+      },
+    }
+  );
 }
 
-function _load() {
-  if (application_id.value !== route.params.application_id) {
-    _forceLoad();
-  }
-}
-
-function displayError(err: Problem) {
-  console.error(err);
-  let options = {
-    title: err.title,
-    message: err.detail,
-    duration: 5000,
-  };
-  err.status >= 500 ? push.error(options) : push.warning(options);
-}
-
-onMounted(() => {
-  _load();
-});
-
-onUpdated(() => {
-  _load();
-});
+const columns: ColumnDef<ApplicationSecret, unknown>[] = [
+  {
+    accessorKey: 'name',
+    header: t('common.name'),
+    enableSorting: true,
+  },
+  {
+    accessorKey: 'token',
+    header: t('apiKeys.token'),
+    enableSorting: true,
+    cell: (info) =>
+      h(Hook0CopyField, {
+        value: String(info.getValue()),
+        maskable: true,
+        copyMessage: t('apiKeys.tokenCopied'),
+      }),
+  },
+  {
+    accessorKey: 'created_at',
+    header: t('common.createdAt'),
+    enableSorting: true,
+    cell: (info) => h(Hook0TableCellDate, { value: info.getValue<string | null>() }),
+  },
+  ...(canDelete('application_secret')
+    ? [
+        {
+          id: 'options',
+          header: t('common.actions'),
+          cell: (info: { row: { original: ApplicationSecret } }) =>
+            h(Hook0TableCellLink, {
+              value: t('common.delete'),
+              icon: markRaw(Trash2),
+              variant: 'danger',
+              dataTest: 'api-key-delete-button',
+              onClick: () => handleDelete(info.row.original),
+            }),
+        },
+      ]
+    : []),
+];
 </script>
 
 <template>
-  <!--
-  <Hook0Card>
-    <Hook0CardContent>
-      <Hook0Alert type="warning">
-        <template #title><strong>Application Secrets are deprecated</strong></template>
-        <template #description>
-          <Hook0Text
-            >We introduced Service Tokens that supersede Application Secrets. Service Tokens are
-            organization-wide, but can be attenuated to allow API related to one given
-            application.</Hook0Text
-          >
-          <br />
-          <br />
-          <Hook0Button class="primary" :to="{ name: routes.ServicesTokenList }"
-            >Go to Service Tokens</Hook0Button
-          >
-        </template>
-      </Hook0Alert>
-    </Hook0CardContent>
-  </Hook0Card>
-  -->
-  <Promised :promise="application_secrets$">
-    <!-- Use the "pending" slot to display a loading message -->
-    <template #pending>
-      <Hook0Loader></Hook0Loader>
-    </template>
-    <!-- The default scoped slot will be used as the result -->
-    <template #default="application_secrets">
-      <Hook0Card data-test="api-keys-card">
-        <Hook0CardHeader>
-          <template #header> API Keys </template>
-          <template #subtitle>
-            These keys will allow you to authenticate API requests to Hook0.
-          </template>
-        </Hook0CardHeader>
+  <Hook0PageLayout :title="t('apiKeys.title')">
+    <!-- Error state (check FIRST - errors take priority) -->
+    <Hook0ErrorCard v-if="error && !isLoading" :error="error" @retry="refetch()" />
 
-        <Hook0CardContent v-if="application_secrets.length > 0">
-          <Hook0Table
-            data-test="api-keys-table"
-            :context="{ application_secrets$, columnDefs }"
-            :column-defs="columnDefs"
-            :row-data="application_secrets"
-            row-id-field="token"
-          >
-          </Hook0Table>
-        </Hook0CardContent>
+    <!-- Loading skeleton (also shown when query is disabled and data is undefined) -->
+    <Hook0Card v-else-if="isLoading || !secrets" data-test="api-keys-card">
+      <Hook0CardHeader>
+        <template #header>{{ t('apiKeys.title') }}</template>
+      </Hook0CardHeader>
+      <Hook0CardContent>
+        <Hook0SkeletonGroup :count="3" />
+      </Hook0CardContent>
+    </Hook0Card>
 
-        <Hook0CardContent v-else>
-          <Hook0CardContentLines>
-            <Hook0CardContentLine type="full-width">
-              <template #content>
-                <Hook0Text
-                  >Hook0 authenticates your API requests using your application’s API keys. If you
-                  don’t include your key when making an API request, or use an incorrect or outdated
-                  one, Hook0 returns a 401 -
-                  <Hook0Text class="code">Unauthorized HTTP response code</Hook0Text>
-                  .
-                </Hook0Text>
+    <!-- Data loaded (secrets is guaranteed to be defined here) -->
+    <template v-else>
+      <Hook0Stack direction="column" gap="lg">
+        <Hook0Card data-test="api-keys-card">
+          <Hook0CardHeader>
+            <template #header>{{ t('apiKeys.title') }}</template>
+            <template #subtitle>
+              {{ t('apiKeys.subtitle') }}
+            </template>
+            <template #actions>
+              <Hook0DocButtons :doc-url="DOCS_API_KEYS_URL" :api-url="API_DOCS_API_KEYS_URL" />
+            </template>
+          </Hook0CardHeader>
+
+          <Hook0CardContent v-if="secrets.length > 0">
+            <Hook0Table
+              data-test="api-keys-table"
+              :columns="columns"
+              :data="secrets"
+              row-id-field="token"
+            />
+          </Hook0CardContent>
+
+          <Hook0CardContent v-else>
+            <Hook0EmptyState
+              :title="t('apiKeys.empty.title')"
+              :description="t('apiKeys.empty.description')"
+              :icon="KeyRound"
+            >
+              <template v-if="canCreate('application_secret')" #action>
+                <Hook0Button
+                  variant="primary"
+                  type="button"
+                  data-test="api-keys-create-button"
+                  @click="createNew"
+                >
+                  {{ t('apiKeys.create') }}
+                </Hook0Button>
               </template>
-            </Hook0CardContentLine>
-          </Hook0CardContentLines>
-        </Hook0CardContent>
+            </Hook0EmptyState>
+          </Hook0CardContent>
 
-        <Hook0CardFooter>
-          <Hook0Button
-            class="primary"
-            type="button"
-            data-test="api-keys-create-button"
-            @click="createNew"
-            >Create new API Key
-          </Hook0Button>
-        </Hook0CardFooter>
-      </Hook0Card>
+          <Hook0CardFooter v-if="secrets && secrets.length > 0 && canCreate('application_secret')">
+            <Hook0Button
+              variant="primary"
+              type="button"
+              data-test="api-keys-create-button"
+              @click="createNew"
+            >
+              {{ t('apiKeys.create') }}
+            </Hook0Button>
+          </Hook0CardFooter>
+        </Hook0Card>
+
+        <!-- Quick Reference -->
+        <QuickReferenceCard
+          :title="t('apiKeys.quickReference')"
+          :subtitle="t('apiKeys.quickReferenceDescription')"
+          :organization-id="organizationId"
+          :application-id="applicationId"
+        />
+      </Hook0Stack>
     </template>
-    <!-- The "rejected" scoped slot will be used if there is an error -->
-    <template #rejected="error">
-      <Hook0Error :error="error"></Hook0Error>
-    </template>
-  </Promised>
+
+    <Hook0Dialog
+      :open="showCreateDialog"
+      variant="default"
+      :title="t('apiKeys.create')"
+      @close="
+        showCreateDialog = false;
+        newSecretName = '';
+      "
+      @confirm="confirmCreate()"
+    >
+      <Hook0Input
+        v-model="newSecretName"
+        :placeholder="t('common.name')"
+        :label="t('common.name')"
+        autofocus
+        data-test="api-key-name-input"
+        @keydown.enter="confirmCreate()"
+      />
+    </Hook0Dialog>
+
+    <Hook0Dialog
+      :open="showDeleteDialog"
+      variant="danger"
+      :title="t('apiKeys.delete')"
+      @close="
+        showDeleteDialog = false;
+        secretToDelete = null;
+      "
+      @confirm="confirmDelete()"
+    >
+      <i18n-t keypath="apiKeys.deleteConfirmNamed" tag="p">
+        <template #name>
+          &ldquo;<strong>{{ secretToDelete?.name ?? '' }}</strong
+          >&rdquo;
+        </template>
+      </i18n-t>
+    </Hook0Dialog>
+  </Hook0PageLayout>
 </template>

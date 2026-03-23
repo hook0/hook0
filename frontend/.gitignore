@@ -27,3 +27,6 @@ pnpm-debug.log*
 
 # coverage
 coverage
+
+# test results
+test-results/

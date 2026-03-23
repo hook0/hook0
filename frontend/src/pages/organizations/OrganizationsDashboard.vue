@@ -1,421 +1,365 @@
 <script setup lang="ts">
-import { useRoute } from 'vue-router';
-import { onMounted, onUpdated, ref, watch } from 'vue';
-import { format, subDays } from 'date-fns';
+import { computed, markRaw } from 'vue';
+import { useI18n } from 'vue-i18n';
+import type { Component } from 'vue';
+import { CreditCard, Users, FolderOpen, FileText, Database, Settings, Box } from 'lucide-vue-next';
 
-import Hook0Text from '@/components/Hook0Text.vue';
-import { Problem, UUID } from '@/http';
-import * as OrganizationService from '@/pages/organizations/OrganizationService';
-import * as ServiceTokenService from '@/pages/organizations/services_token/ServicesTokenService.ts';
-import { OrganizationInfo } from '@/pages/organizations/OrganizationService';
-import * as EventsPerDayService from '@/pages/organizations/applications/EventsPerDayService';
-import { EventsPerDayEntry } from '@/pages/organizations/applications/EventsPerDayService';
-import Hook0CardContent from '@/components/Hook0CardContent.vue';
-import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
-import Hook0List from '@/components/Hook0List.vue';
-import Hook0ListItem from '@/components/Hook0ListItem.vue';
-import ApplicationsList from '@/pages/organizations/applications/ApplicationsList.vue';
+import { useRouteIds } from '@/composables/useRouteIds';
+import { useOrganizationDetail } from './useOrganizationQueries';
+import { useInstanceConfig } from '@/composables/useInstanceConfig';
+import { useEventsPerDay } from '@/pages/organizations/applications/useEventsPerDayQuery';
 import { routes } from '@/routes';
-import { getSupportEmailAddress, isPricingEnabled } from '@/instance';
-import Hook0Icon from '@/components/Hook0Icon.vue';
-import Hook0Button from '@/components/Hook0Button.vue';
-import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
+
+import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
+import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
+import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
-import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
-import MembersList from '@/pages/organizations/MembersList.vue';
-import { push } from 'notivue';
-import Hook0TutorialWidget from '@/components/Hook0TutorialWidget.vue';
-import { organizationSteps, Step } from '@/pages/tutorial/TutorialService';
-import Hook0EventsPerDayChart from '@/components/Hook0EventsPerDayChart.vue';
-import Hook0SimpleProgressBar from '@/components/Hook0SimpleProgressBar.vue';
+import Hook0CardSkeleton from '@/components/Hook0CardSkeleton.vue';
+import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
+import Hook0Button from '@/components/Hook0Button.vue';
+import Hook0Badge from '@/components/Hook0Badge.vue';
+import Hook0Stack from '@/components/Hook0Stack.vue';
+import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
+import EventsPerDayChartCard from '@/components/EventsPerDayChartCard.vue';
+import Hook0Consumption from '@/components/Hook0Consumption.vue';
+import type { ConsumptionQuota } from '@/components/consumption.types';
+import Hook0Avatar from '@/components/Hook0Avatar.vue';
+import ApplicationsList from '@/pages/organizations/applications/ApplicationsList.vue';
 
-const route = useRoute();
-const pricingEnabled = ref<boolean>(false);
-const support_email_address = ref<string | null>(null);
+const { t } = useI18n();
+const { organizationId } = useRouteIds();
 
-const has_service_token = ref(true);
-const organization_id = ref<UUID | null>(null);
-const organization = ref({
-  name: '',
-  plan: '',
-  quotas: {
-    members_per_organization_limit: 0,
-    applications_per_organization_limit: 0,
-    events_per_day_limit: 0,
-    days_of_events_retention_limit: 0,
-  },
-  consumption: {
-    members: 0,
-    applications: 0,
-    events_per_day: 0,
-  },
+const {
+  data: organization,
+  isLoading: orgLoading,
+  isFetched: orgFetched,
+  error: orgError,
+  refetch: refetchOrg,
+} = useOrganizationDetail(organizationId);
+
+const { data: instanceConfig } = useInstanceConfig();
+
+const pricingEnabled = computed(() => instanceConfig.value?.quota_enforcement ?? false);
+const supportEmailAddress = computed(() => instanceConfig.value?.support_email_address ?? '');
+
+// Events per day chart
+const {
+  days: eventsPerDayDays,
+  from: eventsPerDayFrom,
+  to: eventsPerDayTo,
+  data: eventsPerDayData,
+  refetch: refetchEventsPerDay,
+} = useEventsPerDay('organization', organizationId);
+
+/** Summary subtitle: "X members · Y applications · Z events/day" (pluralized via i18n) */
+const orgSubtitle = computed(() => {
+  if (!organization.value) return '';
+  const memberCount = organization.value.users?.length ?? 0;
+  const appCount = organization.value.consumption?.applications ?? 0;
+  const evtCount = organization.value.consumption?.events_per_day ?? 0;
+  return [
+    t('organizations.summaryMembers', { count: memberCount }, memberCount),
+    t('organizations.summaryApplications', { count: appCount }, appCount),
+    t('organizations.summaryEventsPerDay', { count: evtCount }, evtCount),
+  ].join(' \u00B7 ');
 });
 
-const widgetItems = ref<Step[]>([]);
-
-const eventsPerDayDays = ref(30);
-const eventsPerDayData = ref<EventsPerDayEntry[]>([]);
-const eventsPerDayFrom = ref(format(subDays(new Date(), 30), 'yyyy-MM-dd'));
-const eventsPerDayTo = ref(format(new Date(), 'yyyy-MM-dd'));
-
-function loadEventsPerDay() {
-  if (!organization_id.value) return;
-  EventsPerDayService.organization(
-    organization_id.value,
-    eventsPerDayFrom.value,
-    eventsPerDayTo.value
-  )
-    .then((data: EventsPerDayEntry[]) => {
-      eventsPerDayData.value = data;
-    })
-    .catch(displayError);
-}
-
-watch(eventsPerDayDays, (days) => {
-  eventsPerDayFrom.value = format(subDays(new Date(), days), 'yyyy-MM-dd');
-  eventsPerDayTo.value = format(new Date(), 'yyyy-MM-dd');
-  loadEventsPerDay();
+// Consumptions computed from org detail
+const consumptions = computed<ConsumptionQuota[]>(() => {
+  if (!organization.value) return [];
+  return [
+    {
+      icon: markRaw(Users),
+      name: t('organizations.consumptionMembers'),
+      description: t('organizations.consumptionMembersDesc'),
+      consumption: organization.value.consumption.members || 0,
+      quota: organization.value.quotas.members_per_organization_limit,
+    },
+    {
+      icon: markRaw(Box),
+      name: t('organizations.consumptionApplications'),
+      description: t('organizations.consumptionApplicationsDesc'),
+      consumption: organization.value.consumption.applications || 0,
+      quota: organization.value.quotas.applications_per_organization_limit,
+    },
+    {
+      icon: markRaw(FileText),
+      name: t('organizations.consumptionEventsPerDay'),
+      description: t('organizations.consumptionEventsPerDayDesc'),
+      consumption: organization.value.consumption.events_per_day || 0,
+      quota: organization.value.quotas.events_per_day_limit,
+    },
+    {
+      icon: markRaw(Database),
+      name: t('organizations.consumptionRetention'),
+      description: t('organizations.consumptionRetentionDesc'),
+      consumption: organization.value.quotas.days_of_events_retention_limit,
+      quota: organization.value.quotas.days_of_events_retention_limit,
+      displayValue: String(organization.value.quotas.days_of_events_retention_limit),
+      displayUnit: 'days',
+    },
+  ];
 });
 
-function _load() {
-  if (organization_id.value !== route.params.organization_id) {
-    organization_id.value = route.params.organization_id as UUID;
-
-    OrganizationService.get(organization_id.value)
-      .then((org: OrganizationInfo) => {
-        organization.value.name = org.name;
-        organization.value.plan = org.plan?.label || '';
-        organization.value.quotas = org.quotas;
-        organization.value.consumption = {
-          members: org.consumption.members || 0,
-          applications: org.consumption.applications || 0,
-          events_per_day: org.consumption.events_per_day || 0,
-        };
-        widgetItems.value = organizationSteps(org);
-      })
-      .catch(displayError);
-
-    ServiceTokenService.list(organization_id.value)
-      .then((tokens) => {
-        has_service_token.value = tokens.length > 0;
-      })
-      .catch(displayError);
-
-    loadEventsPerDay();
-  }
-}
-
-function refresh() {
-  if (!organization_id.value) return;
-
-  OrganizationService.get(organization_id.value)
-    .then((org: OrganizationInfo) => {
-      organization.value.name = org.name;
-      organization.value.plan = org.plan?.label || '';
-      organization.value.quotas = org.quotas;
-      organization.value.consumption = {
-        members: org.consumption.members || 0,
-        applications: org.consumption.applications || 0,
-        events_per_day: org.consumption.events_per_day || 0,
-      };
-      widgetItems.value = organizationSteps(org);
-    })
-    .catch(displayError);
-
-  loadEventsPerDay();
-}
-
-function displayError(err: Problem) {
-  console.error(err);
-  let options = {
-    title: err.title,
-    message: err.detail,
-    duration: 5000,
-  };
-  err.status >= 500 ? push.error(options) : push.warning(options);
-}
-
-onMounted(async () => {
-  pricingEnabled.value = await isPricingEnabled();
-  support_email_address.value = await getSupportEmailAddress();
-  _load();
-});
-
-onUpdated(() => {
-  _load();
+/** Quota cards shown in the developer-plan notice section. */
+const quotaCards = computed<{ icon: Component; value: number | undefined; label: string }[]>(() => {
+  if (!organization.value) return [];
+  const q = organization.value.quotas;
+  return [
+    {
+      icon: markRaw(Users),
+      value: q.members_per_organization_limit,
+      label: t('organizations.consumptionMembers'),
+    },
+    {
+      icon: markRaw(FolderOpen),
+      value: q.applications_per_organization_limit,
+      label: t('organizations.consumptionApplications'),
+    },
+    {
+      icon: markRaw(FileText),
+      value: q.events_per_day_limit,
+      label: t('organizations.consumptionEventsPerDay'),
+    },
+    {
+      icon: markRaw(Database),
+      value: q.days_of_events_retention_limit,
+      label: t('organizations.consumptionRetention'),
+    },
+  ];
 });
 </script>
 
 <template>
-  <div>
-    <Hook0Card>
-      <Hook0CardHeader>
-        <template #header>
-          <Hook0Icon name="sitemap"></Hook0Icon>
-          Organization
-          <Hook0Text class="bold">{{ organization.name }}</Hook0Text>
-          <template v-if="pricingEnabled">
-            <span
-              v-if="organization.plan"
-              class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10"
-              :title="'Plan: ' + organization.plan"
-              >{{ organization.plan }}</span
+  <Hook0PageLayout :title="t('organizations.dashboard')" data-test="org-dashboard-page">
+    <!-- Loading (also shown when query is disabled and data is undefined) -->
+    <Hook0CardSkeleton
+      v-if="orgLoading || (!organization && !orgError && !orgFetched)"
+      :lines="4"
+    />
+
+    <!-- Error -->
+    <Hook0ErrorCard v-else-if="orgError" :error="orgError" @retry="refetchOrg()" />
+
+    <!-- Not found (fetched but no data and no error) -->
+    <Hook0ErrorCard
+      v-else-if="!organization"
+      :error="new Error(t('organizations.notFound'))"
+      @retry="refetchOrg()"
+    />
+
+    <!-- Data loaded -->
+    <template v-else-if="organization">
+      <!-- Organization header card: Stacked Compact with Avatar -->
+      <Hook0Card data-test="organization-dashboard-card">
+        <div class="org-header">
+          <Hook0Avatar
+            :name="organization.name"
+            size="lg"
+            variant="square"
+            gradient="linear-gradient(135deg, var(--color-primary), var(--color-primary-gradient-end))"
+          />
+          <div class="org-header__info">
+            <div class="org-header__title-row">
+              <span class="org-header__name" :title="organization.name">{{
+                organization.name
+              }}</span>
+              <template v-if="pricingEnabled">
+                <Hook0Badge
+                  v-if="organization.plan"
+                  variant="primary"
+                  size="sm"
+                  :title="`${t('organizations.plan')}: ${organization.plan.label}`"
+                >
+                  {{ organization.plan.label }}
+                </Hook0Badge>
+                <Hook0Badge
+                  v-else
+                  variant="default"
+                  size="sm"
+                  :title="`${t('organizations.plan')}: ${t('organizations.planDeveloper')}`"
+                >
+                  {{ t('organizations.planDeveloper') }}
+                </Hook0Badge>
+              </template>
+            </div>
+            <span class="org-header__subtitle">{{ orgSubtitle }}</span>
+          </div>
+          <div class="org-header__actions">
+            <Hook0Button
+              :to="{
+                name: routes.OrganizationsDetail,
+                params: { organization_id: organizationId },
+              }"
             >
-            <span
-              v-else
-              class="ml-2 inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10"
-              title="Plan: Developer"
-              >Developer</span
-            >
+              <Settings :size="14" aria-hidden="true" />
+              {{ t('common.settings') }}
+            </Hook0Button>
+          </div>
+        </div>
+      </Hook0Card>
+
+      <!-- Applications list (moved up, before chart) -->
+      <ApplicationsList :burst="organizationId" />
+
+      <!-- Events per day chart -->
+      <EventsPerDayChartCard
+        :title="t('organizations.inboundEventsTitle', { name: organization.name })"
+        :entries="eventsPerDayData ?? []"
+        :stacked="true"
+        :from="eventsPerDayFrom"
+        :to="eventsPerDayTo"
+        :days="eventsPerDayDays"
+        :quota-limit="organization.quotas.events_per_day_limit"
+        @update:days="eventsPerDayDays = $event"
+        @refresh="refetchEventsPerDay()"
+      />
+
+      <!-- Usage / Quotas -->
+      <Hook0Consumption
+        :title="t('organizations.consumptionTitle', { name: organization.name })"
+        entity-type="organization"
+        :consumptions="consumptions"
+      />
+
+      <!-- Developer plan notice (shown only when on free plan) -->
+      <Hook0Card v-if="pricingEnabled && !organization.plan">
+        <Hook0CardHeader>
+          <template #header>
+            <Hook0Stack direction="row" align="center" gap="sm">
+              <Hook0IconBadge variant="warning" size="md">
+                <CreditCard :size="18" aria-hidden="true" />
+              </Hook0IconBadge>
+              <span class="org-dashboard__label">{{ t('organizations.developerPlanNotice') }}</span>
+            </Hook0Stack>
           </template>
-        </template>
-        <template #actions>
+        </Hook0CardHeader>
+
+        <Hook0CardContent>
+          <Hook0Stack direction="column" gap="md">
+            <span class="org-dashboard__label">{{ t('organizations.currentlyLimitedTo') }}</span>
+            <Hook0Stack layout="grid" grid-size="compact" gap="sm">
+              <Hook0Card
+                v-for="card in quotaCards"
+                :key="card.label"
+                class="org-dashboard__quota-card"
+              >
+                <Hook0CardContent>
+                  <Hook0Stack direction="row" align="center" gap="sm">
+                    <Hook0IconBadge variant="primary" size="md">
+                      <component :is="card.icon" :size="18" aria-hidden="true" />
+                    </Hook0IconBadge>
+                    <Hook0Stack direction="column" gap="none">
+                      <span class="org-dashboard__quota-value">{{ card.value }}</span>
+                      <span class="org-dashboard__quota-label">{{ card.label.toLowerCase() }}</span>
+                    </Hook0Stack>
+                  </Hook0Stack>
+                </Hook0CardContent>
+              </Hook0Card>
+            </Hook0Stack>
+          </Hook0Stack>
+        </Hook0CardContent>
+
+        <Hook0CardFooter>
+          <Hook0Button type="button" href="https://www.hook0.com/#pricing" target="_blank">{{
+            t('organizations.availablePlans')
+          }}</Hook0Button>
           <Hook0Button
-            :to="{
-              name: routes.OrganizationsDetail,
-              params: { organization_id: $route.params.organization_id },
-            }"
+            v-if="supportEmailAddress"
+            variant="primary"
+            type="button"
+            :href="`mailto:${supportEmailAddress}`"
+            >{{ t('organizations.subscribeBetterPlan') }}</Hook0Button
           >
-            Settings
-          </Hook0Button>
-        </template>
-      </Hook0CardHeader>
-      <Hook0CardContent v-if="widgetItems.length > 0">
-        <Hook0CardContentLines>
-          <Hook0CardContentLine type="full-width">
-            <template #content>
-              <Hook0TutorialWidget :steps="widgetItems" />
-            </template>
-          </Hook0CardContentLine>
-        </Hook0CardContentLines>
-      </Hook0CardContent>
-    </Hook0Card>
-
-    <Hook0Card v-if="pricingEnabled && !organization.plan">
-      <Hook0CardHeader>
-        <template #header>
-          <Hook0Icon name="money-check-dollar"></Hook0Icon>
-          Your organization is on the <strong>Developer</strong> plan!
-        </template>
-      </Hook0CardHeader>
-
-      <Hook0CardContent>
-        <Hook0CardContentLines>
-          <Hook0CardContentLine type="full-width">
-            <template #content>
-              <Hook0Text>You are currently limited to:</Hook0Text>
-              <Hook0List>
-                <Hook0ListItem>
-                  <template #left>
-                    <Hook0Icon name="users" class="mr-1"></Hook0Icon>
-                    <Hook0Text>
-                      <strong>{{ organization.quotas.members_per_organization_limit }}</strong>
-                      member{{ organization.quotas.members_per_organization_limit > 1 ? 's' : '' }}
-                    </Hook0Text>
-                  </template>
-                </Hook0ListItem>
-                <Hook0ListItem>
-                  <template #left>
-                    <Hook0Icon name="folder" class="mr-1"></Hook0Icon>
-                    <Hook0Text>
-                      <strong>{{ organization.quotas.applications_per_organization_limit }}</strong>
-                      application{{
-                        organization.quotas.applications_per_organization_limit > 1 ? 's' : ''
-                      }}
-                    </Hook0Text>
-                  </template>
-                </Hook0ListItem>
-                <Hook0ListItem>
-                  <template #left>
-                    <Hook0Icon name="file-lines" class="mr-1"></Hook0Icon>
-                    <Hook0Text>
-                      <strong>{{ organization.quotas.events_per_day_limit }}</strong>
-                      event{{ organization.quotas.events_per_day_limit > 1 ? 's' : '' }} per day
-                    </Hook0Text>
-                  </template>
-                </Hook0ListItem>
-                <Hook0ListItem>
-                  <template #left>
-                    <Hook0Icon name="database" class="mr-1"></Hook0Icon>
-                    <Hook0Text>
-                      <strong>{{ organization.quotas.days_of_events_retention_limit }}</strong>
-                      day{{ organization.quotas.days_of_events_retention_limit > 1 ? 's' : '' }} of
-                      event retention
-                    </Hook0Text>
-                  </template>
-                </Hook0ListItem>
-              </Hook0List>
-            </template>
-          </Hook0CardContentLine>
-        </Hook0CardContentLines>
-      </Hook0CardContent>
-
-      <Hook0CardFooter>
-        <Hook0Button
-          class="secondary"
-          type="button"
-          href="https://www.hook0.com/#pricing"
-          target="_blank"
-          >Available plans</Hook0Button
-        >
-        <Hook0Button
-          v-if="support_email_address"
-          class="primary"
-          type="button"
-          :href="`mailto:${support_email_address}`"
-          >Subscribe to a better plan
-        </Hook0Button>
-      </Hook0CardFooter>
-    </Hook0Card>
-
-    <Hook0Card>
-      <Hook0CardHeader>
-        <template #header>
-          <Hook0Icon name="chart-bar"></Hook0Icon>
-          Organization Consumption
-        </template>
-        <template #actions>
-          <Hook0Button class="secondary" @click="refresh()">
-            <Hook0Icon name="arrows-rotate" class="mr-1"></Hook0Icon>
-            Refresh
-          </Hook0Button>
-        </template>
-      </Hook0CardHeader>
-      <Hook0CardContent>
-        <Hook0CardContentLines>
-          <Hook0CardContentLine type="full-width">
-            <template #content>
-              <Hook0EventsPerDayChart
-                :entries="eventsPerDayData"
-                :stacked="true"
-                :from="eventsPerDayFrom"
-                :to="eventsPerDayTo"
-                :days="eventsPerDayDays"
-                :quota-limit="organization.quotas.events_per_day_limit"
-                @update:days="eventsPerDayDays = $event"
-              />
-            </template>
-          </Hook0CardContentLine>
-        </Hook0CardContentLines>
-      </Hook0CardContent>
-      <Hook0CardContent>
-        <Hook0CardContentLines>
-          <Hook0CardContentLine type="full-width">
-            <template #content>
-              <div class="flex items-center w-full flex-col sm:flex-row">
-                <div class="w-full sm:w-1/3 mb-2 sm:mb-0">
-                  <Hook0Icon name="users" class="mr-1"></Hook0Icon>
-                  <Hook0Text class="text-md">
-                    <strong>Members</strong>: {{ organization.consumption.members }} /
-                    {{ organization.quotas.members_per_organization_limit }}
-                    ({{
-                      organization.quotas.members_per_organization_limit > 0
-                        ? Math.round(
-                            (organization.consumption.members /
-                              organization.quotas.members_per_organization_limit) *
-                              100
-                          )
-                        : 0
-                    }}%)
-                  </Hook0Text>
-                </div>
-                <div class="w-full sm:w-2/3">
-                  <Hook0SimpleProgressBar
-                    :percentage="
-                      organization.quotas.members_per_organization_limit > 0
-                        ? Math.floor(
-                            (organization.consumption.members /
-                              organization.quotas.members_per_organization_limit) *
-                              100
-                          )
-                        : 0
-                    "
-                  />
-                </div>
-              </div>
-            </template>
-          </Hook0CardContentLine>
-          <Hook0CardContentLine type="full-width">
-            <template #content>
-              <div class="flex items-center w-full flex-col sm:flex-row">
-                <div class="w-full sm:w-1/3 mb-2 sm:mb-0">
-                  <Hook0Icon name="rocket" class="mr-1"></Hook0Icon>
-                  <Hook0Text class="text-md">
-                    <strong>Applications</strong>: {{ organization.consumption.applications }} /
-                    {{ organization.quotas.applications_per_organization_limit }}
-                    ({{
-                      organization.quotas.applications_per_organization_limit > 0
-                        ? Math.round(
-                            (organization.consumption.applications /
-                              organization.quotas.applications_per_organization_limit) *
-                              100
-                          )
-                        : 0
-                    }}%)
-                  </Hook0Text>
-                </div>
-                <div class="w-full sm:w-2/3">
-                  <Hook0SimpleProgressBar
-                    :percentage="
-                      organization.quotas.applications_per_organization_limit > 0
-                        ? Math.floor(
-                            (organization.consumption.applications /
-                              organization.quotas.applications_per_organization_limit) *
-                              100
-                          )
-                        : 0
-                    "
-                  />
-                </div>
-              </div>
-            </template>
-          </Hook0CardContentLine>
-        </Hook0CardContentLines>
-      </Hook0CardContent>
-    </Hook0Card>
-
-    <MembersList
-      v-if="organization.quotas.members_per_organization_limit > 1"
-      :burst="$route.params.organization_id"
-    >
-    </MembersList>
-
-    <ApplicationsList :burst="$route.params.organization_id"> </ApplicationsList>
-
-    <!--
-    <Hook0Card v-if="!has_service_token">
-      <Hook0CardHeader>
-        <template #header>
-          <Hook0Icon name="key"></Hook0Icon>
-          Service Tokens
-        </template>
-      </Hook0CardHeader>
-
-      <Hook0CardContent>
-        <Hook0CardContentLines>
-          <Hook0CardContentLine type="full-width">
-            <template #content>
-              <Hook0Text>
-                Service tokens are used to authenticate your applications with Hook0. You can create
-                as many as you need.
-              </Hook0Text>
-            </template>
-          </Hook0CardContentLine>
-        </Hook0CardContentLines>
-      </Hook0CardContent>
-
-      <Hook0CardFooter>
-        <Hook0Button
-          class="primary"
-          :to="{
-            name: routes.ServicesTokenList,
-            params: { organization_id },
-          }"
-          >Create your first service token
-        </Hook0Button>
-      </Hook0CardFooter>
-    </Hook0Card>
-    -->
-  </div>
+        </Hook0CardFooter>
+      </Hook0Card>
+    </template>
+  </Hook0PageLayout>
 </template>
+
+<style scoped>
+/* ---- Organization header card ---- */
+.org-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+.org-header__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.org-header__title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.org-header__name {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.org-header__subtitle {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.org-header__actions {
+  flex-shrink: 0;
+}
+
+@media (max-width: 767px) {
+  .org-header {
+    flex-wrap: wrap;
+  }
+
+  .org-header__actions {
+    width: 100%;
+  }
+
+  .org-header__actions :deep(.hook0-button) {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ---- Developer plan notice section ---- */
+.org-dashboard__label {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.org-dashboard__quota-value {
+  color: var(--color-text-primary);
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.org-dashboard__quota-label {
+  color: var(--color-text-tertiary);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.org-dashboard__quota-card :deep(.hook0-card-content) {
+  padding: 0.75rem 1rem;
+}
+</style>

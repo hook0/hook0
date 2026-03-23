@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verification";
+import { expectToast } from "../fixtures/test-setup";
 
 /**
  * Authentication E2E tests for Hook0.
@@ -82,11 +83,7 @@ test.describe("Authentication", () => {
       expect(response.status()).toBeLessThan(500);
 
       // Verify error notification is shown to user
-      await expect(
-        page.locator('[data-test="toast-notification"]').first()
-      ).toBeVisible({
-        timeout: 10000,
-      });
+      await expectToast(page);
 
       // Verify we're still on login page (not redirected)
       await expect(page).toHaveURL(/\/login/);
@@ -144,6 +141,66 @@ test.describe("Authentication", () => {
       await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
         timeout: 15000,
       });
+    });
+
+    test("should logout and redirect to login page", async ({ page, request }) => {
+      // Setup: Create and login a test user
+      const timestamp = Date.now();
+      const email = `test-logout-${timestamp}@hook0.local`;
+      const password = `TestPassword123!${timestamp}`;
+
+      const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+        data: {
+          email,
+          first_name: "Test",
+          last_name: "User",
+          password,
+        },
+      });
+      expect(registerResponse.status()).toBeLessThan(400);
+
+      const verificationResult = await verifyEmailViaMailpit(request, email);
+
+      // Login via UI
+      await page.goto("/login");
+      await expect(page.locator('[data-test="login-form"]')).toBeVisible({
+        timeout: 10000,
+      });
+      await page.locator('[data-test="login-email-input"]').fill(email);
+      await page.locator('[data-test="login-password-input"]').fill(password);
+      await page.locator('[data-test="login-submit-button"]').click();
+
+      await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
+        timeout: 15000,
+      });
+
+      // Navigate to org dashboard to dismiss tutorial wizard overlay
+      await page.goto(`/organizations/${verificationResult.organizationId}/dashboard`);
+      await expect(page.locator('[data-test="organization-dashboard-card"], [data-test="applications-card"]').first()).toBeVisible({
+        timeout: 15000,
+      });
+
+      // Step 1: Open user menu dropdown
+      await expect(page.locator('[data-test="user-menu-trigger"]')).toBeVisible({
+        timeout: 10000,
+      });
+      await page.locator('[data-test="user-menu-trigger"]').click();
+
+      // Step 2: Click logout
+      await expect(page.locator('[data-test="user-menu-logout"]')).toBeVisible({
+        timeout: 5000,
+      });
+      await page.locator('[data-test="user-menu-logout"]').click();
+
+      // Step 3: Verify redirect to login page
+      await expect(page).toHaveURL(/\/login/, { timeout: 15000 });
+      await expect(page.locator('[data-test="login-form"]')).toBeVisible({
+        timeout: 10000,
+      });
+
+      // Verify that visiting a protected route redirects to /login
+      await page.goto("/settings");
+      await expect(page).toHaveURL(/\/login/, { timeout: 15000 });
     });
   });
 
@@ -260,6 +317,45 @@ test.describe("Authentication", () => {
       });
     });
 
+    test("should redirect to check email page after registration", async ({ page }) => {
+      const timestamp = Date.now();
+      const email = `test-register-checkemail-${timestamp}@hook0.local`;
+      const password = `TestPassword123!${timestamp}`;
+
+      await page.goto("/register");
+      await expect(page.locator('[data-test="register-form"]')).toBeVisible({
+        timeout: 10000,
+      });
+
+      // Fill registration form
+      await page.locator('[data-test="register-email-input"]').fill(email);
+      await page.locator('[data-test="register-firstname-input"]').fill("Test");
+      await page.locator('[data-test="register-lastname-input"]').fill("User");
+      await page.locator('[data-test="register-password-input"]').fill(password);
+
+      // Submit and wait for API response
+      const responsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/v1/register") && response.request().method() === "POST",
+        { timeout: 15000 }
+      );
+
+      await page.locator('[data-test="register-submit-button"]').click();
+
+      const response = await responsePromise;
+      expect(response.status()).toBeLessThan(400);
+
+      // Verify redirect to check-email page
+      await expect(page).toHaveURL(/\/check-email/, {
+        timeout: 15000,
+      });
+
+      // Verify check-email page content is visible
+      await expect(page.locator('[data-test="check-email-page"]')).toBeVisible({
+        timeout: 10000,
+      });
+    });
+
     test("should handle duplicate email registration gracefully", async ({ page, request }) => {
       // Setup: Create a user first via direct API call
       const timestamp = Date.now();
@@ -304,11 +400,7 @@ test.describe("Authentication", () => {
       expect(response.status()).toBe(409);
 
       // Verify error notification is shown to user
-      await expect(
-        page.locator('[data-test="toast-notification"]').first()
-      ).toBeVisible({
-        timeout: 10000,
-      });
+      await expectToast(page);
 
       // Should stay on register page (not redirected)
       await expect(page).toHaveURL(/\/register/);

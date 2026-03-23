@@ -114,10 +114,13 @@ test.describe("API Keys", () => {
     // Verify API keys card is visible
     await expect(page.locator('[data-test="api-keys-card"]')).toBeVisible({ timeout: 10000 });
 
-    // Step 1: Create an API key via UI (uses prompt dialog)
-    page.on("dialog", (dialog) => {
-      dialog.accept(keyName);
-    });
+    // Step 1: Create an API key via UI (uses Hook0Dialog modal)
+    await page.locator('[data-test="api-keys-create-button"]').click();
+
+    // Fill the name in the dialog modal
+    const dialogInput = page.locator('[data-test="api-key-name-input"]');
+    await expect(dialogInput).toBeVisible({ timeout: 5000 });
+    await dialogInput.fill(keyName);
 
     const createResponsePromise = page.waitForResponse(
       (response) =>
@@ -126,7 +129,8 @@ test.describe("API Keys", () => {
       { timeout: 15000 }
     );
 
-    await page.locator('[data-test="api-keys-create-button"]').click();
+    // Click confirm button in the dialog
+    await page.locator('.hook0-dialog .hook0-dialog__actions button:last-child').click();
 
     const createResponse = await createResponsePromise;
     expect(createResponse.status()).toBeLessThan(400);
@@ -168,12 +172,14 @@ test.describe("API Keys", () => {
       timeout: 10000,
     });
 
-    // Setup dialog handler to enter key name
-    page.on("dialog", (dialog) => {
-      dialog.accept(keyName);
-    });
+    // Step 2: Click create to open Hook0Dialog modal
+    await page.locator('[data-test="api-keys-create-button"]').click();
 
-    // Step 2: Click create and wait for API response
+    // Fill the name in the dialog modal
+    const dialogInput = page.locator('[data-test="api-key-name-input"]');
+    await expect(dialogInput).toBeVisible({ timeout: 5000 });
+    await dialogInput.fill(keyName);
+
     // Capture response body inside the predicate to avoid race condition with navigation
     let responseBody: { token?: string; name?: string } = {};
     const responsePromise = page.waitForResponse(
@@ -189,7 +195,8 @@ test.describe("API Keys", () => {
       { timeout: 15000 }
     );
 
-    await page.locator('[data-test="api-keys-create-button"]').click();
+    // Click confirm button in the dialog
+    await page.locator('.hook0-dialog .hook0-dialog__actions button:last-child').click();
 
     const response = await responsePromise;
 
@@ -236,18 +243,12 @@ test.describe("API Keys", () => {
       `/organizations/${env.organizationId}/applications/${env.applicationId}/application_secrets`
     );
 
-    // Create an API key first
-    let dialogCount = 0;
-    page.on("dialog", (dialog) => {
-      dialogCount++;
-      if (dialogCount === 1) {
-        // First dialog is the create prompt
-        dialog.accept(keyName);
-      } else {
-        // Second dialog is the delete confirmation
-        dialog.accept();
-      }
-    });
+    // Create an API key first via Hook0Dialog modal
+    await page.locator('[data-test="api-keys-create-button"]').click();
+
+    const createDialogInput = page.locator('[data-test="api-key-name-input"]');
+    await expect(createDialogInput).toBeVisible({ timeout: 5000 });
+    await createDialogInput.fill(keyName);
 
     const createResponsePromise = page.waitForResponse(
       (response) =>
@@ -256,7 +257,7 @@ test.describe("API Keys", () => {
       { timeout: 15000 }
     );
 
-    await page.locator('[data-test="api-keys-create-button"]').click();
+    await page.locator('.hook0-dialog .hook0-dialog__actions button:last-child').click();
     const createResponse = await createResponsePromise;
     expect(createResponse.status()).toBeLessThan(400);
 
@@ -267,7 +268,14 @@ test.describe("API Keys", () => {
       expect(rowCount).toBeGreaterThanOrEqual(1);
     }).toPass({ timeout: 10000 });
 
-    // Click delete on the first row
+    // Click delete on the first row - opens Hook0Dialog confirmation
+    const deleteLink = rows.first().locator('[data-test="api-key-delete-button"]');
+    await deleteLink.click();
+
+    // Wait for delete confirmation dialog and click confirm
+    const deleteConfirmButton = page.locator('.hook0-dialog--danger .hook0-dialog__actions button:last-child');
+    await expect(deleteConfirmButton).toBeVisible({ timeout: 5000 });
+
     const deleteResponsePromise = page.waitForResponse(
       (response) =>
         response.url().includes("/api/v1/application_secrets") &&
@@ -275,9 +283,7 @@ test.describe("API Keys", () => {
       { timeout: 15000 }
     );
 
-    // Find and click the delete link in the first row using data-test selector
-    const deleteLink = rows.first().locator('[data-test="api-key-delete-button"]');
-    await deleteLink.click();
+    await deleteConfirmButton.click();
 
     const deleteResponse = await deleteResponsePromise;
     expect(deleteResponse.status()).toBeLessThan(400);

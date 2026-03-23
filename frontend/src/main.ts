@@ -1,158 +1,60 @@
-// Tailwind <3
-import './tailwind.css';
+// Styles
+import './assets/styles/tailwind.css';
+import './assets/styles/transitions.css';
 
-// Setup main app
+// Self-hosted fonts
+import '@fontsource-variable/inter';
+import '@fontsource/jetbrains-mono/400.css';
+import '@fontsource/jetbrains-mono/500.css';
+import '@fontsource/jetbrains-mono/700.css';
+
+// Core
 import { createApp } from 'vue';
+import { createPinia } from 'pinia';
 import router from './router';
-import { Promised } from 'vue-promised';
-import VueMatomo from 'vue-matomo';
 
-import { AuthPlugin } from './iam';
-import Root from './Root.vue';
+// Plugins
+import { setupQueryPlugin } from './plugins/query';
+import { setupI18n } from './plugins/i18n';
+import { setupMatomo } from './plugins/matomo';
 
-// FontAwesome
-import { library } from '@fortawesome/fontawesome-svg-core';
+// Stores
+import { useAuthStore } from './stores/auth';
 
-// https://fontawesome.com/v6/search?o=r&m=free&s=solid
-import {
-  faCheck,
-  faFolderTree,
-  faLink,
-  faFileLines,
-  faBook,
-  faGear,
-  faChevronDown,
-  faChevronLeft,
-  faChevronRight,
-  faCircleNotch,
-  faPlus,
-  faRocket,
-  faSitemap,
-  faSpinner,
-  faTrash,
-  faUserCircle,
-  faArrowsRotate,
-  faArrowUpRightFromSquare,
-  faMinus,
-  faQuestion,
-  faXmark,
-  faPause,
-  faCalendar,
-  faKey,
-  faFileContract,
-  faSliders,
-  faMoneyCheckDollar,
-  faUsers,
-  faFolder,
-  faDatabase,
-  faEye,
-  faPen,
-  faCopy,
-  faCircle,
-  faRobot,
-  faChartBar,
-} from '@fortawesome/free-solid-svg-icons';
-import { faToggleOn } from '@fortawesome/free-solid-svg-icons/faToggleOn';
-import { faToggleOff } from '@fortawesome/free-solid-svg-icons/faToggleOff';
-import { createNotivue } from 'notivue';
+// Root component
+import App from './App.vue';
 
-// Create and mount the root instance.
-const app = createApp(Root);
+import { LOCAL_STORAGE_KEY_THEME, resolveIsDark } from './constants/theme';
+
+// Apply color mode from localStorage before app renders to prevent flash
+{
+  const theme = window.localStorage.getItem(LOCAL_STORAGE_KEY_THEME);
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.classList.toggle('dark', resolveIsDark(theme, prefersDark));
+}
+
+// Create app
+const app = createApp(App);
+
+// Pinia (must be first for stores to work)
+const pinia = createPinia();
+app.use(pinia);
 
 // Vue Router
 app.use(router);
 
-// Authentication & authorization
-app.use(AuthPlugin);
+// TanStack Query
+setupQueryPlugin(app);
 
-// Notivue
-import 'notivue/notification.css'; // Only needed if using built-in notifications
-import 'notivue/animations.css'; // Only needed if using built-in animations
-import 'notivue/notification-progress.css';
+// vue-i18n
+setupI18n(app);
 
-const notivue = createNotivue({
-  position: 'top-right',
-  limit: 4,
-  enqueue: true,
-  avoidDuplicates: true,
-  animations: {
-    enter: 'Notivue__enter',
-    leave: 'Notivue__leave',
-    clearAll: 'Notivue__clearAll',
-  },
-  pauseOnHover: true,
-  transition: 'transform 0.35s cubic-bezier(0.5, 1, 0.25, 1)',
+// Initialize auth store and router guards
+const authStore = useAuthStore();
+authStore.initialize();
+authStore.setupRouterGuard();
+
+// Matomo (must resolve before mount to avoid Vue plugin warning)
+void setupMatomo(app, router).then(() => {
+  app.mount('#app');
 });
-
-app.use(notivue);
-
-import { getInstanceConfig } from './utils/instance-config';
-void getInstanceConfig().then((config) => {
-  if (config.matomo) {
-    app.use(VueMatomo, {
-      host: config.matomo.url,
-      siteId: config.matomo.site_id,
-      router,
-      disableCookies: true,
-      enableHeartBeatTimer: true,
-      heartBeatTimerInterval: 15,
-    });
-  }
-});
-
-// font-awesome
-// Add here
-library.add(
-  faFolderTree,
-  faLink,
-  faBook,
-  faFileLines,
-  faArrowsRotate,
-  faArrowUpRightFromSquare,
-  faMinus,
-  faPlus,
-  faToggleOn,
-  faToggleOff,
-  faGear,
-  faChevronDown,
-  faRocket,
-  faUserCircle,
-  faTrash,
-  faSitemap,
-  faSpinner,
-  faCircleNotch,
-  faChevronLeft,
-  faChevronRight,
-  faMoneyCheckDollar,
-  faUsers,
-  faFolder,
-  faDatabase,
-  faEye,
-  faPen,
-  faCopy,
-  faCircle,
-
-  //RequestAttemptStatus
-  faCheck,
-  faQuestion,
-  faXmark,
-  faPause,
-  faCalendar,
-  // faSpinner
-
-  // Navigation
-  faKey,
-  faFileContract,
-  faSliders,
-
-  // AI Integration
-  faRobot,
-
-  faChartBar
-);
-
-// Vue - promised
-app.component('Promised', Promised);
-
-// Mount the app
-app.mount('#app');

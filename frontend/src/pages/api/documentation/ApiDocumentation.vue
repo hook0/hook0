@@ -1,131 +1,84 @@
 <script setup lang="ts">
-import SwaggerUI from 'swagger-ui';
-import 'swagger-ui/dist/swagger-ui.css';
-import { useRoute } from 'vue-router';
-import { onMounted, onUpdated, ref } from 'vue';
-
+import { onMounted } from 'vue';
+import { ExternalLink, BookOpen } from 'lucide-vue-next';
+import featureFlags from '@/feature-flags';
+import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
-import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
-import featureFlags from '@/feature-flags';
-import { getAccessToken } from '@/iam';
+import Hook0Stack from '@/components/Hook0Stack.vue';
+import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
+import Hook0Button from '@/components/Hook0Button.vue';
 import { useTracking } from '@/composables/useTracking';
+import { useI18n } from 'vue-i18n';
 
-const route = useRoute();
-
-// Analytics tracking
+const { t } = useI18n();
 const { trackEvent } = useTracking();
-const swaggerUI = ref<null | SwaggerUI>(null);
-const container = ref<null | HTMLDivElement>(null);
 
-function _load() {
-  const application_id = route.params.application_id;
-  const organization_id = route.params.organization_id;
+const swaggerJsonUrl =
+  featureFlags.getOrElse('API_ENDPOINT', import.meta.env.VITE_API_ENDPOINT ?? '') + '/swagger.json';
 
-  swaggerUI.value = SwaggerUI({
-    url:
-      featureFlags.getOrElse('API_ENDPOINT', import.meta.env.VITE_API_ENDPOINT ?? '') +
-      '/swagger.json',
-    domNode: container.value,
-
-    docExpansion: 'list',
-
-    showExtensions: true,
-    showCommonExtensions: true,
-
-    // if set to true, it triggers infinite redirect loop with keycloak
-    deepLinking: false,
-
-    tagsSorter: (tag1, tag2) => {
-      const order = [
-        'Hook0',
-        'Organizations Management',
-        'Applications Management',
-        'Events Management',
-        'Subscriptions Management',
-      ];
-      return order.indexOf(tag1) - order.indexOf(tag2);
-    },
-
-    operationsSorter: 'alpha',
-
-    displayOperationId: true,
-
-    parameterMacro: (_operation: Readonly<unknown>, parameter: Readonly<unknown>) => {
-      if (
-        organization_id &&
-        'name' in parameter &&
-        parameter.name === 'organization_id' &&
-        'schema' in parameter &&
-        typeof parameter.schema === 'object' &&
-        parameter.schema !== null &&
-        'default' in parameter.schema
-      ) {
-        parameter.schema.default = organization_id;
-      }
-
-      if (
-        application_id &&
-        'name' in parameter &&
-        parameter.name === 'application_id' &&
-        'schema' in parameter &&
-        typeof parameter.schema === 'object' &&
-        parameter.schema !== null &&
-        'default' in parameter.schema
-      ) {
-        parameter.schema.default = application_id;
-      }
-    },
-
-    requestInterceptor: (req: SwaggerUI.Request) => {
-      // Track API request from Swagger UI
-      const url = new URL(req.url as string);
-      trackEvent('api-docs', 'try-request', url.pathname);
-
-      const accessToken = getAccessToken().value;
-      return Object.assign(
-        {},
-        req,
-        accessToken ? { Headers: { Authorization: `Bearer ${accessToken}` } } : {}
-      );
-    },
-
-    // try out
-    displayRequestDuration: true,
-    tryItOutEnabled: true,
-    // \try out
-
-    syntaxHighlight: {
-      activate: true,
-    },
-
-    onComplete: () => {
-      console.log('Swagger UI launched');
-    },
-  });
-}
+const docsUrl = 'https://documentation.hook0.com/';
 
 onMounted(() => {
-  _load();
-});
-
-onUpdated(() => {
-  _load();
+  trackEvent('api-docs', 'page-view', 'documentation');
 });
 </script>
 
 <template>
-  <Hook0Card>
-    <Hook0CardHeader>
-      <template #header>Hook0 API Documentation</template>
-      <template #subtitle>Automate everything!</template>
-    </Hook0CardHeader>
-    <Hook0CardContent>
-      <div ref="container">
-        <!-- swagger ui documentation -->
-      </div>
-    </Hook0CardContent>
-    <Hook0CardFooter> </Hook0CardFooter>
-  </Hook0Card>
+  <Hook0PageLayout :title="t('apiDocs.title')" data-test="api-docs-page">
+    <Hook0Card>
+      <Hook0CardHeader>
+        <template #header>{{ t('apiDocs.title') }}</template>
+        <template #subtitle>{{ t('apiDocs.subtitle') }}</template>
+      </Hook0CardHeader>
+      <Hook0CardContent>
+        <Hook0Stack direction="column" align="center" gap="lg">
+          <Hook0IconBadge variant="primary" size="lg">
+            <BookOpen :size="24" aria-hidden="true" />
+          </Hook0IconBadge>
+          <p class="api-docs__description">
+            {{ t('apiDocs.description') }}
+          </p>
+          <Hook0Stack direction="column" align="center" gap="sm">
+            <Hook0Button
+              variant="primary"
+              :href="docsUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <template #left>
+                <BookOpen :size="18" aria-hidden="true" />
+              </template>
+              {{ t('apiDocs.openDocs') }}
+              <template #right>
+                <ExternalLink :size="14" aria-hidden="true" />
+              </template>
+            </Hook0Button>
+            <Hook0Button
+              variant="secondary"
+              :href="swaggerJsonUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {{ t('apiDocs.viewSpec') }}
+              <template #right>
+                <ExternalLink :size="14" aria-hidden="true" />
+              </template>
+            </Hook0Button>
+          </Hook0Stack>
+        </Hook0Stack>
+      </Hook0CardContent>
+    </Hook0Card>
+  </Hook0PageLayout>
 </template>
+
+<style scoped>
+.api-docs__description {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  display: block;
+}
+</style>
