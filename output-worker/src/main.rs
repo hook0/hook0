@@ -224,6 +224,10 @@ enum WorkerScope {
 }
 
 impl WorkerScope {
+    fn is_public(&self) -> bool {
+        matches!(self, Self::Public { .. })
+    }
+
     fn worker_id(&self) -> Option<Uuid> {
         match self {
             Self::Public {
