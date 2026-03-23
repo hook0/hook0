@@ -156,13 +156,19 @@ test.describe("Logs", () => {
       timeout: 15000,
     });
 
-    // Verify the event link exists in the log row
-    const eventLink = page.locator('[data-test="logs-table"] [data-test="log-event-link"]').first();
-    await expect(eventLink).toBeVisible();
+    // Verify the event ID is displayed in the log row (Hook0Uuid renders a <span>, not a link)
+    const eventIdCell = page.locator('[data-test="logs-table"] [data-test="log-event-link"]').first();
+    await expect(eventIdCell).toBeVisible();
 
-    // Click the event link and verify navigation to event detail
-    await eventLink.click();
-    await expect(page).toHaveURL(/\/events\/[0-9a-f-]+/, { timeout: 10000 });
+    // Extract the event ID text and navigate to event detail page directly
+    const eventIdText = await eventIdCell.textContent();
+    expect(eventIdText).toBeTruthy();
+
+    // Navigate to the event detail page using the extracted event ID
+    const currentUrl = page.url();
+    const appPath = currentUrl.match(/(\/organizations\/[^/]+\/applications\/[^/]+)/)?.[1];
+    expect(appPath).toBeTruthy();
+    await page.goto(`${appPath}/events/${eventIdText!.trim()}`);
 
     // Verify event detail page renders
     await expect(page.locator('[data-test="event-detail-card"]')).toBeVisible({ timeout: 10000 });

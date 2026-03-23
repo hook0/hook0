@@ -151,13 +151,12 @@ test.describe("Service Token Detail", () => {
     const detailCard = page.locator('[data-test="service-token-detail-card"]');
     await expect(detailCard).toBeVisible({ timeout: 10000 });
 
-    // Step 3: Verify the token name is rendered inside the detail card header
+    // Step 3: Verify the token name is rendered inside the detail card
     const tokenNameElement = page.locator('[data-test="service-token-detail-name"]');
     await expect(tokenNameElement).toBeVisible();
     await expect(tokenNameElement).toContainText(env.tokenName);
 
-    // Verify the biscuit token is displayed (Hook0Code non-inline renders via CodeMirror, not <code>/<pre>)
-    // Check that the detail card contains the CodeMirror wrapper
+    // Verify the biscuit token is displayed in a code block
     const codeWrapper = detailCard.locator('[data-test="code-block"]');
     await expect(codeWrapper.first()).toBeVisible({ timeout: 10000 });
   });

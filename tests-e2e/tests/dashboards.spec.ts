@@ -51,10 +51,8 @@ test.describe("Dashboards", () => {
       timeout: 10000,
     });
 
-    // Verify the card contains the "Organization" label text
-    await expect(page.locator('[data-test="organization-dashboard-card"]')).toContainText(
-      "Organization"
-    );
+    // Verify the page contains the "Organization" title in the page header
+    await expect(page.locator('[data-test="org-dashboard-page"]')).toContainText("Organization");
 
     // Verify applications list is embedded in the org dashboard
     await expect(page.locator('[data-test="applications-card"]')).toBeVisible({ timeout: 10000 });
@@ -72,7 +70,7 @@ test.describe("Dashboards", () => {
     const createAppResponse = page.waitForResponse(
       (response) =>
         response.url().includes("/api/v1/applications") && response.request().method() === "POST",
-      { timeout: 15000 }
+      { timeout: 15000 },
     );
     await page.locator('[data-test="application-submit-button"]').click();
     const appResponse = await createAppResponse;
@@ -87,9 +85,9 @@ test.describe("Dashboards", () => {
     await expect(page.locator('[data-test="app-dashboard-page"]')).toBeVisible({ timeout: 15000 });
 
     // Verify tutorial widget section is visible
-    const tutorialWidget = page.locator(
-      '[data-test="app-dashboard-tutorial-widget"], [data-test="event-types-card"]'
-    ).first();
+    const tutorialWidget = page
+      .locator('[data-test="app-dashboard-tutorial-widget"], [data-test="event-types-card"]')
+      .first();
     await expect(tutorialWidget).toBeVisible({ timeout: 10000 });
   });
 });

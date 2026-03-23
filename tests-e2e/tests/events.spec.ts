@@ -204,9 +204,12 @@ test.describe("Events", () => {
     // Wait for events list
     await expect(page.locator('[data-test="events-card"]')).toBeVisible({ timeout: 10000 });
 
-    // Wait for event row to appear
+    // Wait for event row to appear (query is invalidated after send via TanStack Query onSuccess)
     const rows = page.locator('[data-test="events-table"] [row-id]');
-    await expect(rows.first()).toBeVisible({ timeout: 10000 });
+    await expect(async () => {
+      const rowCount = await rows.count();
+      expect(rowCount).toBeGreaterThanOrEqual(1);
+    }).toPass({ timeout: 15000 });
 
     // Click on the event row to open side panel
     await rows.first().click();
@@ -230,12 +233,19 @@ test.describe("Events", () => {
     // Wait for events list to show
     await expect(page.locator('[data-test="events-card"]')).toBeVisible({ timeout: 10000 });
 
-    // Click on the event ID link in the first row
+    // Wait for event row to appear
     const rows = page.locator('[data-test="events-table"] [row-id]');
-    await expect(rows.first()).toBeVisible();
-    const eventLink = rows.first().locator('a').first();
-    await expect(eventLink).toBeVisible({ timeout: 5000 });
-    await eventLink.click();
+    await expect(async () => {
+      const rowCount = await rows.count();
+      expect(rowCount).toBeGreaterThanOrEqual(1);
+    }).toPass({ timeout: 15000 });
+
+    // Click on the row to open side panel (no <a> in rows — Hook0Uuid renders a <span>)
+    await rows.first().click();
+    await expect(page.locator('[data-test="side-panel"]')).toBeVisible({ timeout: 10000 });
+
+    // Click the "full page" button in the side panel to navigate to event detail
+    await page.locator('[data-test="event-panel-full-page"]').click();
 
     // Verify we're on the event detail page
     await expect(page).toHaveURL(/\/events\/[^/]+$/, { timeout: 10000 });
@@ -252,12 +262,17 @@ test.describe("Events", () => {
     // Wait for events list
     await expect(page.locator('[data-test="events-card"]')).toBeVisible({ timeout: 10000 });
 
-    // Click on the event ID link to navigate to the detail page
+    // Wait for event row to appear
     const rows = page.locator('[data-test="events-table"] [row-id]');
-    await expect(rows.first()).toBeVisible({ timeout: 10000 });
-    const eventLink = rows.first().locator('a').first();
-    await expect(eventLink).toBeVisible({ timeout: 5000 });
-    await eventLink.click();
+    await expect(async () => {
+      const rowCount = await rows.count();
+      expect(rowCount).toBeGreaterThanOrEqual(1);
+    }).toPass({ timeout: 15000 });
+
+    // Click on the row to open side panel, then navigate to full detail page
+    await rows.first().click();
+    await expect(page.locator('[data-test="side-panel"]')).toBeVisible({ timeout: 10000 });
+    await page.locator('[data-test="event-panel-full-page"]').click();
 
     // Verify we're on the event detail page
     await expect(page).toHaveURL(/\/events\/[^/]+$/, { timeout: 10000 });
