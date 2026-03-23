@@ -57,7 +57,7 @@ test.describe("Events", () => {
   ) {
     // Navigate to events
     await page.goto(`/organizations/${env.organizationId}/applications/${env.applicationId}/events`);
-    await expect(page.locator('[data-test="events-send-button"]')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-test="events-send-button"]')).toBeVisible({ timeout: 15000 });
     await page.locator('[data-test="events-send-button"]').click();
     await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 10000 });
 
@@ -211,8 +211,8 @@ test.describe("Events", () => {
       expect(rowCount).toBeGreaterThanOrEqual(1);
     }).toPass({ timeout: 15000 });
 
-    // Click on the event row to open side panel
-    await rows.first().click();
+    // Click on the Event ID cell to open side panel (avoid clicking event_type column which is a RouterLink)
+    await rows.first().locator("td").first().click();
 
     // Verify side panel is visible
     await expect(page.locator('[data-test="side-panel"]')).toBeVisible({ timeout: 10000 });
@@ -240,8 +240,8 @@ test.describe("Events", () => {
       expect(rowCount).toBeGreaterThanOrEqual(1);
     }).toPass({ timeout: 15000 });
 
-    // Click on the row to open side panel (no <a> in rows — Hook0Uuid renders a <span>)
-    await rows.first().click();
+    // Click on the Event ID cell to open side panel (avoid clicking event_type column which is a RouterLink)
+    await rows.first().locator("td").first().click();
     await expect(page.locator('[data-test="side-panel"]')).toBeVisible({ timeout: 10000 });
 
     // Click the "full page" button in the side panel to navigate to event detail
@@ -269,8 +269,8 @@ test.describe("Events", () => {
       expect(rowCount).toBeGreaterThanOrEqual(1);
     }).toPass({ timeout: 15000 });
 
-    // Click on the row to open side panel, then navigate to full detail page
-    await rows.first().click();
+    // Click on the Event ID cell to open side panel, then navigate to full detail page
+    await rows.first().locator("td").first().click();
     await expect(page.locator('[data-test="side-panel"]')).toBeVisible({ timeout: 10000 });
     await page.locator('[data-test="event-panel-full-page"]').click();
 

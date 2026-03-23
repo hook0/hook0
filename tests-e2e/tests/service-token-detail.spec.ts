@@ -85,9 +85,9 @@ test.describe("Service Token Detail", () => {
     const createResponse = await createResponsePromise;
     expect(createResponse.status()).toBeLessThan(400);
 
-    // Wait for the token to appear in the table
-    const showButton = page.locator('[data-test="service-tokens-table"] [data-test="token-show-action"]').first();
-    await expect(showButton).toBeVisible({ timeout: 10000 });
+    // Wait for the token to appear in the table (name column is a RouterLink)
+    const tokenLink = page.locator('[data-test="service-tokens-table"] [data-test="token-name-link"]').first();
+    await expect(tokenLink).toBeVisible({ timeout: 10000 });
 
     return {
       email,
@@ -102,8 +102,8 @@ test.describe("Service Token Detail", () => {
     await setupTestEnvironment(page, request, "nav");
 
     // Step 1: Click "Show" button to navigate to detail page
-    const showButton = page.locator('[data-test="service-tokens-table"] [data-test="token-show-action"]').first();
-    await showButton.click();
+    const tokenLink = page.locator('[data-test="service-tokens-table"] [data-test="token-name-link"]').first();
+    await tokenLink.click();
 
     // Step 2: Verify URL changed to the service token detail page
     await expect(page).toHaveURL(
@@ -122,8 +122,8 @@ test.describe("Service Token Detail", () => {
     const env = await setupTestEnvironment(page, request, "name");
 
     // Step 1: Navigate to token detail by clicking the Show button
-    const showButton = page.locator('[data-test="service-tokens-table"] [data-test="token-show-action"]').first();
-    await showButton.click();
+    const tokenLink = page.locator('[data-test="service-tokens-table"] [data-test="token-name-link"]').first();
+    await tokenLink.click();
 
     // Step 2: Wait for detail page to load
     await expect(page).toHaveURL(
@@ -139,8 +139,8 @@ test.describe("Service Token Detail", () => {
     const env = await setupTestEnvironment(page, request, "details");
 
     // Step 1: Navigate to token detail page
-    const showButton = page.locator('[data-test="service-tokens-table"] [data-test="token-show-action"]').first();
-    await showButton.click();
+    const tokenLink = page.locator('[data-test="service-tokens-table"] [data-test="token-name-link"]').first();
+    await tokenLink.click();
 
     await expect(page).toHaveURL(
       /\/organizations\/[^/]+\/services_tokens\/[0-9a-f-]+/,
@@ -151,22 +151,19 @@ test.describe("Service Token Detail", () => {
     const detailCard = page.locator('[data-test="service-token-detail-card"]');
     await expect(detailCard).toBeVisible({ timeout: 10000 });
 
-    // Step 3: Verify the token name is rendered inside the detail card
-    const tokenNameElement = page.locator('[data-test="service-token-detail-name"]');
-    await expect(tokenNameElement).toBeVisible();
-    await expect(tokenNameElement).toContainText(env.tokenName);
+    // Step 3: Verify the token name is displayed on the page (in page title)
+    await expect(page.getByText(env.tokenName)).toBeVisible({ timeout: 10000 });
 
-    // Verify the biscuit token is displayed in a code block
-    const codeWrapper = detailCard.locator('[data-test="code-block"]');
-    await expect(codeWrapper.first()).toBeVisible({ timeout: 10000 });
+    // Verify the biscuit token value is displayed
+    await expect(detailCard.locator('[data-test="service-token-value"]')).toBeVisible({ timeout: 10000 });
   });
 
   test("should navigate back to token list", async ({ page, request }) => {
     const env = await setupTestEnvironment(page, request, "back");
 
     // Step 1: Navigate to token detail page
-    const showButton = page.locator('[data-test="service-tokens-table"] [data-test="token-show-action"]').first();
-    await showButton.click();
+    const tokenLink = page.locator('[data-test="service-tokens-table"] [data-test="token-name-link"]').first();
+    await tokenLink.click();
 
     await expect(page).toHaveURL(
       /\/organizations\/[^/]+\/services_tokens\/[0-9a-f-]+/,

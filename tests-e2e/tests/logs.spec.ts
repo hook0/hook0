@@ -160,15 +160,18 @@ test.describe("Logs", () => {
     const eventIdCell = page.locator('[data-test="logs-table"] [data-test="log-event-link"]').first();
     await expect(eventIdCell).toBeVisible();
 
-    // Extract the event ID text and navigate to event detail page directly
-    const eventIdText = await eventIdCell.textContent();
-    expect(eventIdText).toBeTruthy();
+    // Hover to reveal tooltip with full UUID, then extract it
+    await eventIdCell.hover();
+    const tooltip = page.locator('.hook0-tooltip-copy__tooltip-text');
+    await expect(tooltip).toBeVisible({ timeout: 5000 });
+    const fullEventId = await tooltip.textContent();
+    expect(fullEventId).toBeTruthy();
 
-    // Navigate to the event detail page using the extracted event ID
+    // Navigate to the event detail page using the full event ID
     const currentUrl = page.url();
     const appPath = currentUrl.match(/(\/organizations\/[^/]+\/applications\/[^/]+)/)?.[1];
     expect(appPath).toBeTruthy();
-    await page.goto(`${appPath}/events/${eventIdText!.trim()}`);
+    await page.goto(`${appPath}/events/${fullEventId!.trim()}`);
 
     // Verify event detail page renders
     await expect(page.locator('[data-test="event-detail-card"]')).toBeVisible({ timeout: 10000 });
