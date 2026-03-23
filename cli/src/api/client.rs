@@ -304,10 +304,15 @@ impl ApiClient {
     }
 
     /// Get an event by ID
-    pub async fn get_event(&self, event_id: &Uuid) -> Result<Event, ApiError> {
+    pub async fn get_event(
+        &self,
+        event_id: &Uuid,
+        application_id: &Uuid,
+    ) -> Result<Event, ApiError> {
         let response = self
             .client
             .get(self.url(&format!("/events/{}", event_id)))
+            .query(&[("application_id", application_id.to_string())])
             .bearer_auth(&self.secret)
             .send()
             .await?;

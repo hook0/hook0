@@ -241,7 +241,7 @@ async fn list(cli: &Cli, args: &ListArgs) -> Result<()> {
 async fn get(cli: &Cli, args: &GetArgs) -> Result<()> {
     let (client, _, profile) = require_auth(cli)?;
 
-    let event = client.get_event(&args.event_id).await?;
+    let event = client.get_event(&args.event_id, &profile.application_id).await?;
 
     if args.attempts {
         // Show event and its request attempts
