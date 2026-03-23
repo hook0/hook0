@@ -14,8 +14,7 @@ use crate::opentelemetry::{end_request_attempt_span, start_request_attempt_span}
 use crate::throughput_log::ThroughputStats;
 use crate::work::work;
 use crate::{
-    Config, ObjectStorageConfig, RequestAttemptWithOptionalPayload, Worker, WorkerScope,
-    compute_next_retry,
+    Config, ObjectStorageConfig, RequestAttemptWithOptionalPayload, Worker, compute_next_retry,
 };
 use hook0_protobuf::{ObjectStorageResponse, RequestAttempt};
 use hook0_sentry_integration::log_object_storage_error_with_context;
@@ -44,13 +43,6 @@ pub async fn look_for_work(
         let mut tx = pool.begin().await?;
 
         let fetch_start = Instant::now();
-        let is_public = matches!(worker.scope, WorkerScope::Public { .. });
-        let worker_id = if is_public {
-            None
-        } else {
-            worker.scope.worker_id()
-        };
-
         let next_attempt = query_as!(
             RequestAttemptWithOptionalPayload,
             "
@@ -86,15 +78,15 @@ pub async fn look_for_work(
                     AND (ra.delay_until IS NULL OR ra.delay_until <= statement_timestamp())
                     AND (
                         ($2 AND COALESCE(sw.worker__id, ow.worker__id) IS NULL)
-                        OR (NOT $2 AND COALESCE(sw.worker__id, ow.worker__id) = $1)
+                        OR COALESCE(sw.worker__id, ow.worker__id) = $1
                     )
                 ORDER BY ra.created_at ASC
                 LIMIT 1
                 FOR UPDATE OF ra
                 SKIP LOCKED
             ",
-            worker_id,
-            is_public,
+            worker.scope.worker_id(),
+            worker.scope.is_public(),
         )
         .fetch_optional(&mut *tx)
         .await?;
