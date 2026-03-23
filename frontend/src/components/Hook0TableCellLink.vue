@@ -1,122 +1,126 @@
 <script setup lang="ts">
-import { ICellRendererParams } from 'ag-grid-community';
-import { RouteLocation } from 'vue-router';
+import type { Component } from 'vue';
+import type { RouteLocationRaw } from 'vue-router';
 
-import Hook0Icon from '@/components/Hook0Icon.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 
 defineOptions({
   inheritAttrs: false,
 });
 
-interface ExtraParams<T> {
-  /**
-   * Raw value
-   */
-  value?: (row: T) => string;
+// Mirrors Hook0Button variant type
+type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'link' | 'icon';
 
-  /**
-   * Icon to add to the button
-   */
-  icon?: string;
-
-  /**
-   * Click handler
-   */
-  onClick?: (row: T) => void;
-
-  /**
-   * RouteLocation factory
-   */
-  href: (row: T) => string;
-
-  /**
-   * RouteLocation factory
-   */
-  to: (row: T) => RouteLocation;
-
-  /**
-   * If true, link will be disabled
-   */
+type Props = {
+  value: string;
+  icon?: Component;
+  onClick?: () => void;
+  href?: string;
+  to?: RouteLocationRaw;
   disabled?: boolean;
-
-  /**
-   * data-test attribute for E2E testing
-   */
-  dataTest?: string | ((row: T) => string);
-}
-
-type Hook0TableCellDateParameter<T> = ICellRendererParams & ExtraParams<T>;
-
-interface Props {
-  params: Hook0TableCellDateParameter<object[]>;
-}
+  dataTest?: string;
+  variant?: ButtonVariant;
+};
 
 const props = defineProps<Props>();
 
-function onClick(event: Event) {
+function handleClick(event: Event) {
   event.stopImmediatePropagation();
   event.preventDefault();
 
-  if (!props.params.onClick) {
-    return;
+  if (props.onClick) {
+    props.onClick();
   }
-
-  props.params.onClick(props.params.data as object[]);
 }
 </script>
 
 <template>
-  <Hook0Button
-    v-bind="{
-      href:
-        params.colDef?.cellRendererParams && params.colDef.cellRendererParams.href
-          ? params.colDef.cellRendererParams.href(params.data)
-          : undefined,
-      to:
-        params.colDef?.cellRendererParams && params.colDef.cellRendererParams.to
-          ? params.colDef.cellRendererParams.to(params.data)
-          : undefined,
-      onClick:
-        params.colDef?.cellRendererParams && params.colDef.cellRendererParams.onClick
-          ? onClick
-          : undefined,
-      class: $attrs.class,
-      disabled:
-        params.colDef?.cellRendererParams && params.colDef.cellRendererParams.disabled
-          ? params.colDef.cellRendererParams.disabled(params.data)
-          : undefined,
-    }"
-    :data-test="
-      params.colDef?.cellRendererParams && params.colDef.cellRendererParams.dataTest
-        ? typeof params.colDef.cellRendererParams.dataTest === 'function'
-          ? params.colDef.cellRendererParams.dataTest(params.data)
-          : params.colDef.cellRendererParams.dataTest
-        : undefined
-    "
-    style="width: fit-content"
+  <!-- Navigation link: plain text link, underline on hover -->
+  <RouterLink
+    v-if="props.to"
+    :to="props.to"
+    class="table-cell-nav-link"
+    :class="[props.variant === 'danger' && 'table-cell-nav-link--danger', $attrs.class]"
+    :data-test="props.dataTest"
+    @click.stop
   >
-    <template
-      v-if="params.colDef?.cellRendererParams && params.colDef.cellRendererParams.icon"
-      #left
-    >
-      <Hook0Icon
-        class="mr-1"
-        :name="
-          typeof params.colDef.cellRendererParams.icon === 'function'
-            ? params.colDef.cellRendererParams.icon(params.data)
-            : params.colDef.cellRendererParams.icon
-        "
-      ></Hook0Icon>
+    {{ props.value }}
+  </RouterLink>
+  <a
+    v-else-if="props.href"
+    :href="props.href"
+    class="table-cell-nav-link"
+    :class="[props.variant === 'danger' && 'table-cell-nav-link--danger', $attrs.class]"
+    :data-test="props.dataTest"
+    @click.stop
+  >
+    {{ props.value }}
+  </a>
+
+  <!-- Action button: keep existing Hook0Button behavior -->
+  <Hook0Button
+    v-else
+    v-bind="{
+      onClick: props.onClick ? handleClick : undefined,
+      class: $attrs.class,
+      disabled: props.disabled,
+    }"
+    :variant="props.variant ?? 'secondary'"
+    :data-test="props.dataTest"
+    class="table-cell-action-btn"
+  >
+    <template v-if="props.icon" #left>
+      <component
+        :is="props.icon"
+        :size="14"
+        aria-hidden="true"
+        class="table-cell-action-btn__icon"
+      />
     </template>
     <template #default>
-      {{
-        params.colDef?.cellRendererParams && params.colDef.cellRendererParams.value
-          ? typeof params.colDef.cellRendererParams.value === 'function'
-            ? params.colDef.cellRendererParams.value(params.data)
-            : params.colDef.cellRendererParams.value
-          : params.value
-      }}
+      {{ props.value }}
     </template>
   </Hook0Button>
 </template>
+
+<style scoped>
+.table-cell-nav-link {
+  color: var(--color-text-primary);
+  font-weight: 400;
+  font-size: 0.875rem;
+  text-decoration: none;
+  cursor: pointer;
+  display: block;
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-cell-nav-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.table-cell-nav-link--danger {
+  color: var(--color-error);
+}
+
+.table-cell-nav-link--danger:hover {
+  color: var(--color-error);
+}
+
+.table-cell-nav-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.table-cell-action-btn {
+  width: fit-content;
+}
+
+.table-cell-action-btn__icon {
+  margin-right: 0.25rem;
+}
+</style>

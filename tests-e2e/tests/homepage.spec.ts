@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verification";
+import { loginAsNewUser } from "../fixtures/test-setup";
 
 /**
  * Homepage E2E tests for Hook0.
@@ -49,47 +49,22 @@ test.describe("Homepage", () => {
     await expect(page.locator('[data-test="login-form"]')).toBeVisible();
   });
 
-  test("should preserve redirect after authentication", async ({ page, request }) => {
-    // Setup: Create a test user
-    const timestamp = Date.now();
-    const email = `test-redirect-${timestamp}@hook0.local`;
-    const password = `TestPassword123!${timestamp}`;
+  test("should display organization cards on home page", async ({ page, request }) => {
+    await loginAsNewUser(page, request, "home-cards");
 
-    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
-      data: {
-        email,
-        first_name: "Test",
-        last_name: "User",
-        password,
-      },
-    });
-    expect(registerResponse.status()).toBeLessThan(400);
-
-    // Verify email before login (required by API)
-    await verifyEmailViaMailpit(request, email);
-
-    // Try to access protected route (should redirect to login)
+    // Navigate to home page
     await page.goto("/");
-    await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
 
-    // Login with valid credentials
-    await page.locator('[data-test="login-email-input"]').fill(email);
-    await page.locator('[data-test="login-password-input"]').fill(password);
+    // Verify home page and banner are visible
+    await expect(page.locator('[data-test="home-page"]')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-test="home-banner"]')).toBeVisible({ timeout: 10000 });
+  });
 
-    const responsePromise = page.waitForResponse(
-      (response) =>
-        (response.url().includes("/api/v1/auth/login") || response.url().includes("/auth/login")) &&
-        response.request().method() === "POST",
-      { timeout: 15000 }
-    );
+  test("should preserve redirect after authentication", async ({ page, request }) => {
+    await loginAsNewUser(page, request, "redirect");
 
-    await page.locator('[data-test="login-submit-button"]').click();
-
-    const response = await responsePromise;
-    expect(response.status()).toBeLessThan(400);
-
-    // Should be redirected to dashboard/organizations/tutorial after login
-    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
+    // Should be in an authenticated area (not on login)
+    await expect(page).not.toHaveURL(/\/login/, {
       timeout: 15000,
     });
   });

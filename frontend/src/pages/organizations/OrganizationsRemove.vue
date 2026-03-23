@@ -1,85 +1,63 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { toast } from 'vue-sonner';
+import { useI18n } from 'vue-i18n';
+
+import { useQueryClient } from '@tanstack/vue-query';
 
 import * as OrganizationService from './OrganizationService';
-import { Problem } from '@/http';
-import Hook0Text from '@/components/Hook0Text.vue';
-import Hook0Button from '@/components/Hook0Button.vue';
-import Hook0Card from '@/components/Hook0Card.vue';
-import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
-import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
-import { push } from 'notivue';
-import router from '@/router.ts';
-import { routes } from '@/routes.ts';
+import { handleMutationError } from '@/utils/handleMutationError';
+import { organizationKeys } from '@/queries/keys';
+import { useRouter } from 'vue-router';
+import { routes } from '@/routes';
 import { useTracking } from '@/composables/useTracking';
+import { useContextStore } from '@/stores/context';
+import { usePermissions } from '@/composables/usePermissions';
+import Hook0DangerZoneCard from '@/components/Hook0DangerZoneCard.vue';
 
-// Analytics tracking
+const { t } = useI18n();
+const router = useRouter();
+const queryClient = useQueryClient();
+const contextStore = useContextStore();
 const { trackEvent } = useTracking();
+const { canDelete } = usePermissions();
 
-interface Props {
+type Props = {
   organizationId: string;
   organizationName: string;
-}
+};
 
 const props = defineProps<Props>();
-
 const loading = ref(false);
 
-function remove(e: Event) {
-  e.preventDefault();
-  e.stopImmediatePropagation();
-
-  if (!confirm(`Are you sure to delete "${props.organizationName}" organization?`)) {
-    return;
-  }
-
+function confirmRemove() {
   loading.value = true;
-
   OrganizationService.remove(props.organizationId)
     .then(() => {
       trackEvent('organization', 'delete', 'success');
-      push.success({
-        title: 'Organization deleted',
-        message: `Organization "${props.organizationName}" has been deleted.`,
+      contextStore.clear();
+      queryClient.removeQueries({ queryKey: organizationKeys.all });
+      toast.success(t('remove.organizationDeleted'), {
+        description: t('remove.organizationDeletedMessage', { name: props.organizationName }),
         duration: 5000,
       });
-      return router.push({ name: routes.Home });
+      return router.replace({ name: routes.Home });
     })
-    .catch(displayError)
-    // finally
+    .catch(handleMutationError)
     .finally(() => (loading.value = false));
-}
-
-function displayError(err: Problem) {
-  console.error(err);
-  let options = {
-    title: err.title,
-    message: err.detail,
-    duration: 5000,
-  };
-  err.status >= 500 ? push.error(options) : push.warning(options);
 }
 </script>
 
 <template>
-  <Hook0Card data-test="organization-delete-card">
-    <Hook0CardHeader>
-      <template #header> Delete this organization </template>
-      <template #subtitle>
-        This action deletes
-        <Hook0Text class="bold">{{ organizationName }}</Hook0Text>
-        and everything this organization contains. There is no going back.
-      </template>
-    </Hook0CardHeader>
-    <Hook0CardFooter>
-      <Hook0Button
-        class="danger"
-        type="button"
-        :loading="loading"
-        data-test="organization-delete-button"
-        @click="remove($event)"
-        >Delete</Hook0Button
-      >
-    </Hook0CardFooter>
-  </Hook0Card>
+  <Hook0DangerZoneCard
+    v-if="canDelete('organization')"
+    :title="t('remove.deleteOrganization')"
+    :subtitle="t('remove.deleteOrganizationWarning', { name: organizationName })"
+    :warning-message="t('remove.irreversibleWarning')"
+    confirm-message="remove.confirmDeleteOrganization"
+    :confirm-name="organizationName"
+    :loading="loading"
+    data-test="organization-delete-card"
+    @confirm="confirmRemove"
+  />
 </template>

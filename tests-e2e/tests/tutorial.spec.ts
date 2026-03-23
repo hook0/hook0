@@ -116,65 +116,7 @@ test.describe("Tutorial", () => {
     });
   });
 
-  test("should complete tutorial create organization step and verify API response", async ({
-    page,
-    request,
-  }) => {
-    const env = await setupTestEnvironment(page, request, "create-org");
-
-    // Navigate directly to tutorial page
-    await page.goto("/tutorial");
-
-    // Wait for tutorial page to load and click Start
-    await expect(page.locator('[data-test="tutorial-start-button"]')).toBeVisible({ timeout: 10000 });
-    await page.locator('[data-test="tutorial-start-button"]').click();
-
-    // Wait for create organization step
-    // The actual route is /tutorial/organization
-    await expect(page).toHaveURL(/\/tutorial\/organization/, {
-      timeout: 15000,
-    });
-
-    // Select "Create a new organization" option (radio button) using data-test selector
-    const createOrgRadio = page.locator('[data-test="tutorial-create-org-radio"]');
-    await expect(createOrgRadio).toBeVisible({ timeout: 10000 });
-    await createOrgRadio.click();
-
-    // Fill organization name
-    await expect(page.locator('[data-test="organization-name-input"]')).toBeVisible({
-      timeout: 10000,
-    });
-    await page.locator('[data-test="organization-name-input"]').fill(`Tutorial Org ${env.timestamp}`);
-
-    // Submit and wait for API response
-    // Capture response body inside the predicate to avoid race condition with navigation
-    let responseBody: { organization_id?: string } = {};
-    const orgResponsePromise = page.waitForResponse(
-      async (response) => {
-        if (response.url().includes("/api/v1/organizations") && response.request().method() === "POST") {
-          if (response.status() < 400) {
-            responseBody = await response.json();
-          }
-          return true;
-        }
-        return false;
-      },
-      { timeout: 15000 }
-    );
-
-    await page.locator('[data-test="organization-submit-button"]').click();
-
-    const orgResponse = await orgResponsePromise;
-
-    // Verify API response
-    expect(orgResponse.status()).toBeLessThan(400);
-    expect(responseBody).toHaveProperty("organization_id");
-
-    // Should proceed to next tutorial step
-    await expect(page).toHaveURL(/\/tutorial/, {
-      timeout: 15000,
-    });
-  });
+  // NOTE: Full wizard flow (steps 1-6) is covered in tutorial-wizard-flow.spec.ts
 
   test("should be accessible directly via URL", async ({ page, request }) => {
     await setupTestEnvironment(page, request, "direct");

@@ -240,19 +240,13 @@ test.describe("Organizations", () => {
     });
 
     // Verify submit is disabled when empty
-    await expect(page.locator('[data-test="organization-submit-button"]')).toHaveAttribute(
-      "disabled",
-      "true"
-    );
+    await expect(page.locator('[data-test="organization-submit-button"]')).toBeDisabled();
 
     // Clear if any value
     await page.locator('[data-test="organization-name-input"]').clear();
 
     // Still disabled
-    await expect(page.locator('[data-test="organization-submit-button"]')).toHaveAttribute(
-      "disabled",
-      "true"
-    );
+    await expect(page.locator('[data-test="organization-submit-button"]')).toBeDisabled();
   });
 
   test("should display delete organization card on settings page", async ({ page, request }) => {
@@ -337,12 +331,21 @@ test.describe("Organizations", () => {
         response.url().includes("/api/v1/organizations") && response.request().method() === "POST",
       { timeout: 15000 }
     );
+    // Also wait for the token refresh that happens after org creation
+    const refreshResponsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/v1/auth/refresh") && response.request().method() === "POST",
+      { timeout: 15000 }
+    );
     await page.locator('[data-test="organization-submit-button"]').click();
 
     const createResponse = await createResponsePromise;
     expect(createResponse.status()).toBeLessThan(400);
     const createdOrg = await createResponse.json();
     const newOrgId = createdOrg.organization_id;
+
+    // Wait for the token refresh to complete (includes new org permissions in JWT)
+    await refreshResponsePromise;
 
     // The frontend automatically refreshes the token after creating an organization.
     // Wait for navigation to complete (frontend redirects after org creation).
@@ -351,18 +354,18 @@ test.describe("Organizations", () => {
     });
 
     // Navigate to the new organization's settings
-    // The navigation itself handles any pending auth refresh
     await page.goto(`/organizations/${newOrgId}/settings`);
     await expect(page.locator('[data-test="organization-delete-card"]')).toBeVisible({
-      timeout: 10000,
+      timeout: 15000,
     });
 
-    // Setup dialog handler for delete confirmation
-    page.on("dialog", (dialog) => {
-      dialog.accept();
-    });
+    // Step 2: Click delete to open Hook0Dialog confirmation
+    await page.locator('[data-test="organization-delete-button"]').click();
 
-    // Step 2: Click delete and wait for API response
+    // Wait for confirmation dialog and click confirm
+    const confirmButton = page.locator('.hook0-dialog--danger .hook0-dialog__actions button:last-child');
+    await expect(confirmButton).toBeVisible({ timeout: 5000 });
+
     const deleteResponsePromise = page.waitForResponse(
       (response) =>
         response.url().includes(`/api/v1/organizations/${newOrgId}`) &&
@@ -370,7 +373,7 @@ test.describe("Organizations", () => {
       { timeout: 15000 }
     );
 
-    await page.locator('[data-test="organization-delete-button"]').click();
+    await confirmButton.click();
 
     const deleteResponse = await deleteResponsePromise;
 

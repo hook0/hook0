@@ -1,66 +1,54 @@
-import { AxiosError, AxiosResponse } from 'axios';
-import http, { handleError, Problem, UUID } from '@/http';
+import http, { UUID } from '@/http';
 import type { components } from '@/types';
+import { unwrapResponse } from '@/utils/unwrapResponse';
 
 type definitions = components['schemas'];
-import { refresh } from '@/iam';
+import { useAuthStore } from '@/stores/auth';
 
 export type Organization = definitions['Organization'];
 export type OrganizationPost = definitions['OrganizationPost'];
 export type OrganizationInfo = definitions['OrganizationInfo'];
 
 export function create(organization: OrganizationPost): Promise<OrganizationInfo> {
-  return http
-    .post('/organizations', organization)
-    .then(
-      (res: AxiosResponse<OrganizationInfo>) => res.data,
-      (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
-    )
-    .then((organization) => {
+  return unwrapResponse(http.post<OrganizationInfo>('/organizations', organization)).then(
+    (organization) => {
       // we currently have to force the user token refresh so it contains the organization
-      return refresh().then(() => organization);
-    });
+      return useAuthStore()
+        .refresh()
+        .then(() => organization);
+    }
+  );
 }
 
 export function list(): Promise<Array<Organization>> {
-  return http.get('/organizations', {}).then(
-    (res: AxiosResponse<Array<Organization>>) => res.data,
-    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
-  );
+  return unwrapResponse(http.get<Array<Organization>>('/organizations', {}));
 }
 
 export function get(id: UUID): Promise<OrganizationInfo> {
-  return http.get(`/organizations/${id}`).then(
-    (res: AxiosResponse<OrganizationInfo>) => res.data,
-    (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
-  );
+  return unwrapResponse(http.get<OrganizationInfo>(`/organizations/${id}`));
 }
 
 export function update(
   organization_id: UUID,
   organization: OrganizationPost
 ): Promise<Organization> {
-  return http
-    .put(`/organizations/${organization_id}`, organization)
-    .then(
-      (res: AxiosResponse<Organization>) => res.data,
-      (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
-    )
-    .then((organization) => {
-      // we currently have to force the user token refresh so it contains the organization
-      return refresh().then(() => organization);
-    });
+  return unwrapResponse(
+    http.put<Organization>(`/organizations/${organization_id}`, organization)
+  ).then((organization) => {
+    // we currently have to force the user token refresh so it contains the organization
+    return useAuthStore()
+      .refresh()
+      .then(() => organization);
+  });
 }
 
 export function remove(organization_id: UUID): Promise<void> {
-  return http
-    .delete(`/organizations/${organization_id}`, {})
-    .then(
-      (res: AxiosResponse<void>) => res.data,
-      (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
-    )
-    .then((organization) => {
+  return unwrapResponse(http.delete<void>(`/organizations/${organization_id}`, {})).then(
+    (organization) => {
       // we currently have to force the user token refresh so it contains the organization
-      return refresh().then(() => organization);
-    });
+      return useAuthStore()
+        .refresh()
+        .then(() => organization);
+    }
+  );
 }
