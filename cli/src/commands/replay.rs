@@ -153,7 +153,7 @@ pub async fn execute(cli: &Cli, args: &ReplayArgs) -> Result<()> {
     if args.dry_run {
         println!("Would replay {} event(s):", events.len());
         for event in &events {
-            println!("  - {} ({})", event.event_id, event.event_type_name);
+            println!("  - {} ({})", event.event_id, event.event_type_name.as_deref().unwrap_or("unknown"));
         }
         return Ok(());
     }

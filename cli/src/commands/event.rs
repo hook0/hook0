@@ -136,6 +136,12 @@ pub async fn execute(cli: &Cli, cmd: &EventCommands) -> Result<()> {
 async fn send(cli: &Cli, args: &SendArgs) -> Result<()> {
     let (client, _, profile) = require_auth(cli)?;
 
+    if args.label.is_empty() {
+        return Err(anyhow!(
+            "At least one label is required (--label key=value)"
+        ));
+    }
+
     // Get payload
     let payload_str = match (&args.payload, &args.payload_file) {
         (Some(p), None) => p.clone(),
@@ -190,7 +196,8 @@ async fn send(cli: &Cli, args: &SendArgs) -> Result<()> {
     } else {
         output_success(&format!(
             "Event sent successfully!\n  Event ID: {}\n  Type: {}",
-            result.event_id, result.event_type_name
+            result.event_id,
+            result.event_type_name.as_deref().unwrap_or(&args.event_type)
         ));
     }
 
@@ -252,14 +259,15 @@ async fn get(cli: &Cli, args: &GetArgs) -> Result<()> {
             );
         } else {
             // Show event details
+            let raw_payload = event.payload.clone().unwrap_or_default();
             let payload_decoded =
-                base64_decode(&event.payload).unwrap_or_else(|_| event.payload.clone());
+                base64_decode(&raw_payload).unwrap_or(raw_payload);
 
             TableOutput::print_details(vec![
                 ("Event ID", event.event_id.to_string()),
-                ("Type", event.event_type_name.clone()),
-                ("Content Type", event.payload_content_type.clone()),
-                ("Occurred At", event.occurred_at.to_rfc3339()),
+                ("Type", event.event_type_name.clone().unwrap_or_default()),
+                ("Content Type", event.payload_content_type.clone().unwrap_or_default()),
+                ("Occurred At", event.occurred_at.map(|t| t.to_rfc3339()).unwrap_or_default()),
                 ("Received At", event.received_at.to_rfc3339()),
                 (
                     "Labels",
@@ -284,14 +292,15 @@ async fn get(cli: &Cli, args: &GetArgs) -> Result<()> {
     } else if cli.output == OutputFormat::Json {
         output_one(&event, cli.output);
     } else {
+        let raw_payload = event.payload.clone().unwrap_or_default();
         let payload_decoded =
-            base64_decode(&event.payload).unwrap_or_else(|_| event.payload.clone());
+            base64_decode(&raw_payload).unwrap_or(raw_payload);
 
         TableOutput::print_details(vec![
             ("Event ID", event.event_id.to_string()),
-            ("Type", event.event_type_name.clone()),
-            ("Content Type", event.payload_content_type.clone()),
-            ("Occurred At", event.occurred_at.to_rfc3339()),
+            ("Type", event.event_type_name.clone().unwrap_or_default()),
+            ("Content Type", event.payload_content_type.clone().unwrap_or_default()),
+            ("Occurred At", event.occurred_at.map(|t| t.to_rfc3339()).unwrap_or_default()),
             ("Received At", event.received_at.to_rfc3339()),
             (
                 "Labels",

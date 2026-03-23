@@ -63,7 +63,15 @@ async fn list(cli: &Cli, args: &ListArgs) -> Result<()> {
             anyhow::anyhow!("No organization ID available. Specify with --organization-id")
         })?;
 
-    let applications = client.list_applications(&org_id).await?;
+    let applications = client.list_applications(&org_id).await.map_err(|e| {
+        if matches!(e, crate::ApiError::Unauthorized) {
+            anyhow::anyhow!(
+                "Application secrets cannot list applications. Use a service token or the web dashboard instead."
+            )
+        } else {
+            e.into()
+        }
+    })?;
 
     output_many(&applications, cli.output);
 

@@ -173,6 +173,12 @@ async fn create(cli: &Cli, args: &CreateArgs) -> Result<()> {
         return Err(anyhow!("At least one event type is required (--events)"));
     }
 
+    if args.label.is_empty() {
+        return Err(anyhow!(
+            "At least one label is required (--label key=value). Labels are used to route events to subscriptions."
+        ));
+    }
+
     // Validate URL
     url::Url::parse(&args.url).map_err(|e| anyhow!("Invalid URL: {}", e))?;
 
@@ -346,13 +352,18 @@ async fn update(cli: &Cli, args: &UpdateArgs) -> Result<()> {
     };
 
     let update = SubscriptionPut {
+        application_id: current.application_id,
         event_types: args.events.clone().unwrap_or(current.event_types),
         is_enabled,
         description: args.description.clone().or(current.description),
         labels: Some(new_labels),
         metadata: Some(current.metadata),
         target: Target::http_with_headers(new_url, new_method, new_headers),
-        dedicated_workers: Some(current.dedicated_workers),
+        dedicated_workers: if current.dedicated_workers.is_empty() {
+            None
+        } else {
+            Some(current.dedicated_workers)
+        },
     };
 
     let result = client
@@ -372,7 +383,7 @@ async fn update(cli: &Cli, args: &UpdateArgs) -> Result<()> {
 }
 
 async fn delete(cli: &Cli, args: &DeleteArgs) -> Result<()> {
-    let (client, _, _) = require_auth(cli)?;
+    let (client, _, profile) = require_auth(cli)?;
 
     // Confirm deletion
     if !args.yes {
@@ -388,7 +399,9 @@ async fn delete(cli: &Cli, args: &DeleteArgs) -> Result<()> {
         }
     }
 
-    client.delete_subscription(&args.subscription_id).await?;
+    client
+        .delete_subscription(&args.subscription_id, &profile.application_id)
+        .await?;
 
     output_success(&format!(
         "Subscription {} deleted successfully!",

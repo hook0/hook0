@@ -259,15 +259,11 @@ impl ApiClient {
         resource_type: &str,
         verb: &str,
     ) -> Result<(), ApiError> {
+        let event_type_name = format!("{}.{}.{}", service, resource_type, verb);
         let response = self
             .client
-            .delete(self.url("/event_types"))
-            .query(&[
-                ("application_id", application_id.to_string()),
-                ("service", service.to_string()),
-                ("resource_type", resource_type.to_string()),
-                ("verb", verb.to_string()),
-            ])
+            .delete(self.url(&format!("/event_types/{}", event_type_name)))
+            .query(&[("application_id", application_id.to_string())])
             .bearer_auth(&self.secret)
             .send()
             .await?;
@@ -323,7 +319,7 @@ impl ApiClient {
     pub async fn send_event(&self, event: &EventPost) -> Result<Event, ApiError> {
         let response = self
             .client
-            .post(self.url("/events"))
+            .post(self.url("/event/"))
             .bearer_auth(&self.secret)
             .json(event)
             .send()
@@ -404,10 +400,15 @@ impl ApiClient {
     }
 
     /// Delete a subscription
-    pub async fn delete_subscription(&self, subscription_id: &Uuid) -> Result<(), ApiError> {
+    pub async fn delete_subscription(
+        &self,
+        subscription_id: &Uuid,
+        application_id: &Uuid,
+    ) -> Result<(), ApiError> {
         let response = self
             .client
             .delete(self.url(&format!("/subscriptions/{}", subscription_id)))
+            .query(&[("application_id", application_id.to_string())])
             .bearer_auth(&self.secret)
             .send()
             .await?;
@@ -428,13 +429,18 @@ impl ApiClient {
     ) -> Result<Subscription, ApiError> {
         let sub = self.get_subscription(subscription_id).await?;
         let update = SubscriptionPut {
+            application_id: sub.application_id,
             event_types: sub.event_types,
             is_enabled: true,
             description: sub.description,
             labels: Some(sub.labels),
             metadata: Some(sub.metadata),
             target: sub.target,
-            dedicated_workers: Some(sub.dedicated_workers),
+            dedicated_workers: if sub.dedicated_workers.is_empty() {
+                None
+            } else {
+                Some(sub.dedicated_workers)
+            },
         };
         self.update_subscription(subscription_id, &update).await
     }
@@ -446,13 +452,18 @@ impl ApiClient {
     ) -> Result<Subscription, ApiError> {
         let sub = self.get_subscription(subscription_id).await?;
         let update = SubscriptionPut {
+            application_id: sub.application_id,
             event_types: sub.event_types,
             is_enabled: false,
             description: sub.description,
             labels: Some(sub.labels),
             metadata: Some(sub.metadata),
             target: sub.target,
-            dedicated_workers: Some(sub.dedicated_workers),
+            dedicated_workers: if sub.dedicated_workers.is_empty() {
+                None
+            } else {
+                Some(sub.dedicated_workers)
+            },
         };
         self.update_subscription(subscription_id, &update).await
     }

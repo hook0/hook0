@@ -166,17 +166,22 @@ impl EventTypePost {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Event {
     pub event_id: Uuid,
-    pub application_id: Uuid,
-    pub event_type_name: String,
-    pub payload: String,
-    pub payload_content_type: String,
+    #[serde(default)]
+    pub application_id: Option<Uuid>,
+    #[serde(default)]
+    pub event_type_name: Option<String>,
+    #[serde(default)]
+    pub payload: Option<String>,
+    #[serde(default)]
+    pub payload_content_type: Option<String>,
     #[serde(default)]
     pub ip: Option<String>,
     #[serde(default)]
     pub metadata: Option<HashMap<String, String>>,
     #[serde(default)]
     pub labels: HashMap<String, String>,
-    pub occurred_at: DateTime<Utc>,
+    #[serde(default)]
+    pub occurred_at: Option<DateTime<Utc>>,
     pub received_at: DateTime<Utc>,
 }
 
@@ -212,7 +217,7 @@ impl EventPost {
             application_id,
             event_id: Uuid::new_v4(),
             event_type,
-            payload: base64_encode(&payload.to_string()),
+            payload: payload.to_string(),
             payload_content_type: "application/json".to_string(),
             metadata: None,
             labels,
@@ -231,7 +236,7 @@ impl EventPost {
             application_id,
             event_id: Uuid::new_v4(),
             event_type,
-            payload: base64_encode(&payload),
+            payload,
             payload_content_type: "text/plain".to_string(),
             metadata: None,
             labels,
@@ -321,6 +326,7 @@ pub struct SubscriptionPost {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubscriptionPut {
+    pub application_id: Uuid,
     pub event_types: Vec<String>,
     pub is_enabled: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
