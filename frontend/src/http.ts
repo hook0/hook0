@@ -1,132 +1,128 @@
 import { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import axios from 'axios';
-import { identity } from 'ramda';
 
+import i18n from '@/plugins/i18n';
 import featureFlags from '@/feature-flags';
 import type { components } from '@/types';
-import { clearTokens, getAccessToken, getRefreshToken } from '@/iam';
-import { push } from 'notivue';
+import { toast } from 'vue-sonner';
 
 type definitions = components['schemas'];
 
-// eslint-disable-next-line @typescript-eslint/require-await
-async function getAxios(
+function getAxios(
   authenticated: boolean = true,
   use_refresh_token: boolean = false
 ): Promise<AxiosInstance> {
-  const token = authenticated
-    ? use_refresh_token
-      ? getRefreshToken().value
-      : getAccessToken().value
-    : null;
-  const headers =
-    token !== null
-      ? {
-          Authorization: `Bearer ${token}`,
+  // Dynamic import to avoid circular dependency with auth store
+  return import('@/stores/auth').then(({ useAuthStore }) => {
+    const authStore = useAuthStore();
+    const token = authenticated
+      ? use_refresh_token
+        ? authStore.refreshToken
+        : authStore.accessToken
+      : null;
+
+    const headers =
+      token !== null
+        ? {
+            Authorization: `Bearer ${token}`,
+          }
+        : {};
+
+    const client = axios.create({
+      baseURL: featureFlags.getOrElse('API_ENDPOINT', import.meta.env.VITE_API_ENDPOINT ?? ''),
+      timeout: featureFlags.getIntegerOrElse(
+        'API_TIMEOUT',
+        Number.isNaN(parseInt(import.meta.env.VITE_API_TIMEOUT, 10))
+          ? 3000
+          : parseInt(import.meta.env.VITE_API_TIMEOUT, 10)
+      ),
+      headers,
+    });
+
+    client.interceptors.response.use(
+      (response) => response,
+      (error: AxiosError) => {
+        if (isAxiosError(error)) {
+          const problem = handleError(error as AxiosError<AxiosResponse<Problem>>);
+          // Don't clear tokens on refresh endpoint — refresh() handles its own errors
+          const isRefreshCall = error.config?.url?.includes('/auth/refresh');
+          if (problem.id === 'AuthInvalidBiscuit' && !isRefreshCall) {
+            toast.error(i18n.global.t('common.error'), {
+              description: i18n.global.t('common.sessionExpiredMessage'),
+            });
+            authStore.clearTokens().catch(console.error);
+          }
         }
-      : {};
 
-  const client = axios.create({
-    baseURL: featureFlags.getOrElse('API_ENDPOINT', import.meta.env.VITE_API_ENDPOINT ?? ''),
-    timeout: featureFlags.getIntegerOrElse(
-      'API_TIMEOUT',
-      Number.isNaN(parseInt(import.meta.env.VITE_API_TIMEOUT, 10))
-        ? 3000
-        : parseInt(import.meta.env.VITE_API_TIMEOUT, 10)
-    ),
-    headers,
-  });
-
-  client.interceptors.response.use(identity, async function (error: AxiosError) {
-    // Any status codes that falls outside the range of 2xx cause this function to trigger
-
-    if (isAxiosError(error)) {
-      const problem = handleError(error as AxiosError<AxiosResponse<Problem>>);
-      if (problem.id === 'AuthInvalidBiscuit') {
-        push.error({
-          title: 'Error',
-          message: 'Your session has expired. Please log in again.',
-        });
-        await clearTokens();
+        return Promise.reject(error);
       }
-    }
+    );
 
-    return Promise.reject(error);
+    return client;
   });
-
-  return client;
 }
 
 export default {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  get<T = any, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
-    return getAxios().then((axios) => axios.get(url, config));
+  get<T = unknown, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
+    return getAxios().then((client) => client.get(url, config));
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  delete<T = any, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
-    return getAxios().then((axios) => axios.delete(url, config));
+  delete<T = unknown, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
+    return getAxios().then((client) => client.delete(url, config));
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  head<T = any, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
-    return getAxios().then((axios) => axios.head(url, config));
+  head<T = unknown, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
+    return getAxios().then((client) => client.head(url, config));
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  options<T = any, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
-    return getAxios().then((axios) => axios.options(url, config));
+  options<T = unknown, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
+    return getAxios().then((client) => client.options(url, config));
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  post<T = any, R = AxiosResponse<T>>(
+  post<T = unknown, R = AxiosResponse<T>>(
     url: string,
-    data?: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+    data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<R> {
-    return getAxios().then((axios) => axios.post(url, data, config));
+    return getAxios().then((client) => client.post(url, data, config));
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  put<T = any, R = AxiosResponse<T>>(
+  put<T = unknown, R = AxiosResponse<T>>(
     url: string,
-    data?: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+    data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<R> {
-    return getAxios().then((axios) => axios.put(url, data, config));
+    return getAxios().then((client) => client.put(url, data, config));
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  patch<T = any, R = AxiosResponse<T>>(
+  patch<T = unknown, R = AxiosResponse<T>>(
     url: string,
-    data?: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+    data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<R> {
-    return getAxios().then((axios) => axios.patch(url, data, config));
+    return getAxios().then((client) => client.patch(url, data, config));
   },
 
   unauthenticated: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    get<T = any, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
-      return getAxios(false).then((axios) => axios.get(url, config));
+    get<T = unknown, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
+      return getAxios(false).then((client) => client.get(url, config));
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    post<T = any, R = AxiosResponse<T>>(
+    post<T = unknown, R = AxiosResponse<T>>(
       url: string,
-      data?: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+      data?: unknown,
       config?: AxiosRequestConfig
     ): Promise<R> {
-      return getAxios(false).then((axios) => axios.post(url, data, config));
+      return getAxios(false).then((client) => client.post(url, data, config));
     },
   },
 
   withRefreshToken: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    post<T = any, R = AxiosResponse<T>>(
+    post<T = unknown, R = AxiosResponse<T>>(
       url: string,
-      data?: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+      data?: unknown,
       config?: AxiosRequestConfig
     ): Promise<R> {
-      return getAxios(true, true).then((axios) => axios.post(url, data, config));
+      return getAxios(true, true).then((client) => client.post(url, data, config));
     },
   },
 };
 
 // Global types
+/** Branded string type for UUID identifiers. */
 export type UUID = string;
 
 export type Problem = definitions['Problem'];
@@ -142,13 +138,14 @@ export function handleError(err: AxiosError<AxiosResponse<Problem>>): Problem {
     return {
       id: 'TimeoutExceeded',
       status: 499,
-      title: 'Timeout Exceeded',
+      title: i18n.global.t('errors.timeoutExceeded'),
       detail: String(err.message).charAt(0).toUpperCase() + String(err.message).slice(1),
     };
   }
 
   if (err.response?.data && typeof err.response.data === 'object') {
-    const problem = err.response.data as unknown as Problem;
+    const data: unknown = err.response.data;
+    const problem = data as Problem;
     if (
       typeof problem.detail === 'string' &&
       typeof problem.status === 'number' &&
@@ -161,9 +158,9 @@ export function handleError(err: AxiosError<AxiosResponse<Problem>>): Problem {
 
   return {
     id: 'unknown',
-    title: 'Unknown Error',
+    title: i18n.global.t('errors.unknownErrorTitle'),
     status: 500,
-    detail: `An unknown error occurred: ${err.message}`,
+    detail: i18n.global.t('errors.unknownErrorDetail', { message: err.message }),
   };
 }
 

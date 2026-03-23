@@ -64,7 +64,7 @@ e2e-playwright.test:
         fi
       done
     # Serve frontend static files (SPA mode for client-side routing)
-    - npx serve -s ../frontend/dist -l 8001 &
+    - npx serve -s ../frontend/dist -l 8001 --no-request-logging &
     # Wait for frontend to be ready
     - |
       echo "Waiting for frontend to be ready..."

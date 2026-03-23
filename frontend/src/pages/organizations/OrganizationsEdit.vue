@@ -1,208 +1,190 @@
 <script setup lang="ts">
-import { onMounted, onUpdated, ref, defineProps, defineEmits } from 'vue';
-
-import * as OrganizationService from './OrganizationService';
-import { OrganizationInfo } from './OrganizationService';
-import { Problem, UUID } from '@/http';
-import OrganizationRemove from './OrganizationsRemove.vue';
+import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import Hook0Input from '@/components/Hook0Input.vue';
-import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
+import { useI18n } from 'vue-i18n';
+
+import {
+  useOrganizationDetail,
+  useCreateOrganization,
+  useUpdateOrganization,
+} from './useOrganizationQueries';
+import { createOrganizationSchema } from './organization.schema';
+import type { OrganizationInfo } from './OrganizationService';
+import { routes } from '@/routes';
+import { useTracking } from '@/composables/useTracking';
+import { usePermissions } from '@/composables/usePermissions';
+import { useEntityForm } from '@/composables/useEntityForm';
+
 import Hook0Card from '@/components/Hook0Card.vue';
+import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
-import { push } from 'notivue';
-import { routes } from '@/routes.ts';
-import { useTracking } from '@/composables/useTracking';
+import Hook0Input from '@/components/Hook0Input.vue';
+import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
+import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
+import Hook0Stack from '@/components/Hook0Stack.vue';
+import OrganizationRemove from './OrganizationsRemove.vue';
+import Hook0Form from '@/components/Hook0Form.vue';
+import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 
+const { t } = useI18n();
 const router = useRouter();
-
-// Analytics tracking
-const { trackEvent } = useTracking();
 const route = useRoute();
+const { trackEvent } = useTracking();
 
-const isNew = ref(true);
-const loading = ref(false);
-const organization_id = ref<UUID | null>(null);
-const organization = ref({
-  name: '',
-});
+// Permissions
+const { canCreate, canEdit, canDelete } = usePermissions();
 
-interface Props {
+type Props = {
   tutorialMode?: boolean;
-}
+};
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  tutorialMode: false,
+});
 
 const emit = defineEmits(['tutorial-organization-created']);
 
-function _load() {
-  if (organization_id.value !== route.params.organization_id) {
-    organization_id.value = route.params.organization_id as UUID;
-    isNew.value = !organization_id.value;
+const organizationId = computed(() => {
+  const id = route.params.organization_id;
+  return typeof id === 'string' ? id : '';
+});
+const isNew = computed(() => !organizationId.value);
 
-    if (!isNew.value) {
-      OrganizationService.get(organization_id.value)
-        .then((org: OrganizationInfo) => {
-          organization.value.name = org.name;
-        })
-        .catch(displayError);
+// Load existing organization for edit mode
+const {
+  data: orgDetail,
+  isLoading,
+  error: loadError,
+  refetch,
+} = useOrganizationDetail(organizationId);
+
+// Mutations
+const createMutation = useCreateOrganization();
+const updateMutation = useUpdateOrganization();
+
+// Form via composable
+const { errors, defineField, onSubmit } = useEntityForm<{ name: string }, OrganizationInfo>({
+  schema: createOrganizationSchema(),
+  isNew,
+  existingValues: computed(() => (orgDetail.value ? { name: orgDetail.value.name } : undefined)),
+  createFn: (values) => createMutation.mutateAsync({ name: values.name }),
+  updateFn: (values) =>
+    updateMutation.mutateAsync({
+      organizationId: organizationId.value,
+      organization: { name: values.name },
+    }),
+  skipToast: () => props.tutorialMode,
+  successCreateTitle: t('organizations.created'),
+  successCreateMessage: (v) => t('organizations.createdMessage', { name: v.name }),
+  successUpdateTitle: t('organizations.updated'),
+  successUpdateMessage: (v) => t('organizations.updatedMessage', { name: v.name }),
+  onCreated: (org) => {
+    trackEvent('organization', 'create', 'success');
+    if (props.tutorialMode) {
+      emit('tutorial-organization-created', org.organization_id);
+    } else {
+      void router.push({
+        name: routes.TutorialCreateApplication,
+        params: { organization_id: org.organization_id },
+      });
     }
-  }
-}
-
-function upsert(e: Event) {
-  e.preventDefault();
-  e.stopImmediatePropagation();
-
-  loading.value = true;
-
-  (isNew.value
-    ? // create
-      OrganizationService.create({
-        name: organization.value.name,
-      })
-        .then((org) => {
-          trackEvent('organization', 'create', 'success');
-          if (props.tutorialMode) {
-            emit('tutorial-organization-created', org.organization_id);
-          } else {
-            push.success({
-              title: 'Organization created',
-              message: `Organization ${organization.value.name} has been created successfully`,
-              duration: 5000,
-            });
-            return router.push({
-              name: routes.TutorialCreateApplication,
-              params: { organization_id: org.organization_id },
-            });
-          }
-        })
-        .catch(displayError)
-    : // update
-      OrganizationService.update(route.params.organization_id as string, {
-        name: organization.value.name,
-      })
-        .then(() => {
-          trackEvent('organization', 'update', 'success');
-          push.success({
-            title: 'Organization updated',
-            message: `Organization ${organization.value.name} has been updated`,
-            duration: 5000,
-          });
-          return router.push({
-            name: routes.OrganizationsDashboard,
-            params: { organization_id: route.params.organization_id },
-          });
-        })
-        .catch(displayError)
-  )
-    // finally
-    .finally(() => (loading.value = false));
-}
-
-function cancel() {
-  if (route.params.organization_id) {
+  },
+  onUpdated: () => {
+    trackEvent('organization', 'update', 'success');
     void router.push({
       name: routes.OrganizationsDashboard,
-      params: { organization_id: route.params.organization_id },
+      params: { organization_id: organizationId.value },
     });
-  } else {
-    router.back();
-  }
-}
-
-function displayError(err: Problem) {
-  console.error(err);
-  let options = {
-    title: err.title,
-    message: err.detail,
-    duration: 5000,
-  };
-  err.status >= 500 ? push.error(options) : push.warning(options);
-}
-
-onMounted(() => {
-  _load();
+  },
 });
 
-onUpdated(() => {
-  _load();
-});
+const [name, nameAttrs] = defineField('name');
 </script>
 
 <template>
-  <div>
-    <form ref="form" data-test="organization-form" @submit="upsert">
-      <Hook0Card data-test="organization-card">
+  <Hook0PageLayout :title="isNew ? t('organizations.createTitle') : t('organizations.settings')">
+    <Hook0Stack direction="column" gap="xl">
+      <!-- Loading for edit mode (also shown when query is disabled and data is undefined) -->
+      <Hook0Card v-if="!isNew && (isLoading || !orgDetail)">
         <Hook0CardHeader>
-          <template v-if="isNew" #header> Create new organization </template>
-          <template v-else #header> Edit organization </template>
-          <template #subtitle>An organization holds your team members and plan.</template>
+          <template #header>{{ t('organizations.editTitle') }}</template>
         </Hook0CardHeader>
         <Hook0CardContent>
-          <Hook0CardContentLine>
-            <template #label> Organization Name </template>
-            <template #content>
-              <Hook0Input
-                v-model="organization.name"
-                type="text"
-                placeholder="My Awesome Product"
-                required
-                data-test="organization-name-input"
-              >
-                <template #helpText></template>
-              </Hook0Input>
-            </template>
-          </Hook0CardContentLine>
+          <Hook0SkeletonGroup :count="2" />
         </Hook0CardContent>
-
-        <Hook0CardFooter>
-          <Hook0Button
-            v-if="!tutorialMode"
-            class="secondary"
-            type="button"
-            data-test="organization-cancel-button"
-            @click="cancel()"
-            >Cancel</Hook0Button
-          >
-          <Hook0Button
-            v-if="!tutorialMode"
-            class="primary"
-            type="button"
-            :loading="loading"
-            :disabled="!organization.name"
-            data-test="organization-submit-button"
-            @click="upsert($event)"
-            >{{ isNew ? 'Create' : 'Update' }}
-          </Hook0Button>
-
-          <Hook0Button
-            v-else
-            class="primary"
-            :loading="loading"
-            :disabled="!organization.name"
-            tooltip="ℹ️ To continue, you need to add a name for your organization or select an existing one."
-            type="button"
-            data-test="organization-submit-button"
-            @click="upsert($event)"
-          >
-            Create Your First Organization 🎉
-          </Hook0Button>
-        </Hook0CardFooter>
       </Hook0Card>
-    </form>
 
-    <OrganizationRemove
-      v-if="!isNew"
-      :organization-id="
-        Array.isArray(route.params.organization_id)
-          ? route.params.organization_id[0]
-          : route.params.organization_id
-      "
-      :organization-name="organization.name"
-    ></OrganizationRemove>
-  </div>
+      <!-- Error loading org -->
+      <Hook0ErrorCard v-else-if="!isNew && loadError" :error="loadError" @retry="refetch()" />
+
+      <!-- Form -->
+      <template v-else>
+        <Hook0Form data-test="organization-form" @submit="onSubmit">
+          <Hook0Card data-test="organization-card">
+            <Hook0CardHeader>
+              <template #header>{{
+                isNew ? t('organizations.createTitle') : t('organizations.editTitle')
+              }}</template>
+              <template #subtitle>{{ t('organizations.formSubtitle') }}</template>
+            </Hook0CardHeader>
+            <Hook0CardContent>
+              <Hook0CardContentLine>
+                <template #label>{{ t('organizations.name') }}</template>
+                <template #content>
+                  <Hook0Input
+                    v-model="name"
+                    v-bind="nameAttrs"
+                    type="text"
+                    :placeholder="t('organizations.namePlaceholder')"
+                    :error="errors.name"
+                    :autofocus="isNew"
+                    data-test="organization-name-input"
+                  >
+                    <template #helpText></template>
+                  </Hook0Input>
+                </template>
+              </Hook0CardContentLine>
+            </Hook0CardContent>
+
+            <Hook0CardFooter>
+              <Hook0Button
+                v-if="
+                  !tutorialMode && (isNew ? canCreate('organization') : canEdit('organization'))
+                "
+                variant="primary"
+                type="button"
+                :loading="createMutation.isPending.value || updateMutation.isPending.value"
+                :disabled="!name"
+                data-test="organization-submit-button"
+                @click="onSubmit"
+                >{{ isNew ? t('common.create') : t('common.save') }}
+              </Hook0Button>
+
+              <Hook0Button
+                v-else
+                variant="primary"
+                :loading="createMutation.isPending.value"
+                :disabled="!name"
+                :tooltip="t('organizations.createTooltip')"
+                type="button"
+                data-test="organization-submit-button"
+                @click="onSubmit"
+              >
+                {{ t('organizations.createFirstOrg') }}
+              </Hook0Button>
+            </Hook0CardFooter>
+          </Hook0Card>
+        </Hook0Form>
+
+        <OrganizationRemove
+          v-if="!isNew && canDelete('organization')"
+          :organization-id="organizationId"
+          :organization-name="orgDetail?.name ?? ''"
+        />
+      </template>
+    </Hook0Stack>
+  </Hook0PageLayout>
 </template>

@@ -1,7 +1,7 @@
-import { AxiosError, AxiosResponse } from 'axios';
-import http, { handleError, Problem, UUID } from '@/http';
+import http, { UUID } from '@/http';
 import { subDays } from 'date-fns';
 import type { components } from '@/types';
+import { unwrapResponse } from '@/utils/unwrapResponse';
 
 type definitions = components['schemas'];
 
@@ -23,16 +23,26 @@ type Modify<T, R> = Omit<T, keyof R> & R;
 
 export type RequestAttemptTypeFixed = Modify<RequestAttempt, { status: RequestAttemptStatus }>;
 
+// TODO: These fields should be in the OpenAPI-generated RequestAttemptTypeFixed type. Remove this extension when the spec is updated.
+export type RequestAttemptExtended = RequestAttemptTypeFixed & {
+  http_response_status?: number | null;
+  retry_count?: number;
+  succeeded_at?: string | null;
+  failed_at?: string | null;
+  picked_at?: string | null;
+  delay_until?: string | null;
+  completed_at?: string | null;
+  created_at?: string | null;
+  event_type_name?: string | null;
+};
+
 export function list(application_id: UUID): Promise<Array<RequestAttemptTypeFixed>> {
-  return http
-    .get('/request_attempts', {
+  return unwrapResponse(
+    http.get<Array<RequestAttemptTypeFixed>>('/request_attempts', {
       params: {
         application_id: application_id,
         min_created_at: subDays(new Date(), 7).toISOString(),
       },
     })
-    .then(
-      (res: AxiosResponse<Array<RequestAttemptTypeFixed>>) => res.data,
-      (err: AxiosError<AxiosResponse<Problem>>) => Promise.reject(handleError(err))
-    );
+  );
 }

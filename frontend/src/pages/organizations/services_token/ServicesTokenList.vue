@@ -1,313 +1,457 @@
 <script setup lang="ts">
-import { ColDef } from 'ag-grid-community';
-import { onMounted, onUpdated, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { h, markRaw, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import type { ColumnDef } from '@tanstack/vue-table';
+import { Plus, Bot, BookOpen, Check, Key, Pencil, Trash2 } from 'lucide-vue-next';
 
-import Hook0Button from '@/components/Hook0Button.vue';
-import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
+import {
+  useServiceTokenList,
+  useCreateServiceToken,
+  useUpdateServiceToken,
+  useRemoveServiceToken,
+} from './useServiceTokenQueries';
+import type { ServiceToken } from './ServicesTokenService';
+import { routes } from '@/routes';
+import {
+  DOCS_SERVICE_TOKENS_URL,
+  API_DOCS_SERVICE_TOKENS_URL,
+  MCP_GUIDE_URL,
+} from '@/constants/externalLinks';
+import { handleMutationError } from '@/utils/handleMutationError';
+import { toast } from 'vue-sonner';
+import { useTracking } from '@/composables/useTracking';
+import { usePermissions } from '@/composables/usePermissions';
+import { useEntityDelete } from '@/composables/useEntityDelete';
+import { useRouteIds } from '@/composables/useRouteIds';
+
+import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
+import Hook0Card from '@/components/Hook0Card.vue';
+import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
-import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
-import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0Table from '@/components/Hook0Table.vue';
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 import Hook0TableCellDate from '@/components/Hook0TableCellDate.vue';
-import { Problem, UUID } from '@/http';
-import Hook0Text from '@/components/Hook0Text.vue';
-import * as ServiceTokenService from './ServicesTokenService.ts';
-import { ServiceToken } from './ServicesTokenService.ts';
-import Hook0Loader from '@/components/Hook0Loader.vue';
-import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
-import Hook0Error from '@/components/Hook0Error.vue';
-import { push } from 'notivue';
-import router from '@/router.ts';
-import { routes } from '@/routes.ts';
-import { useTracking } from '@/composables/useTracking';
+import Hook0Button from '@/components/Hook0Button.vue';
+import Hook0EmptyState from '@/components/Hook0EmptyState.vue';
+import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
+import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
+import Hook0Stack from '@/components/Hook0Stack.vue';
+import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
+import Hook0Badge from '@/components/Hook0Badge.vue';
+import Hook0Alert from '@/components/Hook0Alert.vue';
+import Hook0Dialog from '@/components/Hook0Dialog.vue';
+import Hook0Input from '@/components/Hook0Input.vue';
+import Hook0CopyField from '@/components/Hook0CopyField.vue';
+import Hook0DocButtons from '@/components/Hook0DocButtons.vue';
+import QuickReferenceCard from '@/components/QuickReferenceCard.vue';
 
-const route = useRoute();
-
-// Analytics tracking
+const { t } = useI18n();
 const { trackEvent } = useTracking();
 
-interface Props {
-  // cache-burst
-  burst?: string | string[];
+// Permissions
+const { canCreate, canEdit, canDelete } = usePermissions();
+
+const { organizationId } = useRouteIds();
+const { data: serviceTokens, isLoading, error, refetch } = useServiceTokenList(organizationId);
+
+const createMutation = useCreateServiceToken();
+const updateMutation = useUpdateServiceToken();
+const removeMutation = useRemoveServiceToken();
+
+const showCreateDialog = ref(false);
+const newTokenName = ref('');
+
+const showEditDialog = ref(false);
+const editTokenName = ref('');
+const tokenToEdit = ref<ServiceToken | null>(null);
+
+const {
+  showDeleteDialog,
+  entityToDelete: tokenToDelete,
+  requestDelete: handleDelete,
+  confirmDelete,
+} = useEntityDelete<ServiceToken>({
+  deleteFn: (row) =>
+    removeMutation.mutateAsync({ tokenId: row.token_id, organizationId: organizationId.value }),
+  successTitle: t('common.success'),
+  successMessage: t('serviceTokens.deleted'),
+  onSuccess: () => trackEvent('service-token', 'delete', 'success'),
+});
+
+function createNew(event: MouseEvent) {
+  event.stopImmediatePropagation();
+  event.preventDefault();
+  newTokenName.value = '';
+  showCreateDialog.value = true;
 }
 
-defineProps<Props>();
-const columnDefs: ColDef[] = [
-  {
-    field: 'name',
-    suppressMovable: true,
-    sortable: true,
-    resizable: true,
-    headerName: 'Name',
-  },
-  {
-    field: 'created_at',
-    suppressMovable: true,
-    sortable: true,
-    resizable: true,
-    headerName: 'Created At',
-    cellRenderer: Hook0TableCellDate,
-  },
-  {
-    suppressMovable: true,
-    headerName: 'Options',
-    suppressSizeToFit: true,
-    width: 95,
-    cellRenderer: Hook0TableCellLink,
-    cellRendererParams: {
-      value: 'Show',
-      icon: 'eye',
-      onClick: (row: ServiceToken): void => {
-        router
-          .push({
-            name: routes.ServiceTokenView,
-            params: {
-              organization_id: organization_id.value as string,
-              service_token_id: row.token_id,
-            },
-          })
-          .catch(displayError);
-      },
-    },
-  },
-  {
-    suppressMovable: true,
-    headerName: '',
-    suppressSizeToFit: true,
-    width: 95,
-    cellRenderer: Hook0TableCellLink,
-    cellRendererParams: {
-      value: 'Edit',
-      icon: 'pen',
-      onClick: (row: ServiceToken): void => {
-        const name = prompt('Edit the service token name?', row.name);
-        if (!name) {
-          return;
-        }
+function confirmCreate() {
+  const name = newTokenName.value.trim();
+  showCreateDialog.value = false;
+  newTokenName.value = '';
+  if (!name) return;
 
-        ServiceTokenService.update(row.token_id, {
-          name: name,
-          organization_id: organization_id.value as string,
-        })
-          .then(() => {
-            trackEvent('service-token', 'update', 'success');
-            _forceLoad();
-          })
-          .catch(displayError);
+  createMutation.mutate(
+    { name, organization_id: organizationId.value },
+    {
+      onSuccess: () => {
+        trackEvent('service-token', 'create', 'success');
+        toast.success(t('common.success'), {
+          description: t('serviceTokens.created'),
+          duration: 3000,
+        });
       },
+      onError: (err) => {
+        handleMutationError(err);
+      },
+    }
+  );
+}
+
+function handleEdit(row: ServiceToken) {
+  tokenToEdit.value = row;
+  editTokenName.value = row.name;
+  showEditDialog.value = true;
+}
+
+function confirmEdit() {
+  const row = tokenToEdit.value;
+  const name = editTokenName.value.trim();
+  showEditDialog.value = false;
+  tokenToEdit.value = null;
+  editTokenName.value = '';
+  if (!row || !name) return;
+
+  updateMutation.mutate(
+    { tokenId: row.token_id, token: { name, organization_id: organizationId.value } },
+    {
+      onSuccess: () => {
+        trackEvent('service-token', 'update', 'success');
+        toast.success(t('common.success'), {
+          description: t('serviceTokens.updated'),
+          duration: 3000,
+        });
+      },
+      onError: (err) => {
+        handleMutationError(err);
+      },
+    }
+  );
+}
+
+const columns: ColumnDef<ServiceToken, unknown>[] = [
+  {
+    accessorKey: 'name',
+    header: t('common.name'),
+    enableSorting: true,
+    cell: (info) => {
+      const row = info.row.original;
+      return h(Hook0TableCellLink, {
+        value: row.name,
+        to: {
+          name: routes.ServiceTokenView,
+          params: {
+            organization_id: organizationId.value,
+            service_token_id: row.token_id,
+          },
+        },
+        dataTest: 'token-name-link',
+      });
     },
   },
   {
-    suppressMovable: true,
-    headerName: '',
-    suppressSizeToFit: true,
-    width: 105,
-    cellRenderer: Hook0TableCellLink,
-    cellRendererParams: {
-      value: 'Delete',
-      icon: 'trash',
-      onClick: (row: ServiceToken): void => {
-        if (
-          confirm(
-            'Are you sure you want to delete this service token?\n\nEvery token derived from this token will be revoked as well.'
-          )
-        ) {
-          ServiceTokenService.remove(row.token_id, organization_id.value as string)
-            .then(() => {
-              trackEvent('service-token', 'delete', 'success');
-              _forceLoad();
-            })
-            .catch(displayError);
-        }
-      },
+    accessorKey: 'biscuit',
+    header: t('serviceTokens.tokenLabel'),
+    enableSorting: false,
+    cell: (info) =>
+      h(Hook0CopyField, {
+        value: String(info.getValue()),
+        maskable: true,
+        copyMessage: t('serviceTokens.tokenCopied'),
+      }),
+  },
+  {
+    accessorKey: 'created_at',
+    header: t('common.createdAt'),
+    enableSorting: true,
+    cell: (info) => h(Hook0TableCellDate, { value: info.getValue<string | null>() }),
+  },
+  {
+    id: 'actions',
+    header: t('common.actions'),
+    cell: (info) => {
+      const row = info.row.original;
+      const actions: ReturnType<typeof h>[] = [];
+      if (canEdit('service_token')) {
+        actions.push(
+          h(Hook0TableCellLink, {
+            value: t('serviceTokens.editAction'),
+            icon: markRaw(Pencil),
+            dataTest: 'token-edit-action',
+            onClick: () => handleEdit(row),
+          })
+        );
+      }
+      if (canDelete('service_token')) {
+        actions.push(
+          h(Hook0TableCellLink, {
+            value: t('common.delete'),
+            icon: markRaw(Trash2),
+            variant: 'danger',
+            dataTest: 'token-delete-action',
+            onClick: () => handleDelete(row),
+          })
+        );
+      }
+      return h('div', { class: 'service-token__actions' }, actions);
     },
   },
 ];
-
-const services_token$ = ref<Promise<Array<ServiceToken>>>();
-const organization_id = ref<null | UUID>(null);
-
-function createNew(event: Event) {
-  event.stopImmediatePropagation();
-  event.preventDefault();
-
-  const name = prompt('Give a name to your new service token:');
-  if (!name) {
-    return;
-  }
-
-  ServiceTokenService.create({ name: name, organization_id: organization_id.value as string })
-    .then((_resp) => {
-      trackEvent('service-token', 'create', 'success');
-      _forceLoad();
-    })
-    .catch(displayError);
-}
-
-function _forceLoad() {
-  organization_id.value = route.params.organization_id as UUID;
-  services_token$.value = ServiceTokenService.list(organization_id.value);
-}
-
-function _load() {
-  if (organization_id.value !== route.params.organization_id) {
-    _forceLoad();
-  }
-}
-
-function displayError(err: Problem) {
-  console.error(err);
-  let options = {
-    title: err.title,
-    message: err.detail,
-    duration: 5000,
-  };
-  err.status >= 500 ? push.error(options) : push.warning(options);
-}
-
-onMounted(() => {
-  _load();
-});
-
-onUpdated(() => {
-  _load();
-});
 </script>
 
 <template>
-  <Promised :promise="services_token$">
-    <!-- Use the "pending" slot to display a loading message -->
-    <template #pending>
-      <Hook0Loader></Hook0Loader>
-    </template>
-    <!-- The default scoped slot will be used as the result -->
-    <template #default="services_tokens">
+  <Hook0PageLayout :title="t('serviceTokens.title')">
+    <!-- Error state (check FIRST - errors take priority) -->
+    <Hook0ErrorCard v-if="error && !isLoading" :error="error" @retry="refetch()" />
+
+    <!-- Loading skeleton (also shown when query is disabled and data is undefined) -->
+    <Hook0Card v-else-if="isLoading || !serviceTokens" data-test="service-tokens-card">
+      <Hook0CardHeader>
+        <template #header>{{ t('serviceTokens.title') }}</template>
+      </Hook0CardHeader>
+      <Hook0CardContent>
+        <Hook0SkeletonGroup :count="3" />
+      </Hook0CardContent>
+    </Hook0Card>
+
+    <!-- Data loaded (serviceTokens is guaranteed to be defined here) -->
+    <template v-else>
       <!-- Service Tokens List -->
-      <Hook0Card class="mb-4" data-test="service-tokens-card">
-        <Hook0CardHeader>
-          <template #header> Service Tokens </template>
-          <template #subtitle>
-            Service tokens are organization-wide API keys that allow external programs to send API
-            requests to Hook0 without relying on user credentials.
-          </template>
-        </Hook0CardHeader>
+      <Hook0Stack direction="column" gap="lg">
+        <Hook0Card data-test="service-tokens-card">
+          <Hook0CardHeader>
+            <template #header>{{ t('serviceTokens.title') }}</template>
+            <template #subtitle>
+              {{ t('serviceTokens.subtitle') }}
+            </template>
+            <template #actions>
+              <Hook0DocButtons
+                :doc-url="DOCS_SERVICE_TOKENS_URL"
+                :api-url="API_DOCS_SERVICE_TOKENS_URL"
+              />
+            </template>
+          </Hook0CardHeader>
 
-        <Hook0CardContent v-if="services_tokens.length > 0">
-          <Hook0Table
-            data-test="service-tokens-table"
-            :context="{ services_token$, columnDefs }"
-            :column-defs="columnDefs"
-            :row-data="services_tokens"
-            row-id-field="service_token_id"
-          >
-          </Hook0Table>
-        </Hook0CardContent>
+          <Hook0CardContent v-if="serviceTokens.length > 0">
+            <Hook0Table
+              data-test="service-tokens-table"
+              :columns="columns"
+              :data="serviceTokens"
+              row-id-field="token_id"
+            />
+          </Hook0CardContent>
 
-        <Hook0CardContent v-else>
-          <Hook0CardContentLines>
-            <Hook0CardContentLine type="full-width">
-              <template #content>
-                <Hook0Text>
-                  You don't have any service tokens yet. Create one to start integrating with
-                  Hook0's API or to connect an AI assistant.
-                </Hook0Text>
-              </template>
-            </Hook0CardContentLine>
-          </Hook0CardContentLines>
-        </Hook0CardContent>
-
-        <Hook0CardFooter>
-          <Hook0Button
-            class="primary"
-            type="button"
-            data-test="service-tokens-create-button"
-            @click="createNew"
-          >
-            <Hook0Icon name="plus" class="mr-1"></Hook0Icon>
-            Create Service Token
-          </Hook0Button>
-        </Hook0CardFooter>
-      </Hook0Card>
-
-      <!-- AI Integration Banner -->
-      <Hook0Card>
-        <div
-          class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-t-lg px-6 py-4"
-        >
-          <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-              <div class="bg-white/20 rounded-full p-2">
-                <Hook0Icon name="robot" class="text-white text-xl"></Hook0Icon>
-              </div>
-              <div>
-                <h3 class="text-white font-semibold text-lg">Use Hook0 with AI Assistants</h3>
-                <p class="text-white/80 text-sm">
-                  Connect Claude, ChatGPT, or any MCP-compatible AI to manage your webhooks
-                </p>
-              </div>
-            </div>
-            <Hook0Button
-              class="bg-white text-indigo-600 hover:bg-indigo-50 font-medium px-4 py-2 rounded-lg shadow-sm"
-              href="https://documentation.hook0.com/reference/mcp-for-ia-assistant"
-              target="_blank"
+          <Hook0CardContent v-else>
+            <Hook0EmptyState
+              :title="t('serviceTokens.empty.title')"
+              :description="t('serviceTokens.empty.description')"
+              :icon="Key"
             >
-              <Hook0Icon name="book" class="mr-2"></Hook0Icon>
-              Setup Guide
-            </Hook0Button>
-          </div>
-        </div>
-        <Hook0CardContent>
-          <Hook0CardContentLines>
-            <Hook0CardContentLine type="full-width">
-              <template #content>
-                <div class="flex flex-col space-y-3">
-                  <Hook0Text class="text-gray-600">
-                    With <strong>Hook0 MCP Server</strong>, you can let AI assistants interact with
-                    your webhook infrastructure using natural language:
-                  </Hook0Text>
-                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
-                    <div class="flex items-start space-x-2">
-                      <Hook0Icon name="check" class="text-green-500 mt-1"></Hook0Icon>
-                      <span class="text-sm text-gray-600"
-                        >List and inspect events, subscriptions, and delivery history</span
-                      >
-                    </div>
-                    <div class="flex items-start space-x-2">
-                      <Hook0Icon name="check" class="text-green-500 mt-1"></Hook0Icon>
-                      <span class="text-sm text-gray-600"
-                        >Create and manage webhook subscriptions via conversation</span
-                      >
-                    </div>
-                    <div class="flex items-start space-x-2">
-                      <Hook0Icon name="check" class="text-green-500 mt-1"></Hook0Icon>
-                      <span class="text-sm text-gray-600"
-                        >Debug failed deliveries and retry them instantly</span
-                      >
-                    </div>
-                  </div>
-                  <div
-                    class="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start space-x-2"
-                  >
-                    <Hook0Icon name="key" class="text-amber-600 mt-0.5"></Hook0Icon>
-                    <span class="text-sm text-amber-800">
-                      <strong>To get started:</strong> Create a service token above and use it as
-                      your <code class="bg-amber-100 px-1 rounded">HOOK0_API_TOKEN</code> in your
-                      MCP configuration.
-                    </span>
-                  </div>
-                </div>
+              <template v-if="canCreate('service_token')" #action>
+                <Hook0Button
+                  variant="primary"
+                  type="button"
+                  data-test="service-tokens-create-button"
+                  @click="createNew"
+                >
+                  <template #left>
+                    <Plus :size="16" aria-hidden="true" />
+                  </template>
+                  {{ t('serviceTokens.create') }}
+                </Hook0Button>
               </template>
-            </Hook0CardContentLine>
-          </Hook0CardContentLines>
-        </Hook0CardContent>
-      </Hook0Card>
+            </Hook0EmptyState>
+          </Hook0CardContent>
+
+          <Hook0CardFooter v-if="serviceTokens.length > 0 && canCreate('service_token')">
+            <Hook0Button
+              variant="primary"
+              type="button"
+              data-test="service-tokens-create-button"
+              @click="createNew"
+            >
+              <template #left>
+                <Plus :size="16" aria-hidden="true" />
+              </template>
+              {{ t('serviceTokens.create') }}
+            </Hook0Button>
+          </Hook0CardFooter>
+        </Hook0Card>
+
+        <!-- Quick Reference -->
+        <QuickReferenceCard
+          :title="t('serviceTokens.quickReference')"
+          :subtitle="t('serviceTokens.quickReferenceDescription')"
+          :organization-id="organizationId"
+        />
+
+        <!-- AI Integration Banner -->
+        <Hook0Card>
+          <Hook0CardHeader>
+            <template #header>
+              <Hook0Stack direction="row" align="center" gap="sm">
+                <Hook0IconBadge variant="primary">
+                  <Bot :size="18" aria-hidden="true" />
+                </Hook0IconBadge>
+                <Hook0Stack direction="column" gap="none">
+                  <Hook0Stack direction="row" align="center" gap="sm">
+                    {{ t('serviceTokens.aiTitle') }}
+                    <Hook0Badge variant="primary" size="sm">MCP</Hook0Badge>
+                  </Hook0Stack>
+                </Hook0Stack>
+              </Hook0Stack>
+            </template>
+            <template #subtitle>
+              {{ t('serviceTokens.aiSubtitle') }}
+            </template>
+            <template #actions>
+              <Hook0Button variant="primary" :href="MCP_GUIDE_URL" target="_blank">
+                <template #left>
+                  <BookOpen :size="16" aria-hidden="true" />
+                </template>
+                {{ t('serviceTokens.aiSetupGuide') }}
+              </Hook0Button>
+            </template>
+          </Hook0CardHeader>
+          <Hook0CardContent>
+            <Hook0Stack direction="column" gap="md">
+              <span class="mcp__description">{{ t('serviceTokens.aiDescription') }}</span>
+              <div class="mcp__features">
+                <span class="mcp__feature">
+                  <span class="mcp__feature-dot"><Check :size="12" aria-hidden="true" /></span>
+                  {{ t('serviceTokens.aiFeature1') }}
+                </span>
+                <span class="mcp__feature">
+                  <span class="mcp__feature-dot"><Check :size="12" aria-hidden="true" /></span>
+                  {{ t('serviceTokens.aiFeature2') }}
+                </span>
+                <span class="mcp__feature">
+                  <span class="mcp__feature-dot"><Check :size="12" aria-hidden="true" /></span>
+                  {{ t('serviceTokens.aiFeature3') }}
+                </span>
+              </div>
+              <Hook0Alert
+                type="info"
+                :title="t('serviceTokens.aiGetStartedTitle')"
+                :description="t('serviceTokens.aiGetStarted')"
+              />
+            </Hook0Stack>
+          </Hook0CardContent>
+        </Hook0Card>
+      </Hook0Stack>
     </template>
-    <!-- The "rejected" scoped slot will be used if there is an error -->
-    <template #rejected="error">
-      <Hook0Error :error="error"></Hook0Error>
-    </template>
-  </Promised>
+
+    <Hook0Dialog
+      :open="showCreateDialog"
+      variant="default"
+      :title="t('serviceTokens.create')"
+      @close="
+        showCreateDialog = false;
+        newTokenName = '';
+      "
+      @confirm="confirmCreate()"
+    >
+      <Hook0Input
+        v-model="newTokenName"
+        :placeholder="t('common.name')"
+        :label="t('common.name')"
+        autofocus
+        data-test="service-token-name-input"
+        @keydown.enter="confirmCreate()"
+      />
+    </Hook0Dialog>
+
+    <Hook0Dialog
+      :open="showEditDialog"
+      variant="default"
+      :title="t('serviceTokens.editAction')"
+      @close="
+        showEditDialog = false;
+        tokenToEdit = null;
+        editTokenName = '';
+      "
+      @confirm="confirmEdit()"
+    >
+      <Hook0Input
+        v-model="editTokenName"
+        :placeholder="t('common.name')"
+        :label="t('common.name')"
+        data-test="service-token-edit-name-input"
+        @keydown.enter="confirmEdit()"
+      />
+    </Hook0Dialog>
+
+    <Hook0Dialog
+      :open="showDeleteDialog"
+      variant="danger"
+      :title="t('common.delete')"
+      @close="
+        showDeleteDialog = false;
+        tokenToDelete = null;
+      "
+      @confirm="confirmDelete()"
+    >
+      <p v-if="tokenToDelete">
+        <i18n-t keypath="serviceTokens.deleteConfirm" tag="span">
+          <template #name>
+            <strong>{{ tokenToDelete.name }}</strong>
+          </template>
+        </i18n-t>
+      </p>
+    </Hook0Dialog>
+  </Hook0PageLayout>
 </template>
+
+<style scoped>
+/* Ensure MCP feature badges stack properly at narrow widths */
+.mcp__description {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+.mcp__features {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.mcp__feature {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--color-text-primary);
+}
+
+.mcp__feature-dot {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background-color: var(--color-success-light);
+  color: var(--color-success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.service-token__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+</style>

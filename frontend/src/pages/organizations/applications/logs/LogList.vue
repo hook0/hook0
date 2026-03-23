@@ -1,230 +1,212 @@
 <script setup lang="ts">
-import { ColDef } from 'ag-grid-community';
-import { onMounted, onUpdated, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
+import { useRouteIds } from '@/composables/useRouteIds';
+import { useI18n } from 'vue-i18n';
 
-import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
-import Hook0CardContent from '@/components/Hook0CardContent.vue';
-import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
-import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
-import Hook0Card from '@/components/Hook0Card.vue';
-import Hook0Table from '@/components/Hook0Table.vue';
-import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
-import { UUID } from '@/http';
-import Hook0Text from '@/components/Hook0Text.vue';
+import { Send } from 'lucide-vue-next';
+import { DOCS_LOGS_URL, API_DOCS_LOGS_URL } from '@/constants/externalLinks';
+
+import { useLogList } from './useLogQueries';
+import { useLogColumns } from './useLogColumns';
+import type { RequestAttemptExtended } from './LogService';
 import { routes } from '@/routes';
-import Hook0TableCellDate from '@/components/Hook0TableCellDate.vue';
+import { useOrganizationDetail } from '@/pages/organizations/useOrganizationQueries';
+
+import EventSidePanel from '@/pages/organizations/applications/events/EventSidePanel.vue';
+import Hook0DocButtons from '@/components/Hook0DocButtons.vue';
+
+import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
+import Hook0Card from '@/components/Hook0Card.vue';
+import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
+import Hook0CardContent from '@/components/Hook0CardContent.vue';
+import Hook0Table from '@/components/Hook0Table.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
-import Hook0TableCellIcon from '@/components/Hook0TableCellIcon.vue';
-import * as LogService from './LogService';
-import { RequestAttempt, RequestAttemptStatusType, RequestAttemptTypeFixed } from './LogService';
-import Hook0Loader from '@/components/Hook0Loader.vue';
-import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
-import Hook0Error from '@/components/Hook0Error.vue';
+import Hook0EmptyState from '@/components/Hook0EmptyState.vue';
+import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
+import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
+import Hook0HelpText from '@/components/Hook0HelpText.vue';
 
+const { t } = useI18n();
 const route = useRoute();
+const { organizationId, applicationId } = useRouteIds();
+const { data: requestAttempts, isLoading, error, refetch } = useLogList(applicationId);
+const { data: organization } = useOrganizationDetail(organizationId);
 
-interface Props {
-  // cache-burst
-  burst?: string | string[];
+const retentionDays = computed(
+  () => organization.value?.quotas.days_of_events_retention_limit ?? 7
+);
+
+const columns = useLogColumns();
+
+// Side panel state
+const sidePanelOpen = ref(false);
+const selectedEventId = ref('');
+
+function handleRowClick(row: RequestAttemptExtended) {
+  selectedEventId.value = row.event_id;
+  sidePanelOpen.value = true;
 }
 
-defineProps<Props>();
-const columnDefs: ColDef[] = [
-  {
-    field: 'status',
-    suppressMovable: true,
-    suppressSizeToFit: true,
-    width: 75,
-    sortable: true,
-    headerName: 'Status',
-    cellRenderer: Hook0TableCellIcon,
-    cellRendererParams: {
-      title(row: RequestAttemptTypeFixed) {
-        switch (row.status.type) {
-          // @todo(i18n) change when/if we want to support i18n
-          case RequestAttemptStatusType.Waiting:
-            return 'Request scheduled for later';
-          case RequestAttemptStatusType.Pending:
-            return 'Request waiting to be picked';
-          case RequestAttemptStatusType.InProgress:
-            return 'Request is currently being sent';
-          case RequestAttemptStatusType.Failed:
-            return 'Request had an error';
-          case RequestAttemptStatusType.Successful:
-            return 'Request successfully sent';
-          default:
-            return 'Unknown status';
-        }
-      },
-      icon(row: RequestAttemptTypeFixed) {
-        switch (row.status.type) {
-          // @todo(i18n) change when/if we want to support i18n
-          case RequestAttemptStatusType.Waiting:
-            return 'fa-calendar';
-          case RequestAttemptStatusType.Pending:
-            return 'fa-pause';
-          case RequestAttemptStatusType.InProgress:
-            return 'fa-spinner';
-          case RequestAttemptStatusType.Failed:
-            return 'fa-xmark';
-          case RequestAttemptStatusType.Successful:
-            return 'fa-check';
-          default:
-            return 'fa-question';
-        }
-      },
-    },
-    // This seems useless but triggers a warning if not set
-    valueFormatter: () => 'unreachable',
-  },
-  {
-    field: 'event_id',
-    headerName: 'Event ID',
-    suppressMovable: true,
-    resizable: true,
-    cellRenderer: Hook0TableCellLink,
-    cellRendererParams: {
-      value(row: RequestAttempt) {
-        return row.event_id;
-      },
-
-      to(row: RequestAttempt) {
-        return {
-          name: routes.EventsDetail,
-          params: {
-            application_id: route.params.application_id,
-            organization_id: route.params.organization_id,
-            event_id: row.event_id,
-          },
-        };
-      },
-    },
-  },
-  {
-    field: 'subscription id',
-    suppressMovable: true,
-    suppressSizeToFit: false,
-    width: 150,
-    sortable: true,
-    resizable: true,
-    headerName: 'Subscription',
-    cellRenderer: Hook0TableCellLink,
-    cellRendererParams: {
-      value(row: RequestAttemptTypeFixed) {
-        return row.subscription.description;
-      },
-      to(row: RequestAttemptTypeFixed) {
-        return {
-          name: routes.SubscriptionsDetail,
-          params: {
-            application_id: route.params.application_id,
-            organization_id: route.params.organization_id,
-            subscription_id: row.subscription.subscription_id,
-          },
-        };
-      },
-    },
-  },
-  {
-    field: 'created_at',
-    suppressMovable: true,
-    suppressSizeToFit: true,
-    width: 175,
-    sortable: true,
-    resizable: true,
-    headerName: 'Created At',
-    cellRenderer: Hook0TableCellDate,
-  },
-  {
-    field: 'picked_at',
-    suppressMovable: true,
-    suppressSizeToFit: true,
-    width: 175,
-    sortable: true,
-    resizable: true,
-    headerName: 'Picked At',
-    cellRenderer: Hook0TableCellDate,
-    cellRendererParams: {
-      defaultText: 'pending…',
-    },
-  },
-];
-
-const request_attempts$ = ref<Promise<Array<RequestAttemptTypeFixed>>>();
-const application_id = ref<null | UUID>(null);
-
-function _forceLoad() {
-  application_id.value = route.params.application_id as UUID;
-  request_attempts$.value = LogService.list(application_id.value);
+function closeSidePanel() {
+  sidePanelOpen.value = false;
 }
-
-function _load() {
-  if (application_id.value !== route.params.application_id) {
-    _forceLoad();
-  }
-}
-
-onMounted(() => {
-  _load();
-});
-
-onUpdated(() => {
-  _load();
-});
 </script>
 
 <template>
-  <Promised :promise="request_attempts$">
-    <!-- Use the "pending" slot to display a loading message -->
-    <template #pending>
-      <Hook0Loader></Hook0Loader>
-    </template>
-    <!-- The default scoped slot will be used as the result -->
-    <template #default="request_attempts">
+  <Hook0PageLayout :title="t('logs.title')">
+    <!-- Error state (check FIRST - errors take priority) -->
+    <Hook0ErrorCard v-if="error && !isLoading" :error="error" @retry="refetch()" />
+
+    <!-- Loading skeleton (also shown when query is disabled and data is undefined) -->
+    <Hook0Card v-else-if="isLoading || !requestAttempts" data-test="logs-card">
+      <Hook0CardHeader>
+        <template #header>{{ t('logs.title') }}</template>
+      </Hook0CardHeader>
+      <Hook0CardContent>
+        <Hook0SkeletonGroup :count="4" />
+      </Hook0CardContent>
+    </Hook0Card>
+
+    <!-- Data loaded (requestAttempts is guaranteed to be defined here) -->
+    <template v-else>
       <Hook0Card data-test="logs-card">
         <Hook0CardHeader>
-          <template #header>Request Attempts</template>
+          <template #header>{{ t('logs.title') }}</template>
           <template #subtitle>
-            Last webhooks sent by Hook0.
-            <em>Items older than 7 days are not shown.</em>
+            {{ t('logs.subtitle') }}
+            <Hook0HelpText tone="emphasis">{{
+              t('logs.subtitleRetention', { days: retentionDays })
+            }}</Hook0HelpText>
+          </template>
+          <template #actions>
+            <Hook0DocButtons :doc-url="DOCS_LOGS_URL" :api-url="API_DOCS_LOGS_URL" />
           </template>
         </Hook0CardHeader>
 
-        <Hook0CardContent v-if="request_attempts.length > 0">
+        <Hook0CardContent v-if="requestAttempts.length > 0">
           <Hook0Table
             data-test="logs-table"
-            :context="{ request_attempts$, columnDefs }"
-            :column-defs="columnDefs"
-            :row-data="request_attempts"
+            :columns="columns"
+            :data="requestAttempts"
             row-id-field="event_id"
-          >
-          </Hook0Table>
+            clickable-rows
+            @row-click="handleRowClick"
+          />
         </Hook0CardContent>
 
         <Hook0CardContent v-else>
-          <Hook0CardContentLines>
-            <Hook0CardContentLine type="full-width">
-              <template #content>
-                <Hook0Text class="center block" style="text-align: center"
-                  >Hook0 did not send any requests. Did you setup a
-                  <Hook0Button :to="{ name: routes.SubscriptionsList }">subscriptions</Hook0Button>
-                  and
-                  <a href="https://documentation.hook0.com/docs/getting-started" target="_blank"
-                    >sent your first event</a
-                  >?
-                </Hook0Text>
-              </template>
-            </Hook0CardContentLine>
-          </Hook0CardContentLines>
+          <Hook0EmptyState
+            :title="t('logs.empty.title')"
+            :description="t('logs.empty.description')"
+            :icon="Send"
+          >
+            <template #action>
+              <Hook0Button
+                variant="primary"
+                :to="{
+                  name: routes.SubscriptionsNew,
+                  params: {
+                    organization_id: route.params.organization_id,
+                    application_id: route.params.application_id,
+                  },
+                }"
+              >
+                {{ t('subscriptions.create') }}
+              </Hook0Button>
+            </template>
+          </Hook0EmptyState>
         </Hook0CardContent>
-
-        <Hook0CardFooter></Hook0CardFooter>
       </Hook0Card>
     </template>
-    <!-- The "rejected" scoped slot will be used if there is an error -->
-    <template #rejected="error">
-      <Hook0Error :error="error"></Hook0Error>
-    </template>
-  </Promised>
+
+    <!-- Event side panel -->
+    <EventSidePanel
+      :open="sidePanelOpen"
+      :event-id="selectedEventId"
+      :application-id="applicationId"
+      @close="closeSidePanel"
+    />
+  </Hook0PageLayout>
 </template>
+
+<style scoped>
+/* Column cell styles rendered via h() in useLogColumns.ts — :deep() required
+   because VNodes are created outside this SFC's scope. */
+
+:deep(.log-status) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.1875rem 0.625rem;
+  border-radius: var(--radius-full);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: default;
+}
+
+:deep(.log-status__dot) {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+  flex-shrink: 0;
+}
+
+:deep(.log-status--success) {
+  background-color: var(--color-success-light);
+  color: var(--color-success);
+}
+
+:deep(.log-status--error) {
+  background-color: var(--color-error-light);
+  color: var(--color-error);
+}
+
+:deep(.log-status--warning) {
+  background-color: var(--color-warning-light);
+  color: var(--color-warning);
+}
+
+:deep(.log-status--info) {
+  background-color: var(--color-info-light);
+  color: var(--color-info);
+}
+
+:deep(.log-status--muted) {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-muted);
+}
+
+:deep(.log-event-cell) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+:deep(.log-event-link) {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+
+:deep(.log-event-link:hover) {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+:deep(.log-event-type) {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+:deep(.log-duration) {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  cursor: default;
+}
+</style>

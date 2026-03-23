@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import Hook0Text from './Hook0Text.vue';
 import { formatISO9075, parseISO } from 'date-fns';
 import { computed } from 'vue';
 
@@ -7,15 +6,22 @@ defineOptions({
   inheritAttrs: false,
 });
 
-interface Props {
+type Props = {
   value: string;
-}
+};
 const props = defineProps<Props>();
 const valueHumanized = computed(() => formatISO9075(parseISO(props.value)));
 </script>
 
 <template>
-  <Hook0Text :title="value">{{ valueHumanized }}</Hook0Text>
+  <span class="date-time__value" :title="value">{{ valueHumanized }}</span>
 </template>
 
-<style lang="scss" scoped></style>
+<style scoped>
+.date-time__value {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+</style>

@@ -1,0 +1,102 @@
+/* ==========================================================================
+   Shared dropdown styles for Hook0TopNav components (ContextBar + UserMenu).
+   Imported as a non-scoped stylesheet so both components share identical rules.
+   ========================================================================== */
+
+.hook0-topnav__dropdown-anchor {
+  position: relative;
+}
+
+.hook0-topnav__dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  min-width: 16rem;
+  max-width: 20rem;
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 0.375rem;
+  z-index: var(--z-dropdown, 50);
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.hook0-topnav__dropdown-item {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  gap: 0.625rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+  width: 100%;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.hook0-topnav__dropdown-item :deep(svg) {
+  flex-shrink: 0;
+}
+
+/* Override Hook0Button centering when used as dropdown item */
+.hook0-topnav__dropdown-item.hook0-button {
+  justify-content: flex-start;
+}
+
+.hook0-topnav__dropdown-item:hover {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
+
+.hook0-topnav__dropdown-item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.hook0-topnav__dropdown-item:has(+ .hook0-topnav__dropdown-separator) {
+  border-bottom: none;
+}
+
+.hook0-topnav__dropdown-separator {
+  height: 1px;
+  background-color: var(--color-border);
+  margin: 0.125rem 0;
+}
+
+/* Dropdown animation */
+.hook0-dropdown-enter-active,
+.hook0-dropdown-leave-active {
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+
+.hook0-dropdown-enter-from,
+.hook0-dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-0.25rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hook0-dropdown-enter-active,
+  .hook0-dropdown-leave-active {
+    transition: none;
+  }
+
+  .hook0-topnav__dropdown-item {
+    transition: none;
+  }
+}

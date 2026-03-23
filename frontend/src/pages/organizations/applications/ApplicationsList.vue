@@ -1,170 +1,187 @@
 <script setup lang="ts">
-import { ColDef } from 'ag-grid-community';
-import { onMounted, onUpdated, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { h, markRaw } from 'vue';
+import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
+import type { ColumnDef } from '@tanstack/vue-table';
+import { Box, Trash2 } from 'lucide-vue-next';
 
-import { Application } from './ApplicationService';
-import * as ApplicationService from './ApplicationService';
-import Hook0Button from '@/components/Hook0Button.vue';
+import { useApplicationList, useRemoveApplication } from './useApplicationQueries';
+import type { Application } from './ApplicationService';
 import { routes } from '@/routes';
-import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
+import { usePermissions } from '@/composables/usePermissions';
+import { useEntityDelete } from '@/composables/useEntityDelete';
+import { useRouteIds } from '@/composables/useRouteIds';
+
+import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
+import Hook0Card from '@/components/Hook0Card.vue';
+import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
-import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
-import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0Table from '@/components/Hook0Table.vue';
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
-import Hook0TableCellCode from '@/components/Hook0TableCellCode.vue';
-import Hook0Text from '@/components/Hook0Text.vue';
-import { UUID } from '@/http';
-import Hook0Loader from '@/components/Hook0Loader.vue';
-import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
-import Hook0Error from '@/components/Hook0Error.vue';
+import Hook0Uuid from '@/components/Hook0Uuid.vue';
+import Hook0Button from '@/components/Hook0Button.vue';
+import Hook0EmptyState from '@/components/Hook0EmptyState.vue';
+import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
+import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
+import Hook0Dialog from '@/components/Hook0Dialog.vue';
 
-const route = useRoute();
+const { t } = useI18n();
+const router = useRouter();
 
-interface Props {
-  // cache-burst
-  burst?: string | string[];
-}
+// Permissions
+const { canCreate, canDelete } = usePermissions();
 
-defineProps<Props>();
-const columnDefs: ColDef[] = [
+const { organizationId } = useRouteIds();
+const { data: applications, isLoading, error, refetch } = useApplicationList(organizationId);
+
+const removeMutation = useRemoveApplication();
+
+const {
+  showDeleteDialog,
+  entityToDelete: applicationToDelete,
+  requestDelete,
+  confirmDelete,
+} = useEntityDelete<Application>({
+  deleteFn: (app) => removeMutation.mutateAsync(app.application_id),
+  successTitle: t('applications.deleted'),
+  successMessage: (app) => t('applications.deletedMessage', { name: app.name }),
+  onSuccess: () => void refetch(),
+});
+
+const columns: ColumnDef<Application, unknown>[] = [
   {
-    field: 'name',
-    suppressMovable: true,
-    headerName: 'Name',
-    cellRenderer: Hook0TableCellLink,
-    cellRendererParams: {
-      to: (row: Application) => {
-        return {
+    accessorKey: 'name',
+    header: t('common.name'),
+    cell: (info) =>
+      h(Hook0TableCellLink, {
+        value: String(info.getValue()),
+        to: {
           name: routes.ApplicationsDashboard,
           params: {
-            application_id: row.application_id,
-            organization_id: row.organization_id,
+            application_id: info.row.original.application_id,
+            organization_id: info.row.original.organization_id,
           },
-        };
-      },
-    },
+        },
+      }),
   },
   {
-    field: 'application_id',
-    suppressMovable: true,
-    cellRenderer: Hook0TableCellCode,
-    headerName: 'Id',
+    accessorKey: 'application_id',
+    header: t('applications.id'),
+    cell: (info) => h(Hook0Uuid, { value: String(info.getValue()) }),
   },
-  {
-    width: 105,
-    suppressMovable: true,
-    headerName: 'Options',
-    cellRenderer: Hook0TableCellLink,
-    cellRendererParams: {
-      value: 'Delete',
-      icon: 'trash',
-      onClick(row: Application) {
-        if (confirm(`Are you sure to delete "${row.name}" application?`)) {
-          ApplicationService.remove(row.application_id)
-            .then(() => {
-              // @TODO notify user of success
-              _forceLoad();
-            })
-            // @TODO proper error management
-            .catch((err: Error) => {
-              alert(err);
-              throw err;
-            });
-        }
-      },
-    },
-  },
+  ...(canDelete('application')
+    ? [
+        {
+          id: 'options',
+          header: t('common.actions'),
+          cell: (info: { row: { original: Application } }) =>
+            h(Hook0TableCellLink, {
+              value: t('common.delete'),
+              icon: markRaw(Trash2),
+              variant: 'danger',
+              onClick: () => requestDelete(info.row.original),
+            }),
+        },
+      ]
+    : []),
 ];
-
-const applications$ = ref<Promise<Array<Application>>>();
-const organization_id = ref<null | UUID>(null);
-
-function _forceLoad() {
-  organization_id.value = route.params.organization_id as UUID;
-  applications$.value = ApplicationService.list(route.params.organization_id as string);
-}
-
-function _load() {
-  if (organization_id.value !== route.params.organization_id) {
-    _forceLoad();
-  }
-}
-
-onMounted(() => {
-  _load();
-});
-
-onUpdated(() => {
-  _load();
-});
 </script>
 
 <template>
-  <Promised :promise="applications$">
-    <!-- Use the "pending" slot to display a loading message -->
-    <template #pending>
-      <Hook0Loader></Hook0Loader>
-    </template>
-    <!-- The default scoped slot will be used as the result -->
-    <template #default="applications">
+  <Hook0PageLayout
+    :title="t('applications.title')"
+    :description="t('applications.empty.description')"
+  >
+    <!-- Error state (check FIRST - errors take priority) -->
+    <Hook0ErrorCard v-if="error && !isLoading" :error="error" @retry="refetch()" />
+
+    <!-- Loading skeleton (also shown when query is disabled and data is undefined) -->
+    <Hook0Card v-else-if="isLoading || !applications" data-test="applications-card">
+      <Hook0CardHeader>
+        <template #header>{{ t('applications.title') }}</template>
+      </Hook0CardHeader>
+      <Hook0CardContent>
+        <Hook0SkeletonGroup :count="4" />
+      </Hook0CardContent>
+    </Hook0Card>
+
+    <!-- Data loaded (applications is guaranteed to be defined here) -->
+    <template v-else>
       <Hook0Card data-test="applications-card">
         <Hook0CardHeader>
-          <template #header> Applications </template>
+          <template #header>{{ t('applications.title') }}</template>
           <template #subtitle>
-            Each application send events to Hook0 API and Hook0 dispatch these extends to customers
-            through webhooks.
+            {{ t('applications.subtitle') }}
           </template>
         </Hook0CardHeader>
 
         <Hook0CardContent v-if="applications.length > 0">
-          <transition name="ease">
-            <Hook0Table
-              data-test="applications-table"
-              :context="{ applications$, columnDefs }"
-              :column-defs="columnDefs"
-              :row-data="applications"
-              row-id-field="application_id"
-            >
-            </Hook0Table>
-          </transition>
+          <Hook0Table
+            data-test="applications-table"
+            :columns="columns"
+            :data="applications"
+            row-id-field="application_id"
+          />
         </Hook0CardContent>
 
         <Hook0CardContent v-else>
-          <Hook0CardContentLines>
-            <Hook0CardContentLine type="full-width">
-              <template #content>
-                <Hook0Text
-                  >Start your journey by creating a Hook0 application. This application will have
-                  API keys that will be required to send events to Hook0 API so it can dispatch
-                  these events to your customers through webhooks.</Hook0Text
-                >
-              </template>
-            </Hook0CardContentLine>
-          </Hook0CardContentLines>
+          <Hook0EmptyState
+            :title="t('applications.empty.title')"
+            :description="t('applications.empty.description')"
+            :icon="Box"
+          >
+            <template v-if="canCreate('application')" #action>
+              <Hook0Button
+                variant="primary"
+                type="button"
+                data-test="applications-create-button"
+                @click="
+                  void router.push({
+                    name: routes.ApplicationsNew,
+                    params: { organization_id: organizationId },
+                  })
+                "
+              >
+                {{ t('applications.create') }}
+              </Hook0Button>
+            </template>
+          </Hook0EmptyState>
         </Hook0CardContent>
 
-        <Hook0CardFooter>
+        <Hook0CardFooter v-if="applications.length > 0 && canCreate('application')">
           <Hook0Button
-            class="primary"
+            variant="primary"
             type="button"
             data-test="applications-create-button"
             :to="{
               name: routes.ApplicationsNew,
-              params: {
-                organization_id: $route.params.organization_id,
-              },
+              params: { organization_id: organizationId },
             }"
-            >Create new application
+          >
+            {{ t('applications.create') }}
           </Hook0Button>
         </Hook0CardFooter>
       </Hook0Card>
     </template>
-    <!-- The "rejected" scoped slot will be used if there is an error -->
-    <template #rejected="error">
-      <Hook0Error :error="error"></Hook0Error>
-    </template>
-  </Promised>
+
+    <Hook0Dialog
+      :open="showDeleteDialog"
+      variant="danger"
+      :title="t('applications.delete')"
+      @close="
+        showDeleteDialog = false;
+        applicationToDelete = null;
+      "
+      @confirm="confirmDelete()"
+    >
+      <p v-if="applicationToDelete">
+        <i18n-t keypath="applications.deleteConfirm" tag="span">
+          <template #name>
+            <strong>{{ applicationToDelete.name }}</strong>
+          </template>
+        </i18n-t>
+      </p>
+    </Hook0Dialog>
+  </Hook0PageLayout>
 </template>

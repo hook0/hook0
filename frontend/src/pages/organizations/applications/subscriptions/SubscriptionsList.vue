@@ -1,260 +1,336 @@
 <script setup lang="ts">
-import { ColDef, ValueFormatterParams, ValueGetterParams } from 'ag-grid-community';
-import { onMounted, onUpdated, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { computed, h, markRaw, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { useRouteIds } from '@/composables/useRouteIds';
+import { useI18n } from 'vue-i18n';
+import type { ColumnDef } from '@tanstack/vue-table';
+import { Trash2, Link } from 'lucide-vue-next';
+import { DOCS_SUBSCRIPTIONS_URL, API_DOCS_SUBSCRIPTIONS_URL } from '@/constants/externalLinks';
+import Hook0TableCellEventTypes from '@/components/Hook0TableCellEventTypes.vue';
+import Hook0TableCellLabels from '@/components/Hook0TableCellLabels.vue';
+import Hook0TableCellTarget from '@/components/Hook0TableCellTarget.vue';
 
-import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
+import {
+  useSubscriptionList,
+  useToggleSubscription,
+  useRemoveSubscription,
+} from './useSubscriptionQueries';
+import type { Subscription } from './SubscriptionService';
+import { routes } from '@/routes';
+import { handleMutationError } from '@/utils/handleMutationError';
+import { toast } from 'vue-sonner';
+import { usePermissions } from '@/composables/usePermissions';
+import { useEntityDelete } from '@/composables/useEntityDelete';
+
+import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
+import Hook0Card from '@/components/Hook0Card.vue';
+import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
-import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
-import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0Table from '@/components/Hook0Table.vue';
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 import Hook0TableCellCode from '@/components/Hook0TableCellCode.vue';
-import { UUID } from '@/http';
-import Hook0Text from '@/components/Hook0Text.vue';
-import { routes } from '@/routes';
 import Hook0Button from '@/components/Hook0Button.vue';
-import * as SubscriptionService from './SubscriptionService';
-import { Subscription } from './SubscriptionService';
-import Hook0Loader from '@/components/Hook0Loader.vue';
-import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
-import Hook0Error from '@/components/Hook0Error.vue';
+import Hook0Switch from '@/components/Hook0Switch.vue';
+import Hook0EmptyState from '@/components/Hook0EmptyState.vue';
+import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
+import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
+import Hook0Dialog from '@/components/Hook0Dialog.vue';
+import Hook0DocButtons from '@/components/Hook0DocButtons.vue';
 
+const { t } = useI18n();
 const route = useRoute();
+const router = useRouter();
 
-interface Props {
-  // cache-burst
-  burst?: string | string[];
+// Permissions
+const { canCreate, canDelete } = usePermissions();
+
+const { applicationId } = useRouteIds();
+const { data: subscriptions, isLoading, error, refetch } = useSubscriptionList(applicationId);
+
+const toggleMutation = useToggleSubscription();
+const removeMutation = useRemoveSubscription();
+
+function targetIsHttp(target: object): target is { type: string; method: string; url: string } {
+  return 'type' in target && target.type === 'http';
 }
 
-defineProps<Props>();
-const columnDefs: ColDef[] = [
-  {
-    field: 'is_enabled',
-    suppressMovable: true,
-    sortable: true,
-    suppressSizeToFit: true,
-    width: 115,
-    headerName: 'Enabled',
-    cellRenderer: Hook0TableCellLink,
-    cellRendererParams: {
-      value: (subscription: Subscription) => (subscription.is_enabled ? 'Enabled' : 'Disabled'),
-      icon: (subscription: Subscription) => (subscription.is_enabled ? 'toggle-on' : 'toggle-off'),
-      onClick: (row: Subscription): void => {
-        // If disabling, ask for confirmation
-        if (row.is_enabled) {
-          const subscriptionName = row.description || 'this subscription';
-          if (
-            !confirm(
-              `Are you sure you want to disable ${subscriptionName}? All pending and scheduled webhook deliveries will be marked as failed and stay in this state even if you re-enable the subscription later.`
-            )
-          ) {
-            return;
-          }
-        }
-        SubscriptionService.toggleEnable(row.subscription_id, row)
-          .then(() => {
-            // @TODO notify user of success
-            _forceLoad();
-          })
-          // @TODO proper error management
-          .catch((err) => {
-            alert(err);
-            throw err;
-          });
+const showDisableDialog = ref(false);
+const subscriptionToDisable = ref<Subscription | null>(null);
+
+const {
+  showDeleteDialog,
+  entityToDelete: subscriptionToDelete,
+  requestDelete: handleDelete,
+  confirmDelete,
+} = useEntityDelete<Subscription>({
+  deleteFn: (row) =>
+    removeMutation.mutateAsync({
+      applicationId: applicationId.value,
+      subscriptionId: row.subscription_id,
+    }),
+  successTitle: t('common.success'),
+  successMessage: t('subscriptions.deleted'),
+});
+
+const disableDialogName = computed(() => {
+  if (!subscriptionToDisable.value) return '';
+  return subscriptionToDisable.value.description || t('subscriptions.title');
+});
+
+function handleToggle(row: Subscription) {
+  if (row.is_enabled) {
+    subscriptionToDisable.value = row;
+    showDisableDialog.value = true;
+    return;
+  }
+
+  const name = row.description || t('subscriptions.title');
+  toggleMutation.mutate(
+    { subscriptionId: row.subscription_id, subscription: row },
+    {
+      onSuccess: () => {
+        toast.success(t('common.success'), {
+          description: t('subscriptions.enabled', { name }),
+          duration: 3000,
+        });
       },
-    },
-  },
+      onError: (err) => {
+        handleMutationError(err);
+      },
+    }
+  );
+}
+
+function confirmDisable() {
+  const row = subscriptionToDisable.value;
+  showDisableDialog.value = false;
+  subscriptionToDisable.value = null;
+  if (!row) return;
+
+  const name = row.description || t('subscriptions.title');
+  toggleMutation.mutate(
+    { subscriptionId: row.subscription_id, subscription: row },
+    {
+      onSuccess: () => {
+        toast.success(t('common.success'), {
+          description: t('subscriptions.disabled', { name }),
+          duration: 3000,
+        });
+      },
+      onError: (err) => {
+        handleMutationError(err);
+      },
+    }
+  );
+}
+
+const columns: ColumnDef<Subscription, unknown>[] = [
   {
-    field: 'description',
-    suppressMovable: true,
-    sortable: true,
-    resizable: true,
-    minWidth: 100,
-    headerName: 'Description',
-    valueGetter: (params: ValueGetterParams<Subscription, string>) => {
-      return params.data?.description ?? '[no description]';
-    },
-    cellRenderer: Hook0TableCellLink,
-    cellRendererParams: {
-      to: (row: Subscription) => {
-        return {
+    accessorKey: 'description',
+    header: t('common.name'),
+    enableSorting: true,
+    cell: (info) =>
+      h(Hook0TableCellLink, {
+        value: String(info.getValue() ?? t('subscriptions.noDescription')),
+        to: {
           name: routes.SubscriptionsDetail,
           params: {
             application_id: route.params.application_id,
             organization_id: route.params.organization_id,
-            subscription_id: row.subscription_id,
+            subscription_id: info.row.original.subscription_id,
           },
-        };
-      },
-      dataTest: 'subscription-description-link',
+        },
+        'data-test': 'subscription-description-link',
+      }),
+  },
+  {
+    accessorKey: 'event_types',
+    header: t('subscriptions.eventTypesColumn'),
+    enableSorting: true,
+    cell: (info) => {
+      const val = info.getValue() as string[] | undefined;
+      if (!val || val.length === 0) return '';
+      return h(Hook0TableCellEventTypes, {
+        value: val,
+        to: {
+          name: routes.EventTypesList,
+          params: {
+            organization_id: route.params.organization_id,
+            application_id: route.params.application_id,
+          },
+        },
+      });
     },
   },
   {
-    field: 'event_types',
-    suppressMovable: true,
-    sortable: true,
-    resizable: true,
-    minWidth: 200,
-    headerName: 'Event Types',
-    valueFormatter: (params: ValueFormatterParams<Subscription, string[]>) => {
-      return params.value?.join(', ') ?? '';
+    accessorKey: 'labels',
+    header: t('subscriptions.labelsColumn'),
+    enableSorting: true,
+    cell: (info) => {
+      const labels = (info.row.original.labels ?? {}) as Record<string, string>;
+      if (Object.keys(labels).length === 0) return '';
+      return h(Hook0TableCellLabels, { value: labels });
     },
   },
   {
-    field: 'labels',
-    suppressMovable: true,
-    sortable: true,
-    resizable: true,
-    width: 100,
-    headerName: 'Labels',
-    cellRenderer: Hook0TableCellCode,
-    cellRendererParams: {
-      value(row: Subscription) {
-        return Object.entries(row.labels as Record<string, string>)
-          .map(([key, value]) => `${key}=${value}`)
-          .join(' ');
-      },
+    accessorKey: 'target',
+    header: t('subscriptions.targetColumn'),
+    enableSorting: true,
+    cell: (info) => {
+      const target = (info.row.original.target ?? {}) as object;
+      if (targetIsHttp(target)) {
+        return h(Hook0TableCellTarget, { method: target.method, url: target.url });
+      }
+      return h(Hook0TableCellCode, { value: JSON.stringify(info.row.original.target) });
     },
-    // This seems useless but triggers a warning if not set
-    valueFormatter: () => 'unreachable',
   },
   {
-    field: 'target',
-    suppressMovable: true,
-    sortable: true,
-    resizable: true,
-    headerName: 'Target',
-    minWidth: 300,
-    cellRenderer: Hook0TableCellCode,
-    cellRendererParams: {
-      value: (data: Subscription) => {
-        const target = (data.target as unknown) ?? {};
-        if (targetIsHttp(target)) {
-          return `${target.method} ${target.url}`;
-        } else {
-          return JSON.stringify(data.target);
-        }
-      },
-    },
-    // This seems useless but triggers a warning if not set
-    valueFormatter: () => 'unreachable',
+    accessorKey: 'is_enabled',
+    header: t('subscriptions.enabledColumn'),
+    enableSorting: true,
+    cell: (info) =>
+      h(Hook0Switch, {
+        modelValue: info.row.original.is_enabled,
+        'onUpdate:modelValue': () => handleToggle(info.row.original),
+      }),
   },
-  {
-    suppressMovable: true,
-    headerName: 'Options',
-    cellRenderer: Hook0TableCellLink,
-    suppressSizeToFit: true,
-    maxWidth: 105,
-    cellRendererParams: {
-      value: 'Delete',
-      icon: 'trash',
-      onClick: (row: Subscription): void => {
-        if (
-          confirm(
-            `Are you sure to delete ${
-              row.description ? `"${row.description}"` : 'this'
-            } subscription?`
-          )
-        ) {
-          SubscriptionService.remove(application_id.value as string, row.subscription_id)
-            .then(() => {
-              // @TODO notify user of success
-              _forceLoad();
-            })
-            // @TODO proper error management
-            .catch((err) => {
-              alert(err);
-              throw err;
-            });
-        }
-      },
-    },
-  },
+  ...(canDelete('subscription')
+    ? [
+        {
+          id: 'options',
+          header: t('common.actions'),
+          cell: (info: { row: { original: Subscription } }) =>
+            h(Hook0TableCellLink, {
+              value: t('common.delete'),
+              icon: markRaw(Trash2),
+              variant: 'danger',
+              onClick: () => handleDelete(info.row.original),
+            }),
+        },
+      ]
+    : []),
 ];
-
-const subscriptions$ = ref<Promise<Array<Subscription>>>();
-const application_id = ref<null | UUID>(null);
-
-function targetIsHttp(target: object): target is { type: string; method: string; url: string } {
-  return target && 'type' in target && target.type === 'http';
-}
-
-function _forceLoad() {
-  application_id.value = route.params.application_id as UUID;
-  subscriptions$.value = SubscriptionService.list(application_id.value);
-}
-
-function _load() {
-  if (application_id.value !== route.params.application_id) {
-    _forceLoad();
-  }
-}
-
-onMounted(() => {
-  _load();
-});
-
-onUpdated(() => {
-  _load();
-});
 </script>
 
 <template>
-  <Promised :promise="subscriptions$">
-    <!-- Use the "pending" slot to display a loading message -->
-    <template #pending>
-      <Hook0Loader></Hook0Loader>
-    </template>
-    <!-- The default scoped slot will be used as the result -->
-    <template #default="subscriptions">
+  <Hook0PageLayout :title="t('subscriptions.title')">
+    <!-- Error state (check FIRST - errors take priority) -->
+    <Hook0ErrorCard v-if="error && !isLoading" :error="error" @retry="refetch()" />
+
+    <!-- Loading skeleton (also shown when query is disabled and data is undefined) -->
+    <Hook0Card v-else-if="isLoading || !subscriptions" data-test="subscriptions-card">
+      <Hook0CardHeader>
+        <template #header>{{ t('subscriptions.title') }}</template>
+      </Hook0CardHeader>
+      <Hook0CardContent>
+        <Hook0SkeletonGroup :count="4" />
+      </Hook0CardContent>
+    </Hook0Card>
+
+    <!-- Data loaded (subscriptions is guaranteed to be defined here) -->
+    <template v-else>
       <Hook0Card data-test="subscriptions-card">
         <Hook0CardHeader>
-          <template #header> Subscriptions </template>
+          <template #header>{{ t('subscriptions.title') }}</template>
           <template #subtitle>
-            List all subscriptions created by customers against the application events.
+            {{ t('subscriptions.subtitle') }}
+          </template>
+          <template #actions>
+            <Hook0DocButtons
+              :doc-url="DOCS_SUBSCRIPTIONS_URL"
+              :api-url="API_DOCS_SUBSCRIPTIONS_URL"
+            />
           </template>
         </Hook0CardHeader>
 
         <Hook0CardContent v-if="subscriptions.length > 0">
           <Hook0Table
             data-test="subscriptions-table"
-            :context="{ subscriptions$, columnDefs }"
-            :column-defs="columnDefs"
-            :row-data="subscriptions"
+            :columns="columns"
+            :data="subscriptions"
             row-id-field="subscription_id"
-          >
-          </Hook0Table>
+          />
         </Hook0CardContent>
 
         <Hook0CardContent v-else>
-          <Hook0CardContentLines>
-            <Hook0CardContentLine type="full-width">
-              <template #content>
-                <Hook0Text
-                  >Your application will send events to Hook0 that will forward these events to
-                  registered subscriptions (webhooks), it's time to create your first subscription!
-                </Hook0Text>
-              </template>
-            </Hook0CardContentLine>
-          </Hook0CardContentLines>
+          <Hook0EmptyState
+            :title="t('subscriptions.empty.title')"
+            :description="t('subscriptions.empty.description')"
+            :icon="Link"
+          >
+            <template v-if="canCreate('subscription')" #action>
+              <Hook0Button
+                variant="primary"
+                type="button"
+                data-test="subscriptions-create-button"
+                @click="
+                  void router.push({
+                    name: routes.SubscriptionsNew,
+                    params: {
+                      organization_id: route.params.organization_id,
+                      application_id: route.params.application_id,
+                    },
+                  })
+                "
+              >
+                {{ t('subscriptions.create') }}
+              </Hook0Button>
+            </template>
+          </Hook0EmptyState>
         </Hook0CardContent>
 
-        <Hook0CardFooter>
+        <Hook0CardFooter v-if="subscriptions.length > 0 && canCreate('subscription')">
           <Hook0Button
-            class="primary"
+            variant="primary"
             type="button"
             data-test="subscriptions-create-button"
-            @click="$router.push({ name: routes.SubscriptionsNew })"
-            >Create new subscription (webhook)
+            @click="
+              void router.push({
+                name: routes.SubscriptionsNew,
+                params: {
+                  organization_id: route.params.organization_id,
+                  application_id: route.params.application_id,
+                },
+              })
+            "
+          >
+            {{ t('subscriptions.create') }}
           </Hook0Button>
         </Hook0CardFooter>
       </Hook0Card>
     </template>
-    <!-- The "rejected" scoped slot will be used if there is an error -->
-    <template #rejected="error">
-      <Hook0Error :error="error"></Hook0Error>
-    </template>
-  </Promised>
+
+    <Hook0Dialog
+      :open="showDisableDialog"
+      variant="danger"
+      :title="t('subscriptions.disableTitle')"
+      :confirm-text="t('subscriptions.disable')"
+      @close="
+        showDisableDialog = false;
+        subscriptionToDisable = null;
+      "
+      @confirm="confirmDisable()"
+    >
+      <i18n-t keypath="subscriptions.disableConfirm" tag="p">
+        <template #name>
+          &ldquo;<strong>{{ disableDialogName }}</strong
+          >&rdquo;
+        </template>
+      </i18n-t>
+    </Hook0Dialog>
+
+    <Hook0Dialog
+      :open="showDeleteDialog"
+      variant="danger"
+      :title="t('subscriptions.delete')"
+      @close="
+        showDeleteDialog = false;
+        subscriptionToDelete = null;
+      "
+      @confirm="confirmDelete()"
+    >
+      <p>{{ t('subscriptions.deleteConfirm') }}</p>
+    </Hook0Dialog>
+  </Hook0PageLayout>
 </template>

@@ -29,3 +29,10 @@ CLAUDE.local.md
 .agents
 .gemini
 .opencode
+.worktrees
+frontend/docs/
+reviews/
+dogfood-output/
+human-ui-tests/
+docs/plans/
+.DS_Store
