@@ -1,262 +1,355 @@
 <script setup lang="ts">
-import { ColDef, ValueFormatterParams } from 'ag-grid-community';
-import { onMounted, onUpdated, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { computed, h, markRaw, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import type { ColumnDef } from '@tanstack/vue-table';
+import { Trash2, UserPlus, Users } from 'lucide-vue-next';
 
-import { getUserInfo } from '@/iam';
-import { Invitation, Members, User } from './MemberService';
-import * as MemberService from './MemberService';
-import Hook0Button from '@/components/Hook0Button.vue';
-import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
+import { useAuthStore } from '@/stores/auth';
+import {
+  useMemberList,
+  useInviteMember,
+  useRevokeMember,
+  useEditMemberRole,
+} from './useMemberQueries';
+import type { User, Invitation } from './MemberService';
+import { handleMutationError } from '@/utils/handleMutationError';
+import { toast } from 'vue-sonner';
+import { usePermissions } from '@/composables/usePermissions';
+import { useEntityDelete } from '@/composables/useEntityDelete';
+import { useRouteIds } from '@/composables/useRouteIds';
+
+import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
+import Hook0Card from '@/components/Hook0Card.vue';
+import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
-import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
-import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0Table from '@/components/Hook0Table.vue';
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
-import Hook0Text from '@/components/Hook0Text.vue';
-import { Problem, UUID } from '@/http';
-import Hook0Loader from '@/components/Hook0Loader.vue';
-import Hook0CardContentLines from '@/components/Hook0CardContentLines.vue';
-import Hook0Error from '@/components/Hook0Error.vue';
-import Hook0Input from '@/components/Hook0Input.vue';
-import { Hook0SelectSingleOption } from '@/components/Hook0Select';
-import Hook0Select from '@/components/Hook0Select.vue';
-import { push } from 'notivue';
 import Hook0TableCellSelect from '@/components/Hook0TableCellSelect.vue';
+import Hook0Button from '@/components/Hook0Button.vue';
+import Hook0EmptyState from '@/components/Hook0EmptyState.vue';
+import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
+import Hook0TableSkeleton from '@/components/Hook0TableSkeleton.vue';
+import Hook0Input from '@/components/Hook0Input.vue';
+import Hook0Select from '@/components/Hook0Select.vue';
+import type { Hook0SelectSingleOption } from '@/components/Hook0Select';
+import Hook0Form from '@/components/Hook0Form.vue';
+import Hook0Dialog from '@/components/Hook0Dialog.vue';
+import Hook0Stack from '@/components/Hook0Stack.vue';
 
-const route = useRoute();
+const { t } = useI18n();
 
-interface Props {
-  // cache-burst
-  burst?: string | string[];
-}
+// Permissions
+const { canCreate, canEdit, canDelete } = usePermissions();
 
-defineProps<Props>();
-const columnDefs: ColDef[] = [
-  {
-    field: 'name',
-    suppressMovable: true,
-    sortable: true,
-    resizable: true,
-    headerName: 'Name',
-    valueFormatter: (params: ValueFormatterParams<User, string[]>) => {
-      const isCurrentUser = currentUser.value && params.data?.email == currentUser.value.email;
-      const you = isCurrentUser ? ' (current user)' : '';
-      return `${params.data?.first_name} ${params.data?.last_name}${you}`;
-    },
-  },
-  {
-    field: 'email',
-    suppressMovable: true,
-    sortable: true,
-    resizable: true,
-    headerName: 'Email',
-  },
-  {
-    field: 'role',
-    suppressMovable: true,
-    sortable: true,
-    resizable: true,
-    width: 60,
-    headerName: 'Role',
-    cellRenderer: Hook0TableCellSelect,
-    cellRendererParams: {
-      options: [
-        { label: 'Viewer', value: 'viewer' },
-        { label: 'Editor', value: 'editor' },
-      ],
-      value: (row: User) => row.role,
-      disabled(row: User) {
-        return currentUser.value && row.email == currentUser.value.email;
-      },
-      onChange: (role: string, row: User) => {
-        if (
-          organization_id.value &&
-          confirm(`Are you sure to change ${row.email}'s role to ${role}?`)
-        ) {
-          if (row.role !== role) {
-            MemberService.edit_role(organization_id.value, row.user_id, role)
-              .then(() => {
-                push.success({
-                  title: 'Success',
-                  message: `Role of ${row.email} has been updated to ${role}.`,
-                  duration: 5000,
-                });
-                _forceLoad();
-              })
-              .catch(displayError);
-          } else {
-            push.warning({
-              title: 'Warning',
-              message: `Role of ${row.email} is already ${role}.`,
-              duration: 5000,
-            });
-          }
-        }
-      },
-    },
-  },
-  {
-    width: 105,
-    suppressMovable: true,
-    headerName: 'Options',
-    cellRenderer: Hook0TableCellLink,
-    cellRendererParams: {
-      value: 'Delete',
-      icon: 'trash',
-      disabled(row: User) {
-        return currentUser.value && row.email == currentUser.value.email;
-      },
-      onClick(row: User) {
-        if (
-          organization_id.value &&
-          confirm(`Are you sure to revoke access of ${row.email} from this organization?`)
-        ) {
-          MemberService.revoke(organization_id.value, row.user_id)
-            .then(() => {
-              // @TODO notify user of success
-              _forceLoad();
-            })
-            .catch(displayError);
-        }
-      },
-    },
-  },
-];
+const { organizationId } = useRouteIds();
+const { data: members, isLoading, error, refetch } = useMemberList(organizationId);
 
-const currentUser = getUserInfo();
-const members$ = ref<Promise<Members>>();
-const organization_id = ref<null | UUID>(null);
+const currentUser = computed(() => useAuthStore().userInfo);
 
-const invitation$ = ref<Invitation>(emptyInvitation());
+const inviteMutation = useInviteMember();
+const revokeMutation = useRevokeMember();
+const editRoleMutation = useEditMemberRole();
+
+const invitation = ref<Invitation>(emptyInvitation());
 
 function emptyInvitation(): Invitation {
   return {
     email: '',
-    role: '',
+    role: 'editor',
   };
 }
 
-const roles: Hook0SelectSingleOption[] = [
-  { label: '', value: '' },
-  { label: 'Editor', value: 'editor' },
-  { label: 'Viewer', value: 'viewer' },
+const roleOptions: Hook0SelectSingleOption[] = [
+  { label: t('members.roleEditor'), value: 'editor' },
+  { label: t('members.roleViewer'), value: 'viewer' },
 ];
 
+const cellRoleOptions = [
+  { label: t('members.roleViewer'), value: 'viewer' },
+  { label: t('members.roleEditor'), value: 'editor' },
+];
+
+function isCurrentUserRow(row: User): boolean {
+  return currentUser.value !== null && row.email === currentUser.value.email;
+}
+
+const showRoleChangeDialog = ref(false);
+const roleChangeTarget = ref<{ user: User; role: string } | null>(null);
+
+const {
+  showDeleteDialog: showRevokeDialog,
+  entityToDelete: revokeTarget,
+  requestDelete: handleRevoke,
+  confirmDelete: confirmRevoke,
+} = useEntityDelete<User>({
+  deleteFn: (row) =>
+    revokeMutation.mutateAsync({ organizationId: organizationId.value, userId: row.user_id }),
+  successTitle: t('common.success'),
+  successMessage: t('members.revoked'),
+});
+
+function handleRoleChange(role: string, row: User) {
+  if (row.role === role) {
+    toast.warning(t('common.warning'), {
+      description: t('members.roleAlreadySet', { email: row.email, role }),
+      duration: 5000,
+    });
+    return;
+  }
+
+  roleChangeTarget.value = { user: row, role };
+  showRoleChangeDialog.value = true;
+}
+
+function confirmRoleChange() {
+  const target = roleChangeTarget.value;
+  showRoleChangeDialog.value = false;
+  roleChangeTarget.value = null;
+  if (!target) return;
+
+  editRoleMutation.mutate(
+    { organizationId: organizationId.value, userId: target.user.user_id, role: target.role },
+    {
+      onSuccess: () => {
+        toast.success(t('common.success'), {
+          description: t('members.roleChanged', { email: target.user.email, role: target.role }),
+          duration: 5000,
+        });
+      },
+      onError: (err) => {
+        handleMutationError(err);
+      },
+    }
+  );
+}
+
 function invite() {
-  if (organization_id.value && invitation$.value.email !== '' && invitation$.value.role != '') {
-    MemberService.invite(organization_id.value, invitation$.value)
-      .then(() => {
-        // @TODO notify user of success
-        invitation$.value = emptyInvitation();
-        _forceLoad();
-      })
-      .catch(displayError);
-  }
+  if (invitation.value.email === '' || invitation.value.role === '') return;
+
+  inviteMutation.mutate(
+    { organizationId: organizationId.value, invitation: invitation.value },
+    {
+      onSuccess: () => {
+        invitation.value = emptyInvitation();
+        toast.success(t('common.success'), {
+          description: t('members.invited'),
+          duration: 3000,
+        });
+      },
+      onError: (err) => {
+        handleMutationError(err);
+      },
+    }
+  );
 }
 
-function _forceLoad() {
-  organization_id.value = route.params.organization_id as UUID;
-  members$.value = MemberService.get(route.params.organization_id as string);
-}
-
-function _load() {
-  if (organization_id.value !== route.params.organization_id) {
-    _forceLoad();
-  }
-}
-
-function displayError(err: Problem) {
-  console.error(err);
-  let options = {
-    title: err.title,
-    message: err.detail,
-    duration: 5000,
-  };
-  err.status >= 500 ? push.error(options) : push.warning(options);
-}
-
-onMounted(() => {
-  _load();
-});
-
-onUpdated(() => {
-  _load();
-});
+const columns: ColumnDef<User, unknown>[] = [
+  {
+    accessorKey: 'name',
+    header: t('members.name'),
+    enableSorting: true,
+    cell: (info) => {
+      const row = info.row.original;
+      const you = isCurrentUserRow(row) ? ` ${t('members.currentUser')}` : '';
+      return `${row.first_name} ${row.last_name}${you}`;
+    },
+  },
+  {
+    accessorKey: 'email',
+    header: t('members.email'),
+    enableSorting: true,
+  },
+  {
+    accessorKey: 'role',
+    header: t('members.role'),
+    enableSorting: true,
+    cell: (info) => {
+      const row = info.row.original;
+      return h(Hook0TableCellSelect, {
+        options: cellRoleOptions,
+        modelValue: row.role,
+        disabled: isCurrentUserRow(row) || !canEdit('member'),
+        onChange: (role: string) => handleRoleChange(role, row),
+      });
+    },
+  },
+  ...(canDelete('member')
+    ? [
+        {
+          id: 'options',
+          header: t('common.actions'),
+          cell: (info: { row: { original: User } }) => {
+            const row = info.row.original;
+            return h(Hook0TableCellLink, {
+              value: t('common.delete'),
+              icon: markRaw(Trash2),
+              variant: 'danger',
+              disabled: isCurrentUserRow(row),
+              onClick: () => handleRevoke(row),
+            });
+          },
+        },
+      ]
+    : []),
+];
 </script>
 
 <template>
-  <Promised :promise="members$">
-    <!-- Use the "pending" slot to display a loading message -->
-    <template #pending>
-      <Hook0Loader></Hook0Loader>
-    </template>
-    <!-- The default scoped slot will be used as the result -->
-    <template #default="members">
-      <Hook0Card data-test="members-card">
-        <Hook0CardHeader>
-          <template #header>Members</template>
-          <template #subtitle>Your organization can be used by multiple users.</template>
-        </Hook0CardHeader>
+  <Hook0PageLayout :title="t('members.title')">
+    <!-- Error state (check FIRST - errors take priority) -->
+    <Hook0ErrorCard v-if="error && !isLoading" :error="error" @retry="refetch()" />
 
-        <Hook0CardContent v-if="members.members.length > 0">
-          <transition name="ease">
+    <!-- Loading skeleton (also shown when query is disabled and data is undefined) -->
+    <Hook0Card v-else-if="isLoading || !members" data-test="members-card">
+      <Hook0CardHeader>
+        <template #header>{{ t('members.title') }}</template>
+      </Hook0CardHeader>
+      <Hook0CardContent>
+        <Hook0TableSkeleton :columns="4" :rows="3" />
+      </Hook0CardContent>
+    </Hook0Card>
+
+    <!-- Data loaded (members is guaranteed to be defined here) -->
+    <template v-else>
+      <Hook0Stack direction="column" gap="lg">
+        <!-- Invite card (primary action — shown first) -->
+        <Hook0Card v-if="canCreate('member')">
+          <Hook0CardHeader>
+            <template #header>
+              <Hook0Stack direction="row" align="center" gap="sm">
+                <UserPlus :size="18" aria-hidden="true" />
+                {{ t('members.inviteTitle') }}
+              </Hook0Stack>
+            </template>
+            <template #subtitle>{{ t('members.inviteSubtitle') }}</template>
+          </Hook0CardHeader>
+          <Hook0Form data-test="members-invite-form" @submit="invite">
+            <Hook0CardFooter class="members-invite-footer">
+              <div class="members-invite-footer__fields">
+                <Hook0Input
+                  v-model="invitation.email"
+                  type="email"
+                  class="members-invite-footer__email"
+                  :placeholder="t('members.emailPlaceholder')"
+                  required
+                  data-test="members-invite-email-input"
+                />
+                <Hook0Select
+                  v-model="invitation.role"
+                  :options="roleOptions"
+                  data-test="members-invite-role-select"
+                />
+              </div>
+              <Hook0Button
+                variant="primary"
+                submit
+                class="members-invite-footer__button"
+                :disabled="invitation.email === '' || invitation.role === ''"
+                data-test="members-invite-button"
+              >
+                {{ t('members.invite') }}
+              </Hook0Button>
+            </Hook0CardFooter>
+          </Hook0Form>
+        </Hook0Card>
+
+        <!-- Members list -->
+        <Hook0Card data-test="members-card">
+          <Hook0CardHeader>
+            <template #header>{{ t('members.title') }}</template>
+            <template #subtitle>{{ t('members.subtitle') }}</template>
+          </Hook0CardHeader>
+
+          <Hook0CardContent v-if="members.members.length > 0">
             <Hook0Table
               data-test="members-table"
-              :context="{ members$, columnDefs }"
-              :column-defs="columnDefs"
-              :row-data="members.members"
+              :columns="columns"
+              :data="members.members"
               row-id-field="user_id"
-            >
-            </Hook0Table>
-          </transition>
-        </Hook0CardContent>
-
-        <Hook0CardContent v-else>
-          <Hook0CardContentLines>
-            <Hook0CardContentLine type="full-width">
-              <template #content>
-                <Hook0Text
-                  >Start your journey by creating a Hook0 application. This application will have
-                  API keys that will be required to send events to Hook0 API so it can dispatch
-                  these events to your customers through webhooks.</Hook0Text
-                >
-              </template>
-            </Hook0CardContentLine>
-          </Hook0CardContentLines>
-        </Hook0CardContent>
-
-        <form data-test="members-invite-form" @submit.prevent="invite">
-          <Hook0CardFooter>
-            <Hook0Input
-              v-model="invitation$.email"
-              type="email"
-              placeholder="Email address"
-              required
-              class="flex-grow-1"
-              data-test="members-invite-email-input"
             />
-            <Hook0Select
-              v-model="invitation$.role"
-              class="flex-none width-small"
-              :options="roles"
-              data-test="members-invite-role-select"
+          </Hook0CardContent>
+
+          <Hook0CardContent v-else>
+            <Hook0EmptyState
+              :title="t('members.empty.title')"
+              :description="t('members.empty.description')"
+              :icon="Users"
             />
-            <Hook0Button
-              class="primary"
-              submit
-              :disabled="invitation$.email === '' || invitation$.role === ''"
-              data-test="members-invite-button"
-              >Invite a user
-            </Hook0Button>
-          </Hook0CardFooter>
-        </form>
-      </Hook0Card>
+          </Hook0CardContent>
+        </Hook0Card>
+      </Hook0Stack>
     </template>
-    <!-- The "rejected" scoped slot will be used if there is an error -->
-    <template #rejected="error">
-      <Hook0Error :error="error"></Hook0Error>
-    </template>
-  </Promised>
+
+    <Hook0Dialog
+      :open="showRoleChangeDialog"
+      variant="default"
+      :title="t('members.roleChangeTitle')"
+      @close="
+        showRoleChangeDialog = false;
+        roleChangeTarget = null;
+      "
+      @confirm="confirmRoleChange()"
+    >
+      <p v-if="roleChangeTarget">
+        <i18n-t keypath="members.roleChangeConfirm" tag="span">
+          <template #email>
+            <strong>{{ roleChangeTarget.user.email }}</strong>
+          </template>
+          <template #role>
+            <strong>{{ roleChangeTarget.role }}</strong>
+          </template>
+        </i18n-t>
+      </p>
+    </Hook0Dialog>
+
+    <Hook0Dialog
+      :open="showRevokeDialog"
+      variant="danger"
+      :title="t('members.revokeTitle')"
+      @close="
+        showRevokeDialog = false;
+        revokeTarget = null;
+      "
+      @confirm="confirmRevoke()"
+    >
+      <p v-if="revokeTarget">
+        <i18n-t keypath="members.revokeConfirm" tag="span">
+          <template #email>
+            <strong>{{ revokeTarget.email }}</strong>
+          </template>
+        </i18n-t>
+      </p>
+    </Hook0Dialog>
+  </Hook0PageLayout>
 </template>
+
+<style scoped>
+.members-invite-footer {
+  flex-wrap: wrap;
+}
+
+.members-invite-footer__fields {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+  min-width: 0;
+}
+
+.members-invite-footer__email {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 20rem;
+}
+
+@media (max-width: 767px) {
+  .members-invite-footer__fields {
+    flex: 1 1 100%;
+  }
+
+  .members-invite-footer__button {
+    flex: 1 1 100%;
+  }
+}
+</style>

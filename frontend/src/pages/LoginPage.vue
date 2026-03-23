@@ -1,588 +1,193 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { login } from '@/iam';
-import { handleError, Problem } from '@/http.ts';
-import { AxiosError, AxiosResponse } from 'axios';
-import { useRouter } from 'vue-router';
-import { routes } from '@/routes.ts';
-import { push } from 'notivue';
+import { useAuthStore } from '@/stores/auth';
+import { useRoute, useRouter } from 'vue-router';
+import { routes } from '@/routes';
+import { useAuthErrorHandler } from '@/composables/useAuthErrorHandler';
+import { useForm } from 'vee-validate';
 import * as OrganizationService from './organizations/OrganizationService';
 import * as ApplicationService from './organizations/applications/ApplicationService';
-import { useCardGlow } from '@/composables/useCardGlow';
+import { createLoginSchema } from './login.schema';
+import { toTypedSchema } from '@/utils/zod-adapter';
 import { useTracking } from '@/composables/useTracking';
+import { useI18n } from 'vue-i18n';
+import { ArrowRight } from 'lucide-vue-next';
 
+import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
+import Hook0Card from '@/components/Hook0Card.vue';
+import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
+import Hook0CardContent from '@/components/Hook0CardContent.vue';
+import Hook0CardDivider from '@/components/Hook0CardDivider.vue';
+import Hook0Input from '@/components/Hook0Input.vue';
+import Hook0Button from '@/components/Hook0Button.vue';
+import Hook0Logo from '@/components/Hook0Logo.vue';
+import Hook0Form from '@/components/Hook0Form.vue';
+import Hook0Stack from '@/components/Hook0Stack.vue';
+import Hook0AuthTrustBadges from '@/components/Hook0AuthTrustBadges.vue';
+
+const { t } = useI18n();
+
+const route = useRoute();
 const router = useRouter();
+const authStore = useAuthStore();
 
 // Analytics tracking
 const { trackEvent } = useTracking();
+const { handleAuthError } = useAuthErrorHandler();
 
-// Form state
-const email = ref<string>('');
-const password = ref<string>('');
-const showPassword = ref<boolean>(false);
+// VeeValidate form with Zod schema
+const { errors, defineField, handleSubmit } = useForm({
+  validationSchema: toTypedSchema(createLoginSchema()),
+});
+
+const [email, emailAttrs] = defineField('email');
+const [password, passwordAttrs] = defineField('password');
+
 const isLoading = ref<boolean>(false);
 
-// Mouse tracking for card glow effect
-const { cardRef, mouseX, mouseY, handleMouseMove } = useCardGlow();
+/** Validate that a redirect path is a safe relative URL (no protocol-relative). */
+function isValidRedirectPath(path: string): boolean {
+  return path.startsWith('/') && !path.startsWith('//');
+}
 
-function submit() {
+/** Navigate to the appropriate page after successful login based on org/app count. */
+function handlePostLoginNavigation(
+  organizations: Array<{ organization_id: string }>
+): Promise<unknown> {
+  if (organizations.length === 0) {
+    return router.push({ name: routes.Tutorial });
+  }
+  if (organizations.length === 1) {
+    return ApplicationService.list(organizations[0].organization_id).then((applications) => {
+      const destination = applications.length === 0 ? routes.Tutorial : routes.Home;
+      return router.push({ name: destination });
+    });
+  }
+  return router.push({ name: routes.Home });
+}
+
+const onSubmit = handleSubmit((values) => {
   if (isLoading.value) return;
   isLoading.value = true;
 
-  login(email.value, password.value)
+  authStore
+    .login(values.email, values.password)
     .then(() => {
       trackEvent('auth', 'login', 'success');
-      push.success({
-        title: 'Success',
-        message: 'You have successfully logged in.',
-        duration: 5000,
-      });
 
-      return OrganizationService.list();
-    })
-    .then((organizations) => {
-      // No organizations → show tutorial
-      if (organizations.length === 0) {
-        return router.push({ name: routes.Tutorial });
+      const redirectTo = route.query.redirect_to as string | undefined;
+      if (
+        redirectTo &&
+        isValidRedirectPath(redirectTo) &&
+        redirectTo !== router.resolve({ name: routes.Login }).path &&
+        redirectTo !== router.resolve({ name: routes.Register }).path
+      ) {
+        void router.push(redirectTo);
+        return;
       }
 
-      // Single organization → check if it has applications
-      if (organizations.length === 1) {
-        return ApplicationService.list(organizations[0].organization_id).then((applications) => {
-          const destination = applications.length === 0 ? routes.Tutorial : routes.Home;
-          return router.push({ name: destination });
-        });
-      }
-
-      // Multiple organizations → go to home
-      return router.push({ name: routes.Home });
+      return OrganizationService.list().then(handlePostLoginNavigation);
     })
     .catch((err) => {
-      const problem = handleError(err as AxiosError<AxiosResponse<Problem>>);
+      handleAuthError(err);
       trackEvent('auth', 'login', 'error');
-      displayError(problem);
     })
     .finally(() => {
       isLoading.value = false;
     });
-}
-
-function displayError(err: Problem) {
-  console.error(err);
-  const options = {
-    title: err.title,
-    message: err.detail,
-    duration: 5000,
-  };
-  err.status >= 500 ? push.error(options) : push.warning(options);
-}
-
-function togglePasswordVisibility() {
-  showPassword.value = !showPassword.value;
-}
+});
 </script>
 
 <template>
-  <div class="login-page">
-    <!-- Background Effects -->
-    <div class="login-page__background">
-      <div class="login-page__grid-pattern"></div>
-      <div class="login-page__blur-circle login-page__blur-circle--indigo"></div>
-      <div class="login-page__blur-circle login-page__blur-circle--green"></div>
-    </div>
+  <Hook0PageLayout variant="fullscreen">
+    <template #logo>
+      <Hook0Logo variant="image" size="lg" data-test="login-logo" />
+    </template>
 
-    <!-- Main Content -->
-    <div class="login-page__content">
-      <!-- Logo -->
-      <div class="login-page__logo">
-        <img src="/logo.svg" alt="Hook0" class="h-12 w-auto" data-test="login-logo" />
-      </div>
+    <Hook0Card>
+      <Hook0CardHeader
+        variant="centered"
+        :title="t('auth.login.title')"
+        :subtitle="t('auth.login.subtitle')"
+      />
 
-      <!-- Card -->
-      <div
-        ref="cardRef"
-        class="login-page__card"
-        :style="{ '--mouse-x': mouseX, '--mouse-y': mouseY }"
-        @mousemove="handleMouseMove"
-      >
-        <!-- Header -->
-        <div class="login-page__header">
-          <h1 class="login-page__title">Welcome back</h1>
-          <p class="login-page__subtitle">Continue building reliable integrations</p>
-        </div>
-
-        <!-- Form -->
-        <form class="login-page__form" data-test="login-form" @submit.prevent="submit">
-          <!-- Email Field -->
-          <div class="login-page__field">
-            <label for="email" class="login-page__label">Email</label>
-            <input
-              id="email"
-              v-model="email"
-              type="email"
-              required
-              placeholder="you@company.com"
-              class="login-page__input"
-              autocomplete="email"
-              data-test="login-email-input"
-              :disabled="isLoading"
-            />
-          </div>
-
-          <!-- Password Field -->
-          <div class="login-page__field">
-            <label for="password" class="login-page__label">Password</label>
-            <div class="login-page__password-wrapper">
-              <input
-                id="password"
-                v-model="password"
-                :type="showPassword ? 'text' : 'password'"
-                required
-                placeholder="Enter your password"
-                class="login-page__input login-page__input--password"
-                autocomplete="current-password"
-                data-test="login-password-input"
-                :disabled="isLoading"
-              />
-              <button
-                type="button"
-                class="login-page__password-toggle"
-                :aria-label="showPassword ? 'Hide password' : 'Show password'"
-                @click="togglePasswordVisibility"
-              >
-                <!-- Eye icon (show) -->
-                <svg
-                  v-if="!showPassword"
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                  />
-                </svg>
-                <!-- Eye-off icon (hide) -->
-                <svg
-                  v-else
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
-                  />
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          <!-- Forgot password link -->
-          <div class="login-page__options">
-            <router-link
-              :to="{ name: routes.BeginResetPassword }"
-              class="login-page__forgot"
-              data-test="login-forgot-password-link"
-            >
-              Forgot password?
-            </router-link>
-          </div>
-
-          <!-- Submit Button -->
-          <button
-            type="submit"
-            class="login-page__submit"
-            data-test="login-submit-button"
+      <Hook0CardContent>
+        <Hook0Form data-test="login-form" :loading="isLoading" @submit="onSubmit">
+          <Hook0Input
+            id="email"
+            v-model="email"
+            v-bind="emailAttrs"
+            type="email"
+            required
+            :label="t('auth.login.email')"
+            :placeholder="t('auth.login.emailPlaceholder')"
+            :error="errors.email"
+            autocomplete="email"
+            data-test="login-email-input"
             :disabled="isLoading"
-          >
-            <span v-if="!isLoading">Sign in</span>
-            <span v-else class="login-page__loading">
-              <svg
-                class="animate-spin h-5 w-5"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
+          />
+
+          <Hook0Input
+            id="password"
+            v-model="password"
+            v-bind="passwordAttrs"
+            type="password"
+            required
+            show-password-toggle
+            :label="t('auth.login.password')"
+            :placeholder="t('auth.login.passwordPlaceholder')"
+            :error="errors.password"
+            autocomplete="current-password"
+            data-test="login-password-input"
+            :disabled="isLoading"
+          />
+          <Hook0Stack direction="column" gap="none">
+            <Hook0Stack justify="end">
+              <Hook0Button
+                variant="link"
+                size="sm"
+                :to="{ name: routes.BeginResetPassword }"
+                data-test="login-forgot-password-link"
               >
-                <circle
-                  class="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  stroke-width="4"
-                ></circle>
-                <path
-                  class="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-              Signing in...
-            </span>
-          </button>
-        </form>
+                {{ t('auth.login.forgotPassword') }}
+              </Hook0Button>
+            </Hook0Stack>
 
-        <!-- Divider -->
-        <div class="login-page__divider">
-          <span>New to Hook0?</span>
-        </div>
+            <Hook0Button
+              variant="primary"
+              size="lg"
+              submit
+              :loading="isLoading"
+              :disabled="isLoading"
+              full-width
+              data-test="login-submit-button"
+            >
+              {{ isLoading ? t('auth.login.submitting') : t('auth.login.submit') }}
+            </Hook0Button>
+          </Hook0Stack>
+        </Hook0Form>
+      </Hook0CardContent>
 
-        <!-- Sign up link -->
-        <router-link
+      <Hook0CardDivider>{{ t('auth.login.newToHook0') }}</Hook0CardDivider>
+
+      <Hook0CardContent remove-top-border>
+        <Hook0Button
+          variant="secondary"
+          size="lg"
           :to="{ name: routes.Register }"
-          class="login-page__signup"
+          full-width
           data-test="login-register-link"
         >
-          Create an account
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-4 w-4 ml-2"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M13 7l5 5m0 0l-5 5m5-5H6"
-            />
-          </svg>
-        </router-link>
-      </div>
+          {{ t('auth.login.createAccount') }}
+          <template #right>
+            <ArrowRight :size="16" aria-hidden="true" />
+          </template>
+        </Hook0Button>
+      </Hook0CardContent>
+    </Hook0Card>
 
-      <!-- Trust Indicators -->
-      <div class="login-page__trust">
-        <div class="login-page__trust-item">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-5 w-5 text-green-500"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-              clip-rule="evenodd"
-            />
-          </svg>
-          <span>Open Source, here to last</span>
-        </div>
-        <div class="login-page__trust-item">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-5 w-5 text-green-500"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-              clip-rule="evenodd"
-            />
-          </svg>
-          <span>Reliable, 99.9% uptime</span>
-        </div>
-        <div class="login-page__trust-item">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-5 w-5 text-green-500"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-              clip-rule="evenodd"
-            />
-          </svg>
-          <span>GDPR compliant, EU hosted</span>
-        </div>
-      </div>
-    </div>
-  </div>
+    <template #footer>
+      <Hook0AuthTrustBadges />
+    </template>
+  </Hook0PageLayout>
 </template>
-
-<style lang="scss" scoped>
-.login-page {
-  @apply min-h-screen w-full relative overflow-hidden;
-  background: linear-gradient(
-    180deg,
-    theme('colors.surface.primary') 0%,
-    theme('colors.surface.secondary') 100%
-  );
-  font-family:
-    'Inter',
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-
-  // Background
-  &__background {
-    @apply absolute inset-0 pointer-events-none;
-  }
-
-  &__grid-pattern {
-    @apply absolute inset-0;
-    background-image:
-      linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-    background-size: 60px 60px;
-    opacity: 0.5;
-  }
-
-  &__blur-circle {
-    @apply absolute rounded-full pointer-events-none;
-    filter: blur(100px);
-
-    &--indigo {
-      @apply bg-indigo-500;
-      width: 400px;
-      height: 400px;
-      top: -200px;
-      left: -200px;
-      opacity: 0.15;
-    }
-
-    &--green {
-      @apply bg-green-500;
-      width: 350px;
-      height: 350px;
-      bottom: -150px;
-      right: -150px;
-      opacity: 0.1;
-    }
-  }
-
-  // Content container
-  &__content {
-    @apply relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-12;
-  }
-
-  // Logo
-  &__logo {
-    @apply mb-8;
-  }
-
-  // Card
-  &__card {
-    @apply w-full max-w-md p-8 rounded-2xl;
-    background: theme('colors.surface.tertiary');
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    position: relative;
-    overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-
-    // Glow effect on hover
-    &::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border-radius: inherit;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-      background: radial-gradient(
-        600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-        rgba(99, 102, 241, 0.15),
-        transparent 40%
-      );
-      pointer-events: none;
-    }
-
-    &:hover::before {
-      opacity: 1;
-    }
-
-    &:hover {
-      border-color: rgba(255, 255, 255, 0.1);
-      transform: translateY(-2px);
-    }
-  }
-
-  // Header
-  &__header {
-    @apply text-center mb-8;
-  }
-
-  &__title {
-    @apply text-2xl font-bold text-white mb-2;
-  }
-
-  &__subtitle {
-    @apply text-gray-400 text-sm;
-  }
-
-  // Form
-  &__form {
-    @apply space-y-5;
-  }
-
-  &__field {
-    @apply space-y-2;
-  }
-
-  &__label {
-    @apply block text-sm font-medium text-gray-300;
-  }
-
-  &__input {
-    @apply block w-full px-4 py-3 text-sm rounded-xl text-white transition-all outline-none;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-
-    &::placeholder {
-      @apply text-gray-500;
-    }
-
-    &:focus {
-      @apply border-indigo-500 ring-2 ring-indigo-500 ring-offset-2;
-      --tw-ring-offset-color: theme('colors.surface.tertiary');
-    }
-
-    &:disabled {
-      @apply opacity-50 cursor-not-allowed;
-    }
-
-    &--password {
-      @apply pr-12;
-    }
-  }
-
-  &__password-wrapper {
-    @apply relative;
-  }
-
-  &__password-toggle {
-    @apply absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors p-1 rounded;
-
-    &:focus {
-      @apply outline-none ring-2 ring-indigo-500;
-    }
-  }
-
-  // Options row
-  &__options {
-    @apply flex items-center justify-end;
-  }
-
-  &__forgot {
-    @apply text-sm text-indigo-400 hover:text-indigo-300 transition-colors;
-  }
-
-  // Submit button
-  &__submit {
-    @apply w-full py-3 px-6 rounded-xl font-semibold text-white transition-all bg-green-500;
-
-    &:hover:not(:disabled) {
-      @apply bg-green-400;
-      transform: translateY(-1px);
-      box-shadow: 0 0 40px rgba(34, 197, 94, 0.3);
-    }
-
-    &:focus {
-      @apply outline-none ring-2 ring-green-500 ring-offset-2;
-      --tw-ring-offset-color: theme('colors.surface.tertiary');
-    }
-
-    &:disabled {
-      @apply opacity-70 cursor-not-allowed;
-      transform: none;
-      box-shadow: none;
-    }
-  }
-
-  &__loading {
-    @apply flex items-center justify-center gap-2;
-  }
-
-  // Divider
-  &__divider {
-    @apply relative my-6 flex items-center justify-center;
-
-    &::before,
-    &::after {
-      content: '';
-      @apply flex-1;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    span {
-      @apply px-4 text-sm text-gray-500;
-    }
-  }
-
-  // Sign up link
-  &__signup {
-    @apply flex items-center justify-center w-full py-3 px-6 rounded-xl font-medium text-white transition-all;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.15);
-      transform: translateY(-1px);
-    }
-
-    &:focus {
-      @apply outline-none ring-2 ring-white/50 ring-offset-2;
-      --tw-ring-offset-color: theme('colors.surface.tertiary');
-    }
-
-    svg {
-      @apply transition-transform;
-    }
-
-    &:hover svg {
-      transform: translateX(4px);
-    }
-  }
-
-  // Trust indicators
-  &__trust {
-    @apply flex items-center justify-center gap-6 mt-8 flex-wrap;
-  }
-
-  &__trust-item {
-    @apply flex items-center gap-2 text-sm text-gray-400;
-  }
-}
-
-// Responsive adjustments
-@media (max-width: 640px) {
-  .login-page {
-    &__card {
-      @apply p-6;
-    }
-
-    &__trust {
-      @apply flex-col gap-3;
-    }
-  }
-}
-</style>

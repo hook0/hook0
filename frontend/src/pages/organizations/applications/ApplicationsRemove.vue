@@ -1,46 +1,37 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
+import { useQueryClient } from '@tanstack/vue-query';
 
 import * as ApplicationsService from './ApplicationService';
-import { Problem } from '@/http';
 import { routes } from '@/routes';
-import Hook0Text from '@/components/Hook0Text.vue';
-import Hook0Card from '@/components/Hook0Card.vue';
-import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
-import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
-import Hook0Button from '@/components/Hook0Button.vue';
-import { push } from 'notivue';
+import { handleMutationError } from '@/utils/handleMutationError';
 import { useTracking } from '@/composables/useTracking';
+import { usePermissions } from '@/composables/usePermissions';
+import Hook0DangerZoneCard from '@/components/Hook0DangerZoneCard.vue';
 
+const { t } = useI18n();
 const router = useRouter();
-
-// Analytics tracking
-const { trackEvent } = useTracking();
 const route = useRoute();
+const queryClient = useQueryClient();
+const { trackEvent } = useTracking();
+const { canDelete } = usePermissions();
 
-interface Props {
+type Props = {
   applicationId: string;
   applicationName: string;
-}
+};
 
 const props = defineProps<Props>();
-
 const loading = ref(false);
 
-function remove(e: Event) {
-  e.preventDefault();
-  e.stopImmediatePropagation();
-
-  if (!confirm(`Are you sure to delete "${props.applicationName}" application?`)) {
-    return;
-  }
-
+function confirmRemove() {
   loading.value = true;
-
   ApplicationsService.remove(props.applicationId)
     .then(() => {
       trackEvent('application', 'delete', 'success');
+      void queryClient.invalidateQueries({ queryKey: ['applications'] });
       return router.push({
         name: routes.OrganizationsDashboard,
         params: {
@@ -48,41 +39,21 @@ function remove(e: Event) {
         },
       });
     })
-    .catch(displayError)
-    // finally
+    .catch(handleMutationError)
     .finally(() => (loading.value = false));
-}
-
-function displayError(err: Problem) {
-  console.error(err);
-  let options = {
-    title: err.title,
-    message: err.detail,
-    duration: 5000,
-  };
-  err.status >= 500 ? push.error(options) : push.warning(options);
 }
 </script>
 
 <template>
-  <Hook0Card data-test="application-delete-card">
-    <Hook0CardHeader>
-      <template #header> Delete this application </template>
-      <template #subtitle>
-        This action deletes
-        <Hook0Text class="bold">{{ applicationName }}</Hook0Text>
-        and everything this application contains. There is no going back.
-      </template>
-    </Hook0CardHeader>
-    <Hook0CardFooter>
-      <Hook0Button
-        class="danger"
-        type="button"
-        :loading="loading"
-        data-test="application-delete-button"
-        @click="remove($event)"
-        >Delete</Hook0Button
-      >
-    </Hook0CardFooter>
-  </Hook0Card>
+  <Hook0DangerZoneCard
+    v-if="canDelete('application')"
+    :title="t('remove.deleteApplication')"
+    :subtitle="t('remove.deleteApplicationWarning', { name: applicationName })"
+    :warning-message="t('remove.irreversibleWarning')"
+    confirm-message="remove.confirmDeleteApplication"
+    :confirm-name="applicationName"
+    :loading="loading"
+    data-test="application-delete-card"
+    @confirm="confirmRemove"
+  />
 </template>

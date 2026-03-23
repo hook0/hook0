@@ -1,77 +1,46 @@
 <script setup lang="ts">
-import { ICellRendererParams } from 'ag-grid-community';
-
 import Hook0Select from '@/components/Hook0Select.vue';
 
-interface ExtraParams<T> {
-  /**
-   * Options for the select
-   */
-  options: (row: T) => Array<{ value: string; label: string }>;
-
-  /**
-   * Current selected value
-   */
-  value: (row: T) => string;
-
-  /**
-   * Change handler
-   */
-  onChange?: (value: string, row: T) => void;
-
-  /**
-   * If true, select will be disabled
-   */
+type Props = {
+  options: Array<{ value: string; label: string }>;
+  modelValue: string;
   disabled?: boolean;
-}
-
-type Hook0TableCellSelectParameter<T> = ICellRendererParams & ExtraParams<T>;
-
-interface Props {
-  params: Hook0TableCellSelectParameter<object[]>;
-}
+  onChange?: (value: string) => void;
+};
 
 const props = defineProps<Props>();
 
-function onChange(event: Event) {
+function handleChange(event: Event) {
   const value = (event.target as HTMLSelectElement).value;
 
-  if (!props.params.onChange) {
-    return;
+  if (props.onChange) {
+    props.onChange(value);
   }
-
-  props.params.onChange(value, props.params.data as object[]);
 }
 </script>
 
 <template>
   <Hook0Select
-    v-if="
-      params.colDef?.cellRendererParams &&
-      params.colDef.cellRendererParams.disabled &&
-      !params.colDef.cellRendererParams.disabled(params.data)
-    "
+    v-if="!props.disabled"
     v-bind="{
-      options:
-        typeof params.colDef?.cellRendererParams?.options === 'function'
-          ? params.colDef?.cellRendererParams.options(params.data)
-          : (params.colDef?.cellRendererParams?.options ?? []),
-      modelValue:
-        params.colDef?.cellRendererParams?.value &&
-        typeof params.colDef?.cellRendererParams?.value === 'function'
-          ? params.colDef?.cellRendererParams?.value(params.data)
-          : undefined,
-      onChange: onChange,
+      options: props.options,
+      modelValue: props.modelValue,
+      onChange: handleChange,
       class: $attrs.class,
     }"
   />
-  <div v-else class="border-gray-300 border rounded-md pl-3 pr-10 text-gray-400">
-    {{
-      params.colDef?.cellRendererParams?.value &&
-      typeof params.colDef?.cellRendererParams?.value === 'function'
-        ? params.colDef?.cellRendererParams?.value(params.data).charAt(0).toUpperCase() +
-          params.colDef?.cellRendererParams?.value(params.data).slice(1)
-        : undefined
-    }}
+  <div v-else class="hook0-table-cell-select--disabled">
+    {{ props.modelValue.charAt(0).toUpperCase() + props.modelValue.slice(1) }}
   </div>
 </template>
+
+<style scoped>
+.hook0-table-cell-select--disabled {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 2.5rem 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--color-text-muted);
+}
+</style>

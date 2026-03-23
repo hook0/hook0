@@ -1,10 +1,20 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { onMounted, onUpdated, ref, defineProps, defineEmits } from 'vue';
+import { useI18n } from 'vue-i18n';
 
-import { Problem, UUID } from '@/http';
-import * as ApplicationService from './ApplicationService';
-import ApplicationsRemove from '@/pages/organizations/applications/ApplicationsRemove.vue';
+import {
+  useApplicationDetail,
+  useCreateApplication,
+  useUpdateApplication,
+} from './useApplicationQueries';
+import { createApplicationSchema } from './application.schema';
+import type { Application } from './ApplicationService';
+import { routes } from '@/routes';
+import { useTracking } from '@/composables/useTracking';
+import { usePermissions } from '@/composables/usePermissions';
+import { useEntityForm } from '@/composables/useEntityForm';
+
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
@@ -12,185 +22,177 @@ import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
-import { push } from 'notivue';
-import { routes } from '@/routes';
-import { useTracking } from '@/composables/useTracking';
+import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
+import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
+import Hook0Stack from '@/components/Hook0Stack.vue';
+import ApplicationsRemove from '@/pages/organizations/applications/ApplicationsRemove.vue';
+import Hook0Form from '@/components/Hook0Form.vue';
+import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 
+const { t } = useI18n();
 const router = useRouter();
-
-// Analytics tracking
-const { trackEvent } = useTracking();
 const route = useRoute();
+const { trackEvent } = useTracking();
 
-const isNew = ref(true);
-const application_id = ref<UUID | null>(null);
-const application = ref({
-  name: '',
-});
+// Permissions
+const { canCreate, canEdit, canDelete } = usePermissions();
 
-interface Props {
+type Props = {
   tutorialMode?: boolean;
-}
+};
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  tutorialMode: false,
+});
 
 const emit = defineEmits(['tutorial-application-created']);
 
-function _load() {
-  if (application_id.value !== route.params.application_id) {
-    application_id.value = route.params.application_id as UUID;
-    isNew.value = !application_id.value;
+const organizationId = computed(() => {
+  const id = route.params.organization_id;
+  return typeof id === 'string' ? id : '';
+});
 
-    if (!isNew.value) {
-      ApplicationService.get(application_id.value)
-        .then((app: ApplicationService.ApplicationInfo) => {
-          application.value.name = app.name;
-        })
-        .catch(displayError);
+const applicationId = computed(() => {
+  const id = route.params.application_id;
+  return typeof id === 'string' ? id : '';
+});
+
+const isNew = computed(() => !applicationId.value);
+
+// Load existing application for edit mode
+const {
+  data: appDetail,
+  isLoading,
+  error: loadError,
+  refetch,
+} = useApplicationDetail(applicationId);
+
+// Mutations
+const createMutation = useCreateApplication();
+const updateMutation = useUpdateApplication();
+
+// Form via composable
+const { errors, defineField, onSubmit } = useEntityForm<{ name: string }, Application>({
+  schema: createApplicationSchema(),
+  isNew,
+  existingValues: computed(() => (appDetail.value ? { name: appDetail.value.name } : undefined)),
+  createFn: (values) =>
+    createMutation.mutateAsync({ name: values.name, organization_id: organizationId.value }),
+  updateFn: (values) =>
+    updateMutation.mutateAsync({
+      applicationId: applicationId.value,
+      application: { name: values.name, organization_id: organizationId.value },
+    }),
+  skipToast: () => props.tutorialMode,
+  successCreateTitle: t('applications.created'),
+  successCreateMessage: (v) => t('applications.createdMessage', { name: v.name }),
+  successUpdateTitle: t('applications.updated'),
+  successUpdateMessage: (v) => t('applications.updatedMessage', { name: v.name }),
+  onCreated: (app) => {
+    trackEvent('application', 'create', 'success');
+    if (props.tutorialMode) {
+      emit('tutorial-application-created', app.application_id);
+    } else {
+      void router.push({
+        name: routes.TutorialCreateEventType,
+        params: {
+          organization_id: organizationId.value,
+          application_id: app.application_id,
+        },
+      });
     }
-  }
-}
-
-function cancel() {
-  if (route.params.organization_id && route.params.application_id) {
-    void router.push({
-      name: routes.ApplicationsDashboard,
-      params: {
-        organization_id: route.params.organization_id,
-        application_id: route.params.application_id,
-      },
-    });
-  } else {
-    router.back();
-  }
-}
-
-function upsert(e: Event) {
-  e.preventDefault();
-  e.stopImmediatePropagation();
-
-  if (isNew.value) {
-    ApplicationService.create({
-      name: application.value.name,
-      organization_id: route.params.organization_id as string,
-    }).then((_resp) => {
-      trackEvent('application', 'create', 'success');
-      if (props.tutorialMode) {
-        emit('tutorial-application-created', _resp.application_id);
-      } else {
-        push.success({
-          title: 'Application created',
-          message: `Application ${application.value.name} has been created successfully`,
-          duration: 5000,
-        });
-        return router.push({
-          name: routes.TutorialCreateEventType,
-          params: {
-            organization_id: route.params.organization_id,
-            application_id: _resp.application_id,
-          },
-        });
-      }
-    }, displayError);
-    return;
-  }
-
-  ApplicationService.update(application_id.value as UUID, {
-    name: application.value.name,
-    organization_id: route.params.organization_id as string,
-  }).then((_resp) => {
+  },
+  onUpdated: () => {
     trackEvent('application', 'update', 'success');
     cancel();
-  }, displayError);
-}
-
-function displayError(err: Problem) {
-  console.error(err);
-  let options = {
-    title: err.title,
-    message: err.detail,
-    duration: 5000,
-  };
-  err.status >= 500 ? push.error(options) : push.warning(options);
-}
-
-onMounted(() => {
-  _load();
+  },
 });
 
-onUpdated(() => {
-  _load();
-});
+const [name, nameAttrs] = defineField('name');
+
+function cancel() {
+  router.back();
+}
 </script>
 
 <template>
-  <div>
-    <form data-test="application-form" @submit="upsert">
-      <Hook0Card data-test="application-card">
+  <Hook0PageLayout :title="isNew ? t('applications.createTitle') : t('applications.settings')">
+    <Hook0Stack direction="column" gap="xl">
+      <!-- Loading for edit mode (also shown when query is disabled and data is undefined) -->
+      <Hook0Card v-if="!isNew && (isLoading || !appDetail)">
         <Hook0CardHeader>
-          <template v-if="isNew" #header> Create new application </template>
-          <template v-else #header> Edit application </template>
-          <template #subtitle>
-            An application is an isolated environment that contains everything webhook-related.
-          </template>
+          <template #header>{{ t('applications.editTitle') }}</template>
         </Hook0CardHeader>
         <Hook0CardContent>
-          <Hook0CardContentLine>
-            <template #label> Application Name </template>
-            <template #content>
-              <Hook0Input
-                v-model="application.name"
-                type="text"
-                placeholder="my awesome api - production"
-                required
-                data-test="application-name-input"
-              >
-                <template #helpText
-                  >Name of your company's product or API. Don't forget also to specify the
-                  environment, for example: "facebook-production"
-                </template>
-              </Hook0Input>
-            </template>
-          </Hook0CardContentLine>
+          <Hook0SkeletonGroup :count="2" />
         </Hook0CardContent>
-
-        <Hook0CardFooter>
-          <Hook0Button
-            v-if="!tutorialMode"
-            class="secondary"
-            type="button"
-            data-test="application-cancel-button"
-            @click="cancel()"
-            >Cancel</Hook0Button
-          >
-          <Hook0Button
-            v-if="!tutorialMode"
-            class="primary"
-            type="button"
-            :disabled="!application.name"
-            data-test="application-submit-button"
-            @click="upsert($event)"
-            >{{ isNew ? 'Create' : 'Update' }}
-          </Hook0Button>
-
-          <Hook0Button
-            v-else
-            class="primary"
-            type="button"
-            :disabled="!application.name"
-            tooltip="ℹ️ To continue, you need to add a name for your application."
-            data-test="application-submit-button"
-            @click="upsert($event)"
-            >Create Your First Application 🎉
-          </Hook0Button>
-        </Hook0CardFooter>
       </Hook0Card>
-    </form>
 
-    <ApplicationsRemove
-      v-if="!isNew && application_id"
-      :application-id="application_id"
-      :application-name="application.name"
-    ></ApplicationsRemove>
-  </div>
+      <!-- Error loading app -->
+      <Hook0ErrorCard v-else-if="!isNew && loadError" :error="loadError" @retry="refetch()" />
+
+      <!-- Form -->
+      <template v-else>
+        <Hook0Form data-test="application-form" @submit="onSubmit">
+          <Hook0Card data-test="application-card">
+            <Hook0CardHeader>
+              <template #header>{{
+                isNew ? t('applications.createTitle') : t('applications.editTitle')
+              }}</template>
+              <template #subtitle>{{ t('applications.formSubtitle') }}</template>
+            </Hook0CardHeader>
+            <Hook0CardContent>
+              <Hook0CardContentLine>
+                <template #label>{{ t('applications.name') }}</template>
+                <template #content>
+                  <Hook0Input
+                    v-model="name"
+                    v-bind="nameAttrs"
+                    type="text"
+                    :placeholder="t('applications.namePlaceholder')"
+                    :error="errors.name"
+                    :autofocus="isNew"
+                    data-test="application-name-input"
+                  >
+                    <template #helpText>{{ t('applications.nameHelpText') }}</template>
+                  </Hook0Input>
+                </template>
+              </Hook0CardContentLine>
+            </Hook0CardContent>
+
+            <Hook0CardFooter>
+              <Hook0Button
+                v-if="!tutorialMode && (isNew ? canCreate('application') : canEdit('application'))"
+                variant="primary"
+                type="button"
+                :loading="createMutation.isPending.value || updateMutation.isPending.value"
+                :disabled="!name"
+                data-test="application-submit-button"
+                @click="onSubmit"
+                >{{ isNew ? t('common.create') : t('common.save') }}
+              </Hook0Button>
+
+              <Hook0Button
+                v-else
+                variant="primary"
+                type="button"
+                :loading="createMutation.isPending.value"
+                :disabled="!name"
+                :tooltip="t('applications.createTooltip')"
+                data-test="application-submit-button"
+                @click="onSubmit"
+                >{{ t('applications.createFirstApp') }}
+              </Hook0Button>
+            </Hook0CardFooter>
+          </Hook0Card>
+        </Hook0Form>
+
+        <ApplicationsRemove
+          v-if="!isNew && applicationId && canDelete('application')"
+          :application-id="applicationId"
+          :application-name="appDetail?.name ?? ''"
+        ></ApplicationsRemove>
+      </template>
+    </Hook0Stack>
+  </Hook0PageLayout>
 </template>

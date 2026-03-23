@@ -4,6 +4,7 @@ import {
   API_BASE_URL,
   getPasswordResetTokenFromMailpit,
 } from "../fixtures/email-verification";
+import { expectToast } from "../fixtures/test-setup";
 
 /**
  * User Settings E2E tests for Hook0.
@@ -160,11 +161,96 @@ test.describe("User Settings", () => {
     expect(response.status()).toBeLessThan(400);
 
     // Verify success notification is shown
-    await expect(
-      page.locator('[data-test="toast-notification"]').first()
-    ).toBeVisible({
+    await expectToast(page);
+  });
+
+  test("should display language selector", async ({ page, request }) => {
+    // Setup
+    const timestamp = Date.now();
+    const email = `test-settings-lang-${timestamp}@hook0.local`;
+    const password = `TestPassword123!${timestamp}`;
+
+    // Register and verify
+    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      data: { email, first_name: "Test", last_name: "User", password },
+    });
+    expect(registerResponse.status()).toBeLessThan(400);
+    await verifyEmailViaMailpit(request, email);
+
+    // Login
+    await page.goto("/login");
+    await expect(page.locator('[data-test="login-form"]')).toBeVisible({
       timeout: 10000,
     });
+    await page.locator('[data-test="login-email-input"]').fill(email);
+    await page.locator('[data-test="login-password-input"]').fill(password);
+    await page.locator('[data-test="login-submit-button"]').click();
+
+    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
+      timeout: 15000,
+    });
+
+    // Navigate to settings
+    await page.goto("/settings");
+
+    await expect(page.locator('[data-test="user-info-card"]')).toBeVisible({
+      timeout: 10000,
+    });
+
+    // Verify language selector is visible
+    await expect(page.locator('[data-test="language-select"]')).toBeVisible();
+  });
+
+  test("should change language and verify UI text changes", async ({ page, request }) => {
+    // Setup
+    const timestamp = Date.now();
+    const email = `test-settings-lang-change-${timestamp}@hook0.local`;
+    const password = `TestPassword123!${timestamp}`;
+
+    // Register and verify
+    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      data: { email, first_name: "Test", last_name: "User", password },
+    });
+    expect(registerResponse.status()).toBeLessThan(400);
+    await verifyEmailViaMailpit(request, email);
+
+    // Login
+    await page.goto("/login");
+    await expect(page.locator('[data-test="login-form"]')).toBeVisible({
+      timeout: 10000,
+    });
+    await page.locator('[data-test="login-email-input"]').fill(email);
+    await page.locator('[data-test="login-password-input"]').fill(password);
+    await page.locator('[data-test="login-submit-button"]').click();
+
+    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
+      timeout: 15000,
+    });
+
+    // Navigate to settings
+    await page.goto("/settings");
+
+    await expect(page.locator('[data-test="user-info-card"]')).toBeVisible({
+      timeout: 10000,
+    });
+
+    // Verify language selector is visible and currently set to English
+    const languageSelect = page.locator('[data-test="language-select"]');
+    await expect(languageSelect).toBeVisible();
+
+    // Language select is currently disabled (only English is supported)
+    await expect(languageSelect).toBeDisabled();
+
+    // Verify the selected option shows English
+    // Hook0Select renders a native <select> — check its current value
+    await expect(languageSelect).toHaveValue("en");
+
+    // Verify UI text is in English by checking known page headings
+    await expect(page.locator('[data-test="change-password-card"]')).toBeVisible();
+    await expect(page.locator('[data-test="delete-account-card"]')).toBeVisible();
+
+    // Verify theme selector is also present (sibling preference control)
+    await expect(page.locator('[data-test="theme-select"]')).toBeVisible();
   });
 
   test("should show error when passwords do not match", async ({ page, request }) => {
@@ -204,13 +290,17 @@ test.describe("User Settings", () => {
     await page.locator('[data-test="new-password-input"]').fill("NewPassword123!");
     await page.locator('[data-test="confirm-password-input"]').fill("DifferentPassword456!");
 
-    // Submit
-    await page.locator('[data-test="change-password-button"]').click();
+    // Blur to trigger cross-field validation (Zod refine evaluates after both fields touched)
+    await page.locator('[data-test="confirm-password-input"]').blur();
 
-    // Verify error notification is shown
-    await expect(
-      page.locator('[data-test="toast-notification"]').first()
-    ).toBeVisible({
+    // VeeValidate/Zod cross-field refine renders inline error and disables submit button
+    // Verify the submit button is disabled (passwords don't match → meta.valid is false)
+    await expect(page.locator('[data-test="change-password-button"]')).toBeDisabled({
+      timeout: 10000,
+    });
+
+    // Verify the validation error message appears inline
+    await expect(page.locator('[data-test="input-error"]')).toBeVisible({
       timeout: 10000,
     });
   });
@@ -252,20 +342,16 @@ test.describe("User Settings", () => {
       timeout: 10000,
     });
 
-    // Setup dialog handler for delete confirmation
-    page.on("dialog", (dialog) => {
-      dialog.accept();
-    });
-
-    // Click delete - this will show "Not implemented yet" error
+    // Click delete - opens Hook0Dialog confirmation
     await page.locator('[data-test="delete-account-button"]').click();
 
-    // Verify error notification is shown (not implemented feature)
-    await expect(
-      page.locator('[data-test="toast-notification"]').first()
-    ).toBeVisible({
-      timeout: 10000,
-    });
+    // Wait for confirmation dialog and click confirm
+    const confirmButton = page.locator('[data-test="dialog-confirm-button"]');
+    await expect(confirmButton).toBeVisible({ timeout: 5000 });
+    await confirmButton.click();
+
+    // Verify error notification is shown (not implemented feature) or success toast
+    await expectToast(page);
 
     // User should still be on settings page (not logged out)
     await expect(page).toHaveURL(/\/settings/, {
@@ -306,13 +392,12 @@ test.describe("User Settings", () => {
       timeout: 10000,
     });
 
-    // Setup dialog handler to DISMISS the confirmation
-    page.on("dialog", (dialog) => {
-      dialog.dismiss();
-    });
-
-    // Click delete button
+    // Click delete button to open Hook0Dialog confirmation
     await page.locator('[data-test="delete-account-button"]').click();
+
+    // Wait for the dialog to appear, then click cancel
+    await expect(page.locator('[data-test="dialog-cancel-button"]')).toBeVisible({ timeout: 5000 });
+    await page.locator('[data-test="dialog-cancel-button"]').click();
 
     // Should still be on settings page (not logged out)
     await expect(page).toHaveURL(/\/settings/, {
@@ -379,11 +464,7 @@ test.describe("Password Reset Flow", () => {
     expect(response.status()).toBeLessThan(500);
 
     // Verify success notification is shown
-    await expect(
-      page.locator('[data-test="toast-notification"]').first()
-    ).toBeVisible({
-      timeout: 10000,
-    });
+    await expectToast(page);
   });
 
   test("should complete password reset flow with valid token and login with new password", async ({

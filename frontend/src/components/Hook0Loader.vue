@@ -1,9 +1,19 @@
 <script setup lang="ts">
-import Hook0Icon from '@/components/Hook0Icon.vue';
+import Hook0Spinner from '@/components/Hook0Spinner.vue';
 </script>
 
 <template>
-  <div class="flex justify-center items-center">
-    <Hook0Icon name="circle-notch" size="2x" spin></Hook0Icon>
+  <div class="hook0-loader">
+    <Hook0Spinner :size="32" />
   </div>
 </template>
+
+<style scoped>
+.hook0-loader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  color: var(--color-text-muted);
+}
+</style>

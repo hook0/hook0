@@ -27,6 +27,8 @@ export default defineConfig({
     video: "on-first-retry",
   },
 
+  snapshotPathTemplate: "{snapshotDir}/{testFileDir}/{testFileName}-snapshots/{arg}-{projectName}-{platform}{ext}",
+
   expect: {
     toHaveScreenshot: {
       maxDiffPixels: 100,

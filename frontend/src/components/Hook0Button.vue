@@ -1,28 +1,48 @@
 <script setup lang="ts">
 import { RouteLocationRaw, useRouter } from 'vue-router';
-import { ref, computed, onMounted, onUpdated, useSlots } from 'vue';
-import { omit } from 'ramda';
+import { ref, computed, onMounted, onUpdated, useSlots, useAttrs } from 'vue';
 
-import Hook0Icon from '@/components/Hook0Icon.vue';
+import Hook0Spinner from '@/components/Hook0Spinner.vue';
 
-interface Props {
+type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'link' | 'icon';
+type ButtonSize = 'xs' | 'sm' | 'md' | 'lg';
+
+type Props = {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
   loading?: boolean | Promise<unknown>;
   to?: RouteLocationRaw;
   href?: string;
   disabled?: boolean;
   submit?: boolean;
   tooltip?: string;
-}
+  fullWidth?: boolean;
+};
+
 const router = useRouter();
-const props = defineProps<Props>();
-const emit = defineEmits(['click']);
+const props = withDefaults(defineProps<Props>(), {
+  variant: 'secondary',
+  size: 'md',
+  loading: false,
+  to: undefined,
+  href: undefined,
+  disabled: false,
+  submit: false,
+  tooltip: undefined,
+  fullWidth: false,
+});
+const emit = defineEmits<{
+  click: [e: MouseEvent];
+}>();
 defineSlots<{
   default(): unknown;
   left(): unknown;
   right(): unknown;
 }>();
 
-const href = computed(() => {
+const attrs = useAttrs();
+
+const resolvedHref = computed(() => {
   if (props.href) {
     return props.href;
   }
@@ -31,204 +51,339 @@ const href = computed(() => {
     return undefined;
   }
 
-  try {
-    const { href } = router.resolve(props.to);
-    return href; // for accessibility
-  } catch {
-    return undefined;
-  }
+  const { href } = router.resolve(props.to);
+  return href;
 });
-const loading = computed(() => props.loading ?? false);
 
+/**
+ * Determine whether to render as <button> or <a>.
+ *
+ * Render as <a> only when the button has navigation behavior (href or to).
+ * Otherwise always render as <button> for correct semantics, accessibility,
+ * and keyboard interaction.
+ */
+const isLink = computed(() => {
+  return !!props.href || !!props.to;
+});
+
+/**
+ * Compute the button type attribute.
+ * - If submit prop is true, use "submit"
+ * - If type is explicitly passed in $attrs, use that
+ * - Otherwise default to "button"
+ */
+type ButtonType = 'submit' | 'button' | 'reset';
+
+const buttonType = computed((): ButtonType => {
+  if (props.submit) return 'submit';
+  if (
+    attrs.type &&
+    typeof attrs.type === 'string' &&
+    ['submit', 'button', 'reset'].includes(attrs.type)
+  ) {
+    return attrs.type as ButtonType;
+  }
+  return 'button';
+});
+
+/**
+ * Filter out 'type' from $attrs when rendering as <button>,
+ * since we handle it explicitly via :type="buttonType".
+ */
+const filteredAttrs = computed(() => {
+  const result: Record<string, unknown> = {};
+  for (const key of Object.keys(attrs)) {
+    if (key !== 'type') {
+      result[key] = attrs[key];
+    }
+  }
+  return result;
+});
+
+const loading = computed(() => props.loading ?? false);
 const loadingStatus = ref(false);
 
-async function _forwardPromiseState() {
+function forwardPromiseState() {
   if (!(loading.value instanceof Promise)) {
     loadingStatus.value = loading.value;
     return;
   }
 
-  const setStatus = (state: boolean) => () => {
+  loadingStatus.value = true;
+  void loading.value.finally(() => {
     if (!(loading.value instanceof Promise)) {
       return;
     }
-
-    loadingStatus.value = state;
-  };
-
-  setStatus(true)();
-  await loading.value.finally(setStatus(false));
-}
-
-function omitOnClick(props: Record<string, unknown>) {
-  return omit(['onClick'], props);
+    loadingStatus.value = false;
+  });
 }
 
 function onClick(e: MouseEvent) {
-  if (!props.href) {
+  if (loadingStatus.value || props.disabled) {
     e.preventDefault();
-    e.stopImmediatePropagation();
-  }
-
-  if (props.loading || props.disabled) {
-    // do nothing
     return;
   }
 
-  if (!href.value) {
-    // no href so bubble-up event
-    emit('click', e);
+  // For links, handle navigation
+  if (isLink.value) {
+    if (e.metaKey && resolvedHref.value) {
+      e.preventDefault();
+      window.open(resolvedHref.value);
+      return;
+    }
+
+    if (props.to) {
+      e.preventDefault();
+      void router.push(props.to);
+      return;
+    }
+
+    // External href - let the browser handle it
     return;
   }
 
-  if (e.metaKey && href.value) {
-    // support for power-user that want to open links in another tab
-    window.open(href.value);
-    return true;
-  }
-
-  if (props.to) {
-    router.push(props.to).catch((err) => {
-      console.error(err);
-    });
-  }
+  // For buttons, emit click
+  emit('click', e);
 }
+
 function hasSlot(name: string): boolean {
   return !!useSlots()[name];
 }
 
 onMounted(() => {
-  void _forwardPromiseState();
+  forwardPromiseState();
 });
 
 onUpdated(() => {
-  void _forwardPromiseState();
+  forwardPromiseState();
 });
+
+const sizeClasses: Record<ButtonSize, string> = {
+  xs: 'px-2 py-0.5 text-xs',
+  sm: 'px-3 py-1.5 text-sm',
+  md: 'px-4 py-2 text-sm',
+  lg: 'px-5 py-2.5 text-base',
+};
+
+const spinnerSize: Record<ButtonSize, number> = {
+  xs: 12,
+  sm: 14,
+  md: 16,
+  lg: 18,
+};
 </script>
 
 <template>
-  <button
-    v-if="submit"
-    class="hook0-button"
-    type="submit"
-    :class="{ loading: loadingStatus, 'hook0-button-split': hasSlot('right') || hasSlot('left') }"
-    :disabled="loadingStatus || disabled"
-    :title="props.tooltip"
-  >
-    <div v-if="hasSlot('left') && !loadingStatus" class="hook0-button-left">
-      <slot name="left"></slot>
-    </div>
-    <div class="hook0-button-center">
-      <slot v-if="!loadingStatus"></slot>
-    </div>
-    <div v-if="hasSlot('right') || loadingStatus" class="hook0-button-right">
-      <Hook0Icon v-if="loadingStatus" name="spinner" spin class="animate-spin"></Hook0Icon>
-      <slot name="right"></slot>
-    </div>
-  </button>
+  <!-- Render as <a> when the button has navigation behavior (href or to) -->
   <a
-    v-else
+    v-if="isLink"
     class="hook0-button"
-    :class="{ loading: loadingStatus, 'hook0-button-split': hasSlot('right') || hasSlot('left') }"
-    v-bind="omitOnClick({ ...$props, ...$attrs })"
-    :disabled="loadingStatus || disabled"
-    :href="href"
-    :title="props.tooltip"
+    :class="[
+      variant,
+      variant !== 'icon' ? sizeClasses[size] : '',
+      { loading: loadingStatus, 'full-width': fullWidth },
+    ]"
+    :aria-disabled="loadingStatus || disabled || undefined"
+    :aria-busy="loadingStatus || undefined"
+    :href="resolvedHref"
+    :title="tooltip"
+    :tabindex="loadingStatus || disabled ? -1 : undefined"
+    v-bind="$attrs"
     @click="onClick($event)"
   >
-    <div v-if="hasSlot('left') && !loadingStatus" class="hook0-button-left">
-      <slot name="left"></slot>
-    </div>
-    <div class="hook0-button-center">
-      <slot v-if="!loadingStatus"></slot>
-    </div>
-    <div v-if="hasSlot('right') || loadingStatus" class="hook0-button-right">
-      <Hook0Icon v-if="loadingStatus" name="spinner" spin class="animate-spin"></Hook0Icon>
-      <slot name="right"></slot>
-    </div>
+    <span v-if="hasSlot('left') && !loadingStatus" class="hook0-button-left">
+      <slot name="left" />
+    </span>
+    <Hook0Spinner v-if="loadingStatus" :size="spinnerSize[size]" />
+    <span v-else class="hook0-button-center">
+      <slot />
+    </span>
+    <span v-if="hasSlot('right') && !loadingStatus" class="hook0-button-right">
+      <slot name="right" />
+    </span>
   </a>
+  <!-- Render as <button> for all other cases (actions, submit, etc.) -->
+  <button
+    v-else
+    :type="buttonType"
+    class="hook0-button"
+    :class="[
+      variant,
+      variant !== 'icon' ? sizeClasses[size] : '',
+      { loading: loadingStatus, 'full-width': fullWidth },
+    ]"
+    :disabled="loadingStatus || disabled"
+    :aria-disabled="loadingStatus || disabled || undefined"
+    :aria-busy="loadingStatus || undefined"
+    :title="tooltip"
+    v-bind="filteredAttrs"
+    @click="onClick($event)"
+  >
+    <span v-if="hasSlot('left') && !loadingStatus" class="hook0-button-left">
+      <slot name="left" />
+    </span>
+    <Hook0Spinner v-if="loadingStatus" :size="spinnerSize[size]" />
+    <span v-else class="hook0-button-center">
+      <slot />
+    </span>
+    <span v-if="hasSlot('right') && !loadingStatus" class="hook0-button-right">
+      <slot name="right" />
+    </span>
+  </button>
 </template>
 
-<style lang="scss" scoped>
+<style scoped>
 .hook0-button {
-  @apply select-none cursor-pointer font-medium text-indigo-600 hover:text-indigo-500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 50ms ease;
+  user-select: none;
+  text-decoration: none;
+  white-space: nowrap;
+}
 
-  .hook0-button-left {
-    @apply inline-block;
-  }
+.hook0-button:focus:not(:focus-visible) {
+  outline: none;
+}
 
-  .hook0-button-center {
-    @apply inline-block;
-  }
+.hook0-button:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--color-bg-primary),
+    0 0 0 4px var(--color-primary);
+}
 
-  .hook0-button-right {
-    @apply inline-block;
-  }
+.hook0-button:active:not([disabled]):not([aria-disabled='true']) {
+  transform: scale(0.98);
+}
 
-  &.dropdown {
-    @apply max-w-lg block w-full sm:max-w-xs cursor-pointer py-4 pl-4 pr-4;
-  }
+.hook0-button[disabled],
+.hook0-button[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
-  /** must be after dropdown **/
-  &.hook0-button-split {
-    @apply flex justify-between items-stretch;
+/* Variants */
+.hook0-button.primary {
+  background-color: var(--color-primary);
+  color: white;
+  border: 1px solid var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
 
-    .hook0-button-left {
-      @apply justify-self-start self-center;
-    }
+.hook0-button.primary:hover:not([disabled]) {
+  background-color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
 
-    .hook0-button-center {
-      @apply justify-self-start self-center;
-    }
+.hook0-button.secondary {
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
 
-    .hook0-button-right {
-      @apply justify-self-end self-center;
-    }
-  }
+.hook0-button.secondary:hover:not([disabled]) {
+  background-color: var(--color-bg-secondary);
+}
 
-  &.link {
-    @apply hover:bg-indigo-100 hover:text-gray-900 text-gray-700 block mb-0 px-4 py-2 text-sm;
+.hook0-button.danger {
+  background-color: var(--color-danger);
+  color: white;
+  border: 1px solid var(--color-danger);
+  box-shadow: var(--shadow-sm);
+}
 
-    &.darkmode {
-      @apply hover:bg-gray-800 hover:text-gray-500;
-    }
-  }
+.hook0-button.danger:hover:not([disabled]) {
+  background-color: var(--color-danger-hover);
+  border-color: var(--color-danger-hover);
+}
 
-  &.primary {
-    @apply inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer;
-  }
+.hook0-button.ghost {
+  background-color: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid transparent;
+}
 
-  &.secondary {
-    @apply inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer;
-  }
+.hook0-button.ghost:hover:not([disabled]) {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
 
-  &.danger {
-    @apply inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 cursor-pointer;
-  }
+.hook0-button.link {
+  background-color: transparent;
+  color: var(--color-primary);
+  border: 1px solid transparent;
+  padding-left: 0;
+  padding-right: 0;
+  font-size: inherit;
+}
 
-  &.white {
-    @apply inline-flex items-center justify-center px-4 py-2 bg-white text-sm font-medium border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 outline-none cursor-pointer;
+.hook0-button.link:hover:not([disabled]) {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
 
-    &.center {
-      @apply rounded-none;
-    }
+.hook0-button.icon {
+  background-color: transparent;
+  color: var(--color-text-tertiary);
+  border: none;
+  padding: 0;
+  opacity: 0.6;
+  border-radius: 0;
+}
 
-    &.left {
-      @apply rounded-none rounded-l-lg;
-    }
+.hook0-button.icon:hover:not([disabled]) {
+  opacity: 1;
+}
 
-    &.right {
-      @apply rounded-none rounded-r-lg;
-    }
+.hook0-button.icon:active:not([disabled]) {
+  transform: none;
+}
 
-    &.active {
-      @apply bg-gray-50 border-gray-300;
-    }
-  }
+/* Legacy class support for backwards compatibility */
+.hook0-button.white {
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
 
-  &[disabled='disabled'],
-  &[disabled='true'] {
-    @apply opacity-20 transition-all;
-  }
+.hook0-button.white:hover:not([disabled]) {
+  background-color: var(--color-bg-secondary);
+}
+
+.hook0-button-left,
+.hook0-button-right {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.hook0-button :deep(svg) {
+  flex-shrink: 0;
+}
+
+.hook0-button-center {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* Full width variant */
+.hook0-button.full-width {
+  width: 100%;
 }
 </style>

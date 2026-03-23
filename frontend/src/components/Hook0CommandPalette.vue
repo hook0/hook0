@@ -1,0 +1,251 @@
+<script setup lang="ts">
+import { ref } from 'vue';
+import { Search } from 'lucide-vue-next';
+import { useUiStore } from '@/stores/ui';
+import { useCommandPalette } from '@/composables/useCommandPalette';
+import { useI18n } from 'vue-i18n';
+import { useFocusTrap } from '@/composables/useFocusTrap';
+
+const { t } = useI18n();
+const uiStore = useUiStore();
+
+const inputRef = ref<HTMLInputElement | null>(null);
+const overlayRef = ref<HTMLElement | null>(null);
+const { query, selectedIndex, filteredCommands, groupedCommands, close, onKeydown } =
+  useCommandPalette(inputRef);
+
+const { handleKeydown: onOverlayKeydown } = useFocusTrap(overlayRef, { onEscape: close });
+</script>
+
+<template>
+  <Teleport to="body">
+    <Transition name="command-palette">
+      <div
+        v-if="uiStore.commandPaletteOpen"
+        ref="overlayRef"
+        class="hook0-command-palette-overlay"
+        data-test="command-palette-overlay"
+        @click.self="close"
+        @keydown="onOverlayKeydown"
+      >
+        <div
+          class="hook0-command-palette"
+          role="dialog"
+          :aria-label="t('commandPalette.title')"
+          @keydown="onKeydown"
+        >
+          <div class="hook0-command-palette-input-wrapper">
+            <Search :size="20" class="hook0-command-palette-search-icon" aria-hidden="true" />
+            <input
+              ref="inputRef"
+              v-model="query"
+              class="hook0-command-palette-input"
+              data-test="command-palette-input"
+              :placeholder="t('commandPalette.placeholder')"
+              type="text"
+              role="combobox"
+              aria-expanded="true"
+              aria-controls="command-list"
+              aria-autocomplete="list"
+              :aria-activedescendant="
+                filteredCommands[selectedIndex]?.id
+                  ? 'cmd-item-' + filteredCommands[selectedIndex].id
+                  : undefined
+              "
+            />
+            <button
+              class="hook0-command-palette-close"
+              :aria-label="t('common.close')"
+              @click="close"
+            >
+              <kbd class="hook0-command-palette-close-kbd">Esc</kbd>
+            </button>
+          </div>
+
+          <div id="command-list" class="hook0-command-palette-list" role="listbox">
+            <div
+              v-if="filteredCommands.length === 0"
+              class="hook0-command-palette-empty"
+              data-test="command-palette-empty"
+            >
+              {{ t('commandPalette.noResults') }}
+            </div>
+
+            <div v-for="(items, category) in groupedCommands" :key="category">
+              <div class="hook0-command-palette-group-label">{{ category }}</div>
+              <button
+                v-for="item in items"
+                :id="'cmd-item-' + item.id"
+                :key="item.id"
+                class="hook0-command-palette-item"
+                :data-test="'command-palette-item-' + item.id"
+                :class="{ selected: filteredCommands.indexOf(item) === selectedIndex }"
+                role="option"
+                :aria-selected="filteredCommands.indexOf(item) === selectedIndex"
+                @click="item.action()"
+                @mouseenter="selectedIndex = filteredCommands.indexOf(item)"
+              >
+                <component :is="item.icon" :size="18" aria-hidden="true" />
+                <span>{{ item.label }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
+</template>
+
+<style scoped>
+.hook0-command-palette-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal, 60);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 20vh;
+  background-color: var(--color-overlay, rgba(0, 0, 0, 0.5));
+  backdrop-filter: blur(4px);
+}
+
+.hook0-command-palette {
+  width: 100%;
+  max-width: 36rem;
+  margin: 0 1rem;
+  background-color: var(--color-bg-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+
+.hook0-command-palette-input-wrapper {
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.hook0-command-palette-search-icon {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.hook0-command-palette-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.hook0-command-palette-close-kbd {
+  padding: 0.125rem 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  background: var(--color-bg-secondary);
+  line-height: 1.5;
+}
+
+.hook0-command-palette-close:hover .hook0-command-palette-close-kbd {
+  color: var(--color-text-primary);
+  border-color: var(--color-border-strong);
+}
+
+.hook0-command-palette-input {
+  flex: 1;
+  padding: 0.875rem 0.75rem;
+  font-size: 1rem;
+  border: none;
+  background: transparent;
+  color: var(--color-text-primary);
+  outline: none;
+}
+
+.hook0-command-palette-input::placeholder {
+  color: var(--color-text-muted, #9ca3af) !important;
+  opacity: 1;
+}
+
+.hook0-command-palette-list {
+  max-height: 20rem;
+  overflow-y: auto;
+  padding: 0.5rem;
+}
+
+.hook0-command-palette-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.hook0-command-palette-group-label {
+  padding: 0.5rem 0.75rem 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.hook0-command-palette-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition:
+    background-color 0.1s ease,
+    color 0.1s ease;
+  text-align: left;
+}
+
+.hook0-command-palette-item :deep(svg) {
+  flex-shrink: 0;
+}
+
+.hook0-command-palette-item.selected {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
+
+@media (max-width: 767px) {
+  .hook0-command-palette-overlay {
+    padding-top: 0;
+    align-items: stretch;
+  }
+  .hook0-command-palette {
+    max-width: 100%;
+    margin: 0;
+    border-radius: 0;
+    height: 100dvh;
+    max-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+  .hook0-command-palette-list {
+    flex: 1;
+    max-height: none;
+    overflow-y: auto;
+  }
+  .hook0-command-palette-item {
+    white-space: normal;
+    word-break: break-word;
+  }
+}
+</style>

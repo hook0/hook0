@@ -1,518 +1,601 @@
 <script setup lang="ts">
-import { useRoute, useRouter } from 'vue-router';
-import { onMounted, onUpdated, ref, defineEmits, defineProps } from 'vue';
-import { head } from 'ramda';
+import { computed, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
+import { useRouteIds } from '@/composables/useRouteIds';
+import { useI18n } from 'vue-i18n';
+import { useForm } from 'vee-validate';
 
-import { Problem, UUID } from '@/http';
-import * as SubscriptionService from './SubscriptionService';
-import { Subscription } from './SubscriptionService';
-import { routes } from '@/routes';
-import SubscriptionsRemove from './SubscriptionsRemove.vue';
-import * as EventTypeService from '../event_types/EventTypeService';
-import { EventType } from '../event_types/EventTypeService';
-import Hook0Loader from '@/components/Hook0Loader.vue';
-import Hook0List from '@/components/Hook0List.vue';
-import Hook0ListItem from '@/components/Hook0ListItem.vue';
-import Hook0Input from '@/components/Hook0Input.vue';
-import Hook0Text from '@/components/Hook0Text.vue';
-import Hook0Button from '@/components/Hook0Button.vue';
-import Hook0Select from '@/components/Hook0Select.vue';
-import Hook0KeyValue from '@/components/Hook0KeyValue.vue';
-import { Hook0SelectSingleOption } from '@/components/Hook0Select';
-import { Hook0KeyValueKeyValuePair } from '@/components/Hook0KeyValue';
+import { createSubscriptionSchema } from './subscription.schema';
+import { toTypedSchema } from '@/utils/zod-adapter';
+import { displayError } from '@/utils/displayError';
+import { isAxiosError, handleError } from '@/http';
+import {
+  useSubscriptionDetail,
+  useCreateSubscription,
+  useUpdateSubscription,
+} from './useSubscriptionQueries';
+import { useEventTypeList } from '../event_types/useEventTypeQueries';
+import type { EventType } from '../event_types/EventTypeService';
 import { intersectWith } from '@/utils/fp';
+import { useTracking } from '@/composables/useTracking';
+import { usePermissions } from '@/composables/usePermissions';
+import type { Hook0SelectSingleOption } from '@/components/Hook0Select';
+import {
+  kvPairsToRecord,
+  recordToKvPairs,
+  type Hook0KeyValueKeyValuePair,
+} from '@/components/Hook0KeyValue';
+
+import SubscriptionsRemove from './SubscriptionsRemove.vue';
+import SubscriptionSectionBasics from './SubscriptionSectionBasics.vue';
+import SubscriptionSectionEventTypes from './SubscriptionSectionEventTypes.vue';
+import type { SelectableEventType } from './subscription.types';
+import SubscriptionSectionLabels from './SubscriptionSectionLabels.vue';
+import SubscriptionSectionAdvanced from './SubscriptionSectionAdvanced.vue';
+
+import Hook0Button from '@/components/Hook0Button.vue';
+import Hook0CopyField from '@/components/Hook0CopyField.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
-import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
-import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
-import Hook0Icon from '@/components/Hook0Icon.vue';
-import { push } from 'notivue';
-import { useTracking } from '@/composables/useTracking';
 
-// Analytics tracking
+import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
+import Hook0Skeleton from '@/components/Hook0Skeleton.vue';
+import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
+import Hook0Stack from '@/components/Hook0Stack.vue';
+
+import Hook0Form from '@/components/Hook0Form.vue';
+import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
+
+const { t } = useI18n();
 const { trackEvent } = useTracking();
 
-interface Props {
-  tutorialMode?: boolean;
-}
+// Permissions
+const { canCreate, canEdit, canDelete } = usePermissions();
 
-const props = defineProps<Props>();
+type Props = {
+  tutorialMode?: boolean;
+};
+
+const props = withDefaults(defineProps<Props>(), {
+  tutorialMode: false,
+});
 
 const emit = defineEmits(['tutorial-subscription-created']);
-
-interface SelectableEventType extends EventType {
-  selected: boolean;
-}
 
 function EventTypeNamesFromSelectedEventTypes(
   selectableEventTypes: SelectableEventType[]
 ): string[] {
   return selectableEventTypes
     .filter((eventType) => eventType.selected)
-    .map((eventType) => EventTypeFromSelectableEventType(eventType).event_type_name);
-}
-
-function EventTypeFromSelectableEventType(selectableEventTypes: SelectableEventType) {
-  return {
-    event_type_name: selectableEventTypes.event_type_name,
-    resource_type_name: selectableEventTypes.resource_type_name,
-    service_name: selectableEventTypes.service_name,
-    verb_name: selectableEventTypes.verb_name,
-  };
+    .map((eventType) => eventType.event_type_name);
 }
 
 function SelectedEventTypesFromEventTypeNames(eventTypeNames: string[]): SelectableEventType[] {
-  return eventTypeNames.map((eventTypeName) => SelectableEventTypeFromEventTypeName(eventTypeName));
-}
-
-function SelectableEventTypeFromEventTypeName(eventTypeName: string): SelectableEventType {
-  const [resource_type_name, service_name, verb_name] = eventTypeName.split('.');
-
-  return {
-    event_type_name: eventTypeName,
-    resource_type_name,
-    service_name,
-    verb_name,
-    selected: true,
-  };
+  return eventTypeNames.map((eventTypeName) => {
+    const [resource_type_name, service_name, verb_name] = eventTypeName.split('.');
+    return {
+      event_type_name: eventTypeName,
+      resource_type_name,
+      service_name,
+      verb_name,
+      selected: true,
+    };
+  });
 }
 
 function toOption(val: string): Hook0SelectSingleOption {
-  return {
-    value: val,
-    label: val,
-  };
+  return { value: val, label: val };
+}
+
+/**
+ * Centralized cast for API record types that expect Record<string, never>.
+ * The API schema uses `never` as the value type for open-ended string maps,
+ * but our form state uses Record<string, string>. This helper isolates
+ * the unavoidable cast to a single location.
+ */
+function toApiRecord(map: Record<string, string>): Record<string, never> {
+  return map as unknown as Record<string, never>;
 }
 
 const router = useRouter();
-const route = useRoute();
+const { applicationId, subscriptionId } = useRouteIds();
+const isNew = computed(() => !subscriptionId.value);
 
-const isNew = ref(true);
-const subscription_id = ref<UUID | null>(null);
-const subscription = ref({
-  created_at: '',
-  secret: '',
-  description: '',
-  application_id: '',
-  event_types: [] as string[],
-  dedicated_workers: [] as string[],
-  is_enabled: true,
-  labels: {}, // K/V as object
-  metadata: {}, // K/V as object
-  target: {
-    type: 'http',
-    method: '',
-    url: '',
-    headers: {},
-  },
+// Queries
+const {
+  data: subscriptionData,
+  isLoading: subLoading,
+  error: subError,
+  refetch: refetchSub,
+} = useSubscriptionDetail(subscriptionId);
+
+const {
+  data: rawEventTypes,
+  isLoading: etLoading,
+  error: etError,
+  refetch: refetchEt,
+} = useEventTypeList(applicationId);
+
+// Mutations
+const createMutation = useCreateSubscription();
+const updateMutation = useUpdateSubscription();
+
+// VeeValidate form with Zod schema
+const { errors, defineField, handleSubmit, resetForm, setFieldError } = useForm({
+  validationSchema: toTypedSchema(createSubscriptionSchema()),
 });
+
+const [description, descriptionAttrs] = defineField('description');
+const [targetMethod, targetMethodAttrs] = defineField('target_method');
+targetMethod.value = 'POST';
+const [targetUrl, targetUrlAttrs] = defineField('target_url');
+
+// Non-validated form state (managed outside VeeValidate)
+const secret = ref('');
+const createdAt = ref('');
+const isEnabled = ref(true);
+const dedicatedWorkers = ref<string[]>([]);
 const eventTypes = ref<SelectableEventType[]>([]);
+const labels = ref<Hook0KeyValueKeyValuePair[]>([]);
+const metadata = ref<Hook0KeyValueKeyValuePair[]>([]);
+const headersKv = ref<Hook0KeyValueKeyValuePair[]>([]);
+const headersMap = ref<Record<string, string>>({});
+const labelsMap = ref<Record<string, string>>({});
+const metadataMap = ref<Record<string, string>>({});
 
-const labels = ref([] as Hook0KeyValueKeyValuePair[]);
-const metadata = ref([] as Hook0KeyValueKeyValuePair[]);
+const httpMethods = 'GET,PATCH,POST,PUT,DELETE,OPTIONS,HEAD'.split(',').map(toOption);
 
-const httpTarget = ref({
-  METHODS: 'GET,PATCH,POST,PUT,DELETE,OPTIONS,HEAD'.split(',').map(toOption),
-  headers: [] as Hook0KeyValueKeyValuePair[], // K/V
-});
+// Populate form from subscription data (edit mode)
+watch(
+  subscriptionData,
+  (sub) => {
+    if (sub) {
+      resetForm({
+        values: {
+          description: sub.description || '',
+          target_method: sub.target.method,
+          target_url: sub.target.url,
+        },
+      });
+      secret.value = sub.secret;
+      createdAt.value = sub.created_at;
+      isEnabled.value = sub.is_enabled;
+      dedicatedWorkers.value = [...sub.dedicated_workers];
+      labels.value = recordToKvPairs(sub.labels);
+      labelsMap.value = { ...sub.labels };
+      metadata.value = recordToKvPairs(sub.metadata);
+      metadataMap.value = { ...sub.metadata };
+      headersKv.value = recordToKvPairs(sub.target.headers);
+      headersMap.value = { ...sub.target.headers } as unknown as Record<string, string>;
+    }
+  },
+  { immediate: true }
+);
 
-function _load() {
-  function mapper(eventType: EventType): SelectableEventType {
-    return {
-      ...eventType,
-      selected: false,
-    };
-  }
+// Merge event types with subscription selection
+watch(
+  [rawEventTypes, subscriptionData],
+  ([et]) => {
+    if (!et) return;
 
-  if (subscription_id.value !== route.params.subscription_id) {
-    subscription_id.value = route.params.subscription_id as UUID;
-    isNew.value = !subscription_id.value;
-    eventTypes.value = [];
+    function mapper(eventType: EventType): SelectableEventType {
+      return { ...eventType, selected: false };
+    }
 
-    // first load the subscription if in edit mode
-    (!isNew.value
-      ? SubscriptionService.get(subscription_id.value).then((sub: Subscription) => {
-          // We do the mapping bellow (instead of a single-line assignment) to stay in control of what we manage
-          subscription.value.secret = sub.secret;
-          subscription.value.created_at = sub.created_at;
-          subscription.value.description = sub.description || '';
+    const selectedNames = subscriptionData.value
+      ? subscriptionData.value.event_types
+      : ([] as string[]);
 
-          subscription.value.event_types = sub.event_types;
+    eventTypes.value = intersectWith<SelectableEventType, SelectableEventType, string>(
+      (a) => a.event_type_name,
+      (selectableType: SelectableEventType[]) => ({
+        ...selectableType[0],
+        selected: selectableType.some((type) => type.selected),
+      }),
+      et.map(mapper),
+      SelectedEventTypesFromEventTypeNames(selectedNames)
+    );
+  },
+  { immediate: true }
+);
 
-          subscription.value.is_enabled = sub.is_enabled;
-          labels.value = fromMap(sub.labels);
-          subscription.value.labels = sub.labels;
-          metadata.value = fromMap(sub.metadata);
-          subscription.value.metadata = sub.metadata;
-          subscription.value.dedicated_workers = sub.dedicated_workers;
-
-          subscription.value.target = sub.target;
-          httpTarget.value.headers = fromMap(subscription.value.target.headers);
-        })
-      : Promise.resolve()
-    )
-      // then (always) load the eventTypes
-      .then(() => EventTypeService.list(route.params.application_id as string))
-      .then((et) => {
-        // apply selection if any event_types were already selected (edit mode)
-        // this will display previously selected event type names that are not available anymore
-        eventTypes.value = intersectWith<SelectableEventType, SelectableEventType, string>(
-          (a) => a.event_type_name,
-
-          // depending on the user event type selection, for a single event type we might have one or more events
-          (selectableType: SelectableEventType[]) => {
-            return {
-              ...(head(selectableType) as SelectableEventType),
-              selected: selectableType.some((type) => type.selected),
-            };
-          },
-
-          et.map(mapper),
-          SelectedEventTypesFromEventTypeNames(subscription.value.event_types)
-        );
-      })
-      .catch(displayError);
-  }
-}
-
-function cancel2() {
+function navigateBack() {
   router.back();
 }
 
-function fromMap(headers: Record<string, unknown>): Hook0KeyValueKeyValuePair[] {
-  return Object.entries(headers).map(([key, value]) => ({
-    key,
-    value: typeof value === 'string' ? value : JSON.stringify(value),
-  }));
+function onHeadersUpdate(pairs: Hook0KeyValueKeyValuePair[] | Record<string, string>) {
+  headersMap.value = Array.isArray(pairs) ? kvPairsToRecord(pairs) : pairs;
 }
 
-function toMap(pairs: Hook0KeyValueKeyValuePair[]): Record<string, string> {
-  return pairs.reduce((m, { key, value }) => {
-    // @ts-ignore
-    m[key] = value;
-    return m;
-  }, {});
+function onLabelsUpdate(pairs: Hook0KeyValueKeyValuePair[] | Record<string, string>) {
+  labelsMap.value = Array.isArray(pairs) ? kvPairsToRecord(pairs) : pairs;
 }
 
-function upsert(e: Event) {
-  e.preventDefault();
-  e.stopImmediatePropagation();
+function onMetadataUpdate(pairs: Hook0KeyValueKeyValuePair[] | Record<string, string>) {
+  metadataMap.value = Array.isArray(pairs) ? kvPairsToRecord(pairs) : pairs;
+}
 
-  if (!subscription.value.metadata) {
-    subscription.value.metadata = toMap(metadata.value);
-  }
-
-  if (isNew.value) {
-    SubscriptionService.create({
-      application_id: route.params.application_id as string,
-
-      target: {
-        type: 'http',
-        method: subscription.value.target.method,
-        url: subscription.value.target.url,
-        headers: subscription.value.target.headers,
-      },
-      description: subscription.value.description,
-      metadata: subscription.value.metadata,
-      labels: subscription.value.labels,
-      is_enabled: subscription.value.is_enabled,
-      event_types: EventTypeNamesFromSelectedEventTypes(eventTypes.value),
-    }).then((_resp) => {
-      trackEvent('subscription', 'create', 'success');
-      if (props.tutorialMode) {
-        emit('tutorial-subscription-created');
-      } else {
-        cancel2();
-      }
-    }, displayError);
+/**
+ * Map 422 API validation errors to inline form field errors.
+ */
+function handleValidationError(err: unknown) {
+  if (!isAxiosError(err)) {
+    displayError(handleError(err as Parameters<typeof handleError>[0]));
     return;
   }
 
-  SubscriptionService.update(subscription_id.value as UUID, {
-    target: {
-      type: 'http',
-      method: subscription.value.target.method,
-      url: subscription.value.target.url,
-      headers: subscription.value.target.headers,
+  const problem = handleError(err as Parameters<typeof handleError>[0]);
+  if (problem.status === 422) {
+    const detail = problem.detail || '';
+    // Map known API field names to VeeValidate field names
+    const fieldMap: Record<string, 'description' | 'target_method' | 'target_url'> = {
+      description: 'description',
+      'target.url': 'target_url',
+      'target.method': 'target_method',
+      url: 'target_url',
+      method: 'target_method',
+    };
+
+    let mapped = false;
+    for (const [apiField, formField] of Object.entries(fieldMap)) {
+      if (detail.toLowerCase().includes(apiField.toLowerCase())) {
+        setFieldError(formField, detail);
+        mapped = true;
+      }
+    }
+
+    if (!mapped) {
+      displayError(problem);
+    }
+    return;
+  }
+
+  displayError(problem);
+}
+
+const onSubmit = handleSubmit((values) => {
+  if (isNew.value) {
+    createMutation.mutate(
+      {
+        application_id: applicationId.value,
+        target: {
+          type: 'http' as const,
+          method: values.target_method,
+          url: values.target_url,
+          headers: toApiRecord(headersMap.value),
+        },
+        description: values.description,
+        metadata: toApiRecord(metadataMap.value),
+        labels: toApiRecord(labelsMap.value),
+        is_enabled: isEnabled.value,
+        event_types: EventTypeNamesFromSelectedEventTypes(eventTypes.value),
+      },
+      {
+        onSuccess: () => {
+          trackEvent('subscription', 'create', 'success');
+          if (props.tutorialMode) {
+            emit('tutorial-subscription-created');
+          } else {
+            navigateBack();
+          }
+        },
+        onError: (err) => {
+          handleValidationError(err);
+        },
+      }
+    );
+    return;
+  }
+
+  updateMutation.mutate(
+    {
+      subscriptionId: subscriptionId.value,
+      subscription: {
+        target: {
+          type: 'http' as const,
+          method: values.target_method,
+          url: values.target_url,
+          headers: toApiRecord(headersMap.value),
+        },
+        description: values.description,
+        metadata: toApiRecord(metadataMap.value),
+        labels: toApiRecord(labelsMap.value),
+        is_enabled: isEnabled.value,
+        event_types: EventTypeNamesFromSelectedEventTypes(eventTypes.value),
+        dedicated_workers: dedicatedWorkers.value.length > 0 ? dedicatedWorkers.value : undefined,
+        application_id: applicationId.value,
+      },
     },
-    description: subscription.value.description,
-    metadata: subscription.value.metadata,
-    labels: subscription.value.labels,
-    is_enabled: subscription.value.is_enabled,
-    event_types: EventTypeNamesFromSelectedEventTypes(eventTypes.value),
-    dedicated_workers:
-      subscription.value.dedicated_workers.length > 0
-        ? subscription.value.dedicated_workers
-        : undefined,
-    application_id: route.params.application_id as string,
-  }).then((_resp) => {
-    trackEvent('subscription', 'update', 'success');
-    cancel2();
-  }, displayError);
-}
-
-function displayError(err: Problem) {
-  console.error(err);
-  let options = {
-    title: err.title,
-    message: err.detail,
-    duration: 5000,
-  };
-  err.status >= 500 ? push.error(options) : push.warning(options);
-}
-
-onMounted(() => {
-  _load();
+    {
+      onSuccess: () => {
+        trackEvent('subscription', 'update', 'success');
+        navigateBack();
+      },
+      onError: (err) => {
+        handleValidationError(err);
+      },
+    }
+  );
 });
 
-onUpdated(() => {
-  _load();
-});
+// Computed: whether the non-validated parts are ready
+const hasRequiredLabels = computed(() => Object.keys(labelsMap.value).length > 0);
+const hasSelectedEventTypes = computed(() => eventTypes.value.some((et) => et.selected));
 </script>
 
 <template>
-  <div>
-    <form data-test="subscription-form" @submit="upsert">
-      <Hook0Card data-test="subscription-card">
+  <Hook0PageLayout :title="isNew ? t('subscriptions.createTitle') : t('subscriptions.editTitle')">
+    <Hook0Stack direction="column" gap="lg">
+      <!-- Loading subscription for edit mode -->
+      <Hook0Card v-if="!isNew && subLoading">
         <Hook0CardHeader>
-          <template v-if="isNew" #header> Create new subscription (webhook) </template>
-          <template v-else #header> Edit subscription (webhook) </template>
-          <template #subtitle>
-            A subscription (webhook) receives all events sent to Hook0 that match its filters.
-          </template>
+          <template #header>{{ t('subscriptions.editTitle') }}</template>
         </Hook0CardHeader>
         <Hook0CardContent>
-          <Hook0CardContentLine>
-            <template #label>Subscription description</template>
-            <template #content>
-              <Hook0Input
-                v-model="subscription.description"
-                type="text"
-                placeholder="my awesome api - production"
-                required
-                data-test="subscription-description-input"
-              >
-                <template #helpText>
-                  Describe what your subscription will do so you can distinguish it from others.
-                </template>
-              </Hook0Input>
-            </template>
-          </Hook0CardContentLine>
-
-          <Hook0CardContentLine v-if="!isNew">
-            <template #label>
-              Subscription secret
-
-              <Hook0Text class="helpText mt-2 block">
-                The secret is used to
-                <Hook0Button
-                  href="https://documentation.hook0.com/docs/verifying-webhook-signatures"
-                  target="_blank"
-                  >authenticate the webhooks</Hook0Button
-                >
-                sent by Hook0.
-                <em>Do not share this secret with anyone.</em>
-              </Hook0Text>
-            </template>
-
-            <template #content>
-              <div class="flex flex-row">
-                <Hook0Input
-                  v-model="subscription.secret"
-                  type="text"
-                  class="w-full disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200 disabled:shadow-none"
-                  disabled
-                >
-                </Hook0Input>
-              </div>
-            </template>
-          </Hook0CardContentLine>
-
-          <Hook0CardContentLine>
-            <template #label>
-              Endpoint HTTP verb and URL
-
-              <Hook0Text class="helpText mt-2 block">
-                When this subscription is triggered by an event, Hook0 will send a webhook to this
-                endpoint.
-                <br />
-              </Hook0Text>
-            </template>
-            <template #content>
-              <div class="flex flex-row">
-                <Hook0Select
-                  v-model="subscription.target.method"
-                  class="flex-none width-small"
-                  :options="httpTarget.METHODS"
-                  data-test="subscription-method-select"
-                ></Hook0Select>
-                <Hook0Input
-                  v-model="subscription.target.url"
-                  type="text"
-                  class="w-full ml-1"
-                  placeholder="https://"
-                  required
-                  data-test="subscription-url-input"
-                >
-                </Hook0Input>
-              </div>
-              <div class="flex flex-row mt-1">
-                <Hook0Text class="helpText">
-                  If you just want to run some tests, you can go to
-                  <Hook0Button href="https://webhook.site" target="_blank"
-                    >Webhook.site</Hook0Button
-                  >
-                  to obtain a unique URL. Keep the page open and use the unique URL here with any
-                  HTTP verb!
-                </Hook0Text>
-              </div>
-            </template>
-          </Hook0CardContentLine>
-
-          <Hook0CardContentLine>
-            <template #label> Endpoint headers </template>
-            <template #content>
-              <Hook0KeyValue
-                :value="httpTarget.headers"
-                key-placeholder="header name"
-                value-placeholder="value"
-                @update:model-value="subscription.target.headers = toMap($event)"
-              ></Hook0KeyValue>
-            </template>
-          </Hook0CardContentLine>
-
-          <Hook0CardContentLine>
-            <template #label>
-              Subscription labels
-
-              <Hook0Text class="helpText mt-2 block">
-                Hook0 will only forward events to subscriptions that have the same labels as
-                specified in the event. If you specify multiple labels here, events will need to
-                have <em>at least</em> the same labels to trigger this subscription (but they can
-                have more).
-              </Hook0Text>
-
-              <Hook0Text class="helpText mt-2 block"> </Hook0Text>
-            </template>
-            <template #content>
-              <Hook0KeyValue
-                :value="labels"
-                key-placeholder="Label key"
-                value-placeholder="Label value"
-                data-test="subscription-labels"
-                @update:model-value="subscription.labels = toMap($event)"
-              ></Hook0KeyValue>
-            </template>
-          </Hook0CardContentLine>
-
-          <Hook0CardContentLine>
-            <template #label>
-              <Hook0Text>
-                Select
-                <Hook0Button :to="{ name: routes.EventTypesList }" target="_blank"
-                  >event types</Hook0Button
-                >
-                to listen to
-                <Hook0Button @click="_load()">
-                  <Hook0Icon name="fa-arrows-rotate"></Hook0Icon>
-                </Hook0Button>
-              </Hook0Text>
-            </template>
-            <template #content>
-              <Hook0Loader v-if="eventTypes === null"></Hook0Loader>
-              <Hook0List v-else data-test="event-types-list">
-                <Hook0ListItem
-                  v-for="(eventType, index) in eventTypes"
-                  :key="index"
-                  :data-test="`event-type-item-${index}`"
-                >
-                  <template #left>
-                    <Hook0Input
-                      :id="'event_' + index"
-                      type="checkbox"
-                      :value="eventType.selected"
-                      :data-test="`event-type-checkbox-${index}`"
-                      @input="eventType.selected = !eventType.selected"
-                    ></Hook0Input>
-                    <label
-                      :for="'event_' + index"
-                      class="font-medium text-gray-700 select-none ml-2 cursor-pointer"
-                      :data-test="`event-type-label-${index}`"
-                    >
-                      <Hook0Text>{{ eventType.event_type_name }}</Hook0Text>
-                    </label>
-                  </template>
-                </Hook0ListItem>
-              </Hook0List>
-            </template>
-          </Hook0CardContentLine>
+          <Hook0Stack direction="column" gap="md">
+            <Hook0Skeleton size="hero" />
+            <Hook0Skeleton size="heading" />
+            <Hook0Skeleton size="heading" />
+          </Hook0Stack>
         </Hook0CardContent>
-
-        <Hook0CardContentLine>
-          <template #label> Metadata </template>
-          <template #content>
-            <Hook0KeyValue
-              :value="metadata"
-              key-placeholder="key"
-              value-placeholder="value"
-              @update:model-value="subscription.metadata = toMap($event)"
-            ></Hook0KeyValue>
-          </template>
-        </Hook0CardContentLine>
-        <Hook0CardFooter>
-          <Hook0Button
-            v-if="!props.tutorialMode"
-            class="secondary"
-            type="button"
-            data-test="subscription-cancel-button"
-            @click="cancel2()"
-            >Cancel</Hook0Button
-          >
-          <Hook0Button
-            v-if="!tutorialMode"
-            class="primary"
-            type="button"
-            :disabled="
-              !subscription.target.url ||
-              !subscription.description ||
-              Object.keys(subscription.labels).length <= 0 ||
-              !eventTypes.some((et) => et.selected)
-            "
-            tooltip="ℹ️ To continue, you need to fill in all required fields"
-            data-test="subscription-submit-button"
-            @click="upsert($event)"
-            >{{ isNew ? 'Create' : 'Update' }}
-          </Hook0Button>
-
-          <Hook0Button
-            v-else
-            class="primary"
-            type="submit"
-            :disabled="
-              !subscription.target.url ||
-              !subscription.description ||
-              Object.keys(subscription.labels).length <= 0 ||
-              !eventTypes.some((et) => et.selected)
-            "
-            tooltip="ℹ️ To continue, you need to fill in all required fields"
-            data-test="subscription-submit-button"
-            @click="upsert($event)"
-            >Create Your First Subscription 🎉
-          </Hook0Button>
-        </Hook0CardFooter>
       </Hook0Card>
-    </form>
 
-    <SubscriptionsRemove
-      v-if="!isNew && subscription_id"
-      :subscription-id="subscription_id"
-      :subscription-name="subscription.description"
-      :application-id="
-        Array.isArray(route.params.application_id)
-          ? route.params.application_id[0]
-          : route.params.application_id
-      "
-    ></SubscriptionsRemove>
-  </div>
+      <!-- Error loading subscription -->
+      <Hook0ErrorCard v-else-if="!isNew && subError" :error="subError" @retry="refetchSub()" />
+
+      <!-- Form -->
+      <template v-else>
+        <!-- Secret (edit mode only, above the form card) -->
+        <Hook0Card v-if="!isNew" data-test="subscription-secret-card">
+          <Hook0CardContent>
+            <div class="sub-secret">
+              <span class="sub-secret__title">{{ t('subscriptions.secretLabel') }}</span>
+              <span class="sub-secret__hint">
+                <i18n-t keypath="subscriptions.secretHint" tag="span">
+                  <template #link>
+                    <Hook0Button
+                      variant="link"
+                      href="https://documentation.hook0.com/docs/verifying-webhook-signatures"
+                      target="_blank"
+                      >{{ t('subscriptions.authenticateWebhooks') }}</Hook0Button
+                    >
+                  </template>
+                </i18n-t>
+              </span>
+              <Hook0CopyField :value="secret" maskable />
+            </div>
+          </Hook0CardContent>
+        </Hook0Card>
+
+        <Hook0Form data-test="subscription-form" @submit="onSubmit">
+          <Hook0Card data-test="subscription-card">
+            <Hook0CardHeader>
+              <template v-if="isNew" #header>{{ t('subscriptions.createTitle') }}</template>
+              <template v-else #header>{{ t('subscriptions.editTitle') }}</template>
+              <template #subtitle>{{ t('subscriptions.formSubtitle') }}</template>
+            </Hook0CardHeader>
+
+            <Hook0CardContent>
+              <div class="sub-form">
+                <!-- Section 1: Basics -->
+                <div class="sub-form__section-header">
+                  <span class="sub-form__section-num">1</span>
+                  <span class="sub-form__section-title">{{
+                    t('subscriptions.sectionBasics')
+                  }}</span>
+                </div>
+                <SubscriptionSectionBasics
+                  :description="description"
+                  :description-attrs="descriptionAttrs"
+                  :description-error="errors.description"
+                  :target-method="targetMethod"
+                  :target-method-attrs="targetMethodAttrs"
+                  :target-method-error="errors.target_method"
+                  :target-url="targetUrl"
+                  :target-url-attrs="targetUrlAttrs"
+                  :target-url-error="errors.target_url"
+                  :http-methods="httpMethods"
+                  :autofocus="isNew"
+                  @update:description="description = $event"
+                  @update:target-method="targetMethod = $event"
+                  @update:target-url="targetUrl = $event"
+                />
+
+                <div class="sub-form__divider" />
+
+                <!-- Section 2: Filtering -->
+                <div class="sub-form__section-header">
+                  <span class="sub-form__section-num">2</span>
+                  <span class="sub-form__section-title">{{
+                    t('subscriptions.sectionFiltering')
+                  }}</span>
+                </div>
+
+                <Hook0Stack direction="column" gap="md">
+                  <SubscriptionSectionEventTypes
+                    :event-types="eventTypes"
+                    :loading="etLoading"
+                    :error="etError"
+                    @update:event-types="eventTypes = $event"
+                    @refresh="refetchEt()"
+                  />
+
+                  <SubscriptionSectionLabels
+                    :labels="labels"
+                    @update:labels="onLabelsUpdate($event)"
+                  />
+                </Hook0Stack>
+
+                <div class="sub-form__divider" />
+
+                <!-- Section 3: Optional -->
+                <div class="sub-form__section-header sub-form__section-header--muted">
+                  <span class="sub-form__section-num sub-form__section-num--muted">3</span>
+                  <span class="sub-form__section-title">{{
+                    t('subscriptions.sectionAdvanced')
+                  }}</span>
+                  <span class="sub-form__section-badge">{{ t('common.optional') }}</span>
+                </div>
+                <SubscriptionSectionAdvanced
+                  :headers-kv="headersKv"
+                  :metadata="metadata"
+                  @update:headers="onHeadersUpdate($event)"
+                  @update:metadata="onMetadataUpdate($event)"
+                />
+              </div>
+            </Hook0CardContent>
+
+            <Hook0CardFooter>
+              <Hook0Button
+                v-if="!props.tutorialMode"
+                variant="secondary"
+                type="button"
+                data-test="subscription-cancel-button"
+                @click="navigateBack()"
+                >{{ t('common.cancel') }}</Hook0Button
+              >
+              <Hook0Button
+                v-if="
+                  !tutorialMode && (isNew ? canCreate('subscription') : canEdit('subscription'))
+                "
+                variant="primary"
+                type="button"
+                :loading="createMutation.isPending.value || updateMutation.isPending.value"
+                :disabled="
+                  !targetUrl || !description || !hasRequiredLabels || !hasSelectedEventTypes
+                "
+                data-test="subscription-submit-button"
+                @click="onSubmit"
+                >{{ isNew ? t('common.create') : t('common.save') }}
+              </Hook0Button>
+
+              <Hook0Button
+                v-else
+                variant="primary"
+                type="submit"
+                :loading="createMutation.isPending.value"
+                :disabled="
+                  !targetUrl || !description || !hasRequiredLabels || !hasSelectedEventTypes
+                "
+                data-test="subscription-submit-button"
+                @click="onSubmit"
+                >{{ t('subscriptions.createFirstSubscription') }}
+              </Hook0Button>
+            </Hook0CardFooter>
+          </Hook0Card>
+        </Hook0Form>
+
+        <SubscriptionsRemove
+          v-if="!isNew && subscriptionId && canDelete('subscription')"
+          :subscription-id="subscriptionId"
+          :subscription-name="description || ''"
+          :application-id="applicationId"
+        ></SubscriptionsRemove>
+      </template>
+    </Hook0Stack>
+  </Hook0PageLayout>
 </template>
+
+<style scoped>
+/* Secret card */
+.sub-secret {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sub-secret__title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.sub-secret__hint {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.sub-secret__hint :deep(.hook0-button) {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.sub-secret__warning {
+  font-size: 0.75rem;
+  font-style: italic;
+  font-weight: 500;
+  color: var(--color-warning);
+}
+
+.sub-form__row-hint--emphasis {
+  font-style: italic;
+  font-weight: 500;
+}
+
+/* Form sections layout */
+.sub-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.sub-form__section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sub-form__section-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  border-radius: var(--radius-full);
+  background-color: var(--color-primary);
+  color: var(--color-primary-text, #fff);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.sub-form__section-num--muted {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-muted);
+}
+
+.sub-form__section-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.sub-form__section-header--muted .sub-form__section-title {
+  color: var(--color-text-muted);
+}
+
+.sub-form__section-badge {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  padding: 0.0625rem 0.625rem;
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-tertiary);
+}
+
+.sub-form__divider {
+  height: 1px;
+  background-color: var(--color-border);
+  margin: 1.5rem 0;
+}
+
+@media (max-width: 639px) {
+  .sub-form__divider {
+    margin: 0.75rem 0;
+  }
+}
+</style>
