@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, markRaw } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Rocket, FileText } from 'lucide-vue-next';
+import { Rocket, FileText, Database } from 'lucide-vue-next';
 
 import { useApplicationDetail } from './useApplicationQueries';
 import { useEventsPerDay } from './useEventsPerDayQuery';
@@ -56,6 +56,15 @@ const consumptions = computed<ConsumptionQuota[]>(() => {
       name: t('applications.consumptionEventsPerDay'),
       consumption: application.value.consumption.events_per_day || 0,
       quota: application.value.quotas.events_per_day_limit,
+    },
+    {
+      icon: markRaw(Database),
+      name: t('applications.consumptionRetention'),
+      description: t('applications.consumptionRetentionDesc'),
+      consumption: application.value.quotas.days_of_events_retention_limit,
+      quota: application.value.quotas.days_of_events_retention_limit,
+      displayValue: String(application.value.quotas.days_of_events_retention_limit),
+      displayUnit: t('common.days'),
     },
   ];
 });

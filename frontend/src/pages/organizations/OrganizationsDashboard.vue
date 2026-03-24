@@ -84,20 +84,13 @@ const consumptions = computed<ConsumptionQuota[]>(() => {
       quota: organization.value.quotas.applications_per_organization_limit,
     },
     {
-      icon: markRaw(FileText),
-      name: t('organizations.consumptionEventsPerDay'),
-      description: t('organizations.consumptionEventsPerDayDesc'),
-      consumption: organization.value.consumption.events_per_day || 0,
-      quota: organization.value.quotas.events_per_day_limit,
-    },
-    {
       icon: markRaw(Database),
       name: t('organizations.consumptionRetention'),
       description: t('organizations.consumptionRetentionDesc'),
       consumption: organization.value.quotas.days_of_events_retention_limit,
       quota: organization.value.quotas.days_of_events_retention_limit,
       displayValue: String(organization.value.quotas.days_of_events_retention_limit),
-      displayUnit: 'days',
+      displayUnit: t('common.days'),
     },
   ];
 });
@@ -110,22 +103,22 @@ const quotaCards = computed<{ icon: Component; value: number | undefined; label:
     {
       icon: markRaw(Users),
       value: q.members_per_organization_limit,
-      label: t('organizations.consumptionMembers'),
+      label: t('organizations.quotaMembers', q.members_per_organization_limit ?? 0),
     },
     {
       icon: markRaw(FolderOpen),
       value: q.applications_per_organization_limit,
-      label: t('organizations.consumptionApplications'),
+      label: t('organizations.quotaApplications', q.applications_per_organization_limit ?? 0),
     },
     {
       icon: markRaw(FileText),
       value: q.events_per_day_limit,
-      label: t('organizations.consumptionEventsPerDay'),
+      label: t('organizations.quotaEventsPerDay', q.events_per_day_limit ?? 0),
     },
     {
       icon: markRaw(Database),
       value: q.days_of_events_retention_limit,
-      label: t('organizations.consumptionRetention'),
+      label: t('organizations.quotaRetention', q.days_of_events_retention_limit ?? 0),
     },
   ];
 });
