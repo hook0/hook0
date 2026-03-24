@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "hook0-play.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "hook0-play.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "hook0-play.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "hook0-play.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: hook0-play
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: HOOKS_HOST
+              value: {{ .Values.play.host | quote }}
+            - name: HOOKS_PORT
+              value: {{ .Values.play.port | quote }}
+            - name: HOOKS_BASE_URL
+              value: {{ .Values.play.baseUrl | quote }}
+            {{- if .Values.play.enableEncryption }}
+            - name: HOOKS_ENABLE_ENCRYPTION
+              value: "true"
+            {{- end }}
+            - name: RUST_LOG
+              value: "hook0_play=info,tower_http=info"
+          ports:
+            - name: http
+              containerPort: {{ .Values.play.port }}
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 10001
