@@ -1,0 +1,60 @@
+play.check:
+  stage: test
+  dependencies: []
+  image: rust:$RUST_VERSION
+  extends: .rust-cache-pull-only
+  rules:
+    - changes:
+        - play/**/*
+        - Cargo.*
+  before_script:
+    - rustc --version && cargo --version
+    - rustup component add clippy rustfmt
+  script:
+    - cargo fmt -p hook0-play -- --check
+    - cargo clippy -p hook0-play --all-targets --all-features -- -D warnings
+    - cargo test -p hook0-play --all-features
+
+play.e2e:
+  stage: test
+  dependencies: []
+  image: rust:$RUST_VERSION
+  extends: .rust-cache-pull-only
+  rules:
+    - changes:
+        - play/**/*
+        - cli/**/*
+        - Cargo.*
+  before_script:
+    - rustc --version && cargo --version
+  script:
+    - cargo build -p hook0-cli
+    - cargo test -p hook0-cli --test e2e_hooks -- --nocapture
+
+play.docker:
+  stage: build
+  dependencies: []
+  image:
+    name: gcr.io/kaniko-project/executor:v1.23.2-debug
+    entrypoint: [""]
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+  rules:
+    - changes:
+        - play/**/*
+        - Cargo.*
+  script:
+    - mkdir -p /kaniko/.docker
+    - |
+      echo "{\"auths\":{\"${CI_REGISTRY}\":{\"auth\":\"$(printf '%s:%s' "${CI_REGISTRY_USER}" "${CI_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
+    - >
+      /kaniko/executor
+      --context "${CI_PROJECT_DIR}"
+      --dockerfile "${CI_PROJECT_DIR}/play/Dockerfile"
+      --destination "${CI_REGISTRY_IMAGE}/play:${CI_COMMIT_SHORT_SHA}"
+      --destination "${CI_REGISTRY_IMAGE}/play:latest"
+      --cache=true
+      --cache-repo="${CI_REGISTRY_IMAGE}/play/cache"

@@ -1,0 +1,36 @@
+fullnameOverride: "hook0-play"
+
+image:
+  repository: registry.gitlab.com/hook0/hook0/play
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets:
+  - name: gitlab-registry
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 3030
+
+ingress:
+  enabled: true
+  host: play.hook0.com
+
+play:
+  host: "0.0.0.0"
+  port: 3030
+  baseUrl: "https://play.hook0.com"
+  enableEncryption: false
+
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "100m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+
+nodeSelector:
+  node-role.kubernetes.io/worker: ""

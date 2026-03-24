@@ -1,0 +1,18 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ include "hook0-play.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "hook0-play.labels" . | nindent 4 }}
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`{{ .Values.ingress.host }}`)
+      kind: Rule
+      services:
+        - name: {{ include "hook0-play.fullname" . }}
+          port: {{ .Values.service.port }}
+{{- end }}

@@ -1,0 +1,8 @@
+target/
+.git/
+frontend/
+documentation/
+website/
+e2e-tests/
+.gitlab-ci.yml
+*.md

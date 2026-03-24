@@ -18,20 +18,31 @@ use crate::opentelemetry::report_cancelled_request_attempts;
 use crate::problems::Hook0Problem;
 use crate::quotas::{Quota, QuotaValue};
 
+/// A Hook0 application.
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct Application {
+    /// Unique identifier of the application.
     application_id: Uuid,
+    /// UUID of the organization this application belongs to.
     organization_id: Uuid,
+    /// Name of the application. Length: 2-50 characters.
     name: String,
 }
 
+/// Detailed information about a Hook0 application.
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct ApplicationInfo {
+    /// Unique identifier of the application.
     application_id: Uuid,
+    /// UUID of the organization this application belongs to.
     organization_id: Uuid,
+    /// Name of the application. Length: 2-50 characters.
     name: String,
+    /// Quota limits for this application.
     quotas: ApplicationQuotas,
+    /// Current consumption metrics for this application.
     consumption: ApplicationConsumption,
+    /// Onboarding completion status for this application.
     onboarding_steps: ApplicationOnboardingSteps,
 }
 
@@ -51,9 +62,12 @@ pub struct Qs {
     organization_id: Uuid,
 }
 
+/// Request body to create a new application.
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct ApplicationPost {
+    /// UUID of the organization this application belongs to.
     organization_id: Uuid,
+    /// Name of the application. Length: 2-50 characters.
     #[validate(non_control_character, length(min = 2, max = 50))]
     name: String,
 }
