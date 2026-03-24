@@ -1,0 +1,13 @@
+---
+source: api/src/handlers/events.rs
+expression: "serde_json::to_value(&schema).unwrap()"
+---
+{
+  "description": "Content type of the event payload",
+  "enum": [
+    "text/plain",
+    "application/json",
+    "application/octet-stream+base64"
+  ],
+  "type": "string"
+}
