@@ -1,0 +1,100 @@
+[package]
+name = "hook0-cli"
+version = "0.1.0"
+edition = "2021"
+license = "SSPL-1.0"
+description = "CLI for Hook0 webhooks platform"
+authors = ["David Sferruzza <david@hook0.com>", "François-Guillaume Ribreau <fg@hook0.com>"]
+repository = "https://gitlab.com/hook0/hook0"
+keywords = ["webhooks", "cli", "hook0"]
+categories = ["command-line-utilities", "web-programming"]
+build = "build.rs"
+
+[build-dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+reqwest = { version = "0.12", features = ["blocking", "rustls-tls"], default-features = false }
+heck = "0.5"
+
+[dependencies]
+# CLI Framework
+clap = { version = "4.5", features = ["derive", "env", "wrap_help"] }
+clap_complete = "4.5"
+
+# Async Runtime
+tokio = { version = "1.35", features = ["full"] }
+
+# HTTP Client
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+
+# WebSocket (tunneling)
+tokio-tungstenite = { version = "0.26", features = ["rustls-tls-webpki-roots"] }
+futures-util = "0.3"
+
+# Random token generation
+rand = "0.8"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+base64 = "0.22"
+
+# Output formatting
+comfy-table = "7.1"
+console = "0.15"
+indicatif = "0.17"
+
+# TUI (optional)
+ratatui = { version = "0.29", optional = true }
+crossterm = { version = "0.28", features = ["event-stream"], optional = true }
+axum = { version = "0.8", optional = true }
+portpicker = { version = "0.1", optional = true }
+
+# TLS
+rustls = { version = "0.23", default-features = false, features = ["std", "tls12", "aws_lc_rs"] }
+
+# Auth & Security
+keyring = { version = "3.6" }
+dirs = "5.0"
+
+# Error handling
+thiserror = "2.0"
+anyhow = "1.0"
+
+# Utilities
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.10", features = ["v4", "serde"] }
+url = "2.5"
+dialoguer = "0.11"
+webbrowser = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+atty = "0.2"
+
+[features]
+default = ["tui"]
+tui = ["dep:ratatui", "dep:crossterm", "dep:axum", "dep:portpicker"]
+
+[dev-dependencies]
+tempfile = "3.10"
+wiremock = "0.6"
+tokio-test = "0.4"
+assert_cmd = "2.0"
+predicates = "3.1"
+hook0-play = { path = "../play" }
+portpicker = "0.1"
+axum = { version = "0.8", features = ["macros"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+keyring = { version = "3.6", features = ["apple-native"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+keyring = { version = "3.6", features = ["windows-native"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+keyring = { version = "3.6", features = ["linux-native"] }
+
+[[bin]]
+name = "hook0"
+path = "src/main.rs"
