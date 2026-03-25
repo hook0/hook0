@@ -4,9 +4,9 @@
 
 **Goal:** Allow organizations to define named retry schedules (exponential, linear, custom) and assign them to subscriptions, falling back to David's default when none is assigned.
 
-**Architecture:** New `webhook.retry_schedule` table with strategy-specific fields. CRUD API following flat-scope pattern (service_token style). Worker's `compute_next_retry` modified to resolve schedule via JOIN and dispatch to strategy-specific delay computation. Hook0 client events with full payload.
+**Architecture:** New `webhook.retry_schedule` table with strategy-specific fields. CRUD API following flat-scope pattern (service_token style). Worker's `compute_next_retry` modified to resolve schedule via JOIN and dispatch to strategy-specific delay computation via `ScheduleConfig` enum. Hook0 client events with full payload.
 
-**Tech Stack:** Rust, actix-web, paperclip (OpenAPI), sqlx (Postgres), clap, strum, Biscuit auth, validator crate
+**Tech Stack:** Rust, actix-web, paperclip (OpenAPI), sqlx (Postgres), clap, strum, Biscuit auth, validator crate, k6 (JS integration tests)
 
 **Spec:** `docs/superpowers/specs/2026-03-25-retry-schedule-design.md`
 
@@ -18,18 +18,19 @@
 
 | File | Action | Responsibility |
 |---|---|---|
-| `api/migrations/20260325120000_add_retry_schedule.up.sql` | Create | Migration: new table + subscription FK |
-| `api/migrations/20260325120000_add_retry_schedule.down.sql` | Create | Rollback migration |
-| `api/src/iam.rs` | Modify | Add `RetrySchedule*` Action variants (Viewer for read, Editor for write) |
-| `api/src/problems.rs` | Modify | Add `TooManyRetrySchedulesPerOrganization` error variant |
-| `api/src/handlers/retry_schedules.rs` | Create | CRUD handlers for retry schedules |
-| `api/src/handlers/mod.rs` | Modify | Register `retry_schedules` module |
-| `api/src/handlers/subscriptions.rs` | Modify | Add `retry_schedule_id` to post/response structs |
-| `api/src/main.rs` | Modify | Register `/retry_schedules` routes + `max_retry_schedules_per_org` env var |
-| `api/src/hook0_client.rs` | Modify | Add 3 event types with full payload |
-| `output-worker/src/main.rs` | Modify | ScheduleConfig + compute_delay_from_schedule + boot log note |
-| `output-worker/src/pg.rs` | Modify | Add schedule fields to fetch query via LEFT JOIN |
-| `output-worker/src/pulsar.rs` | Modify | Add LEFT JOIN in status query, pass schedule to retry logic |
+| `api/migrations/20260325120000_add_retry_schedule.up.sql` | Create | Migration (expand-and-contract) |
+| `api/migrations/20260325120000_add_retry_schedule.down.sql` | Create | Rollback |
+| `api/src/iam.rs` | Modify | Add `RetrySchedule*` Action variants |
+| `api/src/problems.rs` | Modify | Add `TooManyRetrySchedulesPerOrganization` variant |
+| `api/src/handlers/retry_schedules.rs` | Create | CRUD handlers + unit tests for validation |
+| `api/src/handlers/mod.rs` | Modify | Register module |
+| `api/src/handlers/subscriptions.rs` | Modify | Add `retry_schedule_id` field |
+| `api/src/main.rs` | Modify | Routes + `max_retry_schedules_per_org` env var |
+| `api/src/hook0_client.rs` | Modify | 3 event types with full payload |
+| `output-worker/src/main.rs` | Modify | `ScheduleConfig` enum + `compute_delay_from_schedule` + unit tests |
+| `output-worker/src/pg.rs` | Modify | LEFT JOIN in fetch query |
+| `output-worker/src/pulsar.rs` | Modify | LEFT JOIN in status query |
+| `tests-api-integrations/src/retry_schedules/` | Create | k6 integration tests |
 
 ---
 
@@ -39,14 +40,17 @@
 - Create: `api/migrations/20260325120000_add_retry_schedule.up.sql`
 - Create: `api/migrations/20260325120000_add_retry_schedule.down.sql`
 
-- [ ] **Step 1: Write up migration**
+- [ ] **Step 1: Write up migration (expand-and-contract for zero-downtime)**
 
 ```sql
 -- api/migrations/20260325120000_add_retry_schedule.up.sql
 
 create table webhook.retry_schedule (
     retry_schedule__id uuid not null default public.gen_random_uuid(),
-    organization__id uuid not null references iam.organization(organization__id) on update cascade on delete cascade,
+    organization__id uuid not null
+        constraint retry_schedule_organization__id_fkey
+        references iam.organization(organization__id)
+        on update cascade on delete cascade,
     name text not null check (length(name) > 1),
     strategy text not null check (strategy in ('exponential', 'linear', 'custom')),
     max_retries integer not null check (max_retries > 0 and max_retries <= 100),
@@ -70,47 +74,47 @@ create table webhook.retry_schedule (
                 and array_length(custom_intervals, 1) = max_retries
                 and 1 <= all(custom_intervals)
                 and 604800 >= all(custom_intervals)
+            else false
         end
     )
 );
 
-alter table webhook.subscription
-    add column retry_schedule__id uuid
-    references webhook.retry_schedule(retry_schedule__id)
-    on update cascade on delete set null;
-```
+-- Expand-and-contract: add column without FK first (instant, minimal lock)
+alter table webhook.subscription add column retry_schedule__id uuid;
 
-Notes:
-- FK on `organization__id` inline in CREATE TABLE (not separate ALTER TABLE)
-- FK on `subscription.retry_schedule__id` via ALTER TABLE (existing table)
-- `on delete cascade` on org FK: org deletion cascades to schedule deletion
-- `on delete set null` on subscription FK: schedule deletion reverts subscription to default
-- Cross-field CHECK validates strategy-specific field requirements
-- `604800` = MAX_INTERVAL_SECONDS (1 week). Must match the Rust constant.
-- No index on `subscription.retry_schedule__id` — rare queries only
+-- Add FK with NOT VALID (no full scan, brief lock)
+alter table webhook.subscription
+    add constraint subscription_retry_schedule__id_fkey
+    foreign key (retry_schedule__id)
+    references webhook.retry_schedule(retry_schedule__id)
+    on update cascade on delete set null
+    not valid;
+
+-- Validate separately (SHARE UPDATE EXCLUSIVE, not exclusive)
+alter table webhook.subscription
+    validate constraint subscription_retry_schedule__id_fkey;
+
+-- Index on FK column to prevent full table scan on cascade delete
+create index subscription_retry_schedule__id_idx
+    on webhook.subscription (retry_schedule__id);
+```
 
 - [ ] **Step 2: Write down migration**
 
 ```sql
 -- api/migrations/20260325120000_add_retry_schedule.down.sql
 
+drop index if exists webhook.subscription_retry_schedule__id_idx;
+alter table webhook.subscription drop constraint if exists subscription_retry_schedule__id_fkey;
 alter table webhook.subscription drop column if exists retry_schedule__id;
 drop table if exists webhook.retry_schedule;
 ```
 
-- [ ] **Step 3: Run migration**
-
-Run: `cd api && sqlx migrate run`
-Expected: Migration applied successfully
-
-- [ ] **Step 4: Verify schema**
-
-Run: `psql $DATABASE_URL -c "\d webhook.retry_schedule"`
-Expected: Table with all columns and constraints
-
-- [ ] **Step 5: Commit**
+- [ ] **Step 3: Run migration, verify, commit**
 
 ```bash
+cd api && sqlx migrate run
+psql $DATABASE_URL -c "\d webhook.retry_schedule"
 git add api/migrations/20260325120000_add_retry_schedule.*
 git commit -m "feat(db): add retry_schedule table and subscription FK"
 ```
@@ -119,16 +123,11 @@ git commit -m "feat(db): add retry_schedule table and subscription FK"
 
 ## Task 2: IAM Action Variants + Error Variant
 
-**Files:**
-- Modify: `api/src/iam.rs`
-- Modify: `api/src/problems.rs`
+**Files:** `api/src/iam.rs`, `api/src/problems.rs`
 
-- [ ] **Step 1: Add Action variants to iam.rs**
-
-Add to the `Action` enum:
+- [ ] **Step 1: Add Action variants**
 
 ```rust
-    //
     RetryScheduleList,
     RetryScheduleCreate,
     RetryScheduleGet,
@@ -136,20 +135,20 @@ Add to the `Action` enum:
     RetryScheduleDelete,
 ```
 
-Flat variants (no fields), same as `ServiceTokenList`. Add the 5 match arms in:
-- `action_name()` → `"retry_schedule:list"`, etc.
-- `allowed_roles()` → `vec![Role::Viewer]` for List/Get, `vec![]` (Editor only) for Create/Edit/Delete
-- `can_work_without_organization()` → `false` (via default `_ =>` arm)
+5 match arms:
+- `action_name()` → `"retry_schedule:list"`, `"retry_schedule:create"`, etc.
+- `allowed_roles()` → `vec![Role::Viewer]` for List/Get, `vec![]` for Create/Edit/Delete
+- `can_work_without_organization()` → falls through to `false`
 - `application_id()` → `None`
 - `generate_facts()` → `vec![]`
 
-- [ ] **Step 2: Add error variant to problems.rs**
+- [ ] **Step 2: Add error variant**
 
 ```rust
-    TooManyRetrySchedulesPerOrganization(QuotaValue),
+TooManyRetrySchedulesPerOrganization(QuotaValue),
 ```
 
-With mapping:
+Mapping (follow `TooManySubscriptionsPerApplication` pattern exactly):
 ```rust
 Hook0Problem::TooManyRetrySchedulesPerOrganization(limit) => {
     let detail = format!("This organization cannot have more than {limit} retry schedules.");
@@ -163,36 +162,23 @@ Hook0Problem::TooManyRetrySchedulesPerOrganization(limit) => {
 },
 ```
 
-- [ ] **Step 3: Verify compilation**
-
-Run: `cd api && cargo check`
-
-- [ ] **Step 4: Commit**
-
-```bash
-git add api/src/iam.rs api/src/problems.rs
-git commit -m "feat(api): add RetrySchedule IAM actions and error variant"
-```
+- [ ] **Step 3: Verify, commit**
 
 ---
 
 ## Task 3: Retry Schedule CRUD Handler
 
-**Files:**
-- Create: `api/src/handlers/retry_schedules.rs`
-- Modify: `api/src/handlers/mod.rs`
+**Files:** `api/src/handlers/retry_schedules.rs`, `api/src/handlers/mod.rs`
 
-- [ ] **Step 1: Register the module in mod.rs**
+- [ ] **Step 1: Register module, define types**
 
 ```rust
+// api/src/handlers/mod.rs
 pub mod retry_schedules;
 ```
 
-- [ ] **Step 2: Define types and structs**
-
-Create `api/src/handlers/retry_schedules.rs`:
-
 ```rust
+// api/src/handlers/retry_schedules.rs
 use actix_web::web::{Data, Json, Path, Query, ReqData};
 use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};
@@ -213,8 +199,7 @@ use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
 use crate::quotas::QuotaValue;
 
-/// Maximum interval value in seconds (1 week). Must match the DB CHECK constraint.
-pub const MAX_INTERVAL_SECONDS: i32 = 604_800;
+pub const MAX_INTERVAL_SECS: i32 = 604_800; // 1 week. Must match DB CHECK.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Display, EnumString, Apiv2Schema)]
 #[serde(rename_all = "lowercase")]
@@ -225,6 +210,7 @@ pub enum RetryStrategy {
     Custom,
 }
 
+// Response struct — strategy as String from DB (sqlx maps TEXT → String)
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct RetrySchedule {
     pub retry_schedule_id: Uuid,
@@ -243,10 +229,9 @@ pub struct RetrySchedulePost {
     pub organization_id: Uuid,
     #[validate(length(min = 2, max = 200))]
     pub name: String,
-    pub strategy: RetryStrategy,
+    pub strategy: RetryStrategy, // enum — invalid values → 400 at deserialization
     #[validate(range(min = 1, max = 100))]
     pub max_retries: i32,
-    #[validate(custom(function = "validate_custom_intervals"))]
     pub custom_intervals: Option<Vec<i32>>,
     #[validate(range(min = 1, max = 604_800))]
     pub linear_delay: Option<i32>,
@@ -259,7 +244,6 @@ pub struct RetrySchedulePut {
     pub strategy: RetryStrategy,
     #[validate(range(min = 1, max = 100))]
     pub max_retries: i32,
-    #[validate(custom(function = "validate_custom_intervals"))]
     pub custom_intervals: Option<Vec<i32>>,
     #[validate(range(min = 1, max = 604_800))]
     pub linear_delay: Option<i32>,
@@ -271,17 +255,9 @@ pub struct RetryScheduleQs {
 }
 ```
 
-- [ ] **Step 3: Implement validation functions**
+- [ ] **Step 2: Cross-field validation function**
 
 ```rust
-fn validate_custom_intervals(intervals: &[i32]) -> Result<(), validator::ValidationError> {
-    if intervals.iter().any(|&i| i < 1 || i > MAX_INTERVAL_SECONDS) {
-        return Err(validator::ValidationError::new("interval_out_of_range"));
-    }
-    Ok(())
-}
-
-/// Cross-field validation. Call after struct-level validate().
 fn validate_strategy_fields(
     strategy: RetryStrategy,
     max_retries: i32,
@@ -291,27 +267,48 @@ fn validate_strategy_fields(
     match strategy {
         RetryStrategy::Exponential => {
             if custom_intervals.is_some() || linear_delay.is_some() {
-                return Err(Hook0Problem::Validation(/* "exponential: custom_intervals and linear_delay must be null" */));
+                return Err(Hook0Problem::BadRequest(
+                    "exponential strategy must not have custom_intervals or linear_delay".into(),
+                ));
             }
         }
         RetryStrategy::Linear => {
             if custom_intervals.is_some() {
-                return Err(Hook0Problem::Validation(/* "linear: custom_intervals must be null" */));
+                return Err(Hook0Problem::BadRequest(
+                    "linear strategy must not have custom_intervals".into(),
+                ));
             }
             if linear_delay.is_none() {
-                return Err(Hook0Problem::Validation(/* "linear: linear_delay is required" */));
+                return Err(Hook0Problem::BadRequest(
+                    "linear strategy requires linear_delay".into(),
+                ));
             }
         }
         RetryStrategy::Custom => {
             if linear_delay.is_some() {
-                return Err(Hook0Problem::Validation(/* "custom: linear_delay must be null" */));
+                return Err(Hook0Problem::BadRequest(
+                    "custom strategy must not have linear_delay".into(),
+                ));
             }
             match custom_intervals {
-                None => return Err(Hook0Problem::Validation(/* "custom: custom_intervals is required" */)),
-                Some(intervals) if intervals.len() != max_retries as usize => {
-                    return Err(Hook0Problem::Validation(/* "custom: custom_intervals.len() must equal max_retries" */));
+                None => {
+                    return Err(Hook0Problem::BadRequest(
+                        "custom strategy requires custom_intervals".into(),
+                    ));
                 }
-                _ => {}
+                Some(intervals) => {
+                    if intervals.len() != max_retries as usize {
+                        return Err(Hook0Problem::BadRequest(format!(
+                            "custom_intervals length ({}) must equal max_retries ({})",
+                            intervals.len(), max_retries
+                        )));
+                    }
+                    if intervals.iter().any(|&i| i < 1 || i > MAX_INTERVAL_SECS) {
+                        return Err(Hook0Problem::BadRequest(format!(
+                            "each custom_interval must be between 1 and {MAX_INTERVAL_SECS}"
+                        )));
+                    }
+                }
             }
         }
     }
@@ -319,403 +316,120 @@ fn validate_strategy_fields(
 }
 ```
 
-Note: The exact error construction depends on how `Hook0Problem::Validation` wraps validation errors. The implementer should check the existing pattern in other handlers and adapt. The DB CHECK constraint is the final safety net.
+Note: Check if `Hook0Problem::BadRequest(String)` exists. If not, find the equivalent variant in `problems.rs` for generic 400 errors. The DB CHECK is the final safety net.
 
-- [ ] **Step 4: Implement `list` handler**
+- [ ] **Step 3-7: Implement list, create, get, edit, delete handlers**
 
-```rust
-#[api_v2_operation(summary = "List retry schedules", operation_id = "retry_schedules.list", tags(retry_schedules))]
-pub async fn list(
-    state: Data<crate::State>,
-    _: OaBiscuit,
-    biscuit: ReqData<Biscuit>,
-    qs: Query<RetryScheduleQs>,
-) -> Result<Json<Vec<RetrySchedule>>, Hook0Problem> {
-    let org_id = qs.organization_id;
+All handlers follow these patterns:
+- **Auth first** (authorize before validate)
+- **SQL scoped** to `organization__id`
+- **`strategy_str = body.strategy.to_string()`** for SQL insert/update
+- **`CreatedJson`** for create, `Json` for others
+- **Hook0 event** with full payload (name, strategy, max_retries, custom_intervals, linear_delay)
+- **Delete uses `DELETE...RETURNING`** to capture data for the event
 
-    if authorize(&biscuit, Some(org_id), Action::RetryScheduleList,
-        state.max_authorization_time_in_ms, state.debug_authorizer).is_err() {
-        return Err(Hook0Problem::Forbidden);
-    }
-
-    let schedules = query_as!(RetrySchedule,
-        "SELECT retry_schedule__id AS retry_schedule_id, organization__id AS organization_id,
-                name, strategy, max_retries, custom_intervals, linear_delay, created_at, updated_at
-         FROM webhook.retry_schedule WHERE organization__id = $1 ORDER BY created_at ASC",
-        &org_id
-    ).fetch_all(&state.db).await.map_err(Hook0Problem::from)?;
-
-    Ok(Json(schedules))
-}
+Create handler uses atomic INSERT with per-org limit:
+```sql
+INSERT INTO webhook.retry_schedule (...)
+SELECT $1, $2, $3, $4, $5::integer[], $6
+WHERE (SELECT count(*) FROM webhook.retry_schedule WHERE organization__id = $1) < $7
 ```
 
-- [ ] **Step 5: Implement `create` handler**
+- [ ] **Step 8: Unit tests for validate_strategy_fields (in `#[cfg(test)]`)**
 
-Auth first, per-org limit (atomic INSERT...SELECT...WHERE count < N), `CreatedJson` return.
-
-```rust
-#[api_v2_operation(summary = "Create a retry schedule", operation_id = "retry_schedules.create", tags(retry_schedules))]
-pub async fn create(
-    state: Data<crate::State>,
-    _: OaBiscuit,
-    biscuit: ReqData<Biscuit>,
-    body: Json<RetrySchedulePost>,
-) -> Result<CreatedJson<RetrySchedule>, Hook0Problem> {
-    let org_id = body.organization_id;
-    if authorize(&biscuit, Some(org_id), Action::RetryScheduleCreate,
-        state.max_authorization_time_in_ms, state.debug_authorizer).is_err() {
-        return Err(Hook0Problem::Forbidden);
-    }
-
-    if let Err(e) = body.validate() { return Err(Hook0Problem::Validation(e)); }
-    validate_strategy_fields(body.strategy, body.max_retries, &body.custom_intervals, &body.linear_delay)?;
-
-    let strategy_str = body.strategy.to_string();
-    let limit = i64::from(state.max_retry_schedules_per_org);
-
-    let schedule = query_as!(RetrySchedule,
-        "INSERT INTO webhook.retry_schedule (organization__id, name, strategy, max_retries, custom_intervals, linear_delay)
-         SELECT $1, $2, $3, $4, $5::integer[], $6
-         WHERE (SELECT count(*) FROM webhook.retry_schedule WHERE organization__id = $1) < $7
-         RETURNING retry_schedule__id AS retry_schedule_id, organization__id AS organization_id,
-                   name, strategy, max_retries, custom_intervals, linear_delay, created_at, updated_at",
-        &org_id, &body.name, &strategy_str, &body.max_retries,
-        &body.custom_intervals as &Option<Vec<i32>>, &body.linear_delay, limit,
-    ).fetch_optional(&state.db).await.map_err(Hook0Problem::from)?;
-
-    let schedule = match schedule {
-        Some(s) => s,
-        None => return Err(Hook0Problem::TooManyRetrySchedulesPerOrganization(state.max_retry_schedules_per_org)),
-    };
-
-    // Hook0 client event
-    if let Some(hook0_client) = state.hook0_client.as_ref() {
-        let evt: Hook0ClientEvent = EventRetryScheduleCreated {
-            organization_id: schedule.organization_id,
-            retry_schedule_id: schedule.retry_schedule_id,
-            name: schedule.name.clone(),
-            strategy: schedule.strategy.clone(),
-            max_retries: schedule.max_retries,
-            custom_intervals: schedule.custom_intervals.clone(),
-            linear_delay: schedule.linear_delay,
-        }.into();
-        if let Err(e) = hook0_client.send_event(&evt.mk_hook0_event()).await {
-            error!("Hook0ClientError: {e}");
-        };
-    }
-
-    Ok(CreatedJson(schedule))
-}
-```
-
-- [ ] **Step 6: Implement `get` handler**
-
-Auth-first, SQL scoped to org_id + schedule_id.
-
-```rust
-#[api_v2_operation(summary = "Get a retry schedule", operation_id = "retry_schedules.get", tags(retry_schedules))]
-pub async fn get(
-    state: Data<crate::State>, _: OaBiscuit, biscuit: ReqData<Biscuit>,
-    schedule_id: Path<Uuid>, qs: Query<RetryScheduleQs>,
-) -> Result<Json<RetrySchedule>, Hook0Problem> {
-    let org_id = qs.organization_id;
-    if authorize(&biscuit, Some(org_id), Action::RetryScheduleGet,
-        state.max_authorization_time_in_ms, state.debug_authorizer).is_err() {
-        return Err(Hook0Problem::Forbidden);
-    }
-
-    let schedule = query_as!(RetrySchedule,
-        "SELECT retry_schedule__id AS retry_schedule_id, organization__id AS organization_id,
-                name, strategy, max_retries, custom_intervals, linear_delay, created_at, updated_at
-         FROM webhook.retry_schedule WHERE retry_schedule__id = $1 AND organization__id = $2",
-        schedule_id.as_ref(), &org_id,
-    ).fetch_optional(&state.db).await.map_err(Hook0Problem::from)?.ok_or(Hook0Problem::NotFound)?;
-
-    Ok(Json(schedule))
-}
-```
-
-- [ ] **Step 7: Implement `edit` handler**
-
-Auth-first, UPDATE...RETURNING scoped to org_id. Hook0 event with full payload.
-
-```rust
-#[api_v2_operation(summary = "Update a retry schedule", operation_id = "retry_schedules.edit", tags(retry_schedules))]
-pub async fn edit(
-    state: Data<crate::State>, _: OaBiscuit, biscuit: ReqData<Biscuit>,
-    schedule_id: Path<Uuid>, qs: Query<RetryScheduleQs>, body: Json<RetrySchedulePut>,
-) -> Result<Json<RetrySchedule>, Hook0Problem> {
-    let org_id = qs.organization_id;
-    if authorize(&biscuit, Some(org_id), Action::RetryScheduleEdit,
-        state.max_authorization_time_in_ms, state.debug_authorizer).is_err() {
-        return Err(Hook0Problem::Forbidden);
-    }
-
-    if let Err(e) = body.validate() { return Err(Hook0Problem::Validation(e)); }
-    validate_strategy_fields(body.strategy, body.max_retries, &body.custom_intervals, &body.linear_delay)?;
-
-    let strategy_str = body.strategy.to_string();
-
-    let schedule = query_as!(RetrySchedule,
-        "UPDATE webhook.retry_schedule
-         SET name = $3, strategy = $4, max_retries = $5, custom_intervals = $6::integer[],
-             linear_delay = $7, updated_at = statement_timestamp()
-         WHERE retry_schedule__id = $1 AND organization__id = $2
-         RETURNING retry_schedule__id AS retry_schedule_id, organization__id AS organization_id,
-                   name, strategy, max_retries, custom_intervals, linear_delay, created_at, updated_at",
-        schedule_id.as_ref(), &org_id, &body.name, &strategy_str, &body.max_retries,
-        &body.custom_intervals as &Option<Vec<i32>>, &body.linear_delay,
-    ).fetch_optional(&state.db).await.map_err(Hook0Problem::from)?.ok_or(Hook0Problem::NotFound)?;
-
-    if let Some(hook0_client) = state.hook0_client.as_ref() {
-        let evt: Hook0ClientEvent = EventRetryScheduleUpdated {
-            organization_id: schedule.organization_id,
-            retry_schedule_id: schedule.retry_schedule_id,
-            name: schedule.name.clone(),
-            strategy: schedule.strategy.clone(),
-            max_retries: schedule.max_retries,
-            custom_intervals: schedule.custom_intervals.clone(),
-            linear_delay: schedule.linear_delay,
-        }.into();
-        if let Err(e) = hook0_client.send_event(&evt.mk_hook0_event()).await {
-            error!("Hook0ClientError: {e}");
-        };
-    }
-
-    Ok(Json(schedule))
-}
-```
-
-- [ ] **Step 8: Implement `delete` handler**
-
-Auth-first. DELETE RETURNING (no 409 — SET NULL handles subscriptions). Disambiguate NotFound on 0 rows.
-
-```rust
-#[api_v2_operation(summary = "Delete a retry schedule", operation_id = "retry_schedules.delete", tags(retry_schedules))]
-pub async fn delete(
-    state: Data<crate::State>, _: OaBiscuit, biscuit: ReqData<Biscuit>,
-    schedule_id: Path<Uuid>, qs: Query<RetryScheduleQs>,
-) -> Result<Json<()>, Hook0Problem> {
-    let org_id = qs.organization_id;
-    if authorize(&biscuit, Some(org_id), Action::RetryScheduleDelete,
-        state.max_authorization_time_in_ms, state.debug_authorizer).is_err() {
-        return Err(Hook0Problem::Forbidden);
-    }
-
-    struct Deleted { name: String, strategy: String, max_retries: i32,
-                     custom_intervals: Option<Vec<i32>>, linear_delay: Option<i32> }
-
-    let deleted = sqlx::query_as!(Deleted,
-        "DELETE FROM webhook.retry_schedule
-         WHERE retry_schedule__id = $1 AND organization__id = $2
-         RETURNING name, strategy, max_retries, custom_intervals, linear_delay",
-        schedule_id.as_ref(), &org_id,
-    ).fetch_optional(&state.db).await.map_err(Hook0Problem::from)?
-     .ok_or(Hook0Problem::NotFound)?;
-
-    if let Some(hook0_client) = state.hook0_client.as_ref() {
-        let evt: Hook0ClientEvent = EventRetryScheduleRemoved {
-            organization_id: org_id,
-            retry_schedule_id: *schedule_id,
-            name: deleted.name,
-            strategy: deleted.strategy,
-            max_retries: deleted.max_retries,
-            custom_intervals: deleted.custom_intervals,
-            linear_delay: deleted.linear_delay,
-        }.into();
-        if let Err(e) = hook0_client.send_event(&evt.mk_hook0_event()).await {
-            error!("Hook0ClientError: {e}");
-        };
-    }
-
-    Ok(Json(()))
-}
-```
+20 tests covering all cross-field validation rules:
+- `test_validate_exponential_ok` — no intervals, no delay → Ok
+- `test_validate_exponential_rejects_intervals` → BadRequest
+- `test_validate_exponential_rejects_delay` → BadRequest
+- `test_validate_linear_ok` — delay present, no intervals → Ok
+- `test_validate_linear_rejects_intervals` → BadRequest
+- `test_validate_linear_requires_delay` → BadRequest
+- `test_validate_custom_ok` — intervals.len == max_retries → Ok
+- `test_validate_custom_rejects_delay` → BadRequest
+- `test_validate_custom_requires_intervals` → BadRequest
+- `test_validate_custom_len_mismatch` — len != max_retries → BadRequest
+- `test_validate_custom_interval_below_min` — [0] → BadRequest
+- `test_validate_custom_interval_above_max` — [604801] → BadRequest
+- `test_validate_custom_interval_at_min` — [1] → Ok
+- `test_validate_custom_interval_at_max` — [604800] → Ok
+- `test_validate_exponential_rejects_both` — intervals + delay → BadRequest
+- `test_validate_linear_rejects_both` — intervals + delay → BadRequest (intervals present)
+- `test_validate_custom_empty_intervals` — [] with max_retries=1 → BadRequest (len mismatch)
+- `test_validate_custom_single` — [60] with max_retries=1 → Ok
+- `test_validate_custom_mixed_valid` — [1, 300, 604800] with max_retries=3 → Ok
+- `test_validate_custom_mixed_invalid` — [1, 0, 300] → BadRequest (0 < 1)
 
 - [ ] **Step 9: Verify compilation, commit**
-
-```bash
-cd api && cargo check
-git add api/src/handlers/retry_schedules.rs api/src/handlers/mod.rs
-git commit -m "feat(api): add retry_schedules CRUD handler"
-```
 
 ---
 
 ## Task 4: Register Routes + Config
 
-**Files:**
-- Modify: `api/src/main.rs`
+**Files:** `api/src/main.rs`
 
-- [ ] **Step 1: Add `max_retry_schedules_per_org` to Config**
-
-In the `Config` struct (or equivalent CLI args struct), add:
+- [ ] **Step 1: Add env var to Config**
 
 ```rust
-    /// Maximum number of retry schedules per organization
-    #[clap(long, env, default_value_t = 50)]
-    max_retry_schedules_per_org: QuotaValue,
+#[clap(long, env, default_value_t = 50)]
+max_retry_schedules_per_org: QuotaValue,
 ```
 
-Ensure it's available in `State` (or passed through to handlers via `state.max_retry_schedules_per_org`).
+Pass through to `State`.
 
-- [ ] **Step 2: Add retry_schedules route scope**
+- [ ] **Step 2: Add route scope**
 
 ```rust
 .service(
     web::scope("/retry_schedules")
         .wrap(Compat::new(rate_limiters.token()))
         .wrap(biscuit_auth.clone())
-        .service(
-            web::resource("")
-                .route(web::get().to(handlers::retry_schedules::list))
-                .route(web::post().to(handlers::retry_schedules::create)),
-        )
-        .service(
-            web::resource("/{retry_schedule_id}")
-                .route(web::get().to(handlers::retry_schedules::get))
-                .route(web::put().to(handlers::retry_schedules::edit))
-                .route(web::delete().to(handlers::retry_schedules::delete)),
-        ),
+        .service(web::resource("")
+            .route(web::get().to(handlers::retry_schedules::list))
+            .route(web::post().to(handlers::retry_schedules::create)))
+        .service(web::resource("/{retry_schedule_id}")
+            .route(web::get().to(handlers::retry_schedules::get))
+            .route(web::put().to(handlers::retry_schedules::edit))
+            .route(web::delete().to(handlers::retry_schedules::delete))),
 )
 ```
 
-- [ ] **Step 3: Verify compilation, commit**
-
-```bash
-cd api && cargo check
-git add api/src/main.rs
-git commit -m "feat(api): register /retry_schedules routes and config"
-```
+- [ ] **Step 3: Verify, commit**
 
 ---
 
 ## Task 5: Hook0 Client Events
 
-**Files:**
-- Modify: `api/src/hook0_client.rs`
+**Files:** `api/src/hook0_client.rs`
 
-- [ ] **Step 1: Add event type strings to EVENT_TYPES**
+- [ ] **Step 1: Add EVENT_TYPES strings, event structs with full payload, enum variants, mk_hook0_event arms**
 
-```rust
-    "api.retry_schedule.created",
-    "api.retry_schedule.updated",
-    "api.retry_schedule.removed",
-```
+Each event struct has: `organization_id`, `retry_schedule_id`, `name`, `strategy`, `max_retries`, `custom_intervals: Option<Vec<i32>>`, `linear_delay: Option<i32>`.
 
-- [ ] **Step 2: Add event structs with full payload**
+Pattern: `impl Event` (event_type + labels), `impl From<...> for Hook0ClientEvent`, `to_event(e, None)` in mk_hook0_event.
 
-Three structs (Created/Updated/Removed), each with:
-
-```rust
-#[derive(Debug, Clone, Serialize)]
-pub struct EventRetryScheduleCreated {
-    pub organization_id: Uuid,
-    pub retry_schedule_id: Uuid,
-    pub name: String,
-    pub strategy: String,
-    pub max_retries: i32,
-    pub custom_intervals: Option<Vec<i32>>,
-    pub linear_delay: Option<i32>,
-}
-```
-
-Each implements `Event` trait (`event_type()` → string, `labels()` → instance + org labels) and `From<...> for Hook0ClientEvent`. Same pattern for Updated and Removed.
-
-- [ ] **Step 3: Add variants to Hook0ClientEvent enum + mk_hook0_event match arms**
-
-```rust
-    RetryScheduleCreated(EventRetryScheduleCreated),
-    RetryScheduleUpdated(EventRetryScheduleUpdated),
-    RetryScheduleRemoved(EventRetryScheduleRemoved),
-```
-
-In `mk_hook0_event`:
-```rust
-    Self::RetryScheduleCreated(e) => to_event(e, None),
-    Self::RetryScheduleUpdated(e) => to_event(e, None),
-    Self::RetryScheduleRemoved(e) => to_event(e, None),
-```
-
-- [ ] **Step 4: Verify compilation, commit**
-
-```bash
-cd api && cargo check
-git add api/src/hook0_client.rs
-git commit -m "feat(api): add retry_schedule hook0 client events with full payload"
-```
+- [ ] **Step 2: Verify, commit**
 
 ---
 
 ## Task 6: Modify Subscription Handler
 
-**Files:**
-- Modify: `api/src/handlers/subscriptions.rs`
+**Files:** `api/src/handlers/subscriptions.rs`
 
-- [ ] **Step 1: Add `retry_schedule_id` to Subscription response + SubscriptionPost**
-
-```rust
-// In Subscription (response):
-pub retry_schedule_id: Option<Uuid>,
-
-// In SubscriptionPost (request, used for both create and edit):
-pub retry_schedule_id: Option<Uuid>,
-```
-
-- [ ] **Step 2: Update all SELECT queries to include `s.retry_schedule__id AS retry_schedule_id`**
-
-- [ ] **Step 3: Update create INSERT with atomic cross-org enforcement**
-
-Use subquery to resolve retry_schedule_id only if it belongs to the same org:
-
-```sql
-INSERT INTO webhook.subscription (..., retry_schedule__id)
-VALUES (..., (
-    SELECT retry_schedule__id FROM webhook.retry_schedule
-    WHERE retry_schedule__id = $N
-      AND organization__id = (
-          SELECT organization__id FROM event.application
-          WHERE application__id = $APP_ID AND deleted_at IS NULL
-      )
-))
-```
-
-After INSERT, check if `body.retry_schedule_id.is_some() && created.retry_schedule_id.is_none()` → return NotFound.
-
-- [ ] **Step 4: Update edit UPDATE with same cross-org enforcement**
-
-- [ ] **Step 5: Verify compilation, commit**
-
-```bash
-cd api && cargo check
-git add api/src/handlers/subscriptions.rs
-git commit -m "feat(api): add retry_schedule_id to subscription CRUD"
-```
+- [ ] **Step 1: Add `retry_schedule_id: Option<Uuid>` to Subscription + SubscriptionPost**
+- [ ] **Step 2: Update all SELECT queries** to include `s.retry_schedule__id AS retry_schedule_id`
+- [ ] **Step 3: Atomic cross-org enforcement** in create/edit via SQL subquery
+- [ ] **Step 4: Verify, commit**
 
 ---
 
 ## Task 7: Modify Worker Retry Logic
 
-**Files:**
-- Modify: `output-worker/src/main.rs`
-- Modify: `output-worker/src/pg.rs`
-- Modify: `output-worker/src/pulsar.rs`
+**Files:** `output-worker/src/main.rs`, `output-worker/src/pg.rs`, `output-worker/src/pulsar.rs`
 
-- [ ] **Step 1: Add ScheduleConfig + RetryStrategy to worker**
-
-In `output-worker/src/main.rs`:
+- [ ] **Step 1: Define `ScheduleConfig` as an enum (make invalid states unrepresentable)**
 
 ```rust
 use std::str::FromStr;
-
-/// Retry schedule configuration resolved from the subscription's assigned schedule.
-#[derive(Debug, Clone)]
-pub struct ScheduleConfig {
-    pub strategy: RetryStrategy,
-    pub max_retries: i32,
-    pub custom_intervals: Option<Vec<i32>>,
-    pub linear_delay: Option<i32>,
-}
 
 #[derive(Debug, Clone, Copy, strum::EnumString, strum::Display)]
 #[strum(serialize_all = "lowercase")]
@@ -724,9 +438,27 @@ pub enum RetryStrategy {
     Linear,
     Custom,
 }
+
+/// Schedule configuration — enum eliminates impossible field combinations.
+#[derive(Debug, Clone)]
+pub enum ScheduleConfig {
+    Exponential { max_retries: i32 },
+    Linear { max_retries: i32, delay_secs: i32 },
+    Custom { max_retries: i32, intervals_secs: Vec<i32> },
+}
+
+impl ScheduleConfig {
+    fn max_retries(&self) -> i32 {
+        match self {
+            Self::Exponential { max_retries } => *max_retries,
+            Self::Linear { max_retries, .. } => *max_retries,
+            Self::Custom { max_retries, .. } => *max_retries,
+        }
+    }
+}
 ```
 
-Add schedule fields to `RequestAttemptWithOptionalPayload`:
+Add raw fields to `RequestAttemptWithOptionalPayload`:
 
 ```rust
     pub retry_strategy: Option<String>,
@@ -735,71 +467,66 @@ Add schedule fields to `RequestAttemptWithOptionalPayload`:
     pub retry_linear_delay: Option<i32>,
 ```
 
-Add helper:
+Build helper:
 
 ```rust
 impl RequestAttemptWithOptionalPayload {
     pub fn schedule_config(&self) -> Option<ScheduleConfig> {
         let strategy_str = self.retry_strategy.as_ref()?;
         let strategy = RetryStrategy::from_str(strategy_str).ok()?;
-        Some(ScheduleConfig {
-            strategy,
-            max_retries: self.retry_max_retries?,
-            custom_intervals: self.retry_custom_intervals.clone(),
-            linear_delay: self.retry_linear_delay,
-        })
+        let max_retries = self.retry_max_retries?;
+        match strategy {
+            RetryStrategy::Exponential => Some(ScheduleConfig::Exponential { max_retries }),
+            RetryStrategy::Linear => {
+                let delay_secs = self.retry_linear_delay?;
+                Some(ScheduleConfig::Linear { max_retries, delay_secs })
+            }
+            RetryStrategy::Custom => {
+                let intervals_secs = self.retry_custom_intervals.clone()?;
+                Some(ScheduleConfig::Custom { max_retries, intervals_secs })
+            }
+        }
     }
 }
 ```
 
-Note: if `from_str` fails (unknown strategy in DB), returns `None` → falls back to default. A `warn!` log should be added in the caller when this happens.
+Note: if any required field is `None` or strategy parse fails → returns `None` → falls back to default. Caller logs `warn!`.
 
 - [ ] **Step 2: Write `compute_delay_from_schedule`**
 
 ```rust
 fn compute_delay_from_schedule(config: &ScheduleConfig, retry_count: i16) -> Option<Duration> {
     let count = i32::from(retry_count);
-    if count >= config.max_retries {
+    if count >= config.max_retries() {
         return None;
     }
 
-    match config.strategy {
-        RetryStrategy::Exponential => {
-            // Delegate to David's hardcoded table with schedule's max_retries
+    match config {
+        ScheduleConfig::Exponential { max_retries } => {
             compute_next_retry_duration(
-                u8::try_from(config.max_retries).unwrap_or(u8::MAX),
+                u8::try_from(*max_retries).unwrap_or(100).min(100),
                 retry_count,
             )
         }
-        RetryStrategy::Linear => {
-            let delay = config.linear_delay.unwrap_or(60);
-            Some(Duration::from_secs(u64::try_from(delay.max(0)).unwrap_or(0)))
+        ScheduleConfig::Linear { delay_secs, .. } => {
+            Some(Duration::from_secs(u64::from(*delay_secs as u32)))
         }
-        RetryStrategy::Custom => {
-            let intervals = config.custom_intervals.as_ref()?;
-            let idx = usize::try_from(count).unwrap_or(0)
-                .min(intervals.len().saturating_sub(1));
-            let delay = intervals[idx];
-            Some(Duration::from_secs(u64::try_from(delay.max(0)).unwrap_or(0)))
+        ScheduleConfig::Custom { intervals_secs, .. } => {
+            let idx = usize::try_from(count).unwrap_or(0);
+            let delay = intervals_secs.get(idx)?; // safe: returns None if out of bounds
+            Some(Duration::from_secs(u64::from(*delay as u32)))
         }
     }
 }
 ```
 
+Key fixes vs previous version:
+- `ScheduleConfig` is an enum — no `Option` fields, no magic fallbacks
+- `intervals_secs.get(idx)?` — no panic on empty/short vec
+- `u8::try_from(*max_retries).unwrap_or(100).min(100)` — clamps to valid range
+- `delay_secs` guaranteed present by enum variant (Linear always has it)
+
 - [ ] **Step 3: Modify `compute_next_retry` signature**
-
-David's current signature:
-
-```rust
-async fn compute_next_retry(
-    conn: &mut PgConnection,
-    attempt: &RequestAttempt,
-    response: &Response,
-    max_retries: u8,
-) -> Result<Option<Duration>, sqlx::Error>
-```
-
-Add `schedule: Option<&ScheduleConfig>`:
 
 ```rust
 async fn compute_next_retry(
@@ -811,8 +538,7 @@ async fn compute_next_retry(
 ) -> Result<Option<Duration>, sqlx::Error>
 ```
 
-In the retry branch (after subscription check):
-
+Dispatch:
 ```rust
 if sub.is_some() {
     match schedule {
@@ -824,241 +550,153 @@ if sub.is_some() {
 }
 ```
 
-- [ ] **Step 4: Update pg.rs fetch query**
+- [ ] **Step 4: Update pg.rs** — LEFT JOIN + pass schedule_config
+- [ ] **Step 5: Update pulsar.rs** — LEFT JOIN in status query + pass schedule_config
+- [ ] **Step 6: Update boot log** — add "(default, may be overridden per-subscription)"
 
-Add to SELECT:
-```sql
-rs.strategy AS retry_strategy,
-rs.max_retries AS retry_max_retries,
-rs.custom_intervals AS retry_custom_intervals,
-rs.linear_delay AS retry_linear_delay,
-```
+- [ ] **Step 7: Unit tests for worker (28 tests in `#[cfg(test)]`)**
 
-Add JOIN:
-```sql
-LEFT JOIN webhook.retry_schedule AS rs ON rs.retry_schedule__id = s.retry_schedule__id
-```
+**compute_delay_from_schedule — Exponential (7):**
+- `test_exponential_first_retry` — count=0 → `Some(3s)`
+- `test_exponential_mid_table` — count=3 → `Some(30min)`
+- `test_exponential_past_table` — count=9, max=10 → `Some(10h)`
+- `test_exponential_at_max` — count=5, max=5 → `None`
+- `test_exponential_past_max` — count=6, max=5 → `None`
+- `test_exponential_max_1` — max=1, count=0 → `Some(3s)`
+- `test_exponential_max_100` — max=100, count=99 → `Some(10h)`
 
-Update call site:
-```rust
-let schedule_config = next_attempt.schedule_config();
-if schedule_config.is_none() && next_attempt.retry_strategy.is_some() {
-    warn!("Unknown retry strategy {:?}, falling back to default", next_attempt.retry_strategy);
-}
-compute_next_retry(&mut tx, &attempt, &response, config.max_retries, schedule_config.as_ref())
-```
+**compute_delay_from_schedule — Linear (5):**
+- `test_linear_first_retry` — delay=300, count=0 → `Some(300s)`
+- `test_linear_every_retry_same` — count=4 → `Some(300s)`
+- `test_linear_at_max` — count=5, max=5 → `None`
+- `test_linear_delay_1s` → `Some(1s)`
+- `test_linear_delay_max` → `Some(604800s)`
 
-- [ ] **Step 5: Update pulsar.rs**
+**compute_delay_from_schedule — Custom (6):**
+- `test_custom_first_interval` — [3,30,300], count=0 → `Some(3s)`
+- `test_custom_last_interval` — count=2 → `Some(300s)`
+- `test_custom_at_max` — count=3, max=3 → `None`
+- `test_custom_single` — [60], max=1, count=0 → `Some(60s)`
+- `test_custom_empty_intervals` — [], count=0 → `None` (get returns None)
+- `test_custom_all_same` — [10,10,10] → all `Some(10s)`
 
-Add LEFT JOIN and schedule fields to the status check query (around line 399). Build `ScheduleConfig` from the query result and pass to `compute_next_retry`.
+**schedule_config() helper (6):**
+- `test_config_none_when_no_strategy` → `None`
+- `test_config_exponential` → `Exponential { max_retries: 10 }`
+- `test_config_linear` → `Linear { max_retries: 5, delay_secs: 300 }`
+- `test_config_custom` → `Custom { max_retries: 3, intervals_secs: [1,2,3] }`
+- `test_config_unknown_strategy` — "fibonacci" → `None`
+- `test_config_missing_max_retries` → `None`
 
-- [ ] **Step 6: Update boot log**
+**Fallback (2):**
+- `test_no_schedule_uses_default` — count=0 → `Some(3s)`
+- `test_schedule_overrides_default` — Exponential max=2, count=2 → `None`
 
-In the log message from `evaluate_retry_policy`, add a note:
+**Negative/edge (2):**
+- `test_negative_retry_count` — count=-1 → behavior depends on strategy (exponential delegates to David's fn)
+- `test_retry_count_zero_all_strategies` — count=0 returns correct first delay for each
 
-```rust
-info!("Default retry policy: {effective_retries} retries over {cumulative_duration:?} (can be overridden per-subscription via custom retry schedules)");
-```
-
-- [ ] **Step 7: Verify compilation, commit**
-
-```bash
-cd output-worker && cargo check
-git add output-worker/src/main.rs output-worker/src/pg.rs output-worker/src/pulsar.rs
-git commit -m "feat(worker): support configurable retry schedules"
-```
+- [ ] **Step 8: Verify, commit**
 
 ---
 
-## Task 8: Tests
+## Task 8: Integration Tests (k6)
 
-**Files:**
-- Modify: `output-worker/src/main.rs` (`#[cfg(test)]` module)
-- Modify: `api/src/handlers/retry_schedules.rs` (`#[cfg(test)]` module with `actix_web::test`)
-- Modify: `api/src/handlers/subscriptions.rs` (`#[cfg(test)]` module with `actix_web::test`)
+**Files:** `tests-api-integrations/src/retry_schedules/`
 
-### Step 1: Unit tests — Worker logic (28 tests)
+Follow the existing k6 pattern: JS modules, auth via `SERVICE_TOKEN`, assertions via `check()`.
 
-Add to `#[cfg(test)]` module in `output-worker/src/main.rs`:
+- [ ] **Step 1: Create test module files**
 
-**compute_delay_from_schedule — Exponential (7 tests):**
-- `test_schedule_exponential_first_retry` — retry_count=0 → `Some(3s)` (David's table)
-- `test_schedule_exponential_mid_table` — retry_count=3 → `Some(30min)`
-- `test_schedule_exponential_past_table` — retry_count=9, max_retries=10 → `Some(10h)` (repeating)
-- `test_schedule_exponential_at_max` — retry_count=5, max_retries=5 → `None`
-- `test_schedule_exponential_past_max` — retry_count=6, max_retries=5 → `None`
-- `test_schedule_exponential_max_retries_1` — max_retries=1, retry_count=0 → `Some(3s)`
-- `test_schedule_exponential_max_retries_100` — max_retries=100, retry_count=99 → `Some(10h)`
-
-**compute_delay_from_schedule — Linear (6 tests):**
-- `test_schedule_linear_first_retry` — retry_count=0, linear_delay=300 → `Some(300s)`
-- `test_schedule_linear_every_retry_same` — retry_count=4, linear_delay=300 → `Some(300s)`
-- `test_schedule_linear_at_max` — retry_count=5, max_retries=5 → `None`
-- `test_schedule_linear_delay_1s` — linear_delay=1 → `Some(1s)`
-- `test_schedule_linear_delay_max` — linear_delay=604800 → `Some(604800s)`
-- `test_schedule_linear_missing_delay_fallback` — linear_delay=None → `Some(60s)` (unwrap_or fallback)
-
-**compute_delay_from_schedule — Custom (7 tests):**
-- `test_schedule_custom_first_interval` — retry_count=0, intervals=[3,30,300,3600,36000] → `Some(3s)`
-- `test_schedule_custom_last_interval` — retry_count=4 → `Some(36000s)`
-- `test_schedule_custom_mid_interval` — retry_count=2 → `Some(300s)`
-- `test_schedule_custom_at_max` — retry_count=5, max_retries=5 → `None`
-- `test_schedule_custom_single_interval` — max_retries=1, intervals=[60], retry_count=0 → `Some(60s)`
-- `test_schedule_custom_missing_intervals` — custom_intervals=None → `None` (defensive)
-- `test_schedule_custom_all_same_value` — intervals=[10,10,10], all 3 calls → `Some(10s)`
-
-**schedule_config() helper (6 tests):**
-- `test_schedule_config_none_when_no_strategy` — retry_strategy=None → `None`
-- `test_schedule_config_parses_exponential` — "exponential" → `Some(Exponential)`
-- `test_schedule_config_parses_linear` — "linear" + linear_delay=300 → `Some(Linear)`
-- `test_schedule_config_parses_custom` — "custom" + intervals → `Some(Custom)`
-- `test_schedule_config_unknown_strategy` — "fibonacci" → `None`
-- `test_schedule_config_none_when_max_retries_missing` — strategy present, max_retries=None → `None`
-
-**Default fallback interaction (2 tests):**
-- `test_no_schedule_uses_default` — schedule=None, retry_count=0 → matches David's `Some(3s)`
-- `test_schedule_overrides_default` — schedule.max_retries=2, retry_count=2 → `None` (even though worker default=25)
-
-- [ ] **Implement and run unit tests**
-
-Run: `cd output-worker && cargo test`
-Expected: All 28 tests pass
-
-- [ ] **Commit**
-
-```bash
-git add output-worker/src/main.rs
-git commit -m "test(worker): add unit tests for compute_delay_from_schedule"
+```
+tests-api-integrations/src/retry_schedules/
+├── create_retry_schedule.js
+├── list_retry_schedules.js
+├── get_retry_schedule.js
+├── update_retry_schedule.js
+├── delete_retry_schedule.js
+└── assign_to_subscription.js
 ```
 
-### Step 2: Integration tests — CRUD API (39 tests)
+- [ ] **Step 2: CRUD tests (in create/list/get/update/delete .js)**
 
-Add `#[cfg(test)]` module in `api/src/handlers/retry_schedules.rs` using `actix_web::test` + test DB.
+**Create:**
+- Create exponential → 201, strategy="exponential", custom_intervals=null, linear_delay=null
+- Create linear → 201, linear_delay present
+- Create custom → 201, custom_intervals present, len == max_retries
+- Create with invalid strategy → 400
+- Create exponential with custom_intervals → 400
+- Create linear without linear_delay → 400
+- Create custom with len mismatch → 400
+- Create custom with interval=0 → 400
+- Create max_retries=0 → 400
+- Create empty name → 400
+- Create duplicate name same org → constraint error
+- Create same name different org → both 201
 
-**Create — happy path (3 tests):**
-- `test_create_exponential` — 201, custom_intervals=null, linear_delay=null
-- `test_create_linear` — 201, linear_delay=300
-- `test_create_custom` — 201, custom_intervals=[5,60,3600]
+**List:**
+- List empty → []
+- List after create → contains created
+- List scoped to org → other org's schedules not visible
 
-**Create — validation errors (20 tests):**
-- `test_create_invalid_strategy` — "fibonacci" → 400
-- `test_create_exponential_with_custom_intervals` — 400
-- `test_create_exponential_with_linear_delay` — 400
-- `test_create_linear_with_custom_intervals` — 400
-- `test_create_linear_missing_delay` — 400
-- `test_create_custom_missing_intervals` — 400
-- `test_create_custom_with_linear_delay` — 400
-- `test_create_custom_intervals_len_mismatch` — len != max_retries → 400
-- `test_create_custom_interval_below_min` — [0] → 400
-- `test_create_custom_interval_above_max` — [604801] → 400
-- `test_create_linear_delay_below_min` — 0 → 400
-- `test_create_linear_delay_above_max` — 604801 → 400
-- `test_create_max_retries_0` — 400
-- `test_create_max_retries_101` — 400
-- `test_create_max_retries_boundary_1` — 201
-- `test_create_max_retries_boundary_100` — 201
-- `test_create_empty_name` — 400
-- `test_create_name_too_long` — "x"*201 → 400
-- `test_create_duplicate_name` — same org → constraint error
-- `test_create_same_name_different_org` — different orgs → both 201
+**Get:**
+- Get existing → 200, all fields
+- Get wrong org → 404
+- Get nonexistent → 404
 
-**Create — quota (1 test):**
-- `test_create_per_org_limit_exceeded` — set limit=2, create 3rd → 429
+**Update:**
+- Update name → 200, updated_at changed
+- Change strategy → 200
+- Update with invalid cross-fields → 400
+- Update wrong org → 404
 
-**List (3 tests):**
-- `test_list_empty` — 200, `[]`
-- `test_list_returns_created` — create 2, list → 2 items
-- `test_list_scoped_to_org` — create in org A, list org B → `[]`
+**Delete:**
+- Delete existing → 200, then get → 404
+- Delete wrong org → 404
+- Delete twice → second 404
 
-**Get (3 tests):**
-- `test_get_existing` — 200, fields match
-- `test_get_nonexistent` — 404
-- `test_get_wrong_org` — 404 (IDOR prevention)
+- [ ] **Step 3: Subscription assignment tests (assign_to_subscription.js)**
 
-**Update (5 tests):**
-- `test_update_name` — 200, name changed, updated_at > created_at
-- `test_update_strategy_change` — exponential → linear → 200
-- `test_update_invalid_cross_fields` — linear without linear_delay → 400
-- `test_update_nonexistent` — 404
-- `test_update_wrong_org` — 404
+- Assign schedule → subscription has retry_schedule_id
+- Assign cross-org schedule → rejected
+- Remove schedule (null) → reverts
+- Delete schedule → subscription.retry_schedule_id becomes null
 
-**Delete (4 tests):**
-- `test_delete_existing` — 200, then GET → 404
-- `test_delete_nonexistent` — 404
-- `test_delete_wrong_org` — 404
-- `test_delete_idempotent` — second delete → 404
+- [ ] **Step 4: Role tests**
 
-- [ ] **Implement and run integration tests**
+- Viewer can list → 200
+- Viewer can get → 200
+- Viewer cannot create → 403
+- Viewer cannot edit → 403
+- Viewer cannot delete → 403
 
-Run: `cd api && cargo test`
-Expected: All 39 tests pass
+- [ ] **Step 5: Wire into main test runner, commit**
 
-- [ ] **Commit**
-
+Add to `tests-api-integrations/src/main.js` or a separate scenario. Commit:
 ```bash
-git add api/src/handlers/retry_schedules.rs
-git commit -m "test(api): add integration tests for retry_schedules CRUD"
-```
-
-### Step 3: Integration tests — Subscription assignment (11 tests)
-
-Add to `#[cfg(test)]` module in `api/src/handlers/subscriptions.rs`:
-
-- `test_create_subscription_with_schedule` — 201, retry_schedule_id set
-- `test_create_subscription_without_schedule` — 201, retry_schedule_id=null
-- `test_create_subscription_with_null_schedule` — explicit null → 201, null
-- `test_create_subscription_cross_org_schedule` — org A schedule for org B subscription → rejected
-- `test_create_subscription_nonexistent_schedule` — random UUID → rejected
-- `test_edit_subscription_assign_schedule` — assign via PUT → 200
-- `test_edit_subscription_remove_schedule` — null via PUT → 200, null
-- `test_edit_subscription_cross_org_schedule` — cross-org on update → rejected
-- `test_delete_schedule_nullifies_subscription` — delete schedule → subscription.retry_schedule_id=null
-- `test_delete_schedule_multiple_subscriptions` — delete → both subscriptions nullified
-- `test_subscription_response_includes_schedule_id` — GET response has field
-
-- [ ] **Implement and run integration tests**
-
-Run: `cd api && cargo test`
-Expected: All 11 tests pass
-
-- [ ] **Commit**
-
-```bash
-git add api/src/handlers/subscriptions.rs
-git commit -m "test(api): add integration tests for subscription retry_schedule assignment"
+git add tests-api-integrations/
+git commit -m "test: add k6 integration tests for retry schedules"
 ```
 
 ---
 
 ## Task 9: Full Build Verification
 
-- [ ] **Step 1: Build entire workspace**
-
-Run: `cargo build`
-
-- [ ] **Step 2: Run all tests**
-
-Run: `cargo test`
-
-- [ ] **Step 3: Run sqlx prepare**
-
-Run: `cd api && cargo sqlx prepare && cd ../output-worker && cargo sqlx prepare`
-
+- [ ] **Step 1: Build workspace** — `cargo build`
+- [ ] **Step 2: Run unit tests** — `cargo test`
+- [ ] **Step 3: Run sqlx prepare** — `cd api && cargo sqlx prepare && cd ../output-worker && cargo sqlx prepare`
 - [ ] **Step 4: Commit sqlx metadata**
-
-```bash
-git add -A .sqlx/ */.sqlx/
-git commit -m "chore: update sqlx offline query metadata"
-```
 
 ---
 
 ## Notes for Implementation
 
 - **sqlx compile-time checking**: Ensure migration applied to dev DB before `cargo check`.
-- **Biscuit Datalog rules**: Follow `ServiceToken*` pattern. `RetryScheduleList`/`RetryScheduleGet` add `allowed_role("viewer")` via `allowed_roles() -> vec![Role::Viewer]`.
-- **RetryStrategy enum**: Defined in both API (`api/src/handlers/retry_schedules.rs`) and worker (`output-worker/src/main.rs`). Consider extracting to a shared crate if this becomes a pattern. For now, duplication is acceptable (2 files).
-- **MAX_INTERVAL_SECONDS**: Rust const in handler (`604_800`). SQL CHECK uses the literal `604800`. Document the coupling with a comment in both locations.
-- **SQL convention**: Migrations use lowercase keywords; handler/worker queries use UPPERCASE keywords.
-- **Concurrent INSERT race**: The atomic `INSERT...SELECT...WHERE count < N` is not strictly race-safe under `READ COMMITTED` (two concurrent inserts could both pass). Accepted risk: rate limiter + soft quota, blast radius is low.
-- **`SubscriptionPost` reuse**: The codebase reuses `SubscriptionPost` for both create and edit. The `retry_schedule_id` field applies to both.
+- **Biscuit Datalog**: Follow `ServiceToken*` pattern. List/Get add `allowed_role("viewer")`.
+- **RetryStrategy enum**: Defined in both API and worker. Acceptable duplication for now.
+- **MAX_INTERVAL_SECS**: Rust const `604_800`. SQL CHECK uses literal `604800`. Comment in both referencing the other.
+- **SQL convention**: Migrations lowercase, handler/worker UPPERCASE.
+- **Concurrent INSERT race**: Documented, accepted (soft quota + rate limiter).
+- **`ScheduleConfig` enum**: Makes invalid states unrepresentable. `Exponential` has no intervals/delay, `Linear` always has `delay_secs`, `Custom` always has `intervals_secs`.
+- **`intervals.get(idx)?`**: Safe indexing, no panic on empty vec.
+- **Expand-and-contract migration**: Column added without FK, FK added NOT VALID, then validated separately. Minimizes lock window.
