@@ -4,9 +4,9 @@
 
 **Goal:** Allow organizations to define named retry schedules (exponential, linear, custom) and assign them to subscriptions, falling back to the existing Svix/Stripe default when none is assigned.
 
-**Architecture:** New `webhook.retry_schedule` table with CRUD API following existing flat-scope pattern. Worker's `compute_next_retry` modified to resolve the subscription's schedule via JOIN and compute delay per strategy. Hook0 client events for observability.
+**Architecture:** New `webhook.retry_schedule` table with CRUD API following existing flat-scope pattern (service_token style). Worker's `compute_next_retry` modified to resolve the subscription's schedule via JOIN and compute delay per strategy. Hook0 client events for observability.
 
-**Tech Stack:** Rust, actix-web, paperclip (OpenAPI), sqlx (Postgres), clap, Biscuit auth, validator crate
+**Tech Stack:** Rust, actix-web, paperclip (OpenAPI), sqlx (Postgres), clap, strum, Biscuit auth, validator crate
 
 **Spec:** `docs/superpowers/specs/2026-03-25-retry-schedule-design.md`
 
@@ -42,33 +42,40 @@
 ```sql
 -- api/migrations/20260325120000_add_retry_schedule.up.sql
 
-CREATE TABLE webhook.retry_schedule (
-    retry_schedule__id UUID NOT NULL DEFAULT gen_random_uuid(),
-    organization__id UUID NOT NULL REFERENCES iam.organization(organization__id),
-    name TEXT NOT NULL CHECK (length(name) >= 1),
-    strategy TEXT NOT NULL CHECK (strategy IN ('exponential', 'linear', 'custom')),
-    intervals INTEGER[] NOT NULL CHECK (array_length(intervals, 1) > 0),
-    max_attempts INTEGER NOT NULL DEFAULT 8 CHECK (max_attempts > 0 AND max_attempts <= 100),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT statement_timestamp(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT statement_timestamp(),
-    CONSTRAINT retry_schedule_pkey PRIMARY KEY (retry_schedule__id),
-    CONSTRAINT retry_schedule_org_name_unique UNIQUE (organization__id, name)
+create table webhook.retry_schedule (
+    retry_schedule__id uuid not null default gen_random_uuid(),
+    organization__id uuid not null references iam.organization(organization__id) on update cascade on delete cascade,
+    name text not null check (length(name) >= 1),
+    strategy text not null check (strategy in ('exponential', 'linear', 'custom')),
+    intervals integer[] not null check (
+        array_length(intervals, 1) > 0
+        and 1 <= all(intervals)
+        and 604800 >= all(intervals)
+    ),
+    max_attempts integer not null default 8 check (max_attempts > 0 and max_attempts <= 100),
+    created_at timestamptz not null default statement_timestamp(),
+    updated_at timestamptz not null default statement_timestamp(),
+    constraint retry_schedule_pkey primary key (retry_schedule__id),
+    constraint retry_schedule_org_name_unique unique (organization__id, name)
 );
 
-ALTER TABLE webhook.subscription
-    ADD COLUMN retry_schedule__id UUID REFERENCES webhook.retry_schedule(retry_schedule__id);
-
-CREATE INDEX subscription_retry_schedule_idx ON webhook.subscription(retry_schedule__id);
+alter table webhook.subscription
+    add column retry_schedule__id uuid references webhook.retry_schedule(retry_schedule__id) on delete set null;
 ```
+
+Notes:
+- `on delete cascade` on `organization__id`: org deletion cascades to schedule deletion
+- `on delete set null` on `subscription.retry_schedule__id`: schedule deletion reverts subscription to default
+- `1 <= all(intervals) and 604800 >= all(intervals)`: enforces per-element bounds at DB level
+- No index on `subscription.retry_schedule__id` — the usage-count query in the delete handler is rare; the UNIQUE constraint on `(organization__id, name)` covers the list query via prefix scan
 
 - [ ] **Step 2: Write down migration**
 
 ```sql
 -- api/migrations/20260325120000_add_retry_schedule.down.sql
 
-DROP INDEX IF EXISTS webhook.subscription_retry_schedule_idx;
-ALTER TABLE webhook.subscription DROP COLUMN IF EXISTS retry_schedule__id;
-DROP TABLE IF EXISTS webhook.retry_schedule;
+alter table webhook.subscription drop column if exists retry_schedule__id;
+drop table if exists webhook.retry_schedule;
 ```
 
 - [ ] **Step 3: Run migration**
@@ -109,7 +116,9 @@ In `api/src/iam.rs`, add to the `Action` enum (after the `EventsPerDayOrganizati
     RetryScheduleDelete,
 ```
 
-Then add the corresponding Datalog rules in the `authorize()` function's authorizer builder. Follow the pattern of `ServiceToken*` actions (org-scoped, no application_id). The rules should check `right("retry_schedule", "list")`, etc. Look at how `ServiceTokenList` / `ServiceTokenCreate` rules are structured and replicate.
+These are flat (no fields) like `ServiceTokenList`, `ServiceTokenCreate`, `ServiceTokenGet`. No schedule ID needed in Datalog rules — authorization is org-scoped only.
+
+Then add the corresponding Datalog rules in the `authorize()` function's authorizer builder. Follow the pattern of `ServiceTokenList` / `ServiceTokenCreate` rules (org-scoped, no application_id). The rules should check `right("retry_schedule", "list")`, etc.
 
 - [ ] **Step 2: Add `RetryScheduleInUse` to Hook0Problem**
 
@@ -134,7 +143,7 @@ Hook0Problem::RetryScheduleInUse => Problem {
 - [ ] **Step 3: Verify compilation**
 
 Run: `cd api && cargo check`
-Expected: Compiles (new Action variants may have unused warnings — that's OK, they'll be used in Task 3)
+Expected: Compiles (new Action variants may have unused warnings — OK, used in Task 3)
 
 - [ ] **Step 4: Commit**
 
@@ -158,17 +167,18 @@ Add to `api/src/handlers/mod.rs`:
 pub mod retry_schedules;
 ```
 
-- [ ] **Step 2: Define structs in retry_schedules.rs**
+- [ ] **Step 2: Define structs and types in retry_schedules.rs**
 
 Create `api/src/handlers/retry_schedules.rs`:
 
 ```rust
-use actix_web::web::{self, Data, Json, Path, Query, ReqData};
+use actix_web::web::{Data, Json, Path, Query, ReqData};
 use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};
-use paperclip::actix::{api_v2_operation, Apiv2Schema};
+use paperclip::actix::{api_v2_operation, CreatedJson, Apiv2Schema};
 use serde::{Deserialize, Serialize};
 use sqlx::query_as;
+use strum::{Display, EnumString};
 use tracing::error;
 use uuid::Uuid;
 use validator::Validate;
@@ -180,6 +190,17 @@ use crate::hook0_client::{
 use crate::iam::{authorize, Action};
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
+
+// --- Types ---
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Display, EnumString, Apiv2Schema)]
+#[serde(rename_all = "lowercase")]
+#[strum(serialize_all = "snake_case")]
+pub enum RetryStrategy {
+    Exponential,
+    Linear,
+    Custom,
+}
 
 // --- Response struct ---
 
@@ -195,6 +216,9 @@ pub struct RetrySchedule {
     pub updated_at: DateTime<Utc>,
 }
 
+// Note: `strategy` is String in the response because sqlx maps TEXT columns to String.
+// The enum is used in request bodies for validation; the DB value is trusted on read.
+
 // --- Request structs ---
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
@@ -202,9 +226,8 @@ pub struct RetrySchedulePost {
     pub organization_id: Uuid,
     #[validate(length(min = 1, max = 200))]
     pub name: String,
-    #[validate(custom(function = "validate_strategy"))]
-    pub strategy: String,
-    #[validate(length(min = 1, max = 100), custom(function = "validate_intervals"))]
+    pub strategy: RetryStrategy,
+    #[validate(length(min = 1, max = 100))]
     pub intervals: Vec<i32>,
     #[validate(range(min = 1, max = 100))]
     pub max_attempts: i32,
@@ -214,35 +237,24 @@ pub struct RetrySchedulePost {
 pub struct RetrySchedulePut {
     #[validate(length(min = 1, max = 200))]
     pub name: String,
-    #[validate(custom(function = "validate_strategy"))]
-    pub strategy: String,
-    #[validate(length(min = 1, max = 100), custom(function = "validate_intervals"))]
+    pub strategy: RetryStrategy,
+    #[validate(length(min = 1, max = 100))]
     pub intervals: Vec<i32>,
     #[validate(range(min = 1, max = 100))]
     pub max_attempts: i32,
 }
 
+// Query struct used by list, get, edit, delete — org_id always required
 #[derive(Debug, Deserialize, Apiv2Schema)]
-pub struct RetryScheduleListQuery {
+pub struct RetryScheduleQs {
     pub organization_id: Uuid,
 }
 
-// --- Validation functions ---
-
-fn validate_strategy(strategy: &str) -> Result<(), validator::ValidationError> {
-    match strategy {
-        "exponential" | "linear" | "custom" => Ok(()),
-        _ => Err(validator::ValidationError::new("invalid_strategy")),
-    }
-}
-
-fn validate_intervals(intervals: &[i32]) -> Result<(), validator::ValidationError> {
-    if intervals.iter().any(|&i| i < 1 || i > 604800) {
-        return Err(validator::ValidationError::new("invalid_interval_value"));
-    }
-    Ok(())
-}
+// --- Per-org schedule limit ---
+const MAX_RETRY_SCHEDULES_PER_ORG: i64 = 50;
 ```
+
+Note: `RetryStrategy` enum replaces string validation. Serde handles deserialization — invalid values return a 400 automatically. The `validate_intervals` custom function is no longer needed since DB CHECK constraint handles bounds and the `validator` length attribute handles array length. Interval element bounds (1..=604800) are enforced by the DB CHECK constraint `1 <= ALL(intervals) AND 604800 >= ALL(intervals)`.
 
 - [ ] **Step 3: Implement `list` handler**
 
@@ -259,7 +271,7 @@ pub async fn list(
     state: Data<crate::State>,
     _: OaBiscuit,
     biscuit: ReqData<Biscuit>,
-    qs: Query<RetryScheduleListQuery>,
+    qs: Query<RetryScheduleQs>,
 ) -> Result<Json<Vec<RetrySchedule>>, Hook0Problem> {
     let org_id = qs.organization_id;
 
@@ -278,18 +290,18 @@ pub async fn list(
     let schedules = query_as!(
         RetrySchedule,
         "
-            SELECT
-                retry_schedule__id AS retry_schedule_id,
-                organization__id AS organization_id,
+            select
+                retry_schedule__id as retry_schedule_id,
+                organization__id as organization_id,
                 name,
                 strategy,
                 intervals,
                 max_attempts,
                 created_at,
                 updated_at
-            FROM webhook.retry_schedule
-            WHERE organization__id = $1
-            ORDER BY created_at ASC
+            from webhook.retry_schedule
+            where organization__id = $1
+            order by created_at asc
         ",
         &org_id
     )
@@ -317,7 +329,7 @@ pub async fn create(
     _: OaBiscuit,
     biscuit: ReqData<Biscuit>,
     body: Json<RetrySchedulePost>,
-) -> Result<Json<RetrySchedule>, Hook0Problem> {
+) -> Result<CreatedJson<RetrySchedule>, Hook0Problem> {
     if let Err(e) = body.validate() {
         return Err(Hook0Problem::Validation(e));
     }
@@ -336,14 +348,30 @@ pub async fn create(
         return Err(Hook0Problem::Forbidden);
     }
 
+    // Per-org schedule count limit
+    let count = sqlx::query_scalar!(
+        "select count(*) from webhook.retry_schedule where organization__id = $1",
+        &org_id
+    )
+    .fetch_one(&state.db)
+    .await
+    .map_err(Hook0Problem::from)?
+    .unwrap_or(0);
+
+    if count >= MAX_RETRY_SCHEDULES_PER_ORG {
+        return Err(Hook0Problem::RetryScheduleInUse); // TODO: add a proper TooManyRetrySchedules variant
+    }
+
+    let strategy_str = body.strategy.to_string();
+
     let schedule = query_as!(
         RetrySchedule,
         "
-            INSERT INTO webhook.retry_schedule (organization__id, name, strategy, intervals, max_attempts)
-            VALUES ($1, $2, $3, $4, $5)
-            RETURNING
-                retry_schedule__id AS retry_schedule_id,
-                organization__id AS organization_id,
+            insert into webhook.retry_schedule (organization__id, name, strategy, intervals, max_attempts)
+            values ($1, $2, $3, $4, $5)
+            returning
+                retry_schedule__id as retry_schedule_id,
+                organization__id as organization_id,
                 name,
                 strategy,
                 intervals,
@@ -353,7 +381,7 @@ pub async fn create(
         ",
         &org_id,
         &body.name,
-        &body.strategy,
+        &strategy_str,
         &body.intervals,
         &body.max_attempts,
     )
@@ -377,13 +405,13 @@ pub async fn create(
         };
     }
 
-    Ok(Json(schedule))
+    Ok(CreatedJson(schedule))
 }
 ```
 
 - [ ] **Step 5: Implement `get` handler**
 
-Append to `api/src/handlers/retry_schedules.rs`:
+Auth-first pattern (service_token style). `organization_id` required as query param. SQL scoped to both IDs.
 
 ```rust
 #[api_v2_operation(
@@ -397,32 +425,13 @@ pub async fn get(
     _: OaBiscuit,
     biscuit: ReqData<Biscuit>,
     schedule_id: Path<Uuid>,
+    qs: Query<RetryScheduleQs>,
 ) -> Result<Json<RetrySchedule>, Hook0Problem> {
-    let schedule = query_as!(
-        RetrySchedule,
-        "
-            SELECT
-                retry_schedule__id AS retry_schedule_id,
-                organization__id AS organization_id,
-                name,
-                strategy,
-                intervals,
-                max_attempts,
-                created_at,
-                updated_at
-            FROM webhook.retry_schedule
-            WHERE retry_schedule__id = $1
-        ",
-        schedule_id.as_ref()
-    )
-    .fetch_optional(&state.db)
-    .await
-    .map_err(Hook0Problem::from)?
-    .ok_or(Hook0Problem::NotFound)?;
+    let org_id = qs.organization_id;
 
     if authorize(
         &biscuit,
-        Some(schedule.organization_id),
+        Some(org_id),
         Action::RetryScheduleGet,
         state.max_authorization_time_in_ms,
         state.debug_authorizer,
@@ -432,13 +441,37 @@ pub async fn get(
         return Err(Hook0Problem::Forbidden);
     }
 
+    let schedule = query_as!(
+        RetrySchedule,
+        "
+            select
+                retry_schedule__id as retry_schedule_id,
+                organization__id as organization_id,
+                name,
+                strategy,
+                intervals,
+                max_attempts,
+                created_at,
+                updated_at
+            from webhook.retry_schedule
+            where retry_schedule__id = $1
+              and organization__id = $2
+        ",
+        schedule_id.as_ref(),
+        &org_id,
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(Hook0Problem::from)?
+    .ok_or(Hook0Problem::NotFound)?;
+
     Ok(Json(schedule))
 }
 ```
 
 - [ ] **Step 6: Implement `edit` handler**
 
-Append to `api/src/handlers/retry_schedules.rs`:
+Auth-first, SQL scoped, no TOCTOU.
 
 ```rust
 #[api_v2_operation(
@@ -452,33 +485,18 @@ pub async fn edit(
     _: OaBiscuit,
     biscuit: ReqData<Biscuit>,
     schedule_id: Path<Uuid>,
+    qs: Query<RetryScheduleQs>,
     body: Json<RetrySchedulePut>,
 ) -> Result<Json<RetrySchedule>, Hook0Problem> {
     if let Err(e) = body.validate() {
         return Err(Hook0Problem::Validation(e));
     }
 
-    // Fetch first to check org access
-    let existing = query_as!(
-        RetrySchedule,
-        "
-            SELECT
-                retry_schedule__id AS retry_schedule_id,
-                organization__id AS organization_id,
-                name, strategy, intervals, max_attempts, created_at, updated_at
-            FROM webhook.retry_schedule
-            WHERE retry_schedule__id = $1
-        ",
-        schedule_id.as_ref()
-    )
-    .fetch_optional(&state.db)
-    .await
-    .map_err(Hook0Problem::from)?
-    .ok_or(Hook0Problem::NotFound)?;
+    let org_id = qs.organization_id;
 
     if authorize(
         &biscuit,
-        Some(existing.organization_id),
+        Some(org_id),
         Action::RetryScheduleEdit,
         state.max_authorization_time_in_ms,
         state.debug_authorizer,
@@ -488,27 +506,32 @@ pub async fn edit(
         return Err(Hook0Problem::Forbidden);
     }
 
+    let strategy_str = body.strategy.to_string();
+
     let schedule = query_as!(
         RetrySchedule,
         "
-            UPDATE webhook.retry_schedule
-            SET name = $2, strategy = $3, intervals = $4, max_attempts = $5,
+            update webhook.retry_schedule
+            set name = $3, strategy = $4, intervals = $5, max_attempts = $6,
                 updated_at = statement_timestamp()
-            WHERE retry_schedule__id = $1
-            RETURNING
-                retry_schedule__id AS retry_schedule_id,
-                organization__id AS organization_id,
+            where retry_schedule__id = $1
+              and organization__id = $2
+            returning
+                retry_schedule__id as retry_schedule_id,
+                organization__id as organization_id,
                 name, strategy, intervals, max_attempts, created_at, updated_at
         ",
         schedule_id.as_ref(),
+        &org_id,
         &body.name,
-        &body.strategy,
+        &strategy_str,
         &body.intervals,
         &body.max_attempts,
     )
-    .fetch_one(&state.db)
+    .fetch_optional(&state.db)
     .await
-    .map_err(Hook0Problem::from)?;
+    .map_err(Hook0Problem::from)?
+    .ok_or(Hook0Problem::NotFound)?;
 
     if let Some(hook0_client) = state.hook0_client.as_ref() {
         let hook0_client_event: Hook0ClientEvent = EventRetryScheduleUpdated {
@@ -532,7 +555,7 @@ pub async fn edit(
 
 - [ ] **Step 7: Implement `delete` handler**
 
-Append to `api/src/handlers/retry_schedules.rs`:
+Auth-first. Atomic delete with NOT EXISTS check (no TOCTOU).
 
 ```rust
 #[api_v2_operation(
@@ -546,27 +569,13 @@ pub async fn delete(
     _: OaBiscuit,
     biscuit: ReqData<Biscuit>,
     schedule_id: Path<Uuid>,
+    qs: Query<RetryScheduleQs>,
 ) -> Result<Json<()>, Hook0Problem> {
-    let existing = query_as!(
-        RetrySchedule,
-        "
-            SELECT
-                retry_schedule__id AS retry_schedule_id,
-                organization__id AS organization_id,
-                name, strategy, intervals, max_attempts, created_at, updated_at
-            FROM webhook.retry_schedule
-            WHERE retry_schedule__id = $1
-        ",
-        schedule_id.as_ref()
-    )
-    .fetch_optional(&state.db)
-    .await
-    .map_err(Hook0Problem::from)?
-    .ok_or(Hook0Problem::NotFound)?;
+    let org_id = qs.organization_id;
 
     if authorize(
         &biscuit,
-        Some(existing.organization_id),
+        Some(org_id),
         Action::RetryScheduleDelete,
         state.max_authorization_time_in_ms,
         state.debug_authorizer,
@@ -576,38 +585,52 @@ pub async fn delete(
         return Err(Hook0Problem::Forbidden);
     }
 
-    // Check no subscriptions are using this schedule
-    let usage_count = sqlx::query_scalar!(
+    // Atomic: delete only if not assigned to any active subscription
+    let result = sqlx::query!(
         "
-            SELECT COUNT(*) AS count
-            FROM webhook.subscription
-            WHERE retry_schedule__id = $1
-              AND deleted_at IS NULL
+            delete from webhook.retry_schedule
+            where retry_schedule__id = $1
+              and organization__id = $2
+              and not exists (
+                  select 1 from webhook.subscription
+                  where retry_schedule__id = $1
+                    and deleted_at is null
+              )
         ",
-        schedule_id.as_ref()
-    )
-    .fetch_one(&state.db)
-    .await
-    .map_err(Hook0Problem::from)?;
-
-    if usage_count.unwrap_or(0) > 0 {
-        return Err(Hook0Problem::RetryScheduleInUse);
-    }
-
-    sqlx::query!(
-        "DELETE FROM webhook.retry_schedule WHERE retry_schedule__id = $1",
-        schedule_id.as_ref()
+        schedule_id.as_ref(),
+        &org_id,
     )
     .execute(&state.db)
     .await
     .map_err(Hook0Problem::from)?;
 
+    if result.rows_affected() == 0 {
+        // Disambiguate: does the schedule exist?
+        let exists = sqlx::query_scalar!(
+            "select exists(
+                select 1 from webhook.retry_schedule
+                where retry_schedule__id = $1 and organization__id = $2
+            ) as \"exists!\"",
+            schedule_id.as_ref(),
+            &org_id,
+        )
+        .fetch_one(&state.db)
+        .await
+        .map_err(Hook0Problem::from)?;
+
+        if exists {
+            return Err(Hook0Problem::RetryScheduleInUse);
+        } else {
+            return Err(Hook0Problem::NotFound);
+        }
+    }
+
     if let Some(hook0_client) = state.hook0_client.as_ref() {
         let hook0_client_event: Hook0ClientEvent = EventRetryScheduleRemoved {
-            organization_id: existing.organization_id,
-            retry_schedule_id: existing.retry_schedule_id,
-            name: existing.name.clone(),
-            strategy: existing.strategy.clone(),
+            organization_id: org_id,
+            retry_schedule_id: *schedule_id,
+            name: String::new(), // Schedule already deleted; name not available
+            strategy: String::new(),
         }
         .into();
         if let Err(e) = hook0_client
@@ -622,10 +645,12 @@ pub async fn delete(
 }
 ```
 
+Note on delete event: since the row is already deleted when we fire the event, name/strategy are unavailable. If audit trail requires full data, refactor to SELECT + DELETE in a transaction instead.
+
 - [ ] **Step 8: Verify compilation**
 
 Run: `cd api && cargo check`
-Expected: May fail on missing imports/types (Hook0Problem::Conflict, hook0_client events) — those are created in Tasks 3 and 4. Verify the handler module itself has no syntax errors.
+Expected: Compiles (requires Tasks 4 and 5 for routes and hook0_client types)
 
 - [ ] **Step 9: Commit**
 
@@ -667,7 +692,7 @@ Add a new `.service()` block adjacent to the existing `/subscriptions` scope (af
 - [ ] **Step 2: Verify compilation**
 
 Run: `cd api && cargo check`
-Expected: Compiles (after Task 4 for hook0_client types)
+Expected: Compiles (after Task 5 for hook0_client types)
 
 - [ ] **Step 3: Commit**
 
@@ -832,59 +857,44 @@ In the `SubscriptionPost` struct (around line 445-467), add:
     pub retry_schedule_id: Option<Uuid>,
 ```
 
+Note: `SubscriptionPost` is reused for both create and edit. This field applies to both operations.
+
 - [ ] **Step 3: Update all SQL queries that SELECT from subscription**
 
 Every `list`, `get`, `create`, `edit` query that returns a `Subscription` needs to include:
 ```sql
-s.retry_schedule__id AS retry_schedule_id,
+s.retry_schedule__id as retry_schedule_id,
 ```
 
 Find each `query_as!(Subscription, ...)` call and add the column to the SELECT.
 
-- [ ] **Step 4: Update `create` INSERT to include retry_schedule_id**
+- [ ] **Step 4: Update `create` INSERT with SQL-level cross-org enforcement**
 
-In the `create` handler's INSERT query, add the column:
+In the `create` handler's INSERT query, use a subquery to enforce same-org ownership atomically (no TOCTOU):
+
 ```sql
-INSERT INTO webhook.subscription (..., retry_schedule__id)
-VALUES (..., $N)
+insert into webhook.subscription (..., retry_schedule__id)
+values (..., (
+    select retry_schedule__id from webhook.retry_schedule
+    where retry_schedule__id = $N
+      and organization__id = (
+          select organization__id from event.application
+          where application__id = $APP_ID and deleted_at is null
+      )
+))
 ```
 
-Add validation: if `retry_schedule_id` is provided, verify it belongs to the same org:
+If `retry_schedule_id` is `None`, pass `NULL` directly. If the subquery returns NULL (schedule doesn't exist or wrong org), the column gets NULL — detect this and return an error:
+
 ```rust
-if let Some(schedule_id) = &body.retry_schedule_id {
-    let schedule_org = sqlx::query_scalar!(
-        "SELECT organization__id FROM webhook.retry_schedule WHERE retry_schedule__id = $1",
-        schedule_id
-    )
-    .fetch_optional(&state.db)
-    .await
-    .map_err(Hook0Problem::from)?
-    .ok_or(Hook0Problem::NotFound)?;
-
-    // Compare with the subscription's application org
-    let app_org = sqlx::query_scalar!(
-        "SELECT organization__id FROM event.application WHERE application__id = $1 AND deleted_at IS NULL",
-        &body.application_id
-    )
-    .fetch_optional(&state.db)
-    .await
-    .map_err(Hook0Problem::from)?
-    .ok_or(Hook0Problem::NotFound)?;
-
-    if schedule_org != app_org {
-        return Err(Hook0Problem::Forbidden);
-    }
+if body.retry_schedule_id.is_some() && created.retry_schedule_id.is_none() {
+    return Err(Hook0Problem::NotFound); // schedule not found or cross-org
 }
 ```
 
-- [ ] **Step 5: Update `edit` UPDATE to include retry_schedule_id**
+- [ ] **Step 5: Update `edit` UPDATE with same cross-org enforcement**
 
-In the `edit` handler's UPDATE query, add:
-```sql
-retry_schedule__id = $N,
-```
-
-Same org validation as create.
+Same pattern as create for the UPDATE query.
 
 - [ ] **Step 6: Verify compilation**
 
@@ -905,11 +915,23 @@ git commit -m "feat(api): add retry_schedule_id to subscription CRUD"
 **Files:**
 - Modify: `output-worker/src/main.rs` (lines 262-268 constants, lines 285-302 struct, lines 769-843 retry functions)
 - Modify: `output-worker/src/pg.rs` (lines 46-92 fetch query)
-- Modify: `output-worker/src/pulsar.rs` (where compute_next_retry is called)
+- Modify: `output-worker/src/pulsar.rs` (status query + retry call site)
 
-- [ ] **Step 1: Add schedule fields to `RequestAttemptWithOptionalPayload`**
+- [ ] **Step 1: Add `ScheduleConfig` struct and schedule fields to `RequestAttemptWithOptionalPayload`**
 
-In `output-worker/src/main.rs`, add to the struct (around line 285-302):
+In `output-worker/src/main.rs`, add:
+
+```rust
+/// Retry schedule configuration resolved from the subscription's assigned schedule.
+#[derive(Debug, Clone)]
+pub struct ScheduleConfig {
+    pub strategy: String,
+    pub intervals: Vec<i32>,
+    pub max_attempts: i32,
+}
+```
+
+Add to `RequestAttemptWithOptionalPayload` (around line 285-302):
 
 ```rust
     // Retry schedule fields (from LEFT JOIN)
@@ -918,20 +940,37 @@ In `output-worker/src/main.rs`, add to the struct (around line 285-302):
     pub retry_max_attempts: Option<i32>,
 ```
 
+Add a helper method:
+
+```rust
+impl RequestAttemptWithOptionalPayload {
+    pub fn schedule_config(&self) -> Option<ScheduleConfig> {
+        match (&self.retry_strategy, &self.retry_intervals, &self.retry_max_attempts) {
+            (Some(strategy), Some(intervals), Some(max_attempts)) => Some(ScheduleConfig {
+                strategy: strategy.clone(),
+                intervals: intervals.clone(),
+                max_attempts: *max_attempts,
+            }),
+            _ => None,
+        }
+    }
+}
+```
+
 - [ ] **Step 2: Update pg.rs fetch query to JOIN retry_schedule**
 
 In `output-worker/src/pg.rs`, modify the main SELECT query (lines 46-92):
 
 Add to SELECT columns:
 ```sql
-            rs.strategy AS retry_strategy,
-            rs.intervals AS retry_intervals,
-            rs.max_attempts AS retry_max_attempts,
+            rs.strategy as retry_strategy,
+            rs.intervals as retry_intervals,
+            rs.max_attempts as retry_max_attempts,
 ```
 
 Add to JOIN clauses:
 ```sql
-        LEFT JOIN webhook.retry_schedule AS rs ON rs.retry_schedule__id = s.retry_schedule__id
+        left join webhook.retry_schedule as rs on rs.retry_schedule__id = s.retry_schedule__id
 ```
 
 - [ ] **Step 3: Write `compute_delay_from_schedule` function**
@@ -939,36 +978,34 @@ Add to JOIN clauses:
 In `output-worker/src/main.rs`, add a new function:
 
 ```rust
-fn compute_delay_from_schedule(
-    strategy: &str,
-    intervals: &[i32],
-    max_attempts: i32,
-    retry_count: i16,
-) -> Option<Duration> {
-    let count = retry_count as i32;
-    if count >= max_attempts {
+fn compute_delay_from_schedule(config: &ScheduleConfig, retry_count: i16) -> Option<Duration> {
+    let count = i32::from(retry_count);
+    if count >= config.max_attempts {
         return None; // exhausted
     }
-    if intervals.is_empty() {
+    if config.intervals.is_empty() {
         return None;
     }
 
-    let delay_secs = match strategy {
-        "linear" => intervals[0],
-        // "exponential" and "custom" both use index-based lookup
-        _ => {
-            let idx = (count as usize).min(intervals.len() - 1);
-            intervals[idx]
+    let delay_secs = match config.strategy.as_str() {
+        "linear" => config.intervals[0],
+        "exponential" | "custom" => {
+            let idx = (count as usize).min(config.intervals.len() - 1);
+            config.intervals[idx]
+        }
+        unknown => {
+            warn!("Unknown retry strategy: {unknown}, giving up");
+            return None;
         }
     };
 
-    Some(Duration::from_secs(delay_secs.max(0) as u64))
+    Some(Duration::from_secs(u64::from(delay_secs.max(0) as u32)))
 }
 ```
 
-- [ ] **Step 4: Modify `compute_next_retry` to use schedule data**
+- [ ] **Step 4: Modify `compute_next_retry` to use `ScheduleConfig`**
 
-Change the signature of `compute_next_retry` to accept schedule info:
+Change the signature of `compute_next_retry`:
 
 ```rust
 async fn compute_next_retry(
@@ -977,9 +1014,7 @@ async fn compute_next_retry(
     response: &Response,
     max_fast_retries: u32,
     max_slow_retries: u32,
-    retry_strategy: Option<&str>,
-    retry_intervals: Option<&[i32]>,
-    retry_max_attempts: Option<i32>,
+    schedule: Option<&ScheduleConfig>,
 ) -> Result<Option<Duration>, sqlx::Error> {
 ```
 
@@ -987,14 +1022,9 @@ In the retry computation branch (after subscription check), replace the call to 
 
 ```rust
 if sub.is_some() {
-    match (retry_strategy, retry_intervals, retry_max_attempts) {
-        (Some(strategy), Some(intervals), Some(max_attempts)) => {
-            Ok(compute_delay_from_schedule(strategy, intervals, max_attempts, attempt.retry_count))
-        }
-        _ => {
-            // No custom schedule — use existing default
-            Ok(compute_next_retry_duration(max_fast_retries, max_slow_retries, attempt.retry_count))
-        }
+    match schedule {
+        Some(config) => Ok(compute_delay_from_schedule(config, attempt.retry_count)),
+        None => Ok(compute_next_retry_duration(max_fast_retries, max_slow_retries, attempt.retry_count)),
     }
 } else {
     Ok(None)
@@ -1003,30 +1033,40 @@ if sub.is_some() {
 
 - [ ] **Step 5: Update call sites in pg.rs**
 
-In `output-worker/src/pg.rs`, where `compute_next_retry` is called (around line 292), pass the schedule fields from the fetched attempt:
+In `output-worker/src/pg.rs`, where `compute_next_retry` is called (around line 292), extract and pass the schedule:
 
 ```rust
+let schedule_config = next_attempt.schedule_config();
 compute_next_retry(
     &mut tx,
     &attempt,
     &response,
     config.max_fast_retries,
     config.max_slow_retries,
-    next_attempt.retry_strategy.as_deref(),
-    next_attempt.retry_intervals.as_deref(),
-    next_attempt.retry_max_attempts,
+    schedule_config.as_ref(),
 )
 ```
 
 - [ ] **Step 6: Update Pulsar mode for schedule support**
 
-In Pulsar mode, the attempt payload comes from the Pulsar message (not a DB query), but there IS a lightweight DB query at `output-worker/src/pulsar.rs:399-440` that checks attempt status. This query JOINs `webhook.subscription` and `event.application`.
+In Pulsar mode, the attempt payload comes from the Pulsar message, but there IS a lightweight DB query at `output-worker/src/pulsar.rs:399-440` that checks attempt status via JOINs on `webhook.subscription` and `event.application`.
 
-Two changes needed:
+Two changes:
 
-1. **Add LEFT JOIN to the status check query** (around line 399): Add `LEFT JOIN webhook.retry_schedule AS rs ON rs.retry_schedule__id = s.retry_schedule__id` and select `rs.strategy`, `rs.intervals`, `rs.max_attempts` in the SELECT clause. Extend the `RawRequestAttemptStatus` struct to carry these fields.
+1. **Add LEFT JOIN to the status check query** (around line 399): Add `left join webhook.retry_schedule as rs on rs.retry_schedule__id = s.retry_schedule__id` and select `rs.strategy as retry_strategy`, `rs.intervals as retry_intervals`, `rs.max_attempts as retry_max_attempts`. Extend `RawRequestAttemptStatus` to carry these fields.
 
-2. **Pass schedule fields to `compute_next_retry`** at the call site (around line 580): Extract the schedule fields from the status query result and pass them through. The schedule data flows: status query → local variables → `compute_next_retry()` call.
+2. **Build `ScheduleConfig` from status query result** and pass to `compute_next_retry`:
+
+```rust
+let schedule_config = match (&status.retry_strategy, &status.retry_intervals, &status.retry_max_attempts) {
+    (Some(strategy), Some(intervals), Some(max_attempts)) => Some(ScheduleConfig {
+        strategy: strategy.clone(),
+        intervals: intervals.clone(),
+        max_attempts: *max_attempts,
+    }),
+    _ => None,
+};
+```
 
 - [ ] **Step 7: Verify compilation**
 
@@ -1077,7 +1117,7 @@ All commits should be on a feature branch `feat/retry-schedule` for the MR. If n
 - [ ] **Step 2: Verify all changes**
 
 Run: `git log --oneline master..HEAD`
-Expected: Clear sequence of commits covering migration, handler, routes, hook0 events, subscription modification, worker logic
+Expected: Clear sequence of commits covering migration, IAM, handler, routes, hook0 events, subscription modification, worker logic
 
 ---
 
@@ -1086,3 +1126,6 @@ Expected: Clear sequence of commits covering migration, handler, routes, hook0 e
 - **sqlx compile-time checking**: All queries are checked at compile time. Ensure the migration has been applied to the dev database before running `cargo check`.
 - **Biscuit Datalog rules**: When adding `Action::RetrySchedule*` variants, study the existing `ServiceToken*` rules in `authorize()` as a model — they are org-scoped without application_id, same as retry schedules.
 - **`SubscriptionPost` reuse**: The codebase reuses `SubscriptionPost` for both create and edit. The `retry_schedule_id` field added in Task 6 applies to both operations.
+- **`RetryStrategy` enum**: Used in request bodies for type-safe deserialization. In response structs and DB, strategy remains `String` (sqlx maps TEXT to String). The enum is the write-side guard; the DB CHECK constraint is the storage-side guard.
+- **Per-org limit**: `MAX_RETRY_SCHEDULES_PER_ORG = 50`. Adjust if needed. Consider adding a proper `TooManyRetrySchedulesPerOrganization` variant to `Hook0Problem` (following `TooManySubscriptionsPerApplication` pattern) instead of reusing `RetryScheduleInUse`.
+- **SQL convention**: All SQL in migrations and queries uses lowercase keywords, matching existing codebase style.
