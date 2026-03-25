@@ -34,6 +34,32 @@ use uuid::Uuid;
 use hook0_protobuf::RequestAttempt;
 use work::*;
 
+#[derive(Debug, Clone, Copy, strum::EnumString, strum::Display)]
+#[strum(serialize_all = "lowercase")]
+pub enum RetryStrategy {
+    Exponential,
+    Linear,
+    Custom,
+}
+
+/// Schedule config as enum — makes invalid states unrepresentable.
+#[derive(Debug, Clone)]
+pub enum ScheduleConfig {
+    Exponential { max_retries: i32 },
+    Linear { max_retries: i32, delay_secs: i32 },
+    Custom { max_retries: i32, intervals_secs: Vec<i32> },
+}
+
+impl ScheduleConfig {
+    fn max_retries(&self) -> i32 {
+        match self {
+            Self::Exponential { max_retries } => *max_retries,
+            Self::Linear { max_retries, .. } => *max_retries,
+            Self::Custom { max_retries, .. } => *max_retries,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
 enum SignatureVersion {
     V0,
@@ -289,6 +315,34 @@ pub struct RequestAttemptWithOptionalPayload {
     pub payload: Option<Vec<u8>>,
     pub payload_content_type: String,
     pub secret: Uuid,
+    pub retry_strategy: Option<String>,
+    pub retry_max_retries: Option<i32>,
+    pub retry_custom_intervals: Option<Vec<i32>>,
+    pub retry_linear_delay: Option<i32>,
+}
+
+impl RequestAttemptWithOptionalPayload {
+    pub fn schedule_config(&self) -> Option<ScheduleConfig> {
+        let strategy_str = self.retry_strategy.as_ref()?;
+        let strategy = RetryStrategy::from_str(strategy_str).ok()?;
+        let max_retries = self.retry_max_retries?;
+        match strategy {
+            RetryStrategy::Exponential => Some(ScheduleConfig::Exponential { max_retries }),
+            RetryStrategy::Linear => {
+                let delay_secs = self.retry_linear_delay?;
+                Some(ScheduleConfig::Linear { max_retries, delay_secs })
+            }
+            RetryStrategy::Custom => {
+                let intervals_secs = self.retry_custom_intervals.clone()?;
+                if intervals_secs.len() != usize::try_from(max_retries).unwrap_or(0) {
+                    warn!("Custom schedule intervals len {} != max_retries {}, falling back to default",
+                        intervals_secs.len(), max_retries);
+                    return None;
+                }
+                Some(ScheduleConfig::Custom { max_retries, intervals_secs })
+            }
+        }
+    }
 }
 
 #[tokio::main]
@@ -325,7 +379,7 @@ async fn main() -> anyhow::Result<()> {
     debug!("Webhook total timeout is set to {:?}", config.timeout);
     let retry_policy = evaluate_retry_policy(config.max_retries, config.max_retry_window);
     info!(
-        "Configured retry policy allows a maximum of {} retries in a {} window",
+        "Configured retry policy allows a maximum of {} retries in a {} window (default, may be overridden per-subscription)",
         retry_policy.0,
         format_duration(retry_policy.1)
     );
@@ -767,6 +821,7 @@ async fn compute_next_retry(
     attempt: &RequestAttempt,
     response: &Response,
     max_retries: u8,
+    schedule: Option<&ScheduleConfig>,
 ) -> Result<Option<Duration>, sqlx::Error> {
     match response.response_error {
         Some(ResponseError::InvalidHeader) => {
@@ -805,14 +860,37 @@ async fn compute_next_retry(
             .await?;
 
             if sub.is_some() {
-                Ok(compute_next_retry_duration(
-                    max_retries,
-                    attempt.retry_count,
-                ))
+                match schedule {
+                    Some(config) => Ok(compute_delay_from_schedule(config, attempt.retry_count)),
+                    None => Ok(compute_next_retry_duration(max_retries, attempt.retry_count)),
+                }
             } else {
                 // If the subscription was disabled or soft-deleted (or its application was deleted), we do not schedule a next attempt
                 Ok(None)
             }
+        }
+    }
+}
+
+fn compute_delay_from_schedule(config: &ScheduleConfig, retry_count: i16) -> Option<Duration> {
+    let count = i32::from(retry_count);
+    if count >= config.max_retries() {
+        return None;
+    }
+    match config {
+        ScheduleConfig::Exponential { max_retries } => {
+            compute_next_retry_duration(
+                u8::try_from(*max_retries).unwrap_or(100).min(100),
+                retry_count,
+            )
+        }
+        ScheduleConfig::Linear { delay_secs, .. } => {
+            Some(Duration::from_secs(u64::try_from(*delay_secs).unwrap_or(0)))
+        }
+        ScheduleConfig::Custom { intervals_secs, .. } => {
+            let idx = usize::try_from(count).unwrap_or(0);
+            let delay = intervals_secs.get(idx)?;
+            Some(Duration::from_secs(u64::try_from(*delay).unwrap_or(0)))
         }
     }
 }
@@ -893,5 +971,229 @@ mod tests {
         let (retries, cumulative) = evaluate_retry_policy(30, window);
         assert_eq!(retries, 2);
         assert!(cumulative < window);
+    }
+
+    // --- Exponential schedule tests (7) ---
+
+    #[test]
+    fn test_exponential_first_retry() {
+        let config = ScheduleConfig::Exponential { max_retries: 10 };
+        assert_eq!(compute_delay_from_schedule(&config, 0), Some(Duration::from_secs(3)));
+    }
+
+    #[test]
+    fn test_exponential_mid_table() {
+        let config = ScheduleConfig::Exponential { max_retries: 10 };
+        assert_eq!(compute_delay_from_schedule(&config, 3), Some(Duration::from_secs(30 * 60)));
+    }
+
+    #[test]
+    fn test_exponential_past_table() {
+        let config = ScheduleConfig::Exponential { max_retries: 10 };
+        assert_eq!(compute_delay_from_schedule(&config, 9), Some(Duration::from_hours(10)));
+    }
+
+    #[test]
+    fn test_exponential_at_max() {
+        let config = ScheduleConfig::Exponential { max_retries: 5 };
+        assert_eq!(compute_delay_from_schedule(&config, 5), None);
+    }
+
+    #[test]
+    fn test_exponential_past_max() {
+        let config = ScheduleConfig::Exponential { max_retries: 5 };
+        assert_eq!(compute_delay_from_schedule(&config, 6), None);
+    }
+
+    #[test]
+    fn test_exponential_max_1() {
+        let config = ScheduleConfig::Exponential { max_retries: 1 };
+        assert_eq!(compute_delay_from_schedule(&config, 0), Some(Duration::from_secs(3)));
+    }
+
+    #[test]
+    fn test_exponential_max_100() {
+        let config = ScheduleConfig::Exponential { max_retries: 100 };
+        assert_eq!(compute_delay_from_schedule(&config, 99), Some(Duration::from_hours(10)));
+    }
+
+    // --- Linear schedule tests (5) ---
+
+    #[test]
+    fn test_linear_first_retry() {
+        let config = ScheduleConfig::Linear { max_retries: 5, delay_secs: 300 };
+        assert_eq!(compute_delay_from_schedule(&config, 0), Some(Duration::from_secs(300)));
+    }
+
+    #[test]
+    fn test_linear_every_retry_same() {
+        let config = ScheduleConfig::Linear { max_retries: 10, delay_secs: 300 };
+        assert_eq!(compute_delay_from_schedule(&config, 4), Some(Duration::from_secs(300)));
+    }
+
+    #[test]
+    fn test_linear_at_max() {
+        let config = ScheduleConfig::Linear { max_retries: 5, delay_secs: 300 };
+        assert_eq!(compute_delay_from_schedule(&config, 5), None);
+    }
+
+    #[test]
+    fn test_linear_delay_1s() {
+        let config = ScheduleConfig::Linear { max_retries: 3, delay_secs: 1 };
+        assert_eq!(compute_delay_from_schedule(&config, 0), Some(Duration::from_secs(1)));
+    }
+
+    #[test]
+    fn test_linear_delay_max() {
+        let config = ScheduleConfig::Linear { max_retries: 3, delay_secs: 604800 };
+        assert_eq!(compute_delay_from_schedule(&config, 0), Some(Duration::from_secs(604800)));
+    }
+
+    // --- Custom schedule tests (6) ---
+
+    #[test]
+    fn test_custom_first_interval() {
+        let config = ScheduleConfig::Custom { max_retries: 3, intervals_secs: vec![3, 30, 300] };
+        assert_eq!(compute_delay_from_schedule(&config, 0), Some(Duration::from_secs(3)));
+    }
+
+    #[test]
+    fn test_custom_last_interval() {
+        let config = ScheduleConfig::Custom { max_retries: 3, intervals_secs: vec![3, 30, 300] };
+        assert_eq!(compute_delay_from_schedule(&config, 2), Some(Duration::from_secs(300)));
+    }
+
+    #[test]
+    fn test_custom_at_max() {
+        let config = ScheduleConfig::Custom { max_retries: 3, intervals_secs: vec![3, 30, 300] };
+        assert_eq!(compute_delay_from_schedule(&config, 3), None);
+    }
+
+    #[test]
+    fn test_custom_single() {
+        let config = ScheduleConfig::Custom { max_retries: 1, intervals_secs: vec![60] };
+        assert_eq!(compute_delay_from_schedule(&config, 0), Some(Duration::from_secs(60)));
+    }
+
+    #[test]
+    fn test_custom_empty_intervals() {
+        let config = ScheduleConfig::Custom { max_retries: 0, intervals_secs: vec![] };
+        assert_eq!(compute_delay_from_schedule(&config, 0), None);
+    }
+
+    #[test]
+    fn test_custom_all_same() {
+        let config = ScheduleConfig::Custom { max_retries: 3, intervals_secs: vec![10, 10, 10] };
+        assert_eq!(compute_delay_from_schedule(&config, 0), Some(Duration::from_secs(10)));
+        assert_eq!(compute_delay_from_schedule(&config, 1), Some(Duration::from_secs(10)));
+        assert_eq!(compute_delay_from_schedule(&config, 2), Some(Duration::from_secs(10)));
+    }
+
+    // --- schedule_config() tests (6) ---
+
+    fn make_attempt(
+        strategy: Option<&str>,
+        max_retries: Option<i32>,
+        intervals: Option<Vec<i32>>,
+        linear_delay: Option<i32>,
+    ) -> RequestAttemptWithOptionalPayload {
+        RequestAttemptWithOptionalPayload {
+            application_id: Uuid::nil(),
+            request_attempt_id: Uuid::nil(),
+            event_id: Uuid::nil(),
+            event_received_at: chrono::Utc::now(),
+            subscription_id: Uuid::nil(),
+            created_at: chrono::Utc::now(),
+            retry_count: 0,
+            delay_until: None,
+            http_method: "POST".to_string(),
+            http_url: "http://example.com".to_string(),
+            http_headers: serde_json::json!({}),
+            event_type_name: "test".to_string(),
+            payload: None,
+            payload_content_type: "application/json".to_string(),
+            secret: Uuid::nil(),
+            retry_strategy: strategy.map(|s| s.to_string()),
+            retry_max_retries: max_retries,
+            retry_custom_intervals: intervals,
+            retry_linear_delay: linear_delay,
+        }
+    }
+
+    #[test]
+    fn test_config_none_no_strategy() {
+        let a = make_attempt(None, None, None, None);
+        assert!(a.schedule_config().is_none());
+    }
+
+    #[test]
+    fn test_config_exponential() {
+        let a = make_attempt(Some("exponential"), Some(5), None, None);
+        assert!(matches!(a.schedule_config(), Some(ScheduleConfig::Exponential { max_retries: 5 })));
+    }
+
+    #[test]
+    fn test_config_linear() {
+        let a = make_attempt(Some("linear"), Some(3), None, Some(60));
+        assert!(matches!(a.schedule_config(), Some(ScheduleConfig::Linear { max_retries: 3, delay_secs: 60 })));
+    }
+
+    #[test]
+    fn test_config_custom() {
+        let a = make_attempt(Some("custom"), Some(2), Some(vec![10, 20]), None);
+        match a.schedule_config() {
+            Some(ScheduleConfig::Custom { max_retries, intervals_secs }) => {
+                assert_eq!(max_retries, 2);
+                assert_eq!(intervals_secs, vec![10, 20]);
+            }
+            other => panic!("Expected Custom, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_config_unknown_strategy() {
+        let a = make_attempt(Some("fibonacci"), Some(5), None, None);
+        assert!(a.schedule_config().is_none());
+    }
+
+    #[test]
+    fn test_config_missing_max_retries() {
+        let a = make_attempt(Some("exponential"), None, None, None);
+        assert!(a.schedule_config().is_none());
+    }
+
+    // --- Fallback tests (2) ---
+
+    #[test]
+    fn test_no_schedule_default() {
+        // Without schedule, uses default exponential: count=0 -> 3s
+        assert_eq!(compute_next_retry_duration(25, 0), Some(Duration::from_secs(3)));
+    }
+
+    #[test]
+    fn test_schedule_overrides() {
+        // With Exponential max=2, count=2 -> None (exhausted)
+        let config = ScheduleConfig::Exponential { max_retries: 2 };
+        assert_eq!(compute_delay_from_schedule(&config, 2), None);
+    }
+
+    // --- Edge case tests (2) ---
+
+    #[test]
+    fn test_negative_retry_count() {
+        let exp = ScheduleConfig::Exponential { max_retries: 5 };
+        // Negative retry_count: i32::from(-1) = -1 < max_retries, so it proceeds
+        // compute_next_retry_duration with negative i16 also works (retry_count < max_retries)
+        assert!(compute_delay_from_schedule(&exp, -1).is_some());
+    }
+
+    #[test]
+    fn test_zero_all_strategies() {
+        let exp = ScheduleConfig::Exponential { max_retries: 5 };
+        let lin = ScheduleConfig::Linear { max_retries: 5, delay_secs: 10 };
+        let cust = ScheduleConfig::Custom { max_retries: 3, intervals_secs: vec![1, 2, 3] };
+        assert_eq!(compute_delay_from_schedule(&exp, 0), Some(Duration::from_secs(3)));
+        assert_eq!(compute_delay_from_schedule(&lin, 0), Some(Duration::from_secs(10)));
+        assert_eq!(compute_delay_from_schedule(&cust, 0), Some(Duration::from_secs(1)));
     }
 }

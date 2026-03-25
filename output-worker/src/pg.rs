@@ -61,7 +61,11 @@ pub async fn look_for_work(
                     e.event_type__name AS event_type_name,
                     e.payload AS payload,
                     e.payload_content_type AS payload_content_type,
-                    s.secret
+                    s.secret,
+                    rs.strategy AS retry_strategy,
+                    rs.max_retries AS retry_max_retries,
+                    rs.custom_intervals AS retry_custom_intervals,
+                    rs.linear_delay AS retry_linear_delay
                 FROM webhook.request_attempt AS ra
                 INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
                 LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
@@ -70,6 +74,7 @@ pub async fn look_for_work(
                 LEFT JOIN iam.organization__worker AS ow ON ow.organization__id = o.organization__id AND ow.default = true
                 INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
                 INNER JOIN event.event AS e ON e.event__id = ra.event__id
+                LEFT JOIN webhook.retry_schedule AS rs ON rs.retry_schedule__id = s.retry_schedule__id
                 WHERE
                     ra.succeeded_at IS NULL
                     AND ra.failed_at IS NULL
@@ -119,6 +124,11 @@ pub async fn look_for_work(
             .execute(&mut *tx)
             .await?;
             debug!(unit_id, request_attempt_id = %attempt.request_attempt_id, "Picked request attempt");
+
+            let schedule_config = attempt.schedule_config();
+            if schedule_config.is_none() && attempt.retry_strategy.is_some() {
+                warn!("Unknown retry strategy {:?}, falling back to default", attempt.retry_strategy);
+            }
 
             let payload = if let Some(p) = attempt.payload {
                 Some(p)
@@ -294,6 +304,7 @@ pub async fn look_for_work(
                         &attempt_with_payload,
                         &response,
                         config.max_retries,
+                        schedule_config.as_ref(),
                     )
                     .await?
                     {
