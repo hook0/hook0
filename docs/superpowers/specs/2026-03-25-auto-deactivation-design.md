@@ -267,3 +267,62 @@ No new API endpoints.
 3. **Manual retry (Phase 4)**: When manually retrying a failed message on a disabled subscription, should it auto-re-enable? Or require explicit re-activation first?
 4. **`max_retry_window` interaction**: If David's `max_retry_window` becomes enforced at runtime, it could cause retries to stop before `max_retries` is reached. The warning threshold would still be computed from `max_retries`, but deactivation might trigger earlier than expected — resulting in deactivation without warning. This is a known limitation to address if `max_retry_window` enforcement is planned.
 5. **Phase numbering**: Phase 1 spec lists Phase 3 as "Email notifications" separately. This Phase 2 spec merges deactivation + emails. Phase 1's out-of-scope section should be updated to reflect the consolidated phasing.
+
+## 7. Open Questions — To resolve before implementation
+
+The following questions emerged during design and have no definitive answer yet. They impact the architecture and must be resolved before implementation begins.
+
+### Q1. Worker vs API cron — where does the deactivation logic live?
+
+**Context:** The original ticket puts the logic in a health check cron on the API side (`EndpointHealthMonitor`, `HEALTH_CHECK_CRON`). Our initial design put it in the worker (real-time reaction to each exhausted message).
+
+**Trade-offs:**
+
+| | Worker | API cron |
+|---|---|---|
+| Data view | Per-message (one message at a time) | Aggregated (all subscriptions at once) |
+| Real-time | Yes | No (latency = cron interval) |
+| Components impacted | Worker + 2 new crates (hook0-mailer, hook0-client) | API only (mailer + hook0-client already present) |
+| Complexity | Worker must resolve org_id → emails, init SMTP, init hook0-client | A `tokio::spawn` + `tokio::time::interval` in the API, everything is already there |
+| Health evaluation | Needs extra queries for aggregated context | Naturally aggregated (1 SQL query for all subscriptions) |
+
+**Recommendation:** Cron in the API. Eliminates the 2 new crates, keeps the worker simple, naturally aggregated view. 1h latency is acceptable for emails.
+
+**To decide:** Worker or API cron?
+
+### Q2. Deactivation trigger — single exhausted message or aggregated health?
+
+**Context:** The ticket (Svix model) uses an aggregated evaluation: "continuous failures over 5 days, with at least 12h spread between first and last failure in the first 24h". Our initial design: a single exhausted message is enough.
+
+**Problem:** A single malformed message (payload the endpoint cannot parse) would disable the subscription for all other messages. This is a false positive.
+
+**Options:**
+- **A) Single exhausted message** — simple but aggressive. Risk of false positives.
+- **B) N consecutive exhausted messages** (counter) — too rigid, does not adapt to volume.
+- **C) Aggregated: "no successful delivery in the last X messages"** — evaluates the actual health of the subscription. Compatible with the cron.
+- **D) Time-based aggregated: "no successful delivery in the last X hours"** — close to the Svix model, but with a threshold relative to the schedule rather than fixed.
+
+**To decide:** What deactivation criteria? If aggregated, what parameters?
+
+### Q3. Warning — retry-based threshold or aggregated health?
+
+**Context:** If we switch to a cron + aggregated health (Q1 + Q2), the warning "at 50% of a message's retries" no longer makes sense. The cron would evaluate the subscription's health as a whole.
+
+**Options:**
+- **A) Time-based warning**: "this subscription has been failing for more than X hours" (X configurable)
+- **B) Message-based warning**: "the last N messages all failed at least one retry"
+- **C) Ratio-based warning**: "less than X% successful deliveries in the last 24h"
+
+**To decide:** What warning criteria? How to make it compatible with custom schedules?
+
+### Q4. `endpoint_health_notification` table — do we adopt it?
+
+**Context:** The ticket has a `webhook.endpoint_health_notification` table to track sent notifications (deduplication). Our design used `warning_sent_at` on the subscription. If we switch to the cron, the dedicated table from the ticket may be a better fit (it supports multiple notification types: `warning`, `disabled`, `recovered`).
+
+**To decide:** Column on subscription (`warning_sent_at`) or dedicated table (`endpoint_health_notification`)?
+
+### Q5. Crate extraction — still needed?
+
+**Context:** If the logic moves to the API cron (Q1), the mailer and hook0-client stay in the API. No need for separate crates. The extraction would only be useful if a future feature requires the worker to send emails or events.
+
+**To decide:** Defer crate extraction until actually needed (YAGNI)?

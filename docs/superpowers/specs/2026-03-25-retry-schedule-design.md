@@ -10,7 +10,7 @@
 
 Add configurable retry schedules on top of the existing default retry policy (commit `5b44bbc8` by David Sferruzza: `3s, 10s, 3min, 30min, 1h, 3h, 5h, 10h repeating`, max 25 retries, window 8d). Organizations can define named retry policies with one of three strategies and assign them to subscriptions. Subscriptions without a schedule keep the worker's default.
 
-This is Phase 1 of ticket #42. Phases 2-4 (auto-deactivation, email notifications, manual retry/recovery) are out of scope.
+This is Phase 1 of ticket #42. Phases 2-3 (auto-deactivation + email notifications, manual retry/recovery) are out of scope.
 
 ## 2. Scope
 
@@ -25,9 +25,8 @@ This is Phase 1 of ticket #42. Phases 2-4 (auto-deactivation, email notification
 
 ### Out of scope
 
-- Automatic endpoint deactivation (Phase 2)
-- Email notifications for failing endpoints (Phase 3)
-- Manual retry/recover/replay APIs (Phase 4)
+- Automatic subscription deactivation + email notifications (Phase 2 — see `2026-03-25-auto-deactivation-design.md`)
+- Manual retry/recover/replay APIs (Phase 3)
 - Frontend UI for retry schedule management
 
 ## 3. Design
@@ -273,12 +272,12 @@ Decisions made during the design interview:
 
 ## 7. Open Questions for Future Phases
 
-1. **Email notifications (Phase 2-3) vs custom schedules**: The ticket defines email warning at 3 days and auto-deactivation at 5 days of continuous failures. These are calendar-time thresholds, independent of the retry schedule. A custom schedule with `linear_delay: 300, max_retries: 20` exhausts in ~1.7 hours — the 3-day warning never triggers. A schedule with `max_retries: 50` may still be retrying at day 5 when deactivation kicks in. Phase 2 must decide: use fixed calendar thresholds, make them configurable per schedule, or compute them dynamically from the schedule's total duration.
+1. **~~Email notifications vs custom schedules~~** — **Resolved in Phase 2 spec.** Fixed calendar thresholds (3d/5d) are incompatible with configurable schedules. Phase 2 explores aggregated health evaluation instead. See `2026-03-25-auto-deactivation-design.md`, section 7 (open questions Q2/Q3).
 
 2. **Frontend warning on delete**: The delete API allows deletion of assigned schedules (SET NULL). The frontend should show a confirmation dialog listing affected subscriptions and in-progress retries. This requires an endpoint (or query param on DELETE) that returns the list of affected subscriptions — to be designed in the frontend phase.
 
 3. **Quota system integration**: The per-org limit is currently an env var, not integrated with the pricing plan / Quotas system. If retry schedules become a paid feature, this needs migration to the Quotas system (add column to `pricing.plan`, use `state.quotas.get_limit_for_organization()`).
 
-4. **Manual retry (Phase 4)**: When a user manually retries a message, should it use the subscription's custom schedule or always use the default? To be decided in Phase 4 spec.
+4. **Manual retry (Phase 3)**: When a user manually retries a message, should it use the subscription's custom schedule or always use the default? To be decided in Phase 3 spec.
 
 5. **`max_retry_window` interaction**: David's `max_retry_window` is currently informational only (logged at boot). If it becomes enforced at runtime in the future, it would apply as a global cap even on custom schedules. This interaction should be considered if `max_retry_window` enforcement is planned.
