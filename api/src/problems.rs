@@ -68,6 +68,7 @@ pub enum Hook0Problem {
     TooManyEventsToday(QuotaValue),
     TooManySubscriptionsPerApplication(QuotaValue),
     TooManyEventTypesPerApplication(QuotaValue),
+    TooManyRetrySchedulesPerOrganization(QuotaValue),
 
     // Generic errors
     JsonPayload(JsonPayloadProblem),
@@ -474,6 +475,16 @@ impl From<Hook0Problem> for Problem {
                 Problem {
                     id: Hook0Problem::TooManyEventTypesPerApplication(limit),
                     title: "Exceeded number of event types that can be created in this application",
+                    detail: detail.into(),
+                    validation: None,
+                    status: StatusCode::TOO_MANY_REQUESTS,
+                }
+            },
+            Hook0Problem::TooManyRetrySchedulesPerOrganization(limit) => {
+                let detail = format!("This organization cannot have more than {limit} retry schedules.");
+                Problem {
+                    id: Hook0Problem::TooManyRetrySchedulesPerOrganization(limit),
+                    title: "Exceeded number of retry schedules per organization",
                     detail: detail.into(),
                     validation: None,
                     status: StatusCode::TOO_MANY_REQUESTS,

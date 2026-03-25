@@ -461,6 +461,12 @@ pub enum Action<'a> {
         application_id: &'a Uuid,
     },
     EventsPerDayOrganization,
+    //
+    RetryScheduleList,
+    RetryScheduleCreate,
+    RetryScheduleGet,
+    RetryScheduleEdit,
+    RetryScheduleDelete,
 }
 
 impl Action<'_> {
@@ -528,6 +534,12 @@ impl Action<'_> {
             //
             Self::EventsPerDayApplication { .. } => "events_per_day:application",
             Self::EventsPerDayOrganization => "events_per_day:organization",
+            //
+            Self::RetryScheduleList => "retry_schedule:list",
+            Self::RetryScheduleCreate => "retry_schedule:create",
+            Self::RetryScheduleGet => "retry_schedule:get",
+            Self::RetryScheduleEdit => "retry_schedule:edit",
+            Self::RetryScheduleDelete => "retry_schedule:delete",
         }
     }
 
@@ -597,6 +609,12 @@ impl Action<'_> {
             //
             Self::EventsPerDayApplication { .. } => vec![Role::Viewer],
             Self::EventsPerDayOrganization => vec![Role::Viewer],
+            //
+            Self::RetryScheduleList => vec![Role::Viewer],
+            Self::RetryScheduleCreate => vec![],
+            Self::RetryScheduleGet => vec![Role::Viewer],
+            Self::RetryScheduleEdit => vec![],
+            Self::RetryScheduleDelete => vec![],
         };
 
         roles.append(&mut per_action_roles);
@@ -682,6 +700,12 @@ impl Action<'_> {
             //
             Self::EventsPerDayApplication { application_id, .. } => Some(**application_id),
             Self::EventsPerDayOrganization => None,
+            //
+            Self::RetryScheduleList => None,
+            Self::RetryScheduleCreate => None,
+            Self::RetryScheduleGet => None,
+            Self::RetryScheduleEdit => None,
+            Self::RetryScheduleDelete => None,
         }
     }
 
@@ -781,6 +805,12 @@ impl Action<'_> {
             //
             Self::EventsPerDayApplication { .. } => vec![],
             Self::EventsPerDayOrganization => vec![],
+            //
+            Self::RetryScheduleList => vec![],
+            Self::RetryScheduleCreate => vec![],
+            Self::RetryScheduleGet => vec![],
+            Self::RetryScheduleEdit => vec![],
+            Self::RetryScheduleDelete => vec![],
         };
 
         facts.push(fact!("action({action})", action = self.action_name()));
