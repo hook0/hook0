@@ -60,13 +60,27 @@ All routes require Biscuit authentication. Authorization checks organization mem
 
 | Method | Path | Description |
 |---|---|---|
-| POST | `/api/v1/organizations/{org_id}/retry-schedules` | Create a schedule |
-| GET | `/api/v1/organizations/{org_id}/retry-schedules` | List schedules for org |
-| GET | `/api/v1/retry-schedules/{schedule_id}` | Get a schedule |
-| PUT | `/api/v1/retry-schedules/{schedule_id}` | Update a schedule |
-| DELETE | `/api/v1/retry-schedules/{schedule_id}` | Delete a schedule |
+| POST | `/api/v1/retry_schedules` | Create a schedule |
+| GET | `/api/v1/retry_schedules` | List schedules (query param `organization_id`) |
+| GET | `/api/v1/retry_schedules/{schedule_id}` | Get a schedule |
+| PUT | `/api/v1/retry_schedules/{schedule_id}` | Update a schedule |
+| DELETE | `/api/v1/retry_schedules/{schedule_id}` | Delete a schedule |
 
-#### Create/Update request body
+Flat top-level scope, consistent with existing routes (`event_types`, `service_token`, `request_attempts`). Organization resolved via body/query param + Biscuit auth, not URL nesting.
+
+#### Create request body
+
+```json
+{
+    "organization_id": "uuid",
+    "name": "Production Retry Policy",
+    "strategy": "exponential",
+    "intervals": [5, 300, 1800, 7200, 18000, 36000, 36000],
+    "max_attempts": 8
+}
+```
+
+#### Update request body
 
 ```json
 {
@@ -133,29 +147,43 @@ When a request attempt fails, the worker:
 
 1. Queries the subscription's `retry_schedule_id` via JOIN
 2. If schedule exists, computes delay based on strategy:
-   - **exponential**: `intervals[min(retry_count, len(intervals) - 1)]` — last interval repeats
-   - **linear**: `intervals[0]` fixed delay for every retry
-   - **custom**: `intervals[min(retry_count, len(intervals) - 1)]` — last interval repeats
+   - **exponential**: `intervals[min(retry_count, len(intervals) - 1)]` — last interval repeats until `max_attempts`
+   - **linear**: `intervals[0]` fixed delay for every retry until `max_attempts`
+   - **custom**: `intervals[min(retry_count, len(intervals) - 1)]` — last interval repeats until `max_attempts`
 3. Stops retrying when `retry_count >= max_attempts`
 4. If no schedule assigned, uses **hardcoded default**:
    - intervals: `[0, 5, 300, 1800, 7200, 18000, 36000, 36000]`
    - max_attempts: 8
    - strategy: exponential (last interval repeats)
 
+Note: `strategy` controls delay computation. `exponential` and `custom` share the same index-based lookup, but the distinction is a **UI/semantic hint** — `exponential` signals increasing intervals, `custom` signals arbitrary user-defined ones. `linear` uses only `intervals[0]` as a fixed delay. The worker branches on `strategy` to select the computation.
+
+#### retry_count to delay mapping (default schedule)
+
+| retry_count | delay | cumulative elapsed |
+|---|---|---|
+| 0 | 0s (immediate) | 0s |
+| 1 | 5s | 5s |
+| 2 | 5min | ~5min |
+| 3 | 30min | ~35min |
+| 4 | 2h | ~2h35 |
+| 5 | 5h | ~7h35 |
+| 6 | 10h | ~17h35 |
+| 7 | 10h | ~27h35 |
+
+#### `max_attempts` vs `intervals` length
+
+These are independent. `max_attempts` controls when to stop retrying. `intervals` controls the delay progression. If `max_attempts > len(intervals)`, the last interval repeats. If `max_attempts < len(intervals)`, extra intervals are unused.
+
 #### Breaking change
 
 Default retry behavior changes from 60 attempts over ~30h to 8 attempts over ~20h. This is intentional per the ticket specification.
 
-#### Query for schedule resolution
+#### Schedule resolution — no extra query
 
-```sql
-SELECT rs.strategy, rs.intervals, rs.max_attempts
-FROM webhook.subscription s
-LEFT JOIN webhook.retry_schedule rs ON s.retry_schedule__id = rs.retry_schedule__id
-WHERE s.subscription__id = $1
-  AND s.deleted_at IS NULL
-  AND s.is_enabled = true
-```
+The schedule data (`strategy`, `intervals`, `max_attempts`) must be fetched in the **initial attempt fetch query** via `LEFT JOIN webhook.retry_schedule`, not as a separate query. This avoids an extra DB round-trip per retry decision. The fields are carried through in `RequestAttemptWithOptionalPayload` (or equivalent struct).
+
+The existing subscription check in `compute_next_retry` (is_enabled, deleted_at) already queries the subscription — the schedule JOIN is added there.
 
 #### Natural "no impact on in-progress retries"
 
@@ -176,7 +204,7 @@ Each event includes: `instance_id`, `organization_id`, `retry_schedule_id`, `nam
 | File | Action |
 |---|---|
 | `api/migrations/TIMESTAMP_add_retry_schedule.up.sql` | New migration |
-| `api/migrations/TIMESTAMP_add_retry_schedule.down.sql` | Rollback migration |
+| `api/migrations/TIMESTAMP_add_retry_schedule.down.sql` | Rollback: DROP FK column from subscription first, then DROP table |
 | `api/src/handlers/retry_schedules.rs` | New handler module |
 | `api/src/handlers/subscriptions.rs` | Add retry_schedule_id field |
 | `api/src/handlers/mod.rs` | Register new module |
@@ -185,6 +213,12 @@ Each event includes: `instance_id`, `organization_id`, `retry_schedule_id`, `nam
 | `output-worker/src/main.rs` | Replace compute_next_retry_duration |
 | `output-worker/src/pg.rs` | Pass schedule info to retry computation |
 | `output-worker/src/pulsar.rs` | Pass schedule info to retry computation |
+
+Note: The existing `--max-fast-retries` and `--max-slow-retries` CLI params become dead config after this change. They should be removed as part of the worker modifications.
+
+Note: `updated_at` is maintained at application level (explicit `SET updated_at = statement_timestamp()` in UPDATE handler), consistent with the existing `webhook.subscription.updated_at` pattern. No DB trigger needed.
+
+Note: Interval values are in **seconds** (documented in CHECK constraint comment and API docs).
 
 ## 4. Security
 
