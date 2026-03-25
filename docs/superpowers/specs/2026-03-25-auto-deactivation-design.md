@@ -110,9 +110,9 @@ If the feature flag is `false`, the worker behaves exactly as today (logs "givin
 
 #### 3.2.3. Recovery email
 
-When any delivery **succeeds** (including initial delivery at `retry_count=0`) and the subscription has `warning_sent_at IS NOT NULL`:
+When a delivery **succeeds** and the per-message `retry_count >= warning_threshold` and the subscription has `warning_sent_at IS NOT NULL`:
 
-The worker clears `warning_sent_at` and sends a `SubscriptionRecovered` email. This covers the case where a warning was sent (subscription was struggling) but the target recovered before exhaustion — even if the recovery is detected by a different message succeeding on first attempt. No deactivation occurs. Deduplicated the same way: `UPDATE SET warning_sent_at = NULL WHERE warning_sent_at IS NOT NULL` — 1 row = send, 0 rows = skip.
+The worker clears `warning_sent_at` and sends a `SubscriptionRecovered` email. The `retry_count >= warning_threshold` guard ensures that only a message that was itself past the warning point can trigger recovery — a new message succeeding on first attempt (`retry_count=0`) does NOT clear the warning state. No deactivation occurs. Deduplicated the same way: `UPDATE SET warning_sent_at = NULL WHERE warning_sent_at IS NOT NULL` — 1 row = send, 0 rows = skip.
 
 #### 3.2.4. Default schedule behavior
 
@@ -262,7 +262,7 @@ No new API endpoints.
 | 5 | Feature flag | Worker clap arg `--disable-subscription-on-retries-exhausted` (default true) | Aligned (ticket says env var toggle) |
 | 6 | Warning email trigger | At `ceil(max_retries * percent / 100)`, percent configurable (default 50%) | **Yes** — ticket says 3 calendar days |
 | 7 | Deactivation email | Sent when subscription is auto-disabled | Aligned |
-| 8 | Recovery email | Sent when any delivery succeeds (including retry_count=0) after warning was sent (warning_sent_at IS NOT NULL) | Aligned (ticket's optional recovery notification) |
+| 8 | Recovery email | Sent when delivery succeeds AND per-message retry_count >= warning_threshold AND warning_sent_at IS NOT NULL | Aligned (ticket's optional recovery notification) |
 | 9 | Email deduplication | `warning_sent_at` column on subscription — atomic UPDATE deduplicates across concurrent messages | Simplified vs ticket's approach |
 | 10 | Hook0 events | Only `api.subscription.disabled` (no warning event, no attempt events) | Simplified |
 | 11 | Event naming | `api.subscription.disabled` (not `endpoint.disabled`) | Aligned with existing `api.subscription.*` naming |
