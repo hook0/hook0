@@ -1,10 +1,21 @@
+use actix_web::web::ReqData;
+use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};
-use paperclip::actix::Apiv2Schema;
+use paperclip::actix::web::{Data, Json, Path, Query};
+use paperclip::actix::{api_v2_operation, Apiv2Schema, CreatedJson};
 use serde::{Deserialize, Serialize};
+use sqlx::query_as;
 use strum::{Display, EnumString};
+use tracing::error;
 use uuid::Uuid;
 use validator::Validate;
 
+use crate::hook0_client::{
+    EventRetryScheduleCreated, EventRetryScheduleRemoved, EventRetryScheduleUpdated,
+    Hook0ClientEvent,
+};
+use crate::iam::{authorize, Action};
+use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
 
 pub const MAX_INTERVAL_SECS: i32 = 604_800;
@@ -25,9 +36,8 @@ pub struct RetrySchedule {
     pub name: String,
     pub strategy: String,
     pub max_retries: i32,
-    pub initial_delay_secs: i32,
-    pub linear_delay_secs: Option<i32>,
     pub custom_intervals: Option<Vec<i32>>,
+    pub linear_delay: Option<i32>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -40,10 +50,8 @@ pub struct RetrySchedulePost {
     pub strategy: RetryStrategy,
     #[validate(range(min = 1, max = 20))]
     pub max_retries: i32,
-    #[validate(range(min = 1, max = 604_800))]
-    pub initial_delay_secs: i32,
-    pub linear_delay_secs: Option<i32>,
     pub custom_intervals: Option<Vec<i32>>,
+    pub linear_delay: Option<i32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
@@ -54,10 +62,8 @@ pub struct RetrySchedulePut {
     pub strategy: RetryStrategy,
     #[validate(range(min = 1, max = 20))]
     pub max_retries: i32,
-    #[validate(range(min = 1, max = 604_800))]
-    pub initial_delay_secs: i32,
-    pub linear_delay_secs: Option<i32>,
     pub custom_intervals: Option<Vec<i32>>,
+    pub linear_delay: Option<i32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
@@ -68,7 +74,7 @@ pub struct RetryScheduleQs {
 pub fn validate_strategy_fields(
     strategy: RetryStrategy,
     max_retries: i32,
-    linear_delay_secs: Option<i32>,
+    linear_delay: Option<i32>,
     custom_intervals: Option<&[i32]>,
 ) -> Result<(), Hook0Problem> {
     match strategy {
@@ -78,9 +84,9 @@ pub fn validate_strategy_fields(
                     mk_validation_error("custom_intervals", "custom_intervals must be None for exponential strategy"),
                 ));
             }
-            if linear_delay_secs.is_some() {
+            if linear_delay.is_some() {
                 return Err(Hook0Problem::Validation(
-                    mk_validation_error("linear_delay_secs", "linear_delay_secs must be None for exponential strategy"),
+                    mk_validation_error("linear_delay", "linear_delay must be None for exponential strategy"),
                 ));
             }
         }
@@ -90,22 +96,22 @@ pub fn validate_strategy_fields(
                     mk_validation_error("custom_intervals", "custom_intervals must be None for linear strategy"),
                 ));
             }
-            if linear_delay_secs.is_none() {
+            if linear_delay.is_none() {
                 return Err(Hook0Problem::Validation(
-                    mk_validation_error("linear_delay_secs", "linear_delay_secs is required for linear strategy"),
+                    mk_validation_error("linear_delay", "linear_delay is required for linear strategy"),
                 ));
             }
-            let delay = linear_delay_secs.unwrap();
+            let delay = linear_delay.unwrap();
             if !(1..=MAX_INTERVAL_SECS).contains(&delay) {
                 return Err(Hook0Problem::Validation(
-                    mk_validation_error("linear_delay_secs", "linear_delay_secs must be between 1 and 604800"),
+                    mk_validation_error("linear_delay", "linear_delay must be between 1 and 604800"),
                 ));
             }
         }
         RetryStrategy::Custom => {
-            if linear_delay_secs.is_some() {
+            if linear_delay.is_some() {
                 return Err(Hook0Problem::Validation(
-                    mk_validation_error("linear_delay_secs", "linear_delay_secs must be None for custom strategy"),
+                    mk_validation_error("linear_delay", "linear_delay must be None for custom strategy"),
                 ));
             }
             let intervals = match custom_intervals {
@@ -141,6 +147,378 @@ fn mk_validation_error(field: &'static str, message: &str) -> validator::Validat
     error.message = Some(std::borrow::Cow::Owned(message.to_owned()));
     errors.add(field, error);
     errors
+}
+
+#[api_v2_operation(
+    summary = "List retry schedules",
+    operation_id = "retry_schedules.list",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Retry Schedules")
+)]
+pub async fn list(
+    state: Data<crate::State>,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
+    qs: Query<RetryScheduleQs>,
+) -> Result<Json<Vec<RetrySchedule>>, Hook0Problem> {
+    let organization_id = qs.organization_id;
+
+    if authorize(
+        &biscuit,
+        Some(organization_id),
+        Action::RetryScheduleList,
+        state.max_authorization_time_in_ms,
+        state.debug_authorizer,
+    )
+    .is_err()
+    {
+        return Err(Hook0Problem::Forbidden);
+    }
+
+    let schedules = query_as!(
+        RetrySchedule,
+        "
+            SELECT
+                retry_schedule__id AS retry_schedule_id,
+                organization__id AS organization_id,
+                name, strategy, max_retries, custom_intervals, linear_delay,
+                created_at, updated_at
+            FROM webhook.retry_schedule
+            WHERE organization__id = $1
+            ORDER BY created_at ASC
+        ",
+        &organization_id,
+    )
+    .fetch_all(&state.db)
+    .await
+    .map_err(Hook0Problem::from)?;
+
+    Ok(Json(schedules))
+}
+
+#[api_v2_operation(
+    summary = "Create a retry schedule",
+    operation_id = "retry_schedules.create",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Retry Schedules")
+)]
+pub async fn create(
+    state: Data<crate::State>,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
+    body: Json<RetrySchedulePost>,
+) -> Result<CreatedJson<RetrySchedule>, Hook0Problem> {
+    let organization_id = body.organization_id;
+
+    if authorize(
+        &biscuit,
+        Some(organization_id),
+        Action::RetryScheduleCreate,
+        state.max_authorization_time_in_ms,
+        state.debug_authorizer,
+    )
+    .is_err()
+    {
+        return Err(Hook0Problem::Forbidden);
+    }
+
+    if let Err(e) = body.validate() {
+        return Err(Hook0Problem::Validation(e));
+    }
+
+    let strategy_str = body.strategy.to_string();
+    validate_strategy_fields(
+        body.strategy,
+        body.max_retries,
+        body.linear_delay,
+        body.custom_intervals.as_deref(),
+    )?;
+
+    let max_per_org = 50i64;
+    let schedule = query_as!(
+        RetrySchedule,
+        "
+            INSERT INTO webhook.retry_schedule (organization__id, name, strategy, max_retries, custom_intervals, linear_delay)
+            SELECT $1, $2, $3, $4, $5, $6
+            WHERE (
+                SELECT COUNT(*)
+                FROM webhook.retry_schedule
+                WHERE organization__id = $1
+            ) < $7
+            RETURNING
+                retry_schedule__id AS retry_schedule_id,
+                organization__id AS organization_id,
+                name, strategy, max_retries, custom_intervals, linear_delay,
+                created_at, updated_at
+        ",
+        &organization_id,
+        &body.name,
+        &strategy_str,
+        &body.max_retries,
+        body.custom_intervals.as_deref(),
+        body.linear_delay,
+        &max_per_org,
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(Hook0Problem::from)?;
+
+    match schedule {
+        Some(s) => {
+            if let Some(hook0_client) = state.hook0_client.as_ref() {
+                let hook0_client_event: Hook0ClientEvent = EventRetryScheduleCreated {
+                    organization_id,
+                    retry_schedule_id: s.retry_schedule_id,
+                    name: s.name.to_owned(),
+                    strategy: s.strategy.to_owned(),
+                    max_retries: s.max_retries,
+                    custom_intervals: s.custom_intervals.to_owned(),
+                    linear_delay: s.linear_delay,
+                }
+                .into();
+                if let Err(e) = hook0_client
+                    .send_event(&hook0_client_event.mk_hook0_event())
+                    .await
+                {
+                    error!("Hook0ClientError: {e}");
+                };
+            }
+
+            Ok(CreatedJson(s))
+        }
+        None => Err(Hook0Problem::TooManyRetrySchedulesPerOrganization(50)),
+    }
+}
+
+#[api_v2_operation(
+    summary = "Get a retry schedule",
+    operation_id = "retry_schedules.get",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Retry Schedules")
+)]
+pub async fn get(
+    state: Data<crate::State>,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
+    schedule_id: Path<Uuid>,
+    qs: Query<RetryScheduleQs>,
+) -> Result<Json<RetrySchedule>, Hook0Problem> {
+    let organization_id = qs.organization_id;
+    let schedule_id = schedule_id.into_inner();
+
+    if authorize(
+        &biscuit,
+        Some(organization_id),
+        Action::RetryScheduleGet,
+        state.max_authorization_time_in_ms,
+        state.debug_authorizer,
+    )
+    .is_err()
+    {
+        return Err(Hook0Problem::Forbidden);
+    }
+
+    let schedule = query_as!(
+        RetrySchedule,
+        "
+            SELECT
+                retry_schedule__id AS retry_schedule_id,
+                organization__id AS organization_id,
+                name, strategy, max_retries, custom_intervals, linear_delay,
+                created_at, updated_at
+            FROM webhook.retry_schedule
+            WHERE retry_schedule__id = $1
+                AND organization__id = $2
+        ",
+        &schedule_id,
+        &organization_id,
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(Hook0Problem::from)?;
+
+    match schedule {
+        Some(s) => Ok(Json(s)),
+        None => Err(Hook0Problem::NotFound),
+    }
+}
+
+#[api_v2_operation(
+    summary = "Edit a retry schedule",
+    operation_id = "retry_schedules.edit",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Retry Schedules")
+)]
+pub async fn edit(
+    state: Data<crate::State>,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
+    schedule_id: Path<Uuid>,
+    qs: Query<RetryScheduleQs>,
+    body: Json<RetrySchedulePut>,
+) -> Result<Json<RetrySchedule>, Hook0Problem> {
+    let organization_id = qs.organization_id;
+    let schedule_id = schedule_id.into_inner();
+
+    if authorize(
+        &biscuit,
+        Some(organization_id),
+        Action::RetryScheduleEdit,
+        state.max_authorization_time_in_ms,
+        state.debug_authorizer,
+    )
+    .is_err()
+    {
+        return Err(Hook0Problem::Forbidden);
+    }
+
+    if let Err(e) = body.validate() {
+        return Err(Hook0Problem::Validation(e));
+    }
+
+    let strategy_str = body.strategy.to_string();
+    validate_strategy_fields(
+        body.strategy,
+        body.max_retries,
+        body.linear_delay,
+        body.custom_intervals.as_deref(),
+    )?;
+
+    let schedule = query_as!(
+        RetrySchedule,
+        "
+            UPDATE webhook.retry_schedule
+            SET name = $3, strategy = $4, max_retries = $5,
+                custom_intervals = $6, linear_delay = $7,
+                updated_at = statement_timestamp()
+            WHERE retry_schedule__id = $1
+                AND organization__id = $2
+            RETURNING
+                retry_schedule__id AS retry_schedule_id,
+                organization__id AS organization_id,
+                name, strategy, max_retries, custom_intervals, linear_delay,
+                created_at, updated_at
+        ",
+        &schedule_id,
+        &organization_id,
+        &body.name,
+        &strategy_str,
+        &body.max_retries,
+        body.custom_intervals.as_deref(),
+        body.linear_delay,
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(Hook0Problem::from)?;
+
+    match schedule {
+        Some(s) => {
+            if let Some(hook0_client) = state.hook0_client.as_ref() {
+                let hook0_client_event: Hook0ClientEvent = EventRetryScheduleUpdated {
+                    organization_id,
+                    retry_schedule_id: s.retry_schedule_id,
+                    name: s.name.to_owned(),
+                    strategy: s.strategy.to_owned(),
+                    max_retries: s.max_retries,
+                    custom_intervals: s.custom_intervals.to_owned(),
+                    linear_delay: s.linear_delay,
+                }
+                .into();
+                if let Err(e) = hook0_client
+                    .send_event(&hook0_client_event.mk_hook0_event())
+                    .await
+                {
+                    error!("Hook0ClientError: {e}");
+                };
+            }
+
+            Ok(Json(s))
+        }
+        None => Err(Hook0Problem::NotFound),
+    }
+}
+
+#[api_v2_operation(
+    summary = "Delete a retry schedule",
+    operation_id = "retry_schedules.delete",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Retry Schedules")
+)]
+pub async fn delete(
+    state: Data<crate::State>,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
+    schedule_id: Path<Uuid>,
+    qs: Query<RetryScheduleQs>,
+) -> Result<Json<()>, Hook0Problem> {
+    let organization_id = qs.organization_id;
+    let schedule_id = schedule_id.into_inner();
+
+    if authorize(
+        &biscuit,
+        Some(organization_id),
+        Action::RetryScheduleDelete,
+        state.max_authorization_time_in_ms,
+        state.debug_authorizer,
+    )
+    .is_err()
+    {
+        return Err(Hook0Problem::Forbidden);
+    }
+
+    struct DeletedRow {
+        name: String,
+        strategy: String,
+        max_retries: i32,
+        custom_intervals: Option<Vec<i32>>,
+        linear_delay: Option<i32>,
+    }
+
+    let deleted = query_as!(
+        DeletedRow,
+        "
+            DELETE FROM webhook.retry_schedule
+            WHERE retry_schedule__id = $1
+                AND organization__id = $2
+            RETURNING name, strategy, max_retries, custom_intervals, linear_delay
+        ",
+        &schedule_id,
+        &organization_id,
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(Hook0Problem::from)?;
+
+    match deleted {
+        Some(d) => {
+            if let Some(hook0_client) = state.hook0_client.as_ref() {
+                let hook0_client_event: Hook0ClientEvent = EventRetryScheduleRemoved {
+                    organization_id,
+                    retry_schedule_id: schedule_id,
+                    name: d.name,
+                    strategy: d.strategy,
+                    max_retries: d.max_retries,
+                    custom_intervals: d.custom_intervals,
+                    linear_delay: d.linear_delay,
+                }
+                .into();
+                if let Err(e) = hook0_client
+                    .send_event(&hook0_client_event.mk_hook0_event())
+                    .await
+                {
+                    error!("Hook0ClientError: {e}");
+                };
+            }
+
+            Ok(Json(()))
+        }
+        None => Err(Hook0Problem::NotFound),
+    }
 }
 
 #[cfg(test)]
