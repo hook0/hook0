@@ -128,7 +128,7 @@ All item routes (get, edit, delete) require `organization_id` as query parameter
 
 #### Validation rules
 
-- `name`: non-empty string, max 200 chars
+- `name`: min 2 chars, max 200 chars (consistent with organization/application name constraints)
 - `strategy`: one of `exponential`, `linear`, `custom` (Rust enum, invalid values → 400)
 - `max_retries`: 1..=100
 - `custom_intervals`: required if custom, `len == max_retries`, each value 1..=MAX_INTERVAL_SECONDS. Must be absent/null for exponential and linear.

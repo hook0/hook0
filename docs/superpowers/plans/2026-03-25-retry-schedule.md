@@ -47,7 +47,7 @@
 create table webhook.retry_schedule (
     retry_schedule__id uuid not null default public.gen_random_uuid(),
     organization__id uuid not null references iam.organization(organization__id) on update cascade on delete cascade,
-    name text not null check (length(name) >= 1),
+    name text not null check (length(name) > 1),
     strategy text not null check (strategy in ('exponential', 'linear', 'custom')),
     max_retries integer not null check (max_retries > 0 and max_retries <= 100),
     custom_intervals integer[],
@@ -241,7 +241,7 @@ pub struct RetrySchedule {
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct RetrySchedulePost {
     pub organization_id: Uuid,
-    #[validate(length(min = 1, max = 200))]
+    #[validate(length(min = 2, max = 200))]
     pub name: String,
     pub strategy: RetryStrategy,
     #[validate(range(min = 1, max = 100))]
@@ -254,7 +254,7 @@ pub struct RetrySchedulePost {
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct RetrySchedulePut {
-    #[validate(length(min = 1, max = 200))]
+    #[validate(length(min = 2, max = 200))]
     pub name: String,
     pub strategy: RetryStrategy,
     #[validate(range(min = 1, max = 100))]
@@ -361,14 +361,14 @@ pub async fn create(
     biscuit: ReqData<Biscuit>,
     body: Json<RetrySchedulePost>,
 ) -> Result<CreatedJson<RetrySchedule>, Hook0Problem> {
-    if let Err(e) = body.validate() { return Err(Hook0Problem::Validation(e)); }
-    validate_strategy_fields(body.strategy, body.max_retries, &body.custom_intervals, &body.linear_delay)?;
-
     let org_id = body.organization_id;
     if authorize(&biscuit, Some(org_id), Action::RetryScheduleCreate,
         state.max_authorization_time_in_ms, state.debug_authorizer).is_err() {
         return Err(Hook0Problem::Forbidden);
     }
+
+    if let Err(e) = body.validate() { return Err(Hook0Problem::Validation(e)); }
+    validate_strategy_fields(body.strategy, body.max_retries, &body.custom_intervals, &body.linear_delay)?;
 
     let strategy_str = body.strategy.to_string();
     let limit = i64::from(state.max_retry_schedules_per_org);
@@ -445,14 +445,14 @@ pub async fn edit(
     state: Data<crate::State>, _: OaBiscuit, biscuit: ReqData<Biscuit>,
     schedule_id: Path<Uuid>, qs: Query<RetryScheduleQs>, body: Json<RetrySchedulePut>,
 ) -> Result<Json<RetrySchedule>, Hook0Problem> {
-    if let Err(e) = body.validate() { return Err(Hook0Problem::Validation(e)); }
-    validate_strategy_fields(body.strategy, body.max_retries, &body.custom_intervals, &body.linear_delay)?;
-
     let org_id = qs.organization_id;
     if authorize(&biscuit, Some(org_id), Action::RetryScheduleEdit,
         state.max_authorization_time_in_ms, state.debug_authorizer).is_err() {
         return Err(Hook0Problem::Forbidden);
     }
+
+    if let Err(e) = body.validate() { return Err(Hook0Problem::Validation(e)); }
+    validate_strategy_fields(body.strategy, body.max_retries, &body.custom_intervals, &body.linear_delay)?;
 
     let strategy_str = body.strategy.to_string();
 
@@ -873,47 +873,159 @@ git commit -m "feat(worker): support configurable retry schedules"
 ## Task 8: Tests
 
 **Files:**
-- Modify: `output-worker/src/main.rs` (unit tests in `#[cfg(test)]` module)
-- Create or modify: API integration test files (TBD based on actix_web::test setup)
+- Modify: `output-worker/src/main.rs` (`#[cfg(test)]` module)
+- Modify: `api/src/handlers/retry_schedules.rs` (`#[cfg(test)]` module with `actix_web::test`)
+- Modify: `api/src/handlers/subscriptions.rs` (`#[cfg(test)]` module with `actix_web::test`)
 
-- [ ] **Step 1: Unit tests for `compute_delay_from_schedule`**
+### Step 1: Unit tests — Worker logic (28 tests)
 
-Add to the existing `#[cfg(test)]` module in `output-worker/src/main.rs`:
+Add to `#[cfg(test)]` module in `output-worker/src/main.rs`:
 
-Tests to cover:
-- Exponential strategy: delegates to David's table, respects max_retries
-- Linear strategy: returns linear_delay for every retry, stops at max_retries
-- Custom strategy: returns custom_intervals[retry_count], stops at max_retries
-- Custom with retry_count at boundary (== max_retries → None)
-- Custom with retry_count 0 (first retry)
-- schedule_config() helper: returns None for None fields, parses strategy correctly, returns None for unknown strategy
+**compute_delay_from_schedule — Exponential (7 tests):**
+- `test_schedule_exponential_first_retry` — retry_count=0 → `Some(3s)` (David's table)
+- `test_schedule_exponential_mid_table` — retry_count=3 → `Some(30min)`
+- `test_schedule_exponential_past_table` — retry_count=9, max_retries=10 → `Some(10h)` (repeating)
+- `test_schedule_exponential_at_max` — retry_count=5, max_retries=5 → `None`
+- `test_schedule_exponential_past_max` — retry_count=6, max_retries=5 → `None`
+- `test_schedule_exponential_max_retries_1` — max_retries=1, retry_count=0 → `Some(3s)`
+- `test_schedule_exponential_max_retries_100` — max_retries=100, retry_count=99 → `Some(10h)`
 
-- [ ] **Step 2: Integration tests for CRUD API**
+**compute_delay_from_schedule — Linear (6 tests):**
+- `test_schedule_linear_first_retry` — retry_count=0, linear_delay=300 → `Some(300s)`
+- `test_schedule_linear_every_retry_same` — retry_count=4, linear_delay=300 → `Some(300s)`
+- `test_schedule_linear_at_max` — retry_count=5, max_retries=5 → `None`
+- `test_schedule_linear_delay_1s` — linear_delay=1 → `Some(1s)`
+- `test_schedule_linear_delay_max` — linear_delay=604800 → `Some(604800s)`
+- `test_schedule_linear_missing_delay_fallback` — linear_delay=None → `Some(60s)` (unwrap_or fallback)
 
-Setup: `actix_web::test` with a test DB (migration applied). Tests to cover:
-- Create all 3 strategies with valid bodies → 201
-- Create with invalid strategy → 400
-- Create exponential with custom_intervals present → 400 (cross-field validation)
-- Create custom with len(custom_intervals) != max_retries → 400
-- List schedules for org → returns created schedules
-- Get schedule by ID → 200
-- Get with wrong org_id → 404
-- Update schedule → 200, fields changed
-- Delete schedule → 200
-- Delete assigned schedule → 200 (SET NULL, subscription.retry_schedule_id becomes null)
-- Per-org limit exceeded → 429
+**compute_delay_from_schedule — Custom (7 tests):**
+- `test_schedule_custom_first_interval` — retry_count=0, intervals=[3,30,300,3600,36000] → `Some(3s)`
+- `test_schedule_custom_last_interval` — retry_count=4 → `Some(36000s)`
+- `test_schedule_custom_mid_interval` — retry_count=2 → `Some(300s)`
+- `test_schedule_custom_at_max` — retry_count=5, max_retries=5 → `None`
+- `test_schedule_custom_single_interval` — max_retries=1, intervals=[60], retry_count=0 → `Some(60s)`
+- `test_schedule_custom_missing_intervals` — custom_intervals=None → `None` (defensive)
+- `test_schedule_custom_all_same_value` — intervals=[10,10,10], all 3 calls → `Some(10s)`
 
-- [ ] **Step 3: Integration test for subscription assignment**
+**schedule_config() helper (6 tests):**
+- `test_schedule_config_none_when_no_strategy` — retry_strategy=None → `None`
+- `test_schedule_config_parses_exponential` — "exponential" → `Some(Exponential)`
+- `test_schedule_config_parses_linear` — "linear" + linear_delay=300 → `Some(Linear)`
+- `test_schedule_config_parses_custom` — "custom" + intervals → `Some(Custom)`
+- `test_schedule_config_unknown_strategy` — "fibonacci" → `None`
+- `test_schedule_config_none_when_max_retries_missing` — strategy present, max_retries=None → `None`
 
-- Assign schedule to subscription → OK
-- Assign cross-org schedule → fails (retry_schedule_id becomes null)
-- Remove schedule (set null) → subscription reverts to default
+**Default fallback interaction (2 tests):**
+- `test_no_schedule_uses_default` — schedule=None, retry_count=0 → matches David's `Some(3s)`
+- `test_schedule_overrides_default` — schedule.max_retries=2, retry_count=2 → `None` (even though worker default=25)
 
-- [ ] **Step 4: Commit tests**
+- [ ] **Implement and run unit tests**
+
+Run: `cd output-worker && cargo test`
+Expected: All 28 tests pass
+
+- [ ] **Commit**
 
 ```bash
-git add -A
-git commit -m "test: add unit and integration tests for retry schedules"
+git add output-worker/src/main.rs
+git commit -m "test(worker): add unit tests for compute_delay_from_schedule"
+```
+
+### Step 2: Integration tests — CRUD API (39 tests)
+
+Add `#[cfg(test)]` module in `api/src/handlers/retry_schedules.rs` using `actix_web::test` + test DB.
+
+**Create — happy path (3 tests):**
+- `test_create_exponential` — 201, custom_intervals=null, linear_delay=null
+- `test_create_linear` — 201, linear_delay=300
+- `test_create_custom` — 201, custom_intervals=[5,60,3600]
+
+**Create — validation errors (20 tests):**
+- `test_create_invalid_strategy` — "fibonacci" → 400
+- `test_create_exponential_with_custom_intervals` — 400
+- `test_create_exponential_with_linear_delay` — 400
+- `test_create_linear_with_custom_intervals` — 400
+- `test_create_linear_missing_delay` — 400
+- `test_create_custom_missing_intervals` — 400
+- `test_create_custom_with_linear_delay` — 400
+- `test_create_custom_intervals_len_mismatch` — len != max_retries → 400
+- `test_create_custom_interval_below_min` — [0] → 400
+- `test_create_custom_interval_above_max` — [604801] → 400
+- `test_create_linear_delay_below_min` — 0 → 400
+- `test_create_linear_delay_above_max` — 604801 → 400
+- `test_create_max_retries_0` — 400
+- `test_create_max_retries_101` — 400
+- `test_create_max_retries_boundary_1` — 201
+- `test_create_max_retries_boundary_100` — 201
+- `test_create_empty_name` — 400
+- `test_create_name_too_long` — "x"*201 → 400
+- `test_create_duplicate_name` — same org → constraint error
+- `test_create_same_name_different_org` — different orgs → both 201
+
+**Create — quota (1 test):**
+- `test_create_per_org_limit_exceeded` — set limit=2, create 3rd → 429
+
+**List (3 tests):**
+- `test_list_empty` — 200, `[]`
+- `test_list_returns_created` — create 2, list → 2 items
+- `test_list_scoped_to_org` — create in org A, list org B → `[]`
+
+**Get (3 tests):**
+- `test_get_existing` — 200, fields match
+- `test_get_nonexistent` — 404
+- `test_get_wrong_org` — 404 (IDOR prevention)
+
+**Update (5 tests):**
+- `test_update_name` — 200, name changed, updated_at > created_at
+- `test_update_strategy_change` — exponential → linear → 200
+- `test_update_invalid_cross_fields` — linear without linear_delay → 400
+- `test_update_nonexistent` — 404
+- `test_update_wrong_org` — 404
+
+**Delete (4 tests):**
+- `test_delete_existing` — 200, then GET → 404
+- `test_delete_nonexistent` — 404
+- `test_delete_wrong_org` — 404
+- `test_delete_idempotent` — second delete → 404
+
+- [ ] **Implement and run integration tests**
+
+Run: `cd api && cargo test`
+Expected: All 39 tests pass
+
+- [ ] **Commit**
+
+```bash
+git add api/src/handlers/retry_schedules.rs
+git commit -m "test(api): add integration tests for retry_schedules CRUD"
+```
+
+### Step 3: Integration tests — Subscription assignment (11 tests)
+
+Add to `#[cfg(test)]` module in `api/src/handlers/subscriptions.rs`:
+
+- `test_create_subscription_with_schedule` — 201, retry_schedule_id set
+- `test_create_subscription_without_schedule` — 201, retry_schedule_id=null
+- `test_create_subscription_with_null_schedule` — explicit null → 201, null
+- `test_create_subscription_cross_org_schedule` — org A schedule for org B subscription → rejected
+- `test_create_subscription_nonexistent_schedule` — random UUID → rejected
+- `test_edit_subscription_assign_schedule` — assign via PUT → 200
+- `test_edit_subscription_remove_schedule` — null via PUT → 200, null
+- `test_edit_subscription_cross_org_schedule` — cross-org on update → rejected
+- `test_delete_schedule_nullifies_subscription` — delete schedule → subscription.retry_schedule_id=null
+- `test_delete_schedule_multiple_subscriptions` — delete → both subscriptions nullified
+- `test_subscription_response_includes_schedule_id` — GET response has field
+
+- [ ] **Implement and run integration tests**
+
+Run: `cd api && cargo test`
+Expected: All 11 tests pass
+
+- [ ] **Commit**
+
+```bash
+git add api/src/handlers/subscriptions.rs
+git commit -m "test(api): add integration tests for subscription retry_schedule assignment"
 ```
 
 ---
