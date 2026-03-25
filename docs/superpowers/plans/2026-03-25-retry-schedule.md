@@ -19,7 +19,7 @@
 | `api/migrations/20260325120000_add_retry_schedule.up.sql` | Create | Migration: new table + subscription FK |
 | `api/migrations/20260325120000_add_retry_schedule.down.sql` | Create | Rollback migration |
 | `api/src/iam.rs` | Modify | Add `RetrySchedule*` Action variants |
-| `api/src/problems.rs` | Modify | Add `RetryScheduleInUse` error variant |
+| `api/src/problems.rs` | Modify | Add `RetryScheduleInUse` + `TooManyRetrySchedulesPerOrganization` error variants |
 | `api/src/handlers/retry_schedules.rs` | Create | CRUD handlers for retry schedules |
 | `api/src/handlers/mod.rs` | Modify | Register `retry_schedules` module |
 | `api/src/handlers/subscriptions.rs` | Modify | Add `retry_schedule_id` to post/response structs |
@@ -43,7 +43,7 @@
 -- api/migrations/20260325120000_add_retry_schedule.up.sql
 
 create table webhook.retry_schedule (
-    retry_schedule__id uuid not null default gen_random_uuid(),
+    retry_schedule__id uuid not null default public.gen_random_uuid(),
     organization__id uuid not null references iam.organization(organization__id) on update cascade on delete cascade,
     name text not null check (length(name) >= 1),
     strategy text not null check (strategy in ('exponential', 'linear', 'custom')),
@@ -60,7 +60,7 @@ create table webhook.retry_schedule (
 );
 
 alter table webhook.subscription
-    add column retry_schedule__id uuid references webhook.retry_schedule(retry_schedule__id) on delete set null;
+    add column retry_schedule__id uuid references webhook.retry_schedule(retry_schedule__id) on update cascade on delete set null;
 ```
 
 Notes:
@@ -126,9 +126,10 @@ In `api/src/problems.rs`, add to the `Hook0Problem` enum (in the functional erro
 
 ```rust
     RetryScheduleInUse,
+    TooManyRetrySchedulesPerOrganization(QuotaValue),
 ```
 
-Then add its `Problem` mapping in the `impl From<Hook0Problem> for Problem` block, following the existing conflict pattern (e.g., `OrganizationIsNotEmpty`):
+Then add their `Problem` mappings in the `impl From<Hook0Problem> for Problem` block:
 
 ```rust
 Hook0Problem::RetryScheduleInUse => Problem {
@@ -138,7 +139,16 @@ Hook0Problem::RetryScheduleInUse => Problem {
     status: StatusCode::CONFLICT,
     ..Problem::default()
 },
+Hook0Problem::TooManyRetrySchedulesPerOrganization(quota) => Problem {
+    id: Uuid::nil(),
+    title: "Too many retry schedules".to_owned(),
+    detail: format!("You have reached the maximum number of retry schedules per organization ({quota})."),
+    status: StatusCode::FORBIDDEN,
+    ..Problem::default()
+},
 ```
+
+Follow the existing `TooManySubscriptionsPerApplication` pattern for the quota variant.
 
 - [ ] **Step 3: Verify compilation**
 
@@ -227,7 +237,7 @@ pub struct RetrySchedulePost {
     #[validate(length(min = 1, max = 200))]
     pub name: String,
     pub strategy: RetryStrategy,
-    #[validate(length(min = 1, max = 100))]
+    #[validate(length(min = 1, max = 100), custom(function = "validate_intervals"))]
     pub intervals: Vec<i32>,
     #[validate(range(min = 1, max = 100))]
     pub max_attempts: i32,
@@ -238,7 +248,7 @@ pub struct RetrySchedulePut {
     #[validate(length(min = 1, max = 200))]
     pub name: String,
     pub strategy: RetryStrategy,
-    #[validate(length(min = 1, max = 100))]
+    #[validate(length(min = 1, max = 100), custom(function = "validate_intervals"))]
     pub intervals: Vec<i32>,
     #[validate(range(min = 1, max = 100))]
     pub max_attempts: i32,
@@ -250,11 +260,20 @@ pub struct RetryScheduleQs {
     pub organization_id: Uuid,
 }
 
+// --- Validation ---
+
+fn validate_intervals(intervals: &[i32]) -> Result<(), validator::ValidationError> {
+    if intervals.iter().any(|&i| i < 1 || i > 604800) {
+        return Err(validator::ValidationError::new("interval_out_of_range"));
+    }
+    Ok(())
+}
+
 // --- Per-org schedule limit ---
 const MAX_RETRY_SCHEDULES_PER_ORG: i64 = 50;
 ```
 
-Note: `RetryStrategy` enum replaces string validation. Serde handles deserialization — invalid values return a 400 automatically. The `validate_intervals` custom function is no longer needed since DB CHECK constraint handles bounds and the `validator` length attribute handles array length. Interval element bounds (1..=604800) are enforced by the DB CHECK constraint `1 <= ALL(intervals) AND 604800 >= ALL(intervals)`.
+Note: `RetryStrategy` enum replaces string validation. Serde handles deserialization — invalid values return a 400 automatically. Interval element bounds (1..=604800) are validated both Rust-side (`validate_intervals` for clean 422 errors) and DB-side (CHECK constraint `1 <= ALL(intervals) AND 604800 >= ALL(intervals)` as defense-in-depth).
 
 - [ ] **Step 3: Implement `list` handler**
 
@@ -348,27 +367,15 @@ pub async fn create(
         return Err(Hook0Problem::Forbidden);
     }
 
-    // Per-org schedule count limit
-    let count = sqlx::query_scalar!(
-        "select count(*) from webhook.retry_schedule where organization__id = $1",
-        &org_id
-    )
-    .fetch_one(&state.db)
-    .await
-    .map_err(Hook0Problem::from)?
-    .unwrap_or(0);
-
-    if count >= MAX_RETRY_SCHEDULES_PER_ORG {
-        return Err(Hook0Problem::RetryScheduleInUse); // TODO: add a proper TooManyRetrySchedules variant
-    }
-
     let strategy_str = body.strategy.to_string();
 
+    // Atomic: INSERT only if under the per-org limit (no TOCTOU)
     let schedule = query_as!(
         RetrySchedule,
         "
             insert into webhook.retry_schedule (organization__id, name, strategy, intervals, max_attempts)
-            values ($1, $2, $3, $4, $5)
+            select $1, $2, $3, $4::integer[], $5
+            where (select count(*) from webhook.retry_schedule where organization__id = $1) < $6
             returning
                 retry_schedule__id as retry_schedule_id,
                 organization__id as organization_id,
@@ -382,12 +389,20 @@ pub async fn create(
         &org_id,
         &body.name,
         &strategy_str,
-        &body.intervals,
+        &body.intervals as &[i32],
         &body.max_attempts,
+        MAX_RETRY_SCHEDULES_PER_ORG,
     )
-    .fetch_one(&state.db)
+    .fetch_optional(&state.db)
     .await
     .map_err(Hook0Problem::from)?;
+
+    let schedule = match schedule {
+        Some(s) => s,
+        None => return Err(Hook0Problem::TooManyRetrySchedulesPerOrganization(
+            MAX_RETRY_SCHEDULES_PER_ORG as QuotaValue,
+        )),
+    };
 
     if let Some(hook0_client) = state.hook0_client.as_ref() {
         let hook0_client_event: Hook0ClientEvent = EventRetryScheduleCreated {
@@ -585,8 +600,14 @@ pub async fn delete(
         return Err(Hook0Problem::Forbidden);
     }
 
-    // Atomic: delete only if not assigned to any active subscription
-    let result = sqlx::query!(
+    // Atomic: delete only if not assigned to any active subscription, RETURNING for event data
+    struct DeletedSchedule {
+        name: String,
+        strategy: String,
+    }
+
+    let deleted = sqlx::query_as!(
+        DeletedSchedule,
         "
             delete from webhook.retry_schedule
             where retry_schedule__id = $1
@@ -596,56 +617,56 @@ pub async fn delete(
                   where retry_schedule__id = $1
                     and deleted_at is null
               )
+            returning name, strategy
         ",
         schedule_id.as_ref(),
         &org_id,
     )
-    .execute(&state.db)
+    .fetch_optional(&state.db)
     .await
     .map_err(Hook0Problem::from)?;
 
-    if result.rows_affected() == 0 {
-        // Disambiguate: does the schedule exist?
-        let exists = sqlx::query_scalar!(
-            "select exists(
-                select 1 from webhook.retry_schedule
-                where retry_schedule__id = $1 and organization__id = $2
-            ) as \"exists!\"",
-            schedule_id.as_ref(),
-            &org_id,
-        )
-        .fetch_one(&state.db)
-        .await
-        .map_err(Hook0Problem::from)?;
-
-        if exists {
-            return Err(Hook0Problem::RetryScheduleInUse);
-        } else {
-            return Err(Hook0Problem::NotFound);
+    match deleted {
+        Some(d) => {
+            if let Some(hook0_client) = state.hook0_client.as_ref() {
+                let hook0_client_event: Hook0ClientEvent = EventRetryScheduleRemoved {
+                    organization_id: org_id,
+                    retry_schedule_id: *schedule_id,
+                    name: d.name,
+                    strategy: d.strategy,
+                }
+                .into();
+                if let Err(e) = hook0_client
+                    .send_event(&hook0_client_event.mk_hook0_event())
+                    .await
+                {
+                    error!("Hook0ClientError: {e}");
+                };
+            }
+            Ok(Json(()))
         }
-    }
-
-    if let Some(hook0_client) = state.hook0_client.as_ref() {
-        let hook0_client_event: Hook0ClientEvent = EventRetryScheduleRemoved {
-            organization_id: org_id,
-            retry_schedule_id: *schedule_id,
-            name: String::new(), // Schedule already deleted; name not available
-            strategy: String::new(),
-        }
-        .into();
-        if let Err(e) = hook0_client
-            .send_event(&hook0_client_event.mk_hook0_event())
+        None => {
+            // Disambiguate: not found vs in use
+            let exists = sqlx::query_scalar!(
+                "select exists(
+                    select 1 from webhook.retry_schedule
+                    where retry_schedule__id = $1 and organization__id = $2
+                ) as \"exists!\"",
+                schedule_id.as_ref(),
+                &org_id,
+            )
+            .fetch_one(&state.db)
             .await
-        {
-            error!("Hook0ClientError: {e}");
-        };
+            .map_err(Hook0Problem::from)?;
+
+            if exists {
+                Err(Hook0Problem::RetryScheduleInUse)
+            } else {
+                Err(Hook0Problem::NotFound)
+            }
+        }
     }
-
-    Ok(Json(()))
 }
-```
-
-Note on delete event: since the row is already deleted when we fire the event, name/strategy are unavailable. If audit trail requires full data, refactor to SELECT + DELETE in a transaction instead.
 
 - [ ] **Step 8: Verify compilation**
 
@@ -987,19 +1008,19 @@ fn compute_delay_from_schedule(config: &ScheduleConfig, retry_count: i16) -> Opt
         return None;
     }
 
+    let idx = usize::try_from(count).unwrap_or(0).min(config.intervals.len().saturating_sub(1));
+
     let delay_secs = match config.strategy.as_str() {
         "linear" => config.intervals[0],
-        "exponential" | "custom" => {
-            let idx = (count as usize).min(config.intervals.len() - 1);
-            config.intervals[idx]
-        }
+        "exponential" | "custom" => config.intervals[idx],
         unknown => {
             warn!("Unknown retry strategy: {unknown}, giving up");
             return None;
         }
     };
 
-    Some(Duration::from_secs(u64::from(delay_secs.max(0) as u32)))
+    // intervals are guaranteed >= 1 by DB CHECK constraint; .max(0) is defensive
+    Some(Duration::from_secs(u64::try_from(delay_secs.max(0)).unwrap_or(0)))
 }
 ```
 
@@ -1127,5 +1148,5 @@ Expected: Clear sequence of commits covering migration, IAM, handler, routes, ho
 - **Biscuit Datalog rules**: When adding `Action::RetrySchedule*` variants, study the existing `ServiceToken*` rules in `authorize()` as a model — they are org-scoped without application_id, same as retry schedules.
 - **`SubscriptionPost` reuse**: The codebase reuses `SubscriptionPost` for both create and edit. The `retry_schedule_id` field added in Task 6 applies to both operations.
 - **`RetryStrategy` enum**: Used in request bodies for type-safe deserialization. In response structs and DB, strategy remains `String` (sqlx maps TEXT to String). The enum is the write-side guard; the DB CHECK constraint is the storage-side guard.
-- **Per-org limit**: `MAX_RETRY_SCHEDULES_PER_ORG = 50`. Adjust if needed. Consider adding a proper `TooManyRetrySchedulesPerOrganization` variant to `Hook0Problem` (following `TooManySubscriptionsPerApplication` pattern) instead of reusing `RetryScheduleInUse`.
+- **Per-org limit**: `MAX_RETRY_SCHEDULES_PER_ORG = 50`. Uses `TooManyRetrySchedulesPerOrganization` variant (following `TooManySubscriptionsPerApplication` pattern). Atomic INSERT with subquery count (no TOCTOU).
 - **SQL convention**: All SQL in migrations and queries uses lowercase keywords, matching existing codebase style.
