@@ -1,0 +1,189 @@
+---
+title: CLI Reference
+description: Complete reference for the Hook0 CLI
+---
+
+# CLI Reference
+
+The Hook0 CLI lets you manage webhooks, forward events locally, and interact with the Hook0 API from your terminal.
+
+## Installation
+
+```bash
+# Clone the repository and install
+git clone https://gitlab.com/hook0/hook0.git
+cd hook0
+cargo install --path cli
+```
+
+Verify:
+
+```bash
+hook0 --version
+```
+
+## Global Options
+
+These options apply to all commands.
+
+| Option | Env Variable | Description | Default |
+|--------|-------------|-------------|---------|
+| `-p, --profile <NAME>` | `HOOK0_PROFILE` | Profile to use | Default profile |
+| `-o, --output <FORMAT>` | — | Output format: `json`, `table`, `compact` | `table` |
+| `--api-url <URL>` | `HOOK0_API_URL` | Override API URL | From profile |
+| `--secret <SECRET>` | `HOOK0_SECRET` | Override application secret | From keyring |
+| `--application-id <UUID>` | `HOOK0_APPLICATION_ID` | Override application ID | From profile |
+| `-v, --verbose` | — | Verbosity level (`-v`, `-vv`, `-vvv`) | `warn` |
+
+## Quick Start
+
+```bash
+# Set up your first profile
+hook0 init
+
+# Forward webhooks to localhost:3000
+hook0 listen 3000
+
+# Send a test event
+hook0 event send user.account.created \
+  -l tenant=acme \
+  -d '{"user_id": "usr_123"}'
+
+# Launch interactive example with built-in echo server
+hook0 example
+```
+
+---
+
+## Command Reference
+
+:::info
+This section is auto-generated from the CLI source code. Run `npm run generate:cli` in the `documentation/` directory to regenerate after CLI changes.
+:::
+
+import GeneratedRef from './_cli-generated.md';
+
+<GeneratedRef />
+
+---
+
+## Usage Examples
+
+### Local Development
+
+```bash
+# Forward webhooks to port 3000
+hook0 listen 3000
+
+# Forward to a specific path
+hook0 listen http://localhost:8080/webhooks
+
+# Plain output (no TUI)
+hook0 listen 3000 --no-tui
+
+# Launch interactive example with built-in echo server
+hook0 example
+
+# Forward example to your local server
+hook0 example --target http://localhost:3000/webhooks
+```
+
+### Sending Events
+
+```bash
+# Send an event with inline payload
+hook0 event send user.account.created \
+  -l tenant=acme \
+  -d '{"user_id": "usr_123", "email": "user@example.com"}'
+
+# Send from a file
+hook0 event send order.completed \
+  -l tenant=acme \
+  -f ./payload.json
+```
+
+### Managing Subscriptions
+
+```bash
+# Create a subscription
+hook0 subscription create \
+  -u https://api.example.com/webhooks \
+  -e user.account.created,order.completed \
+  -l tenant=acme
+
+# With custom headers
+hook0 subscription create \
+  -u https://api.example.com/webhooks \
+  -e order.completed \
+  -l tenant=acme \
+  -H Authorization="Bearer token" \
+  -d "Production order webhook"
+
+# List, enable, disable
+hook0 subscription list --enabled
+hook0 subscription enable <SUBSCRIPTION_ID>
+hook0 subscription disable <SUBSCRIPTION_ID>
+```
+
+### Replaying Events
+
+```bash
+# Replay a single event
+hook0 replay <EVENT_ID>
+
+# Preview failed events from the last 24h
+hook0 replay --all --status failed --since 24h --dry-run
+
+# Replay them
+hook0 replay --all --status failed --since 24h --confirm
+```
+
+### Configuration
+
+```bash
+# List profiles
+hook0 config list
+
+# Switch default profile
+hook0 config set-default staging
+
+# Show config file location
+hook0 config path
+```
+
+---
+
+## Environment Variables
+
+| Variable | Description | Used by |
+|----------|-------------|---------|
+| `HOOK0_PROFILE` | Default profile name | All commands |
+| `HOOK0_API_URL` | API base URL | All authenticated commands |
+| `HOOK0_SECRET` | Application secret | All authenticated commands |
+| `HOOK0_APPLICATION_ID` | Application ID | All authenticated commands |
+| `HOOK0_RELAY_URL` | WebSocket relay server URL | `listen` |
+
+---
+
+## Shell Completion
+
+Generate shell completion scripts for tab-completion support.
+
+```bash
+# Bash
+eval "$(hook0 completion bash)"
+# or save: hook0 completion bash > ~/.local/share/bash-completion/completions/hook0
+
+# Zsh
+eval "$(hook0 completion zsh)"
+# or save: hook0 completion zsh > ~/.zfunc/_hook0
+
+# Fish
+hook0 completion fish > ~/.config/fish/completions/hook0.fish
+
+# PowerShell
+hook0 completion powershell | Out-String | Invoke-Expression
+
+# Elvish
+eval (hook0 completion elvish | slurp)
+```
