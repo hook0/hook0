@@ -1,0 +1,47 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            DELETE FROM webhook.retry_schedule\n            WHERE retry_schedule__id = $1\n                AND organization__id = $2\n            RETURNING name, strategy, max_retries, custom_intervals, linear_delay\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "strategy",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "max_retries",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "custom_intervals",
+        "type_info": "Int4Array"
+      },
+      {
+        "ordinal": 4,
+        "name": "linear_delay",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "cb2cedcf6498d6e363d1b6082d077f2cdb9655d30721fe92da89d2cabf144904"
+}

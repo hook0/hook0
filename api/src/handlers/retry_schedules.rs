@@ -640,7 +640,8 @@ mod tests {
 
     #[test]
     fn custom_rejects_empty_intervals() {
-        let result = validate_strategy_fields(RetryStrategy::Custom, 0, None, Some(&[]));
-        assert!(result.is_ok()); // 0 retries with 0 intervals is consistent
+        // max_retries=1 but empty intervals → len mismatch
+        let result = validate_strategy_fields(RetryStrategy::Custom, 1, None, Some(&[]));
+        assert!(result.is_err());
     }
 }

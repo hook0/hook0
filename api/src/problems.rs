@@ -68,6 +68,7 @@ pub enum Hook0Problem {
     TooManyEventsToday(QuotaValue),
     TooManySubscriptionsPerApplication(QuotaValue),
     TooManyEventTypesPerApplication(QuotaValue),
+    RetryScheduleNameAlreadyExists,
     TooManyRetrySchedulesPerOrganization(QuotaValue),
 
     // Generic errors
@@ -97,6 +98,9 @@ impl From<sqlx::Error> for Hook0Problem {
                     ) => Hook0Problem::EventTypeDoesNotExist,
                     Some("user__organization_pkey") => {
                         Hook0Problem::InvitedUserAlreadyInOrganization
+                    }
+                    Some("retry_schedule_org_name_unique") => {
+                        Hook0Problem::RetryScheduleNameAlreadyExists
                     }
                     constraint => {
                         error!(
@@ -479,6 +483,13 @@ impl From<Hook0Problem> for Problem {
                     validation: None,
                     status: StatusCode::TOO_MANY_REQUESTS,
                 }
+            },
+            Hook0Problem::RetryScheduleNameAlreadyExists => Problem {
+                id: Hook0Problem::RetryScheduleNameAlreadyExists,
+                title: "Retry schedule name already exists",
+                detail: "A retry schedule with this name already exists in this organization.".into(),
+                validation: None,
+                status: StatusCode::CONFLICT,
             },
             Hook0Problem::TooManyRetrySchedulesPerOrganization(limit) => {
                 let detail = format!("This organization cannot have more than {limit} retry schedules.");
