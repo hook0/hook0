@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                INSERT INTO webhook.subscription (subscription__id, application__id, is_enabled, description, secret, metadata, labels, target__id, created_at, updated_at)\n                VALUES (public.gen_random_uuid(), $1, $2, $3, public.gen_random_uuid(), $4, $5, public.gen_random_uuid(), statement_timestamp(), statement_timestamp())\n                RETURNING subscription__id, is_enabled, description, secret, metadata, labels, target__id, created_at, updated_at\n            ",
+  "query": "\n                INSERT INTO webhook.subscription (subscription__id, application__id, is_enabled, description, secret, metadata, labels, retry_schedule__id, target__id, created_at, updated_at)\n                VALUES (public.gen_random_uuid(), $1, $2, $3, public.gen_random_uuid(), $4, $5, (SELECT retry_schedule__id FROM webhook.retry_schedule WHERE retry_schedule__id = $6 AND organization__id = (SELECT organization__id FROM event.application WHERE application__id = $1 AND deleted_at IS NULL)), public.gen_random_uuid(), statement_timestamp(), statement_timestamp())\n                RETURNING subscription__id, is_enabled, description, secret, metadata, labels, retry_schedule__id, target__id, created_at, updated_at\n            ",
   "describe": {
     "columns": [
       {
@@ -35,16 +35,21 @@
       },
       {
         "ordinal": 6,
-        "name": "target__id",
+        "name": "retry_schedule__id",
         "type_info": "Uuid"
       },
       {
         "ordinal": 7,
+        "name": "target__id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 8,
         "name": "created_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "updated_at",
         "type_info": "Timestamptz"
       }
@@ -55,7 +60,8 @@
         "Bool",
         "Text",
         "Jsonb",
-        "Jsonb"
+        "Jsonb",
+        "Uuid"
       ]
     },
     "nullable": [
@@ -65,10 +71,11 @@
       false,
       false,
       false,
+      true,
       false,
       false,
       false
     ]
   },
-  "hash": "d57a768b871af6b25937c46209d0c074db29debba784155b99531d9ca0566e26"
+  "hash": "fed63947d171b489d7029ddd136ad435a98571e6076b397c8697c39ee4b2b6bd"
 }
