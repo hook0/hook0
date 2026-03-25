@@ -385,6 +385,10 @@ struct Config {
     #[clap(long, env, default_value = "10")]
     quota_global_event_types_per_application_limit: quotas::QuotaValue,
 
+    /// Maximum number of retry schedules per organization
+    #[clap(long, env, default_value_t = 50)]
+    max_retry_schedules_per_org: i32,
+
     /// [Quotas] Default threshold (in %) of events per day at which to send a warning notification
     #[clap(long, env, default_value = "80")]
     quota_notification_events_per_day_threshold: u8,
@@ -572,6 +576,7 @@ pub struct State {
     quota_notification_events_per_day_threshold: u8,
     enable_quota_based_email_notifications: bool,
     support_email_address: Address,
+    max_retry_schedules_per_org: i32,
     cloudflare_turnstile_site_key: Option<String>,
     cloudflare_turnstile_secret_key: Option<String>,
 }
@@ -1086,6 +1091,7 @@ async fn main() -> anyhow::Result<()> {
                 .quota_notification_events_per_day_threshold,
             enable_quota_based_email_notifications: config.enable_quota_based_email_notifications,
             support_email_address: config.support_email_address,
+            max_retry_schedules_per_org: config.max_retry_schedules_per_org,
             cloudflare_turnstile_site_key: config.cloudflare_turnstile_site_key,
             cloudflare_turnstile_secret_key: config.cloudflare_turnstile_secret_key,
         };
@@ -1416,6 +1422,18 @@ async fn main() -> anyhow::Result<()> {
                                         .route(web::put().to(handlers::subscriptions::edit))
                                         .route(web::delete().to(handlers::subscriptions::delete)),
                                 ),
+                        )
+                        .service(
+                            web::scope("/retry_schedules")
+                                .wrap(Compat::new(rate_limiters.token()))
+                                .wrap(biscuit_auth.clone())
+                                .service(web::resource("")
+                                    .route(web::get().to(handlers::retry_schedules::list))
+                                    .route(web::post().to(handlers::retry_schedules::create)))
+                                .service(web::resource("/{retry_schedule_id}")
+                                    .route(web::get().to(handlers::retry_schedules::get))
+                                    .route(web::put().to(handlers::retry_schedules::edit))
+                                    .route(web::delete().to(handlers::retry_schedules::delete))),
                         )
                         .service(
                             web::scope("/request_attempts")

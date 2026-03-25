@@ -236,7 +236,7 @@ pub async fn create(
         body.custom_intervals.as_deref(),
     )?;
 
-    let max_per_org = 50i64;
+    let max_per_org = i64::from(state.max_retry_schedules_per_org);
     let schedule = query_as!(
         RetrySchedule,
         "
@@ -288,7 +288,7 @@ pub async fn create(
 
             Ok(CreatedJson(s))
         }
-        None => Err(Hook0Problem::TooManyRetrySchedulesPerOrganization(50)),
+        None => Err(Hook0Problem::TooManyRetrySchedulesPerOrganization(state.max_retry_schedules_per_org)),
     }
 }
 
