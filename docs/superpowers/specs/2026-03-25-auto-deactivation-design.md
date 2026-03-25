@@ -19,9 +19,8 @@ Phase 1 introduced configurable retry schedules (exponential, linear, custom). P
 
 - Auto-disable subscription when retries are exhausted (worker-side)
 - `auto_disabled_at` and `warning_sent_at` columns on `webhook.subscription`
-- Warning email at configurable % of retries (default 50%), deduplicated per subscription
+- Warning email at configurable % of retries (default 50%), deduplicated per subscription with TTL
 - Deactivation email when subscription is disabled
-- Recovery email when a retry succeeds after a warning was sent
 - Hook0 event `api.subscription.disabled`
 - `auto_disabled_at` exposed in subscription API response
 - Extract `hook0-mailer` crate (shared between `api` and `output-worker`)
@@ -33,7 +32,8 @@ Phase 1 introduced configurable retry schedules (exponential, linear, custom). P
 - Manual retry/recover/replay APIs (Phase 4)
 - Frontend UI for deactivation status
 - Per-subscription warning threshold override (global env var only)
-- Hook0 events for warning or recovery (email only)
+- Recovery email (deferred — see decision #19)
+- Hook0 events for warning (email only)
 - `message.attempt.exhausted` or `message.attempt.failed` events
 
 ## 3. Design
@@ -56,8 +56,10 @@ ALTER TABLE webhook.subscription ADD COLUMN warning_sent_at timestamptz;
 ```sql
 UPDATE webhook.subscription
 SET warning_sent_at = statement_timestamp()
-WHERE subscription__id = $1 AND warning_sent_at IS NULL
--- Returns 1 row affected → send email. 0 rows → skip (already sent).
+WHERE subscription__id = $1
+  AND (warning_sent_at IS NULL OR warning_sent_at < now() - $2::interval)
+-- $2 = SUBSCRIPTION_WARNING_TTL (default '24 hours')
+-- Returns 1 row affected → send email. 0 rows → skip (already sent within TTL).
 ```
 
 **Worker sets on deactivation:**
@@ -65,14 +67,6 @@ WHERE subscription__id = $1 AND warning_sent_at IS NULL
 UPDATE webhook.subscription
 SET is_enabled = false, auto_disabled_at = statement_timestamp()
 WHERE subscription__id = $1 AND is_enabled = true
-```
-
-**Worker sets on recovery (retry succeeds after warning):**
-```sql
-UPDATE webhook.subscription
-SET warning_sent_at = NULL
-WHERE subscription__id = $1 AND warning_sent_at IS NOT NULL
--- Returns 1 row affected → send recovery email. 0 rows → skip (no warning was sent).
 ```
 
 **Manual re-activation (API PUT, only when is_enabled transitions false → true):**
@@ -92,7 +86,9 @@ When a retry fails and the per-message `retry_count == warning_threshold`:
 warning_threshold = ceil(max_retries * SUBSCRIPTION_WARNING_AT_RETRY_PERCENT / 100)
 ```
 
-Each message has its own `retry_count` (0, 1, 2, ...) and will independently cross the threshold. The `warning_sent_at` atomic UPDATE deduplicates across messages: if the UPDATE affects 1 row (first message to cross the threshold for this subscription), send the `SubscriptionWarning` email. If 0 rows (another message already triggered it), skip.
+Each message has its own `retry_count` (0, 1, 2, ...) and will independently cross the threshold. The `warning_sent_at` atomic UPDATE deduplicates across messages: if the UPDATE affects 1 row (first message to cross the threshold, or TTL expired since last warning), send the `SubscriptionWarning` email. If 0 rows (another message already triggered it within the TTL window), skip.
+
+The TTL (`SUBSCRIPTION_WARNING_TTL`, default 24h) prevents email storms when multiple messages fail concurrently, while allowing a new warning to fire if the subscription starts failing again well after a previous incident.
 
 The threshold is computed from the schedule's `max_retries` (or the worker's default if no schedule assigned).
 
@@ -108,21 +104,15 @@ If the feature flag is `false`, the worker behaves exactly as today (logs "givin
 
 **Known trade-off**: A single message exhausting its retries disables the subscription for all subsequent messages. With an aggressive schedule (e.g., `max_retries: 1`), a transient failure can cause deactivation after just 2 delivery attempts. This is by design — the user chose the schedule and accepts the consequences.
 
-#### 3.2.3. Recovery email
-
-When a delivery **succeeds** and the per-message `retry_count >= warning_threshold` and the subscription has `warning_sent_at IS NOT NULL`:
-
-The worker clears `warning_sent_at` and sends a `SubscriptionRecovered` email. The `retry_count >= warning_threshold` guard ensures that only a message that was itself past the warning point can trigger recovery — a new message succeeding on first attempt (`retry_count=0`) does NOT clear the warning state. No deactivation occurs. Deduplicated the same way: `UPDATE SET warning_sent_at = NULL WHERE warning_sent_at IS NOT NULL` — 1 row = send, 0 rows = skip.
-
-#### 3.2.4. Default schedule behavior
+#### 3.2.3. Default schedule behavior
 
 When no retry schedule is assigned, David's default applies (`max_retries` = worker's `--max-retries`, default 25). The warning is sent at `ceil(25 * 0.50) = 13`. Deactivation at retry 25.
 
-#### 3.2.5. Both code paths
+#### 3.2.4. Both code paths
 
 The deactivation + warning + recovery logic must be implemented in both the PG polling path (`output-worker/src/pg.rs`) and the Pulsar path (`output-worker/src/pulsar.rs`). A shared function should be extracted to avoid duplicating the logic.
 
-#### 3.2.6. Email sending is best-effort
+#### 3.2.5. Email sending is best-effort
 
 Email sending failures (SMTP unreachable, timeout) do not block deactivation or Hook0 event emission. The worker logs a warning and proceeds. The DB state change (deactivation) is the source of truth, not the email.
 
@@ -143,7 +133,7 @@ hook0/
 
 Extracted from `api/src/mailer.rs`:
 - `Mailer` struct (async SMTP via `lettre`, connection-pooled)
-- `Mail` enum with all variants (existing: `VerifyUserEmail`, `ResetPassword`, `QuotaEventsPerDayWarning`, `QuotaEventsPerDayReached` + new: `SubscriptionWarning`, `SubscriptionDisabled`, `SubscriptionRecovered`)
+- `Mail` enum with all variants (existing: `VerifyUserEmail`, `ResetPassword`, `QuotaEventsPerDayWarning`, `QuotaEventsPerDayReached` + new: `SubscriptionWarning`, `SubscriptionDisabled`)
 - MJML template pipeline (`include_str!` + `mrml` rendering + `html2text` fallback)
 - Dependencies: `lettre`, `mrml`, `html2text`
 
@@ -158,7 +148,7 @@ Both crates consumed by `api` and `output-worker`.
 
 ### 3.4. Emails
 
-Three new MJML templates. All sent to **all members of the organization** (same SQL pattern as quota notification emails in `api/src/quotas.rs`: `application_id → organization_id → user emails`).
+Two new MJML templates. All sent to **all members of the organization** (same SQL pattern as quota notification emails in `api/src/quotas.rs`: `application_id → organization_id → user emails`).
 
 **Language:** English (consistent with existing templates).
 
@@ -175,12 +165,6 @@ Note: the `webhook.subscription` table has no `name` field. Email templates use 
 - **Trigger:** retries exhausted, subscription auto-disabled (first message to exhaust)
 - **Subject:** `[Hook0] Subscription disabled: {subscription_description}`
 - **Content:** application name, subscription description/ID, target URL, deactivation date, total attempts, instructions to re-activate (API PUT `is_enabled: true`)
-
-#### `SubscriptionRecovered`
-
-- **Trigger:** retry succeeds AND `warning_sent_at` was NOT NULL
-- **Subject:** `[Hook0] Subscription recovered: {subscription_description}`
-- **Content:** application name, subscription description/ID, target URL, confirmation that delivery succeeded
 
 ### 3.5. Hook0 Event
 
@@ -231,6 +215,7 @@ No new API endpoints.
 |---|---|---|---|---|
 | `--disable-subscription-on-retries-exhausted` | `DISABLE_SUBSCRIPTION_ON_RETRIES_EXHAUSTED` | bool | `true` | Enable/disable the entire auto-deactivation feature |
 | `--subscription-warning-at-retry-percent` | `SUBSCRIPTION_WARNING_AT_RETRY_PERCENT` | u8 | `50` | Retry % threshold at which warning email is sent |
+| `--subscription-warning-ttl` | `SUBSCRIPTION_WARNING_TTL` | duration | `24h` | Minimum interval between warning emails for the same subscription |
 
 **New worker args for hook0-client (optional — if absent, no events emitted):**
 - `--hook0-client-api-url`
@@ -262,8 +247,8 @@ No new API endpoints.
 | 5 | Feature flag | Worker clap arg `--disable-subscription-on-retries-exhausted` (default true) | Aligned (ticket says env var toggle) |
 | 6 | Warning email trigger | At `ceil(max_retries * percent / 100)`, percent configurable (default 50%) | **Yes** — ticket says 3 calendar days |
 | 7 | Deactivation email | Sent when subscription is auto-disabled | Aligned |
-| 8 | Recovery email | Sent when delivery succeeds AND per-message retry_count >= warning_threshold AND warning_sent_at IS NOT NULL | Aligned (ticket's optional recovery notification) |
-| 9 | Email deduplication | `warning_sent_at` column on subscription — atomic UPDATE deduplicates across concurrent messages | Simplified vs ticket's approach |
+| 8 | Recovery email | Deferred — multiple concurrent messages make per-subscription recovery ambiguous (one message succeeding doesn't mean the subscription is healthy) | **Yes** — ticket has optional recovery notification; we defer it |
+| 9 | Email deduplication | `warning_sent_at` column on subscription with TTL (default 24h) — atomic UPDATE deduplicates across concurrent messages, TTL allows re-warning after a new incident | Simplified vs ticket's approach |
 | 10 | Hook0 events | Only `api.subscription.disabled` (no warning event, no attempt events) | Simplified |
 | 11 | Event naming | `api.subscription.disabled` (not `endpoint.disabled`) | Aligned with existing `api.subscription.*` naming |
 | 12 | Event payload | Nested `subscription` + `retry_schedule` objects | — |
@@ -273,6 +258,7 @@ No new API endpoints.
 | 16 | Subscription display name | Use `description` field (no `name` column on subscription) | — |
 | 17 | Email sending failures | Best-effort, do not block deactivation | — |
 | 18 | PUT clearing semantics | Clear `auto_disabled_at` + `warning_sent_at` only when `is_enabled` transitions false → true, not on every PUT | — |
+| 19 | No recovery email | Multiple concurrent messages make subscription-level recovery ambiguous; `warning_sent_at` TTL handles the "J+30 new incident" case instead | **Yes** — ticket has recovery email; we defer |
 
 ## 6. Open Questions for Future Phases
 
