@@ -45,10 +45,10 @@ pub struct RetrySchedule {
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct RetrySchedulePost {
     pub organization_id: Uuid,
-    #[validate(non_control_character, length(min = 1, max = 100))]
+    #[validate(non_control_character, length(min = 2, max = 200))]
     pub name: String,
     pub strategy: RetryStrategy,
-    #[validate(range(min = 1, max = 20))]
+    #[validate(range(min = 1, max = 100))]
     pub max_retries: i32,
     pub custom_intervals: Option<Vec<i32>>,
     pub linear_delay: Option<i32>,
@@ -56,11 +56,10 @@ pub struct RetrySchedulePost {
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct RetrySchedulePut {
-    pub organization_id: Uuid,
-    #[validate(non_control_character, length(min = 1, max = 100))]
+    #[validate(non_control_character, length(min = 2, max = 200))]
     pub name: String,
     pub strategy: RetryStrategy,
-    #[validate(range(min = 1, max = 20))]
+    #[validate(range(min = 1, max = 100))]
     pub max_retries: i32,
     pub custom_intervals: Option<Vec<i32>>,
     pub linear_delay: Option<i32>,
@@ -96,12 +95,11 @@ pub fn validate_strategy_fields(
                     mk_validation_error("custom_intervals", "custom_intervals must be None for linear strategy"),
                 ));
             }
-            if linear_delay.is_none() {
+            let Some(delay) = linear_delay else {
                 return Err(Hook0Problem::Validation(
                     mk_validation_error("linear_delay", "linear_delay is required for linear strategy"),
                 ));
-            }
-            let delay = linear_delay.unwrap();
+            };
             if !(1..=MAX_INTERVAL_SECS).contains(&delay) {
                 return Err(Hook0Problem::Validation(
                     mk_validation_error("linear_delay", "linear_delay must be between 1 and 604800"),
