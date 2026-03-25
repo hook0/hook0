@@ -43,6 +43,7 @@ pub struct Subscription {
     pub label_value: String,
     pub labels: HashMap<String, String>,
     pub target: Target,
+    pub retry_schedule_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub dedicated_workers: Vec<String>,
@@ -221,6 +222,7 @@ pub async fn list(
         secret: Uuid,
         metadata: Value,
         labels: Value,
+        retry_schedule_id: Option<Uuid>,
         target_json: Option<Value>,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
@@ -232,7 +234,7 @@ pub async fn list(
         r#"
             WITH subs AS (
                 SELECT
-                    s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.target__id, s.created_at, s.updated_at,
+                    s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.target__id, s.retry_schedule__id, s.created_at, s.updated_at,
                     CASE WHEN length((array_agg(set.event_type__name))[1]) > 0
                         THEN array_agg(set.event_type__name)
                         ELSE ARRAY[]::text[] END AS event_types,
@@ -255,7 +257,7 @@ pub async fn list(
                 ) AS target_json FROM webhook.target_http
                 WHERE target__id IN (SELECT target__id FROM subs)
             )
-            SELECT subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.labels AS "labels!", subs.created_at AS "created_at!", subs.updated_at AS "updated_at!", subs.event_types, targets.target_json, subs.dedicated_workers
+            SELECT subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.labels AS "labels!", subs.retry_schedule__id AS retry_schedule_id, subs.created_at AS "created_at!", subs.updated_at AS "updated_at!", subs.event_types, targets.target_json, subs.dedicated_workers
             FROM subs
             INNER JOIN targets ON subs.target__id = targets.target__id
         "#, // Column aliases ending with "!" are there because sqlx does not seem to infer correctly that these columns' types are not options
@@ -292,6 +294,7 @@ pub async fn list(
                 labels,
                 target: serde_json::from_value(s.target_json.unwrap())
                     .expect("Could not parse subscription target"),
+                retry_schedule_id: s.retry_schedule_id,
                 created_at: s.created_at,
                 updated_at: s.updated_at,
                 dedicated_workers: s.dedicated_workers.unwrap_or_default(),
@@ -361,6 +364,7 @@ pub async fn get(
         secret: Uuid,
         metadata: Value,
         labels: Value,
+        retry_schedule_id: Option<Uuid>,
         target_json: Option<Value>,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
@@ -372,7 +376,7 @@ pub async fn get(
         r#"
             WITH subs AS (
                 SELECT
-                    s.application__id, s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.target__id, s.created_at, s.updated_at,
+                    s.application__id, s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.target__id, s.retry_schedule__id, s.created_at, s.updated_at,
                     CASE WHEN length((array_agg(set.event_type__name))[1]) > 0
                         THEN array_agg(set.event_type__name)
                         ELSE ARRAY[]::text[] END AS event_types,
@@ -395,7 +399,7 @@ pub async fn get(
                 ) AS target_json FROM webhook.target_http
                 WHERE target__id IN (SELECT target__id FROM subs)
             )
-            SELECT subs.application__id AS "application__id!", subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.labels AS "labels!", subs.created_at AS "created_at!", subs.updated_at AS "updated_at!", subs.event_types, targets.target_json, subs.dedicated_workers
+            SELECT subs.application__id AS "application__id!", subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.labels AS "labels!", subs.retry_schedule__id AS retry_schedule_id, subs.created_at AS "created_at!", subs.updated_at AS "updated_at!", subs.event_types, targets.target_json, subs.dedicated_workers
             FROM subs
             INNER JOIN targets ON subs.target__id = targets.target__id
             LIMIT 1
@@ -433,6 +437,7 @@ pub async fn get(
                 labels,
                 target: serde_json::from_value(s.target_json.unwrap())
                     .expect("Could not parse subscription target"),
+                retry_schedule_id: s.retry_schedule_id,
                 created_at: s.created_at,
                 updated_at: s.updated_at,
                 dedicated_workers: s.dedicated_workers.unwrap_or_default(),
@@ -462,6 +467,7 @@ pub struct SubscriptionPost {
     labels: Option<HashMap<String, String>>,
     #[validate(nested)]
     target: Target,
+    retry_schedule_id: Option<Uuid>,
     #[validate(length(min = 1, max = 20))]
     dedicated_workers: Option<Vec<String>>,
 }
@@ -555,26 +561,33 @@ pub async fn create(
         secret: Uuid,
         metadata: Value,
         labels: Value,
+        retry_schedule__id: Option<Uuid>,
         target__id: Uuid,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
     }
+    let retry_schedule_id_param = body.retry_schedule_id;
     let subscription = query_as!(
             RawSubscription,
             "
-                INSERT INTO webhook.subscription (subscription__id, application__id, is_enabled, description, secret, metadata, labels, target__id, created_at, updated_at)
-                VALUES (public.gen_random_uuid(), $1, $2, $3, public.gen_random_uuid(), $4, $5, public.gen_random_uuid(), statement_timestamp(), statement_timestamp())
-                RETURNING subscription__id, is_enabled, description, secret, metadata, labels, target__id, created_at, updated_at
+                INSERT INTO webhook.subscription (subscription__id, application__id, is_enabled, description, secret, metadata, labels, retry_schedule__id, target__id, created_at, updated_at)
+                VALUES (public.gen_random_uuid(), $1, $2, $3, public.gen_random_uuid(), $4, $5, (SELECT retry_schedule__id FROM webhook.retry_schedule WHERE retry_schedule__id = $6 AND organization__id = (SELECT organization__id FROM event.application WHERE application__id = $1 AND deleted_at IS NULL)), public.gen_random_uuid(), statement_timestamp(), statement_timestamp())
+                RETURNING subscription__id, is_enabled, description, secret, metadata, labels, retry_schedule__id, target__id, created_at, updated_at
             ",
             &body.application_id,
             &body.is_enabled,
             body.description,
             metadata,
             labels,
+            retry_schedule_id_param as Option<Uuid>,
         )
             .fetch_one(&mut *tx)
             .await
             .map_err(Hook0Problem::from)?;
+
+    if body.retry_schedule_id.is_some() && subscription.retry_schedule__id.is_none() {
+        return Err(Hook0Problem::NotFound);
+    }
 
     match &body.target {
         Target::Http {
@@ -684,6 +697,7 @@ pub async fn create(
         label_value: first_label.1,
         labels,
         target: body.target.clone(),
+        retry_schedule_id: subscription.retry_schedule__id,
         created_at: subscription.created_at,
         updated_at: subscription.updated_at,
         dedicated_workers: body.dedicated_workers.clone().unwrap_or_default(),
@@ -780,26 +794,29 @@ pub async fn edit(
         secret: Uuid,
         metadata: Value,
         labels: Value,
+        retry_schedule__id: Option<Uuid>,
         target__id: Uuid,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
     }
 
-    // Update all fields including is_enabled, description, metadata, labels
+    let retry_schedule_id_param = body.retry_schedule_id;
+    // Update all fields including is_enabled, description, metadata, labels, retry_schedule__id
     let subscription = query_as!(
         RawSubscription,
         "
             UPDATE webhook.subscription
-            SET is_enabled = $1, description = $2, metadata = $3, labels = $4, updated_at = statement_timestamp()
+            SET is_enabled = $1, description = $2, metadata = $3, labels = $4, retry_schedule__id = (SELECT retry_schedule__id FROM webhook.retry_schedule WHERE retry_schedule__id = $7 AND organization__id = (SELECT organization__id FROM event.application WHERE application__id = $6 AND deleted_at IS NULL)), updated_at = statement_timestamp()
             WHERE subscription__id = $5 AND application__id = $6 AND deleted_at IS NULL
-            RETURNING subscription__id, is_enabled, description, secret, metadata, labels, target__id, created_at, updated_at
+            RETURNING subscription__id, is_enabled, description, secret, metadata, labels, retry_schedule__id, target__id, created_at, updated_at
         ",
         &body.is_enabled,
         body.description,
         metadata,
         labels,
         &subscription_id,
-        &body.application_id
+        &body.application_id,
+        retry_schedule_id_param as Option<Uuid>,
     )
     .fetch_optional(&mut *tx)
     .await
@@ -807,6 +824,10 @@ pub async fn edit(
 
     match subscription {
         Some(s) => {
+            if body.retry_schedule_id.is_some() && s.retry_schedule__id.is_none() {
+                return Err(Hook0Problem::NotFound);
+            }
+
             match &body.target {
                 Target::Http {
                     method,
@@ -975,6 +996,7 @@ pub async fn edit(
                 label_value: first_label.1,
                 labels,
                 target: body.target.clone(),
+                retry_schedule_id: s.retry_schedule__id,
                 created_at: s.created_at,
                 updated_at: s.updated_at,
                 dedicated_workers: body.dedicated_workers.clone().unwrap_or_default(),
