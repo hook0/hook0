@@ -8,7 +8,7 @@
 
 ## 1. Goal
 
-Replace the hardcoded retry logic (30 fast + 30 slow = 60 attempts) with a configurable retry schedule system. Organizations can define named retry policies with one of three strategies and assign them to subscriptions. Subscriptions without a schedule use the Svix/Stripe default.
+Add configurable retry schedules on top of the existing Svix/Stripe default policy (immediately, 5s, 5min, 30min, 2h, 5h, 10h, 10h). Organizations can define named retry policies with one of three strategies and assign them to subscriptions. Subscriptions without a schedule keep the current Svix/Stripe default.
 
 This is Phase 1 of ticket #42. Phases 2-4 (auto-deactivation, email notifications, manual retry/recovery) are out of scope.
 
@@ -133,13 +133,9 @@ Flat top-level scope, consistent with existing routes (`event_types`, `service_t
 
 ### 3.4. Worker Retry Logic
 
-#### Current behavior (to be replaced)
+#### Current behavior (already Svix/Stripe default)
 
-```
-fast retries: 30 attempts, delay = min(5s * count, 300s)
-slow retries: 30 attempts, delay = 3600s
-total: 60 attempts max
-```
+The worker already implements the Svix/Stripe exponential backoff: immediately, 5s, 5min, 30min, 2h, 5h, 10h, 10h (8 attempts max). This remains the default for subscriptions without a custom schedule.
 
 #### New behavior
 
@@ -175,9 +171,9 @@ Note: `strategy` controls delay computation. `exponential` and `custom` share th
 
 These are independent. `max_attempts` controls when to stop retrying. `intervals` controls the delay progression. If `max_attempts > len(intervals)`, the last interval repeats. If `max_attempts < len(intervals)`, extra intervals are unused.
 
-#### Breaking change
+#### No breaking change on default behavior
 
-Default retry behavior changes from 60 attempts over ~30h to 8 attempts over ~20h. This is intentional per the ticket specification.
+The default Svix/Stripe policy is already in place. This change only adds the ability to override it with custom schedules.
 
 #### Schedule resolution — no extra query
 
@@ -213,8 +209,6 @@ Each event includes: `instance_id`, `organization_id`, `retry_schedule_id`, `nam
 | `output-worker/src/main.rs` | Replace compute_next_retry_duration |
 | `output-worker/src/pg.rs` | Pass schedule info to retry computation |
 | `output-worker/src/pulsar.rs` | Pass schedule info to retry computation |
-
-Note: The existing `--max-fast-retries` and `--max-slow-retries` CLI params become dead config after this change. They should be removed as part of the worker modifications.
 
 Note: `updated_at` is maintained at application level (explicit `SET updated_at = statement_timestamp()` in UPDATE handler), consistent with the existing `webhook.subscription.updated_at` pattern. No DB trigger needed.
 
