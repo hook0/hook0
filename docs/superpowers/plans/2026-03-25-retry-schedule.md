@@ -483,6 +483,12 @@ impl RequestAttemptWithOptionalPayload {
             }
             RetryStrategy::Custom => {
                 let intervals_secs = self.retry_custom_intervals.clone()?;
+                // Validate invariant: intervals length must match max_retries
+                if intervals_secs.len() != usize::try_from(max_retries).unwrap_or(0) {
+                    warn!("Custom schedule has intervals len {} != max_retries {}, falling back to default",
+                        intervals_secs.len(), max_retries);
+                    return None;
+                }
                 Some(ScheduleConfig::Custom { max_retries, intervals_secs })
             }
         }
@@ -509,12 +515,14 @@ fn compute_delay_from_schedule(config: &ScheduleConfig, retry_count: i16) -> Opt
             )
         }
         ScheduleConfig::Linear { delay_secs, .. } => {
-            Some(Duration::from_secs(u64::from(*delay_secs as u32)))
+            // delay_secs guaranteed 1..=604800 by DB CHECK; try_from is defensive
+            Some(Duration::from_secs(u64::try_from(*delay_secs).unwrap_or(0)))
         }
         ScheduleConfig::Custom { intervals_secs, .. } => {
             let idx = usize::try_from(count).unwrap_or(0);
             let delay = intervals_secs.get(idx)?; // safe: returns None if out of bounds
-            Some(Duration::from_secs(u64::from(*delay as u32)))
+            // delay guaranteed 1..=604800 by DB CHECK; try_from is defensive
+            Some(Duration::from_secs(u64::try_from(*delay).unwrap_or(0)))
         }
     }
 }
