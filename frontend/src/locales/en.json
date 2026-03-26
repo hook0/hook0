@@ -822,7 +822,7 @@
     "selectEventTypes": "Select event types to listen to",
     "selectEventTypesWithLink": "Select {link} to listen to",
     "subscriptionLabels": "Subscription labels",
-    "subscriptionLabelsHelp": "Filter which events trigger this webhook. Example: set user_id = 1 to only receive events for that user. Leave a catch-all label like user_id = 1 to get started.",
+    "subscriptionLabelsHelp": "Match events by key=value pairs. Your subscription only receives events that have these labels. Start with user_id = 1.",
     "subtitle": "Where Hook0 sends webhooks. Each subscription points to a URL and filters by event type.",
     "targetColumn": "Target",
     "testBodyPreview": "Body Preview",
