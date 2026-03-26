@@ -220,7 +220,14 @@ export default [
     path: '/organizations/:organization_id/applications/:application_id/application_secrets',
     component: () =>
       import('@/pages/organizations/applications/application_secrets/ApplicationSecretsList.vue'),
-    meta: { title: 'API Keys' },
+    meta: { title: 'Application Secrets' },
+  },
+  {
+    name: routes.ApplicationSecretsNew,
+    path: '/organizations/:organization_id/applications/:application_id/application_secrets/new',
+    component: () =>
+      import('@/pages/organizations/applications/application_secrets/ApplicationSecretsList.vue'),
+    meta: { title: 'New Application Secret' },
   },
 
   {

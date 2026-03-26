@@ -26,7 +26,7 @@
     "quickReference": "Quick reference",
     "quickReferenceDescription": "Use these identifiers when making API calls.",
     "subtitle": "These keys will allow you to authenticate API requests to Hook0.",
-    "title": "API Keys",
+    "title": "Application Secrets",
     "token": "Token",
     "tokenCopied": "The API key has been copied to the clipboard."
   },
@@ -161,7 +161,7 @@
     }
   },
   "breadcrumbs": {
-    "apiKeys": "API Keys",
+    "apiKeys": "Application Secrets",
     "applications": "Applications",
     "eventDetail": "Event Details",
     "eventTypes": "Event Types",
@@ -189,7 +189,7 @@
     "copyApiKey": "Copy API key",
     "createEventType": "Create event type",
     "createSubscription": "Create subscription",
-    "goToApiKeys": "Go to API Keys",
+    "goToApiKeys": "Go to Application Secrets",
     "goToApiReference": "API Reference",
     "goToAppSettings": "Go to application settings",
     "goToApplications": "Go to applications",
@@ -516,6 +516,7 @@
     "apiDocs": "API Documentation",
     "apiKeys": "API Keys",
     "apiReference": "API Reference",
+    "applicationSecrets": "Application Secrets",
     "appSettings": "Application Settings",
     "applications": "Applications",
     "apps": "Apps",
