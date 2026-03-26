@@ -3,10 +3,7 @@ import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { ExternalLink } from 'lucide-vue-next';
-import { Codemirror } from 'vue-codemirror';
-import { json } from '@codemirror/lang-json';
-import { oneDark } from '@codemirror/theme-one-dark';
-import { EditorView } from 'codemirror';
+import Hook0Code from '@/components/Hook0Code.vue';
 
 import { useEventDetail } from './useEventQueries';
 import { routes } from '@/routes';
@@ -36,12 +33,6 @@ const applicationIdRef = computed(() => props.applicationId);
 
 const { data: eventData, isLoading: eventLoading } = useEventDetail(eventIdRef, applicationIdRef);
 
-const readOnlyExtensions = [
-  json(),
-  oneDark,
-  EditorView.lineWrapping,
-  EditorView.editable.of(false),
-];
 
 function openFullPage() {
   emit('close');
@@ -135,11 +126,10 @@ function openFullPage() {
       <!-- Payload -->
       <div class="event-panel__section">
         <h3 class="event-panel__section-title">{{ t('events.payload') }}</h3>
-        <Codemirror
-          :model-value="eventData.payload_decoded"
-          :extensions="readOnlyExtensions"
-          :tab-size="2"
-          class="event-panel__code"
+        <Hook0Code
+          :code="eventData.payload_decoded"
+          language="json"
+          :editable="false"
         />
       </div>
     </template>
