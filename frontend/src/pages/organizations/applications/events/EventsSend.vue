@@ -62,21 +62,13 @@ type TabId = 'easy' | 'curl' | 'javascript' | 'rust';
 const tabs: TabId[] = ['easy', 'curl', 'javascript', 'rust'];
 const tabRefs = ref<HTMLElement[]>([]);
 
-const tabRouteMap: Record<TabId, string> = {
-  easy: routes.EventsSend,
-  curl: routes.EventsSendCurl,
-  javascript: routes.EventsSendJs,
-  rust: routes.EventsSendRust,
+const hashTabMap: Record<string, TabId> = {
+  '#curl': 'curl',
+  '#js': 'javascript',
+  '#rust': 'rust',
 };
 
-const routeTabMap: Record<string, TabId> = {
-  [routes.EventsSend]: 'easy',
-  [routes.EventsSendCurl]: 'curl',
-  [routes.EventsSendJs]: 'javascript',
-  [routes.EventsSendRust]: 'rust',
-};
-
-const activeTab = computed(() => routeTabMap[route.name as string] ?? 'easy');
+const activeTab = computed(() => hashTabMap[route.hash] ?? 'easy');
 
 function setTabRef(el: unknown, index: number) {
   if (el instanceof HTMLElement) {
@@ -85,7 +77,8 @@ function setTabRef(el: unknown, index: number) {
 }
 
 function activateTab(tab: TabId, index: number) {
-  void router.push({ name: tabRouteMap[tab], params: route.params });
+  const hash = tab === 'easy' ? '' : `#${tab === 'javascript' ? 'js' : tab}`;
+  void router.push({ ...route, hash });
   void nextTick(() => {
     tabRefs.value[index]?.focus();
   });
@@ -380,7 +373,24 @@ function handleCancel() {
       <!-- SHARED: Always visible header -->
       <Hook0CardHeader>
         <template #header>{{ t('events.sendTestEvent') }}</template>
-        <template #subtitle>{{ t('events.sendTestEventSubtitle') }}</template>
+        <template #subtitle>
+          <i18n-t keypath="events.sendTestEventSubtitle" tag="span">
+            <template #eventType>
+              <router-link
+                :to="{ name: routes.EventTypesList, params: route.params }"
+              >
+                {{ t('events.sendTestEventCreateEventType') }}
+              </router-link>
+            </template>
+            <template #subscription>
+              <router-link
+                :to="{ name: routes.SubscriptionsList, params: route.params }"
+              >
+                {{ t('events.sendTestEventCreateSubscription') }}
+              </router-link>
+            </template>
+          </i18n-t>
+        </template>
         <template v-if="activeTab !== 'easy'" #actions>
           <Hook0Button variant="ghost" @click="copySnippet">
             <Copy :size="14" aria-hidden="true" />

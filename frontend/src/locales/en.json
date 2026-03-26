@@ -386,7 +386,7 @@
     "sendTestEvent": "Send a test event",
     "sendTestEventCreateEventType": "create an event type",
     "sendTestEventCreateSubscription": "create a subscription",
-    "sendTestEventSubtitle": "To send a test event: first create an event type, then a subscription, then send the event.",
+    "sendTestEventSubtitle": "To send a test event: first {eventType}, then {subscription}, then send the event.",
     "sourceIp": "Source IP",
     "subtitle": "Events sent by your application to Hook0. Each event triggers matching subscriptions.",
     "title": "Inbound Events",

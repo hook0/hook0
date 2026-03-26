@@ -36,9 +36,6 @@ export const routes = {
 
   EventsList: 'EventsList',
   EventsSend: 'EventsSend',
-  EventsSendCurl: 'EventsSendCurl',
-  EventsSendJs: 'EventsSendJs',
-  EventsSendRust: 'EventsSendRust',
   EventsDetail: 'EventsDetail',
 
   EventTypesList: 'EventTypesList',
@@ -244,24 +241,6 @@ export default [
   {
     name: routes.EventsSend,
     path: '/organizations/:organization_id/applications/:application_id/events/send',
-    component: () => import('@/pages/organizations/applications/events/EventsSend.vue'),
-    meta: { title: 'Send Event' },
-  },
-  {
-    name: routes.EventsSendCurl,
-    path: '/organizations/:organization_id/applications/:application_id/events/send/curl',
-    component: () => import('@/pages/organizations/applications/events/EventsSend.vue'),
-    meta: { title: 'Send Event' },
-  },
-  {
-    name: routes.EventsSendJs,
-    path: '/organizations/:organization_id/applications/:application_id/events/send/js',
-    component: () => import('@/pages/organizations/applications/events/EventsSend.vue'),
-    meta: { title: 'Send Event' },
-  },
-  {
-    name: routes.EventsSendRust,
-    path: '/organizations/:organization_id/applications/:application_id/events/send/rust',
     component: () => import('@/pages/organizations/applications/events/EventsSend.vue'),
     meta: { title: 'Send Event' },
   },
