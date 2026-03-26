@@ -49,7 +49,7 @@ withDefaults(defineProps<Props>(), {
 }
 
 .cell-event-types__item--link {
-  color: var(--color-primary);
+  color: var(--color-link);
   font-weight: 500;
 }
 

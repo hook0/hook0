@@ -351,7 +351,7 @@ const spinnerSize: Record<ButtonSize, number> = {
 
 .hook0-button.link {
   background-color: transparent;
-  color: var(--color-primary);
+  color: var(--color-link);
   border: 1px solid transparent;
   padding-left: 0;
   padding-right: 0;
@@ -359,8 +359,9 @@ const spinnerSize: Record<ButtonSize, number> = {
 }
 
 .hook0-button.link:hover:not([disabled]) {
-  color: var(--color-primary-hover);
+  color: var(--color-link);
   text-decoration: underline;
+  opacity: 0.8;
 }
 
 .hook0-button.icon {

@@ -108,7 +108,7 @@ export function useLogColumns(): ColumnDef<RequestAttemptExtended, unknown>[] {
             },
             onClick: (e: MouseEvent) => e.stopPropagation(),
             'data-test': 'log-event-link',
-            style: 'color: var(--color-primary)',
+            style: 'color: var(--color-link)',
           },
           () =>
             h(Hook0Uuid, {

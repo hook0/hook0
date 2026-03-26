@@ -86,7 +86,7 @@ const columns: ColumnDef<Event, unknown>[] = [
           },
           onClick: (e: MouseEvent) => e.stopPropagation(),
           'data-test': 'event-id-link',
-          style: 'color: var(--color-primary)',
+          style: 'color: var(--color-link)',
         },
         () =>
           h(Hook0Uuid, {
