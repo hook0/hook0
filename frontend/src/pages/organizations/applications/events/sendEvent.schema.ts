@@ -10,7 +10,7 @@ export const sendEventSchema = z.object({
       })
     )
     .min(1, 'At least one label is required'),
-  occurredAt: z.coerce.date({ message: 'Occurred at date is required' }),
+  occurredAt: z.string().min(1, 'Occurred at is required'),
   payload: z
     .string()
     .min(1, 'Payload is required')

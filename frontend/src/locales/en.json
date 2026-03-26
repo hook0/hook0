@@ -367,6 +367,7 @@
     "id": "Event ID",
     "invalidEvent": "Invalid test event",
     "invalidEventMessage": "The test event form is invalid",
+    "labelsRequired": "At least one label is required",
     "labels": "Labels",
     "metadata": "Metadata",
     "metadataLearnMore": "Learn more",

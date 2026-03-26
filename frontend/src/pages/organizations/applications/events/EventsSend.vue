@@ -134,12 +134,18 @@ const sendMutation = useSendEvent();
 // Form setup
 const extensions = [json(), EditorView.lineWrapping];
 
+// Helper to format Date to datetime-local string
+function formatDateTimeLocal(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 const { meta, values, setFieldValue } = useForm<SendEventForm>({
   validationSchema: toTypedSchema(sendEventSchema),
   initialValues: {
     eventType: '',
     labels: [{ key: 'user_id', value: '1' }],
-    occurredAt: new Date(),
+    occurredAt: formatDateTimeLocal(new Date()),
     payload: '{"test": true}',
   },
 });
@@ -156,8 +162,8 @@ const labels = computed({
 });
 
 const occurredAt = computed({
-  get: () => values.occurredAt ?? null,
-  set: (v: Date | null) => void setFieldValue('occurredAt', v as Date),
+  get: () => values.occurredAt ?? formatDateTimeLocal(new Date()),
+  set: (v: string) => void setFieldValue('occurredAt', v),
 });
 
 const payload = computed({
@@ -271,6 +277,15 @@ function sendTestEvent() {
     return;
   }
 
+  const labelsToSend = kvPairsToRecord(labels.value);
+  if (Object.keys(labelsToSend).length === 0) {
+    toast.error(t('events.invalidEvent'), {
+      description: t('events.labelsRequired'),
+      duration: 5000,
+    });
+    return;
+  }
+
   const eventId = crypto.randomUUID();
 
   sendMutation.mutate(
@@ -278,8 +293,8 @@ function sendTestEvent() {
       applicationId: applicationId.value,
       eventId,
       eventType: values.eventType,
-      labels: kvPairsToRecord(labels.value),
-      occurredAt: values.occurredAt,
+      labels: labelsToSend,
+      occurredAt: new Date(values.occurredAt),
       payload: values.payload,
     },
     {
@@ -359,18 +374,29 @@ function handleCancel() {
               d="M3 3h18v18H3V3zm4.73 15.04c.4.85 1.19 1.55 2.54 1.55 1.5 0 2.53-.79 2.53-2.55v-6.92h-1.7v6.88c0 .86-.35 1.08-.91 1.08-.58 0-.82-.4-1.09-.87l-1.37.83zm5.98-.18c.5.98 1.51 1.73 3.09 1.73 1.6 0 2.8-.83 2.8-2.36 0-1.41-.81-2.04-2.25-2.66l-.42-.18c-.73-.31-1.04-.52-1.04-1.02 0-.41.31-.72.81-.72.48 0 .8.21 1.09.72l1.31-.84c-.55-.98-1.32-1.35-2.4-1.35-1.51 0-2.48.96-2.48 2.23 0 1.38.81 2.03 2.03 2.55l.42.18c.78.34 1.24.55 1.24 1.13 0 .48-.45.83-1.15.83-.83 0-1.31-.43-1.67-1.03l-1.38.81z"
             />
           </svg>
-          <!-- Rust gear icon -->
+          <!-- Rust icon -->
           <svg
             v-else-if="tab === 'rust'"
             width="16"
             height="16"
             viewBox="0 0 24 24"
-            fill="currentColor"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
             aria-hidden="true"
           >
-            <path
-              d="M23.83 11.29l-.95-.56a.87.87 0 0 1-.4-.63 10 10 0 0 0-.18-.73.87.87 0 0 1 .15-.74l.6-.92a.34.34 0 0 0-.05-.43l-.59-.59a.34.34 0 0 0-.43-.05l-.92.6a.87.87 0 0 1-.74.15 10 10 0 0 0-.73-.18.87.87 0 0 1-.63-.4l-.56-.95a.34.34 0 0 0-.3-.17h-.83a.34.34 0 0 0-.3.17l-.56.95a.87.87 0 0 1-.63.4 10 10 0 0 0-.73.18.87.87 0 0 1-.74-.15l-.92-.6a.34.34 0 0 0-.43.05l-.59.59a.34.34 0 0 0-.05.43l.6.92a.87.87 0 0 1 .15.74 10 10 0 0 0-.18.73.87.87 0 0 1-.4.63l-.95.56a.34.34 0 0 0-.17.3v.83a.34.34 0 0 0 .17.3l.95.56a.87.87 0 0 1 .4.63 10 10 0 0 0 .18.73.87.87 0 0 1-.15.74l-.6.92a.34.34 0 0 0 .05.43l.59.59a.34.34 0 0 0 .43.05l.92-.6a.87.87 0 0 1 .74-.15 10 10 0 0 0 .73.18.87.87 0 0 1 .63.4l.56.95a.34.34 0 0 0 .3.17h.83a.34.34 0 0 0 .3-.17l.56-.95a.87.87 0 0 1 .63-.4 10 10 0 0 0 .73-.18.87.87 0 0 1 .74.15l.92.6a.34.34 0 0 0 .43-.05l.59-.59a.34.34 0 0 0 .05-.43l-.6-.92a.87.87 0 0 1-.15-.74 10 10 0 0 0 .18-.73.87.87 0 0 1 .4-.63l.95-.56a.34.34 0 0 0 .17-.3v-.83a.34.34 0 0 0-.17-.3zM12 15.92A3.92 3.92 0 1 1 15.92 12 3.92 3.92 0 0 1 12 15.92z"
-            />
+            <rect x="2" y="2" width="20" height="20" rx="3" />
+            <text
+              x="12"
+              y="17"
+              text-anchor="middle"
+              font-size="14"
+              font-weight="bold"
+              fill="currentColor"
+              stroke="none"
+            >
+              R
+            </text>
           </svg>
           {{ t(`events.tabs.${tab}`) }}
         </button>
