@@ -23,6 +23,7 @@
     },
     "key": "Key",
     "lastUsed": "Last used",
+    "lookingForServiceTokens": "Looking for service tokens?",
     "quickReference": "Quick reference",
     "quickReferenceDescription": "Use these identifiers when making API calls.",
     "subtitle": "These keys will allow you to authenticate API requests to Hook0.",
