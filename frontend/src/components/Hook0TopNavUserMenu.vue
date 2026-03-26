@@ -9,7 +9,7 @@
  * <Hook0UserMenu ref="userMenuRef" @close-dropdowns="closeAll" />
  */
 import { ref } from 'vue';
-import { Settings, LogOut, Sun, Moon, BookOpen, FileCode2 } from 'lucide-vue-next';
+import { Settings, LogOut, Sun, Moon, BookOpen, CodeXml } from 'lucide-vue-next';
 import { routes } from '@/routes';
 import { DOCS_URL, API_DOCS_URL } from '@/constants/externalLinks';
 import { useAuthStore } from '@/stores/auth';
@@ -116,7 +116,7 @@ defineExpose({ closeDropdowns, focusTrigger, hasOpenDropdown });
           class="hook0-topnav__dropdown-item"
           role="menuitem"
         >
-          <FileCode2 :size="16" aria-hidden="true" />
+          <CodeXml :size="16" aria-hidden="true" />
           {{ t('nav.apiReference') }}
         </a>
 
