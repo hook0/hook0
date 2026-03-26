@@ -2,7 +2,8 @@
 import { Codemirror } from 'vue-codemirror';
 import { json } from '@codemirror/lang-json';
 import { EditorView } from 'codemirror';
-import { computed, ref } from 'vue';
+import type { Extension } from '@codemirror/state';
+import { computed, ref, shallowRef, watch } from 'vue';
 import { Copy } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import { useClipboardCopy } from '@/composables/useClipboardCopy';
@@ -14,13 +15,17 @@ defineOptions({
   inheritAttrs: false,
 });
 
+type CodeLanguage = 'json' | 'javascript' | 'bash' | 'rust';
+
 type Props = {
   code: string;
   inline?: boolean;
+  language?: CodeLanguage;
 };
 const props = withDefaults(defineProps<Props>(), {
   code: '',
   inline: false,
+  language: 'json',
 });
 const code = computed(() => props.code);
 
@@ -42,7 +47,31 @@ const lightTheme = EditorView.theme({
   },
 });
 
-const extensions = [json(), lightTheme, EditorView.lineWrapping];
+// Dynamic language loading to avoid bundling all languages upfront
+const langExtension = shallowRef<Extension | null>(null);
+
+function loadLanguage(lang: CodeLanguage) {
+  if (lang === 'json') {
+    langExtension.value = json();
+  } else if (lang === 'javascript') {
+    void import('@codemirror/lang-javascript').then((mod) => {
+      langExtension.value = mod.javascript({ typescript: true });
+    });
+  } else if (lang === 'rust') {
+    void import('@codemirror/lang-rust').then((mod) => {
+      langExtension.value = mod.rust();
+    });
+  } else {
+    langExtension.value = null;
+  }
+}
+
+watch(() => props.language, loadLanguage, { immediate: true });
+
+const extensions = computed(() => {
+  const base: Extension[] = [lightTheme, EditorView.lineWrapping];
+  return langExtension.value ? [langExtension.value, ...base] : base;
+});
 
 const view = ref<EditorView | undefined>(undefined);
 

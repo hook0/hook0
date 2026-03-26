@@ -187,85 +187,101 @@ const apiBaseUrl = computed(() => {
 });
 
 // Code snippets
+function buildLabelsJs(labelsRecord: Record<string, string>): string {
+  const entries = Object.entries(labelsRecord);
+  if (entries.length === 0) return '{}';
+  const inner = entries.map(([k, v]) => `    ${JSON.stringify(k)}: ${JSON.stringify(v)}`).join(',\n');
+  return `{\n${inner}\n}`;
+}
+
+function buildLabelsRust(labelsRecord: Record<string, string>): string {
+  const entries = Object.entries(labelsRecord);
+  if (entries.length === 0) return 'vec![]';
+  const inner = entries
+    .map(([k, v]) => `    (${JSON.stringify(k)}.to_string(), ${JSON.stringify(v)}.to_string()),`)
+    .join('\n');
+  return `vec![\n${inner}\n]`;
+}
+
 const curlSnippet = computed(() => {
   const labelsRecord = kvPairsToRecord(labels.value);
-  const payloadStr = payload.value || '{}';
-  return `curl -X POST '${apiBaseUrl.value}/event' \\
-  -H 'Content-Type: application/json' \\
-  -H 'Authorization: Bearer ${snippetToken.value}' \\
-  -d '${JSON.stringify(
+  const body = JSON.stringify(
     {
       application_id: applicationId.value,
       event_id: crypto.randomUUID(),
-      event_type: selectedEventType.value || 'your.event.type',
+      event_type: values.eventType || 'your.event.type',
       labels: labelsRecord,
       occurred_at: new Date().toISOString(),
-      payload: payloadStr,
+      payload: payload.value || '{}',
       payload_content_type: 'application/json',
     },
     null,
-    2
-  )}'`;
+    2,
+  );
+  return [
+    `curl -X POST '${apiBaseUrl.value}/event' \\`,
+    `  -H 'Content-Type: application/json' \\`,
+    `  -H 'Authorization: Bearer ${snippetToken.value}' \\`,
+    `  -d '${body}'`,
+  ].join('\n');
 });
 
 const jsSnippet = computed(() => {
-  const token = snippetToken.value;
   const labelsRecord = kvPairsToRecord(labels.value);
-  const labelsStr = JSON.stringify(labelsRecord, null, 4).replace(/\n/g, '\n    ');
-  return `import { Hook0Client, Event } from 'hook0-client';
-
-const hook0 = new Hook0Client(
-    '${apiBaseUrl.value}',
-    '${applicationId.value}',
-    '${token}'
-);
-
-const event = new Event(
-    '${values.eventType || 'user.account.created'}',
-    JSON.stringify(${payload.value || '{}'}),
-    'application/json',
-    ${labelsStr}
-);
-
-const eventId = await hook0.sendEvent(event);
-console.log('Event sent:', eventId);`;
+  const payloadStr = payload.value || '{}';
+  return [
+    `import { Hook0Client, Event } from "hook0-client";`,
+    ``,
+    `const hook0 = new Hook0Client(`,
+    `  ${JSON.stringify(apiBaseUrl.value)},`,
+    `  ${JSON.stringify(applicationId.value)},`,
+    `  ${JSON.stringify(snippetToken.value)},`,
+    `);`,
+    ``,
+    `const event = new Event(`,
+    `  ${JSON.stringify(values.eventType || 'user.account.created')},`,
+    `  JSON.stringify(${payloadStr}),`,
+    `  "application/json",`,
+    `  ${buildLabelsJs(labelsRecord)},`,
+    `);`,
+    ``,
+    `const eventId = await hook0.sendEvent(event);`,
+    `console.log("Event sent:", eventId);`,
+  ].join('\n');
 });
 
 const rustSnippet = computed(() => {
-  const token = snippetToken.value;
   const labelsRecord = kvPairsToRecord(labels.value);
-  const labelsVec = Object.entries(labelsRecord)
-    .map(([k, v]) => `        ("${k}".to_string(), "${v}".to_string()),`)
-    .join('\n');
-  return `use hook0_client::{Hook0Client, Event};
-use reqwest::Url;
-use uuid::Uuid;
-use std::borrow::Cow;
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = Hook0Client::new(
-        Url::parse("${apiBaseUrl.value}")?,
-        Uuid::parse_str("${applicationId.value}")?,
-        "${token}",
-    )?;
-
-    let event = Event {
-        event_id: &None,
-        event_type: "${values.eventType || 'user.account.created'}",
-        payload: Cow::Borrowed(r#"${payload.value || '{}'}"#),
-        payload_content_type: "application/json",
-        metadata: None,
-        occurred_at: None,
-        labels: vec![
-${labelsVec}
-        ],
-    };
-
-    let event_id = client.send_event(&event).await?;
-    println!("Event sent: {event_id}");
-    Ok(())
-}`;
+  const payloadStr = payload.value || '{}';
+  return [
+    `use hook0_client::{Hook0Client, Event};`,
+    `use reqwest::Url;`,
+    `use uuid::Uuid;`,
+    `use std::borrow::Cow;`,
+    ``,
+    `#[tokio::main]`,
+    `async fn main() -> Result<(), Box<dyn std::error::Error>> {`,
+    `    let client = Hook0Client::new(`,
+    `        Url::parse(${JSON.stringify(apiBaseUrl.value)})?,`,
+    `        Uuid::parse_str(${JSON.stringify(applicationId.value)})?,`,
+    `        ${JSON.stringify(snippetToken.value)},`,
+    `    )?;`,
+    ``,
+    `    let event = Event {`,
+    `        event_id: &None,`,
+    `        event_type: ${JSON.stringify(values.eventType || 'user.account.created')},`,
+    `        payload: Cow::Borrowed(r#"${payloadStr}"#),`,
+    `        payload_content_type: "application/json",`,
+    `        metadata: None,`,
+    `        occurred_at: None,`,
+    `        labels: ${buildLabelsRust(labelsRecord)},`,
+    `    };`,
+    ``,
+    `    let event_id = client.send_event(&event).await?;`,
+    `    println!("Event sent: {event_id}");`,
+    `    Ok(())`,
+    `}`,
+  ].join('\n');
 });
 
 function copySnippet() {
@@ -566,9 +582,9 @@ function handleCancel() {
         </div>
 
         <!-- Snippet -->
-        <Hook0Code v-if="activeTab === 'curl'" :code="curlSnippet" />
-        <Hook0Code v-else-if="activeTab === 'javascript'" :code="jsSnippet" />
-        <Hook0Code v-else-if="activeTab === 'rust'" :code="rustSnippet" />
+        <Hook0Code v-if="activeTab === 'curl'" :code="curlSnippet" language="bash" />
+        <Hook0Code v-else-if="activeTab === 'javascript'" :code="jsSnippet" language="javascript" />
+        <Hook0Code v-else-if="activeTab === 'rust'" :code="rustSnippet" language="rust" />
       </Hook0CardContent>
     </Hook0Card>
   </div>
