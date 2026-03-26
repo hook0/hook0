@@ -181,7 +181,7 @@ const spinnerSize: Record<ButtonSize, number> = {
     class="hook0-button"
     :class="[
       variant,
-      variant !== 'icon' ? sizeClasses[size] : '',
+      variant !== 'icon' && variant !== 'link' ? sizeClasses[size] : '',
       { loading: loadingStatus, 'full-width': fullWidth },
     ]"
     :aria-disabled="loadingStatus || disabled || undefined"
@@ -210,7 +210,7 @@ const spinnerSize: Record<ButtonSize, number> = {
       class="hook0-button"
       :class="[
         variant,
-        variant !== 'icon' ? sizeClasses[size] : '',
+        variant !== 'icon' && variant !== 'link' ? sizeClasses[size] : '',
         { loading: loadingStatus, 'full-width': fullWidth },
       ]"
       :disabled="loadingStatus || disabled"
@@ -238,7 +238,7 @@ const spinnerSize: Record<ButtonSize, number> = {
     class="hook0-button"
     :class="[
       variant,
-      variant !== 'icon' ? sizeClasses[size] : '',
+      variant !== 'icon' && variant !== 'link' ? sizeClasses[size] : '',
       { loading: loadingStatus, 'full-width': fullWidth },
     ]"
     :disabled="loadingStatus || disabled"
