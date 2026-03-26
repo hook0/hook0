@@ -85,7 +85,7 @@ function handleClick(event: Event) {
 
 <style scoped>
 .table-cell-nav-link {
-  color: var(--color-text-primary);
+  color: var(--color-link);
   font-weight: 400;
   font-size: 0.875rem;
   text-decoration: none;
