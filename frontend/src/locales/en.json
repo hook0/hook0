@@ -360,7 +360,7 @@
       "title": "No events received"
     },
     "eventLabels": "Event labels",
-    "eventLabelsHelp": "Events match subscriptions whose labels are a subset of the event's labels. Events with extra labels still trigger matching subscriptions.",
+    "eventLabelsHelp": "Labels route events to the right subscriptions. An event triggers a subscription when it has all the subscription's labels. Use key=value pairs like user_id=1.",
     "eventOfType": "Event of type",
     "eventSentMessage": "The test event was sent successfully",
     "eventSentSuccess": "Test event sent",
@@ -822,7 +822,7 @@
     "selectEventTypes": "Select event types to listen to",
     "selectEventTypesWithLink": "Select {link} to listen to",
     "subscriptionLabels": "Subscription labels",
-    "subscriptionLabelsHelp": "Only events with at least these labels will trigger this subscription. Events can have additional labels.",
+    "subscriptionLabelsHelp": "Filter which events trigger this webhook. Example: set user_id = 1 to only receive events for that user. Leave a catch-all label like user_id = 1 to get started.",
     "subtitle": "Where Hook0 sends webhooks. Each subscription points to a URL and filters by event type.",
     "targetColumn": "Target",
     "testBodyPreview": "Body Preview",
