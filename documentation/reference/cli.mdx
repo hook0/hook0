@@ -5,7 +5,18 @@ description: Complete reference for the Hook0 CLI
 
 # CLI Reference
 
-The Hook0 CLI lets you manage webhooks, forward events locally, and interact with the Hook0 API from your terminal.
+The Hook0 CLI is a full-featured command-line interface for the Hook0 webhooks platform. It gives you complete control over your webhook infrastructure from the terminal:
+
+- **Local development** — Receive webhooks on your local machine via a secure WebSocket tunnel. The built-in TUI dashboard shows incoming requests, response status, headers, and payloads in real time. No need to expose your machine to the internet.
+- **Interactive testing** — Compose and send test webhooks through a visual TUI with a built-in echo server. Pick an event type, edit the JSON payload, send it, and watch the delivery happen — all without writing a single line of code.
+- **Event management** — Send events from CI/CD pipelines or scripts, list event history with powerful filters (by type, status, time range, labels), and inspect individual events with their delivery attempts.
+- **Subscription lifecycle** — Create, update, enable, disable, and delete webhook subscriptions. Attach custom HTTP headers, descriptions, and labels. Filter and list subscriptions by status or label.
+- **Event type management** — Define your webhook vocabulary by creating, listing, and deleting event types. Use the dotted naming convention (`service.resource.verb`) or specify components individually.
+- **Replay and recovery** — Replay individual failed events or bulk-replay filtered sets. Preview what would be replayed with `--dry-run` before committing. Filter by status, time range, event type, and cap the replay batch size.
+- **Multi-profile configuration** — Manage multiple environments (production, staging, development) through named profiles. Each profile stores its API URL, application ID, and credentials securely in the system keyring.
+- **Application switching** — List applications across organizations, inspect their details, and switch the active application for the current profile without re-authenticating.
+- **Scriptable output** — Every command supports `--output json` for machine-readable output, `--output table` for human-friendly display, and `--output compact` for one-line-per-item output. Pipe JSON output into `jq` for advanced scripting.
+- **Shell completion** — Full tab-completion for Bash, Zsh, Fish, PowerShell, and Elvish.
 
 ## Installation
 
@@ -24,7 +35,7 @@ hook0 --version
 ## Quick Start
 
 ```bash
-# Set up your first profile
+# Set up your first profile (interactive wizard)
 hook0 init
 
 # Forward webhooks to localhost:3000
@@ -32,8 +43,8 @@ hook0 listen 3000
 
 # Send a test event
 hook0 event send user.account.created \
-  -l tenant=acme \
-  -d '{"user_id": "usr_123"}'
+  --label tenant=acme \
+  --payload '{"user_id": "usr_123"}'
 
 # Launch interactive example with built-in echo server
 hook0 example
@@ -43,53 +54,253 @@ hook0 example
 
 ## Usage Examples
 
+### Local Development
+
+```bash
+# Forward all webhooks to your local dev server
+hook0 listen 3000
+
+# Forward to a specific endpoint path
+hook0 listen http://localhost:8080/api/webhooks
+
+# Disable the TUI and get plain log output (useful in CI or scripts)
+hook0 listen 3000 --no-tui
+
+# Reuse a specific tunnel token (stable webhook URL across restarts)
+hook0 listen 3000 --token my-stable-token
+
+# Forward to an external staging server (requires explicit opt-in)
+hook0 listen https://staging.example.com/webhooks --allow-external
+
+# Self-hosted relay server with self-signed certificate
+hook0 listen 3000 --relay-url wss://relay.internal.example.com/ws --insecure
+```
+
+### Interactive Testing
+
+```bash
+# Launch the TUI with built-in echo server — no setup needed
+hook0 example
+
+# Forward example webhooks to your local server instead
+hook0 example --target http://localhost:3000/webhooks
+```
+
+### Sending Events
+
+```bash
+# Send an event with inline JSON payload
+hook0 event send user.account.created \
+  --label tenant=acme \
+  --payload '{"user_id": "usr_123", "email": "user@example.com"}'
+
+# Send from a file (useful for large payloads)
+hook0 event send order.completed \
+  --label tenant=acme \
+  --payload-file ./payloads/order-completed.json
+
+# Send with a custom event ID (idempotency)
+hook0 event send invoice.paid \
+  --label tenant=acme \
+  --payload '{"invoice_id": "inv_456"}' \
+  --event-id 550e8400-e29b-41d4-a716-446655440000
+
+# Send a non-JSON payload
+hook0 event send document.uploaded \
+  --label tenant=acme \
+  --payload '<xml>data</xml>' \
+  --content-type application/xml
+```
+
+### Listing and Filtering Events
+
+```bash
+# List recent events
+hook0 event list
+
+# Filter by status and time range
+hook0 event list --status failed --since 24h
+
+# Filter by event type and label
+hook0 event list --event-type user.account.created --label tenant=acme
+
+# Paginate through results
+hook0 event list --limit 20 --page 3
+
+# Get full details of a specific event
+hook0 event get 550e8400-e29b-41d4-a716-446655440000
+
+# Show delivery attempts for a specific event
+hook0 event get 550e8400-e29b-41d4-a716-446655440000 --attempts
+
+# Export as JSON for scripting
+hook0 event list --status failed --output json | jq '.[].event_id'
+```
+
+### Managing Event Types
+
+```bash
+# Create an event type using the dotted convention
+hook0 event-type create user.account.created
+
+# Create using individual components
+hook0 event-type create --service order --resource payment --verb completed
+
+# List all event types
+hook0 event-type list
+
+# Filter by service
+hook0 event-type list --service user
+
+# Delete an event type (with confirmation skip)
+hook0 event-type delete user.account.deleted --yes
+```
+
 ### Managing Subscriptions
 
 ```bash
-# Create a subscription
+# Create a basic subscription
 hook0 subscription create \
-  -u https://api.example.com/webhooks \
-  -e user.account.created,order.completed \
-  -l tenant=acme
+  --url https://api.example.com/webhooks \
+  --events user.account.created,order.completed \
+  --label tenant=acme
 
-# With custom headers
+# Create with custom headers and description
 hook0 subscription create \
-  -u https://api.example.com/webhooks \
-  -e order.completed \
-  -l tenant=acme \
-  -H Authorization="Bearer token" \
-  -d "Production order webhook"
+  --url https://api.example.com/webhooks \
+  --events order.completed \
+  --label tenant=acme \
+  --header Authorization="Bearer sk_live_xxx" \
+  --header X-Custom="my-value" \
+  --description "Production order webhook for Acme Corp"
 
-# List, enable, disable
-hook0 subscription list --enabled
+# Create a disabled subscription (activate later)
+hook0 subscription create \
+  --url https://staging.example.com/webhooks \
+  --events user.account.created \
+  --label tenant=acme \
+  --disabled
+
+# List enabled subscriptions filtered by label
+hook0 subscription list --enabled --label tenant=acme
+
+# Update a subscription's endpoint and event types
+hook0 subscription update <SUBSCRIPTION_ID> \
+  --url https://new-endpoint.example.com/webhooks \
+  --events user.account.created,user.account.updated
+
+# Enable / disable
 hook0 subscription enable <SUBSCRIPTION_ID>
 hook0 subscription disable <SUBSCRIPTION_ID>
+
+# Delete with confirmation skip
+hook0 subscription delete <SUBSCRIPTION_ID> --yes
 ```
 
 ### Replaying Failed Events
 
 ```bash
-# Replay a single event
-hook0 replay <EVENT_ID>
+# Replay a single event by ID
+hook0 replay 550e8400-e29b-41d4-a716-446655440000
 
-# Preview failed events from the last 24h
+# Preview what would be replayed (dry run)
 hook0 replay --all --status failed --since 24h --dry-run
 
-# Replay them
+# Replay all failed events from the last 24 hours
 hook0 replay --all --status failed --since 24h --confirm
+
+# Replay failed events of a specific type with a batch limit
+hook0 replay --all \
+  --status failed \
+  --event-type order.completed \
+  --since 7d \
+  --limit 50 \
+  --confirm
+
+# Replay events in a specific time window
+hook0 replay --all --since 48h --until 24h --confirm
 ```
 
-### Configuration
+### Managing Applications
 
 ```bash
-# List profiles
+# List all applications in your organization
+hook0 application list
+
+# List applications in a specific organization
+hook0 application list --organization-id <ORG_ID>
+
+# Show current application details
+hook0 application current
+
+# Get details of a specific application
+hook0 application get <APPLICATION_ID>
+
+# Switch active application for the current profile
+hook0 application switch <APPLICATION_ID>
+```
+
+### Multi-Profile Configuration
+
+```bash
+# Interactive setup wizard
+hook0 init
+
+# Non-interactive setup with a pre-configured event type
+hook0 init --non-interactive --event-type user.account.created
+
+# Login to a different environment
+hook0 login --api-url https://staging.hook0.com/api/v1 --profile-name staging
+
+# List all configured profiles
 hook0 config list
+
+# Show current configuration
+hook0 config show
 
 # Switch default profile
 hook0 config set-default staging
 
+# Run a single command against a different profile
+hook0 event list --profile staging
+
+# Remove a profile
+hook0 config remove old-profile --yes
+
 # Show config file location
 hook0 config path
+
+# Logout from current profile
+hook0 logout
+
+# Logout from all profiles
+hook0 logout --all
+```
+
+### Scripting and Automation
+
+```bash
+# Use environment variables instead of profiles (CI/CD friendly)
+export HOOK0_API_URL=https://app.hook0.com/api/v1
+export HOOK0_SECRET=your-secret
+export HOOK0_APPLICATION_ID=your-app-id
+hook0 event send deploy.completed --label env=production --payload '{"version": "1.2.3"}'
+
+# Override per-command without env vars
+hook0 event list \
+  --api-url https://staging.hook0.com/api/v1 \
+  --secret staging-secret \
+  --application-id staging-app-id \
+  --output json
+
+# Pipe JSON output into jq
+hook0 subscription list --output json | jq '.[] | select(.enabled == true) | .url'
+
+# Count failed events in the last hour
+hook0 event list --status failed --since 1h --output json | jq length
+
+# Verbose output for debugging
+hook0 event send user.test --label tenant=debug --payload '{}' --verbose --verbose
 ```
 
 ---
@@ -137,12 +348,12 @@ These options apply to all commands.
 
 | Option | Env Variable | Description | Default |
 |--------|-------------|-------------|---------|
-| `-p, --profile <NAME>` | `HOOK0_PROFILE` | Profile to use | Default profile |
-| `-o, --output <FORMAT>` | — | Output format: `json`, `table`, `compact` | `table` |
+| `--profile <NAME>` | `HOOK0_PROFILE` | Profile to use | Default profile |
+| `--output <FORMAT>` | — | Output format: `json`, `table`, `compact` | `table` |
 | `--api-url <URL>` | `HOOK0_API_URL` | Override API URL | From profile |
 | `--secret <SECRET>` | `HOOK0_SECRET` | Override application secret | From keyring |
 | `--application-id <UUID>` | `HOOK0_APPLICATION_ID` | Override application ID | From profile |
-| `-v, --verbose` | — | Verbosity level (`-v`, `-vv`, `-vvv`) | `warn` |
+| `--verbose` | — | Verbosity level (`-v`, `-vv`, `-vvv`) | `warn` |
 
 ---
 
