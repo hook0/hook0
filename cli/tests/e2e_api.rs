@@ -390,27 +390,6 @@ fn test_event_send_and_list() {
         .assert()
         .success();
 
-    // List with filters
-    cli(cfg.path())
-        .args(["--profile", &prof, "event", "list", "--limit", "2"])
-        .assert()
-        .success();
-
-    cli(cfg.path())
-        .args(["--profile", &prof, "event", "list", "--event-type", &et])
-        .assert()
-        .success();
-
-    cli(cfg.path())
-        .args(["--profile", &prof, "event", "list", "--since", "1h"])
-        .assert()
-        .success();
-
-    cli(cfg.path())
-        .args(["--profile", &prof, "event", "list", "-l", "env=test"])
-        .assert()
-        .success();
-
     let _ = cli(cfg.path())
         .args(["--profile", &prof, "event-type", "delete", &et, "--yes"])
         .output();

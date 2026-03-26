@@ -1,0 +1,431 @@
+---
+title: CLI Reference
+description: Complete reference for the Hook0 CLI
+---
+
+# CLI Reference
+
+The Hook0 CLI is a command-line client for your [Hook0](https://hook0.com) account. It lets you send events, manage subscriptions, receive webhooks locally for development, and automate your workflow — everything you can do in the Hook0 dashboard, from your terminal.
+
+### Key concepts
+
+| Term | Meaning |
+|------|---------|
+| **Event** | Something that happened in your system (e.g., `user.account.created`) |
+| **Subscription** | A rule: "when this event type occurs, deliver it to this URL" |
+| **Application** | Your project or environment in Hook0 |
+
+Learn more in the [Concepts](/concepts/) section.
+
+### Capabilities
+
+| Capability | Description |
+|------------|-------------|
+| **Local development** | Receive webhooks on your machine via WebSocket tunnel — like ngrok, built into the CLI |
+| **Interactive testing** | Compose and send test webhooks through a Terminal User Interface (TUI) with a built-in echo server (a local HTTP server that receives and displays webhook requests) |
+| **Event management** | Send events, list history, inspect delivery attempts |
+| **Subscriptions** | Full CRUD and enable/disable on subscriptions, with custom headers and labels |
+| **Event types** | Full CRUD on event types using dotted convention (`service.resource.verb`) |
+| **Replay** | Replay failed events individually or in bulk, with `--dry-run` preview and filters |
+| **Multi-profile** | Named profiles per environment, credentials stored in the OS keyring (macOS Keychain, Windows Credential Manager, Linux Secret Service) |
+| **Applications** | List, inspect, and switch applications across organizations |
+| **Scriptable output** | `--output json` (machine-readable), `--output table` (formatted columns), `--output compact` (one line per item, for grep/awk) |
+| **Shell completion** | Bash, Zsh, Fish, PowerShell, Elvish |
+
+## Installation
+
+Requires [Rust](https://rustup.rs/) (Cargo).
+
+```bash
+cargo install --git https://gitlab.com/hook0/hook0.git hook0-cli
+```
+
+Verify:
+
+```bash
+hook0 --version
+```
+
+## Try It Now
+
+No Hook0 account needed for this demo — it uses the public relay server and a built-in echo server, bypassing the Hook0 API entirely. Run this single command:
+
+```bash
+hook0 example
+```
+
+This opens a TUI where you pick an event type, edit the JSON payload, and send it. A built-in echo server receives the webhook and displays the full request (headers, body, status) — all in one terminal, no configuration needed.
+
+## Quick Start
+
+Before starting, create an account on [app.hook0.com](https://app.hook0.com) and go to your application dashboard to get your **Application ID** and **Secret**.
+
+```bash
+# 1. Set up your profile (prompts for API URL, application ID, and secret)
+hook0 init
+
+# 2. Start the local tunnel — gives you a public URL (printed in the terminal)
+hook0 listen 3000
+
+# 3. In another terminal, create a subscription pointing to that URL
+hook0 subscription create \
+  --url <RELAY_URL_FROM_STEP_2> \
+  --events user.account.created \
+  --label tenant=acme
+
+# 4. Send an event — Hook0 delivers it to the subscription, which forwards to localhost:3000
+hook0 event send user.account.created \
+  --label tenant=acme \
+  --payload '{"user_id": "usr_123"}'
+```
+
+Here is the full flow:
+
+```
++--------------------+         +------------------------+
+| hook0 listen 3000  |         | hook0 event send ...   |
++--------+-----------+         +----------+-------------+
+         |                                |
+         | 1. connects via                | 4. sends event
+         |    WebSocket                   |    via HTTP
+         |                                |
+         v                                v
++--------+-----------+         +-----------+------------+
+| Relay Server       |         | Hook0 API              |
+| play.hook0.com     |<--------+ app.hook0.com/api/v1   |
++--------+-----------+         +------------------------+
+         |                       5. API delivers to
+         |                          subscription URL
+         |                          (= relay URL from step 2)
+         |
+         | 6. relay forwards
+         |    via WebSocket
+         v
++--------+-----------+
+| localhost:3000     |
+| (your server)      |
++--------------------+
+```
+
+**Step by step:**
+1. `hook0 listen` connects to the relay server and receives a public URL (e.g., `https://play.hook0.com/in/<token>`)
+2. You create a subscription with that URL as the target (step 3 in the code above)
+3. `hook0 event send` sends an event to the Hook0 API
+4. The API delivers the event to all matching subscriptions, including the relay URL
+5. The relay forwards the HTTP request through the WebSocket tunnel to your local machine
+
+---
+
+## Usage Examples
+
+### Local Development
+
+`hook0 listen` creates a secure WebSocket tunnel through the Hook0 relay server (`play.hook0.com` by default) — similar to tools like ngrok or localtunnel, but built into the CLI. It lets you receive webhooks on your local machine behind a firewall without exposing any ports.
+
+```bash
+# Forward webhooks to port 3000 (auto-detects if a server is running)
+hook0 listen 3000
+
+# Your local server handles webhooks on a specific path
+hook0 listen http://localhost:8080/api/webhooks
+
+# Keep the same public URL across restarts (token determines the URL)
+hook0 listen 3000 --token my-stable-token
+
+# Plain log output instead of the TUI dashboard (useful in CI or scripts)
+hook0 listen 3000 --no-tui
+```
+
+**Self-hosted Hook0:** if you run your own Hook0 instance with its own relay server, point `--relay-url` to it. Use `--insecure` if the relay uses a self-signed TLS certificate.
+
+```bash
+hook0 listen 3000 --relay-url wss://relay.internal.example.com/ws --insecure
+```
+
+**Forwarding to a remote target:** by default, `listen` only forwards to `localhost` to prevent SSRF. To forward to an external URL (e.g., a shared staging server), opt in explicitly:
+
+```bash
+hook0 listen https://staging.example.com/webhooks --allow-external
+```
+
+### Interactive Testing
+
+`hook0 example` is a standalone demo that runs entirely in your terminal. It starts a built-in echo server, connects to the relay, and opens a TUI where you compose events, send them, and see the full delivery round-trip (request headers, payload, response status).
+
+```bash
+# Self-contained demo with built-in echo server
+hook0 example
+
+# Send example webhooks to your own local server instead of the echo server
+hook0 example --target http://localhost:3000/webhooks
+```
+
+### Sending Events
+
+```bash
+# Send an event with inline JSON payload
+hook0 event send user.account.created \
+  --label tenant=acme \
+  --payload '{"user_id": "usr_123", "email": "user@example.com"}'
+
+# Send from a file (useful for large payloads)
+hook0 event send order.completed \
+  --label tenant=acme \
+  --payload-file ./payloads/order-completed.json
+
+# Send with a custom event ID (idempotency)
+hook0 event send invoice.paid \
+  --label tenant=acme \
+  --payload '{"invoice_id": "inv_456"}' \
+  --event-id 550e8400-e29b-41d4-a716-446655440000
+
+# Send a plain text payload
+hook0 event send user.account.updated \
+  --label tenant=acme \
+  --payload 'user 123 updated their profile' \
+  --content-type text/plain
+```
+
+### Listing and Inspecting Events
+
+```bash
+# List the 100 most recent events
+hook0 event list
+
+# Get full details of a specific event
+hook0 event get 550e8400-e29b-41d4-a716-446655440000
+
+# Show delivery attempts for a specific event
+hook0 event get 550e8400-e29b-41d4-a716-446655440000 --attempts
+
+# Export as JSON for scripting
+hook0 event list --output json | jq '.[].event_id'
+```
+
+### Managing Event Types
+
+```bash
+# Create an event type using the dotted convention
+hook0 event-type create user.account.created
+
+# Create using individual components
+hook0 event-type create --service order --resource payment --verb completed
+
+# List all event types
+hook0 event-type list
+
+# Filter by service
+hook0 event-type list --service user
+
+# Delete an event type (with confirmation skip)
+hook0 event-type delete user.account.deleted --yes
+```
+
+### Managing Subscriptions
+
+```bash
+# Create a basic subscription
+hook0 subscription create \
+  --url https://api.example.com/webhooks \
+  --events user.account.created,order.completed \
+  --label tenant=acme
+
+# Create with custom headers and description
+hook0 subscription create \
+  --url https://api.example.com/webhooks \
+  --events order.completed \
+  --label tenant=acme \
+  --header Authorization="Bearer sk_live_xxx" \
+  --header X-Custom="my-value" \
+  --description "Production order webhook for Acme Corp"
+
+# Create a disabled subscription (activate later)
+hook0 subscription create \
+  --url https://staging.example.com/webhooks \
+  --events user.account.created \
+  --label tenant=acme \
+  --disabled
+
+# List only enabled subscriptions
+hook0 subscription list --enabled
+
+# Update a subscription's endpoint and event types
+hook0 subscription update <SUBSCRIPTION_ID> \
+  --url https://new-endpoint.example.com/webhooks \
+  --events user.account.created,user.account.updated
+
+# Enable / disable
+hook0 subscription enable <SUBSCRIPTION_ID>
+hook0 subscription disable <SUBSCRIPTION_ID>
+
+# Delete with confirmation skip
+hook0 subscription delete <SUBSCRIPTION_ID> --yes
+```
+
+### Replaying Failed Events
+
+```bash
+# Replay a single event by ID
+hook0 replay 550e8400-e29b-41d4-a716-446655440000
+
+# Preview what would be replayed (dry run)
+hook0 replay --all --status failed --since 24h --dry-run
+
+# Replay all failed events from the last 24 hours
+hook0 replay --all --status failed --since 24h --confirm
+
+# Replay failed events of a specific type with a batch limit
+hook0 replay --all \
+  --status failed \
+  --event-type order.completed \
+  --since 7d \
+  --limit 50 \
+  --confirm
+
+# Replay events in a specific time window
+hook0 replay --all --since 48h --until 24h --confirm
+```
+
+### Managing Applications
+
+```bash
+# List all applications in your organization (requires a service token, not an application secret)
+hook0 application list
+
+# List applications in a specific organization (requires a service token)
+hook0 application list --organization-id <ORG_ID>
+
+# Show current application details
+hook0 application current
+
+# Get details of a specific application
+hook0 application get <APPLICATION_ID>
+
+# Switch active application for the current profile
+hook0 application switch <APPLICATION_ID>
+```
+
+### Multi-Profile Configuration
+
+```bash
+# Interactive setup wizard
+hook0 init
+
+# Non-interactive setup with a pre-configured event type
+hook0 init --non-interactive --event-type user.account.created
+
+# Login to a different environment
+hook0 login --api-url https://staging.hook0.com/api/v1 --profile-name staging
+
+# List all configured profiles
+hook0 config list
+
+# Show current configuration
+hook0 config show
+
+# Switch default profile
+hook0 config set-default staging
+
+# Run a single command against a different profile
+hook0 event list --profile staging
+
+# Remove a profile
+hook0 config remove old-profile --yes
+
+# Show config file location
+hook0 config path
+
+# Logout from current profile
+hook0 logout
+
+# Logout from all profiles
+hook0 logout --all
+```
+
+### Scripting and Automation
+
+```bash
+# Use environment variables instead of profiles (CI/CD friendly)
+export HOOK0_API_URL=https://app.hook0.com/api/v1
+export HOOK0_SECRET=your-secret
+export HOOK0_APPLICATION_ID=your-app-id
+hook0 event send deploy.completed --label env=production --payload '{"version": "1.2.3"}'
+
+# Override per-command without env vars
+hook0 event list \
+  --api-url https://staging.hook0.com/api/v1 \
+  --secret staging-secret \
+  --application-id staging-app-id \
+  --output json
+
+# Pipe JSON output into jq
+hook0 subscription list --output json | jq '.[] | select(.enabled == true) | .url'
+
+# Count events
+hook0 event list --output json | jq length
+
+# Increase verbosity for debugging (-v info, -vv debug, -vvv trace)
+hook0 event send user.test --label tenant=debug --payload '{}' -vv
+```
+
+---
+
+## Shell Completion
+
+Generate shell completion scripts.
+
+```bash
+# Bash
+eval "$(hook0 completion bash)"
+# or save: hook0 completion bash > ~/.local/share/bash-completion/completions/hook0
+
+# Zsh
+eval "$(hook0 completion zsh)"
+# or save: hook0 completion zsh > ~/.zfunc/_hook0
+
+# Fish
+hook0 completion fish > ~/.config/fish/completions/hook0.fish
+
+# PowerShell
+hook0 completion powershell | Out-String | Invoke-Expression
+
+# Elvish
+eval (hook0 completion elvish | slurp)
+```
+
+---
+
+## Environment Variables
+
+| Variable | Description | Used by |
+|----------|-------------|---------|
+| `HOOK0_PROFILE` | Default profile name | All commands |
+| `HOOK0_API_URL` | API base URL | All authenticated commands |
+| `HOOK0_SECRET` | Application secret | All authenticated commands |
+| `HOOK0_APPLICATION_ID` | Application ID | All authenticated commands |
+| `HOOK0_RELAY_URL` | WebSocket relay server URL | `listen` |
+
+---
+
+## Global Options
+
+These options apply to all commands.
+
+| Option | Env Variable | Description | Default |
+|--------|-------------|-------------|---------|
+| `--profile <NAME>` | `HOOK0_PROFILE` | Profile to use | Default profile |
+| `--output <FORMAT>` | — | Output format: `json`, `table`, `compact` | `table` |
+| `--api-url <URL>` | `HOOK0_API_URL` | Override API URL | From profile |
+| `--secret <SECRET>` | `HOOK0_SECRET` | Override application secret | From keyring |
+| `--application-id <UUID>` | `HOOK0_APPLICATION_ID` | Override application ID | From profile |
+| `--verbose` | — | Verbosity level (`-v`, `-vv`, `-vvv`) | `warn` |
+
+---
+
+## Command Reference
+
+{/* Auto-generated from CLI source. Run `npm run generate:cli` to regenerate. */}
+
+import GeneratedRef from './_cli-generated.md';
+
+<GeneratedRef />
