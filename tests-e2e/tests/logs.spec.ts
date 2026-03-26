@@ -156,9 +156,13 @@ test.describe("Logs", () => {
       `/organizations/${env.organizationId}/applications/${env.applicationId}/logs`
     );
     await expect(page.locator('[data-test="logs-card"]')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('[data-test="logs-table"] [row-id]').first()).toBeVisible({
-      timeout: 15000,
-    });
+    // Poll for log rows with page refresh — output-worker may take 30s+ to process in CI
+    await expect(async () => {
+      await page.reload();
+      await expect(page.locator('[data-test="logs-table"] [row-id]').first()).toBeVisible({
+        timeout: 5000,
+      });
+    }).toPass({ timeout: 60000, intervals: [5000, 5000, 10000, 10000] });
 
     // Verify the event ID is displayed in the log row (Hook0Uuid renders a <span>, not a link)
     const eventIdCell = page.locator('[data-test="logs-table"] [data-test="log-event-link"]').first();
