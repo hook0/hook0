@@ -1,5 +1,3 @@
-use clap::CommandFactory;
-
 fn main() {
     let markdown = clap_markdown::help_markdown::<hook0_cli::Cli>();
 
@@ -50,5 +48,6 @@ fn main() {
         .collect::<Vec<_>>()
         .join("\n");
 
-    print!("{}", output.trim_end());
+    // Disable markdownlint heading increment rule (clap-markdown emits h6 for options)
+    print!("<!-- markdownlint-disable MD001 -->\n\n{}", output.trim_end());
 }

@@ -1,3 +1,5 @@
+<!-- markdownlint-disable MD001 -->
+
 ## `hook0 init`
 
 Set up your first profile
