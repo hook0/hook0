@@ -37,20 +37,25 @@ hook0 --version
 ## Quick Start
 
 ```bash
-# Set up your first profile (interactive wizard)
+# 1. Set up your first profile (prompts for API URL, application ID, and secret)
 hook0 init
 
-# Forward webhooks to localhost:3000
+# 2. Start receiving webhooks on your machine
+#    Connects to the Hook0 relay (play.hook0.com), gets a public URL,
+#    and forwards incoming webhooks to your local server on port 3000.
 hook0 listen 3000
 
-# Send a test event
+# 3. Send a test event through the Hook0 API
+#    Hook0 delivers it to all matching subscriptions — including the
+#    relay URL from step 2, so it shows up in your local terminal.
 hook0 event send user.account.created \
   --label tenant=acme \
   --payload '{"user_id": "usr_123"}'
-
-# Launch interactive example with built-in echo server
-hook0 example
 ```
+
+:::tip Try it without any setup
+`hook0 example` launches a self-contained demo: it opens a TUI where you pick an event type, edit the JSON payload, and send it. A built-in echo server receives the webhook and displays the full request (headers, body, status) — all in one terminal, no configuration needed.
+:::
 
 ---
 
@@ -58,30 +63,43 @@ hook0 example
 
 ### Local Development
 
+`hook0 listen` creates a secure WebSocket tunnel through the Hook0 relay server (`play.hook0.com` by default). The relay gives you a public URL that you use as a subscription target in Hook0. When events are delivered to that URL, the relay forwards them through the tunnel to your local machine.
+
 ```bash
-# Forward to a specific endpoint path
+# Forward webhooks to port 3000 (auto-detects if a server is running)
+hook0 listen 3000
+
+# Your local server handles webhooks on a specific path
 hook0 listen http://localhost:8080/api/webhooks
 
-# Disable the TUI and get plain log output (useful in CI or scripts)
-hook0 listen 3000 --no-tui
-
-# Reuse a specific tunnel token (stable webhook URL across restarts)
+# Keep the same public URL across restarts (token determines the URL)
 hook0 listen 3000 --token my-stable-token
 
-# Forward to an external staging server (requires explicit opt-in)
-hook0 listen https://staging.example.com/webhooks --allow-external
+# Plain log output instead of the TUI dashboard (useful in CI or scripts)
+hook0 listen 3000 --no-tui
+```
 
-# Self-hosted relay server with self-signed certificate
+**Self-hosted Hook0:** if you run your own Hook0 instance with its own relay server, point `--relay-url` to it. Use `--insecure` if the relay uses a self-signed TLS certificate.
+
+```bash
 hook0 listen 3000 --relay-url wss://relay.internal.example.com/ws --insecure
+```
+
+**Forwarding to a remote target:** by default, `listen` only forwards to `localhost` to prevent SSRF. To forward to an external URL (e.g., a shared staging server), opt in explicitly:
+
+```bash
+hook0 listen https://staging.example.com/webhooks --allow-external
 ```
 
 ### Interactive Testing
 
+`hook0 example` is a standalone demo that runs entirely in your terminal. It starts a built-in echo server, connects to the relay, and opens a TUI where you compose events, send them, and see the full delivery round-trip (request headers, payload, response status).
+
 ```bash
-# Launch the TUI with built-in echo server — no setup needed
+# Self-contained demo with built-in echo server
 hook0 example
 
-# Forward example webhooks to your local server instead
+# Send example webhooks to your own local server instead of the echo server
 hook0 example --target http://localhost:3000/webhooks
 ```
 
