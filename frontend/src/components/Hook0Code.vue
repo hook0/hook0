@@ -2,7 +2,7 @@
 import { Codemirror } from 'vue-codemirror';
 import { json } from '@codemirror/lang-json';
 import { EditorView } from 'codemirror';
-import type { Extension } from '@codemirror/state';
+import { EditorState, type Extension } from '@codemirror/state';
 import { StreamLanguage } from '@codemirror/language';
 import { computed, ref, shallowRef, watch } from 'vue';
 import { Copy } from 'lucide-vue-next';
@@ -77,6 +77,9 @@ watch(() => props.language, loadLanguage, { immediate: true });
 
 const extensions = computed(() => {
   const base: Extension[] = [lightTheme, EditorView.lineWrapping];
+  if (!props.editable) {
+    base.push(EditorState.readOnly.of(true), EditorView.editable.of(false));
+  }
   return langExtension.value ? [langExtension.value, ...base] : base;
 });
 
@@ -103,7 +106,6 @@ function copyToClipboard() {
       :autofocus="false"
       :indent-with-tab="true"
       :tab-size="2"
-      :disabled="!editable"
       :extensions="extensions"
       @ready="handleReady"
     />

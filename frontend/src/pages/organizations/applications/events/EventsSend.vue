@@ -32,7 +32,6 @@ import Hook0KeyValue from '@/components/Hook0KeyValue.vue';
 import Hook0HelpText from '@/components/Hook0HelpText.vue';
 import Hook0Form from '@/components/Hook0Form.vue';
 import Hook0Code from '@/components/Hook0Code.vue';
-import Hook0CopyField from '@/components/Hook0CopyField.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import { Codemirror } from 'vue-codemirror';
@@ -237,7 +236,10 @@ const curlSnippet = computed(() => {
     },
     null,
     2
-  );
+  )
+    .split('\n')
+    .map((l, i) => (i === 0 ? l : `  ${l}`))
+    .join('\n');
   return [
     `curl -X POST '${apiBaseUrl.value}/event' \\`,
     `  -H 'Content-Type: application/json' \\`,
@@ -375,7 +377,9 @@ function handleCancel() {
 <template>
   <div data-test="send-event-card">
     <Hook0Card v-if="activeTab === 'easy' && (eventTypesLoading || !rawEventTypes)">
-      <!-- Tabs inside card -->
+      <Hook0CardHeader>
+        <template #header>{{ t('events.sendTestEvent') }}</template>
+      </Hook0CardHeader>
       <div class="send-event__tabs" role="tablist" :aria-label="t('events.sendTestEvent')">
         <button
           v-for="(tab, index) in tabs"
@@ -396,10 +400,6 @@ function handleCancel() {
           {{ t(`events.tabs.${tab}`) }}
         </button>
       </div>
-
-      <Hook0CardHeader>
-        <template #header>{{ t('events.sendTestEvent') }}</template>
-      </Hook0CardHeader>
       <Hook0CardContent>
         <Hook0SkeletonGroup :count="3" />
       </Hook0CardContent>
@@ -414,7 +414,12 @@ function handleCancel() {
 
     <!-- Easy way tab panel: Form -->
     <Hook0Card v-else-if="activeTab === 'easy'" role="tabpanel" :aria-label="t('events.tabs.easy')">
-      <!-- Tabs inside card -->
+      <Hook0CardHeader>
+        <template #header>{{ t('events.sendTestEvent') }}</template>
+        <template #subtitle>
+          {{ t('events.sendTestEventSubtitle') }}
+        </template>
+      </Hook0CardHeader>
       <div class="send-event__tabs" role="tablist" :aria-label="t('events.sendTestEvent')">
         <button
           v-for="(tab, index) in tabs"
@@ -435,13 +440,6 @@ function handleCancel() {
           {{ t(`events.tabs.${tab}`) }}
         </button>
       </div>
-
-      <Hook0CardHeader>
-        <template #header>{{ t('events.sendTestEvent') }}</template>
-        <template #subtitle>
-          {{ t('events.sendTestEventSubtitle') }}
-        </template>
-      </Hook0CardHeader>
 
       <Hook0Form data-test="send-event-form" @submit="sendTestEvent">
         <Hook0CardContent>
@@ -535,7 +533,14 @@ function handleCancel() {
       role="tabpanel"
       :aria-label="t(`events.tabs.${activeTab}`)"
     >
-      <!-- Tabs inside card -->
+      <Hook0CardHeader>
+        <template #header>{{ t(`events.tabs.${activeTab}`) }}</template>
+        <template #actions>
+          <Hook0Button variant="ghost" @click="copySnippet">
+            <Copy :size="14" aria-hidden="true" />
+          </Hook0Button>
+        </template>
+      </Hook0CardHeader>
       <div class="send-event__tabs" role="tablist" :aria-label="t('events.sendTestEvent')">
         <button
           v-for="(tab, index) in tabs"
@@ -557,54 +562,25 @@ function handleCancel() {
         </button>
       </div>
 
-      <Hook0CardHeader>
-        <template #header>{{ t(`events.tabs.${activeTab}`) }}</template>
-        <template #actions>
-          <Hook0Button variant="ghost" @click="copySnippet">
-            <Copy :size="14" aria-hidden="true" />
-          </Hook0Button>
-        </template>
-      </Hook0CardHeader>
-
       <Hook0CardContent>
-        <!-- Secret selector -->
-        <div class="send-event__secret-row">
-          <template v-if="tutorialMode">
-            <span class="send-event__secret-note">
-              {{ t('events.tutorialTokenNote') }}
-            </span>
-          </template>
-          <template v-else>
-            <label class="send-event__secret-label">
-              {{ t('events.selectSecret') }}
-            </label>
-            <div v-if="secrets && secrets.length > 0" class="send-event__secret-controls">
-              <Hook0Select v-model="selectedSecretToken" :options="secretOptions" />
-              <Hook0CopyField
-                :value="effectiveSecretToken"
-                :maskable="true"
-                :copy-message="t('common.idCopied')"
-              />
-            </div>
-            <div v-else class="send-event__no-secrets">
-              <span>{{ t('events.noSecretsYet') }}</span>
-              <router-link
-                :to="{
-                  name: routes.ApplicationSecretsNew,
-                  params: route.params,
-                }"
-                class="send-event__create-secret-link"
-              >
-                {{ t('events.createSecret') }}
-              </router-link>
-            </div>
-          </template>
-        </div>
-
-        <!-- Snippet -->
-        <Hook0Code v-if="activeTab === 'curl'" :code="curlSnippet" language="bash" :editable="false" />
-        <Hook0Code v-else-if="activeTab === 'javascript'" :code="jsSnippet" language="javascript" :editable="false" />
-        <Hook0Code v-else-if="activeTab === 'rust'" :code="rustSnippet" language="rust" :editable="false" />
+        <Hook0Code
+          v-if="activeTab === 'curl'"
+          :code="curlSnippet"
+          language="bash"
+          :editable="false"
+        />
+        <Hook0Code
+          v-else-if="activeTab === 'javascript'"
+          :code="jsSnippet"
+          language="javascript"
+          :editable="false"
+        />
+        <Hook0Code
+          v-else-if="activeTab === 'rust'"
+          :code="rustSnippet"
+          language="rust"
+          :editable="false"
+        />
       </Hook0CardContent>
     </Hook0Card>
   </div>
@@ -647,48 +623,4 @@ function handleCancel() {
   border-bottom-color: var(--color-primary);
 }
 
-.send-event__secret-row {
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.send-event__secret-label {
-  display: block;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  margin-bottom: 0.375rem;
-}
-
-.send-event__secret-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.send-event__secret-note {
-  font-size: 0.8125rem;
-  color: var(--color-text-secondary);
-  font-style: italic;
-}
-
-.send-event__no-secrets {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  font-size: 0.8125rem;
-  color: var(--color-text-secondary);
-}
-
-.send-event__create-secret-link {
-  color: var(--color-primary);
-  font-weight: 500;
-  text-decoration: none;
-  transition: color 0.15s ease;
-}
-
-.send-event__create-secret-link:hover {
-  color: var(--color-primary-hover);
-}
 </style>
