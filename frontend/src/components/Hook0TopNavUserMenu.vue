@@ -96,8 +96,6 @@ defineExpose({ closeDropdowns, focusTrigger, hasOpenDropdown });
           {{ t('nav.settings') }}
         </router-link>
 
-        <div class="hook0-topnav__dropdown-separator" />
-
         <a
           :href="DOCS_URL"
           target="_blank"
