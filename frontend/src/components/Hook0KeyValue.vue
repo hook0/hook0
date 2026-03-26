@@ -149,6 +149,7 @@ function add() {
         :data-test="`kv-key-input-${index}`"
         @input="emitUpdate()"
       />
+      <span class="kv-separator" aria-hidden="true">=</span>
       <Hook0Input
         v-model="item.value"
         type="text"
@@ -197,6 +198,15 @@ function add() {
 
 .col-span-1 {
   flex-shrink: 0;
+}
+
+.kv-separator {
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  user-select: none;
 }
 
 /* Make buttons match input height */

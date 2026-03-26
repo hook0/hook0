@@ -137,11 +137,11 @@ const createdAt = ref('');
 const isEnabled = ref(true);
 const dedicatedWorkers = ref<string[]>([]);
 const eventTypes = ref<SelectableEventType[]>([]);
-const labels = ref<Hook0KeyValueKeyValuePair[]>([]);
+const labels = ref<Hook0KeyValueKeyValuePair[]>([{ key: 'user_id', value: '1' }]);
 const metadata = ref<Hook0KeyValueKeyValuePair[]>([]);
 const headersKv = ref<Hook0KeyValueKeyValuePair[]>([]);
 const headersMap = ref<Record<string, string>>({});
-const labelsMap = ref<Record<string, string>>({});
+const labelsMap = ref<Record<string, string>>({ user_id: '1' });
 const metadataMap = ref<Record<string, string>>({});
 
 const httpMethods = 'GET,PATCH,POST,PUT,DELETE,OPTIONS,HEAD'.split(',').map(toOption);
