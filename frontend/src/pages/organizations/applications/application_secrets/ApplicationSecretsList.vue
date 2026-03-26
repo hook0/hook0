@@ -3,7 +3,7 @@ import { computed, h, markRaw, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import type { ColumnDef } from '@tanstack/vue-table';
-import { ArrowRight, KeyRound, Trash2 } from 'lucide-vue-next';
+import { KeyRound, Trash2 } from 'lucide-vue-next';
 import { DOCS_API_KEYS_URL, API_DOCS_API_KEYS_URL } from '@/constants/externalLinks';
 
 import { useSecretList, useCreateSecret, useRemoveSecret } from './useSecretQueries';
@@ -162,20 +162,17 @@ const columns: ColumnDef<ApplicationSecret, unknown>[] = [
             <template #header>{{ t('apiKeys.title') }}</template>
             <template #subtitle>
               {{ t('apiKeys.subtitle') }}
-            </template>
-            <template #actions>
-              <Hook0Button
-                variant="link"
+              <router-link
+                class="secrets-list__service-tokens-link"
                 :to="{
                   name: routes.ServicesTokenList,
                   params: { organization_id: route.params.organization_id },
                 }"
               >
                 {{ t('apiKeys.lookingForServiceTokens') }}
-                <template #right>
-                  <ArrowRight :size="14" aria-hidden="true" />
-                </template>
-              </Hook0Button>
+              </router-link>
+            </template>
+            <template #actions>
               <Hook0DocButtons :doc-url="DOCS_API_KEYS_URL" :api-url="API_DOCS_API_KEYS_URL" />
             </template>
           </Hook0CardHeader>
@@ -266,3 +263,22 @@ const columns: ColumnDef<ApplicationSecret, unknown>[] = [
     </Hook0Dialog>
   </Hook0PageLayout>
 </template>
+
+<style scoped>
+.secrets-list__service-tokens-link {
+  display: inline;
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.secrets-list__service-tokens-link:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+.secrets-list__service-tokens-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+</style>
