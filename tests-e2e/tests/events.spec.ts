@@ -282,9 +282,9 @@ test.describe("Events", () => {
     const detailPage = page.locator('[data-test="event-detail-page"]');
     await expect(detailPage).toContainText('application/json', { timeout: 30000 });
 
-    // Verify labels section displays the label we sent
-    await expect(detailPage).toContainText("all", { timeout: 15000 });
-    await expect(detailPage).toContainText("yes", { timeout: 15000 });
+    // Verify labels section displays the label we sent (default: user_id=1)
+    await expect(detailPage).toContainText("user_id", { timeout: 15000 });
+    await expect(detailPage).toContainText("1", { timeout: 15000 });
 
     // Verify payload content is displayed (we sent the default '{"test": true}')
     await expect(detailPage).toContainText("test", { timeout: 15000 });
