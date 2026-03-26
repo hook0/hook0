@@ -57,7 +57,7 @@ const { applicationId } = useRouteIds();
 const authStore = useAuthStore();
 const { copy: clipboardCopy } = useClipboardCopy();
 
-// Tabs — driven by route
+// Tabs — driven by URL hash (no remount since App.vue uses route.path as key)
 type TabId = 'easy' | 'curl' | 'javascript' | 'rust';
 const tabs: TabId[] = ['easy', 'curl', 'javascript', 'rust'];
 const tabRefs = ref<HTMLElement[]>([]);
@@ -78,7 +78,7 @@ function setTabRef(el: unknown, index: number) {
 
 function activateTab(tab: TabId, index: number) {
   const hash = tab === 'easy' ? '' : `#${tab === 'javascript' ? 'js' : tab}`;
-  void router.push({ ...route, hash });
+  void router.replace({ ...route, hash });
   void nextTick(() => {
     tabRefs.value[index]?.focus();
   });
