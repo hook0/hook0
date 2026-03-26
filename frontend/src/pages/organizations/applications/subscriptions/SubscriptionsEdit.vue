@@ -183,9 +183,12 @@ watch(
       return { ...eventType, selected: false };
     }
 
+    // In tutorial mode, pre-select all event types (the one just created in the previous step)
     const selectedNames = subscriptionData.value
       ? subscriptionData.value.event_types
-      : ([] as string[]);
+      : props.tutorialMode
+        ? et.map((e) => e.event_type_name)
+        : ([] as string[]);
 
     eventTypes.value = intersectWith<SelectableEventType, SelectableEventType, string>(
       (a) => a.event_type_name,
