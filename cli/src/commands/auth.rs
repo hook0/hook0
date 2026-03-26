@@ -327,8 +327,6 @@ pub async fn logout(cli: &Cli, args: &LogoutArgs) -> Result<()> {
 
 /// Whoami command - display current authentication info
 pub async fn whoami(cli: &Cli, _args: &WhoamiArgs) -> Result<()> {
-    use super::OVERRIDE_PROFILE;
-
     // Resolve profile: override mode or config-based
     let (name, profile, has_secret, is_default) =
         if let Some((name, profile)) = super::resolve_override_profile(cli)? {

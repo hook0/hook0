@@ -18,6 +18,7 @@
     "write-heading-ids": "docusaurus write-heading-ids",
     "generate:config": "node scripts/generate-configuration.js",
     "generate:errors": "node scripts/generate-error-codes.js",
+    "generate:cli": "cd .. && cargo run --package hook0-cli --example gen_reference > documentation/reference/_cli-generated.md",
     "validate": "node scripts/validate-docs.js",
     "test": "npm run validate && npm run build",
     "clean-api": "rimraf docs/api openapi/hook0-api.json"
