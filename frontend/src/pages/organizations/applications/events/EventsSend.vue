@@ -209,56 +209,63 @@ const curlSnippet = computed(() => {
 });
 
 const jsSnippet = computed(() => {
+  const token = snippetToken.value;
   const labelsRecord = kvPairsToRecord(labels.value);
-  const payloadStr = payload.value || '{}';
-  return `fetch('${apiBaseUrl.value}/event', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer ${snippetToken.value}',
-  },
-  body: JSON.stringify(${JSON.stringify(
-    {
-      application_id: applicationId.value,
-      event_id: crypto.randomUUID(),
-      event_type: selectedEventType.value || 'your.event.type',
-      labels: labelsRecord,
-      occurred_at: new Date().toISOString(),
-      payload: payloadStr,
-      payload_content_type: 'application/json',
-    },
-    null,
-    4
-  )}),
-});`;
+  const labelsStr = JSON.stringify(labelsRecord, null, 4).replace(/\n/g, '\n    ');
+  return `import { Hook0Client, Event } from 'hook0-client';
+
+const hook0 = new Hook0Client(
+    '${apiBaseUrl.value}',
+    '${applicationId.value}',
+    '${token}'
+);
+
+const event = new Event(
+    '${values.eventType || 'user.account.created'}',
+    JSON.stringify(${payload.value || '{}'}),
+    'application/json',
+    ${labelsStr}
+);
+
+const eventId = await hook0.sendEvent(event);
+console.log('Event sent:', eventId);`;
 });
 
 const rustSnippet = computed(() => {
+  const token = snippetToken.value;
   const labelsRecord = kvPairsToRecord(labels.value);
-  const payloadStr = payload.value || '{}';
-  const bodyJson = JSON.stringify(
-    {
-      application_id: applicationId.value,
-      event_id: crypto.randomUUID(),
-      event_type: selectedEventType.value || 'your.event.type',
-      labels: labelsRecord,
-      occurred_at: new Date().toISOString(),
-      payload: payloadStr,
-      payload_content_type: 'application/json',
-    },
-    null,
-    4
-  );
-  return `use reqwest::header::{AUTHORIZATION, CONTENT_TYPE};
+  const labelsVec = Object.entries(labelsRecord)
+    .map(([k, v]) => `        ("${k}".to_string(), "${v}".to_string()),`)
+    .join('\n');
+  return `use hook0_client::{Hook0Client, Event};
+use reqwest::Url;
+use uuid::Uuid;
+use std::borrow::Cow;
 
-let client = reqwest::Client::new();
-let res = client
-    .post("${apiBaseUrl.value}/event")
-    .header(CONTENT_TYPE, "application/json")
-    .header(AUTHORIZATION, "Bearer ${snippetToken.value}")
-    .body(r#"${bodyJson}"#)
-    .send()
-    .await?;`;
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = Hook0Client::new(
+        Url::parse("${apiBaseUrl.value}")?,
+        Uuid::parse_str("${applicationId.value}")?,
+        "${token}",
+    )?;
+
+    let event = Event {
+        event_id: &None,
+        event_type: "${values.eventType || 'user.account.created'}",
+        payload: Cow::Borrowed(r#"${payload.value || '{}'}"#),
+        payload_content_type: "application/json",
+        metadata: None,
+        occurred_at: None,
+        labels: vec![
+${labelsVec}
+        ],
+    };
+
+    let event_id = client.send_event(&event).await?;
+    println!("Event sent: {event_id}");
+    Ok(())
+}`;
 });
 
 function copySnippet() {

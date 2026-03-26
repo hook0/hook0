@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Codemirror } from 'vue-codemirror';
 import { json } from '@codemirror/lang-json';
-import { oneDark } from '@codemirror/theme-one-dark';
 import { EditorView } from 'codemirror';
 import { computed, ref } from 'vue';
 import { Copy } from 'lucide-vue-next';
@@ -25,7 +24,25 @@ const props = withDefaults(defineProps<Props>(), {
 });
 const code = computed(() => props.code);
 
-const extensions = [json(), oneDark, EditorView.lineWrapping];
+const lightTheme = EditorView.theme({
+  '&': {
+    backgroundColor: 'var(--color-bg-secondary)',
+    color: 'var(--color-text-primary)',
+  },
+  '.cm-gutters': {
+    backgroundColor: 'var(--color-bg-tertiary)',
+    color: 'var(--color-text-tertiary)',
+    borderRight: '1px solid var(--color-border)',
+  },
+  '.cm-activeLine': {
+    backgroundColor: 'var(--color-bg-tertiary)',
+  },
+  '.cm-activeLineGutter': {
+    backgroundColor: 'var(--color-bg-tertiary)',
+  },
+});
+
+const extensions = [json(), lightTheme, EditorView.lineWrapping];
 
 const view = ref<EditorView | undefined>(undefined);
 
@@ -92,8 +109,8 @@ function copyToClipboard() {
   height: 2rem;
   border-radius: var(--radius-sm);
   border: none;
-  background-color: color-mix(in srgb, var(--color-on-dark) 10%, transparent);
-  color: color-mix(in srgb, var(--color-on-dark) 60%, transparent);
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition:
     background-color 0.15s ease,
@@ -101,7 +118,7 @@ function copyToClipboard() {
 }
 
 .hook0-code-copy:hover {
-  background-color: color-mix(in srgb, var(--color-on-dark) 20%, transparent);
-  color: var(--color-on-dark);
+  background-color: var(--color-bg-elevated);
+  color: var(--color-text-primary);
 }
 </style>

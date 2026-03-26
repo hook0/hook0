@@ -393,8 +393,8 @@
     "tabs": {
       "easy": "Easy way",
       "curl": "cURL",
-      "javascript": "JS/TS",
-      "rust": "Rust"
+      "javascript": "JS SDK",
+      "rust": "Rust SDK"
     },
     "selectSecret": "Application Secret",
     "noSecretsYet": "No application secrets yet.",
