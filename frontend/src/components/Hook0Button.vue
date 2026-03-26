@@ -5,6 +5,10 @@ import { ref, computed, onMounted, onUpdated, useSlots, useAttrs } from 'vue';
 import Hook0Spinner from '@/components/Hook0Spinner.vue';
 import Hook0Tooltip from '@/components/Hook0Tooltip.vue';
 
+defineOptions({
+  inheritAttrs: false,
+});
+
 type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'link' | 'icon';
 type ButtonSize = 'xs' | 'sm' | 'md' | 'lg';
 
