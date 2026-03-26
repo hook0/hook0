@@ -52,12 +52,36 @@ hook0 event send user.account.created \
 Here is what happens when you run `listen` then `event send`:
 
 ```
-hook0 event send -----> Hook0 API ------> Relay Server -----> localhost:3000
-                      (app.hook0.com)    (play.hook0.com)      (your server)
-                         delivers         forwards via
-                        to matching       WebSocket tunnel
-                       subscriptions      (hook0 listen)
++--------------------+        +-----------------------+
+| hook0 listen 3000  |        | hook0 event send ...  |
++--------+-----------+        +----------+------------+
+         |                               |
+         | 1. connects via               | 2. sends event
+         |    WebSocket                   |    via HTTP
+         |                               |
+         v                               v
++--------+-----------+        +-----------+-----------+
+| Relay Server       |        | Hook0 API             |
+| play.hook0.com     |<-------+ app.hook0.com/api/v1  |
++--------+-----------+        +-----------------------+
+         |                      3. API delivers to
+         |                         subscription URL
+         |                         (= relay URL)
+         |
+         | 4. relay forwards
+         |    via WebSocket
+         v
++--------+-----------+
+| localhost:3000     |
+| (your server)     |
++--------------------+
 ```
+
+**Step by step:**
+1. `hook0 listen` connects to the relay server and receives a public URL (e.g., `https://play.hook0.com/in/<token>`)
+2. You create a subscription with that URL as the target. Then `hook0 event send` sends an event to the Hook0 API.
+3. The API delivers the event to all matching subscriptions, including the relay URL.
+4. The relay forwards the HTTP request through the WebSocket tunnel to your local machine.
 
 :::tip Try it without any setup
 `hook0 example` launches a self-contained demo: it opens a TUI where you pick an event type, edit the JSON payload, and send it. A built-in echo server receives the webhook and displays the full request (headers, body, status) — all in one terminal, no configuration needed.
