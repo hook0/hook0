@@ -217,8 +217,8 @@ test.describe("Events", () => {
       expect(rowCount).toBeGreaterThanOrEqual(1);
     }).toPass({ timeout: 15000 });
 
-    // Click on the Event ID cell to open side panel (avoid clicking event_type column which is a RouterLink)
-    await rows.first().locator("td").first().click();
+    // Click on a non-link cell to open side panel (Event ID and Event Type are now links, use received_at column instead)
+    await rows.first().locator("td").nth(1).click();
 
     // Verify side panel is visible
     await expect(page.locator('[data-test="side-panel"]')).toBeVisible({ timeout: 10000 });
@@ -247,8 +247,8 @@ test.describe("Events", () => {
       expect(rowCount).toBeGreaterThanOrEqual(1);
     }).toPass({ timeout: 15000 });
 
-    // Click on the Event ID cell to open side panel (avoid clicking event_type column which is a RouterLink)
-    await rows.first().locator("td").first().click();
+    // Click on a non-link cell to open side panel (Event ID and Event Type are now links, use received_at column instead)
+    await rows.first().locator("td").nth(1).click();
     await expect(page.locator('[data-test="side-panel"]')).toBeVisible({ timeout: 10000 });
 
     // Click the "full page" button in the side panel to navigate to event detail
