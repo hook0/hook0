@@ -186,20 +186,11 @@ hook0 event send document.uploaded \
   --content-type application/xml
 ```
 
-### Listing and Filtering Events
+### Listing and Inspecting Events
 
 ```bash
-# List recent events
+# List the 100 most recent events
 hook0 event list
-
-# Filter by status and time range
-hook0 event list --status failed --since 24h
-
-# Filter by event type and label
-hook0 event list --event-type user.account.created --label tenant=acme
-
-# Paginate through results
-hook0 event list --limit 20 --page 3
 
 # Get full details of a specific event
 hook0 event get 550e8400-e29b-41d4-a716-446655440000
@@ -208,7 +199,7 @@ hook0 event get 550e8400-e29b-41d4-a716-446655440000
 hook0 event get 550e8400-e29b-41d4-a716-446655440000 --attempts
 
 # Export as JSON for scripting
-hook0 event list --status failed --output json | jq '.[].event_id'
+hook0 event list --output json | jq '.[].event_id'
 ```
 
 ### Managing Event Types
@@ -255,8 +246,8 @@ hook0 subscription create \
   --label tenant=acme \
   --disabled
 
-# List enabled subscriptions filtered by label
-hook0 subscription list --enabled --label tenant=acme
+# List only enabled subscriptions
+hook0 subscription list --enabled
 
 # Update a subscription's endpoint and event types
 hook0 subscription update <SUBSCRIPTION_ID> \
@@ -298,10 +289,10 @@ hook0 replay --all --since 48h --until 24h --confirm
 ### Managing Applications
 
 ```bash
-# List all applications in your organization
+# List all applications in your organization (requires a service token, not an application secret)
 hook0 application list
 
-# List applications in a specific organization
+# List applications in a specific organization (requires a service token)
 hook0 application list --organization-id <ORG_ID>
 
 # Show current application details
@@ -370,8 +361,8 @@ hook0 event list \
 # Pipe JSON output into jq
 hook0 subscription list --output json | jq '.[] | select(.enabled == true) | .url'
 
-# Count failed events in the last hour
-hook0 event list --status failed --since 1h --output json | jq length
+# Count events
+hook0 event list --output json | jq length
 
 # Increase verbosity for debugging (-v info, -vv debug, -vvv trace)
 hook0 event send user.test --label tenant=debug --payload '{}' -vv
