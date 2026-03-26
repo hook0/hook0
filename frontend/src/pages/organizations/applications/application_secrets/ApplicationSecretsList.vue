@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { h, markRaw, ref } from 'vue';
+import { computed, h, markRaw, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRoute, useRouter } from 'vue-router';
 import type { ColumnDef } from '@tanstack/vue-table';
-import { KeyRound, Trash2 } from 'lucide-vue-next';
+import { ArrowRight, KeyRound, Trash2 } from 'lucide-vue-next';
 import { DOCS_API_KEYS_URL, API_DOCS_API_KEYS_URL } from '@/constants/externalLinks';
 
 import { useSecretList, useCreateSecret, useRemoveSecret } from './useSecretQueries';
@@ -13,6 +14,7 @@ import { useTracking } from '@/composables/useTracking';
 import { usePermissions } from '@/composables/usePermissions';
 import { useEntityDelete } from '@/composables/useEntityDelete';
 import { useRouteIds } from '@/composables/useRouteIds';
+import { routes } from '@/routes';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -35,6 +37,8 @@ import QuickReferenceCard from '@/components/QuickReferenceCard.vue';
 
 const { t } = useI18n();
 const { trackEvent } = useTracking();
+const route = useRoute();
+const router = useRouter();
 
 // Permissions
 const { canCreate, canDelete } = usePermissions();
@@ -45,7 +49,7 @@ const { data: secrets, isLoading, error, refetch } = useSecretList(applicationId
 const createMutation = useCreateSecret();
 const removeMutation = useRemoveSecret();
 
-const showCreateDialog = ref(false);
+const isCreateRoute = computed(() => route.name === routes.ApplicationSecretsNew);
 const newSecretName = ref('');
 
 const {
@@ -61,17 +65,19 @@ const {
   onSuccess: () => trackEvent('app-secret', 'delete'),
 });
 
-function createNew(event: MouseEvent) {
-  event.stopImmediatePropagation();
-  event.preventDefault();
+function openCreateDialog() {
   newSecretName.value = '';
-  showCreateDialog.value = true;
+  void router.push({ name: routes.ApplicationSecretsNew, params: route.params });
+}
+
+function closeCreateDialog() {
+  newSecretName.value = '';
+  void router.push({ name: routes.ApplicationSecretsList, params: route.params });
 }
 
 function confirmCreate() {
   const name = newSecretName.value.trim();
-  showCreateDialog.value = false;
-  newSecretName.value = '';
+  closeCreateDialog();
   if (!name) return;
 
   createMutation.mutate(
@@ -158,6 +164,18 @@ const columns: ColumnDef<ApplicationSecret, unknown>[] = [
               {{ t('apiKeys.subtitle') }}
             </template>
             <template #actions>
+              <Hook0Button
+                variant="link"
+                :to="{
+                  name: routes.ServicesTokenList,
+                  params: { organization_id: route.params.organization_id },
+                }"
+              >
+                {{ t('apiKeys.lookingForServiceTokens') }}
+                <template #right>
+                  <ArrowRight :size="14" aria-hidden="true" />
+                </template>
+              </Hook0Button>
               <Hook0DocButtons :doc-url="DOCS_API_KEYS_URL" :api-url="API_DOCS_API_KEYS_URL" />
             </template>
           </Hook0CardHeader>
@@ -182,7 +200,7 @@ const columns: ColumnDef<ApplicationSecret, unknown>[] = [
                   variant="primary"
                   type="button"
                   data-test="api-keys-create-button"
-                  @click="createNew"
+                  @click="openCreateDialog"
                 >
                   {{ t('apiKeys.create') }}
                 </Hook0Button>
@@ -195,7 +213,7 @@ const columns: ColumnDef<ApplicationSecret, unknown>[] = [
               variant="primary"
               type="button"
               data-test="api-keys-create-button"
-              @click="createNew"
+              @click="openCreateDialog"
             >
               {{ t('apiKeys.create') }}
             </Hook0Button>
@@ -213,13 +231,10 @@ const columns: ColumnDef<ApplicationSecret, unknown>[] = [
     </template>
 
     <Hook0Dialog
-      :open="showCreateDialog"
+      :open="isCreateRoute"
       variant="default"
       :title="t('apiKeys.create')"
-      @close="
-        showCreateDialog = false;
-        newSecretName = '';
-      "
+      @close="closeCreateDialog()"
       @confirm="confirmCreate()"
     >
       <Hook0Input
