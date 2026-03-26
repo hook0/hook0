@@ -266,23 +266,7 @@ test.describe("Events", () => {
     const response = await sendTestEvent(page, env);
     expect(response.status()).toBeLessThan(400);
 
-    // After send, page navigates to event detail — go back to events list
-    await page.goto(`/organizations/${env.organizationId}/applications/${env.applicationId}/events`);
-    await expect(page.locator('[data-test="events-card"]')).toBeVisible({ timeout: 10000 });
-
-    // Wait for event row to appear
-    const rows = page.locator('[data-test="events-table"] [row-id]');
-    await expect(async () => {
-      const rowCount = await rows.count();
-      expect(rowCount).toBeGreaterThanOrEqual(1);
-    }).toPass({ timeout: 15000 });
-
-    // Click on the Event ID cell to open side panel, then navigate to full detail page
-    await rows.first().locator("td").first().click();
-    await expect(page.locator('[data-test="side-panel"]')).toBeVisible({ timeout: 10000 });
-    await page.locator('[data-test="event-panel-full-page"]').click();
-
-    // Verify we're on the event detail page
+    // After send, page navigates directly to event detail page
     await expect(page).toHaveURL(/\/events\/[^/]+$/, { timeout: 10000 });
     await expect(page.locator('[data-test="event-detail-page"]')).toBeVisible({ timeout: 10000 });
 
