@@ -58,11 +58,26 @@ const { applicationId } = useRouteIds();
 const authStore = useAuthStore();
 const { copy: clipboardCopy } = useClipboardCopy();
 
-// Tabs
+// Tabs — driven by route
 type TabId = 'easy' | 'curl' | 'javascript' | 'rust';
 const tabs: TabId[] = ['easy', 'curl', 'javascript', 'rust'];
-const activeTab = ref<TabId>('easy');
 const tabRefs = ref<HTMLElement[]>([]);
+
+const tabRouteMap: Record<TabId, string> = {
+  easy: routes.EventsSend,
+  curl: routes.EventsSendCurl,
+  javascript: routes.EventsSendJs,
+  rust: routes.EventsSendRust,
+};
+
+const routeTabMap: Record<string, TabId> = {
+  [routes.EventsSend]: 'easy',
+  [routes.EventsSendCurl]: 'curl',
+  [routes.EventsSendJs]: 'javascript',
+  [routes.EventsSendRust]: 'rust',
+};
+
+const activeTab = computed(() => routeTabMap[route.name as string] ?? 'easy');
 
 function setTabRef(el: unknown, index: number) {
   if (el instanceof HTMLElement) {
@@ -71,7 +86,7 @@ function setTabRef(el: unknown, index: number) {
 }
 
 function activateTab(tab: TabId, index: number) {
-  activeTab.value = tab;
+  void router.push({ name: tabRouteMap[tab], params: route.params });
   void nextTick(() => {
     tabRefs.value[index]?.focus();
   });
@@ -190,17 +205,22 @@ const apiBaseUrl = computed(() => {
 function buildLabelsJs(labelsRecord: Record<string, string>): string {
   const entries = Object.entries(labelsRecord);
   if (entries.length === 0) return '{}';
-  const inner = entries.map(([k, v]) => `    ${JSON.stringify(k)}: ${JSON.stringify(v)}`).join(',\n');
-  return `{\n${inner}\n}`;
+  const inner = entries
+    .map(([k, v]) => `    ${JSON.stringify(k)}: ${JSON.stringify(v)}`)
+    .join(',\n');
+  return `{\n${inner}\n  }`;
 }
 
 function buildLabelsRust(labelsRecord: Record<string, string>): string {
   const entries = Object.entries(labelsRecord);
   if (entries.length === 0) return 'vec![]';
   const inner = entries
-    .map(([k, v]) => `    (${JSON.stringify(k)}.to_string(), ${JSON.stringify(v)}.to_string()),`)
+    .map(
+      ([k, v]) =>
+        `            (${JSON.stringify(k)}.to_string(), ${JSON.stringify(v)}.to_string()),`
+    )
     .join('\n');
-  return `vec![\n${inner}\n]`;
+  return `vec![\n${inner}\n        ]`;
 }
 
 const curlSnippet = computed(() => {
@@ -216,7 +236,7 @@ const curlSnippet = computed(() => {
       payload_content_type: 'application/json',
     },
     null,
-    2,
+    2
   );
   return [
     `curl -X POST '${apiBaseUrl.value}/event' \\`,
@@ -582,9 +602,9 @@ function handleCancel() {
         </div>
 
         <!-- Snippet -->
-        <Hook0Code v-if="activeTab === 'curl'" :code="curlSnippet" language="bash" />
-        <Hook0Code v-else-if="activeTab === 'javascript'" :code="jsSnippet" language="javascript" />
-        <Hook0Code v-else-if="activeTab === 'rust'" :code="rustSnippet" language="rust" />
+        <Hook0Code v-if="activeTab === 'curl'" :code="curlSnippet" language="bash" :editable="false" />
+        <Hook0Code v-else-if="activeTab === 'javascript'" :code="jsSnippet" language="javascript" :editable="false" />
+        <Hook0Code v-else-if="activeTab === 'rust'" :code="rustSnippet" language="rust" :editable="false" />
       </Hook0CardContent>
     </Hook0Card>
   </div>

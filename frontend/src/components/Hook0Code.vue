@@ -3,6 +3,7 @@ import { Codemirror } from 'vue-codemirror';
 import { json } from '@codemirror/lang-json';
 import { EditorView } from 'codemirror';
 import type { Extension } from '@codemirror/state';
+import { StreamLanguage } from '@codemirror/language';
 import { computed, ref, shallowRef, watch } from 'vue';
 import { Copy } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
@@ -21,11 +22,13 @@ type Props = {
   code: string;
   inline?: boolean;
   language?: CodeLanguage;
+  editable?: boolean;
 };
 const props = withDefaults(defineProps<Props>(), {
   code: '',
   inline: false,
   language: 'json',
+  editable: true,
 });
 const code = computed(() => props.code);
 
@@ -61,6 +64,10 @@ function loadLanguage(lang: CodeLanguage) {
     void import('@codemirror/lang-rust').then((mod) => {
       langExtension.value = mod.rust();
     });
+  } else if (lang === 'bash') {
+    void import('@codemirror/legacy-modes/mode/shell').then((mod) => {
+      langExtension.value = StreamLanguage.define(mod.shell);
+    });
   } else {
     langExtension.value = null;
   }
@@ -93,9 +100,10 @@ function copyToClipboard() {
     <Codemirror
       v-model="code"
       :style="{ minHeight: '100px' }"
-      :autofocus="true"
+      :autofocus="false"
       :indent-with-tab="true"
       :tab-size="2"
+      :disabled="!editable"
       :extensions="extensions"
       @ready="handleReady"
     />
