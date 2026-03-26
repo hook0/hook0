@@ -91,8 +91,8 @@ interface MailpitSearchResult {
  * Extract verification token from email content.
  */
 function extractVerificationToken(content: string): string | null {
-  const tokenMatch = content.match(/token=([a-zA-Z0-9_-]+)/i);
-  return tokenMatch ? tokenMatch[1] : null;
+  const tokenMatch = content.match(/token=([a-zA-Z0-9_%+/=-]+)/i);
+  return tokenMatch ? decodeURIComponent(tokenMatch[1]) : null;
 }
 
 /**
@@ -104,6 +104,7 @@ function extractVerificationToken(content: string): string | null {
 export async function verifyEmailViaMailpit(
   request: APIRequestContext,
   email: string,
+  organizationId?: string,
   maxWaitMs = 10000
 ): Promise<VerificationResult> {
   // In CI, use database verification directly - it's the most reliable method
@@ -117,7 +118,7 @@ export async function verifyEmailViaMailpit(
 
   while (Date.now() - startTime < maxWaitMs) {
     const messagesResponse = await request
-      .get(`${MAILPIT_URL}/api/v1/messages`, {
+      .get(`${MAILPIT_URL}/api/v1/search?query=to:${encodeURIComponent(email)}`, {
         timeout: 5000,
       })
       .catch(() => null);
@@ -126,9 +127,8 @@ export async function verifyEmailViaMailpit(
       const result: MailpitSearchResult = await messagesResponse.json();
       const messages = result.messages || [];
 
-      const userEmail = messages.find((m) =>
-        m.To?.some((t) => t.Address.toLowerCase() === email.toLowerCase())
-      );
+      // Take the most recent message (first in search results)
+      const userEmail = messages[0];
 
       if (userEmail) {
         const messageResponse = await request
@@ -137,7 +137,7 @@ export async function verifyEmailViaMailpit(
 
         if (messageResponse && messageResponse.ok()) {
           const message: MailpitMessage = await messageResponse.json();
-          const content = message.Text || message.HTML || "";
+          const content = message.HTML || message.Text || "";
 
           // Extract token and call API directly
           const token = extractVerificationToken(content);
@@ -148,12 +148,15 @@ export async function verifyEmailViaMailpit(
               failOnStatusCode: false,
             });
             if (verifyResponse.ok()) {
-              // Still need to get org ID from database
-              return verifyEmailViaDatabase(email);
+              return { organizationId: organizationId ?? null };
             }
-            // If API verification failed, fall through to database
+            console.log(`[Mailpit] verify-email API returned ${verifyResponse.status()}: ${await verifyResponse.text()}`);
+          } else {
+            console.log(`[Mailpit] No token found in email content (length=${content.length})`);
           }
         }
+      } else {
+        console.log(`[Mailpit] No email found for ${email} among ${messages.length} messages`);
       }
     }
 
@@ -209,7 +212,7 @@ export async function getPasswordResetTokenFromMailpit(
 
         if (messageResponse && messageResponse.ok()) {
           const message: MailpitMessage = await messageResponse.json();
-          const content = message.Text || message.HTML || "";
+          const content = message.HTML || message.Text || "";
 
           // Only consider emails that contain reset-password link (not verify-email)
           if (content.includes("reset-password")) {
