@@ -162,15 +162,16 @@ const columns: ColumnDef<ApplicationSecret, unknown>[] = [
             <template #header>{{ t('apiKeys.title') }}</template>
             <template #subtitle>
               {{ t('apiKeys.subtitle') }}
-              <router-link
-                class="secrets-list__service-tokens-link"
+              <br />
+              <Hook0Button
+                variant="link"
                 :to="{
                   name: routes.ServicesTokenList,
                   params: { organization_id: route.params.organization_id },
                 }"
               >
                 {{ t('apiKeys.lookingForServiceTokens') }}
-              </router-link>
+              </Hook0Button>
             </template>
             <template #actions>
               <Hook0DocButtons :doc-url="DOCS_API_KEYS_URL" :api-url="API_DOCS_API_KEYS_URL" />
@@ -265,20 +266,4 @@ const columns: ColumnDef<ApplicationSecret, unknown>[] = [
 </template>
 
 <style scoped>
-.secrets-list__service-tokens-link {
-  display: inline;
-  color: var(--color-primary);
-  text-decoration: none;
-  transition: color 0.15s ease;
-}
-
-.secrets-list__service-tokens-link:hover {
-  color: var(--color-primary-hover);
-  text-decoration: underline;
-}
-
-.secrets-list__service-tokens-link:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
 </style>
