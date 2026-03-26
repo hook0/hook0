@@ -5,7 +5,8 @@ import { useRouteIds } from '@/composables/useRouteIds';
 import { useI18n } from 'vue-i18n';
 import { useForm } from 'vee-validate';
 import { toTypedSchema } from '@/utils/zod-adapter';
-import { FormInput, Copy } from 'lucide-vue-next';
+import { FormInput, Terminal, FileCode2, Copy } from 'lucide-vue-next';
+import RustIcon from './RustIcon.vue';
 import { toast } from 'vue-sonner';
 
 import { sendEventSchema, type SendEventForm } from './sendEvent.schema';
@@ -345,59 +346,9 @@ function handleCancel() {
           @keydown="handleTabKeydown($event, index)"
         >
           <FormInput v-if="tab === 'easy'" :size="16" aria-hidden="true" />
-          <!-- cURL terminal icon -->
-          <svg
-            v-else-if="tab === 'curl'"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <polyline points="4 17 10 11 4 5" />
-            <line x1="12" y1="19" x2="20" y2="19" />
-          </svg>
-          <!-- JS shield icon -->
-          <svg
-            v-else-if="tab === 'javascript'"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              d="M3 3h18v18H3V3zm4.73 15.04c.4.85 1.19 1.55 2.54 1.55 1.5 0 2.53-.79 2.53-2.55v-6.92h-1.7v6.88c0 .86-.35 1.08-.91 1.08-.58 0-.82-.4-1.09-.87l-1.37.83zm5.98-.18c.5.98 1.51 1.73 3.09 1.73 1.6 0 2.8-.83 2.8-2.36 0-1.41-.81-2.04-2.25-2.66l-.42-.18c-.73-.31-1.04-.52-1.04-1.02 0-.41.31-.72.81-.72.48 0 .8.21 1.09.72l1.31-.84c-.55-.98-1.32-1.35-2.4-1.35-1.51 0-2.48.96-2.48 2.23 0 1.38.81 2.03 2.03 2.55l.42.18c.78.34 1.24.55 1.24 1.13 0 .48-.45.83-1.15.83-.83 0-1.31-.43-1.67-1.03l-1.38.81z"
-            />
-          </svg>
-          <!-- Rust icon -->
-          <svg
-            v-else-if="tab === 'rust'"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            aria-hidden="true"
-          >
-            <rect x="2" y="2" width="20" height="20" rx="3" />
-            <text
-              x="12"
-              y="17"
-              text-anchor="middle"
-              font-size="14"
-              font-weight="bold"
-              fill="currentColor"
-              stroke="none"
-            >
-              R
-            </text>
-          </svg>
+          <Terminal v-else-if="tab === 'curl'" :size="16" aria-hidden="true" />
+          <FileCode2 v-else-if="tab === 'javascript'" :size="16" aria-hidden="true" />
+          <RustIcon v-else-if="tab === 'rust'" :size="16" />
           {{ t(`events.tabs.${tab}`) }}
         </button>
       </div>
@@ -434,45 +385,9 @@ function handleCancel() {
           @keydown="handleTabKeydown($event, index)"
         >
           <FormInput v-if="tab === 'easy'" :size="16" aria-hidden="true" />
-          <svg
-            v-else-if="tab === 'curl'"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <polyline points="4 17 10 11 4 5" />
-            <line x1="12" y1="19" x2="20" y2="19" />
-          </svg>
-          <svg
-            v-else-if="tab === 'javascript'"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              d="M3 3h18v18H3V3zm4.73 15.04c.4.85 1.19 1.55 2.54 1.55 1.5 0 2.53-.79 2.53-2.55v-6.92h-1.7v6.88c0 .86-.35 1.08-.91 1.08-.58 0-.82-.4-1.09-.87l-1.37.83zm5.98-.18c.5.98 1.51 1.73 3.09 1.73 1.6 0 2.8-.83 2.8-2.36 0-1.41-.81-2.04-2.25-2.66l-.42-.18c-.73-.31-1.04-.52-1.04-1.02 0-.41.31-.72.81-.72.48 0 .8.21 1.09.72l1.31-.84c-.55-.98-1.32-1.35-2.4-1.35-1.51 0-2.48.96-2.48 2.23 0 1.38.81 2.03 2.03 2.55l.42.18c.78.34 1.24.55 1.24 1.13 0 .48-.45.83-1.15.83-.83 0-1.31-.43-1.67-1.03l-1.38.81z"
-            />
-          </svg>
-          <svg
-            v-else-if="tab === 'rust'"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              d="M23.83 11.29l-.95-.56a.87.87 0 0 1-.4-.63 10 10 0 0 0-.18-.73.87.87 0 0 1 .15-.74l.6-.92a.34.34 0 0 0-.05-.43l-.59-.59a.34.34 0 0 0-.43-.05l-.92.6a.87.87 0 0 1-.74.15 10 10 0 0 0-.73-.18.87.87 0 0 1-.63-.4l-.56-.95a.34.34 0 0 0-.3-.17h-.83a.34.34 0 0 0-.3.17l-.56.95a.87.87 0 0 1-.63.4 10 10 0 0 0-.73.18.87.87 0 0 1-.74-.15l-.92-.6a.34.34 0 0 0-.43.05l-.59.59a.34.34 0 0 0-.05.43l.6.92a.87.87 0 0 1 .15.74 10 10 0 0 0-.18.73.87.87 0 0 1-.4.63l-.95.56a.34.34 0 0 0-.17.3v.83a.34.34 0 0 0 .17.3l.95.56a.87.87 0 0 1 .4.63 10 10 0 0 0 .18.73.87.87 0 0 1-.15.74l-.6.92a.34.34 0 0 0 .05.43l.59.59a.34.34 0 0 0 .43.05l.92-.6a.87.87 0 0 1 .74-.15 10 10 0 0 0 .73.18.87.87 0 0 1 .63.4l.56.95a.34.34 0 0 0 .3.17h.83a.34.34 0 0 0 .3-.17l.56-.95a.87.87 0 0 1 .63-.4 10 10 0 0 0 .73-.18.87.87 0 0 1 .74.15l.92.6a.34.34 0 0 0 .43-.05l.59-.59a.34.34 0 0 0 .05-.43l-.6-.92a.87.87 0 0 1-.15-.74 10 10 0 0 0 .18-.73.87.87 0 0 1 .4-.63l.95-.56a.34.34 0 0 0 .17-.3v-.83a.34.34 0 0 0-.17-.3zM12 15.92A3.92 3.92 0 1 1 15.92 12 3.92 3.92 0 0 1 12 15.92z"
-            />
-          </svg>
+          <Terminal v-else-if="tab === 'curl'" :size="16" aria-hidden="true" />
+          <FileCode2 v-else-if="tab === 'javascript'" :size="16" aria-hidden="true" />
+          <RustIcon v-else-if="tab === 'rust'" :size="16" />
           {{ t(`events.tabs.${tab}`) }}
         </button>
       </div>
@@ -591,45 +506,9 @@ function handleCancel() {
           @keydown="handleTabKeydown($event, index)"
         >
           <FormInput v-if="tab === 'easy'" :size="16" aria-hidden="true" />
-          <svg
-            v-else-if="tab === 'curl'"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <polyline points="4 17 10 11 4 5" />
-            <line x1="12" y1="19" x2="20" y2="19" />
-          </svg>
-          <svg
-            v-else-if="tab === 'javascript'"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              d="M3 3h18v18H3V3zm4.73 15.04c.4.85 1.19 1.55 2.54 1.55 1.5 0 2.53-.79 2.53-2.55v-6.92h-1.7v6.88c0 .86-.35 1.08-.91 1.08-.58 0-.82-.4-1.09-.87l-1.37.83zm5.98-.18c.5.98 1.51 1.73 3.09 1.73 1.6 0 2.8-.83 2.8-2.36 0-1.41-.81-2.04-2.25-2.66l-.42-.18c-.73-.31-1.04-.52-1.04-1.02 0-.41.31-.72.81-.72.48 0 .8.21 1.09.72l1.31-.84c-.55-.98-1.32-1.35-2.4-1.35-1.51 0-2.48.96-2.48 2.23 0 1.38.81 2.03 2.03 2.55l.42.18c.78.34 1.24.55 1.24 1.13 0 .48-.45.83-1.15.83-.83 0-1.31-.43-1.67-1.03l-1.38.81z"
-            />
-          </svg>
-          <svg
-            v-else-if="tab === 'rust'"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              d="M23.83 11.29l-.95-.56a.87.87 0 0 1-.4-.63 10 10 0 0 0-.18-.73.87.87 0 0 1 .15-.74l.6-.92a.34.34 0 0 0-.05-.43l-.59-.59a.34.34 0 0 0-.43-.05l-.92.6a.87.87 0 0 1-.74.15 10 10 0 0 0-.73-.18.87.87 0 0 1-.63-.4l-.56-.95a.34.34 0 0 0-.3-.17h-.83a.34.34 0 0 0-.3.17l-.56.95a.87.87 0 0 1-.63.4 10 10 0 0 0-.73.18.87.87 0 0 1-.74-.15l-.92-.6a.34.34 0 0 0-.43.05l-.59.59a.34.34 0 0 0-.05.43l.6.92a.87.87 0 0 1 .15.74 10 10 0 0 0-.18.73.87.87 0 0 1-.4.63l-.95.56a.34.34 0 0 0-.17.3v.83a.34.34 0 0 0 .17.3l.95.56a.87.87 0 0 1 .4.63 10 10 0 0 0 .18.73.87.87 0 0 1-.15.74l-.6.92a.34.34 0 0 0 .05.43l.59.59a.34.34 0 0 0 .43.05l.92-.6a.87.87 0 0 1 .74-.15 10 10 0 0 0 .73.18.87.87 0 0 1 .63.4l.56.95a.34.34 0 0 0 .3.17h.83a.34.34 0 0 0 .3-.17l.56-.95a.87.87 0 0 1 .63-.4 10 10 0 0 0 .73-.18.87.87 0 0 1 .74.15l.92.6a.34.34 0 0 0 .43-.05l.59-.59a.34.34 0 0 0 .05-.43l-.6-.92a.87.87 0 0 1-.15-.74 10 10 0 0 0 .18-.73.87.87 0 0 1 .4-.63l.95-.56a.34.34 0 0 0 .17-.3v-.83a.34.34 0 0 0-.17-.3zM12 15.92A3.92 3.92 0 1 1 15.92 12 3.92 3.92 0 0 1 12 15.92z"
-            />
-          </svg>
+          <Terminal v-else-if="tab === 'curl'" :size="16" aria-hidden="true" />
+          <FileCode2 v-else-if="tab === 'javascript'" :size="16" aria-hidden="true" />
+          <RustIcon v-else-if="tab === 'rust'" :size="16" />
           {{ t(`events.tabs.${tab}`) }}
         </button>
       </div>
