@@ -283,5 +283,4 @@ mod tests {
         let result = parse_label("invalid");
         assert!(result.is_err());
     }
-
 }
