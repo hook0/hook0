@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { h, markRaw, ref } from 'vue';
-import { RouterLink, useRoute } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { useRouteIds } from '@/composables/useRouteIds';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
@@ -77,13 +77,13 @@ const columns: ColumnDef<Event, unknown>[] = [
     header: t('events.id'),
     cell: (info) =>
       h(
-        RouterLink,
+        Hook0Button,
         {
+          variant: 'link',
           to: {
             name: routes.EventsDetail,
             params: { ...route.params, event_id: info.row.original.event_id },
           },
-          class: 'table-cell-uuid-link',
           onClick: (e: MouseEvent) => e.stopPropagation(),
           'data-test': 'event-id-link',
         },
