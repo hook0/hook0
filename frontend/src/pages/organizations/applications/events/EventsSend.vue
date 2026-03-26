@@ -5,7 +5,7 @@ import { useRouteIds } from '@/composables/useRouteIds';
 import { useI18n } from 'vue-i18n';
 import { useForm } from 'vee-validate';
 import { toTypedSchema } from '@/utils/zod-adapter';
-import { FormInput, Eye, EyeOff, RefreshCw, Copy } from 'lucide-vue-next';
+import { FormInput, Copy } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
 
 import { sendEventSchema, type SendEventForm } from './sendEvent.schema';
@@ -30,6 +30,7 @@ import Hook0KeyValue from '@/components/Hook0KeyValue.vue';
 import Hook0HelpText from '@/components/Hook0HelpText.vue';
 import Hook0Form from '@/components/Hook0Form.vue';
 import Hook0Code from '@/components/Hook0Code.vue';
+import Hook0CopyField from '@/components/Hook0CopyField.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import { Codemirror } from 'vue-codemirror';
@@ -120,7 +121,6 @@ const secretOptions = computed(() =>
 );
 
 const selectedSecretToken = ref<string | null>(null);
-const secretRevealed = ref(false);
 
 const effectiveSecretToken = computed(() => {
   if (selectedSecretToken.value) return selectedSecretToken.value;
@@ -128,18 +128,10 @@ const effectiveSecretToken = computed(() => {
   return '';
 });
 
-const maskedSecretToken = computed(() => {
-  const token = effectiveSecretToken.value;
-  if (!token) return '';
-  if (secretRevealed.value) return token;
-  return token.slice(0, 8) + '...' + token.slice(-4);
-});
-
 // Mutation
 const sendMutation = useSendEvent();
 
 // Form setup
-const eventId = ref(crypto.randomUUID());
 const extensions = [json(), EditorView.lineWrapping];
 
 const { meta, values, setFieldValue } = useForm<SendEventForm>({
@@ -173,10 +165,6 @@ const payload = computed({
   set: (v: string) => void setFieldValue('payload', v),
 });
 
-function regenerateEventId() {
-  eventId.value = crypto.randomUUID();
-}
-
 // Authorization token for snippets
 const snippetToken = computed(() => {
   if (props.tutorialMode) {
@@ -200,7 +188,7 @@ const curlSnippet = computed(() => {
   -d '${JSON.stringify(
     {
       application_id: applicationId.value,
-      event_id: eventId.value,
+      event_id: crypto.randomUUID(),
       event_type: selectedEventType.value || 'your.event.type',
       labels: labelsRecord,
       occurred_at: new Date().toISOString(),
@@ -224,7 +212,7 @@ const jsSnippet = computed(() => {
   body: JSON.stringify(${JSON.stringify(
     {
       application_id: applicationId.value,
-      event_id: eventId.value,
+      event_id: crypto.randomUUID(),
       event_type: selectedEventType.value || 'your.event.type',
       labels: labelsRecord,
       occurred_at: new Date().toISOString(),
@@ -243,7 +231,7 @@ const rustSnippet = computed(() => {
   const bodyJson = JSON.stringify(
     {
       application_id: applicationId.value,
-      event_id: eventId.value,
+      event_id: crypto.randomUUID(),
       event_type: selectedEventType.value || 'your.event.type',
       labels: labelsRecord,
       occurred_at: new Date().toISOString(),
@@ -283,10 +271,12 @@ function sendTestEvent() {
     return;
   }
 
+  const eventId = crypto.randomUUID();
+
   sendMutation.mutate(
     {
       applicationId: applicationId.value,
-      eventId: eventId.value,
+      eventId,
       eventType: values.eventType,
       labels: kvPairsToRecord(labels.value),
       occurredAt: values.occurredAt,
@@ -305,7 +295,7 @@ function sendTestEvent() {
             name: routes.EventsDetail,
             params: {
               ...route.params,
-              event_id: eventId.value,
+              event_id: eventId,
             },
           });
         }
@@ -324,261 +314,350 @@ function handleCancel() {
 
 <template>
   <div data-test="send-event-card">
-    <!-- Tab bar -->
-    <div class="send-event__tabs" role="tablist" :aria-label="t('events.sendTestEvent')">
-      <button
-        v-for="(tab, index) in tabs"
-        :key="tab"
-        :ref="(el) => setTabRef(el, index)"
-        role="tab"
-        :aria-selected="activeTab === tab"
-        :tabindex="activeTab === tab ? 0 : -1"
-        class="send-event__tab"
-        :class="{ 'send-event__tab--active': activeTab === tab }"
-        @click="activateTab(tab, index)"
-        @keydown="handleTabKeydown($event, index)"
-      >
-        <FormInput v-if="tab === 'easy'" :size="16" aria-hidden="true" />
-        <svg
-          v-else-if="tab === 'curl'"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
+    <Hook0Card v-if="activeTab === 'easy' && (eventTypesLoading || !rawEventTypes)">
+      <!-- Tabs inside card -->
+      <div class="send-event__tabs" role="tablist" :aria-label="t('events.sendTestEvent')">
+        <button
+          v-for="(tab, index) in tabs"
+          :key="tab"
+          :ref="(el) => setTabRef(el, index)"
+          role="tab"
+          :aria-selected="activeTab === tab"
+          :tabindex="activeTab === tab ? 0 : -1"
+          class="send-event__tab"
+          :class="{ 'send-event__tab--active': activeTab === tab }"
+          @click="activateTab(tab, index)"
+          @keydown="handleTabKeydown($event, index)"
         >
-          <polyline points="4 17 10 11 4 5" />
-          <line x1="12" y1="19" x2="20" y2="19" />
-        </svg>
-        <svg
-          v-else-if="tab === 'javascript'"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M12 2L2 7l10 5 10-5-10-5z" />
-          <path d="M2 17l10 5 10-5" />
-          <path d="M2 12l10 5 10-5" />
-        </svg>
-        <svg
-          v-else-if="tab === 'rust'"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z" />
-          <path d="M12 8v4" />
-          <path d="M8 12h8" />
-        </svg>
-        {{ t(`events.tabs.${tab}`) }}
-      </button>
-    </div>
+          <FormInput v-if="tab === 'easy'" :size="16" aria-hidden="true" />
+          <!-- cURL terminal icon -->
+          <svg
+            v-else-if="tab === 'curl'"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <polyline points="4 17 10 11 4 5" />
+            <line x1="12" y1="19" x2="20" y2="19" />
+          </svg>
+          <!-- JS shield icon -->
+          <svg
+            v-else-if="tab === 'javascript'"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              d="M3 3h18v18H3V3zm4.73 15.04c.4.85 1.19 1.55 2.54 1.55 1.5 0 2.53-.79 2.53-2.55v-6.92h-1.7v6.88c0 .86-.35 1.08-.91 1.08-.58 0-.82-.4-1.09-.87l-1.37.83zm5.98-.18c.5.98 1.51 1.73 3.09 1.73 1.6 0 2.8-.83 2.8-2.36 0-1.41-.81-2.04-2.25-2.66l-.42-.18c-.73-.31-1.04-.52-1.04-1.02 0-.41.31-.72.81-.72.48 0 .8.21 1.09.72l1.31-.84c-.55-.98-1.32-1.35-2.4-1.35-1.51 0-2.48.96-2.48 2.23 0 1.38.81 2.03 2.03 2.55l.42.18c.78.34 1.24.55 1.24 1.13 0 .48-.45.83-1.15.83-.83 0-1.31-.43-1.67-1.03l-1.38.81z"
+            />
+          </svg>
+          <!-- Rust gear icon -->
+          <svg
+            v-else-if="tab === 'rust'"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              d="M23.83 11.29l-.95-.56a.87.87 0 0 1-.4-.63 10 10 0 0 0-.18-.73.87.87 0 0 1 .15-.74l.6-.92a.34.34 0 0 0-.05-.43l-.59-.59a.34.34 0 0 0-.43-.05l-.92.6a.87.87 0 0 1-.74.15 10 10 0 0 0-.73-.18.87.87 0 0 1-.63-.4l-.56-.95a.34.34 0 0 0-.3-.17h-.83a.34.34 0 0 0-.3.17l-.56.95a.87.87 0 0 1-.63.4 10 10 0 0 0-.73.18.87.87 0 0 1-.74-.15l-.92-.6a.34.34 0 0 0-.43.05l-.59.59a.34.34 0 0 0-.05.43l.6.92a.87.87 0 0 1 .15.74 10 10 0 0 0-.18.73.87.87 0 0 1-.4.63l-.95.56a.34.34 0 0 0-.17.3v.83a.34.34 0 0 0 .17.3l.95.56a.87.87 0 0 1 .4.63 10 10 0 0 0 .18.73.87.87 0 0 1-.15.74l-.6.92a.34.34 0 0 0 .05.43l.59.59a.34.34 0 0 0 .43.05l.92-.6a.87.87 0 0 1 .74-.15 10 10 0 0 0 .73.18.87.87 0 0 1 .63.4l.56.95a.34.34 0 0 0 .3.17h.83a.34.34 0 0 0 .3-.17l.56-.95a.87.87 0 0 1 .63-.4 10 10 0 0 0 .73-.18.87.87 0 0 1 .74.15l.92.6a.34.34 0 0 0 .43-.05l.59-.59a.34.34 0 0 0 .05-.43l-.6-.92a.87.87 0 0 1-.15-.74 10 10 0 0 0 .18-.73.87.87 0 0 1 .4-.63l.95-.56a.34.34 0 0 0 .17-.3v-.83a.34.34 0 0 0-.17-.3zM12 15.92A3.92 3.92 0 1 1 15.92 12 3.92 3.92 0 0 1 12 15.92z"
+            />
+          </svg>
+          {{ t(`events.tabs.${tab}`) }}
+        </button>
+      </div>
 
-    <!-- Easy way tab panel -->
-    <div v-if="activeTab === 'easy'" role="tabpanel" :aria-label="t('events.tabs.easy')">
-      <!-- Loading event types -->
-      <Hook0Card v-if="eventTypesLoading || !rawEventTypes">
-        <Hook0CardHeader>
-          <template #header>{{ t('events.sendTestEvent') }}</template>
-        </Hook0CardHeader>
+      <Hook0CardHeader>
+        <template #header>{{ t('events.sendTestEvent') }}</template>
+      </Hook0CardHeader>
+      <Hook0CardContent>
+        <Hook0SkeletonGroup :count="3" />
+      </Hook0CardContent>
+    </Hook0Card>
+
+    <!-- Error loading event types -->
+    <Hook0ErrorCard
+      v-else-if="activeTab === 'easy' && eventTypesError"
+      :error="eventTypesError"
+      @retry="refetchEventTypes()"
+    />
+
+    <!-- Easy way tab panel: Form -->
+    <Hook0Card v-else-if="activeTab === 'easy'" role="tabpanel" :aria-label="t('events.tabs.easy')">
+      <!-- Tabs inside card -->
+      <div class="send-event__tabs" role="tablist" :aria-label="t('events.sendTestEvent')">
+        <button
+          v-for="(tab, index) in tabs"
+          :key="tab"
+          :ref="(el) => setTabRef(el, index)"
+          role="tab"
+          :aria-selected="activeTab === tab"
+          :tabindex="activeTab === tab ? 0 : -1"
+          class="send-event__tab"
+          :class="{ 'send-event__tab--active': activeTab === tab }"
+          @click="activateTab(tab, index)"
+          @keydown="handleTabKeydown($event, index)"
+        >
+          <FormInput v-if="tab === 'easy'" :size="16" aria-hidden="true" />
+          <svg
+            v-else-if="tab === 'curl'"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <polyline points="4 17 10 11 4 5" />
+            <line x1="12" y1="19" x2="20" y2="19" />
+          </svg>
+          <svg
+            v-else-if="tab === 'javascript'"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              d="M3 3h18v18H3V3zm4.73 15.04c.4.85 1.19 1.55 2.54 1.55 1.5 0 2.53-.79 2.53-2.55v-6.92h-1.7v6.88c0 .86-.35 1.08-.91 1.08-.58 0-.82-.4-1.09-.87l-1.37.83zm5.98-.18c.5.98 1.51 1.73 3.09 1.73 1.6 0 2.8-.83 2.8-2.36 0-1.41-.81-2.04-2.25-2.66l-.42-.18c-.73-.31-1.04-.52-1.04-1.02 0-.41.31-.72.81-.72.48 0 .8.21 1.09.72l1.31-.84c-.55-.98-1.32-1.35-2.4-1.35-1.51 0-2.48.96-2.48 2.23 0 1.38.81 2.03 2.03 2.55l.42.18c.78.34 1.24.55 1.24 1.13 0 .48-.45.83-1.15.83-.83 0-1.31-.43-1.67-1.03l-1.38.81z"
+            />
+          </svg>
+          <svg
+            v-else-if="tab === 'rust'"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              d="M23.83 11.29l-.95-.56a.87.87 0 0 1-.4-.63 10 10 0 0 0-.18-.73.87.87 0 0 1 .15-.74l.6-.92a.34.34 0 0 0-.05-.43l-.59-.59a.34.34 0 0 0-.43-.05l-.92.6a.87.87 0 0 1-.74.15 10 10 0 0 0-.73-.18.87.87 0 0 1-.63-.4l-.56-.95a.34.34 0 0 0-.3-.17h-.83a.34.34 0 0 0-.3.17l-.56.95a.87.87 0 0 1-.63.4 10 10 0 0 0-.73.18.87.87 0 0 1-.74-.15l-.92-.6a.34.34 0 0 0-.43.05l-.59.59a.34.34 0 0 0-.05.43l.6.92a.87.87 0 0 1 .15.74 10 10 0 0 0-.18.73.87.87 0 0 1-.4.63l-.95.56a.34.34 0 0 0-.17.3v.83a.34.34 0 0 0 .17.3l.95.56a.87.87 0 0 1 .4.63 10 10 0 0 0 .18.73.87.87 0 0 1-.15.74l-.6.92a.34.34 0 0 0 .05.43l.59.59a.34.34 0 0 0 .43.05l.92-.6a.87.87 0 0 1 .74-.15 10 10 0 0 0 .73.18.87.87 0 0 1 .63.4l.56.95a.34.34 0 0 0 .3.17h.83a.34.34 0 0 0 .3-.17l.56-.95a.87.87 0 0 1 .63-.4 10 10 0 0 0 .73-.18.87.87 0 0 1 .74.15l.92.6a.34.34 0 0 0 .43-.05l.59-.59a.34.34 0 0 0 .05-.43l-.6-.92a.87.87 0 0 1-.15-.74 10 10 0 0 0 .18-.73.87.87 0 0 1 .4-.63l.95-.56a.34.34 0 0 0 .17-.3v-.83a.34.34 0 0 0-.17-.3zM12 15.92A3.92 3.92 0 1 1 15.92 12 3.92 3.92 0 0 1 12 15.92z"
+            />
+          </svg>
+          {{ t(`events.tabs.${tab}`) }}
+        </button>
+      </div>
+
+      <Hook0CardHeader>
+        <template #header>{{ t('events.sendTestEvent') }}</template>
+        <template #subtitle>
+          {{ t('events.sendTestEventSubtitle') }}
+        </template>
+      </Hook0CardHeader>
+
+      <Hook0Form data-test="send-event-form" @submit="sendTestEvent">
         <Hook0CardContent>
-          <Hook0SkeletonGroup :count="3" />
+          <Hook0CardContentLine>
+            <template #label>{{ t('events.eventType') }}</template>
+            <template #content>
+              <Hook0Select
+                v-model="selectedEventType"
+                :options="eventTypeOptions"
+                data-test="send-event-type-select"
+              />
+            </template>
+          </Hook0CardContentLine>
+          <Hook0CardContentLine>
+            <template #label>
+              {{ t('events.eventLabels') }}
+              <Hook0HelpText>{{ t('events.eventLabelsHelp') }}</Hook0HelpText>
+            </template>
+            <template #content>
+              <Hook0KeyValue
+                :value="labels"
+                :key-placeholder="t('common.labelKey')"
+                :value-placeholder="t('common.labelValue')"
+                data-test="send-event-labels"
+              />
+            </template>
+          </Hook0CardContentLine>
+          <Hook0CardContentLine>
+            <template #label>{{ t('events.occurredAt') }}</template>
+            <template #content>
+              <Hook0Input
+                v-model="occurredAt"
+                type="datetime-local"
+                data-test="send-event-occurred-at-input"
+              />
+            </template>
+          </Hook0CardContentLine>
+          <Hook0CardContentLine>
+            <template #label>{{ t('events.payload') }}</template>
+            <template #content>
+              <div data-test="send-event-payload-input">
+                <Codemirror
+                  v-model="payload"
+                  :autofocus="true"
+                  :indent-with-tab="true"
+                  :tab-size="2"
+                  :extensions="extensions"
+                />
+              </div>
+            </template>
+          </Hook0CardContentLine>
         </Hook0CardContent>
-      </Hook0Card>
 
-      <!-- Error loading event types -->
-      <Hook0ErrorCard
-        v-else-if="eventTypesError"
-        :error="eventTypesError"
-        @retry="refetchEventTypes()"
-      />
+        <Hook0CardFooter>
+          <Hook0Button
+            v-if="!props.tutorialMode"
+            variant="secondary"
+            data-test="send-event-cancel-button"
+            @click="handleCancel"
+          >
+            {{ t('common.cancel') }}
+          </Hook0Button>
 
-      <!-- Form -->
-      <Hook0Card v-else>
-        <Hook0CardHeader>
-          <template #header>{{ t('events.sendTestEvent') }}</template>
-          <template #subtitle>
-            {{ t('events.sendTestEventSubtitle') }}
-          </template>
-        </Hook0CardHeader>
-
-        <Hook0Form data-test="send-event-form" @submit="sendTestEvent">
-          <Hook0CardContent>
-            <Hook0CardContentLine>
-              <template #label>{{ t('events.eventType') }}</template>
-              <template #content>
-                <Hook0Select
-                  v-model="selectedEventType"
-                  :options="eventTypeOptions"
-                  data-test="send-event-type-select"
-                />
-              </template>
-            </Hook0CardContentLine>
-            <Hook0CardContentLine>
-              <template #label>
-                {{ t('events.eventLabels') }}
-                <Hook0HelpText>{{ t('events.eventLabelsHelp') }}</Hook0HelpText>
-              </template>
-              <template #content>
-                <Hook0KeyValue
-                  :value="labels"
-                  :key-placeholder="t('common.labelKey')"
-                  :value-placeholder="t('common.labelValue')"
-                  data-test="send-event-labels"
-                />
-              </template>
-            </Hook0CardContentLine>
-            <Hook0CardContentLine>
-              <template #label>{{ t('events.occurredAt') }}</template>
-              <template #content>
-                <Hook0Input
-                  v-model="occurredAt"
-                  type="datetime-local"
-                  data-test="send-event-occurred-at-input"
-                />
-              </template>
-            </Hook0CardContentLine>
-            <Hook0CardContentLine>
-              <template #label>{{ t('events.payload') }}</template>
-              <template #content>
-                <div data-test="send-event-payload-input">
-                  <Codemirror
-                    v-model="payload"
-                    :autofocus="true"
-                    :indent-with-tab="true"
-                    :tab-size="2"
-                    :extensions="extensions"
-                  />
-                </div>
-              </template>
-            </Hook0CardContentLine>
-          </Hook0CardContent>
-
-          <Hook0CardFooter>
-            <Hook0Button
-              v-if="!props.tutorialMode"
-              variant="secondary"
-              data-test="send-event-cancel-button"
-              @click="handleCancel"
-            >
-              {{ t('common.cancel') }}
-            </Hook0Button>
-
-            <Hook0Button
-              v-if="!tutorialMode"
-              variant="primary"
-              submit
-              :disabled="!meta.valid"
-              :tooltip="!meta.valid ? t('forms.fillRequiredFields') : undefined"
-              data-test="send-event-submit-button"
-            >
-              {{ t('events.sendEvent') }}
-            </Hook0Button>
-            <Hook0Button
-              v-else
-              variant="primary"
-              submit
-              :disabled="!meta.valid"
-              :tooltip="!meta.valid ? t('forms.fillRequiredFields') : undefined"
-              data-test="send-event-submit-button"
-            >
-              {{ t('events.sendFirstEvent') }}
-            </Hook0Button>
-          </Hook0CardFooter>
-        </Hook0Form>
-      </Hook0Card>
-    </div>
+          <Hook0Button
+            v-if="!tutorialMode"
+            variant="primary"
+            submit
+            :disabled="!meta.valid"
+            :tooltip="!meta.valid ? t('forms.fillRequiredFields') : undefined"
+            data-test="send-event-submit-button"
+          >
+            {{ t('events.sendEvent') }}
+          </Hook0Button>
+          <Hook0Button
+            v-else
+            variant="primary"
+            submit
+            :disabled="!meta.valid"
+            :tooltip="!meta.valid ? t('forms.fillRequiredFields') : undefined"
+            data-test="send-event-submit-button"
+          >
+            {{ t('events.sendFirstEvent') }}
+          </Hook0Button>
+        </Hook0CardFooter>
+      </Hook0Form>
+    </Hook0Card>
 
     <!-- Code snippet tab panels -->
-    <div v-if="activeTab !== 'easy'" role="tabpanel" :aria-label="t(`events.tabs.${activeTab}`)">
-      <Hook0Card>
-        <Hook0CardHeader>
-          <template #header>{{ t(`events.tabs.${activeTab}`) }}</template>
-          <template #actions>
-            <Hook0Button variant="ghost" @click="copySnippet">
-              <Copy :size="14" aria-hidden="true" />
-            </Hook0Button>
+    <Hook0Card
+      v-if="activeTab !== 'easy'"
+      role="tabpanel"
+      :aria-label="t(`events.tabs.${activeTab}`)"
+    >
+      <!-- Tabs inside card -->
+      <div class="send-event__tabs" role="tablist" :aria-label="t('events.sendTestEvent')">
+        <button
+          v-for="(tab, index) in tabs"
+          :key="tab"
+          :ref="(el) => setTabRef(el, index)"
+          role="tab"
+          :aria-selected="activeTab === tab"
+          :tabindex="activeTab === tab ? 0 : -1"
+          class="send-event__tab"
+          :class="{ 'send-event__tab--active': activeTab === tab }"
+          @click="activateTab(tab, index)"
+          @keydown="handleTabKeydown($event, index)"
+        >
+          <FormInput v-if="tab === 'easy'" :size="16" aria-hidden="true" />
+          <svg
+            v-else-if="tab === 'curl'"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <polyline points="4 17 10 11 4 5" />
+            <line x1="12" y1="19" x2="20" y2="19" />
+          </svg>
+          <svg
+            v-else-if="tab === 'javascript'"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              d="M3 3h18v18H3V3zm4.73 15.04c.4.85 1.19 1.55 2.54 1.55 1.5 0 2.53-.79 2.53-2.55v-6.92h-1.7v6.88c0 .86-.35 1.08-.91 1.08-.58 0-.82-.4-1.09-.87l-1.37.83zm5.98-.18c.5.98 1.51 1.73 3.09 1.73 1.6 0 2.8-.83 2.8-2.36 0-1.41-.81-2.04-2.25-2.66l-.42-.18c-.73-.31-1.04-.52-1.04-1.02 0-.41.31-.72.81-.72.48 0 .8.21 1.09.72l1.31-.84c-.55-.98-1.32-1.35-2.4-1.35-1.51 0-2.48.96-2.48 2.23 0 1.38.81 2.03 2.03 2.55l.42.18c.78.34 1.24.55 1.24 1.13 0 .48-.45.83-1.15.83-.83 0-1.31-.43-1.67-1.03l-1.38.81z"
+            />
+          </svg>
+          <svg
+            v-else-if="tab === 'rust'"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              d="M23.83 11.29l-.95-.56a.87.87 0 0 1-.4-.63 10 10 0 0 0-.18-.73.87.87 0 0 1 .15-.74l.6-.92a.34.34 0 0 0-.05-.43l-.59-.59a.34.34 0 0 0-.43-.05l-.92.6a.87.87 0 0 1-.74.15 10 10 0 0 0-.73-.18.87.87 0 0 1-.63-.4l-.56-.95a.34.34 0 0 0-.3-.17h-.83a.34.34 0 0 0-.3.17l-.56.95a.87.87 0 0 1-.63.4 10 10 0 0 0-.73.18.87.87 0 0 1-.74-.15l-.92-.6a.34.34 0 0 0-.43.05l-.59.59a.34.34 0 0 0-.05.43l.6.92a.87.87 0 0 1 .15.74 10 10 0 0 0-.18.73.87.87 0 0 1-.4.63l-.95.56a.34.34 0 0 0-.17.3v.83a.34.34 0 0 0 .17.3l.95.56a.87.87 0 0 1 .4.63 10 10 0 0 0 .18.73.87.87 0 0 1-.15.74l-.6.92a.34.34 0 0 0 .05.43l.59.59a.34.34 0 0 0 .43.05l.92-.6a.87.87 0 0 1 .74-.15 10 10 0 0 0 .73.18.87.87 0 0 1 .63.4l.56.95a.34.34 0 0 0 .3.17h.83a.34.34 0 0 0 .3-.17l.56-.95a.87.87 0 0 1 .63-.4 10 10 0 0 0 .73-.18.87.87 0 0 1 .74.15l.92.6a.34.34 0 0 0 .43-.05l.59-.59a.34.34 0 0 0 .05-.43l-.6-.92a.87.87 0 0 1-.15-.74 10 10 0 0 0 .18-.73.87.87 0 0 1 .4-.63l.95-.56a.34.34 0 0 0 .17-.3v-.83a.34.34 0 0 0-.17-.3zM12 15.92A3.92 3.92 0 1 1 15.92 12 3.92 3.92 0 0 1 12 15.92z"
+            />
+          </svg>
+          {{ t(`events.tabs.${tab}`) }}
+        </button>
+      </div>
+
+      <Hook0CardHeader>
+        <template #header>{{ t(`events.tabs.${activeTab}`) }}</template>
+        <template #actions>
+          <Hook0Button variant="ghost" @click="copySnippet">
+            <Copy :size="14" aria-hidden="true" />
+          </Hook0Button>
+        </template>
+      </Hook0CardHeader>
+
+      <Hook0CardContent>
+        <!-- Secret selector -->
+        <div class="send-event__secret-row">
+          <template v-if="tutorialMode">
+            <span class="send-event__secret-note">
+              {{ t('events.tutorialTokenNote') }}
+            </span>
           </template>
-        </Hook0CardHeader>
+          <template v-else>
+            <label class="send-event__secret-label">
+              {{ t('events.selectSecret') }}
+            </label>
+            <div v-if="secrets && secrets.length > 0" class="send-event__secret-controls">
+              <Hook0Select v-model="selectedSecretToken" :options="secretOptions" />
+              <Hook0CopyField
+                :value="effectiveSecretToken"
+                :maskable="true"
+                :copy-message="t('common.idCopied')"
+              />
+            </div>
+            <div v-else class="send-event__no-secrets">
+              <span>{{ t('events.noSecretsYet') }}</span>
+              <router-link
+                :to="{
+                  name: routes.ApplicationSecretsNew,
+                  params: route.params,
+                }"
+                class="send-event__create-secret-link"
+              >
+                {{ t('events.createSecret') }}
+              </router-link>
+            </div>
+          </template>
+        </div>
 
-        <Hook0CardContent>
-          <!-- Secret selector -->
-          <div class="send-event__secret-row">
-            <template v-if="tutorialMode">
-              <span class="send-event__secret-note">
-                {{ t('events.tutorialTokenNote') }}
-              </span>
-            </template>
-            <template v-else>
-              <label class="send-event__secret-label">
-                {{ t('events.selectSecret') }}
-              </label>
-              <div v-if="secrets && secrets.length > 0" class="send-event__secret-controls">
-                <Hook0Select v-model="selectedSecretToken" :options="secretOptions" />
-                <span class="send-event__secret-token">{{ maskedSecretToken }}</span>
-                <button
-                  class="send-event__secret-toggle"
-                  type="button"
-                  :aria-label="secretRevealed ? t('events.hideToken') : t('events.showToken')"
-                  @click="secretRevealed = !secretRevealed"
-                >
-                  <EyeOff v-if="secretRevealed" :size="16" aria-hidden="true" />
-                  <Eye v-else :size="16" aria-hidden="true" />
-                </button>
-              </div>
-              <div v-else class="send-event__no-secrets">
-                <span>{{ t('events.noSecretsYet') }}</span>
-                <router-link
-                  :to="{
-                    name: routes.ApplicationSecretsNew,
-                    params: route.params,
-                  }"
-                  class="send-event__create-secret-link"
-                >
-                  {{ t('events.createSecret') }}
-                </router-link>
-              </div>
-            </template>
-          </div>
-
-          <!-- Event ID with regenerate -->
-          <div class="send-event__event-id-row">
-            <label class="send-event__secret-label">{{ t('events.id') }}</label>
-            <Hook0Code :code="eventId" inline />
-            <button
-              class="send-event__regenerate-btn"
-              type="button"
-              :aria-label="t('events.regenerateId')"
-              @click="regenerateEventId"
-            >
-              <RefreshCw :size="14" aria-hidden="true" />
-              {{ t('events.regenerateId') }}
-            </button>
-          </div>
-
-          <!-- Snippet -->
-          <Hook0Code v-if="activeTab === 'curl'" :code="curlSnippet" />
-          <Hook0Code v-else-if="activeTab === 'javascript'" :code="jsSnippet" />
-          <Hook0Code v-else-if="activeTab === 'rust'" :code="rustSnippet" />
-        </Hook0CardContent>
-      </Hook0Card>
-    </div>
+        <!-- Snippet -->
+        <Hook0Code v-if="activeTab === 'curl'" :code="curlSnippet" />
+        <Hook0Code v-else-if="activeTab === 'javascript'" :code="jsSnippet" />
+        <Hook0Code v-else-if="activeTab === 'rust'" :code="rustSnippet" />
+      </Hook0CardContent>
+    </Hook0Card>
   </div>
 </template>
 
@@ -587,7 +666,6 @@ function handleCancel() {
   display: flex;
   gap: 0;
   border-bottom: 1px solid var(--color-border);
-  margin-bottom: 1rem;
 }
 
 .send-event__tab {
@@ -640,36 +718,6 @@ function handleCancel() {
   gap: 0.5rem;
 }
 
-.send-event__secret-token {
-  font-family: var(--font-mono);
-  font-size: 0.8125rem;
-  color: var(--color-text-secondary);
-}
-
-.send-event__secret-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: none;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.send-event__secret-toggle:hover {
-  color: var(--color-text-primary);
-  background-color: var(--color-bg-secondary);
-}
-
-.send-event__secret-toggle:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
 .send-event__secret-note {
   font-size: 0.8125rem;
   color: var(--color-text-secondary);
@@ -693,38 +741,5 @@ function handleCancel() {
 
 .send-event__create-secret-link:hover {
   color: var(--color-primary-hover);
-}
-
-.send-event__event-id-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.send-event__regenerate-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  border: none;
-  background: none;
-  color: var(--color-primary);
-  font-size: 0.75rem;
-  font-weight: 500;
-  cursor: pointer;
-  padding: 0.25rem 0.5rem;
-  border-radius: var(--radius-sm);
-  transition: all 0.15s ease;
-}
-
-.send-event__regenerate-btn:hover {
-  background-color: var(--color-primary-light);
-}
-
-.send-event__regenerate-btn:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
 }
 </style>
