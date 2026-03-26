@@ -307,14 +307,17 @@ function sendTestEvent() {
     return;
   }
 
-  const labelsToSend = kvPairsToRecord(labels.value);
-  if (Object.keys(labelsToSend).length === 0) {
+  const validLabels = labels.value.filter(
+    (l) => l.key.trim().length > 0 && l.value.trim().length > 0,
+  );
+  if (validLabels.length === 0) {
     toast.error(t('events.invalidEvent'), {
       description: t('events.labelsRequired'),
       duration: 5000,
     });
     return;
   }
+  const labelsToSend = kvPairsToRecord(validLabels);
 
   const eventId = crypto.randomUUID();
 
