@@ -23,7 +23,7 @@ Learn more in the [Concepts](/concepts/) section.
 |------------|-------------|
 | **Local development** | Receive webhooks on your machine via WebSocket tunnel — like ngrok, built into the CLI |
 | **Interactive testing** | Compose and send test webhooks through a Terminal User Interface (TUI) with a built-in echo server (a local HTTP server that receives and displays webhook requests) |
-| **Event management** | Send events, list history with filters (type, status, time range, labels), inspect delivery attempts |
+| **Event management** | Send events, list history, inspect delivery attempts |
 | **Subscriptions** | Full CRUD and enable/disable on subscriptions, with custom headers and labels |
 | **Event types** | Full CRUD on event types using dotted convention (`service.resource.verb`) |
 | **Replay** | Replay failed events individually or in bulk, with `--dry-run` preview and filters |
@@ -179,11 +179,11 @@ hook0 event send invoice.paid \
   --payload '{"invoice_id": "inv_456"}' \
   --event-id 550e8400-e29b-41d4-a716-446655440000
 
-# Send a non-JSON payload
-hook0 event send document.uploaded \
+# Send a plain text payload
+hook0 event send user.account.updated \
   --label tenant=acme \
-  --payload '<xml>data</xml>' \
-  --content-type application/xml
+  --payload 'user 123 updated their profile' \
+  --content-type text/plain
 ```
 
 ### Listing and Inspecting Events
