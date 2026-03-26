@@ -122,17 +122,7 @@ const eventTypeOptions = computed(() =>
 // Secrets query
 const { data: secrets } = useSecretList(applicationId);
 
-const secretOptions = computed(() =>
-  (secrets.value ?? []).map((s) => ({
-    label: s.name ?? s.token.slice(0, 12) + '...',
-    value: s.token,
-  }))
-);
-
-const selectedSecretToken = ref<string | null>(null);
-
 const effectiveSecretToken = computed(() => {
-  if (selectedSecretToken.value) return selectedSecretToken.value;
   if (secrets.value && secrets.value.length > 0) return secrets.value[0].token;
   return '';
 });
