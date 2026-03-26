@@ -52,14 +52,11 @@ hook0 event send user.account.created \
 Here is what happens when you run `listen` then `event send`:
 
 ```
-hook0 event send                        hook0 listen 3000
-      │                                       │
-      ▼                                       │
-┌───────────┐    delivers     ┌─────────┐     │    forwards    ┌─────────────────┐
-│  Hook0    │───────────────▶│  Relay   │─────┼──────────────▶│ localhost:3000   │
-│  API      │   to matching   │  Server  │ WebSocket          │ (your server)   │
-└───────────┘  subscriptions  └─────────┘  tunnel             └─────────────────┘
-                              play.hook0.com
+hook0 event send -----> Hook0 API -----> Relay Server -----> localhost:3000
+                                        (play.hook0.com)     (your server)
+                         delivers        forwards via
+                        to matching      WebSocket tunnel
+                       subscriptions     (hook0 listen)
 ```
 
 :::tip Try it without any setup
