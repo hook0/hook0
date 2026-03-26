@@ -265,5 +265,4 @@ const columns: ColumnDef<ApplicationSecret, unknown>[] = [
   </Hook0PageLayout>
 </template>
 
-<style scoped>
-</style>
+<style scoped></style>

@@ -33,7 +33,6 @@ const applicationIdRef = computed(() => props.applicationId);
 
 const { data: eventData, isLoading: eventLoading } = useEventDetail(eventIdRef, applicationIdRef);
 
-
 function openFullPage() {
   emit('close');
   void router.push({
@@ -126,11 +125,7 @@ function openFullPage() {
       <!-- Payload -->
       <div class="event-panel__section">
         <h3 class="event-panel__section-title">{{ t('events.payload') }}</h3>
-        <Hook0Code
-          :code="eventData.payload_decoded"
-          language="json"
-          :editable="false"
-        />
+        <Hook0Code :code="eventData.payload_decoded" language="json" :editable="false" />
       </div>
     </template>
   </Hook0SidePanel>

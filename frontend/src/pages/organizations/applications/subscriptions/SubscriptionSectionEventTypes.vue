@@ -56,9 +56,9 @@ function toggleEventType(index: number, selected: boolean) {
             <Hook0Button
               variant="link"
               :to="{ name: routes.EventTypesList, params: $route.params }"
-            >{{ t('subscriptions.eventTypesLink') }}</Hook0Button>
+              >{{ t('subscriptions.eventTypesLink') }}</Hook0Button
+            >
           </template>
-
         </i18n-t>
       </span>
     </div>

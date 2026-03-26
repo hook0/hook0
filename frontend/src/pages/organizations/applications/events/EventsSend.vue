@@ -308,7 +308,7 @@ function sendTestEvent() {
   }
 
   const validLabels = labels.value.filter(
-    (l) => l.key.trim().length > 0 && l.value.trim().length > 0,
+    (l) => l.key.trim().length > 0 && l.value.trim().length > 0
   );
   if (validLabels.length === 0) {
     toast.error(t('events.invalidEvent'), {

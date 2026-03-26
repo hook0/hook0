@@ -25,7 +25,12 @@ const emit = defineEmits<{
       <span class="sub-row__title">{{ t('subscriptions.subscriptionLabels') }}</span>
       <span class="sub-row__hint">
         {{ t('subscriptions.subscriptionLabelsHelp') }}
-        <Hook0Button variant="link" href="https://documentation.hook0.com/concepts/subscriptions#filtering-criteria" target="_blank" rel="noopener">
+        <Hook0Button
+          variant="link"
+          href="https://documentation.hook0.com/concepts/subscriptions#filtering-criteria"
+          target="_blank"
+          rel="noopener"
+        >
           {{ t('common.learnMore') }}
         </Hook0Button>
       </span>
@@ -75,7 +80,6 @@ const emit = defineEmits<{
   color: var(--color-text-secondary);
   line-height: 1.5;
 }
-
 
 .sub-row__content {
   min-width: 0;

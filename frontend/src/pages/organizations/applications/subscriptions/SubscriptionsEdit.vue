@@ -325,7 +325,9 @@ const onSubmit = handleSubmit((values) => {
 // Computed: whether the non-validated parts are ready
 const hasRequiredLabels = computed(() => {
   const entries = Object.entries(labelsMap.value);
-  return entries.length > 0 && entries.every(([k, v]) => k.trim().length > 0 && v.trim().length > 0);
+  return (
+    entries.length > 0 && entries.every(([k, v]) => k.trim().length > 0 && v.trim().length > 0)
+  );
 });
 const hasSelectedEventTypes = computed(() => eventTypes.value.some((et) => et.selected));
 
