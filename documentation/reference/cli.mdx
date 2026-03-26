@@ -7,9 +7,19 @@ description: Complete reference for the Hook0 CLI
 
 The Hook0 CLI manages your webhook infrastructure from the terminal.
 
+### Key concepts
+
+| Term | Meaning |
+|------|---------|
+| **Event** | Something that happened in your system (e.g., `user.account.created`) |
+| **Subscription** | A rule: "when this event type occurs, deliver it to this URL" |
+| **Application** | Your project or environment in Hook0 |
+
+### Capabilities
+
 | Capability | Description |
 |------------|-------------|
-| **Local development** | Receive webhooks locally via WebSocket tunnel with a real-time TUI dashboard |
+| **Local development** | Receive webhooks locally via WebSocket tunnel — like ngrok, but built into the CLI |
 | **Interactive testing** | Compose and send test webhooks through a visual TUI with built-in echo server |
 | **Event management** | Send events, list history with filters (type, status, time range, labels), inspect delivery attempts |
 | **Subscriptions** | Create, update, enable, disable, delete subscriptions with custom headers and labels |
@@ -34,58 +44,73 @@ Verify:
 hook0 --version
 ```
 
-## Quick Start
+## Try It Now
+
+No account needed. Run this single command to launch an interactive demo:
 
 ```bash
-# 1. Set up your first profile (prompts for API URL, application ID, and secret)
+hook0 example
+```
+
+This opens a TUI where you pick an event type, edit the JSON payload, and send it. A built-in echo server receives the webhook and displays the full request (headers, body, status) — all in one terminal, no configuration needed.
+
+## Quick Start
+
+Before starting, create an account on [app.hook0.com](https://app.hook0.com) and go to your application dashboard to get your **Application ID** and **Secret**.
+
+```bash
+# 1. Set up your profile (prompts for API URL, application ID, and secret)
 hook0 init
 
-# 2. Start receiving webhooks on your machine
+# 2. Start the local tunnel — gives you a public URL (printed in the terminal)
 hook0 listen 3000
 
-# 3. Send a test event
+# 3. In another terminal, create a subscription pointing to that URL
+hook0 subscription create \
+  --url <RELAY_URL_FROM_STEP_2> \
+  --events user.account.created \
+  --label tenant=acme
+
+# 4. Send an event — Hook0 delivers it to the subscription, which forwards to localhost:3000
 hook0 event send user.account.created \
   --label tenant=acme \
   --payload '{"user_id": "usr_123"}'
 ```
 
-Here is what happens when you run `listen` then `event send`:
+Here is the full flow:
 
 ```
-+--------------------+        +-----------------------+
-| hook0 listen 3000  |        | hook0 event send ...  |
-+--------+-----------+        +----------+------------+
-         |                               |
-         | 1. connects via               | 2. sends event
++--------------------+         +------------------------+
+| hook0 listen 3000  |         | hook0 event send ...   |
++--------+-----------+         +----------+-------------+
+         |                                |
+         | 1. connects via                | 4. sends event
          |    WebSocket                   |    via HTTP
-         |                               |
-         v                               v
-+--------+-----------+        +-----------+-----------+
-| Relay Server       |        | Hook0 API             |
-| play.hook0.com     |<-------+ app.hook0.com/api/v1  |
-+--------+-----------+        +-----------------------+
-         |                      3. API delivers to
-         |                         subscription URL
-         |                         (= relay URL)
+         |                                |
+         v                                v
++--------+-----------+         +-----------+------------+
+| Relay Server       |         | Hook0 API              |
+| play.hook0.com     |<--------+ app.hook0.com/api/v1   |
++--------+-----------+         +------------------------+
+         |                       5. API delivers to
+         |                          subscription URL
+         |                          (= relay URL from step 2)
          |
-         | 4. relay forwards
+         | 6. relay forwards
          |    via WebSocket
          v
 +--------+-----------+
 | localhost:3000     |
-| (your server)     |
+| (your server)      |
 +--------------------+
 ```
 
 **Step by step:**
 1. `hook0 listen` connects to the relay server and receives a public URL (e.g., `https://play.hook0.com/in/<token>`)
-2. You create a subscription with that URL as the target. Then `hook0 event send` sends an event to the Hook0 API.
-3. The API delivers the event to all matching subscriptions, including the relay URL.
-4. The relay forwards the HTTP request through the WebSocket tunnel to your local machine.
-
-:::tip Try it without any setup
-`hook0 example` launches a self-contained demo: it opens a TUI where you pick an event type, edit the JSON payload, and send it. A built-in echo server receives the webhook and displays the full request (headers, body, status) — all in one terminal, no configuration needed.
-:::
+2. You create a subscription with that URL as the target (step 3 in the code above)
+3. `hook0 event send` sends an event to the Hook0 API
+4. The API delivers the event to all matching subscriptions, including the relay URL
+5. The relay forwards the HTTP request through the WebSocket tunnel to your local machine
 
 ---
 
@@ -93,7 +118,7 @@ Here is what happens when you run `listen` then `event send`:
 
 ### Local Development
 
-`hook0 listen` creates a secure WebSocket tunnel through the Hook0 relay server (`play.hook0.com` by default). The relay gives you a public URL that you use as a subscription target in Hook0. When events are delivered to that URL, the relay forwards them through the tunnel to your local machine.
+`hook0 listen` creates a secure WebSocket tunnel through the Hook0 relay server (`play.hook0.com` by default) — similar to tools like ngrok or localtunnel, but built into the CLI. It lets you receive webhooks on your local machine behind a firewall without exposing any ports.
 
 ```bash
 # Forward webhooks to port 3000 (auto-detects if a server is running)
