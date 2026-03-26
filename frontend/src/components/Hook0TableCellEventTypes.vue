@@ -50,6 +50,7 @@ withDefaults(defineProps<Props>(), {
 
 .cell-event-types__item--link {
   color: var(--color-primary);
+  font-weight: 500;
 }
 
 .cell-event-types__item--link:hover {
