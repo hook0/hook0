@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, markRaw } from 'vue';
+import { computed, markRaw, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { Component } from 'vue';
 import { CreditCard, Users, FolderOpen, FileText, Database, Settings, Box } from 'lucide-vue-next';
@@ -65,6 +65,17 @@ const orgSubtitle = computed(() => {
   ].join(' \u00B7 ');
 });
 
+// Scroll targets for dashboard card links
+const appsSectionRef = ref<HTMLElement>();
+const chartSectionRef = ref<HTMLElement>();
+
+function scrollToApps() {
+  appsSectionRef.value?.scrollIntoView({ behavior: 'smooth' });
+}
+function scrollToChart() {
+  chartSectionRef.value?.scrollIntoView({ behavior: 'smooth' });
+}
+
 // Consumptions computed from org detail
 const consumptions = computed<ConsumptionQuota[]>(() => {
   if (!organization.value) return [];
@@ -75,6 +86,7 @@ const consumptions = computed<ConsumptionQuota[]>(() => {
       description: t('organizations.consumptionMembersDesc'),
       consumption: organization.value.consumption.members || 0,
       quota: organization.value.quotas.members_per_organization_limit,
+      to: { name: routes.OrganizationsTeam, params: { organization_id: organizationId.value } },
     },
     {
       icon: markRaw(Box),
@@ -82,6 +94,7 @@ const consumptions = computed<ConsumptionQuota[]>(() => {
       description: t('organizations.consumptionApplicationsDesc'),
       consumption: organization.value.consumption.applications || 0,
       quota: organization.value.quotas.applications_per_organization_limit,
+      onClick: scrollToApps,
     },
     {
       icon: markRaw(FileText),
@@ -89,6 +102,7 @@ const consumptions = computed<ConsumptionQuota[]>(() => {
       description: t('organizations.consumptionEventsPerDayDesc'),
       consumption: organization.value.consumption.events_per_day || 0,
       quota: organization.value.quotas.events_per_day_limit,
+      onClick: scrollToChart,
     },
     {
       icon: markRaw(Database),
@@ -98,6 +112,7 @@ const consumptions = computed<ConsumptionQuota[]>(() => {
       quota: organization.value.quotas.days_of_events_retention_limit,
       displayValue: String(organization.value.quotas.days_of_events_retention_limit),
       displayUnit: 'days',
+      onClick: scrollToChart,
     },
   ];
 });
@@ -201,20 +216,24 @@ const quotaCards = computed<{ icon: Component; value: number | undefined; label:
       </Hook0Card>
 
       <!-- Applications list (moved up, before chart) -->
-      <ApplicationsList :burst="organizationId" />
+      <div ref="appsSectionRef">
+        <ApplicationsList :burst="organizationId" />
+      </div>
 
       <!-- Events per day chart -->
-      <EventsPerDayChartCard
-        :title="t('organizations.inboundEventsTitle', { name: organization.name })"
-        :entries="eventsPerDayData ?? []"
-        :stacked="true"
-        :from="eventsPerDayFrom"
-        :to="eventsPerDayTo"
-        :days="eventsPerDayDays"
-        :quota-limit="organization.quotas.events_per_day_limit"
-        @update:days="eventsPerDayDays = $event"
-        @refresh="refetchEventsPerDay()"
-      />
+      <div ref="chartSectionRef">
+        <EventsPerDayChartCard
+          :title="t('organizations.inboundEventsTitle', { name: organization.name })"
+          :entries="eventsPerDayData ?? []"
+          :stacked="true"
+          :from="eventsPerDayFrom"
+          :to="eventsPerDayTo"
+          :days="eventsPerDayDays"
+          :quota-limit="organization.quotas.events_per_day_limit"
+          @update:days="eventsPerDayDays = $event"
+          @refresh="refetchEventsPerDay()"
+        />
+      </div>
 
       <!-- Usage / Quotas -->
       <Hook0Consumption
