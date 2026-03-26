@@ -148,6 +148,9 @@ test.describe("Logs", () => {
     await page.locator('[data-test="send-event-submit-button"]').click();
     await sendEventResponse;
 
+    // After send, page navigates to event detail — wait for it before navigating away
+    await expect(page).toHaveURL(/\/events\/[^/]+$/, { timeout: 10000 });
+
     // Navigate to logs and wait for data
     await page.goto(
       `/organizations/${env.organizationId}/applications/${env.applicationId}/logs`
@@ -303,6 +306,9 @@ test.describe("Logs", () => {
     );
     await page.locator('[data-test="send-event-submit-button"]').click();
     await sendEventResponse;
+
+    // After send, page navigates to event detail — wait for it before navigating away
+    await expect(page).toHaveURL(/\/events\/[^/]+$/, { timeout: 10000 });
 
     // Navigate to logs page and poll for data to appear (webhook processing takes time)
     await page.goto(`/organizations/${env.organizationId}/applications/${env.applicationId}/logs`);

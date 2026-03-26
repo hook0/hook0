@@ -104,8 +104,8 @@ test.describe("Events", () => {
     // Verify success notification is shown
     await expectToast(page);
 
-    // Verify form is closed and events list is shown
-    await expect(page.locator('[data-test="events-card"]')).toBeVisible({ timeout: 10000 });
+    // After send, page now navigates to event detail page
+    await expect(page).toHaveURL(/\/events\/[^/]+$/, { timeout: 10000 });
   });
 
   test("should display events list with sent event", async ({ page, request }) => {
@@ -114,7 +114,8 @@ test.describe("Events", () => {
     const response = await sendTestEvent(page, env);
     expect(response.status()).toBeLessThan(400);
 
-    // Wait for events list to refresh
+    // After send, page navigates to event detail — go back to events list
+    await page.goto(`/organizations/${env.organizationId}/applications/${env.applicationId}/events`);
     await expect(page.locator('[data-test="events-card"]')).toBeVisible({ timeout: 10000 });
 
     // Verify events table has at least 1 row (wait for table data to load)
@@ -205,7 +206,8 @@ test.describe("Events", () => {
     const response = await sendTestEvent(page, env);
     expect(response.status()).toBeLessThan(400);
 
-    // Wait for events list
+    // After send, page navigates to event detail — go back to events list
+    await page.goto(`/organizations/${env.organizationId}/applications/${env.applicationId}/events`);
     await expect(page.locator('[data-test="events-card"]')).toBeVisible({ timeout: 10000 });
 
     // Wait for event row to appear (query is invalidated after send via TanStack Query onSuccess)
@@ -234,7 +236,8 @@ test.describe("Events", () => {
     const response = await sendTestEvent(page, env);
     expect(response.status()).toBeLessThan(400);
 
-    // Wait for events list to show
+    // After send, page navigates to event detail — go back to events list
+    await page.goto(`/organizations/${env.organizationId}/applications/${env.applicationId}/events`);
     await expect(page.locator('[data-test="events-card"]')).toBeVisible({ timeout: 10000 });
 
     // Wait for event row to appear
@@ -263,7 +266,8 @@ test.describe("Events", () => {
     const response = await sendTestEvent(page, env);
     expect(response.status()).toBeLessThan(400);
 
-    // Wait for events list
+    // After send, page navigates to event detail — go back to events list
+    await page.goto(`/organizations/${env.organizationId}/applications/${env.applicationId}/events`);
     await expect(page.locator('[data-test="events-card"]')).toBeVisible({ timeout: 10000 });
 
     // Wait for event row to appear
