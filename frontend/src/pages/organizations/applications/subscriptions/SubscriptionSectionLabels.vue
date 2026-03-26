@@ -25,7 +25,7 @@ const emit = defineEmits<{
       <span class="sub-row__title">{{ t('subscriptions.subscriptionLabels') }}</span>
       <span class="sub-row__hint">
         {{ t('subscriptions.subscriptionLabelsHelp') }}
-        <Hook0Button variant="link" href="https://documentation.hook0.com/concepts/subscriptions#filtering-criteria">
+        <Hook0Button variant="link" href="https://documentation.hook0.com/concepts/subscriptions#filtering-criteria" target="_blank" rel="noopener">
           {{ t('common.learnMore') }}
         </Hook0Button>
       </span>

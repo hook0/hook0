@@ -798,6 +798,7 @@
     "eventTypesFilter": "Event types",
     "eventTypesFilterHelp": "Filter which event types trigger this subscription",
     "eventTypesHint": "Select which {link} trigger this webhook.",
+    "eventTypesLink": "event types",
     "formSubtitle": "A subscription receives events that match its filters and delivers them to your endpoint.",
     "headers": "HTTP Headers",
     "headersHelp": "Custom headers sent with each webhook request",
