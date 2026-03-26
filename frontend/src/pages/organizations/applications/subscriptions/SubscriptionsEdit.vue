@@ -465,6 +465,11 @@ const hasSelectedEventTypes = computed(() => eventTypes.value.some((et) => et.se
                 :disabled="
                   !targetUrl || !description || !hasRequiredLabels || !hasSelectedEventTypes
                 "
+                :tooltip="
+                  !targetUrl || !description || !hasRequiredLabels || !hasSelectedEventTypes
+                    ? t('forms.fillRequiredFields')
+                    : undefined
+                "
                 data-test="subscription-submit-button"
                 @click="onSubmit"
                 >{{ isNew ? t('common.create') : t('common.save') }}
@@ -477,6 +482,11 @@ const hasSelectedEventTypes = computed(() => eventTypes.value.some((et) => et.se
                 :loading="createMutation.isPending.value"
                 :disabled="
                   !targetUrl || !description || !hasRequiredLabels || !hasSelectedEventTypes
+                "
+                :tooltip="
+                  !targetUrl || !description || !hasRequiredLabels || !hasSelectedEventTypes
+                    ? t('forms.fillRequiredFields')
+                    : undefined
                 "
                 data-test="subscription-submit-button"
                 @click="onSubmit"
