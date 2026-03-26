@@ -376,50 +376,19 @@ function handleCancel() {
 
 <template>
   <div data-test="send-event-card">
-    <Hook0Card v-if="activeTab === 'easy' && (eventTypesLoading || !rawEventTypes)">
+    <Hook0Card>
+      <!-- SHARED: Always visible header -->
       <Hook0CardHeader>
         <template #header>{{ t('events.sendTestEvent') }}</template>
-      </Hook0CardHeader>
-      <div class="send-event__tabs" role="tablist" :aria-label="t('events.sendTestEvent')">
-        <button
-          v-for="(tab, index) in tabs"
-          :key="tab"
-          :ref="(el) => setTabRef(el, index)"
-          role="tab"
-          :aria-selected="activeTab === tab"
-          :tabindex="activeTab === tab ? 0 : -1"
-          class="send-event__tab"
-          :class="{ 'send-event__tab--active': activeTab === tab }"
-          @click="activateTab(tab, index)"
-          @keydown="handleTabKeydown($event, index)"
-        >
-          <FormInput v-if="tab === 'easy'" :size="16" aria-hidden="true" />
-          <Terminal v-else-if="tab === 'curl'" :size="16" aria-hidden="true" />
-          <JavaScriptIcon v-else-if="tab === 'javascript'" :size="16" />
-          <RustIcon v-else-if="tab === 'rust'" :size="16" />
-          {{ t(`events.tabs.${tab}`) }}
-        </button>
-      </div>
-      <Hook0CardContent>
-        <Hook0SkeletonGroup :count="3" />
-      </Hook0CardContent>
-    </Hook0Card>
-
-    <!-- Error loading event types -->
-    <Hook0ErrorCard
-      v-else-if="activeTab === 'easy' && eventTypesError"
-      :error="eventTypesError"
-      @retry="refetchEventTypes()"
-    />
-
-    <!-- Easy way tab panel: Form -->
-    <Hook0Card v-else-if="activeTab === 'easy'" role="tabpanel" :aria-label="t('events.tabs.easy')">
-      <Hook0CardHeader>
-        <template #header>{{ t('events.sendTestEvent') }}</template>
-        <template #subtitle>
-          {{ t('events.sendTestEventSubtitle') }}
+        <template #subtitle>{{ t('events.sendTestEventSubtitle') }}</template>
+        <template v-if="activeTab !== 'easy'" #actions>
+          <Hook0Button variant="ghost" @click="copySnippet">
+            <Copy :size="14" aria-hidden="true" />
+          </Hook0Button>
         </template>
       </Hook0CardHeader>
+
+      <!-- SHARED: Always visible tabs -->
       <div class="send-event__tabs" role="tablist" :aria-label="t('events.sendTestEvent')">
         <button
           v-for="(tab, index) in tabs"
@@ -441,7 +410,29 @@ function handleCancel() {
         </button>
       </div>
 
-      <Hook0Form data-test="send-event-form" @submit="sendTestEvent">
+      <!-- CONDITIONAL CONTENT -->
+
+      <!-- Easy way: Loading skeleton -->
+      <Hook0CardContent
+        v-if="activeTab === 'easy' && (eventTypesLoading || !rawEventTypes)"
+      >
+        <Hook0SkeletonGroup :count="3" />
+      </Hook0CardContent>
+
+      <!-- Easy way: Error -->
+      <Hook0CardContent v-else-if="activeTab === 'easy' && eventTypesError">
+        <Hook0ErrorCard
+          :error="eventTypesError"
+          @retry="refetchEventTypes()"
+        />
+      </Hook0CardContent>
+
+      <!-- Easy way: Form -->
+      <Hook0Form
+        v-else-if="activeTab === 'easy'"
+        data-test="send-event-form"
+        @submit="sendTestEvent"
+      >
         <Hook0CardContent>
           <Hook0CardContentLine>
             <template #label>{{ t('events.eventType') }}</template>
@@ -525,62 +516,23 @@ function handleCancel() {
           </Hook0Button>
         </Hook0CardFooter>
       </Hook0Form>
-    </Hook0Card>
 
-    <!-- Code snippet tab panels -->
-    <Hook0Card
-      v-if="activeTab !== 'easy'"
-      role="tabpanel"
-      :aria-label="t(`events.tabs.${activeTab}`)"
-    >
-      <Hook0CardHeader>
-        <template #header>{{ t(`events.tabs.${activeTab}`) }}</template>
-        <template #actions>
-          <Hook0Button variant="ghost" @click="copySnippet">
-            <Copy :size="14" aria-hidden="true" />
-          </Hook0Button>
-        </template>
-      </Hook0CardHeader>
-      <div class="send-event__tabs" role="tablist" :aria-label="t('events.sendTestEvent')">
-        <button
-          v-for="(tab, index) in tabs"
-          :key="tab"
-          :ref="(el) => setTabRef(el, index)"
-          role="tab"
-          :aria-selected="activeTab === tab"
-          :tabindex="activeTab === tab ? 0 : -1"
-          class="send-event__tab"
-          :class="{ 'send-event__tab--active': activeTab === tab }"
-          @click="activateTab(tab, index)"
-          @keydown="handleTabKeydown($event, index)"
-        >
-          <FormInput v-if="tab === 'easy'" :size="16" aria-hidden="true" />
-          <Terminal v-else-if="tab === 'curl'" :size="16" aria-hidden="true" />
-          <JavaScriptIcon v-else-if="tab === 'javascript'" :size="16" />
-          <RustIcon v-else-if="tab === 'rust'" :size="16" />
-          {{ t(`events.tabs.${tab}`) }}
-        </button>
-      </div>
-
-      <Hook0CardContent>
+      <!-- Code snippet panels -->
+      <Hook0CardContent v-else-if="activeTab === 'curl'" role="tabpanel">
+        <Hook0Code :code="curlSnippet" language="bash" :editable="false" />
+      </Hook0CardContent>
+      <Hook0CardContent
+        v-else-if="activeTab === 'javascript'"
+        role="tabpanel"
+      >
         <Hook0Code
-          v-if="activeTab === 'curl'"
-          :code="curlSnippet"
-          language="bash"
-          :editable="false"
-        />
-        <Hook0Code
-          v-else-if="activeTab === 'javascript'"
           :code="jsSnippet"
           language="javascript"
           :editable="false"
         />
-        <Hook0Code
-          v-else-if="activeTab === 'rust'"
-          :code="rustSnippet"
-          language="rust"
-          :editable="false"
-        />
+      </Hook0CardContent>
+      <Hook0CardContent v-else-if="activeTab === 'rust'" role="tabpanel">
+        <Hook0Code :code="rustSnippet" language="rust" :editable="false" />
       </Hook0CardContent>
     </Hook0Card>
   </div>
