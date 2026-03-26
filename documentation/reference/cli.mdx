@@ -41,16 +41,25 @@ hook0 --version
 hook0 init
 
 # 2. Start receiving webhooks on your machine
-#    Connects to the Hook0 relay (play.hook0.com), gets a public URL,
-#    and forwards incoming webhooks to your local server on port 3000.
 hook0 listen 3000
 
-# 3. Send a test event through the Hook0 API
-#    Hook0 delivers it to all matching subscriptions — including the
-#    relay URL from step 2, so it shows up in your local terminal.
+# 3. Send a test event
 hook0 event send user.account.created \
   --label tenant=acme \
   --payload '{"user_id": "usr_123"}'
+```
+
+Here is what happens when you run `listen` then `event send`:
+
+```
+hook0 event send                        hook0 listen 3000
+      │                                       │
+      ▼                                       │
+┌───────────┐    delivers     ┌─────────┐     │    forwards    ┌─────────────────┐
+│  Hook0    │───────────────▶│  Relay   │─────┼──────────────▶│ localhost:3000   │
+│  API      │   to matching   │  Server  │ WebSocket          │ (your server)   │
+└───────────┘  subscriptions  └─────────┘  tunnel             └─────────────────┘
+                              play.hook0.com
 ```
 
 :::tip Try it without any setup
