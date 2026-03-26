@@ -5,8 +5,9 @@ import { useRouteIds } from '@/composables/useRouteIds';
 import { useI18n } from 'vue-i18n';
 import { useForm } from 'vee-validate';
 import { toTypedSchema } from '@/utils/zod-adapter';
-import { FormInput, Terminal, FileCode2, Copy } from 'lucide-vue-next';
+import { FormInput, Terminal, Copy } from 'lucide-vue-next';
 import RustIcon from './RustIcon.vue';
+import JavaScriptIcon from './JavaScriptIcon.vue';
 import { toast } from 'vue-sonner';
 
 import { sendEventSchema, type SendEventForm } from './sendEvent.schema';
@@ -347,7 +348,7 @@ function handleCancel() {
         >
           <FormInput v-if="tab === 'easy'" :size="16" aria-hidden="true" />
           <Terminal v-else-if="tab === 'curl'" :size="16" aria-hidden="true" />
-          <FileCode2 v-else-if="tab === 'javascript'" :size="16" aria-hidden="true" />
+          <JavaScriptIcon v-else-if="tab === 'javascript'" :size="16" />
           <RustIcon v-else-if="tab === 'rust'" :size="16" />
           {{ t(`events.tabs.${tab}`) }}
         </button>
@@ -386,7 +387,7 @@ function handleCancel() {
         >
           <FormInput v-if="tab === 'easy'" :size="16" aria-hidden="true" />
           <Terminal v-else-if="tab === 'curl'" :size="16" aria-hidden="true" />
-          <FileCode2 v-else-if="tab === 'javascript'" :size="16" aria-hidden="true" />
+          <JavaScriptIcon v-else-if="tab === 'javascript'" :size="16" />
           <RustIcon v-else-if="tab === 'rust'" :size="16" />
           {{ t(`events.tabs.${tab}`) }}
         </button>
@@ -507,7 +508,7 @@ function handleCancel() {
         >
           <FormInput v-if="tab === 'easy'" :size="16" aria-hidden="true" />
           <Terminal v-else-if="tab === 'curl'" :size="16" aria-hidden="true" />
-          <FileCode2 v-else-if="tab === 'javascript'" :size="16" aria-hidden="true" />
+          <JavaScriptIcon v-else-if="tab === 'javascript'" :size="16" />
           <RustIcon v-else-if="tab === 'rust'" :size="16" />
           {{ t(`events.tabs.${tab}`) }}
         </button>
