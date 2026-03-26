@@ -485,6 +485,7 @@ function handleCancel() {
               variant="primary"
               submit
               :disabled="!meta.valid"
+              :tooltip="!meta.valid ? t('forms.fillRequiredFields') : undefined"
               data-test="send-event-submit-button"
             >
               {{ t('events.sendEvent') }}
@@ -494,6 +495,7 @@ function handleCancel() {
               variant="primary"
               submit
               :disabled="!meta.valid"
+              :tooltip="!meta.valid ? t('forms.fillRequiredFields') : undefined"
               data-test="send-event-submit-button"
             >
               {{ t('events.sendFirstEvent') }}
@@ -533,7 +535,7 @@ function handleCancel() {
                 <button
                   class="send-event__secret-toggle"
                   type="button"
-                  :aria-label="secretRevealed ? 'Hide token' : 'Show token'"
+                  :aria-label="secretRevealed ? t('events.hideToken') : t('events.showToken')"
                   @click="secretRevealed = !secretRevealed"
                 >
                   <EyeOff v-if="secretRevealed" :size="16" aria-hidden="true" />

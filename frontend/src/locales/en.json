@@ -400,6 +400,8 @@
     "createSecret": "Create one",
     "tutorialTokenNote": "In production, use an application secret instead of your session token.",
     "regenerateId": "Regenerate",
+    "hideToken": "Hide token",
+    "showToken": "Show token",
     "type": "Event Type"
   },
   "eventsPerDayChart": {
