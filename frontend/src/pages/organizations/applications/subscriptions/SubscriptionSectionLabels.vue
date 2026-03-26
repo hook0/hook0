@@ -29,6 +29,7 @@ const emit = defineEmits<{
         :value="labels"
         :key-placeholder="t('common.labelKey')"
         :value-placeholder="t('common.labelValue')"
+        :show-separator="true"
         data-test="subscription-labels"
         @update:model-value="emit('update:labels', $event)"
       />

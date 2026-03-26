@@ -445,6 +445,7 @@ function handleCancel() {
                 :value="labels"
                 :key-placeholder="t('common.labelKey')"
                 :value-placeholder="t('common.labelValue')"
+                :show-separator="true"
                 data-test="send-event-labels"
               />
             </template>

@@ -91,11 +91,13 @@ type Props = {
   value: Hook0KeyValueKeyValuePair[] | Hook0KeyValuePlainObject;
   keyPlaceholder?: string;
   valuePlaceholder?: string;
+  showSeparator?: boolean;
 };
 
 const props = withDefaults(defineProps<Props>(), {
   keyPlaceholder: undefined,
   valuePlaceholder: undefined,
+  showSeparator: false,
 });
 const rawEmit = defineEmits<{
   'update:modelValue': [value: Hook0KeyValueKeyValuePair[] | Hook0KeyValuePlainObject];
@@ -149,7 +151,7 @@ function add() {
         :data-test="`kv-key-input-${index}`"
         @input="emitUpdate()"
       />
-      <span class="kv-separator" aria-hidden="true">=</span>
+      <span v-if="props.showSeparator" class="kv-separator" aria-hidden="true">=</span>
       <Hook0Input
         v-model="item.value"
         type="text"
