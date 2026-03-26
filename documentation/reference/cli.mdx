@@ -5,7 +5,7 @@ description: Complete reference for the Hook0 CLI
 
 # CLI Reference
 
-The Hook0 CLI manages your webhook infrastructure from the terminal.
+[Hook0](https://hook0.com) is a webhooks-as-a-service platform: you send events to Hook0, and Hook0 delivers them reliably to your users' endpoints with retries, monitoring, and delivery guarantees. The CLI brings the full power of the Hook0 platform to your terminal — manage your webhooks, test locally, debug delivery issues, and automate your workflow without leaving the command line.
 
 ### Key concepts
 
@@ -21,15 +21,15 @@ Learn more in the [Concepts](/concepts/) section.
 
 | Capability | Description |
 |------------|-------------|
-| **Local development** | Receive webhooks locally via WebSocket tunnel — like ngrok, but built into the CLI |
-| **Interactive testing** | Compose and send test webhooks through a visual TUI with built-in echo server |
+| **Local development** | Receive webhooks on your machine via WebSocket tunnel — like ngrok, built into the CLI |
+| **Interactive testing** | Compose and send test webhooks through a Terminal User Interface (TUI) with a built-in echo server (a local HTTP server that receives and displays webhook requests) |
 | **Event management** | Send events, list history with filters (type, status, time range, labels), inspect delivery attempts |
-| **Subscriptions** | Create, update, enable, disable, delete subscriptions with custom headers and labels |
-| **Event types** | Create, list, delete event types using dotted convention (`service.resource.verb`) |
+| **Subscriptions** | Full CRUD and enable/disable on subscriptions, with custom headers and labels |
+| **Event types** | Full CRUD on event types using dotted convention (`service.resource.verb`) |
 | **Replay** | Replay failed events individually or in bulk, with `--dry-run` preview and filters |
-| **Multi-profile** | Named profiles per environment, credentials stored in system keyring |
+| **Multi-profile** | Named profiles per environment, credentials stored in the OS keyring (macOS Keychain, Windows Credential Manager, Linux Secret Service) |
 | **Applications** | List, inspect, and switch applications across organizations |
-| **Scriptable output** | `--output json`, `--output table`, `--output compact` on every command |
+| **Scriptable output** | `--output json` (machine-readable), `--output table` (formatted columns), `--output compact` (one line per item, for grep/awk) |
 | **Shell completion** | Bash, Zsh, Fish, PowerShell, Elvish |
 
 ## Installation
@@ -48,7 +48,7 @@ hook0 --version
 
 ## Try It Now
 
-No account needed. Run this single command to launch an interactive demo:
+No Hook0 account needed — this connects to the public relay server. Run this single command to launch an interactive demo:
 
 ```bash
 hook0 example
