@@ -48,6 +48,9 @@ fn main() {
         .collect::<Vec<_>>()
         .join("\n");
 
-    // Disable markdownlint heading increment rule (clap-markdown emits h6 for options)
-    print!("<!-- markdownlint-disable MD001 -->\n\n{}", output.trim_end());
+    // clap-markdown emits h6 (###### **Options:**) as headings.
+    // Replace with plain bold text to avoid polluting the TOC.
+    let output = output.replace("###### ", "");
+
+    print!("{}", output.trim_end());
 }

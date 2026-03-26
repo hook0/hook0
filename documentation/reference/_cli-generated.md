@@ -1,12 +1,10 @@
-<!-- markdownlint-disable MD001 -->
-
 ## `hook0 init`
 
 Set up your first profile
 
 **Usage:** `hook0 init [OPTIONS]`
 
-###### **Options:**
+**Options:**
 
 * `--non-interactive` — Skip interactive prompts and use defaults
 * `--event-type <EVENT_TYPE>` — Event type to create
@@ -19,7 +17,7 @@ Authenticate with an Application Secret
 
 **Usage:** `hook0 login [OPTIONS]`
 
-###### **Options:**
+**Options:**
 
 * `--secret <SECRET>` — Application Secret (UUID token)
 * `--api-url <API_URL>` — API URL
@@ -38,7 +36,7 @@ Remove stored credentials
 
 **Usage:** `hook0 logout [OPTIONS]`
 
-###### **Options:**
+**Options:**
 
 * `-n`, `--profile-name <PROFILE_NAME>` — Profile name to remove credentials for
 * `--all` — Remove all stored credentials
@@ -59,11 +57,11 @@ Receive webhooks locally via tunnel
 
 **Usage:** `hook0 listen [OPTIONS] [TARGET]`
 
-###### **Arguments:**
+**Arguments:**
 
 * `<TARGET>` — Local URL or port to forward webhooks to (auto-detects if not specified) Examples: 3000, http://localhost:3000/webhooks
 
-###### **Options:**
+**Options:**
 
 * `--relay-url <RELAY_URL>` — Hooks relay server URL (WebSocket endpoint)
 
@@ -84,7 +82,7 @@ Send a sample webhook to test your setup
 
 **Usage:** `hook0 example [OPTIONS]`
 
-###### **Options:**
+**Options:**
 
 * `--target <TARGET>` — Target URL to forward webhooks to (default: built-in echo server)
 * `--relay-url <RELAY_URL>` — Relay server WebSocket URL
@@ -104,7 +102,7 @@ Manage webhook events
 
 **Usage:** `hook0 event <COMMAND>`
 
-###### **Subcommands:**
+**Subcommands:**
 
 * `send` — Send a new event
 * `list` — List events
@@ -118,11 +116,11 @@ Send a new event
 
 **Usage:** `hook0 event send [OPTIONS] --label <LABEL> <EVENT_TYPE>`
 
-###### **Arguments:**
+**Arguments:**
 
 * `<EVENT_TYPE>` — Event type (e.g., user.account.created)
 
-###### **Options:**
+**Options:**
 
 * `-d`, `--payload <PAYLOAD>` — JSON payload
 * `-f`, `--payload-file <PAYLOAD_FILE>` — Read payload from file
@@ -148,11 +146,11 @@ Get event details
 
 **Usage:** `hook0 event get [OPTIONS] <EVENT_ID>`
 
-###### **Arguments:**
+**Arguments:**
 
 * `<EVENT_ID>` — Event ID
 
-###### **Options:**
+**Options:**
 
 * `--attempts` — Show request attempts for this event
 
@@ -164,7 +162,7 @@ Manage event types
 
 **Usage:** `hook0 event-type <COMMAND>`
 
-###### **Subcommands:**
+**Subcommands:**
 
 * `create` — Create a new event type
 * `list` — List event types
@@ -178,11 +176,11 @@ Create a new event type
 
 **Usage:** `hook0 event-type create [OPTIONS] [NAME]`
 
-###### **Arguments:**
+**Arguments:**
 
 * `<NAME>` — Event type name (e.g., user.account.created) or individual components
 
-###### **Options:**
+**Options:**
 
 * `-s`, `--service <SERVICE>` — Service name (alternative to full name)
 * `-r`, `--resource <RESOURCE>` — Resource type name (alternative to full name)
@@ -196,7 +194,7 @@ List event types
 
 **Usage:** `hook0 event-type list [OPTIONS]`
 
-###### **Options:**
+**Options:**
 
 * `--service <SERVICE>` — Filter by service name
 
@@ -208,11 +206,11 @@ Delete an event type
 
 **Usage:** `hook0 event-type delete [OPTIONS] <NAME>`
 
-###### **Arguments:**
+**Arguments:**
 
 * `<NAME>` — Event type name (e.g., user.account.created)
 
-###### **Options:**
+**Options:**
 
 * `-y`, `--yes` — Skip confirmation prompt
 
@@ -224,7 +222,7 @@ Manage subscriptions
 
 **Usage:** `hook0 subscription <COMMAND>`
 
-###### **Subcommands:**
+**Subcommands:**
 
 * `create` — Create a new subscription
 * `list` — List subscriptions
@@ -242,7 +240,7 @@ Create a new subscription
 
 **Usage:** `hook0 subscription create [OPTIONS] --url <URL> --events <EVENTS> --label <LABEL>`
 
-###### **Options:**
+**Options:**
 
 * `-u`, `--url <URL>` — Webhook endpoint URL
 * `-e`, `--events <EVENTS>` — Event types to subscribe to (required, comma-separated or repeated)
@@ -262,7 +260,7 @@ List subscriptions
 
 **Usage:** `hook0 subscription list [OPTIONS]`
 
-###### **Options:**
+**Options:**
 
 * `--enabled` — Show only enabled subscriptions
 * `--disabled` — Show only disabled subscriptions
@@ -275,7 +273,7 @@ Get subscription details
 
 **Usage:** `hook0 subscription get <SUBSCRIPTION_ID>`
 
-###### **Arguments:**
+**Arguments:**
 
 * `<SUBSCRIPTION_ID>` — Subscription ID
 
@@ -287,11 +285,11 @@ Update a subscription
 
 **Usage:** `hook0 subscription update [OPTIONS] <SUBSCRIPTION_ID>`
 
-###### **Arguments:**
+**Arguments:**
 
 * `<SUBSCRIPTION_ID>` — Subscription ID
 
-###### **Options:**
+**Options:**
 
 * `-u`, `--url <URL>` — Webhook endpoint URL
 * `-e`, `--events <EVENTS>` — Event types to subscribe to (replaces existing)
@@ -310,11 +308,11 @@ Delete a subscription
 
 **Usage:** `hook0 subscription delete [OPTIONS] <SUBSCRIPTION_ID>`
 
-###### **Arguments:**
+**Arguments:**
 
 * `<SUBSCRIPTION_ID>` — Subscription ID
 
-###### **Options:**
+**Options:**
 
 * `-y`, `--yes` — Skip confirmation prompt
 
@@ -326,7 +324,7 @@ Enable a subscription
 
 **Usage:** `hook0 subscription enable <SUBSCRIPTION_ID>`
 
-###### **Arguments:**
+**Arguments:**
 
 * `<SUBSCRIPTION_ID>` — Subscription ID
 
@@ -338,7 +336,7 @@ Disable a subscription
 
 **Usage:** `hook0 subscription disable <SUBSCRIPTION_ID>`
 
-###### **Arguments:**
+**Arguments:**
 
 * `<SUBSCRIPTION_ID>` — Subscription ID
 
@@ -350,7 +348,7 @@ Manage applications
 
 **Usage:** `hook0 application <COMMAND>`
 
-###### **Subcommands:**
+**Subcommands:**
 
 * `list` — List applications
 * `get` — Get application details
@@ -365,7 +363,7 @@ List applications
 
 **Usage:** `hook0 application list [OPTIONS]`
 
-###### **Options:**
+**Options:**
 
 * `--organization-id <ORGANIZATION_ID>` — Organization ID (uses default if not specified)
 
@@ -377,7 +375,7 @@ Get application details
 
 **Usage:** `hook0 application get [APPLICATION_ID]`
 
-###### **Arguments:**
+**Arguments:**
 
 * `<APPLICATION_ID>` — Application ID (uses default if not specified)
 
@@ -389,7 +387,7 @@ Switch to a different application
 
 **Usage:** `hook0 application switch <APPLICATION_ID>`
 
-###### **Arguments:**
+**Arguments:**
 
 * `<APPLICATION_ID>` — Application ID to switch to
 
@@ -409,11 +407,11 @@ Replay failed events
 
 **Usage:** `hook0 replay [OPTIONS] [EVENT_ID]`
 
-###### **Arguments:**
+**Arguments:**
 
 * `<EVENT_ID>` — Event ID to replay
 
-###### **Options:**
+**Options:**
 
 * `--all` — Replay all events matching criteria (requires --confirm)
 * `--status <STATUS>` — Filter by status (failed, successful, etc.)
@@ -434,7 +432,7 @@ Manage configuration and profiles
 
 **Usage:** `hook0 config <COMMAND>`
 
-###### **Subcommands:**
+**Subcommands:**
 
 * `list` — List all profiles
 * `show` — Show current configuration
@@ -466,7 +464,7 @@ Set default profile
 
 **Usage:** `hook0 config set-default <PROFILE>`
 
-###### **Arguments:**
+**Arguments:**
 
 * `<PROFILE>` — Profile name to set as default
 
@@ -478,11 +476,11 @@ Remove a profile
 
 **Usage:** `hook0 config remove [OPTIONS] <PROFILE>`
 
-###### **Arguments:**
+**Arguments:**
 
 * `<PROFILE>` — Profile name to remove
 
-###### **Options:**
+**Options:**
 
 * `-y`, `--yes` — Skip confirmation
 
@@ -502,7 +500,7 @@ Generate shell completion scripts
 
 **Usage:** `hook0 completion <SHELL>`
 
-###### **Arguments:**
+**Arguments:**
 
 * `<SHELL>` — Shell to generate completions for
 
