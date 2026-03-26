@@ -5,18 +5,20 @@ description: Complete reference for the Hook0 CLI
 
 # CLI Reference
 
-The Hook0 CLI is a full-featured command-line interface for the Hook0 webhooks platform. It gives you complete control over your webhook infrastructure from the terminal:
+The Hook0 CLI manages your webhook infrastructure from the terminal.
 
-- **Local development** — Receive webhooks on your local machine via a secure WebSocket tunnel. The built-in TUI dashboard shows incoming requests, response status, headers, and payloads in real time. No need to expose your machine to the internet.
-- **Interactive testing** — Compose and send test webhooks through a visual TUI with a built-in echo server. Pick an event type, edit the JSON payload, send it, and watch the delivery happen — all without writing a single line of code.
-- **Event management** — Send events from CI/CD pipelines or scripts, list event history with powerful filters (by type, status, time range, labels), and inspect individual events with their delivery attempts.
-- **Subscription lifecycle** — Create, update, enable, disable, and delete webhook subscriptions. Attach custom HTTP headers, descriptions, and labels. Filter and list subscriptions by status or label.
-- **Event type management** — Define your webhook vocabulary by creating, listing, and deleting event types. Use the dotted naming convention (`service.resource.verb`) or specify components individually.
-- **Replay and recovery** — Replay individual failed events or bulk-replay filtered sets. Preview what would be replayed with `--dry-run` before committing. Filter by status, time range, event type, and cap the replay batch size.
-- **Multi-profile configuration** — Manage multiple environments (production, staging, development) through named profiles. Each profile stores its API URL, application ID, and credentials securely in the system keyring.
-- **Application switching** — List applications across organizations, inspect their details, and switch the active application for the current profile without re-authenticating.
-- **Scriptable output** — Every command supports `--output json` for machine-readable output, `--output table` for human-friendly display, and `--output compact` for one-line-per-item output. Pipe JSON output into `jq` for advanced scripting.
-- **Shell completion** — Full tab-completion for Bash, Zsh, Fish, PowerShell, and Elvish.
+| Capability | Description |
+|------------|-------------|
+| **Local development** | Receive webhooks locally via WebSocket tunnel with a real-time TUI dashboard |
+| **Interactive testing** | Compose and send test webhooks through a visual TUI with built-in echo server |
+| **Event management** | Send events, list history with filters (type, status, time range, labels), inspect delivery attempts |
+| **Subscriptions** | Create, update, enable, disable, delete subscriptions with custom headers and labels |
+| **Event types** | Create, list, delete event types using dotted convention (`service.resource.verb`) |
+| **Replay** | Replay failed events individually or in bulk, with `--dry-run` preview and filters |
+| **Multi-profile** | Named profiles per environment, credentials stored in system keyring |
+| **Applications** | List, inspect, and switch applications across organizations |
+| **Scriptable output** | `--output json`, `--output table`, `--output compact` on every command |
+| **Shell completion** | Bash, Zsh, Fish, PowerShell, Elvish |
 
 ## Installation
 
@@ -57,9 +59,6 @@ hook0 example
 ### Local Development
 
 ```bash
-# Forward all webhooks to your local dev server
-hook0 listen 3000
-
 # Forward to a specific endpoint path
 hook0 listen http://localhost:8080/api/webhooks
 
@@ -299,8 +298,8 @@ hook0 subscription list --output json | jq '.[] | select(.enabled == true) | .ur
 # Count failed events in the last hour
 hook0 event list --status failed --since 1h --output json | jq length
 
-# Verbose output for debugging
-hook0 event send user.test --label tenant=debug --payload '{}' --verbose --verbose
+# Increase verbosity for debugging (-v info, -vv debug, -vvv trace)
+hook0 event send user.test --label tenant=debug --payload '{}' -vv
 ```
 
 ---
