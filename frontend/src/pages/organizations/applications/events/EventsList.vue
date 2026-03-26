@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { h, markRaw, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { RouterLink, useRoute } from 'vue-router';
 import { useRouteIds } from '@/composables/useRouteIds';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
@@ -76,12 +76,23 @@ const columns: ColumnDef<Event, unknown>[] = [
     accessorKey: 'event_id',
     header: t('events.id'),
     cell: (info) =>
-      h(Hook0Uuid, {
-        value: String(info.getValue()),
-        truncated: true,
-        linked: true,
-        'data-test': 'event-id-link',
-      }),
+      h(
+        RouterLink,
+        {
+          to: {
+            name: routes.EventsDetail,
+            params: { ...route.params, event_id: info.row.original.event_id },
+          },
+          class: 'table-cell-uuid-link',
+          onClick: (e: MouseEvent) => e.stopPropagation(),
+          'data-test': 'event-id-link',
+        },
+        () =>
+          h(Hook0Uuid, {
+            value: String(info.getValue()),
+            truncated: true,
+          })
+      ),
   },
   {
     accessorKey: 'received_at',
@@ -206,4 +217,21 @@ const columns: ColumnDef<Event, unknown>[] = [
   </Hook0PageLayout>
 </template>
 
-<style scoped></style>
+<style scoped>
+:deep(.table-cell-uuid-link) {
+  text-decoration: none;
+  color: inherit;
+}
+
+:deep(.table-cell-uuid-link:hover) {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  color: var(--color-primary);
+}
+
+:deep(.table-cell-uuid-link:focus-visible) {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+</style>

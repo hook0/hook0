@@ -1,5 +1,5 @@
 import { h } from 'vue';
-import { useRoute } from 'vue-router';
+import { RouterLink, useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
 
@@ -97,12 +97,23 @@ export function useLogColumns(): ColumnDef<RequestAttemptExtended, unknown>[] {
       cell: (info) => {
         const row = info.row.original;
         const eventType = row.event_type_name;
-        const uuid = h(Hook0Uuid, {
-          value: String(info.getValue()),
-          truncated: true,
-          linked: true,
-          'data-test': 'log-event-link',
-        });
+        const uuid = h(
+          RouterLink,
+          {
+            to: {
+              name: routes.EventsDetail,
+              params: { ...route.params, event_id: row.event_id },
+            },
+            class: 'log-event-link',
+            onClick: (e: MouseEvent) => e.stopPropagation(),
+            'data-test': 'log-event-link',
+          },
+          () =>
+            h(Hook0Uuid, {
+              value: String(info.getValue()),
+              truncated: true,
+            })
+        );
         if (eventType) {
           return h('div', { class: 'log-event-cell' }, [
             uuid,
