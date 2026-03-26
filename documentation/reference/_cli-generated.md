@@ -136,21 +136,7 @@ Send a new event
 
 List events
 
-**Usage:** `hook0 event list [OPTIONS]`
-
-###### **Options:**
-
-* `--event-type <EVENT_TYPE>` — Filter by event type
-* `--status <STATUS>` — Filter by status (waiting, pending, in_progress, successful, failed)
-* `--since <SINCE>` — Filter events since (e.g., 1h, 24h, 7d)
-* `--until <UNTIL>` — Filter events until
-* `-l`, `--label <LABEL>` — Filter by label (key=value, can be repeated)
-* `--limit <LIMIT>` — Maximum number of events to return
-
-  Default value: `50`
-* `--page <PAGE>` — Page number
-
-  Default value: `1`
+**Usage:** `hook0 event list`
 
 
 
@@ -276,7 +262,6 @@ List subscriptions
 
 ###### **Options:**
 
-* `-l`, `--label <LABEL>` — Filter by label (key=value, can be repeated)
 * `--enabled` — Show only enabled subscriptions
 * `--disabled` — Show only disabled subscriptions
 
