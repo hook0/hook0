@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import type { Hook0KeyValueKeyValuePair } from '@/components/Hook0KeyValue';
 
 import Hook0KeyValue from '@/components/Hook0KeyValue.vue';
+import Hook0Button from '@/components/Hook0Button.vue';
 
 const { t } = useI18n();
 
@@ -22,7 +23,12 @@ const emit = defineEmits<{
   <div class="sub-row">
     <div class="sub-row__label">
       <span class="sub-row__title">{{ t('subscriptions.subscriptionLabels') }}</span>
-      <span class="sub-row__hint">{{ t('subscriptions.subscriptionLabelsHelp') }}</span>
+      <span class="sub-row__hint">
+        {{ t('subscriptions.subscriptionLabelsHelp') }}
+        <Hook0Button variant="link" href="https://documentation.hook0.com/concepts/subscriptions#filtering-criteria">
+          {{ t('common.learnMore') }}
+        </Hook0Button>
+      </span>
     </div>
     <div class="sub-row__content">
       <Hook0KeyValue
@@ -69,6 +75,7 @@ const emit = defineEmits<{
   color: var(--color-text-secondary);
   line-height: 1.5;
 }
+
 
 .sub-row__content {
   min-width: 0;
