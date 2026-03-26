@@ -38,6 +38,7 @@ test.describe("Events", () => {
 
     // Click send event button
     await page.locator('[data-test="events-send-button"]').click();
+    await page.waitForURL('**/events/send');
 
     // Verify send event form is visible
     await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 10000 });
@@ -59,6 +60,7 @@ test.describe("Events", () => {
     await page.goto(`/organizations/${env.organizationId}/applications/${env.applicationId}/events`);
     await expect(page.locator('[data-test="events-send-button"]')).toBeVisible({ timeout: 15000 });
     await page.locator('[data-test="events-send-button"]').click();
+    await page.waitForURL('**/events/send');
     await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 10000 });
 
     // Select event type
@@ -139,16 +141,17 @@ test.describe("Events", () => {
 
     // Click send event button to open form
     await page.locator('[data-test="events-send-button"]').click();
+    await page.waitForURL('**/events/send');
 
     // Wait for form
     await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 10000 });
 
     // Click cancel
     await page.locator('[data-test="send-event-cancel-button"]').click();
+    await page.waitForURL('**/events');
 
     // Verify form is closed and events list is shown
     await expect(page.locator('[data-test="events-card"]')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('[data-test="send-event-form"]')).not.toBeVisible();
   });
 
   test("should add and remove labels when sending event", async ({ page, request }) => {
@@ -163,6 +166,7 @@ test.describe("Events", () => {
 
     // Open send event form
     await page.locator('[data-test="events-send-button"]').click();
+    await page.waitForURL('**/events/send');
     await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 10000 });
 
     // Row 0 already exists (KV component starts with one empty pair).

@@ -110,6 +110,7 @@ test.describe("Logs", () => {
     );
     await expect(page.locator('[data-test="events-send-button"]')).toBeVisible({ timeout: 10000 });
     await page.locator('[data-test="events-send-button"]').click();
+    await page.waitForURL('**/events/send');
     await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 10000 });
     await page
       .locator('[data-test="send-event-type-select"]')
@@ -264,6 +265,7 @@ test.describe("Logs", () => {
     );
     await expect(page.locator('[data-test="events-send-button"]')).toBeVisible({ timeout: 10000 });
     await page.locator('[data-test="events-send-button"]').click();
+    await page.waitForURL('**/events/send');
 
     await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 10000 });
     await page
