@@ -26,7 +26,7 @@ EOF
 FROM debian:trixie-slim
 ARG UID=10001
 RUN apt-get update -y \
-    && apt-get install -y --no-install-recommends adduser curl \
+    && apt-get install -y --no-install-recommends adduser curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 RUN adduser \
     --disabled-password \
