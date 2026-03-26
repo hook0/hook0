@@ -314,7 +314,8 @@
   "forms": {
     "enterName": "Enter a name",
     "fillRequiredFields": "Fill all required fields",
-    "selectServiceResourceVerb": "Select a service, resource type, and verb"
+    "selectServiceResourceVerb": "Select a service, resource type, and verb",
+    "missingFields": "Missing: {fields}"
   },
   "eventTypes": {
     "confirmDeactivate": "Delete event type {name}?",
@@ -762,6 +763,12 @@
   },
   "subscriptions": {
     "authenticateWebhooks": "verify webhook signatures",
+    "fields": {
+      "endpoint": "Endpoint",
+      "name": "Name",
+      "eventTypes": "Event Types",
+      "labels": "Subscription Labels"
+    },
     "create": "Create subscription",
     "createFirstSubscription": "Create your first subscription",
     "createTitle": "Create new subscription",

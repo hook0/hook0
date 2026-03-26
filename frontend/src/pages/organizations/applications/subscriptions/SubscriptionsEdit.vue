@@ -325,6 +325,16 @@ const onSubmit = handleSubmit((values) => {
 // Computed: whether the non-validated parts are ready
 const hasRequiredLabels = computed(() => Object.keys(labelsMap.value).length > 0);
 const hasSelectedEventTypes = computed(() => eventTypes.value.some((et) => et.selected));
+
+const missingFieldsTooltip = computed(() => {
+  const missing: string[] = [];
+  if (!targetUrl.value) missing.push(t('subscriptions.fields.endpoint'));
+  if (!description.value) missing.push(t('subscriptions.fields.name'));
+  if (!hasSelectedEventTypes.value) missing.push(t('subscriptions.fields.eventTypes'));
+  if (!hasRequiredLabels.value) missing.push(t('subscriptions.fields.labels'));
+  if (missing.length === 0) return undefined;
+  return t('forms.missingFields', { fields: missing.join(', ') });
+});
 </script>
 
 <template>
@@ -468,11 +478,7 @@ const hasSelectedEventTypes = computed(() => eventTypes.value.some((et) => et.se
                 :disabled="
                   !targetUrl || !description || !hasRequiredLabels || !hasSelectedEventTypes
                 "
-                :tooltip="
-                  !targetUrl || !description || !hasRequiredLabels || !hasSelectedEventTypes
-                    ? t('forms.fillRequiredFields')
-                    : undefined
-                "
+                :tooltip="missingFieldsTooltip"
                 data-test="subscription-submit-button"
                 @click="onSubmit"
                 >{{ isNew ? t('common.create') : t('common.save') }}
@@ -486,11 +492,7 @@ const hasSelectedEventTypes = computed(() => eventTypes.value.some((et) => et.se
                 :disabled="
                   !targetUrl || !description || !hasRequiredLabels || !hasSelectedEventTypes
                 "
-                :tooltip="
-                  !targetUrl || !description || !hasRequiredLabels || !hasSelectedEventTypes
-                    ? t('forms.fillRequiredFields')
-                    : undefined
-                "
+                :tooltip="missingFieldsTooltip"
                 data-test="subscription-submit-button"
                 @click="onSubmit"
                 >{{ t('subscriptions.createFirstSubscription') }}
