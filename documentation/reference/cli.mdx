@@ -39,19 +39,6 @@ hook0 event send user.account.created \
 hook0 example
 ```
 
-## Global Options
-
-These options apply to all commands.
-
-| Option | Env Variable | Description | Default |
-|--------|-------------|-------------|---------|
-| `-p, --profile <NAME>` | `HOOK0_PROFILE` | Profile to use | Default profile |
-| `-o, --output <FORMAT>` | — | Output format: `json`, `table`, `compact` | `table` |
-| `--api-url <URL>` | `HOOK0_API_URL` | Override API URL | From profile |
-| `--secret <SECRET>` | `HOOK0_SECRET` | Override application secret | From keyring |
-| `--application-id <UUID>` | `HOOK0_APPLICATION_ID` | Override application ID | From profile |
-| `-v, --verbose` | — | Verbosity level (`-v`, `-vv`, `-vvv`) | `warn` |
-
 ---
 
 ## Usage Examples
@@ -107,15 +94,15 @@ hook0 config path
 
 ---
 
-## Environment Variables
+## Command Reference
 
-| Variable | Description | Used by |
-|----------|-------------|---------|
-| `HOOK0_PROFILE` | Default profile name | All commands |
-| `HOOK0_API_URL` | API base URL | All authenticated commands |
-| `HOOK0_SECRET` | Application secret | All authenticated commands |
-| `HOOK0_APPLICATION_ID` | Application ID | All authenticated commands |
-| `HOOK0_RELAY_URL` | WebSocket relay server URL | `listen` |
+:::info
+This section is auto-generated from the CLI source code. Run `npm run generate:cli` in the `documentation/` directory to regenerate after CLI changes.
+:::
+
+import GeneratedRef from './_cli-generated.md';
+
+<GeneratedRef />
 
 ---
 
@@ -144,12 +131,27 @@ eval (hook0 completion elvish | slurp)
 
 ---
 
-## Command Reference
+## Environment Variables
 
-:::info
-This section is auto-generated from the CLI source code. Run `npm run generate:cli` in the `documentation/` directory to regenerate after CLI changes.
-:::
+| Variable | Description | Used by |
+|----------|-------------|---------|
+| `HOOK0_PROFILE` | Default profile name | All commands |
+| `HOOK0_API_URL` | API base URL | All authenticated commands |
+| `HOOK0_SECRET` | Application secret | All authenticated commands |
+| `HOOK0_APPLICATION_ID` | Application ID | All authenticated commands |
+| `HOOK0_RELAY_URL` | WebSocket relay server URL | `listen` |
 
-import GeneratedRef from './_cli-generated.md';
+---
 
-<GeneratedRef />
+## Global Options
+
+These options apply to all commands.
+
+| Option | Env Variable | Description | Default |
+|--------|-------------|-------------|---------|
+| `-p, --profile <NAME>` | `HOOK0_PROFILE` | Profile to use | Default profile |
+| `-o, --output <FORMAT>` | — | Output format: `json`, `table`, `compact` | `table` |
+| `--api-url <URL>` | `HOOK0_API_URL` | Override API URL | From profile |
+| `--secret <SECRET>` | `HOOK0_SECRET` | Override application secret | From keyring |
+| `--application-id <UUID>` | `HOOK0_APPLICATION_ID` | Override application ID | From profile |
+| `-v, --verbose` | — | Verbosity level (`-v`, `-vv`, `-vvv`) | `warn` |
