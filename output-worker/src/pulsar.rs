@@ -578,14 +578,9 @@ async fn handle_message(
                         .await?;
 
                         // Creating a retry request or giving up
-                        if let Some(retry_in) = compute_next_retry(
-                            &mut tx,
-                            &attempt,
-                            &response,
-                            config.max_fast_retries,
-                            config.max_slow_retries,
-                        )
-                        .await?
+                        if let Some(retry_in) =
+                            compute_next_retry(&mut tx, &attempt, &response, config.max_retries)
+                                .await?
                         {
                             let next_retry_count = attempt.retry_count + 1;
                             let delay_until = Utc::now() + retry_in;

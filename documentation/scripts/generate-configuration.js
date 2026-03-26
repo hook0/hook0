@@ -135,26 +135,26 @@ The output-worker is a separate binary with its own configuration. Run \`hook0-o
 | \`OBJECT_STORAGE_KEY_ID\` | Key ID of the S3-like object storage | - |  |
 | \`OBJECT_STORAGE_KEY_SECRET\` 🔒 | Key secret of the S3-like object storage | - |  |
 | \`OBJECT_STORAGE_MAX_ATTEMPTS\` | Maximum number of attempts for object storage operations | \`3\` |  |
-| \`OBJECT_STORAGE_CONNECT_TIMEOUT\` | Connect timeout for object storage operations | \`3s\` |  |
-| \`OBJECT_STORAGE_READ_TIMEOUT\` | Read timeout for object storage operations | \`5s\` |  |
-| \`OBJECT_STORAGE_OPERATION_ATTEMPT_TIMEOUT\` | Operation attempt timeout for object storage | \`10s\` |  |
+| \`OBJECT_STORAGE_CONNECT_TIMEOUT\` | Connect timeout for object storage operations (time to initiate socket connection) | \`3s\` |  |
+| \`OBJECT_STORAGE_READ_TIMEOUT\` | Read timeout for object storage operations (time to first byte) | \`5s\` |  |
+| \`OBJECT_STORAGE_OPERATION_ATTEMPT_TIMEOUT\` | Operation attempt timeout for object storage operations | \`10s\` |  |
 | \`OBJECT_STORAGE_OPERATION_TIMEOUT\` | Operation timeout for object storage operations | \`30s\` |  |
 | \`OBJECT_STORAGE_BUCKET_NAME\` | Bucket name of the S3-like object storage | - |  |
 | \`STORE_RESPONSE_BODY_AND_HEADERS_IN_OBJECT_STORAGE\` | If true, new response bodies and headers will be stored in object storage instead of database | \`false\` |  |
-| \`STORE_RESPONSE_BODY_AND_HEADERS_IN_OBJECT_STORAGE_ONLY_FOR\` | A comma-separated list of applications ID whose response bodies and headers should be stored in object storage | - |  |
+| \`STORE_RESPONSE_BODY_AND_HEADERS_IN_OBJECT_STORAGE_ONLY_FOR\` | A comma-separated list of applications ID whose response bodies and headers should be stored in object storage; if empty (default), all response bodies and headers will be stored in object storage regardless of application ID | - |  |
 | \`WORKER_NAME\` | Worker name (as defined in the infrastructure.worker table) | - | ✓ |
 | \`WORKER_VERSION\` | Worker version (if empty, will use version from Cargo.toml) | - |  |
-| \`CONCURRENT\` | Number of request attempts to handle concurrently | \`1\` |  |
-| \`MAX_FAST_RETRIES\` | Maximum number of fast retries (before doing slow retries) | \`30\` |  |
-| \`MAX_SLOW_RETRIES\` | Maximum number of slow retries (before giving up) | \`30\` |  |
+| \`CONCURRENT\` | Number of request attempts to handle concurrently (for a worker with pg queue type, this means opening 1 connection to PostgreSQL per concurrent unit) | \`1\` |  |
+| \`MAX_RETRIES\` | Maximum number of delivery retries before giving up (the effective number of retries is limited by \`MAX_RETRIES\`, \`MAX_RETRY_WINDOW\` and the retry policy) | \`25\` |  |
+| \`MAX_RETRY_WINDOW\` | Maximum time window for delivery retries before giving up (the effective number of retries is limited by \`MAX_RETRIES\`, \`MAX_RETRY_WINDOW\` and the retry policy) | \`8d\` |  |
 | \`MONITORING_HEARTBEAT_URL\` | Heartbeat URL that should be called regularly | - |  |
 | \`MONITORING_HEARTBEAT_MIN_PERIOD_IN_S\` | Minimal duration (in second) to wait between sending two heartbeats | \`60\` |  |
-| \`DISABLE_TARGET_IP_CHECK\` | If set to false (default), webhooks targeting non-globally-reachable IPs will fail | \`false\` |  |
-| \`CONNECT_TIMEOUT\` | Timeout for establishing a connection to the target | \`5s\` |  |
-| \`TIMEOUT\` | Timeout for obtaining a HTTP response from the target, including connect phase | \`15s\` |  |
+| \`DISABLE_TARGET_IP_CHECK\` | If set to false (default), webhooks that target IPs that are not globally reachable (like "127.0.0.1" for example) will fail | \`false\` |  |
+| \`CONNECT_TIMEOUT\` | Timeout for establishing a connection to the target (if exceeded, request attempt will fail) | \`5s\` |  |
+| \`TIMEOUT\` | Timeout for obtaining a HTTP response from the target, including connect phase (if exceeded, request attempt will fail) | \`15s\` |  |
 | \`SIGNATURE_HEADER_NAME\` | Name of the header containing webhook's signature | \`X-Hook0-Signature\` |  |
 | \`ENABLED_SIGNATURE_VERSIONS\` | A comma-separated list of enabled signature versions | \`v1\` |  |
-| \`LOAD_WAITING_REQUEST_ATTEMPTS_INTO_PULSAR\` | If true, will load waiting request attempts from DB into Pulsar before starting | \`false\` |  |
+| \`LOAD_WAITING_REQUEST_ATTEMPTS_INTO_PULSAR\` | If true, will load waiting request attempts (that can be picked by this worker) from DB into Pulsar before starting working; this is useful when migrating to a Pulsar worker; has no effect if worker has not a pulsar queue type | \`false\` |  |
 | \`REQUEST_ATTEMPT_DB_COMMIT_GRACE_PERIOD\` | Grace period to wait for DB commit before dropping unfound request attempts (Pulsar workers only) | \`5s\` |  |
 | \`PULSAR_CONSUMER_STATS_INTERVAL\` | Period of Pulsar consumer stats collection (set to "0s" to disable) (only for Pulsar workers) | \`15s\` |  |
 | \`THROUGHPUT_LOG_INTERVAL\` | Interval between periodic throughput log lines (set to "0s" to disable) | \`60s\` |  |
