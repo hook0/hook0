@@ -418,7 +418,9 @@ function onQuotaCardKeydown(event: KeyboardEvent, card: QuotaCard) {
 
 .org-dashboard__quota-card--clickable {
   cursor: pointer;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .org-dashboard__quota-card--clickable:hover {

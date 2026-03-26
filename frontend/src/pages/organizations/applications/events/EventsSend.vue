@@ -366,16 +366,12 @@ function handleCancel() {
         <template #subtitle>
           <i18n-t keypath="events.sendTestEventSubtitle" tag="span">
             <template #eventType>
-              <router-link
-                :to="{ name: routes.EventTypesList, params: route.params }"
-              >
+              <router-link :to="{ name: routes.EventTypesList, params: route.params }">
                 {{ t('events.sendTestEventCreateEventType') }}
               </router-link>
             </template>
             <template #subscription>
-              <router-link
-                :to="{ name: routes.SubscriptionsList, params: route.params }"
-              >
+              <router-link :to="{ name: routes.SubscriptionsList, params: route.params }">
                 {{ t('events.sendTestEventCreateSubscription') }}
               </router-link>
             </template>
@@ -413,18 +409,13 @@ function handleCancel() {
       <!-- CONDITIONAL CONTENT -->
 
       <!-- Easy way: Loading skeleton -->
-      <Hook0CardContent
-        v-if="activeTab === 'easy' && (eventTypesLoading || !rawEventTypes)"
-      >
+      <Hook0CardContent v-if="activeTab === 'easy' && (eventTypesLoading || !rawEventTypes)">
         <Hook0SkeletonGroup :count="3" />
       </Hook0CardContent>
 
       <!-- Easy way: Error -->
       <Hook0CardContent v-else-if="activeTab === 'easy' && eventTypesError">
-        <Hook0ErrorCard
-          :error="eventTypesError"
-          @retry="refetchEventTypes()"
-        />
+        <Hook0ErrorCard :error="eventTypesError" @retry="refetchEventTypes()" />
       </Hook0CardContent>
 
       <!-- Easy way: Form -->
@@ -521,15 +512,8 @@ function handleCancel() {
       <Hook0CardContent v-else-if="activeTab === 'curl'" role="tabpanel">
         <Hook0Code :code="curlSnippet" language="bash" :editable="false" />
       </Hook0CardContent>
-      <Hook0CardContent
-        v-else-if="activeTab === 'javascript'"
-        role="tabpanel"
-      >
-        <Hook0Code
-          :code="jsSnippet"
-          language="javascript"
-          :editable="false"
-        />
+      <Hook0CardContent v-else-if="activeTab === 'javascript'" role="tabpanel">
+        <Hook0Code :code="jsSnippet" language="javascript" :editable="false" />
       </Hook0CardContent>
       <Hook0CardContent v-else-if="activeTab === 'rust'" role="tabpanel">
         <Hook0Code :code="rustSnippet" language="rust" :editable="false" />
@@ -574,5 +558,4 @@ function handleCancel() {
   color: var(--color-primary);
   border-bottom-color: var(--color-primary);
 }
-
 </style>
